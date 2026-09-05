@@ -203,12 +203,19 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <span class="tb-label">{{ 'adminFeedback.filters.open' | translate }}</span>
             @if (filterCount() > 0) { <span class="tb-count">{{ filterCount() }}</span> }
           </button>
+          <!-- The glyph alone said nothing about where it leads (admin feedback
+               a33ba528). It now carries the word next to it, and the tooltip /
+               accessible name states what the page actually is instead of
+               repeating the button's own label. -->
           <button
             type="button"
-            class="tb-btn icon"
+            class="tb-btn progress"
             (click)="setView('progress')"
-            [attr.title]="'adminFeedback.stream.progress' | translate"
-            [attr.aria-label]="'adminFeedback.stream.progress' | translate">📊</button>
+            [attr.title]="'adminFeedback.stream.progressHint' | translate"
+            [attr.aria-label]="'adminFeedback.stream.progressHint' | translate">
+            <span aria-hidden="true">📊</span>
+            <span class="tb-label">{{ 'adminFeedback.stream.progress' | translate }}</span>
+          </button>
         </div>
 
         <div class="scroll stream">
@@ -472,12 +479,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   </div>
                 }
                 @case ('review') {
-                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true }"></ng-container>
-                  <div class="inline-actions">
-                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
-                      {{ 'adminFeedback.stream.openTopic' | translate }}
-                    </button>
-                  </div>
+                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true, inline: true }"></ng-container>
                 }
                 @case ('release') {
                   @let body = render(m.body);
@@ -591,19 +593,35 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- REVIEW GATE — the work is done, the topic is not, until an admin
            looked at the result (migration 20260729130000). -->
-      <ng-template #reviewGate let-m let-hot="hot">
-        <section class="review-gate sc-nest sc-nest--rule">
+      <ng-template #reviewGate let-m let-hot="hot" let-inline="inline">
+        <section class="review-gate" [class.sc-nest]="!inline" [class.sc-nest--rule]="!inline" [class.inline]="inline">
           <!-- No headline (feedback d08f1983): the row right above this box
                already says "Abnahme steht aus" on the flight path, with its own
                status mark. Repeating "Geshipped — bitte abnehmen" underneath it
                said the same thing a second time and pushed the two buttons that
-               actually decide something further down. -->
+               actually decide something further down.
+
+               "inline" = this gate sits ON a stream card (feedback a398fc94), and
+               there it wears no frame of its own: a box inside a box drew a
+               border around three buttons that are simply what this card offers.
+               The topic sheet keeps the framed version, where the gate really is
+               a separate section under a conversation. -->
           @if (!embedded()) {
             <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
           }
           <div class="rg-links">
             @if (areaLink(m); as href) {
               <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+            }
+            @if (inline) {
+              <!-- On a card, "open the topic" belongs in this row: it is the
+                   second way to LOOK at the thing, next to looking at it live.
+                   It also absorbs "Gespräch wieder aufnehmen", which was the
+                   same move with extra steps — the reopen lives inside the
+                   topic, where the steer gets typed anyway. -->
+              <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                {{ 'adminFeedback.stream.openTopic' | translate }}
+              </button>
             }
             <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
           </div>
@@ -630,9 +648,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
                 ✓ {{ 'adminFeedback.review.accept' | translate }}
               </button>
-              <button class="sc-btn micro" (click)="startReopen(m, hot)" [disabled]="busy()">
-                ↻ {{ 'adminFeedback.review.reopen' | translate }}
-              </button>
+              @if (!inline) {
+                <button class="sc-btn micro" (click)="startReopen(m, hot)" [disabled]="busy()">
+                  ↻ {{ 'adminFeedback.review.reopen' | translate }}
+                </button>
+              }
             </div>
           }
         </section>
@@ -951,9 +971,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .tb-btn.active { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .tb-btn.icon { padding: 0; font-size: 1.05rem; }
+    .tb-btn.progress { font-size: max(0.86rem, var(--sc-fs-floor)); }
     .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
-    @media (max-width: 420px) { .tb-btn.filter .tb-label { display: none; } }
+    @media (max-width: 420px) { .tb-btn.filter .tb-label, .tb-btn.progress .tb-label { display: none; } }
 
     /* ---- Bands ---- */
     .band { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
@@ -1052,6 +1072,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .proc-note { margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .reopen-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .review-gate { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--sc-border); border-left: 3px solid var(--sc-accent); border-radius: 8px; }
+    /* On a card the gate IS the card's content — no second frame around it
+       (feedback a398fc94). The card already draws the box. */
+    .review-gate.inline { padding: 0; border: 0; border-radius: 0; }
     .author-channel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-accent); border-radius: 8px; }
     .ac-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .ac-title { font-weight: 700; font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-accent); }

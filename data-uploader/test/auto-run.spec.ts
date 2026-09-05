@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { decideAutoRun, describeDecision, type AutoRunInputs } from '../src/lib/auto-run.js';
+import {
+  decideAutoRun,
+  describeDecision,
+  shouldQuitAfterAutoRun,
+  type AutoRunInputs,
+} from '../src/lib/auto-run.js';
 import type { DiscoveredChannel, ChannelTag } from '../src/lib/discovery.js';
 import type { CatalogSnapshot } from '../src/lib/sync.js';
 
@@ -134,5 +139,45 @@ describe('describeDecision', () => {
 
   it('describes a skip', () => {
     expect(describeDecision(decideAutoRun({ ...base, enabled: false }))).toBe('no auto-run (disabled)');
+  });
+});
+
+/**
+ * "Close again when there is nothing to do" (feedback 71b1e402). The narrow
+ * condition is the whole point: only `already-uploaded` is the tool asserting
+ * that the server has this build. Every other skip means it could not tell, was
+ * not allowed to look, or was never asked — and a process that vanishes at every
+ * login would hide exactly those.
+ */
+describe('shouldQuitAfterAutoRun', () => {
+  const on = { startedHidden: true, enabled: true } as const;
+
+  it('quits the unattended launch when the build is already uploaded', () => {
+    expect(shouldQuitAfterAutoRun({ ...on, reason: 'already-uploaded' })).toBe(true);
+  });
+
+  it('stays open on every skip that is not a proven "nothing to do"', () => {
+    for (const reason of [
+      'disabled',
+      'no-session',
+      'no-snapshot',
+      'no-channels',
+      'unknown-local-version',
+    ] as const) {
+      expect(shouldQuitAfterAutoRun({ ...on, reason })).toBe(false);
+    }
+    expect(shouldQuitAfterAutoRun({ ...on, reason: undefined })).toBe(false);
+  });
+
+  it('never closes a window the operator opened themselves', () => {
+    expect(
+      shouldQuitAfterAutoRun({ startedHidden: false, enabled: true, reason: 'already-uploaded' }),
+    ).toBe(false);
+  });
+
+  it('respects the opt-out', () => {
+    expect(
+      shouldQuitAfterAutoRun({ startedHidden: true, enabled: false, reason: 'already-uploaded' }),
+    ).toBe(false);
   });
 });

@@ -241,6 +241,7 @@ function publicSettings(): {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  quitAfterAutoRun: boolean;
   updateChannel: 'alpha' | 'beta' | 'stable';
 } {
   const s = getSettings();
@@ -252,6 +253,7 @@ function publicSettings(): {
     autoStart: s.autoStart,
     shutdownAfterUpload: s.shutdownAfterUpload,
     autoRunOnNewVersion: s.autoRunOnNewVersion,
+    quitAfterAutoRun: s.quitAfterAutoRun,
     updateChannel: s.updateChannel,
   };
 }
@@ -272,6 +274,7 @@ ipcMain.handle(
       autoStart?: boolean;
       autoRunOnNewVersion?: boolean;
       shutdownAfterUpload?: boolean;
+      quitAfterAutoRun?: boolean;
       updateChannel?: 'alpha' | 'beta' | 'stable';
     },
   ) => {
@@ -285,6 +288,9 @@ ipcMain.handle(
     }
     if (typeof partial?.shutdownAfterUpload === 'boolean') {
       clean.shutdownAfterUpload = partial.shutdownAfterUpload;
+    }
+    if (typeof partial?.quitAfterAutoRun === 'boolean') {
+      clean.quitAfterAutoRun = partial.quitAfterAutoRun;
     }
     if (
       partial?.updateChannel === 'alpha' ||
@@ -320,6 +326,18 @@ function execAsync(cmd: string): Promise<{ ok: boolean; error?: string }> {
 // after a fully-confirmed upload AND when the operator opted in. `delaySeconds`
 // is sanitised to a non-negative integer; the message is a fixed literal — no
 // user-controlled data reaches the shell.
+/**
+ * Close the program from the renderer — the unattended launch's way out when
+ * there was nothing to upload (feedback 71b1e402). Goes through `quitForReal`
+ * so the tray icon is destroyed and `before-quit` still gets to flush pending
+ * job telemetry; a plain `window.close()` would only hide us into the tray.
+ */
+ipcMain.handle('sc:system:quit', () => {
+  log.info('[autorun] nothing to do after an unattended start — closing');
+  quitForReal();
+  return { ok: true };
+});
+
 ipcMain.handle('sc:system:shutdown', (_e, delaySeconds?: number) => {
   const secs =
     typeof delaySeconds === 'number' && Number.isFinite(delaySeconds)

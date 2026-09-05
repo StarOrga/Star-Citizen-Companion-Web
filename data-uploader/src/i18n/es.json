@@ -84,7 +84,9 @@
     "minimize": "Minimizar a la bandeja al cerrar",
     "minimizeHint": "La X oculta la ventana en la bandeja en lugar de salir.",
     "autoStart": "Iniciar con Windows",
-    "autoStartHint": "Se inicia con Windows, directamente en la bandeja, sin ventana."
+    "autoStartHint": "Se inicia con Windows, directamente en la bandeja, sin ventana.",
+    "quitAfterAutoRun": "Cerrar de nuevo cuando no haya nada que hacer",
+    "quitAfterAutoRunHint": "Solo para el inicio con Windows: si el parche actual ya está subido por completo, el programa se cierra enseguida — y tras una subida, en cuanto termina."
   },
   "autorun": {
     "toggle": "Ejecutar todo automáticamente con una nueva data.p4k",

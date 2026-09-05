@@ -1511,8 +1511,10 @@ one ⋯ in the sheet's head.
 *Wer?* (Alle / Meine Themen / Andere Admins / Nutzer-Feedback / one author),
 *Wo steht es?* (every presentation bucket, with counts), *Bereich* (the area
 tags). A search flattens the bands into one relevance-ordered list. The
-Fortschritt dashboard is byte-identical and lives behind the 📊 glyph next to
-the filter button. The new-topic composer is the bar pinned under the stream.
+Fortschritt dashboard lives behind the 📊 glyph next to
+the filter button — the glyph now carries the word *Fortschritt* beside it
+(hidden below 420 px like the filter label) and a tooltip that says what the
+page is rather than repeating the button's own label (feedback a33ba528). The new-topic composer is the bar pinned under the stream.
 
 **Roles and red.** Avatars are initials coloured by `profiles.role` — admin in
 the elevated-access red (`--sc-accent-hot`), collaborator light blue, viewer /
@@ -1545,42 +1547,84 @@ all and the motivating stats line went with the chip rows. The localStorage
 keys `sc.adminFeedback.view`, `.handled`, `.workflowScope`, `.workflowKind`
 are no longer read.
 
-### What the Fortschritt view shows (feedback ef15ea67)
+### What the Fortschritt view shows (feedback ef15ea67, reworked a33ba528)
 
 The dashboard is **read-only and always-on by design — no filters, pickers or
 toggles**: the admin asked for a view that is informative the second it opens.
-The "Diesen Monat / All-time" pair is a side-by-side layout, not a control. Three
-blocks, all hand-rolled SVG/CSS on the existing tokens (no charting dependency):
+Everything is hand-rolled SVG/CSS on the existing tokens (no charting
+dependency).
 
-1. **Windows** — the donut (shipped share) + the shipped / ToDo / answered bars,
-   now with a **pace** footer per window: the **median time-to-ship**
-   (`created_at → shipped_at`, measured only on rows that carry a real ship
-   stamp) and the **Rückfrage rate** (share of topics raised in the window the
-   routine had to ask about). Volume alone never showed whether the routine is
-   getting faster or asking more; these two do.
-2. **Durchsatz** — ships per calendar week over the last 12 weeks, the running
-   week highlighted. A stalled or accelerating routine is a trend, not a number.
-   A continuation counts once, in the week of its latest ship (`shipped_at` is
-   bumped at each re-ship).
-3. **Lebenszyklus** — this document's "Contract" diagram rendered **live**. The
+**The 2026-09-05 rework (feedback a33ba528)** re-cut the page around a single
+question — *what does a returning admin learn that they did not know last
+week?* The previous layout led with a "Diesen Monat / All-time" pair (a donut,
+four bars and two pace figures per column). The all-time column could not move:
+its shipped share shifts by a fraction of a percent per week and its Erledigt
+bar only ever grows. The monthly column reset to nothing every 1st. And the
+lifecycle map underneath was contract documentation, not a measurement. So the
+page now reads:
+
+1. **Diese Woche** (`weeklyPulse`) — **Erledigt**, **Neu eingegangen** and the
+   **Median bis Ship**, each since Monday 00:00 and each with the same figure
+   for the previous *complete* week beside it. Deltas live only here, because
+   this is the only block whose numbers move weekly. Under it, one sentence
+   states the thing the three numbers are actually asked about: whether the
+   pile grew or shrank this week.
+   - The comparison is the previous **calendar** week, not a rolling 7 days —
+     "seit Montag" is the frame the board is read in, and a rolling window
+     redefines itself every day.
+   - The intake delta is deliberately tone-neutral (more feedback is a busier
+     week, not a worse one); only Erledigt and the median are coloured.
+2. **Jetzt auf dem Board** (`lifecycleSnapshot`) — the live queue, no window
+   and no projection: **Wartet auf dich** (Rückfragen an den Admin + the
+   sign-off gate + review holds whose PR waits on a human merge), **In Arbeit**
+   (routine + Rückfragen an Nutzer), **Unangefasst**, and the age of the oldest
+   still-open topic. A queue is worth knowing *now*, so it is a state, not a
+   trend.
+3. **Durchsatz** (`weeklySeries`) — 12 calendar weeks, and now **two** series:
+   the faint full-width column is what came IN that week (`created_at`), the
+   solid inner column is what SHIPPED (`shipped_at`). A ship count alone cannot
+   answer "are we keeping up" — five ships in a twelve-topic week is a losing
+   week. A continuation counts once, in the week of its latest ship
+   (`shipped_at` is bumped at each re-ship). Under the chart sit the two slow
+   quality figures over a **30-day** window: the **median time-to-ship** and
+   the **Rückfrage rate** (share of topics raised in the window the routine had
+   to ask about). They are windowed at 30 days, not 7, because on a weekly
+   sample they swing between 0 % and 50 % on a single topic.
+4. **Lebenszyklus** — this document's "Contract" diagram rendered live, now
+   inside a `<details>` that is **collapsed by default**. It is reference
+   material: correct, occasionally useful, and identical from week to week. The
    spine is the happy path (ToDo → In Arbeit → Geshipped); every branch is
-   labelled with what triggers it: the routine's Rückfrage and the admin's answer
-   back into ToDo, the reaper reopening a stale claim (`in_progress → open`), the
-   review hold (`in_progress` **with** a `ship_ref`, waiting on a human merge),
-   the post-ship continuation loop back into In Arbeit, and the terminal
-   `issue_created` / legacy `rejected` stages. Each node carries its **current**
-   occupancy plus the annotations that matter operationally — oldest active topic
-   in days, how many ToDo items are answered Rückfragen / continuations /
-   reaper-reopened, and how many `in_progress` rows are review holds rather than
-   active work (the holds that this doc's "Surfacing open review-holds" section
-   warns can rot unnoticed).
+   labelled with what triggers it: the routine's Rückfrage and the admin's
+   answer back into ToDo, the reaper reopening a stale claim
+   (`in_progress → open`), the review hold (`in_progress` **with** a `ship_ref`,
+   waiting on a human merge), the post-ship continuation loop back into In
+   Arbeit, and the terminal `issue_created` / legacy `rejected` stages. Each
+   node carries its current occupancy plus the operational annotations —
+   oldest active topic in days, how many ToDo items are answered Rückfragen /
+   continuations / reaper-reopened, and how many `in_progress` rows are review
+   holds rather than active work (the holds that this doc's "Surfacing open
+   review-holds" section warns can rot unnoticed).
+
+**Dropped in the rework**, because none of them could tell one week from the
+next: the all-time window entirely (donut, four bars, pace pair), the monthly
+window's donut and bars, and the `dashboard.thisMonth / allTime / shippedShare /
+donutLabel / note / todo / done / issues / openHint` keys that went with them.
+
+**Honesty rule.** A figure is printed only when the board's own stamps support
+it. A week without ships renders the median as an em dash, never as a `0`; the
+median's delta is direction-only (`▲`/`▼`/`±`) because a percentage change over
+a handful of ships pretends to a precision the data has not got, and the sample
+size is printed next to it. Durations are measured **only** on rows carrying a
+real `shipped_at` — the `updated_at` fallback that `computeStats` uses for
+*attribution* would invent durations for legacy rows that never got a stamp.
 
 There is **no transition history** in the schema, so the map annotates occupancy,
 never pass-through counts — `lifecycleSnapshot` derives everything from the rows
 and threads the board already holds. The map is a plain `<ol>`/`<ul>`, so it
 reads as text for assistive tech (dots, spine and meters are `aria-hidden`), and
 it is a vertical spine rather than a horizontal flow chart precisely so it never
-scrolls sideways in the docked panel.
+scrolls sideways in the docked panel. The chart itself carries a text
+`aria-label` naming both series, their peak and the running week.
 
 ### Referring to a topic by number (feedback 21587480)
 

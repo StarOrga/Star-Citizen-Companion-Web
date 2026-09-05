@@ -253,7 +253,9 @@
     "minimize": "Minimise to tray on close",
     "minimizeHint": "The X hides the window to the tray instead of quitting.",
     "autoStart": "Start with Windows",
-    "autoStartHint": "Launches with Windows — straight into the tray, no window."
+    "autoStartHint": "Launches with Windows — straight into the tray, no window.",
+    "quitAfterAutoRun": "Close again when there is nothing to do",
+    "quitAfterAutoRunHint": "Applies to the Windows start only: if the current patch is already fully uploaded the program closes again right away — and after an upload, as soon as it finishes."
   },
   "autorun": {
     "toggle": "Run the whole pipeline automatically on a new data.p4k",

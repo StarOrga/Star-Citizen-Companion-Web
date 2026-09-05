@@ -4,11 +4,19 @@ import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { PatchCadenceComponent } from './patch-cadence.component';
-import { buildPatchCycle, type CyclePoint, type CycleStretch } from './patch-cycle';
+import { buildPatchCycle, type CyclePoint, type CyclePointKey, type CycleStretch } from './patch-cycle';
 import { computePatchStats, liveReleaseAt } from './patch-stats';
 import type { StackCard } from './patch-stack';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** One labelled milestone under the axis: the chip, the name, the date. */
+interface CycleMark {
+  key: CyclePointKey;
+  chip: 'live' | 'ptu' | 'next' | 'superseded' | null;
+  label: string;
+  date: string;
+}
 
 /**
  * "Wann kommt der nächste?" — the cycle axis (rethink Ⓚ, iteration 4; anchor
@@ -22,10 +30,18 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *              ━━━━            overshoot (warning): only the part past "usual"
  *
  * The same construction is applied retrospectively to the test phase (first
- * test build → Live, in PTU cyan). Hotfixes are one labelled marker with a
- * count. Under the axis: one line of facts per stretch, the median as the
- * subordinate clause, never the headline. The old KPI charts stay folded
- * underneath — nothing was approved for removal.
+ * test build → Live, in PTU cyan). Hotfixes collapse into one counted marker.
+ *
+ * The rail carries markers, not prose (feedback 01df732d, follow-up). Labels
+ * used to be pinned to their own percentage above and below the rail, and as
+ * soon as two markers sat close together — which the middle of every cycle
+ * does — their chips, names and dates printed over each other and over the
+ * facts underneath. So the naming moved off the rail: at most THREE milestones
+ * (start → Live → end) in a flow row that shares the width, "today" alone in a
+ * band of its own, and one line of facts per stretch below — the median as the
+ * subordinate clause, never the headline. A marker that has no room for a name
+ * keeps its dot and gives it up; hover still tells. The old KPI charts stay
+ * folded underneath — nothing was approved for removal.
  */
 @Component({
   selector: 'sc-patch-cycle',
@@ -51,6 +67,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
              screen on every read (feedback 01df732d) — they live under the (i). -->
         <sc-info-note [label]="'news.patch.next.infoLabel' | translate">
           <p class="note-p">{{ 'news.patch.next.disclaimer' | translate }}</p>
+          <p class="note-p">{{ 'news.patch.next.markers' | translate }}</p>
           <ul class="note-legend">
             <li><i class="sw lead"></i>{{ 'news.patch.next.legend.lead' | translate }}</li>
             <li><i class="sw real"></i>{{ 'news.patch.next.legend.real' | translate }}</li>
@@ -60,8 +77,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
         </sc-info-note>
       </div>
 
-      <div class="axis" role="img" [attr.aria-label]="aria()">
-        <div class="track">
+      <div class="axis">
+        <!-- Only the rail itself is the picture: the milestones and facts under
+             it are text, and a role="img" around them would hide them from a
+             screen reader that could otherwise just read them. -->
+        <div class="track" role="img" [attr.aria-label]="aria()">
           @if (pastEnd(); as end) {
             <span class="bar past" [style.left.%]="0" [style.width.%]="end"></span>
           }
@@ -80,16 +100,42 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             }
           }
           @for (p of c.points; track p.key + p.at) {
-            <span class="pt" [attr.data-key]="p.key" [style.left.%]="p.pct"></span>
-            <span class="lab" [attr.data-key]="p.key" [class.below]="isBelow(p)" [style.left.%]="p.pct">
-              @if (chipOf(p); as chip) {
-                <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
-              }
-              <b>{{ pointLabel(p) }}</b>
-              <small>{{ date(p.at) }}</small>
-            </span>
+            <span class="pt" [attr.data-key]="p.key" [style.left.%]="p.pct" [attr.title]="pointTitle(p)"></span>
           }
         </div>
+
+        <!-- The only marker that still carries its name ON the rail: today.
+             A single caption has nothing to collide with, and it is clamped at
+             both ends so it cannot leave the axis either. -->
+        @if (nowPoint(); as n) {
+          <div class="nowband">
+            <span class="tick" [style.left.%]="n.pct"></span>
+            <span class="today" [attr.data-edge]="edgeOf(n.pct)" [style.left.%]="n.pct">
+              <b>{{ 'news.patch.next.point.now' | translate }}</b> · {{ date(n.at) }}
+            </span>
+          </div>
+        }
+
+        <!-- The axis' legend: at most three milestones — where the run starts,
+             where it stands, where it ends — laid out as a row IN FLOW. Every
+             label used to float at its own percentage, so on a narrow axis they
+             collided with each other and with the facts underneath (feedback
+             01df732d). Boxes in a flow row cannot overlap at any width, and the
+             markers they name keep their place on the rail. -->
+        <ol class="marks">
+          @for (m of milestones(); track m.key) {
+            <li class="mark" [attr.data-key]="m.key">
+              <span class="head">
+                @if (m.chip; as chip) {
+                  <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
+                }
+                <b>{{ m.label }}</b>
+              </span>
+              <small>{{ m.date }}</small>
+            </li>
+          }
+        </ol>
+
         <ul class="facts">
           @if (c.lead; as l) {
             <li><b>{{ 'news.patch.next.fact.lead' | translate:{ days: l.realDays } }}</b>
@@ -154,11 +200,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .sentence { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; margin: 0; font-size: max(0.82rem, var(--sc-fs-floor)); line-height: 1.5; color: var(--sc-fg-1); }
     .sentence b { color: var(--sc-fg-0); font-weight: 600; }
     .status { color: var(--sc-fg-1); }
-    .note-p { margin: 0; }
+    .note-p { margin: 0 0 6px; }
+    .note-p:last-of-type { margin-bottom: 0; }
     .note-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--sc-fg-2); }
     .note-legend li { display: flex; align-items: center; gap: 8px; }
 
-    .axis { padding: 66px 8px 58px; }
+    /* Room above for the dots' glow, nothing more: the axis no longer parks
+       text in reserved bands, so it cannot run out of them either. */
+    .axis { padding: 12px 8px 0; }
     .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); }
     .bar { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 4px; }
     /* Usual: muted, taller, behind. Real: active, thin, in front. Over: the part past usual. */
@@ -179,16 +228,27 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .pt[data-key='usual'] { width: 12px; height: 12px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-bg-0); border: 2px dashed var(--sc-accent); }
     .pt[data-key='leadUsual'] { width: 2px; height: 18px; border-radius: 1px; border: 0; background: var(--sc-fg-1); opacity: 0.8; }
 
-    .lab { position: absolute; bottom: 16px; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.25; }
-    .lab b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.7rem, var(--sc-fs-floor)); }
-    .lab.below { bottom: auto; top: 14px; }
-    .lab[data-key='prevLive'] { transform: translateX(0); align-items: flex-start; }
-    .lab[data-key='prevLive'] b { color: var(--sc-fg-2); font-weight: 500; }
-    .lab[data-key='live'] b { font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .lab[data-key='usual'], .lab[data-key='nextLive'] { transform: translateX(-100%); align-items: flex-end; }
-    .lab[data-key='usual'] b { color: var(--sc-accent); }
-    .lab[data-key='leadUsual'] b { color: var(--sc-fg-2); font-weight: 500; }
-    .lab[data-key='hotfix'] b { color: var(--sc-warning); font-weight: 500; }
+    /* "heute", the one caption left on the rail: its own band, so the facts and
+       milestones below can never be printed over. */
+    .nowband { position: relative; height: 20px; margin-top: 8px; }
+    .tick { position: absolute; top: -8px; width: 1px; height: 10px; transform: translateX(-50%); background: color-mix(in srgb, var(--sc-fg-0) 55%, transparent); }
+    .today { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; font-size: max(0.66rem, var(--sc-fs-floor)); line-height: 1.2; color: var(--sc-fg-2); }
+    .today b { color: var(--sc-fg-0); font-weight: 600; }
+    /* Clamped at the rail's ends: a centred caption at 0% or 100% would hang
+       out of the panel instead of over another label. */
+    .today[data-edge='start'] { transform: translateX(0); }
+    .today[data-edge='end'] { transform: translateX(-100%); }
+
+    /* The milestones: a flow row, so they share the width instead of fighting
+       for it. First one opens the axis, the last one closes it. */
+    .marks { list-style: none; display: flex; gap: 10px 16px; margin: 12px 0 0; padding: 0; }
+    .mark { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font-size: max(0.66rem, var(--sc-fs-floor)); line-height: 1.3; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .mark:nth-child(2) { align-items: center; text-align: center; }
+    .mark:last-child:not(:first-child) { align-items: flex-end; text-align: right; }
+    .mark .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .mark b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.72rem, var(--sc-fs-floor)); }
+    .mark[data-key='prevLive'] b { color: var(--sc-fg-2); font-weight: 500; }
+    .mark[data-key='usual'] b { color: var(--sc-accent); }
     .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 4px; font-family: var(--sc-font-display); font-size: max(0.52rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
     .chip[data-status='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
     .chip[data-status='ptu'] { color: var(--sc-accent); border: 1px solid var(--sc-accent); }
@@ -213,9 +273,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .charts[open] summary { color: var(--sc-fg-0); margin-bottom: 8px; }
 
     @media (max-width: 640px) {
-      .axis { padding-top: 58px; padding-bottom: 48px; }
-      .lab { font-size: max(0.6rem, var(--sc-fs-floor)); }
-      .lab small { display: none; }
+      /* Too narrow for three columns: the milestones become three short rows,
+         read top to bottom in the order the rail runs left to right. */
+      .marks { flex-direction: column; gap: 6px; margin-top: 10px; }
+      .mark,
+      .mark:nth-child(2),
+      .mark:last-child:not(:first-child) { flex-direction: row; align-items: baseline; text-align: left; gap: 8px; }
+      .mark .head { flex: 0 1 auto; }
     }
   `],
 })
@@ -270,8 +334,46 @@ export class PatchCycleComponent {
     return Math.min(a, b);
   }
 
-  isBelow(p: CyclePoint): boolean {
-    return p.key === 'now' || p.key === 'prevLive' || p.key === 'hotfix' || p.key === 'leadUsual';
+  /** The "today" marker, when the cycle still has one to show. */
+  readonly nowPoint = computed<CyclePoint | null>(() => this.cycle()?.points.find((p) => p.key === 'now') ?? null);
+
+  /**
+   * The three milestones the axis is named by: where this patch's run starts
+   * (its first test build, or the patch it replaced when there was none), where
+   * it stands (Live), and where it ends (the actual successor, or the usual
+   * next date). Everything else — the hotfix diamond, today, the usual end of
+   * testing — keeps its marker but loses its label: those three sit close
+   * together in the middle of the axis, and a label per marker is what turned
+   * the diagram into stacked text (feedback 01df732d). Each of them is already
+   * spelled out in a fact line underneath, so nothing is lost but the collision.
+   */
+  readonly milestones = computed<CycleMark[]>(() => {
+    const c = this.cycle();
+    if (!c) return [];
+    const at = (key: CyclePointKey) => c.points.find((p) => p.key === key) ?? null;
+    const picked: CyclePoint[] = [];
+    for (const p of [at('firstTest') ?? at('prevLive'), at('live'), at('nextLive') ?? at('usual')]) {
+      if (p && !picked.includes(p)) picked.push(p);
+    }
+    return picked.map((p) => ({
+      key: p.key,
+      chip: this.chipOf(p),
+      label: this.pointLabel(p),
+      date: this.date(p.at),
+    }));
+  });
+
+  /** Which way the "today" caption reads from its marker, so it stays inside. */
+  edgeOf(pct: number): 'start' | 'end' | null {
+    if (pct < 15) return 'start';
+    if (pct > 85) return 'end';
+    return null;
+  }
+
+  /** The name a marker no longer prints — on hover, where it costs no room. */
+  pointTitle(p: CyclePoint): string {
+    const date = this.date(p.at);
+    return date ? `${this.pointLabel(p)} · ${date}` : this.pointLabel(p);
   }
 
   /** The board's status word for a point — the same vocabulary on both surfaces. */
