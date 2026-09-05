@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
+import { InfoNoteComponent } from '../shared/info-note.component';
 import { PatchCadenceComponent } from './patch-cadence.component';
 import { buildPatchCycle, type CyclePoint, type CycleStretch } from './patch-cycle';
 import { computePatchStats, liveReleaseAt } from './patch-stats';
@@ -29,23 +30,35 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 @Component({
   selector: 'sc-patch-cycle',
   standalone: true,
-  imports: [TranslateModule, PatchCadenceComponent],
+  imports: [TranslateModule, InfoNoteComponent, PatchCadenceComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (cycle(); as c) {
-      <p class="sentence">
-        @if (c.main; as m) {
-          @if (!m.finished) {
-            <b>{{ (m.key === 'cadence' ? 'news.patch.next.sentenceLive' : 'news.patch.next.sentencePlanned')
-                  | translate:{ line: card().line, date: date(usualAt()), when: until(c.daysToNext ?? 0) } }}</b>
-            <span class="status">{{ statusLine(m) }}</span>
-          } @else {
-            <b>{{ 'news.patch.next.sentenceHistory' | translate:{ line: card().line, next: nextVersion(), date: date(nextAt()), days: m.realDays, median: num(m.medianDays) } }}</b>
-            <span class="status">{{ deviation(m) }}</span>
+      <div class="lede">
+        <p class="sentence">
+          @if (c.main; as m) {
+            @if (!m.finished) {
+              <b>{{ (m.key === 'cadence' ? 'news.patch.next.sentenceLive' : 'news.patch.next.sentencePlanned')
+                    | translate:{ line: card().line, date: date(usualAt()), when: until(c.daysToNext ?? 0) } }}</b>
+              <span class="status">{{ statusLine(m) }}</span>
+            } @else {
+              <b>{{ 'news.patch.next.sentenceHistory' | translate:{ line: card().line, next: nextVersion(), date: date(nextAt()), days: m.realDays, median: num(m.medianDays) } }}</b>
+              <span class="status">{{ deviation(m) }}</span>
+            }
           }
-        }
-        <span class="disclaimer">{{ 'news.patch.next.disclaimer' | translate }}</span>
-      </p>
+        </p>
+        <!-- The caveats and the colour key: true, and not worth four lines of
+             screen on every read (feedback 01df732d) — they live under the (i). -->
+        <sc-info-note [label]="'news.patch.next.infoLabel' | translate">
+          <p class="note-p">{{ 'news.patch.next.disclaimer' | translate }}</p>
+          <ul class="note-legend">
+            <li><i class="sw lead"></i>{{ 'news.patch.next.legend.lead' | translate }}</li>
+            <li><i class="sw real"></i>{{ 'news.patch.next.legend.real' | translate }}</li>
+            <li><i class="sw usual"></i>{{ 'news.patch.next.legend.usual' | translate }}</li>
+            <li><i class="sw over"></i>{{ 'news.patch.next.legend.over' | translate }}</li>
+          </ul>
+        </sc-info-note>
+      </div>
 
       <div class="axis" role="img" [attr.aria-label]="aria()">
         <div class="track">
@@ -77,12 +90,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             </span>
           }
         </div>
-        <ul class="legend" aria-hidden="true">
-          <li><i class="sw lead"></i>{{ 'news.patch.next.legend.lead' | translate }}</li>
-          <li><i class="sw real"></i>{{ 'news.patch.next.legend.real' | translate }}</li>
-          <li><i class="sw usual"></i>{{ 'news.patch.next.legend.usual' | translate }}</li>
-          <li><i class="sw over"></i>{{ 'news.patch.next.legend.over' | translate }}</li>
-        </ul>
         <ul class="facts">
           @if (c.lead; as l) {
             <li><b>{{ 'news.patch.next.fact.lead' | translate:{ days: l.realDays } }}</b>
@@ -105,17 +112,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
            the section answers its own question in words. An axis here would
            have to borrow another patch's dates — misleading under this
            heading — so it stays out; the medians carry the estimate. -->
-      <p class="sentence">
-        @if (plannedQuarter(); as q) {
-          <b>{{ 'news.patch.next.planned.sentence' | translate:{ line: card().line, quarter: q } }}</b>
-        } @else {
-          <b>{{ 'news.patch.next.planned.unknown' | translate:{ line: card().line } }}</b>
-        }
-        @if (hasProjection()) {
-          <span class="status">{{ 'news.patch.next.planned.status' | translate:{ date: date(projectedLiveAt()) } }}</span>
-        }
-        <span class="disclaimer">{{ 'news.patch.next.disclaimer' | translate }}</span>
-      </p>
+      <div class="lede">
+        <p class="sentence">
+          @if (plannedQuarter(); as q) {
+            <b>{{ 'news.patch.next.planned.sentence' | translate:{ line: card().line, quarter: q } }}</b>
+          } @else {
+            <b>{{ 'news.patch.next.planned.unknown' | translate:{ line: card().line } }}</b>
+          }
+          @if (hasProjection()) {
+            <span class="status">{{ 'news.patch.next.planned.status' | translate:{ date: date(projectedLiveAt()) } }}</span>
+          }
+        </p>
+        <sc-info-note [label]="'news.patch.next.infoLabel' | translate">
+          <p class="note-p">{{ 'news.patch.next.disclaimer' | translate }}</p>
+        </sc-info-note>
+      </div>
       <ul class="facts">
         @if (cadenceKpi(); as k) {
           <li><b>{{ 'news.patch.next.span.cadence' | translate:{ days: num(k.median) } }}</b>
@@ -139,12 +150,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   `,
   styles: [`
     :host { display: block; }
-    .sentence { display: flex; flex-direction: column; gap: 4px; margin: 0 0 14px; font-size: max(0.82rem, var(--sc-fs-floor)); line-height: 1.5; color: var(--sc-fg-1); }
+    .lede { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; }
+    .sentence { flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; margin: 0; font-size: max(0.82rem, var(--sc-fs-floor)); line-height: 1.5; color: var(--sc-fg-1); }
     .sentence b { color: var(--sc-fg-0); font-weight: 600; }
     .status { color: var(--sc-fg-1); }
-    .disclaimer { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .note-p { margin: 0; }
+    .note-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; color: var(--sc-fg-2); }
+    .note-legend li { display: flex; align-items: center; gap: 8px; }
 
-    .axis { padding: 66px 8px 0; }
+    .axis { padding: 66px 8px 58px; }
     .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); }
     .bar { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 4px; }
     /* Usual: muted, taller, behind. Real: active, thin, in front. Over: the part past usual. */
@@ -181,9 +195,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .chip[data-status='next'] { color: var(--sc-accent); border: 1px dashed var(--sc-accent); }
     .chip[data-status='superseded'] { color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
 
-    .legend { list-style: none; margin: 58px 0 0; padding: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .legend li { display: inline-flex; align-items: center; gap: 6px; }
-    .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
+    .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; flex: none; }
     .sw.lead { background: var(--sc-accent); }
     .sw.real { background: var(--sc-success); }
     .sw.usual { height: 10px; background: color-mix(in srgb, var(--sc-success) 18%, transparent); }
@@ -201,10 +213,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .charts[open] summary { color: var(--sc-fg-0); margin-bottom: 8px; }
 
     @media (max-width: 640px) {
-      .axis { padding-top: 58px; }
+      .axis { padding-top: 58px; padding-bottom: 48px; }
       .lab { font-size: max(0.6rem, var(--sc-fs-floor)); }
       .lab small { display: none; }
-      .legend { margin-top: 48px; }
     }
   `],
 })
