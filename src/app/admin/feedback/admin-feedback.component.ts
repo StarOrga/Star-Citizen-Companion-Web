@@ -109,6 +109,31 @@ export type WhoFilter = 'all' | 'mine' | 'others' | 'users' | { authorId: string
 
 /** localStorage key: when the admin last looked at the Geliefert band. */
 const LAST_SEEN_KEY = 'sc.adminFeedback.lastSeenDelivered';
+/**
+ * Keys the 2026-09-04 rethink stopped writing: the view switch, the run's
+ * tick-off map and its two lenses. Nothing reads them any more, and they were
+ * never registered as preference keys, so they also survived a consent
+ * withdrawal. Cleared best-effort on the next panel load; `ConsentService`
+ * lists them too, for anyone who never opens the panel again.
+ */
+const RETIRED_KEYS = [
+  'sc.adminFeedback.view',
+  'sc.adminFeedback.handled',
+  'sc.adminFeedback.workflowScope',
+  'sc.adminFeedback.workflowKind',
+] as const;
+
+/** Best-effort removal of {@link RETIRED_KEYS}; never throws. */
+function purgeRetiredKeys(): void {
+  if (typeof localStorage === 'undefined') return;
+  for (const key of RETIRED_KEYS) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* private mode / quota */
+    }
+  }
+}
 /** Draft identity of the new-topic composer (see `FeedbackDraftService`). */
 const DRAFT_SCOPE = draftScopes.adminNew;
 /** Days of the Geliefert band shown before "n weitere Tage anzeigen". */
@@ -1792,6 +1817,7 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   async ngOnInit() {
+    purgeRetiredKeys();
     await this.refresh();
     // The marker compares against the previous visit; this one starts now.
     this.stampLastSeen();

@@ -1762,9 +1762,7 @@
         "clear": "Suche löschen",
         "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
         "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes",
-        "boardSummary": "{{cards}} Patches mit Treffern · Stichpunkte von {{loaded}} geladenen Notes durchsucht",
-        "noHits": "Kein Patch passt zur Suche.",
-        "cardHits": "{{notes}} Notes · {{lines}} Stichpunkte · {{roadmap}} Roadmap-Einträge"
+        "noHits": "Nichts gefunden – auch nicht in anderer Schreibweise."
       },
       "roadmap": {
         "title": "Was steckt drin",
@@ -1786,7 +1784,8 @@
           "committed": "Zugesagt",
           "tentative": "Vorläufig",
           "unknown": "Offen"
-        }
+        },
+        "openCard": "Roadmap-Eintrag „{{name}}“ auf RSI öffnen"
       },
       "detail": {
         "loading": "Patch-Inhalte werden geladen …",
@@ -1804,12 +1803,11 @@
       },
       "stability": {
         "title": "Stabilität",
-        "chipAria": "Stabilität von Patch {{version}}: {{level}}",
         "earlyShort": "früh",
         "early": "Tag {{day}} von {{threshold}} – Einordnung noch vorläufig",
         "insufficient": "Noch zu wenig Daten für eine Einordnung.",
         "historical": "Endstand – kein Tagesverlauf, der Patch lief vor dem Start der täglichen Messung.",
-        "score": "Index {{score}} / 100",
+        "score": "von 100 % Startwert",
         "component": {
           "community": "Community",
           "service": "Dienste",
@@ -1830,7 +1828,7 @@
         },
         "timeline": "Verlauf seit LIVE",
         "timelineAria": "Stabilität pro Tag seit LIVE, {{days}} Messpunkte",
-        "dayTitle": "{{date}}: {{level}} ({{score}}), {{velocity}} neue Antworten/Tag",
+        "dayTitle": "{{date}}: {{score}} % – {{level}}, {{velocity}} neue Antworten/Tag",
         "hotfixMark": "Hotfix {{build}} am {{date}}",
         "hotfixes": "{{count}} Hotfixes",
         "tickets": {
@@ -1844,10 +1842,13 @@
         "source": "Quellen: Spectrum-Kommentare, RSI-Status, CIG Known Issues. Keine Issue-Council-Zahlen (Login-Pflicht).",
         "history": {
           "title": "Stabilität je Patch",
-          "hint": "Endstand je LIVE-Patch; der aktuelle ist schraffiert, solange er früh ist",
+          "hint": "Höher ist ruhiger. Endstand je LIVE-Patch; der aktuelle ist schraffiert, solange er früh ist",
           "colAria": "Patch {{version}}: {{level}}",
-          "noData": "ohne Einordnung"
-        }
+          "noData": "ohne Einordnung",
+          "colAriaScored": "Patch {{version}}: {{percent}} % stabil – {{level}}"
+        },
+        "badgeAria": "Stabilität von Patch {{version}}: {{percent}} % – {{level}}",
+        "deductions": "Jeder Patch startet bei 100 %; die Balken sind die Abzüge daraus."
       },
       "status": {
         "next": "Nächster",
@@ -1894,7 +1895,16 @@
         "source": "laut Spectrum-Post („Important Build Info“)",
         "known": "Bekannte Probleme",
         "focus": "Testing Focus",
-        "wipe": "Wipe"
+        "wipe": "Wipe",
+        "noBuildInfo": "RSI hat zu diesem Build keine „Important Build Info“ veröffentlicht.",
+        "generalTitle": "Gilt für jeden Patch",
+        "generalItem": {
+          "launcher": "Launcher öffnen und warten, bis er die neue Version wirklich heruntergeladen hat – die Versionsnummer im Launcher muss zum Patch passen.",
+          "shaders": "Shader-Ordner leeren (%LOCALAPPDATA%\\\\Star Citizen\\\\), wenn Grafik flackert oder die Bildrate nach dem Patch einbricht.",
+          "verify": "Bei Abstürzen direkt nach dem Patch im Launcher „Verify“ laufen lassen, bevor man einen Bug meldet.",
+          "repair": "Hängt der Charakter fest oder fehlt Ausrüstung: Character Repair im RSI-Account, danach neu einloggen.",
+          "known": "Vor dem Melden kurz die bekannten Probleme lesen – die meisten frischen Fehler stehen schon dort."
+        }
       },
       "contents": {
         "inNotes": "In den Release-Notes",
@@ -1985,6 +1995,13 @@
           "hotfixOne": "1 Hotfix · {{date}}",
           "hotfixMany": "{{n}} Hotfixes · zuletzt {{date}}"
         }
+      },
+      "find": {
+        "summary": "{{hits}} Treffer in {{patches}} Patches · {{loaded}} von {{total}} Notes durchsucht",
+        "groupCount": "{{roadmap}} Roadmap-Einträge · {{notes}} Stichpunkte",
+        "moreInDossier": "Weitere {{n}} Treffer im Dossier",
+        "loadRest": "Restliche {{n}} Notes laden und durchsuchen",
+        "loading": "Notes werden geladen …"
       }
     },
     "detail": {

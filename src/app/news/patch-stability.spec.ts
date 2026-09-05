@@ -10,6 +10,8 @@ import {
   isEarly,
   levelOf,
   serviceScore,
+  stabilityPercent,
+  toneOf,
 } from './patch-stability';
 
 function patch(line: string, liveAt: string, extra: Partial<StabilityPatchRow> = {}): StabilityPatchRow {
@@ -91,6 +93,17 @@ describe('patch-stability components', () => {
     expect(levelOf(0.63)).toBe(5);
   });
 
+  it('stabilityPercent inverts the penalty; toneOf collapses five levels to a traffic light', () => {
+    expect(stabilityPercent(0)).toBe(100);
+    expect(stabilityPercent(0.44)).toBe(56);
+    expect(stabilityPercent(1)).toBe(0);
+    expect(stabilityPercent(null)).toBeNull();
+    // Out-of-range input is clamped, never printed as −20 % or 130 %.
+    expect(stabilityPercent(1.3)).toBe(0);
+    expect(stabilityPercent(-0.2)).toBe(100);
+    expect([1, 2, 3, 4, 5].map((l) => toneOf(l as 1))).toEqual(['green', 'green', 'amber', 'red', 'red']);
+  });
+
   it('isEarly / daysBetween', () => {
     expect(EARLY_DAYS).toBe(14);
     expect(isEarly(13.9)).toBeTrue();
@@ -140,11 +153,51 @@ describe('computeVerdict — calibration against the 2026-09-05 reality check', 
     expect(v.components.cig).not.toBeNull();
   });
 
-  it('minimum-data rule: one sample or fewer than 10 replies → insufficient, no level', () => {
+  it('minimum-data rule: fewer than 10 replies → insufficient, no level', () => {
     const p = patch('4.11', '2026-10-01T00:00:00Z');
     const v = computeVerdict(p, [sample('4.11', '2026-10-01', { rn_replies: 3 })], { now: '2026-10-02T00:00:00Z', endAt: null });
     expect(v.insufficient).toBeTrue();
     expect(v.level).toBeNull();
+    expect(v.stability).toBeNull();
+    expect(v.tone).toBeNull();
+  });
+
+  it('one sample is enough once the reply floor is cleared', () => {
+    const p = patch('4.11', '2026-10-01T00:00:00Z');
+    const v = computeVerdict(p, [sample('4.11', '2026-10-03', { rn_replies: 40 })], { now: '2026-10-03T12:00:00Z', endAt: null });
+    expect(v.insufficient).toBeFalse();
+    expect(v.level).not.toBeNull();
+    expect(v.early).toBeTrue();
+    expect(v.stability).toBe(stabilityPercent(v.score));
+    expect(v.tone).toBe(toneOf(v.level!));
+  });
+
+  // The 4.9 regression: the sampler caught that line ten days AFTER 4.10 had
+  // replaced it, so it had one stray daily sample on top of a complete
+  // end-state. The daily path then reported "not enough data" for a patch we
+  // know everything about, and the board showed no stability at all for it.
+  it('a superseded line reads its end-state even when a stray sample exists', () => {
+    const p49 = patch('4.9', '2026-07-15T00:00:00Z', {
+      final_replies: 98, final_outage_min_per_day: 0, final_ticket_share: 0.18, final_ticket_vote_share: 0.59,
+    });
+    const stray = sample('4.9', '2026-09-05', { rn_replies: 98, hf_replies: 289 });
+    const v = computeVerdict(p49, [stray], { now: NOW, endAt: '2026-08-26T00:00:00Z' });
+    expect(v.historical).toBeTrue();
+    expect(v.insufficient).toBeFalse();
+    expect(v.level).toBe(2);
+    expect(v.stability).not.toBeNull();
+    // …and it agrees with the same line read without the stray sample.
+    expect(v.score).toBe(computeVerdict(p49, [], { now: NOW, endAt: '2026-08-26T00:00:00Z' }).score);
+  });
+
+  it('the CURRENT line still reads its daily samples, not an end-state', () => {
+    const p = patch('4.10', '2026-08-26T00:00:00Z', { final_replies: 999 });
+    const v = computeVerdict(p, [
+      sample('4.10', '2026-09-04', { rn_replies: 70 }),
+      sample('4.10', '2026-09-05', { rn_replies: 78 }),
+    ], { now: NOW, endAt: null });
+    expect(v.historical).toBeFalse();
+    expect(v.days.length).toBe(2);
   });
 
   it('first sample velocity falls back to replies ÷ live days', () => {

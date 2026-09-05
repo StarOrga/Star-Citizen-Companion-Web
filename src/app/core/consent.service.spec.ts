@@ -76,6 +76,22 @@ describe('ConsentService', () => {
       expect(localStorage.getItem('sc-companion.news.favorites')).toBeNull();
       expect(svc.statisticsAllowed()).toBe(true);
     });
+
+    // The 2026-09-04 rethink stopped writing these four; they were never
+    // registered, so before #518 a decline left them behind forever.
+    it('purges the retired admin-feedback keys when declined', () => {
+      const svc = makeService();
+      svc.acceptAll();
+      const retired = [
+        'sc.adminFeedback.view',
+        'sc.adminFeedback.handled',
+        'sc.adminFeedback.workflowScope',
+        'sc.adminFeedback.workflowKind',
+      ];
+      for (const key of retired) localStorage.setItem(key, 'stale');
+      svc.setPreferences(false);
+      for (const key of retired) expect(localStorage.getItem(key)).toBeNull();
+    });
   });
 
   describe('persistence', () => {
