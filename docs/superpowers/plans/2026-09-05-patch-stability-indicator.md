@@ -1101,6 +1101,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write the function**
 
+> Shipped version differs from this excerpt: it adds a service-role bearer gate for `?backfill=1` / `?force=1`, a fail-closed throttle lookup, per-page containment in `listThreads`, conditional `cig_*` keys, a lazy singleton client and renamed locals (review fixes, commit 3150c60). The file is the reference, not this block.
+
 ```ts
 // supabase/functions/patch-stability-sample/index.ts
 // patch-stability-sample — the daily sampler behind the patch board's
