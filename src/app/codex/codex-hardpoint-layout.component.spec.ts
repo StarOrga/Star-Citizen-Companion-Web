@@ -129,6 +129,44 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(perItem[0]).toBe('43.65');
   });
 
+  it('gives the carried gun its own maker line, damage channel, stat run and figure', () => {
+    // concept/part-06.html:320-324 draws the gun inside the gimbal as a FULL
+    // row — "Waffe · Klaus & Werner (KLWE) · Grade A · Energie" over its stat
+    // run, with the group figure beside it — not as a bare name under a mount.
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          {
+            ...VARIPUCK,
+            children: [
+              child({
+                port: 'Hardpoint Class 3',
+                typeLabel: 'Gun',
+                size: 3,
+                className: 'KLWE_LaserRepeater_S3',
+                kind: 'weapon',
+                name: 'CF-337 Panther Repeater',
+                grade: 'A',
+                manufacturerCode: 'KLWE',
+                damageChannels: ['energy'],
+                stats: [{ labelKey: 'codex.equipped.alphaDamage', value: 43.65, format: 'dec' }],
+              }),
+            ],
+          },
+        ],
+      },
+    ]);
+    const kid = el.querySelector('.kid')!;
+    expect(kid.querySelector('.slot-item')?.textContent?.trim()).toBe('CF-337 Panther Repeater');
+    expect(kid.querySelector('.meta-txt')?.textContent?.trim()).toBe('KLWE · Gun');
+    expect(kid.querySelector('.tag.dmg')).toBeTruthy();
+    expect(
+      Array.from(kid.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim()),
+    ).toEqual(['43.65']);
+    expect(kid.querySelector('.fig .n')?.textContent?.trim()).toBe('43.65');
+  });
+
   it('shows who made it and what it is on one meta line', () => {
     const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     expect(el.querySelector('.meta-txt')?.textContent?.trim()).toBe('KLA · Gun');

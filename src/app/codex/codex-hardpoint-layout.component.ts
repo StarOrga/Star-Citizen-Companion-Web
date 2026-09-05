@@ -51,6 +51,18 @@ export interface LayoutChild {
   rawPorts: string[];
   /** Raw (un-humanized) engine type strings the sub-port declares. */
   rawTypes: string[];
+  /**
+   * The carried item's own identity and numbers, resolved exactly like a
+   * top-level slot's. The gun inside a gimbal IS the weapon on this ship, so
+   * the concept gives it a full row — maker, class, grade, damage channel and
+   * its stat run (concept/part-06.html:320-324) — not a bare name.
+   */
+  grade?: string | null;
+  manufacturerCode?: string | null;
+  damageChannels?: string[];
+  stats?: EquippedStat[];
+  /** The carried item is a real gun but this extract has no stats for it. */
+  statsMissing?: boolean;
 }
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
@@ -394,12 +406,40 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 <span class="slot-ident">
                                   <span class="slot-item">{{ kid.name }}</span>
                                   <span class="slot-meta">
-                                    @if (kid.typeLabel) { <span class="meta-txt">{{ kid.typeLabel }}</span> }
+                                    @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
+                                    @for (ch of kid.damageChannels; track ch) {
+                                      <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                                    }
+                                    @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
                                   </span>
                                 </span>
                               </span>
                               <span class="slot-port">{{ kid.port }}</span>
+                              @if (kid.stats?.length) {
+                                <dl class="slot-stats">
+                                  @for (st of kid.stats; track st.labelKey) {
+                                    <div class="stat">
+                                      <dt>
+                                        {{ st.labelKey | translate }}
+                                        @if (st.derived) {
+                                          <span class="derived"
+                                                [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                        }
+                                      </dt>
+                                      <dd>{{ fmtStat(st) }}</dd>
+                                    </div>
+                                  }
+                                </dl>
+                              } @else if (kid.statsMissing) {
+                                <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                              }
                             </button>
+                            @if (kidFig(row, kid); as fig) {
+                              <div class="fig">
+                                <span class="n">{{ fig.value }}</span>
+                                <span class="u">{{ fig.unitKey | translate }}</span>
+                              </div>
+                            }
                           } @else if (kid.rawTypes.length > 0 && sec.configurable) {
                             <!-- An unfitted sub-slot we know the accepted engine
                                  type(s) for is still a real choice (Falle 3). -->
@@ -546,7 +586,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       background: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
     .kids { list-style: none; margin: 0; padding: 0; flex: 2 1 300px; min-width: 0;
       display: flex; flex-direction: column; gap: 4px; }
-    .kid { min-width: 0; }
+    /* The carried item now renders a full row of its own (stat run + headline
+       figure), so the seat lays them out side by side exactly like a slot. */
+    .kid { min-width: 0; display: flex; align-items: stretch; gap: 6px; }
+    .kid > .kid-btn { flex: 1 1 auto; min-width: 0; }
 
     .slot-swap, .slot-swap-action { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
@@ -936,6 +979,23 @@ export class CodexHardpointLayoutComponent {
    */
   metaLine(row: GroupedSlot<LayoutSlot>): string {
     return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
+  }
+
+  /** The carried item's meta line, read the same way a top-level row's is. */
+  kidMetaLine(kid: LayoutChild): string {
+    return [kid.manufacturerCode, kid.typeLabel].filter(Boolean).join(' · ');
+  }
+
+  /**
+   * The carried item's own headline figure, multiplied out to every seat the
+   * row stands for: three gimbals each holding one Panther is "3 × 1" guns, so
+   * the gun's own stat carries the mount's count as well as its own.
+   */
+  kidFig(row: GroupedSlot<LayoutSlot>, kid: LayoutChild): { value: string; unitKey: string } | null {
+    const stat = kid.stats?.[0];
+    if (!stat) return null;
+    const total = stat.value * Math.max(1, kid.count) * row.count;
+    return { value: this.fmtStat({ ...stat, value: total }), unitKey: stat.labelKey };
   }
 
   fmtStat(stat: EquippedStat): string {

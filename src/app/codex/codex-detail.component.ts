@@ -2913,7 +2913,9 @@ export class CodexDetailComponent implements OnInit {
       | { itemPorts?: ItemPort[] }
       | undefined;
     const resolved = this.loadoutEntities();
-    return carriedSlots(
+    const payloads = this.loadoutPayloads();
+    const ammo = this.ammoPayloads();
+    const slots = carriedSlots(
       payload?.itemPorts,
       carried,
       (cn) => {
@@ -2924,6 +2926,27 @@ export class CodexDetailComponent implements OnInit {
       },
       (portName) => this.humanizePort(portName),
     );
+    // The gun in the gimbal is the weapon this ship shoots with, so it gets the
+    // same identity and stat run a top-level occupant does — the concept draws
+    // it as a full row, not as a name under a mount (part-06.html:320-324).
+    return slots.map((slot) => {
+      if (!slot.className) return slot;
+      const hit = resolved.get(slot.className);
+      const payloadHit = payloads.get(slot.className);
+      const item = {
+        kind: payloadHit?.kind ?? hit?.kind ?? null,
+        payload: payloadHit?.payload ?? null,
+        ammoPayload: ammo.get(ammoClassNameFor(slot.className) ?? ''),
+      };
+      return {
+        ...slot,
+        grade: hit?.grade ?? null,
+        manufacturerCode: hit?.manufacturerCode ?? null,
+        damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
+        stats: equippedStats(item),
+        statsMissing: weaponStatsUnavailable(item),
+      };
+    });
   }
 
   /**
