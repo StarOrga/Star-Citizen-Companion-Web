@@ -8,7 +8,11 @@ nothing more: you can look, not build. The next step turns it into a planner —
 swap any component, see what the change did, and compare candidates against
 what is already fitted.
 
-This page describes the design that has been settled. It is not shipped yet.
+This page describes the design, and the ship page now implements it. Two things
+still depend on a fresh upload: the energy dock and the hull, armour and cargo
+figures come from a data extract that is one schema version ahead of what the
+catalogue currently serves, so until the next Data Uploader run they show a
+disclosed gap rather than a number.
 
 ## The three ideas it is built on
 
