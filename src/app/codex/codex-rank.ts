@@ -311,9 +311,17 @@ export function readCohortCache(key: string): RankShipInput[] | null {
   }
 }
 
+/** Roughly what one origin gets in localStorage; a cohort bigger than this
+ * share of it can never be stored, and trying costs a serialise + a throw on
+ * every single page view. */
+const COHORT_CACHE_MAX_BYTES = 2_000_000;
+
 export function writeCohortCache(key: string, ships: readonly RankShipInput[]): boolean {
   try {
-    localStorage.setItem(key, JSON.stringify(ships));
+    const blob = JSON.stringify(ships);
+    // Two chars per byte is the pessimistic UTF-16 assumption browsers make.
+    if (blob.length * 2 > COHORT_CACHE_MAX_BYTES) return false;
+    localStorage.setItem(key, blob);
     return true;
   } catch {
     return false;

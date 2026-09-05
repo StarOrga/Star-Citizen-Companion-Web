@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.1] - 2026-09-05
+
+### Fixed
+
+- **The ship page no longer freezes while it works out where a hull stands.**
+  Scoring the whole fleet for the Einordnung ran as one uninterrupted pass and
+  the tab stopped answering for about a minute on every visit. The scoring now
+  hands the browser back control as it goes, starts only once the page itself
+  has loaded, and stops trying to cache a result too large to store. What the
+  card shows is unchanged.
+
 ## [0.79.0] - 2026-09-05
 
 ### Changed
