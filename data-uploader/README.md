@@ -43,7 +43,7 @@ src/
 │   └── index.ts  # Fenster + IPC-Handler + OAuth-Server
 ├── preload/      # Sichere IPC-Bridge zum Renderer
 │   └── index.ts
-├── renderer/     # Browser-UI (Verse-Compass-Theme)
+├── renderer/     # Browser-UI (SCC-Brand-Theme)
 │   ├── index.html
 │   ├── main.ts
 │   └── styles.css

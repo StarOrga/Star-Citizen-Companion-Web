@@ -1507,6 +1507,24 @@
           "onTrack": "im Takt",
           "hotfix": "{{n}} Hotfix seit Live",
           "hotfixLast": "letzter am {{date}}"
+        },
+        "infoLabel": "Woher kommen diese Zahlen?"
+      },
+      "monitor": {
+        "title": "Wann kommt der nächste Patch?",
+        "infoLabel": "Woher kommt diese Schätzung?",
+        "infoBasis": "Grundlage: Median {{median}} Tage aus n = {{n}} gemessenen Zyklen.",
+        "days": "{{n}} T",
+        "over": "{{n}} T über",
+        "tile": {
+          "live": "Live",
+          "testing": "Im Test",
+          "cadence": "Takt",
+          "cadenceFoot": "Median · n = {{n}}",
+          "state": "Status",
+          "stateFoot": "{{days}} von ~{{median}} T",
+          "hotfix": "Hotfixes",
+          "hotfixNone": "keiner seit Live"
         }
       }
     },

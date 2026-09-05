@@ -6,7 +6,13 @@
       "name": "app",
       "installMode": "prefetch",
       "resources": {
-        "files": ["/favicon.ico", "/index.html", "/manifest.webmanifest", "/*.css", "/*.js"]
+        "files": [
+          "/favicon.ico",
+          "/index.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
       }
     },
     {
@@ -14,14 +20,20 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": ["/assets/**", "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"]
+        "files": [
+          "/icons/**",
+          "/assets/**",
+          "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
+        ]
       }
     }
   ],
   "dataGroups": [
     {
       "name": "verse-news",
-      "urls": ["https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/fetch-verse-news"],
+      "urls": [
+        "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/fetch-verse-news"
+      ],
       "cacheConfig": {
         "maxSize": 50,
         "maxAge": "15m",
@@ -31,7 +43,9 @@
     },
     {
       "name": "rsi-upcoming-ships",
-      "urls": ["https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/rsi-upcoming-ships"],
+      "urls": [
+        "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/rsi-upcoming-ships"
+      ],
       "cacheConfig": {
         "maxSize": 4,
         "maxAge": "6h",

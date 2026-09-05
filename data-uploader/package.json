@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/data-uploader",
-  "version": "0.25.3",
+  "version": "0.25.4",
   "description": "Star Citizen Companion - Data Uploader — P4K local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",
@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "icon": "node scripts/build-icon.js",
+    "icon": "node ../scripts/build-brand-icons.mjs --only=uploader",
     "python:fetch": "node scripts/fetch-embedded-python.js",
     "package:win": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --win --x64 --config electron-builder.yml",
     "package:dir": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --dir --config electron-builder.yml"

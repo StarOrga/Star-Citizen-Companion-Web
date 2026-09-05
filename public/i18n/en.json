@@ -1507,6 +1507,24 @@
           "onTrack": "on rhythm",
           "hotfix": "{{n}} hotfix since Live",
           "hotfixLast": "latest on {{date}}"
+        },
+        "infoLabel": "Where do these numbers come from?"
+      },
+      "monitor": {
+        "title": "When is the next patch?",
+        "infoLabel": "Where does this estimate come from?",
+        "infoBasis": "Basis: median {{median}} days from n = {{n}} measured cycles.",
+        "days": "{{n}} d",
+        "over": "{{n}} d over",
+        "tile": {
+          "live": "Live",
+          "testing": "In testing",
+          "cadence": "Cadence",
+          "cadenceFoot": "median · n = {{n}}",
+          "state": "Status",
+          "stateFoot": "{{days}} of ~{{median}} d",
+          "hotfix": "Hotfixes",
+          "hotfixNone": "none since live"
         }
       }
     },

@@ -15,6 +15,7 @@ import { LocaleService } from '../core/locale/locale.service';
 import { NewsService } from './news.service';
 import { outlineMatchCount } from './patch-outline';
 import { matchesTokens, tokenizeQuery } from './patch-search';
+import { PatchMonitorComponent } from './patch-monitor.component';
 import { buildPatchStack, stackCards, type StackCard } from './patch-stack';
 import { computePatchForecast } from './patch-stats';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
@@ -54,7 +55,7 @@ interface CardHits {
 @Component({
   selector: 'sc-patch-board',
   standalone: true,
-  imports: [TranslateModule, RouterLink, RouterOutlet],
+  imports: [TranslateModule, RouterLink, RouterOutlet, PatchMonitorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="board">
@@ -69,6 +70,10 @@ interface CardHits {
       } @else if (svc.loading() && !svc.feed()) {
         <p class="sc-card loading">{{ 'news.loading' | translate }}</p>
       } @else {
+        <!-- The question people arrive with, answered before the list starts
+             (feedback 01df732d): a monitoring panel over search and stack. -->
+        <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" />
+
         <!-- The ONE control on this level. A label, not a placeholder, so the
              field keeps its description while you type. -->
         <div class="search">
@@ -308,7 +313,7 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
 
   readonly olderLines = computed(() => this.stack().older.map((c) => c.line || '…').join(' · '));
 
-  private readonly now = signal(Date.now());
+  readonly now = signal(Date.now());
   private readonly clockTimer = setInterval(() => this.now.set(Date.now()), 30_000);
 
   /** The roadmap is what names the "next" card, so it belongs to the board now. */

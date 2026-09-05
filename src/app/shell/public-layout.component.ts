@@ -36,7 +36,7 @@ import { FooterComponent } from './footer.component';
       <header class="public-topbar">
         <a class="home" routerLink="/">
           <span class="arrow" aria-hidden="true">←</span>
-          <img class="logo" src="icons/scc-favicon.svg" alt="" width="28" height="28" />
+          <img class="logo" src="icons/brand/scc-mark-compact.svg" alt="" width="32" height="32" />
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>
@@ -81,9 +81,9 @@ import { FooterComponent } from './footer.component';
     }
     .home .arrow { font-size: 1.05rem; line-height: 1; }
     .home .logo {
-      width: 28px;
-      height: 28px;
-      filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 0 7px rgba(82, 193, 230, 0.45));
     }
     .home .label {
       font-family: var(--sc-font-display);
