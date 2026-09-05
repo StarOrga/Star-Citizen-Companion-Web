@@ -30,6 +30,7 @@ import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
+import { RouteLoadRecoveryService } from '../core/route-load-recovery.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
@@ -151,18 +152,23 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
                   <span class="dh-email">{{ email }}</span>
                 }
               </div>
+              <!-- The navigating entries are real anchors, and only the PLAIN
+                   left click folds the menu away: a middle/Ctrl/Cmd/Shift
+                   click opens the target in a new tab and leaves the user
+                   standing here, so closing the menu under them would be a
+                   surprise (see onMenuNavigate). -->
               <a
                 class="dropdown-item"
                 role="menuitem"
                 routerLink="/settings"
-                (click)="closeMenu()">
+                (click)="onMenuNavigate($event)">
                 {{ 'nav.settings' | translate }}
               </a>
               <a
                 class="dropdown-item"
                 role="menuitem"
                 routerLink="/friends"
-                (click)="closeMenu()">
+                (click)="onMenuNavigate($event)">
                 {{ 'nav.friends' | translate }}
               </a>
               @if (roles.isAdmin()) {
@@ -175,7 +181,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
                   class="dropdown-item elevated"
                   role="menuitem"
                   routerLink="/admin/api-tokens"
-                  (click)="closeMenu()">
+                  (click)="onMenuNavigate($event)">
                   <span class="di-label">{{ 'admin.tokens.navLink' | translate }}</span>
                   <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
@@ -270,10 +276,26 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
       </div>
     }
 
+    <!-- A route whose lazy chunk would not load, twice (admin feedback
+         cdb16d63). RouteLoadRecoveryService already spent its one-shot full
+         page load on this URL, so reloading again would loop — the dead click
+         is said out loud here instead of staying silent. -->
+    @if (routeRecovery.loadFailed()) {
+      <div class="route-load-error" role="alert">
+        <span>{{ 'nav.loadFailed.message' | translate }}</span>
+        <button type="button" class="route-load-error__action" (click)="routeRecovery.reload()">
+          {{ 'nav.loadFailed.reload' | translate }}
+        </button>
+        <button type="button" class="route-load-error__dismiss" (click)="routeRecovery.dismiss()">
+          {{ 'nav.loadFailed.dismiss' | translate }}
+        </button>
+      </div>
+    }
+
     <!-- Navigation "sensor sweep" — only appears once a switch runs past 250ms,
          so it covers the lazy-chunk/guard gap on real waits but never flashes on
          instant/cached routes. -->
-    @if (navActive()) {
+    @if (navActive() || routeRecovery.recovering()) {
       <div class="nav-scan" role="status" aria-live="polite">
         <span class="nav-scan__bar"></span>
       </div>
@@ -620,6 +642,45 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     }
     .imp-enter-error__dismiss:hover { background: rgba(248, 113, 113, 0.15); }
 
+    /* Same strip idiom as .imp-enter-error above: a deliberate band under the
+       header, not a toast, because the user is standing in front of a control
+       that did not work and needs the sentence to stay put. Painted in the
+       accent rather than --sc-danger — nothing was destroyed, the app just
+       needs a reload. */
+    .route-load-error {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 8px 16px;
+      background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
+      border-bottom: 1px solid var(--sc-accent);
+      color: var(--sc-fg-0);
+      font-size: max(0.82rem, var(--sc-fs-floor));
+      text-align: center;
+    }
+    .route-load-error__action,
+    .route-load-error__dismiss {
+      flex: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: transparent;
+      font-family: inherit;
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer;
+    }
+    .route-load-error__action {
+      border: 1px solid var(--sc-accent);
+      color: var(--sc-accent);
+    }
+    .route-load-error__action:hover { background: rgba(0, 212, 255, 0.15); }
+    .route-load-error__dismiss {
+      border: 1px solid var(--sc-border);
+      color: var(--sc-fg-2);
+    }
+    .route-load-error__dismiss:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+
     /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves.
@@ -708,6 +769,7 @@ export class ShellComponent implements AfterViewInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sameRoute = inject(SameRouteRefreshService);
+  readonly routeRecovery = inject(RouteLoadRecoveryService);
   private readonly zone = inject(NgZone);
 
   readonly signingOut = signal(false);
@@ -811,6 +873,19 @@ export class ShellComponent implements AfterViewInit {
   onNavActivate(event: MouseEvent, path: string): void {
     if (!isPlainLeftClick(event)) return;
     this.sameRoute.request(path);
+  }
+
+  /**
+   * An account-menu entry that NAVIGATES was clicked. Those entries are real
+   * `<a [routerLink]>` too, so a middle click / Ctrl+Cmd+Shift click opens the
+   * target in a new tab and the user stays exactly where they are — folding
+   * the menu away under them would be the same "my click did something else"
+   * surprise the anchor rule exists to prevent. Only the plain left click,
+   * which really leaves this view, closes the menu.
+   */
+  onMenuNavigate(event: MouseEvent): void {
+    if (!isPlainLeftClick(event)) return;
+    this.closeMenu();
   }
 
   /** A routed view mounted — replay the content reveal. */
