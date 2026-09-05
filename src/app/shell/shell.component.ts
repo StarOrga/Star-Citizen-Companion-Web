@@ -167,13 +167,17 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
               </a>
               @if (roles.isAdmin()) {
                 <!-- Admin-gated (roleGuard('admin') on the route) — showing it to
-                     everyone would only ever hand out a redirect. -->
+                     everyone would only ever hand out a redirect. Painted in the
+                     hot accent for the same reason the header's admin links are
+                     (elevated access), with the tag so the colour is never the
+                     only carrier of that meaning — admin feedback f8ea96f5. -->
                 <a
-                  class="dropdown-item"
+                  class="dropdown-item elevated"
                   role="menuitem"
                   routerLink="/admin/api-tokens"
                   (click)="closeMenu()">
-                  {{ 'admin.tokens.navLink' | translate }}
+                  <span class="di-label">{{ 'admin.tokens.navLink' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
                 </a>
               }
 
@@ -189,13 +193,14 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
                      The separator is a plain div, deliberately not a
                      .dropdown-item, so the roving ArrowUp/ArrowDown focus in
                      onMenuKeydown() skips over it. -->
-                <div class="dropdown-sep" role="separator">
+                <div class="dropdown-sep elevated" role="separator">
                   <span>{{ 'nav.viewAs.title' | translate }}</span>
+                  <span class="sep-tag">{{ 'nav.viewAs.restricted' | translate }}</span>
                 </div>
                 @for (target of imp.targets(); track target) {
                   <button
                     type="button"
-                    class="dropdown-item"
+                    class="dropdown-item elevated"
                     role="menuitem"
                     (click)="enterViewAs(target)">
                     {{ ('nav.viewAs.' + target) | translate }}
@@ -213,12 +218,19 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
                      preview (a real target role never sees it), but a single
                      "back to my role" item is not a fidelity leak: a real
                      viewer/collaborator is never in a preview, so never sees it. -->
-                <div class="dropdown-sep" role="separator">
+                <div class="dropdown-sep elevated" role="separator">
                   <span>{{ 'nav.viewAs.title' | translate }}</span>
+                  <span class="sep-tag">{{ 'nav.viewAs.restricted' | translate }}</span>
                 </div>
+                <!-- The way OUT of a preview stays inside the red group: it is
+                     itself a control only an elevated account can ever reach (a
+                     real viewer is never in a preview), and splitting it off in
+                     the normal accent would read as "this part is public". Red
+                     here means elevated access, not danger — --sc-danger stays
+                     reserved for destructive actions. -->
                 <button
                   type="button"
-                  class="dropdown-item"
+                  class="dropdown-item elevated"
                   role="menuitem"
                   (click)="exitViewAs()">
                   {{ 'nav.viewAs.exit' | translate }}
@@ -519,6 +531,31 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
        the hot accent. Nothing ever set is-current, so it was dead — and
        reviving it would have painted an ungated menu item red, which now means
        "admin only" (admin feedback b8b31f24). Removed rather than recoloured. */
+    /* Elevated access inside the account menu (admin feedback f8ea96f5): the
+       "Ansehen als" role preview and the admin-only API-tokens entry are
+       surfaces a plain viewer never reaches, so they carry the same hot accent
+       as the header's admin links — never --sc-danger, which stays reserved for
+       errors and destructive actions. Colour alone never carries the meaning:
+       the group header and the admin-only entry say it in words too (same
+       idiom as .pop-dl.admin-only in app-download-menu.component.ts). */
+    .dropdown-item.elevated {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      color: var(--sc-accent-hot);
+    }
+    .dropdown-item.elevated:hover:not(:disabled),
+    .dropdown-item.elevated:focus-visible {
+      color: var(--sc-accent-hot);
+      background: color-mix(in srgb, var(--sc-accent-hot) 12%, transparent);
+    }
+    .dropdown-item.elevated .di-label { flex: 1 1 auto; }
+    .dropdown-item.elevated .di-tag {
+      font-size: max(0.62rem, var(--sc-fs-floor));
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
     /* Deliberately not .dropdown-item — kept out of onMenuKeydown()'s
        ArrowUp/ArrowDown roving-focus query. */
     .dropdown-sep {
@@ -533,6 +570,18 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
       letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
+    }
+    /* The group header of an elevated-access section — wraps rather than
+       widening the menu, since the marker below it is a whole phrase. */
+    .dropdown-sep.elevated {
+      flex-wrap: wrap;
+      color: var(--sc-accent-hot);
+      border-top-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border));
+    }
+    .dropdown-sep.elevated .sep-tag {
+      font-size: max(0.6rem, var(--sc-fs-floor));
+      letter-spacing: 0.08em;
+      opacity: 0.85;
     }
     /* C1: groups "Abmelden" apart from everything above it (settings /
        integrations / view-as). Plain <hr>, matching .dropdown-sep's border
