@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.2] - 2026-09-06
+
+### Changed
+
+- **The ship page now reads the way Mollywator's concept draws it.** A pass
+  over the live page against every screen of the concept turned up the places
+  where the page had drifted: the Einordnung's radar spokes moved around as
+  the ranking changed, so a shape could not be compared between two ships —
+  each axis now keeps its own spoke and only the bar list sorts. The card
+  itself is the concept's two columns, radar beside bars, with the profile
+  chips over the bars and the note that the Einordnung keeps its own three
+  profiles regardless of the mission lens.
+- **A gun mounted through a gimbal is shown as the weapon it is.** It used to
+  appear under the mount as a bare name with its port; it now carries its
+  maker, grade, damage channel and its own numbers, with the group total
+  beside it — three gimbals holding one gun each read as three guns.
+- **Module rows lead with the group, not with one item.** The figure on the
+  right of a row is what the whole run adds up to and matches the number the
+  folded block shows; the per-item values stay on the line underneath. Weapons
+  headline sustained DPS rather than a raw alpha sum, identical occupants fold
+  together, and the module blocks are named the way the concept names them.
+- **The mission lens no longer hides modules or blocks the travel profile.**
+  Countermeasures and structure stay visible under every lens, and Reisen is
+  selectable on ships without a quantum drive.
+
+### Fixed
+
+- **The change chip under a headline figure shows the change, not a
+  percentage.** It reads "+81" or "−225" in the cell's own scale, with the
+  percentage kept as the tooltip, and a change too small to show is no longer
+  rounded up into a visible "+0".
+- **Swapping a shield, cooler or thruster shows columns that have values.**
+  The picker used to open on the weapon column set for every port, so a shield
+  swap was a table of dashes; the column menu, the table and the footer now
+  agree with each other, and picking one column no longer wipes the rest. On a
+  phone the three columns shown are the ones that port actually has.
+
 ## [0.79.1] - 2026-09-05
 
 ### Fixed
