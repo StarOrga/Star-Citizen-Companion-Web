@@ -248,9 +248,10 @@ async function sampleLine(patch: LivePatch, issues: StatusIssue[] | null, kb: Aw
     kb_edited_at: snap?.editedAt || null,
   }, { onConflict: 'patch_line,sampled_on' });
   if (error) throw new Error(`samples upsert ${patch.line}: ${error.message}`);
+  return { rn, hf, community };
 }
 
-async function newestSampleAt(): Promise<number> {
+async function newestSampleAt(): Promise<{ at: number; readable: boolean }> {
   const { data, error } = await admin()
     .from('patch_stability_samples')
     .select('sampled_at')
@@ -261,25 +262,44 @@ async function newestSampleAt(): Promise<number> {
     // Fail closed: an unreadable throttle state must skip the run, not
     // silently bypass it.
     console.error('patch-stability: throttle lookup failed:', error.message);
-    return Date.now();
+    return { at: Date.now(), readable: false };
   }
   const t = data ? Date.parse(String((data as { sampled_at: string }).sampled_at)) : NaN;
-  return Number.isFinite(t) ? t : 0;
+  return { at: Number.isFinite(t) ? t : 0, readable: true };
 }
 
 async function runDaily(force: boolean): Promise<Response> {
   const now = new Date();
-  if (!force && now.getTime() - (await newestSampleAt()) < THROTTLE_MS) {
-    return json({ ok: true, skipped: true });
+  if (!force) {
+    const newest = await newestSampleAt();
+    if (now.getTime() - newest.at < THROTTLE_MS) {
+      if (!newest.readable) return json({ ok: true, skipped: true, reason: 'throttle-unreadable' });
+      return json({ ok: true, skipped: true });
+    }
   }
   const rows = await listThreads(LIST_PAGES_DAILY);
   const lines = detectLiveThreads(rows).slice(0, 2); // newest + previous
   const [issues, kb] = await Promise.all([fetchStatusIssues(), fetchKbArticle()]);
   const done: string[] = [];
-  for (const patch of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const patch = lines[i];
     try {
-      await sampleLine(patch, issues, kb, now);
+      const result = await sampleLine(patch, issues, kb, now);
       done.push(patch.line);
+      if (i === 1) {
+        // The previous line stopped being current the moment the newer one
+        // went live -- that is its end-state window, not "now". Without
+        // this the daily path would never write final_* for a line that
+        // goes live after the one-shot backfill (F2).
+        const days = Math.max(1, (Date.parse(lines[0].liveAt) - Date.parse(lines[1].liveAt)) / DAY_MS);
+        const statusWin = issues ? statusWindow(issues, lines[1].liveAt, lines[0].liveAt) : null;
+        await upsertPatch(patch, result.rn, {
+          final_replies: result.rn.replies_count,
+          final_outage_min_per_day: statusWin ? statusWin.unplannedMinutes / days : null,
+          final_ticket_share: result.community.ticketShare,
+          final_ticket_vote_share: result.community.ticketVoteShare,
+        });
+      }
     } catch (err) {
       console.error(`patch-stability: line ${patch.line} failed:`, err);
     }
@@ -313,13 +333,23 @@ async function runBackfill(): Promise<Response> {
       // final_replies stays RN-only because it is the one count comparable
       // across every line (Hotfix Central threads were locked before 4.9).
       const community = communityOf(rn, hf);
-      const statusWin = issues ? statusWindow(issues, patch.liveAt, endIso) : null;
-      await upsertPatch(patch, rn, {
-        final_replies: rn.replies_count,
-        final_outage_min_per_day: statusWin ? statusWin.unplannedMinutes / days : null,
-        final_ticket_share: community.ticketShare,
-        final_ticket_vote_share: community.ticketVoteShare,
-      });
+      // Register the line, its threads and the CIG counts regardless -- but
+      // the CURRENT line (i === 0) is still live, so it gets no final_* yet.
+      // Stamping an end-state here would make the panel print "this patch
+      // ran before daily sampling started" on the patch that is live right
+      // now (F3); the daily path (runDaily) fills its final_* once a newer
+      // line goes live.
+      if (i === 0) {
+        await upsertPatch(patch, rn);
+      } else {
+        const statusWin = issues ? statusWindow(issues, patch.liveAt, endIso) : null;
+        await upsertPatch(patch, rn, {
+          final_replies: rn.replies_count,
+          final_outage_min_per_day: statusWin ? statusWin.unplannedMinutes / days : null,
+          final_ticket_share: community.ticketShare,
+          final_ticket_vote_share: community.ticketVoteShare,
+        });
+      }
       registered++;
     } catch (err) {
       console.error(`patch-stability backfill ${patch.line} failed:`, err);

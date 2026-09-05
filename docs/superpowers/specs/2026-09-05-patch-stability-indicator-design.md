@@ -44,7 +44,7 @@ Three components, each 0…1, sampled once per day per patch line:
 - `reply_velocity`: new RN+HF replies per day (delta of `replies_count`
   between samples). Normalised against the same day-offset of earlier patches
   once ≥ 2 patches have daily history; until then against fixed bands
-  (0–5 → 0, 5–20 → linear, ≥ 20 → 1).
+  (< 2 → 0, 2–20 → linear, ≥ 20 → 1).
 - `ticket_share`: share of the 50 top replies (25 RN + 25 HF) that link an
   Issue Council ticket (`STARC-\d+` or `issue-council.robertsspaceindustries.com/…/issues/`).
 - `ticket_vote_share`: upvotes on ticket-bearing top replies ÷ all top-reply
@@ -53,7 +53,7 @@ Three components, each 0…1, sampled once per day per patch line:
 
 **Service (weight 0.3)**:
 - `outage_7d`: unplanned (`severity != maintenance`) minutes per day over the
-  trailing 7 days, log-scaled, 600 min/day = 1.
+  trailing 7 days, log-scaled, 300 min/day = 1.
 - `open_incident`: 1 if an unresolved unplanned incident exists today, else 0.
 - service = 0.7·outage_7d + 0.3·open_incident
 
@@ -89,7 +89,7 @@ and ≥ 10 total replies; the UI shows "zu wenig Daten" instead.
 zone on the timeline, and the caption "Tag X von 14".
 
 Calibration against the hand-classified reality check (2026-09-05): 4.7 → 2,
-4.8 → 4 (service), 4.9 → 3 early then 2, 4.10 → 3 early. The component
+4.8 → 4 (service), 4.9 → 2, 4.10 → 3 early. The component
 weights are constants in one place and must reproduce this ordering in the
 unit tests.
 

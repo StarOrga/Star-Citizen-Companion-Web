@@ -10,6 +10,9 @@
 --
 -- The request carries the PUBLISHABLE key only (it is already in the client
 -- bundle). The function does its own throttling; see its header.
+--
+-- ROLLBACK: `select cron.unschedule('patch-stability-sample');` -- the
+-- pg_cron/pg_net extensions can stay enabled, they are harmless.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
@@ -33,7 +36,8 @@ select cron.schedule(
   select net.http_post(
     url     := 'https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/patch-stability-sample',
     headers := '{"Content-Type":"application/json","apikey":"sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ"}'::jsonb,
-    body    := '{}'::jsonb
+    body    := '{}'::jsonb,
+    timeout_milliseconds := 60000
   );
   $job$
 );

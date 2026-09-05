@@ -54,7 +54,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
             @if (!compact() && entry().hotfix) {
               <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
             }
-            @if (!compact() && verdict(); as v) {
+            @if (!compact() && chipVerdict(); as v) {
               <sc-stability-chip [verdict]="v" />
             }
             <time>{{ when() }}</time>
@@ -146,6 +146,15 @@ export class PatchEntryRowComponent {
     const e = this.entry();
     if (e.stage !== 'live' || e.hotfix || !e.version) return null;
     return this.stability.verdictFor(patchLineOf(e.version));
+  });
+
+  /**
+   * The chip renders nothing without a level, so don't give it a flex slot
+   * either — an empty host still costs `.meta`'s gap.
+   */
+  readonly chipVerdict = computed(() => {
+    const v = this.verdict();
+    return v && v.level !== null ? v : null;
   });
 
   readonly entry = input.required<PatchNoteEntry>();
