@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   HostListener,
   OnInit,
   computed,
@@ -76,6 +77,7 @@ import {
   asFeedbackArea,
   feedbackAreaLabelKey,
 } from '../../feedback/feedback-area.types';
+import { isPlainLeftClick } from '../../core/modified-click.util';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
@@ -524,12 +526,13 @@ type AvatarTone = 'adm' | 'col' | 'usr';
            replies carry the plain "AI" label and no avatar (round-2 feedback);
            humans carry their role avatar. Longer than three lines folds. -->
       <ng-template #message let-msg let-kind="kind">
-        @let rendered = render(kind === 'system' ? questionText(msg.body) : msg.body);
+        @let shown = kind === 'system' ? questionText(msg.body) : msg.body;
+        @let rendered = render(shown);
         <div
           class="msg"
           [class.system]="kind === 'system'"
           [class.self]="kind === 'human' && msg.author_id === selfId()"
-          [class.clamped]="isLong(msg.id, msg.body)">
+          [class.clamped]="isLong(msg.id, shown)">
           <div class="msg-head">
             @if (kind === 'system') {
               <span class="ai">{{ 'adminFeedback.kind.ai' | translate }}</span>
@@ -543,7 +546,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <span class="msg-ts">{{ msg.created_at | scDate: 'datetime' }}</span>
           </div>
           <div class="msg-body" [innerHTML]="rendered.html"></div>
-          <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: msg.id, body: msg.body }"></ng-container>
+          <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: msg.id, body: shown }"></ng-container>
           <sc-feedback-attachments class="sent" [images]="rendered.images" />
         </div>
       </ng-template>
@@ -590,7 +593,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               </a>
             }
           </div>
-          @if (reopeningFor() === m.id) {
+          @if (reopeningFor() === reopenKey(m.id, hot)) {
             <!-- The steer goes into the thread FIRST, the reopen follows once
                  it is saved (the retired run's order): a topic never reaches
                  the routine's queue without the reason in the thread. -->
@@ -612,7 +615,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
                 ✓ {{ 'adminFeedback.review.accept' | translate }}
               </button>
-              <button class="sc-btn micro" (click)="startReopen(m)" [disabled]="busy()">
+              <button class="sc-btn micro" (click)="startReopen(m, hot)" [disabled]="busy()">
                 ↻ {{ 'adminFeedback.review.reopen' | translate }}
               </button>
             </div>
@@ -646,7 +649,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
             <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
               @if (areaLink(m); as href) {
-                <a class="menu-item" [routerLink]="href" (click)="closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+                <a class="menu-item" [routerLink]="href" (click)="isPlainLeftClick($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
               }
               @if (!archived(m) && !inReview(m)) {
                 @if (issueRequested(m)) {
@@ -832,7 +835,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               </button>
               @for (a of authorOptions(); track a.id) {
                 <button type="button" class="f-row sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
-                  {{ a.label }} <span class="f-count">{{ a.count }}</span>
+                  {{ authorLabel(a.row) }} <span class="f-count">{{ a.count }}</span>
                 </button>
               }
             </div>
@@ -1085,6 +1088,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly celebration = inject(CelebrationService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** When embedded in the feedback FAB panel, the page chrome (title, subtitle)
    *  is dropped — the panel supplies its own header. */
@@ -1132,7 +1136,8 @@ export class AdminFeedbackComponent implements OnInit {
     return flightPosition(m, this.threads().get(m.id));
   }
 
-  /** Template aliases for the pure label helpers. */
+  /** Template aliases for the pure helpers. */
+  readonly isPlainLeftClick = isPlainLeftClick;
   readonly stationLabelKey = stationLabelKey;
   readonly turnLabelKey = turnLabelKey;
   readonly stationIndex = stationIndex;
@@ -1410,14 +1415,18 @@ export class AdminFeedbackComponent implements OnInit {
     return f === null || asFeedbackArea(m.area) === f;
   }
 
-  /** Distinct authors, most-topics first — the "Wer?" rows. */
+  /**
+   * Distinct authors, most-topics first — the "Wer?" rows. Carries a sample
+   * row, not a label: the label is translated in the template so a language
+   * switch re-renders it like every other string.
+   */
   readonly authorOptions = computed(() => {
-    const seen = new Map<string, { id: string; label: string; count: number }>();
+    const seen = new Map<string, { id: string; row: FeedbackRow; count: number }>();
     for (const m of this.messages()) {
       const id = m.author_id ?? AdminFeedbackComponent.NO_AUTHOR;
       const existing = seen.get(id);
       if (existing) existing.count++;
-      else seen.set(id, { id, label: this.authorLabel(m), count: 1 });
+      else seen.set(id, { id, row: m, count: 1 });
     }
     return Array.from(seen.values()).sort((a, b) => b.count - a.count);
   });
@@ -1518,8 +1527,8 @@ export class AdminFeedbackComponent implements OnInit {
     const active = document.activeElement;
     if (active instanceof HTMLElement) this._returnFocus.push(active);
     requestAnimationFrame(() => {
-      const btns = document.querySelectorAll<HTMLElement>('sc-admin-feedback .sheet .sh-btn');
-      btns[btns.length - 1]?.focus();
+      const sheets = this.host.nativeElement.querySelectorAll<HTMLElement>('.sheet');
+      sheets[sheets.length - 1]?.querySelector<HTMLElement>('.sh-btn')?.focus();
     });
   }
 
@@ -1964,11 +1973,20 @@ export class AdminFeedbackComponent implements OnInit {
     await this.writeReview(m, { reviewed_at: new Date().toISOString() });
   }
 
-  /** Topic whose review gate is in "reopen" mode — the steer box is open. */
+  /**
+   * Which review gate is in "reopen" mode — the steer box is open. Keyed by
+   * SURFACE and topic: the lead card and the opened sheet both draw the gate
+   * for one topic, and a shared flag would mount two composers on one draft
+   * key. Only the gate the admin clicked switches.
+   */
   readonly reopeningFor = signal<string | null>(null);
 
-  startReopen(m: FeedbackRow): void {
-    this.reopeningFor.set(m.id);
+  reopenKey(id: string, lead: boolean): string {
+    return `${lead ? 'lead' : 'sheet'}:${id}`;
+  }
+
+  startReopen(m: FeedbackRow, lead: boolean): void {
+    this.reopeningFor.set(this.reopenKey(m.id, lead));
   }
 
   cancelReopen(): void {

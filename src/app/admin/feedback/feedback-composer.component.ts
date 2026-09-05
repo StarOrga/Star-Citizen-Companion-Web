@@ -791,10 +791,14 @@ export class FeedbackComposerComponent implements OnDestroy {
     }
   }
 
-  /** The panel this composer lives in — hidden during a capture — or null on the full page. */
+  /**
+   * The overlay this composer lives in — the FAB panel, or a full-page topic
+   * sheet on /admin/feedback — hidden during a capture so the shot shows the
+   * page, not the box the shot is going into. Null for an inline composer.
+   */
   private hostPanel(): HTMLElement | null {
     const el = this.ta()?.nativeElement;
-    return el ? (el.closest('.panel') as HTMLElement | null) : null;
+    return el ? (el.closest('.panel, .sheet') as HTMLElement | null) : null;
   }
 
   /** Decode one frame of the captured stream into a PNG file. */
