@@ -1355,8 +1355,7 @@
       "disabled": {
         "noMining": "Keine Bergbau-Hardpoints",
         "noSalvage": "Keine Bergungs-Hardpoints",
-        "noCargo": "Kein Frachtgitter",
-        "noQuantum": "Kein Quantenantrieb"
+        "noCargo": "Kein Frachtgitter"
       }
     },
     "kpi": {
