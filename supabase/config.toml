@@ -128,6 +128,15 @@ verify_jwt = false
 # every Bearer-token request before our middleware sees it.
 verify_jwt = false
 
+[functions.patch-stability-sample]
+# JWT verification OFF (same rationale as fetch-verse-news): the daily sampler
+# behind the patch board's stability indicator only mirrors public data
+# (Spectrum comment counts, the RSI status page, CIG's Known Issues article)
+# into two anon-readable tables via the service role. It is triggered by
+# pg_cron/pg_net without a JWT and self-throttles (skips when the newest sample
+# is < 6 h old), so an unauthenticated call cannot cause upstream load.
+verify_jwt = false
+
 [functions.starscape-summary]
 # JWT verification OFF — public, unauthenticated PNG endpoint consumed by the
 # Starscape desktop wallpaper app (no login/session at boot time). Renders a
