@@ -4,6 +4,64 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.75.0] - 2026-09-05
+
+### Added
+
+- **Verse News: die Patch-Notes-Seite ist ein Zeitstapel mit Dossier.** Statt
+  gestapelter Bänder führt `/news/patches` jetzt eine strikt monotone Achse:
+  der nächste Patch, der laufende als Hero, der abgelöste, ältere gefaltet.
+  Jede Karte öffnet ein Dossier mit Inhaltsverzeichnis und vier Abschnitten,
+  die nach ihrer Frage benannt sind — wie bereite ich mich vor, was steckt
+  drin, haben sie … gefixt, wann kommt der nächste. Deren Reihenfolge folgt
+  dem Zustand des Patches: solange er nicht draußen ist, führen die Fragen
+  nach vorn (wann kommt er, wie bereite ich mich vor); sobald er gelandet ist,
+  führen Inhalt und Fix-Suche, und die Vorbereitung rutscht ans Ende. Zwei
+  Überschriften wechseln mit der Zeitform mit: ein noch nicht erschienener
+  Patch fragt „Wann kommt dieser Patch?", ein abgelöster „Was kam danach?".
+  Eine Suche vom Board trägt ihre Anfrage ins Dossier und stellt die
+  Trefferliste voran. Die Zyklus-Achse misst die reale Lage gegen den üblichen
+  Takt vom selben Anker aus — gedämpfter Balken für den Takt, aktiver für das,
+  was wirklich geschah, bernstein für den Überstand. Ein nur angekündigter
+  Patch hat nichts zu zeichnen und antwortet stattdessen in Worten: geplantes
+  Quartal, der aus dem Takt projizierte Live-Termin, und die zwei Mediane,
+  auf denen das ruht.
+- **Feedback: Seite aufnehmen und markieren, was man meint.** Ein Bericht kann
+  die aktuelle Ansicht als Bild mitschicken, samt Markierungen darauf.
+- **Feedback: Nutzer-Feedback wird im Abarbeiten-Lauf mit abgearbeitet** statt
+  nur gesammelt.
+- **Social: Kontosperre, geteilte Loadouts und ablaufende Freundschaftsanfragen**
+  (Phase 1 des sozialen Ausbaus).
+- **Auth: Rollenauswahl im Seitenthema, und eingeladene Nutzer vergeben ihr
+  Passwort selbst.**
+- **Codex: der Zonen-Held bleibt auch in der eingeklappten Leiste sichtbar.**
+- **Rechtliches: die öffentlichen Seiten haben einen Weg zurück zur Startseite.**
+
+### Changed
+
+- **Hangar: der eigenständige Loadout-Editor entfällt, Sets werden im Codex
+  bearbeitet** — ein Ort statt zwei für dieselbe Arbeit.
+- **Codex: das „Live"-Abzeichen entfällt**; neuere Patches erscheinen ausgegraut,
+  und die Umschaltung zeigt höchstens drei.
+- **Starscape: Roadmap Roundup ist aus der Galerie und der App entfernt.**
+- **Desktop-Downloads werden auf dem Telefon nicht mehr angeboten** — sie sind
+  Windows-only und dort nutzlos.
+- **Shell: die Rollenvorschau ist als erhöhter Zugriff gekennzeichnet.**
+- **Feedback: eine Nachricht endet bei 2.000 Zeichen**, und ein überlanges Wort
+  bricht die Ansicht nicht mehr auf.
+
+### Fixed
+
+- **Codex: Schiffs- und Komponentenseiten scrollen auf dem Telefon nicht mehr
+  seitwärts.**
+- **Codex: die AN-BORD-Figur bleibt auf der Leiste sichtbar, auch wenn das Set
+  leer ist.**
+- **Feedback: die Bildschirmaufnahme verliert die Artwork-Ebene nicht mehr.**
+- **Datenbank: `is_suspended` wird definiert, bevor der erste Migrationsteil es
+  benutzt.**
+- **Data Uploader: der eingebettete Python-Download wird im Tag-Build
+  wiederholt** statt beim ersten Fehlversuch aufzugeben (data-uploader 0.25.2).
+
 ## [0.74.1] - 2026-09-03
 
 ### Fixed
