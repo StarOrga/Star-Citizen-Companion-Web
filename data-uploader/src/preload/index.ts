@@ -187,6 +187,8 @@ interface SkinUploadResult {
   committed?: number;
   error?: string;
   cached?: boolean;
+  /** Ship built no livery model — a successful no-op, not a failure. */
+  empty?: boolean;
 }
 
 export const api = {
