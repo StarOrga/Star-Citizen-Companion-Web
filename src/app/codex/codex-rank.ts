@@ -128,7 +128,10 @@ export interface RankResult {
   scopeFallbackKey: string | null;
   /** ships in the cohort after the scope filter (including the target). */
   cohortSize: number;
+  /** fixed profile order — drives the radar's spokes, vertices and captions. */
   axes: RankAxisResult[];
+  /** the same axes sorted by percentile desc (gaps last) — drives the bar list only. */
+  bars: RankAxisResult[];
   /** mean of the ranked axes' percentiles, null when no axis could be ranked. */
   overall: number | null;
   band: RankBand | null;
@@ -242,8 +245,10 @@ export function rankShip(
     ranked.length > 0 ? Math.round((ranked.reduce((s, p) => s + p, 0) / ranked.length) * 10) / 10 : null;
   const band = rankBandOf(overall);
 
-  // Sorted by percentile desc for the two-column bar list (MASTER §3); gaps last.
-  axes.sort((a, b) => (b.percentile ?? -1) - (a.percentile ?? -1));
+  // `axes` stays in the profile's fixed order — it drives the radar's spokes,
+  // vertices and captions. Only the bar list is sorted by percentile desc,
+  // gaps last (MASTER §3); it must NOT mutate `axes` in place.
+  const bars = [...axes].sort((a, b) => (b.percentile ?? -1) - (a.percentile ?? -1));
 
   return {
     profileId: profile.id,
@@ -251,6 +256,7 @@ export function rankShip(
     scopeFallbackKey,
     cohortSize: set.length,
     axes,
+    bars,
     overall,
     band,
     bandKey: band ? `codex.rank.band.${band}` : null,

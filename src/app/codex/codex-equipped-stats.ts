@@ -533,36 +533,66 @@ export function isWeaponMountPort(portName: string | null | undefined): boolean 
  * out of the translation files while every LABEL is translated via `labelKey`.
  */
 export function formatEquippedStat(stat: EquippedStat): string {
+  const n = formatEquippedStatNumber(stat);
+  switch (stat.format) {
+    case 'int':
+    case 'dec':
+      return n;
+    case 'perSec':
+      return `${n}/s`;
+    case 'seconds':
+      return `${n} s`;
+    case 'metres':
+    case 'metresDec':
+      return `${n} m`;
+    case 'mps':
+      return `${n} m/s`;
+    case 'gm':
+      return `${n} Gm`;
+    case 'kms':
+      return `${n} km/s`;
+    case 'scu':
+      return `${n} SCU`;
+    case 'kn':
+      return `${n} kN`;
+    case 'size':
+      return `S${n}`;
+    case 'percent':
+      return `${n} %`;
+  }
+}
+
+/**
+ * The number a stat renders — scaled and rounded exactly as
+ * {@link formatEquippedStat} does, but without the unit symbol. The KPI delta
+ * chip needs this: the concept draws the change as a bare "+28" / "−225"
+ * beside a value that already carries the unit (03-rules §3.5).
+ */
+export function formatEquippedStatNumber(stat: EquippedStat): string {
   const v = stat.value;
   switch (stat.format) {
     case 'int':
+    case 'perSec':
+    case 'metres':
+    case 'mps':
+    case 'size':
       return formatNumber(Math.round(v));
     case 'dec':
-      return formatNumber(v);
-    case 'perSec':
-      return `${formatNumber(Math.round(v))}/s`;
     case 'seconds':
-      return `${formatNumber(v)} s`;
-    case 'metres':
-      return `${formatNumber(Math.round(v))} m`;
+    case 'scu':
+      return formatNumber(v);
     case 'metresDec':
       // Sub-metre distances would round to a flat "0 m" — keep the decimals.
-      return `${formatNumber(v)} m`;
-    case 'mps':
-      return `${formatNumber(Math.round(v))} m/s`;
+      return formatNumber(v);
     case 'gm':
       // metres → giga-metres, matching the hangar's jump-range presentation.
-      return `${formatNumber(Math.round(v / 1_000_000))} Gm`;
+      return formatNumber(Math.round(v / 1_000_000));
     case 'kms':
-      return `${formatNumber(Math.round(v / 1_000))} km/s`;
-    case 'scu':
-      return `${formatNumber(v)} SCU`;
+      return formatNumber(Math.round(v / 1_000));
     case 'kn':
-      return `${formatNumber(Math.round(v / 1_000))} kN`;
-    case 'size':
-      return `S${formatNumber(Math.round(v))}`;
+      return formatNumber(Math.round(v / 1_000));
     case 'percent':
-      return `${formatNumber(Math.round(v * 100))} %`;
+      return formatNumber(Math.round(v * 100));
   }
 }
 

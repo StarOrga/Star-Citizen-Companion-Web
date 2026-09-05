@@ -110,6 +110,7 @@ import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, KpiStripCell } from './codex-kpi-sets';
 import { isPassiveShield } from './codex-power';
+import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
 import { CodexEnergyDockComponent } from './codex-energy-dock.component';
 import { CodexRankCardComponent } from './codex-rank-card.component';
@@ -2664,16 +2665,57 @@ export class CodexDetailComponent implements OnInit {
     return out;
   });
 
+  /** Mount-chain sections (D11): the mount ITSELF (VariPuck gimbal, missile
+   * rack, remote-turret base) carries no alpha and exists only to hold what's
+   * chained inside it. The concept's fold-peek is a single chip about the
+   * WEAPON — "3× S3 CF-337 Panther Repeater", no mount chip anywhere in the
+   * peek (part-06.html:314-316) — so a mount whose port resolved a carried
+   * child is excluded from these sections here; its child still gets pushed
+   * below, in the same section, via `carriedOccupants`. */
+  private static readonly MOUNT_CHAIN_SECTIONS: ReadonlySet<ShipModuleSection> = new Set([
+    'weapons',
+    'remoteTurrets',
+    'missiles',
+  ]);
+
   /** Occupants grouped by module section (draft-overlaid) for the fold preview
-   * inside each `<details>` summary (MASTER §6). */
+   * inside each `<details>` summary (MASTER §6). Built straight from the
+   * resolved loadout (not `draftSummaryOccupants`) so a mount can be dropped
+   * from the mount-chain sections without a mount occupant leaking through —
+   * see `MOUNT_CHAIN_SECTIONS` above — and identical occupants are folded
+   * into one grouped entry (`3× S3 …`, D10) before the fold-peek ever sees
+   * them. */
   readonly occupantsBySection = computed<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(() => {
     const out = new Map<ShipModuleSection, SummaryOccupant[]>();
-    for (const o of this.draftSummaryOccupants()) {
+    const push = (o: SummaryOccupant) => {
       const hit = out.get(o.section);
       if (hit) hit.push(o);
       else out.set(o.section, [o]);
+    };
+    for (const r of this.resolvedLoadout()) {
+      const configurable = isConfigurableSection(r.section);
+      const draftEntry = configurable ? this.draft().get(r.item.port) : undefined;
+      const item = { kind: r.kind, payload: r.payload, ammoPayload: r.ammoPayload };
+      const overlay = this.draftOverlayFor(r.item.port, draftEntry, item);
+      const pending = overlay.state === 'pending';
+      const isMount =
+        CodexDetailComponent.MOUNT_CHAIN_SECTIONS.has(r.section) && r.item.carried.size > 0;
+      if (!isMount) {
+        push({
+          section: r.section,
+          kind: overlay.item.kind,
+          payload: pending ? null : overlay.item.payload,
+          ammoPayload: pending ? undefined : overlay.item.ammoPayload,
+          count: 1,
+        });
+      }
+      if (draftEntry === undefined) {
+        for (const occ of this.carriedOccupants(r.section, r.item.carried)) push(occ);
+      }
     }
-    return out;
+    const grouped = new Map<ShipModuleSection, readonly SummaryOccupant[]>();
+    for (const [section, occupants] of out) grouped.set(section, groupOccupants(occupants));
+    return grouped;
   });
 
   /** Total loadout slots (all sections) — kept for other consumers. */
@@ -2871,7 +2913,9 @@ export class CodexDetailComponent implements OnInit {
       | { itemPorts?: ItemPort[] }
       | undefined;
     const resolved = this.loadoutEntities();
-    return carriedSlots(
+    const payloads = this.loadoutPayloads();
+    const ammo = this.ammoPayloads();
+    const slots = carriedSlots(
       payload?.itemPorts,
       carried,
       (cn) => {
@@ -2882,6 +2926,27 @@ export class CodexDetailComponent implements OnInit {
       },
       (portName) => this.humanizePort(portName),
     );
+    // The gun in the gimbal is the weapon this ship shoots with, so it gets the
+    // same identity and stat run a top-level occupant does — the concept draws
+    // it as a full row, not as a name under a mount (part-06.html:320-324).
+    return slots.map((slot) => {
+      if (!slot.className) return slot;
+      const hit = resolved.get(slot.className);
+      const payloadHit = payloads.get(slot.className);
+      const item = {
+        kind: payloadHit?.kind ?? hit?.kind ?? null,
+        payload: payloadHit?.payload ?? null,
+        ammoPayload: ammo.get(ammoClassNameFor(slot.className) ?? ''),
+      };
+      return {
+        ...slot,
+        grade: hit?.grade ?? null,
+        manufacturerCode: hit?.manufacturerCode ?? null,
+        damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
+        stats: equippedStats(item),
+        statsMissing: weaponStatsUnavailable(item),
+      };
+    });
   }
 
   /**

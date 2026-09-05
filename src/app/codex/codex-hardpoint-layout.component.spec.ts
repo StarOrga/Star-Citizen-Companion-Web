@@ -112,14 +112,75 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.slot-port')?.textContent?.trim()).toBe('Hardpoint Weapon Top Left');
   });
 
+  it('multiplies the headline figure out to the whole group, never the per-item value', () => {
+    // concept/part-06.html:318-324: "3× S3 CF-337 Panther Repeater", l3 quoting
+    // the per-gun number and the figure quoting the three of them together.
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [PANTHER, { ...PANTHER, port: 'Hardpoint Weapon Top Right' }, { ...PANTHER, port: 'Hardpoint Weapon Nose' }],
+      },
+    ]);
+    const rows = el.querySelectorAll('.mod-sec[data-sec="weapons"] li.slot');
+    expect(rows.length).toBe(1); // the three identical guns collapse into one row
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('3× S3');
+    expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('130.95'); // 43.65 × 3
+    const perItem = Array.from(el.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim());
+    expect(perItem[0]).toBe('43.65');
+  });
+
+  it('gives the carried gun its own maker line, damage channel, stat run and figure', () => {
+    // concept/part-06.html:320-324 draws the gun inside the gimbal as a FULL
+    // row — "Waffe · Klaus & Werner (KLWE) · Grade A · Energie" over its stat
+    // run, with the group figure beside it — not as a bare name under a mount.
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          {
+            ...VARIPUCK,
+            children: [
+              child({
+                port: 'Hardpoint Class 3',
+                typeLabel: 'Gun',
+                size: 3,
+                className: 'KLWE_LaserRepeater_S3',
+                kind: 'weapon',
+                name: 'CF-337 Panther Repeater',
+                grade: 'A',
+                manufacturerCode: 'KLWE',
+                damageChannels: ['energy'],
+                stats: [{ labelKey: 'codex.equipped.alphaDamage', value: 43.65, format: 'dec' }],
+              }),
+            ],
+          },
+        ],
+      },
+    ]);
+    const kid = el.querySelector('.kid')!;
+    expect(kid.querySelector('.slot-item')?.textContent?.trim()).toBe('CF-337 Panther Repeater');
+    expect(kid.querySelector('.meta-txt')?.textContent?.trim()).toBe('KLWE · Gun');
+    expect(kid.querySelector('.tag.dmg')).toBeTruthy();
+    expect(
+      Array.from(kid.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim()),
+    ).toEqual(['43.65']);
+    expect(kid.querySelector('.fig .n')?.textContent?.trim()).toBe('43.65');
+  });
+
   it('shows who made it and what it is on one meta line', () => {
     const el = render([{ section: 'weapons', slots: [PANTHER] }]);
     expect(el.querySelector('.meta-txt')?.textContent?.trim()).toBe('KLA · Gun');
     expect(el.querySelector('.tag.dmg')).toBeTruthy(); // the ENERGY badge
   });
 
-  it('renders every curated stat with its unit', () => {
+  it('renders the group total as the right-hand figure and keeps every per-item stat in the dl', () => {
     const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    // MASTER §6: "right figure (…) with delta chip when changed". The figure is
+    // the GROUP total; the per-item value stays in the l3 run beside it, exactly
+    // as the concept draws it ("279 Dauer-DPS" in l3, "837 Dauer-DPS" in the
+    // figure — concept/part-06.html:322 + :324). One gun, so both read 43.65.
+    expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('43.65');
+    expect(el.querySelector('.fig .u')?.textContent?.trim()).toBe('codex.equipped.alphaDamage');
     const values = Array.from(el.querySelectorAll('.slot-stats dd')).map((d) =>
       d.textContent?.trim(),
     );
@@ -502,10 +563,14 @@ describe('CodexHardpointLayoutComponent', () => {
       s.getAttribute('data-sec'),
     );
     expect(order).toEqual(['missiles', 'countermeasures']);
-    // The rack leads with what it CARRIES, not only with its own size.
-    const rackStats = Array.from(
-      el.querySelectorAll('.mod-sec[data-sec="missiles"] .slot-stats dd'),
-    ).map((d) => d.textContent?.trim());
+    // The rack leads with what it CARRIES, not only with its own size — the
+    // count is the row's headline figure, and the l3 run under it keeps every
+    // curated stat, the headline quantity included.
+    const missilesSec = el.querySelector('.mod-sec[data-sec="missiles"]');
+    expect(missilesSec?.querySelector('.fig .n')?.textContent?.trim()).toBe('4');
+    const rackStats = Array.from(missilesSec?.querySelectorAll('.slot-stats dd') ?? []).map(
+      (d) => d.textContent?.trim(),
+    );
     expect(rackStats).toEqual(['4', 'S2']);
     // The launcher still opens its stat sheet — it just isn't a swap any more
     // (32659942), so the block wears the "not configurable" tag.

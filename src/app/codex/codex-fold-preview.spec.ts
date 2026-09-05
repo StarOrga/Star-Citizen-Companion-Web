@@ -79,7 +79,27 @@ describe('isPassiveShield', () => {
 });
 
 describe('buildFoldPreview dispatch', () => {
-  it('sums weapon alpha damage', () => {
+  it('sums weapon SUSTAINED DPS, not alpha (concept: "837 Dauer-DPS")', () => {
+    const gun: SummaryOccupant = {
+      section: 'weapons',
+      kind: 'weapon',
+      count: 2,
+      payload: {
+        entityKind: 'weapon',
+        className: 'KLWE_LaserRepeater_S3',
+        size: 3,
+        weaponParams: { fireRate: 750 },
+      },
+      ammoPayload: { impactDamage: { energy: 43.65 } },
+    };
+    const preview = buildFoldPreview('weapons', [gun]);
+    // 43.65 alpha * 750 rpm / 60 = 545.625 DPS per gun, ×2 guns.
+    expect(preview.chips[0].figure).toBe(1091.25);
+    expect(preview.aggregate?.labelKey).toBe('codex.module.peek.sustainedDpsTotal');
+    expect(preview.aggregate?.figure).toBe(1091.25);
+  });
+
+  it('shows a gap, not a Σ-alpha fallback, when the extract carries no fire rate', () => {
     const gun: SummaryOccupant = {
       section: 'weapons',
       kind: 'weapon',
@@ -88,8 +108,22 @@ describe('buildFoldPreview dispatch', () => {
       ammoPayload: { impactDamage: { energy: 43.65 } },
     };
     const preview = buildFoldPreview('weapons', [gun]);
-    expect(preview.chips[0].figure).toBe(87.3);
-    expect(preview.aggregate?.labelKey).toBe('codex.module.peek.alphaTotal');
+    expect(preview.chips[0].figure).toBeNull();
+    expect(preview.aggregate).toBeNull();
+  });
+
+  it('sums missile salvo damage (not a rate — concept: "Salve gesamt")', () => {
+    const rack: SummaryOccupant = {
+      section: 'missiles',
+      kind: 'weapon',
+      count: 4,
+      payload: { entityKind: 'weapon', className: 'THCN_ArresterIII', size: 2 },
+      ammoPayload: { impactDamage: { energy: 1600 } },
+    };
+    const preview = buildFoldPreview('missiles', [rack]);
+    expect(preview.chips[0].figure).toBe(6400);
+    expect(preview.aggregate?.labelKey).toBe('codex.module.peek.missileTotal');
+    expect(preview.aggregate?.figure).toBe(6400);
   });
 
   it('reports the reactor budget for power plants', () => {

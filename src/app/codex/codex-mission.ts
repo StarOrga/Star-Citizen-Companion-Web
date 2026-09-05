@@ -205,7 +205,6 @@ export function missionDisabledReasonKey(mission: MissionId, caps: ShipCapabilit
   if (mission === 'mining' && !caps.hasMining) return 'codex.mission.disabled.noMining';
   if (mission === 'salvage' && !caps.hasSalvage) return 'codex.mission.disabled.noSalvage';
   if (mission === 'transport' && !caps.hasCargo) return 'codex.mission.disabled.noCargo';
-  if (mission === 'travel' && !caps.hasQuantum) return 'codex.mission.disabled.noQuantum';
   return null;
 }
 

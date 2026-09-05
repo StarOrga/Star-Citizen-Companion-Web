@@ -26,6 +26,7 @@ import {
   ShipModuleSection,
   isConfigurableSection,
 } from './ship-module-sections';
+import { formatNumber } from './codex-format';
 
 /**
  * A sub-slot the installed mount itself exposes: the gun port inside a VariPuck
@@ -50,6 +51,18 @@ export interface LayoutChild {
   rawPorts: string[];
   /** Raw (un-humanized) engine type strings the sub-port declares. */
   rawTypes: string[];
+  /**
+   * The carried item's own identity and numbers, resolved exactly like a
+   * top-level slot's. The gun inside a gimbal IS the weapon on this ship, so
+   * the concept gives it a full row — maker, class, grade, damage channel and
+   * its stat run (concept/part-06.html:320-324) — not a bare name.
+   */
+  grade?: string | null;
+  manufacturerCode?: string | null;
+  damageChannels?: string[];
+  stats?: EquippedStat[];
+  /** The carried item is a real gun but this extract has no stats for it. */
+  statsMissing?: boolean;
 }
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
@@ -302,32 +315,40 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                         </span>
                       </span>
                       <span class="slot-port">{{ portLabel(row) }}</span>
-                      @if (row.slot.stats?.length) {
-                        <dl class="slot-stats">
-                          @for (st of row.slot.stats; track st.labelKey) {
-                            <div class="stat">
-                              <dt>
-                                {{ st.labelKey | translate }}
-                                @if (st.derived) {
-                                  <span class="derived"
-                                        [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
-                                }
-                              </dt>
-                              <dd>
-                                {{ fmtStat(st) }}
-                                @if ($index === 0 && row.slot.deltaPct != null) {
-                                  <span class="delta" [class.up]="row.slot.deltaPct > 0" [class.down]="row.slot.deltaPct < 0">
-                                    {{ row.slot.deltaPct > 0 ? '+' : '' }}{{ row.slot.deltaPct }} %
-                                  </span>
-                                }
-                              </dd>
-                            </div>
-                          }
-                        </dl>
-                      } @else if (row.slot.statsMissing) {
-                        <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                      @if (secondaryStats(row); as rest) {
+                        @if (rest.length) {
+                          <dl class="slot-stats">
+                            @for (st of rest; track st.labelKey) {
+                              <div class="stat">
+                                <dt>
+                                  {{ st.labelKey | translate }}
+                                  @if (st.derived) {
+                                    <span class="derived"
+                                          [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                  }
+                                </dt>
+                                <dd>{{ fmtStat(st) }}</dd>
+                              </div>
+                            }
+                          </dl>
+                        } @else if (!row.slot.stats?.length && row.slot.statsMissing) {
+                          <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                        }
                       }
                     </button>
+                    <!-- ONE right-hand headline figure per row (MASTER §6:
+                         "right figure … with delta chip when changed") — the
+                         same quantity the fold-peek aggregates, with the
+                         absolute delta (not a percentage) riding inside it. -->
+                    @if (headlineFig(sec, row); as fig) {
+                      <div class="fig">
+                        <span class="n">{{ fig.value }}</span>
+                        <span class="u">{{ fig.unitKey | translate }}</span>
+                        @if (fig.deltaText) {
+                          <span class="dl" [class.up]="fig.delta! > 0" [class.down]="fig.delta! < 0">{{ fig.deltaText }}</span>
+                        }
+                      </div>
+                    }
                   } @else if (row.slot.emptySwappable && sec.configurable) {
                     <!-- An unfitted bay we DO know the accepted item type for
                          (from the hardpoint itself or from an identical fitted
@@ -385,12 +406,40 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 <span class="slot-ident">
                                   <span class="slot-item">{{ kid.name }}</span>
                                   <span class="slot-meta">
-                                    @if (kid.typeLabel) { <span class="meta-txt">{{ kid.typeLabel }}</span> }
+                                    @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
+                                    @for (ch of kid.damageChannels; track ch) {
+                                      <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                                    }
+                                    @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
                                   </span>
                                 </span>
                               </span>
                               <span class="slot-port">{{ kid.port }}</span>
+                              @if (kid.stats?.length) {
+                                <dl class="slot-stats">
+                                  @for (st of kid.stats; track st.labelKey) {
+                                    <div class="stat">
+                                      <dt>
+                                        {{ st.labelKey | translate }}
+                                        @if (st.derived) {
+                                          <span class="derived"
+                                                [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                        }
+                                      </dt>
+                                      <dd>{{ fmtStat(st) }}</dd>
+                                    </div>
+                                  }
+                                </dl>
+                              } @else if (kid.statsMissing) {
+                                <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                              }
                             </button>
+                            @if (kidFig(row, kid); as fig) {
+                              <div class="fig">
+                                <span class="n">{{ fig.value }}</span>
+                                <span class="u">{{ fig.unitKey | translate }}</span>
+                              </div>
+                            }
                           } @else if (kid.rawTypes.length > 0 && sec.configurable) {
                             <!-- An unfitted sub-slot we know the accepted engine
                                  type(s) for is still a real choice (Falle 3). -->
@@ -537,14 +586,25 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       background: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
     .kids { list-style: none; margin: 0; padding: 0; flex: 2 1 300px; min-width: 0;
       display: flex; flex-direction: column; gap: 4px; }
-    .kid { min-width: 0; }
+    /* The carried item now renders a full row of its own (stat run + headline
+       figure), so the seat lays them out side by side exactly like a slot. */
+    .kid { min-width: 0; display: flex; align-items: stretch; gap: 6px; }
+    .kid > .kid-btn { flex: 1 1 auto; min-width: 0; }
 
     .slot-swap, .slot-swap-action { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
     .slot-swap:hover, .slot-swap-action:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .delta { margin-left: 4px; font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; }
-    .delta.up { color: var(--sc-success, #4caf50); }
-    .delta.down { color: var(--sc-danger, #ff5252); }
+
+    /* The row's ONE headline figure (MASTER §6) — number, unit, absolute
+       delta chip. Sits between the identity block and the ⓘ/⇄ tools, same
+       spot the concept's .fig occupies next to .tools. */
+    .fig { flex: 0 0 auto; align-self: center; display: flex; align-items: baseline; gap: 4px;
+      padding: 0 4px; min-width: 64px; text-align: right; }
+    .fig .n { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    .fig .u { font-size: max(0.6rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .fig .dl { font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; }
+    .fig .dl.up { color: var(--sc-success, #4caf50); }
+    .fig .dl.down { color: var(--sc-danger, #ff5252); }
 
     /* Draft write-path: a row edited away from stock. */
     .tag.draft { align-self: center; text-transform: none; letter-spacing: 0; color: var(--sc-accent-gold, #c8a84b);
@@ -699,12 +759,17 @@ export class CodexHardpointLayoutComponent {
     return sec.section === 'shields' || census.passive > 0 ? 'codex.module.census' : 'codex.module.censusSlots';
   }
 
-  /** A section with no occupants in `occupantsBySection` (all-empty bay)
-   * reports 0 from the preview census; fall back to the section's own slot
-   * count so the head never claims an empty section has no slots. */
+  /**
+   * The occupant census counts hardpoints that carry something (and, for a
+   * mount-chain section, the CHILD it carries) — never the hull's own
+   * hardpoint count (D11: a Nomad with 3 gun mounts and 3 gimballed guns must
+   * read "3 Slots", not "6"). The section's own slot count is always the
+   * source of truth for `slots`; the preview census is only consulted for
+   * the active/passive split (shields).
+   */
   censusParams(sec: RenderSection): { slots: number; active: number; passive: number } {
     const census = this.preview(sec).census;
-    return census.slots > 0 ? census : { slots: sec.count, active: census.active, passive: census.passive };
+    return { slots: sec.count, active: census.active, passive: census.passive };
   }
 
   fmtPeek(chip: FoldPeekChip): string {
@@ -827,7 +892,17 @@ export class CodexHardpointLayoutComponent {
   private ordered = computed<RenderSection[]>(() => {
     const split = this.splitSections();
     const open = this.openSections();
-    const order = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    const baseOrder = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    // A lens may only reorder and fold — never remove a module the ship
+    // actually has (MASTER §5: "Lens = {order, fold}; it never removes a
+    // module"). Any section missing from a mission's own `order` array (e.g.
+    // countermeasures/structure, which no mission group names) is appended in
+    // the default display order, so it still renders — folded if it likes,
+    // but never dropped (D17).
+    const order = [
+      ...baseOrder,
+      ...SHIP_MODULE_SECTION_ORDER.filter((s) => !baseOrder.includes(s)),
+    ];
     const foldable = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...this.foldedSections()]);
     return order
       .map((s) => this.sections().find((g) => g.section === s))
@@ -906,7 +981,90 @@ export class CodexHardpointLayoutComponent {
     return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
   }
 
+  /** The carried item's meta line, read the same way a top-level row's is. */
+  kidMetaLine(kid: LayoutChild): string {
+    return [kid.manufacturerCode, kid.typeLabel].filter(Boolean).join(' · ');
+  }
+
+  /**
+   * The carried item's own headline figure, multiplied out to every seat the
+   * row stands for: three gimbals each holding one Panther is "3 × 1" guns, so
+   * the gun's own stat carries the mount's count as well as its own.
+   */
+  kidFig(row: GroupedSlot<LayoutSlot>, kid: LayoutChild): { value: string; unitKey: string } | null {
+    const stat = kid.stats?.[0];
+    if (!stat) return null;
+    const total = stat.value * Math.max(1, kid.count) * row.count;
+    return { value: this.fmtStat({ ...stat, value: total }), unitKey: stat.labelKey };
+  }
+
   fmtStat(stat: EquippedStat): string {
     return formatEquippedStat(stat);
+  }
+
+  /**
+   * The `l3` run under the identity line: EVERY curated stat, per item. The
+   * `.fig` beside it quotes the group TOTAL of a different quantity, so
+   * nothing is duplicated by keeping the per-item value here — the concept
+   * does exactly that ("279 Dauer-DPS" in l3 next to "837 Dauer-DPS" in the
+   * figure, "3.528 HP je Stück" next to "7.056 Schild HP";
+   * concept/part-06.html:322-324 + :461).
+   */
+  secondaryStats(row: GroupedSlot<LayoutSlot>): EquippedStat[] {
+    return row.slot.stats ?? [];
+  }
+
+  /**
+   * The GROUP total this row stands for — the fold-peek's own chip for this
+   * occupant, whose `figure` is already ×count and already the quantity the
+   * peek aggregates (sustained DPS for guns, salvo damage for missiles, the
+   * HP pool for shields). Reading it from there is what keeps the row and the
+   * peek from ever quoting two different numbers for the same group; the chip
+   * is only trusted when it stands for the same run of hardpoints this row
+   * does (`count`), because the two sides group independently.
+   *
+   * Fallback for the sections whose peek carries no figure: the first curated
+   * stat, multiplied out to the group the row represents.
+   */
+  private groupFigure(sec: RenderSection, row: GroupedSlot<LayoutSlot>): EquippedStat | null {
+    const chip = this.preview(sec).chips.find(
+      (c) => c.count === row.count && c.id.startsWith(`${row.slot.className}:`),
+    );
+    if (chip?.figure != null && chip.unitKey) {
+      return { labelKey: chip.unitKey, value: chip.figure, format: chip.format };
+    }
+    const stat = row.slot.stats?.[0];
+    return stat ? { ...stat, value: stat.value * row.count } : null;
+  }
+
+  /**
+   * The row's one right-hand headline figure (MASTER §6): the group total from
+   * {@link groupFigure}, never the per-item value — the concept's weapon row
+   * quotes "279 Dauer-DPS" per gun and "837 Dauer-DPS" for the three of them
+   * (concept/part-06.html:322 + :324).
+   *
+   * The delta is the ABSOLUTE change (concept: `+81`, never a percentage),
+   * reconstructed from the exact percentage already computed for a changed
+   * row: given the figure `v` and its percent change `p` against stock, the
+   * stock value is `v / (1 + p/100)`, so the absolute delta is
+   * `v·p / (100 + p)` — an exact identity, not an estimate.
+   */
+  headlineFig(
+    sec: RenderSection,
+    row: GroupedSlot<LayoutSlot>,
+  ): { value: string; unitKey: string; delta: number | null; deltaText: string } | null {
+    const fig = this.groupFigure(sec, row);
+    if (!fig) return null;
+    const pct = row.slot.deltaPct;
+    let delta: number | null = null;
+    if (pct != null && Number.isFinite(pct) && 100 + pct !== 0) {
+      delta = Math.round((fig.value * pct) / (100 + pct));
+    }
+    return {
+      value: this.fmtStat(fig),
+      unitKey: fig.labelKey,
+      delta,
+      deltaText: delta == null || delta === 0 ? '' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`,
+    };
   }
 }
