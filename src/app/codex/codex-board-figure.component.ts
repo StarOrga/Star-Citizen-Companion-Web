@@ -48,13 +48,15 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       #stage
       class="board-stage"
       [class.on]="ready()"
-      role="img"
-      [attr.aria-hidden]="ready() ? null : 'true'"
-      [attr.aria-label]="'codex.landing.paperdoll.aria' | translate"
+      [attr.role]="decorative() ? null : 'img'"
+      [attr.aria-hidden]="decorative() || !ready() ? 'true' : null"
+      [attr.aria-label]="decorative() ? null : ('codex.landing.paperdoll.aria' | translate)"
     ></canvas>
 
-    <svg class="board-doll" viewBox="0 0 120 184" role="img"
-         [attr.aria-label]="'codex.landing.paperdoll.aria' | translate">
+    <svg class="board-doll" viewBox="0 0 120 184"
+         [attr.role]="decorative() ? null : 'img'"
+         [attr.aria-hidden]="decorative() ? 'true' : null"
+         [attr.aria-label]="decorative() ? null : ('codex.landing.paperdoll.aria' | translate)">
       <defs>
         <!-- One light, upper left. Each plate gets its own bbox ramp,
              which is what makes a plated suit out of flat shapes.
@@ -168,6 +170,10 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
   `,
   styles: [
     `
+      /* Width-driven on purpose: a host that only knows its HEIGHT (the
+         collapsed rail's horizontal bar on a phone) gives its box the 120:184
+         ratio and lets max-width clamp the figure into it, so the suit's own
+         ratio never has to be restated anywhere else. */
       :host {
         display: block;
         width: 108px;
@@ -251,6 +257,13 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
 export class CodexBoardFigureComponent {
   /** Which of the six positions are equipped — the only state the suit carries. */
   readonly filled = input.required<ReadonlySet<string>>();
+  /**
+   * Text-free mode: the suit is pure decoration inside a control that already
+   * names itself (the collapsed AN BORD rail). It drops `role="img"` and its
+   * label rather than announcing a second name inside that button — the figure
+   * is then what it looks like, a picture of the set, and nothing else.
+   */
+  readonly decorative = input(false);
 
   private readonly stage = viewChild.required<ElementRef<HTMLCanvasElement>>('stage');
   private readonly destroyRef = inject(DestroyRef);
