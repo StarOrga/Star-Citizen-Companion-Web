@@ -26,8 +26,14 @@ export type ZoneRailKind = 'board' | 'hangar';
  * slot, not a KPI, not a control: the rail keeps exactly its own two
  * affordances, the rotated zone label and the chevron, because a strip that
  * does not say what it opens is a picture, not a control.
- * Without a hero (no flagship, nothing equipped) it degrades to the plain rail
- * it has always been, summary line included.
+ *
+ * ROUND THREE (same feedback): AN BORD's figure is now unconditional. It used
+ * to be withheld while nothing was equipped — "immer noch nicht die person als
+ * spalte sondern nur die textleiste" was the answer to that, and it is right:
+ * the figure is the character, not the set, so an unequipped suit is an honest
+ * empty one rather than "a picture of nothing". Only IM HANGAR can still be
+ * heroless: an empty hangar has no ship, and there it degrades to the plain
+ * rail it has always been, summary line included.
  *
  * Both heroes are the components the expanded zones already use
  * (sc-codex-board-figure, sc-fallback-image + the category glyph), the figure
@@ -239,9 +245,9 @@ export class CodexZoneRailComponent {
   readonly fallbackKey = input.required<string>();
 
   /**
-   * AN BORD's hero: the equipped positions of the active set. Null when there
-   * is nothing to show — a figure with every position open is a picture of an
-   * empty set, which is worse than the plain rail it would replace.
+   * AN BORD's hero: the equipped positions of the active set — possibly none of
+   * them. The landing always passes a set (see `boardHero`); `null` is left
+   * accepted so the rail stays one generic component for both zones.
    */
   readonly heroSuit = input<ReadonlySet<string> | null>(null);
   /**
