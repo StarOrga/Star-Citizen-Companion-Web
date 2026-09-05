@@ -16,13 +16,15 @@
     <meta property="og:title" content="Star Citizen Companion" />
     <meta property="og:description" content="Star Citizen Companion (SCC) — Verse News, P4K analyzer, and more." />
     <meta property="og:url" content="https://sc-companion.vercel.app/" />
-    <meta property="og:image" content="https://sc-companion.vercel.app/icons/scc-favicon.svg" />
+    <meta property="og:image" content="https://sc-companion.vercel.app/icons/brand/scc-og-1200x630.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="de_DE" />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Star Citizen Companion" />
     <meta name="twitter:description" content="Star Citizen Companion (SCC) — Verse News, P4K analyzer, and more." />
-    <meta name="twitter:image" content="https://sc-companion.vercel.app/icons/scc-favicon.svg" />
+    <meta name="twitter:image" content="https://sc-companion.vercel.app/icons/brand/scc-og-1200x630.png" />
     <meta name="application-name" content="Star Citizen Companion" />
     <!-- "dev" is intentional — postbuild (scripts/stamp-index-version.mjs) rewrites it to the
          release version; a hardcoded version here would silently drift from package.json. -->
@@ -51,10 +53,10 @@
         }
       }
     </script>
-    <link rel="icon" type="image/svg+xml" href="icons/scc-favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="icons/brand/scc-mark-compact.svg" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" sizes="any" />
-    <link rel="mask-icon" href="icons/verse-compass-mono.svg" color="#00d4ff" />
-    <link rel="apple-touch-icon" href="icons/scc-favicon.svg" />
+    <link rel="mask-icon" href="icons/brand/scc-mark-mono.svg" color="#52c1e6" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/brand/scc-apple-touch-180.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -85,7 +87,7 @@
         justify-content: center;
         gap: 22px;
         background: #050810;
-        color: #00d4ff;
+        color: #52c1e6;
         font-family: 'Orbitron', 'Segoe UI', system-ui, sans-serif;
       }
       .sc-boot__ring {
@@ -103,8 +105,8 @@
         inset: -6px;
         border-radius: 50%;
         border: 2px solid transparent;
-        border-top-color: #00d4ff;
-        border-right-color: #00d4ff;
+        border-top-color: #52c1e6;
+        border-right-color: #52c1e6;
         animation: sc-boot-spin 0.9s linear infinite;
       }
       .sc-boot__word {
@@ -130,7 +132,7 @@
         display: block;
         width: 40%;
         height: 100%;
-        background: #00d4ff;
+        background: #52c1e6;
         animation: sc-boot-slide 1.1s ease-in-out infinite;
       }
       @keyframes sc-boot-spin {
@@ -150,7 +152,7 @@
         .sc-boot__arc {
           animation: none;
           border-color: rgba(0, 212, 255, 0.4);
-          border-top-color: #00d4ff;
+          border-top-color: #52c1e6;
         }
         .sc-boot__bar > i {
           animation: none;
@@ -163,12 +165,30 @@
     <sc-root>
       <div class="sc-boot" role="status" aria-label="Star Citizen Companion — loading">
         <div class="sc-boot__ring">
-          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="100" height="100" rx="16" fill="#050810" />
-            <circle cx="50" cy="50" r="44" fill="none" stroke="#00d4ff" stroke-width="3" opacity="0.35" />
-            <text x="50" y="63" font-family="Orbitron, 'Segoe UI', sans-serif" font-size="34"
-                  font-weight="700" text-anchor="middle" fill="#00d4ff" letter-spacing="1.5">SCC</text>
+          <!-- BRAND-MARK:BEGIN -->
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="64" height="64" role="img">
+          <defs>
+          <radialGradient id="scc-mark-disc" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#143049"/><stop offset="70%" stop-color="#0d2635"/><stop offset="100%" stop-color="#0d2635"/></radialGradient>
+          <radialGradient id="scc-mark-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a0dcf0" stop-opacity=".9"/><stop offset="45%" stop-color="#7dd5f0" stop-opacity=".42"/><stop offset="100%" stop-color="#52c1e6" stop-opacity="0"/></radialGradient>
+          </defs>
+          <circle cx="50" cy="50" r="49.5" fill="url(#scc-mark-disc)"/>
+          <circle cx="50" cy="50" r="48.4" fill="none" stroke="#52c1e6" stroke-width="2.2" opacity=".55"/>
+          <g transform="rotate(-20 50 50)">
+          <ellipse cx="50" cy="50" rx="45" ry="12.5" fill="none" stroke="#52c1e6" stroke-width="2.2" opacity=".65"/>
+          <ellipse cx="50" cy="50" rx="36" ry="10" fill="none" stroke="#52c1e6" stroke-width="1.7" opacity=".5"/>
+          <ellipse cx="50" cy="50" rx="27" ry="7.5" fill="none" stroke="#52c1e6" stroke-width="1.3" opacity=".4"/>
+          <circle cx="95" cy="50" r="2.6" fill="#7dd5f0"/><circle cx="14" cy="50" r="2.2" fill="#a0dcf0"/>
+          </g>
+          <circle cx="50" cy="50" r="22" fill="url(#scc-mark-core)"/>
+          <g transform="translate(-25.00,-23.50) scale(0.5)">
+          <path d="M150,125 C137,120 123,125 120,136 C117,147 119,160 126,166 C133,172 143,172 150,170" fill="#a0dcf0" fill-opacity=".40"/>
+          <path d="M150,125 C163,120 177,125 180,136 C183,147 181,160 174,166 C167,172 157,172 150,170" fill="#a0dcf0" fill-opacity=".40"/>
+          <path d="M150,126 C139,127 127,136 124,147 C121,156 122,164 128,170 C134,174 143,172 150,170" fill="none" stroke="#7dd5f0" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M150,126 C161,127 173,136 176,147 C179,156 178,164 172,170 C166,174 157,172 150,170" fill="none" stroke="#7dd5f0" stroke-width="6.5" stroke-linecap="round"/>
+          <line x1="150" y1="124" x2="150" y2="171" stroke="#a0dcf0" stroke-width="4"/>
+          </g>
           </svg>
+        <!-- BRAND-MARK:END -->
           <span class="sc-boot__arc" aria-hidden="true"></span>
         </div>
         <div class="sc-boot__word">Star Citizen Companion</div>

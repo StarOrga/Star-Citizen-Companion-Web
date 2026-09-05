@@ -4,7 +4,68 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.74.1] - 2026-09-03
+## [0.75.0] - 2026-09-05
+
+### Changed
+
+- **Every SC Companion product now has its own icon, and all of them are
+  visibly the same family.** Until now the web app, the Data Uploader and
+  Starscape shipped the *identical* SCC monogram, so a taskbar full of SCC
+  windows gave you no way to tell which one you were about to click — while
+  the PWA install icon, the Safari pinned-tab icon and the entire browser
+  extension were still on a third, long-retired mark ("Verse Compass"). The
+  desktop app's brain-nebula artwork is now the master for all of them:
+  `public/icons/brand/scc-mark.svg`, vendored byte-for-byte from that repo.
+  Starscape and the Data Uploader are the *same drawing* with two surgical
+  swaps — Starscape's core becomes a four-point nova and its accretion disk a
+  single wide planetary ring; the Uploader's core becomes an ascending data
+  stream and its orbits break open where that stream exits. Same palette, same
+  nebula, same star field.
+- **Colour is deliberately not what tells the products apart.** The desktop
+  app's tray already uses hue to encode *state* — active, notification, error
+  — so a red icon there has to mean "something is wrong", never "this is the
+  uploader". Identity is carried by shape alone. That constraint drove the
+  glyph choice: measured at 16 px against the master's soft core, a
+  crescent-lit planet collapsed into the same blob and a framed "vista"
+  rectangle turned to mush, so both were dropped in favour of the nova, which
+  stays unambiguous down to a 16 px tray slot.
+- **Each mark now has three size tiers instead of one drawing stretched
+  across all of them.** The full artwork keeps its Gaussian blur above 128 px;
+  a redrawn compact tier (no blur — it dissolves — with a bolder ring and a
+  larger glyph) serves 16–64 px; and a tray tier drops the dark disc
+  altogether. That last one matters: `#0d2635` on a dark Windows taskbar is
+  invisible, which is exactly why the tray icon read as missing.
+
+### Added
+
+- **One generator for every brand raster** (`npm run gen:brand-icons`). The
+  repo previously had a single generator — the Data Uploader's — and nine
+  orphaned binaries with no source and no reproducible build:
+  `public/favicon.ico`, both PWA PNGs, all four browser-extension PNGs and
+  Starscape's `.ico`. All of them now derive from the master SVG.
+  `npm run check:brand-icons` runs in `prebuild`, so a hand-edited or stale
+  artifact fails the build instead of shipping — including the two places
+  that need the mark as literal markup (the boot splash and the uploader's
+  header), which used to be hand-copied duplicates that nothing kept in sync.
+
+### Fixed
+
+- **The site had no working link preview and no working iOS home-screen
+  icon.** `og:image`, `twitter:image` and `apple-touch-icon` all pointed at an
+  SVG; X, Facebook and iOS Safari silently ignore SVG in all three positions.
+  They now point at a generated 1200×630 PNG card and a 180×180 opaque
+  raster, and the Twitter card is `summary_large_image`.
+- **Brand assets under `/icons/` were cached forever.** The `ngsw-config.json`
+  glob `/*.(svg|png|…)` matches root-level files only, so nothing under
+  `/icons/` belonged to any asset group: the files are copied unhashed, so an
+  overwritten icon could be served stale by the CDN and every browser cache
+  indefinitely. `/icons/**` is now in the assets group, and the replacement
+  marks were given new filenames rather than overwriting the old ones.
+- **`manifest.webmanifest` declared ICO sizes the file did not have** (it
+  claimed 64/32/24/16 while the ICO held 16/32/48). The generated ICO now
+  really carries all seven Windows sizes, and the manifest says so.
+
+
 
 ### Fixed
 

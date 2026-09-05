@@ -32,7 +32,14 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 
 use crate::util::{set_wallpaper, wide};
 
-const EMBEDDED_ICON: &[u8] = include_bytes!("../assets/scc.ico");
+// `assets/starscape.ico` is not included here: it is the *application* icon and
+// is embedded as a Win32 resource by build.rs (Explorer, the exe, the installer).
+// The only HICON this process builds at runtime is the tray one below.
+/// Separate artwork for the notification area. The app icon is a dark
+/// #0d2635 disc — correct in Explorer, invisible on a dark Windows tray —
+/// so the tray gets the bright-annulus tier on a transparent background,
+/// which reads on both light and dark taskbars.
+const EMBEDDED_TRAY_ICON: &[u8] = include_bytes!("../assets/starscape-tray.ico");
 
 // Handed to the overlay window proc for painting (main-thread-only, see above).
 static mut PAINT_BMP: HBITMAP = std::ptr::null_mut();
@@ -63,10 +70,11 @@ pub fn shutdown(token: usize) {
 
 /// Build the tray HICON from the embedded .ico (no resource compiler needed).
 pub fn load_tray_icon() -> HICON {
-    if EMBEDDED_ICON.len() < 6 {
+    let icon = EMBEDDED_TRAY_ICON;
+    if icon.len() < 6 {
         return std::ptr::null_mut();
     }
-    let count = u16::from_le_bytes([EMBEDDED_ICON[4], EMBEDDED_ICON[5]]) as usize;
+    let count = u16::from_le_bytes([icon[4], icon[5]]) as usize;
     if count == 0 {
         return std::ptr::null_mut();
     }
@@ -75,15 +83,15 @@ pub fn load_tray_icon() -> HICON {
     let mut best_score = i32::MAX;
     for i in 0..count {
         let base = 6 + i * 16;
-        if base + 16 > EMBEDDED_ICON.len() {
+        if base + 16 > icon.len() {
             break;
         }
-        let width = match EMBEDDED_ICON[base] {
+        let width = match icon[base] {
             0 => 256,
             w => w as i32,
         };
-        let bytes = u32::from_le_bytes(EMBEDDED_ICON[base + 8..base + 12].try_into().unwrap());
-        let offset = u32::from_le_bytes(EMBEDDED_ICON[base + 12..base + 16].try_into().unwrap());
+        let bytes = u32::from_le_bytes(icon[base + 8..base + 12].try_into().unwrap());
+        let offset = u32::from_le_bytes(icon[base + 12..base + 16].try_into().unwrap());
         let score = (width - 32).abs();
         if score < best_score {
             best_score = score;
@@ -92,12 +100,12 @@ pub fn load_tray_icon() -> HICON {
     }
     let Some((bytes, offset)) = best else { return std::ptr::null_mut() };
     let (start, end) = (offset as usize, offset as usize + bytes as usize);
-    if end > EMBEDDED_ICON.len() {
+    if end > icon.len() {
         return std::ptr::null_mut();
     }
     unsafe {
         CreateIconFromResourceEx(
-            EMBEDDED_ICON[start..end].as_ptr(),
+            icon[start..end].as_ptr(),
             bytes,
             1, // fIcon = TRUE
             0x0003_0000,

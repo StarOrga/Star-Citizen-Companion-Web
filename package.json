@@ -10,7 +10,7 @@
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs",
     "build": "ng build --configuration production",
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",
@@ -40,7 +40,9 @@
     "check:csp-index": "node scripts/check-index-csp.mjs",
     "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest",
     "check:emails": "node scripts/check-no-personal-emails.mjs",
-    "check:emails:selftest": "node scripts/check-no-personal-emails.mjs --selftest"
+    "check:emails:selftest": "node scripts/check-no-personal-emails.mjs --selftest",
+    "gen:brand-icons": "node scripts/build-brand-icons.mjs",
+    "check:brand-icons": "node scripts/build-brand-icons.mjs --check"
   },
   "dependencies": {
     "@angular/animations": "^21.2.19",
@@ -70,6 +72,7 @@
     "@angular/build": "^21.0.0",
     "@angular/cli": "^21.0.0",
     "@angular/compiler-cli": "^21.2.19",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/jasmine": "~6.0.0",
     "@types/node": "^22.0.0",
     "@types/three": "^0.183.1",
@@ -80,6 +83,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.3.0",
+    "png-to-ico": "^3.0.2",
     "pngjs": "^7.0.0",
     "supabase": "^2.116.0",
     "typescript": "~5.9.0"
