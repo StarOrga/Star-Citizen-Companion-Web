@@ -51,6 +51,13 @@ import { StabilityVerdict } from './patch-stability';
     .col.none .col-bar { background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); }
     .col.early .col-bar { background: repeating-linear-gradient(135deg, var(--level) 0 2px, transparent 2px 5px); outline: 1px dashed color-mix(in srgb, var(--level) 70%, transparent); }
     .col-label { font-size: max(0.62rem, var(--sc-fs-floor)); text-align: center; white-space: nowrap; }
+    /* A column with no verdict carries data-level="0", which none of the rules
+       below match — so it has no --level. The .early hatch above references
+       var(--level) with no fallback and wins on source order, which would make
+       a brand-new patch (early AND not yet enough data — the most-looked-at
+       column there is) render as an invisible bar. A muted level keeps it
+       hatched and legible instead. */
+    [data-level='0'] { --level: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); }
     [data-level='1'] { --level: var(--sc-success); }
     [data-level='2'] { --level: var(--sc-accent); }
     [data-level='3'] { --level: var(--sc-warning); }

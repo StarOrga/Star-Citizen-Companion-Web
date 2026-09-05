@@ -28,6 +28,22 @@ describe('StabilityHistoryComponent', () => {
     expect(emitted).toEqual(['4.8']);
   });
 
+  // A brand-new patch is BOTH early and still without a verdict. The hatch rule
+  // wins on source order and reads var(--level), so without a level colour for
+  // data-level="0" that bar renders as nothing at all.
+  it('a verdict-less newest column still gets a level colour to hatch with', () => {
+    const f = TestBed.createComponent(StabilityHistoryComponent);
+    f.componentRef.setInput('verdicts', [v('4.9', 2), v('4.10', null, true)]);
+    f.detectChanges();
+    const cols = (f.nativeElement as HTMLElement).querySelectorAll('button.col');
+    expect(cols.length).toBe(2);
+    const newest = cols[1] as HTMLElement;
+    expect(newest.classList.contains('none')).toBeTrue();
+    expect(newest.classList.contains('early')).toBeTrue();
+    expect(newest.getAttribute('data-level')).toBe('0');
+    expect(getComputedStyle(newest).getPropertyValue('--level').trim()).not.toBe('');
+  });
+
   it('renders nothing with fewer than two verdicts', () => {
     const f = TestBed.createComponent(StabilityHistoryComponent);
     f.componentRef.setInput('verdicts', [v('4.10', 3)]);
