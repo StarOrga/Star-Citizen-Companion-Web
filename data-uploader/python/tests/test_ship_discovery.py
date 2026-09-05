@@ -154,6 +154,40 @@ def test_catalog_matches_discover_with_index():
     assert coalfire["name"] == "Cutlass Coalfire Livery"
 
 
+def test_catalog_does_not_promise_a_build_for_a_hull_without_materials():
+    """#512: the build manifest gates on `has_material` alone.
+
+    It used to read `std_mtl or hull_cga` for the factory finish, which is true
+    for anything that resolved a hull at all — so wrecks, salvageable debris and
+    other non-liveried entities entered the manifest and exported nothing. A
+    whole-catalog run admitted 309 ships and produced glbs for 21.
+    """
+    debris_root = "Data/Objects/Spaceships/Ships/DRAK/Wreck"
+    d = ShipDiscovery(FakeP4K([
+        FakeInfo("Data/Localization/english/global.ini", data=LOC.encode("utf-8")),
+        # a hull, and nothing else: no .mtl anywhere under this ship folder
+        FakeInfo(f"{debris_root}/DRAK_Cutlass_Wreck.cga", size=8_000_000),
+    ]))
+    d.build_index()
+    ref = ref_from_hull("DRAK_Cutlass_Wreck", f"{debris_root}/DRAK_Cutlass_Wreck.cga")
+    assert ref is not None
+    cat = d.catalog(ref, hull_cga=f"{debris_root}/DRAK_Cutlass_Wreck.cga")
+    # The factory finish is still LISTED — the ship exists — but nothing in the
+    # catalog claims a material, so the manifest gate rejects the ref.
+    assert any(c["id"] == "standard" for c in cat)
+    assert not any(c["has_material"] for c in cat)
+
+
+def test_catalog_still_admits_a_ship_that_has_materials():
+    """The tightened gate must not drop the ships that actually build."""
+    d = make_disco()
+    d.build_index()
+    cat = d.catalog(REF, hull_cga=f"{CUT}/DRAK_Cutlass_Black.cga")
+    assert any(c["has_material"] for c in cat)
+    standard = next(c for c in cat if c["id"] == "standard")
+    assert standard["has_material"] is True
+
+
 def test_base_mtl_prefers_the_exact_ship_id_match():
     d = make_disco()
     mtls = d._ship_mtls(REF)
