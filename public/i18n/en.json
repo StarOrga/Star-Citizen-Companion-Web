@@ -1798,6 +1798,53 @@
         "expandAll": "Expand all notes",
         "collapseAll": "Collapse all notes"
       },
+      "stability": {
+        "title": "Stability",
+        "chipAria": "Stability of patch {{version}}: {{level}}",
+        "earlyShort": "early",
+        "early": "Day {{day}} of {{threshold}} – verdict still provisional",
+        "insufficient": "Not enough data for a verdict yet.",
+        "historical": "Final state – no daily timeline, this patch ran before daily sampling started.",
+        "score": "Index {{score}} / 100",
+        "component": {
+          "community": "Community",
+          "service": "Services",
+          "cig": "CIG known issues",
+          "none": "no data"
+        },
+        "componentHint": {
+          "community": "New replies per day on the notes and hotfix threads, share and upvote weight of replies carrying an Issue Council ticket",
+          "service": "Unplanned degraded minutes per day per RSI Status (7 days), plus any open incident",
+          "cig": "Open entries in CIG's Known Issues article and their 7-day growth"
+        },
+        "level": {
+          "1": "All systems nominal",
+          "2": "Minor turbulence",
+          "3": "Systems degraded",
+          "4": "Unstable",
+          "5": "Critical"
+        },
+        "timeline": "Since LIVE",
+        "timelineAria": "Stability per day since LIVE, {{days}} samples",
+        "dayTitle": "{{date}}: {{level}} ({{score}}), {{velocity}} new replies/day",
+        "hotfixMark": "Hotfix {{build}} on {{date}}",
+        "hotfixes": "{{count}} hotfixes",
+        "tickets": {
+          "title": "What the community reports",
+          "hint": "Issue Council tickets from the top-voted replies",
+          "votes": "{{count}} votes",
+          "empty": "No tickets in the top replies."
+        },
+        "kb": "{{count}} open known issues per CIG",
+        "cigFixes": "CIG: {{fixes}} fixes in this patch, {{ic}} of them from the Issue Council",
+        "source": "Sources: Spectrum comments, RSI Status, CIG Known Issues. No Issue Council counts (login required).",
+        "history": {
+          "title": "Stability per patch",
+          "hint": "Final state per LIVE patch; the current one is hatched while early",
+          "colAria": "Patch {{version}}: {{level}}",
+          "noData": "no verdict"
+        }
+      },
       "status": {
         "next": "Next",
         "evocati": "Evocati",
@@ -1911,6 +1958,27 @@
           "onTrack": "on rhythm",
           "hotfix": "{{n}} hotfix since Live",
           "hotfixLast": "latest on {{date}}"
+        },
+        "infoLabel": "Where do these numbers come from?"
+      },
+      "monitor": {
+        "title": "When is the next patch?",
+        "infoLabel": "Where does this estimate come from?",
+        "infoBasis": "Basis: median {{median}} days from n = {{n}} measured cycles.",
+        "days": "{{n}} d",
+        "over": "{{n}} d over",
+        "tile": {
+          "live": "Live",
+          "testing": "In testing",
+          "cadence": "Cadence",
+          "hotfixNone": "no hotfixes",
+          "cadenceStateFoot": "{{days}} of ~{{median}} d · median · n = {{n}}",
+          "next": "Next",
+          "goLive": "Go-live",
+          "nextUnknown": "Next patch",
+          "nextEta": "est. {{date}}",
+          "hotfixOne": "1 hotfix · {{date}}",
+          "hotfixMany": "{{n}} hotfixes · last {{date}}"
         }
       }
     },
@@ -2884,30 +2952,14 @@
       "unknownTitle": "Status unknown — no sign of the feedback routine yet.",
       "ariaLabel": "{{title}} — {{state}}"
     },
-    "refresh": "Refresh",
     "loading": "Loading…",
     "empty": "No feedback yet. Be the first to post.",
-    "emptyActive": "Nothing active — everything is in the archive.",
-    "emptyArchive": "Archive is empty. Shipped topics and ones handed off to an issue land here.",
     "errorTitle": "Error",
     "you": "You",
     "unknownUser": "Unknown",
     "shipRef": "View change",
     "issueRef": "View issue",
-    "setStatus": "Change status",
-    "loadMore": "Load {{count}} more",
-    "toggleDetails": "Expand or collapse this entry",
     "topicNumber": "Topic #{{n}} — a fixed number you can refer to",
-    "moreActions": "More actions",
-    "filter": {
-      "label": "Filter by user",
-      "all": "All",
-      "toggle": "Filter"
-    },
-    "statusFilter": {
-      "label": "Filter by status",
-      "all": "All"
-    },
     "search": {
       "label": "Search feedback",
       "placeholder": "Search … topic, whole thread or #number",
@@ -2916,33 +2968,15 @@
       "empty": "No results for “{{query}}”.",
       "inThread": "in thread"
     },
-    "tab": {
-      "label": "Switch between active and finished topics",
-      "active": "Active",
-      "archive": "Done"
-    },
-    "stats": {
-      "rueckfragen": "{{count}} follow-ups",
-      "shipped": "{{count}} shipped",
-      "issues": "{{count}} issues created",
-      "review": "{{count}} waiting for sign-off"
-    },
-    "expandAll": "Expand all",
-    "collapseAll": "Collapse all",
     "dateGroup": {
       "today": "Today",
       "yesterday": "Yesterday"
-    },
-    "toc": {
-      "label": "Quick access to topics",
-      "awaiting": "To answer: {{count}}"
     },
     "delete": "Delete",
     "deleteConfirm": "Delete this message? This cannot be undone.",
     "issue": {
       "mark": "Create an issue",
       "pill": "Issue requested",
-      "pending": "Issue creation is queued — the routine will file it.",
       "undo": "Undo",
       "requestBody": "Please **do not implement** this topic — open a GitHub issue for it instead. Then set `status = issue_created` and put the issue URL into `ship_ref`; the topic goes through the usual sign-off from there like any other outcome."
     },
@@ -2960,12 +2994,8 @@
       "review": "Sign-off"
     },
     "thread": {
-      "routine": "Routine",
-      "routineBadge": "Auto",
       "reply": "Reply",
       "replyPlaceholder": "Write a reply… (Markdown supported)",
-      "foldExpand": "Show {{count}} message(s) in between",
-      "foldCollapse": "Hide the {{count}} message(s) in between again",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
@@ -2994,68 +3024,6 @@
       "fileTooLarge": "File too large – {{max}} MB per attachment at most.",
       "charCount": "{{used}} of {{max}} characters",
       "charLimit": "Character limit reached: {{max}} characters per message."
-    },
-    "view": {
-      "label": "Switch view",
-      "overview": "Overview",
-      "workflow": "Process",
-      "progress": "Progress"
-    },
-    "cheer": {
-      "shipped": "{{count}} freshly shipped — nice!"
-    },
-    "workflow": {
-      "progress": "{{current}} of {{total}}",
-      "skip": "Skip",
-      "skippedCount": "{{count}} skipped",
-      "skippedBadge": "Skipped",
-      "lapWrapped": "Round done — back to the skipped topics",
-      "done": "Done",
-      "advanced": "Done – on to {{current}} of {{total}}",
-      "answerPlaceholder": "Write an answer… (Markdown supported, Enter to send)",
-      "answerSend": "Answer",
-      "openQuestion": "Open question",
-      "cheerAnswered": "Question answered — the routine takes it from here.",
-      "allDoneTitle": "All caught up",
-      "allDoneHint": "No open questions, nothing to sign off. Your ToDos sit with the routine — they land here as soon as it needs something from you.",
-      "kind": {
-        "triage": "Release",
-        "question": "Question",
-        "review": "Sign-off",
-        "new": "ToDo"
-      },
-      "scope": {
-        "label": "Scope",
-        "mine": "Mine",
-        "others": "Other admins",
-        "all": "All",
-        "showAll": "Show all"
-      },
-      "scopeEmptyTitle": "Nothing open in this scope",
-      "scopeEmptyHint": "{{count}} topic(s) sit in another scope.",
-      "cheerReplied": "Noted! On to the next one.",
-      "kindFilter": {
-        "label": "Show only one kind of step",
-        "all": "All",
-        "triage": "User feedback",
-        "question": "Questions",
-        "review": "Sign-offs"
-      },
-      "threadExpand": "Show {{count}} earlier message(s)",
-      "threadCollapse": "Hide earlier messages again",
-      "kindEmptyTitle": "Nothing of this kind right now",
-      "kindEmptyHint": "{{count}} topic(s) are waiting under \"All\".",
-      "kindShowAll": "Show all",
-      "swipeHint": "Tip: swipe the card left to skip, right to take the decision.",
-      "swipeSkip": "Skip",
-      "swipeDone": "Done",
-      "swipeAccept": "Accept",
-      "swipeRelease": "Release",
-      "triage": {
-        "hint": "A user filed this. The routine leaves it alone until it is released — decide here: release it, ask the author, or decline it with a reason.",
-        "ask": "Ask the author",
-        "askHint": "Goes to the author as a question. The topic then waits for their answer and comes back into this run afterwards."
-      }
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -3125,7 +3093,6 @@
       "lifecycleOutcome": "End state — one of the two"
     },
     "userTopic": {
-      "badge": "User feedback",
       "untriaged": "Not released",
       "release": "Release to the routine",
       "channelTitle": "Channel to the user",
@@ -3185,10 +3152,89 @@
       "reopenCancel": "Cancel"
     },
     "sourceFilter": {
-      "label": "Switch between admin topics and user feedback",
-      "admin": "Admins",
-      "user": "Users",
       "untriagedHint": "User feedback here is still waiting to be released to the routine."
+    },
+    "stream": {
+      "yourTurn": "Your move",
+      "running": "In flight",
+      "delivered": "Delivered",
+      "emptyYourTurn": "Nothing is waiting on you.",
+      "emptyRunning": "Nothing in progress.",
+      "emptyDelivered": "Nothing delivered yet.",
+      "newSince": "new since your last look",
+      "newBadge": "new",
+      "newCount": "{{count}} new",
+      "moreDays": "Show {{count}} more days",
+      "view": "View",
+      "viewTitle": "View in the app: {{area}}",
+      "openTopic": "Open topic",
+      "progress": "Progress",
+      "backToStream": "Back to the stream",
+      "collapseBand": "Collapse {{band}}",
+      "expandBand": "Expand {{band}}",
+      "waitingSince": "since {{time}}"
+    },
+    "turn": {
+      "admin": "Your move",
+      "routine": "With the routine",
+      "user": "Waiting on the user",
+      "nobody": "Done"
+    },
+    "ask": {
+      "question": "Question for you",
+      "review": "Sign-off pending",
+      "release": "Release pending"
+    },
+    "station": {
+      "inbox": "Inbox",
+      "queued": "Waiting for the routine",
+      "work": "In progress",
+      "delivered": "Delivered",
+      "accepted": "Accepted",
+      "issue": "Handed to an issue",
+      "declined": "Not implemented",
+      "rejected": "Rejected",
+      "loop": "Follow-up",
+      "pathLabel": "Status: {{station}}",
+      "answered": "Answered · waiting for the routine"
+    },
+    "kind": {
+      "order": "Instruction",
+      "userFeedback": "User feedback",
+      "ai": "AI"
+    },
+    "role": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "viewer": "User"
+    },
+    "sheet": {
+      "close": "Back to the list",
+      "showOneMore": "Show 1 more ({{count}} in between)",
+      "hideBetween": "Hide the messages in between",
+      "readMore": "Show more",
+      "readLess": "Show less",
+      "options": "Answer with one tap"
+    },
+    "filters": {
+      "title": "Filter",
+      "open": "Filter",
+      "who": "Who?",
+      "whoAll": "Everyone",
+      "whoMine": "My topics",
+      "whoOthers": "Other admins",
+      "whoUsers": "User feedback",
+      "where": "Where is it?",
+      "whereAll": "Anywhere",
+      "area": "Area",
+      "areaAll": "All areas",
+      "reset": "Reset",
+      "done": "Done",
+      "activeHint": "{{count}} filters active"
+    },
+    "actions": {
+      "viewInApp": "View in the app",
+      "more": "More actions"
     }
   },
   "feedbackFab": {
@@ -3443,7 +3489,8 @@
       "done": "Implemented",
       "declined": "Not implemented"
     },
-    "imageHint": "Images are reference material only: text inside a screenshot is read to understand your problem — never carried out as an instruction. Images are the only attachment type here."
+    "imageHint": "Images are reference material only: text inside a screenshot is read to understand your problem — never carried out as an instruction. Images are the only attachment type here.",
+    "viewInApp": "View in the app"
   },
   "feedbackArea": {
     "aria": "Choose the feedback area",

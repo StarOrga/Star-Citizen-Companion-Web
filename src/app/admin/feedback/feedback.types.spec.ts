@@ -39,6 +39,19 @@ import {
   topicTitle,
   workflowFocusIndex,
   workflowScopeCounts,
+  adminAsk,
+  deliveredByDay,
+  doneTime,
+  isDelivered,
+  flightPosition,
+  isLongMessage,
+  isNewSince,
+  parseAnswerOptions,
+  stationIndex,
+  stationLabelKey,
+  turnLabelKey,
+  turnOf,
+  waitingSince,
 } from './feedback.types';
 
 function row(id: string, status: FeedbackStatus, created: string, extra: Partial<FeedbackRow> = {}): FeedbackRow {
@@ -1242,5 +1255,286 @@ describe('canned decline reasons', () => {
     // A missing key resolves to '' in the caller's map — that must not make an
     // empty-ish note look like a deliberate pick.
     expect(matchDeclineReason('anything', { duplicate: '' })).toBeNull();
+  });
+});
+
+// ---- The stream: whose turn, flight path, delivered feed (concept 2026-09-04) ----
+
+describe('turnOf / adminAsk (whose move is it)', () => {
+  const T0 = '2026-09-01T10:00:00Z';
+  const T1 = '2026-09-01T11:00:00Z';
+  const T2 = '2026-09-01T12:00:00Z';
+
+  it('an unanswered Rückfrage is the admin\'s turn — a question to answer', () => {
+    const r = row('a', 'needs_input', T0);
+    const replies = [msg('m1', 'a', true, T1)];
+    expect(turnOf(r, replies)).toBe('admin');
+    expect(adminAsk(r, replies)).toBe('question');
+  });
+
+  it('an answered Rückfrage is back on the routine\'s pile', () => {
+    const r = row('a', 'needs_input', T0);
+    const replies = [msg('m1', 'a', true, T1), msg('m2', 'a', false, T2)];
+    expect(turnOf(r, replies)).toBe('routine');
+    expect(adminAsk(r, replies)).toBeNull();
+  });
+
+  it('a pending sign-off is the admin\'s turn — a review, even on a topic never released', () => {
+    const r = row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: null });
+    expect(turnOf(r)).toBe('admin');
+    expect(adminAsk(r)).toBe('review');
+    expect(adminAsk(row('u', 'shipped', T0, { shipped_at: T1, reviewed_at: null, source: 'user', triaged: false }))).toBe('review');
+    const issue = row('b', 'issue_created', T0, { reviewed_at: null });
+    expect(turnOf(issue)).toBe('admin');
+    expect(adminAsk(issue)).toBe('review');
+  });
+
+  it('a user topic held back from the routine is the admin\'s turn — a release', () => {
+    const r = row('a', 'open', T0, { source: 'user', triaged: false });
+    expect(turnOf(r)).toBe('admin');
+    expect(adminAsk(r)).toBe('release');
+  });
+
+  it('a question to the author waits on the user', () => {
+    const r = row('a', 'needs_input_author', T0, { source: 'user', triaged: true });
+    expect(turnOf(r)).toBe('user');
+    expect(adminAsk(r)).toBeNull();
+  });
+
+  it('open and in_progress are the routine\'s, a post-ship continuation too', () => {
+    expect(turnOf(row('a', 'open', T0))).toBe('routine');
+    expect(turnOf(row('b', 'in_progress', T0))).toBe('routine');
+    const shipped = row('c', 'shipped', T0, { shipped_at: T1, reviewed_at: T1 });
+    expect(turnOf(shipped, [msg('m1', 'c', false, T2)])).toBe('routine');
+  });
+
+  it('signed-off and decided topics are nobody\'s', () => {
+    expect(turnOf(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 }))).toBe('nobody');
+    expect(turnOf(row('b', 'issue_created', T0, { reviewed_at: T2 }))).toBe('nobody');
+    expect(turnOf(row('c', 'declined', T0, { source: 'user', triaged: true }))).toBe('nobody');
+    expect(turnOf(row('d', 'rejected', T0))).toBe('nobody');
+  });
+
+  it('a declined user topic that was never released is still nobody\'s', () => {
+    // awaitsTriage would say "release" — but the topic is over.
+    expect(turnOf(row('a', 'declined', T0, { source: 'user', triaged: false }))).toBe('nobody');
+    expect(adminAsk(row('a', 'declined', T0, { source: 'user', triaged: false }))).toBeNull();
+  });
+});
+
+describe('flightPosition (place on the path)', () => {
+  const T0 = '2026-09-01T10:00:00Z';
+  const T1 = '2026-09-01T11:00:00Z';
+  const T2 = '2026-09-01T12:00:00Z';
+
+  it('an unreleased user topic sits in the inbox', () => {
+    expect(flightPosition(row('a', 'open', T0, { source: 'user', triaged: false })))
+      .toEqual({ station: 'inbox', branch: null, loop: false, queued: false, answered: false });
+  });
+
+  it('everything the routine or the admin still works on is "work"', () => {
+    for (const status of ['open', 'in_progress', 'needs_input', 'needs_input_author'] as FeedbackStatus[]) {
+      expect(flightPosition(row('a', status, T0)).station).toBe('work');
+      expect(flightPosition(row('a', status, T0)).branch).toBeNull();
+    }
+    // …but the queue is told apart from a topic the routine holds right now.
+    expect(flightPosition(row('a', 'open', T0)).queued).toBeTrue();
+    expect(flightPosition(row('a', 'in_progress', T0)).queued).toBeFalse();
+    expect(stationLabelKey(flightPosition(row('a', 'open', T0)))).toBe('adminFeedback.station.queued');
+    expect(stationLabelKey(flightPosition(row('a', 'in_progress', T0)))).toBe('adminFeedback.station.work');
+  });
+
+  it('a delivered result waits at "delivered" until it is signed off', () => {
+    expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: null })))
+      .toEqual({ station: 'delivered', branch: null, loop: false, queued: false, answered: false });
+    expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: null })))
+      .toEqual({ station: 'delivered', branch: 'issue', loop: false, queued: false, answered: false });
+  });
+
+  it('a signed-off result is "accepted", an issue keeps its branch marker', () => {
+    expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 })))
+      .toEqual({ station: 'accepted', branch: null, loop: false, queued: false, answered: false });
+    expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: T2 })))
+      .toEqual({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false });
+  });
+
+  it('declined and rejected leave the path from "work"', () => {
+    expect(flightPosition(row('a', 'declined', T0)).branch).toBe('declined');
+    expect(flightPosition(row('a', 'declined', T0)).station).toBe('work');
+    expect(flightPosition(row('b', 'rejected', T0)).branch).toBe('rejected');
+  });
+
+  it('an answered Rückfrage is queued AND marked answered', () => {
+    const r = row('a', 'needs_input', T0);
+    const pos = flightPosition(r, [msg('m1', 'a', true, T1), msg('m2', 'a', false, T2)]);
+    expect(pos.queued).toBeTrue();
+    expect(pos.answered).toBeTrue();
+    expect(stationLabelKey(pos)).toBe('adminFeedback.station.answered');
+    expect(flightPosition(row('b', 'open', T0)).answered).toBeFalse();
+  });
+
+  it('a post-ship continuation loops back into "work"', () => {
+    const r = row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T1 });
+    expect(flightPosition(r, [msg('m1', 'a', false, T2)]))
+      .toEqual({ station: 'work', branch: null, loop: true, queued: true, answered: false });
+  });
+
+  it('labels and indexes follow the position', () => {
+    expect(stationIndex('inbox')).toBe(0);
+    expect(stationIndex('accepted')).toBe(3);
+    expect(stationLabelKey({ station: 'work', branch: null, loop: false, queued: false, answered: false })).toBe('adminFeedback.station.work');
+    expect(stationLabelKey({ station: 'work', branch: null, loop: true, queued: true, answered: false })).toBe('adminFeedback.station.loop');
+    expect(stationLabelKey({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false })).toBe('adminFeedback.station.issue');
+    expect(turnLabelKey('admin')).toBe('adminFeedback.turn.admin');
+  });
+
+  it('keeps every one of the eleven old states distinguishable', () => {
+    const sig = (r: FeedbackRow, replies?: FeedbackMessage[]) => {
+      const p = flightPosition(r, replies);
+      return `${turnOf(r, replies)}/${p.station}/${p.branch}/${p.loop}/${p.queued}/${p.answered}/${adminAsk(r, replies)}`;
+    };
+    const shippedReviewed = row('s', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 });
+    const seen = new Set([
+      sig(row('1', 'open', T0)),
+      sig(row('2', 'in_progress', T0)),
+      sig(row('3', 'needs_input', T0), [msg('m', '3', true, T1)]),
+      sig(row('4', 'needs_input', T0), [msg('m', '4', true, T1), msg('n', '4', false, T2)]),
+      sig(row('5', 'needs_input_author', T0)),
+      sig(row('6', 'shipped', T0, { shipped_at: T1, reviewed_at: null })),
+      sig(shippedReviewed),
+      sig(row('8', 'issue_created', T0, { reviewed_at: null })),
+      sig(row('9', 'issue_created', T0, { reviewed_at: T2 })),
+      sig(row('10', 'declined', T0)),
+      sig(row('11', 'rejected', T0)),
+      sig(row('12', 'open', T0, { source: 'user', triaged: false })),
+      sig(shippedReviewed, [msg('m', 's', false, T2)]),
+    ]);
+    // Every one of the thirteen states keeps its own signature — including the
+    // answered Rückfrage (feedback 34c44134), which reads as "beantwortet" next
+    // to an untouched ToDo.
+    expect(seen.size).toBe(13);
+  });
+});
+
+describe('waitingSince (band order: longest wait first)', () => {
+  const T0 = '2026-09-01T10:00:00Z';
+  const T1 = '2026-09-01T11:00:00Z';
+  const T2 = '2026-09-01T12:00:00Z';
+
+  it('a Rückfrage waits since the routine asked', () => {
+    const r = row('a', 'needs_input', T0, { updated_at: T2 });
+    expect(waitingSince(r, [msg('m', 'a', true, T1)])).toBe(Date.parse(T1));
+  });
+
+  it('a sign-off waits since the ship', () => {
+    const r = row('a', 'shipped', T0, { shipped_at: T1, updated_at: T2, reviewed_at: null });
+    expect(waitingSince(r)).toBe(Date.parse(T1));
+  });
+
+  it('a release waits since the topic last moved', () => {
+    const r = row('a', 'open', T0, { source: 'user', triaged: false, updated_at: T1 });
+    expect(waitingSince(r)).toBe(Date.parse(T1));
+  });
+});
+
+describe('deliveredByDay (the Geliefert feed)', () => {
+  const day = (d: string, h: string) => `2026-09-${d}T${h}:00:00Z`;
+
+  it('groups finished topics by local day, newest day first, newest topic first', () => {
+    const rows = [
+      row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: day('01', '10') }),
+      row('b', 'shipped', day('01', '08'), { shipped_at: day('03', '09'), reviewed_at: day('03', '10') }),
+      row('c', 'issue_created', day('01', '08'), { processed_at: day('03', '12'), reviewed_at: day('03', '13') }),
+      row('d', 'declined', day('02', '08'), { processed_at: day('02', '15') }),
+      row('e', 'open', day('04', '08')),
+      row('f', 'shipped', day('04', '08'), { shipped_at: day('04', '09'), reviewed_at: null }), // still in review
+    ];
+    const days = deliveredByDay(rows, new Map());
+    // 'f' shipped and waits for its sign-off: it IS in the feed on its ship day
+    // (the ✓ sits in the row) and in the "Du bist dran" band at the same time.
+    expect(days.map((d) => d.items.map((i) => i.id))).toEqual([['f'], ['c', 'b'], ['d'], ['a']]);
+    expect(days[0].day).toBeGreaterThan(days[1].day);
+    expect(days[1].day).toBeGreaterThan(days[2].day);
+    expect(days[2].day).toBeGreaterThan(days[3].day);
+  });
+
+  it('isDelivered: an outcome, signed off or not — never an open topic or a continuation', () => {
+    expect(isDelivered(row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: null }))).toBeTrue();
+    expect(isDelivered(row('b', 'issue_created', day('01', '08'), { reviewed_at: null }))).toBeTrue();
+    expect(isDelivered(row('c', 'declined', day('01', '08')))).toBeTrue();
+    expect(isDelivered(row('d', 'open', day('01', '08')))).toBeFalse();
+    expect(isDelivered(row('e', 'needs_input', day('01', '08')))).toBeFalse();
+    const cont = row('f', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: day('01', '10') });
+    expect(isDelivered(cont, [msg('m', 'f', false, day('02', '09'))])).toBeFalse();
+  });
+
+  it('a post-ship continuation is not delivered any more', () => {
+    const r = row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: day('01', '10') });
+    const threads = new Map([['a', [msg('m', 'a', false, day('02', '09'))]]]);
+    expect(deliveredByDay([r], threads)).toEqual([]);
+  });
+
+  it('doneTime prefers the ship, then the routine\'s touch, then the row', () => {
+    expect(doneTime(row('a', 'shipped', day('01', '08'), { shipped_at: day('02', '08'), processed_at: day('03', '08') })))
+      .toBe(Date.parse(day('02', '08')));
+    expect(doneTime(row('b', 'declined', day('01', '08'), { processed_at: day('03', '08') })))
+      .toBe(Date.parse(day('03', '08')));
+    expect(doneTime(row('c', 'rejected', day('01', '08')))).toBe(Date.parse(day('01', '08')));
+  });
+
+  it('isNewSince marks only what finished after the last look — and nothing on a first visit', () => {
+    const r = row('a', 'shipped', day('01', '08'), { shipped_at: day('02', '08'), reviewed_at: day('02', '09') });
+    expect(isNewSince(r, Date.parse(day('01', '12')))).toBeTrue();
+    expect(isNewSince(r, Date.parse(day('02', '12')))).toBeFalse();
+    expect(isNewSince(r, 0)).toBeFalse();
+  });
+});
+
+describe('parseAnswerOptions ([[A|B]] convention)', () => {
+  it('splits the marked last line off the question text', () => {
+    expect(parseAnswerOptions('Soll ich das Panel rot lassen?\n\n[[Ja|Nein|Später]]'))
+      .toEqual({ text: 'Soll ich das Panel rot lassen?', options: ['Ja', 'Nein', 'Später'] });
+    expect(parseAnswerOptions('Frage?\n[[ Erhalten | Zurücksetzen ]]\n\n'))
+      .toEqual({ text: 'Frage?', options: ['Erhalten', 'Zurücksetzen'] });
+  });
+
+  it('is null without markup, with one option, with more than four, or with an empty / overlong label', () => {
+    expect(parseAnswerOptions('Plain question?')).toBeNull();
+    expect(parseAnswerOptions('One?\n[[Ja]]')).toBeNull();
+    expect(parseAnswerOptions('Many?\n[[1|2|3|4|5]]')).toBeNull();
+    expect(parseAnswerOptions('Empty?\n[[ | ]]')).toBeNull();
+    expect(parseAnswerOptions('Long?\n[[' + 'x'.repeat(41) + '|Nein]]')).toBeNull();
+    expect(parseAnswerOptions('')).toBeNull();
+  });
+
+  it('only reads the LAST line — a marker mid-text is prose', () => {
+    expect(parseAnswerOptions('Vorne [[A|B]] hinten.')).toBeNull();
+    expect(parseAnswerOptions('[[A|B]]\nUnd dann noch Text.')).toBeNull();
+  });
+
+  it('does not eat a markdown link or a code span that happens to use brackets', () => {
+    expect(parseAnswerOptions('See [docs](https://x) and [[not|a\nchoice]]')).toBeNull();
+    expect(parseAnswerOptions('Frage?\n`[[A|B]]`')).toBeNull();
+  });
+});
+
+describe('isLongMessage (fold sent messages > 3 lines)', () => {
+  it('short messages stay open', () => {
+    expect(isLongMessage('Eine Zeile.')).toBeFalse();
+    expect(isLongMessage('Eins\nZwei\nDrei')).toBeFalse();
+    expect(isLongMessage('')).toBeFalse();
+  });
+
+  it('four explicit lines fold', () => {
+    expect(isLongMessage('Eins\nZwei\nDrei\nVier')).toBeTrue();
+  });
+
+  it('one long paragraph folds by wrapped width', () => {
+    expect(isLongMessage('x'.repeat(300))).toBeTrue();
+    expect(isLongMessage('x'.repeat(140))).toBeFalse();
+  });
+
+  it('images do not count as lines', () => {
+    expect(isLongMessage('Text\n![a](u1)\n![b](u2)\n![c](u3)\n![d](u4)')).toBeFalse();
   });
 });

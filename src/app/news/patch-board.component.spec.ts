@@ -177,6 +177,44 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rows().map((r) => r.querySelector('.ver')?.textContent?.trim())).toEqual(['Alpha 4.11']);
   });
 
+  it('answers "when is the next patch" ABOVE search and stack, as a monitoring panel', async () => {
+    await render(FEED, ROADMAP);
+    const panel = root().querySelector('sc-patch-monitor .mon') as HTMLElement | null;
+    expect(panel).withContext('the panel is on the board, not only in the dossier').not.toBeNull();
+
+    // Position: the panel comes before the search field and before the stack.
+    const order = Array.from(root().querySelectorAll('sc-patch-monitor, .search, .stack'));
+    expect(order.map((el) => el.tagName === 'SC-PATCH-MONITOR' ? 'monitor' : el.className))
+      .toEqual(['monitor', 'search', 'stack']);
+
+    // Three cells, read as the rail's legend: where the run started (with the
+    // hotfixes as a side note there), how it is going, where it ends.
+    const tiles = Array.from(panel!.querySelectorAll('.tile')) as HTMLElement[];
+    expect(tiles.length).toBe(3);
+    expect(tiles[0].textContent).toContain('Alpha 4.10');
+    expect(tiles[0].querySelector('.side')?.textContent)
+      .withContext('hotfixes ride along with the live patch, not a readout of their own').toContain('Hotfix');
+    expect(tiles[2].textContent).withContext('the cell at the rail\'s end names the next line').toContain('Alpha 4.11');
+    expect(panel!.querySelector('.answer b')?.textContent?.trim()).withContext('the estimated date').toBeTruthy();
+
+    // The cell widths come from the rail — the legend sits under what it explains.
+    expect((panel!.querySelector('.tiles') as HTMLElement).style.getPropertyValue('--tile-cols'))
+      .withContext('cell boundaries follow the rail geometry').toContain('fr');
+    expect(panel!.querySelectorAll('.months .mo').length)
+      .withContext('a coarse month scale under the rail').toBeGreaterThan(0);
+  });
+
+  it('keeps the caveats and the colour key behind the (i)', async () => {
+    await render(FEED, ROADMAP);
+    const note = root().querySelector('sc-patch-monitor .pop') as HTMLElement;
+    expect(note.hidden).withContext('the explanation is folded away by default').toBeTrue();
+    expect(note.textContent).toContain('Median-Schätzungen');
+
+    (root().querySelector('sc-patch-monitor button.dot') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(note.hidden).toBeFalse();
+  });
+
   it('still stacks without a roadmap: live and superseded, no next card', async () => {
     await render(FEED, null);
     expect(rows().map((r) => r.dataset['status'])).toEqual(['live', 'superseded']);

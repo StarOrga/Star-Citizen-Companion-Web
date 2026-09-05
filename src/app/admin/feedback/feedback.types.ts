@@ -102,6 +102,13 @@ export function refKind(row: FeedbackRow): 'issue' | 'ship' {
 export interface FeedbackAuthor {
   display_name: string | null;
   username: string | null;
+  /**
+   * The author's role (`profiles.role`: admin / collaborator / viewer) — what
+   * colours the avatar on the board (concept 2026-09-04: admin red, collaborator
+   * light blue, user grey-blue). Optional: fixture rows and the viewer-side
+   * projections do not carry it; absent renders as the neutral user colour.
+   */
+  role?: string | null;
 }
 
 /** One reply in a topic's thread (human admin or the automated routine). */
@@ -1422,4 +1429,312 @@ export function matchDeclineReason(note: string, texts: DeclineReasonTexts): Dec
     if ((texts[id] ?? '').trim() === trimmed) return id;
   }
   return null;
+}
+
+// ---- The stream (concept 2026-09-04, direction E) ---------------------------
+//
+// The board is one scroll in three bands ordered by WHOSE TURN it is — admin,
+// routine, user, nobody — and every topic sits at one place on a four-station
+// flight path. Both are pure derivations over the presentation bucket, so the
+// bands, the filter sheet, the card glyph and the opened topic can never
+// disagree about where a topic is or who holds the baton.
+
+/** Who has to act next on a topic. `nobody` = terminal and signed off. */
+export type FeedbackTurn = 'admin' | 'routine' | 'user' | 'nobody';
+
+/** Band order of the stream: what waits on the admin first, done work last. */
+export const TURN_ORDER: readonly FeedbackTurn[] = ['admin', 'routine', 'user', 'nobody'];
+
+/**
+ * Whose move it is. The admin's turn is every open Rückfrage, every pending
+ * sign-off and every user topic still held back from the routine; the author's
+ * turn is a question the admin asked them; everything else that is still open
+ * is the routine's pile (untouched ToDo, answered Rückfrage, in progress,
+ * post-ship continuation).
+ */
+export function turnOf(row: FeedbackRow, replies?: readonly FeedbackMessage[]): FeedbackTurn {
+  if (awaitsTriage(row) && !isArchived(row, replies)) return 'admin';
+  switch (feedbackBucket(row, replies)) {
+    case 'awaiting_admin':
+    case 'review':
+      return 'admin';
+    case 'awaiting_author':
+      return 'user';
+    case 'todo':
+    case 'in_progress':
+      return 'routine';
+    default:
+      return 'nobody';
+  }
+}
+
+/**
+ * What exactly the admin is asked for while it is their turn — the sentence
+ * next to the card, and the inline action the first card of the band opens
+ * with: answer the routine's question, sign the result off, or release a user
+ * topic to the routine. `null` when it is not the admin's turn.
+ */
+export type AdminAsk = 'question' | 'review' | 'release';
+
+export function adminAsk(row: FeedbackRow, replies?: readonly FeedbackMessage[]): AdminAsk | null {
+  const bucket = feedbackBucket(row, replies);
+  // A result in the sign-off gate is a review first — the old board offered
+  // the release button only outside the gate, and so does the stream.
+  if (bucket === 'review') return 'review';
+  if (awaitsTriage(row) && !isArchived(row, replies)) return 'release';
+  if (bucket === 'awaiting_admin') return 'question';
+  return null;
+}
+
+/** The four stations of the flight path, in order. */
+export type FeedbackStation = 'inbox' | 'work' | 'delivered' | 'accepted';
+
+export const FLIGHT_STATIONS: readonly FeedbackStation[] = ['inbox', 'work', 'delivered', 'accepted'];
+
+/**
+ * A branch the path can end in instead of "accepted": handed to a GitHub issue
+ * (still an outcome that gets signed off), declined by the admin, or the legacy
+ * rejected. `null` on the main line.
+ */
+export type FeedbackBranch = 'issue' | 'declined' | 'rejected' | null;
+
+export interface FlightPosition {
+  station: FeedbackStation;
+  branch: FeedbackBranch;
+  /** A shipped topic sent back into the loop by a post-ship reply. */
+  loop: boolean;
+  /**
+   * At "work" but not picked up yet — the routine's queue (ToDo) as opposed to
+   * a topic it is working on right now. The one distinction the station alone
+   * would lose, and the old board's ToDo / In Arbeit pills kept.
+   */
+  queued: boolean;
+  /**
+   * Queued because the admin answered a Rückfrage and the routine has not
+   * picked the answer up yet — the old "✓ Beantwortet" marker (feedback
+   * 34c44134): the admin's part is done, the topic only looks like a ToDo.
+   */
+  answered: boolean;
+}
+
+/**
+ * Where a topic sits on the path. Every one of the eleven distinct states the
+ * board used to spell out as pills is still distinguishable here — the pair
+ * (station, branch) plus `loop` and {@link turnOf} carry the same information
+ * as the old pill row, as a place on a line instead of a pile of words.
+ */
+export function flightPosition(row: FeedbackRow, replies?: readonly FeedbackMessage[]): FlightPosition {
+  const bucket = feedbackBucket(row, replies);
+  const at = (station: FeedbackStation, branch: FeedbackBranch, extra: Partial<FlightPosition> = {}): FlightPosition =>
+    ({ station, branch, loop: false, queued: false, answered: false, ...extra });
+  if (awaitsTriage(row) && bucket === 'todo') return at('inbox', null);
+  switch (bucket) {
+    case 'declined':
+      return at('work', 'declined');
+    case 'rejected':
+      return at('work', 'rejected');
+    case 'review':
+      return at('delivered', row.status === 'issue_created' ? 'issue' : null);
+    case 'shipped':
+      return at('accepted', null);
+    case 'issue_created':
+      return at('accepted', 'issue');
+    case 'todo':
+      // The routine's queue: an untouched topic, an answered Rückfrage, or a
+      // post-ship continuation waiting to be picked up again.
+      return at('work', null, {
+        queued: true,
+        loop: isContinuedAfterShip(row, replies),
+        answered: row.status === 'needs_input',
+      });
+    default:
+      return at('work', null);
+  }
+}
+
+/** Index of the station on the path (0..3) — what the glyph fills up to. */
+export function stationIndex(station: FeedbackStation): number {
+  return FLIGHT_STATIONS.indexOf(station);
+}
+
+/** i18n key for the baton sentence of a turn (`adminFeedback.turn.*`). */
+export function turnLabelKey(turn: FeedbackTurn): string {
+  return `adminFeedback.turn.${turn}`;
+}
+
+/** i18n key naming the place on the path, branch and loop included. */
+export function stationLabelKey(pos: FlightPosition): string {
+  if (pos.branch) return `adminFeedback.station.${pos.branch}`;
+  if (pos.loop) return 'adminFeedback.station.loop';
+  if (pos.answered) return 'adminFeedback.station.answered';
+  if (pos.queued) return 'adminFeedback.station.queued';
+  return `adminFeedback.station.${pos.station}`;
+}
+
+/**
+ * Since when a topic has been waiting on the admin — the "Du bist dran" band is
+ * ordered oldest-wait-first, so the topic that has been blocked the longest is
+ * the one that opens. A Rückfrage waits since the routine asked it (its last
+ * reply); a sign-off since the ship; a release since the topic (or the author's
+ * latest answer) landed.
+ */
+export function waitingSince(row: FeedbackRow, replies?: readonly FeedbackMessage[]): number {
+  const ask = adminAsk(row, replies);
+  const last = replies && replies.length ? replies[replies.length - 1] : null;
+  if (ask === 'question' && last) return timeOf(last.created_at);
+  if (ask === 'review') return timeOf(row.shipped_at) || timeOf(row.processed_at) || timeOf(row.updated_at);
+  return timeOf(row.updated_at) || timeOf(row.created_at);
+}
+
+/**
+ * When a topic was done: the ship, else the routine's last touch, else the
+ * row's own timestamps. Orders the Geliefert feed and decides the day a topic
+ * is filed under.
+ */
+export function doneTime(row: FeedbackRow): number {
+  return (
+    timeOf(row.shipped_at) || timeOf(row.processed_at) || timeOf(row.updated_at) || timeOf(row.created_at)
+  );
+}
+
+/** Local calendar-day key (Y-M-D) for a timestamp — the grouping bucket id. */
+export function localDayKey(t: number): string {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/** Start of the local day a timestamp falls in (ms). */
+export function startOfLocalDay(t: number): number {
+  const d = new Date(t);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** One day of delivered topics — the "what's new" unit of the Geliefert band. */
+export interface DeliveredDay {
+  key: string;
+  /** Start of the local day (ms) — for the heading. */
+  day: number;
+  items: FeedbackRow[];
+}
+
+/**
+ * True for every topic that belongs in the Geliefert feed: an outcome exists —
+ * shipped, handed to an issue, declined, legacy rejected — whether or not the
+ * admin signed it off yet. A shipped topic that still waits for its Abnahme is
+ * in the feed on its ship day (with the ✓ right in the row) AND in the "Du bist
+ * dran" band; only a post-ship continuation leaves the feed again, because its
+ * outcome is being reworked.
+ */
+export function isDelivered(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
+  return isArchived(row, replies) || awaitsReview(row, replies);
+}
+
+/**
+ * Every delivered topic (see {@link isDelivered}) grouped by the local day it
+ * was done, NEWEST DAY FIRST and newest topic first within a day. This is the
+ * admin's "what shipped while I was away": the last day on top, so the panel
+ * answers "what can I go and look at" before it answers anything else.
+ */
+export function deliveredByDay(
+  rows: readonly FeedbackRow[],
+  threads: ReadonlyMap<string, readonly FeedbackMessage[]>,
+): DeliveredDay[] {
+  const done = rows
+    .filter((r) => isDelivered(r, threads.get(r.id)))
+    .sort((a, b) => doneTime(b) - doneTime(a));
+  const days: DeliveredDay[] = [];
+  let current: DeliveredDay | null = null;
+  for (const r of done) {
+    const t = doneTime(r);
+    const key = localDayKey(t);
+    if (!current || current.key !== key) {
+      current = { key, day: startOfLocalDay(t), items: [] };
+      days.push(current);
+    }
+    current.items.push(r);
+  }
+  return days;
+}
+
+/**
+ * Finished after the admin last looked at the Geliefert band — the "neu seit
+ * deinem letzten Blick" marker. `lastSeen` 0 (never looked) marks nothing,
+ * deliberately: a first visit must not paint the whole history as news.
+ */
+export function isNewSince(row: FeedbackRow, lastSeen: number): boolean {
+  return lastSeen > 0 && doneTime(row) > lastSeen;
+}
+
+// ---- One-tap answer options ("[[A|B]]" convention) -------------------------
+
+/**
+ * A routine question may END in a marked option list — its last line nothing
+ * but `[[Ja|Nein|Später]]` — and the board renders one button per option
+ * (decision r2-options). The marker is stripped from the text; a click posts
+ * the option's plain text as the admin's reply, so the routine reads exactly
+ * the words it offered. Without the markup nothing changes: `null` means "no
+ * options, plain text".
+ *
+ * The rule is deliberately narrow and mirrored word for word in
+ * docs/feedback-routine.md § One-tap answer options: last non-empty line only
+ * (a `[[…]]` mid-text is prose), two to four options, each 1–40 characters of
+ * plain text. Anything else is not a choice and renders as it was written.
+ */
+export interface AnswerOptions {
+  text: string;
+  options: string[];
+}
+
+const ANSWER_OPTIONS_LINE_RE = /^\[\[([^\[\]\n]+)\]\]$/;
+const MIN_ANSWER_OPTIONS = 2;
+const MAX_ANSWER_OPTIONS = 4;
+const MAX_ANSWER_OPTION_CHARS = 40;
+
+export function parseAnswerOptions(body: string): AnswerOptions | null {
+  const lines = (body ?? '').split('\n');
+  let last = lines.length - 1;
+  while (last >= 0 && lines[last].trim() === '') last--;
+  if (last < 0) return null;
+  const m = ANSWER_OPTIONS_LINE_RE.exec(lines[last].trim());
+  if (!m) return null;
+  const options = m[1].split('|').map((s) => s.trim());
+  if (
+    options.length < MIN_ANSWER_OPTIONS ||
+    options.length > MAX_ANSWER_OPTIONS ||
+    options.some((o) => o.length === 0 || o.length > MAX_ANSWER_OPTION_CHARS)
+  ) {
+    return null;
+  }
+  const text = lines.slice(0, last).join('\n').trim();
+  return { text, options };
+}
+
+// ---- Long-message fold ------------------------------------------------------
+
+/** Rough characters per rendered line in the docked panel — a fold heuristic, not a layout. */
+const CHARS_PER_LINE = 56;
+
+/**
+ * True when a sent message would take more than `maxLines` lines and should
+ * fold the rest behind "…" (round-3 feedback: long messages eat the vertical
+ * space the panel does not have). Counts explicit line breaks AND wrapped
+ * width, so a single 400-character paragraph folds like a five-line list does.
+ * Images do not count: they are attachments, rendered as thumbnails.
+ */
+export function isLongMessage(body: string, maxLines = 3): boolean {
+  // Like plainText(), but line breaks survive — they are what is being counted.
+  const text = (body ?? '')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*_`#>~]/g, '')
+    .replace(/[ 	]+/g, ' ')
+    .trim();
+  if (!text) return false;
+  let lines = 0;
+  for (const raw of text.split('\n')) {
+    const len = raw.trim().length;
+    lines += len === 0 ? 1 : Math.ceil(len / CHARS_PER_LINE);
+    if (lines > maxLines) return true;
+  }
+  return false;
 }

@@ -1,5 +1,5 @@
 //! Embeds a Windows resource into the release binary:
-//!   * the SCC brand icon (assets/scc.ico) as the default application icon, so
+//!   * the Starscape brand icon (assets/starscape.ico) as the default application icon, so
 //!     Explorer, the taskbar, Alt-Tab and Task Manager show the real mark
 //!     instead of a generic placeholder;
 //!   * a VERSIONINFO block. Task Manager's process "Name" column shows the
@@ -10,7 +10,8 @@
 //! `windres` on GNU) and adds nothing to the runtime binary.
 
 fn main() {
-    println!("cargo:rerun-if-changed=assets/scc.ico");
+    println!("cargo:rerun-if-changed=assets/starscape.ico");
+    println!("cargo:rerun-if-changed=assets/starscape-tray.ico");
     println!("cargo:rerun-if-changed=build.rs");
     // src/update.rs bakes the per-release token in via `option_env!`, which is
     // resolved at compile time. Without this, a cached build would keep an older
@@ -26,7 +27,7 @@ fn main() {
     }
 
     let mut res = winresource::WindowsResource::new();
-    res.set_icon("assets/scc.ico");
+    res.set_icon("assets/starscape.ico");
     // FileDescription drives the Task Manager process name — keep it "Starscape".
     res.set("FileDescription", "Starscape");
     res.set("ProductName", "Starscape");

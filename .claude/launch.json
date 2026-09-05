@@ -8,6 +8,12 @@
       "port": 4200
     },
     {
+      "name": "web-4310",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--host", "127.0.0.1", "--port", "4310"],
+      "port": 4310
+    },
+    {
       "name": "docs",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "4280", "--directory", "docs"],

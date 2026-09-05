@@ -173,6 +173,10 @@ from putting a hundred concurrent Spectrum fetches on RSI.
 - Returns recent service updates (maintenance windows, incidents).
 - Mapped into `VerseFeed.status.services` and an `overall` heuristic.
 
+> The stability sampler reads the richer `issues/index.json` (severity, resolvedAt, full
+> history) instead of the RSS — see `patch-stability.md`. Candidate for replacing the RSS
+> parse here too.
+
 ## Tertiary (fallback, not yet wired up)
 
 - Official RSI Comm-Link RSS: `https://robertsspaceindustries.com/en/comm-link/rss` — historically flaky after RSI redesigns. Keep in mind as a fallback if Star-Citizen-Wiki API ever goes dark.
