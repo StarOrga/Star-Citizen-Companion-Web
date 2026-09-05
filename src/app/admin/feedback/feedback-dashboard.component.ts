@@ -9,38 +9,47 @@ import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
+  BoardWeek,
   FeedbackBucket,
   FeedbackPace,
   FeedbackRow,
-  FeedbackStats,
   LifecycleSnapshot,
-  ShipWeek,
   ThreadMap,
+  WeekPulse,
   bucketLabelStatus,
   computePace,
-  computeStats,
   lifecycleSnapshot,
-  shippedPerWeek,
-  startOfMonth,
+  weeklyPulse,
+  weeklySeries,
 } from './feedback.types';
-import { formatScCompactDate, formatScMonthName } from '../../core/locale/date-format';
+import { formatScCalendarDate, formatScCompactDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
 
-/** One rendered column: a labelled time window with its numbers. */
-interface StatWindow {
-  key: 'month' | 'all';
+/** Which way a week-over-week change points, and whether that is good news. */
+type Tone = 'good' | 'bad' | 'flat' | 'neutral';
+
+/** One headline number for the running week, with last week beside it. */
+interface PulseCell {
+  key: 'shipped' | 'raised' | 'median';
   label: string;
-  stats: FeedbackStats;
-  pace: FeedbackPace;
-  /** Share of resolved work (shipped / shipped+open), 0..1 — drives the donut. */
-  ratio: number;
-  /** Largest bar value in the column, so the bars scale within their own window. */
-  max: number;
-  /** Median time-to-ship, already formatted ("18 h", "2,4 T", "—"). */
-  median: string;
-  /** Rückfrage rate in percent, plus the raw fraction behind it. */
-  questionPct: number;
-  questionHint: string;
+  /** Already formatted — a count, or a duration like "18 Std." / "—". */
+  value: string;
+  /** "▲ 3" / "▼ 2" / "±0" — `null` when there is nothing honest to compare. */
+  delta: string | null;
+  tone: Tone;
+  /** The small line under the value: last week's figure, sample size, meaning. */
+  hint: string;
+  /** Spoken form of value + delta for assistive tech. */
+  aria: string;
+}
+
+/** One live figure in the "what is on the board right now" strip. */
+interface LoadCell {
+  key: 'waiting' | 'working' | 'todo';
+  label: string;
+  value: number;
+  hint: string;
+  accent: boolean;
 }
 
 /** One outgoing transition of a lifecycle stage. */
@@ -65,36 +74,51 @@ interface StageNode {
   branches: StageNode[];
 }
 
-/** Circumference of the donut ring (r = 26) — precomputed for the dash array. */
-const RING = 2 * Math.PI * 26;
-
-/** How many weeks the throughput sparkline covers. */
+/** How many weeks the throughput chart covers. */
 const WEEKS = 12;
 
+/** Window of the two slow-moving quality figures under the chart, in days. */
+const PACE_DAYS = 30;
+
 /**
- * Progress dashboard for the admin feedback board (permanently reachable via
- * the board's view switch).
+ * Progress dashboard for the admin feedback board (reachable via the board's
+ * chart-glyph view switch).
  *
- * Three blocks, all of them read-only and always-on — the view carries **no
- * filters, pickers or toggles** by design (feedback ef15ea67): it has to be
- * informative the second it opens.
+ * **Rewritten 2026-09-05 (admin feedback a33ba528) around one question: what
+ * does a returning admin learn that they did not know last week?** The previous
+ * version led with a "This month / All-time" pair — a donut, four bars and two
+ * pace figures per column. The all-time column could not move (its share shifts
+ * by a fraction of a percent per week, its Done bar only ever grows), the
+ * monthly one reset to nothing every 1st, and the lifecycle map underneath was
+ * contract documentation rather than a measurement. Together they filled the
+ * page with numbers that read the same on every visit.
  *
- * 1. **Windows** — "Diesen Monat" and "All-time" side by side rather than behind
- *    a period picker, so the current month always has its all-time context.
- *    Donut (shipped share) + bars, plus the pace pair (median time-to-ship and
- *    the Rückfrage rate) that says *how* that volume came about.
- * 2. **Durchsatz** — ships per week over the last 12 weeks, so a stalling or
- *    accelerating routine is visible as a trend instead of a single number.
- * 3. **Lebenszyklus** — the status machine from docs/feedback-routine
- *    ("Contract") drawn as a live map: every stage a topic can be in, every
- *    branch it can take (Rückfrage and back, the reaper reopening a stale claim,
- *    the post-ship continuation loop, the terminal issue hand-off), annotated
- *    with how many topics sit there right now.
+ * What is here now, in the order it is read:
  *
- * Charts are hand-rolled SVG/CSS on the existing SCC tokens — no charting
- * dependency, no new palette. The map is a semantic list, so the whole diagram
- * is readable as text by a screen reader; the dots, connectors and meters are
- * decoration and hidden from it.
+ * 1. **Diese Woche** — ships, intake and median time-to-ship since Monday, each
+ *    against the previous *complete* week, plus a one-line verdict on whether
+ *    the backlog grew or shrank. This is the only block with deltas, because it
+ *    is the only one whose numbers move on a weekly cadence.
+ * 2. **Jetzt auf dem Board** — the live queue: what waits on the admin, what is
+ *    in flight, what nobody has picked up, and the age of the oldest open topic.
+ *    Not a trend, an action list — the part that is worth knowing *now*.
+ * 3. **Durchsatz** — 12 weeks of ships against intake, so "are we keeping up" is
+ *    a shape and not an anecdote. The two slow quality figures (median to ship,
+ *    Rückfragen rate) sit under it over a 30-day window, where they have enough
+ *    topics to mean something.
+ * 4. **Lebenszyklus** — the status machine, now collapsed behind a disclosure.
+ *    It is reference material: correct, occasionally useful, and unchanged from
+ *    week to week, so it no longer occupies the page by default.
+ *
+ * Honesty rule for everything above: a figure is only printed when the board's
+ * own stamps support it. A median over zero ships renders as "—" and never as a
+ * zero, a delta is omitted when there is nothing to compare against, and no
+ * metric is estimated, projected or hardcoded. There is no transition-history
+ * table, so nothing here claims to count transitions.
+ *
+ * Charts stay hand-rolled SVG/CSS on the existing SCC tokens — no charting
+ * dependency, no new palette. The chart is mirrored by a text label for screen
+ * readers; bars, dots and meters are decoration and hidden from them.
  */
 @Component({
   selector: 'sc-feedback-dashboard',
@@ -103,84 +127,56 @@ const WEEKS = 12;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dash" [class.compact]="compact()">
-      <div class="windows">
-        @for (w of windows(); track w.key) {
-          <article class="win sc-card">
-            <h3 class="win-title">{{ w.label }}</h3>
+      <!-- ---- 1 · The running week against the one before it ---- -->
+      <article class="panel sc-card week">
+        <header class="panel-head">
+          <h3 class="panel-title">{{ 'adminFeedback.dashboard.weekTitle' | translate }}</h3>
+          <span class="panel-sub">{{ weekSub() }}</span>
+        </header>
 
-            <!-- Donut: share of everything raised in this window that shipped. -->
-            <div class="donut-wrap">
-              <svg viewBox="0 0 64 64" class="donut" role="img" [attr.aria-label]="donutLabel(w)">
-                <circle class="track" cx="32" cy="32" r="26" />
-                <circle
-                  class="arc"
-                  cx="32"
-                  cy="32"
-                  r="26"
-                  [attr.stroke-dasharray]="ring"
-                  [attr.stroke-dashoffset]="ring * (1 - w.ratio)" />
-              </svg>
-              <div class="donut-centre">
-                <strong>{{ pct(w.ratio) }}%</strong>
-                <span>{{ 'adminFeedback.dashboard.shippedShare' | translate }}</span>
-              </div>
+        <dl class="pulse">
+          @for (c of pulse(); track c.key) {
+            <div class="cell" [attr.data-cell]="c.key">
+              <dt>{{ c.label }}</dt>
+              <dd>
+                <span class="cell-value" [attr.aria-label]="c.aria">
+                  <b>{{ c.value }}</b>
+                  @if (c.delta) {
+                    <span class="delta" [attr.data-tone]="c.tone" aria-hidden="true">{{ c.delta }}</span>
+                  }
+                </span>
+                <small>{{ c.hint }}</small>
+              </dd>
             </div>
+          }
+        </dl>
 
-            <!-- Bars: the four board buckets that matter, scaled inside this
-                 window, in the order a topic walks them. Same four words the
-                 filters use — not one bar per bucket, which said less. -->
-            <dl class="bars">
-              <div class="bar-row todo">
-                <dt>{{ 'adminFeedback.dashboard.todo' | translate }}</dt>
-                <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.todo)"></span></span>
-                  <b>{{ w.stats.todo }}</b>
-                </dd>
-              </div>
-              <div class="bar-row open">
-                <dt>
-                  {{ 'adminFeedback.dashboard.open' | translate }}
-                  <small>{{ 'adminFeedback.dashboard.openHint' | translate }}</small>
-                </dt>
-                <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.open)"></span></span>
-                  <b>{{ w.stats.open }}</b>
-                </dd>
-              </div>
-              <div class="bar-row shipped">
-                <dt>{{ 'adminFeedback.dashboard.done' | translate }}</dt>
-                <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.done)"></span></span>
-                  <b>{{ w.stats.done }}</b>
-                </dd>
-              </div>
-              <div class="bar-row issues">
-                <dt>{{ 'adminFeedback.dashboard.issues' | translate }}</dt>
-                <dd>
-                  <span class="bar"><span class="fill" [style.width.%]="barPct(w, w.stats.issues)"></span></span>
-                  <b>{{ w.stats.issues }}</b>
-                </dd>
-              </div>
-            </dl>
+        <p class="verdict" [attr.data-tone]="verdict().tone">{{ verdict().text }}</p>
+      </article>
 
-            <!-- Pace: the two rates the volume bars can't show. -->
-            <dl class="pace">
-              <div class="pace-cell">
-                <dt>{{ 'adminFeedback.dashboard.paceMedian' | translate }}</dt>
-                <dd>{{ w.median }}</dd>
-              </div>
-              <div class="pace-cell">
-                <dt>{{ 'adminFeedback.dashboard.paceQuestions' | translate }}</dt>
-                <dd>{{ w.questionPct }}%<small>{{ w.questionHint }}</small></dd>
-              </div>
-            </dl>
-          </article>
-        }
-      </div>
+      <!-- ---- 2 · What is on the board right now ---- -->
+      <article class="panel sc-card load">
+        <header class="panel-head">
+          <h3 class="panel-title">{{ 'adminFeedback.dashboard.loadTitle' | translate }}</h3>
+          <span class="panel-sub">{{ 'adminFeedback.dashboard.loadSub' | translate }}</span>
+        </header>
 
-      <p class="dash-note">{{ 'adminFeedback.dashboard.note' | translate }}</p>
+        <dl class="load-grid">
+          @for (c of load(); track c.key) {
+            <div class="cell" [class.accent]="c.accent">
+              <dt>{{ c.label }}</dt>
+              <dd>
+                <b>{{ c.value }}</b>
+                <small>{{ c.hint }}</small>
+              </dd>
+            </div>
+          }
+        </dl>
 
-      <!-- ---- Throughput: ships per week over the last 12 weeks ---- -->
+        <p class="load-age">{{ oldestLine() }}</p>
+      </article>
+
+      <!-- ---- 3 · Throughput: ships against intake, 12 weeks ---- -->
       <article class="panel sc-card">
         <header class="panel-head">
           <h3 class="panel-title">{{ 'adminFeedback.dashboard.throughputTitle' | translate }}</h3>
@@ -190,7 +186,8 @@ const WEEKS = 12;
         <div class="spark" role="img" [attr.aria-label]="throughputLabel()">
           @for (w of weeks(); track w.start) {
             <span class="wk" [class.now]="w.current" [attr.title]="weekTitle(w)">
-              <span class="wk-bar" [style.height.%]="weekPct(w)"></span>
+              <span class="wk-raised" [style.height.%]="weekPct(w.raised)"></span>
+              <span class="wk-shipped" [style.height.%]="weekPct(w.count)"></span>
             </span>
           }
         </div>
@@ -198,85 +195,104 @@ const WEEKS = 12;
           <span>{{ 'adminFeedback.dashboard.throughputFrom' | translate: { weeks: weekSpan } }}</span>
           <span>{{ 'adminFeedback.dashboard.throughputNow' | translate }}</span>
         </div>
+        <ul class="legend" aria-hidden="true">
+          <li><span class="swatch raised"></span>{{ 'adminFeedback.dashboard.legendRaised' | translate }}</li>
+          <li><span class="swatch shipped"></span>{{ 'adminFeedback.dashboard.legendShipped' | translate }}</li>
+        </ul>
+
+        <dl class="quality">
+          <div class="cell">
+            <dt>{{ 'adminFeedback.dashboard.paceMedian' | translate }}</dt>
+            <dd>{{ paceMedian() }}<small>{{ 'adminFeedback.dashboard.paceWindow' | translate: { days: paceDays } }}</small></dd>
+          </div>
+          <div class="cell">
+            <dt>{{ 'adminFeedback.dashboard.paceQuestions' | translate }}</dt>
+            <dd>{{ paceQuestionPct() }}%<small>{{ paceQuestionHint() }}</small></dd>
+          </div>
+        </dl>
       </article>
 
-      <!-- ---- Lifecycle map: stages + branches, annotated with live counts ---- -->
-      <article class="panel sc-card flow">
-        <header class="panel-head">
-          <h3 class="panel-title">{{ 'adminFeedback.dashboard.lifecycleTitle' | translate }}</h3>
-          <span class="panel-sub">{{ 'adminFeedback.dashboard.lifecycleIntro' | translate }}</span>
-        </header>
+      <!-- ---- 4 · Lifecycle map — reference, collapsed by default ---- -->
+      <details class="panel sc-card flow">
+        <summary class="panel-head">
+          <span class="panel-title">{{ 'adminFeedback.dashboard.lifecycleTitle' | translate }}</span>
+          <span class="panel-sub">{{ 'adminFeedback.dashboard.lifecycleTeaser' | translate }}</span>
+        </summary>
 
-        <!-- One node renderer for the spine and the side track alike, so the two
-             lists can differ in semantics (ordered path vs. unordered branches)
-             without duplicating the node markup. -->
-        <ng-template #node let-s>
-          <span class="dot" aria-hidden="true"></span>
-          <div class="stage-head">
-            <span class="stage-name">{{ s.label }}</span>
-            <span class="stage-count"
-              >{{ s.count }}<span class="sr-only"> {{ 'adminFeedback.dashboard.stageNow' | translate }}</span></span
-            >
-          </div>
-          <span class="meter" aria-hidden="true"><span class="meter-fill" [style.width.%]="s.share"></span></span>
-          @if (s.facts.length) {
-            <ul class="facts">
-              @for (f of s.facts; track $index) {
-                <li>{{ f }}</li>
-              }
-            </ul>
-          }
-          @if (s.exits.length) {
-            <ul class="exits">
-              @for (x of s.exits; track $index) {
-                <li [class.back]="x.back">
-                  <span class="arrow" aria-hidden="true">{{ x.back ? '↺' : '↓' }}</span>
-                  <span class="exit-label">{{ x.label }}</span>
-                  <span class="exit-target">→ {{ x.target }}</span>
+        <div class="flow-body">
+          <p class="panel-sub">{{ 'adminFeedback.dashboard.lifecycleIntro' | translate }}</p>
+
+          <!-- One node renderer for the spine and the side track alike, so the two
+               lists can differ in semantics (ordered path vs. unordered branches)
+               without duplicating the node markup. -->
+          <ng-template #node let-s>
+            <span class="dot" aria-hidden="true"></span>
+            <div class="stage-head">
+              <span class="stage-name">{{ s.label }}</span>
+              <span class="stage-count"
+                >{{ s.count }}<span class="sr-only"> {{ 'adminFeedback.dashboard.stageNow' | translate }}</span></span
+              >
+            </div>
+            <span class="meter" aria-hidden="true"><span class="meter-fill" [style.width.%]="s.share"></span></span>
+            @if (s.facts.length) {
+              <ul class="facts">
+                @for (f of s.facts; track $index) {
+                  <li>{{ f }}</li>
+                }
+              </ul>
+            }
+            @if (s.exits.length) {
+              <ul class="exits">
+                @for (x of s.exits; track $index) {
+                  <li [class.back]="x.back">
+                    <span class="arrow" aria-hidden="true">{{ x.back ? '↺' : '↓' }}</span>
+                    <span class="exit-label">{{ x.label }}</span>
+                    <span class="exit-target">→ {{ x.target }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </ng-template>
+
+          <!-- The spine carries the path itself. A branch (a Rückfrage) is drawn
+               INSIDE the stage it leaves from and loops back into, because that is
+               what it is — not a second category underneath the diagram. -->
+          <ol class="stages">
+            @for (s of mainStages(); track s.key) {
+              <li class="stage" [attr.data-stage]="s.key">
+                <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
+                @if (s.branches.length) {
+                  <ul class="branches">
+                    @for (b of s.branches; track b.key) {
+                      <li class="stage is-branch" [attr.data-stage]="b.key">
+                        <span class="branch-tag">{{ 'adminFeedback.dashboard.lifecycleBranch' | translate }}</span>
+                        <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: b }" />
+                      </li>
+                    }
+                  </ul>
+                }
+              </li>
+            }
+          </ol>
+
+          <!-- …and it ends in exactly one of these. Rendered as a visible fork so
+               "either shipped or handed to an issue" is the shape of the diagram
+               rather than a sentence somebody has to read. -->
+          <div class="outcomes">
+            <span class="fork" aria-hidden="true"></span>
+            <h4 class="outcome-title">{{ 'adminFeedback.dashboard.lifecycleOutcome' | translate }}</h4>
+            <ul class="stages outcome-list">
+              @for (s of outcomeStages(); track s.key) {
+                <li class="stage is-outcome" [attr.data-stage]="s.key">
+                  <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
                 </li>
               }
             </ul>
-          }
-        </ng-template>
+          </div>
 
-        <!-- The spine carries the path itself. A branch (a Rückfrage) is drawn
-             INSIDE the stage it leaves from and loops back into, because that is
-             what it is — not a second category underneath the diagram. -->
-        <ol class="stages">
-          @for (s of mainStages(); track s.key) {
-            <li class="stage" [attr.data-stage]="s.key">
-              <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
-              @if (s.branches.length) {
-                <ul class="branches">
-                  @for (b of s.branches; track b.key) {
-                    <li class="stage is-branch" [attr.data-stage]="b.key">
-                      <span class="branch-tag">{{ 'adminFeedback.dashboard.lifecycleBranch' | translate }}</span>
-                      <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: b }" />
-                    </li>
-                  }
-                </ul>
-              }
-            </li>
-          }
-        </ol>
-
-        <!-- …and it ends in exactly one of these. Rendered as a visible fork so
-             "either shipped or handed to an issue" is the shape of the diagram
-             rather than a sentence somebody has to read. -->
-        <div class="outcomes">
-          <span class="fork" aria-hidden="true"></span>
-          <h4 class="outcome-title">{{ 'adminFeedback.dashboard.lifecycleOutcome' | translate }}</h4>
-          <ul class="stages outcome-list">
-            @for (s of outcomeStages(); track s.key) {
-              <li class="stage is-outcome" [attr.data-stage]="s.key">
-                <ng-container [ngTemplateOutlet]="node" [ngTemplateOutletContext]="{ $implicit: s }" />
-              </li>
-            }
-          </ul>
+          <p class="panel-note">{{ 'adminFeedback.dashboard.lifecycleNote' | translate }}</p>
         </div>
-
-        <p class="panel-note">{{ 'adminFeedback.dashboard.lifecycleNote' | translate }}</p>
-      </article>
+      </details>
     </section>
   `,
   styles: [`
@@ -284,130 +300,11 @@ const WEEKS = 12;
        full board page, and only the container knows which one it is in. */
     .dash { display: flex; flex-direction: column; gap: 10px; container-type: inline-size; }
 
-    /* Both windows stay visible at once — side by side wherever they fit (the
-       docked 480px panel still does), stacking only on very narrow screens. */
-    .windows { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    @container (max-width: 360px) { .windows { grid-template-columns: 1fr; } }
-
-    .win { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 12px; }
-    .win-title {
-      margin: 0;
-      font-size: max(0.68rem, var(--sc-fs-floor));
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-      text-align: center;
-    }
-
-    /* ---- Donut ---- */
-    .donut-wrap { position: relative; align-self: center; width: 104px; height: 104px; }
-    .donut { width: 100%; height: 100%; transform: rotate(-90deg); }
-    .donut .track { fill: none; stroke: var(--sc-bg-2); stroke-width: 8; }
-    .donut .arc {
-      fill: none;
-      stroke: var(--sc-success);
-      stroke-width: 8;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .donut-centre {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
-      pointer-events: none;
-    }
-    .donut-centre strong { font-size: 1.15rem; color: var(--sc-fg-0); line-height: 1; }
-    .donut-centre span {
-      font-size: max(0.56rem, var(--sc-fs-floor));
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-
-    /* ---- Bars ---- */
-    .bars { display: flex; flex-direction: column; gap: 7px; margin: 0; }
-    .bar-row { display: flex; flex-direction: column; gap: 3px; }
-    .bar-row dt { font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2); }
-    .bar-row dd { display: flex; align-items: center; gap: 8px; margin: 0; }
-    .bar {
-      flex: 1 1 auto;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--sc-bg-2);
-      overflow: hidden;
-    }
-    .fill {
-      display: block;
-      height: 100%;
-      border-radius: 999px;
-      transform-origin: left center;
-      animation: bar-grow 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-      transition: width 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .bar-row dd b { flex: 0 0 auto; min-width: 1.6em; text-align: right; font-size: 0.86rem; }
-    .bar-row dt small {
-      display: block;
-      font-size: max(0.58rem, var(--sc-fs-floor));
-      letter-spacing: 0.02em;
-      color: var(--sc-fg-2);
-      opacity: 0.8;
-    }
-    .bar-row.shipped .fill { background: var(--sc-success); }
-    .bar-row.shipped dd b { color: var(--sc-success); }
-    .bar-row.todo .fill { background: var(--sc-accent); }
-    .bar-row.todo dd b { color: var(--sc-accent); }
-    .bar-row.open .fill { background: var(--sc-warning); }
-    .bar-row.open dd b { color: var(--sc-warning); }
-    .bar-row.issues .fill { background: #a78bfa; }
-    .bar-row.issues dd b { color: #a78bfa; }
-
-    @keyframes bar-grow {
-      from { transform: scaleX(0); }
-      to { transform: scaleX(1); }
-    }
-
-    /* ---- Pace pair ---- */
-    .pace {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin: 0;
-      padding-top: 9px;
-      border-top: 1px solid var(--sc-border);
-    }
-    .pace-cell { min-width: 0; }
-    .pace-cell dt {
-      font-size: max(0.6rem, var(--sc-fs-floor));
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-      overflow-wrap: anywhere;
-    }
-    .pace-cell dd {
-      margin: 2px 0 0;
-      font-size: 0.92rem;
-      font-weight: 600;
-      color: var(--sc-fg-0);
-      line-height: 1.15;
-    }
-    .pace-cell dd small {
-      display: block;
-      font-size: max(0.6rem, var(--sc-fs-floor));
-      font-weight: 400;
-      color: var(--sc-fg-2);
-    }
-
-    .dash-note { margin: 0; font-size: max(0.68rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2); }
-
-    /* ---- Shared panel chrome (throughput + lifecycle) ---- */
-    .panel { display: flex; flex-direction: column; gap: 9px; padding: 14px 12px; }
+    /* ---- Shared panel chrome ---- */
+    .panel { display: flex; flex-direction: column; gap: 10px; padding: 14px 12px; }
     .panel-head { display: flex; flex-direction: column; gap: 2px; }
     .panel-title {
+      display: block;
       margin: 0;
       font-size: max(0.68rem, var(--sc-fs-floor));
       font-weight: 700;
@@ -418,28 +315,97 @@ const WEEKS = 12;
     .panel-sub, .panel-note { font-size: max(0.66rem, var(--sc-fs-floor)); line-height: 1.4; color: var(--sc-fg-2); }
     .panel-note { margin: 0; padding-top: 2px; }
 
-    /* ---- Throughput sparkline ---- */
-    .spark { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
+    /* ---- 1 · Diese Woche ----
+       Three equal cells. They collapse to one column well before the docked
+       panel gets narrow, because a two-line number squeezed into a third of
+       360px is where a block like this becomes unreadable. */
+    .pulse, .load-grid, .quality { display: grid; margin: 0; gap: 10px; }
+    .pulse { grid-template-columns: repeat(3, 1fr); }
+    @container (max-width: 380px) { .pulse { grid-template-columns: 1fr; gap: 8px; } }
+
+    .cell { min-width: 0; }
+    .cell dt {
+      font-size: max(0.62rem, var(--sc-fs-floor));
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--sc-fg-2);
+      overflow-wrap: anywhere;
+    }
+    .cell dd { margin: 3px 0 0; min-width: 0; }
+    .cell dd b { font-size: 1.5rem; font-weight: 700; line-height: 1.05; color: var(--sc-fg-0); }
+    .cell dd small {
+      display: block;
+      margin-top: 3px;
+      font-size: max(0.6rem, var(--sc-fs-floor));
+      line-height: 1.35;
+      color: var(--sc-fg-2);
+      overflow-wrap: anywhere;
+    }
+    .cell-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+
+    .delta {
+      flex: 0 0 auto;
+      padding: 1px 6px;
+      border: 1px solid var(--sc-border);
+      border-radius: 999px;
+      font-size: max(0.62rem, var(--sc-fs-floor));
+      font-weight: 600;
+      white-space: nowrap;
+      color: var(--sc-fg-2);
+    }
+    .delta[data-tone='good'] { color: var(--sc-success); border-color: var(--sc-success); }
+    .delta[data-tone='bad'] { color: var(--sc-warning); border-color: var(--sc-warning); }
+
+    .verdict {
+      margin: 0;
+      padding-top: 9px;
+      border-top: 1px solid var(--sc-border);
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      line-height: 1.45;
+      color: var(--sc-fg-1);
+    }
+    .verdict[data-tone='good'] { color: var(--sc-success); }
+    .verdict[data-tone='bad'] { color: var(--sc-warning); }
+
+    /* ---- 2 · Jetzt auf dem Board ---- */
+    .load-grid { grid-template-columns: repeat(3, 1fr); }
+    @container (max-width: 380px) { .load-grid { grid-template-columns: 1fr; gap: 8px; } }
+    .load-grid .cell dd b { font-size: 1.25rem; }
+    .load-grid .cell.accent dd b { color: var(--sc-accent); }
+    .load-age {
+      margin: 0;
+      padding-top: 9px;
+      border-top: 1px solid var(--sc-border);
+      font-size: max(0.66rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+    }
+
+    /* ---- 3 · Throughput ----
+       One column per week. The faint full-width column is what came IN, the
+       solid inner column is what SHIPPED — so a week where the solid bar reaches
+       the faint one is a week that kept up, at a glance and without a second
+       axis to read. */
+    .spark { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
     .wk {
       position: relative;
       flex: 1 1 0;
       min-width: 0;
       height: 100%;
-      display: flex;
-      align-items: flex-end;
       border-radius: 3px;
       background: var(--sc-bg-2);
       overflow: hidden;
     }
-    .wk-bar {
+    .wk-raised, .wk-shipped {
+      position: absolute;
+      bottom: 0;
       display: block;
-      width: 100%;
-      min-height: 2px;
       border-radius: 3px;
-      background: var(--sc-success);
       transition: height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .wk.now .wk-bar { background: var(--sc-accent); }
+    .wk-raised { left: 0; right: 0; background: var(--sc-fg-2); opacity: 0.28; }
+    .wk-shipped { left: 22%; right: 22%; background: var(--sc-success); }
+    .wk.now .wk-shipped { background: var(--sc-accent); }
+
     .spark-axis {
       display: flex;
       justify-content: space-between;
@@ -447,11 +413,48 @@ const WEEKS = 12;
       font-size: max(0.6rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
+    .legend {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      margin: 0;
+      padding: 0;
+      font-size: max(0.62rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+    }
+    .legend li { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 10px; height: 10px; border-radius: 3px; }
+    .swatch.raised { background: var(--sc-fg-2); opacity: 0.28; }
+    .swatch.shipped { background: var(--sc-success); }
 
-    /* ---- Lifecycle map ----
+    .quality { grid-template-columns: 1fr 1fr; padding-top: 9px; border-top: 1px solid var(--sc-border); }
+    .quality .cell dd { margin: 2px 0 0; font-size: 0.95rem; font-weight: 600; color: var(--sc-fg-0); line-height: 1.15; }
+    .quality .cell dd small { font-weight: 400; }
+
+    /* ---- 4 · Lifecycle map, behind a disclosure ----
        A vertical spine rather than a horizontal flow chart: it is the only
        layout that survives the docked panel width unchanged, never scrolls
        sideways, and reads correctly as a plain list for assistive tech. */
+    details.flow { position: relative; gap: 0; }
+    details.flow > summary { cursor: pointer; list-style: none; padding-right: 20px; }
+    details.flow > summary::-webkit-details-marker { display: none; }
+    details.flow > summary::after {
+      content: '▾';
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      color: var(--sc-fg-2);
+      transition: transform 0.18s ease;
+    }
+    details.flow[open] > summary::after { transform: rotate(180deg); }
+    details.flow > summary:focus-visible {
+      outline: none;
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32);
+    }
+    .flow-body { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+
     .stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
     .stage { position: relative; padding: 0 0 0 18px; }
     /* The spine — connects a stage to the next one; the last node ends it. */
@@ -530,7 +533,7 @@ const WEEKS = 12;
       color: var(--sc-fg-2);
     }
     .outcome-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    @container (max-width: 360px) { .outcome-list { grid-template-columns: 1fr; } }
+    @container (max-width: 380px) { .outcome-list { grid-template-columns: 1fr; } }
     .stage.is-outcome {
       padding: 9px 10px 9px 22px;
       border: 1px solid var(--sc-border);
@@ -599,15 +602,6 @@ const WEEKS = 12;
     .exits li.back .arrow, .exits li.back .exit-target { color: var(--sc-warning); border-color: var(--sc-warning); }
     .exits li.back .arrow { border: 0; }
 
-    .side-title {
-      margin: 4px 0 0;
-      font-size: max(0.62rem, var(--sc-fs-floor));
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--sc-fg-2);
-    }
-
     .sr-only {
       position: absolute;
       width: 1px;
@@ -622,14 +616,13 @@ const WEEKS = 12;
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .fill { animation: none; transition: none; }
-      .donut .arc, .wk-bar, .meter-fill { transition: none; }
+      .wk-raised, .wk-shipped, .meter-fill { transition: none; }
+      details.flow > summary::after { transition: none; }
     }
 
-    .dash.compact .win { padding: 12px 10px; }
-    .dash.compact .donut-wrap { width: 88px; height: 88px; }
     .dash.compact .panel { padding: 12px 10px; }
-    .dash.compact .spark { height: 52px; }
+    .dash.compact .spark { height: 58px; }
+    .dash.compact .cell dd b { font-size: 1.3rem; }
   `],
 })
 export class FeedbackDashboardComponent {
@@ -650,33 +643,139 @@ export class FeedbackDashboardComponent {
   /** Rendering inside the docked FAB panel rather than the full page. */
   readonly compact = input(false);
 
-  readonly ring = RING;
   readonly weekSpan = WEEKS;
+  readonly paceDays = PACE_DAYS;
 
-  readonly windows = computed<StatWindow[]>(() => {
-    const rows = this.rows();
-    const threads = this.threads();
-    this.lang();
-    const from = startOfMonth();
-    return [
-      this.toWindow('month', this.monthLabel(), computeStats(rows, threads, from), computePace(rows, threads, from)),
-      this.toWindow(
-        'all',
-        this.translate.instant('adminFeedback.dashboard.allTime'),
-        computeStats(rows, threads, null),
-        computePace(rows, threads, null),
-      ),
-    ];
-  });
+  private readonly weekPulse = computed<WeekPulse>(() => weeklyPulse(this.rows()));
 
-  readonly weeks = computed<ShipWeek[]>(() => shippedPerWeek(this.rows(), WEEKS));
+  readonly weeks = computed<BoardWeek[]>(() => weeklySeries(this.rows(), WEEKS));
 
-  /** Tallest bar in the sparkline, floored at 1 so an empty board still renders. */
-  private readonly weekMax = computed(() => Math.max(1, ...this.weeks().map((w) => w.count)));
+  /** Tallest column across BOTH series, floored at 1 so an empty board renders. */
+  private readonly weekMax = computed(() =>
+    Math.max(1, ...this.weeks().flatMap((w) => [w.count, w.raised])),
+  );
 
   private readonly snapshot = computed<LifecycleSnapshot>(() =>
     lifecycleSnapshot(this.rows(), this.threads()),
   );
+
+  /**
+   * The 30-day quality window. Wide enough that the median and the Rückfragen
+   * rate are computed over a double-digit number of topics on a normal board —
+   * at one week these two swing between 0 % and 50 % on a single topic, which is
+   * noise dressed up as a trend.
+   */
+  private readonly pace = computed<FeedbackPace>(() =>
+    computePace(this.rows(), this.threads(), Date.now() - PACE_DAYS * 86_400_000),
+  );
+
+  /** "Seit Montag, 01.09." — the frame every number in the block is counted in. */
+  readonly weekSub = computed(() => {
+    this.lang();
+    return this.translate.instant('adminFeedback.dashboard.weekSub', {
+      date: formatScCalendarDate(
+        new Date(this.weekPulse().weekStart),
+        this.locale.language(),
+        this.locale.region(),
+      ),
+    });
+  });
+
+  readonly pulse = computed<PulseCell[]>(() => {
+    const p = this.weekPulse();
+    this.lang();
+    return [
+      this.countCell('shipped', p.shipped, p.shippedPrev, true),
+      // More topics arriving is not bad news — it is a busier week, and the
+      // verdict line below is where "in vs. out" is actually judged. So the
+      // intake delta stays tone-neutral rather than being painted as a warning.
+      this.countCell('raised', p.raised, p.raisedPrev, false),
+      this.medianCell(p),
+    ];
+  });
+
+  /**
+   * The one sentence the block exists for: did the pile grow or shrink this
+   * week? Stated in words because "7 against 4" is a comparison the reader
+   * should not have to perform.
+   */
+  readonly verdict = computed<{ text: string; tone: Tone }>(() => {
+    const p = this.weekPulse();
+    this.lang();
+    if (p.shipped === 0 && p.raised === 0) {
+      return { text: this.t('verdictIdle'), tone: 'neutral' };
+    }
+    const net = p.shipped - p.raised;
+    if (net > 0) return { text: this.t('verdictDown', { count: net }), tone: 'good' };
+    if (net < 0) return { text: this.t('verdictUp', { count: -net }), tone: 'bad' };
+    return { text: this.t('verdictEven'), tone: 'flat' };
+  });
+
+  /** The live queue — three counts, each with what it is made of. */
+  readonly load = computed<LoadCell[]>(() => {
+    const s = this.snapshot();
+    this.lang();
+    // Everything that cannot move without the admin: a Rückfrage aimed at them,
+    // a finished topic in the sign-off gate, and a review hold whose PR waits
+    // for a human merge.
+    const waiting = s.counts.awaiting_admin + s.counts.review + s.reviewHolds;
+    const waitingParts: string[] = [];
+    if (s.counts.awaiting_admin) {
+      waitingParts.push(this.t('loadWaitingAsk', { count: s.counts.awaiting_admin }));
+    }
+    if (s.counts.review) waitingParts.push(this.t('loadWaitingReview', { count: s.counts.review }));
+    if (s.reviewHolds) waitingParts.push(this.t('loadWaitingHold', { count: s.reviewHolds }));
+
+    const todoParts: string[] = [];
+    if (s.answered) todoParts.push(this.t('loadTodoAnswered', { count: s.answered }));
+    if (s.continuations) {
+      todoParts.push(this.t('loadTodoContinuation', { count: s.continuations }));
+    }
+
+    return [
+      {
+        key: 'waiting',
+        label: this.t('loadWaiting'),
+        value: waiting,
+        hint: waitingParts.length ? waitingParts.join(' · ') : this.t('loadWaitingNone'),
+        accent: waiting > 0,
+      },
+      {
+        key: 'working',
+        label: this.t('loadWorking'),
+        value: s.working + s.counts.awaiting_author,
+        hint: this.t('loadWorkingHint', { working: s.working, author: s.counts.awaiting_author }),
+        accent: false,
+      },
+      {
+        key: 'todo',
+        label: this.t('loadTodo'),
+        value: s.counts.todo,
+        hint: todoParts.length ? todoParts.join(' · ') : this.t('loadTodoHint'),
+        accent: false,
+      },
+    ];
+  });
+
+  /** Age of the oldest topic still in flight — the number that only ever rots. */
+  readonly oldestLine = computed(() => {
+    const days = this.snapshot().oldestActiveDays;
+    this.lang();
+    return days === null ? this.t('oldestNone') : this.t('oldest', { days });
+  });
+
+  readonly paceMedian = computed(() => {
+    this.lang();
+    return this.formatDuration(this.pace().medianShipHours);
+  });
+
+  readonly paceQuestionPct = computed(() => this.pct(this.pace().questionRate));
+
+  readonly paceQuestionHint = computed(() => {
+    const p = this.pace();
+    this.lang();
+    return this.t('paceQuestionsHint', { questioned: p.questioned, raised: p.raised });
+  });
 
   /**
    * The path itself: ToDo → In Arbeit → Abnahme. Each Rückfrage hangs off the
@@ -764,6 +863,71 @@ export class FeedbackDashboardComponent {
     return stages;
   });
 
+  /**
+   * A plain count against last week's. `upIsGood` decides the colour, not the
+   * sign — more ships is progress, more intake is just a busier week.
+   */
+  private countCell(
+    key: 'shipped' | 'raised',
+    value: number,
+    prev: number,
+    upIsGood: boolean,
+  ): PulseCell {
+    const diff = value - prev;
+    const tone: Tone = !upIsGood ? 'neutral' : diff > 0 ? 'good' : diff < 0 ? 'bad' : 'flat';
+    return {
+      key,
+      label: this.t(`${key}Label`),
+      value: String(value),
+      delta: this.deltaChip(diff),
+      tone,
+      hint: this.t('prevWeek', { value: prev }),
+      aria: this.t(`${key}Aria`, { value, prev }),
+    };
+  }
+
+  /**
+   * Median time-to-ship, which needs more care than a count: it does not exist
+   * for a week without ships (rendered "—", never a 0), the delta is direction
+   * only (a percentage change over a handful of ships pretends to a precision
+   * the data has not got), and the sample size is printed so a median over a
+   * single ship is visibly a median over a single ship.
+   */
+  private medianCell(p: WeekPulse): PulseCell {
+    const now = p.medianShipHours;
+    const prev = p.medianShipHoursPrev;
+    let delta: string | null = null;
+    let tone: Tone = 'neutral';
+    if (now !== null && prev !== null) {
+      // Faster is better, so a FALLING median is the good direction.
+      const same = Math.round(now) === Math.round(prev);
+      const faster = now < prev;
+      delta = same ? '±' : faster ? '▼' : '▲';
+      tone = same ? 'flat' : faster ? 'good' : 'bad';
+    }
+    return {
+      key: 'median',
+      label: this.t('medianLabel'),
+      value: this.formatDuration(now),
+      delta,
+      tone,
+      hint: this.t(p.medianSample === 0 ? 'medianHintNone' : 'medianHint', {
+        count: p.medianSample,
+        prev: this.formatDuration(prev),
+      }),
+      aria: this.t('medianAria', {
+        value: this.formatDuration(now),
+        prev: this.formatDuration(prev),
+      }),
+    };
+  }
+
+  /** "▲ 3" / "▼ 2" / "±0" — never a bare sign, so the size is always visible. */
+  private deltaChip(diff: number): string {
+    if (diff === 0) return '±0';
+    return diff > 0 ? `▲ ${diff}` : `▼ ${-diff}`;
+  }
+
   private toStage(
     key: FeedbackBucket,
     snapshot: LifecycleSnapshot,
@@ -793,32 +957,6 @@ export class FeedbackDashboardComponent {
     return this.translate.instant(`adminFeedback.dashboard.${key}`, params);
   }
 
-  private toWindow(
-    key: 'month' | 'all',
-    label: string,
-    stats: FeedbackStats,
-    pace: FeedbackPace,
-  ): StatWindow {
-    // "Erledigt" for the donut means *reached an end*, so a topic handed to a
-    // GitHub issue counts as resolved too — it left the board on purpose.
-    const resolved = stats.done + stats.issues;
-    const resolvable = resolved + stats.todo + stats.open;
-    return {
-      key,
-      label,
-      stats,
-      pace,
-      ratio: resolvable === 0 ? 0 : resolved / resolvable,
-      max: Math.max(stats.todo, stats.open, stats.done, stats.issues, 1),
-      median: this.formatDuration(pace.medianShipHours),
-      questionPct: this.pct(pace.questionRate),
-      questionHint: this.t('paceQuestionsHint', {
-        questioned: pace.questioned,
-        raised: pace.raised,
-      }),
-    };
-  }
-
   /** Hours rendered as the coarsest honest unit: "< 1 h", "18 h", "2,4 T". */
   private formatDuration(hours: number | null): string {
     if (hours === null) return this.t('noneShort');
@@ -830,53 +968,42 @@ export class FeedbackDashboardComponent {
     return this.t('unitDays', { value: days });
   }
 
-  /** "Diesen Monat" with the actual month name appended, e.g. "Diesen Monat · Juli". */
-  private monthLabel(): string {
-    const name = formatScMonthName(new Date(), this.locale.language(), this.locale.region());
-    return `${this.translate.instant('adminFeedback.dashboard.thisMonth')} · ${name}`;
-  }
-
   pct(ratio: number): number {
     return Math.round(ratio * 100);
   }
 
-  barPct(w: StatWindow, value: number): number {
-    return (value / w.max) * 100;
+  weekPct(value: number): number {
+    return value === 0 ? 0 : (value / this.weekMax()) * 100;
   }
 
-  weekPct(w: ShipWeek): number {
-    return w.count === 0 ? 0 : (w.count / this.weekMax()) * 100;
+  weekTitle(w: BoardWeek): string {
+    return this.t('throughputWeek', {
+      date: this.weekDate(w.start),
+      count: w.count,
+      raised: w.raised,
+    });
   }
 
-  weekTitle(w: ShipWeek): string {
-    return this.t('throughputWeek', { date: this.weekDate(w.start), count: w.count });
-  }
-
-  /** Text equivalent of the sparkline — total, peak week and the running week. */
+  /** Text equivalent of the chart — both series, the peak and the running week. */
   throughputLabel(): string {
     const weeks = this.weeks();
-    const total = weeks.reduce((sum, w) => sum + w.count, 0);
+    const shipped = weeks.reduce((sum, w) => sum + w.count, 0);
+    const raised = weeks.reduce((sum, w) => sum + w.raised, 0);
     return this.t('throughputAria', {
       weeks: WEEKS,
-      total,
+      shipped,
+      raised,
       max: Math.max(0, ...weeks.map((w) => w.count)),
       current: weeks[weeks.length - 1]?.count ?? 0,
     });
   }
 
   /**
-   * Sparkline axis tick. Numeric short form on purpose — a spelled-out month
-   * does not fit a few-pixel chart label; the field ORDER still follows the
-   * resolved region (feedback 38b3d25a).
+   * Chart axis tick. Numeric short form on purpose — a spelled-out month does
+   * not fit a few-pixel chart label; the field ORDER still follows the resolved
+   * region (feedback 38b3d25a).
    */
   private weekDate(start: number): string {
     return formatScCompactDate(new Date(start), this.locale.language(), this.locale.region());
-  }
-
-  donutLabel(w: StatWindow): string {
-    return this.translate.instant('adminFeedback.dashboard.donutLabel', {
-      label: w.label,
-      pct: this.pct(w.ratio),
-    });
   }
 }

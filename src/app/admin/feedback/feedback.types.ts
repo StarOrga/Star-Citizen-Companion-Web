@@ -1222,12 +1222,22 @@ export function computePace(
 
 // ---- Throughput over time -------------------------------------------------
 
-/** One weekly bucket of the throughput chart. */
-export interface ShipWeek {
+/**
+ * One weekly bucket of the throughput chart.
+ *
+ * Two series, not one: a ship count alone cannot answer the only question the
+ * chart is asked ("are we keeping up?"), because five ships in a week where
+ * twelve topics arrived is a losing week and five in a quiet one is a winning
+ * week. Both numbers come from stamps the board already carries — `shipped_at`
+ * and `created_at` — so nothing here is modelled or estimated.
+ */
+export interface BoardWeek {
   /** Epoch ms of the bucket's Monday, 00:00 local time. */
   start: number;
   /** Ships stamped inside the week. */
   count: number;
+  /** Topics *raised* inside the week — the intake the ships are measured against. */
+  raised: number;
   /** True for the bucket containing "now" (its week is still running). */
   current: boolean;
 }
@@ -1240,43 +1250,145 @@ export function startOfWeek(now: number = Date.now()): number {
 }
 
 /**
- * Ships per calendar week for the last `weeks` weeks, oldest bucket first and
- * the running week last — the dashboard's throughput sparkline.
+ * Ships and intake per calendar week for the last `weeks` weeks, oldest bucket
+ * first and the running week last — the dashboard's throughput chart.
  *
  * A ship is counted by its `shipped_at` stamp, so a topic reopened as a
  * continuation counts once, in the week of its *latest* ship (the re-ship bumps
  * `shipped_at`). Rows without a ship stamp are not throughput and are skipped.
+ * Intake is counted by `created_at` into the same buckets, independently: a
+ * topic raised and shipped in the same week appears in both series, and one
+ * raised before the range but shipped inside it counts only as a ship.
+ *
  * Bucket starts are built with calendar arithmetic rather than a fixed 7×24 h
  * offset, so a DST switch inside the range does not shift the boundaries.
  */
-export function shippedPerWeek(
+export function weeklySeries(
   rows: readonly FeedbackRow[],
   weeks = 12,
   now: number = Date.now(),
-): ShipWeek[] {
+): BoardWeek[] {
   const span = Math.max(1, weeks);
   const base = new Date(startOfWeek(now));
-  const buckets: ShipWeek[] = [];
+  const buckets: BoardWeek[] = [];
   for (let back = span - 1; back >= 0; back--) {
     buckets.push({
       start: new Date(base.getFullYear(), base.getMonth(), base.getDate() - back * 7).getTime(),
       count: 0,
+      raised: 0,
       current: back === 0,
     });
   }
 
-  for (const row of rows) {
-    const t = timeOf(row.shipped_at);
-    if (!t || t < buckets[0].start) continue;
+  const bucketAt = (t: number): BoardWeek | null => {
+    if (!t || t < buckets[0].start) return null;
     for (let i = buckets.length - 1; i >= 0; i--) {
-      if (t >= buckets[i].start) {
-        buckets[i].count++;
-        break;
-      }
+      if (t >= buckets[i].start) return buckets[i];
     }
+    return null;
+  };
+
+  for (const row of rows) {
+    const shipped = bucketAt(timeOf(row.shipped_at));
+    if (shipped) shipped.count++;
+    const raised = bucketAt(timeOf(row.created_at));
+    if (raised) raised.raised++;
   }
 
   return buckets;
+}
+
+// ---- The running week against the one before it ---------------------------
+
+/**
+ * The three numbers a returning admin actually gains something from, each
+ * paired with the same number for the previous, *complete* week.
+ *
+ * Everything is attributed by its own stamp, exactly like {@link computeStats}:
+ * ships by `shipped_at`, intake by `created_at`, the median by the ship stamp of
+ * the topics that shipped inside the window. Only rows carrying a real
+ * `shipped_at` are measured — the `updated_at` fallback used for *attribution*
+ * elsewhere would invent durations for legacy rows that never got a stamp,
+ * which is exactly the kind of number this page must not print.
+ *
+ * The running week is compared to the previous week rather than to a rolling
+ * 7-day window on purpose: "since Monday" is the frame the board is read in,
+ * and a rolling window silently redefines itself every day.
+ */
+export interface WeekPulse {
+  /** Epoch ms of Monday 00:00 of the running week. */
+  weekStart: number;
+  /** Epoch ms of Monday 00:00 of the previous, complete week. */
+  prevStart: number;
+  /** Ships stamped since Monday. */
+  shipped: number;
+  /** Ships stamped in the previous week. */
+  shippedPrev: number;
+  /** Topics raised since Monday. */
+  raised: number;
+  /** Topics raised in the previous week. */
+  raisedPrev: number;
+  /** Median hours from creation to ship over this week's ships; `null` when none. */
+  medianShipHours: number | null;
+  /** ...the same for the previous week. */
+  medianShipHoursPrev: number | null;
+  /** How many ships the running week's median is computed from. */
+  medianSample: number;
+  /** ...and the previous week's. */
+  medianSamplePrev: number;
+}
+
+/**
+ * Aggregate the board into the running week and the one before it. Pure: `now`
+ * is injected so every number is testable.
+ */
+export function weeklyPulse(rows: readonly FeedbackRow[], now: number = Date.now()): WeekPulse {
+  const weekStart = startOfWeek(now);
+  const monday = new Date(weekStart);
+  const prevStart = new Date(
+    monday.getFullYear(),
+    monday.getMonth(),
+    monday.getDate() - 7,
+  ).getTime();
+
+  const pulse: WeekPulse = {
+    weekStart,
+    prevStart,
+    shipped: 0,
+    shippedPrev: 0,
+    raised: 0,
+    raisedPrev: 0,
+    medianShipHours: null,
+    medianShipHoursPrev: null,
+    medianSample: 0,
+    medianSamplePrev: 0,
+  };
+
+  const durations: number[] = [];
+  const durationsPrev: number[] = [];
+
+  for (const row of rows) {
+    const created = timeOf(row.created_at);
+    if (created >= weekStart) pulse.raised++;
+    else if (created >= prevStart) pulse.raisedPrev++;
+
+    const shipped = timeOf(row.shipped_at);
+    if (!shipped) continue;
+    const measurable = created > 0 && shipped >= created;
+    if (shipped >= weekStart) {
+      pulse.shipped++;
+      if (measurable) durations.push((shipped - created) / 3_600_000);
+    } else if (shipped >= prevStart) {
+      pulse.shippedPrev++;
+      if (measurable) durationsPrev.push((shipped - created) / 3_600_000);
+    }
+  }
+
+  pulse.medianShipHours = median(durations);
+  pulse.medianShipHoursPrev = median(durationsPrev);
+  pulse.medianSample = durations.length;
+  pulse.medianSamplePrev = durationsPrev.length;
+  return pulse;
 }
 
 // ---- Lifecycle snapshot ---------------------------------------------------

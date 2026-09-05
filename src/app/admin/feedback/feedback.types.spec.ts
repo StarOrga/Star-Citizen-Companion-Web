@@ -32,7 +32,8 @@ import {
   workflowKindCounts,
   searchFeedback,
   searchTokens,
-  shippedPerWeek,
+  weeklyPulse,
+  weeklySeries,
   startOfMonth,
   startOfWeek,
   topicNumber,
@@ -1016,7 +1017,7 @@ describe('computePace', () => {
   });
 });
 
-describe('shippedPerWeek', () => {
+describe('weeklySeries', () => {
   const now = new Date(2026, 6, 24, 12, 0).getTime(); // Friday 2026-07-24
   const thisWeek = new Date(2026, 6, 22, 9, 0).toISOString(); // Wed 22.07.
   const lastWeek = new Date(2026, 6, 15, 9, 0).toISOString(); // Wed 15.07.
@@ -1030,7 +1031,7 @@ describe('shippedPerWeek', () => {
   ];
 
   it('buckets ships into the requested number of weeks, newest last', () => {
-    const weeks = shippedPerWeek(rows, 4, now);
+    const weeks = weeklySeries(rows, 4, now);
     expect(weeks.length).toBe(4);
     expect(weeks.map((w) => w.count)).toEqual([0, 0, 1, 2]);
     expect(weeks[3].current).toBeTrue();
@@ -1038,17 +1039,91 @@ describe('shippedPerWeek', () => {
   });
 
   it('starts every bucket on a Monday', () => {
-    for (const week of shippedPerWeek(rows, 4, now)) {
+    for (const week of weeklySeries(rows, 4, now)) {
       expect(new Date(week.start).getDay()).toBe(1);
     }
   });
 
   it('drops ships older than the covered range', () => {
-    expect(shippedPerWeek(rows, 1, now).map((w) => w.count)).toEqual([2]);
+    expect(weeklySeries(rows, 1, now).map((w) => w.count)).toEqual([2]);
   });
 
   it('handles an empty board', () => {
-    expect(shippedPerWeek([], 3, now).map((w) => w.count)).toEqual([0, 0, 0]);
+    expect(weeklySeries([], 3, now).map((w) => w.count)).toEqual([0, 0, 0]);
+  });
+
+  // The second series (feedback a33ba528): a ship count alone cannot say
+  // whether the routine kept up, so the chart also carries the week's intake.
+  it('counts intake by created_at, independently of the ship buckets', () => {
+    const intake: FeedbackRow[] = [
+      // Raised AND shipped in the running week → counted in both series.
+      row('a', 'shipped', new Date(2026, 6, 21, 8, 0).toISOString(), { shipped_at: thisWeek }),
+      // Raised last week, shipped this week → one bucket each, different weeks.
+      row('b', 'shipped', new Date(2026, 6, 14, 8, 0).toISOString(), { shipped_at: thisWeek }),
+      // Raised this week, still open → intake only.
+      row('c', 'open', new Date(2026, 6, 23, 8, 0).toISOString()),
+      // Raised before the covered range → neither series.
+      row('d', 'open', '2026-05-01T10:00:00Z'),
+    ];
+    const weeks = weeklySeries(intake, 2, now);
+    expect(weeks.map((w) => w.raised)).toEqual([1, 2]);
+    expect(weeks.map((w) => w.count)).toEqual([0, 2]);
+  });
+});
+
+describe('weeklyPulse (feedback a33ba528)', () => {
+  const now = new Date(2026, 6, 24, 12, 0).getTime(); // Friday 2026-07-24
+  const at = (day: number, hour = 9) => new Date(2026, 6, day, hour, 0).toISOString();
+
+  it('splits ships and intake into the running week and the one before', () => {
+    const rows: FeedbackRow[] = [
+      // Running week (Mon 20.07. – now).
+      row('a', 'shipped', at(20), { shipped_at: at(22) }),
+      row('b', 'shipped', at(21), { shipped_at: at(23) }),
+      row('c', 'open', at(23)),
+      // Previous week (Mon 13.07. – Sun 19.07.).
+      row('d', 'shipped', at(13), { shipped_at: at(15) }),
+      row('e', 'open', at(16)),
+      // Older than both windows → counted in neither.
+      row('f', 'shipped', '2026-06-01T09:00:00Z', { shipped_at: '2026-06-04T09:00:00Z' }),
+    ];
+    const p = weeklyPulse(rows, now);
+    expect(p.shipped).toBe(2);
+    expect(p.shippedPrev).toBe(1);
+    expect(p.raised).toBe(3);
+    expect(p.raisedPrev).toBe(2);
+    expect(new Date(p.weekStart).getDate()).toBe(20);
+    expect(new Date(p.prevStart).getDate()).toBe(13);
+  });
+
+  it('measures the median only over rows carrying a real ship stamp', () => {
+    const rows: FeedbackRow[] = [
+      // 48 h and 24 h → median 36 h over two samples.
+      row('a', 'shipped', at(20, 9), { shipped_at: at(22, 9) }),
+      row('b', 'shipped', at(21, 9), { shipped_at: at(22, 9) }),
+      // Shipped-by-status but never stamped: it must not invent a duration.
+      row('c', 'shipped', at(20, 9), { updated_at: at(23, 9) }),
+    ];
+    const p = weeklyPulse(rows, now);
+    expect(p.medianShipHours).toBe(36);
+    expect(p.medianSample).toBe(2);
+  });
+
+  it('reports a null median rather than a zero when nothing shipped', () => {
+    const p = weeklyPulse([row('a', 'open', at(21))], now);
+    expect(p.medianShipHours).toBeNull();
+    expect(p.medianSample).toBe(0);
+    expect(p.shipped).toBe(0);
+  });
+
+  it('handles an empty board without inventing a comparison', () => {
+    const p = weeklyPulse([], now);
+    expect(p.shipped).toBe(0);
+    expect(p.shippedPrev).toBe(0);
+    expect(p.raised).toBe(0);
+    expect(p.raisedPrev).toBe(0);
+    expect(p.medianShipHours).toBeNull();
+    expect(p.medianShipHoursPrev).toBeNull();
   });
 });
 
