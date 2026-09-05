@@ -79,6 +79,32 @@ function classOf(payload: unknown): string {
 // Re-exported here because the fold preview is where callers first meet it.
 export { isPassiveShield };
 
+/**
+ * Fold identical occupants into one grouped entry — three hardpoints holding
+ * the same gun become one occupant with `count: 3` instead of three separate
+ * ones (concept: `3× S3 CF-337 Panther Repeater`, part-06.html:316/part-05.html:125).
+ * Every builder above already scales its figure by `count`, so this is the
+ * one place that has to merge it — grouping by className + size + active/
+ * passive role, since two identical guns are the same occupant but a shield
+ * generator that is passive is not interchangeable with one that is active.
+ */
+export function groupOccupants(occupants: readonly SummaryOccupant[]): SummaryOccupant[] {
+  const out: SummaryOccupant[] = [];
+  const index = new Map<string, SummaryOccupant>();
+  for (const o of occupants) {
+    const key = `${classOf(o.payload)}|${sizeOf(o.payload) ?? ''}|${isPassiveShield(o) ? 'p' : 'a'}`;
+    const hit = index.get(key);
+    if (hit) {
+      hit.count = (hit.count || 1) + (o.count || 1);
+    } else {
+      const copy: SummaryOccupant = { ...o, count: o.count || 1 };
+      index.set(key, copy);
+      out.push(copy);
+    }
+  }
+  return out;
+}
+
 function chip(
   occupant: SummaryOccupant,
   roleKey: string | null,

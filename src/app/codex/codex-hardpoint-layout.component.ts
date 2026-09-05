@@ -699,12 +699,17 @@ export class CodexHardpointLayoutComponent {
     return sec.section === 'shields' || census.passive > 0 ? 'codex.module.census' : 'codex.module.censusSlots';
   }
 
-  /** A section with no occupants in `occupantsBySection` (all-empty bay)
-   * reports 0 from the preview census; fall back to the section's own slot
-   * count so the head never claims an empty section has no slots. */
+  /**
+   * The occupant census counts hardpoints that carry something (and, for a
+   * mount-chain section, the CHILD it carries) — never the hull's own
+   * hardpoint count (D11: a Nomad with 3 gun mounts and 3 gimballed guns must
+   * read "3 Slots", not "6"). The section's own slot count is always the
+   * source of truth for `slots`; the preview census is only consulted for
+   * the active/passive split (shields).
+   */
   censusParams(sec: RenderSection): { slots: number; active: number; passive: number } {
     const census = this.preview(sec).census;
-    return census.slots > 0 ? census : { slots: sec.count, active: census.active, passive: census.passive };
+    return { slots: sec.count, active: census.active, passive: census.passive };
   }
 
   fmtPeek(chip: FoldPeekChip): string {
