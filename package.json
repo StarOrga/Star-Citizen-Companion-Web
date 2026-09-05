@@ -18,6 +18,7 @@
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
     "gate:mobile": "node scripts/mobile-gate.mjs",
     "gate:mobile:quick": "node scripts/mobile-gate.mjs --quick",
+    "gate:mobile:auth": "node scripts/mobile-gate.mjs --auth",
     "gate:mobile:selftest": "node scripts/mobile-gate.mjs --selftest",
     "lint": "echo 'no-op: add @angular-eslint and run ng lint'",
     "stack:up": "supabase start",
