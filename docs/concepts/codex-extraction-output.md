@@ -225,6 +225,15 @@ interface Ship extends BaseEntity {
                            // Only ports/classes whose name contains "cargo" are
                            // resolved: without that gate a Gladius' seat-access
                            // locker (8 m3 = 4.1 SCU) would read as cargo hold.
+  cargoStatus: 'measured' | 'unmeasured' | 'none';
+                           // WHY cargoScu is what it is. A fighter and a Nomad
+                           // are both `cargoScu: null`, and the UI must not say
+                           // the same thing about them: "none" earns the ghost
+                           // chip "Kein Laderaum", "unmeasured" earns a GAP.
+                           // Re-verified independently 2026-09-05 against LIVE
+                           // 4.9.0: of the Nomad's 87 stock loadout pairs, ZERO
+                           // carry SCItemInventoryContainerComponentParams,
+                           // while the Cutlass Black carries two (46 SCU).
   itemPorts: ItemPort[];
   defaultLoadout: LoadoutEntry[]; // stock hardpoint → item className map
   // WHERE each hardpoint sits on the hull, parsed from the ship's .cga helper

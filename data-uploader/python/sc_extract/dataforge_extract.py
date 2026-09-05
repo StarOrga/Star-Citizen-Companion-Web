@@ -1312,6 +1312,11 @@ class CodexExtractor:
             "hull": self._hull_stats(vcp, base["className"]),
             "armorHp": self._armor_hp(base["className"]),
             "cargoScu": self._cargo_scu(loadout),
+            # WHY the SCU figure is missing, so the UI can tell "this hull has
+            # no hold" (a fighter) from "it has one, the files don't size it"
+            # (the Nomad's open bed). Both are cargoScu: null, and printing
+            # "no cargo hold" on a Nomad would be a false statement.
+            "cargoStatus": self._cargo_status(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -1489,6 +1494,29 @@ class CodexExtractor:
         if not found:
             return None
         return round(total, 2)
+
+    # Names that mark a cargo-carrying feature which is NOT an inventory
+    # container: the Nomad's open bed is a door entity, and every cargo-capable
+    # hull carries a cargo controller. Neither states a capacity.
+    _CARGO_EVIDENCE = ("cargo", "freight")
+
+    def _cargo_status(self, loadout: List[Dict[str, Any]]) -> str:
+        """Why `cargoScu` is what it is — `"measured"`, `"unmeasured"` or
+        `"none"`.
+
+        `cargoScu` alone cannot carry this: a Gladius (no hold at all) and a
+        Nomad (an open bed the client files never size) are both null. The UI
+        must say "Kein Laderaum" only for the first, and disclose a gap for the
+        second — see `_cargo_scu` and the `cargoScu` note in
+        docs/concepts/codex-extraction-output.md.
+        """
+        if self._cargo_scu(loadout) is not None:
+            return "measured"
+        for port, cls in _loadout_pairs(loadout):
+            haystack = f"{port} {cls}".lower()
+            if any(word in haystack for word in self._CARGO_EVIDENCE):
+                return "unmeasured"
+        return "none"
 
     def _container_volume(self, comps: List[Dict[str, Any]]) -> Optional[float]:
         """Interior volume (m³) of the first inventory container on an item."""

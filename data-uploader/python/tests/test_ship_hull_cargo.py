@@ -176,6 +176,36 @@ def test_cargo_scu_is_none_without_a_grid() -> None:
                            "entityClassName": "Mount_Gimbal_S3"}]) is None
 
 
+def test_cargo_status_measured_when_a_grid_yields_a_volume() -> None:
+    ex = _extractor()
+    ex._entity_class_comps = lambda class_name: (
+        _grid_comps(2.5, 2.5, 7.5) if "CargoGrid" in class_name else [])
+    loadout = [{"itemPortName": "hardpoint_cargo_grid",
+                "entityClassName": "Ship_CargoGrid"}]
+    assert ex._cargo_status(loadout) == "measured"
+
+
+def test_cargo_status_unmeasured_for_the_nomads_open_bed() -> None:
+    """VERIFIED LIVE 4.9.0: the Nomad's 87-entry stock loadout carries NO
+    inventory container — its bed is a `Door_..._Cargo_Bed`. `cargoScu` is
+    rightly null, but the hull DOES haul, so the page must disclose a gap
+    instead of claiming "Kein Laderaum"."""
+    ex = _extractor()
+    ex._entity_class_comps = lambda class_name: []
+    loadout = [{"itemPortName": "hardpoint_cargo_bed",
+                "entityClassName": "Door_Ship_Exterior_CNOU_Nomad_Cargo_Bed"}]
+    assert ex._cargo_scu(loadout) is None
+    assert ex._cargo_status(loadout) == "unmeasured"
+
+
+def test_cargo_status_none_for_a_fighter() -> None:
+    ex = _extractor()
+    ex._entity_class_comps = lambda class_name: []
+    loadout = [{"itemPortName": "hardpoint_weapon_left",
+                "entityClassName": "Mount_Gimbal_S3"}]
+    assert ex._cargo_status(loadout) == "none"
+
+
 def test_cargo_scu_walks_nested_loadout_entries() -> None:
     ex = _extractor()
     ex._entity_class_comps = lambda class_name: (

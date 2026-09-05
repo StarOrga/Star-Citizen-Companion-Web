@@ -169,6 +169,19 @@ export interface ShipPayload extends BaseEntityPayload {
   armorHp?: number | null;
   /** Cargo grid capacity in SCU (interiorDimensions ÷ 1.25³). */
   cargoScu?: number | null;
+  /**
+   * Why `cargoScu` is what it is — `cargoScu` alone cannot say it, because a
+   * fighter and a Nomad are both `null`:
+   * - `measured`   — a grid was found and sized; `cargoScu` carries it.
+   * - `unmeasured` — the hull hauls (the Nomad's open bed is a door entity,
+   *   verified against LIVE 4.9.0) but the client files never size it, so the
+   *   chip must disclose a GAP, not claim "Kein Laderaum".
+   * - `none`       — no cargo feature at all; the ghost chip "Kein Laderaum"
+   *   is the truthful statement (a Gladius).
+   * Absent on pre-schema-3 extracts — treat a missing value as `unmeasured`
+   * only when `cargoScu` is null AND the ship is known to haul, else `none`.
+   */
+  cargoStatus?: 'measured' | 'unmeasured' | 'none' | null;
   /** `VehicleCareer` reference — localization key or raw career name. */
   career?: string | null;
 }
