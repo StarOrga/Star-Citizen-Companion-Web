@@ -827,7 +827,17 @@ export class CodexHardpointLayoutComponent {
   private ordered = computed<RenderSection[]>(() => {
     const split = this.splitSections();
     const open = this.openSections();
-    const order = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    const baseOrder = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    // A lens may only reorder and fold — never remove a module the ship
+    // actually has (MASTER §5: "Lens = {order, fold}; it never removes a
+    // module"). Any section missing from a mission's own `order` array (e.g.
+    // countermeasures/structure, which no mission group names) is appended in
+    // the default display order, so it still renders — folded if it likes,
+    // but never dropped (D17).
+    const order = [
+      ...baseOrder,
+      ...SHIP_MODULE_SECTION_ORDER.filter((s) => !baseOrder.includes(s)),
+    ];
     const foldable = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...this.foldedSections()]);
     return order
       .map((s) => this.sections().find((g) => g.section === s))
