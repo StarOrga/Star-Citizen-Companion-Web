@@ -24,6 +24,9 @@ export type KpiKey =
   | 'mass'
   | 'scm'
   | 'maxSpeed'
+  | 'boost'
+  | 'agility'
+  | 'armorHp'
   | 'quantumSpeed'
   | 'quantumRange'
   | 'spool'
@@ -67,7 +70,9 @@ function expand(groups: readonly string[]): ShipModuleSection[] {
 }
 
 const COMBAT_ORDER = expand(['weapons', 'missiles', 'shields', 'power']);
-const UTILITY_ORDER = expand(['shields', 'power', 'weapons', 'missiles']);
+// MASTER §5: Transport reads `Schilde › Antrieb & Systeme › Raketen › Bewaffnung`
+// with the last two folded away. Combat keeps its own order and folds NOTHING.
+const UTILITY_ORDER = expand(['shields', 'power', 'missiles', 'offense']);
 const POWER_FIRST_ORDER = expand(['power', 'shields', 'weapons', 'missiles']);
 
 const COMBAT_KPIS: readonly KpiKey[] = [
@@ -111,7 +116,8 @@ export const MISSIONS: readonly MissionDef[] = [
     iconGlyph: '✈',
     order: POWER_FIRST_ORDER,
     fold: expand(['missiles', 'offense']),
-    kpis: ['quantumSpeed', 'quantumRange', 'spool', 'maxSpeed', 'hullHp', 'mass'],
+    // MASTER §4: Reisen = Quantum-Reichweite, SCM, Maximal, Boost, Masse, Schild HP
+    kpis: ['quantumRange', 'scm', 'maxSpeed', 'boost', 'mass', 'shieldHp'],
   },
   {
     id: 'stealth',
@@ -119,7 +125,8 @@ export const MISSIONS: readonly MissionDef[] = [
     iconGlyph: '◑',
     order: POWER_FIRST_ORDER,
     fold: expand(['missiles', 'offense']),
-    kpis: ['ir', 'emIdle', 'emMax', 'crossSection', 'shieldHp', 'scm'],
+    // MASTER §4: Schleichen = IR, EM, Querschnitt, Schild HP, SCM, Dauer-DPS
+    kpis: ['ir', 'emMax', 'crossSection', 'shieldHp', 'scm', 'sustainedDps'],
   },
   {
     id: 'mining',
@@ -127,7 +134,8 @@ export const MISSIONS: readonly MissionDef[] = [
     iconGlyph: '⛏',
     order: POWER_FIRST_ORDER,
     fold: expand(['weapons', 'missiles', 'offense']),
-    kpis: ['cargo', 'hullHp', 'shieldHp', 'ir', 'scm', 'mass'],
+    // MASTER §4: no mining hardpoint figures in the extract → the Alles set.
+    kpis: COMBAT_KPIS,
   },
   {
     id: 'salvage',
@@ -135,7 +143,8 @@ export const MISSIONS: readonly MissionDef[] = [
     iconGlyph: '⚙',
     order: POWER_FIRST_ORDER,
     fold: expand(['weapons', 'missiles', 'offense']),
-    kpis: ['cargo', 'hullHp', 'shieldHp', 'ir', 'scm', 'mass'],
+    // MASTER §4: no salvage hardpoint figures in the extract → the Alles set.
+    kpis: COMBAT_KPIS,
   },
 ] as const;
 

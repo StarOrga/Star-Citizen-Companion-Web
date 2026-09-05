@@ -9,9 +9,11 @@ import {
   sortSwapCandidates,
   swapArchetype,
   swapCell,
+  swapCellState,
   swapColumnBars,
   swapColumns,
   swapFacets,
+  swapMissingSourceColumns,
   swapStatRows,
   swapTypeLabel,
   toggleSwapSort,
@@ -309,5 +311,33 @@ describe('swapStatRows', () => {
 
   it('is empty for a candidate the build has no payload for', () => {
     expect(swapStatRows(undefined)).toEqual([]);
+  });
+});
+
+describe('swapCellState / swapCell — direct-field columns (grade, manufacturer, …)', () => {
+  // Regression: these columns read a plain SwapCandidate field, not `.stats` —
+  // before this fix `swapCellState` always reported them `noSource` (so the
+  // column-chooser listed them as permanently unavailable) and `swapCell`
+  // always rendered a dash, even though every candidate carries a real value.
+  const GRADE = 'codex.picker.col.grade';
+  const MANUFACTURER = 'codex.picker.col.manufacturer';
+
+  it('reports a direct-field column as having a value when the candidate field is set', () => {
+    expect(swapCellState(PANTHER, GRADE)).toBe('value');
+    expect(swapCellState(PANTHER, MANUFACTURER)).toBe('value');
+  });
+
+  it('reports noSource for a direct-field column only when the field itself is null', () => {
+    const noGrade = candidate('X_LaserCannon_S3', 'No Grade', 10, 900, { grade: null });
+    expect(swapCellState(noGrade, GRADE)).toBe('noSource');
+  });
+
+  it('renders the direct field value as cell text instead of a dash', () => {
+    expect(swapCell(PANTHER, { key: GRADE, format: 'int', derived: false })).toBe('A');
+    expect(swapCell(OMNISKY, { key: MANUFACTURER, format: 'int', derived: false })).toBe('AMRS');
+  });
+
+  it('never lists a direct-field column as missing-source when every candidate has a value', () => {
+    expect(swapMissingSourceColumns([PANTHER, OMNISKY], [GRADE, MANUFACTURER])).toEqual([]);
   });
 });

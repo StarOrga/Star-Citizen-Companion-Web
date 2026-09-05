@@ -4,6 +4,56 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.0] - 2026-09-05
+
+### Changed
+
+- **The ship page is a loadout planner now, built to Mollywator's concept.**
+  The page splits in two down the middle: the ship's portrait beside its
+  standing in the fleet, and below that Loadout beside Analyse. Six headline
+  figures stick under the header while you scroll and carry the difference your
+  changes made, not just the value. A module you fold keeps a readable line of
+  what is fitted and what it contributes, and loses only the controls. The
+  mission lens sorts and folds, it never takes a module away, and a mission the
+  hull cannot fly says why instead of disappearing.
+- **A ship now knows where it stands.** The masthead's right half ranks the hull
+  against the fleet on six axes per profile — combat, defence, transport — with
+  the median drawn beside it. It describes a position; it never hands out a
+  score to maximise. An axis the fleet cannot be ranked on is left out of the
+  shape and named, rather than drawn at a number nobody has.
+- **Swapping a component is a comparison, not a list.** The picker opens as a
+  centred window with the page still visible around it, lists every value the
+  files carry for each candidate, and sorts and filters from the column heads —
+  the pattern every table in the app can now adopt. Values read against what is
+  fitted, switchable to the factory part.
+- **A dash means something specific.** A value the game files do not carry is
+  disclosed as a gap and never filled with a zero or an estimate. The cargo chip
+  says which kind of nothing it is: a hull with no hold, or a hold the files
+  never size — the Nomad's open bed is the second, and saying "no cargo hold"
+  about it was wrong.
+
+### Added
+
+- **An energy dock.** A small dock at the bottom edge — position and minimised
+  state are yours — showing what the reactor funds, what each of the eight
+  system groups draws, and what that costs in heat and signature. Cutting a
+  group's power is one click on its icon, and every figure explains in a tooltip
+  what moves it. Its numbers come from the game archive, so it stays honest
+  about what it cannot know.
+- **A weapon's full data sheet.** The ⓘ on a weapon opens every value the P4K
+  actually carries, grouped by where it comes from, with the ones that genuinely
+  do not exist marked as such.
+
+### Fixed
+
+- **The extractor reaches data it had been walking past.** Per-item power draw,
+  cooling, EM and IR signatures, reactor output, hull hitpoints and mass, armour
+  hitpoints and cargo capacity are all in the archive; the extract flattened one
+  level and never descended into the lists that hold them. Verified against the
+  live 4.9.0 archive: Nomad 9 800 hull HP and 2 200 armour, Gladius 6 110,
+  Freelancer 34 900, Cutlass 46 SCU, Carrack 456, Hammerhead 25 740 armour.
+  The catalogue serves these once a fresh upload lands.
+
 ## [0.78.0] - 2026-09-05
 
 ### Changed

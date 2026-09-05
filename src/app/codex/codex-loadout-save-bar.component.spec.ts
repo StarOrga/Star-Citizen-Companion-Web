@@ -29,14 +29,14 @@ describe('CodexLoadoutSaveBarComponent', () => {
 
   it('R8: shows how many of n changes are actually saveable, with a hint when they differ', () => {
     const el = render({ changed: 3, saveable: 1, inHangar: true });
-    expect(el.querySelector('.summary')?.textContent).toContain('codex.loadout.changesSummary');
+    expect(el.querySelector('.chip')?.textContent).toContain('codex.detail.draftChangedPlural');
     expect(el.querySelector('.hint')?.textContent).toContain('codex.loadout.unsaveableHint');
   });
 
-  it('offers "add to hangar & save" when the ship is not owned yet', () => {
+  it('offers "apply & save to hangar" when the ship is not owned yet', () => {
     const el = render({ changed: 1, saveable: 1, inHangar: false });
     const btn = el.querySelector('.save') as HTMLButtonElement;
-    expect(btn.textContent?.trim()).toBe('codex.loadout.addToHangarAndSave');
+    expect(btn.textContent?.trim()).toBe('codex.detail.draftApplyAndSave');
   });
 
   it('disables save while nothing is saveable', () => {

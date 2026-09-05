@@ -8,6 +8,17 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
  * width; a mission the hull cannot fly renders disabled with the reason in
  * its `title` (no mining hardpoints / no cargo grid / no quantum drive / no
  * salvage hardpoints).
+ *
+ * The right side (MASTER §5) belongs to the loadout draft, in one of two
+ * mutually exclusive states the page picks by `changed()`:
+ *  - idle (`changed === 0`): only `codex.detail.lensReset` — jumps the
+ *    mission LENS back to `all` (there is no draft yet, so there is nothing
+ *    else to reset or apply; no persistence choice exists until a save flow
+ *    that reads it is wired — see codex-detail.component.ts's discussion).
+ *  - draft (`changed > 0`): the page swaps this bar out entirely for
+ *    `<sc-codex-loadout-save-bar>` (Entwurf label, changed-slots chip,
+ *    unsaved notice, Verwerfen/Übernehmen & in Hangar speichern) — see
+ *    `codex-detail.component.ts`'s `mission-draft-bar` wrapper.
  */
 @Component({
   selector: 'sc-codex-mission-bar',
@@ -17,27 +28,39 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
   template: `
     <div class="mission-bar">
       <span class="mission-label">{{ 'codex.mission.label' | translate }}</span>
-      <div class="mission-chips" role="tablist">
+      <div class="mission-chips" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
         @for (m of missions; track m.id) {
           <button
             type="button"
-            role="tab"
+            role="radio"
             class="mission-chip"
             [class.active]="active() === m.id"
             [disabled]="disabledReason(m.id)"
-            [attr.aria-selected]="active() === m.id"
+            [attr.aria-checked]="active() === m.id"
+            [attr.aria-describedby]="disabledReason(m.id) ? ('mission-reason-' + m.id) : null"
             [attr.title]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : (m.labelKey | translate)"
             (click)="select(m.id)"
           >
-            <span class="chip-icon" aria-hidden="true">{{ m.iconGlyph }}</span>
+            <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>
             <span class="chip-label">{{ m.labelKey | translate }}</span>
           </button>
+          @if (disabledReason(m.id)) {
+            <span [id]="'mission-reason-' + m.id" class="sr-only">{{ disabledReason(m.id)! | translate }}</span>
+          }
         }
       </div>
+      @if (changed() === 0) {
+        <span class="idle-draft">
+          <button type="button" class="btn" [disabled]="active() === 'all'" (click)="missionChange.emit('all')">
+            {{ 'codex.detail.lensReset' | translate }}
+          </button>
+        </span>
+      }
     </div>
   `,
   styles: [`
     :host { display: block; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .mission-bar {
       display: flex;
       align-items: center;
@@ -48,7 +71,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
     }
     .mission-label {
       font-family: var(--sc-font-display);
-      font-size: 12px;
+      font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
@@ -73,6 +96,12 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
     .mission-chip.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .mission-chip:disabled { opacity: 0.45; cursor: not-allowed; }
     .chip-icon { font-size: 15px; }
+    .idle-draft { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+    .idle-draft .btn {
+      padding: 7px 14px; border-radius: 6px; font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+    }
+    .idle-draft .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     @media (max-width: 1240px) {
       .chip-label { display: none; }
       .mission-chip { padding: 8px 12px; }
@@ -82,6 +111,9 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 export class CodexMissionBarComponent {
   readonly active = input.required<MissionId>();
   readonly capabilities = input.required<ShipCapabilities>();
+  /** Slots the current loadout draft has touched — `0` selects the idle
+   * right-side controls, `> 0` tells the page to swap in the draft bar. */
+  readonly changed = input(0);
   readonly missionChange = output<MissionId>();
 
   readonly missions = MISSIONS;

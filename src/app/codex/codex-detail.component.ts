@@ -22,6 +22,7 @@ import {
   LoadoutEntry,
   ShipPayload,
   WeaponPayload,
+  isReExtractPending,
 } from './codex.types';
 import {
   BlueprintRef,
@@ -107,6 +108,20 @@ import {
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
+import { buildKpiStrip, KpiStripCell } from './codex-kpi-sets';
+import { isPassiveShield } from './codex-power';
+import type { PowerSheet } from './codex-power';
+import { CodexEnergyDockComponent } from './codex-energy-dock.component';
+import { CodexRankCardComponent } from './codex-rank-card.component';
+import {
+  RankProfileId,
+  RankResult,
+  RankScope,
+  RankShipInput,
+  rankProfileDisabledReason,
+  rankShip,
+  resolveCareerLabel,
+} from './codex-rank';
 import {
   CodexDefensivePanelComponent,
   CodexOffensivePanelComponent,
@@ -127,6 +142,7 @@ import {
   ComponentInspectEntry,
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
+import { CodexWeaponDetailComponent, WeaponDetailEntry } from './codex-weapon-detail.component';
 import {
   DraftMap,
   EMPTY_DRAFT,
@@ -254,11 +270,24 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
+      <div class="crumbrow">
+        <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
+        <span class="crumb-spacer"></span>
+        @if (kind() === 'ship' && dataPill(); as pill) {
+          <span class="prov data-pill" [class.pending]="pill.pending" [attr.title]="'codex.detail.dataPillAria' | translate: { build: pill.build, n: pill.schema } ">
+            {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
+            @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
+          </span>
+        } @else if (kind() === 'ship' && provenance(); as p) {
+          <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">
+            {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
+          </span>
+        }
+      </div>
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
@@ -267,6 +296,8 @@ interface GearRecipe {
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
+        <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
+        <div class="m-top" [class.ship-mode]="kind() === 'ship'">
         <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
         <header class="hero sc-card" [class.bay]="kind() === 'ship'">
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
@@ -353,6 +384,14 @@ interface GearRecipe {
               </ul>
             }
 
+            @if (kind() === 'ship' && heroChips().length > 0) {
+              <ul class="chip-row">
+                @for (c of heroChips(); track c.key) {
+                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                }
+              </ul>
+            }
+
             @if (portSummary().length > 0) {
               <ul class="loadout-summary" [attr.aria-label]="'codex.detail.equipment' | translate">
                 @for (s of portSummary(); track s.category) {
@@ -369,11 +408,26 @@ interface GearRecipe {
                 {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
               </button>
               @if (kind() === 'ship') {
-                @if (inHangar()) {
-                  <button type="button" class="pin add-hangar" (click)="configureLoadout()">
-                    {{ 'codex.detail.configureLoadout' | translate }}
-                  </button>
-                } @else {
+                <button type="button" class="pin" (click)="discardLoadoutDraft()">
+                  {{ 'codex.detail.actionFactoryLoadout' | translate }}
+                </button>
+              }
+              <button type="button" class="pin" (click)="copyShareLink()">
+                {{ 'codex.detail.actionCopyLink' | translate }}
+                @if (linkCopied()) {
+                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
+                }
+              </button>
+              @if (kind() === 'ship') {
+                <a class="pin on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
+                  {{ 'codex.detail.actionSwitchShip' | translate }} ⇄
+                </a>
+              }
+              @if (kind() === 'ship') {
+                <!-- The Codex page IS the editor now (MASTER §1/R-A43): a
+                     ship already in the hangar has nowhere left to "jump" to
+                     — the loadout below already edits it in place. -->
+                @if (!inHangar()) {
                   <button type="button" class="pin add-hangar" (click)="addToHangar()">
                     {{ 'quickSearch.addToHangar' | translate }}
                   </button>
@@ -408,11 +462,6 @@ interface GearRecipe {
                     {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
                   </button>
                 }
-              }
-              @if (provenance(); as p) {
-                <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">
-                  {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
-                </span>
               }
             </div>
 
@@ -471,6 +520,20 @@ interface GearRecipe {
             }
           </div>
         </header>
+
+        @if (kind() === 'ship') {
+          <sc-codex-rank-card
+            [shipName]="displayName()"
+            [sizeClass]="null"
+            [result]="rankResult()"
+            [loading]="rankCohortLoading()"
+            [profile]="rankProfile()"
+            [scope]="rankScope()"
+            [disabledReasons]="rankDisabledReasons()"
+            (profileChange)="rankProfile.set($event)"
+            (scopeChange)="rankScope.set($event)" />
+        }
+        </div>
 
         <!-- ── Ship liveries — always-on 3D view at hero level (#137 part 2) ──
              Moved directly beneath the hero so the interactive 3D model stays
@@ -610,10 +673,31 @@ interface GearRecipe {
              the page. ───────────────────────────────────────────── -->
         @if (kind() === 'ship') {
           <sc-codex-kpi-band [cells]="kpiCells()" />
-          <sc-codex-mission-bar
-            [active]="activeMissionId()"
-            [capabilities]="shipCapabilities()"
-            (missionChange)="setMission($event)" />
+          <div class="mission-draft-bar">
+            <sc-codex-mission-bar
+              [active]="activeMissionId()"
+              [capabilities]="shipCapabilities()"
+              [changed]="draftChangedCount()"
+              (missionChange)="setMission($event)" />
+            <sc-codex-loadout-save-bar
+              class="draft-controls"
+              [changed]="draftChangedCount()"
+              [saveable]="saveableEntries().length"
+              [saving]="saving()"
+              [error]="saveError()"
+              [inHangar]="inHangar()"
+              (save)="saveLoadoutDraft()"
+              (discard)="discardLoadoutDraft()"
+              (addAndSave)="saveLoadoutDraft()" />
+          </div>
+          <sc-codex-energy-dock
+            [occupants]="draftSummaryOccupants()"
+            [shipStats]="shipPayload()?.stats ?? null"
+            [shipClassName]="shipClassName()"
+            [schemaVersion]="build()?.schemaVersion ?? null"
+            [userId]="currentUserId()"
+            [crossSection]="crossSectionMax()"
+            (sheetChange)="powerSheet.set($event)" />
         }
 
         <!-- ── Ships: hull, size and flight characteristics ────────
@@ -637,15 +721,16 @@ interface GearRecipe {
           </section>
         }
 
-        <!-- ── Loadout | Analyse: two-column split (PR C, 02-handover §2) ── -->
-        <div class="analysis-grid" [class.single]="kind() !== 'ship'">
+        <!-- ── Loadout | Analyse: two-column split (MASTER §1/§6/§7) ── -->
+        <div class="m-cols" [class.single]="kind() !== 'ship' || moduleCount() < 4">
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
           @if (moduleSections().length > 0) {
-            <section class="sc-card block">
-              <h2>
-                {{ 'codex.detail.loadout' | translate }}
-                <span class="ct">{{ installedCount() }}</span>
+            <section class="sc-card block col-loadout">
+              <h2 class="col-head">
+                <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
+                <span class="n">{{ moduleCount() }}</span>
+                <span class="rule" aria-hidden="true"></span>
                 @if (hiddenEmptyCount() > 0) {
                   <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
                     {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
@@ -655,15 +740,6 @@ interface GearRecipe {
               <!-- "What even IS a hardpoint?" — answered up front, once. -->
               <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
               <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
-              <sc-codex-loadout-save-bar
-                [changed]="draftChangedCount()"
-                [saveable]="saveableEntries().length"
-                [saving]="saving()"
-                [error]="saveError()"
-                [inHangar]="inHangar()"
-                (save)="saveLoadoutDraft()"
-                (discard)="discardLoadoutDraft()"
-                (addAndSave)="saveLoadoutDraft()" />
               <!-- The "no stock guns in this extract" disclosure used to sit here,
                    far above the block it is about. It now rides on the Weapons
                    section itself (1add86a4) — see moduleSections below. -->
@@ -681,6 +757,7 @@ interface GearRecipe {
                 [sections]="moduleSections()"
                 [sectionOrder]="moduleSectionOrder()"
                 [foldedSections]="foldedModuleSections()"
+                [occupantsBySection]="occupantsBySection()"
                 [locatablePorts]="locatablePorts()"
                 [activePorts]="activePorts()"
                 (reverted)="onRevertPaths($event)"
@@ -692,7 +769,12 @@ interface GearRecipe {
 
           <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
           @if (kind() === 'ship') {
-            <div class="analysis-col">
+            <div class="analysis-col col-analyse">
+              <h2 class="col-head">
+                <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
+                <span class="n">3</span>
+                <span class="rule" aria-hidden="true"></span>
+              </h2>
               <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
               <sc-codex-defensive-panel [panel]="defensivePanel()" />
               <sc-codex-ship-panel [groups]="shipFactGroups()" />
@@ -864,13 +946,60 @@ interface GearRecipe {
            its fixed-position backdrop sits above everything on the page. -->
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
+      <sc-codex-weapon-detail [entry]="weaponDetail()" (closed)="closeWeaponDetail()" />
     </section>
   `,
   styles: [`
     :host { display: block; }
-    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
+    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; max-width: 1500px; margin: 0 auto; width: 100%; }
+    .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .crumb-spacer { flex: 1 1 auto; }
     .back { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
     .back:hover { text-decoration: underline; }
+
+    /* Masthead: hero | Einordnung (MASTER §1/§3) */
+    .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+    .m-top.ship-mode { grid-template-columns: 1fr 1fr; }
+
+    /* Loadout | Analyse (MASTER §1/§6/§7) */
+    .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .m-cols.single { grid-template-columns: 1fr; }
+    .col-head { margin: 0 0 12px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
+      padding-bottom: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .col-head .label { color: var(--sc-accent); }
+    .col-head .n { display: inline-flex; align-items: center; justify-content: center; min-width: 20px;
+      padding: 1px 6px; border-radius: var(--radius-sm, 4px); background: var(--sc-bg-2);
+      color: var(--sc-fg-1); font-size: max(0.68rem, var(--sc-fs-floor)); }
+    .col-head .rule { flex: 1 1 auto; height: 1px; background: var(--sc-border); }
+    .col-head .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .col-analyse { display: flex; flex-direction: column; gap: 12px; }
+
+    @media (max-width: 1100px) {
+      .m-top.ship-mode { grid-template-columns: 1fr; }
+      .m-cols { grid-template-columns: 1fr; }
+    }
+
+    /* Mission + draft bar (MASTER §5): the lens chips share their row with the
+       loadout draft's persistence/discard/apply controls. */
+    .mission-draft-bar { display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; }
+    .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
+    .draft-controls { flex: 0 0 auto; }
+
+    /* Hero chip row (MASTER §2): career / role / crew / cargo / mass, one line. */
+    .chip-row { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+    .hchip { font-size: max(0.7rem, var(--sc-fs-floor)); padding: 4px 10px; border-radius: 999px;
+      background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
+    .hchip.accent { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .hchip.ghost { color: var(--sc-fg-2); font-style: italic; background: transparent; border-style: dashed; }
+    /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
+    .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
+      border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
+
+    /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
+    .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
+      border-radius: 999px; padding: 3px 10px; background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -955,6 +1084,10 @@ interface GearRecipe {
     .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
+    .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+      background: var(--sc-bg-1, #14161b); color: var(--sc-fg-1); border: 1px solid var(--sc-accent);
+      border-radius: var(--radius-sm, 4px); padding: 2px 8px; font-size: 0.7rem; white-space: nowrap; pointer-events: none; }
+    .hero-actions .pin { position: relative; }
     .pin { padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
       font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
     .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
@@ -981,24 +1114,6 @@ interface GearRecipe {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .block h2 .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-
-    /* Damage · Defence · Power Management — the three headline panels */
-    .sum-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-    .sum-panel { border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      border-top-width: 2px; padding: 10px 12px; }
-    .sum-panel[data-panel="damage"] { border-top-color: var(--sc-accent-hot, #ff7a45); }
-    .sum-panel[data-panel="defence"] { border-top-color: var(--sc-accent); }
-    .sum-panel[data-panel="power"] { border-top-color: #ffc14d; }
-    .sum-panel h3 { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase;
-      letter-spacing: 0.07em; color: var(--sc-fg-1); }
-    .sum-rows { margin: 0; display: flex; flex-direction: column; gap: 3px; }
-    .sum-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-    .sum-row dt { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .sum-row dd { margin: 0; font-size: 0.88rem; color: var(--sc-fg-0);
-      font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .sum-row .derived { color: var(--sc-fg-2); cursor: help; }
-    .sum-empty { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
-    .sum-gap { margin: 8px 0 0; font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.4; }
 
     /* Hull, size and flight — a row per property, "—" when unknown */
     .hull-grid { margin: 0; display: grid; gap: 8px;
@@ -1176,6 +1291,9 @@ export class CodexDetailComponent implements OnInit {
   /** i18n key suffix under `codex.shipLink.error.*`, or null. */
   readonly shipLinkError = signal<string | null>(null);
   readonly shipLinkSaved = signal(false);
+  /** Copy-link toast state (MASTER §2 / R-t1): a plain timed signal, no shared toast service exists yet. */
+  readonly linkCopied = signal(false);
+  private linkCopiedTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly myPledgeLink = computed(() => {
     const d = this.detail();
@@ -1332,6 +1450,8 @@ export class CodexDetailComponent implements OnInit {
     this.activeMissionId.set('all');
     this.skinOptions.set([]);
     this.editionOptions.set([]);
+    this.rankCohort.set(null);
+    this.rankCohortLoading.set(false);
     try {
       const d = await this.svc.getDetail(kind, className);
       this.detail.set(d);
@@ -1357,6 +1477,8 @@ export class CodexDetailComponent implements OnInit {
         // Ship pages: resolve the pinned pledge link (own > global). Best
         // effort — a missing link just falls back to the RSI ships listing.
         if (kind === 'ship') void this.shipLinks.loadForShip(d.classNameSlug);
+        // Ship pages: the Einordnung cohort — never blocks the page (§3).
+        if (kind === 'ship') void this.loadRankCohort();
       }
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
@@ -1722,13 +1844,6 @@ export class CodexDetailComponent implements OnInit {
     };
 
     if (d.kind === 'ship') {
-      const role = row['role'];
-      const roleVal =
-        typeof role === 'string'
-          ? cleanLocaleValue(this.localeMap().get(role) ?? role)
-          : '';
-      add('codex.detail.role', roleVal);
-      add('codex.detail.crew', row['crew_size']);
       const dim = this.dimensions();
       if (dim) {
         out.push({
@@ -1852,6 +1967,7 @@ export class CodexDetailComponent implements OnInit {
         kind: null,
         name: null,
         size: fit.size,
+        factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
         attachTypes: fit.types,
         fitInferred: fit.inferred,
         rawPorts: ev.rawPorts,
@@ -1866,6 +1982,7 @@ export class CodexDetailComponent implements OnInit {
       kind: src.kind,
       name: src.name,
       size: src.size,
+      factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
       rawPorts: ev.rawPorts,
       rawTypes: ev.child ? ev.child.rawTypes : (this.detail()?.ports.find((p) => p.portName === ev.slot.rawPort)?.types ?? []),
     });
@@ -1880,6 +1997,11 @@ export class CodexDetailComponent implements OnInit {
   });
 
   readonly draftChangedCount = computed(() => draftChangedCount(this.draft()));
+
+  /** The mission bar's idle-state persistence preference (MASTER §5) — a pure
+   * UI choice for the NEXT edit; today's actual save path always writes to
+   * the hangar explicitly via the draft bar's own button, this only pre-sets
+   * which wording/expectation the idle controls show. */
 
   private kindOfDraftClass(className: string): string {
     return (
@@ -2019,6 +2141,20 @@ export class CodexDetailComponent implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** `codex.detail.actionCopyLink` (MASTER §2 / concept #t1): share the current
+   *  URL and flash a small toast. Best-effort — clipboard access can be denied
+   *  by the browser, in which case we simply skip the toast. */
+  async copyShareLink(): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(location.href);
+    } catch {
+      return;
+    }
+    this.linkCopied.set(true);
+    if (this.linkCopiedTimer) clearTimeout(this.linkCopiedTimer);
+    this.linkCopiedTimer = setTimeout(() => this.linkCopied.set(false), 2000);
   }
 
   discardLoadoutDraft(): void {
@@ -2326,7 +2462,7 @@ export class CodexDetailComponent implements OnInit {
    * feeds aggregate stats), so a swapped mount's own sub-slots are skipped —
    * the draft write path does not track them separately at this stage.
    */
-  private readonly draftSummaryOccupants = computed<SummaryOccupant[]>(() =>
+  readonly draftSummaryOccupants = computed<SummaryOccupant[]>(() =>
     this.resolvedLoadout().flatMap((r) => {
       const configurable = isConfigurableSection(r.section);
       const draftEntry = configurable ? this.draft().get(r.item.port) : undefined;
@@ -2372,11 +2508,180 @@ export class CodexDetailComponent implements OnInit {
     computeKpiSheet(this.draftSummaryOccupants(), this.kpiShipInput()),
   );
 
-  /** The six KPI-band cells for the active mission, stock vs. current draft. */
-  readonly kpiCells = computed<KpiCell[]>(() => {
+  /** The energy dock's current allocation state — null until the dock has run
+   * once (or on ships too old to compute one, R3/MASTER §8a). */
+  readonly powerSheet = signal<PowerSheet | null>(null);
+
+  /** The six KPI-band cells for the active mission, stock vs. current draft,
+   * with the dock's live effects applied (MASTER §4/§12). */
+  readonly kpiCells = computed<KpiStripCell[]>(() => {
     if (this.kind() !== 'ship') return [];
-    return buildKpiCells(this.activeMission(), this.stockKpiSheet(), this.currentKpiSheet());
+    return buildKpiStrip(this.activeMission(), this.stockKpiSheet(), this.currentKpiSheet(), this.powerSheet());
   });
+
+  // ── Einordnung (MASTER §3) ───────────────────────────────────────────────
+  readonly rankProfile = signal<RankProfileId>('combat');
+  // The schema carries no ship size class (see `rankShipInput` below), so
+  // "same size class" is disabled and "Alle Schiffe" is the honest default —
+  // `sizeClass` would just re-degrade to `all` on every ship anyway.
+  readonly rankScope = signal<RankScope>('all');
+
+  /** The cohort — every buyable ship's stock KPI sheet, fetched once per
+   * build (cached in `CodexService.getRankCohort`) and never blocking the
+   * page: the card renders its loading skeleton, then its gap state if the
+   * fetch failed, and only ever a real percentile once this lands. */
+  private readonly rankCohort = signal<RankShipInput[] | null>(null);
+  readonly rankCohortLoading = signal(false);
+
+  private async loadRankCohort(): Promise<void> {
+    this.rankCohortLoading.set(true);
+    try {
+      const cohort = await this.svc.getRankCohort();
+      // A degenerate cohort (nothing resolved, or every sheet came back all
+      // null — the getEntityPayloads/getAmmoPayloads failure mode this card
+      // must never mask) would otherwise render a percentile against zero
+      // real occupants. Keep the honest gap state instead.
+      const hasRealSheet = cohort.some((ship) =>
+        Object.values(ship.sheet).some((v) => v !== null && v !== undefined),
+      );
+      this.rankCohort.set(cohort.length > 0 && hasRealSheet ? cohort : null);
+    } catch {
+      this.rankCohort.set(null); // honest gap state — never a fake cohort of one.
+    } finally {
+      this.rankCohortLoading.set(false);
+    }
+  }
+
+  private readonly rankShipInput = computed<RankShipInput | null>(() => {
+    if (this.kind() !== 'ship') return null;
+    const className = this.shipClassName();
+    if (!className) return null;
+    const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
+    return { className, sizeClass: null, career, sheet: this.currentKpiSheet() };
+  });
+
+  readonly rankResult = computed<RankResult | null>(() => {
+    const target = this.rankShipInput();
+    const cohort = this.rankCohort();
+    if (!target || !cohort) return null;
+    return rankShip(target, cohort, { profile: this.rankProfile(), scope: this.rankScope() });
+  });
+
+  readonly rankDisabledReasons = computed<Partial<Record<RankProfileId, string | null>>>(() => {
+    if (this.kind() !== 'ship') return {};
+    const cargo = this.currentKpiSheet().cargo ?? null;
+    const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
+    const input = { className: this.shipClassName(), sizeClass: null, career, sheet: { cargo } };
+    return {
+      combat: rankProfileDisabledReason('combat', input),
+      defence: rankProfileDisabledReason('defence' as RankProfileId, input),
+      transport: rankProfileDisabledReason('transport', input),
+    };
+  });
+
+  /** The ship's whole payload (dock needs `.stats` for the resource model). */
+  readonly shipPayload = computed<ShipPayload | null>(() => {
+    const d = this.detail();
+    return d && d.kind === 'ship' ? (d.payload as ShipPayload) : null;
+  });
+
+  readonly build = computed(() => this.svc.build());
+
+  readonly currentUserId = computed<string | null>(() => this.auth.user()?.id ?? null);
+
+  /** Max of the three cross-section axes — the dock's single comparable input. */
+  readonly crossSectionMax = computed<number | null>(() => {
+    const p = this.shipPayload();
+    if (!p) return null;
+    const axes = crossSectionAxes(p.stats as Record<string, Record<string, unknown>> | undefined);
+    const vals = [axes.x, axes.y, axes.z].filter((v): v is number => v != null);
+    return vals.length > 0 ? Math.max(...vals) : null;
+  });
+
+  /** Data provenance pill (MASTER §2/§11): the build's schema version, gold
+   * with "Re-Extract ausstehend" when this app expects a newer one. */
+  readonly dataPill = computed<{ build: string; schema: number; pending: boolean } | null>(() => {
+    const b = this.build();
+    if (!b) return null;
+    return {
+      build: `${b.patchVersion}-${b.channel}.${b.buildNumber}`,
+      schema: b.schemaVersion,
+      pending: isReExtractPending(b.schemaVersion),
+    };
+  });
+
+  /** Hero chip row (MASTER §2): career, cargo (gold/ghost), mass in tonnes —
+   * on top of the existing `facts()` (role/crew/dimensions/quantum). */
+  readonly heroChips = computed<{ key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[]>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return [];
+    const p = d.payload as ShipPayload;
+    const out: { key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[] = [];
+    const career = resolveCareerLabel(p.career ?? null);
+    if (career) {
+      const label = cleanLocaleValue(this.localeMap().get(career) ?? career);
+      if (label) out.push({ key: 'career', text: label });
+    }
+    // Role (concept order: career · role · size · crew · cargo · mass). No
+    // size-class field exists on ShipPayload/row today, so that chip is
+    // skipped entirely rather than guessed (MASTER gap rule).
+    const row = this.detail()?.row;
+    const roleRaw = row?.['role'];
+    if (typeof roleRaw === 'string' && roleRaw) {
+      const label = cleanLocaleValue(this.localeMap().get(roleRaw) ?? roleRaw);
+      if (label) out.push({ key: 'role', text: label });
+    }
+    const crew = row?.['crew_size'];
+    if (crew != null && crew !== '' && crew !== 0) {
+      out.push({ key: 'crew', text: this.t.instant('codex.detail.chipCrew', { n: crew }) });
+    }
+    // Three outcomes, not two. `cargoScu: null` covers both "this hull has no
+    // hold" (a Gladius) and "it hauls, the client files never size it" (the
+    // Nomad's open bed is a door entity — verified against LIVE 4.9.0), and
+    // printing "Kein Laderaum" on the second is a false statement. The
+    // extractor says which via `cargoStatus`; pre-schema-3 payloads have no
+    // such field, so fall back to the loadout-derived capability.
+    const cargo = p.cargoScu ?? null;
+    const cargoStatus = p.cargoStatus ?? null;
+    const hauls = cargoStatus ? cargoStatus !== 'none' : this.shipCapabilities().hasCargo;
+    if (cargo != null && cargo > 0) {
+      out.push({ key: 'cargo', text: `${formatNumber(cargo)} SCU`, accent: true });
+    } else if (hauls) {
+      out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipCargoUnknown'), gap: true });
+    } else {
+      out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipNoCargo'), ghost: true });
+    }
+    const massKg = p.hull?.mass ?? null;
+    if (massKg != null && massKg > 0) {
+      out.push({ key: 'mass', text: `${formatNumber(massKg / 1000)} t` });
+    }
+    return out;
+  });
+
+  /** Occupants grouped by module section (draft-overlaid) for the fold preview
+   * inside each `<details>` summary (MASTER §6). */
+  readonly occupantsBySection = computed<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(() => {
+    const out = new Map<ShipModuleSection, SummaryOccupant[]>();
+    for (const o of this.draftSummaryOccupants()) {
+      const hit = out.get(o.section);
+      if (hit) hit.push(o);
+      else out.set(o.section, [o]);
+    }
+    return out;
+  });
+
+  /** Total loadout slots (all sections) — kept for other consumers. */
+  readonly moduleSlotCount = computed(() =>
+    this.moduleSections().reduce((sum, s) => sum + s.slots.length, 0),
+  );
+
+  /** Rendered loadout MODULES (sections with at least one slot) — fewer than
+   * four collapses the Loadout | Analyse split into one column (MASTER §1).
+   * Slot count is the wrong unit: a hull with 3 sections/10 slots must still
+   * collapse, and one with 4 sparse sections must not. */
+  readonly moduleCount = computed(
+    () => this.moduleSections().filter((s) => s.slots.length > 0).length,
+  );
 
   readonly offensivePanel = computed(() => {
     if (this.kind() !== 'ship') return null;
@@ -2668,6 +2973,22 @@ export class CodexDetailComponent implements OnInit {
         emptySwappable: !!fit || (overlay.state === 'changed' && overlay.className === null),
         draftState: overlay.state,
         draftPaths: draftEntry !== undefined ? [l.port] : [],
+        deltaPct: overlay.state === 'changed' ? this.headlineStatDeltaPct(item, overlay.item) : null,
+        // Passive generator: desaturated, "nicht am Netz" (MASTER §6, B-C19).
+        // `isPassiveShield` reads the resource block, so on a schema-2 build
+        // (no `ItemResourceComponentParams`) every row honestly stays 'active'.
+        roleKey:
+          r.section === 'shields' && overlay.className
+            ? isPassiveShield({
+                section: r.section,
+                kind: overlay.item.kind,
+                payload: overlay.item.payload,
+                ammoPayload: overlay.item.ammoPayload,
+                count: 1,
+              })
+              ? 'codex.module.badge.passive'
+              : 'codex.module.badge.active'
+            : null,
       };
       const hit = buckets.get(r.section);
       if (hit) hit.push(slot);
@@ -2679,7 +3000,7 @@ export class CodexDetailComponent implements OnInit {
     return [...buckets.entries()].map(([section, slots]) => ({
       section,
       slots,
-      notes: this.sectionNotes(section),
+      notes: this.sectionNotes(section, slots),
     }));
   });
 
@@ -2688,12 +3009,42 @@ export class CodexDetailComponent implements OnInit {
   // into the airframe — every row in the block is a shield again, so the tag
   // has nothing left to disambiguate and is gone with it.
 
+  /**
+   * Percent change of the headline stat (`stats[0]`, same key on both sides)
+   * a changed slot causes versus its stock occupant — the module row's right
+   * figure carries this as a delta chip (MASTER §6). `null` when either side
+   * has no usable numeric headline stat, or the labels don't match (nothing
+   * to compare).
+   */
+  private headlineStatDeltaPct(
+    stockItem: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown },
+    draftItem: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown },
+  ): number | null {
+    const from = equippedStats(stockItem)[0];
+    const to = equippedStats(draftItem)[0];
+    if (!from || !to || from.labelKey !== to.labelKey) return null;
+    if (from.value === 0 || !Number.isFinite(from.value) || !Number.isFinite(to.value)) return null;
+    const pct = Math.round(((to.value - from.value) / Math.abs(from.value)) * 100);
+    return pct === 0 ? null : pct;
+  }
+
   /** What a block can and cannot tell a pilot, said next to that block. */
-  private sectionNotes(section: ShipModuleSection): SectionNote[] {
+  private sectionNotes(section: ShipModuleSection, slots: LayoutSlot[] = []): SectionNote[] {
     if (section === 'weapons' && this.emptyWeaponMounts() > 0) {
       return [{ key: 'codex.equipped.armamentMissing', params: { count: this.emptyWeaponMounts() } }];
     }
-    if (section === 'shields') return [{ key: 'codex.moduleSection.shieldsNote' }];
+    if (section === 'shields') {
+      const notes: SectionNote[] = [{ key: 'codex.moduleSection.shieldsNote' }];
+      // The passive-shield explainer only earns its place once the block
+      // actually holds one — three interchangeable generators, one of them
+      // free of charge but riding on the others (MASTER §6 / B §2).
+      const generatorCount = slots.filter((s) => s.className).length;
+      const hasPassive = slots.some((s) => s.roleKey === 'codex.module.badge.passive');
+      if (hasPassive || generatorCount > 1) {
+        notes.push({ key: 'codex.module.shieldNote' });
+      }
+      return notes;
+    }
     if (section === 'countermeasures') return [{ key: 'codex.moduleSection.countermeasuresNote' }];
     return [];
   }
@@ -2750,10 +3101,21 @@ export class CodexDetailComponent implements OnInit {
   /** The occupant currently open in the full-stat overlay, or null. */
   readonly inspected = signal<ComponentInspectEntry | null>(null);
 
+  /** The weapon currently open in the P4K-sourced detail window (MASTER §10) —
+   * `ⓘ` on a weapon row opens THIS instead of the generic component modal;
+   * every other kind still uses `inspected`. */
+  readonly weaponDetail = signal<WeaponDetailEntry | null>(null);
+
+  closeWeaponDetail(): void {
+    this.weaponDetail.set(null);
+  }
+
   /**
    * Open the overlay for a clicked card. A sub-slot with nothing resolvable in
    * it has no stats to show, so it stays inert rather than opening an empty
-   * window.
+   * window. Weapons open the dedicated detail window (MASTER §10) instead of
+   * the generic component modal — it is the only one that groups by P4K
+   * struct and marks what the game files do not carry.
    */
   openInspect(ev: LayoutTarget): void {
     const source = ev.child
@@ -2779,9 +3141,24 @@ export class CodexDetailComponent implements OnInit {
         };
     if (!source.className) return;
     const hit = this.loadoutPayloads().get(source.className);
+    const resolvedKind = hit?.kind ?? source.kind;
+    const ammoPayload = this.ammoPayloads().get(ammoClassNameFor(source.className) ?? '');
+    if (resolvedKind === 'weapon') {
+      this.weaponDetail.set({
+        className: source.className,
+        name: source.name || humanizeClassName(source.className),
+        port: source.port,
+        size: source.size,
+        grade: source.grade,
+        manufacturerCode: source.manufacturerCode,
+        payload: hit?.payload ?? null,
+        ammoPayload,
+      });
+      return;
+    }
     this.inspected.set({
       className: source.className,
-      kind: hit?.kind ?? source.kind,
+      kind: resolvedKind,
       name: source.name || humanizeClassName(source.className),
       port: source.port,
       count: ev.count,
@@ -2790,7 +3167,7 @@ export class CodexDetailComponent implements OnInit {
       manufacturerCode: source.manufacturerCode,
       typeLabel: source.typeLabel,
       payload: hit?.payload ?? null,
-      ammoPayload: this.ammoPayloads().get(ammoClassNameFor(source.className) ?? ''),
+      ammoPayload,
     });
   }
 
@@ -2896,7 +3273,6 @@ export class CodexDetailComponent implements OnInit {
     });
   });
 
-  readonly installedCount = computed(() => this.loadoutAll().filter((l) => l.className).length);
   readonly emptyLoadoutCount = computed(() => this.loadoutAll().filter((l) => !l.className).length);
 
   /**
@@ -3028,12 +3404,6 @@ export class CodexDetailComponent implements OnInit {
     if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
   }
 
-  /** UC-07: open the hangar configurator for a ship already in the hangar. */
-  configureLoadout(): void {
-    const d = this.detail();
-    const ship = d ? this.hangar.shipByClassName(d.classNameSlug) : null;
-    void this.router.navigate(ship ? ['/hangar/ship', ship.id] : ['/hangar']);
-  }
   toggleRaw(): void {
     this.showRaw.update((v) => !v);
   }

@@ -51,7 +51,22 @@ function classNameOf(payload: unknown): string {
 
 /** Minimal ship-level shape the KPI sheet reads beyond the loadout occupants. */
 export interface KpiShipInput {
-  flight?: { scmSpeed: number | null; maxSpeed: number | null } | null;
+  flight?: {
+    scmSpeed: number | null;
+    maxSpeed: number | null;
+    // schema 3 (MASTER §14): forward boost and the three angular rates. All
+    // optional — a pre-schema-3 payload simply leaves the KPIs as gaps.
+    boostSpeed?: number | null;
+    pitch?: number | null;
+    yaw?: number | null;
+    roll?: number | null;
+  } | null;
+  /** schema 3: hull HP + hull mass from the vehicle XML. */
+  hull?: { hp: number | null; mass: number | null } | null;
+  /** schema 3: `ARMR_<Ship>` armour HP. */
+  armorHp?: number | null;
+  /** schema 3: cargo grid capacity in SCU. */
+  cargoScu?: number | null;
   /** Ship-level whitelisted stats (currently just SSCSignatureSystemParams, when present). */
   stats?: Record<string, Record<string, unknown>> | null;
 }
@@ -71,6 +86,9 @@ const EMPTY_SHEET: KpiSheet = {
   mass: null,
   scm: null,
   maxSpeed: null,
+  boost: null,
+  agility: null,
+  armorHp: null,
   quantumSpeed: null,
   quantumRange: null,
   spool: null,
@@ -188,6 +206,17 @@ export function computeKpiSheet(
   sheet.mass = equippedMass(occupants);
   sheet.scm = usable(toFiniteNumber(ship?.flight?.scmSpeed ?? null));
   sheet.maxSpeed = usable(toFiniteNumber(ship?.flight?.maxSpeed ?? null));
+  sheet.boost = usable(toFiniteNumber(ship?.flight?.boostSpeed ?? null));
+  // Agility = the mean of the three angular rates (deg/s). One comparable
+  // number for the ranking radar; the Schiff panel still shows all three.
+  const rates = [ship?.flight?.pitch, ship?.flight?.yaw, ship?.flight?.roll]
+    .map((v) => usable(toFiniteNumber(v ?? null)))
+    .filter((v): v is number => v !== null);
+  sheet.agility = rates.length > 0 ? Math.round((rates.reduce((a, b) => a + b, 0) / rates.length) * 10) / 10 : null;
+  sheet.armorHp = usable(toFiniteNumber(ship?.armorHp ?? null));
+  sheet.cargo = usable(toFiniteNumber(ship?.cargoScu ?? null));
+  sheet.hullHp = usable(toFiniteNumber(ship?.hull?.hp ?? null));
+  if (sheet.hullHp !== null && sheet.shieldHp !== null) sheet.effectiveHp = sheet.hullHp + sheet.shieldHp;
 
   const shipStats = ship?.stats ?? undefined;
   sheet.ir = usable(findStat(shipStats, 'signature', IR_FIELDS));
@@ -212,8 +241,24 @@ export interface KpiDelta {
   raw: number;
 }
 
-/** KPIs where a SMALLER number is the better outcome (mass, spool-up time). */
-const LOWER_IS_BETTER: ReadonlySet<KpiKey> = new Set<KpiKey>(['mass', 'spool']);
+/**
+ * KPIs where a SMALLER number is the better outcome: mass, spool-up time and
+ * every signature (a stealthier ship emits LESS). MASTER §12 asks for exactly
+ * one named decider for the up/down colour — this set is it, exposed through
+ * {@link kpiLowerIsBetter} for the dock facts and the picker columns.
+ */
+const LOWER_IS_BETTER: ReadonlySet<KpiKey> = new Set<KpiKey>([
+  'mass',
+  'spool',
+  'ir',
+  'emIdle',
+  'emMax',
+  'crossSection',
+]);
+
+export function kpiLowerIsBetter(key: KpiKey): boolean {
+  return LOWER_IS_BETTER.has(key);
+}
 
 /**
  * The delta chip for one KPI: stock → current. Returns null when either side
@@ -261,6 +306,9 @@ const KPI_META: Record<KpiKey, KpiMeta> = {
   mass: { labelKey: 'codex.kpi.mass', format: 'int', gapKey: 'codex.summary.gap.noEquipmentMass' },
   scm: { labelKey: 'codex.kpi.scm', format: 'mps', gapKey: 'codex.summary.gap.noFlight' },
   maxSpeed: { labelKey: 'codex.kpi.maxSpeed', format: 'mps', gapKey: 'codex.summary.gap.noFlight' },
+  boost: { labelKey: 'codex.kpi.boost', format: 'mps', gapKey: 'codex.summary.gap.noFlight' },
+  agility: { labelKey: 'codex.kpi.agility', format: 'dec', gapKey: 'codex.summary.gap.noFlight' },
+  armorHp: { labelKey: 'codex.kpi.armor', format: 'int', gapKey: 'codex.summary.gap.noArmorStats' },
   quantumSpeed: { labelKey: 'codex.kpi.quantumSpeed', format: 'kms', gapKey: 'codex.summary.gap.noQuantum' },
   quantumRange: { labelKey: 'codex.kpi.quantumRange', format: 'gm', gapKey: 'codex.summary.gap.noQuantum' },
   spool: { labelKey: 'codex.kpi.spool', format: 'seconds', gapKey: 'codex.summary.gap.noQuantum' },

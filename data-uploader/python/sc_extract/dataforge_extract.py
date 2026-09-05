@@ -288,6 +288,22 @@ def _loadout_entries(loadout: Any, _depth: int = 0) -> List[Dict[str, Any]]:
     return out
 
 
+def _loadout_pairs(entries: Any, _depth: int = 0) -> List[Tuple[str, str]]:
+    """``(itemPortName, entityClassName)`` of a resolved loadout, nested
+    entries included (a cargo pod's grid hangs under the pod)."""
+    out: List[Tuple[str, str]] = []
+    if not isinstance(entries, list) or _depth > _LOADOUT_MAX_DEPTH:
+        return out
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        cls = e.get("entityClassName")
+        if isinstance(cls, str) and cls:
+            out.append((str(e.get("itemPortName") or ""), cls))
+        out.extend(_loadout_pairs(e.get("entries"), _depth + 1))
+    return out
+
+
 def _default_loadout_of(comps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The stock fit of an entity, from its components. Empty when it has none."""
     dl = _find_component(comps, "SEntityComponentDefaultLoadoutParams")
@@ -335,6 +351,9 @@ class CodexExtractor:
         # FlightController class name -> its IFCSParams struct (or None), see
         # _flight_controller_ifcs. One resolve per ship class, not per record.
         self._flight_cache: Dict[str, Optional[Dict[str, Any]]] = {}
+        # vehicle implementation XML path -> parsed root element (or None).
+        # Ship variants share one file, so this is parsed once per hull.
+        self._vehicle_xml_cache: Dict[str, Any] = {}
         # guid -> manufacturer code, built lazily
         self._manu_cache: Dict[str, Dict[str, Any]] = {}
         # Ship-skin (livery) catalog discovery — built lazily on the first ship,
@@ -1223,13 +1242,7 @@ class CodexExtractor:
             t = c.get("_Type_")
             if t not in self._SHIP_STATS_WHITELIST:
                 continue
-            flat = _scalars(c)
-            for k, v in c.items():
-                if not isinstance(k, str) or k.startswith("_"):
-                    continue
-                if isinstance(v, dict):
-                    for sk, sv in _scalars(v).items():
-                        flat.setdefault(f"{k}.{sk}", sv)
+            flat = _flatten_depth2(c)
             if t == "SSCSignatureSystemParams":
                 self._add_cross_section(c, flat)
             if flat:
@@ -1280,6 +1293,10 @@ class CodexExtractor:
         base.update({
             "entityKind": "ship",
             "role": vcp.get("vehicleRole"),
+            # Career (`@vehicle_focus_*`) sits next to the role
+            # (`@vehicle_class_*`) on the same struct; both are localisation
+            # keys, resolved by the consumer through the locale tables.
+            "career": vcp.get("vehicleCareer"),
             "crew": {"size": vcp.get("crewSize")},
             "vehicleName": self._localized(vcp.get("vehicleName")),
             # real-world bounding-box dimensions (metres) parsed from the .cga mesh
@@ -1288,6 +1305,18 @@ class CodexExtractor:
             # live on the FlightController ITEM entity referenced from the
             # default loadout (see _flight_stats docstring).
             "flight": self._flight_stats(loadout),
+            # hull hitpoints + hull mass from the vehicle implementation XML,
+            # armour HP from the ARMR_<Ship> item, cargo capacity from the
+            # cargo grid's inventory container. Each stays None when its
+            # source is absent - never a guess, never a 0.
+            "hull": self._hull_stats(vcp, base["className"]),
+            "armorHp": self._armor_hp(base["className"]),
+            "cargoScu": self._cargo_scu(loadout),
+            # WHY the SCU figure is missing, so the UI can tell "this hull has
+            # no hold" (a fighter) from "it has one, the files don't size it"
+            # (the Nomad's open bed). Both are cargoScu: null, and printing
+            # "no cargo hold" on a Nomad would be a false statement.
+            "cargoStatus": self._cargo_status(loadout),
             "itemPorts": item_ports,
             "defaultLoadout": loadout,
             # portName -> {position, rotation, helper, source}; model-space metres
@@ -1304,6 +1333,237 @@ class CodexExtractor:
         if ship_stats:
             base["stats"] = ship_stats
         return base
+
+    def _entity_class(self, class_name: str) -> Optional[Record]:
+        """Record for a bare entity class name (no ``EntityClassDefinition.``
+        prefix), case-insensitive. The index is built once per run and shared
+        by the flight-controller, armour and cargo hops."""
+        if not class_name:
+            return None
+        if not hasattr(self, "_ecd_by_name"):
+            self._ecd_by_name = {
+                rec.name.split(".", 1)[1].lower(): rec
+                for rec in self.df.records_by_type_name("EntityClassDefinition")
+                if "." in rec.name
+            }
+        return self._ecd_by_name.get(class_name.lower())
+
+    def _entity_class_comps(self, class_name: str) -> List[Dict[str, Any]]:
+        """Resolved Components of an entity class, ``[]`` when unresolvable."""
+        rec = self._entity_class(class_name)
+        if rec is None:
+            return []
+        try:
+            d = self.df.record_to_dict(rec, max_depth=10)
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"entity resolve failed for {class_name}: {exc}")
+            return []
+        comps = d.get("_RecordValue_", {}).get("Components")
+        return comps if isinstance(comps, list) else []
+
+    # ── hull HP / hull mass (vehicle implementation XML) ──────────────────────
+    # VERIFIED against LIVE 4.9.0 (probe 2026-09-04, scripts/probe_hull_cargo.py):
+    # the DataCore carries NO hull hitpoints at all — they live in the CryXmlB
+    # vehicle implementation referenced by
+    # `VehicleComponentParams.vehicleDefinition`
+    # (Scripts/Entities/Vehicles/Implementations/Xml/<Ship>.xml). Hull HP is the
+    # SUM of every `Part@damageMax` (Nomad 9 800 over 11 parts, Gladius 6 110,
+    # Freelancer 34 900); hull mass is the ROOT part's `@mass` — usually named
+    # after the ship (`Part[@name="CNOU_Nomad"]`), but variants reuse the base
+    # hull's XML (Idris-P -> aegs_idris.xml, root part "AEGS_Idris"), so the
+    # name match falls back to the first part that carries a mass.
+    def _hull_stats(self, vcp: Dict[str, Any],
+                    class_name: str) -> Dict[str, Optional[float]]:
+        out: Dict[str, Optional[float]] = {"hp": None, "mass": None}
+        root = self._vehicle_xml_root(vcp.get("vehicleDefinition"))
+        if root is None:
+            return out
+        total = 0.0
+        seen = False
+        named_mass: Optional[float] = None
+        # Every part carrying a usable mass, with its depth below the XML root,
+        # in document order. The VEHICLE ROOT part is the shallowest one; its
+        # children (wings, nacelles, doors) sit deeper and are much lighter.
+        masses: list = []
+
+        def _walk(node, depth: int) -> None:
+            nonlocal total, seen, named_mass
+            for part in node:
+                if part.tag == "Part":
+                    dmg = _to_float(part.get("damageMax"))
+                    if dmg is not None and math.isfinite(dmg):
+                        total += dmg
+                        seen = True
+                    mass = _to_float(part.get("mass"))
+                    if mass is not None and math.isfinite(mass) and mass > 0:
+                        masses.append((depth, mass))
+                        if (named_mass is None
+                                and (part.get("name") or "").lower() == class_name.lower()):
+                            named_mass = mass
+                    _walk(part, depth + 1)
+                else:
+                    _walk(part, depth)
+
+        _walk(root, 0)
+        if seen:
+            out["hp"] = total
+
+        if named_mass is not None:
+            out["mass"] = named_mass
+        elif masses:
+            # A VARIANT reuses the base hull's XML, so the root part is named
+            # after the base ship (Idris-P -> aegs_idris.xml, root "AEGS_Idris")
+            # and the class-name match misses. Take the shallowest part — the
+            # vehicle root — and, if several share that depth, the HEAVIEST of
+            # them. The old "first part that carries a mass" rule silently
+            # picked whichever sub-part happened to come first in the file,
+            # which on a multi-root XML is a wing, not the hull.
+            top = min(d for d, _ in masses)
+            candidates = [m for d, m in masses if d == top]
+            out["mass"] = max(candidates)
+            self.on_log(
+                "warn",
+                f"hull mass: {class_name} has no part named after its class - "
+                f"using the vehicle root part's mass ({out['mass']:g} kg) "
+                f"out of {len(masses)} massed part(s)",
+            )
+        return out
+
+    def _vehicle_xml_root(self, path: Optional[str]):
+        """Parsed root element of a vehicle implementation XML, or ``None``.
+
+        Cached per path (ship variants share one implementation file).
+        CryXmlB-encoded files are decoded via scdatatools, exactly like the
+        keybind profile and the .mtl files the skin pipeline reads.
+        """
+        if not path or self.p4k is None:
+            return None
+        key = path.replace("\\", "/").lower()
+        if key in self._vehicle_xml_cache:
+            return self._vehicle_xml_cache[key]
+        root = None
+        try:
+            import io as _io
+            import xml.etree.ElementTree as ET
+
+            if not hasattr(self, "_p4k_by_lower"):
+                self._p4k_by_lower = {n.lower().replace("\\", "/"): n
+                                      for n in self.p4k.namelist()}
+            real = (self._p4k_by_lower.get(key)
+                    or self._p4k_by_lower.get("data/" + key))
+            if real:
+                with self.p4k.open(self.p4k.getinfo(real)) as f:
+                    blob = f.read()
+                if blob[:7] == b"CryXmlB":
+                    from scdatatools.engine.cryxml import etree_from_cryxml_file
+                    root = etree_from_cryxml_file(_io.BytesIO(blob)).getroot()
+                else:
+                    root = ET.fromstring(blob)
+            else:
+                self.on_log("warn", f"vehicle definition not in P4K: {path}")
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"vehicle xml parse failed for {path}: {exc}")
+            root = None
+        self._vehicle_xml_cache[key] = root
+        return root
+
+    # ── cargo capacity ────────────────────────────────────────────────────────
+    # One SCU is a 1.25 m cube, so capacity = interior volume (m³) / 1.25³.
+    # The capacity is NOT on the ship: it sits on the cargo-grid item in the
+    # ship's stock loadout, behind `containerParams` -> `interiorDimensions`.
+    # `containerParams` is frequently a CROSS-FILE record reference (a
+    # `{_RecordId_, _RecordName_}` stub that `record_to_dict` does not inline),
+    # hence the explicit `record_by_id` hop.
+    _SCU_EDGE_M = 1.25
+    _CARGO_CONTAINER_FIELDS = ("containerParams", "inventoryContainer",
+                               "container", "cargoContainer")
+
+    def _cargo_scu(self, loadout: List[Dict[str, Any]]) -> Optional[float]:
+        """Total stock cargo capacity in SCU, or ``None`` when the ship has no
+        cargo grid at all (a fighter must read as "no cargo hold", not 0 SCU)."""
+        total = 0.0
+        found = False
+        for port, cls in _loadout_pairs(loadout):
+            if "cargo" not in f"{port} {cls}".lower():
+                continue  # cheap gate: never resolve a ship's whole loadout
+            volume = self._container_volume(self._entity_class_comps(cls))
+            if volume is None:
+                continue
+            found = True
+            total += volume / (self._SCU_EDGE_M ** 3)
+        if not found:
+            return None
+        return round(total, 2)
+
+    # Names that mark a cargo-carrying feature which is NOT an inventory
+    # container: the Nomad's open bed is a door entity, and every cargo-capable
+    # hull carries a cargo controller. Neither states a capacity.
+    _CARGO_EVIDENCE = ("cargo", "freight")
+
+    def _cargo_status(self, loadout: List[Dict[str, Any]]) -> str:
+        """Why `cargoScu` is what it is — `"measured"`, `"unmeasured"` or
+        `"none"`.
+
+        `cargoScu` alone cannot carry this: a Gladius (no hold at all) and a
+        Nomad (an open bed the client files never size) are both null. The UI
+        must say "Kein Laderaum" only for the first, and disclose a gap for the
+        second — see `_cargo_scu` and the `cargoScu` note in
+        docs/concepts/codex-extraction-output.md.
+        """
+        if self._cargo_scu(loadout) is not None:
+            return "measured"
+        for port, cls in _loadout_pairs(loadout):
+            haystack = f"{port} {cls}".lower()
+            if any(word in haystack for word in self._CARGO_EVIDENCE):
+                return "unmeasured"
+        return "none"
+
+    def _container_volume(self, comps: List[Dict[str, Any]]) -> Optional[float]:
+        """Interior volume (m³) of the first inventory container on an item."""
+        for c in comps:
+            if not isinstance(c, dict):
+                continue
+            for field in self._CARGO_CONTAINER_FIELDS:
+                params = c.get(field)
+                dims = self._interior_dimensions(params)
+                if dims is None:
+                    continue
+                edges = [_to_float(dims.get(a)) for a in ("x", "y", "z")]
+                if any(e is None or not math.isfinite(e) or e <= 0 for e in edges):
+                    continue
+                return edges[0] * edges[1] * edges[2]
+        return None
+
+    def _interior_dimensions(self, params: Any) -> Optional[Dict[str, Any]]:
+        """`interiorDimensions` off an inline container struct, or off the
+        record a cross-file `containerParams` reference points at."""
+        if not isinstance(params, dict):
+            return None
+        dims = params.get("interiorDimensions")
+        if isinstance(dims, dict):
+            return dims
+        guid = params.get("_RecordId_")
+        if not isinstance(guid, str) or not guid:
+            return None
+        try:
+            rec = self.df.record_by_id(guid)
+            if rec is None:
+                return None
+            resolved = self.df.record_to_dict(rec, max_depth=6)
+        except Exception as exc:  # noqa: BLE001 — best-effort, never abort a ship
+            self.on_log("warn", f"container record resolve failed for {guid}: {exc}")
+            return None
+        value = resolved.get("_RecordValue_", resolved)
+        dims = value.get("interiorDimensions") if isinstance(value, dict) else None
+        return dims if isinstance(dims, dict) else None
+
+    def _armor_hp(self, class_name: str) -> Optional[float]:
+        """Hull-armour hitpoints from the per-hull `ARMR_<Ship>` item's
+        `SHealthComponentParams.Health` (VERIFIED: Nomad 2 200, Hammerhead
+        25 740). ``None`` when the ship has no armour item."""
+        comps = self._entity_class_comps(f"ARMR_{class_name}")
+        health = _find_component(comps, "SHealthComponentParams") or {}
+        return _to_float(health.get("Health"))
 
     # ── flight stats (generic) ──────────────────────────────────────────────────
     # VERIFIED against a live Data.p4k (CNOU_Nomad / AEGS_Gladius /
@@ -1343,15 +1603,7 @@ class CodexExtractor:
             return self._flight_cache[cls]
         ifcs: Optional[Dict[str, Any]] = None
         try:
-            if not hasattr(self, "_ecd_by_name"):
-                # Bare class name (no "EntityClassDefinition." prefix) -> record,
-                # built once and reused for every ship in the run.
-                self._ecd_by_name = {
-                    rec.name.split(".", 1)[1].lower(): rec
-                    for rec in self.df.records_by_type_name("EntityClassDefinition")
-                    if "." in rec.name
-                }
-            fc_rec = self._ecd_by_name.get(cls.lower())
+            fc_rec = self._entity_class(cls)
             if fc_rec is not None:
                 fc = self.df.record_to_dict(fc_rec, max_depth=12)
                 fc_comps = fc.get("_RecordValue_", {}).get("Components") or []
@@ -1405,6 +1657,12 @@ class CodexExtractor:
             "weaponParams": self._weapon_params(wcp, resolved),
             "itemPorts": self._item_ports(comps),
         })
+        # Weapons had no `stats` block at all: power draw, IR/EM signature,
+        # health, distortion, mass and aim assist were all unreachable for the
+        # UI. Allowlist-based, dropped entirely when nothing matches.
+        weapon_stats = self._weapon_stats(comps)
+        if weapon_stats:
+            base["stats"] = weapon_stats
         return base
 
     def _weapon_params(self, wcp: Dict[str, Any],
@@ -1546,19 +1804,146 @@ class CodexExtractor:
             t = c.get("_Type_")
             if not t or t in self._SKIP_COMPONENT_STATS:
                 continue
-            flat = _scalars(c)
-            # pull scalars from immediate child structs too (one level deep)
-            for k, v in c.items():
-                if not isinstance(k, str) or k.startswith("_"):
-                    continue
-                if isinstance(v, dict):
-                    for sk, sv in _scalars(v).items():
-                        flat.setdefault(f"{k}.{sk}", sv)
+            # top-level scalars + immediate child structs (one level deep)
+            flat = _flatten_depth2(c)
             if t == "SCItemVehicleArmorParams":
                 self._add_vehicle_armor_depth2(c, flat)
+            if t == "ItemResourceComponentParams":
+                self._add_resource_network(c, flat)
             if flat:  # only components that actually carry scalar values
                 stats[t] = flat
         return stats
+
+    # Structs a WEAPON is allowed to surface as `stats`. Weapons carry the same
+    # noisy Components list ships do (geometry, audio, per-attachment stubs), so
+    # this is an allowlist like `_SHIP_STATS_WHITELIST`, not the item blacklist.
+    _WEAPON_STATS_WHITELIST = {
+        "ItemResourceComponentParams",   # power draw + IR/EM signature
+        "SHealthComponentParams",        # Health
+        "SDistortionParams",             # distortion pool / regen
+        "SEntityPhysicsControllerParams",  # mass
+        "SCItemAimableComponentParams",  # gimbal range / tracking rate
+    }
+
+    def _weapon_stats(self, comps) -> Dict[str, Any]:
+        """Allowlist-only stats block for weapons, same struct-keyed shape as
+        `_component_stats()`. Weapons had no `stats` key at all before; they get
+        one only when the allowlist actually matches (never an empty object)."""
+        stats: Dict[str, Any] = {}
+        for c in comps:
+            t = c.get("_Type_")
+            if t not in self._WEAPON_STATS_WHITELIST:
+                continue
+            flat = _flatten_depth2(c)
+            if t == "ItemResourceComponentParams":
+                self._add_resource_network(c, flat)
+            if flat:
+                stats[t] = flat
+        return stats
+
+    # ── resource network (power / coolant / shield / signature) ───────────────
+    # VERIFIED against live LIVE-4.9.0 records (probe 2026-09-04): reactor
+    # POWR_LPLT_S01_IonBurst, cooler COOL_JUST_S01_UltraFlow, shield
+    # SHLD_SECO_S01_WEB, weapon KLWE_LaserRepeater_S3. `states[]` and its
+    # `deltas[]` are LISTS, which the generic flatten drops entirely — the whole
+    # energy model (segment budget, minimum draw, coolant load, IR/EM) lived
+    # exactly there and never reached the payload.
+    #
+    # Emitted flat keys, one prefix per state (state name lower-cased):
+    #   stateNames                            "Online" ("|"-joined when several)
+    #   <state>.power.consumeSegments         SPowerSegmentResourceUnit.units
+    #   <state>.power.consumeUnits            SStandardResourceUnit.standardResourceUnits
+    #   <state>.power.generateSegments        reactor budget (units)
+    #   <state>.power.generateUnits
+    #   <state>.power.minFraction             minimumConsumptionFraction of the
+    #                                         Power-consuming delta (4 dp: the
+    #                                         raw value is float32 noise, e.g.
+    #                                         0.6666666865348816)
+    #   <state>.<resource>.consume/.generate  every non-Power resource by its
+    #                                         own lower-cased name, SRU/s
+    #                                         (coolant, shield, fuel, …)
+    #   <state>.em.nominal/.decayRate         signatureParams.EMSignature
+    #   <state>.ir.nominal/.decayRate         signatureParams.IRSignature
+    #   <state>.powerRanges.<low|medium|high>.<start|modifier>
+    # Amounts of repeated deltas on the same resource+direction are SUMMED.
+    # Nothing is defaulted: a key is emitted only when the record carries it —
+    # an explicit 0.0 in the file (e.g. a reactor's 0 coolant draw) is kept as 0.
+    _SIGNATURE_KEYS = (("EMSignature", "em"), ("IRSignature", "ir"))
+    _POWER_RANGE_BANDS = ("low", "medium", "high")
+
+    def _add_resource_network(self, params: Dict[str, Any],
+                              flat: Dict[str, Any]) -> None:
+        states = params.get("states")
+        if not isinstance(states, list):
+            return
+        names: List[str] = []
+        for state in states:
+            if not isinstance(state, dict):
+                continue
+            name = state.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            names.append(name)
+            p = f"{name.lower()}."
+            for delta in state.get("deltas") or []:
+                if isinstance(delta, dict):
+                    self._add_resource_delta(delta, flat, p)
+            sig = state.get("signatureParams")
+            if isinstance(sig, dict):
+                for src, key in self._SIGNATURE_KEYS:
+                    entry = sig.get(src)
+                    if not isinstance(entry, dict):
+                        continue
+                    for field_name, out_key in (("nominalSignature", "nominal"),
+                                                ("decayRate", "decayRate")):
+                        val = _to_float(entry.get(field_name))
+                        if val is not None and math.isfinite(val):
+                            flat[f"{p}{key}.{out_key}"] = val
+            ranges = state.get("powerRanges")
+            if isinstance(ranges, dict):
+                for band in self._POWER_RANGE_BANDS:
+                    entry = ranges.get(band)
+                    if not isinstance(entry, dict):
+                        continue
+                    for field_name in ("start", "modifier"):
+                        val = _to_float(entry.get(field_name))
+                        if val is not None and math.isfinite(val):
+                            flat[f"{p}powerRanges.{band}.{field_name}"] = val
+        if names:
+            flat["stateNames"] = "|".join(names)
+
+    def _add_resource_delta(self, delta: Dict[str, Any], flat: Dict[str, Any],
+                            prefix: str) -> None:
+        """One `deltas[]` entry: Generation carries `generation`, Consumption
+        carries `consumption`, Conversion carries both."""
+        for side, verb in (("consumption", "consume"), ("generation", "generate")):
+            amount = delta.get(side)
+            if not isinstance(amount, dict):
+                continue
+            resource = amount.get("resource")
+            unit = amount.get("resourceAmountPerSecond")
+            if not isinstance(resource, str) or not isinstance(unit, dict):
+                continue
+            utype = unit.get("_Type_")
+            if resource == "Power":
+                if utype == "SPowerSegmentResourceUnit":
+                    key, val = f"{prefix}power.{verb}Segments", _to_float(unit.get("units"))
+                else:
+                    key = f"{prefix}power.{verb}Units"
+                    val = _to_float(unit.get("standardResourceUnits"))
+                if val is not None and math.isfinite(val):
+                    _accumulate(flat, key, val)
+                if verb == "consume":
+                    frac = _to_float(delta.get("minimumConsumptionFraction"))
+                    if frac is not None and math.isfinite(frac):
+                        flat[f"{prefix}power.minFraction"] = round(frac, 4)
+                continue
+            raw = unit.get("standardResourceUnits")
+            if raw is None:
+                raw = unit.get("units")
+            val = _to_float(raw)
+            if val is not None and math.isfinite(val):
+                _accumulate(flat, f"{prefix}{resource.lower()}.{verb}", val)
 
     # Depth-2 dicts that the live `SCItemVehicleArmorParams` struct nests its
     # real per-damage-type numbers under. Targeted post-step for THIS struct
@@ -1720,6 +2105,26 @@ def _scalars(d: Dict[str, Any]) -> Dict[str, Any]:
     """Flat scalar fields of a resolved struct (drops nested for typed view)."""
     return {k: v for k, v in d.items()
             if k != "_Type_" and not isinstance(v, (dict, list))}
+
+
+def _flatten_depth2(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Top-level scalars of a resolved struct plus the scalars of its immediate
+    child structs, flattened as ``Sub.field`` (the shape `_component_stats()`
+    and `_ship_stats()` have always emitted)."""
+    flat = _scalars(d)
+    for k, v in d.items():
+        if not isinstance(k, str) or k.startswith("_"):
+            continue
+        if isinstance(v, dict):
+            for sk, sv in _scalars(v).items():
+                flat.setdefault(f"{k}.{sk}", sv)
+    return flat
+
+
+def _accumulate(flat: Dict[str, Any], key: str, value: float) -> None:
+    """Sum repeated deltas that target the same resource and direction."""
+    prev = flat.get(key)
+    flat[key] = value if not isinstance(prev, (int, float)) else prev + value
 
 
 def _dig(d: Any, *keys) -> Any:
