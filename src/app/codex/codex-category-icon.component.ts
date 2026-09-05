@@ -7,7 +7,11 @@ import type { CodexKind } from './codex.service';
  * when it has no datamined artwork — which is the case for ~94% of catalog
  * entities (components & ammunition have 0% art). See UC-01.
  */
-const ICON_PATHS: Readonly<Record<string, string>> = {
+// Exported additively for the energy dock (`codex-energy-dock.component.ts`),
+// which reuses weapon/shield/thruster/cooler/quantum and adds seven glyphs of
+// its own (radar, lifeSupport, tractor, ir, em, crossSection, heat) — same
+// 24×24 stroke idiom, one `d` path each (UI spec §12).
+export const ICON_PATHS: Readonly<Record<string, string>> = {
   ship: 'M12 2 C13.6 4.3 14.5 7.4 14.5 11 L14.5 15 L18 19 L14.5 18 L13 22 L11 22 L9.5 18 L6 19 L9.5 15 L9.5 11 C9.5 7.4 10.4 4.3 12 2 Z',
   weapon: 'M12 2 V6 M12 18 V22 M2 12 H6 M18 12 H22 M8 12 A4 4 0 0 1 16 12 A4 4 0 0 1 8 12 M12 12 H12.01',
   component: 'M9 2 V5 M15 2 V5 M9 19 V22 M15 19 V22 M2 9 H5 M2 15 H5 M19 9 H22 M19 15 H22 M5 5 H19 V19 H5 Z M9 9 H15 V15 H9 Z',
@@ -29,6 +33,18 @@ const ICON_PATHS: Readonly<Record<string, string>> = {
   ammunition: 'M9 2 H15 V5 L17 8 V20 A2 2 0 0 1 15 22 H9 A2 2 0 0 1 7 20 V8 L9 5 Z M7 11 H17',
   manufacturer: 'M3 21 V10 L9 13 V10 L15 13 V7 L21 10 V21 Z M3 21 H21 M7 17 H8 M11 17 H12 M15 17 H16',
   generic: 'M5 4 C5 3.4 5.4 3 6 3 H18 C18.6 3 19 3.4 19 4 V20 C19 20.6 18.6 21 18 21 H6 C5.4 21 5 20.6 5 20 Z M9 3 V21 M12 8 H16 M12 12 H16',
+  // ── energy dock glyphs (UI spec §12) ──────────────────────────────────────
+  radar:
+    'M12 21 A9 9 0 1 1 21 12 M12 21 V12 L21 12 M12 16.5 A4.5 4.5 0 0 0 16.5 12 M12 12 L18.4 5.6',
+  lifeSupport:
+    'M9 4 H15 V8 C15 9.2 15.6 10 16.4 10.8 L17.6 12 C18.5 12.9 19 14 19 15.3 V19 A2 2 0 0 1 17 21 H7 A2 2 0 0 1 5 19 V15.3 C5 14 5.5 12.9 6.4 12 L7.6 10.8 C8.4 10 9 9.2 9 8 Z M9.5 15 H14.5 M12 12.5 V17.5',
+  tractor:
+    'M9 3 H15 L15 6 H9 Z M9.5 6 L4 20 M14.5 6 L20 20 M6.6 13 H17.4 M5.3 16.5 H18.7 M12 9 V20',
+  ir: 'M12 3 C12 3 8.5 7 8.5 10 A3.5 3.5 0 0 0 15.5 10 C15.5 7 12 3 12 3 Z M12 21 A6 6 0 0 1 6 15 M12 21 A6 6 0 0 0 18 15 M4 12 H2 M22 12 H20',
+  em: 'M12 5 V19 M8 8 A5 5 0 0 0 8 16 M16 8 A5 5 0 0 1 16 16 M5 5 A10 10 0 0 0 5 19 M19 5 A10 10 0 0 1 19 19',
+  crossSection:
+    'M3 12 A9 9 0 0 1 21 12 A9 9 0 0 1 3 12 M12 7.5 L16.5 12 L12 16.5 L7.5 12 Z M12 3 V5 M12 19 V21 M3 12 H5 M19 12 H21',
+  heat: 'M12 2.5 C12 2.5 16 6.5 16 10 A4 4 0 0 1 8 10 C8 8.4 9 7 9 7 C9 8.6 10 9.5 10.8 9.5 C11.8 9.5 12 8.2 12 2.5 Z M6 16 H18 M6 19 H18',
 };
 
 /** Category accent colours — semantic, theme-token-aware where one exists. */
