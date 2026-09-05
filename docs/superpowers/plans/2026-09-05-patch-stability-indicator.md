@@ -796,9 +796,14 @@ test('statusWindow: unplanned minutes inside the window, open incident flag, mai
   assert.equal(w.unplannedMinutes, 12380 + 390);
   assert.equal(w.unplannedCount, 2);
   assert.equal(w.openIncident, true);
+  // An UNRESOLVED incident is ongoing: it fills every later window until it resolves.
   const later = statusWindow(issues, '2026-08-20T00:00:00Z', '2026-09-05T00:00:00Z');
-  assert.equal(later.unplannedMinutes, 0);
-  assert.equal(later.openIncident, false);
+  assert.equal(later.unplannedMinutes, 16 * 24 * 60);
+  assert.equal(later.openIncident, true);
+  // Without it, the same window is clean.
+  const laterClean = statusWindow(issues.slice(0, 2), '2026-08-20T00:00:00Z', '2026-09-05T00:00:00Z');
+  assert.equal(laterClean.unplannedMinutes, 0);
+  assert.equal(laterClean.openIncident, false);
 });
 
 test('kbSnapshot: anchored entries per h1 section, null when the title names another patch', () => {
