@@ -25,7 +25,10 @@ import { TranslateModule } from '@ngx-translate/core';
         <p class="notice">
           {{ 'codex.detail.draftNotice' | translate }}
           @if (saveable() < changed()) {
-            <span class="hint">{{ 'codex.loadout.unsaveableHint' | translate }}</span>
+            <span class="hint">
+              {{ 'codex.loadout.changesSummary' | translate: { changed: changed(), saveable: saveable() } }}
+              — {{ 'codex.loadout.unsaveableHint' | translate }}
+            </span>
           }
         </p>
         @if (error()) {
@@ -52,10 +55,10 @@ import { TranslateModule } from '@ngx-translate/core';
     :host { display: block; }
     .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin-bottom: 10px;
-      border-color: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 45%, transparent); }
+      border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
     .lead { display: flex; align-items: center; gap: 8px; flex: none; }
-    .label { font-family: var(--sc-font-display); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
-    .chip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 22%, var(--sc-bg-2)); color: var(--sc-accent-gold, #c8a84b); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; }
+    .label { font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .chip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--sc-warn) 22%, var(--sc-bg-2)); color: var(--sc-warn); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; }
     .notice { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); flex: 1 1 auto; min-width: 180px; }
     .hint { display: block; margin-top: 2px; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .err { margin: 4px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger, #ff5252); }

@@ -235,6 +235,13 @@ const LOCALE_KEY_URL_BUDGET = 7000;
 // rather than erroring.
 const LOCALE_KEY_BATCH_MAX = 500;
 
+/** Split an array into fixed-size slices (last slice may be shorter). */
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 /**
  * Split locale keys into batches whose encoded `in.(…)` list fits the URL
  * budget. Cost per key is its percent-encoded length plus the `%2C` separator.
@@ -787,19 +794,30 @@ export class CodexService {
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
 
+    // PostgREST sends `.in(...)` in the GET query string — an unchunked list
+    // of thousands of class names (e.g. the whole-fleet rank cohort) blows
+    // past the URI limit and the request fails outright. Chunk to keep every
+    // request well under that limit, and log (never silently swallow) a
+    // chunk failure so callers can tell a partial result from a complete one.
+    const chunks = chunk(names, 200);
     await Promise.all(
-      (['weapon', 'component', 'item'] as CodexKind[]).map(async (kind) => {
-        const { data, error } = await this.sb.client
-          .from(CODEX_ENTITY_TABLES[kind])
-          .select('class_name, payload')
-          .eq('build_id', build.id)
-          .in('class_name', names);
-        if (error || !data) return;
-        for (const r of data as unknown as Record<string, unknown>[]) {
-          const cn = r['class_name'] as string;
-          if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
-        }
-      }),
+      (['weapon', 'component', 'item'] as CodexKind[]).flatMap((kind) =>
+        chunks.map(async (slice) => {
+          const { data, error } = await this.sb.client
+            .from(CODEX_ENTITY_TABLES[kind])
+            .select('class_name, payload')
+            .eq('build_id', build.id)
+            .in('class_name', slice);
+          if (error || !data) {
+            console.error('[codex] getEntityPayloads chunk failed', kind, error);
+            return;
+          }
+          for (const r of data as unknown as Record<string, unknown>[]) {
+            const cn = r['class_name'] as string;
+            if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
+          }
+        }),
+      ),
     );
     return out;
   }
@@ -816,15 +834,22 @@ export class CodexService {
     const build = await this.loadCurrentBuild();
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
-    const { data, error } = await this.sb.client
-      .from('codex_ammunition')
-      .select('class_name, payload')
-      .eq('build_id', build.id)
-      .in('class_name', names);
-    if (error || !data) return out;
-    for (const r of data as unknown as Record<string, unknown>[]) {
-      out.set(r['class_name'] as string, r['payload']);
-    }
+    await Promise.all(
+      chunk(names, 200).map(async (slice) => {
+        const { data, error } = await this.sb.client
+          .from('codex_ammunition')
+          .select('class_name, payload')
+          .eq('build_id', build.id)
+          .in('class_name', slice);
+        if (error || !data) {
+          console.error('[codex] getAmmoPayloads chunk failed', error);
+          return;
+        }
+        for (const r of data as unknown as Record<string, unknown>[]) {
+          out.set(r['class_name'] as string, r['payload']);
+        }
+      }),
+    );
     return out;
   }
 

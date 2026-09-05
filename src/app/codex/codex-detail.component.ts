@@ -107,7 +107,7 @@ import {
   findArmorPayload,
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
-import { CodexMissionBarComponent, DraftPersistMode } from './codex-mission-bar.component';
+import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, KpiStripCell } from './codex-kpi-sets';
 import { isPassiveShield } from './codex-power';
 import type { PowerSheet } from './codex-power';
@@ -678,9 +678,7 @@ interface GearRecipe {
               [active]="activeMissionId()"
               [capabilities]="shipCapabilities()"
               [changed]="draftChangedCount()"
-              [persistMode]="draftPersistMode()"
-              (missionChange)="setMission($event)"
-              (persistModeChange)="draftPersistMode.set($event)" />
+              (missionChange)="setMission($event)" />
             <sc-codex-loadout-save-bar
               class="draft-controls"
               [changed]="draftChangedCount()"
@@ -2001,7 +1999,6 @@ export class CodexDetailComponent implements OnInit {
    * UI choice for the NEXT edit; today's actual save path always writes to
    * the hangar explicitly via the draft bar's own button, this only pre-sets
    * which wording/expectation the idle controls show. */
-  readonly draftPersistMode = signal<DraftPersistMode>('session');
 
   private kindOfDraftClass(className: string): string {
     return (
@@ -2536,7 +2533,15 @@ export class CodexDetailComponent implements OnInit {
   private async loadRankCohort(): Promise<void> {
     this.rankCohortLoading.set(true);
     try {
-      this.rankCohort.set(await this.svc.getRankCohort());
+      const cohort = await this.svc.getRankCohort();
+      // A degenerate cohort (nothing resolved, or every sheet came back all
+      // null — the getEntityPayloads/getAmmoPayloads failure mode this card
+      // must never mask) would otherwise render a percentile against zero
+      // real occupants. Keep the honest gap state instead.
+      const hasRealSheet = cohort.some((ship) =>
+        Object.values(ship.sheet).some((v) => v !== null && v !== undefined),
+      );
+      this.rankCohort.set(cohort.length > 0 && hasRealSheet ? cohort : null);
     } catch {
       this.rankCohort.set(null); // honest gap state — never a fake cohort of one.
     } finally {
@@ -2955,6 +2960,7 @@ export class CodexDetailComponent implements OnInit {
         emptySwappable: !!fit || (overlay.state === 'changed' && overlay.className === null),
         draftState: overlay.state,
         draftPaths: draftEntry !== undefined ? [l.port] : [],
+        deltaPct: overlay.state === 'changed' ? this.headlineStatDeltaPct(item, overlay.item) : null,
         // Passive generator: desaturated, "nicht am Netz" (MASTER §6, B-C19).
         // `isPassiveShield` reads the resource block, so on a schema-2 build
         // (no `ItemResourceComponentParams`) every row honestly stays 'active'.
@@ -2989,6 +2995,25 @@ export class CodexDetailComponent implements OnInit {
   // the control module sat inside it (1add86a4). 32659942 moved the controller
   // into the airframe — every row in the block is a shield again, so the tag
   // has nothing left to disambiguate and is gone with it.
+
+  /**
+   * Percent change of the headline stat (`stats[0]`, same key on both sides)
+   * a changed slot causes versus its stock occupant — the module row's right
+   * figure carries this as a delta chip (MASTER §6). `null` when either side
+   * has no usable numeric headline stat, or the labels don't match (nothing
+   * to compare).
+   */
+  private headlineStatDeltaPct(
+    stockItem: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown },
+    draftItem: { kind: CodexKind | null; payload: unknown; ammoPayload: unknown },
+  ): number | null {
+    const from = equippedStats(stockItem)[0];
+    const to = equippedStats(draftItem)[0];
+    if (!from || !to || from.labelKey !== to.labelKey) return null;
+    if (from.value === 0 || !Number.isFinite(from.value) || !Number.isFinite(to.value)) return null;
+    const pct = Math.round(((to.value - from.value) / Math.abs(from.value)) * 100);
+    return pct === 0 ? null : pct;
+  }
 
   /** What a block can and cannot tell a pilot, said next to that block. */
   private sectionNotes(section: ShipModuleSection, slots: LayoutSlot[] = []): SectionNote[] {

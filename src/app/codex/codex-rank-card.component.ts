@@ -33,7 +33,13 @@ import {
       </h2>
       @if (result()) {
         <p class="cohort-line">
-          {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() ?? '—' } }}
+          @if (scope() === 'sizeClass' && sizeClass() != null) {
+            {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() } }}
+          } @else if (scope() === 'career') {
+            {{ 'codex.rank.nShipsOfCareer' | translate: { n: result()!.cohortSize } }}
+          } @else {
+            {{ 'codex.rank.nShips' | translate: { n: result()!.cohortSize } }}
+          }
         </p>
       } @else {
         <p class="cohort-line gap">{{ 'codex.kpi.gap' | translate }}</p>
@@ -62,13 +68,14 @@ import {
         <label class="scope-select">
           <span class="sr-only">{{ 'codex.rank.scopeLabel' | translate }}</span>
           <select [value]="scope()" (change)="onScopeChange($event)">
-            <option value="sizeClass" disabled [title]="'codex.rank.disabled.noData' | translate">
+            <option value="sizeClass" disabled>
               {{ 'codex.rank.scope.sizeClass' | translate }}
             </option>
             <option value="all">{{ 'codex.rank.scope.all' | translate }}</option>
             <option value="career">{{ 'codex.rank.scope.career' | translate }}</option>
           </select>
         </label>
+        <span class="scope-hint">{{ 'codex.rank.disabled.noSizeClass' | translate }}</span>
       </div>
 
       @if (loading()) {
@@ -154,6 +161,8 @@ import {
       background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .profile-chip:disabled { opacity: 0.45; cursor: not-allowed; }
     .scope-select { margin-left: auto; }
+    .scope-hint { flex-basis: 100%; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2); font-style: italic; }
     .scope-select select { padding: 5px 8px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
