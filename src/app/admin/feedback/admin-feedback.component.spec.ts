@@ -340,4 +340,25 @@ describe('AdminFeedbackComponent — the stream', () => {
     // The topic sheet still owns the reopen — the card only dropped the shortcut.
     expect(el.querySelector('.card.lead ~ .inline-actions')).toBeNull();
   });
+
+  // #518: nothing reads these any more. The panel is the only place that can
+  // reach them for an admin who never touches the consent settings — and the
+  // purge must not wait on consent (`preferencesAllowed` is false in mount()).
+  it('drops the retired localStorage keys on load, regardless of consent', async () => {
+    const retired = [
+      'sc.adminFeedback.view',
+      'sc.adminFeedback.handled',
+      'sc.adminFeedback.workflowScope',
+      'sc.adminFeedback.workflowKind',
+    ];
+    for (const key of retired) localStorage.setItem(key, 'stale');
+    localStorage.setItem('sc.adminFeedback.lastSeenDelivered', '123');
+
+    await mount(fixtureTables());
+
+    for (const key of retired) expect(localStorage.getItem(key)).toBeNull();
+    // the marker the Geliefert band still uses is not collateral damage
+    expect(localStorage.getItem('sc.adminFeedback.lastSeenDelivered')).not.toBeNull();
+  });
+
 });

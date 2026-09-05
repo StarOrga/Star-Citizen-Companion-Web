@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.79.2] - 2026-09-06
+
+### Changed
+
+- **Withdrawing the preferences consent now really clears what the app stored.**
+  Four keys from the retired admin-feedback surface — the view switch, the
+  run's tick-off map and its two lenses — stopped being read in the 2026-09-04
+  rethink but were never registered as preference keys, so they survived a
+  consent withdrawal and sat in the browser forever. The panel now drops them
+  on load, regardless of consent, and a decline clears them for anyone who
+  never opens the panel again. (#518)
+
 ## [0.79.1] - 2026-09-05
 
 ### Fixed
