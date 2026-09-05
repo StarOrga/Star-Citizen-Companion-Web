@@ -90,3 +90,32 @@ export function areaForUrl(url: string): FeedbackArea {
       return 'other';
   }
 }
+
+/**
+ * The inverse of {@link areaForUrl}: where "▸ Ansehen" on a delivered topic
+ * takes the admin (concept 2026-09-04, Geliefert band). The section's root is
+ * enough — the topic text says what to look at, the link only has to land in
+ * the right part of the app. `other` has no home and yields `null`, so the
+ * link is simply not drawn rather than sending anyone to the start page under
+ * a false label.
+ */
+export function areaRoute(area: FeedbackArea | null | undefined): string | null {
+  switch (area) {
+    case 'news':
+      return '/news';
+    case 'codex':
+      return '/codex';
+    case 'hangar':
+      return '/hangar';
+    case 'starscape':
+      return '/starscape';
+    case 'desktop':
+      return '/download';
+    case 'settings':
+      return '/settings';
+    case 'admin':
+      return '/admin';
+    default:
+      return null;
+  }
+}

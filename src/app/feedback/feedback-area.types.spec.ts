@@ -1,6 +1,7 @@
 import {
   FEEDBACK_AREAS,
   areaForUrl,
+  areaRoute,
   asFeedbackArea,
   feedbackAreaLabelKey,
   isFeedbackArea,
@@ -72,5 +73,30 @@ describe('feedback area narrowing', () => {
 
   it('derives a label key per area', () => {
     expect(feedbackAreaLabelKey('codex')).toBe('feedbackArea.codex');
+  });
+});
+
+describe('areaRoute (the "▸ Ansehen" deep link)', () => {
+  it('sends every real section to its root', () => {
+    expect(areaRoute('news')).toBe('/news');
+    expect(areaRoute('codex')).toBe('/codex');
+    expect(areaRoute('hangar')).toBe('/hangar');
+    expect(areaRoute('starscape')).toBe('/starscape');
+    expect(areaRoute('desktop')).toBe('/download');
+    expect(areaRoute('settings')).toBe('/settings');
+    expect(areaRoute('admin')).toBe('/admin');
+  });
+
+  it('draws no link for "other" or an untagged topic', () => {
+    expect(areaRoute('other')).toBeNull();
+    expect(areaRoute(null)).toBeNull();
+    expect(areaRoute(undefined)).toBeNull();
+  });
+
+  it('round-trips with areaForUrl for every routable area', () => {
+    for (const area of FEEDBACK_AREAS) {
+      const route = areaRoute(area);
+      if (route) expect(areaForUrl(route)).toBe(area);
+    }
   });
 });
