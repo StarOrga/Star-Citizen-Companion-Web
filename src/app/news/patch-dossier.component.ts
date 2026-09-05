@@ -23,10 +23,12 @@ import { matchNotesToCards } from './patch-match';
 import { PatchNoteDetailComponent } from './patch-note-detail.component';
 import { groupWaves, type PatchNoteEntry, type PatchWaveGroup } from './patch-notes';
 import { filterSections, outlineMatchCount, outlineSections } from './patch-outline';
-import { extractPrep } from './patch-prep';
-import { HighlightSegment, highlightSegments, matchesTokens, tokenizeQuery } from './patch-search';
+import { GENERAL_PREP_KEYS, extractPrep } from './patch-prep';
+import { PatchStabilityService } from './patch-stability.service';
+import { HighlightSegment, fuzzyTokens, highlightSegments, matchesFuzzy, tokenizeQuery } from './patch-search';
 import { stackCardFor, type StackCard } from './patch-stack';
-import { groupCardsByCategory, type RoadmapCard } from './roadmap';
+import { StabilityBadgeComponent } from './stability-badge.component';
+import { groupCardsByCategory, roadmapCardUrl, type RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 
@@ -101,7 +103,10 @@ const SPY_CLEARANCE_PX = 24;
 @Component({
   selector: 'sc-patch-dossier',
   standalone: true,
-  imports: [TranslateModule, RouterLink, PatchCycleComponent, PatchEntryRowComponent, PatchNoteDetailComponent],
+  imports: [
+    TranslateModule, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
+    PatchNoteDetailComponent, StabilityBadgeComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="scrim" (click)="onScrim($event)">
@@ -112,6 +117,11 @@ const SPY_CLEARANCE_PX = 24;
             <div class="hero-row">
               <span class="status" [attr.data-status]="c.status">{{ ('news.patch.status.' + c.status) | translate }}</span>
               <h2>{{ title() }}</h2>
+              <!-- Same corner, same picture as on the board card the reader
+                   just came from (owner, 2026-09-05). -->
+              @if (verdict(); as v) {
+                <span class="stab"><sc-stability-badge [verdict]="v" size="lg" /></span>
+              }
             </div>
             <p class="state">{{ stateLine() }}
               @if (sourceUrl(); as url) {
@@ -141,13 +151,19 @@ const SPY_CLEARANCE_PX = 24;
               @for (s of sections(); track s) { @switch (s) {
               @case ('prep') {
               <!-- ── How do I prepare? / on a superseded patch: what was
-                   there to watch out for? (heading via sectionKey) ──────── -->
-              @if (prep(); as p) {
-                <section id="pd-prep" class="sec" [class.wipe]="p.wipe">
-                  <h3>{{ sectionKey('prep') | translate }}
+                   there to watch out for? (heading via sectionKey)
+                   Unconditional since 2026-09-05: what RSI wrote about THIS
+                   build when it wrote anything, and under it the advice that
+                   holds for every patch — so the question is answered even on
+                   the notes that carry no build-info block at all. ─────── -->
+              <section id="pd-prep" class="sec" [class.flash]="flash() === 'prep'" [class.wipe]="prep()?.wipe">
+                <h3>{{ sectionKey('prep') | translate }}
+                  @if (prep(); as p) {
                     <small>{{ 'news.patch.prep.source' | translate }}</small>
                     @if (p.wipe) { <span class="wipe-tag">{{ 'news.patch.prep.wipe' | translate }}</span> }
-                  </h3>
+                  }
+                </h3>
+                @if (prep(); as p) {
                   @if (p.items.length > 0) {
                     <ul class="prep">
                       @for (item of p.items; track item.label) {
@@ -166,14 +182,22 @@ const SPY_CLEARANCE_PX = 24;
                     <h4>{{ 'news.patch.prep.known' | translate }} <span class="ct">{{ p.knownIssues.length }}</span></h4>
                     <ul class="lines">@for (l of p.knownIssues; track $index) { <li>{{ l }}</li> }</ul>
                   }
-                </section>
-              }
+                } @else {
+                  <p class="muted">{{ 'news.patch.prep.noBuildInfo' | translate }}</p>
+                }
+                <h4>{{ 'news.patch.prep.generalTitle' | translate }}</h4>
+                <ul class="lines">
+                  @for (key of generalKeys; track key) {
+                    <li>{{ ('news.patch.prep.generalItem.' + key) | translate }}</li>
+                  }
+                </ul>
+              </section>
               }
 
               @case ('contents') {
               <!-- ── What's in it? ─────────────────────────────────────── -->
               @if (hasContents()) {
-                <section id="pd-contents" class="sec">
+                <section id="pd-contents" class="sec" [class.flash]="flash() === 'contents'">
                   <h3>{{ sectionKey('contents') | translate }}
                     @if (c.release; as r) {
                       <span class="ct">{{ r.cards.length }}</span>
@@ -189,12 +213,23 @@ const SPY_CLEARANCE_PX = 24;
                     @for (group of categories(); track group.category) {
                       <h4>{{ group.category || ('news.patch.roadmap.uncategorized' | translate) }} <span class="ct">{{ group.cards.length }}</span></h4>
                       <ul class="cards">
-                        @for (item of group.cards; track item.id) {
-                          <li class="fc" [class.open]="isLong(item.id)">
-                            <div class="img" [class.ph]="!item.thumbnail">
+                        @for (item of group.cards; track item.id; let ci = $index) {
+                          <li class="fc" [class.open]="isLong(item.id)" [style.--in-delay]="ci * 45 + 'ms'">
+                            <!-- The picture goes to RSI's Release View entry
+                                 for exactly this card, which opens with its
+                                 panel already expanded (owner, 2026-09-05).
+                                 A real anchor, so middle click and "open in
+                                 new tab" work; without a usable id it stays an
+                                 <a> with no href, i.e. a plain picture. -->
+                            <a class="img" [class.ph]="!item.thumbnail"
+                               [attr.href]="cardUrl(item) || null"
+                               [attr.target]="cardUrl(item) ? '_blank' : null"
+                               [attr.rel]="cardUrl(item) ? 'noopener noreferrer' : null"
+                               [attr.aria-label]="cardUrl(item) ? ('news.patch.roadmap.openCard' | translate:{ name: item.name }) : null">
                               @if (item.thumbnail) { <img [src]="item.thumbnail" alt="" loading="lazy" decoding="async" /> }
                               <span class="st" [attr.data-status]="item.status">{{ ('news.patch.roadmap.status.' + item.status) | translate }}</span>
-                            </div>
+                              @if (cardUrl(item)) { <span class="go" aria-hidden="true">↗</span> }
+                            </a>
                             <div class="bd">
                               <span class="nm">
                                 @for (seg of mark(item.name); track $index) { @if (seg.hit) { <mark>{{ seg.text }}</mark> } @else { <span>{{ seg.text }}</span> } }
@@ -243,7 +278,7 @@ const SPY_CLEARANCE_PX = 24;
               <!-- ── Did they fix …? (the section a carried-in query
                    scrolls to, see focusOnQuery) ───────────────────────── -->
               @if (c.group; as g) {
-                <section id="pd-fixed" class="sec">
+                <section id="pd-fixed" class="sec" [class.flash]="flash() === 'fixed'">
                   <h3>{{ sectionKey('fixed') | translate }}</h3>
                   <div class="s-field">
                     <input type="search" class="s-input" autocomplete="off" spellcheck="false"
@@ -317,13 +352,22 @@ const SPY_CLEARANCE_PX = 24;
               <!-- ── When is the next one? / not out yet: when does THIS
                    one land? / superseded: what came next? (sectionKey) ─── -->
               @if (hasCycle()) {
-                <section id="pd-next" class="sec">
+                <section id="pd-next" class="sec" [class.flash]="flash() === 'next'">
                   <h3>{{ sectionKey('next') | translate }}</h3>
                   <sc-patch-cycle [card]="c" [groups]="svc.patchLines()" [now]="now()" />
                 </section>
               }
               }
               } }
+              <!-- Empty room at the bottom, so the LAST section can still be
+                   scrolled to the top of the panel when its heading is picked
+                   from the table of contents (owner, 2026-09-05: "ruhig unten
+                   leerbereich, so das man durch klick auf das
+                   inhaltsverzeichnis direkt oben den punkt immer hat"). Sized
+                   in viewport height because that is what "scrolled to the
+                   top" is measured against, and hidden from assistive tech —
+                   it is scroll room, not content. -->
+              <div class="tail" aria-hidden="true"></div>
             </div>
           </div>
         } @else {
@@ -355,6 +399,7 @@ const SPY_CLEARANCE_PX = 24;
     .hero[data-status='live'] { background: linear-gradient(160deg, color-mix(in srgb, var(--sc-success) 16%, var(--sc-bg-1)), var(--sc-bg-1) 60%); }
     .hero[data-status='next'], .hero[data-status='ptu'], .hero[data-status='evocati'] { background: linear-gradient(160deg, color-mix(in srgb, var(--sc-accent) 16%, var(--sc-bg-1)), var(--sc-bg-1) 60%); }
     .hero-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-right: 44px; }
+    .stab { margin-left: auto; }
     .hero h2 { margin: 0; font-size: 1.6rem; line-height: 1; }
     .close {
       position: absolute; right: 8px; top: 8px; display: inline-flex; align-items: center; justify-content: center;
@@ -379,6 +424,27 @@ const SPY_CLEARANCE_PX = 24;
     .col { min-width: 0; }
     .sec { padding: 16px 20px 18px; border-bottom: 1px solid var(--sc-border); scroll-margin-top: 96px; }
     .sec:last-child { border-bottom: 0; }
+    /* Sections fly in from the side as the dossier opens — the panel is a
+       document that assembles itself rather than one that is simply there. */
+    .sec { animation: pd-in 0.4s cubic-bezier(0.22, 0.9, 0.3, 1) both; }
+    .sec:nth-child(2) { animation-delay: 60ms; }
+    .sec:nth-child(3) { animation-delay: 120ms; }
+    .sec:nth-child(4) { animation-delay: 180ms; }
+    @keyframes pd-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    /* Picked from the table of contents: the section says "here I am" for a
+       moment, because a smooth scroll that lands on a heading among four
+       identical headings leaves the reader checking which one moved. */
+    .sec.flash { animation: pd-flash 1.25s ease-out; }
+    @keyframes pd-flash {
+      0% { background: color-mix(in srgb, var(--sc-accent) 22%, transparent); box-shadow: inset 0 0 0 1px var(--sc-accent), 0 0 26px -6px var(--sc-accent); }
+      60% { background: color-mix(in srgb, var(--sc-accent) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-accent) 45%, transparent), 0 0 14px -8px var(--sc-accent); }
+      100% { background: transparent; box-shadow: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .sec, .sec.flash, .fc { animation: none; }
+    }
+    /* Scroll room under the last section — see the template comment. */
+    .tail { height: 72vh; pointer-events: none; }
     .sec h3 {
       display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 10px;
       font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent);
@@ -419,10 +485,24 @@ const SPY_CLEARANCE_PX = 24;
        signed-in look: "zu wenig Bildfläche … etwas horizontaler". Two cards
        per row at dossier width, one on phones. */
     .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
-    .fc { display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr); border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; background: var(--sc-bg-1); }
+    .fc {
+      display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr);
+      border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; background: var(--sc-bg-1);
+      animation: pd-card-in 0.34s ease-out both; animation-delay: var(--in-delay, 0ms);
+    }
+    @keyframes pd-card-in { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: none; } }
     .fc.open { grid-column: 1 / -1; grid-template-columns: minmax(200px, 34%) minmax(0, 1fr); border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); }
-    .fc .img { position: relative; min-height: 150px; height: 100%; background: linear-gradient(135deg, var(--sc-bg-3), var(--sc-bg-0)); }
-    .fc .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .fc .img { position: relative; display: block; min-height: 150px; height: 100%; background: linear-gradient(135deg, var(--sc-bg-3), var(--sc-bg-0)); }
+    .fc .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
+    a.img[href]:hover img { transform: scale(1.04); }
+    a.img[href]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+    .fc .go {
+      position: absolute; right: 6px; bottom: 6px; display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 4px; font-size: 0.72rem;
+      background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent); color: var(--sc-accent);
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    a.img[href]:hover .go, a.img[href]:focus-visible .go { opacity: 1; }
     .fc .st { position: absolute; left: 8px; top: 8px; padding: 2px 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent); font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2); }
     .fc .st[data-status='released'] { color: var(--sc-success); }
     .fc .st[data-status='committed'] { color: var(--sc-accent); }
@@ -498,6 +578,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   private readonly locale = inject(LocaleService);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly stability = inject(PatchStabilityService);
 
   /** Route params, bound by the router. */
   readonly line = input.required<string>();
@@ -528,6 +609,10 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   });
   readonly allLong = signal(false);
   readonly notesOpen = signal(false);
+  /** The section that was just jumped to; cleared when its glow has run. */
+  readonly flash = signal<SectionId | null>(null);
+  private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  readonly generalKeys = GENERAL_PREP_KEYS;
   private readonly longOverride = signal<ReadonlyMap<string, boolean>>(new Map());
   private readonly entryOverride = signal<ReadonlyMap<string, boolean>>(new Map());
   readonly now = signal(Date.now());
@@ -559,6 +644,11 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   readonly sourceUrl = computed(() => this.currentEntry()?.item.url ?? null);
 
   readonly prep = computed(() => extractPrep(this.currentOutline()));
+  /** The line's stability, for the hero badge — only once it has shipped. */
+  readonly verdict = computed(() => {
+    const c = this.card();
+    return c && c.line && c.liveAt !== null ? this.stability.verdictFor(c.line) : null;
+  });
   readonly categories = computed(() => groupCardsByCategory(this.card()?.release?.cards ?? []));
   readonly matches = computed(() => matchNotesToCards(this.card()?.release?.cards ?? [], this.currentOutline()));
   readonly leftover = computed(() => this.matches().leftover);
@@ -580,7 +670,9 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   readonly sections = computed<SectionId[]>(() => {
     const c = this.card();
     const has: Record<SectionId, boolean> = {
-      prep: !!this.prep(),
+      // Always: the general advice below the patch-specific facts holds for
+      // every build, so this question is never unanswerable (2026-09-05).
+      prep: true,
       contents: this.hasContents(),
       fixed: !!c?.group,
       next: this.hasCycle(),
@@ -613,7 +705,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
       for (const section of filterSections(outlineSections(outline.nodes), tokens)) {
         for (const group of section.groups) {
           for (const node of group.nodes) {
-            if (!matchesTokens(node.text, tokens)) continue;
+            if (!matchesFuzzy(node.text, tokens)) continue;
             out.push({ entry, path: [section.heading, group.label].filter(Boolean).join(' › '), text: node.text });
           }
         }
@@ -656,6 +748,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (typeof document !== 'undefined') document.body.style.overflow = this.previousOverflow;
     clearInterval(this.clockTimer);
+    if (this.flashTimer !== null) clearTimeout(this.flashTimer);
     const panel = this.host.nativeElement.querySelector<HTMLElement>('.panel');
     if (panel && this.scrollListener) panel.removeEventListener('scroll', this.scrollListener);
   }
@@ -699,6 +792,24 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     this.chosen.set(id);
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.glow(id);
+  }
+
+  /**
+   * Light the jumped-to section for a moment. Re-triggering while a previous
+   * glow runs has to clear the class first — a CSS animation does not restart
+   * on an element that already carries it, so the second click on the same
+   * entry would do nothing visible.
+   */
+  private glow(id: SectionId): void {
+    if (this.flashTimer !== null) clearTimeout(this.flashTimer);
+    this.flash.set(null);
+    if (typeof requestAnimationFrame === 'undefined') {
+      this.flash.set(id);
+    } else {
+      requestAnimationFrame(() => this.flash.set(id));
+    }
+    this.flashTimer = setTimeout(() => this.flash.set(null), 1400);
   }
 
   /** Last section whose heading passed the reading line is the one being read. */
@@ -773,8 +884,16 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   slugOf(entry: PatchNoteEntry): string {
     return threadSlugOf(entry.item.url);
   }
+  /** Every spelling of the query — a British search still lights up American text. */
+  private readonly marks = computed(() => fuzzyTokens(this.tokens()));
+
   mark(text: string): HighlightSegment[] {
-    return highlightSegments(text, this.tokens());
+    return highlightSegments(text, this.marks());
+  }
+
+  /** RSI's own Release View entry for a roadmap card; '' when it has no id. */
+  cardUrl(item: RoadmapCard): string {
+    return roadmapCardUrl(item);
   }
   relTime(iso: string): string {
     return relativeTime(iso, this.now(), (k, p) => this.t.instant(k, p));

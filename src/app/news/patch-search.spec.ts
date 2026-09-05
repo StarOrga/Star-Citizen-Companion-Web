@@ -1,7 +1,10 @@
 import {
+  fuzzyTokens,
   highlightSegments,
+  matchesFuzzy,
   matchesTokens,
   normalizeSearchText,
+  spellingVariants,
   tokenizeQuery,
 } from './patch-search';
 
@@ -87,5 +90,56 @@ describe('highlightSegments', () => {
     for (const q of [['long'], ['4.9'], ['e'], ['long', 'live'], ['nope']]) {
       expect(joined(text, q)).toBe(text);
     }
+  });
+});
+
+describe('spelling variants — "amis und briten schreiben unterschiedlich"', () => {
+  it('expands the regular rules in both directions', () => {
+    expect(spellingVariants('armour')).toContain('armor');
+    expect(spellingVariants('armor')).toContain('armour');
+    expect(spellingVariants('stabilise')).toContain('stabilize');
+    expect(spellingVariants('optimization')).toContain('optimisation');
+    expect(spellingVariants('centre')).toContain('center');
+    expect(spellingVariants('defence')).toContain('defense');
+    expect(spellingVariants('catalogue')).toContain('catalog');
+    expect(spellingVariants('travelling')).toContain('traveling');
+  });
+
+  it('covers the irregular pairs no rule reaches', () => {
+    expect(spellingVariants('manoeuvre')).toContain('maneuver');
+    expect(spellingVariants('maneuver')).toContain('manoeuvre');
+    expect(spellingVariants('grey')).toContain('gray');
+  });
+
+  it('leaves short tokens alone — "or" must not become "our"', () => {
+    expect(spellingVariants('or')).toEqual(['or']);
+    expect(spellingVariants('4.9')).toEqual(['4.9']);
+  });
+
+  it('always keeps the typed token first', () => {
+    expect(spellingVariants('colour')[0]).toBe('colour');
+  });
+
+  it('matchesFuzzy accepts either spelling, and still ANDs across tokens', () => {
+    const text = 'Heavy Combat Armor with better maneuvering';
+    expect(matchesFuzzy(text, tokenizeQuery('armour'))).toBeTrue();
+    expect(matchesFuzzy(text, tokenizeQuery('armour combat'))).toBeTrue();
+    expect(matchesFuzzy(text, tokenizeQuery('armour orison'))).toBeFalse();
+    // The strict matcher is what fuzzy improves on — kept as the contrast.
+    expect(matchesTokens(text, tokenizeQuery('armour'))).toBeFalse();
+  });
+
+  it('fuzzyTokens flattens and de-duplicates the spellings for the highlighter', () => {
+    const marks = fuzzyTokens(tokenizeQuery('armour armor'));
+    expect(marks).toContain('armour');
+    expect(marks).toContain('armor');
+    expect(new Set(marks).size).toBe(marks.length);
+  });
+
+  it('highlighting a fuzzy hit still never loses or invents a character', () => {
+    const text = 'Heavy Combat Armor';
+    const segs = highlightSegments(text, fuzzyTokens(tokenizeQuery('armour')));
+    expect(segs.map((x) => x.text).join('')).toBe(text);
+    expect(segs.filter((x) => x.hit).map((x) => x.text)).toEqual(['Armor']);
   });
 });
