@@ -15,6 +15,9 @@ create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
 grant usage on schema cron to postgres;
+-- The DO block below reads cron.job directly; USAGE alone does not grant SELECT
+-- (Supabase's documented pg_cron + pg_net recipe pairs both grants).
+grant all privileges on all tables in schema cron to postgres;
 
 do $$
 begin
