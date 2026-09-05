@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { PatchNoteEntry } from './patch-notes';
+import { PatchNoteEntry, patchLineOf } from './patch-notes';
 import { PatchNoteDetailComponent } from './patch-note-detail.component';
+import { PatchStabilityService } from './patch-stability.service';
+import { StabilityChipComponent } from './stability-chip.component';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { outlineMatchCount } from './patch-outline';
 import { HighlightSegment, highlightSegments } from './patch-search';
@@ -26,7 +28,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
 @Component({
   selector: 'sc-patch-entry-row',
   standalone: true,
-  imports: [TranslateModule, PatchNoteDetailComponent],
+  imports: [TranslateModule, PatchNoteDetailComponent, StabilityChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="row" [class.open]="open()">
@@ -52,6 +54,9 @@ import { HighlightSegment, highlightSegments } from './patch-search';
             @if (!compact() && entry().hotfix) {
               <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
             }
+            @if (verdict(); as v) {
+              <sc-stability-chip [verdict]="v" />
+            }
             <time>{{ when() }}</time>
             <!-- How many lines INSIDE the note the query hits. Only shown once
                  the note's contents are actually loaded, so it can never
@@ -70,7 +75,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
       </a>
     </div>
     @if (open()) {
-      <sc-patch-note-detail [slug]="slug()" [url]="entry().item.url" [tokens]="tokens()" />
+      <sc-patch-note-detail [slug]="slug()" [url]="entry().item.url" [tokens]="tokens()" [verdict]="verdict()" />
     }
   `,
   styles: [`
@@ -129,6 +134,17 @@ import { HighlightSegment, highlightSegments } from './patch-search';
 })
 export class PatchEntryRowComponent {
   private readonly svc = inject(RoadmapService);
+  private readonly stability = inject(PatchStabilityService);
+
+  /**
+   * Only the LIVE release-notes row carries the verdict: it is the one row a
+   * reader identifies with "the patch". Hotfix threads and PTU waves stay bare.
+   */
+  readonly verdict = computed(() => {
+    const e = this.entry();
+    if (e.stage !== 'live' || e.hotfix || !e.version) return null;
+    return this.stability.verdictFor(patchLineOf(e.version));
+  });
 
   readonly entry = input.required<PatchNoteEntry>();
   /** Pre-rendered relative timestamp — the section owns the one ticking clock. */
