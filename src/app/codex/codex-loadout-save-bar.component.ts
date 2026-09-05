@@ -2,10 +2,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { TranslateModule } from '@ngx-translate/core';
 
 /**
- * The save/discard affordance for the codex ship-detail draft write path
- * (PR B). Split out of `codex-detail.component.ts` so that file's inline
- * styles stay under its 18kb budget (06-fallen.md notes it already sits at
- * ~17.9kb) — this is the only place new loadout-write CSS goes.
+ * The draft half of the mission bar's right side (MASTER §5) — shown ONLY
+ * while `changed() > 0`; the page swaps it in for `<sc-codex-mission-bar>`'s
+ * own idle controls (persistence select / Zurücksetzen / inert Übernehmen).
  *
  * R8: shows explicitly how many of the draft's changes are actually
  * persistable (`n von m`) — a restored-but-unsaveable draft entry must never
@@ -19,8 +18,12 @@ import { TranslateModule } from '@ngx-translate/core';
   template: `
     @if (changed() > 0) {
       <div class="bar sc-card">
-        <p class="summary">
-          {{ 'codex.loadout.changesSummary' | translate: { changed: changed(), saveable: saveable() } }}
+        <div class="lead">
+          <span class="label">{{ 'codex.detail.draftLabel' | translate }}</span>
+          <span class="chip">{{ (changed() === 1 ? 'codex.detail.draftChanged' : 'codex.detail.draftChangedPlural') | translate: { n: changed() } }}</span>
+        </div>
+        <p class="notice">
+          {{ 'codex.detail.draftNotice' | translate }}
           @if (saveable() < changed()) {
             <span class="hint">{{ 'codex.loadout.unsaveableHint' | translate }}</span>
           }
@@ -30,15 +33,15 @@ import { TranslateModule } from '@ngx-translate/core';
         }
         <div class="actions">
           <button type="button" class="discard" [disabled]="saving()" (click)="discard.emit()">
-            {{ 'codex.loadout.discard' | translate }}
+            {{ 'codex.detail.draftDiscard' | translate }}
           </button>
           @if (inHangar()) {
             <button type="button" class="save" [disabled]="saving() || saveable() === 0" (click)="save.emit()">
-              {{ (saving() ? 'codex.loadout.saving' : 'codex.loadout.save') | translate }}
+              {{ (saving() ? 'codex.loadout.saving' : 'codex.detail.draftApplyAndSave') | translate }}
             </button>
           } @else {
             <button type="button" class="save" [disabled]="saving() || saveable() === 0" (click)="addAndSave.emit()">
-              {{ (saving() ? 'codex.loadout.saving' : 'codex.loadout.addToHangarAndSave') | translate }}
+              {{ (saving() ? 'codex.loadout.saving' : 'codex.detail.draftApplyAndSave') | translate }}
             </button>
           }
         </div>
@@ -50,7 +53,10 @@ import { TranslateModule } from '@ngx-translate/core';
     .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
       gap: 10px; padding: 10px 14px; margin-bottom: 10px;
       border-color: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 45%, transparent); }
-    .summary { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+    .lead { display: flex; align-items: center; gap: 8px; flex: none; }
+    .label { font-family: var(--sc-font-display); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .chip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent-gold, #c8a84b) 22%, var(--sc-bg-2)); color: var(--sc-accent-gold, #c8a84b); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; }
+    .notice { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-0); flex: 1 1 auto; min-width: 180px; }
     .hint { display: block; margin-top: 2px; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .err { margin: 4px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger, #ff5252); }
     .actions { display: flex; gap: 8px; flex: 0 0 auto; }

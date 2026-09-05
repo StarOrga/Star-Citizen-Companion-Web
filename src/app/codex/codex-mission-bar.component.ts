@@ -2,12 +2,25 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { TranslateModule } from '@ngx-translate/core';
 import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from './codex-mission';
 
+export type DraftPersistMode = 'session' | 'hangar';
+
 /**
  * EINSATZ — the mission-profile chip row (04-rules-v2 §7.1: one row, never
  * wraps). Labels hide under 1240px so the icon-only chips still fit a phone
  * width; a mission the hull cannot fly renders disabled with the reason in
  * its `title` (no mining hardpoints / no cargo grid / no quantum drive / no
  * salvage hardpoints).
+ *
+ * The right side (MASTER §5) belongs to the loadout draft, in one of two
+ * mutually exclusive states the page picks by `changed()`:
+ *  - idle (`changed === 0`): a persistence-preference select for the NEXT
+ *    edit, plus `Zurücksetzen` (resets the mission lens back to `all` — the
+ *    only thing there IS to reset with no draft open) and a structurally
+ *    present but inert `Übernehmen` (nothing to apply yet).
+ *  - draft (`changed > 0`): the page swaps this bar out entirely for
+ *    `<sc-codex-loadout-save-bar>` (Entwurf label, changed-slots chip,
+ *    unsaved notice, Verwerfen/Übernehmen & in Hangar speichern) — see
+ *    `codex-detail.component.ts`'s `mission-draft-bar` wrapper.
  */
 @Component({
   selector: 'sc-codex-mission-bar',
@@ -38,6 +51,23 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
           }
         }
       </div>
+      @if (changed() === 0) {
+        <span class="idle-draft">
+          <label class="persist-select">
+            <span class="sr-only">{{ 'codex.detail.draftPersistLabel' | translate }}</span>
+            <select [value]="persistMode()" (change)="onPersistModeChange($event)">
+              <option value="session">{{ 'codex.detail.draftPersistSession' | translate }}</option>
+              <option value="hangar">{{ 'codex.detail.draftPersistHangar' | translate }}</option>
+            </select>
+          </label>
+          <button type="button" class="btn" [disabled]="active() === 'all'" (click)="missionChange.emit('all')">
+            {{ 'codex.detail.draftReset' | translate }}
+          </button>
+          <button type="button" class="btn gold" disabled>
+            {{ 'codex.detail.draftApply' | translate }}
+          </button>
+        </span>
+      }
     </div>
   `,
   styles: [`
@@ -78,6 +108,17 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
     .mission-chip.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .mission-chip:disabled { opacity: 0.45; cursor: not-allowed; }
     .chip-icon { font-size: 15px; }
+    .idle-draft { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+    .persist-select select {
+      padding: 6px 8px; border-radius: 6px; background: var(--sc-bg-0);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: 12px;
+    }
+    .idle-draft .btn {
+      padding: 7px 14px; border-radius: 6px; font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
+      cursor: pointer; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+    }
+    .idle-draft .btn.gold { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
+    .idle-draft .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     @media (max-width: 1240px) {
       .chip-label { display: none; }
       .mission-chip { padding: 8px 12px; }
@@ -87,7 +128,12 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 export class CodexMissionBarComponent {
   readonly active = input.required<MissionId>();
   readonly capabilities = input.required<ShipCapabilities>();
+  /** Slots the current loadout draft has touched — `0` selects the idle
+   * right-side controls, `> 0` tells the page to swap in the draft bar. */
+  readonly changed = input(0);
+  readonly persistMode = input<DraftPersistMode>('session');
   readonly missionChange = output<MissionId>();
+  readonly persistModeChange = output<DraftPersistMode>();
 
   readonly missions = MISSIONS;
 
@@ -98,5 +144,10 @@ export class CodexMissionBarComponent {
   select(id: MissionId): void {
     if (this.disabledReason(id)) return;
     this.missionChange.emit(id);
+  }
+
+  onPersistModeChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as DraftPersistMode;
+    this.persistModeChange.emit(value);
   }
 }
