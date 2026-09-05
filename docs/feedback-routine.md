@@ -1032,6 +1032,43 @@ checks that signal first: a continuation uses the continuation branch and does
 **not** treat the already-merged base PR as "done"; a first-time `open` item
 (`shipped_at IS NULL`) is unaffected.
 
+## The topic's title (`summary`)
+
+The board's card head used to show the first 96 characters of the body. For a
+topic that opens with a warm-up sentence that is worthless: *"Lass uns doch wann
+kommt der nächste Patch über die patch liste und suche machen und so ein bi…"*
+tells a reader nothing about what #200 wants, and the only way to find out is to
+open it (feedback `d08f1983`).
+
+No client-side truncation can fix that — picking the sentence that carries the
+ask is a reading job, not a string operation. The routine is the one reader that
+does it anyway: it reads the whole topic in step 2 before it can classify it. So
+**the routine writes the title**, in the same statement family as the claim:
+
+```sql
+update public.admin_feedback set summary='<one line>' where id='<id>';
+```
+
+Rules for that line (migration `20260906140000`, column capped at 120 chars):
+
+- **Say what the topic ASKS FOR, not what it is about.** "Karten-Titel aus einer
+  Zusammenfassung statt der ersten Body-Zeile" — not "Feedback zum Panel".
+- **One line, no markdown, no trailing period, ≤ ~90 characters.** The card head
+  renders ~96 and the topic sheet ~120; longer only gets cut again.
+- **The topic's own language** (the board is German), and the poster's own words
+  where they are the clearest ones. It is a restatement, never an interpretation
+  and never a verdict on the idea.
+- **Write it once, on the claim** — for a first-time item and for a reaped redo
+  that has none. Leave an existing summary alone unless a continuation genuinely
+  changed what the topic is about; re-titling a row the admin already recognises
+  is worse than a slightly stale title.
+
+`summary` is nullable and every reader falls back to the body-derived title
+(`displayTitle` in `feedback.types.ts`), so a topic the routine never claimed —
+and every row from before this column existed — keeps reading exactly as it did.
+It is admin-only, like `seq`: it is deliberately NOT in the author-facing
+`my_feedback` view, where the author sees their own words.
+
 ## Per-item procedure
 
 This runs **once per admitted batch item** — for a batch of one, inline; for a
@@ -1051,7 +1088,10 @@ For each admitted `open` row (process independently, most-recent context wins):
    runs safe; never process an item you did not successfully claim.
 2. **Understand.** Read `body` (markdown) **and the topic's thread** (all
    `admin_feedback_messages` for this id, oldest first — the admin may have
-   already answered a prior question). Then classify:
+   already answered a prior question). Having read it, **write the topic's title**
+   if it has none — `update admin_feedback set summary='<one line>' where
+   id=<id>` (see "The topic's title" above; that is the only moment anybody has
+   the whole topic in front of them). Then classify:
    - **Not shippable right now** — either apparent noise (spam, duplicate,
      empty/garbled) *or* it needs a human decision / clarification (product
      call, auth/RLS/privacy, a choice between options, or the body literally
@@ -1660,6 +1700,7 @@ news. The burst is suppressed under `prefers-reduced-motion: reduce`.
 | `triaged`        | routine release gate; `true` for every admin row, `false` on a fresh user topic and again after its author answered, until an admin releases it |
 | `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
 | `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
+| `summary`        | the routine's one-line title for the topic (migration `20260906140000`, ≤ 120 chars) — written on the claim, `null` until then; the board falls back to the body. **Admin-only**, not in `my_feedback` — see "The topic's title" |
 
 `public.routine_heartbeat` (see migration `20260730173500_routine_heartbeat.sql`)
 — one row per routine, overwritten in place; see "Liveness heartbeat" above:

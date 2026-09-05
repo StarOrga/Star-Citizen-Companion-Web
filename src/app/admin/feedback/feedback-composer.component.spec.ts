@@ -251,7 +251,7 @@ describe('FeedbackComposerComponent — Enter sends', () => {
       expect(cmp.draft()).toBe('1. first\n2. ');
     });
 
-    it('names the Ctrl/Cmd mapping in the hint under the field', async () => {
+    it('names the Ctrl/Cmd mapping in the send button tooltip', async () => {
       await setup('anything', false);
       expect(cmp.sendHintKey()).toBe('adminFeedback.compose.sendHintCtrl');
 
@@ -624,11 +624,14 @@ describe('FeedbackComposerComponent — attachments', () => {
     expect(input.getAttribute('accept')).toBeNull();
   });
 
-  it('names what may be attached in the hint under the field', async () => {
+  // The "what you may attach" hint under the field is gone (feedback d08f1983):
+  // the attachment row itself already shows a "+" tile and a capture tile, and
+  // pasting is universal. What may be attached is enforced by the picker's
+  // `accept` (covered by the test above) and by the refusal message below.
+
+  it('keeps the field free of an explainer line', async () => {
     await mount(false);
-    expect(cmp.attachHintKey()).toBe('adminFeedback.compose.attachHint');
-    fixture.componentRef.setInput('allowFiles', true);
-    expect(cmp.attachHintKey()).toBe('adminFeedback.compose.attachHintFiles');
+    expect(fixture.nativeElement.querySelector('.foot .hint')).toBeNull();
   });
 
   it('refuses a non-image with a sentence when files are not allowed', async () => {

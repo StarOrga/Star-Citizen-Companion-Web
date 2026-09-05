@@ -63,7 +63,7 @@ import {
   stationLabelKey,
   timeOf,
   topicNumber,
-  topicTitle,
+  displayTitle,
   turnLabelKey,
   turnOf,
   waitingSince,
@@ -383,7 +383,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 @if (topicNo(m); as no) {
                   <span class="topic-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
                 }
-                <span class="topic-title">{{ topicTitle(m.body, 96) }}</span>
+                <span class="topic-title">{{ cardTitle(m, 96) }}</span>
               </span>
               <span class="ch-meta">
                 <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: pos }"></ng-container>
@@ -437,11 +437,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   ▸ {{ 'adminFeedback.stream.view' | translate }}
                 </a>
               }
-              @if (m.ship_ref) {
-                <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-                  {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
-                </a>
-              }
+              <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             </div>
           }
 
@@ -575,15 +571,33 @@ type AvatarTone = 'adm' | 'col' | 'usr';
         }
       </ng-template>
 
+      <!-- The PR / issue behind a delivered topic. Looking up the diff is a
+           detail, not a decision, so it is an arrow parked on the right edge of
+           the row instead of a second labelled button competing with the ones
+           that do decide something (feedback d08f1983). Named on hover and for
+           screen readers, so it stays findable. -->
+      <ng-template #refLink let-m>
+        @if (m.ship_ref) {
+          @let refLabel = (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate;
+          <a
+            class="link-btn quiet ref"
+            [href]="m.ship_ref"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.title]="refLabel"
+            [attr.aria-label]="refLabel">↗</a>
+        }
+      </ng-template>
+
       <!-- REVIEW GATE — the work is done, the topic is not, until an admin
            looked at the result (migration 20260729130000). -->
       <ng-template #reviewGate let-m let-hot="hot">
         <section class="review-gate sc-nest sc-nest--rule">
-          <div class="rg-head">
-            <span class="rg-title">
-              {{ (m.status === 'issue_created' ? 'adminFeedback.review.headlineIssue' : 'adminFeedback.review.headlineShipped') | translate }}
-            </span>
-          </div>
+          <!-- No headline (feedback d08f1983): the row right above this box
+               already says "Abnahme steht aus" on the flight path, with its own
+               status mark. Repeating "Geshipped — bitte abnehmen" underneath it
+               said the same thing a second time and pushed the two buttons that
+               actually decide something further down. -->
           @if (!embedded()) {
             <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
           }
@@ -591,11 +605,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             @if (areaLink(m); as href) {
               <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
             }
-            @if (m.ship_ref) {
-              <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-                {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
-              </a>
-            }
+            <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
           </div>
           @if (reopeningFor() === reopenKey(m.id, hot)) {
             <!-- The steer goes into the thread FIRST, the reopen follows once
@@ -636,11 +646,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       @if (openRow(); as m) {
         @let oturn = turnOf(m);
         @let opos = positionOf(m);
-        <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="topicTitle(m.body, 96)" [attr.inert]="declineTopicRow() ? '' : null">
+        <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="cardTitle(m, 96)" [attr.inert]="declineTopicRow() ? '' : null">
           <header class="sh-head">
             <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate">←</button>
             @if (topicNo(m); as no) { <span class="topic-no">#{{ no }}</span> }
-            <span class="sh-title">{{ topicTitle(m.body, 120) }}</span>
+            <span class="sh-title">{{ cardTitle(m, 120) }}</span>
             <button
               type="button"
               class="sh-btn"
@@ -988,6 +998,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .card-links, .inline-actions, .rg-actions, .rg-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .link-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
     .link-btn.quiet { border-color: var(--sc-border); color: var(--sc-fg-1); }
+    /* The PR / issue arrow sits on the far right of its row and stays quiet
+       until you look for it (feedback d08f1983). */
+    .link-btn.ref { margin-left: auto; min-width: 36px; justify-content: center; padding: 0 8px; border-color: transparent; color: var(--sc-fg-2); font-size: 1rem; }
+    .link-btn.ref:hover { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .link-btn:hover { background: rgba(0, 212, 255, 0.08); }
     .card-inline { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid var(--sc-border); }
 
@@ -1038,7 +1052,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .proc-note { margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .reopen-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .review-gate { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--sc-border); border-left: 3px solid var(--sc-accent); border-radius: 8px; }
-    .rg-title { font-weight: 600; font-size: max(0.84rem, var(--sc-fs-floor)); }
     .author-channel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-accent); border-radius: 8px; }
     .ac-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .ac-title { font-weight: 700; font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-accent); }
@@ -1717,9 +1730,16 @@ export class AdminFeedbackComponent implements OnInit {
       ?? this.translate.instant('adminFeedback.unknownUser');
   }
 
-  topicTitle(body: string, max?: number): string {
-    return topicTitle(body, max);
+  /**
+   * What a row is CALLED in the UI: the routine's one-line summary when it has
+   * written one, the body-derived title otherwise (feedback d08f1983). Every
+   * head goes through here so a summarised topic and an unsummarised one are
+   * never titled by two different rules.
+   */
+  cardTitle(m: FeedbackRow, max?: number): string {
+    return displayTitle(m, max);
   }
+
 
   topicNo(m: FeedbackRow): number | null {
     return topicNumber(m);
@@ -1763,7 +1783,7 @@ export class AdminFeedbackComponent implements OnInit {
       .from('admin_feedback')
       // `author.role` colours the avatar; admins may read every profile
       // (policy profiles_admin_read_all), so no projection is needed.
-      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, author:profiles(display_name, username, role)')
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, summary, author:profiles(display_name, username, role)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);

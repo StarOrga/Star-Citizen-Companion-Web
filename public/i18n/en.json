@@ -2608,13 +2608,11 @@
       "draftDiscard": "Discard draft",
       "draftDiscardConfirm": "Discard for good?",
       "attachNotCached": "Image could not be cached – it will be lost on reload but is still sent along.",
-      "attachHint": "Add images by pasting (Ctrl+V), dropping them, or capturing this page",
       "attachmentsLabel": "Attachments",
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
       "uploadError": "Image upload failed. Please try again.",
-      "attachHintFiles": "Add images or files by pasting (Ctrl+V), dropping them, or capturing this page",
       "captureError": "Could not capture a screenshot of this page.",
       "imagesOnly": "Only images can be attached here.",
       "fileTooLarge": "File too large – {{max}} MB per attachment at most.",
@@ -2737,8 +2735,6 @@
       }
     },
     "review": {
-      "headlineShipped": "Shipped — please sign off",
-      "headlineIssue": "Handed to an issue — please sign off",
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
       "accept": "To the archive — done",
       "reopen": "Resume the conversation",

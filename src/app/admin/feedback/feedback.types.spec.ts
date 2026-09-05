@@ -36,6 +36,7 @@ import {
   startOfMonth,
   startOfWeek,
   topicNumber,
+  displayTitle,
   topicTitle,
   workflowFocusIndex,
   workflowScopeCounts,
@@ -96,6 +97,39 @@ describe('topicTitle', () => {
     const title = topicTitle('x'.repeat(200), 20);
     expect(title.length).toBeLessThanOrEqual(20);
     expect(title.endsWith('…')).toBeTrue();
+  });
+});
+
+/**
+ * The card head asks `displayTitle`, never `topicTitle`, so a topic the routine
+ * summarised reads as its summary and one it has not yet touched keeps reading
+ * exactly as before (feedback d08f1983).
+ */
+describe('displayTitle', () => {
+  it('prefers the summary the routine wrote over the body', () => {
+    const r = row('t1', 'open', '2026-09-05T10:00:00Z', {
+      body: 'Lass uns doch mal schauen, ob wir da nicht was machen. Titel kommt spaeter.',
+      summary: 'Karten-Titel: Zusammenfassung statt Body-Anfang',
+    });
+    expect(displayTitle(r, 96)).toBe('Karten-Titel: Zusammenfassung statt Body-Anfang');
+  });
+
+  it('falls back to the body title when nothing summarised the topic', () => {
+    const r = row('t2', 'open', '2026-09-05T10:00:00Z', { body: '**Fix** the `panel`. And more.' });
+    expect(displayTitle(r, 96)).toBe('Fix the panel.');
+    expect(displayTitle({ ...r, summary: null }, 96)).toBe('Fix the panel.');
+    expect(displayTitle({ ...r, summary: '   ' }, 96)).toBe('Fix the panel.');
+  });
+
+  it('strips markup out of a summary and caps it like any other title', () => {
+    const r = row('t3', 'open', '2026-09-05T10:00:00Z', {
+      body: 'irrelevant',
+      summary: `**${'y'.repeat(200)}**`,
+    });
+    const title = displayTitle(r, 20);
+    expect(title.length).toBeLessThanOrEqual(20);
+    expect(title.endsWith('…')).toBeTrue();
+    expect(title.startsWith('*')).toBeFalse();
   });
 });
 

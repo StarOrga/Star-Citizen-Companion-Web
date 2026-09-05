@@ -254,16 +254,19 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
         (capture)="captureScreenshot()"
         (annotate)="onAnnotated($event)" />
 
+      <!-- No explainer line under the field (feedback d08f1983): pasting an
+           image and Enter-vs-Shift-Enter are conventions anybody who writes in a
+           text box already knows, and this board is mostly text boxes. The one
+           part that is NOT universal — WHICH key sends, because that is a
+           setting — rides along as the send button's tooltip instead of a
+           permanent two-line paragraph. -->
       <div class="foot">
-        <span class="hint">
-          {{ sendHintKey() | translate }}
-          · {{ attachHintKey() | translate }}
-        </span>
         <button
           class="sc-btn"
           [class.sc-btn-primary]="!compact()"
           [class.micro]="compact()"
           [class.hot]="primaryHot()"
+          [attr.title]="sendHintKey() | translate"
           (click)="submit()"
           [disabled]="!canSend()">
           {{ sendLabel() | translate }}
@@ -375,9 +378,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
        are rendered by sc-feedback-attachments — the same chip the thread uses,
        so the composer carries no size of its own. */
 
-    .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .foot .hint { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .composer.compact .foot .hint { display: none; }
+    .foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
 
     @media (max-width: 720px) {
@@ -497,14 +498,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     return entry.dirty ? 'adminFeedback.compose.draftSaving' : 'adminFeedback.compose.draftSaved';
   });
 
-  /** Attachment hint — names what this role may actually attach. */
-  readonly attachHintKey = computed(() =>
-    this.allowFiles()
-      ? 'adminFeedback.compose.attachHintFiles'
-      : 'adminFeedback.compose.attachHint',
-  );
-
-  /** Hint under the field — must name the mapping the user actually has. */
+  /** Send-key tooltip — must name the mapping the user actually has. */
   readonly sendHintKey = computed(() =>
     this.composerPrefs.sendOnEnter()
       ? 'adminFeedback.compose.sendHint'
