@@ -3236,6 +3236,14 @@
       "rejected": "Rejected",
       "loop": "Follow-up",
       "pathLabel": "Status: {{station}}",
+      "step": {
+        "contract": "Filed \u00b7 release pending",
+        "doing": "Handed over for implementation",
+        "recycle": "Question \u00b7 going round once more",
+        "rejected": "Rejected \u00b7 not being built",
+        "delivered": "Delivered \u00b7 sign-off pending",
+        "accepted": "Signed off \u00b7 done"
+      },
       "answered": "Answered · waiting for the routine"
     },
     "kind": {
