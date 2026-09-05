@@ -63,6 +63,10 @@ export class PatchStabilityService {
     return this.verdicts().get(line) ?? null;
   }
 
+  patchRowFor(line: string): StabilityPatchRow | null {
+    return this.patches().find((p) => p.patch_line === line) ?? null;
+  }
+
   /** Load once; concurrent callers share the same request. */
   load(): Promise<void> {
     if (this.loaded()) return Promise.resolve();
