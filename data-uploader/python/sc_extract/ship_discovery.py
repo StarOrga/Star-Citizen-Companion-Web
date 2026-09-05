@@ -281,6 +281,13 @@ class ShipDiscovery:
         caller supplies the hull path (already resolved during projection) and
         gets plain catalog dicts back. ``has_material`` flags which paints could
         additionally be built into a textured 3D glb later.
+
+        ``has_material`` is the ONLY thing the build manifest gates on, so it has
+        to mean what :meth:`discover` will actually do (#512). It used to read
+        ``std_mtl or hull_cga`` for the factory finish, which is true for any ref
+        that got this far — so every entity with a hull under the ships root
+        entered the manifest, wrecks and salvageable debris included. A catalog
+        build then ran 11 h over 309 ships and produced glbs for 21.
         """
         mtls = self._ship_mtls(ref)
         icons = self.find_paint_icons(ref)
@@ -294,7 +301,11 @@ class ShipDiscovery:
             "description": "Factory-standard finish.",
             "source": "factory",
             "name_verified": False,
-            "has_material": bool(std_mtl or hull_cga),
+            # Mirrors discover(): the standard paint exists only when a base
+            # .mtl resolves. find_base_mtl() falls back all the way to the
+            # shortest candidate, so None here means the ref has NO materials at
+            # all — nothing for the exporter to texture, whatever the hull says.
+            "has_material": bool(std_mtl),
             "icon": None,
         })
         for tok, icon in sorted(icons.items()):

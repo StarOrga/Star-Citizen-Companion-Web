@@ -366,6 +366,9 @@ class CodexExtractor:
         # skins/_build_manifest.json so the build step is driven by the extract
         # instead of manual ship input.
         self._skin_build_refs: List[Dict[str, str]] = []
+        # Refs with a hull but no resolvable material — the over-approximation
+        # that used to enter the manifest and export nothing (#512).
+        self._skin_build_rejected: int = 0
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
@@ -1154,11 +1157,16 @@ class CodexExtractor:
             self.on_log("warn", f"skin catalog for {class_name}: {type(exc).__name__}: {exc}")
             return []
         # Record ships with a buildable (material-backed) paint for the glb build.
+        # "Material-backed" is the same rule discover() applies, not "has a hull"
+        # — see ShipDiscovery.catalog (#512).
         if any(c.get("has_material") for c in cat):
             self._skin_build_refs.append({
                 "ship_id": ref.ship_id, "mfr": ref.mfr,
                 "ship": ref.ship, "series_token": ref.series_token,
             })
+        else:
+            # Counted, not logged per ship: a full catalog run rejects hundreds.
+            self._skin_build_rejected += 1
         return cat
 
     def _write_skin_build_manifest(self) -> None:
@@ -1172,6 +1180,10 @@ class CodexExtractor:
             encoding="utf-8")
         self.on_log("info", f"skin build manifest: {len(self._skin_build_refs)} "
                             f"ship(s) with buildable liveries")
+        if self._skin_build_rejected:
+            self.on_log("info", f"skin build manifest: {self._skin_build_rejected} "
+                                f"ref(s) skipped — hull but no resolvable material "
+                                f"(wrecks, debris, non-liveried entities)")
 
     # ── typed projections ──────────────────────────────────────────────────────
     # Leaf field names that carry a localization @-key for name/description.
