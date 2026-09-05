@@ -115,3 +115,7 @@ The answer is appended below when given.
 ## Corridor-widening answer
 
 2026-09-05: **both extras in** (user answer "Beides rein"). The corridor is widened to (a) the viewer panel: "Im App ansehen" deep link on shipped topics + the screenshot button in the shared composer, and (b) the feedback-routine prompt + panel: the [[A|B]] one-tap answer-options convention. Both land in PR 4, after the core.
+
+## Implemented
+
+2026-09-05: direction E implemented on branch `claude/feedback-panel-ux-rethink-6459f0` (commits cbfb764 … 23d0d39, concept close-out d8235b0). Final report: docs/concepts/2026-09-04-feedback-panel-innenleben.html (Abschlussbericht tab). Not pushed — /ship is the admin's call after the signed-in walk-through.
