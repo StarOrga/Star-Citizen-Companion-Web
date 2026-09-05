@@ -1454,16 +1454,17 @@
       },
       "next": {
         "sentenceLive": "Next live patch expected around {{date}} — {{when}}.",
-        "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}}.",
+        "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}} after {{days}} days — the usual is {{median}} days.",
         "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
         "disclaimer": "Median estimates from the patch cadence, not official dates.",
         "point": {
           "prevLive": "Live {{version}}",
           "firstTest": "PTU start {{version}}",
           "live": "Live {{version}}",
-          "hotfix": "Hotfix",
+          "hotfix": "Hotfix ×{{n}}",
           "now": "today",
-          "nextLive": "Next live {{version}}"
+          "nextLive": "Live {{version}}",
+          "usual": "usual"
         },
         "span": {
           "leadTime": "Test → Live: {{days}} days",
@@ -1471,7 +1472,28 @@
           "subCadence": "Hotfix cadence: {{days}} days"
         },
         "median": "Median {{n}} d · n = {{samples}}",
-        "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)"
+        "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)",
+        "status": {
+          "live": "Alpha {{line}} has been live for {{days}} days — the usual is {{median}} days until the next one.",
+          "testing": "Alpha {{line}} has been in testing for {{days}} days — the usual is {{median}} days until Live.",
+          "onTrack": "CIG is on rhythm.",
+          "over": "CIG is {{n}} days past the usual rhythm."
+        },
+        "legend": {
+          "real": "evidenced",
+          "usual": "usual rhythm (median)",
+          "over": "past the rhythm"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} days",
+          "cadence": "Previous cycle Live → Live: {{days}} days",
+          "usual": "usual {{median}} d (n = {{n}})",
+          "later": "{{n}} d later than usual",
+          "earlier": "{{n}} d earlier than usual",
+          "onTrack": "on rhythm",
+          "hotfix": "{{n}} hotfix since Live",
+          "hotfixLast": "latest on {{date}}"
+        }
       }
     },
     "detail": {

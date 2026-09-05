@@ -26,57 +26,73 @@ const FEED: VerseNewsItem[] = [
 ];
 const NOW = Date.parse('2026-09-04T12:00:00Z');
 
-describe('buildPatchCycle — the three cadence figures as spans on one axis', () => {
+describe('buildPatchCycle — real and usual measure the same stretch from the same anchor', () => {
   const groups = groupPatchNotes(FEED);
 
-  it('lays the live line out from the previous live to the projected next, with today on it', () => {
+  it('anchors the live line on its Live release: usual = median cadence, real = so far', () => {
     const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
-    const keys = cycle.points.map((p) => p.key);
-    expect(keys).toEqual(['prevLive', 'firstTest', 'live', 'hotfix', 'now', 'nextLive']);
-    expect(cycle.points[0].version).toBe('4.9');
-    expect(cycle.points.find((p) => p.key === 'nextLive')?.estimated).toBeTrue();
-    expect(cycle.startMs).toBe(Date.parse('2026-07-09T00:00:00Z'));
-    // Monotonic along the axis, within 0..100.
+    const main = cycle.main!;
+    expect(main.key).toBe('cadence');
+    const live = cycle.points.find((p) => p.key === 'live')!;
+    expect(main.fromPct).toBe(live.pct);
+    expect(main.realPct).toBe(cycle.points.find((p) => p.key === 'now')!.pct);
+    expect(main.usualPct).toBe(cycle.points.find((p) => p.key === 'usual')!.pct);
+    expect(main.realDays).toBe(9); // 27 Aug 00:00 → 4 Sep 12:00, rounded
+    expect(main.finished).toBeFalse();
+    expect(main.deltaDays).toBeLessThan(0); // well inside the usual cycle
+    expect(cycle.daysToNext).toBeGreaterThan(0);
+    expect(cycle.points.some((p) => p.key === 'nextLive')).toBeFalse();
+  });
+
+  it('lays the test phase out retrospectively against the median lead time', () => {
+    const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
+    const lead = cycle.lead!;
+    expect(lead.realDays).toBe(24); // 3 Aug → 27 Aug
+    expect(lead.samples).toBe(3);
+    expect(lead.finished).toBeTrue();
+    expect(lead.fromPct).toBe(cycle.points.find((p) => p.key === 'firstTest')!.pct);
+    expect(lead.realPct).toBe(cycle.points.find((p) => p.key === 'live')!.pct);
+    expect(lead.deltaDays).toBe(24 - Math.round(lead.medianDays));
+    expect(cycle.previousCycle!.days).toBe(49); // 9 Jul → 27 Aug
+  });
+
+  it('collapses hotfixes to one counted marker after Live', () => {
+    const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
+    const hot = cycle.points.filter((p) => p.key === 'hotfix');
+    expect(hot.length).toBe(1);
+    expect(hot[0].count).toBe(1);
+    expect(cycle.hotfixes).toEqual({ count: 1, lastAt: Date.parse('2026-09-03T00:00:00Z') });
+  });
+
+  it('keeps the axis monotonic and within 0..100', () => {
+    const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
     const pcts = cycle.points.map((p) => p.pct);
     expect([...pcts].sort((a, b) => a - b)).toEqual(pcts);
     expect(pcts[0]).toBe(0);
-    expect(pcts[pcts.length - 1]).toBe(100);
+    expect(Math.max(...pcts)).toBe(100);
   });
 
-  it('measures the spans on the same axis and pairs them with the feed median', () => {
-    const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
-    const lead = cycle.spans.find((s) => s.key === 'leadTime')!;
-    expect(lead.days).toBe(24); // 3 Aug → 27 Aug
-    expect(lead.samples).toBe(3);
-    const cadence = cycle.spans.find((s) => s.key === 'cadence')!;
-    expect(cadence.days).toBe(49); // 9 Jul → 27 Aug
-    expect(cadence.medianDays).not.toBeNull();
-    const sub = cycle.spans.find((s) => s.key === 'subCadence')!;
-    expect(sub.days).toBe(7);
-    expect(lead.fromPct).toBeGreaterThanOrEqual(cadence.fromPct);
-    expect(lead.toPct).toBe(cadence.toPct);
-  });
-
-  it('splits the axis into a real bar (start → today) and an expected bar (live → next)', () => {
-    const cycle = buildPatchCycle(stackCardFor('4.10', groups, null)!, groups, NOW)!;
-    expect(cycle.real.fromPct).toBe(0);
-    expect(cycle.real.toPct).toBe(cycle.points.find((p) => p.key === 'now')!.pct);
-    expect(cycle.expected).not.toBeNull();
-    expect(cycle.expected!.fromPct).toBe(cycle.points.find((p) => p.key === 'live')!.pct);
-    expect(cycle.expected!.toPct).toBe(100);
-    expect(cycle.daysToNext).toBeGreaterThan(0);
-  });
-
-  it('uses the actual successor for a superseded line and projects nothing', () => {
+  it('a superseded line is a finished stretch that ends on its actual successor', () => {
     const cycle = buildPatchCycle(stackCardFor('4.9', groups, null)!, groups, NOW)!;
+    const main = cycle.main!;
+    expect(main.finished).toBeTrue();
+    expect(main.realDays).toBe(49); // 9 Jul → 27 Aug
     const next = cycle.points.find((p) => p.key === 'nextLive')!;
-    expect(next.estimated).toBeFalse();
     expect(next.version).toBe('4.10');
-    expect(next.at).toBe(Date.parse('2026-08-27T00:00:00Z'));
-    expect(cycle.expected).toBeNull();
+    expect(main.realPct).toBe(next.pct);
     expect(cycle.daysToNext).toBeNull();
-    // Today lies past the end of a finished cycle, so it is not a point on it.
     expect(cycle.points.some((p) => p.key === 'now')).toBeFalse();
+    expect(cycle.points.some((p) => p.key === 'usual')).toBeFalse();
+  });
+
+  it('a line still in testing anchors on its first test build against the lead-time median', () => {
+    const feed = [...FEED, patch('p411', '[Wave 1] Star Citizen Alpha 4.11 PTU Patch Notes 12600000', '2026-09-01T00:00:00Z')];
+    const g = groupPatchNotes(feed);
+    const cycle = buildPatchCycle(stackCardFor('4.11', g, null)!, g, NOW)!;
+    expect(cycle.main!.key).toBe('leadTime');
+    expect(cycle.main!.realDays).toBe(4);
+    expect(cycle.lead).toBeNull();
+    expect(cycle.points.map((p) => p.key)).toEqual(['prevLive', 'firstTest', 'now', 'usual']);
   });
 
   it('is null when there is nothing to anchor an axis on', () => {

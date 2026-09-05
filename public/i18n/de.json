@@ -1454,16 +1454,17 @@
       },
       "next": {
         "sentenceLive": "Nächster Live-Patch voraussichtlich um den {{date}} — {{when}}.",
-        "sentenceHistory": "Alpha {{line}} wurde am {{date}} von Alpha {{next}} abgelöst.",
+        "sentenceHistory": "Alpha {{line}} wurde am {{date}} nach {{days}} Tagen von Alpha {{next}} abgelöst — üblich sind {{median}} Tage.",
         "sentencePlanned": "Alpha {{line}} laut Takt voraussichtlich um den {{date}} live — {{when}}.",
         "disclaimer": "Median-Schätzungen aus dem Patch-Takt, keine offiziellen Termine.",
         "point": {
           "prevLive": "Live {{version}}",
           "firstTest": "PTU-Start {{version}}",
           "live": "Live {{version}}",
-          "hotfix": "Hotfix",
+          "hotfix": "Hotfix ×{{n}}",
           "now": "heute",
-          "nextLive": "Nächster Live {{version}}"
+          "nextLive": "Live {{version}}",
+          "usual": "üblich"
         },
         "span": {
           "leadTime": "Test → Live: {{days}} Tage",
@@ -1471,7 +1472,28 @@
           "subCadence": "Hotfix-Takt: {{days}} Tage"
         },
         "median": "Median {{n}} T · n = {{samples}}",
-        "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)"
+        "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)",
+        "status": {
+          "live": "Alpha {{line}} ist seit {{days}} Tagen live — üblich sind {{median}} Tage bis zum nächsten.",
+          "testing": "Alpha {{line}} ist seit {{days}} Tagen im Test — üblich sind {{median}} Tage bis Live.",
+          "onTrack": "CIG liegt im Takt.",
+          "over": "CIG liegt {{n}} Tage über dem üblichen Takt."
+        },
+        "legend": {
+          "real": "belegt",
+          "usual": "üblicher Takt (Median)",
+          "over": "über dem Takt"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} Tage",
+          "cadence": "Voriger Zyklus Live → Live: {{days}} Tage",
+          "usual": "üblich {{median}} T (n = {{n}})",
+          "later": "{{n}} T später als üblich",
+          "earlier": "{{n}} T früher als üblich",
+          "onTrack": "im Takt",
+          "hotfix": "{{n}} Hotfix seit Live",
+          "hotfixLast": "letzter am {{date}}"
+        }
       }
     },
     "detail": {

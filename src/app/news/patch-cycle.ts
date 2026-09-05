@@ -1,31 +1,38 @@
 import type { PatchLineGroup } from './patch-notes';
-import { computePatchForecast, computePatchStats, liveReleaseAt } from './patch-stats';
-import type { PatchKpiKey } from './patch-stats';
+import { computePatchStats, liveReleaseAt } from './patch-stats';
 import { previousLiveAt, type StackCard } from './patch-stack';
 
 /**
  * "Wann kommt der nächste?" as ONE cycle on ONE axis (2026-09-04 rethink,
- * iteration 4).
+ * iteration 4; anchor logic corrected 2026-09-05 after the PO + designer
+ * review).
  *
- * The three cadence figures — days from the first test build to Live, days
- * between two Live releases, the sub-patch rhythm — used to be three bar
- * charts next to each other, and the owner's verdict was that they "stand
- * there unrelated". They are related: they are three stretches of the same
- * timeline. So this module lays the patch's cycle out on a single axis —
+ * The first cut hung "real" and "expected" one after the other on the axis —
+ * two stretches of time, not two measurements of the same thing — and the
+ * owner could not read how the real situation stood to the expected one.
+ * The corrected picture: **both bars start at the same anchor and measure
+ * the same stretch.**
  *
- *   previous Live → first test build → Live → hotfix ticks → today → next Live
+ *   anchor        = this patch's Live release (or, while it is still in a
+ *                   test ring, its first test build)
+ *   expected      = anchor + the median of that stretch across the feed
+ *                   (muted, taller, behind) — ends at the "usual" marker
+ *   real          = anchor → today, or → the actual event that ended the
+ *                   stretch (active colour, thinner, in front)
+ *   overshoot     = the part of real that runs past the usual marker — the
+ *                   deviation, coloured as a warning; a finished stretch that
+ *                   ended early leaves the expected bar sticking out instead
  *
- * — and expresses each figure as a SPAN on that axis with its median next to
- * it. The estimated part (today → next Live) is a separate, muted "expected"
- * bar behind the real one, per the owner's last note: "zwei Balken, einer mit
- * gedämpften Farben im Hintergrund etwas größer für die erwartete Situation,
- * der andere darüber mit aktiven Farben (reale Situation)".
+ * The same construction is applied retrospectively to the test phase (first
+ * test build → Live against the median lead time), so the axis also answers
+ * "how did THIS patch compare to the usual rhythm". Hotfixes collapse to one
+ * labelled marker with a count; their cadence lives in the folded charts.
  *
- * Pure: derives everything from the grouped notes, the KPI/forecast helpers
- * and the clock. Percentages are positions on the axis (0–100).
+ * Pure: derives everything from the grouped notes, the KPI helpers and the
+ * clock. Percentages are positions on the axis (0–100).
  */
 
-export type CyclePointKey = 'prevLive' | 'firstTest' | 'live' | 'hotfix' | 'now' | 'nextLive';
+export type CyclePointKey = 'prevLive' | 'firstTest' | 'live' | 'hotfix' | 'now' | 'usual' | 'nextLive';
 
 export interface CyclePoint {
   key: CyclePointKey;
@@ -33,33 +40,44 @@ export interface CyclePoint {
   at: number;
   /** 0–100 along the axis. */
   pct: number;
-  /** True for the projected next-Live point. */
-  estimated: boolean;
   /** Version the point belongs to (`4.9` for prevLive, `4.11` for nextLive). */
   version: string;
+  /** Hotfix marker only: how many hotfix threads it stands for. */
+  count?: number;
 }
 
-export interface CycleSpan {
-  key: PatchKpiKey;
+/** One stretch measured twice: as it usually goes, and as it actually went / goes. */
+export interface CycleStretch {
+  key: 'leadTime' | 'cadence';
+  /** Where both bars start (the anchor). */
   fromPct: number;
-  toPct: number;
-  /** Measured length of this patch's span, whole days. */
-  days: number;
-  /** Median of the same measurement across the feed (the yardstick), or null. */
-  medianDays: number | null;
-  samples: number | null;
+  /** Where the median says the stretch ends. */
+  usualPct: number;
+  /** Where the real stretch ends: today, or the actual event. */
+  realPct: number;
+  /** Real length so far / in total, whole days. */
+  realDays: number;
+  /** The usual length: median across the feed, and its sample count. */
+  medianDays: number;
+  samples: number;
+  /** Real minus usual, whole days — positive = later than usual. */
+  deltaDays: number;
+  /** True once the stretch has actually ended (the event happened). */
+  finished: boolean;
 }
 
 export interface PatchCycle {
   points: CyclePoint[];
-  spans: CycleSpan[];
-  /** The "real situation" bar: axis start → today (or the cycle end, if past). */
-  real: { fromPct: number; toPct: number };
-  /** The "expected situation" bar: today → estimated next Live; null when nothing is projected. */
-  expected: { fromPct: number; toPct: number } | null;
+  /** The retrospective test phase (first test build → Live), when both exist. */
+  lead: CycleStretch | null;
+  /** The main stretch from the anchor: Live → next Live, or first test → Live. */
+  main: CycleStretch | null;
+  /** The previous, finished Live → Live cycle that ended on this patch's Live (the fact line). */
+  previousCycle: { days: number; medianDays: number; samples: number } | null;
+  hotfixes: { count: number; lastAt: number } | null;
   startMs: number;
   endMs: number;
-  /** Days until the projected next Live; negative = overdue. Null without a projection. */
+  /** Days until the usual next Live; negative = past it. Null for a finished cycle. */
   daysToNext: number | null;
 }
 
@@ -69,20 +87,22 @@ function wholeDays(ms: number): number {
   return Math.max(0, Math.round(ms / DAY_MS));
 }
 
-function hotfixTimes(group: PatchLineGroup, after: number | null): number[] {
-  const seen = new Set<number>();
+function hotfixFacts(group: PatchLineGroup | null, after: number | null): { count: number; lastAt: number } | null {
+  if (!group) return null;
+  let count = 0;
+  let lastAt: number | null = null;
   for (const entry of group.entries) {
     if (entry.facet !== 'hotfix') continue;
     const t = Date.parse(entry.item.publishedAt);
-    if (!Number.isFinite(t)) continue;
-    if (after !== null && t < after) continue;
-    seen.add(Math.floor(t / DAY_MS)); // one tick per day — a hotfix thread is updated many times
+    if (!Number.isFinite(t) || (after !== null && t < after)) continue;
+    count++;
+    if (lastAt === null || t > lastAt) lastAt = t;
   }
-  return [...seen].map((d) => d * DAY_MS).sort((a, b) => a - b);
+  return count > 0 && lastAt !== null ? { count, lastAt } : null;
 }
 
-/** The next NEWER line that shipped — what supersedes a historical card. */
-function nextLiveAfter(card: StackCard, groups: readonly PatchLineGroup[]): { at: number; version: string } | null {
+/** The next NEWER line that shipped — what ended a superseded card's cycle. */
+function successorOf(card: StackCard, groups: readonly PatchLineGroup[]): { at: number; version: string } | null {
   if (card.supersededAt === null) return null;
   const line = groups.find((g) => g.line && g.hasLive && liveReleaseAt(g) === card.supersededAt);
   return { at: card.supersededAt, version: line?.line ?? '' };
@@ -90,85 +110,108 @@ function nextLiveAfter(card: StackCard, groups: readonly PatchLineGroup[]): { at
 
 /**
  * Lay the card's cycle out. Returns null when the line has neither a test
- * build nor a release to anchor an axis on (a roadmap-only "next" whose
- * forecast is also missing).
+ * build nor a release to anchor on (a roadmap-only "next").
  */
 export function buildPatchCycle(
   card: StackCard,
   groups: readonly PatchLineGroup[],
   nowMs: number,
 ): PatchCycle | null {
-  const group = card.group;
   const prevLive = previousLiveAt(card, groups);
   const firstTest = card.firstTestAt;
   const live = card.liveAt;
+  if (live === null && firstTest === null) return null;
+
   const kpis = computePatchStats(groups);
-  const kpi = (key: PatchKpiKey) => kpis.find((k) => k.key === key) ?? null;
+  const leadKpi = kpis.find((k) => k.key === 'leadTime') ?? null;
+  const cadenceKpi = kpis.find((k) => k.key === 'cadence') ?? null;
+  const successor = successorOf(card, groups);
 
-  // Where the cycle ends: for the live line the projected next release, for a
-  // superseded line the actual one that replaced it, for a build in testing
-  // its own projected release.
-  let next: { at: number; version: string; estimated: boolean } | null = null;
-  const superseded = nextLiveAfter(card, groups);
-  if (superseded) {
-    next = { ...superseded, estimated: false };
+  // ── The main stretch, anchored ────────────────────────────────────────
+  // Live line / superseded line: Live → next Live against the cadence median.
+  // Line still in testing: first test → Live against the lead-time median.
+  let anchor: number;
+  let mainKey: 'cadence' | 'leadTime';
+  let median: number | null;
+  let samples: number | null;
+  let realEnd: number;
+  let finished: boolean;
+  if (live !== null) {
+    anchor = live;
+    mainKey = 'cadence';
+    median = cadenceKpi?.median ?? null;
+    samples = cadenceKpi?.samples ?? null;
+    finished = successor !== null;
+    realEnd = successor ? successor.at : nowMs;
   } else {
-    const row = computePatchForecast(groups).find((r) => r.key === 'live') ?? null;
-    if (row) {
-      const at = Date.parse(row.at);
-      if (Number.isFinite(at)) next = { at, version: card.status === 'live' ? '' : card.line, estimated: true };
-    }
+    anchor = firstTest as number;
+    mainKey = 'leadTime';
+    median = leadKpi?.median ?? null;
+    samples = leadKpi?.samples ?? null;
+    finished = false;
+    realEnd = nowMs;
   }
+  const usualEnd = median !== null ? anchor + median * DAY_MS : null;
 
+  // ── Axis range ────────────────────────────────────────────────────────
   const anchors = [prevLive, firstTest, live].filter((t): t is number => t !== null);
-  if (anchors.length === 0 && next === null) return null;
-
-  const startMs = Math.min(...(anchors.length ? anchors : [nowMs]), nowMs);
-  // A cycle that already ended — a superseded line, whose successor is a fact
-  // rather than a projection — stops at its own end. Stretching the axis to
-  // today would put a "today" tick on a finished cycle and shrink it to a stub.
-  const cycleEnd = Math.max(next?.at ?? nowMs, live ?? nowMs);
-  const finished = next !== null && !next.estimated && next.at <= nowMs;
-  const endMs = finished ? cycleEnd : Math.max(nowMs, cycleEnd);
+  const startMs = Math.min(...anchors);
+  const endMs = Math.max(realEnd, usualEnd ?? realEnd, live ?? realEnd);
   const span = Math.max(endMs - startMs, DAY_MS);
   const pct = (t: number) => Math.round(((t - startMs) / span) * 1000) / 10;
 
   const points: CyclePoint[] = [];
   if (prevLive !== null) {
     const prevLine = groups.find((g) => g.line && liveReleaseAt(g) === prevLive)?.line ?? '';
-    points.push({ key: 'prevLive', at: prevLive, pct: pct(prevLive), estimated: false, version: prevLine });
+    points.push({ key: 'prevLive', at: prevLive, pct: pct(prevLive), version: prevLine });
   }
-  if (firstTest !== null) points.push({ key: 'firstTest', at: firstTest, pct: pct(firstTest), estimated: false, version: card.line });
-  if (live !== null) points.push({ key: 'live', at: live, pct: pct(live), estimated: false, version: card.line });
-  if (group && live !== null) {
-    for (const t of hotfixTimes(group, live)) {
-      if (t > live) points.push({ key: 'hotfix', at: t, pct: pct(t), estimated: false, version: card.line });
-    }
+  if (firstTest !== null) points.push({ key: 'firstTest', at: firstTest, pct: pct(firstTest), version: card.line });
+  if (live !== null) points.push({ key: 'live', at: live, pct: pct(live), version: card.line });
+  const hotfixes = hotfixFacts(card.group, live);
+  if (hotfixes && live !== null && hotfixes.lastAt > live) {
+    points.push({ key: 'hotfix', at: hotfixes.lastAt, pct: pct(hotfixes.lastAt), version: card.line, count: hotfixes.count });
   }
-  if (nowMs >= startMs && nowMs <= endMs) points.push({ key: 'now', at: nowMs, pct: pct(nowMs), estimated: false, version: '' });
-  if (next) points.push({ key: 'nextLive', at: next.at, pct: pct(next.at), estimated: next.estimated, version: next.version });
+  if (!finished && nowMs >= startMs && nowMs <= endMs) points.push({ key: 'now', at: nowMs, pct: pct(nowMs), version: '' });
+  if (usualEnd !== null && !finished) points.push({ key: 'usual', at: usualEnd, pct: pct(usualEnd), version: '' });
+  if (successor) points.push({ key: 'nextLive', at: successor.at, pct: pct(successor.at), version: successor.version });
 
-  const spans: CycleSpan[] = [];
-  if (firstTest !== null && live !== null && firstTest <= live) {
-    const k = kpi('leadTime');
-    spans.push({ key: 'leadTime', fromPct: pct(firstTest), toPct: pct(live), days: wholeDays(live - firstTest), medianDays: k?.median ?? null, samples: k?.samples ?? null });
-  }
-  if (prevLive !== null && live !== null && prevLive <= live) {
-    const k = kpi('cadence');
-    spans.push({ key: 'cadence', fromPct: pct(prevLive), toPct: pct(live), days: wholeDays(live - prevLive), medianDays: k?.median ?? null, samples: k?.samples ?? null });
-  }
-  const hot = points.filter((p) => p.key === 'hotfix');
-  if (live !== null && hot.length > 0) {
-    const k = kpi('subCadence');
-    const lastHot = hot[hot.length - 1].at;
-    spans.push({ key: 'subCadence', fromPct: pct(live), toPct: pct(lastHot), days: wholeDays(lastHot - live), medianDays: k?.median ?? null, samples: k?.samples ?? null });
+  const main: CycleStretch | null =
+    median !== null && samples !== null
+      ? {
+          key: mainKey,
+          fromPct: pct(anchor),
+          usualPct: pct(usualEnd as number),
+          realPct: pct(realEnd),
+          realDays: wholeDays(realEnd - anchor),
+          medianDays: median,
+          samples,
+          deltaDays: wholeDays(realEnd - anchor) - Math.round(median),
+          finished,
+        }
+      : null;
+
+  // ── The retrospective test phase of a shipped line ────────────────────
+  let lead: CycleStretch | null = null;
+  if (firstTest !== null && live !== null && firstTest <= live && leadKpi) {
+    lead = {
+      key: 'leadTime',
+      fromPct: pct(firstTest),
+      usualPct: pct(Math.min(firstTest + leadKpi.median * DAY_MS, endMs)),
+      realPct: pct(live),
+      realDays: wholeDays(live - firstTest),
+      medianDays: leadKpi.median,
+      samples: leadKpi.samples,
+      deltaDays: wholeDays(live - firstTest) - Math.round(leadKpi.median),
+      finished: true,
+    };
   }
 
-  const realTo = Math.min(nowMs, endMs);
-  const real = { fromPct: pct(startMs), toPct: pct(realTo) };
-  const expected =
-    next && next.estimated && next.at > nowMs ? { fromPct: pct(Math.max(live ?? startMs, startMs)), toPct: pct(next.at) } : null;
-  const daysToNext = next && next.estimated ? Math.round((next.at - nowMs) / DAY_MS) : null;
+  const previousCycle =
+    prevLive !== null && live !== null && cadenceKpi
+      ? { days: wholeDays(live - prevLive), medianDays: cadenceKpi.median, samples: cadenceKpi.samples }
+      : null;
 
-  return { points, spans, real, expected, startMs, endMs, daysToNext };
+  const daysToNext = !finished && usualEnd !== null ? Math.round((usualEnd - nowMs) / DAY_MS) : null;
+
+  return { points, lead, main, previousCycle, hotfixes, startMs, endMs, daysToNext };
 }

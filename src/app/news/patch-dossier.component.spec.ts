@@ -196,22 +196,28 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(text('#pd-fixed .wave summary')).toContain('3 Build-Wellen');
   });
 
-  it('draws the cycle with a real bar and an expected bar, and keeps the old charts folded away', async () => {
+  it('draws the cycle from one anchor: a usual bar behind, the real bar in front, and keeps the old charts folded away', async () => {
     await render('4.10');
     const axis = root().querySelector('#pd-next .axis')!;
-    expect(axis.querySelector('.bar.real')).not.toBeNull();
-    expect(axis.querySelector('.bar.expected')).withContext('a live line projects its next release').not.toBeNull();
-    expect((Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'))).toContain('prevLive');
-    expect(text('#pd-next .spans')).toContain('Test → Live: 24 Tage');
-    const charts = (root().querySelector('#pd-next details.charts') as HTMLDetailsElement | null)!;
-    expect(charts.open).toBeFalse();
-    expect(charts.querySelector('sc-patch-cadence')).not.toBeNull();
+    expect(axis.querySelector('.bar.real:not(.lead)')).not.toBeNull();
+    expect(axis.querySelector('.bar.usual:not(.lead)')).withContext('a live line projects the usual next release').not.toBeNull();
+    expect(axis.querySelector('.bar.real.lead')).withContext('the test phase is measured retrospectively').not.toBeNull();
+    expect((Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'))).toEqual(['prevLive', 'firstTest', 'live', 'hotfix', 'now', 'usual']);
+    expect(text('#pd-next .sentence')).toContain('ist seit');
+    expect(text('#pd-next .facts')).toContain('Test → Live: 24 Tage');
+    expect(text('#pd-next .facts')).toContain('1 Hotfix seit Live');
+    const charts = root().querySelector('#pd-next details.charts') as HTMLDetailsElement | null;
+    expect(charts!.open).toBeFalse();
+    expect(charts!.querySelector('sc-patch-cadence')).not.toBeNull();
   });
 
-  it('a superseded line has no expected bar and names its successor', async () => {
+  it('a superseded line is a finished stretch ending on its successor, with no usual marker and no today', async () => {
     await render('4.9');
     expect(text('.hero .status')).toBe('Abgelöst');
-    expect(root().querySelector('#pd-next .bar.expected')).toBeNull();
+    const keys = (Array.from(root().querySelectorAll('#pd-next .pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'));
+    expect(keys).toContain('nextLive');
+    expect(keys).not.toContain('usual');
+    expect(keys).not.toContain('now');
     expect(text('#pd-next .sentence')).toContain('von Alpha 4.10 abgelöst');
     // No roadmap for 4.9 → the note itself is what the contents section holds.
     expect(root().querySelector('#pd-contents sc-patch-note-detail')).not.toBeNull();

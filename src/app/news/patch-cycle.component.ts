@@ -3,21 +3,25 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import { PatchCadenceComponent } from './patch-cadence.component';
-import { buildPatchCycle, type CyclePoint, type CycleSpan } from './patch-cycle';
+import { buildPatchCycle, type CyclePoint, type CycleStretch } from './patch-cycle';
 import type { StackCard } from './patch-stack';
 
 /**
- * "Wann kommt der nächste?" — the cycle axis (rethink Ⓚ, iteration 4).
+ * "Wann kommt der nächste?" — the cycle axis (rethink Ⓚ, iteration 4; anchor
+ * logic corrected 2026-09-05 after the PO + designer review).
  *
- * One axis, two bars: a muted, taller EXPECTED bar behind (today → projected
- * next Live, future only) and a thinner active REAL bar in front (start →
- * today). The three cadence figures sit on the axis as labelled spans with
- * their median, so "Test → Live 24 T" is visibly the stretch between two
- * points instead of a bar chart standing beside two other bar charts.
+ * PRIMARY is the real situation, SECONDARY the usual one — and both are drawn
+ * from the SAME anchor over the SAME stretch, so the eye can compare them:
  *
- * The full KPI charts (`sc-patch-cadence`, rotation and window toggle
- * included) are kept underneath in a closed <details>: nothing the old board
- * could do is gone, it is just no longer the first thing on screen.
+ *   ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   usual (muted, taller, behind): anchor + median
+ *   ━━━━━━━━━━●                real (active, thinner, in front): anchor → today
+ *              ━━━━            overshoot (warning): only the part past "usual"
+ *
+ * The same construction is applied retrospectively to the test phase (first
+ * test build → Live, in PTU cyan). Hotfixes are one labelled marker with a
+ * count. Under the axis: one line of facts per stretch, the median as the
+ * subordinate clause, never the headline. The old KPI charts stay folded
+ * underneath — nothing was approved for removal.
  */
 @Component({
   selector: 'sc-patch-cycle',
@@ -27,59 +31,77 @@ import type { StackCard } from './patch-stack';
   template: `
     @if (cycle(); as c) {
       <p class="sentence">
-        @if (card().status === 'live' && c.daysToNext !== null) {
-          {{ 'news.patch.next.sentenceLive' | translate:{ date: date(nextAt()), when: until(c.daysToNext) } }}
-        } @else if (card().status === 'superseded' && nextVersion()) {
-          {{ 'news.patch.next.sentenceHistory' | translate:{ line: card().line, date: date(nextAt()), next: nextVersion() } }}
-        } @else if (c.daysToNext !== null) {
-          {{ 'news.patch.next.sentencePlanned' | translate:{ line: card().line, date: date(nextAt()), when: until(c.daysToNext) } }}
+        @if (c.main; as m) {
+          @if (!m.finished) {
+            <b>{{ (m.key === 'cadence' ? 'news.patch.next.sentenceLive' : 'news.patch.next.sentencePlanned')
+                  | translate:{ line: card().line, date: date(usualAt()), when: until(c.daysToNext ?? 0) } }}</b>
+            <span class="status">{{ statusLine(m) }}</span>
+          } @else {
+            <b>{{ 'news.patch.next.sentenceHistory' | translate:{ line: card().line, next: nextVersion(), date: date(nextAt()), days: m.realDays, median: num(m.medianDays) } }}</b>
+            <span class="status">{{ deviation(m) }}</span>
+          }
         }
         <span class="disclaimer">{{ 'news.patch.next.disclaimer' | translate }}</span>
       </p>
 
       <div class="axis" role="img" [attr.aria-label]="aria()">
         <div class="track">
-          @if (c.expected; as e) {
-            <span class="bar expected" [style.left.%]="e.fromPct" [style.width.%]="e.toPct - e.fromPct"></span>
+          @if (pastEnd(); as end) {
+            <span class="bar past" [style.left.%]="0" [style.width.%]="end"></span>
           }
-          <!-- Two evidenced stretches: what came BEFORE this patch (grey) and
-               this patch's own cycle (green) — so the axis says which patch it
-               is about with the same colours the board uses. -->
-          <span class="bar past" [style.left.%]="c.real.fromPct" [style.width.%]="pastEnd() - c.real.fromPct"></span>
-          <span class="bar real" [style.left.%]="pastEnd()" [style.width.%]="c.real.toPct - pastEnd()"></span>
-          @for (p of c.points; track p.key + p.at) {
-            <span class="pt" [attr.data-key]="p.key" [class.est]="p.estimated" [style.left.%]="p.pct"></span>
-            @if (p.key !== 'hotfix') {
-              <!-- The previous release and "today" label BELOW the axis, this
-                   patch's own points above: the previous Live sits close to
-                   the PTU start and the two labels collided on one line. -->
-              <span class="lab" [attr.data-key]="p.key" [class.below]="p.key === 'now' || p.key === 'prevLive'" [style.left.%]="p.pct">
-                @if (chipOf(p); as chip) {
-                  <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
-                }
-                <b>{{ pointLabel(p) }}</b>
-                <small>{{ date(p.at) }}</small>
-              </span>
+          @if (c.lead; as l) {
+            <span class="bar usual lead" [style.left.%]="l.fromPct" [style.width.%]="l.usualPct - l.fromPct"></span>
+            <span class="bar real lead" [style.left.%]="l.fromPct" [style.width.%]="min(l.realPct, l.usualPct) - l.fromPct"></span>
+            @if (l.realPct > l.usualPct) {
+              <span class="bar over" [style.left.%]="l.usualPct" [style.width.%]="l.realPct - l.usualPct"></span>
             }
           }
-        </div>
-        <ul class="spans">
-          @for (s of c.spans; track s.key) {
-            <li [attr.data-key]="s.key">
-              <b>{{ ('news.patch.next.span.' + s.key) | translate:{ days: s.days } }}</b>
-              @if (s.medianDays !== null) {
-                <span>{{ 'news.patch.next.median' | translate:{ n: num(s.medianDays), samples: s.samples } }}</span>
-                <span class="delta" [class.good]="s.days < s.medianDays" [class.bad]="s.days > s.medianDays">{{ delta(s) }}</span>
+          @if (c.main; as m) {
+            <span class="bar usual" [style.left.%]="m.fromPct" [style.width.%]="m.usualPct - m.fromPct"></span>
+            <span class="bar real" [style.left.%]="m.fromPct" [style.width.%]="min(m.realPct, m.usualPct) - m.fromPct"></span>
+            @if (m.realPct > m.usualPct) {
+              <span class="bar over" [style.left.%]="m.usualPct" [style.width.%]="m.realPct - m.usualPct"></span>
+            }
+          }
+          @for (p of c.points; track p.key + p.at) {
+            <span class="pt" [attr.data-key]="p.key" [style.left.%]="p.pct"></span>
+            <span class="lab" [attr.data-key]="p.key" [class.below]="isBelow(p)" [style.left.%]="p.pct">
+              @if (chipOf(p); as chip) {
+                <span class="chip" [attr.data-status]="chip">{{ ('news.patch.status.' + chip) | translate }}</span>
               }
-            </li>
+              <b>{{ pointLabel(p) }}</b>
+              <small>{{ date(p.at) }}</small>
+            </span>
+          }
+        </div>
+        <ul class="legend" aria-hidden="true">
+          <li><i class="sw real"></i>{{ 'news.patch.next.legend.real' | translate }}</li>
+          <li><i class="sw usual"></i>{{ 'news.patch.next.legend.usual' | translate }}</li>
+          <li><i class="sw over"></i>{{ 'news.patch.next.legend.over' | translate }}</li>
+        </ul>
+        <ul class="facts">
+          @if (c.lead; as l) {
+            <li><b>{{ 'news.patch.next.fact.lead' | translate:{ days: l.realDays } }}</b>
+              <span>{{ 'news.patch.next.fact.usual' | translate:{ median: num(l.medianDays), n: l.samples } }}</span>
+              <span class="dev" [class.good]="l.deltaDays < 0" [class.bad]="l.deltaDays > 0">{{ deviation(l) }}</span></li>
+          }
+          @if (c.previousCycle; as pc) {
+            <li><b>{{ 'news.patch.next.fact.cadence' | translate:{ days: pc.days } }}</b>
+              <span>{{ 'news.patch.next.fact.usual' | translate:{ median: num(pc.medianDays), n: pc.samples } }}</span>
+              <span class="dev" [class.good]="pc.days < pc.medianDays" [class.bad]="pc.days > pc.medianDays">{{ deviationDays(pc.days - pc.medianDays) }}</span></li>
+          }
+          @if (c.hotfixes; as h) {
+            <li><b>{{ 'news.patch.next.fact.hotfix' | translate:{ n: h.count } }}</b>
+              <span>{{ 'news.patch.next.fact.hotfixLast' | translate:{ date: date(h.lastAt) } }}</span></li>
           }
         </ul>
       </div>
     }
 
     <!-- The former carousel, untouched, folded away: charts, dots, rotation,
-         6-months/all-time toggle. Kept because nothing was approved for
-         removal — and because a reader who wants the bars can still have them. -->
+         6-months/all-time toggle, sub-patch cadence. Kept because nothing was
+         approved for removal — and because a reader who wants the bars can
+         still have them. -->
     <details class="charts">
       <summary>{{ 'news.patch.next.charts' | translate }}</summary>
       <sc-patch-cadence [groups]="groups()" />
@@ -87,77 +109,68 @@ import type { StackCard } from './patch-stack';
   `,
   styles: [`
     :host { display: block; }
-    .sentence {
-      margin: 0 0 14px; font-size: max(0.82rem, var(--sc-fs-floor)); line-height: 1.55;
-      color: var(--sc-fg-1);
-    }
-    .disclaimer { display: block; margin-top: 4px; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .sentence { display: flex; flex-direction: column; gap: 4px; margin: 0 0 14px; font-size: max(0.82rem, var(--sc-fs-floor)); line-height: 1.5; color: var(--sc-fg-1); }
+    .sentence b { color: var(--sc-fg-0); font-weight: 600; }
+    .status { color: var(--sc-fg-1); }
+    .disclaimer { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
-    .axis { padding: 62px 8px 0; }
-    .lab.below[data-key='prevLive'] { top: 16px; }
-    .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); }
+    .axis { padding: 66px 8px 0; }
+    .track { position: relative; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 20%, transparent); }
     .bar { position: absolute; top: 50%; transform: translateY(-50%); border-radius: 4px; }
-    /* Expected: muted, vertically larger, behind. Real: active colour, thin, in front. */
-    .bar.expected { height: 14px; background: color-mix(in srgb, var(--sc-accent) 18%, transparent); z-index: 0; }
-    .bar.past { height: 4px; background: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); z-index: 1; }
-    .bar.real { height: 4px; background: var(--sc-success); z-index: 1; }
-    .pt {
-      position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; z-index: 2;
-      transform: translate(-50%, -50%); background: var(--sc-bg-0); border: 2px solid var(--sc-fg-1);
-    }
-    /* The same colours as the status words on the board: past = grey,
-       PTU = accent, this patch's Live = success and the biggest point. */
+    /* Usual: muted, taller, behind. Real: active, thin, in front. Over: the part past usual. */
+    .bar.usual { height: 14px; z-index: 0; background: color-mix(in srgb, var(--sc-success) 16%, transparent); }
+    .bar.usual.lead { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
+    .bar.real { height: 4px; z-index: 1; background: var(--sc-success); }
+    .bar.real.lead { background: var(--sc-accent); }
+    .bar.over { height: 4px; z-index: 1; background: var(--sc-warning); }
+    .bar.past { height: 4px; z-index: 1; background: color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
+
+    .pt { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; z-index: 2; transform: translate(-50%, -50%); background: var(--sc-bg-0); border: 2px solid var(--sc-fg-1); }
     .pt[data-key='prevLive'] { background: var(--sc-fg-2); border-color: var(--sc-fg-2); }
     .pt[data-key='firstTest'] { background: var(--sc-accent); border-color: var(--sc-accent); }
-    .pt[data-key='live'] { width: 16px; height: 16px; background: var(--sc-success); border-color: var(--sc-success); box-shadow: 0 0 14px color-mix(in srgb, var(--sc-success) 55%, transparent); }
-    .pt[data-key='hotfix'] { width: 6px; height: 6px; background: var(--sc-warning); border-color: var(--sc-warning); }
+    .pt[data-key='live'], .pt[data-key='nextLive'] { background: var(--sc-success); border-color: var(--sc-success); }
+    .pt[data-key='live'] { width: 16px; height: 16px; box-shadow: 0 0 14px color-mix(in srgb, var(--sc-success) 55%, transparent); }
+    .pt[data-key='hotfix'] { width: 10px; height: 10px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-warning); border-color: var(--sc-warning); }
     .pt[data-key='now'] { width: 8px; height: 8px; background: var(--sc-fg-0); border-color: var(--sc-fg-0); }
-    .pt.est { border-style: dashed; border-color: var(--sc-accent); background: var(--sc-bg-0); }
-    .lab {
-      position: absolute; bottom: 16px; transform: translateX(-50%); z-index: 3;
-      display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap;
-      font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.25;
-    }
+    .pt[data-key='usual'] { width: 12px; height: 12px; border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); background: var(--sc-bg-0); border: 2px dashed var(--sc-fg-1); }
+
+    .lab { position: absolute; bottom: 16px; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.25; }
     .lab b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .lab.below { bottom: auto; top: 14px; }
     .lab[data-key='prevLive'] { transform: translateX(0); align-items: flex-start; }
     .lab[data-key='prevLive'] b { color: var(--sc-fg-2); font-weight: 500; }
     .lab[data-key='live'] b { font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .lab[data-key='nextLive'] { transform: translateX(-100%); align-items: flex-end; }
-    .lab[data-key='nextLive'] b { color: var(--sc-accent); }
-    /* Status word, board idiom, small. */
-    .chip {
-      display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 4px;
-      font-family: var(--sc-font-display); font-size: max(0.52rem, var(--sc-fs-floor));
-      letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
-    }
+    .lab[data-key='usual'], .lab[data-key='nextLive'] { transform: translateX(-100%); align-items: flex-end; }
+    .lab[data-key='usual'] b { color: var(--sc-fg-1); font-weight: 500; }
+    .lab[data-key='hotfix'] b { color: var(--sc-warning); font-weight: 500; }
+    .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 4px; font-family: var(--sc-font-display); font-size: max(0.52rem, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
     .chip[data-status='live'] { color: var(--sc-bg-0); background: var(--sc-success); }
     .chip[data-status='ptu'] { color: var(--sc-accent); border: 1px solid var(--sc-accent); }
-    .chip[data-status='next'] { color: var(--sc-accent); border: 1px dashed var(--sc-accent); }
     .chip[data-status='superseded'] { color: var(--sc-fg-2); border: 1px solid color-mix(in srgb, var(--sc-fg-2) 40%, transparent); }
 
-    .spans { list-style: none; margin: 64px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
-    .spans li {
-      display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
-      border: 1px solid var(--sc-border); border-radius: 6px; background: var(--sc-bg-1);
-      font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
-    }
-    .spans b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.76rem, var(--sc-fs-floor)); }
-    .delta.good { color: var(--sc-success); }
-    .delta.bad { color: var(--sc-warning); }
+    .legend { list-style: none; margin: 58px 0 0; padding: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .legend li { display: inline-flex; align-items: center; gap: 6px; }
+    .sw { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
+    .sw.real { background: var(--sc-success); }
+    .sw.usual { height: 10px; background: color-mix(in srgb, var(--sc-success) 18%, transparent); }
+    .sw.over { background: var(--sc-warning); }
+
+    .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .facts li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .facts b { color: var(--sc-fg-0); font-weight: 600; font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .dev.good { color: var(--sc-success); }
+    .dev.bad { color: var(--sc-warning); }
 
     .charts { margin-top: 18px; }
-    .charts summary {
-      cursor: pointer; min-height: var(--sc-tap-min); display: flex; align-items: center;
-      font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2);
-    }
+    .charts summary { cursor: pointer; min-height: var(--sc-tap-min); display: flex; align-items: center; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .charts summary:hover { color: var(--sc-accent); }
     .charts[open] summary { color: var(--sc-fg-0); margin-bottom: 8px; }
 
     @media (max-width: 640px) {
-      .axis { padding-top: 40px; }
+      .axis { padding-top: 58px; }
       .lab { font-size: max(0.6rem, var(--sc-fs-floor)); }
       .lab small { display: none; }
+      .legend { margin-top: 48px; }
     }
   `],
 })
@@ -170,43 +183,65 @@ export class PatchCycleComponent {
   readonly now = input<number>(Date.now());
 
   readonly cycle = computed(() => buildPatchCycle(this.card(), this.groups(), this.now()));
+  readonly usualAt = computed(() => this.cycle()?.points.find((p) => p.key === 'usual')?.at ?? NaN);
   readonly nextAt = computed(() => this.cycle()?.points.find((p) => p.key === 'nextLive')?.at ?? NaN);
   readonly nextVersion = computed(() => this.cycle()?.points.find((p) => p.key === 'nextLive')?.version ?? '');
+  /** The grey "before this patch" stretch ends where this patch's own stretch begins. */
+  readonly pastEnd = computed(() => {
+    const c = this.cycle();
+    if (!c || !c.points.some((p) => p.key === 'prevLive')) return 0;
+    const own = c.points.find((p) => p.key === 'firstTest') ?? c.points.find((p) => p.key === 'live');
+    return own?.pct ?? 0;
+  });
 
   readonly aria = computed(() => {
     const c = this.cycle();
-    if (!c) return '';
-    return c.spans.map((s) => this.t.instant('news.patch.next.span.' + s.key, { days: s.days })).join(', ');
+    if (!c?.main) return '';
+    return this.statusLine(c.main);
   });
 
-  /** Where the grey "before this patch" stretch ends and the green one begins. */
-  readonly pastEnd = computed(() => {
-    const c = this.cycle();
-    if (!c) return 0;
-    const own = c.points.find((p) => p.key === 'firstTest') ?? c.points.find((p) => p.key === 'live');
-    return own ? Math.max(own.pct, c.real.fromPct) : c.real.toPct;
-  });
+  min(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
+  isBelow(p: CyclePoint): boolean {
+    return p.key === 'now' || p.key === 'prevLive' || p.key === 'hotfix';
+  }
 
   /** The board's status word for a point — the same vocabulary on both surfaces. */
-  chipOf(p: CyclePoint): 'live' | 'ptu' | 'next' | 'superseded' | null {
+  chipOf(p: CyclePoint): 'live' | 'ptu' | 'superseded' | null {
     switch (p.key) {
       case 'prevLive': return 'superseded';
       case 'firstTest': return 'ptu';
-      case 'live': return 'live';
-      case 'nextLive': return p.estimated ? 'next' : 'live';
+      case 'live':
+      case 'nextLive': return 'live';
       default: return null;
     }
   }
 
   pointLabel(p: CyclePoint): string {
-    return this.t.instant('news.patch.next.point.' + p.key, { version: p.version });
+    if (p.key === 'nextLive') return this.t.instant('news.patch.next.point.live', { version: p.version });
+    return this.t.instant('news.patch.next.point.' + p.key, { version: p.version, n: p.count ?? 0 });
   }
 
-  delta(s: CycleSpan): string {
-    if (s.medianDays === null) return '';
-    const d = Math.round(s.days) - Math.round(s.medianDays);
-    if (d === 0) return this.t.instant('news.patch.kpi.deltaSame');
-    return this.t.instant(d < 0 ? 'news.patch.kpi.deltaFaster' : 'news.patch.kpi.deltaSlower', { n: Math.abs(d) });
+  /** "Alpha 4.10 ist seit 8 Tagen live — üblich sind 49 Tage bis zum nächsten. CIG liegt im Takt." */
+  statusLine(m: CycleStretch): string {
+    const base = m.key === 'cadence' ? 'news.patch.next.status.live' : 'news.patch.next.status.testing';
+    const head = this.t.instant(base, { line: this.card().line, days: m.realDays, median: this.num(m.medianDays) });
+    const tail = m.deltaDays > 0
+      ? this.t.instant('news.patch.next.status.over', { n: m.deltaDays })
+      : this.t.instant('news.patch.next.status.onTrack');
+    return `${head} ${tail}`;
+  }
+
+  deviation(s: CycleStretch): string {
+    return this.deviationDays(s.deltaDays);
+  }
+
+  deviationDays(delta: number): string {
+    const d = Math.round(delta);
+    if (d === 0) return this.t.instant('news.patch.next.fact.onTrack');
+    return this.t.instant(d > 0 ? 'news.patch.next.fact.later' : 'news.patch.next.fact.earlier', { n: Math.abs(d) });
   }
 
   num(n: number): string {
@@ -226,7 +261,7 @@ export class PatchCycleComponent {
     }
   }
 
-  /** "in ~3 weeks" / "2 weeks overdue" — same grammar as the forecast rows. */
+  /** "in ~3 weeks" / "2 weeks overdue" — the forecast grammar the app already speaks. */
   until(days: number): string {
     if (days === 0) return this.t.instant('news.patch.forecast.today');
     const overdue = days < 0;
