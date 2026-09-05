@@ -1108,7 +1108,8 @@
         "to": "to",
         "filter": "Filter",
         "clear": "Reset",
-        "secondary": "as a second sort"
+        "secondary": "as a second sort",
+        "sortRank": "Sort {{n}}"
       },
       "chipRemove": "Remove the {{label}} filter",
       "col": {

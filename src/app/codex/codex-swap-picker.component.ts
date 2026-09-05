@@ -33,6 +33,7 @@ import {
   setNumericFilter,
   toggleColumnSort,
   toggleFacetValue,
+  clearSecondaryColumnSort,
 } from './table-column-menu';
 import {
   DAMAGE_FAMILY_LABEL_KEY,
@@ -293,7 +294,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                           [descLabel]="'codex.picker.menu.desc' | translate"
                           [filterLabel]="'codex.picker.menu.filter' | translate"
                           [clearLabel]="'codex.picker.menu.clear' | translate"
-                          [secondarySortLabel]="'codex.picker.menu.secondary' | translate"
+                          [secondarySortLabel]="secondarySortEligible(NAME_KEY) ? ('codex.picker.menu.secondary' | translate) : ''"
                           [secondaryActive]="isSecondarySort(NAME_KEY)"
                           (headClick)="onHeadClick(NAME_KEY, $event)"
                           (sortPick)="onSortPick(NAME_KEY, $event)"
@@ -320,7 +321,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                             [toLabel]="'codex.picker.menu.to' | translate"
                             [filterLabel]="'codex.picker.menu.filter' | translate"
                             [clearLabel]="'codex.picker.menu.clear' | translate"
-                            [secondarySortLabel]="'codex.picker.menu.secondary' | translate"
+                            [secondarySortLabel]="secondarySortEligible(col.key) ? ('codex.picker.menu.secondary' | translate) : ''"
                             [secondaryActive]="isSecondarySort(col.key)"
                             (headClick)="onHeadClick(col.key, $event)"
                             (sortPick)="onSortPick(col.key, $event)"
@@ -403,7 +404,9 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                   }
                 </ul>
               }
-              <p class="pick-sorthint">{{ 'codex.swap.sortHint' | translate }}</p>
+              @if (candidates().length > 0) {
+                <p class="pick-sorthint">{{ 'codex.swap.sortHint' | translate }}</p>
+              }
 
               <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
               @if (baselineOutOfSet()) {
@@ -482,12 +485,17 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pc-reset { margin-top: 6px; padding: 4px 8px; border-radius: 4px; background: transparent;
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font: inherit; font-size: 11px; cursor: pointer; align-self: flex-start; }
 
-    /* The column-menu popover is absolutely positioned inside a th cell — this
-       scroll box would otherwise clip it. A portal-free fix (D-code-map): while
-       any menu is open, the scroll box drops its own clipping so the popover
-       can escape it; the table keeps scrolling normally once the menu closes. */
+    /* MEDIUM-5: the column-menu popover used to be an absolutely-positioned
+       child of the th cell, so this scroll box had to drop its own clipping
+       (overflow: visible) while a menu was open — which also dropped it as a
+       scroll CONTAINER, forgetting scrollLeft/scrollTop (a table scrolled
+       sideways snapped back to the Bauteil column the moment a menu was
+       opened) and letting the sticky header re-resolve against the next
+       scrolling ancestor. sc-column-menu now portals its panel through CDK's
+       Overlay (see column-menu.component.ts), so .pick-scroll never has to
+       relax its overflow at all — it stays a normal, always-scrollable
+       container regardless of any open menu. */
     .pick-scroll { overflow: auto; border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px); flex: 1 1 auto; }
-    .pick-scroll:has(.cm-pop[open]) { overflow: visible; }
     .wt { min-inline-size: 1080px; width: 100%; border-collapse: collapse; font-size: max(12px, var(--sc-fs-floor));
       font-variant-numeric: tabular-nums; }
     .wt thead th { position: sticky; top: 0; z-index: 2; background: var(--sc-bg-2);
@@ -523,7 +531,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 
     .pick-note { margin: 2px 0 0; font-size: 11px; color: var(--sc-fg-2); }
     .pick-note.baseline-note { color: var(--sc-warn); }
-    .pick-sorthint { margin: 4px 0 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
+    .pick-sorthint { margin: 4px 0 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .fc-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .fc { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
@@ -807,12 +815,18 @@ export class CodexSwapPickerComponent {
     applySwapScope(this.candidates(), this.fitted(), this.scope()),
   );
 
-  /** True only for ports whose accepted-type list has more than one entry — a
-   * missile rack or utility bay, not the common single-type weapon/component
-   * port (E-main-gap #40: main's part-type filter). */
-  readonly showTypeFilter = computed<boolean>(() => this.portTypes().length > 1);
+  /** True only when the current scope actually holds more than one distinct
+   * item ARCHETYPE (Laser Repeater / Cannon / …) — main's part-type filter
+   * split on `c.archetype`, not on the coarser `attachType` a port declares
+   * (E-main-gap #40). Ordinary fitted weapon ports commonly carry several
+   * archetypes and get the control; a port that only ever accepts one never
+   * shows it. */
+  readonly showTypeFilter = computed<boolean>(() => {
+    const archetypes = new Set(this.scoped().map((c) => c.archetype).filter((a): a is string => !!a));
+    return archetypes.size > 1;
+  });
 
-  /** "All" plus one option per attach type actually present in the current
+  /** "All" plus one option per archetype actually present in the current
    * scope, each carrying a live count (main's facet pills, restored as a
    * segmented control to match this table's other scope-bar controls). */
   readonly typeFilterOptions = computed<ScSegmentOption[]>(() => {
@@ -820,8 +834,8 @@ export class CodexSwapPickerComponent {
     this.lang();
     const counts = new Map<string, number>();
     for (const c of this.scoped()) {
-      if (!c.attachType) continue;
-      counts.set(c.attachType, (counts.get(c.attachType) ?? 0) + 1);
+      if (!c.archetype) continue;
+      counts.set(c.archetype, (counts.get(c.archetype) ?? 0) + 1);
     }
     const opts: ScSegmentOption[] = [
       { value: TYPE_ALL, label: this.i18n.instant('codex.swap.filterAll') as string },
@@ -843,7 +857,18 @@ export class CodexSwapPickerComponent {
   readonly typeScoped = computed<SwapCandidate[]>(() => {
     const tf = this.typeFilter();
     if (tf === TYPE_ALL) return this.scoped();
-    return this.scoped().filter((c) => c.attachType === tf);
+    return this.scoped().filter((c) => c.archetype === tf);
+  });
+
+  /** LOW-1 (main parity, `pruneSwapFilters`): a type filter that no longer
+   * occurs after a scope change (e.g. `sameClass` → `sameFamily` dropped the
+   * archetype the user narrowed to) resets to "all" instead of leaving the
+   * table silently empty with a stale segmented value. */
+  private readonly pruneTypeFilter = effect(() => {
+    const tf = this.typeFilter();
+    if (tf === TYPE_ALL) return;
+    const opts = this.typeFilterOptions();
+    if (!opts.some((o) => o.value === tf)) this.typeFilter.set(TYPE_ALL);
   });
 
   readonly searched = computed<SwapCandidate[]>(() => {
@@ -977,21 +1002,23 @@ export class CodexSwapPickerComponent {
     return !!this.columnMenu().filters[key];
   }
 
-  /** `aria-sort` covers BOTH the primary and the (main-restored) secondary
-   * sort column — non-standard for a single-sort grid, but this table only
-   * ever has at most two, and it is the only signal a screen reader gets. */
+  /** LOW-4 (ui-spec-13-a11y): `aria-sort` stays on the PRIMARY column only —
+   * ARIA expects at most one sorted column per grid. The tie-breaker is still
+   * surfaced (via `sortRankTitle`'s "Sort 2" and the column menu's secondary
+   * entry), just not through a second `aria-sort`. */
   ariaSort(key: string): 'ascending' | 'descending' | 'none' {
-    const s = this.columnMenu();
-    if (s.sort?.key === key) return s.sort.dir === 'asc' ? 'ascending' : 'descending';
-    if (s.secondarySort?.key === key) return s.secondarySort.dir === 'asc' ? 'ascending' : 'descending';
+    const s = this.columnMenu().sort;
+    if (s?.key === key) return s.dir === 'asc' ? 'ascending' : 'descending';
     return 'none';
   }
 
-  /** "1"/"2" for the primary/secondary sort column, surfaced as the `<th title>` (E-main-gap #41). */
+  /** Localized "Sort 1"/"Sort 2" for the primary/secondary sort column,
+   * surfaced as the `<th title>` (E-main-gap #41; MEDIUM-4: was a bare,
+   * untranslated digit). */
   sortRankTitle(key: string): string | null {
     const s = this.columnMenu();
-    if (s.sort?.key === key) return '1';
-    if (s.secondarySort?.key === key) return '2';
+    if (s.sort?.key === key) return this.i18n.instant('codex.picker.menu.sortRank', { n: 1 }) as string;
+    if (s.secondarySort?.key === key) return this.i18n.instant('codex.picker.menu.sortRank', { n: 2 }) as string;
     return null;
   }
 
@@ -1007,8 +1034,26 @@ export class CodexSwapPickerComponent {
   }
 
   onSecondarySortToggle(key: string): void {
+    // MEDIUM-2: an active secondary sort must be switchable back off — without
+    // this short-circuit `toggleColumnSort(..., true)` only ever flips asc/desc
+    // once the column already IS the secondary, so the "als zweite Sortierung"
+    // control could never return to "off".
+    if (this.isSecondarySort(key)) {
+      this.columnMenu.update(clearSecondaryColumnSort);
+      return;
+    }
     const col = this.allMenuColumns().find((c) => c.key === key);
     if (col) this.columnMenu.update((s) => toggleColumnSort(s, col, true));
+  }
+
+  /** MEDIUM-3: the "als zweite Sortierung" entry only does what it says when a
+   * DIFFERENT column already holds the primary sort — with no primary sort, or
+   * on the primary column itself, `toggleColumnSort(..., true)` silently
+   * reinterprets the click as a primary-sort change. Gate the entry so it is
+   * only offered where it is truthful. */
+  secondarySortEligible(key: string): boolean {
+    const sort = this.columnMenu().sort;
+    return !!sort && sort.key !== key;
   }
 
   onSortPick(key: string, dir: SortDir): void {
