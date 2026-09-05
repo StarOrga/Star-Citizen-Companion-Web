@@ -316,10 +316,20 @@ describe('AdminFeedbackComponent — the stream', () => {
       admin_feedback_messages: [],
     });
 
-    const gate = el.querySelector('.card.lead .card-inline .review-gate')!;
+    const gate = el.querySelector<HTMLElement>('.card.lead .card-inline .review-gate')!;
     expect(gate).not.toBeNull();
     expect(gate.classList.contains('inline')).toBeTrue();
     expect(gate.classList.contains('sc-nest')).toBeFalse();
+
+    // Assert the frame the admin sees, not the class that is supposed to remove
+    // it: a global `.sc-nest` rule or a later `.review-gate` declaration can
+    // paint a border back on without this markup changing a character. Round 2
+    // of a398fc94 was spent answering "is the box still there?" by hand.
+    const frame = getComputedStyle(gate);
+    for (const side of [frame.borderTopWidth, frame.borderRightWidth, frame.borderBottomWidth, frame.borderLeftWidth]) {
+      expect(side).toBe('0px');
+    }
+    expect(frame.paddingLeft).toBe('0px');
 
     const labels = Array.from(gate.querySelectorAll('button, a')).map((b) => b.textContent?.trim() ?? '');
     expect(labels.some((l) => l.includes('adminFeedback.actions.viewInApp'))).toBeTrue();
