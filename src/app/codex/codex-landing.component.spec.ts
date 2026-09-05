@@ -543,6 +543,28 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('button.zone-rail.hangar')).not.toBeNull();
   });
 
+  // Feedback 77668f11 round three: "wenn ich ship im hangar aufrufe, dann sehe
+  // ich fuer zu fuss an board immer noch nicht die person als spalte sondern nur
+  // die textleiste." The admin's own set ("FixIt") has NO items — which used to
+  // withhold the figure. It no longer does: the figure is the character, not the
+  // set, so the collapsed AN BORD rail carries it in every state.
+  it('shows the AN BORD figure on the collapsed rail even with an empty set', async () => {
+    const fixture = await setup({
+      hangar: [],
+      roleLoadouts: [fpsLoadout('set1', 'FixIt')],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const rail = el.querySelector('button.zone-rail.board');
+    expect(rail).not.toBeNull();
+    expect(rail!.classList).toContain('has-hero');
+    expect(rail!.querySelector('.rail-hero sc-codex-board-figure')).not.toBeNull();
+    // Still no words beyond the zone label — the hero replaces the summary.
+    expect(rail!.querySelector('.rail-sub')).toBeNull();
+    // ...and the surface gives the rail its extra width.
+    expect(el.querySelector('.surface.hero-rail')).not.toBeNull();
+  });
+
   // Feedback e80cc831: "dann kann man aber auch irgendwie den einsatzzweck
   // umschalten, in dem fall brauche ich die schiffs hero card nicht mehr sehen".
   it('drops the flagship hero when the fleet lane is grouped, and gets it back in the default mode', async () => {

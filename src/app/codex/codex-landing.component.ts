@@ -275,11 +275,16 @@ export interface FleetGroup {
            toggle now — exactly one zone is expanded, the other collapses to a
            slim vertical rail — and the surface keeps the SAME height in every
            state (--surface-h), with the expanded zone scrolling internally.
-           On a phone the rail turns horizontal (a 52px bar) rather than
-           squeezing a vertical strip into a 360px viewport. -->
+           On a phone the rail turns horizontal (a bar) rather than squeezing
+           a vertical strip into a 360px viewport.
+           Feedback 77668f11: the collapsed half is no longer two words on a
+           spine — it carries its zone's HERO (the figure / the flagship's
+           art) and nothing else, and the strip widens to make it legible. See
+           codex-zone-rail.component.ts for what does and does not come along. -->
       <div
         class="surface"
         [class.dimmed]="searchActive()"
+        [class.hero-rail]="railHasHero()"
         [class.open-board]="openZone() === 'board'"
         [class.open-hangar]="openZone() === 'hangar'"
       >
@@ -334,12 +339,18 @@ export interface FleetGroup {
             </nav>
           </article>
         } @else {
+          <!-- Collapsed AN BORD: the figure and nothing else (feedback
+               77668f11). The set's name, the six positions and their values
+               all belong to the expanded panel. The figure is unconditional —
+               round three: an unequipped suit is still the person, and it is
+               what the expanded zone draws in that state too. -->
           <sc-codex-zone-rail
             kind="board"
             eyebrowKey="codex.landing.me.eyebrow"
             labelKey="codex.landing.surface.expandBoard"
             fallbackKey="codex.landing.me.uncommissioned"
             [summary]="activeLoadout()?.name ?? null"
+            [heroSuit]="boardHero()"
             (expand)="openZone.set('board')" />
         }
 
@@ -584,12 +595,15 @@ export interface FleetGroup {
           </nav>
         </article>
         } @else {
+          <!-- Collapsed IM HANGAR: the FLAGSHIP's art and nothing else — not
+               the fleet, not the name, not the KPI band (feedback 77668f11). -->
           <sc-codex-zone-rail
             kind="hangar"
             eyebrowKey="codex.landing.fleet.eyebrow"
             labelKey="codex.landing.surface.expandHangar"
             fallbackKey="codex.landing.fleet.empty"
             [summary]="flagshipName()"
+            [heroArt]="flagshipArt()"
             (expand)="openZone.set('hangar')" />
         }
       </div>
@@ -771,6 +785,13 @@ export interface FleetGroup {
         transition: opacity 0.2s;
         overflow: hidden;
       }
+      /* Round two (feedback 77668f11): a collapsed zone now shows its hero,
+         so the strip has to be wide enough for the figure / the flagship art
+         to be recognisable — "gern horizontal breiter zugeklappt". Fluid
+         rather than three breakpoints: 13vw lands between 104 and 168px across
+         every tablet and desktop width, and the expanded half keeps the rest.
+         The plain rail (nothing equipped, empty hangar) stays 52px. */
+      .surface.hero-rail { --rail-w: clamp(104px, 13vw, 168px); }
       /* DOM order is always board → hangar; only the track sizes swap. */
       .surface.open-board { grid-template-columns: minmax(0, 1fr) var(--rail-w); }
       .surface.open-hangar { grid-template-columns: var(--rail-w) minmax(0, 1fr); }
@@ -1214,9 +1235,15 @@ export interface FleetGroup {
         .surface { --surface-h: 500px; --rail-h: 52px; }
         .surface.open-board { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) var(--rail-h); }
         .surface.open-hangar { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--rail-h) minmax(0, 1fr); }
+        /* Here the rail is a horizontal bar, so "wider" is taller. The surface
+           grows by exactly the same 40px, which leaves the EXPANDED half at
+           the height it has always had — the fixed-height promise of
+           e80cc831 is about the zone, not about the page. */
+        .surface.hero-rail { --surface-h: 540px; --rail-h: 92px; }
       }
       @media (max-width: 480px) {
         .surface { --surface-h: 460px; }
+        .surface.hero-rail { --surface-h: 500px; }
         .ship-hero { max-height: 210px; }
       }
       /* On a phone the zone is ~360px wide, where four labelled KPI chips
@@ -1352,6 +1379,19 @@ export class CodexLandingComponent implements OnInit {
     return f ? this.rowName(f) : null;
   });
 
+  /**
+   * The collapsed IM HANGAR hero: the flagship's art candidates, flagship only.
+   * Null with an empty hangar — the rail then falls back to the plain strip
+   * with its "Kein Schiff" line rather than showing a picture of nothing.
+   * A computed, not `thumbs(flagshipRow())` in the template: the candidate list
+   * has to stay referentially stable or the image walks its fallbacks again on
+   * every change-detection pass.
+   */
+  readonly flagshipArt = computed<readonly string[] | null>(() => {
+    const f = this.flagshipRow();
+    return f ? this.thumbs(f) : null;
+  });
+
   /** classNameSlug → when the owning hangar row was last edited (ISO, sortable). */
   private readonly fleetTouchedAt = computed(() => {
     const m = new Map<string, string>();
@@ -1368,6 +1408,37 @@ export class CodexLandingComponent implements OnInit {
   readonly paperdollSlots = computed<ArmorSlotState[]>(() =>
     armorSlotsFromLoadout(this.activeLoadout()?.items ?? []),
   );
+
+  /**
+   * The collapsed AN BORD hero: which positions the active set has equipped —
+   * the only state the figure carries. ALWAYS a set, never null.
+   *
+   * Round two withheld the figure while nothing was equipped, on the theory
+   * that a fully open suit is "a picture of an empty set". Round three of the
+   * same feedback threw that out: "wenn ich ship im hangar aufrufe, dann sehe
+   * ich für zu fuß an board immer noch nicht die person als spalte sondern nur
+   * die textleiste" — and it is right, because the figure is the CHARACTER, not
+   * the set. An unequipped suit is an honest empty one, it is exactly what the
+   * EXPANDED zone draws in that same state, and the whole ask was to see "das
+   * männchen" instead of a text strip.
+   *
+   * IM HANGAR keeps its null (`flagshipArt`): an empty hangar has no ship, and
+   * a hull the user does not own would be a lie rather than a hero.
+   */
+  readonly boardHero = computed<ReadonlySet<string>>(
+    () => new Set(this.paperdollSlots().filter((s) => s.className).map((s) => s.roleSlot)),
+  );
+
+  /**
+   * Does the currently COLLAPSED half have a hero? Only then does the rail earn
+   * its extra width. AN BORD always does — the figure is the character and it
+   * is there whether or not anything is equipped; only an empty HANGAR keeps
+   * the 52px strip and gives the whole surface back to the expanded zone.
+   */
+  readonly railHasHero = computed(() =>
+    this.openZone() === 'board' ? this.flagshipArt() !== null : true,
+  );
+
   private readonly paperdollBySlot = computed(() => {
     const bySlot = new Map<string, ArmorSlotState>();
     for (const s of this.paperdollSlots()) bySlot.set(s.roleSlot, s);

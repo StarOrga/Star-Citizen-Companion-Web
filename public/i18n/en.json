@@ -102,6 +102,7 @@
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "langAria": "Language",
     "accountMenu": "Account menu",
+    "adminOnly": "Admin only",
     "telemetry": "Telemetry",
     "feedback": "Feedback",
     "signIn": "Sign in",
@@ -111,7 +112,8 @@
       "collaborator": "Collaborator",
       "viewer": "Viewer",
       "anon": "Signed-out visitor",
-      "exit": "Back to my role"
+      "exit": "Back to my role",
+      "restricted": "Admin & collaborator only"
     },
     "loading": {
       "weak": "Weak signal · retuning"
@@ -1732,8 +1734,8 @@
         "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
-        "title": "Patch history",
-        "sub": "Roadmap, cadence, dates and every release note — searchable down to the single bullet point",
+        "title": "Patches",
+        "sub": "Future on top, now in the middle, past below — a patch opens its dossier",
         "back": "Back to Verse News"
       },
       "waves": {
@@ -1744,7 +1746,10 @@
         "placeholder": "e.g. Orison, hotfix, quantum drive",
         "clear": "Clear search",
         "summary": "{{notes}} notes across {{lines}} patch lines",
-        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes"
+        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes",
+        "boardSummary": "{{cards}} patches with hits · bullet points of {{loaded}} loaded notes searched",
+        "noHits": "No patch matches the search.",
+        "cardHits": "{{notes}} notes · {{lines}} bullet points · {{roadmap}} roadmap items"
       },
       "roadmap": {
         "title": "What's in it",
@@ -1781,6 +1786,121 @@
         "points": "{{count}} points",
         "expandAll": "Expand all notes",
         "collapseAll": "Collapse all notes"
+      },
+      "status": {
+        "next": "Next",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Superseded",
+        "other": "No version"
+      },
+      "stack": {
+        "aria": "Patches, newest first",
+        "sinceDays": "for {{n}} days",
+        "replaced": "on {{date}}",
+        "liveSince": "Live since {{date}}",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Never went live",
+        "ptuExpected": "PTU expected {{when}}",
+        "noBuild": "No build yet",
+        "plannedFor": "Planned for {{quarter}}",
+        "inRing": "In {{ring}} · {{n}} waves · {{ago}}",
+        "hotfixOne": "1 hotfix on {{date}}",
+        "hotfixes": "{{n}} hotfixes, latest {{date}}",
+        "nextLive": "next live patch {{when}} (estimate)",
+        "notes": "{{n}} notes",
+        "planned": "{{n}} roadmap items",
+        "older": "Older patches · {{lines}}",
+        "olderHide": "Collapse older patches"
+      },
+      "dossier": {
+        "close": "Close dossier",
+        "toc": "Sections",
+        "unknown": "No patch data for Alpha {{line}}.",
+        "section": {
+          "prep": "How do I prepare?",
+          "prepPast": "What you needed to know",
+          "contents": "What's in it?",
+          "fixed": "Did they fix …?",
+          "next": "When is the next one?",
+          "nextThis": "When does this one land?",
+          "nextPast": "What came next?"
+        }
+      },
+      "prep": {
+        "source": "per the Spectrum post (\"Important Build Info\")",
+        "known": "Known issues",
+        "focus": "Testing focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In the release notes",
+        "more": "Full text",
+        "less": "Collapse",
+        "leftover": "Further note bullets without a roadmap card ({{n}})",
+        "noRoadmap": "No roadmap data for this patch – here is the note \"{{title}}\":"
+      },
+      "fixed": {
+        "placeholder": "Search this patch … e.g. quantum drive",
+        "hits": "{{n}} hits in {{notes}} notes",
+        "coverage": "{{loaded}} of {{total}} notes fully searched",
+        "loadRest": "Load and search the remaining notes",
+        "loading": "Loading {{n}} notes …",
+        "noHits": "No hit in the loaded notes – titles are always searched.",
+        "allNotes": "All notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Next live patch expected around {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}} after {{days}} days — the usual is {{median}} days.",
+        "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
+        "disclaimer": "Median estimates from the patch cadence, not official dates.",
+        "planned": {
+          "sentence": "Alpha {{line}} is planned for {{quarter}}.",
+          "unknown": "No date for Alpha {{line}} yet.",
+          "status": "No test build yet — going by the usual rhythm, the next live date would be around {{date}}.",
+          "basisCadence": "usual rhythm · median from n = {{n}}",
+          "basisLead": "usual test phase · median from n = {{n}}"
+        },
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "PTU start {{version}}",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix ×{{n}}",
+          "now": "today",
+          "nextLive": "Live {{version}}",
+          "usual": "Next Live · usual",
+          "leadUsual": "usual would be"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} days",
+          "cadence": "Live → Live: {{days}} days",
+          "subCadence": "Hotfix cadence: {{days}} days"
+        },
+        "median": "Median {{n}} d · n = {{samples}}",
+        "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)",
+        "status": {
+          "live": "Alpha {{line}} has been live for {{days}} days — the usual is {{median}} days until the next one.",
+          "testing": "Alpha {{line}} has been in testing for {{days}} days — the usual is {{median}} days until Live.",
+          "onTrack": "CIG is on rhythm.",
+          "over": "CIG is {{n}} days past the usual rhythm."
+        },
+        "legend": {
+          "real": "live cycle (evidenced)",
+          "usual": "usual rhythm (median)",
+          "over": "past the rhythm",
+          "lead": "test phase (PTU)"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} days",
+          "cadence": "Previous cycle Live → Live: {{days}} days",
+          "usual": "usual {{median}} d (n = {{n}})",
+          "later": "{{n}} d later than usual",
+          "earlier": "{{n}} d earlier than usual",
+          "onTrack": "on rhythm",
+          "hotfix": "{{n}} hotfix since Live",
+          "hotfixLast": "latest on {{date}}"
+        }
       }
     },
     "detail": {

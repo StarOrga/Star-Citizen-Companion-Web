@@ -102,6 +102,7 @@
     "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
+    "adminOnly": "Nur Admin",
     "telemetry": "Telemetrie",
     "feedback": "Feedback",
     "signIn": "Anmelden",
@@ -111,7 +112,8 @@
       "collaborator": "Collaborator",
       "viewer": "Viewer",
       "anon": "Abgemeldeter Besucher",
-      "exit": "Zurück zu meiner Rolle"
+      "exit": "Zurück zu meiner Rolle",
+      "restricted": "Nur Admin & Collaborator"
     },
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
@@ -1732,8 +1734,8 @@
         "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
-        "title": "Patch-Historie",
-        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
+        "title": "Patches",
+        "sub": "Zukunft oben, Jetzt in der Mitte, Vergangenheit unten — ein Patch öffnet sein Dossier",
         "back": "Zurück zu Verse News"
       },
       "waves": {
@@ -1744,7 +1746,10 @@
         "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
         "clear": "Suche löschen",
         "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
-        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes",
+        "boardSummary": "{{cards}} Patches mit Treffern · Stichpunkte von {{loaded}} geladenen Notes durchsucht",
+        "noHits": "Kein Patch passt zur Suche.",
+        "cardHits": "{{notes}} Notes · {{lines}} Stichpunkte · {{roadmap}} Roadmap-Einträge"
       },
       "roadmap": {
         "title": "Was steckt drin",
@@ -1781,6 +1786,121 @@
         "points": "{{count}} Punkte",
         "expandAll": "Alle Notes ausklappen",
         "collapseAll": "Alle Notes einklappen"
+      },
+      "status": {
+        "next": "Nächster",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Abgelöst",
+        "other": "Ohne Version"
+      },
+      "stack": {
+        "aria": "Patches, neueste zuerst",
+        "sinceDays": "seit {{n}} Tagen",
+        "replaced": "am {{date}}",
+        "liveSince": "Seit {{date}} live",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Nie live gegangen",
+        "ptuExpected": "PTU erwartet {{when}}",
+        "noBuild": "Noch kein Build",
+        "plannedFor": "Geplant für {{quarter}}",
+        "inRing": "Im {{ring}} · {{n}} Wellen · {{ago}}",
+        "hotfixOne": "1 Hotfix am {{date}}",
+        "hotfixes": "{{n}} Hotfixes, letzter {{date}}",
+        "nextLive": "nächster Live-Patch {{when}} (Schätzung)",
+        "notes": "{{n}} Notes",
+        "planned": "{{n}} Roadmap-Einträge",
+        "older": "Ältere Patches · {{lines}}",
+        "olderHide": "Ältere Patches einklappen"
+      },
+      "dossier": {
+        "close": "Dossier schließen",
+        "toc": "Abschnitte",
+        "unknown": "Zu Alpha {{line}} liegen keine Patch-Daten vor.",
+        "section": {
+          "prep": "Wie bereite ich mich vor?",
+          "prepPast": "Was war zu beachten?",
+          "contents": "Was steckt drin?",
+          "fixed": "Haben sie … gefixt?",
+          "next": "Wann kommt der nächste?",
+          "nextThis": "Wann kommt dieser Patch?",
+          "nextPast": "Was kam danach?"
+        }
+      },
+      "prep": {
+        "source": "laut Spectrum-Post („Important Build Info“)",
+        "known": "Bekannte Probleme",
+        "focus": "Testing Focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In den Release-Notes",
+        "more": "Langtext",
+        "less": "Einklappen",
+        "leftover": "Weitere Stichpunkte der Note ohne Roadmap-Karte ({{n}})",
+        "noRoadmap": "Keine Roadmap-Daten zu diesem Patch – hier die Note „{{title}}“:"
+      },
+      "fixed": {
+        "placeholder": "In diesem Patch suchen … z. B. Quantum Drive",
+        "hits": "{{n}} Treffer in {{notes}} Notes",
+        "coverage": "{{loaded}} von {{total}} Notes voll durchsucht",
+        "loadRest": "Restliche Notes laden und durchsuchen",
+        "loading": "Lade {{n}} Notes …",
+        "noHits": "Kein Treffer in den geladenen Notes – Titel werden immer durchsucht.",
+        "allNotes": "Alle Notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Nächster Live-Patch voraussichtlich um den {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} wurde am {{date}} nach {{days}} Tagen von Alpha {{next}} abgelöst — üblich sind {{median}} Tage.",
+        "sentencePlanned": "Alpha {{line}} laut Takt voraussichtlich um den {{date}} live — {{when}}.",
+        "disclaimer": "Median-Schätzungen aus dem Patch-Takt, keine offiziellen Termine.",
+        "planned": {
+          "sentence": "Alpha {{line}} ist für {{quarter}} geplant.",
+          "unknown": "Für Alpha {{line}} steht noch kein Termin.",
+          "status": "Noch kein Testbuild — nach dem üblichen Takt wäre der nächste Live-Termin um den {{date}}",
+          "basisCadence": "üblicher Takt · Median aus n = {{n}}",
+          "basisLead": "übliche Testphase · Median aus n = {{n}}"
+        },
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "PTU-Start {{version}}",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix ×{{n}}",
+          "now": "heute",
+          "nextLive": "Live {{version}}",
+          "usual": "Nächster Live · üblich",
+          "leadUsual": "üblich wäre"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} Tage",
+          "cadence": "Live → Live: {{days}} Tage",
+          "subCadence": "Hotfix-Takt: {{days}} Tage"
+        },
+        "median": "Median {{n}} T · n = {{samples}}",
+        "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)",
+        "status": {
+          "live": "Alpha {{line}} ist seit {{days}} Tagen live — üblich sind {{median}} Tage bis zum nächsten.",
+          "testing": "Alpha {{line}} ist seit {{days}} Tagen im Test — üblich sind {{median}} Tage bis Live.",
+          "onTrack": "CIG liegt im Takt.",
+          "over": "CIG liegt {{n}} Tage über dem üblichen Takt."
+        },
+        "legend": {
+          "real": "Live-Zyklus (belegt)",
+          "usual": "üblicher Takt (Median)",
+          "over": "über dem Takt",
+          "lead": "Testphase (PTU)"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} Tage",
+          "cadence": "Voriger Zyklus Live → Live: {{days}} Tage",
+          "usual": "üblich {{median}} T (n = {{n}})",
+          "later": "{{n}} T später als üblich",
+          "earlier": "{{n}} T früher als üblich",
+          "onTrack": "im Takt",
+          "hotfix": "{{n}} Hotfix seit Live",
+          "hotfixLast": "letzter am {{date}}"
+        }
       }
     },
     "detail": {
