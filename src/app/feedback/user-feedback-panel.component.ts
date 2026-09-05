@@ -19,6 +19,8 @@ import {
 import { FeedbackAttachmentsComponent } from '../admin/feedback/feedback-attachments.component';
 import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/markdown.util';
 import { UserFeedbackService } from './user-feedback.service';
+import { PanelNavigationService } from './panel-navigation.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
 import { RouterLink } from '@angular/router';
@@ -172,7 +174,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                          section root is enough — the topic says what to look at.
                          Nothing on an untagged topic rather than a wrong door. -->
                     @if (t.author_status === 'done' && areaLinkFor(t); as href) {
-                      <a class="view-link" [routerLink]="href">▸ {{ 'userFeedback.viewInApp' | translate }}</a>
+                      <a class="view-link" [routerLink]="href" (click)="onViewInApp($event)">▸ {{ 'userFeedback.viewInApp' | translate }}</a>
                     }
 
                     @if (t.author_status === 'declined' && t.decision_note) {
@@ -454,6 +456,18 @@ type UserFeedbackTab = 'compose' | 'mine';
 })
 export class UserFeedbackPanelComponent implements OnInit {
   readonly feedback = inject(UserFeedbackService);
+  private readonly panelNav = inject(PanelNavigationService);
+
+  /**
+   * "Im App ansehen" routed the app underneath. On a phone this panel is a
+   * full-bleed sheet that would keep covering the page it just opened, so the
+   * shell has to minimize itself (#517). Modified clicks open a new tab and
+   * leave this one alone.
+   */
+  onViewInApp(event: MouseEvent): void {
+    if (!isPlainLeftClick(event)) return;
+    this.panelNav.notifyInAppNavigation();
+  }
 
   /** Draft identity of the new-topic box (see `FeedbackDraftService`). */
   readonly composeScope = draftScopes.userNew;

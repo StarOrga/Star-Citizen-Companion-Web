@@ -80,6 +80,7 @@ import {
   feedbackAreaLabelKey,
 } from '../../feedback/feedback-area.types';
 import { isPlainLeftClick } from '../../core/modified-click.util';
+import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
@@ -465,7 +466,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </button>
               }
               @if (areaLink(m); as href) {
-                <a class="link-btn" [routerLink]="href" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
+                <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
                   ▸ {{ 'adminFeedback.stream.view' | translate }}
                 </a>
               }
@@ -636,7 +637,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           }
           <div class="rg-links">
             @if (areaLink(m); as href) {
-              <a class="link-btn" [routerLink]="href">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+              <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
             }
             @if (inline) {
               <!-- On a card, "open the topic" belongs in this row: it is the
@@ -709,7 +710,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
             <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
               @if (areaLink(m); as href) {
-                <a class="menu-item" [routerLink]="href" (click)="isPlainLeftClick($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+                <a class="menu-item" [routerLink]="href" (click)="onViewInApp($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
               }
               @if (!archived(m) && !inReview(m)) {
                 @if (issueRequested(m)) {
@@ -1163,6 +1164,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
+  private readonly panelNav = inject(PanelNavigationService);
   private readonly celebration = inject(CelebrationService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -1578,6 +1580,18 @@ export class AdminFeedbackComponent implements OnInit {
     // Reading a delivered topic counts as having looked at the feed.
     const row = this.messages().find((m) => m.id === id);
     if (row && this.delivered(row)) this.stampLastSeen();
+  }
+
+  /**
+   * A deep link inside the panel routed the app underneath. On a phone the
+   * sheet covers the page it just opened, so the shell has to get out of the
+   * way (#517). Modified clicks open a new tab and are left alone — the
+   * boolean result lets a template chain `&& closeTopic()` behind it.
+   */
+  onViewInApp(event: MouseEvent): boolean {
+    if (!isPlainLeftClick(event)) return false;
+    this.panelNav.notifyInAppNavigation();
+    return true;
   }
 
   closeTopic(): void {
