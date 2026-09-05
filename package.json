@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.74.1",
+  "version": "0.75.1",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -57,9 +57,10 @@
     "@ngx-translate/core": "^17.0.0",
     "@ngx-translate/http-loader": "^17.0.0",
     "@starorga/star-ui": "github:StarOrga/StarUI#v0.1.1",
-    "@supabase/supabase-js": "^2.112.1",
+    "@supabase/supabase-js": "^2.115.0",
     "lucide-angular": "^1.0.0",
-    "posthog-js": "^1.413.2",
+    "modern-screenshot": "^4.7.0",
+    "posthog-js": "^1.427.2",
     "rxjs": "~7.8.0",
     "three": "^0.183.2",
     "tslib": "^2.3.0",
@@ -78,9 +79,9 @@
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.2.0",
+    "karma-jasmine-html-reporter": "~2.3.0",
     "pngjs": "^7.0.0",
-    "supabase": "^2.111.0",
+    "supabase": "^2.116.0",
     "typescript": "~5.9.0"
   },
   "overrides": {

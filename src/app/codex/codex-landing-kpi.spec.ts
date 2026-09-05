@@ -4,7 +4,9 @@ import {
   computeFpsKpis,
   computeShipKpis,
   groupPortsBySize,
+  roleSlotForAttachType,
   sortByRecency,
+  withSelectedFirst,
   type EntityPayloadEntry,
 } from './codex-landing-kpi';
 import type { ShipPayload } from './codex.types';
@@ -187,5 +189,49 @@ describe('sortByRecency', () => {
       { id: 'c', updatedAt: '2026-08-05T00:00:00Z' },
     ];
     expect(sortByRecency(items).map((i) => i.id)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+// Admin feedback 34505d70 ("2A"): the standalone /hangar/loadout/:id editor was
+// retired, so "which set am I looking at" moved into the Codex landing's URL
+// (`?set=`). Position 0 of this list IS the active set, which makes the
+// reordering below the whole selection mechanism — worth locking down.
+describe('withSelectedFirst', () => {
+  const sets = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+
+  it('leaves the order alone when nothing is selected', () => {
+    expect(withSelectedFirst(sets, null).map((s) => s.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('pulls the named set to the front and keeps the rest in order', () => {
+    expect(withSelectedFirst(sets, 'c').map((s) => s.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('is a no-op for the set that already leads', () => {
+    expect(withSelectedFirst(sets, 'a').map((s) => s.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('ignores an id that no longer resolves, rather than emptying the zone', () => {
+    // A bookmark from the retired editor pointing at a deleted set.
+    expect(withSelectedFirst(sets, 'gone').map((s) => s.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('never hands back the caller array', () => {
+    expect(withSelectedFirst(sets, 'b')).not.toBe(sets as unknown as { id: string }[]);
+  });
+});
+
+describe('roleSlotForAttachType', () => {
+  it('maps every anatomical attach_type to the role slot the set stores', () => {
+    expect(roleSlotForAttachType('Char_Armor_Helmet')).toBe('helmet');
+    expect(roleSlotForAttachType('Char_Armor_Torso')).toBe('core');
+    expect(roleSlotForAttachType('Char_Armor_Backpack')).toBe('backpack');
+  });
+
+  it('refuses everything else, so the equip control cannot invent a slot', () => {
+    // Ship hull armour — deliberately NOT a personal-armour attach type.
+    expect(roleSlotForAttachType('Armor')).toBeNull();
+    expect(roleSlotForAttachType(null)).toBeNull();
+    expect(roleSlotForAttachType('')).toBeNull();
   });
 });

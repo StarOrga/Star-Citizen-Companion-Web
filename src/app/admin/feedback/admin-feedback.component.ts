@@ -69,6 +69,8 @@ import {
   waitingSince,
 } from './feedback.types';
 import { buildFeedbackBody, uploadFeedbackImages } from '../../feedback/feedback-images.util';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import {
   FEEDBACK_AREAS,
@@ -127,6 +129,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     FeedbackComposerComponent,
     FeedbackDashboardComponent,
     RoutineStatusDirective,
+    CharCounterComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -325,7 +328,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [draftScope]="draftScope"
             [busy]="busy()"
             [areaPicker]="true"
-            [screenshot]="true"
+            [allowFiles]="true"
             placeholder="adminFeedback.compose.placeholder"
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
@@ -343,7 +346,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [draftScope]="draftScope"
               [busy]="busy()"
               [areaPicker]="true"
-              [screenshot]="true"
+              [allowFiles]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
               [onSubmit]="createComposerBound" />
@@ -461,6 +464,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     [compact]="true"
                     [draftScope]="leadScope(m.id)"
                     [busy]="busy()"
+                    [allowFiles]="true"
                     [primaryHot]="true"
                     placeholder="adminFeedback.thread.replyPlaceholder"
                     sendLabel="adminFeedback.thread.reply"
@@ -602,6 +606,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [compact]="true"
               [draftScope]="reopenScope(m.id)"
               [busy]="busy()"
+              [allowFiles]="true"
               placeholder="adminFeedback.review.reopenPlaceholder"
               sendLabel="adminFeedback.review.reopenSend"
               [onSubmit]="reopenSubmitFor(m.id)" />
@@ -787,6 +792,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     [compact]="true"
                     [draftScope]="authorScope(m.id)"
                     [busy]="busy()"
+                    [allowFiles]="true"
                     placeholder="adminFeedback.userTopic.messagePlaceholder"
                     [sendLabel]="asksAuthor(m.id) ? 'adminFeedback.userTopic.questionSend' : 'adminFeedback.userTopic.messageSend'"
                     [onSubmit]="authorReplySubmitFor(m.id)" />
@@ -802,8 +808,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <sc-feedback-composer
               [draftScope]="threadScope(m.id)"
               [busy]="busy()"
+              [allowFiles]="true"
               [large]="true"
-              [screenshot]="true"
               [primaryHot]="true"
               placeholder="adminFeedback.thread.replyPlaceholder"
               sendLabel="adminFeedback.thread.reply"
@@ -888,14 +894,20 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </button>
               }
             </div>
-            <textarea
-              class="decline-input"
-              rows="4"
-              required
-              [value]="declineNote()"
-              (input)="setDeclineNote($any($event.target).value)"
-              [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
-              [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+            <!-- Same cap and the same live readout as every other feedback
+                 field (admin feedback 0a0fad31) — the author reads this text. -->
+            <div class="field">
+              <textarea
+                class="decline-input"
+                rows="4"
+                required
+                [value]="declineNote()"
+                (input)="onDeclineInput($event)"
+                [attr.maxlength]="maxChars"
+                [attr.placeholder]="'adminFeedback.decline.placeholder' | translate"
+                [attr.aria-label]="'adminFeedback.decline.placeholder' | translate"></textarea>
+              <sc-char-counter [used]="declineNote().length" [max]="maxChars" />
+            </div>
             <div class="inline-actions">
               <button class="sc-btn micro danger" type="submit" [disabled]="busy()">{{ 'adminFeedback.decline.confirm' | translate }}</button>
               <button class="sc-btn micro" type="button" (click)="cancelDeclineForm()">{{ 'adminFeedback.decline.cancel' | translate }}</button>
@@ -1006,7 +1018,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .msg-head .who { font-weight: 600; color: var(--sc-fg-1); }
     .msg-ts { margin-left: auto; white-space: nowrap; }
     .ai { font-weight: 700; letter-spacing: 0.08em; color: var(--sc-accent); }
-    .msg-body { font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; }
+    /* overflow-x: the scrollport for a marked-up runaway token (.sc-longword,
+       styles.scss) — it overflows this box instead of reflowing the card. */
+    .msg-body { font-size: 0.9rem; line-height: 1.5; overflow-wrap: anywhere; overflow-x: auto; }
     .msg-body :is(p, ul, ol) { margin: 0 0 0.5em; }
     .msg-body :is(p, ul, ol):last-child { margin-bottom: 0; }
     .msg.clamped .msg-body { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -1062,7 +1076,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
     .dot.hot { background: var(--sc-accent); }
     .decline-form { gap: 10px; }
-    .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
+    .decline-form .field { position: relative; }
+    .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px 22px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
 
     /* ---- Composer bar ---- */
     .main-composer { position: sticky; bottom: 12px; z-index: 1; }
@@ -1210,11 +1225,19 @@ export class AdminFeedbackComponent implements OnInit {
     this.messages().filter((m) => this.matchesWho(m) && this.matchesWhere(m) && this.matchesArea(m)),
   );
 
-  /** Band 1: what waits on the admin, longest wait first. */
+  /**
+   * Band 1: what waits on the admin — releases first (feedback 89925995: a user
+   * topic nobody released is blocked outright, nothing at all happens to it
+   * until an admin acts), then longest wait first.
+   */
   readonly yourTurn = computed(() =>
     this.filtered()
       .filter((m) => this.turnOf(m) === 'admin')
-      .sort((a, b) => waitingSince(a, this.threads().get(a.id)) - waitingSince(b, this.threads().get(b.id))),
+      .sort((a, b) => {
+        const ra = this.askOf(a) === 'release' ? 0 : 1;
+        const rb = this.askOf(b) === 'release' ? 0 : 1;
+        return ra - rb || waitingSince(a, this.threads().get(a.id)) - waitingSince(b, this.threads().get(b.id));
+      }),
   );
 
   /** Band 2: the routine's pile and the questions parked at a user, newest activity first. */
@@ -1400,8 +1423,10 @@ export class AdminFeedbackComponent implements OnInit {
     const w = this.whoFilter();
     if (w === 'all') return true;
     if (w === 'users') return isUserSubmitted(m);
-    if (w === 'mine') return !isUserSubmitted(m) && !!m.author_id && m.author_id === this.selfId();
-    if (w === 'others') return !isUserSubmitted(m) && m.author_id !== this.selfId();
+    // A release step is nobody's topic and therefore everybody's job (feedback
+    // 89925995): it shows under "Meine" and "Andere" alike.
+    if (w === 'mine') return awaitsTriage(m) || (!isUserSubmitted(m) && !!m.author_id && m.author_id === this.selfId());
+    if (w === 'others') return awaitsTriage(m) || (!isUserSubmitted(m) && m.author_id !== this.selfId());
     return (m.author_id ?? AdminFeedbackComponent.NO_AUTHOR) === w.authorId;
   }
 
@@ -1819,7 +1844,11 @@ export class AdminFeedbackComponent implements OnInit {
   // ---- Composer submit handlers ------------------------------------------
 
   private uploadImages(images: PendingImage[]): Promise<string[]> {
-    return uploadFeedbackImages(this.sb.client, this.selfId(), images);
+    // `true` = the admin board may carry any file type (admin feedback
+    // 312a4acc). Every non-admin send path leaves the flag at its default and
+    // is refused a non-image before a request is made; the storage policy in
+    // migration 20260904040000 refuses it again server-side.
+    return uploadFeedbackImages(this.sb.client, this.selfId(), images, true);
   }
 
   private buildBody(text: string, images: PendingImage[], urls: string[]): string {
@@ -2096,7 +2125,11 @@ export class AdminFeedbackComponent implements OnInit {
     return fn;
   }
 
-  async sendAuthorMessage(feedbackId: string, payload: ComposerPayload): Promise<boolean> {
+  async sendAuthorMessage(
+    feedbackId: string,
+    payload: ComposerPayload,
+    asQuestion = this.asksAuthor(feedbackId),
+  ): Promise<boolean> {
     const uid = this.selfId();
     if (!uid) return false;
     this.errorMsg.set(null);
@@ -2112,7 +2145,7 @@ export class AdminFeedbackComponent implements OnInit {
       feedback_id: feedbackId,
       author_id: uid,
       from_admin: true,
-      is_question: this.asksAuthor(feedbackId),
+      is_question: asQuestion,
       body,
     });
     if (error) {
@@ -2161,9 +2194,28 @@ export class AdminFeedbackComponent implements OnInit {
     this.declineReason.set(id);
   }
 
+  /** The shared feedback length cap (admin feedback 0a0fad31). */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
+  /**
+   * Keep the DOM and the signal in step under the cap: writing the clamped text
+   * back is what makes a DROP past `maxlength` actually disappear from the field.
+   */
+  onDeclineInput(e: Event): void {
+    const el = e.target as HTMLTextAreaElement;
+    const capped = clampFeedbackText(el.value);
+    if (el.value !== capped) {
+      const caret = Math.min(el.selectionStart ?? capped.length, capped.length);
+      el.value = capped;
+      el.setSelectionRange(caret, caret);
+    }
+    this.setDeclineNote(capped);
+  }
+
   setDeclineNote(value: string): void {
-    this.declineNote.set(value);
-    this.declineReason.set(matchDeclineReason(value, this.declineReasonTexts()));
+    const capped = clampFeedbackText(value);
+    this.declineNote.set(capped);
+    this.declineReason.set(matchDeclineReason(capped, this.declineReasonTexts()));
   }
 
   private declineReasonTexts(): DeclineReasonTexts {
@@ -2179,6 +2231,14 @@ export class AdminFeedbackComponent implements OnInit {
       this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
       return;
     }
+    if (await this.declineWithNote(m, note)) {
+      this.cancelDeclineForm();
+      this.closeTopic();
+    }
+  }
+
+  /** The decline itself, without the sheet around it. Resolves true once both parts landed. */
+  async declineWithNote(m: FeedbackRow, note: string): Promise<boolean> {
     const uid = this.selfId();
     this.busy.set(true);
     this.errorMsg.set(null);
@@ -2189,7 +2249,7 @@ export class AdminFeedbackComponent implements OnInit {
     if (error) {
       this.errorMsg.set(error.message);
       this.busy.set(false);
-      return;
+      return false;
     }
     if (uid) {
       await this.sb.client.from('feedback_author_messages').insert({
@@ -2200,9 +2260,8 @@ export class AdminFeedbackComponent implements OnInit {
         body: note,
       });
     }
-    this.cancelDeclineForm();
-    this.closeTopic();
     await this.refresh();
+    return true;
   }
 
   async remove(m: FeedbackRow) {

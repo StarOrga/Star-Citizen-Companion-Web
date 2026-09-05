@@ -35,6 +35,14 @@ export interface SkinUploadResult {
   error?: string;
   /** True when skipped because the ship was already uploaded in a prior run. */
   cached?: boolean;
+  /**
+   * True when the ship built no usable livery at all — a successful no-op, not
+   * a failure. The build manifest gates on `has_material`, which is far broader
+   * than "a glb actually came out", so a whole-catalog run legitimately reaches
+   * this for most of its ships (debris and other non-liveried entities
+   * included).
+   */
+  empty?: boolean;
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
@@ -64,6 +72,12 @@ export interface SkinUploadHooks {
   doneShips?: string[];
   /** Fired when a ship is fully committed, so a kill can't lose the progress. */
   onShipDone?: (shipId: string) => void;
+  /**
+   * Fired after every ship, whatever its outcome. The upload stage is a single
+   * multi-minute `await` from the renderer's point of view, so without this the
+   * progress card has nothing to paint and the run reads as frozen.
+   */
+  onProgress?: (done: number, total: number, shipId: string) => void;
 }
 
 const fnUrl = (name: string): string => `${API_BASE}/functions/v1/${name}`;
@@ -120,6 +134,15 @@ export async function uploadSkins(
   // Resolved per call so a multi-hour run refreshes the JWT instead of reusing
   // the one captured at stage start.
   const getToken = typeof accessToken === 'function' ? accessToken : (): string => accessToken;
+  /** Best-effort ship marker: worst case the ship is reconsidered next run. */
+  const markShipped = (marker: string, note: string): void => {
+    try {
+      writeFileSync(marker, note);
+    } catch {
+      /* marker is best-effort */
+    }
+  };
+  let processed = 0;
   for (const { shipId, dir } of ships) {
     try {
       // Safe boundary between ships — a pause here costs nothing to replay.
@@ -142,11 +165,25 @@ export async function uploadSkins(
       }
       const catPath = resolve(dir, 'skins.json');
       if (!existsSync(catPath)) {
+        onLog(`${shipId}: skins.json missing in ${dir}`, 'error');
         out.push({ ok: false, ship_id: shipId, error: 'skins.json missing' });
         continue;
       }
       const cat = JSON.parse(readFileSync(catPath, 'utf-8')) as SkinCatalog;
       const built = cat.skins.filter((s) => s.model); // only skins with a glb
+
+      // A ship whose every skin failed to produce a glb has nothing to ship.
+      // Asking `ingest-skins` to sign an empty object list is a 400, which used
+      // to be recorded as a failed ship — silently, since only the success path
+      // logged. On a whole-catalog run that turned the normal case (most
+      // manifest entries never yield a model) into hundreds of phantom errors.
+      if (built.length === 0) {
+        markShipped(marker, `${cat.ship} no models`);
+        hooks.onShipDone?.(shipId);
+        onLog(`${shipId}: no livery models were built — nothing to upload`, 'info');
+        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, empty: true });
+        continue;
+      }
 
       // 1. ask the function for signed upload URLs
       const objects: { skin_id: string; ext: 'glb' | 'webp' }[] = [];
@@ -156,6 +193,7 @@ export async function uploadSkins(
       }
       const signed = await callIngest(getToken, { action: 'sign', ship_id: cat.ship, objects });
       if (!signed.ok) {
+        onLog(`${shipId}: sign failed — ${signed.error}`, 'error');
         out.push({ ok: false, ship_id: shipId, error: signed.error });
         continue;
       }
@@ -191,16 +229,13 @@ export async function uploadSkins(
       }));
       const committed = await callIngest(getToken, { action: 'commit', ship_id: cat.ship, skins });
       if (!committed.ok) {
+        onLog(`${shipId}: commit failed after ${n} object(s) — ${committed.error}`, 'error');
         out.push({ ok: false, ship_id: shipId, uploaded: n, error: committed.error });
         continue;
       }
       const count = (committed.json['count'] as number | undefined) ?? skins.length;
       // Mark shipped so a re-run's upload-cache skips this ship.
-      try {
-        writeFileSync(marker, `${cat.ship} ${count} rows`);
-      } catch {
-        /* marker is best-effort — worst case the ship re-uploads next run */
-      }
+      markShipped(marker, `${cat.ship} ${count} rows`);
       hooks.onShipDone?.(shipId);
       onLog(`${shipId}: uploaded ${n} objects, committed ${count} rows`, 'info');
       out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count });
@@ -208,7 +243,12 @@ export async function uploadSkins(
       // Pause/cancel is control flow — unwind to the caller instead of being
       // recorded as a per-ship upload failure.
       if (isInterrupt(err)) throw err;
+      onLog(`${shipId}: ${(err as Error).message}`, 'error');
       out.push({ ok: false, ship_id: shipId, error: (err as Error).message });
+    } finally {
+      // Every exit path counts — a run where most ships are skipped must still
+      // move the bar, otherwise "no visible progress" reads as "hung".
+      hooks.onProgress?.(++processed, ships.length, shipId);
     }
   }
   return out;

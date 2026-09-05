@@ -1,7 +1,181 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.72.0",
+  "current": "0.75.0",
   "releases": [
+    {
+      "version": "0.75.0",
+      "date": "2026-09-05",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse News: die Patch-Notes-Seite ist ein Zeitstapel mit Dossier.",
+              "text": "Statt gestapelter Bänder führt /news/patches jetzt eine strikt monotone Achse: der nächste Patch, der laufende als Hero, der abgelöste, ältere gefaltet. Jede Karte öffnet ein Dossier mit Inhaltsverzeichnis und vier Abschnitten, die nach ihrer Frage benannt sind — wie bereite ich mich vor, was steckt drin, haben sie … gefixt, wann kommt der nächste. Deren Reihenfolge folgt dem Zustand des Patches: solange er nicht draußen ist, führen die Fragen nach vorn (wann kommt er, wie bereite ich mich vor); sobald er gelandet ist, führen Inhalt und Fix-Suche, und die Vorbereitung rutscht ans Ende. Zwei Überschriften wechseln mit der Zeitform mit: ein noch nicht erschienener Patch fragt „Wann kommt dieser Patch?\", ein abgelöster „Was kam danach?\". Eine Suche vom Board trägt ihre Anfrage ins Dossier und stellt die Trefferliste voran. Die Zyklus-Achse misst die reale Lage gegen den üblichen Takt vom selben Anker aus — gedämpfter Balken für den Takt, aktiver für das, was wirklich geschah, bernstein für den Überstand. Ein nur angekündigter Patch hat nichts zu zeichnen und antwortet stattdessen in Worten: geplantes Quartal, der aus dem Takt projizierte Live-Termin, und die zwei Mediane, auf denen das ruht."
+            },
+            {
+              "title": "Feedback: Seite aufnehmen und markieren, was man meint.",
+              "text": "Ein Bericht kann die aktuelle Ansicht als Bild mitschicken, samt Markierungen darauf."
+            },
+            {
+              "title": "Feedback: Nutzer-Feedback wird im Abarbeiten-Lauf mit abgearbeitet",
+              "text": "statt nur gesammelt."
+            },
+            {
+              "title": "Social: Kontosperre, geteilte Loadouts und ablaufende Freundschaftsanfragen",
+              "text": "(Phase 1 des sozialen Ausbaus)."
+            },
+            {
+              "title": "Auth: Rollenauswahl im Seitenthema, und eingeladene Nutzer vergeben ihr Passwort selbst.",
+              "text": ""
+            },
+            {
+              "title": "Codex: der Zonen-Held bleibt auch in der eingeklappten Leiste sichtbar.",
+              "text": ""
+            },
+            {
+              "title": "Rechtliches: die öffentlichen Seiten haben einen Weg zurück zur Startseite.",
+              "text": ""
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Hangar: der eigenständige Loadout-Editor entfällt, Sets werden im Codex bearbeitet",
+              "text": "— ein Ort statt zwei für dieselbe Arbeit."
+            },
+            {
+              "title": "Codex: das „Live\"-Abzeichen entfällt",
+              "text": "; neuere Patches erscheinen ausgegraut, und die Umschaltung zeigt höchstens drei."
+            },
+            {
+              "title": "Starscape: Roadmap Roundup ist aus der Galerie und der App entfernt.",
+              "text": ""
+            },
+            {
+              "title": "Desktop-Downloads werden auf dem Telefon nicht mehr angeboten",
+              "text": "— sie sind Windows-only und dort nutzlos."
+            },
+            {
+              "title": "Shell: die Rollenvorschau ist als erhöhter Zugriff gekennzeichnet.",
+              "text": ""
+            },
+            {
+              "title": "Feedback: eine Nachricht endet bei 2.000 Zeichen",
+              "text": ", und ein überlanges Wort bricht die Ansicht nicht mehr auf."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex: Schiffs- und Komponentenseiten scrollen auf dem Telefon nicht mehr seitwärts.",
+              "text": ""
+            },
+            {
+              "title": "Codex: die AN-BORD-Figur bleibt auf der Leiste sichtbar, auch wenn das Set leer ist.",
+              "text": ""
+            },
+            {
+              "title": "Feedback: die Bildschirmaufnahme verliert die Artwork-Ebene nicht mehr.",
+              "text": ""
+            },
+            {
+              "title": "Datenbank: is_suspended wird definiert, bevor der erste Migrationsteil es benutzt.",
+              "text": ""
+            },
+            {
+              "title": "Data Uploader: der eingebettete Python-Download wird im Tag-Build wiederholt",
+              "text": "statt beim ersten Fehlversuch aufzugeben (data-uploader 0.25.2)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.74.1",
+      "date": "2026-09-03",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: \"Upload fortsetzen\" works again after the app was closed, updated or killed",
+              "text": "(data-uploader 0.25.1). On the newest build the button did nothing: the log showed five resume requested lines within fifteen minutes and not one line after any of them. The resume path went through the same start routine as a fresh upload, and that routine returns silently without an extraction result in memory — a value only a *finished extraction* ever sets, so every restart wiped it. The durable job file already knows the extract's directory and channel/version, and the extract's own manifest.json knows the rest, so a resume now rebuilds the result from those two sources. When the extract itself is gone, the operator is told so in words (\"verwerfen und neu extrahieren\") instead of being left with a button that appears to hang. The tray's *Resume* takes the same path."
+            },
+            {
+              "title": "Data Uploader: the startup sweep no longer deletes the extract a paused upload is waiting to resume from.",
+              "text": "The sweep reclaims marker-less extract dirs older than 24 h, and a paused job's dir goes untouched for exactly that long while the operator waits — on the next launch it was swept (orphan scan: removed 2 … LIVE-4.9.0, skins-4.9.0), which is why the interrupted 4.9.0 upload above could not have continued even with a working button. The sweep now honours the same keep-list the pre-extraction purge already did. Users with a job in that state today must discard it and extract once more; new jobs keep their data."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.74.0",
+      "date": "2026-09-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "The Codex start page ends with the switcher — the \"Im Versum\" band is gone.",
+              "text": "The third plane under \"An Bord\" and \"Im Hangar\" was a row of seven small pills, each in its own colour, sitting under a plain gap: it read as a filter bar that did not belong to the two planes above it, and four rounds of reshuffling the same seven entries never gave it an identity. Instead of a fourth attempt, the archive access moved to where its subject already is. \"An Bord\" now ends with one quiet line — *Archiv › Rüstung · Waffen · Baupläne* — and \"Im Hangar\" with *Archiv › Schiffe · Komponenten · Waffen · Baupläne*, each entry a real link that opens the archive pre-filtered to that family. Counts stay only where the archive already has an honest one (ships, components); the weapon and blueprint families are split between on-foot and ship, so a combined total would have lied. One accent per plane, no per-family colours, no glyph sample sheet."
+            },
+            {
+              "title": "Blueprints open pre-sorted by where they belong.",
+              "text": "From \"An Bord\" the blueprint list shows FPS armour and FPS weapons; from \"Im Hangar\" it shows vehicle components and vehicle weapons. A small switch — *Alle · Zu Fuß · Fahrzeug* — widens or narrows it, and the single-category filter still works inside the chosen group."
+            },
+            {
+              "title": "Keybindings moved into the terminal row",
+              "text": "at the top of the page (next to the app download menu) — a reference tool, not an archive entry, so it no longer hangs off a content plane."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "The \"Auf dem Reißbrett\" rail of announced ships on the Codex start page. The announced ships keep their own view (/codex/upcoming) and their own pages; whether a quiet strip returns under the fleet is an open follow-up."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.73.0",
+      "date": "2026-09-02",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "\"An Bord\" on the Codex start page is a tool now, not a display case.",
+              "text": "The zone that shows what your character is wearing could be looked at and nothing else: the whole area was a single link, and the six positions on the figure — helmet, torso, arms, legs, undersuit, backpack — were drawing, not controls. Changing a helmet meant leaving the page, opening a different part of the app, and searching a list that offered every item in the game at once with no way to narrow it to helmets. Seven releases in a row had reworked how this looked and never once what it did. Every position is now its own link: click the helmet and you land in a list that *cannot* contain anything but helmets, with a way back. The set name stays the way into the full on-foot section."
+            },
+            {
+              "title": "The numbers under the figure answer a question instead of proving we have data.",
+              "text": "They used to read \"Occupied slots 0 / 6\", six raw archive counts, and two blanks where an armour value and a weapon value should have been. The counts moved to the empty positions themselves, where they read as a promise (\"460 in the archive\") rather than trivia. In their place each position now carries its armour class — light through super-heavy — drawn as the height of a bar rather than as a colour, so a set has a shape you recognise at a glance and colour is free to mean one single thing: worn, or open. Next to the figure, six small marks say what the set actually carries — primary weapon, sidearm, melee, throwables, gadget, medical — lighting up only for what is really there."
+            },
+            {
+              "title": "What we do not know is now said out loud rather than shown as a dash.",
+              "text": "The game files carry no protection value for personal armour at all: the field is empty in every one of the 9,539 pieces, and the resistance entry is a reference that was never resolved. So the old \"Armour value —\" was not a gap waiting to be filled, it was a number that does not exist. It is gone. What the files *do* carry is the armour class, and that is what you see. A piece the archive knows no class for — every backpack — shows a hatched marker instead of a guessed bar. There are deliberately no \"mining ready\" or \"tractor ready\" marks either: nothing of that kind exists as personal equipment in this build, only as ship parts, so claiming it would have been an invention."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.72.0",
       "date": "2026-09-01",

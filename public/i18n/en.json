@@ -19,6 +19,33 @@
     "email": "Email",
     "password": "Password",
     "signIn": "Sign in",
+    "forgotPassword": "Forgot your password?",
+    "reset": {
+      "title": "Reset password",
+      "hint": "Enter your email address. We send you a link to set a new password — we never pick one for you.",
+      "send": "Send link",
+      "sending": "Sending…",
+      "sent": "If an account exists for that address, an email with a link is on its way. The link goes straight to the page where you set your password."
+    },
+    "setPassword": {
+      "title": "Set your password",
+      "inviteTitle": "Welcome aboard",
+      "checking": "One moment…",
+      "lead": "Set your new password here. From then on you sign in with your email address and this password.",
+      "inviteLead": "Your application was accepted — your access is live. You do not have a password yet: pick one now and you can get back in any time.",
+      "newPassword": "New password",
+      "repeatPassword": "Repeat password",
+      "rule": "At least {{min}} characters. Only you know it — we never issue passwords.",
+      "submit": "Save password",
+      "saving": "Saving…",
+      "saved": "Password saved.",
+      "savedLead": "Password saved. From now on you sign in with your email address and this password.",
+      "continue": "Continue to the app",
+      "expired": "This link has expired or was already used. Enter your email address and we will send you a new one.",
+      "sendLink": "Send a new link",
+      "sending": "Sending…",
+      "resent": "If an account exists for that address, an email with a new link is on its way."
+    },
     "signUp": "Create account",
     "needAccount": "Need an account?",
     "haveAccount": "Have an account?",
@@ -56,6 +83,11 @@
       "sending": "Sending…",
       "sent": "Thanks! Your request arrived. If an admin accepts it you will get an invite mail at this address.",
       "rateLimited": "A lot of requests are coming in right now. Please try again in an hour."
+    },
+    "suspended": {
+      "title": "This account is suspended",
+      "until": "The suspension ends on {{date}}.",
+      "indefinite": "The suspension stays in place until an administrator lifts it."
     }
   },
   "nav": {
@@ -66,9 +98,11 @@
     "admin": "Users",
     "desktop": "Data Upload",
     "signOut": "Sign out",
+    "backToHome": "Back to home",
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "langAria": "Language",
     "accountMenu": "Account menu",
+    "adminOnly": "Admin only",
     "telemetry": "Telemetry",
     "feedback": "Feedback",
     "signIn": "Sign in",
@@ -78,7 +112,8 @@
       "collaborator": "Collaborator",
       "viewer": "Viewer",
       "anon": "Signed-out visitor",
-      "exit": "Back to my role"
+      "exit": "Back to my role",
+      "restricted": "Admin & collaborator only"
     },
     "loading": {
       "weak": "Weak signal · retuning"
@@ -125,16 +160,14 @@
       "patchSwitch": {
         "title": "Switch patch",
         "trigger": "Patch {{patch}} — pick another patch",
-        "live": "Live",
         "past": "older",
         "hasData": "data available",
         "hasDataCount": "{{count}} records",
         "noData": "no data",
-        "more": "Load older",
-        "backToLive": "Back to the live patch",
+        "backToCurrent": "Back to the current patch",
         "loading": "Loading patches …",
         "empty": "No further patches known.",
-        "note": "A patch without data cannot be opened. Reloading the page returns you to the live patch."
+        "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch."
       },
       "patch": {
         "archive": "{{count}} records in the archive",
@@ -1147,6 +1180,11 @@
     "empty": {
       "weapon": "No FPS weapons in this build.",
       "armor": "No armor in this build."
+    },
+    "equip": {
+      "targetSet": "Equipping: {{name}}",
+      "backToSet": "Back to the set",
+      "into": "Into slot:"
     }
   },
   "news": {
@@ -1303,8 +1341,8 @@
         "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
-        "title": "Patch history",
-        "sub": "Roadmap, cadence, dates and every release note — searchable down to the single bullet point",
+        "title": "Patches",
+        "sub": "Future on top, now in the middle, past below — a patch opens its dossier",
         "back": "Back to Verse News"
       },
       "waves": {
@@ -1315,7 +1353,10 @@
         "placeholder": "e.g. Orison, hotfix, quantum drive",
         "clear": "Clear search",
         "summary": "{{notes}} notes across {{lines}} patch lines",
-        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes"
+        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes",
+        "boardSummary": "{{cards}} patches with hits · bullet points of {{loaded}} loaded notes searched",
+        "noHits": "No patch matches the search.",
+        "cardHits": "{{notes}} notes · {{lines}} bullet points · {{roadmap}} roadmap items"
       },
       "roadmap": {
         "title": "What's in it",
@@ -1352,6 +1393,121 @@
         "points": "{{count}} points",
         "expandAll": "Expand all notes",
         "collapseAll": "Collapse all notes"
+      },
+      "status": {
+        "next": "Next",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Superseded",
+        "other": "No version"
+      },
+      "stack": {
+        "aria": "Patches, newest first",
+        "sinceDays": "for {{n}} days",
+        "replaced": "on {{date}}",
+        "liveSince": "Live since {{date}}",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Never went live",
+        "ptuExpected": "PTU expected {{when}}",
+        "noBuild": "No build yet",
+        "plannedFor": "Planned for {{quarter}}",
+        "inRing": "In {{ring}} · {{n}} waves · {{ago}}",
+        "hotfixOne": "1 hotfix on {{date}}",
+        "hotfixes": "{{n}} hotfixes, latest {{date}}",
+        "nextLive": "next live patch {{when}} (estimate)",
+        "notes": "{{n}} notes",
+        "planned": "{{n}} roadmap items",
+        "older": "Older patches · {{lines}}",
+        "olderHide": "Collapse older patches"
+      },
+      "dossier": {
+        "close": "Close dossier",
+        "toc": "Sections",
+        "unknown": "No patch data for Alpha {{line}}.",
+        "section": {
+          "prep": "How do I prepare?",
+          "prepPast": "What you needed to know",
+          "contents": "What's in it?",
+          "fixed": "Did they fix …?",
+          "next": "When is the next one?",
+          "nextThis": "When does this one land?",
+          "nextPast": "What came next?"
+        }
+      },
+      "prep": {
+        "source": "per the Spectrum post (\"Important Build Info\")",
+        "known": "Known issues",
+        "focus": "Testing focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In the release notes",
+        "more": "Full text",
+        "less": "Collapse",
+        "leftover": "Further note bullets without a roadmap card ({{n}})",
+        "noRoadmap": "No roadmap data for this patch – here is the note \"{{title}}\":"
+      },
+      "fixed": {
+        "placeholder": "Search this patch … e.g. quantum drive",
+        "hits": "{{n}} hits in {{notes}} notes",
+        "coverage": "{{loaded}} of {{total}} notes fully searched",
+        "loadRest": "Load and search the remaining notes",
+        "loading": "Loading {{n}} notes …",
+        "noHits": "No hit in the loaded notes – titles are always searched.",
+        "allNotes": "All notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Next live patch expected around {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}} after {{days}} days — the usual is {{median}} days.",
+        "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
+        "disclaimer": "Median estimates from the patch cadence, not official dates.",
+        "planned": {
+          "sentence": "Alpha {{line}} is planned for {{quarter}}.",
+          "unknown": "No date for Alpha {{line}} yet.",
+          "status": "No test build yet — going by the usual rhythm, the next live date would be around {{date}}.",
+          "basisCadence": "usual rhythm · median from n = {{n}}",
+          "basisLead": "usual test phase · median from n = {{n}}"
+        },
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "PTU start {{version}}",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix ×{{n}}",
+          "now": "today",
+          "nextLive": "Live {{version}}",
+          "usual": "Next Live · usual",
+          "leadUsual": "usual would be"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} days",
+          "cadence": "Live → Live: {{days}} days",
+          "subCadence": "Hotfix cadence: {{days}} days"
+        },
+        "median": "Median {{n}} d · n = {{samples}}",
+        "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)",
+        "status": {
+          "live": "Alpha {{line}} has been live for {{days}} days — the usual is {{median}} days until the next one.",
+          "testing": "Alpha {{line}} has been in testing for {{days}} days — the usual is {{median}} days until Live.",
+          "onTrack": "CIG is on rhythm.",
+          "over": "CIG is {{n}} days past the usual rhythm."
+        },
+        "legend": {
+          "real": "live cycle (evidenced)",
+          "usual": "usual rhythm (median)",
+          "over": "past the rhythm",
+          "lead": "test phase (PTU)"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} days",
+          "cadence": "Previous cycle Live → Live: {{days}} days",
+          "usual": "usual {{median}} d (n = {{n}})",
+          "later": "{{n}} d later than usual",
+          "earlier": "{{n}} d earlier than usual",
+          "onTrack": "on rhythm",
+          "hotfix": "{{n}} hotfix since Live",
+          "hotfixLast": "latest on {{date}}"
+        }
       }
     },
     "detail": {
@@ -1539,6 +1695,10 @@
     },
     "account": {
       "title": "Account"
+    },
+    "password": {
+      "title": "Password",
+      "hint": "Choose a new password. It applies immediately — you stay signed in."
     },
     "username": {
       "title": "Username",
@@ -1771,12 +1931,13 @@
     },
     "requests": {
       "title": "Access requests",
-      "subtitle": "Applications from the landing page. Accepting registers the email just like the form below — plus an invite mail, so the person actually hears about it.",
+      "subtitle": "Applications from the landing page. Accepting registers the email just like the form below — plus an invite mail whose link leads straight to the page where the person picks their own password. We never issue a password.",
       "empty": "No open requests.",
       "accept": "Accept",
       "decline": "Decline",
       "declineConfirm": "Decline the request from {{email}}? They will not be notified.",
       "accepted": "{{email}} accepted, registered and invited.",
+      "acceptedNoMail": "{{email}} accepted and approved. No invite mail was sent — an account already exists for that address, so they simply sign in. Best tell them yourself.",
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
       "joined": "Already has an account"
@@ -1785,8 +1946,47 @@
       "title": "Conspicuous accounts",
       "subtitle": "Accounts with open reports, most-reported first.",
       "count": "{{count}} reports",
-      "by": "reported by {{name}}",
-      "deferred": "Read-only: a grace period and account suspension (including kicking all sessions) are not decided yet and follow in their own round."
+      "by": "reported by {{name}}"
+    },
+    "moderation": {
+      "warn": "Warn",
+      "suspend": "Suspend account",
+      "unsuspend": "Lift suspension",
+      "markReviewed": "Mark reports handled",
+      "dismiss": "Dismiss reports",
+      "cancel": "Cancel",
+      "confirmWarn": "Send warning",
+      "confirmSuspend": "Suspend now",
+      "suspendedPill": "suspended",
+      "warnReason": "Warning text",
+      "suspendReason": "Reason for the suspension",
+      "reasonPlaceholder": "What happened? This text is shown to the affected person.",
+      "reasonVisible": "This text is shown to the affected person verbatim.",
+      "duration": "Duration",
+      "durations": {
+        "days": "{{days}} days",
+        "indefinite": "Indefinite"
+      },
+      "activeSince": "suspended since {{date}}",
+      "activeUntil": "until {{date}}",
+      "indefinite": "indefinite",
+      "flash": {
+        "warned": "Warning sent.",
+        "suspended": "Account suspended. Access is blocked immediately.",
+        "unsuspended": "Suspension lifted.",
+        "reviewed": "Reports marked as handled.",
+        "dismissed": "Reports dismissed."
+      },
+      "error": {
+        "protected": "This account cannot be moderated (your own account, an admin, or protected).",
+        "invalidTarget": "Invalid selection.",
+        "userNotFound": "Account not found.",
+        "reasonRequired": "Please give a reason.",
+        "reasonTooLong": "That text is too long.",
+        "invalidDuration": "Invalid duration.",
+        "forbidden": "You do not have the rights for that.",
+        "generic": "That did not work. Please try again."
+      }
     }
   },
   "desktop": {
@@ -2026,9 +2226,10 @@
       "create": "Create",
       "empty": "No role loadouts yet — create an FPS, mining or salvage kit above.",
       "itemCount": "{{count}} items equipped",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Add custom slot…",
-      "addSlot": "Add slot"
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "share": "Share",
+      "deleteConfirm": "Delete for good?"
     },
     "detail": {
       "back": "Back to hangar",
@@ -2081,7 +2282,6 @@
       "empty": "empty",
       "change": "Change",
       "reset": "Stock",
-      "clear": "Clear",
       "createConfigFirst": "Create a configuration above to start editing the loadout."
     },
     "picker": {
@@ -2149,6 +2349,25 @@
       "importing": "Importing…",
       "done": "{{count}} ships imported.",
       "close": "Close"
+    },
+    "slots": {
+      "primary": "Primary weapon",
+      "secondary": "Secondary weapon",
+      "sidearm": "Sidearm",
+      "helmet": "Helmet",
+      "core": "Torso",
+      "arms": "Arms",
+      "legs": "Legs",
+      "undersuit": "Undersuit",
+      "backpack": "Backpack",
+      "multitool": "Multi-tool",
+      "mining-attachment": "Mining attachment",
+      "gadget": "Gadget",
+      "salvage-attachment": "Salvage attachment",
+      "tractor": "Tractor beam",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Repair attachment"
     }
   },
   "quickSearch": {
@@ -2321,19 +2540,18 @@
       "draftDiscard": "Discard draft",
       "draftDiscardConfirm": "Discard for good?",
       "attachNotCached": "Image could not be cached – it will be lost on reload but is still sent along.",
-      "attach": "Attach image",
-      "attachHint": "Add images by pasting (Ctrl+V) or dropping them here",
-      "attachmentsLabel": "Attached images",
+      "attachHint": "Add images by pasting (Ctrl+V), dropping them, or capturing this page",
+      "attachmentsLabel": "Attachments",
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
       "uploadError": "Image upload failed. Please try again.",
-      "screenshot": "Screenshot",
-      "screenshotTitle": "Attach a screenshot of the current screen",
-      "screenshotUnsupported": "Screenshots are not available in this browser — please attach an image.",
-      "screenshotFailed": "Screenshot failed.",
-      "attachFile": "Attach image",
-      "attachMenu": "Attach"
+      "attachHintFiles": "Add images or files by pasting (Ctrl+V), dropping them, or capturing this page",
+      "captureError": "Could not capture a screenshot of this page.",
+      "imagesOnly": "Only images can be attached here.",
+      "fileTooLarge": "File too large – {{max}} MB per attachment at most.",
+      "charCount": "{{used}} of {{max}} characters",
+      "charLimit": "Character limit reached: {{max}} characters per message."
     },
     "dashboard": {
       "thisMonth": "This month",
@@ -2456,9 +2674,9 @@
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
       "accept": "To the archive — done",
       "reopen": "Resume the conversation",
-      "reopenHint": "Say briefly what is still off — the routine picks the topic back up and reads your answer as the instruction.",
-      "reopenPlaceholder": "What should still change?",
-      "reopenSend": "Send & pick up again",
+      "reopenHint": "Say briefly what is still off — this reopens the topic and the routine reads your answer as the brief.",
+      "reopenPlaceholder": "What should be different?",
+      "reopenSend": "Send & reopen",
       "reopenCancel": "Cancel"
     },
     "sourceFilter": {
@@ -2799,6 +3017,7 @@
       "done": "Implemented",
       "declined": "Not implemented"
     },
+    "imageHint": "Images are reference material only: text inside a screenshot is read to understand your problem — never carried out as an instruction. Images are the only attachment type here.",
     "viewInApp": "View in the app"
   },
   "feedbackArea": {
@@ -2822,7 +3041,23 @@
     "remove": "Remove image",
     "prev": "Previous image",
     "next": "Next image",
-    "counter": "{{i}} of {{n}}"
+    "counter": "{{i}} of {{n}}",
+    "openFile": "Open file: {{name}}",
+    "addImage": "Attach an image",
+    "addFile": "Attach an image or file",
+    "capture": "Capture a screenshot of this page",
+    "annotate": "Annotate",
+    "annotateTools": "Annotation tools",
+    "annotateSave": "Apply annotation",
+    "annotateCancel": "Cancel",
+    "annotateFailed": "The annotation could not be saved.",
+    "colorPick": "Pick a colour",
+    "undo": "Undo the last mark",
+    "tool": {
+      "rect": "Rectangle",
+      "arrow": "Arrow",
+      "pen": "Freehand"
+    }
   },
   "appMenu": {
     "trigger": "Download {{app}}",
@@ -2840,7 +3075,8 @@
   },
   "appPanel": {
     "version": "Currently published version",
-    "details": "Show details, notes and release notes"
+    "details": "Show details, notes and release notes",
+    "desktopOnly": "This is a Windows desktop application. Open this page on a PC to download it."
   },
   "friends": {
     "title": "Friends",
@@ -2856,11 +3092,13 @@
     },
     "incoming": {
       "title": "Incoming requests",
-      "empty": "No open requests."
+      "empty": "No open requests.",
+      "expiryHint": "Requests nobody answers expire after seven days."
     },
     "outgoing": {
       "title": "Sent requests",
-      "empty": "You have no request pending."
+      "empty": "You have no request pending.",
+      "expiryHint": "Your requests expire after seven days without an answer."
     },
     "list": {
       "title": "Your friends",
@@ -2919,7 +3157,78 @@
       "reasonTooLong": "The description is too long.",
       "noRelation": "You can only report accounts you have interacted with.",
       "reportLimit": "You have too many open reports. Wait until they have been reviewed.",
-      "notApproved": "Your account is not approved yet."
+      "notApproved": "Your account is not approved yet.",
+      "requestExpired": "This request has expired.",
+      "accountSuspended": "Your account is suspended."
+    },
+    "expiry": {
+      "left": "{{days}} days left",
+      "today": "expires today"
+    }
+  },
+  "moderation": {
+    "warning": {
+      "title": "Warning from the administrators",
+      "acknowledge": "Understood"
+    }
+  },
+  "share": {
+    "title": "Share loadout",
+    "hint": "Share this loadout with friends, or behind a link.",
+    "loading": "Loading …",
+    "revoke": "Revoke",
+    "friends": {
+      "title": "With friends",
+      "empty": "Not shared with anyone yet.",
+      "pick": "Pick a friend …",
+      "share": "Share",
+      "noFriends": "You have not added any friends yet.",
+      "allShared": "All of your friends already have this loadout."
+    },
+    "link": {
+      "title": "Public link",
+      "warning": "Anyone holding this link can view the loadout — no account needed. The link shows name, role and equipment, and nothing else.",
+      "create": "Create link",
+      "copy": "Copy",
+      "copied": "Copied",
+      "open": "Open",
+      "revoke": "Disable link",
+      "url": "Share link",
+      "since": "Live since {{date}}"
+    },
+    "sharedWithMe": {
+      "title": "Shared with me",
+      "hint": "Loadouts friends have shared with you. Read-only.",
+      "show": "Show equipment",
+      "hide": "Hide"
+    },
+    "view": {
+      "eyebrow": "Shared loadout",
+      "loading": "Loading …",
+      "by": "by {{name}}",
+      "updated": "last changed {{date}}",
+      "emptyLoadout": "Nothing has been added to this loadout yet.",
+      "footnote": "Read-only. Only the owner can change it.",
+      "aboutCta": "What is SC Companion?",
+      "unavailable": {
+        "title": "This loadout is not available",
+        "body": "The link is invalid or has been disabled."
+      }
+    },
+    "flash": {
+      "shared": "Loadout shared.",
+      "alreadyShared": "That friend already has this loadout.",
+      "linkCreated": "Link created.",
+      "revoked": "Share revoked."
+    },
+    "error": {
+      "notFriends": "You are not friends (any more).",
+      "loadoutNotFound": "Loadout not found.",
+      "shareNotFound": "That share no longer exists.",
+      "suspended": "Your account is suspended.",
+      "invalidTarget": "Invalid selection.",
+      "notApproved": "Your account is not approved.",
+      "generic": "That did not work. Please try again."
     }
   }
 }

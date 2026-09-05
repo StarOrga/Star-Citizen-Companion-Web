@@ -3150,7 +3150,7 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
           <ul>
             <li><code>src/app/admin/feedback/admin-feedback.component.ts</code> — Template, Styles und Klasse neu: Bänder, Karten mit Flugbahn, Themen-Fläche, Filter-Fläche, Ablehnen-Fläche, Geliefert-Feed, Escape/Fokus-Führung. 3467 → ~2080 Zeilen.</li>
             <li><code>src/app/admin/feedback/feedback.types.ts</code> — reine Ableitungen: <code>turnOf</code>, <code>adminAsk</code>, <code>flightPosition</code> (Station · Abzweig · Schleife · Warteschlange · beantwortet), <code>waitingSince</code>, <code>deliveredByDay</code> / <code>isDelivered</code>, <code>isNewSince</code>, <code>parseAnswerOptions</code>, <code>isLongMessage</code>; <code>FeedbackAuthor.role</code>.</li>
-            <li><code>src/app/admin/feedback/feedback-composer.component.ts</code> — „+“-Menü (Datei / Screenshot), 📷 via <code>getDisplayMedia</code> (Panel während der Aufnahme ausgeblendet, auf iOS nicht angeboten), <code>large</code>- und <code>primaryHot</code>-Inputs.</li>
+            <li><code>src/app/admin/feedback/feedback-composer.component.ts</code> — <code>large</code>- und <code>primaryHot</code>-Inputs. Die Aufnahme des aktuellen Bildschirms („+“- und 📷-Kachel in der Anhang-Zeile, <code>PageScreenshotService</code>, mit Markierungen, jeder Dateityp für Admins) kam parallel über main (Admin-Feedback 312a4acc) und wurde beim Merge übernommen — siehe „Bewusst weggefallen“.</li>
             <li><code>src/app/feedback/feedback-area.types.ts</code> — <code>areaRoute</code>, die Umkehrung von <code>areaForUrl</code> für ▸ Ansehen.</li>
             <li><code>src/app/feedback/user-feedback-panel.component.ts</code> — „Im App ansehen“ auf gelieferten Themen, Screenshot im geteilten Composer (Akzentfarbe, kein Rot).</li>
             <li><code>src/app/core/consent.service.ts</code> — <code>sc.adminFeedback.lastSeenDelivered</code> ist bei Consent-Entzug registriert.</li>
@@ -3232,6 +3232,7 @@ textarea[data-attachable].attach-dragover { outline: 2px dashed var(--accent-col
 
         <section id="dropped" data-nav-label="Bewusst weggefallen">
           <h3>Bewusst weggefallen</h3>
+          <p><strong>Die eigene <code>getDisplayMedia</code>-Aufnahme (Entscheidung r2-shot-display).</strong> Während der Umsetzung hat main die Seitenaufnahme aus deinem Admin-Feedback 312a4acc geliefert (DOM-zu-Canvas, Panel aus dem Bild gelassen, Markierungen, auf dem Telefon nutzbar). Beim Einmergen wurde die vorhandene Aufnahme behalten und meine verworfen, damit es nur eine Kamera gibt — die Entscheidung von Ⓔ5 ist damit durch die bereits geshippte Variante überholt. Wenn du die pixelgenaue Picker-Variante trotzdem willst, ist das ein eigenes Thema.</p>
           <p>Mit dem Abarbeiten-Lauf gingen Überspringen mit Runde, das lokale „Erledigt“-Abhaken ohne Antwort, die Wisch-Gesten, die Fortschrittsleiste und die Meine/Andere- und Rückfragen/Abnahmen-Linsen; mit den Chip-Reihen gingen „alle auf/zu“ und die Zahlenzeile; das Ship-Banner ist durch den „neu“-Marker ersetzt (das Konfetti bleibt). Das Band ist die Warteschlange, seine Reihenfolge der Lauf, und Handeln auf einer Karte ist das, was sie weiterbewegt.</p>
         </section>
 

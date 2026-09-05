@@ -63,12 +63,14 @@
   "skins": {
     "building": "Construindo skins 3D",
     "none": "Nenhum skin 3D construível encontrado.",
-    "done": "Skins 3D prontos — {n} nave(s) ao vivo.",
+    "done": "Skins 3D prontos — {{n}} nave(s) ao vivo.",
     "tools": "Preparando ferramentas de build…",
     "toolsFailed": "Falha ao baixar a ferramenta",
     "buildFailed": "Falha na construção",
     "uploading": "Enviando…",
-    "partial": "naves enviadas (veja o registro para o resto)"
+    "partial": "naves enviadas (veja o registro para o resto)",
+    "stepUploadDone": "Pinturas enviadas",
+    "noModels": "{{n}} nave(s) sem pintura construível"
   },
   "tray": {
     "open": "Abrir janela",

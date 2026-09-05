@@ -1,6 +1,6 @@
 {
   "name": "@sc-companion/data-uploader",
-  "version": "0.25.1",
+  "version": "0.25.3",
   "description": "Star Citizen Companion - Data Uploader — P4K local extraction & upload tool.",
   "private": true,
   "main": "out/main/index.js",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.4.1",
     "@types/yauzl": "^3.4.0",
     "electron": "^43.3.0",
     "electron-builder": "^26.15.3",
@@ -34,13 +34,14 @@
     "png-to-ico": "^3.0.2",
     "typescript": "~7.0.2",
     "vite": "^7.3.6",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20.10.0"
   },
   "overrides": {
     "esbuild": "^0.25.0",
-    "@noble/hashes": "^1.8.0"
+    "@noble/hashes": "^1.8.0",
+    "sharp": "^0.35.3"
   }
 }

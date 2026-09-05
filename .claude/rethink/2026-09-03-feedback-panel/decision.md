@@ -119,3 +119,7 @@ The answer is appended below when given.
 ## Implemented
 
 2026-09-05: direction E implemented on branch `claude/feedback-panel-ux-rethink-6459f0` (commits cbfb764 … 23d0d39, concept close-out d8235b0). Final report: docs/concepts/2026-09-04-feedback-panel-innenleben.html (Abschlussbericht tab). Not pushed — /ship is the admin's call after the signed-in walk-through.
+
+### Merge note (2026-09-05, after the run)
+
+origin/main moved under the branch: admin feedback 312a4acc shipped the page capture ("+" and capture tiles in the attachment row, `PageScreenshotService` DOM-to-canvas, annotation, any file type for admins) and 0a0fad31 the 2.000-character cap; 89925995 put user-topic triage into the retired run. The merge keeps main's composer (my `getDisplayMedia` capture is dropped — decision r2-shot-display is superseded by the shipped implementation; only one camera), adds `large`/`primaryHot` back, ports the cap onto the decline note, `allowFiles` onto every admin composer, and the triage semantics into the stream (releases first in "Du bist dran", visible in every Wer? scope).

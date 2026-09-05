@@ -28,7 +28,7 @@ describe('areaForUrl', () => {
     expect(areaForUrl('/codex/blueprint/AEGS_Gladius')).toBe('codex');
     expect(areaForUrl('/codex/keybinds')).toBe('codex');
     expect(areaForUrl('/news/patches')).toBe('news');
-    expect(areaForUrl('/hangar/loadout/42')).toBe('hangar');
+    expect(areaForUrl('/hangar/ship/42')).toBe('hangar');
     expect(areaForUrl('/admin/telemetry')).toBe('admin');
   });
 

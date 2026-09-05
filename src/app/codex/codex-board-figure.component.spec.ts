@@ -4,13 +4,17 @@ import { CodexBoardFigureComponent } from './codex-board-figure.component';
 import { SUIT_PARTS, buildHardsuit, paintPart } from './codex-board-suit';
 import * as THREE from 'three';
 
-async function setup(filled: string[]): Promise<ComponentFixture<CodexBoardFigureComponent>> {
+async function setup(
+  filled: string[],
+  decorative = false,
+): Promise<ComponentFixture<CodexBoardFigureComponent>> {
   await TestBed.configureTestingModule({
     imports: [CodexBoardFigureComponent],
     providers: [provideTranslateService({ fallbackLang: 'en' })],
   }).compileComponents();
   const fixture = TestBed.createComponent(CodexBoardFigureComponent);
   fixture.componentRef.setInput('filled', new Set(filled));
+  fixture.componentRef.setInput('decorative', decorative);
   fixture.detectChanges();
   return fixture;
 }
@@ -38,6 +42,27 @@ describe('CodexBoardFigureComponent', () => {
   it('leaves the visor open when the helmet is not', async () => {
     const el: HTMLElement = (await setup(['core'])).nativeElement;
     expect(el.querySelector('svg.board-doll .visor')?.getAttribute('fill')).toBe('url(#pd-visor)');
+  });
+
+  // Feedback 77668f11: the collapsed AN BORD rail shows the figure and nothing
+  // else. Inside that button the suit is decoration — the control already has
+  // a name, and the picture must not add a second one.
+  it('carries a name of its own, and drops it in decorative mode', async () => {
+    const named: HTMLElement = (await setup(['helmet'])).nativeElement;
+    const doll = named.querySelector('svg.board-doll');
+    expect(doll?.getAttribute('role')).toBe('img');
+    expect(doll?.getAttribute('aria-label')).toBe('codex.landing.paperdoll.aria');
+
+    TestBed.resetTestingModule();
+    const bare: HTMLElement = (await setup(['helmet'], true)).nativeElement;
+    for (const node of [bare.querySelector('svg.board-doll'), bare.querySelector('canvas.board-stage')]) {
+      expect(node?.getAttribute('role')).toBeNull();
+      expect(node?.getAttribute('aria-label')).toBeNull();
+      expect(node?.getAttribute('aria-hidden')).toBe('true');
+    }
+    // Still the same figure, only unannounced.
+    expect(bare.querySelectorAll('svg.board-doll .pd-part.on').length).toBe(1);
+    expect(bare.textContent?.trim()).toBe('');
   });
 });
 

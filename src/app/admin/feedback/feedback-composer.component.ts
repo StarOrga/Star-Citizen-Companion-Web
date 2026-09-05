@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  HostListener,
   ElementRef,
   OnDestroy,
   computed,
@@ -16,9 +15,16 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
 import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
+import { CharCounterComponent } from '../../feedback/char-counter.component';
+import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import type { FeedbackArea } from '../../feedback/feedback-area.types';
-import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
-import type { FeedbackImage } from './markdown.util';
+import { isImageAttachment } from '../../feedback/feedback-images.util';
+import { PageScreenshotService } from '../../feedback/page-screenshot.service';
+import {
+  AnnotationResult,
+  AttachmentChip,
+  FeedbackAttachmentsComponent,
+} from './feedback-attachments.component';
 
 /** An image queued in the composer, held as a compressed data URI until send. */
 export interface PendingImage {
@@ -27,7 +33,8 @@ export interface PendingImage {
   /**
    * Compressed data URI of the picked/pasted file. Empty for an image restored
    * from a stored draft — those already live in the bucket and are never
-   * downloaded back into the browser just to be re-uploaded.
+   * downloaded back into the browser just to be re-uploaded — and empty for a
+   * non-image attachment, whose bytes stay in `file` instead of being base64'd.
    */
   dataUrl: string;
   /**
@@ -36,6 +43,18 @@ export interface PendingImage {
    * restored draft neither re-uploads nor duplicates it.
    */
   url?: string;
+  /**
+   * MIME type of the attachment. Absent means image — every attachment was one
+   * until admins gained arbitrary files (admin feedback 312a4acc), and every
+   * stored draft written before that is still read back correctly.
+   */
+  mime?: string;
+  /**
+   * Raw file for a NON-image attachment, uploaded byte-for-byte. Images never
+   * carry it: they go through `processImage`'s re-encode, which is what keeps a
+   * 12 MP phone screenshot under the bucket's per-object ceiling.
+   */
+  file?: File;
 }
 
 /** What a composer hands back on submit: the trimmed text plus queued images. */
@@ -58,6 +77,12 @@ const IMG_MAX_DIM = 1600;
 const IMG_QUALITY = 0.85;
 /** Safety cap on how many images ride along on a single message. */
 const MAX_ATTACHMENTS = 10;
+/**
+ * Per-object ceiling of the `feedback-images` bucket (migration 20260713000000).
+ * Checked here so a too-large file is refused with a sentence instead of a
+ * storage 413 the user cannot read.
+ */
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 /**
  * Markdown composer shared by the new-topic box and every thread reply.
@@ -68,9 +93,16 @@ const MAX_ATTACHMENTS = 10;
  *
  * There is deliberately NO formatting toolbar. Bold/list/code buttons shipped
  * with the extraction and were dropped again (feedback fe69a821) as overkill —
- * the body is still markdown and still renders the same, it is just typed. The
- * only button above the field is the image picker, because attaching a file is
- * the one thing typing cannot do.
+ * the body is still markdown and still renders the same, it is just typed.
+ *
+ * ATTACHMENTS (admin feedback 312a4acc): attaching is the one thing typing
+ * cannot do, and it lives in the attachment row rather than above the field. Two
+ * tiles the size of a thumbnail close that row — "+" opens the picker, the
+ * camera captures the page the user is on (`PageScreenshotService`, the feedback
+ * panel itself left out of the shot). Whatever comes back — picked, pasted,
+ * dropped or captured — takes the same path, and an image can be marked up in
+ * the enlarged view before it is sent. `allowFiles` decides whether anything
+ * other than an image is accepted at all; see the input's own comment.
  *
  * Keyboard mapping (feedback aa8d5b18) is the conventional chat one, identical
  * in every usage — new topic, thread reply, processing answer — and each user
@@ -86,6 +118,13 @@ const MAX_ATTACHMENTS = 10;
  * page the sender is on. It is a correction affordance, not a required field —
  * see `FeedbackAreaPickerComponent`. Thread replies leave it off: they belong to
  * a topic that already carries the tag.
+ *
+ * LENGTH (admin feedback 0a0fad31): every message is capped at
+ * `FEEDBACK_MAX_CHARS`, with the live count sitting half-transparent in the
+ * field's bottom-right corner (`sc-char-counter`). The cap is enforced three
+ * times over, because `maxlength` alone is not a cap: it covers typing and
+ * pasting, `onInput` covers text dropped onto the field, and `canSend` covers a
+ * draft that was stored before the cap existed.
  *
  * The parent supplies an `onSubmit` handler that returns `true` once the
  * message is persisted; the composer only clears itself on success, so a failed
@@ -103,7 +142,12 @@ const MAX_ATTACHMENTS = 10;
 @Component({
   selector: 'sc-feedback-composer',
   standalone: true,
-  imports: [TranslateModule, FeedbackAttachmentsComponent, FeedbackAreaPickerComponent],
+  imports: [
+    TranslateModule,
+    FeedbackAttachmentsComponent,
+    FeedbackAreaPickerComponent,
+    CharCounterComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- “sc-nest”: wherever this box sits inside a card or a panel shell that
@@ -115,7 +159,6 @@ const MAX_ATTACHMENTS = 10;
       class="composer sc-nest"
       [class.compact]="compact()"
       [class.large]="large()"
-      (keydown.escape)="onEscape($event)"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
@@ -135,54 +178,18 @@ const MAX_ATTACHMENTS = 10;
         <sc-feedback-area-picker [(area)]="area" />
       }
 
-      <!-- Action row: attaching an image is the one thing the field itself
-           cannot do (feedback fe69a821 removed the markdown buttons — typing
-           the markup is faster than hunting for a B). -->
-      <div class="actions">
-        @if (screenshot()) {
-          <!-- "+" opens the two ways in (a file, a screenshot); 📷 is the
-               screenshot as its own one-tap button (round-2 feedback: the
-               "+" alone hid it). Both land in the same thumbnail row. -->
-          <button
-            type="button"
-            class="attach plus"
-            (click)="toggleAttachMenu()"
-            aria-haspopup="true"
-            [attr.aria-expanded]="attachMenuOpen()"
-            [title]="'adminFeedback.compose.attachMenu' | translate"
-            [attr.aria-label]="'adminFeedback.compose.attachMenu' | translate">＋</button>
-          @if (attachMenuOpen()) {
-            <div class="attach-menu" role="group" [attr.aria-label]="'adminFeedback.compose.attachMenu' | translate">
-              <button type="button" class="am-item" (click)="closeAttachMenu(); fileInput.click()">
-                🖼 {{ 'adminFeedback.compose.attachFile' | translate }}
-              </button>
-              @if (supportsScreenshot) {
-                <button type="button" class="am-item" (click)="closeAttachMenu(); captureScreenshot()">
-                  📷 {{ 'adminFeedback.compose.screenshot' | translate }}
-                </button>
-              }
-            </div>
-          }
-          @if (supportsScreenshot) {
-            <button
-              type="button"
-              class="attach"
-              (click)="captureScreenshot()"
-              [disabled]="capturing()"
-              [title]="'adminFeedback.compose.screenshotTitle' | translate"
-              [attr.aria-label]="'adminFeedback.compose.screenshotTitle' | translate">📷</button>
-          }
-        } @else {
-          <button
-            type="button"
-            class="attach"
-            (click)="fileInput.click()"
-            [title]="'adminFeedback.compose.attach' | translate"
-            [attr.aria-label]="'adminFeedback.compose.attach' | translate">
-            🖼
-          </button>
-        }
-        <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
+      <!-- Action row. The former 🖼 icon button is gone (admin feedback
+           312a4acc): adding an attachment now happens in the attachment row
+           itself, on a tile the size of the thumbnail it will become. What is
+           left here is draft state. -->
+      <div class="actions" [class.bare]="!draftLabel() && !hasStoredDraft()">
+        <input
+          #fileInput
+          type="file"
+          [attr.accept]="allowFiles() ? null : 'image/*'"
+          multiple
+          hidden
+          (change)="onFileInput($event)" />
         <span class="grow"></span>
         <!-- Draft state + the only thing that deletes a draft besides sending
              it. Two-step on purpose: one stray click must not throw away text
@@ -209,30 +216,48 @@ const MAX_ATTACHMENTS = 10;
         }
       </div>
 
-      <textarea #ta
-                class="input"
-                [value]="draft()"
-                (input)="onInput($event)"
-                (keydown)="onKeydown($event)"
-                (paste)="onPaste($event)"
-                (blur)="flushDraft()"
-                [placeholder]="placeholder() | translate"
-                [attr.aria-label]="placeholder() | translate"
-                [rows]="compact() ? 2 : 4"></textarea>
+      <!-- The field and its live character readout are one unit: the wrapper is
+           the positioning context, and the textarea reserves the bottom strip
+           the counter sits in so the two can never overlap (admin feedback
+           0a0fad31). -->
+      <div class="field">
+        <textarea #ta
+                  class="input"
+                  [value]="draft()"
+                  (input)="onInput($event)"
+                  (keydown)="onKeydown($event)"
+                  (paste)="onPaste($event)"
+                  (blur)="flushDraft()"
+                  [placeholder]="placeholder() | translate"
+                  [attr.aria-label]="placeholder() | translate"
+                  [attr.maxlength]="maxChars"
+                  [rows]="compact() ? 2 : 4"></textarea>
+        <sc-char-counter [used]="charCount()" [max]="maxChars" />
+      </div>
 
-      <!-- Pending images use the very same chip row the thread renders
+      <!-- Pending attachments use the very same chip row the thread renders
            (feedback 99723afc): one 72px thumbnail size, click to enlarge,
-           from paste through to every later re-read of the message. -->
+           from paste through to every later re-read of the message. The row
+           also carries the "+" and "capture page" tiles (admin feedback
+           312a4acc), so adding one looks like what it produces. -->
       <sc-feedback-attachments
         [images]="pendingImages()"
         [removable]="true"
+        [addTile]="true"
+        [addLabelKey]="allowFiles() ? 'feedbackAttachments.addFile' : 'feedbackAttachments.addImage'"
+        [captureTile]="true"
+        [capturing]="screenshots.busy()"
+        [editable]="true"
         labelKey="adminFeedback.compose.attachmentsLabel"
-        (remove)="removeAt($event)" />
+        (remove)="removeAt($event)"
+        (add)="fileInput.click()"
+        (capture)="captureScreenshot()"
+        (annotate)="onAnnotated($event)" />
 
       <div class="foot">
         <span class="hint">
           {{ sendHintKey() | translate }}
-          · {{ 'adminFeedback.compose.attachHint' | translate }}
+          · {{ attachHintKey() | translate }}
         </span>
         <button
           class="sc-btn"
@@ -289,26 +314,10 @@ const MAX_ATTACHMENTS = 10;
     }
 
     .actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .attach {
-      padding: 4px 9px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-1);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: max(0.78rem, var(--sc-fs-floor));
-      cursor: pointer;
-    }
-    .attach:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-    .attach { min-width: 40px; min-height: 36px; }
-    .attach:disabled { opacity: 0.5; cursor: progress; }
-    .actions { position: relative; }
-    .attach-menu { position: absolute; left: 0; top: 100%; z-index: 4; margin-top: 4px; display: flex; flex-direction: column; min-width: 200px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); overflow: hidden; }
-    .am-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
-    .am-item:hover { background: var(--sc-bg-3); }
-    /* The ONE red call to action a sheet gets (red = the admin's own move). */
-    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
-    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
+    /* Nothing to say about the draft yet — do not spend a row's worth of gap
+       on an empty line above the field. The hidden file input inside still
+       answers a programmatic .click(). */
+    .actions.bare { display: none; }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
@@ -326,12 +335,18 @@ const MAX_ATTACHMENTS = 10;
     .draft-clear:hover { color: var(--sc-danger); border-color: var(--sc-danger); }
     .draft-clear.armed { color: var(--sc-danger); border-color: var(--sc-danger); }
 
+    /* Positioning context for the live character counter, which is absolutely
+       placed in the field's bottom-right corner. */
+    .field { position: relative; display: block; }
+
     .input {
       width: 100%;
       box-sizing: border-box;
       min-height: 92px;
       resize: vertical;
-      padding: 10px 12px;
+      /* The extra bottom padding is the counter's lane — typed text scrolls
+         above it instead of underneath it. */
+      padding: 10px 12px 22px;
       background: var(--sc-bg-1);
       color: var(--sc-fg-0);
       border: 1px solid var(--sc-border);
@@ -340,9 +355,16 @@ const MAX_ATTACHMENTS = 10;
       font-size: 0.9rem;
       line-height: 1.5;
     }
-    .composer.compact .input { min-height: 44px; font-size: 0.86rem; }
-    /* The opened topic's box: room to write (round-1 feedback). */
-    .composer.large .input { min-height: 132px; }
+    /* 44px of typing room plus the counter's lane — the reply box keeps the
+       same two visible rows it had before the counter moved in. */
+    .composer.compact .input { min-height: 66px; font-size: 0.86rem; }
+    /* The opened topic's box (concept 2026-09-04): room to write, plus the counter's lane. */
+    .composer.large .input { min-height: 154px; }
+    /* The ONE red call to action a sheet gets (red = the admin's own move; the
+       viewer's composer never sets it). Dark text on the red, like the primary
+       accent button, keeps the label readable. */
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
+    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .input:focus {
       outline: none;
       border-color: var(--sc-accent);
@@ -370,6 +392,8 @@ export class FeedbackComposerComponent implements OnDestroy {
   private readonly translate = inject(TranslateService);
   private readonly composerPrefs = inject(ComposerPrefsService);
   private readonly drafts = inject(FeedbackDraftService);
+  /** Public so the template can bind the capture tile's busy state. */
+  readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
 
   /** i18n key for the textarea placeholder / aria-label. */
@@ -388,22 +412,26 @@ export class FeedbackComposerComponent implements OnDestroy {
    */
   readonly areaPicker = input(false);
   /**
-   * Offer a screenshot of the current screen next to the file picker (concept
-   * 2026-09-04, decision r2-shot-display): "+" becomes a two-entry menu and a
-   * 📷 button captures via `getDisplayMedia`. Off by default — the author
-   * channel and the viewer's answer box keep the plain picker.
+   * May this composer attach things that are not images? (admin feedback
+   * 312a4acc)
+   *
+   * Viewers and collaborators attach IMAGES ONLY — a screenshot is evidence,
+   * and an arbitrary file from an account that cannot otherwise write anything
+   * to the app is not something the feedback surface wants to carry. Admins may
+   * attach anything (a log, a crash dump, a PDF).
+   *
+   * The default is the restrictive one on purpose: a new embedding of this
+   * composer that forgets the input gets the safe behaviour, not the wide one.
+   * The gate is repeated where it actually matters — `uploadFeedbackImages`
+   * refuses a non-image without the flag, and the storage policy in migration
+   * 20260904040000 refuses one from a non-admin outright — because a client-side
+   * `accept` attribute is a hint to a file picker, not a rule.
    */
-  readonly screenshot = input(false);
-  /** Paint the send button in the elevated-access red — the sheet's one CTA. */
-  readonly primaryHot = input(false);
-  /** The opened topic's composer: a taller field (≥ 132 px). */
+  readonly allowFiles = input(false);
+  /** The opened topic's composer (concept 2026-09-04): a taller field. */
   readonly large = input(false);
-  /**
-   * `getDisplayMedia` exists here (not on iOS): decided once, so the 📷 button
-   * and the menu entry are simply absent where they could never work.
-   */
-  readonly supportsScreenshot =
-    typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function';
+  /** Paint the send button in the elevated-access red — the sheet's one CTA. Admin surfaces only. */
+  readonly primaryHot = input(false);
   /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
@@ -432,8 +460,12 @@ export class FeedbackComposerComponent implements OnDestroy {
    * Queued images in the shape the shared attachment row renders. A restored
    * draft has no local bytes left, so the bucket URL is the source there.
    */
-  readonly pendingImages = computed<FeedbackImage[]>(() =>
-    this.attachments().map((a) => ({ src: a.url ?? a.dataUrl, alt: a.name })),
+  readonly pendingImages = computed<AttachmentChip[]>(() =>
+    this.attachments().map((a) => ({
+      src: a.url ?? a.dataUrl,
+      alt: a.name,
+      kind: isImageAttachment(a) ? 'image' : 'file',
+    })),
   );
   readonly dragActive = signal(false);
   readonly sending = signal(false);
@@ -465,6 +497,13 @@ export class FeedbackComposerComponent implements OnDestroy {
     return entry.dirty ? 'adminFeedback.compose.draftSaving' : 'adminFeedback.compose.draftSaved';
   });
 
+  /** Attachment hint — names what this role may actually attach. */
+  readonly attachHintKey = computed(() =>
+    this.allowFiles()
+      ? 'adminFeedback.compose.attachHintFiles'
+      : 'adminFeedback.compose.attachHint',
+  );
+
   /** Hint under the field — must name the mapping the user actually has. */
   readonly sendHintKey = computed(() =>
     this.composerPrefs.sendOnEnter()
@@ -472,10 +511,24 @@ export class FeedbackComposerComponent implements OnDestroy {
       : 'adminFeedback.compose.sendHintCtrl',
   );
 
+  /** The shared cap, exposed for the template's `maxlength` and the counter. */
+  readonly maxChars = FEEDBACK_MAX_CHARS;
+
+  /** Live length of what is in the field — what the counter renders. */
+  readonly charCount = computed(() => this.draft().length);
+
+  /**
+   * A restored draft written before the cap existed can still be over it. It is
+   * not thrown away — the author keeps their text and can cut it down — but it
+   * cannot be sent until it fits.
+   */
+  readonly overLimit = computed(() => this.charCount() > this.maxChars);
+
   readonly canSend = computed(
     () =>
       !this.busy() &&
       !this.sending() &&
+      !this.overLimit() &&
       (this.draft().trim().length > 0 || this.attachments().length > 0),
   );
 
@@ -572,7 +625,13 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (this.draft().length > 0 || this.attachments().length > 0) return;
     this.draft.set(entry.body);
     this.attachments.set(
-      entry.images.map((img) => ({ id: img.id, name: img.name, dataUrl: '', url: img.url })),
+      entry.images.map((img) => ({
+        id: img.id,
+        name: img.name,
+        dataUrl: '',
+        url: img.url,
+        mime: img.mime,
+      })),
     );
     this.draftRestored.set(true);
   }
@@ -588,7 +647,7 @@ export class FeedbackComposerComponent implements OnDestroy {
       // still rides along on send, it just is not part of the stored draft.
       this.attachments()
         .filter((a): a is PendingImage & { url: string } => !!a.url)
-        .map((a) => ({ id: a.id, name: a.name, url: a.url })),
+        .map((a) => ({ id: a.id, name: a.name, url: a.url, mime: a.mime })),
     );
   }
 
@@ -623,8 +682,21 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (scope) void this.drafts.discard(scope);
   }
 
+  /**
+   * `maxlength` covers typing and pasting, but NOT text dropped onto the field
+   * — Chrome happily drops a megabyte past the attribute. So the cap is applied
+   * here as well, and written back to the element, which is what actually makes
+   * it impossible to file another 9.800-character wall (admin feedback
+   * 0a0fad31).
+   */
   onInput(e: Event): void {
-    const value = (e.target as HTMLTextAreaElement).value;
+    const el = e.target as HTMLTextAreaElement;
+    const value = clampFeedbackText(el.value);
+    if (el.value !== value) {
+      const caret = Math.min(el.selectionStart ?? value.length, value.length);
+      el.value = value;
+      el.setSelectionRange(caret, caret);
+    }
     this.draft.set(value);
     this.draftRestored.set(false);
     this.saveDraft();
@@ -707,120 +779,19 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.applyValue(el, next, caret);
   }
 
+  /**
+   * Programmatic writes (the list-marker insert) bypass `maxlength` the same way
+   * a drop does, so they go through the same clamp.
+   */
   private applyValue(el: HTMLTextAreaElement, next: string, caret: number): void {
-    el.value = next;
+    const capped = clampFeedbackText(next);
+    el.value = capped;
+    caret = Math.min(caret, capped.length);
     el.setSelectionRange(caret, caret);
-    this.draft.set(next);
+    this.draft.set(capped);
     this.draftRestored.set(false);
     this.saveDraft();
     el.focus();
-  }
-
-  // ---- Screenshot of the current screen (decision r2-shot-display) ---------
-
-  readonly attachMenuOpen = signal(false);
-  readonly capturing = signal(false);
-
-  toggleAttachMenu(): void {
-    this.attachMenuOpen.update((v) => !v);
-  }
-
-  closeAttachMenu(): void {
-    this.attachMenuOpen.set(false);
-  }
-
-  /** Escape closes the "+" menu and stops there — the sheet behind keeps its own Escape. */
-  onEscape(ev: Event): void {
-    if (!this.attachMenuOpen()) return;
-    this.closeAttachMenu();
-    ev.stopPropagation();
-  }
-
-  /** A click anywhere outside this composer folds the "+" menu away. */
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(ev: Event): void {
-    if (!this.attachMenuOpen()) return;
-    const host = this.ta()?.nativeElement.closest('.composer');
-    if (host && ev.target instanceof Node && host.contains(ev.target)) return;
-    this.closeAttachMenu();
-  }
-
-  /**
-   * Grab one frame of the screen through the browser's own picker
-   * (`getDisplayMedia`): pixel-exact, 3D views included, no library. The
-   * feedback panel itself is hidden while the frame is taken so the shot shows
-   * the page, not the box the shot is going into. Not available on iOS — the
-   * button says so instead of failing silently, and "+" → file stays.
-   */
-  async captureScreenshot(): Promise<void> {
-    const md = navigator.mediaDevices;
-    if (!md || typeof md.getDisplayMedia !== 'function') {
-      this.errorMsg.set(this.translate.instant('adminFeedback.compose.screenshotUnsupported'));
-      return;
-    }
-    if (this.capturing()) return;
-    this.capturing.set(true);
-    this.errorMsg.set(null);
-    const panel = this.hostPanel();
-    // The panel disappears for the capture; whatever had the keyboard gets it back.
-    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    let stream: MediaStream | null = null;
-    try {
-      // Hide before the picker: the browser's preview already shows the page.
-      if (panel) panel.style.visibility = 'hidden';
-      stream = await md.getDisplayMedia({
-        video: { displaySurface: 'browser' },
-        audio: false,
-        // Chromium hints: offer the current tab first, no "share audio" row.
-        preferCurrentTab: true,
-        selfBrowserSurface: 'include',
-        surfaceSwitching: 'exclude',
-      } as DisplayMediaStreamOptions);
-      const file = await this.frameToFile(stream);
-      await this.addFiles([file]);
-    } catch (e) {
-      // The user closed the picker — not an error worth a red box.
-      if (!(e instanceof DOMException && e.name === 'NotAllowedError')) {
-        this.errorMsg.set(this.translate.instant('adminFeedback.compose.screenshotFailed'));
-      }
-    } finally {
-      stream?.getTracks().forEach((t) => t.stop());
-      if (panel) panel.style.visibility = '';
-      this.capturing.set(false);
-      if (focused && focused.isConnected) focused.focus();
-    }
-  }
-
-  /**
-   * The overlay this composer lives in — the FAB panel, or a full-page topic
-   * sheet on /admin/feedback — hidden during a capture so the shot shows the
-   * page, not the box the shot is going into. Null for an inline composer.
-   */
-  private hostPanel(): HTMLElement | null {
-    const el = this.ta()?.nativeElement;
-    return el ? (el.closest('.panel, .sheet') as HTMLElement | null) : null;
-  }
-
-  /** Decode one frame of the captured stream into a PNG file. */
-  private async frameToFile(stream: MediaStream): Promise<File> {
-    const video = document.createElement('video');
-    video.srcObject = stream;
-    video.muted = true;
-    await video.play();
-    // One or two frames so the compositor has painted without the panel.
-    await new Promise((r) => setTimeout(r, 180));
-    const w = video.videoWidth;
-    const h = video.videoHeight;
-    if (!w || !h) throw new Error('empty frame');
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('canvas 2d context unavailable');
-    ctx.drawImage(video, 0, 0, w, h);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('encode failed');
-    return new File([blob], `screenshot-${Date.now()}.png`, { type: 'image/png' });
   }
 
   // ---- Image attachments -------------------------------------------------
@@ -879,26 +850,101 @@ export class FeedbackComposerComponent implements OnDestroy {
     if (att) this.removeAttachment(att.id);
   }
 
-  /** Accept image files from any source (picker, paste, drop), compressing each. */
+  /**
+   * Capture the page the user is looking at and queue it like any other image
+   * (admin feedback 312a4acc).
+   *
+   * "Take a screenshot, find it, attach it" is three context switches for the
+   * single most useful thing a bug report can carry, and on a phone it is worse
+   * than that. The service leaves the feedback launcher and panel out of the
+   * shot, so the result is the page — not the page plus the box the user is
+   * typing in.
+   */
+  async captureScreenshot(): Promise<void> {
+    if (this.screenshots.busy()) return;
+    this.errorMsg.set(null);
+    try {
+      const file = await this.screenshots.capture();
+      await this.addFiles([file]);
+    } catch {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.captureError'));
+    }
+  }
+
+  /**
+   * Replace a queued image with its marked-up version.
+   *
+   * The annotated bytes are a NEW attachment body, so the cached upload of the
+   * unmarked version no longer describes it — the URL is dropped and the image
+   * is re-uploaded under a fresh object. The old object is left in the bucket;
+   * deleting it would race the stored draft that may still reference it, and an
+   * orphaned thumbnail costs kilobytes.
+   */
+  onAnnotated(result: AnnotationResult): void {
+    const att = this.attachments()[result.index];
+    if (!att) return;
+    const next: PendingImage = {
+      id: att.id,
+      name: att.name,
+      dataUrl: result.dataUrl,
+      mime: 'image/jpeg',
+    };
+    this.attachments.update((list) => list.map((a) => (a.id === att.id ? next : a)));
+    void this.cacheAttachment(next);
+  }
+
+  /**
+   * Accept files from any source (picker, paste, drop, page capture).
+   *
+   * Images are re-encoded; anything else is only reachable for a composer with
+   * `allowFiles` and rides along byte-for-byte. A file a viewer is not allowed
+   * to send is refused with a sentence, not dropped silently — silence reads as
+   * a broken button.
+   */
   private async addFiles(files: FileList | File[] | null | undefined): Promise<void> {
     if (!files) return;
-    const images = Array.from(files).filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) return;
-    for (const file of images) {
+    const all = Array.from(files);
+    if (all.length === 0) return;
+    const accepted = this.allowFiles() ? all : all.filter((f) => f.type.startsWith('image/'));
+    if (accepted.length === 0) {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.imagesOnly'));
+      return;
+    }
+    for (const file of accepted) {
       if (this.attachments().length >= MAX_ATTACHMENTS) {
         this.errorMsg.set(
           this.translate.instant('adminFeedback.compose.tooManyImages', { max: MAX_ATTACHMENTS }),
         );
         break;
       }
+      const isImage = file.type.startsWith('image/');
+      if (!isImage && file.size > MAX_FILE_BYTES) {
+        this.errorMsg.set(
+          this.translate.instant('adminFeedback.compose.fileTooLarge', {
+            max: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+          }),
+        );
+        continue;
+      }
       try {
-        const att = await this.processImage(file);
+        const att = isImage ? await this.processImage(file) : this.processFile(file);
         this.attachments.update((list) => [...list, att]);
         await this.cacheAttachment(att);
       } catch {
         this.errorMsg.set(this.translate.instant('adminFeedback.compose.imageError'));
       }
     }
+  }
+
+  /** Queue a non-image attachment: no re-encode, the original bytes go up. */
+  private processFile(file: File): PendingImage {
+    return {
+      id: crypto.randomUUID(),
+      name: this.safeName(file.name),
+      dataUrl: '',
+      mime: file.type || 'application/octet-stream',
+      file,
+    };
   }
 
   /**
@@ -912,7 +958,7 @@ export class FeedbackComposerComponent implements OnDestroy {
    */
   private async cacheAttachment(att: PendingImage): Promise<void> {
     if (!this.draftScope()) return;
-    const url = await this.drafts.uploadAttachment(att);
+    const url = await this.drafts.uploadAttachment(att, this.allowFiles());
     if (url) {
       this.attachments.update((list) =>
         list.map((a) => (a.id === att.id ? { ...a, url } : a)),
@@ -939,7 +985,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     const name = this.safeName(file.name);
     if (file.type === 'image/gif') {
       const dataUrl = await this.readAsDataUrl(file);
-      return { id: crypto.randomUUID(), name, dataUrl };
+      return { id: crypto.randomUUID(), name, dataUrl, mime: 'image/gif' };
     }
     const bitmap = await createImageBitmap(file);
     try {
@@ -954,7 +1000,12 @@ export class FeedbackComposerComponent implements OnDestroy {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(bitmap, 0, 0, w, h);
-      return { id: crypto.randomUUID(), name, dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY) };
+      return {
+        id: crypto.randomUUID(),
+        name,
+        dataUrl: canvas.toDataURL('image/jpeg', IMG_QUALITY),
+        mime: 'image/jpeg',
+      };
     } finally {
       bitmap.close();
     }

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexLandingComponent } from './codex-landing.component';
 import { CodexListRow, CodexService, ResolvedEntity } from './codex.service';
@@ -178,6 +178,8 @@ describe('CodexLandingComponent', () => {
           provide: NewsService,
           useValue: {
             feed: signal<VerseFeed | null>(null),
+            // The patch switch reads the published patch lines from here.
+            patchLines: signal([]),
             refresh: jasmine.createSpy('refresh').and.resolveTo(undefined),
           },
         },
@@ -541,6 +543,28 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('button.zone-rail.hangar')).not.toBeNull();
   });
 
+  // Feedback 77668f11 round three: "wenn ich ship im hangar aufrufe, dann sehe
+  // ich fuer zu fuss an board immer noch nicht die person als spalte sondern nur
+  // die textleiste." The admin's own set ("FixIt") has NO items — which used to
+  // withhold the figure. It no longer does: the figure is the character, not the
+  // set, so the collapsed AN BORD rail carries it in every state.
+  it('shows the AN BORD figure on the collapsed rail even with an empty set', async () => {
+    const fixture = await setup({
+      hangar: [],
+      roleLoadouts: [fpsLoadout('set1', 'FixIt')],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+
+    const rail = el.querySelector('button.zone-rail.board');
+    expect(rail).not.toBeNull();
+    expect(rail!.classList).toContain('has-hero');
+    expect(rail!.querySelector('.rail-hero sc-codex-board-figure')).not.toBeNull();
+    // Still no words beyond the zone label — the hero replaces the summary.
+    expect(rail!.querySelector('.rail-sub')).toBeNull();
+    // ...and the surface gives the rail its extra width.
+    expect(el.querySelector('.surface.hero-rail')).not.toBeNull();
+  });
+
   // Feedback e80cc831: "dann kann man aber auch irgendwie den einsatzzweck
   // umschalten, in dem fall brauche ich die schiffs hero card nicht mehr sehen".
   it('drops the flagship hero when the fleet lane is grouped, and gets it back in the default mode', async () => {
@@ -571,7 +595,11 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.ship-hero')).not.toBeNull();
   });
 
-  it('AN BORD zone entrance prefers an existing FPS role loadout over the bare /codex/fps fallback', async () => {
+  // Admin feedback 34505d70 ("2A"): the standalone /hangar/loadout/:id editor is
+  // gone, so the zone entrance no longer leaves the Codex. It opens the on-foot
+  // archive with the ACTIVE set as the equip target — the surface that replaced
+  // the editor.
+  it('AN BORD zone entrance opens the on-foot archive with the active set as the equip target', async () => {
     const fixture = await setup({
       hangar: [],
       roleLoadouts: [fpsLoadout('fps-set-1', 'Boarding Kit')],
@@ -579,7 +607,41 @@ describe('CodexLandingComponent', () => {
     openBoard(fixture);
     const el: HTMLElement = fixture.nativeElement;
     const boardEntry = el.querySelector<HTMLAnchorElement>('.zone.board a.board-name');
-    expect(boardEntry?.getAttribute('href')).toBe('/hangar/loadout/fps-set-1');
+    expect(boardEntry?.getAttribute('href')).toBe('/codex/fps?equipInto=fps-set-1');
+  });
+
+  it('has no link left into the retired hangar loadout editor', async () => {
+    const fixture = await setup({
+      hangar: [],
+      roleLoadouts: [fpsLoadout('set1', 'Boarding Kit'), fpsLoadout('set2', 'Salvage Kit')],
+    });
+    openBoard(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    const hrefs = Array.from(el.querySelectorAll('a')).map((a) => a.getAttribute('href') ?? '');
+    expect(hrefs.some((h) => h.includes('/hangar/loadout'))).toBeFalse();
+  });
+
+  it('switches the shown set through the URL, so a set is bookmarkable and middle-clickable', async () => {
+    const fixture = await setup({
+      hangar: [],
+      roleLoadouts: [fpsLoadout('set1', 'Boarding Kit'), fpsLoadout('set2', 'Salvage Kit')],
+    });
+    openBoard(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+
+    // The switcher navigates to the landing itself with ?zone=board&set=<id>.
+    const dial = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.dial-node'));
+    expect(dial.length).toBe(2);
+    expect(dial[1].getAttribute('href')).toBe('/codex?zone=board&set=set2');
+
+    // …and the landing reads that back: the named set leads, which is what
+    // every downstream read (paperdoll, plinth, entrance link) uses.
+    const router = TestBed.inject(Router);
+    await router.navigate([], { queryParams: { zone: 'board', set: 'set2' } });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.activeLoadout()?.id).toBe('set2');
+    expect(fixture.componentInstance.openZone()).toBe('board');
   });
 
   it('zone entrances do not swallow their nested interactive children (no nested anchors, controls stay reachable)', async () => {

@@ -4,6 +4,102 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.75.1] - 2026-09-05
+
+### Fixed
+
+- **Data Uploader: der 3D-Livery-Cache überlebt das Aufräumen**
+  (data-uploader 0.25.3). Nach einem bestätigten Upload löschte der Purge
+  jeden Ordner unter `.sc-companion-extracts` — auch `skins-<Version>`, den
+  Cache mit den gebauten glbs. Das ist aber kein wiederherstellbares
+  Nebenprodukt wie das Extrakt: neu extrahieren dauert Minuten, alle Schiffe
+  neu bauen elf Stunden, und der Cache ist das Einzige, woran `--skip-existing`
+  anknüpfen kann. Weil er außerdem per Design keinen `_uploaded.json`-Marker
+  trägt (der Upload-Zustand liegt pro Schiff in `<Schiff>/.uploaded`), hätte
+  ihn einen Tag später ohnehin die Alters-Regel des Startup-Sweeps geholt —
+  dieselbe Regel, die in 0.74.1 schon das pausierte Extrakt gefressen hat. Der
+  Cache wird jetzt nur noch beim Patch-Wechsel freigegeben, und nur von der
+  einen Stelle, die weiß, welcher Patch aktuell ist.
+- **Data Uploader: Schiffe ohne baubare Livery sind kein Fehler mehr.** Ein
+  Katalog-Lauf endete mit „21 / 309" — gelesen als 288 fehlgeschlagene
+  Schiffe. Tatsächlich hatten die 288 schlicht kein einziges glb: das
+  Build-Manifest nimmt jedes Schiff auf, bei dem irgendein Paint ein Material
+  hat, was viel weiter greift als „am Ende kommt ein Modell heraus", weshalb
+  auch Trümmer-Entitäten darin landen. Für so ein Schiff ist die Objektliste
+  leer, und eine leere Liste beantwortet `ingest-skins` mit einem 400 — jedes
+  Mal als gescheitertes Schiff verbucht. Solche Schiffe werden jetzt als
+  erledigt gezählt und markiert, statt eine Anfrage zu stellen, die nur
+  scheitern kann.
+- **Data Uploader: die Upload-Phase zeigt Fortschritt, endet sichtbar und
+  protokolliert ihre Fehler.** Sie war ein einziges undurchsichtiges Warten:
+  die Karte behielt die Zahlen der Bau-Phase, der Balken stand, und am Ende
+  fror sie auf genau diesem Bild ein — inklusive einer Restzeit, die aus zwei
+  Messpunkten über die ganze Phase entstanden war. Eine fertige Ausführung war
+  von einer hängenden nicht zu unterscheiden. Jetzt meldet jedes Schiff seinen
+  Fortschritt, und die Karte wird auf einen Endzustand gemalt, bevor die Uhr
+  stehen bleibt. Die Fehlerpfade sagten außerdem nirgends etwas — die
+  Statuszeile verwies auf ein Protokoll, in das nie jemand schrieb. Sie melden
+  jetzt an die Oberfläche und in `main.log`, mit einer Zusammenfassung pro
+  Lauf.
+
+## [0.75.0] - 2026-09-05
+
+### Added
+
+- **Verse News: die Patch-Notes-Seite ist ein Zeitstapel mit Dossier.** Statt
+  gestapelter Bänder führt `/news/patches` jetzt eine strikt monotone Achse:
+  der nächste Patch, der laufende als Hero, der abgelöste, ältere gefaltet.
+  Jede Karte öffnet ein Dossier mit Inhaltsverzeichnis und vier Abschnitten,
+  die nach ihrer Frage benannt sind — wie bereite ich mich vor, was steckt
+  drin, haben sie … gefixt, wann kommt der nächste. Deren Reihenfolge folgt
+  dem Zustand des Patches: solange er nicht draußen ist, führen die Fragen
+  nach vorn (wann kommt er, wie bereite ich mich vor); sobald er gelandet ist,
+  führen Inhalt und Fix-Suche, und die Vorbereitung rutscht ans Ende. Zwei
+  Überschriften wechseln mit der Zeitform mit: ein noch nicht erschienener
+  Patch fragt „Wann kommt dieser Patch?", ein abgelöster „Was kam danach?".
+  Eine Suche vom Board trägt ihre Anfrage ins Dossier und stellt die
+  Trefferliste voran. Die Zyklus-Achse misst die reale Lage gegen den üblichen
+  Takt vom selben Anker aus — gedämpfter Balken für den Takt, aktiver für das,
+  was wirklich geschah, bernstein für den Überstand. Ein nur angekündigter
+  Patch hat nichts zu zeichnen und antwortet stattdessen in Worten: geplantes
+  Quartal, der aus dem Takt projizierte Live-Termin, und die zwei Mediane,
+  auf denen das ruht.
+- **Feedback: Seite aufnehmen und markieren, was man meint.** Ein Bericht kann
+  die aktuelle Ansicht als Bild mitschicken, samt Markierungen darauf.
+- **Feedback: Nutzer-Feedback wird im Abarbeiten-Lauf mit abgearbeitet** statt
+  nur gesammelt.
+- **Social: Kontosperre, geteilte Loadouts und ablaufende Freundschaftsanfragen**
+  (Phase 1 des sozialen Ausbaus).
+- **Auth: Rollenauswahl im Seitenthema, und eingeladene Nutzer vergeben ihr
+  Passwort selbst.**
+- **Codex: der Zonen-Held bleibt auch in der eingeklappten Leiste sichtbar.**
+- **Rechtliches: die öffentlichen Seiten haben einen Weg zurück zur Startseite.**
+
+### Changed
+
+- **Hangar: der eigenständige Loadout-Editor entfällt, Sets werden im Codex
+  bearbeitet** — ein Ort statt zwei für dieselbe Arbeit.
+- **Codex: das „Live"-Abzeichen entfällt**; neuere Patches erscheinen ausgegraut,
+  und die Umschaltung zeigt höchstens drei.
+- **Starscape: Roadmap Roundup ist aus der Galerie und der App entfernt.**
+- **Desktop-Downloads werden auf dem Telefon nicht mehr angeboten** — sie sind
+  Windows-only und dort nutzlos.
+- **Shell: die Rollenvorschau ist als erhöhter Zugriff gekennzeichnet.**
+- **Feedback: eine Nachricht endet bei 2.000 Zeichen**, und ein überlanges Wort
+  bricht die Ansicht nicht mehr auf.
+
+### Fixed
+
+- **Codex: Schiffs- und Komponentenseiten scrollen auf dem Telefon nicht mehr
+  seitwärts.**
+- **Codex: die AN-BORD-Figur bleibt auf der Leiste sichtbar, auch wenn das Set
+  leer ist.**
+- **Feedback: die Bildschirmaufnahme verliert die Artwork-Ebene nicht mehr.**
+- **Datenbank: `is_suspended` wird definiert, bevor der erste Migrationsteil es
+  benutzt.**
+- **Data Uploader: der eingebettete Python-Download wird im Tag-Build
+  wiederholt** statt beim ersten Fehlversuch aufzugeben (data-uploader 0.25.2).
+
 ## [0.74.1] - 2026-09-03
 
 ### Fixed

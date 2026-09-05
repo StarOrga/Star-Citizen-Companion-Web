@@ -437,13 +437,17 @@ export function timeOf(iso: string | null | undefined): number {
 /**
  * What a queue entry asks of the admin (feedback d4990269):
  *
+ * - `triage` — a topic a *user* filed that the routine may not touch yet
+ *   (feedback 89925995): read it and take one of the three decisions the
+ *   Übersicht card has — release it to the routine, ask the author something,
+ *   or decline it with an explanation.
  * - `question` — a Rückfrage the routine is waiting on: read it, answer it.
  * - `review` — a finished topic waiting for the Abnahme: look at the result and
  *   take one of its two decisions (accept → Archiv, or pick the conversation
  *   back up). Same rows the Abnahme tab holds, same two decisions — they are
  *   only *presented* here as well, one at a time, instead of as a tile grid.
  */
-export type WorkflowItemKind = 'question' | 'review';
+export type WorkflowItemKind = 'triage' | 'question' | 'review';
 
 export interface WorkflowItem {
   row: FeedbackRow;
@@ -484,6 +488,14 @@ export type HandledMap = ReadonlyMap<string, string>;
  * and count toward the dashboard's ToDo bucket — this queue is the admin's
  * inbox, not the board.
  *
+ * The one exception is a **user-submitted topic still waiting for its triage**
+ * (feedback 89925995). It buckets as `todo` like any other untouched topic, but
+ * the ball is emphatically not with the routine: the routine's queue is gated on
+ * `triaged`, so nothing at all happens to that topic until an admin releases it.
+ * That makes it the purest kind of "waiting on the admin" there is, and it goes
+ * to the FRONT of the run — ahead of the Rückfragen, which at least have a
+ * routine cycle behind them.
+ *
  * Since feedback d4990269 the Abnahme (`review` bucket) belongs to that inbox
  * too: a shipped result nobody has signed off is just as much "waiting on the
  * admin" as a Rückfrage. The two kinds are **not interleaved by date** —
@@ -498,6 +510,7 @@ export function buildWorkflowQueue(
   threads: ThreadMap,
   handled: HandledMap = new Map(),
 ): WorkflowItem[] {
+  const triage: WorkflowItem[] = [];
   const questions: WorkflowItem[] = [];
   const reviews: WorkflowItem[] = [];
 
@@ -506,15 +519,22 @@ export function buildWorkflowQueue(
     if (handled.get(row.id) === row.updated_at) continue;
     const replies = threads.get(row.id) ?? [];
     const bucket = feedbackBucket(row, replies);
-    if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
+    // The triage gate wins over the bucket: a user topic nobody released is
+    // blocked whatever else its row says. `awaiting_author` is the one active
+    // bucket left out — there the admin already asked and waits on the author,
+    // so the ball is not with them until the answer lands.
+    if (awaitsTriage(row) && bucket !== 'awaiting_author' && ACTIVE_BUCKETS.includes(bucket)) {
+      triage.push({ row, replies, kind: 'triage' });
+    } else if (bucket === 'awaiting_admin') questions.push({ row, replies, kind: 'question' });
     else if (bucket === 'review') reviews.push({ row, replies, kind: 'review' });
   }
 
+  triage.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
   questions.sort((a, b) => timeOf(a.row.created_at) - timeOf(b.row.created_at));
   // An Abnahme waits from the moment its outcome landed, not from the day the
   // topic was raised — so it is aged by the same stamp its card shows.
   reviews.sort((a, b) => timeOf(reviewSince(a.row)) - timeOf(reviewSince(b.row)));
-  return [...questions, ...reviews];
+  return [...triage, ...questions, ...reviews];
 }
 
 /**
@@ -557,7 +577,14 @@ export function filterWorkflowScope(
 ): WorkflowItem[] {
   if (scope === 'all' || !selfId) return [...items];
   const wantOwn = scope === 'mine';
-  return items.filter((item) => isOwnTopic(item.row, selfId) === wantOwn);
+  // A triage step is in EVERY scope (feedback 89925995). The scope switch splits
+  // admin topics by who raised them — "the ones you can answer without guessing"
+  // — but a user-submitted topic was raised by neither admin, so `mine` would
+  // hide it and the default run would never show the one thing that is blocking
+  // the routine outright. It is nobody's topic and therefore everybody's job.
+  return items.filter(
+    (item) => item.kind === 'triage' || isOwnTopic(item.row, selfId) === wantOwn,
+  );
 }
 
 /**
@@ -572,12 +599,16 @@ export function filterWorkflowScope(
  */
 export type WorkflowKind = 'all' | WorkflowItemKind;
 
-/** The lens in switch order — `all` first, because it is the default. */
-export const WORKFLOW_KINDS: readonly WorkflowKind[] = ['all', 'question', 'review'];
+/**
+ * The lens in switch order — `all` first, because it is the default, then the
+ * kinds in the order the run walks them (triage → Rückfragen → Abnahmen).
+ */
+export const WORKFLOW_KINDS: readonly WorkflowKind[] = ['all', 'triage', 'question', 'review'];
 
 /** How many items each kind holds — the counts on the kind switch. */
 export interface WorkflowKindCounts {
   all: number;
+  triage: number;
   question: number;
   review: number;
 }
@@ -596,9 +627,13 @@ export function filterWorkflowKind(
 
 /** Item counts per kind, for the switch's KPIs. `all` is the untouched total. */
 export function workflowKindCounts(items: readonly WorkflowItem[]): WorkflowKindCounts {
+  let triage = 0;
   let review = 0;
-  for (const item of items) if (item.kind === 'review') review++;
-  return { all: items.length, question: items.length - review, review };
+  for (const item of items) {
+    if (item.kind === 'triage') triage++;
+    else if (item.kind === 'review') review++;
+  }
+  return { all: items.length, triage, question: items.length - triage - review, review };
 }
 
 /** Queue sizes per scope, for the switch's counts. `all` is the untouched total. */
@@ -607,8 +642,17 @@ export function workflowScopeCounts(
   selfId: string | null | undefined,
 ): WorkflowScopeCounts {
   let mine = 0;
-  for (const item of items) if (isOwnTopic(item.row, selfId)) mine++;
-  return { mine, others: items.length - mine, all: items.length };
+  let others = 0;
+  for (const item of items) {
+    // A triage step sits in every scope (see filterWorkflowScope), so it counts
+    // in every scope — the KPI has to describe what the chip will hand over.
+    if (item.kind === 'triage') {
+      mine++;
+      others++;
+    } else if (isOwnTopic(item.row, selfId)) mine++;
+    else others++;
+  }
+  return { mine, others, all: items.length };
 }
 
 /*

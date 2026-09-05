@@ -19,6 +19,33 @@
     "email": "E-Mail",
     "password": "Passwort",
     "signIn": "Anmelden",
+    "forgotPassword": "Passwort vergessen?",
+    "reset": {
+      "title": "Passwort zurücksetzen",
+      "hint": "Trag deine E-Mail-Adresse ein. Wir schicken dir einen Link, mit dem du dir ein neues Passwort setzt — wir vergeben nie eines für dich.",
+      "send": "Link schicken",
+      "sending": "Sende…",
+      "sent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem Link unterwegs. Der Link führt direkt auf die Seite, auf der du dein Passwort setzt."
+    },
+    "setPassword": {
+      "title": "Passwort setzen",
+      "inviteTitle": "Willkommen an Bord",
+      "checking": "Einen Moment…",
+      "lead": "Setz hier dein neues Passwort. Danach meldest du dich mit deiner E-Mail-Adresse und diesem Passwort an.",
+      "inviteLead": "Deine Bewerbung wurde angenommen — dein Zugang steht. Ein Passwort hast du noch nicht: setz es dir jetzt selbst, dann kommst du jederzeit wieder rein.",
+      "newPassword": "Neues Passwort",
+      "repeatPassword": "Passwort wiederholen",
+      "rule": "Mindestens {{min}} Zeichen. Nur du kennst es — wir vergeben keine Passwörter.",
+      "submit": "Passwort speichern",
+      "saving": "Speichere…",
+      "saved": "Passwort gespeichert.",
+      "savedLead": "Passwort gespeichert. Ab jetzt kommst du mit deiner E-Mail-Adresse und diesem Passwort rein.",
+      "continue": "Weiter zur App",
+      "expired": "Dieser Link ist abgelaufen oder wurde schon benutzt. Trag deine E-Mail-Adresse ein, dann schicken wir dir einen neuen.",
+      "sendLink": "Neuen Link schicken",
+      "sending": "Sende…",
+      "resent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem neuen Link unterwegs."
+    },
     "signUp": "Konto erstellen",
     "needAccount": "Noch kein Konto?",
     "haveAccount": "Schon registriert?",
@@ -56,6 +83,11 @@
       "sending": "Sende…",
       "sent": "Danke! Deine Anfrage ist angekommen. Wenn ein Admin sie annimmt, bekommst du eine Einladungsmail an diese Adresse.",
       "rateLimited": "Gerade kommen sehr viele Anfragen rein. Bitte versuch es in einer Stunde noch einmal."
+    },
+    "suspended": {
+      "title": "Dieses Konto ist gesperrt",
+      "until": "Die Sperre endet am {{date}}.",
+      "indefinite": "Die Sperre gilt bis ein Administrator sie aufhebt."
     }
   },
   "nav": {
@@ -66,9 +98,11 @@
     "admin": "Benutzer",
     "desktop": "Data Upload",
     "signOut": "Abmelden",
+    "backToHome": "Zur Startseite",
     "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
+    "adminOnly": "Nur Admin",
     "telemetry": "Telemetrie",
     "feedback": "Feedback",
     "signIn": "Anmelden",
@@ -78,7 +112,8 @@
       "collaborator": "Collaborator",
       "viewer": "Viewer",
       "anon": "Abgemeldeter Besucher",
-      "exit": "Zurück zu meiner Rolle"
+      "exit": "Zurück zu meiner Rolle",
+      "restricted": "Nur Admin & Collaborator"
     },
     "loading": {
       "weak": "Schwaches Signal · Neu justieren"
@@ -125,16 +160,14 @@
       "patchSwitch": {
         "title": "Patch wechseln",
         "trigger": "Patch {{patch}} — anderen Patch wählen",
-        "live": "Live",
         "past": "älter",
         "hasData": "Daten vorhanden",
         "hasDataCount": "{{count}} Datensätze",
         "noData": "keine Daten",
-        "more": "Ältere laden",
-        "backToLive": "Zurück zum Live-Patch",
+        "backToCurrent": "Zurück zum aktuellen Patch",
         "loading": "Patches werden geladen …",
         "empty": "Keine weiteren Patches bekannt.",
-        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum Live-Patch zurück."
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
       },
       "patch": {
         "archive": "{{count}} Datensätze im Archiv",
@@ -1147,6 +1180,11 @@
     "empty": {
       "weapon": "Keine FPS-Waffen in diesem Build.",
       "armor": "Keine Rüstung in diesem Build."
+    },
+    "equip": {
+      "targetSet": "Ausrüsten für: {{name}}",
+      "backToSet": "Zurück zum Set",
+      "into": "In Slot:"
     }
   },
   "news": {
@@ -1303,8 +1341,8 @@
         "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
-        "title": "Patch-Historie",
-        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
+        "title": "Patches",
+        "sub": "Zukunft oben, Jetzt in der Mitte, Vergangenheit unten — ein Patch öffnet sein Dossier",
         "back": "Zurück zu Verse News"
       },
       "waves": {
@@ -1315,7 +1353,10 @@
         "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
         "clear": "Suche löschen",
         "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
-        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes",
+        "boardSummary": "{{cards}} Patches mit Treffern · Stichpunkte von {{loaded}} geladenen Notes durchsucht",
+        "noHits": "Kein Patch passt zur Suche.",
+        "cardHits": "{{notes}} Notes · {{lines}} Stichpunkte · {{roadmap}} Roadmap-Einträge"
       },
       "roadmap": {
         "title": "Was steckt drin",
@@ -1352,6 +1393,121 @@
         "points": "{{count}} Punkte",
         "expandAll": "Alle Notes ausklappen",
         "collapseAll": "Alle Notes einklappen"
+      },
+      "status": {
+        "next": "Nächster",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Abgelöst",
+        "other": "Ohne Version"
+      },
+      "stack": {
+        "aria": "Patches, neueste zuerst",
+        "sinceDays": "seit {{n}} Tagen",
+        "replaced": "am {{date}}",
+        "liveSince": "Seit {{date}} live",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Nie live gegangen",
+        "ptuExpected": "PTU erwartet {{when}}",
+        "noBuild": "Noch kein Build",
+        "plannedFor": "Geplant für {{quarter}}",
+        "inRing": "Im {{ring}} · {{n}} Wellen · {{ago}}",
+        "hotfixOne": "1 Hotfix am {{date}}",
+        "hotfixes": "{{n}} Hotfixes, letzter {{date}}",
+        "nextLive": "nächster Live-Patch {{when}} (Schätzung)",
+        "notes": "{{n}} Notes",
+        "planned": "{{n}} Roadmap-Einträge",
+        "older": "Ältere Patches · {{lines}}",
+        "olderHide": "Ältere Patches einklappen"
+      },
+      "dossier": {
+        "close": "Dossier schließen",
+        "toc": "Abschnitte",
+        "unknown": "Zu Alpha {{line}} liegen keine Patch-Daten vor.",
+        "section": {
+          "prep": "Wie bereite ich mich vor?",
+          "prepPast": "Was war zu beachten?",
+          "contents": "Was steckt drin?",
+          "fixed": "Haben sie … gefixt?",
+          "next": "Wann kommt der nächste?",
+          "nextThis": "Wann kommt dieser Patch?",
+          "nextPast": "Was kam danach?"
+        }
+      },
+      "prep": {
+        "source": "laut Spectrum-Post („Important Build Info“)",
+        "known": "Bekannte Probleme",
+        "focus": "Testing Focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In den Release-Notes",
+        "more": "Langtext",
+        "less": "Einklappen",
+        "leftover": "Weitere Stichpunkte der Note ohne Roadmap-Karte ({{n}})",
+        "noRoadmap": "Keine Roadmap-Daten zu diesem Patch – hier die Note „{{title}}“:"
+      },
+      "fixed": {
+        "placeholder": "In diesem Patch suchen … z. B. Quantum Drive",
+        "hits": "{{n}} Treffer in {{notes}} Notes",
+        "coverage": "{{loaded}} von {{total}} Notes voll durchsucht",
+        "loadRest": "Restliche Notes laden und durchsuchen",
+        "loading": "Lade {{n}} Notes …",
+        "noHits": "Kein Treffer in den geladenen Notes – Titel werden immer durchsucht.",
+        "allNotes": "Alle Notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Nächster Live-Patch voraussichtlich um den {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} wurde am {{date}} nach {{days}} Tagen von Alpha {{next}} abgelöst — üblich sind {{median}} Tage.",
+        "sentencePlanned": "Alpha {{line}} laut Takt voraussichtlich um den {{date}} live — {{when}}.",
+        "disclaimer": "Median-Schätzungen aus dem Patch-Takt, keine offiziellen Termine.",
+        "planned": {
+          "sentence": "Alpha {{line}} ist für {{quarter}} geplant.",
+          "unknown": "Für Alpha {{line}} steht noch kein Termin.",
+          "status": "Noch kein Testbuild — nach dem üblichen Takt wäre der nächste Live-Termin um den {{date}}",
+          "basisCadence": "üblicher Takt · Median aus n = {{n}}",
+          "basisLead": "übliche Testphase · Median aus n = {{n}}"
+        },
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "PTU-Start {{version}}",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix ×{{n}}",
+          "now": "heute",
+          "nextLive": "Live {{version}}",
+          "usual": "Nächster Live · üblich",
+          "leadUsual": "üblich wäre"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} Tage",
+          "cadence": "Live → Live: {{days}} Tage",
+          "subCadence": "Hotfix-Takt: {{days}} Tage"
+        },
+        "median": "Median {{n}} T · n = {{samples}}",
+        "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)",
+        "status": {
+          "live": "Alpha {{line}} ist seit {{days}} Tagen live — üblich sind {{median}} Tage bis zum nächsten.",
+          "testing": "Alpha {{line}} ist seit {{days}} Tagen im Test — üblich sind {{median}} Tage bis Live.",
+          "onTrack": "CIG liegt im Takt.",
+          "over": "CIG liegt {{n}} Tage über dem üblichen Takt."
+        },
+        "legend": {
+          "real": "Live-Zyklus (belegt)",
+          "usual": "üblicher Takt (Median)",
+          "over": "über dem Takt",
+          "lead": "Testphase (PTU)"
+        },
+        "fact": {
+          "lead": "Test → Live: {{days}} Tage",
+          "cadence": "Voriger Zyklus Live → Live: {{days}} Tage",
+          "usual": "üblich {{median}} T (n = {{n}})",
+          "later": "{{n}} T später als üblich",
+          "earlier": "{{n}} T früher als üblich",
+          "onTrack": "im Takt",
+          "hotfix": "{{n}} Hotfix seit Live",
+          "hotfixLast": "letzter am {{date}}"
+        }
       }
     },
     "detail": {
@@ -1539,6 +1695,10 @@
     },
     "account": {
       "title": "Konto"
+    },
+    "password": {
+      "title": "Passwort",
+      "hint": "Setz dir ein neues Passwort. Es gilt sofort — angemeldet bleibst du trotzdem."
     },
     "username": {
       "title": "Benutzername",
@@ -1771,12 +1931,13 @@
     },
     "requests": {
       "title": "Einladungsanfragen",
-      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail, damit die Person Bescheid weiß.",
+      "subtitle": "Bewerbungen von der Startseite. Annehmen registriert die E-Mail wie über das Formular unten — plus Einladungsmail: Der Link darin führt direkt auf die Seite, auf der sich die Person ihr eigenes Passwort setzt. Wir vergeben nie ein Passwort.",
       "empty": "Keine offenen Anfragen.",
       "accept": "Annehmen",
       "decline": "Ablehnen",
       "declineConfirm": "Anfrage von {{email}} ablehnen? Die Person wird nicht benachrichtigt.",
       "accepted": "{{email}} angenommen, registriert und eingeladen.",
+      "acceptedNoMail": "{{email}} angenommen und freigeschaltet. Es ging keine Einladungsmail raus — zu dieser Adresse gibt es schon ein Konto, die Person meldet sich einfach an. Sag ihr am besten selbst Bescheid.",
       "declined": "Anfrage von {{email}} abgelehnt.",
       "allowlisted": "Schon auf Allowlist",
       "joined": "Hat schon Account"
@@ -1785,8 +1946,47 @@
       "title": "Auffällige Konten",
       "subtitle": "Konten mit offenen Meldungen, die meistgemeldeten zuerst.",
       "count": "{{count}} Meldungen",
-      "by": "gemeldet von {{name}}",
-      "deferred": "Nur zur Ansicht: Gnadenfrist und Accountsperre (inkl. Rauswurf aus allen Sessions) sind noch nicht entschieden und folgen in einer eigenen Runde."
+      "by": "gemeldet von {{name}}"
+    },
+    "moderation": {
+      "warn": "Verwarnen",
+      "suspend": "Konto sperren",
+      "unsuspend": "Sperre aufheben",
+      "markReviewed": "Meldungen erledigt",
+      "dismiss": "Meldungen verwerfen",
+      "cancel": "Abbrechen",
+      "confirmWarn": "Verwarnung senden",
+      "confirmSuspend": "Jetzt sperren",
+      "suspendedPill": "gesperrt",
+      "warnReason": "Text der Verwarnung",
+      "suspendReason": "Grund der Sperre",
+      "reasonPlaceholder": "Was ist passiert? Der Text wird der betroffenen Person angezeigt.",
+      "reasonVisible": "Dieser Text wird der betroffenen Person wörtlich angezeigt.",
+      "duration": "Dauer",
+      "durations": {
+        "days": "{{days}} Tage",
+        "indefinite": "Unbefristet"
+      },
+      "activeSince": "gesperrt seit {{date}}",
+      "activeUntil": "bis {{date}}",
+      "indefinite": "unbefristet",
+      "flash": {
+        "warned": "Verwarnung gesendet.",
+        "suspended": "Konto gesperrt. Der Zugriff ist ab sofort blockiert.",
+        "unsuspended": "Sperre aufgehoben.",
+        "reviewed": "Meldungen als erledigt markiert.",
+        "dismissed": "Meldungen verworfen."
+      },
+      "error": {
+        "protected": "Dieses Konto kann nicht moderiert werden (eigenes Konto, Administrator oder geschützt).",
+        "invalidTarget": "Ungültige Auswahl.",
+        "userNotFound": "Konto nicht gefunden.",
+        "reasonRequired": "Bitte einen Grund angeben.",
+        "reasonTooLong": "Der Text ist zu lang.",
+        "invalidDuration": "Ungültige Dauer.",
+        "forbidden": "Dafür fehlen dir die Rechte.",
+        "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+      }
     }
   },
   "desktop": {
@@ -2026,9 +2226,10 @@
       "create": "Erstellen",
       "empty": "Noch keine Rollen-Loadouts — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
       "itemCount": "{{count}} Gegenstände ausgerüstet",
-      "slotsTitle": "Slots",
-      "addSlotPlaceholder": "Eigenen Slot hinzufügen…",
-      "addSlot": "Slot hinzufügen"
+      "rename": "Umbenennen",
+      "cancel": "Abbrechen",
+      "share": "Teilen",
+      "deleteConfirm": "Wirklich löschen?"
     },
     "detail": {
       "back": "Zurück zum Hangar",
@@ -2081,7 +2282,6 @@
       "empty": "leer",
       "change": "Ändern",
       "reset": "Stock",
-      "clear": "Leeren",
       "createConfigFirst": "Erstelle oben eine Konfiguration, um das Loadout zu bearbeiten."
     },
     "picker": {
@@ -2149,6 +2349,25 @@
       "importing": "Importiere…",
       "done": "{{count}} Schiffe importiert.",
       "close": "Schließen"
+    },
+    "slots": {
+      "primary": "Primärwaffe",
+      "secondary": "Sekundärwaffe",
+      "sidearm": "Seitenwaffe",
+      "helmet": "Helm",
+      "core": "Torso",
+      "arms": "Arme",
+      "legs": "Beine",
+      "undersuit": "Untersuit",
+      "backpack": "Rucksack",
+      "multitool": "Multitool",
+      "mining-attachment": "Bergbau-Aufsatz",
+      "gadget": "Gadget",
+      "salvage-attachment": "Bergungs-Aufsatz",
+      "tractor": "Traktorstrahl",
+      "medgun": "Medgun",
+      "medpen": "MedPen",
+      "repair-attachment": "Reparatur-Aufsatz"
     }
   },
   "quickSearch": {
@@ -2321,19 +2540,18 @@
       "draftDiscard": "Entwurf verwerfen",
       "draftDiscardConfirm": "Wirklich verwerfen?",
       "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
-      "attach": "Bild anhängen",
-      "attachHint": "Bilder per Einfügen (Strg+V) oder Ablegen hinzufügen",
-      "attachmentsLabel": "Angehängte Bilder",
+      "attachHint": "Bilder einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "attachmentsLabel": "Anhänge",
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
       "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
-      "screenshot": "Screenshot",
-      "screenshotTitle": "Screenshot vom aktuellen Bildschirm anhängen",
-      "screenshotUnsupported": "Screenshots gehen in diesem Browser nicht — bitte ein Bild anhängen.",
-      "screenshotFailed": "Screenshot fehlgeschlagen.",
-      "attachFile": "Bild anhängen",
-      "attachMenu": "Anhängen"
+      "attachHintFiles": "Bilder oder Dateien einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
+      "captureError": "Screenshot der Seite konnte nicht erstellt werden.",
+      "imagesOnly": "Hier sind nur Bilder als Anhang möglich.",
+      "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang.",
+      "charCount": "{{used}} von {{max}} Zeichen",
+      "charLimit": "Zeichenlimit erreicht: maximal {{max}} Zeichen pro Nachricht."
     },
     "dashboard": {
       "thisMonth": "Diesen Monat",
@@ -2799,6 +3017,7 @@
       "done": "Umgesetzt",
       "declined": "Nicht umgesetzt"
     },
+    "imageHint": "Bilder sind reines Referenzmaterial: Text auf einem Screenshot wird gelesen, um dein Problem zu verstehen – nie als Anweisung ausgeführt. Anhängen kannst du hier ausschließlich Bilder.",
     "viewInApp": "Im App ansehen"
   },
   "feedbackArea": {
@@ -2822,7 +3041,23 @@
     "remove": "Bild entfernen",
     "prev": "Vorheriges Bild",
     "next": "Nächstes Bild",
-    "counter": "{{i}} von {{n}}"
+    "counter": "{{i}} von {{n}}",
+    "openFile": "Datei öffnen: {{name}}",
+    "addImage": "Bild anhängen",
+    "addFile": "Bild oder Datei anhängen",
+    "capture": "Screenshot dieser Seite aufnehmen",
+    "annotate": "Markieren",
+    "annotateTools": "Werkzeuge zum Markieren",
+    "annotateSave": "Markierung übernehmen",
+    "annotateCancel": "Abbrechen",
+    "annotateFailed": "Markierung konnte nicht gespeichert werden.",
+    "colorPick": "Farbe wählen",
+    "undo": "Letzte Markierung zurücknehmen",
+    "tool": {
+      "rect": "Rechteck",
+      "arrow": "Pfeil",
+      "pen": "Freihand"
+    }
   },
   "appMenu": {
     "trigger": "{{app}} herunterladen",
@@ -2840,7 +3075,8 @@
   },
   "appPanel": {
     "version": "Aktuell veröffentlichte Version",
-    "details": "Details, Hinweise und Release-Notes anzeigen"
+    "details": "Details, Hinweise und Release-Notes anzeigen",
+    "desktopOnly": "Das ist eine Windows-Desktop-Anwendung. Zum Herunterladen diese Seite am PC öffnen."
   },
   "friends": {
     "title": "Freunde",
@@ -2856,11 +3092,13 @@
     },
     "incoming": {
       "title": "Eingegangene Anfragen",
-      "empty": "Keine offenen Anfragen."
+      "empty": "Keine offenen Anfragen.",
+      "expiryHint": "Unbeantwortete Anfragen verfallen nach sieben Tagen."
     },
     "outgoing": {
       "title": "Gesendete Anfragen",
-      "empty": "Du hast keine Anfrage offen."
+      "empty": "Du hast keine Anfrage offen.",
+      "expiryHint": "Deine Anfragen verfallen nach sieben Tagen ohne Antwort."
     },
     "list": {
       "title": "Deine Freunde",
@@ -2919,7 +3157,78 @@
       "reasonTooLong": "Die Beschreibung ist zu lang.",
       "noRelation": "Du kannst nur Konten melden, mit denen du zu tun hattest.",
       "reportLimit": "Du hast zu viele offene Meldungen. Warte, bis sie geprüft wurden.",
-      "notApproved": "Dein Konto ist noch nicht freigeschaltet."
+      "notApproved": "Dein Konto ist noch nicht freigeschaltet.",
+      "requestExpired": "Diese Anfrage ist verfallen.",
+      "accountSuspended": "Dein Konto ist gesperrt."
+    },
+    "expiry": {
+      "left": "noch {{days}} Tage",
+      "today": "verfällt heute"
+    }
+  },
+  "moderation": {
+    "warning": {
+      "title": "Verwarnung durch die Administration",
+      "acknowledge": "Verstanden"
+    }
+  },
+  "share": {
+    "title": "Loadout teilen",
+    "hint": "Teile dieses Loadout mit Freunden oder über einen Link.",
+    "loading": "Wird geladen …",
+    "revoke": "Freigabe aufheben",
+    "friends": {
+      "title": "Mit Freunden",
+      "empty": "Noch mit niemandem geteilt.",
+      "pick": "Freund auswählen …",
+      "share": "Teilen",
+      "noFriends": "Du hast noch keine Freunde hinzugefügt.",
+      "allShared": "Alle deine Freunde haben dieses Loadout bereits."
+    },
+    "link": {
+      "title": "Öffentlicher Link",
+      "warning": "Jede Person mit diesem Link kann das Loadout ansehen — auch ohne Konto. Der Link zeigt Name, Rolle und Ausrüstung, sonst nichts.",
+      "create": "Link erzeugen",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "open": "Öffnen",
+      "revoke": "Link deaktivieren",
+      "url": "Freigabe-Link",
+      "since": "Aktiv seit {{date}}"
+    },
+    "sharedWithMe": {
+      "title": "Von Freunden geteilt",
+      "hint": "Loadouts, die Freunde mit dir geteilt haben. Nur zum Ansehen.",
+      "show": "Ausrüstung zeigen",
+      "hide": "Ausblenden"
+    },
+    "view": {
+      "eyebrow": "Geteiltes Loadout",
+      "loading": "Wird geladen …",
+      "by": "von {{name}}",
+      "updated": "zuletzt geändert {{date}}",
+      "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
+      "footnote": "Nur zum Ansehen. Änderungen kann ausschließlich der Besitzer vornehmen.",
+      "aboutCta": "Was ist SC Companion?",
+      "unavailable": {
+        "title": "Dieses Loadout ist nicht verfügbar",
+        "body": "Der Link ist ungültig oder wurde deaktiviert."
+      }
+    },
+    "flash": {
+      "shared": "Loadout geteilt.",
+      "alreadyShared": "Dieser Freund hat das Loadout bereits.",
+      "linkCreated": "Link erzeugt.",
+      "revoked": "Freigabe aufgehoben."
+    },
+    "error": {
+      "notFriends": "Ihr seid keine Freunde (mehr).",
+      "loadoutNotFound": "Loadout nicht gefunden.",
+      "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
+      "suspended": "Dein Konto ist gesperrt.",
+      "invalidTarget": "Ungültige Auswahl.",
+      "notApproved": "Dein Konto ist nicht freigeschaltet.",
+      "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
     }
   }
 }

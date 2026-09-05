@@ -139,11 +139,10 @@ function fixtureTables() {
 describe('AdminFeedbackComponent — the stream', () => {
   it('sorts topics into the three bands by whose turn it is', async () => {
     const { cmp } = await mount(fixtureTables());
-    // Longest wait first: q2 (asked 09:30) before q1 (10:00), then the sign-off
-    // (shipped 11:00), then the release (topic landed 11:00, same instant → stable).
-    expect(cmp.yourTurn().map((m) => m.id).slice(0, 2)).toEqual(['q2', 'q1']);
-    expect(cmp.yourTurn().map((m) => m.id)).toContain('r1');
-    expect(cmp.yourTurn().map((m) => m.id)).toContain('u1');
+    // The release first (feedback 89925995: a user topic nobody released is
+    // blocked outright), then longest wait first: q2 (asked 09:30) before q1
+    // (10:00), then the sign-off (shipped 11:00).
+    expect(cmp.yourTurn().map((m) => m.id)).toEqual(['u1', 'q2', 'q1', 'r1']);
     expect(cmp.running().map((m) => m.id).sort()).toEqual(['a1', 'o1']);
     // The feed holds the signed-off ship AND the one still waiting for its ✓.
     const feedIds = cmp.deliveredDays().flatMap((d) => d.items.map((m) => m.id));
@@ -156,14 +155,26 @@ describe('AdminFeedbackComponent — the stream', () => {
     const cards = Array.from(el.querySelectorAll('.band.yours .card'));
     expect(cards.length).toBe(4);
     expect(cards[0].classList).toContain('lead');
-    expect(cards[0].querySelector('.card-inline sc-feedback-composer')).not.toBeNull();
-    expect(cards[0].querySelector('.card-inline .msg.system .ai')).not.toBeNull();
+    // The lead is the release: the topic's text and the one red "Freigeben".
+    expect(cards[0].querySelector('.card-inline .msg-body')).not.toBeNull();
+    expect(cards[0].querySelector('.card-inline .sc-btn.hot')).not.toBeNull();
+    expect(cards[0].querySelector('.card-inline sc-feedback-composer')).toBeNull();
     expect(cards[1].querySelector('.card-inline')).toBeNull();
+  });
+
+  it('a Rückfrage as the lead card carries the routine’s question and the answer box inline', async () => {
+    const tables = fixtureTables();
+    tables['admin_feedback'] = (tables['admin_feedback'] as FeedbackRow[]).filter((r) => r.id !== 'u1');
+    const { el } = await mount(tables);
+    const lead = el.querySelector('.band.yours .card.lead')!;
+    expect(lead.id).toBe('fb-card-q2');
+    expect(lead.querySelector('.card-inline sc-feedback-composer')).not.toBeNull();
+    expect(lead.querySelector('.card-inline .msg.system .ai')).not.toBeNull();
   });
 
   it('opens a topic as the full-panel sheet, keeps it across a poll, and closes it on Escape before the shell', async () => {
     const { fixture, cmp, el } = await mount(fixtureTables());
-    (el.querySelectorAll('.band.yours .card-head')[1] as HTMLButtonElement).click();
+    (el.querySelectorAll('.band.yours .card-head')[2] as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(cmp.openRow()?.id).toBe('q1');
     expect(el.querySelector('.sheet.topic')).not.toBeNull();
@@ -257,7 +268,9 @@ describe('AdminFeedbackComponent — the stream', () => {
   });
 
   it('colours avatars by role and labels a routine message "AI" without a circle', async () => {
-    const { cmp, el } = await mount(fixtureTables());
+    const tables = fixtureTables();
+    tables['admin_feedback'] = (tables['admin_feedback'] as FeedbackRow[]).filter((r) => r.id !== 'u1');
+    const { cmp, el } = await mount(tables);
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'admin' })).toBe('adm');
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'collaborator' })).toBe('col');
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'viewer' })).toBe('usr');
