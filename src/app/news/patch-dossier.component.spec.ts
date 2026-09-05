@@ -245,6 +245,30 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(charts!.querySelector('sc-patch-cadence')).not.toBeNull();
   });
 
+  it('the panel keeps empty room below the last section, so any section can reach the top', async () => {
+    await render('4.10');
+    const tail = root().querySelector('.tail') as HTMLElement | null;
+    expect(tail).not.toBeNull();
+    expect(tail!.getBoundingClientRect().height).toBeGreaterThan(200);
+  });
+
+  it('picking a section from the table of contents lights it up', async () => {
+    await render('4.10');
+    const link = root().querySelectorAll('.toc-link')[2] as HTMLAnchorElement;
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+    fixture.detectChanges();
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    fixture.detectChanges();
+    expect(root().querySelector('#pd-next')!.classList.contains('flash')).toBeTrue();
+  });
+
+  it('the preparation section is there even without an "Important Build Info" block', async () => {
+    await render('4.8');
+    const prep = root().querySelector('#pd-prep');
+    expect(prep).withContext('the question is always answerable').not.toBeNull();
+    expect(prep!.textContent).toContain('Gilt für jeden Patch');
+  });
+
   it('a superseded line is a finished stretch ending on its successor, with no usual marker and no today', async () => {
     await render('4.9');
     expect(text('.hero .status')).toBe('Abgelöst');

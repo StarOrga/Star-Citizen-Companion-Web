@@ -1759,9 +1759,7 @@
         "clear": "Clear search",
         "summary": "{{notes}} notes across {{lines}} patch lines",
         "scope": "Searches every title and the bullet points of {{loaded}} loaded notes",
-        "boardSummary": "{{cards}} patches with hits · bullet points of {{loaded}} loaded notes searched",
-        "noHits": "No patch matches the search.",
-        "cardHits": "{{notes}} notes · {{lines}} bullet points · {{roadmap}} roadmap items"
+        "noHits": "Nothing found — not under another spelling either."
       },
       "roadmap": {
         "title": "What's in it",
@@ -1783,7 +1781,8 @@
           "committed": "Committed",
           "tentative": "Tentative",
           "unknown": "Open"
-        }
+        },
+        "openCard": "Open roadmap entry \"{{name}}\" on RSI"
       },
       "detail": {
         "loading": "Loading patch contents …",
@@ -1801,12 +1800,11 @@
       },
       "stability": {
         "title": "Stability",
-        "chipAria": "Stability of patch {{version}}: {{level}}",
         "earlyShort": "early",
         "early": "Day {{day}} of {{threshold}} – verdict still provisional",
         "insufficient": "Not enough data for a verdict yet.",
         "historical": "Final state – no daily timeline, this patch ran before daily sampling started.",
-        "score": "Index {{score}} / 100",
+        "score": "of a 100 % start",
         "component": {
           "community": "Community",
           "service": "Services",
@@ -1827,7 +1825,7 @@
         },
         "timeline": "Since LIVE",
         "timelineAria": "Stability per day since LIVE, {{days}} samples",
-        "dayTitle": "{{date}}: {{level}} ({{score}}), {{velocity}} new replies/day",
+        "dayTitle": "{{date}}: {{score}} % – {{level}}, {{velocity}} new replies/day",
         "hotfixMark": "Hotfix {{build}} on {{date}}",
         "hotfixes": "{{count}} hotfixes",
         "tickets": {
@@ -1841,10 +1839,13 @@
         "source": "Sources: Spectrum comments, RSI Status, CIG Known Issues. No Issue Council counts (login required).",
         "history": {
           "title": "Stability per patch",
-          "hint": "Final state per LIVE patch; the current one is hatched while early",
+          "hint": "Higher is calmer. End state per LIVE patch; the current one is hatched while it is early",
           "colAria": "Patch {{version}}: {{level}}",
-          "noData": "no verdict"
-        }
+          "noData": "no verdict",
+          "colAriaScored": "Patch {{version}}: {{percent}} % stable – {{level}}"
+        },
+        "badgeAria": "Stability of patch {{version}}: {{percent}} % – {{level}}",
+        "deductions": "Every patch starts at 100 %; the bars are what was taken off."
       },
       "status": {
         "next": "Next",
@@ -1891,7 +1892,16 @@
         "source": "per the Spectrum post (\"Important Build Info\")",
         "known": "Known issues",
         "focus": "Testing focus",
-        "wipe": "Wipe"
+        "wipe": "Wipe",
+        "noBuildInfo": "RSI published no \"Important Build Info\" for this build.",
+        "generalTitle": "True for every patch",
+        "generalItem": {
+          "launcher": "Open the launcher and let it finish downloading — the version it shows has to match the patch.",
+          "shaders": "Clear the shader folder (%LOCALAPPDATA%\\\\Star Citizen\\\\) if graphics flicker or the frame rate drops after the patch.",
+          "verify": "Crashing right after a patch: run \"Verify\" in the launcher before reporting a bug.",
+          "repair": "Character stuck or gear missing: run Character Repair in your RSI account, then log in again.",
+          "known": "Skim the known issues before reporting — most fresh bugs are already listed there."
+        }
       },
       "contents": {
         "inNotes": "In the release notes",
@@ -1982,6 +1992,13 @@
           "hotfixOne": "1 hotfix · {{date}}",
           "hotfixMany": "{{n}} hotfixes · last {{date}}"
         }
+      },
+      "find": {
+        "summary": "{{hits}} hits across {{patches}} patches · {{loaded}} of {{total}} notes searched",
+        "groupCount": "{{roadmap}} roadmap entries · {{notes}} bullet points",
+        "moreInDossier": "{{n}} more hits in the dossier",
+        "loadRest": "Load and search the remaining {{n}} notes",
+        "loading": "Loading notes …"
       }
     },
     "detail": {

@@ -3,10 +3,18 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { StabilityVerdict } from './patch-stability';
 
 /**
- * All-time comparison: one column per LIVE line, height = score, colour =
- * level, the newest line hatched while early. A column is a BUTTON because
- * clicking it expands that line on this page (an action), not a navigation.
- * Hidden below two columns — a bar chart of one bar compares nothing.
+ * All-time comparison: one column per LIVE line, height = how much of that
+ * patch's 100 % survived, colour = traffic light, the newest line hatched
+ * while early.
+ *
+ * The height used to be the PENALTY score, which made the tallest bars the
+ * worst patches — "verwirrend, dass hohe Balken schlecht laufen" (owner,
+ * 2026-09-05). Now the chart reads the way every chart reads: taller is
+ * better, and a short red column is a bad patch.
+ *
+ * A column is a BUTTON because clicking it expands that line on this page (an
+ * action), not a navigation. Hidden below two columns — a bar chart of one bar
+ * compares nothing.
  */
 @Component({
   selector: 'sc-stability-history',
@@ -23,9 +31,10 @@ import { StabilityVerdict } from './patch-stability';
         <div class="chart">
           @for (v of shown(); track v.line) {
             <button type="button" class="col" [class.early]="v.early" [class.none]="v.level === null"
-                    [attr.data-level]="v.level ?? 0" [attr.aria-label]="colAria(v)" [attr.title]="colAria(v)"
+                    [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [attr.title]="colAria(v)"
                     (click)="showLine.emit(v.line)">
-              <span class="col-bar" [style.height.%]="v.level === null ? 8 : pct(v.score)"></span>
+              <span class="col-bar" [style.height.%]="v.stability ?? 8"></span>
+              <span class="col-val">{{ v.stability === null ? '–' : v.stability }}</span>
               <span class="col-label">{{ v.line }}</span>
             </button>
           }
@@ -47,22 +56,20 @@ import { StabilityVerdict } from './patch-stability';
     }
     .col:hover .col-bar { filter: brightness(1.15); }
     .col:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
-    .col-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--level, var(--sc-fg-2)); transition: height 0.3s ease; }
-    .col.none .col-bar { background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); }
+    .col-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--level); transition: height 0.3s ease; }
     .col.early .col-bar { background: repeating-linear-gradient(135deg, var(--level) 0 2px, transparent 2px 5px); outline: 1px dashed color-mix(in srgb, var(--level) 70%, transparent); }
+    .col-val { font-size: max(0.6rem, var(--sc-fs-floor)); text-align: center; color: var(--level); font-weight: 700; font-variant-numeric: tabular-nums; }
     .col-label { font-size: max(0.62rem, var(--sc-fs-floor)); text-align: center; white-space: nowrap; }
-    /* A column with no verdict carries data-level="0", which none of the rules
-       below match — so it has no --level. The .early hatch above references
-       var(--level) with no fallback and wins on source order, which would make
-       a brand-new patch (early AND not yet enough data — the most-looked-at
-       column there is) render as an invisible bar. A muted level keeps it
-       hatched and legible instead. */
-    [data-level='0'] { --level: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); }
-    [data-level='1'] { --level: var(--sc-success); }
-    [data-level='2'] { --level: var(--sc-accent); }
-    [data-level='3'] { --level: var(--sc-warning); }
-    [data-level='4'] { --level: var(--sc-warn); }
-    [data-level='5'] { --level: var(--sc-danger); }
+    /* Traffic light, not a five-step ramp: the two middle levels used to be
+       two ambers nobody could tell apart. A column without a verdict keeps a
+       muted grey — the .early hatch references var(--level) with no fallback
+       and wins on source order, so a brand-new patch (early AND not yet enough
+       data, the most-looked-at column there is) would otherwise render as an
+       invisible bar. */
+    [data-tone='none'] { --level: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); }
+    [data-tone='green'] { --level: var(--sc-success); }
+    [data-tone='amber'] { --level: var(--sc-warning); }
+    [data-tone='red'] { --level: var(--sc-danger); }
   `],
 })
 export class StabilityHistoryComponent {
@@ -78,14 +85,17 @@ export class StabilityHistoryComponent {
     return all.filter((v, i) => v.level !== null || i === all.length - 1);
   });
 
-  pct(score: number | null): number {
-    return score === null ? 0 : Math.round(Math.min(1, Math.max(0, score)) * 100);
-  }
-
   colAria(v: StabilityVerdict): string {
-    const level = v.level === null
-      ? this.t.instant('news.patch.stability.history.noData')
-      : this.t.instant(`news.patch.stability.level.${v.level}`);
-    return this.t.instant('news.patch.stability.history.colAria', { version: v.line, level });
+    if (v.level === null) {
+      return this.t.instant('news.patch.stability.history.colAria', {
+        version: v.line,
+        level: this.t.instant('news.patch.stability.history.noData'),
+      });
+    }
+    return this.t.instant('news.patch.stability.history.colAriaScored', {
+      version: v.line,
+      percent: v.stability,
+      level: this.t.instant(`news.patch.stability.level.${v.level}`),
+    });
   }
 }

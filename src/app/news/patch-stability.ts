@@ -15,6 +15,14 @@
  * The WORST component dominates: a patch with a week of degraded servers is
  * unstable no matter how quiet the forum is, and vice versa. Hotfixes are
  * event markers only — a count can only go up, so it cannot say "better now".
+ *
+ * READING DIRECTION (owner, 2026-09-05): every component above measures BAD
+ * NEWS, so a high number used to mean a rough patch — and a chart whose tall
+ * bars are the broken patches reads backwards to everyone who did not build
+ * it. The stored numbers keep their meaning (`score` is the penalty), but the
+ * UI-facing figure is `stability = 1 − score`: **every patch starts at 100 %
+ * and only bad news subtracts.** Colour follows a traffic light rather than a
+ * five-step ramp, so the verdict lands before the label is read.
  */
 
 export type StabilityLevel = 1 | 2 | 3 | 4 | 5;
@@ -97,7 +105,12 @@ export interface StabilityVerdict {
   daysLive: number;
   /** Null when `insufficient`. */
   level: StabilityLevel | null;
+  /** The PENALTY, 0…1 — internal. Everything user-facing reads `stability`. */
   score: number | null;
+  /** 100 = nothing went wrong; bad news subtracts. Null when `insufficient`. */
+  stability: number | null;
+  /** Traffic light for `level`. Null when `insufficient`. */
+  tone: StabilityTone | null;
   components: StabilityComponents;
   early: boolean;
   /** Fewer than MIN_SAMPLES samples or MIN_REPLIES replies — no verdict. */
@@ -112,7 +125,15 @@ export interface StabilityVerdict {
 
 /** Below this many live days the verdict is provisional (hatched in the UI). */
 export const EARLY_DAYS = 14;
-export const MIN_SAMPLES = 2;
+/**
+ * One sample is enough for a verdict. It used to be two, because the daily
+ * velocity is a difference between consecutive samples — but the FIRST sample
+ * already carries a velocity (replies over the days since LIVE, the same
+ * average the historical path uses), so demanding a second only meant a fresh
+ * patch showed nothing on the day people look hardest. `early` already says
+ * the reading is provisional.
+ */
+export const MIN_SAMPLES = 1;
 export const MIN_REPLIES = 10;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -161,6 +182,31 @@ export function levelOf(score: number): StabilityLevel {
   return level as StabilityLevel;
 }
 
+/**
+ * The traffic light. Five levels are the right granularity for a sentence
+ * ("Leichte Turbulenzen") and the wrong one for a colour: nobody reads five
+ * hues as a scale at a glance, and the two middle ones were indistinguishable
+ * in the chart. Three states are a colour people already know.
+ */
+export type StabilityTone = 'green' | 'amber' | 'red';
+
+export function toneOf(level: StabilityLevel): StabilityTone {
+  if (level <= 2) return 'green';
+  if (level === 3) return 'amber';
+  return 'red';
+}
+
+/**
+ * The number the UI shows: 100 = nothing went wrong, and every piece of bad
+ * news takes percentage points off. Exactly the inverse of the stored penalty
+ * score, rounded once here so a chart bar, a chip and a tooltip can never
+ * print three different roundings of the same patch.
+ */
+export function stabilityPercent(score: number | null): number | null {
+  if (score === null || !Number.isFinite(score)) return null;
+  return Math.round((1 - Math.min(1, Math.max(0, score))) * 100);
+}
+
 export function isEarly(daysLive: number): boolean {
   return daysLive < EARLY_DAYS;
 }
@@ -193,12 +239,70 @@ export interface VerdictContext {
   endAt: string | null;
 }
 
+/** Does the registry carry an end-state for this line at all? */
+function hasEndState(patch: StabilityPatchRow): boolean {
+  return patch.final_replies !== null
+    || patch.final_ticket_share !== null
+    || patch.final_ticket_vote_share !== null
+    || patch.final_outage_min_per_day !== null;
+}
+
+/**
+ * The verdict a line ended on, from the registry's `final_*` numbers.
+ *
+ * This is the right reading for every line that is no longer current — its
+ * threads stopped moving when the next patch shipped, so today's reply count
+ * divided by today's date is not what that patch felt like. Lines that predate
+ * the sampler have nothing else; lines the sampler caught late (4.9: one
+ * sample, taken ten days after 4.10 replaced it) used to fall into the daily
+ * path and come back `insufficient` — a patch with a full end-state showing no
+ * stability at all. Whichever way the data arrived, a superseded line reads its
+ * end-state.
+ */
+function endStateVerdict(
+  patch: StabilityPatchRow,
+  base: { line: string; liveAt: string; daysLive: number; early: boolean },
+): StabilityVerdict {
+  const replies = patch.final_replies ?? 0;
+  const components: StabilityComponents = {
+    community: hasEndState(patch)
+      ? communityScore({
+          velocity: replies / Math.max(1, base.daysLive),
+          ticketShare: patch.final_ticket_share ?? 0,
+          ticketVoteShare: patch.final_ticket_vote_share ?? 0,
+        })
+      : null,
+    service: patch.final_outage_min_per_day === null
+      ? null
+      : serviceScore({ outageMinPerDay: patch.final_outage_min_per_day, openIncident: false }),
+    cig: null,
+  };
+  const score = combineScore(components);
+  const insufficient = score === null || replies < MIN_REPLIES;
+  const level = insufficient ? null : levelOf(score as number);
+  return {
+    ...base,
+    level,
+    score: insufficient ? null : score,
+    stability: insufficient ? null : stabilityPercent(score),
+    tone: level === null ? null : toneOf(level),
+    components,
+    insufficient,
+    historical: true,
+    days: [],
+    tickets: [],
+    kbOpen: null,
+    hotfixes: [],
+  };
+}
+
 /**
  * The whole verdict for one patch line.
  *
- * With daily samples: a day series, the newest day's level, and the early /
- * minimum-data flags. Without samples (patches that predate the sampler): the
- * end-state from the registry's `final_*` numbers, marked `historical`.
+ * The CURRENT line reads its daily samples: a day series, the newest day's
+ * level, and the early / minimum-data flags. Every SUPERSEDED line reads its
+ * end-state (`final_*`), whether or not the sampler ever got a day out of it —
+ * see `endStateVerdict`.
  */
 export function computeVerdict(
   patch: StabilityPatchRow,
@@ -215,36 +319,8 @@ export function computeVerdict(
     early: ctx.endAt === null && isEarly(daysBetween(patch.live_at, ctx.now)),
   };
 
-  if (samples.length === 0) {
-    const replies = patch.final_replies ?? 0;
-    const components: StabilityComponents = {
-      community: patch.final_ticket_share === null && patch.final_ticket_vote_share === null && patch.final_replies === null
-        ? null
-        : communityScore({
-            velocity: replies / Math.max(1, daysLive),
-            ticketShare: patch.final_ticket_share ?? 0,
-            ticketVoteShare: patch.final_ticket_vote_share ?? 0,
-          }),
-      service: patch.final_outage_min_per_day === null
-        ? null
-        : serviceScore({ outageMinPerDay: patch.final_outage_min_per_day, openIncident: false }),
-      cig: null,
-    };
-    const score = combineScore(components);
-    const insufficient = score === null || replies < MIN_REPLIES;
-    return {
-      ...base,
-      level: insufficient ? null : levelOf(score as number),
-      score: insufficient ? null : score,
-      components,
-      insufficient,
-      historical: true,
-      days: [],
-      tickets: [],
-      kbOpen: null,
-      hotfixes: [],
-    };
-  }
+  const superseded = ctx.endAt !== null;
+  if (samples.length === 0 || (superseded && hasEndState(patch))) return endStateVerdict(patch, base);
 
   // Hotfix Central is a living list, so the NEWEST sample carries every event;
   // each day column gets the events dated since the previous sample (the first
@@ -284,6 +360,8 @@ export function computeVerdict(
     ...base,
     level: insufficient ? null : last.level,
     score: insufficient ? null : last.score,
+    stability: insufficient ? null : stabilityPercent(last.score),
+    tone: insufficient ? null : toneOf(last.level),
     components: last.components,
     insufficient,
     historical: false,
