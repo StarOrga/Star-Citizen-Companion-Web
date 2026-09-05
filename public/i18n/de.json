@@ -1913,6 +1913,7 @@
         "sentenceHistory": "Alpha {{line}} wurde am {{date}} nach {{days}} Tagen von Alpha {{next}} abgelöst — üblich sind {{median}} Tage.",
         "sentencePlanned": "Alpha {{line}} laut Takt voraussichtlich um den {{date}} live — {{when}}.",
         "disclaimer": "Median-Schätzungen aus dem Patch-Takt, keine offiziellen Termine.",
+        "markers": "Punkte auf der Achse: voriger Live-Patch, PTU-Start, üblicher Testabschluss, Live, Hotfixes, heute und der übliche nächste Termin. Beschriftet sind Start, Live und Ziel — die übrigen Marker nennt der Tooltip.",
         "planned": {
           "sentence": "Alpha {{line}} ist für {{quarter}} geplant.",
           "unknown": "Für Alpha {{line}} steht noch kein Termin.",
