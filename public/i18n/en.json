@@ -1913,6 +1913,7 @@
         "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}} after {{days}} days — the usual is {{median}} days.",
         "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
         "disclaimer": "Median estimates from the patch cadence, not official dates.",
+        "markers": "Markers on the axis: previous live patch, PTU start, usual end of testing, Live, hotfixes, today and the usual next date. Start, Live and the target are labelled — the tooltip names the rest.",
         "planned": {
           "sentence": "Alpha {{line}} is planned for {{quarter}}.",
           "unknown": "No date for Alpha {{line}} yet.",
