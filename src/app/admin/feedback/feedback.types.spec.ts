@@ -1233,10 +1233,11 @@ describe('turnOf / adminAsk (whose move is it)', () => {
     expect(adminAsk(r, replies)).toBeNull();
   });
 
-  it('a pending sign-off is the admin\'s turn — a review', () => {
+  it('a pending sign-off is the admin\'s turn — a review, even on a topic never released', () => {
     const r = row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: null });
     expect(turnOf(r)).toBe('admin');
     expect(adminAsk(r)).toBe('review');
+    expect(adminAsk(row('u', 'shipped', T0, { shipped_at: T1, reviewed_at: null, source: 'user', triaged: false }))).toBe('review');
     const issue = row('b', 'issue_created', T0, { reviewed_at: null });
     expect(turnOf(issue)).toBe('admin');
     expect(adminAsk(issue)).toBe('review');
@@ -1282,7 +1283,7 @@ describe('flightPosition (place on the path)', () => {
 
   it('an unreleased user topic sits in the inbox', () => {
     expect(flightPosition(row('a', 'open', T0, { source: 'user', triaged: false })))
-      .toEqual({ station: 'inbox', branch: null, loop: false, queued: false });
+      .toEqual({ station: 'inbox', branch: null, loop: false, queued: false, answered: false });
   });
 
   it('everything the routine or the admin still works on is "work"', () => {
@@ -1299,16 +1300,16 @@ describe('flightPosition (place on the path)', () => {
 
   it('a delivered result waits at "delivered" until it is signed off', () => {
     expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: null })))
-      .toEqual({ station: 'delivered', branch: null, loop: false, queued: false });
+      .toEqual({ station: 'delivered', branch: null, loop: false, queued: false, answered: false });
     expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: null })))
-      .toEqual({ station: 'delivered', branch: 'issue', loop: false, queued: false });
+      .toEqual({ station: 'delivered', branch: 'issue', loop: false, queued: false, answered: false });
   });
 
   it('a signed-off result is "accepted", an issue keeps its branch marker', () => {
     expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 })))
-      .toEqual({ station: 'accepted', branch: null, loop: false, queued: false });
+      .toEqual({ station: 'accepted', branch: null, loop: false, queued: false, answered: false });
     expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: T2 })))
-      .toEqual({ station: 'accepted', branch: 'issue', loop: false, queued: false });
+      .toEqual({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false });
   });
 
   it('declined and rejected leave the path from "work"', () => {
@@ -1317,25 +1318,34 @@ describe('flightPosition (place on the path)', () => {
     expect(flightPosition(row('b', 'rejected', T0)).branch).toBe('rejected');
   });
 
+  it('an answered Rückfrage is queued AND marked answered', () => {
+    const r = row('a', 'needs_input', T0);
+    const pos = flightPosition(r, [msg('m1', 'a', true, T1), msg('m2', 'a', false, T2)]);
+    expect(pos.queued).toBeTrue();
+    expect(pos.answered).toBeTrue();
+    expect(stationLabelKey(pos)).toBe('adminFeedback.station.answered');
+    expect(flightPosition(row('b', 'open', T0)).answered).toBeFalse();
+  });
+
   it('a post-ship continuation loops back into "work"', () => {
     const r = row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T1 });
     expect(flightPosition(r, [msg('m1', 'a', false, T2)]))
-      .toEqual({ station: 'work', branch: null, loop: true, queued: true });
+      .toEqual({ station: 'work', branch: null, loop: true, queued: true, answered: false });
   });
 
   it('labels and indexes follow the position', () => {
     expect(stationIndex('inbox')).toBe(0);
     expect(stationIndex('accepted')).toBe(3);
-    expect(stationLabelKey({ station: 'work', branch: null, loop: false, queued: false })).toBe('adminFeedback.station.work');
-    expect(stationLabelKey({ station: 'work', branch: null, loop: true, queued: true })).toBe('adminFeedback.station.loop');
-    expect(stationLabelKey({ station: 'accepted', branch: 'issue', loop: false, queued: false })).toBe('adminFeedback.station.issue');
+    expect(stationLabelKey({ station: 'work', branch: null, loop: false, queued: false, answered: false })).toBe('adminFeedback.station.work');
+    expect(stationLabelKey({ station: 'work', branch: null, loop: true, queued: true, answered: false })).toBe('adminFeedback.station.loop');
+    expect(stationLabelKey({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false })).toBe('adminFeedback.station.issue');
     expect(turnLabelKey('admin')).toBe('adminFeedback.turn.admin');
   });
 
   it('keeps every one of the eleven old states distinguishable', () => {
     const sig = (r: FeedbackRow, replies?: FeedbackMessage[]) => {
       const p = flightPosition(r, replies);
-      return `${turnOf(r, replies)}/${p.station}/${p.branch}/${p.loop}/${p.queued}/${adminAsk(r, replies)}`;
+      return `${turnOf(r, replies)}/${p.station}/${p.branch}/${p.loop}/${p.queued}/${p.answered}/${adminAsk(r, replies)}`;
     };
     const shippedReviewed = row('s', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 });
     const seen = new Set([
@@ -1353,9 +1363,10 @@ describe('flightPosition (place on the path)', () => {
       sig(row('12', 'open', T0, { source: 'user', triaged: false })),
       sig(shippedReviewed, [msg('m', 's', false, T2)]),
     ]);
-    // 4 (answered Rückfrage) and 1 (open) are both the routine's ToDo by design
-    // (feedback 34c44134) — every other state keeps its own signature.
-    expect(seen.size).toBe(12);
+    // Every one of the thirteen states keeps its own signature — including the
+    // answered Rückfrage (feedback 34c44134), which reads as "beantwortet" next
+    // to an untouched ToDo.
+    expect(seen.size).toBe(13);
   });
 });
 

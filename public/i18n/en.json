@@ -2455,7 +2455,11 @@
       "headlineIssue": "Handed to an issue — please sign off",
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
       "accept": "To the archive — done",
-      "reopen": "Resume the conversation"
+      "reopen": "Resume the conversation",
+      "reopenHint": "Say briefly what is still off — the routine picks the topic back up and reads your answer as the instruction.",
+      "reopenPlaceholder": "What should still change?",
+      "reopenSend": "Send & pick up again",
+      "reopenCancel": "Cancel"
     },
     "sourceFilter": {
       "untriagedHint": "User feedback here is still waiting to be released to the routine."
@@ -2501,7 +2505,8 @@
       "declined": "Not implemented",
       "rejected": "Rejected",
       "loop": "Follow-up",
-      "pathLabel": "Status: {{station}}"
+      "pathLabel": "Status: {{station}}",
+      "answered": "Answered · waiting for the routine"
     },
     "kind": {
       "order": "Instruction",

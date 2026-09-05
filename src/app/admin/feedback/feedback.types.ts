@@ -1433,10 +1433,12 @@ export function turnOf(row: FeedbackRow, replies?: readonly FeedbackMessage[]): 
 export type AdminAsk = 'question' | 'review' | 'release';
 
 export function adminAsk(row: FeedbackRow, replies?: readonly FeedbackMessage[]): AdminAsk | null {
-  if (awaitsTriage(row) && !isArchived(row, replies)) return 'release';
   const bucket = feedbackBucket(row, replies);
-  if (bucket === 'awaiting_admin') return 'question';
+  // A result in the sign-off gate is a review first — the old board offered
+  // the release button only outside the gate, and so does the stream.
   if (bucket === 'review') return 'review';
+  if (awaitsTriage(row) && !isArchived(row, replies)) return 'release';
+  if (bucket === 'awaiting_admin') return 'question';
   return null;
 }
 
@@ -1463,6 +1465,12 @@ export interface FlightPosition {
    * would lose, and the old board's ToDo / In Arbeit pills kept.
    */
   queued: boolean;
+  /**
+   * Queued because the admin answered a Rückfrage and the routine has not
+   * picked the answer up yet — the old "✓ Beantwortet" marker (feedback
+   * 34c44134): the admin's part is done, the topic only looks like a ToDo.
+   */
+  answered: boolean;
 }
 
 /**
@@ -1473,31 +1481,30 @@ export interface FlightPosition {
  */
 export function flightPosition(row: FeedbackRow, replies?: readonly FeedbackMessage[]): FlightPosition {
   const bucket = feedbackBucket(row, replies);
-  if (awaitsTriage(row) && bucket === 'todo') return { station: 'inbox', branch: null, loop: false, queued: false };
+  const at = (station: FeedbackStation, branch: FeedbackBranch, extra: Partial<FlightPosition> = {}): FlightPosition =>
+    ({ station, branch, loop: false, queued: false, answered: false, ...extra });
+  if (awaitsTriage(row) && bucket === 'todo') return at('inbox', null);
   switch (bucket) {
     case 'declined':
-      return { station: 'work', branch: 'declined', loop: false, queued: false };
+      return at('work', 'declined');
     case 'rejected':
-      return { station: 'work', branch: 'rejected', loop: false, queued: false };
+      return at('work', 'rejected');
     case 'review':
-      return {
-        station: 'delivered',
-        branch: row.status === 'issue_created' ? 'issue' : null,
-        loop: false,
-        queued: false,
-      };
+      return at('delivered', row.status === 'issue_created' ? 'issue' : null);
     case 'shipped':
-      return { station: 'accepted', branch: null, loop: false, queued: false };
+      return at('accepted', null);
     case 'issue_created':
-      return { station: 'accepted', branch: 'issue', loop: false, queued: false };
-    case 'todo': {
+      return at('accepted', 'issue');
+    case 'todo':
       // The routine's queue: an untouched topic, an answered Rückfrage, or a
       // post-ship continuation waiting to be picked up again.
-      const loop = isContinuedAfterShip(row, replies);
-      return { station: 'work', branch: null, loop, queued: true };
-    }
+      return at('work', null, {
+        queued: true,
+        loop: isContinuedAfterShip(row, replies),
+        answered: row.status === 'needs_input',
+      });
     default:
-      return { station: 'work', branch: null, loop: false, queued: false };
+      return at('work', null);
   }
 }
 
@@ -1515,6 +1522,7 @@ export function turnLabelKey(turn: FeedbackTurn): string {
 export function stationLabelKey(pos: FlightPosition): string {
   if (pos.branch) return `adminFeedback.station.${pos.branch}`;
   if (pos.loop) return 'adminFeedback.station.loop';
+  if (pos.answered) return 'adminFeedback.station.answered';
   if (pos.queued) return 'adminFeedback.station.queued';
   return `adminFeedback.station.${pos.station}`;
 }
@@ -1660,7 +1668,7 @@ export function parseAnswerOptions(body: string): AnswerOptions | null {
 // ---- Long-message fold ------------------------------------------------------
 
 /** Rough characters per rendered line in the docked panel — a fold heuristic, not a layout. */
-const CHARS_PER_LINE = 72;
+const CHARS_PER_LINE = 56;
 
 /**
  * True when a sent message would take more than `maxLines` lines and should

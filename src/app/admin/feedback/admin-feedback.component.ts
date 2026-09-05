@@ -175,7 +175,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               autocomplete="off"
               [value]="searchQuery()"
               (input)="setSearch($any($event.target).value)"
-              (keydown.escape)="clearSearch(); searchInput.blur()"
+              (keydown.escape)="clearSearch(); searchInput.blur(); $event.stopPropagation()"
               [attr.placeholder]="'adminFeedback.search.placeholder' | translate"
               [attr.aria-label]="'adminFeedback.search.label' | translate" />
             @if (searchQuery().length > 0) {
@@ -233,7 +233,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('admin')"
                 [attr.aria-expanded]="!bandCollapsed('admin')"
-                [attr.aria-label]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
+                [attr.title]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.yourTurn' | translate }}</span>
                 <span class="bh-count" [class.hot]="yourTurn().length > 0">{{ yourTurn().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('admin')" aria-hidden="true">▸</span>
@@ -256,7 +256,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('routine')"
                 [attr.aria-expanded]="!bandCollapsed('routine')"
-                [attr.aria-label]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
+                [attr.title]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.running' | translate }}</span>
                 <span class="bh-count">{{ running().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('routine')" aria-hidden="true">▸</span>
@@ -281,7 +281,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('nobody')"
                 [attr.aria-expanded]="!bandCollapsed('nobody')"
-                [attr.aria-label]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
+                [attr.title]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.delivered' | translate }}</span>
                 <span class="bh-count">{{ deliveredCount() }}</span>
                 @if (newDeliveredCount() > 0) {
@@ -301,7 +301,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <span class="dh-count">{{ d.items.length }}</span>
                   </div>
                   @for (m of d.items; track m.id) {
-                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false }"></ng-container>
+                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false, feed: true }"></ng-container>
                   }
                 }
                 @if (hiddenDeliveredDays() > 0) {
@@ -358,7 +358,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <!-- ONE ROW OF THE STREAM. Head = avatar · #N title · flight path +
            baton words · area · time. The lead card (first of "Du bist dran")
            carries its action inline; every card opens the full-panel topic. -->
-      <ng-template #row let-m let-lead="lead">
+      <ng-template #row let-m let-lead="lead" let-feed="feed">
         @let turn = turnOf(m);
         @let pos = positionOf(m);
         <article
@@ -366,12 +366,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           [class.lead]="lead"
           [class.done]="turn === 'nobody'"
           [class.is-new]="isNew(m)"
-          [id]="cardDomId(m.id)">
+          [id]="feed ? cardDomId(m.id) + '-feed' : cardDomId(m.id)">
           <button
             type="button"
             class="card-head"
             (click)="openTopic(m.id)"
-            [attr.aria-label]="'adminFeedback.stream.openTopic' | translate">
+            [attr.title]="'adminFeedback.stream.openTopic' | translate">
             <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: m.author, self: m.author_id === selfId() }"></ng-container>
             <span class="ch-body">
               <span class="ch-title-line">
@@ -391,9 +391,14 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </span>
                 @if (fromUser(m)) {
                   <span class="kind user">{{ 'adminFeedback.kind.userFeedback' | translate }}</span>
+                } @else {
+                  <span class="kind">{{ 'adminFeedback.kind.order' | translate }}</span>
                 }
                 @if (areaOf(m); as a) {
                   <span class="chip area">{{ areaLabelKey(a) | translate }}</span>
+                }
+                @if (issueRequested(m)) {
+                  <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span>
                 }
                 @if (threadOnlyHit(m)) {
                   <span class="chip">{{ 'adminFeedback.search.inThread' | translate }}</span>
@@ -415,10 +420,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           <!-- Delivered rows carry their two links right on the card: go and
                look at it in the app, and the PR / issue behind it. A shipped
                topic still waiting for its sign-off gets the ✓ right here. -->
-          @if (delivered(m) && !lead) {
+          @if (feed) {
             <div class="card-links">
               @if (inReview(m)) {
-                <button class="sc-btn micro hot" (click)="acceptReview(m)" [disabled]="busy()">
+                <button class="sc-btn micro" (click)="acceptReview(m)" [disabled]="busy()">
                   ✓ {{ 'adminFeedback.review.accept' | translate }}
                 </button>
               }
@@ -452,15 +457,25 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
                   <sc-feedback-composer
                     [compact]="true"
-                    [draftScope]="threadScope(m.id)"
+                    [draftScope]="leadScope(m.id)"
                     [busy]="busy()"
                     [primaryHot]="true"
                     placeholder="adminFeedback.thread.replyPlaceholder"
                     sendLabel="adminFeedback.thread.reply"
                     [onSubmit]="replySubmitFor(m.id)" />
+                  <div class="inline-actions">
+                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                      {{ 'adminFeedback.stream.openTopic' | translate }}
+                    </button>
+                  </div>
                 }
                 @case ('review') {
-                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true }"></ng-container>
+                  <div class="inline-actions">
+                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+                      {{ 'adminFeedback.stream.openTopic' | translate }}
+                    </button>
+                  </div>
                 }
                 @case ('release') {
                   @let body = render(m.body);
@@ -487,7 +502,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <!-- Role-coloured avatar: admin red (elevated access), collaborator light
            blue, user grey-blue. Initials, never a photo. -->
       <ng-template #avatar let-a let-self="self">
-        <span class="av" [class]="'av ' + toneOf(a)" [attr.title]="roleTitle(a)" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
+        <span class="av" role="img" [class]="'av ' + toneOf(a)" [attr.title]="roleTitle(a)" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
       </ng-template>
 
       <!-- The flight path: four stations, filled up to the current one; a
@@ -496,6 +511,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <ng-template #path let-pos>
         <span
           class="fp"
+          role="img"
           [class.loop]="pos.loop"
           [class]="'fp s' + stationIndex(pos.station) + (pos.branch ? ' b-' + pos.branch : '') + (pos.loop ? ' loop' : '')"
           [attr.aria-label]="'adminFeedback.station.pathLabel' | translate: { station: (stationLabelKey(pos) | translate) }">
@@ -508,7 +524,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
            replies carry the plain "AI" label and no avatar (round-2 feedback);
            humans carry their role avatar. Longer than three lines folds. -->
       <ng-template #message let-msg let-kind="kind">
-        @let rendered = render(msg.body);
+        @let rendered = render(kind === 'system' ? questionText(msg.body) : msg.body);
         <div
           class="msg"
           [class.system]="kind === 'system'"
@@ -546,7 +562,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
         @if (answerOptionsFor(m); as ao) {
           <div class="answer-options" role="group" [attr.aria-label]="'adminFeedback.sheet.options' | translate">
             @for (o of ao.options; track o) {
-              <button type="button" class="sc-btn micro option" (click)="answerWithOption(m, o)" [disabled]="busy()">{{ o }}</button>
+              <button type="button" class="sc-btn micro option" (click)="answerWithOption(m, o)" [disabled]="busy() || answering()">{{ o }}</button>
             }
           </div>
         }
@@ -554,7 +570,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- REVIEW GATE — the work is done, the topic is not, until an admin
            looked at the result (migration 20260729130000). -->
-      <ng-template #reviewGate let-m>
+      <ng-template #reviewGate let-m let-hot="hot">
         <section class="review-gate sc-nest sc-nest--rule">
           <div class="rg-head">
             <span class="rg-title">
@@ -574,14 +590,33 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               </a>
             }
           </div>
-          <div class="rg-actions">
-            <button class="sc-btn micro hot" (click)="acceptReview(m)" [disabled]="busy()">
-              ✓ {{ 'adminFeedback.review.accept' | translate }}
-            </button>
-            <button class="sc-btn micro" (click)="reopenFromReview(m)" [disabled]="busy()">
-              ↻ {{ 'adminFeedback.review.reopen' | translate }}
-            </button>
-          </div>
+          @if (reopeningFor() === m.id) {
+            <!-- The steer goes into the thread FIRST, the reopen follows once
+                 it is saved (the retired run's order): a topic never reaches
+                 the routine's queue without the reason in the thread. -->
+            <p class="rg-hint">{{ 'adminFeedback.review.reopenHint' | translate }}</p>
+            <sc-feedback-composer
+              [compact]="true"
+              [draftScope]="reopenScope(m.id)"
+              [busy]="busy()"
+              placeholder="adminFeedback.review.reopenPlaceholder"
+              sendLabel="adminFeedback.review.reopenSend"
+              [onSubmit]="reopenSubmitFor(m.id)" />
+            <div class="rg-actions">
+              <button class="sc-btn micro ghost" type="button" (click)="cancelReopen()">
+                {{ 'adminFeedback.review.reopenCancel' | translate }}
+              </button>
+            </div>
+          } @else {
+            <div class="rg-actions">
+              <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
+                ✓ {{ 'adminFeedback.review.accept' | translate }}
+              </button>
+              <button class="sc-btn micro" (click)="startReopen(m)" [disabled]="busy()">
+                ↻ {{ 'adminFeedback.review.reopen' | translate }}
+              </button>
+            </div>
+          }
         </section>
       </ng-template>
 
@@ -593,7 +628,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       @if (openRow(); as m) {
         @let oturn = turnOf(m);
         @let opos = positionOf(m);
-        <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="topicTitle(m.body, 96)">
+        <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="topicTitle(m.body, 96)" [attr.inert]="declineTopicRow() ? '' : null">
           <header class="sh-head">
             <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate">←</button>
             @if (topicNo(m); as no) { <span class="topic-no">#{{ no }}</span> }
@@ -602,33 +637,34 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               type="button"
               class="sh-btn"
               (click)="toggleMore(m.id)"
+              aria-haspopup="true"
               [attr.aria-expanded]="moreOpen(m.id)"
               [attr.aria-label]="'adminFeedback.actions.more' | translate">⋯</button>
           </header>
 
           @if (moreOpen(m.id)) {
             <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
-            <div class="more-menu" role="menu">
+            <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
               @if (areaLink(m); as href) {
-                <a class="menu-item" role="menuitem" [routerLink]="href" (click)="closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+                <a class="menu-item" [routerLink]="href" (click)="closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
               }
               @if (!archived(m) && !inReview(m)) {
                 @if (issueRequested(m)) {
-                  <button type="button" class="menu-item" role="menuitem" (click)="undoIssueRequest(m)" [disabled]="busy()">
+                  <button type="button" class="menu-item" (click)="undoIssueRequest(m)" [disabled]="busy()">
                     &#8630; {{ 'adminFeedback.issue.undo' | translate }}
                   </button>
                 } @else {
-                  <button type="button" class="menu-item" role="menuitem" (click)="requestIssue(m)" [disabled]="busy()">
+                  <button type="button" class="menu-item" (click)="requestIssue(m)" [disabled]="busy()">
                     {{ 'adminFeedback.issue.mark' | translate }}
                   </button>
                 }
               }
               @if (fromUser(m) && !archived(m) && !inReview(m)) {
-                <button type="button" class="menu-item danger" role="menuitem" (click)="openDeclineForm(m)" [disabled]="busy()">
+                <button type="button" class="menu-item danger" (click)="openDeclineForm(m)" [disabled]="busy()">
                   {{ 'adminFeedback.decline.mark' | translate }}
                 </button>
               } @else {
-                <button type="button" class="menu-item danger" role="menuitem" (click)="remove(m)" [disabled]="busy()">
+                <button type="button" class="menu-item danger" (click)="remove(m)" [disabled]="busy()">
                   {{ 'adminFeedback.delete' | translate }}
                 </button>
               }
@@ -649,13 +685,17 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: opos }"></ng-container>
               <span class="baton" [class]="'baton t-' + oturn">
                 {{ (askOf(m) ? ('adminFeedback.ask.' + askOf(m)) : stationLabelKey(opos)) | translate }}
-                · {{ turnLabelKey(oturn) | translate }}
               </span>
               @if (areaOf(m); as a) { <span class="chip area">{{ areaLabelKey(a) | translate }}</span> }
               @if (issueRequested(m)) { <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span> }
               @if (untriaged(m)) { <span class="chip hot">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span> }
+              @if (m.ship_ref && !inReview(m)) {
+                <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                  {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
+                </a>
+              }
             </div>
-            @if (m.processing_note && !lastSystemMessage(m)) {
+            @if (m.processing_note) {
               <p class="proc-note">{{ m.processing_note }}</p>
             }
 
@@ -690,11 +730,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             }
 
             @if (inReview(m)) {
-              <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+              <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: false }"></ng-container>
             }
             @if (untriaged(m) && !archived(m) && !inReview(m)) {
               <div class="inline-actions">
-                <button class="sc-btn micro hot" (click)="releaseToRoutine(m)" [disabled]="busy()">
+                <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
                   {{ 'adminFeedback.userTopic.release' | translate }}
                 </button>
               </div>
@@ -783,15 +823,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           <div class="sh-body">
             <div class="fq">{{ 'adminFeedback.filters.who' | translate }}</div>
             <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="whoIs('all')" (click)="setWho('all')">{{ 'adminFeedback.filters.whoAll' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('mine')" (click)="setWho('mine')">{{ 'adminFeedback.filters.whoMine' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('others')" (click)="setWho('others')">{{ 'adminFeedback.filters.whoOthers' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('users')" (click)="setWho('users')">
+              <button type="button" class="f-row" [class.on]="whoIs('all')" [attr.aria-pressed]="whoIs('all')" (click)="setWho('all')">{{ 'adminFeedback.filters.whoAll' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')">{{ 'adminFeedback.filters.whoMine' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('others')" [attr.aria-pressed]="whoIs('others')" (click)="setWho('others')">{{ 'adminFeedback.filters.whoOthers' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
                 {{ 'adminFeedback.filters.whoUsers' | translate }}
                 @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
               </button>
               @for (a of authorOptions(); track a.id) {
-                <button type="button" class="f-row sub" [class.on]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
+                <button type="button" class="f-row sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
                   {{ a.label }} <span class="f-count">{{ a.count }}</span>
                 </button>
               }
@@ -799,9 +839,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
             <div class="fq">{{ 'adminFeedback.filters.where' | translate }}</div>
             <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="whereFilter() === null" (click)="setWhere(null)">{{ 'adminFeedback.filters.whereAll' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="whereFilter() === null" [attr.aria-pressed]="whereFilter() === null" (click)="setWhere(null)">{{ 'adminFeedback.filters.whereAll' | translate }}</button>
               @for (w of whereOptions(); track w.bucket) {
-                <button type="button" class="f-row" [class.on]="whereFilter() === w.bucket" (click)="setWhere(w.bucket)">
+                <button type="button" class="f-row" [class.on]="whereFilter() === w.bucket" [attr.aria-pressed]="whereFilter() === w.bucket" (click)="setWhere(w.bucket)">
                   {{ w.labelKey | translate }} <span class="f-count">{{ w.count }}</span>
                 </button>
               }
@@ -809,9 +849,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
             <div class="fq">{{ 'adminFeedback.filters.area' | translate }}</div>
             <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="areaFilter() === null" (click)="setArea(null)">{{ 'adminFeedback.filters.areaAll' | translate }}</button>
+              <button type="button" class="f-row" [class.on]="areaFilter() === null" [attr.aria-pressed]="areaFilter() === null" (click)="setArea(null)">{{ 'adminFeedback.filters.areaAll' | translate }}</button>
               @for (a of areaOptions(); track a.area) {
-                <button type="button" class="f-row" [class.on]="areaFilter() === a.area" (click)="setArea(a.area)">
+                <button type="button" class="f-row" [class.on]="areaFilter() === a.area" [attr.aria-pressed]="areaFilter() === a.area" (click)="setArea(a.area)">
                   {{ areaLabelKey(a.area) | translate }} <span class="f-count">{{ a.count }}</span>
                 </button>
               }
@@ -897,7 +937,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .bh-title { font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
     .band.yours .bh-title { color: var(--sc-fg-0); }
     .bh-count { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-3); color: var(--sc-fg-1); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
-    .bh-count.hot { background: var(--sc-accent-hot); color: #fff; }
+    .bh-count.hot { background: var(--sc-accent); color: var(--sc-bg-0); }
     .bh-new { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; }
     .band-head .chev { margin-left: auto; color: var(--sc-fg-2); transition: transform 0.16s ease; }
     .chev.open { transform: rotate(90deg); }
@@ -909,10 +949,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
     /* ---- Card ---- */
     .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); }
-    .card.lead { border-color: var(--sc-accent-hot); }
+    .card.lead { border-color: var(--sc-accent); }
     .card.done { opacity: 0.88; }
     .card-head { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
-    .card-head:focus-visible, .band-head:focus-visible, .tb-btn:focus-visible, .f-row:focus-visible, .sh-btn:focus-visible, .read-more:focus-visible, .link-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
+    .card-head:focus-visible, .band-head:focus-visible, .tb-btn:focus-visible, .sh-btn:focus-visible, .read-more:focus-visible, .link-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
+    .f-row:focus-visible, .menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--sc-accent); }
     .ch-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
     .ch-title-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
     .topic-no { flex: 0 0 auto; color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -928,7 +969,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sc-border); font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-2); white-space: nowrap; }
     .chip.area { border-style: dashed; }
     .chip.new { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .chip.hot { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+    .chip.hot { border-color: var(--sc-accent); color: var(--sc-accent); }
     .card-links, .inline-actions, .rg-actions, .rg-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .link-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
     .link-btn.quiet { border-color: var(--sc-border); color: var(--sc-fg-1); }
@@ -937,8 +978,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
     /* ---- Avatar (role colours; red = elevated access) ---- */
     .av { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.02em; background: rgba(120, 150, 190, 0.28); color: #b9c9de; }
-    .av.adm { background: rgba(var(--accent-hot-rgb), 0.22); color: var(--sc-accent-hot); border: 1px solid var(--sc-accent-hot); }
-    .av.col { background: rgba(0, 212, 255, 0.16); color: var(--sc-accent); border: 1px solid rgba(0, 212, 255, 0.5); }
+    .av.adm { background: var(--sc-accent-hot); color: var(--sc-bg-0); border: 1px solid var(--sc-accent-hot); }
+    .av.col { background: rgba(158, 203, 255, 0.2); color: #9ecbff; border: 1px solid rgba(158, 203, 255, 0.55); }
     .msg-head .av { width: 22px; height: 22px; font-size: max(0.62rem, var(--sc-fs-floor)); }
 
     /* ---- Flight path ---- */
@@ -972,7 +1013,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .answer-options { display: flex; flex-wrap: wrap; gap: 8px; }
     .sc-btn.micro { padding: 6px 12px; min-height: 40px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.option { min-height: 44px; }
-    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: #fff; }
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
     .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
@@ -1016,7 +1057,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .f-row.on { color: var(--sc-fg-0); background: rgba(0, 212, 255, 0.1); box-shadow: inset 3px 0 0 var(--sc-accent); }
     .f-count { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-    .dot.hot { background: var(--sc-accent-hot); }
+    .dot.hot { background: var(--sc-accent); }
     .decline-form { gap: 10px; }
     .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
 
@@ -1243,6 +1284,8 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   toggleBand(turn: FeedbackTurn): void {
+    // Unrolling the Geliefert band counts as having looked at it.
+    if (turn === 'nobody' && this.bandCollapsed(turn)) this.stampLastSeen();
     this._collapsedBands.update((set) => {
       const next = new Set(set);
       if (next.has(turn)) next.delete(turn);
@@ -1300,7 +1343,11 @@ export class AdminFeedbackComponent implements OnInit {
 
   readonly filtersOpen = signal(false);
   openFilters(): void { this.filtersOpen.set(true); this.focusSheet(); }
-  closeFilters(): void { this.filtersOpen.set(false); }
+  closeFilters(): void {
+    if (!this.filtersOpen()) return;
+    this.filtersOpen.set(false);
+    this.returnFocus();
+  }
 
   readonly whoFilter = signal<WhoFilter>('all');
   readonly whereFilter = signal<FeedbackBucket | null>(null);
@@ -1433,11 +1480,17 @@ export class AdminFeedbackComponent implements OnInit {
   openTopic(id: string): void {
     this.openId.set(id);
     this.focusSheet();
+    // Reading a delivered topic counts as having looked at the feed.
+    const row = this.messages().find((m) => m.id === id);
+    if (row && this.delivered(row)) this.stampLastSeen();
   }
 
   closeTopic(): void {
+    if (this.openId() === null) return;
     this.openId.set(null);
     this._moreOpen.set(new Set());
+    this.reopeningFor.set(null);
+    this.returnFocus();
   }
 
   /**
@@ -1448,7 +1501,8 @@ export class AdminFeedbackComponent implements OnInit {
    */
   @HostListener('keydown.escape', ['$event'])
   onEscape(ev: Event): void {
-    if (this.declineTopicRow()) this.cancelDeclineForm();
+    if (this._moreOpen().size > 0) this._moreOpen.set(new Set());
+    else if (this.declineTopicRow()) this.cancelDeclineForm();
     else if (this.filtersOpen()) this.closeFilters();
     else if (this.openRow()) this.closeTopic();
     else return;
@@ -1456,12 +1510,23 @@ export class AdminFeedbackComponent implements OnInit {
     ev.preventDefault();
   }
 
-  /** Put the keyboard into the sheet that just opened (its back button). */
+  /** Where the keyboard was before a sheet opened — it goes back there on close. */
+  private readonly _returnFocus: HTMLElement[] = [];
+
+  /** Put the keyboard into the sheet that just opened (the TOP sheet's back button). */
   private focusSheet(): void {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) this._returnFocus.push(active);
     requestAnimationFrame(() => {
-      const btn = document.querySelector<HTMLElement>('sc-admin-feedback .sheet .sh-btn');
-      btn?.focus();
+      const btns = document.querySelectorAll<HTMLElement>('sc-admin-feedback .sheet .sh-btn');
+      btns[btns.length - 1]?.focus();
     });
+  }
+
+  /** Hand the keyboard back to whatever opened the sheet that just closed. */
+  private returnFocus(): void {
+    const el = this._returnFocus.pop();
+    if (el && el.isConnected) requestAnimationFrame(() => el.focus());
   }
 
   /**
@@ -1543,6 +1608,11 @@ export class AdminFeedbackComponent implements OnInit {
     });
   }
 
+  /** A routine message without its `[[A|B]]` line — the buttons say it instead. */
+  questionText(body: string): string {
+    return parseAnswerOptions(body)?.text ?? body;
+  }
+
   /** One-tap answers the routine offered in its newest question, if any. */
   answerOptionsFor(m: FeedbackRow): AnswerOptions | null {
     if (this.askOf(m) !== 'question') return null;
@@ -1550,8 +1620,17 @@ export class AdminFeedbackComponent implements OnInit {
     return q ? parseAnswerOptions(q.body) : null;
   }
 
+  /** True while a one-tap answer is being posted — a double tap must not post twice. */
+  readonly answering = signal(false);
+
   async answerWithOption(m: FeedbackRow, option: string): Promise<void> {
-    await this.sendReply(m.id, { text: option, images: [] });
+    if (this.answering()) return;
+    this.answering.set(true);
+    try {
+      await this.sendReply(m.id, { text: option, images: [] });
+    } finally {
+      this.answering.set(false);
+    }
   }
 
   /** The deep link into the app for a topic's area, or null when it has none. */
@@ -1569,12 +1648,14 @@ export class AdminFeedbackComponent implements OnInit {
 
   roleTitle(a: FeedbackAuthor | null | undefined): string {
     const role = a?.role === 'admin' || a?.role === 'collaborator' ? a.role : 'viewer';
-    return this.translate.instant(`adminFeedback.role.${role}`);
+    const name = a?.display_name || (a?.username ? `@${a.username}` : '');
+    const roleLabel = this.translate.instant(`adminFeedback.role.${role}`);
+    return name ? `${name} · ${roleLabel}` : roleLabel;
   }
 
   initials(a: FeedbackAuthor | null | undefined, self: boolean): string {
     const name = a?.display_name || a?.username || '';
-    if (!name) return self ? this.translate.instant('adminFeedback.you').slice(0, 2) : '?';
+    if (!name) return '?';
     const parts = name.replace(/^@/, '').split(/[\s._-]+/).filter(Boolean);
     const first = parts[0]?.[0] ?? '';
     const second = parts.length > 1 ? parts[parts.length - 1][0] : (parts[0]?.[1] ?? '');
@@ -1774,6 +1855,22 @@ export class AdminFeedbackComponent implements OnInit {
 
   private readonly threadScopes = new Map<string, string>();
   private readonly authorScopes = new Map<string, string>();
+  private readonly leadScopes = new Map<string, string>();
+  private readonly reopenScopes = new Map<string, string>();
+
+  /**
+   * The lead card's inline answer box and the sheet's composer can be in the
+   * DOM at the same time for one topic — two boxes on one draft key would
+   * overwrite each other. The inline box therefore keeps the retired run's
+   * scope, which also carries over any draft typed there before the rewrite.
+   */
+  leadScope(feedbackId: string): string {
+    return memoScope(this.leadScopes, feedbackId, draftScopes.adminWorkflow);
+  }
+
+  reopenScope(feedbackId: string): string {
+    return memoScope(this.reopenScopes, feedbackId, draftScopes.adminWorkflowReopen);
+  }
 
   threadScope(feedbackId: string): string {
     return memoScope(this.threadScopes, feedbackId, draftScopes.adminThread);
@@ -1867,9 +1964,49 @@ export class AdminFeedbackComponent implements OnInit {
     await this.writeReview(m, { reviewed_at: new Date().toISOString() });
   }
 
+  /** Topic whose review gate is in "reopen" mode — the steer box is open. */
+  readonly reopeningFor = signal<string | null>(null);
+
+  startReopen(m: FeedbackRow): void {
+    this.reopeningFor.set(m.id);
+  }
+
+  cancelReopen(): void {
+    this.reopeningFor.set(null);
+  }
+
+  private readonly reopenSubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
+
+  reopenSubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.reopenSubmitters.get(feedbackId);
+    if (!fn) {
+      fn = async (p: ComposerPayload) => {
+        const row = this.messages().find((m) => m.id === feedbackId);
+        if (!row) return false;
+        return this.reopenWithReply(row, p);
+      };
+      this.reopenSubmitters.set(feedbackId, fn);
+    }
+    return fn;
+  }
+
   /**
-   * Reject the outcome and put the topic back into the work loop — `open` IS
-   * the routine's queue; `ship_ref` stays as the history of what was tried.
+   * "Gespräch wieder aufnehmen": post the steer into the thread, THEN put the
+   * topic back into the routine's queue. In this order on purpose — if the
+   * reply fails nothing is reopened, and if the reopen fails the admin's words
+   * are already saved; the routine then finds a reopened topic *with* the
+   * reason in the thread, which is exactly what its continuation path reads.
+   */
+  async reopenWithReply(m: FeedbackRow, payload: ComposerPayload): Promise<boolean> {
+    if (!(await this.sendReply(m.id, payload))) return false;
+    await this.reopenFromReview(m);
+    this.reopeningFor.set(null);
+    return true;
+  }
+
+  /**
+   * Put the topic back into the work loop — `open` IS the routine's queue;
+   * `ship_ref` stays as the history of what was tried.
    */
   async reopenFromReview(m: FeedbackRow): Promise<void> {
     await this.writeReview(m, {
@@ -1878,9 +2015,6 @@ export class AdminFeedbackComponent implements OnInit {
       processing_note: null,
       processed_at: null,
     });
-    // The steer belongs in the thread: open the topic so the admin can say
-    // what still is not right, with the composer already in reach.
-    this.openTopic(m.id);
   }
 
   private async writeReview(m: FeedbackRow, patch: Record<string, unknown>): Promise<void> {
@@ -1992,9 +2126,11 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   cancelDeclineForm(): void {
+    const wasOpen = this.declineFormFor() !== null;
     this.declineFormFor.set(null);
     this.declineNote.set('');
     this.declineReason.set(null);
+    if (wasOpen) this.returnFocus();
   }
 
   pickDeclineReason(id: DeclineReasonId): void {

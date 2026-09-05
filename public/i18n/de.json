@@ -2455,7 +2455,11 @@
       "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
       "accept": "Ins Archiv — erledigt",
-      "reopen": "Gespräch wieder aufnehmen"
+      "reopen": "Gespräch wieder aufnehmen",
+      "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
+      "reopenPlaceholder": "Was soll noch anders werden?",
+      "reopenSend": "Senden & wieder aufnehmen",
+      "reopenCancel": "Abbrechen"
     },
     "sourceFilter": {
       "untriagedHint": "Hier wartet Nutzer-Feedback darauf, für die Routine freigegeben zu werden."
@@ -2501,7 +2505,8 @@
       "declined": "Nicht umgesetzt",
       "rejected": "Verworfen",
       "loop": "Nachbesserung",
-      "pathLabel": "Stand: {{station}}"
+      "pathLabel": "Stand: {{station}}",
+      "answered": "Beantwortet · wartet auf die Routine"
     },
     "kind": {
       "order": "Auftrag",

@@ -1192,8 +1192,10 @@ word for word by `parseAnswerOptions` in `feedback.types.ts`:
 
 - the marker is the **last non-empty line** of the message — a `[[…]]`
   anywhere else is prose and renders as written;
-- **two to four** options, `|`-separated, each **1–40 characters** of plain
-  text — no markdown, no line breaks, no `|`, `[` or `]` inside a label;
+- **two to four** options, `|`-separated, each **1–40 characters**; no line
+  breaks and no `|`, `[` or `]` inside a label (that is what the parser
+  rejects) — and keep labels plain text, because a label is rendered as a
+  button caption, not as markdown;
 - word each option as a complete answer you can act on without the question
   ("Erhalten", not "A"); the prose above must still state the question and the
   options in full sentences, because the marker is invisible in SQL and in the
@@ -1303,7 +1305,8 @@ The author may only write into the channel **while a question to them is open**
 (`public.feedback_awaits_author()` gates the insert policy) — it is a channel for
 answering, not an unsolicited chat with the admins. In the panel the status is its
 own bucket, `awaiting_author` ("Rückfrage an Absender"), deliberately kept out of
-the Abarbeiten queue: the ball is with the author, not the admin.
+the "Du bist dran" band (it sits in "Läuft"): the ball is with the author, not
+the admin.
 
 ### Triage gate: `triaged`
 
@@ -1506,15 +1509,15 @@ scrolls sideways in the docked panel.
 ### Referring to a topic by number (feedback 21587480)
 
 Every topic carries a **stable sequential number**, shown as a quiet `#42` ahead
-of the title in the Übersicht rows (both layouts) and in the Abarbeiten card. It
-exists so a topic can be *named* in a conversation — "das aus #42" — instead of
-being quoted or identified by its uuid.
+of the title on every stream card and in the opened topic's head. It exists so a
+topic can be *named* in a conversation — "das aus #42" — instead of being quoted
+or identified by its uuid.
 
 It is a DB column, `admin_feedback.seq`, fed by the sequence
 `admin_feedback_seq_seq` (migration
 `20260726230000_admin_feedback_seq.sql`), **not** a position in the rendered
-list. That distinction is the whole feature: the board is filtered by
-author/status, re-ordered by relevance while searching, split into Aktiv/Archiv
+list. That distinction is the whole feature: the stream is filtered by
+who/where/area, re-ordered by relevance while searching, split into three bands
 and topics get deleted, so a list index would mean something different in every
 view and would silently move under a topic somebody already referred to. The
 number is assigned once, at insert, and never changes.
@@ -1541,8 +1544,8 @@ number is assigned once, at insert, and never changes.
 
 ### Searching the board (feedback 12476cec)
 
-The Übersicht carries a search field above the filter row (docked panel,
-maximized panel and full board alike). It is dependency-free and lives in
+The stream's top bar carries the search field — always visible, docked,
+maximized and full board alike. It is dependency-free and lives in
 `searchFeedback` / `scoreFeedbackRow` in `feedback.types.ts`:
 
 - **What is searched** — the topic body, its `processing_note`, the author names
@@ -1561,26 +1564,20 @@ maximized panel and full board alike). It is dependency-free and lives in
 - **How results are ranked** — mean term quality × field weight (body `1.0` ›
   note `0.55` › thread `0.5` › author `0.35`), a density bonus for repeated hits,
   a bonus when the query appears verbatim, and topic recency as the tiebreaker.
-- **How it interacts with the rest** — search narrows both tabs, the tab counts
-  and the status chips. While a query is active the list is ordered by relevance,
-  so the day headings collapse into one "N Treffer" heading; clearing the query
-  restores the dated timeline.
+- **How it interacts with the rest** — a query flattens the three bands into
+  one relevance-ordered "N Treffer" list (the filter sheet's Wer? / Wo steht
+  es? / Bereich still apply); clearing it restores the bands.
 
-Two things the routine should be aware of:
+One thing the routine should be aware of: **answering happens through the
+normal thread insert** (`is_system=false`), i.e. exactly the resume condition
+above — the lead card's inline box, the one-tap option buttons and the opened
+topic's composer are just faster ways to produce those replies. Nothing the
+panel does changes `status` except the two review-gate writes and the release.
 
-- **"Erledigt" in the processing mode does not change `status`.** The routine
-  owns the status machine; ticking an item off only takes it out of the admin's
-  working queue (stored client-side against the topic's `updated_at`). As soon
-  as the routine touches the topic, the stamp mismatches and the item comes
-  back into the queue.
-- **Answering happens through the normal thread insert** (`is_system=false`),
-  i.e. exactly the resume condition above — the processing mode is just a
-  faster way to produce those replies.
-
-Answering a Rückfrage and a freshly `shipped` topic appearing between two polls
-each trigger a short confetti burst (`celebration.service.ts`, hand-rolled Web
-Animations API, no dependency). All of it is suppressed under
-`prefers-reduced-motion: reduce`.
+A freshly `shipped` topic appearing between two polls triggers a short confetti
+burst (`celebration.service.ts`, hand-rolled Web Animations API, no
+dependency); the Geliefert band's "neu" marker is the durable version of that
+news. The burst is suppressed under `prefers-reduced-motion: reduce`.
 
 ## Guardrails
 
@@ -1640,8 +1637,9 @@ Animations API, no dependency). All of it is suppressed under
 
 ### Active vs. Archive (`issue_created`)
 
-Statuses split into two halves, which is exactly what the admin panel's
-Active/Archive toggle inside the **overview** mode renders (migration
+Statuses split into two halves, which is exactly the line between the panel's
+"Du bist dran" / "Läuft" bands and its Geliefert feed — an outcome that still
+waits for its sign-off sits in both, see "The admin side: the stream" (migration
 `20260724220000_admin_feedback_issue_created_status.sql`):
 
 - **Active** — `open`, `in_progress`, `needs_input`, `needs_input_author`. The

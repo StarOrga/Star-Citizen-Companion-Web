@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   ElementRef,
   OnDestroy,
   computed,
@@ -114,6 +115,7 @@ const MAX_ATTACHMENTS = 10;
       class="composer sc-nest"
       [class.compact]="compact()"
       [class.large]="large()"
+      (keydown.escape)="onEscape($event)"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
@@ -145,17 +147,17 @@ const MAX_ATTACHMENTS = 10;
             type="button"
             class="attach plus"
             (click)="toggleAttachMenu()"
-            aria-haspopup="menu"
+            aria-haspopup="true"
             [attr.aria-expanded]="attachMenuOpen()"
             [title]="'adminFeedback.compose.attachMenu' | translate"
             [attr.aria-label]="'adminFeedback.compose.attachMenu' | translate">＋</button>
           @if (attachMenuOpen()) {
-            <div class="attach-menu" role="menu">
-              <button type="button" class="am-item" role="menuitem" (click)="closeAttachMenu(); fileInput.click()">
+            <div class="attach-menu" role="group" [attr.aria-label]="'adminFeedback.compose.attachMenu' | translate">
+              <button type="button" class="am-item" (click)="closeAttachMenu(); fileInput.click()">
                 🖼 {{ 'adminFeedback.compose.attachFile' | translate }}
               </button>
               @if (supportsScreenshot) {
-                <button type="button" class="am-item" role="menuitem" (click)="closeAttachMenu(); captureScreenshot()">
+                <button type="button" class="am-item" (click)="closeAttachMenu(); captureScreenshot()">
                   📷 {{ 'adminFeedback.compose.screenshot' | translate }}
                 </button>
               }
@@ -305,7 +307,7 @@ const MAX_ATTACHMENTS = 10;
     .am-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
     .am-item:hover { background: var(--sc-bg-3); }
     /* The ONE red call to action a sheet gets (red = the admin's own move). */
-    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: #fff; }
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
     .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -727,6 +729,22 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.attachMenuOpen.set(false);
   }
 
+  /** Escape closes the "+" menu and stops there — the sheet behind keeps its own Escape. */
+  onEscape(ev: Event): void {
+    if (!this.attachMenuOpen()) return;
+    this.closeAttachMenu();
+    ev.stopPropagation();
+  }
+
+  /** A click anywhere outside this composer folds the "+" menu away. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: Event): void {
+    if (!this.attachMenuOpen()) return;
+    const host = this.ta()?.nativeElement.closest('.composer');
+    if (host && ev.target instanceof Node && host.contains(ev.target)) return;
+    this.closeAttachMenu();
+  }
+
   /**
    * Grab one frame of the screen through the browser's own picker
    * (`getDisplayMedia`): pixel-exact, 3D views included, no library. The
@@ -744,6 +762,8 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.capturing.set(true);
     this.errorMsg.set(null);
     const panel = this.hostPanel();
+    // The panel disappears for the capture; whatever had the keyboard gets it back.
+    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     let stream: MediaStream | null = null;
     try {
       // Hide before the picker: the browser's preview already shows the page.
@@ -767,6 +787,7 @@ export class FeedbackComposerComponent implements OnDestroy {
       stream?.getTracks().forEach((t) => t.stop());
       if (panel) panel.style.visibility = '';
       this.capturing.set(false);
+      if (focused && focused.isConnected) focused.focus();
     }
   }
 
