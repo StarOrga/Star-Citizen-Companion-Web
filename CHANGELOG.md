@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.77.0] - 2026-09-05
+## [0.78.0] - 2026-09-05
 
 ### Changed
 
@@ -67,6 +67,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the local "Erledigt" tick-off, the swipe gestures, the progress rail and the
   Meine/Andere and Rückfragen/Abnahmen lenses went with it. Its four
   localStorage keys are no longer read.
+
+## [0.77.0] - 2026-09-05
+
+### Added
+
+- **Jeder LIVE-Patch sagt jetzt, wie rund er läuft.** Bisher stand auf dem
+  Patch-Board, *was* in einem Patch ist und *wann* der nächste kommt — nicht
+  aber, wie er sich anfühlt, sobald man ihn spielt. Neu ist ein fünfstufiger
+  Stabilitäts-Befund in der Sprache des mobiGlas-Schiffsstatus: von „Alle
+  Systeme nominal" über „Systeme beeinträchtigt" bis „Kritisch". Er steht als
+  Chip an der LIVE-Zeile, als Block im aufgeklappten Patch mit Tagesverlauf
+  und den lautesten Community-Tickets, und als Säulenvergleich über alle
+  Patches oben auf dem Board.
+- **Der Befund ist ehrlich benannt, weil die Datenlage es erzwingt.** Das
+  Issue Council ist hinter Login und Backer-Status verriegelt, und Reddits
+  JSON-Endpunkte sind seit Mai 2026 für Server dicht — echte Community-Upvotes
+  pro Bug sind darüber nicht zu bekommen. Was geht, sind CIGs eigene Flächen:
+  die Kommentare unter den beiden LIVE-Threads auf Spectrum (Antworten pro Tag,
+  Anteil und Stimmengewicht der Beiträge mit Issue-Council-Ticket), die
+  ungeplanten Störungsminuten der RSI-Statusseite und die Anzahl offener
+  Einträge in CIGs Known-Issues-Artikel. Der Indikator sagt das im UI dazu,
+  statt eine Zahl zu zeigen, die mehr zu wissen vorgibt, als sie kann.
+- **Die schlechteste Komponente bestimmt den Befund.** Ein Patch mit acht Tagen
+  gestörter Server ist instabil, egal wie ruhig das Forum ist — und umgekehrt.
+  Deshalb zählt das Maximum stärker als der Mittelwert. Die Zahl der Hotfixes
+  fließt bewusst *nicht* ein: sie kann nur steigen und ist doppeldeutig (viele
+  Hotfixes heißen „war kaputt" oder „wird schnell repariert"). Hotfixes sind
+  Marker im Tagesverlauf, keine Punkte.
+- **Ein junger Patch wird als solcher markiert.** In den ersten 14 Tagen — dort
+  enden die Hotfix-Salven der letzten Patches — ist der Befund gestrichelt
+  umrandet und der Verlauf schraffiert, mit „Tag X von 14" im Tooltip. Unter
+  zwei Messpunkten oder zehn Antworten zeigt das Board gar keine Einstufung
+  statt einer geratenen.
+- Gefüttert wird das von einer täglichen Edge Function (`patch-stability-sample`,
+  06:00 UTC via pg_cron), die ausschließlich öffentliche Daten spiegelt. Ihr
+  Tagespfad ist ungeschützt und selbstgedrosselt; Backfill und erzwungener Lauf
+  verlangen den Service-Role-Schlüssel.
 
 ## [0.76.0] - 2026-09-05
 

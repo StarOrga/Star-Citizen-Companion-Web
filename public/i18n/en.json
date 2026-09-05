@@ -1394,6 +1394,53 @@
         "expandAll": "Expand all notes",
         "collapseAll": "Collapse all notes"
       },
+      "stability": {
+        "title": "Stability",
+        "chipAria": "Stability of patch {{version}}: {{level}}",
+        "earlyShort": "early",
+        "early": "Day {{day}} of {{threshold}} – verdict still provisional",
+        "insufficient": "Not enough data for a verdict yet.",
+        "historical": "Final state – no daily timeline, this patch ran before daily sampling started.",
+        "score": "Index {{score}} / 100",
+        "component": {
+          "community": "Community",
+          "service": "Services",
+          "cig": "CIG known issues",
+          "none": "no data"
+        },
+        "componentHint": {
+          "community": "New replies per day on the notes and hotfix threads, share and upvote weight of replies carrying an Issue Council ticket",
+          "service": "Unplanned degraded minutes per day per RSI Status (7 days), plus any open incident",
+          "cig": "Open entries in CIG's Known Issues article and their 7-day growth"
+        },
+        "level": {
+          "1": "All systems nominal",
+          "2": "Minor turbulence",
+          "3": "Systems degraded",
+          "4": "Unstable",
+          "5": "Critical"
+        },
+        "timeline": "Since LIVE",
+        "timelineAria": "Stability per day since LIVE, {{days}} samples",
+        "dayTitle": "{{date}}: {{level}} ({{score}}), {{velocity}} new replies/day",
+        "hotfixMark": "Hotfix {{build}} on {{date}}",
+        "hotfixes": "{{count}} hotfixes",
+        "tickets": {
+          "title": "What the community reports",
+          "hint": "Issue Council tickets from the top-voted replies",
+          "votes": "{{count}} votes",
+          "empty": "No tickets in the top replies."
+        },
+        "kb": "{{count}} open known issues per CIG",
+        "cigFixes": "CIG: {{fixes}} fixes in this patch, {{ic}} of them from the Issue Council",
+        "source": "Sources: Spectrum comments, RSI Status, CIG Known Issues. No Issue Council counts (login required).",
+        "history": {
+          "title": "Stability per patch",
+          "hint": "Final state per LIVE patch; the current one is hatched while early",
+          "colAria": "Patch {{version}}: {{level}}",
+          "noData": "no verdict"
+        }
+      },
       "status": {
         "next": "Next",
         "evocati": "Evocati",

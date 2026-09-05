@@ -3,6 +3,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { RoadmapService } from './roadmap.service';
 import { OutlineSection, filterSections, outlineSections } from './patch-outline';
 import { HighlightSegment, highlightSegments } from './patch-search';
+import { StabilityVerdict } from './patch-stability';
+import { PatchStabilityService } from './patch-stability.service';
+import { StabilityPanelComponent } from './stability-panel.component';
 
 /**
  * The inside of one patch note — the expanded half of the history row
@@ -27,10 +30,13 @@ import { HighlightSegment, highlightSegments } from './patch-search';
 @Component({
   selector: 'sc-patch-note-detail',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, StabilityPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="pn">
+      @if (verdict(); as v) {
+        <sc-stability-panel [verdict]="v" [cigFixes]="cigFixes()" [cigFixesIc]="cigFixesIc()" />
+      }
       @if (loading()) {
         <p class="pn-state">{{ 'news.patch.detail.loading' | translate }}</p>
       } @else if (!outline()) {
@@ -165,6 +171,16 @@ export class PatchNoteDetailComponent {
   readonly url = input.required<string>();
   /** Page search tokens: narrows the outline and marks the hits. */
   readonly tokens = input<readonly string[]>([]);
+  /** The line's stability verdict; null for PTU/hotfix rows (no panel). */
+  readonly verdict = input<StabilityVerdict | null>(null);
+
+  private readonly stability = inject(PatchStabilityService);
+  private readonly patchRow = computed(() => {
+    const v = this.verdict();
+    return v ? this.stability.patchRowFor(v.line) : null;
+  });
+  readonly cigFixes = computed(() => this.patchRow()?.cig_fixes ?? null);
+  readonly cigFixesIc = computed(() => this.patchRow()?.cig_fixes_ic ?? null);
 
   readonly outline = computed(() => this.svc.outlineFor(this.slug()));
   readonly loading = computed(() => !this.outline() && this.svc.isPending(this.slug()));
