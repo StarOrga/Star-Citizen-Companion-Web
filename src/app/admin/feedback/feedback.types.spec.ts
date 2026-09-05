@@ -49,6 +49,9 @@ import {
   isLongMessage,
   isNewSince,
   parseAnswerOptions,
+  StationGlyph,
+  stationGlyphLabelKey,
+  stationGlyphs,
   stationIndex,
   stationLabelKey,
   turnLabelKey,
@@ -1438,7 +1441,7 @@ describe('flightPosition (place on the path)', () => {
 
   it('an unreleased user topic sits in the inbox', () => {
     expect(flightPosition(row('a', 'open', T0, { source: 'user', triaged: false })))
-      .toEqual({ station: 'inbox', branch: null, loop: false, queued: false, answered: false });
+      .toEqual({ station: 'inbox', branch: null, loop: false, queued: false, answered: false, question: false });
   });
 
   it('everything the routine or the admin still works on is "work"', () => {
@@ -1455,16 +1458,16 @@ describe('flightPosition (place on the path)', () => {
 
   it('a delivered result waits at "delivered" until it is signed off', () => {
     expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: null })))
-      .toEqual({ station: 'delivered', branch: null, loop: false, queued: false, answered: false });
+      .toEqual({ station: 'delivered', branch: null, loop: false, queued: false, answered: false, question: false });
     expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: null })))
-      .toEqual({ station: 'delivered', branch: 'issue', loop: false, queued: false, answered: false });
+      .toEqual({ station: 'delivered', branch: 'issue', loop: false, queued: false, answered: false, question: false });
   });
 
   it('a signed-off result is "accepted", an issue keeps its branch marker', () => {
     expect(flightPosition(row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 })))
-      .toEqual({ station: 'accepted', branch: null, loop: false, queued: false, answered: false });
+      .toEqual({ station: 'accepted', branch: null, loop: false, queued: false, answered: false, question: false });
     expect(flightPosition(row('b', 'issue_created', T0, { reviewed_at: T2 })))
-      .toEqual({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false });
+      .toEqual({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false, question: false });
   });
 
   it('declined and rejected leave the path from "work"', () => {
@@ -1485,15 +1488,15 @@ describe('flightPosition (place on the path)', () => {
   it('a post-ship continuation loops back into "work"', () => {
     const r = row('a', 'shipped', T0, { shipped_at: T1, reviewed_at: T1 });
     expect(flightPosition(r, [msg('m1', 'a', false, T2)]))
-      .toEqual({ station: 'work', branch: null, loop: true, queued: true, answered: false });
+      .toEqual({ station: 'work', branch: null, loop: true, queued: true, answered: false, question: false });
   });
 
   it('labels and indexes follow the position', () => {
     expect(stationIndex('inbox')).toBe(0);
     expect(stationIndex('accepted')).toBe(3);
-    expect(stationLabelKey({ station: 'work', branch: null, loop: false, queued: false, answered: false })).toBe('adminFeedback.station.work');
-    expect(stationLabelKey({ station: 'work', branch: null, loop: true, queued: true, answered: false })).toBe('adminFeedback.station.loop');
-    expect(stationLabelKey({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false })).toBe('adminFeedback.station.issue');
+    expect(stationLabelKey({ station: 'work', branch: null, loop: false, queued: false, answered: false, question: false })).toBe('adminFeedback.station.work');
+    expect(stationLabelKey({ station: 'work', branch: null, loop: true, queued: true, answered: false, question: false })).toBe('adminFeedback.station.loop');
+    expect(stationLabelKey({ station: 'accepted', branch: 'issue', loop: false, queued: false, answered: false, question: false })).toBe('adminFeedback.station.issue');
     expect(turnLabelKey('admin')).toBe('adminFeedback.turn.admin');
   });
 
@@ -1522,6 +1525,62 @@ describe('flightPosition (place on the path)', () => {
     // answered Rückfrage (feedback 34c44134), which reads as "beantwortet" next
     // to an untouched ToDo.
     expect(seen.size).toBe(13);
+  });
+});
+
+/**
+ * The four dots were unreadable as dots (feedback 1d013d69): each step now
+ * names itself with a glyph. Slots 1, 3 and 4 are the step, not the state, so
+ * they never change; slot 2 is the one that has three fates.
+ */
+describe('stationGlyphs (the four mini icons)', () => {
+  const T0 = '2026-09-01T10:00:00Z';
+  const T1 = '2026-09-01T11:00:00Z';
+  const T2 = '2026-09-01T12:00:00Z';
+  const glyphs = (r: FeedbackRow, replies?: FeedbackMessage[]) => stationGlyphs(flightPosition(r, replies));
+
+  it('draws Vertrag → Werkzeug → Haken → Haken-im-Kreis on the plain path', () => {
+    expect(glyphs(row('a', 'open', T0))).toEqual(['contract', 'doing', 'delivered', 'accepted']);
+    expect(glyphs(row('b', 'in_progress', T0))).toEqual(['contract', 'doing', 'delivered', 'accepted']);
+    // The outer slots hold their glyph wherever the topic actually stands.
+    expect(glyphs(row('c', 'open', T0, { source: 'user', triaged: false })))
+      .toEqual(['contract', 'doing', 'delivered', 'accepted']);
+    expect(glyphs(row('d', 'shipped', T0, { shipped_at: T1, reviewed_at: T2 })))
+      .toEqual(['contract', 'doing', 'delivered', 'accepted']);
+  });
+
+  it('turns the work slot into the loop arrow while a Rückfrage is open — either way round', () => {
+    // The routine asked the admin and waits on the answer.
+    expect(glyphs(row('a', 'needs_input', T0), [msg('m', 'a', true, T1)])[1]).toBe('recycle');
+    // The admin asked the author and waits on them.
+    expect(glyphs(row('b', 'needs_input_author', T0))[1]).toBe('recycle');
+    // A post-ship continuation is the same "round again" motion.
+    const shipped = row('c', 'shipped', T0, { shipped_at: T1, reviewed_at: T1 });
+    expect(glyphs(shipped, [msg('m', 'c', false, T2)])[1]).toBe('recycle');
+  });
+
+  it('an answered Rückfrage is back at work, not still in the loop', () => {
+    const answered = glyphs(row('a', 'needs_input', T0), [msg('m', 'a', true, T1), msg('n', 'a', false, T2)]);
+    expect(answered[1]).toBe('doing');
+  });
+
+  it('a declined or rejected topic wears the cross instead of the tool', () => {
+    expect(glyphs(row('a', 'declined', T0))).toEqual(['contract', 'rejected', 'delivered', 'accepted']);
+    expect(glyphs(row('b', 'rejected', T0))[1]).toBe('rejected');
+  });
+
+  it('every glyph has its own name key', () => {
+    const all: StationGlyph[] = ['contract', 'doing', 'recycle', 'rejected', 'delivered', 'accepted'];
+    const keys = all.map(stationGlyphLabelKey);
+    expect(keys).toEqual([
+      'adminFeedback.station.step.contract',
+      'adminFeedback.station.step.doing',
+      'adminFeedback.station.step.recycle',
+      'adminFeedback.station.step.rejected',
+      'adminFeedback.station.step.delivered',
+      'adminFeedback.station.step.accepted',
+    ]);
+    expect(new Set(keys).size).toBe(all.length);
   });
 });
 

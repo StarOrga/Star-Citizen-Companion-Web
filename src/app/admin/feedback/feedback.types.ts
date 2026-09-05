@@ -1655,6 +1655,13 @@ export interface FlightPosition {
    * 34c44134): the admin's part is done, the topic only looks like a ToDo.
    */
   answered: boolean;
+  /**
+   * A Rückfrage is open in either direction — the routine asked the admin, or
+   * the admin asked the author. The work station wears the recycle glyph while
+   * this holds: the topic is going around the loop, not forward (feedback
+   * 1d013d69).
+   */
+  question: boolean;
 }
 
 /**
@@ -1666,7 +1673,7 @@ export interface FlightPosition {
 export function flightPosition(row: FeedbackRow, replies?: readonly FeedbackMessage[]): FlightPosition {
   const bucket = feedbackBucket(row, replies);
   const at = (station: FeedbackStation, branch: FeedbackBranch, extra: Partial<FlightPosition> = {}): FlightPosition =>
-    ({ station, branch, loop: false, queued: false, answered: false, ...extra });
+    ({ station, branch, loop: false, queued: false, answered: false, question: false, ...extra });
   if (awaitsTriage(row) && bucket === 'todo') return at('inbox', null);
   switch (bucket) {
     case 'declined':
@@ -1688,13 +1695,55 @@ export function flightPosition(row: FeedbackRow, replies?: readonly FeedbackMess
         answered: row.status === 'needs_input',
       });
     default:
-      return at('work', null);
+      // in_progress, or a Rückfrage waiting on the admin / on the author.
+      return at('work', null, { question: bucket !== 'in_progress' });
   }
 }
 
 /** Index of the station on the path (0..3) — what the glyph fills up to. */
 export function stationIndex(station: FeedbackStation): number {
   return FLIGHT_STATIONS.indexOf(station);
+}
+
+/**
+ * The mini glyph a single station slot wears (feedback 1d013d69 — four bare
+ * dots did not say what the four steps were). One name per drawing; the paths
+ * themselves live in the component that renders them.
+ *
+ * - `contract` — filed, waiting for the admin's release (station 1)
+ * - `doing`    — handed to the routine, queued or actively worked (station 2)
+ * - `recycle`  — station 2 while a Rückfrage loops the topic back
+ * - `rejected` — station 2 when the topic was declined/rejected instead
+ * - `delivered`— shipped, sign-off pending (station 3)
+ * - `accepted` — signed off, done (station 4)
+ */
+export type StationGlyph =
+  | 'contract'
+  | 'doing'
+  | 'recycle'
+  | 'rejected'
+  | 'delivered'
+  | 'accepted';
+
+/**
+ * The four glyphs of one path, left to right. Slots 1, 3 and 4 are fixed —
+ * they name the step, not the topic's state, so the path reads the same way on
+ * every card. Slot 2 is the one that changes face, because "in Arbeit",
+ * "Rückfrage" and "abgelehnt" are three different fates of the same step.
+ */
+export function stationGlyphs(pos: FlightPosition): readonly StationGlyph[] {
+  return ['contract', workGlyph(pos), 'delivered', 'accepted'];
+}
+
+function workGlyph(pos: FlightPosition): StationGlyph {
+  if (pos.branch === 'declined' || pos.branch === 'rejected') return 'rejected';
+  if (pos.question || pos.loop) return 'recycle';
+  return 'doing';
+}
+
+/** i18n key naming one glyph in words (`adminFeedback.station.step.*`). */
+export function stationGlyphLabelKey(glyph: StationGlyph): string {
+  return `adminFeedback.station.step.${glyph}`;
 }
 
 /** i18n key for the baton sentence of a turn (`adminFeedback.turn.*`). */

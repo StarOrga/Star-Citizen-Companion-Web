@@ -3236,6 +3236,14 @@
       "rejected": "Verworfen",
       "loop": "Nachbesserung",
       "pathLabel": "Stand: {{station}}",
+      "step": {
+        "contract": "Eingereicht \u00b7 Freigabe steht aus",
+        "doing": "Zur Umsetzung \u00fcbergeben",
+        "recycle": "R\u00fcckfrage \u00b7 dreht noch eine Runde",
+        "rejected": "Abgelehnt \u00b7 wird nicht umgesetzt",
+        "delivered": "Geliefert \u00b7 Abnahme steht aus",
+        "accepted": "Abgenommen \u00b7 fertig"
+      },
       "answered": "Beantwortet · wartet auf die Routine"
     },
     "kind": {
