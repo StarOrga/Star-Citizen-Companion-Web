@@ -102,6 +102,7 @@
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "langAria": "Language",
     "accountMenu": "Account menu",
+    "adminOnly": "Admin only",
     "telemetry": "Telemetry",
     "feedback": "Feedback",
     "signIn": "Sign in",
@@ -111,7 +112,8 @@
       "collaborator": "Collaborator",
       "viewer": "Viewer",
       "anon": "Signed-out visitor",
-      "exit": "Back to my role"
+      "exit": "Back to my role",
+      "restricted": "Admin & collaborator only"
     },
     "loading": {
       "weak": "Weak signal · retuning"
