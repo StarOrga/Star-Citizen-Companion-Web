@@ -41,6 +41,33 @@ describe('ScColumnMenuComponent', () => {
     const spy = jasmine.createSpy();
     component.headClick.subscribe(spy);
     labelButton().click();
+    expect(spy).toHaveBeenCalledWith(false);
+  });
+
+  it('emits headClick(true) on a Ctrl-click of the label (E-main-gap #41 secondary-sort shortcut)', () => {
+    const spy = jasmine.createSpy();
+    component.headClick.subscribe(spy);
+    labelButton().dispatchEvent(new MouseEvent('click', { ctrlKey: true, bubbles: true }));
+    expect(spy).toHaveBeenCalledWith(true);
+  });
+
+  it('renders a unit suffix as a separate <small>, never concatenated into the label', () => {
+    fixture.componentRef.setInput('unit', 'kg');
+    fixture.detectChanges();
+    const unitEl = fixture.nativeElement.querySelector('.unit') as HTMLElement;
+    expect(unitEl.textContent).toBe('kg');
+    expect(labelButton().textContent).toContain('Mass');
+  });
+
+  it('hides the secondary-sort entry when no label is supplied, shows it and emits otherwise', () => {
+    expect(fixture.nativeElement.querySelector('.cm-secondary')).toBeNull();
+    fixture.componentRef.setInput('secondarySortLabel', 'Als zweite Sortierung');
+    fixture.detectChanges();
+    const btn = fixture.nativeElement.querySelector('.cm-secondary') as HTMLElement;
+    expect(btn.textContent?.trim()).toBe('Als zweite Sortierung');
+    const spy = jasmine.createSpy();
+    component.secondarySortToggle.subscribe(spy);
+    btn.click();
     expect(spy).toHaveBeenCalled();
   });
 

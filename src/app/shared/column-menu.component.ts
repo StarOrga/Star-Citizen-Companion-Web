@@ -33,8 +33,11 @@ import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="cm-wrap">
-      <button type="button" class="cm-label" (click)="headClick.emit()">
+      <button type="button" class="cm-label" (click)="onLabelClick($event)">
         {{ label() }}
+        @if (unit(); as u) {
+          <small class="unit">{{ u }}</small>
+        }
         @if (sortDir(); as d) {
           <span class="cm-arrow" aria-hidden="true">{{ d === 'asc' ? '▲' : '▼' }}</span>
         }
@@ -55,6 +58,12 @@ import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
               ▼ {{ descLabel() }}
             </button>
           </div>
+          @if (secondarySortLabel()) {
+            <button type="button" class="cm-secondary" [class.on]="secondaryActive()"
+                    (click)="secondarySortToggle.emit()">
+              {{ secondarySortLabel() }}
+            </button>
+          }
 
           @if (kind() === 'numeric') {
             <p class="cm-title">{{ rangeLabel() }}</p>
@@ -95,6 +104,12 @@ import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
     .cm-label { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 3px;
       background: transparent; border: none; color: inherit; font: inherit; cursor: pointer; text-align: inherit; padding: 0; }
     .cm-arrow { color: var(--sc-accent); }
+    .unit { color: var(--sc-fg-2); font-size: 0.85em; margin-left: 2px; font-weight: 400; }
+    .cm-rank { color: var(--sc-fg-2); font-size: 10px; border: 1px solid var(--sc-border);
+      border-radius: 50%; width: 13px; height: 13px; display: inline-grid; place-items: center; }
+    .cm-secondary { padding: 4px 6px; border-radius: 4px; background: var(--sc-bg-1);
+      border: 1px dashed var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: 11px; cursor: pointer; text-align: left; }
+    .cm-secondary.on { color: var(--sc-accent); border-color: var(--sc-accent); border-style: solid; }
     .cm-pop { position: relative; flex: 0 0 auto; }
     .cm-kebab { list-style: none; cursor: pointer; color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
       padding: 2px 4px; border-radius: 4px; user-select: none; }
@@ -125,11 +140,17 @@ import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
 })
 export class ScColumnMenuComponent {
   readonly label = input.required<string>();
+  /** Unit suffix rendered as `<small class="unit">`, next to the label (LOW-3: never concatenated into the label string). */
+  readonly unit = input<string | null>(null);
   readonly kind = input.required<ColumnKind>();
   readonly sortDir = input<SortDir | null>(null);
   readonly range = input<{ min: number | null; max: number | null } | null>(null);
   readonly facets = input<readonly ColumnFacet[]>([]);
   readonly hasFilter = input(false);
+  /** True while THIS column is the active secondary (tie-breaker) sort. */
+  readonly secondaryActive = input(false);
+  /** Omit (leave `''`) to hide the "als zweite Sortierung" entry entirely. */
+  readonly secondarySortLabel = input<string>('');
 
   // Every consumer must pass a translated string — there is no untranslated
   // English fallback to leak if a future one forgets to (LOW finding, column-menu).
@@ -143,12 +164,18 @@ export class ScColumnMenuComponent {
   readonly filterLabel = input.required<string>();
   readonly clearLabel = input.required<string>();
 
-  /** Plain click on the label text — sorts (or flips), same as today. */
-  readonly headClick = output<void>();
+  /**
+   * Click on the label text — sorts (or flips), same as today. Emits whether
+   * Ctrl/⌘ was held (main's secondary-sort shortcut, E-main-gap #41); a plain
+   * click emits `false` and behaves exactly as before.
+   */
+  readonly headClick = output<boolean>();
   readonly sortPick = output<SortDir>();
   readonly rangeChange = output<{ min: number | null; max: number | null }>();
   readonly facetToggle = output<string>();
   readonly clearFilter = output<void>();
+  /** The "als zweite Sortierung" menu entry was clicked. */
+  readonly secondarySortToggle = output<void>();
 
   private readonly detEl = viewChild<ElementRef<HTMLDetailsElement>>('det');
   readonly open = signal(false);
@@ -159,6 +186,10 @@ export class ScColumnMenuComponent {
 
   onToggle(ev: Event): void {
     this.open.set((ev.target as HTMLDetailsElement).open);
+  }
+
+  onLabelClick(ev: MouseEvent): void {
+    this.headClick.emit(ev.ctrlKey || ev.metaKey);
   }
 
   pickSort(dir: SortDir): void {

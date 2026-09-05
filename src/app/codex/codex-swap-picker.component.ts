@@ -114,6 +114,9 @@ export interface SwapPick {
 
 const COLUMN_STORAGE_KEY = 'scc-codex-picker-cols:v1';
 
+/** Sentinel `typeFilter()` value for "no restriction" — a real attach type never equals it. */
+const TYPE_ALL = '__all__';
+
 /** Column keys the picker reads off the candidate directly, not off `.stats`. */
 const DIRECT_ACCESSORS: Record<string, (c: SwapCandidate) => number | string | null> = {
   [NAME_SORT_KEY]: (c) => c.name,
@@ -180,6 +183,11 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
               } @else {
                 <p class="pick-installed">{{ 'codex.swap.installedNone' | translate }}</p>
               }
+              @if (t.count > 1) {
+                <p class="pick-applies">{{ 'codex.swap.appliesToMany' | translate: { count: t.count, port: t.port } }}</p>
+              } @else {
+                <p class="pick-applies">{{ 'codex.swap.appliesToOne' | translate: { port: t.port } }}</p>
+              }
             </div>
             <button type="button" class="pick-clear" (click)="clearSlot()">
               {{ 'codex.swap.clearSlot' | translate }}
@@ -219,7 +227,17 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <sc-segmented [options]="baselineOptions()" [value]="baseline()"
                               [ariaLabel]="'codex.picker.deltaAgainst' | translate"
                               (valueChange)="baseline.set($any($event))" />
+                <span class="pick-preview-hint">{{ 'codex.swap.previewHint' | translate }}</span>
               </div>
+
+              @if (showTypeFilter()) {
+                <div class="pick-seg">
+                  <span class="pick-seg-label">{{ 'codex.swap.typeFilter' | translate }}</span>
+                  <sc-segmented [options]="typeFilterOptions()" [value]="typeFilter()"
+                                [ariaLabel]="'codex.swap.typeFilter' | translate"
+                                (valueChange)="typeFilter.set($any($event))" />
+                </div>
+              }
 
               <p class="pick-count">{{ 'codex.picker.count' | translate: { n: rows().length, total: candidates().length } }}</p>
 
@@ -227,17 +245,26 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <summary class="pick-cols-sum">{{ 'codex.picker.columns' | translate }} ▾</summary>
                 <div class="pick-cols-pop">
                   @for (v of catalogue; track v.key) {
-                    @if (v.key !== NAME_KEY) {
-                      <label class="pc-row" [class.off]="unavailable().has(v.key)">
+                    @if (v.key !== NAME_KEY && !unavailable().has(v.key)) {
+                      <label class="pc-row">
                         <input type="checkbox" [checked]="chooser().visible.includes(v.key)"
-                               [disabled]="unavailable().has(v.key)"
                                (change)="toggleColumn(v.key)" />
                         {{ v.key | translate }}
                       </label>
                     }
                   }
                   @if (unavailable().size > 0) {
-                    <p class="pc-unavail">{{ 'codex.picker.columnsUnavailable' | translate }}</p>
+                    <fieldset class="pc-unavail-group" disabled>
+                      <legend class="pc-unavail">{{ 'codex.picker.columnsUnavailable' | translate }}</legend>
+                      @for (v of catalogue; track v.key) {
+                        @if (unavailable().has(v.key)) {
+                          <label class="pc-row off">
+                            <input type="checkbox" [checked]="chooser().visible.includes(v.key)" disabled />
+                            {{ v.key | translate }}
+                          </label>
+                        }
+                      }
+                    </fieldset>
                   }
                   <button type="button" class="pc-reset" (click)="resetColumns()">
                     {{ 'codex.picker.menu.clear' | translate }}
@@ -253,7 +280,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <table class="wt" role="grid">
                   <thead>
                     <tr>
-                      <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)">
+                      <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)" [attr.title]="sortRankTitle(NAME_KEY)">
                         <sc-column-menu
                           [label]="('codex.picker.col.name' | translate)"
                           kind="categorical"
@@ -266,15 +293,19 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                           [descLabel]="'codex.picker.menu.desc' | translate"
                           [filterLabel]="'codex.picker.menu.filter' | translate"
                           [clearLabel]="'codex.picker.menu.clear' | translate"
-                          (headClick)="onHeadClick(NAME_KEY)"
+                          [secondarySortLabel]="'codex.picker.menu.secondary' | translate"
+                          [secondaryActive]="isSecondarySort(NAME_KEY)"
+                          (headClick)="onHeadClick(NAME_KEY, $event)"
                           (sortPick)="onSortPick(NAME_KEY, $event)"
                           (facetToggle)="onFacetToggle(NAME_KEY, $event)"
-                          (clearFilter)="onClearFilter(NAME_KEY)" />
+                          (clearFilter)="onClearFilter(NAME_KEY)"
+                          (secondarySortToggle)="onSecondarySortToggle(NAME_KEY)" />
                       </th>
                       @for (col of displayColumns(); track col.key) {
-                        <th scope="col" class="c-num" [attr.aria-sort]="ariaSort(col.key)">
+                        <th scope="col" class="c-num" [attr.aria-sort]="ariaSort(col.key)" [attr.title]="sortRankTitle(col.key)">
                           <sc-column-menu
                             [label]="colLabel(col)"
+                            [unit]="colUnit(col)"
                             [kind]="col.categorical ? 'categorical' : 'numeric'"
                             [sortDir]="sortDirOf(col.key)"
                             [range]="rangeOf(col.key)"
@@ -289,11 +320,14 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                             [toLabel]="'codex.picker.menu.to' | translate"
                             [filterLabel]="'codex.picker.menu.filter' | translate"
                             [clearLabel]="'codex.picker.menu.clear' | translate"
-                            (headClick)="onHeadClick(col.key)"
+                            [secondarySortLabel]="'codex.picker.menu.secondary' | translate"
+                            [secondaryActive]="isSecondarySort(col.key)"
+                            (headClick)="onHeadClick(col.key, $event)"
                             (sortPick)="onSortPick(col.key, $event)"
                             (rangeChange)="onRangeChange(col.key, $event)"
                             (facetToggle)="onFacetToggle(col.key, $event)"
-                            (clearFilter)="onClearFilter(col.key)" />
+                            (clearFilter)="onClearFilter(col.key)"
+                            (secondarySortToggle)="onSecondarySortToggle(col.key)" />
                         </th>
                       }
                     </tr>
@@ -344,23 +378,22 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <span><span aria-hidden="true">↕</span> {{ 'codex.picker.scrollCue.vertical' | translate }}</span>
               </div>
 
-              @if (scopeChip(); as sc) {
+              @if (scopeChip() || typeFilterChip() || chips().length > 0) {
                 <ul class="fc-list">
-                  <li class="fc">
-                    {{ sc.label }}
-                    <button type="button" (click)="scope.set('allSize')"
-                            [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
-                  </li>
-                  @for (chip of chips(); track chip.key) {
+                  @if (scopeChip(); as sc) {
                     <li class="fc">
-                      {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
-                      <button type="button" (click)="onClearFilter(chip.key)"
-                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
+                      {{ sc.label }}
+                      <button type="button" (click)="scope.set('allSize')"
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
                     </li>
                   }
-                </ul>
-              } @else if (chips().length > 0) {
-                <ul class="fc-list">
+                  @if (typeFilterChip(); as tf) {
+                    <li class="fc">
+                      {{ tf.label }}
+                      <button type="button" (click)="typeFilter.set(TYPE_ALL)"
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: tf.label }">✕</button>
+                    </li>
+                  }
                   @for (chip of chips(); track chip.key) {
                     <li class="fc">
                       {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
@@ -370,6 +403,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                   }
                 </ul>
               }
+              <p class="pick-sorthint">{{ 'codex.swap.sortHint' | translate }}</p>
 
               <p class="pick-note">{{ 'codex.picker.dashNote' | translate }}</p>
               @if (baselineOutOfSet()) {
@@ -412,6 +446,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-titles { flex: 1 1 auto; min-width: 0; }
     .pick-titles h2 { margin: 0; font-size: 1.02rem; }
     .pick-installed { margin: 3px 0 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); overflow-wrap: anywhere; }
+    .pick-applies { margin: 2px 0 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .pick-clear { flex: 0 0 auto; padding: 5px 10px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px dashed var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; }
     .pick-clear:hover { border-color: var(--sc-danger); color: var(--sc-danger); }
@@ -427,6 +462,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: 0.8rem; }
     .pick-seg { display: flex; flex-direction: column; gap: 3px; }
     .pick-seg-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .pick-preview-hint { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); max-width: 220px; }
     .pick-count { margin: 0 0 6px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); align-self: flex-end; }
 
     .pick-cols { position: relative; align-self: flex-end; }
@@ -438,11 +474,20 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       box-shadow: 0 10px 28px rgb(0 0 0 / .6); padding: 8px; display: flex; flex-direction: column; gap: 3px; }
     .pc-row { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
     .pc-row.off { color: var(--sc-fg-2); cursor: not-allowed; }
-    .pc-unavail { margin: 4px 0 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
+    /* LOW-6: the unavailable columns render as a disabled fieldset group, not
+       individually-disabled checkboxes scattered through the live list. */
+    .pc-unavail-group { border: none; margin: 4px 0 0; padding: 4px 0 0; display: flex; flex-direction: column; gap: 3px;
+      border-top: 1px dashed var(--sc-border); }
+    .pc-unavail { margin: 0 0 2px; padding: 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
     .pc-reset { margin-top: 6px; padding: 4px 8px; border-radius: 4px; background: transparent;
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font: inherit; font-size: 11px; cursor: pointer; align-self: flex-start; }
 
+    /* The column-menu popover is absolutely positioned inside a th cell — this
+       scroll box would otherwise clip it. A portal-free fix (D-code-map): while
+       any menu is open, the scroll box drops its own clipping so the popover
+       can escape it; the table keeps scrolling normally once the menu closes. */
     .pick-scroll { overflow: auto; border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px); flex: 1 1 auto; }
+    .pick-scroll:has(.cm-pop[open]) { overflow: visible; }
     .wt { min-inline-size: 1080px; width: 100%; border-collapse: collapse; font-size: max(12px, var(--sc-fs-floor));
       font-variant-numeric: tabular-nums; }
     .wt thead th { position: sticky; top: 0; z-index: 2; background: var(--sc-bg-2);
@@ -478,6 +523,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 
     .pick-note { margin: 2px 0 0; font-size: 11px; color: var(--sc-fg-2); }
     .pick-note.baseline-note { color: var(--sc-warn); }
+    .pick-sorthint { margin: 4px 0 0; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
     .fc-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
     .fc { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
@@ -516,6 +562,7 @@ export class CodexSwapPickerComponent {
   readonly NAME_KEY = NAME_SORT_KEY;
   readonly DELTA_KEY = 'codex.picker.col.deltaSustained';
   readonly catalogue = SWAP_VALUE_CATALOGUE;
+  readonly TYPE_ALL = TYPE_ALL;
 
   readonly loading = signal(false);
   readonly error = signal(false);
@@ -525,6 +572,14 @@ export class CodexSwapPickerComponent {
   readonly baseline = signal<SwapBaseline>('fitted');
   readonly chooser = signal<SwapColumnChooser>(this.loadColumns());
   readonly columnMenu = signal<ColumnMenuState>(EMPTY_COLUMN_MENU_STATE);
+  /**
+   * Part-type filter (E-main-gap #40): the attach types this hardpoint
+   * actually queried for, and the one the user narrowed to. Independent of
+   * `scope` — a missile rack has no weapon family to switch between, but may
+   * still accept several distinct component types.
+   */
+  readonly portTypes = signal<string[]>([]);
+  readonly typeFilter = signal<string>(TYPE_ALL);
 
   private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
@@ -562,6 +617,8 @@ export class CodexSwapPickerComponent {
       this.query.set('');
       this.scope.set('sameClass');
       this.baseline.set('fitted');
+      this.typeFilter.set(TYPE_ALL);
+      this.portTypes.set([]);
       this.columnMenu.set(EMPTY_COLUMN_MENU_STATE);
       this.error.set(false);
       if (t) {
@@ -592,6 +649,7 @@ export class CodexSwapPickerComponent {
       const size =
         t.size ?? ((installed?.payload as { size?: number | null } | undefined)?.size ?? null);
       const types = attachType ? [attachType] : (t.attachTypes ?? []).filter(Boolean);
+      if (token === this.loadToken) this.portTypes.set(types);
       if (types.length === 0) {
         if (token === this.loadToken) this.candidates.set([]);
         return;
@@ -749,9 +807,48 @@ export class CodexSwapPickerComponent {
     applySwapScope(this.candidates(), this.fitted(), this.scope()),
   );
 
+  /** True only for ports whose accepted-type list has more than one entry — a
+   * missile rack or utility bay, not the common single-type weapon/component
+   * port (E-main-gap #40: main's part-type filter). */
+  readonly showTypeFilter = computed<boolean>(() => this.portTypes().length > 1);
+
+  /** "All" plus one option per attach type actually present in the current
+   * scope, each carrying a live count (main's facet pills, restored as a
+   * segmented control to match this table's other scope-bar controls). */
+  readonly typeFilterOptions = computed<ScSegmentOption[]>(() => {
+    if (!this.showTypeFilter()) return [];
+    this.lang();
+    const counts = new Map<string, number>();
+    for (const c of this.scoped()) {
+      if (!c.attachType) continue;
+      counts.set(c.attachType, (counts.get(c.attachType) ?? 0) + 1);
+    }
+    const opts: ScSegmentOption[] = [
+      { value: TYPE_ALL, label: this.i18n.instant('codex.swap.filterAll') as string },
+    ];
+    for (const type of [...counts.keys()].sort()) {
+      opts.push({ value: type, label: `${type} (${counts.get(type)})` });
+    }
+    return opts;
+  });
+
+  /** Removable chip for the active type filter, mirroring `scopeChip`. */
+  readonly typeFilterChip = computed<{ label: string } | null>(() => {
+    const tf = this.typeFilter();
+    if (tf === TYPE_ALL) return null;
+    const opt = this.typeFilterOptions().find((o) => o.value === tf);
+    return { label: opt?.label ?? tf };
+  });
+
+  readonly typeScoped = computed<SwapCandidate[]>(() => {
+    const tf = this.typeFilter();
+    if (tf === TYPE_ALL) return this.scoped();
+    return this.scoped().filter((c) => c.attachType === tf);
+  });
+
   readonly searched = computed<SwapCandidate[]>(() => {
     const q = this.query().trim().toLowerCase();
-    const scoped = this.scoped();
+    const scoped = this.typeScoped();
     if (!q) return scoped;
     const terms = q.split(/\s+/);
     return scoped.filter((c) => {
@@ -880,14 +977,38 @@ export class CodexSwapPickerComponent {
     return !!this.columnMenu().filters[key];
   }
 
+  /** `aria-sort` covers BOTH the primary and the (main-restored) secondary
+   * sort column — non-standard for a single-sort grid, but this table only
+   * ever has at most two, and it is the only signal a screen reader gets. */
   ariaSort(key: string): 'ascending' | 'descending' | 'none' {
-    const s = this.columnMenu().sort;
-    return s?.key === key ? (s.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    const s = this.columnMenu();
+    if (s.sort?.key === key) return s.sort.dir === 'asc' ? 'ascending' : 'descending';
+    if (s.secondarySort?.key === key) return s.secondarySort.dir === 'asc' ? 'ascending' : 'descending';
+    return 'none';
   }
 
-  onHeadClick(key: string): void {
+  /** "1"/"2" for the primary/secondary sort column, surfaced as the `<th title>` (E-main-gap #41). */
+  sortRankTitle(key: string): string | null {
+    const s = this.columnMenu();
+    if (s.sort?.key === key) return '1';
+    if (s.secondarySort?.key === key) return '2';
+    return null;
+  }
+
+  isSecondarySort(key: string): boolean {
+    return this.columnMenu().secondarySort?.key === key;
+  }
+
+  /** Plain click sorts (or flips); Ctrl/⌘-click (or the menu's "als zweite
+   * Sortierung" entry) appends the column as a tie-breaker instead. */
+  onHeadClick(key: string, ctrl = false): void {
     const col = this.allMenuColumns().find((c) => c.key === key);
-    if (col) this.columnMenu.update((s) => toggleColumnSort(s, col));
+    if (col) this.columnMenu.update((s) => toggleColumnSort(s, col, ctrl));
+  }
+
+  onSecondarySortToggle(key: string): void {
+    const col = this.allMenuColumns().find((c) => c.key === key);
+    if (col) this.columnMenu.update((s) => toggleColumnSort(s, col, true));
   }
 
   onSortPick(key: string, dir: SortDir): void {
@@ -924,12 +1045,16 @@ export class CodexSwapPickerComponent {
     this.saveColumns(next);
   }
 
+  /** LOW-3: the label text alone — the unit is a separate `<small>`, never concatenated in. */
   colLabel(v: SwapValueDef): string {
     this.lang();
-    const label = this.i18n.instant(v.key) as string;
+    return this.i18n.instant(v.key) as string;
+  }
+
+  colUnit(v: SwapValueDef): string | null {
+    this.lang();
     const unitKey = unitKeyFor(v.key, v);
-    if (!unitKey) return label;
-    return `${label} ${this.i18n.instant(unitKey) as string}`;
+    return unitKey ? (this.i18n.instant(unitKey) as string) : null;
   }
 
   // ── cells ──────────────────────────────────────────────────────────────────

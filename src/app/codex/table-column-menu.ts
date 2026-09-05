@@ -41,10 +41,17 @@ export type ColumnFilter = NumericColumnFilter | CategoricalColumnFilter;
 
 export interface ColumnMenuState {
   sort: { key: string; dir: SortDir } | null;
+  /**
+   * Tie-breaker applied when the primary sort ties (E-main-gap #41: main's
+   * Ctrl-click secondary sort, restored via the column menu's "als zweite
+   * Sortierung" entry). `undefined` on states built before this field existed
+   * — every reader treats it the same as `null`.
+   */
+  secondarySort?: { key: string; dir: SortDir } | null;
   filters: Readonly<Record<string, ColumnFilter>>;
 }
 
-export const EMPTY_COLUMN_MENU_STATE: ColumnMenuState = { sort: null, filters: {} };
+export const EMPTY_COLUMN_MENU_STATE: ColumnMenuState = { sort: null, secondarySort: null, filters: {} };
 
 function withFilters(
   state: ColumnMenuState,
@@ -54,33 +61,57 @@ function withFilters(
   const filters = { ...state.filters };
   if (filter === null) delete filters[key];
   else filters[key] = filter;
-  return { sort: state.sort, filters };
+  return { sort: state.sort, secondarySort: state.secondarySort ?? null, filters };
 }
 
 /** Explicit choice from the menu's two sort rows. */
 export function setColumnSort(state: ColumnMenuState, key: string, dir: SortDir): ColumnMenuState {
-  return { sort: { key, dir }, filters: state.filters };
+  // A column cannot be both the primary and the secondary sort at once.
+  const secondarySort = state.secondarySort?.key === key ? null : (state.secondarySort ?? null);
+  return { sort: { key, dir }, secondarySort, filters: state.filters };
 }
 
 /**
  * A click on the column HEAD (not the menu): sorts by that column, flipping the
  * direction when it already is the active one. First direction is the column's
  * natural one — numbers best-first (desc, or asc when lower is better), text A→Z.
+ *
+ * `asSecondary` (Ctrl/⌘-click, or the menu's "als zweite Sortierung" entry)
+ * appends the column as a tie-breaker instead of replacing the primary sort —
+ * a no-op when there is no primary sort yet or the column already IS the
+ * primary one.
  */
 export function toggleColumnSort<TRow>(
   state: ColumnMenuState,
   column: ColumnDef<TRow>,
+  asSecondary = false,
 ): ColumnMenuState {
   const natural: SortDir =
     column.kind === 'numeric' ? (column.lowerIsBetter ? 'asc' : 'desc') : 'asc';
+  if (asSecondary && state.sort && state.sort.key !== column.key) {
+    if (state.secondarySort?.key === column.key) {
+      return setSecondaryColumnSort(state, column.key, state.secondarySort.dir === 'asc' ? 'desc' : 'asc');
+    }
+    return setSecondaryColumnSort(state, column.key, natural);
+  }
   if (state.sort?.key === column.key) {
     return setColumnSort(state, column.key, state.sort.dir === 'asc' ? 'desc' : 'asc');
   }
   return setColumnSort(state, column.key, natural);
 }
 
+/** Explicit choice of the secondary (tie-breaker) sort — additive, leaves the primary sort untouched. */
+export function setSecondaryColumnSort(state: ColumnMenuState, key: string, dir: SortDir): ColumnMenuState {
+  if (state.sort?.key === key) return state;
+  return { sort: state.sort, secondarySort: { key, dir }, filters: state.filters };
+}
+
+export function clearSecondaryColumnSort(state: ColumnMenuState): ColumnMenuState {
+  return { sort: state.sort, secondarySort: null, filters: state.filters };
+}
+
 export function clearColumnSort(state: ColumnMenuState): ColumnMenuState {
-  return { sort: null, filters: state.filters };
+  return { sort: null, secondarySort: null, filters: state.filters };
 }
 
 /** `Bereich von–bis`. Both bounds optional; both null clears the filter. */
@@ -115,7 +146,7 @@ export function clearColumnFilter(state: ColumnMenuState, key: string): ColumnMe
 }
 
 export function clearAllColumnFilters(state: ColumnMenuState): ColumnMenuState {
-  return { sort: state.sort, filters: {} };
+  return { sort: state.sort, secondarySort: state.secondarySort ?? null, filters: {} };
 }
 
 export interface ColumnFacet {
@@ -178,8 +209,20 @@ export function filterRows<TRow>(
   return rows.filter((row) => active.every(([c, f]) => passes(row, c, f)));
 }
 
-/** Sort by the active column. Rows without a value always sink to the bottom,
- * in BOTH directions — a gap is not "the smallest value". */
+/** One column's comparison of two rows, in the given direction. */
+function compareBy<TRow>(a: TRow, b: TRow, column: ColumnDef<TRow>, dir: 1 | -1): number {
+  const va = column.accessor(a);
+  const vb = column.accessor(b);
+  if (va === null && vb === null) return 0;
+  if (va === null) return 1;
+  if (vb === null) return -1;
+  if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+  return String(va).localeCompare(String(vb)) * dir;
+}
+
+/** Sort by the active column, then by the secondary (tie-breaker) column when
+ * the primary sort ties. Rows without a value always sink to the bottom, in
+ * BOTH directions — a gap is not "the smallest value". */
 export function sortRows<TRow>(
   rows: readonly TRow[],
   columns: readonly ColumnDef<TRow>[],
@@ -191,14 +234,13 @@ export function sortRows<TRow>(
   const column = columns.find((c) => c.key === sort.key);
   if (!column) return out;
   const dir = sort.dir === 'asc' ? 1 : -1;
+  const secondary = state.secondarySort;
+  const secondaryColumn = secondary ? columns.find((c) => c.key === secondary.key) : undefined;
+  const secondaryDir = secondary?.dir === 'asc' ? 1 : -1;
   return out.sort((a, b) => {
-    const va = column.accessor(a);
-    const vb = column.accessor(b);
-    if (va === null && vb === null) return 0;
-    if (va === null) return 1;
-    if (vb === null) return -1;
-    if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
-    return String(va).localeCompare(String(vb)) * dir;
+    const primary = compareBy(a, b, column, dir);
+    if (primary !== 0 || !secondaryColumn) return primary;
+    return compareBy(a, b, secondaryColumn, secondaryDir);
   });
 }
 

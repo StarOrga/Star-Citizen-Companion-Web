@@ -57,6 +57,13 @@ export interface SwapCandidate {
   archetype: string | null;
   /** Damage channels it deals, strongest first (usually exactly one). */
   damageChannels: string[];
+  /**
+   * The port-attach discriminator the item's own payload declares
+   * (`AttachDef.Type`, e.g. `WeaponGun`, `MissileLauncher`). `null` when the
+   * payload carries none. Restores main's part-type filter (E-main-gap #40)
+   * for ports that accept more than one type — missile racks, utility bays.
+   */
+  attachType?: string | null;
   /** Curated stats by i18n label key — the table's cells. */
   stats: Record<string, SwapStatValue>;
   /** This is what sits on the hardpoint right now. */
@@ -272,6 +279,7 @@ export function buildSwapCandidate(input: SwapCandidateInput): SwapCandidate {
     typeLabel: swapTypeLabel(input.className, input.kind, input.payload),
     archetype: swapArchetype(input.className, name, input.subType),
     damageChannels: damageChannelsOf(input.payload, input.ammoPayload),
+    attachType: (input.payload as { attachType?: string | null } | null | undefined)?.attachType ?? null,
     stats,
     equipped: input.equipped === true,
   };
@@ -349,6 +357,11 @@ export function swapColumns(candidates: readonly SwapCandidate[]): SwapColumn[] 
 
 /** Rendered cell text for a candidate/column pair — "—" when it has no value. */
 export function swapCell(candidate: SwapCandidate, column: SwapColumn): string {
+  const direct = DIRECT_FIELD[column.key];
+  if (direct) {
+    const dv = direct(candidate);
+    return dv === null ? '—' : String(dv);
+  }
   const v = candidate.stats[column.key];
   if (!v) return '—';
   return formatEquippedStat({ labelKey: column.key, value: v.value, format: v.format });
@@ -785,7 +798,25 @@ function isEnergyWeapon(c: SwapCandidate): boolean {
   return c.damageChannels.length > 0 && c.damageChannels.every((d) => /energy|laser/i.test(d));
 }
 
+/**
+ * Columns the picker reads straight off a `SwapCandidate` field instead of
+ * `.stats` (mirrored by `DIRECT_ACCESSORS` in codex-swap-picker.component.ts —
+ * kept here too so `swapCellState`/`swapMissingSourceColumns` know these are
+ * never "no source": a `null` grade/manufacturer/etc. is a real per-item gap,
+ * not a missing extractor).
+ */
+const DIRECT_FIELD: Readonly<Record<string, (c: SwapCandidate) => string | number | null>> = {
+  [NAME_SORT_KEY]: (c) => c.name,
+  'codex.picker.col.grade': (c) => c.grade,
+  'codex.picker.col.manufacturer': (c) => c.manufacturerCode,
+  'codex.picker.col.damageType': (c) => c.damageChannels[0] ?? null,
+  'codex.picker.col.archetype': (c) => c.archetype,
+  'codex.picker.col.size': (c) => c.size,
+};
+
 export function swapCellState(candidate: SwapCandidate, key: string): SwapCellState {
+  const direct = DIRECT_FIELD[key];
+  if (direct) return direct(candidate) !== null ? 'value' : 'noSource';
   if (candidate.stats[key] !== undefined) return 'value';
   if (ALWAYS_NOT_APPLICABLE.has(key)) return 'notApplicable';
   if (ENERGY_NOT_APPLICABLE.has(key) && isEnergyWeapon(candidate)) return 'notApplicable';
