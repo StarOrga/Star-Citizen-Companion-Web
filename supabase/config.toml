@@ -133,8 +133,13 @@ verify_jwt = false
 # behind the patch board's stability indicator only mirrors public data
 # (Spectrum comment counts, the RSI status page, CIG's Known Issues article)
 # into two anon-readable tables via the service role. It is triggered by
-# pg_cron/pg_net without a JWT and self-throttles (skips when the newest sample
-# is < 6 h old), so an unauthenticated call cannot cause upstream load.
+# pg_cron/pg_net without a JWT. The plain daily path (no query params) is
+# self-throttled (skips when the newest sample is < 6 h old) and writes only
+# public data, so an unauthenticated call cannot cause upstream load. The
+# operator paths `?backfill=1` and `?force=1` bypass that throttle, so
+# index.ts requires an `Authorization: Bearer <service-role key>` header for
+# both — the platform-level JWT gate is off, but the function does its own
+# check.
 verify_jwt = false
 
 [functions.starscape-summary]

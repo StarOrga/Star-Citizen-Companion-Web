@@ -2622,9 +2622,12 @@ Append at the end of the "Secondary: RSI status" section:
 
 The tables are empty until the function has run. Sequence at ship time (after the function is deployed by CI and the migration applied from the primary checkout):
 
+Both operator paths (`?backfill=1`, `?force=1`) require the service-role
+bearer token — get it from `supabase secrets` / the dashboard, never from the
+repo:
 ```bash
-curl -s "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/patch-stability-sample?backfill=1" -H "apikey: sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ"
-curl -s "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/patch-stability-sample?force=1" -H "apikey: sb_publishable_ZWbS9qWheOQB0s77mlWLvw_wEcmTVDQ"
+curl -s "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/patch-stability-sample?backfill=1" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+curl -s "https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/patch-stability-sample?force=1" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 Expected: `{"ok":true,"registered":N}` (N ≈ 20) then `{"ok":true,"lines":["4.10","4.9"]}`.
 

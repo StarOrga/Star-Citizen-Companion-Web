@@ -17,9 +17,11 @@
 // `?backfill=1` registers every LIVE line the forum still lists (6 pages ≈ two
 // years) with its measured END-STATE, for lines that predate the sampler.
 //
-// verify_jwt=false (config.toml): public data, no user data. Self-throttled:
-// a run is skipped when the newest sample is younger than 6 h, so a stray
-// unauthenticated trigger costs one cheap query and nothing upstream.
+// verify_jwt=false (config.toml): public data, no user data. The plain daily
+// path is self-throttled (skips when the newest sample is < 6 h old) and
+// writes only public data. `?backfill=1` / `?force=1` bypass the throttle, so
+// they require the service-role bearer token — see the auth check in
+// Deno.serve below.
 //
 // The formula is NOT here. Raw numbers only — see src/app/news/patch-stability.ts.
 
@@ -63,8 +65,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+let adminClient: ReturnType<typeof createClient> | null = null;
 function admin() {
-  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  return adminClient ??= createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 }
 
 async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
@@ -90,12 +93,19 @@ async function listThreads(pages: number): Promise<ThreadRow[]> {
   const rows: ThreadRow[] = [];
   const seen = new Set<number>();
   for (let page = 1; page <= pages; page++) {
-    const json = await fetchJson(SPECTRUM_LIST_URL, {
-      method: 'POST',
-      headers: spectrumHeaders,
-      body: JSON.stringify({ channel_id: PATCH_NOTES_CHANNEL_ID, page, sort: 'newest' }),
-    }) as { data?: { threads?: unknown[] } };
-    const threads = json?.data?.threads ?? [];
+    let payload: { data?: { threads?: unknown[] } };
+    try {
+      payload = await fetchJson(SPECTRUM_LIST_URL, {
+        method: 'POST',
+        headers: spectrumHeaders,
+        body: JSON.stringify({ channel_id: PATCH_NOTES_CHANNEL_ID, page, sort: 'newest' }),
+      }) as { data?: { threads?: unknown[] } };
+    } catch (err) {
+      if (page === 1) throw err;
+      console.error(`patch-stability: thread list page ${page} failed:`, err);
+      break;
+    }
+    const threads = payload?.data?.threads ?? [];
     if (threads.length === 0) break;
     for (const t of threads) {
       const r = t as Record<string, unknown>;
@@ -124,12 +134,12 @@ interface ThreadPayload {
 
 async function fetchThread(slug: string): Promise<ThreadPayload | null> {
   try {
-    const json = await fetchJson(SPECTRUM_THREAD_URL, {
+    const payload = await fetchJson(SPECTRUM_THREAD_URL, {
       method: 'POST',
       headers: spectrumHeaders,
       body: JSON.stringify({ slug, channel_id: String(PATCH_NOTES_CHANNEL_ID), sort: 'votes', page: 1 }),
     }) as { data?: Record<string, unknown> };
-    const d = json?.data;
+    const d = payload?.data;
     if (!d) return null;
     return {
       replies_count: Number(d['replies_count']) || 0,
@@ -145,8 +155,8 @@ async function fetchThread(slug: string): Promise<ThreadPayload | null> {
 
 async function fetchStatusIssues(): Promise<StatusIssue[] | null> {
   try {
-    const json = await fetchJson(STATUS_URL, { headers: { 'User-Agent': USER_AGENT } }) as { pages?: Record<string, StatusIssue> };
-    return json?.pages ? Object.values(json.pages) : [];
+    const payload = await fetchJson(STATUS_URL, { headers: { 'User-Agent': USER_AGENT } }) as { pages?: Record<string, StatusIssue> };
+    return payload?.pages ? Object.values(payload.pages) : [];
   } catch (err) {
     console.error('patch-stability: status fetch failed:', err);
     return null;
@@ -155,9 +165,15 @@ async function fetchStatusIssues(): Promise<StatusIssue[] | null> {
 
 async function fetchKbArticle(): Promise<{ title?: string; edited_at?: string; body?: string } | null> {
   try {
-    const json = await fetchJson(KB_URL, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } }) as { article?: Record<string, unknown> };
-    const a = json?.article;
-    return a ? { title: String(a['title'] ?? ''), edited_at: String(a['edited_at'] ?? ''), body: String(a['body'] ?? '') } : null;
+    const payload = await fetchJson(KB_URL, { headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' } }) as { article?: Record<string, unknown> };
+    const a = payload?.article;
+    return a
+      ? {
+          title: String(a['title'] ?? ''),
+          edited_at: typeof a['edited_at'] === 'string' && a['edited_at'] ? a['edited_at'] : undefined,
+          body: String(a['body'] ?? ''),
+        }
+      : null;
   } catch (err) {
     console.error('patch-stability: KB fetch failed:', err);
     return null;
@@ -173,6 +189,17 @@ function communityOf(rn: ThreadPayload | null, hf: ThreadPayload | null) {
 async function upsertPatch(patch: LivePatch, rn: ThreadPayload | null, extra: Record<string, unknown> = {}) {
   const text = rn ? draftBlocksOf(rn.content_blocks).map((b) => b.text).join('\n') : '';
   const cig = text ? parseCigFixSentence(text) : null;
+  // Only send the cig_* keys when the sentence actually parsed: PostgREST
+  // writes only the keys present in the body, so omitting them here keeps
+  // yesterday's values instead of nulling them out on an unparsable edit.
+  const cigFields = cig
+    ? {
+        cig_fixes: cig.fixes,
+        cig_fixes_ic: cig.fromIssueCouncil,
+        cig_crash_fixes: cig.crashFixes,
+        cig_exploit_fixes: cig.exploitFixes,
+      }
+    : {};
   const { error } = await admin().from('patch_stability_patches').upsert({
     patch_line: patch.line,
     live_at: patch.liveAt,
@@ -180,10 +207,7 @@ async function upsertPatch(patch: LivePatch, rn: ThreadPayload | null, extra: Re
     notes_slug: patch.notes.slug,
     hotfix_thread_id: patch.hotfix?.id ?? null,
     hotfix_slug: patch.hotfix?.slug ?? null,
-    cig_fixes: cig?.fixes ?? null,
-    cig_fixes_ic: cig?.fromIssueCouncil ?? null,
-    cig_crash_fixes: cig?.crashFixes ?? null,
-    cig_exploit_fixes: cig?.exploitFixes ?? null,
+    ...cigFields,
     updated_at: new Date().toISOString(),
     ...extra,
   }, { onConflict: 'patch_line' });
@@ -199,7 +223,7 @@ async function sampleLine(patch: LivePatch, issues: StatusIssue[] | null, kb: Aw
   await upsertPatch(patch, rn);
 
   const community = communityOf(rn, hf);
-  const window = issues
+  const statusWin = issues
     ? statusWindow(issues, new Date(now.getTime() - WINDOW_DAYS * DAY_MS).toISOString(), now.toISOString())
     : { unplannedMinutes: 0, unplannedCount: 0, openIncident: false };
   const snap = kb ? kbSnapshot(kb, patch.line) : null;
@@ -216,23 +240,29 @@ async function sampleLine(patch: LivePatch, issues: StatusIssue[] | null, kb: Aw
     top_ticket_vote_share: community.ticketVoteShare,
     top_tickets: community.tickets,
     hotfix_events: hf ? parseHotfixEvents(hf.content_blocks) : [],
-    outage_min_7d: window.unplannedMinutes,
-    open_incident: window.openIncident,
+    outage_min_7d: statusWin.unplannedMinutes,
+    open_incident: statusWin.openIncident,
     kb_open_total: snap?.openTotal ?? null,
     kb_by_section: snap?.bySection ?? null,
     kb_anchor_ids: snap?.anchorIds ?? null,
-    kb_edited_at: snap?.editedAt ?? null,
+    kb_edited_at: snap?.editedAt || null,
   }, { onConflict: 'patch_line,sampled_on' });
   if (error) throw new Error(`samples upsert ${patch.line}: ${error.message}`);
 }
 
 async function newestSampleAt(): Promise<number> {
-  const { data } = await admin()
+  const { data, error } = await admin()
     .from('patch_stability_samples')
     .select('sampled_at')
     .order('sampled_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (error) {
+    // Fail closed: an unreadable throttle state must skip the run, not
+    // silently bypass it.
+    console.error('patch-stability: throttle lookup failed:', error.message);
+    return Date.now();
+  }
   const t = data ? Date.parse(String((data as { sampled_at: string }).sampled_at)) : NaN;
   return Number.isFinite(t) ? t : 0;
 }
@@ -278,13 +308,15 @@ async function runBackfill(): Promise<Response> {
         patch.hotfix ? fetchThread(patch.hotfix.slug) : Promise.resolve(null),
       ]);
       if (!rn) continue;
+      // Ticket shares use every OPEN thread (RN only before 4.9, RN + HF from
+      // 4.9 on) — the same mixed population the daily path measures.
+      // final_replies stays RN-only because it is the one count comparable
+      // across every line (Hotfix Central threads were locked before 4.9).
       const community = communityOf(rn, hf);
-      const window = issues ? statusWindow(issues, patch.liveAt, endIso) : null;
+      const statusWin = issues ? statusWindow(issues, patch.liveAt, endIso) : null;
       await upsertPatch(patch, rn, {
-        // RN only: Hotfix Central threads were locked before 4.9, so the RN
-        // count is the one comparable across every line.
         final_replies: rn.replies_count,
-        final_outage_min_per_day: window ? window.unplannedMinutes / days : null,
+        final_outage_min_per_day: statusWin ? statusWin.unplannedMinutes / days : null,
         final_ticket_share: community.ticketShare,
         final_ticket_vote_share: community.ticketVoteShare,
       });
@@ -307,9 +339,17 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
   if (!SUPABASE_URL || !SERVICE_KEY) return json({ ok: false, error: 'service role not configured' }, 500);
   const url = new URL(req.url);
+  const wantsBackfill = url.searchParams.get('backfill') === '1';
+  const wantsForce = url.searchParams.get('force') === '1';
+  if (wantsBackfill || wantsForce) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${SERVICE_KEY}`) {
+      return json({ ok: false, error: 'operator paths require the service role' }, 401);
+    }
+  }
   try {
-    if (url.searchParams.get('backfill') === '1') return await runBackfill();
-    return await runDaily(url.searchParams.get('force') === '1');
+    if (wantsBackfill) return await runBackfill();
+    return await runDaily(wantsForce);
   } catch (err) {
     console.error('patch-stability-sample failed:', err);
     return json({ ok: false, error: String(err) }, 500);
