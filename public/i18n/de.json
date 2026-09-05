@@ -3140,7 +3140,7 @@
     },
     "review": {
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
-      "accept": "Ins Archiv — erledigt",
+      "accept": "Abgenommen",
       "reopen": "Gespräch wieder aufnehmen",
       "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
       "reopenPlaceholder": "Was soll noch anders werden?",

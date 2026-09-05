@@ -296,4 +296,38 @@ describe('AdminFeedbackComponent — the stream', () => {
     // Red is the admin avatar and the one primary CTA: the feed's ✓ is not red.
     expect(pending.querySelector('.card-links .sc-btn.hot')).toBeNull();
   });
+
+  /**
+   * The sign-off on a stream card is three controls in the card's own body
+   * (feedback a398fc94): look at it live, open the topic, sign it off. No frame
+   * of its own around them, and no "Gespräch wieder aufnehmen" — reopening a
+   * topic means writing WHY, and that happens inside the topic.
+   */
+  it('shows the sign-off on the lead card frameless, without a second way to reopen', async () => {
+    const { el } = await mount({
+      admin_feedback: [
+        row('r9', 'shipped', T('07'), {
+          shipped_at: T('11'),
+          reviewed_at: null,
+          area: 'codex',
+          ship_ref: 'https://github.com/x/y/pull/9',
+        }),
+      ],
+      admin_feedback_messages: [],
+    });
+
+    const gate = el.querySelector('.card.lead .card-inline .review-gate')!;
+    expect(gate).not.toBeNull();
+    expect(gate.classList.contains('inline')).toBeTrue();
+    expect(gate.classList.contains('sc-nest')).toBeFalse();
+
+    const labels = Array.from(gate.querySelectorAll('button, a')).map((b) => b.textContent?.trim() ?? '');
+    expect(labels.some((l) => l.includes('adminFeedback.actions.viewInApp'))).toBeTrue();
+    expect(labels.some((l) => l.includes('adminFeedback.stream.openTopic'))).toBeTrue();
+    expect(labels.some((l) => l.includes('adminFeedback.review.accept'))).toBeTrue();
+    expect(labels.some((l) => l.includes('adminFeedback.review.reopen'))).toBeFalse();
+
+    // The topic sheet still owns the reopen — the card only dropped the shortcut.
+    expect(el.querySelector('.card.lead ~ .inline-actions')).toBeNull();
+  });
 });

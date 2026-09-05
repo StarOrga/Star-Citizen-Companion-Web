@@ -3140,7 +3140,7 @@
     },
     "review": {
       "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
-      "accept": "To the archive — done",
+      "accept": "Signed off",
       "reopen": "Resume the conversation",
       "reopenHint": "Say briefly what is still off — this reopens the topic and the routine reads your answer as the brief.",
       "reopenPlaceholder": "What should be different?",
