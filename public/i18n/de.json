@@ -1567,11 +1567,14 @@
           "live": "Live",
           "testing": "Im Test",
           "cadence": "Takt",
-          "cadenceFoot": "Median · n = {{n}}",
-          "state": "Status",
-          "stateFoot": "{{days}} von ~{{median}} T",
-          "hotfix": "Hotfixes",
-          "hotfixNone": "keiner seit Live"
+          "hotfixNone": "keine Hotfixes",
+          "cadenceStateFoot": "{{days}} von ~{{median}} T · Median · n = {{n}}",
+          "next": "Nächster",
+          "goLive": "Live-Start",
+          "nextUnknown": "Nächster Patch",
+          "nextEta": "vsl. {{date}}",
+          "hotfixOne": "1 Hotfix · {{date}}",
+          "hotfixMany": "{{n}} Hotfixes · zuletzt {{date}}"
         }
       }
     },

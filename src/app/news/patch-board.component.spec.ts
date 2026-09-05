@@ -187,12 +187,21 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(order.map((el) => el.tagName === 'SC-PATCH-MONITOR' ? 'monitor' : el.className))
       .toEqual(['monitor', 'search', 'stack']);
 
-    // Four readouts, not four sentences: live line, cadence, state, hotfixes.
+    // Three cells, read as the rail's legend: where the run started (with the
+    // hotfixes as a side note there), how it is going, where it ends.
     const tiles = Array.from(panel!.querySelectorAll('.tile')) as HTMLElement[];
-    expect(tiles.length).toBe(4);
+    expect(tiles.length).toBe(3);
     expect(tiles[0].textContent).toContain('Alpha 4.10');
-    expect(tiles[3].textContent).toContain('Hotfix');
+    expect(tiles[0].querySelector('.side')?.textContent)
+      .withContext('hotfixes ride along with the live patch, not a readout of their own').toContain('Hotfix');
+    expect(tiles[2].textContent).withContext('the cell at the rail\'s end names the next line').toContain('Alpha 4.11');
     expect(panel!.querySelector('.answer b')?.textContent?.trim()).withContext('the estimated date').toBeTruthy();
+
+    // The cell widths come from the rail — the legend sits under what it explains.
+    expect((panel!.querySelector('.tiles') as HTMLElement).style.getPropertyValue('--tile-cols'))
+      .withContext('cell boundaries follow the rail geometry').toContain('fr');
+    expect(panel!.querySelectorAll('.months .mo').length)
+      .withContext('a coarse month scale under the rail').toBeGreaterThan(0);
   });
 
   it('keeps the caveats and the colour key behind the (i)', async () => {
