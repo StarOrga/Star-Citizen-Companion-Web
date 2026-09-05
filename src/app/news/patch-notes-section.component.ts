@@ -29,6 +29,8 @@ import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { outlineHaystack } from './patch-outline';
 import { matchesTokens, tokenizeQuery } from './patch-search';
 import { relativeTime } from './relative-time';
+import { PatchStabilityService } from './patch-stability.service';
+import { StabilityHistoryComponent } from './stability-history.component';
 
 /** Add/remove one member of a multi-select filter set, returning a new set. */
 function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
@@ -82,6 +84,7 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
     PatchCadenceComponent,
     PatchRoadmapBandComponent,
     PatchEntryRowComponent,
+    StabilityHistoryComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -131,6 +134,12 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
            chip selection must not be able to rewrite. The panel owns its own
            six-months-vs-all-time window and derives its charts and forecast. -->
       <sc-patch-cadence [groups]="svc.patchLines()" />
+
+      <!-- All-time stability, one column per LIVE line. Fed by the sampler's
+           tables; hides itself when they are unreachable or hold < 2 lines. -->
+      @if (!stability.unavailable()) {
+        <sc-stability-history [verdicts]="stability.allTime()" (showLine)="focusLine($event)" />
+      }
 
       <!-- At a glance: the newest note per channel, at most one each. -->
       @if (highlights().length > 0) {
@@ -515,6 +524,7 @@ function toggled<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
 export class PatchNotesSectionComponent implements OnDestroy {
   readonly svc = inject(NewsService);
   readonly roadmap = inject(RoadmapService);
+  readonly stability = inject(PatchStabilityService);
   private readonly t = inject(TranslateService);
 
   // ── Free-text search (961ab0a5) ──────────────────────────────────────────
@@ -602,6 +612,11 @@ export class PatchNotesSectionComponent implements OnDestroy {
    */
   private readonly loadRoadmapOnce = effect(() => {
     void this.roadmap.loadRoadmap();
+  });
+
+  /** Same shape as the roadmap: the section is what renders the verdicts, so it asks for them. */
+  private readonly loadStabilityOnce = effect(() => {
+    void this.stability.load();
   });
 
   /**
