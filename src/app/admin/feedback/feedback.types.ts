@@ -175,6 +175,14 @@ export interface FeedbackRow {
    * `asFeedbackArea()` before showing it.
    */
   area?: string | null;
+  /**
+   * The routine's one-line title for the topic (migration 20260906140000,
+   * feedback d08f1983). Written when the routine claims the row, because that
+   * is the moment somebody actually read the whole thing. `null`/absent on
+   * every topic nobody summarised yet — see {@link displayTitle}, which then
+   * falls back to the body.
+   */
+  summary?: string | null;
 }
 
 /**
@@ -271,6 +279,22 @@ export function topicTitle(body: string, max = 64): string {
   const firstSentence = text.split(/(?<=[.!?])\s+/)[0] ?? text;
   const base = firstSentence.length <= max ? firstSentence : text;
   return base.length > max ? `${base.slice(0, max - 2).trimEnd()}…` : base;
+}
+
+/**
+ * What a card head calls a topic: the routine's summary when there is one, the
+ * body-derived title otherwise (feedback d08f1983).
+ *
+ * The fallback is the whole point of the column being nullable — a row nobody
+ * summarised yet must keep reading exactly as it did before, never as an empty
+ * head. The summary goes through the same {@link plainText} + cap treatment as
+ * a derived title, so a summary that arrives with markup or over-long (an older
+ * writer, a hand-written value) cannot break the row layout.
+ */
+export function displayTitle(row: FeedbackRow, max = 64): string {
+  const summary = plainText(row.summary ?? '');
+  if (!summary) return topicTitle(row.body, max);
+  return summary.length > max ? `${summary.slice(0, max - 2).trimEnd()}…` : summary;
 }
 
 /**
@@ -988,7 +1012,11 @@ function numberQuality(term: string, numberText: string | null): number {
 
 /** The searchable text of one topic, normalized once per query pass. */
 function haystack(row: FeedbackRow, replies: readonly FeedbackMessage[] | undefined) {
-  const body = normalizeSearchText(row.body);
+  // The routine's summary counts as part of the topic, not as a separate field:
+  // it is what the board CALLS this row (feedback d08f1983), so searching for
+  // the words on the card must find the card, and a hit there is an "in the
+  // topic" hit like any other.
+  const body = normalizeSearchText([row.summary ?? '', row.body].filter(Boolean).join(' \n '));
   const thread = normalizeSearchText((replies ?? []).map((r) => r.body).join(' \n '));
   const author = normalizeSearchText(
     [row.author?.display_name, row.author?.username, ...(replies ?? []).map((r) => r.author?.display_name)]

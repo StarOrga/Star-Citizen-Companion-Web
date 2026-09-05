@@ -3012,13 +3012,11 @@
       "draftDiscard": "Entwurf verwerfen",
       "draftDiscardConfirm": "Wirklich verwerfen?",
       "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
-      "attachHint": "Bilder einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
       "attachmentsLabel": "Anhänge",
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
       "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
-      "attachHintFiles": "Bilder oder Dateien einfügen (Strg+V), ablegen oder direkt die Seite aufnehmen",
       "captureError": "Screenshot der Seite konnte nicht erstellt werden.",
       "imagesOnly": "Hier sind nur Bilder als Anhang möglich.",
       "fileTooLarge": "Datei zu groß – maximal {{max}} MB pro Anhang.",
@@ -3141,8 +3139,6 @@
       }
     },
     "review": {
-      "headlineShipped": "Geshipped — bitte abnehmen",
-      "headlineIssue": "An ein Issue übergeben — bitte abnehmen",
       "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
       "accept": "Ins Archiv — erledigt",
       "reopen": "Gespräch wieder aufnehmen",
