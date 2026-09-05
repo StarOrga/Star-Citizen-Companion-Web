@@ -62,7 +62,9 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
                         [attr.data-level]="d.level" [attr.title]="dayTitle(d)">
                     <span class="col-bar" [style.height.%]="pct(d.score)"></span>
                     @if (d.hotfixes.length > 0) {
-                      <span class="tick" [attr.title]="hotfixTitle(d)" aria-hidden="true"></span>
+                      <!-- Decorative: the build number rides along in the column's
+                           own title, which is reachable from the whole column. -->
+                      <span class="tick" aria-hidden="true"></span>
                     }
                   </span>
                 }
@@ -203,13 +205,21 @@ export class StabilityPanelComponent {
     return (Date.parse(d.date + 'T00:00:00Z') - Date.parse(v.liveAt)) / 86_400_000 < EARLY_DAYS;
   }
 
+  /**
+   * The column's tooltip — and the ONLY place a hotfix's build number is
+   * readable. The tick below the column is 2 px wide and decorative, so
+   * hanging the build number off it alone would put it out of reach of a
+   * keyboard, a screen reader and most mice alike.
+   */
   dayTitle(d: StabilityDay): string {
-    return this.t.instant('news.patch.stability.dayTitle', {
+    const base = this.t.instant('news.patch.stability.dayTitle', {
       date: d.date,
       level: this.t.instant(`news.patch.stability.level.${d.level}`),
       score: this.pct(d.score),
       velocity: Math.round(d.velocity),
     });
+    const hotfixes = this.hotfixTitle(d);
+    return hotfixes ? `${base} · ${hotfixes}` : base;
   }
 
   hotfixTitle(d: StabilityDay): string {
