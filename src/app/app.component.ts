@@ -5,6 +5,7 @@ import { AuthService } from './auth/auth.service';
 import { AnalyticsService } from './core/analytics.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
+import { RouteLoadRecoveryService } from './core/route-load-recovery.service';
 import { SupabaseClientProvider } from './core/supabase.client';
 import { SwUpdateService } from './core/sw-update.service';
 import { ImpersonationBannerComponent } from './shell/impersonation-banner.component';
@@ -101,6 +102,7 @@ export class AppComponent implements OnInit {
   private readonly analytics = inject(AnalyticsService);
   private readonly locale = inject(LocaleService);
   readonly swUpdate = inject(SwUpdateService);
+  private readonly routeRecovery = inject(RouteLoadRecoveryService);
 
   /**
    * Guards the preference race: the profile's locale columns are applied only
@@ -161,6 +163,11 @@ export class AppComponent implements OnInit {
 
     this.auth.init();
     this.swUpdate.init();
+    // Turns a route whose lazy chunk will not load back into a working
+    // navigation instead of a menu entry that silently does nothing (admin
+    // feedback cdb16d63). Wired here, not in the shell, so it also covers the
+    // public layout and the very first navigation of a page load.
+    this.routeRecovery.init();
     // No-op without a configured key or statistics consent (#139).
     this.analytics.init();
     // C7 — one-shot: reads UTM params off THIS load's URL; no-op without
