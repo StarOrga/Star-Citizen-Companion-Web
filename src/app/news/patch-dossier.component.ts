@@ -374,15 +374,19 @@ const SPY_CLEARANCE_PX = 24;
     .lines li { position: relative; padding-left: 14px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.45; }
     .lines li::before { content: '▪'; position: absolute; left: 0; color: var(--sc-accent); font-size: 0.6em; top: 0.4em; }
 
-    .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
-    .fc { display: flex; flex-direction: column; border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; background: var(--sc-bg-1); }
-    .fc.open { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); }
-    .fc .img { position: relative; height: 96px; background: linear-gradient(135deg, var(--sc-bg-3), var(--sc-bg-0)); }
-    .fc .img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .fc .st { position: absolute; right: 8px; top: 8px; padding: 2px 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent); font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2); }
+    /* Roadmap cards read horizontal: the picture owns the left ~40 % at full
+       card height, the text sits beside it. Owner feedback on the first
+       signed-in look: "zu wenig Bildfläche … etwas horizontaler". Two cards
+       per row at dossier width, one on phones. */
+    .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); }
+    .fc { display: grid; grid-template-columns: minmax(150px, 40%) minmax(0, 1fr); border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; background: var(--sc-bg-1); }
+    .fc.open { grid-column: 1 / -1; grid-template-columns: minmax(200px, 34%) minmax(0, 1fr); border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); }
+    .fc .img { position: relative; min-height: 150px; height: 100%; background: linear-gradient(135deg, var(--sc-bg-3), var(--sc-bg-0)); }
+    .fc .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .fc .st { position: absolute; left: 8px; top: 8px; padding: 2px 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent); font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2); }
     .fc .st[data-status='released'] { color: var(--sc-success); }
     .fc .st[data-status='committed'] { color: var(--sc-accent); }
-    .fc .bd { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 12px; }
+    .fc .bd { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 12px; min-width: 0; }
     .fc .nm { font-size: max(0.8rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-0); }
     .fc .short, .fc .long { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.45; }
     .fc .long { border-top: 1px dashed var(--sc-border); padding-top: 6px; }
@@ -441,6 +445,8 @@ const SPY_CLEARANCE_PX = 24;
       .toc-marker { display: none; }
       .toc-link.active { background: var(--sc-accent); color: var(--sc-bg-0); }
       .sec { padding: 12px 14px 14px; scroll-margin-top: 140px; }
+      .fc, .fc.open { grid-template-columns: minmax(0, 1fr); }
+      .fc .img { min-height: 120px; height: 120px; }
       .hits li { grid-template-columns: 1fr; gap: 3px; }
     }
   `],
