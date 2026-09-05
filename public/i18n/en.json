@@ -1339,8 +1339,8 @@
         "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
-        "title": "Patch history",
-        "sub": "Roadmap, cadence, dates and every release note — searchable down to the single bullet point",
+        "title": "Patches",
+        "sub": "Future on top, now in the middle, past below — a patch opens its dossier",
         "back": "Back to Verse News"
       },
       "waves": {
@@ -1351,7 +1351,10 @@
         "placeholder": "e.g. Orison, hotfix, quantum drive",
         "clear": "Clear search",
         "summary": "{{notes}} notes across {{lines}} patch lines",
-        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes"
+        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes",
+        "boardSummary": "{{cards}} patches with hits · bullet points of {{loaded}} loaded notes searched",
+        "noHits": "No patch matches the search.",
+        "cardHits": "{{notes}} notes · {{lines}} bullet points · {{roadmap}} roadmap items"
       },
       "roadmap": {
         "title": "What's in it",
@@ -1388,6 +1391,87 @@
         "points": "{{count}} points",
         "expandAll": "Expand all notes",
         "collapseAll": "Collapse all notes"
+      },
+      "status": {
+        "next": "Next",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Superseded",
+        "other": "No version"
+      },
+      "stack": {
+        "aria": "Patches, newest first",
+        "sinceDays": "for {{n}} days",
+        "replaced": "on {{date}}",
+        "liveSince": "Live since {{date}}",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Never went live",
+        "ptuExpected": "PTU expected {{when}}",
+        "noBuild": "No build yet",
+        "plannedFor": "Planned for {{quarter}}",
+        "inRing": "In {{ring}} · {{n}} waves · {{ago}}",
+        "hotfixOne": "1 hotfix on {{date}}",
+        "hotfixes": "{{n}} hotfixes, latest {{date}}",
+        "nextLive": "next live patch {{when}} (estimate)",
+        "notes": "{{n}} notes",
+        "planned": "{{n}} roadmap items",
+        "older": "Older patches · {{lines}}",
+        "olderHide": "Collapse older patches"
+      },
+      "dossier": {
+        "close": "Close dossier",
+        "toc": "Sections",
+        "unknown": "No patch data for Alpha {{line}}.",
+        "section": {
+          "prep": "How do I prepare?",
+          "contents": "What's in it?",
+          "fixed": "Did they fix …?",
+          "next": "When is the next one?"
+        }
+      },
+      "prep": {
+        "source": "per the Spectrum post (\"Important Build Info\")",
+        "known": "Known issues",
+        "focus": "Testing focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In the release notes",
+        "more": "Full text",
+        "less": "Collapse",
+        "leftover": "Further note bullets without a roadmap card ({{n}})",
+        "noRoadmap": "No roadmap data for this patch – here is the note \"{{title}}\":"
+      },
+      "fixed": {
+        "placeholder": "Search this patch … e.g. quantum drive",
+        "hits": "{{n}} hits in {{notes}} notes",
+        "coverage": "{{loaded}} of {{total}} notes fully searched",
+        "loadRest": "Load and search the remaining notes",
+        "loading": "Loading {{n}} notes …",
+        "noHits": "No hit in the loaded notes – titles are always searched.",
+        "allNotes": "All notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Next live patch expected around {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} was superseded by Alpha {{next}} on {{date}}.",
+        "sentencePlanned": "Alpha {{line}} expected live around {{date}} per the cadence — {{when}}.",
+        "disclaimer": "Median estimates from the patch cadence, not official dates.",
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "1st test build",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix",
+          "now": "today",
+          "nextLive": "Next live {{version}}"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} days",
+          "cadence": "Live → Live: {{days}} days",
+          "subCadence": "Hotfix cadence: {{days}} days"
+        },
+        "median": "Median {{n}} d · n = {{samples}}",
+        "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)"
       }
     },
     "detail": {

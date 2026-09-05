@@ -113,9 +113,19 @@ export const routes: Routes = [
       {
         // The patch depth lives on its own page since the 2026-08-20 rethink:
         // on the landing page it cost 2,019 px above the first news article.
+        // 2026-09-04 rethink: the board is a time stack, and one patch opens
+        // as a routed overlay (`/news/patches/4.10`) rendered through the
+        // board's outlet — deep-linkable, browser back closes it.
         path: 'news/patches',
         loadComponent: () =>
           import('./news/patch-board.component').then((m) => m.PatchBoardComponent),
+        children: [
+          {
+            path: ':line',
+            loadComponent: () =>
+              import('./news/patch-dossier.component').then((m) => m.PatchDossierComponent),
+          },
+        ],
       },
       {
         path: 'starscape',

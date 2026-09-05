@@ -1339,8 +1339,8 @@
         "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
-        "title": "Patch-Historie",
-        "sub": "Roadmap, Takt, Termine und jede Release-Note — durchsuchbar bis zum einzelnen Stichpunkt",
+        "title": "Patches",
+        "sub": "Zukunft oben, Jetzt in der Mitte, Vergangenheit unten — ein Patch öffnet sein Dossier",
         "back": "Zurück zu Verse News"
       },
       "waves": {
@@ -1351,7 +1351,10 @@
         "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
         "clear": "Suche löschen",
         "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
-        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes"
+        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes",
+        "boardSummary": "{{cards}} Patches mit Treffern · Stichpunkte von {{loaded}} geladenen Notes durchsucht",
+        "noHits": "Kein Patch passt zur Suche.",
+        "cardHits": "{{notes}} Notes · {{lines}} Stichpunkte · {{roadmap}} Roadmap-Einträge"
       },
       "roadmap": {
         "title": "Was steckt drin",
@@ -1388,6 +1391,87 @@
         "points": "{{count}} Punkte",
         "expandAll": "Alle Notes ausklappen",
         "collapseAll": "Alle Notes einklappen"
+      },
+      "status": {
+        "next": "Nächster",
+        "evocati": "Evocati",
+        "ptu": "PTU",
+        "live": "Live",
+        "superseded": "Abgelöst",
+        "other": "Ohne Version"
+      },
+      "stack": {
+        "aria": "Patches, neueste zuerst",
+        "sinceDays": "seit {{n}} Tagen",
+        "replaced": "am {{date}}",
+        "liveSince": "Seit {{date}} live",
+        "liveSpan": "Live {{from}} – {{to}}",
+        "neverLive": "Nie live gegangen",
+        "ptuExpected": "PTU erwartet {{when}}",
+        "noBuild": "Noch kein Build",
+        "plannedFor": "Geplant für {{quarter}}",
+        "inRing": "Im {{ring}} · {{n}} Wellen · {{ago}}",
+        "hotfixOne": "1 Hotfix am {{date}}",
+        "hotfixes": "{{n}} Hotfixes, letzter {{date}}",
+        "nextLive": "nächster Live-Patch {{when}} (Schätzung)",
+        "notes": "{{n}} Notes",
+        "planned": "{{n}} Roadmap-Einträge",
+        "older": "Ältere Patches · {{lines}}",
+        "olderHide": "Ältere Patches einklappen"
+      },
+      "dossier": {
+        "close": "Dossier schließen",
+        "toc": "Abschnitte",
+        "unknown": "Zu Alpha {{line}} liegen keine Patch-Daten vor.",
+        "section": {
+          "prep": "Wie bereite ich mich vor?",
+          "contents": "Was steckt drin?",
+          "fixed": "Haben sie … gefixt?",
+          "next": "Wann kommt der nächste?"
+        }
+      },
+      "prep": {
+        "source": "laut Spectrum-Post („Important Build Info“)",
+        "known": "Bekannte Probleme",
+        "focus": "Testing Focus",
+        "wipe": "Wipe"
+      },
+      "contents": {
+        "inNotes": "In den Release-Notes",
+        "more": "Langtext",
+        "less": "Einklappen",
+        "leftover": "Weitere Stichpunkte der Note ohne Roadmap-Karte ({{n}})",
+        "noRoadmap": "Keine Roadmap-Daten zu diesem Patch – hier die Note „{{title}}“:"
+      },
+      "fixed": {
+        "placeholder": "In diesem Patch suchen … z. B. Quantum Drive",
+        "hits": "{{n}} Treffer in {{notes}} Notes",
+        "coverage": "{{loaded}} von {{total}} Notes voll durchsucht",
+        "loadRest": "Restliche Notes laden und durchsuchen",
+        "loading": "Lade {{n}} Notes …",
+        "noHits": "Kein Treffer in den geladenen Notes – Titel werden immer durchsucht.",
+        "allNotes": "Alle Notes ({{n}})"
+      },
+      "next": {
+        "sentenceLive": "Nächster Live-Patch voraussichtlich um den {{date}} — {{when}}.",
+        "sentenceHistory": "Alpha {{line}} wurde am {{date}} von Alpha {{next}} abgelöst.",
+        "sentencePlanned": "Alpha {{line}} laut Takt voraussichtlich um den {{date}} live — {{when}}.",
+        "disclaimer": "Median-Schätzungen aus dem Patch-Takt, keine offiziellen Termine.",
+        "point": {
+          "prevLive": "Live {{version}}",
+          "firstTest": "1. Testbuild",
+          "live": "Live {{version}}",
+          "hotfix": "Hotfix",
+          "now": "heute",
+          "nextLive": "Nächster Live {{version}}"
+        },
+        "span": {
+          "leadTime": "Test → Live: {{days}} Tage",
+          "cadence": "Live → Live: {{days}} Tage",
+          "subCadence": "Hotfix-Takt: {{days}} Tage"
+        },
+        "median": "Median {{n}} T · n = {{samples}}",
+        "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)"
       }
     },
     "detail": {
