@@ -84,7 +84,9 @@
     "minimize": "Réduire dans la zone de notification à la fermeture",
     "minimizeHint": "La croix masque la fenêtre au lieu de quitter.",
     "autoStart": "Démarrer avec Windows",
-    "autoStartHint": "Démarre avec Windows — directement en zone de notification, sans fenêtre."
+    "autoStartHint": "Démarre avec Windows — directement en zone de notification, sans fenêtre.",
+    "quitAfterAutoRun": "Se refermer quand il n'y a rien à faire",
+    "quitAfterAutoRunHint": "Uniquement pour le démarrage avec Windows : si le patch actuel est déjà entièrement envoyé, le programme se referme aussitôt — et après un envoi, dès qu'il est terminé."
   },
   "autorun": {
     "toggle": "Tout exécuter automatiquement si data.p4k est plus récent",

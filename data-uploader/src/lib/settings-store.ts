@@ -31,6 +31,15 @@ export interface Settings {
    */
   shutdownAfterUpload: boolean;
   /**
+   * After an UNATTENDED launch (the `--hidden` autostart login item), close the
+   * program again once there is nothing left for it to do: immediately when the
+   * auto-run decided the server already holds this build, and right after a
+   * fully-confirmed upload. Default ON — an autostart that leaves a tray icon
+   * sitting there forever is the thing nobody asked for; a foreground start the
+   * operator opened themselves is never touched by this.
+   */
+  quitAfterAutoRun: boolean;
+  /**
    * Auto-update ring the operator opted into (role-gated in the UI). Default
    * 'stable'; only admins/collaborators ever see the picker to change it. The
    * renderer maps it onto electron-updater's channel via the main process.
@@ -77,6 +86,10 @@ export class SettingsStore {
         typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
       shutdownAfterUpload:
         typeof parsed?.shutdownAfterUpload === 'boolean' ? parsed.shutdownAfterUpload : false,
+      // Default ON (unlike the two above): this one only ever ENDS a process
+      // nobody is looking at, so the safe direction is to do it.
+      quitAfterAutoRun:
+        typeof parsed?.quitAfterAutoRun === 'boolean' ? parsed.quitAfterAutoRun : true,
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
           ? parsed.updateChannel

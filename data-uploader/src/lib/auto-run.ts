@@ -95,3 +95,30 @@ export function describeDecision(d: AutoRunDecision): string {
   }
   return `no auto-run (${d.reason})`;
 }
+
+/**
+ * Should an unattended launch close itself again?
+ *
+ * The operator asked for an autostart that does not leave a tray icon behind
+ * when there was nothing to do (feedback 71b1e402). "Nothing to do" is a
+ * narrower claim than "we did not start a run": of the six skip reasons, only
+ * `already-uploaded` is the tool saying *the server already has this build*.
+ * The others mean it could not tell (`no-snapshot`, `unknown-local-version`,
+ * `no-channels`), was not allowed to (`no-session`), or was never asked
+ * (`disabled`) — quitting on those would hide a problem behind a process that
+ * silently vanishes at every login.
+ *
+ * Foreground starts are never affected: the operator opened the window, so the
+ * window stays.
+ */
+export function shouldQuitAfterAutoRun(input: {
+  /** Launched by the login item with `--hidden`, i.e. nobody is watching. */
+  startedHidden: boolean;
+  /** The `quitAfterAutoRun` preference. */
+  enabled: boolean;
+  /** Why the auto-run decided not to run. */
+  reason?: SkipReason;
+}): boolean {
+  if (!input.startedHidden || !input.enabled) return false;
+  return input.reason === 'already-uploaded';
+}

@@ -7,6 +7,7 @@
  */
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
+import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -63,6 +64,7 @@ interface PublicSettings {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  quitAfterAutoRun: boolean;
   updateChannel: 'alpha' | 'beta' | 'stable';
 }
 import {
@@ -236,6 +238,7 @@ async function init(): Promise<void> {
   // autostart is exempt: it has no one to click "connect", so it keeps using the
   // stored session to drive the auto-run.
   requireFreshLogin = !env.startedHidden;
+  startedHidden = env.startedHidden;
 
   const select = $('#lang-select') as HTMLSelectElement | null;
   if (select) {
@@ -358,7 +361,22 @@ async function maybeAutoRun(): Promise<void> {
   } catch {
     return;
   }
-  if (!decision.run || !decision.channel) return;
+  if (!decision.run || !decision.channel) {
+    // Nothing to upload and nobody watching → close again instead of leaving a
+    // tray icon behind for the rest of the day (feedback 71b1e402). Only for the
+    // one skip reason that actually means "the server already has this build";
+    // every other reason is something the operator should still be able to see.
+    if (
+      shouldQuitAfterAutoRun({
+        startedHidden,
+        enabled: Boolean(state.settings?.quitAfterAutoRun),
+        reason: decision.reason,
+      })
+    ) {
+      await window.sc.system.quit();
+    }
+    return;
+  }
 
   // Adopt the decided channel as the selection the run operates on.
   state.channels = [
@@ -423,6 +441,12 @@ const conn = {
 // this session before any silent/persisted token is used. Cleared the moment an
 // interactive login succeeds.
 let requireFreshLogin = false;
+/**
+ * True only for the `--hidden` autostart launch. It gates every "close yourself
+ * again" path (feedback 71b1e402): a window the operator opened themselves is
+ * never closed out from under them.
+ */
+let startedHidden = false;
 
 async function initConnectionTile(): Promise<void> {
   // 1. Instant paint from the remembered snapshot — no network ("Fortschritt gemerkt").
@@ -1154,6 +1178,15 @@ function renderConfigure(): string {
         <input type="checkbox" id="chk-autostart" ${state.settings?.autoStart ? 'checked' : ''} />
         <span>${t('tray.autoStart', {}) || 'Mit Windows starten'}</span>
       </label>
+      <label class="auto-upload-toggle sub" title="${t('tray.quitAfterAutoRunHint', {}) || 'Gilt nur für den Start mit Windows: ist der aktuelle Patch schon vollständig hochgeladen, beendet sich das Programm sofort wieder — und nach einem Upload, sobald der fertig ist.'}">
+        <input
+          type="checkbox"
+          id="chk-quit-after-autorun"
+          ${state.settings?.quitAfterAutoRun ? 'checked' : ''}
+          ${state.settings?.autoStart ? '' : 'disabled'}
+        />
+        <span>${t('tray.quitAfterAutoRun', {}) || 'Danach automatisch beenden, wenn nichts zu tun ist'}</span>
+      </label>
       <label class="auto-upload-toggle" title="${t('autorun.hint', {}) || 'Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.'}">
         <input type="checkbox" id="chk-autorun" ${state.settings?.autoRunOnNewVersion ? 'checked' : ''} />
         <span>${t('autorun.toggle', {}) || 'Bei neuer data.p4k-Version automatisch komplett durchlaufen'}</span>
@@ -1181,7 +1214,12 @@ function wireConfigure(): void {
     void persist({ minimizeToTray: (e.target as HTMLInputElement).checked });
   });
   ($('#chk-autostart') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    void persist({ autoStart: (e.target as HTMLInputElement).checked });
+    // Re-render: the "quit when done" box below only applies to an autostart, so
+    // it follows this one in and out of being usable.
+    void persist({ autoStart: (e.target as HTMLInputElement).checked }).then(() => render());
+  });
+  ($('#chk-quit-after-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+    void persist({ quitAfterAutoRun: (e.target as HTMLInputElement).checked });
   });
   ($('#chk-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
     void persist({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
@@ -2220,6 +2258,21 @@ async function doUploadAfterAuth(): Promise<void> {
   // Every stage confirmed and cleaned up — this is the only place we reach on a
   // fully-successful upload, so it is where an opted-in shutdown belongs.
   await maybeShutdownAfterUpload();
+  await maybeQuitAfterUpload();
+}
+
+/**
+ * The second half of "close yourself when you are done" (feedback 71b1e402):
+ * the unattended launch had work, did it, and now goes away again.
+ *
+ * Skipped when a shutdown is already scheduled — that path paints a 60-second
+ * cancel button, and quitting the app would take the cancel button with it.
+ */
+async function maybeQuitAfterUpload(): Promise<void> {
+  if (!startedHidden) return;
+  if (!state.settings?.quitAfterAutoRun) return;
+  if (state.settings?.shutdownAfterUpload) return;
+  await window.sc.system.quit();
 }
 
 /**

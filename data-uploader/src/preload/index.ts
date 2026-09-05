@@ -15,6 +15,7 @@ export interface PublicSettings {
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
   shutdownAfterUpload: boolean;
+  quitAfterAutoRun: boolean;
   updateChannel: 'alpha' | 'beta' | 'stable';
 }
 
@@ -287,6 +288,11 @@ export const api = {
     /** Abort a shutdown scheduled by `shutdown()`. */
     abortShutdown: (): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('sc:system:abortShutdown'),
+    /**
+     * Close the program for good (tray included) — used by the unattended
+     * launch when there is nothing left to do.
+     */
+    quit: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:system:quit'),
   },
   autoRun: {
     /** Ask main whether an unattended run should start now. */
