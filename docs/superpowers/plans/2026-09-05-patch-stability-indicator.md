@@ -1957,7 +1957,7 @@ import { StabilityChipComponent } from './stability-chip.component';
 
 Template — directly after the hotfix tag block (`@if (!compact() && entry().hotfix) { … }`) insert:
 ```html
-            @if (verdict(); as v) {
+            @if (!compact() && verdict(); as v) {
               <sc-stability-chip [verdict]="v" />
             }
 ```

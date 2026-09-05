@@ -54,7 +54,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
             @if (!compact() && entry().hotfix) {
               <span class="tag hotfix">{{ 'news.patch.hotfix' | translate }}</span>
             }
-            @if (verdict(); as v) {
+            @if (!compact() && verdict(); as v) {
               <sc-stability-chip [verdict]="v" />
             }
             <time>{{ when() }}</time>
@@ -139,6 +139,8 @@ export class PatchEntryRowComponent {
   /**
    * Only the LIVE release-notes row carries the verdict: it is the one row a
    * reader identifies with "the patch". Hotfix threads and PTU waves stay bare.
+   * Inside a folded wave the summary row already names the patch, so the chip
+   * stays off compact rows like the other per-row tags.
    */
   readonly verdict = computed(() => {
     const e = this.entry();
