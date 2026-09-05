@@ -62,10 +62,24 @@ Three components, each 0…1, sampled once per day per patch line:
 - `kb_delta_7d`: net entries added over 7 days, +10 → 1, ≤ 0 → 0.
 - cig = 0.7·kb_open + 0.3·kb_delta_7d
 
-**Score** = 0.5·community + 0.3·service + 0.2·cig, renormalised over the
-components that have data (historical patches have no CIG component; a patch
-with no HF thread uses RN only). **Level** = 1 if score < 0.2, 2 < 0.35,
-3 < 0.5, 4 < 0.65, else 5.
+**Score** — the worst component dominates, because a patch with 8 days of
+degraded servers is unstable no matter how quiet the forum is, and vice versa:
+
+    score = 0.7 · max(components) + 0.3 · weighted mean(components)
+
+with weights community 0.5, service 0.3, cig 0.2, the mean renormalised over
+the components that have data (historical patches have no CIG component; a
+patch with no HF thread uses RN only). Velocity band is 2–20 replies/day.
+**Level** = 1 if score < 0.18, 2 < 0.33, 3 < 0.48, 4 < 0.63, else 5.
+
+Worked calibration (end-state inputs from the 2026-09-05 probes):
+
+| line | velocity | ticket share | ticket vote share | outage min/day | kb open | score | level |
+|---|---|---|---|---|---|---|---|
+| 4.7 | 4.3 | 0.16 | 0.10 | 5 | – | 0.20 | 2 |
+| 4.8 | 3.4 | 0.00 | 0.00 | 209 | – | 0.53 | 4 |
+| 4.9 | 2.3 | 0.18 | 0.59 | 0 | – | 0.21 | 2 |
+| 4.10 (day 10) | 35 | 0.20 | 0.11 | 0 | 55 | 0.44 | 3 |
 
 **Minimum data rule**: no level is shown unless the patch has ≥ 2 daily samples
 and ≥ 10 total replies; the UI shows "zu wenig Daten" instead.
@@ -103,10 +117,13 @@ create table patch_stability_patches (
   cig_fixes_ic      int,
   cig_crash_fixes   int,
   cig_exploit_fixes int,
-  -- historical end-state, filled by backfill for patches that predate the sampler
+  -- historical end-state, filled by backfill for patches that predate the
+  -- sampler. RAW numbers only: the level is computed client-side with the same
+  -- formula as the daily series, so the formula lives in exactly one place.
   final_replies     int,
   final_outage_min_per_day numeric,
-  final_level       smallint,
+  final_ticket_share numeric,
+  final_ticket_vote_share numeric,
   updated_at        timestamptz not null default now()
 );
 
@@ -151,10 +168,12 @@ than 6 h, so an unauthenticated trigger cannot cause upstream load. One run:
 5. Insert today's sample rows (upsert on `(patch_line, sampled_on)`).
 
 `?backfill=1` (one-shot, idempotent): registers every LIVE patch since 3.24.1
-with `live_at`, thread ids, CIG sentence, `final_replies`, `final_outage_min_per_day`
-and a `final_level` computed from the end-state formula (community from RN
-replies per live day + top-25 ticket metrics, service from outage/day, no CIG
-component).
+with `live_at`, thread ids, CIG sentence, `final_replies` (release-notes thread
+only — Hotfix Central was locked before 4.9, so RN is the count comparable
+across every line),
+`final_outage_min_per_day`, `final_ticket_share` and `final_ticket_vote_share`
+(from the top replies of RN + HF). The client turns those into the end-state
+level (velocity = replies ÷ live days, no CIG component).
 
 Scheduling: `pg_cron` + `pg_net` migration, daily 06:00 UTC, `net.http_post`
 to the function URL with no secret (the function is self-throttled and only
