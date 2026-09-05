@@ -865,6 +865,7 @@
       "actionFactoryLoadout": "Factory fit",
       "actionCopyLink": "Copy link",
       "actionSwitchShip": "Switch ship",
+      "linkCopied": "Link copied",
       "dataPill": "DATA {{build}} · schema {{n}}",
       "dataPillPending": "Re-extract pending",
       "dataPillAria": "Data state: build {{build}}, schema {{n}}",

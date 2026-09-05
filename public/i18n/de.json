@@ -865,6 +865,7 @@
       "actionFactoryLoadout": "Werksausstattung",
       "actionCopyLink": "Link kopieren",
       "actionSwitchShip": "Schiff wechseln",
+      "linkCopied": "Link kopiert",
       "dataPill": "DATEN {{build}} · schema {{n}}",
       "dataPillPending": "Re-Extract ausstehend",
       "dataPillAria": "Datenstand: Build {{build}}, Schema {{n}}",

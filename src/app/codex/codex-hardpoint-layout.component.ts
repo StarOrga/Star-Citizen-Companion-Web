@@ -11,6 +11,8 @@ import {
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
+import { buildFoldPreview, FoldPeekChip, FoldPreview } from './codex-fold-preview';
+import type { SummaryOccupant } from './ship-summary-panels';
 import {
   EquippedStat,
   GroupedSlot,
@@ -215,10 +217,12 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
   template: `
     <div class="layout">
       @for (sec of renderSections(); track sec.section) {
-        <section class="mod-sec" [attr.data-sec]="sec.section" [class.fixed]="!sec.configurable">
-          <h3 class="sec-head">
+        <details class="mod-sec" [attr.data-sec]="sec.section" [class.fixed]="!sec.configurable"
+                 [open]="sec.open" (toggle)="onToggle(sec.section, $event)">
+          <summary class="sec-head">
+            <span class="sec-glyph" aria-hidden="true">◈</span>
             {{ ('codex.moduleSection.' + sec.section) | translate }}
-            <span class="sec-ct">{{ sec.count }}</span>
+            <span class="sec-ct">{{ censusKey(sec) | translate: censusParams(sec) }}</span>
             @if (!sec.configurable) {
               <span class="sec-tag">{{ 'codex.moduleSection.fixedTag' | translate }}</span>
             }
@@ -226,22 +230,37 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                  mounts into one row says so, and hands over the choice. Only
                  shown when collapsing actually hides a hardpoint. -->
             @if (sec.splittable) {
-              <button type="button" class="sec-btn" (click)="toggleSplit(sec.section)"
+              <button type="button" class="sec-btn" (click)="$event.stopPropagation(); toggleSplit(sec.section)"
                       [attr.aria-expanded]="sec.split"
                       [attr.title]="(sec.split ? 'codex.moduleSection.groupRowsHint' : 'codex.moduleSection.splitRowsHint') | translate">
                 <span class="chev" [class.open]="sec.split" aria-hidden="true">›</span>
                 {{ (sec.split ? 'codex.moduleSection.groupRows' : 'codex.moduleSection.splitRows') | translate }}
               </button>
             }
-            @if (sec.foldable) {
-              <button type="button" class="sec-btn fold" (click)="toggleFold(sec.section)"
-                      [attr.aria-expanded]="sec.open">
-                <span class="chev" [class.open]="sec.open" aria-hidden="true">›</span>
-                {{ (sec.open ? 'codex.moduleSection.foldAway' : 'codex.moduleSection.unfold') | translate }}
-              </button>
+            <span class="caret" [class.open]="sec.open">
+              <span aria-hidden="true">{{ (sec.open ? '▴' : '▾') }}</span>
+              {{ (sec.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}
+            </span>
+
+            @if (!sec.open) {
+              <!-- Folded preview (MASTER §6): what's installed, at a glance,
+                   INSIDE the summary — no tools, no grip while folded. -->
+              <span class="fold-preview">
+                @for (chip of preview(sec).chips; track chip.id) {
+                  <span class="fp-chip">
+                    {{ chip.count > 1 ? chip.count + '× ' : '' }}{{ chip.size ? 'S' + chip.size + ' ' : '' }}{{ chip.name }}
+                    @if (chip.roleKey) { <span class="fp-role">{{ chip.roleKey | translate }}</span> }
+                    @if (chip.figure != null) { · {{ fmtPeek(chip) }} {{ chip.unitKey ? (chip.unitKey | translate) : '' }} }
+                  </span>
+                }
+                @if (preview(sec).aggregate; as agg) {
+                  <span class="fp-chip fp-agg">{{ agg.labelKey! | translate }} {{ fmtPeek(agg) }}</span>
+                }
+                <span class="fp-lock">{{ preview(sec).lockKey | translate }}</span>
+              </span>
             }
-          </h3>
-          @if (!sec.foldable || sec.open) {
+          </summary>
+          @if (sec.open) {
           <!-- What this block can and cannot tell you — named where it is read,
                not once at the top of the page (1add86a4). -->
           @for (n of sec.notes; track n.key) {
@@ -250,6 +269,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
           <ul class="sec-rows" [class.dense]="!sec.configurable">
             @for (row of sec.rows; track rowKey(row)) {
               <li class="slot" [class.empty]="!row.slot.className"
+                  [class.inactive]="row.slot.roleKey === 'codex.module.badge.passive'"
                   [class.located]="isLocated(row)" [class.on]="isActive(row)"
                   (mouseenter)="emitHover(row)" (mouseleave)="hovered.emit(null)"
                   (focusin)="emitHover(row)" (focusout)="hovered.emit(null)">
@@ -418,7 +438,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
             }
           </ul>
           }
-        </section>
+        </details>
       }
     </div>
   `,
@@ -444,7 +464,28 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        heading a heading on desktop and lets the toggles drop to their own line
        on a narrow screen. */
     .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
-      color: var(--sc-fg-1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+      color: var(--sc-fg-1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0;
+      cursor: pointer; list-style: none; }
+    .sec-head::-webkit-details-marker { display: none; }
+    .sec-glyph { color: var(--sc-accent); font-size: 0.8rem; }
+    .caret { margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+      color: var(--sc-accent); font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
+    .caret.open { color: var(--sc-fg-2); }
+    .sec-head:hover .caret { text-decoration: underline; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    /* Folded preview — chips + aggregate + lock hint, INSIDE the summary
+       (MASTER §6): what's installed, at a glance, no controls while folded. */
+    .fold-preview { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      margin-top: 4px; text-transform: none; letter-spacing: 0; }
+    .fp-chip { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px;
+      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
+    .fp-chip.fp-agg { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .fp-role { color: var(--sc-fg-2); margin-left: 3px; }
+    .fp-lock { font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; margin-left: auto; }
+    /* Passive shield generator (MASTER §6/B-C19): desaturated + darker until
+       hovered; still swappable — this is not a disabled row. */
+    .slot.inactive .slot-btn { filter: grayscale(0.65) brightness(0.82); }
+    .slot.inactive:hover .slot-btn, .slot.inactive .slot-btn:focus-within { filter: none; }
     .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
@@ -604,12 +645,60 @@ export class CodexHardpointLayoutComponent {
    * switch is a fresh read, not an accumulation of manual toggles.
    */
   readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
+  /** Occupants grouped by section, for the folded-preview chips (MASTER §6). */
+  readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
 
   constructor() {
+    // A mission switch is a fresh read, not an accumulation of manual folds:
+    // every block reopens except the ones the new lens folds (plus the
+    // airframe, which always starts folded — see FOLDABLE_SECTIONS above).
     effect(() => {
-      this.foldedSections();
-      untracked(() => this.openSections.set(new Set()));
+      const folded = this.foldedSections();
+      untracked(() => {
+        const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
+        const open = new Set<ShipModuleSection>(
+          this.sections()
+            .map((s) => s.section)
+            .filter((s) => !closedDefault.has(s)),
+        );
+        this.openSections.set(open);
+      });
     });
+  }
+
+  /** Folded-preview chips + aggregate + census for this block's `<summary>`. */
+  preview(sec: RenderSection): FoldPreview {
+    return buildFoldPreview(sec.section, this.occupantsBySection().get(sec.section) ?? []);
+  }
+
+  /** The active/passive split only means something for shields (or any block
+   * whose preview actually reports a passive count) — everywhere else every
+   * occupant counts as "active" by construction, so the split is noise. */
+  censusKey(sec: RenderSection): string {
+    const census = this.preview(sec).census;
+    return sec.section === 'shields' || census.passive > 0 ? 'codex.module.census' : 'codex.module.censusSlots';
+  }
+
+  /** A section with no occupants in `occupantsBySection` (all-empty bay)
+   * reports 0 from the preview census; fall back to the section's own slot
+   * count so the head never claims an empty section has no slots. */
+  censusParams(sec: RenderSection): { slots: number; active: number; passive: number } {
+    const census = this.preview(sec).census;
+    return census.slots > 0 ? census : { slots: sec.count, active: census.active, passive: census.passive };
+  }
+
+  fmtPeek(chip: FoldPeekChip): string {
+    if (chip.figure == null) return '';
+    return formatEquippedStat({ labelKey: '', value: chip.figure, format: chip.format });
+  }
+
+  /** Native `<details>` toggled by the user — sync the section's open state. */
+  onToggle(section: ShipModuleSection, ev: Event): void {
+    const isOpen = (ev.target as HTMLDetailsElement).open;
+    const next = new Set(this.openSections());
+    if (isOpen) next.add(section);
+    else next.delete(section);
+    this.openSections.set(next);
   }
 
   /** Raw port names a (possibly collapsed) row stands for. */
