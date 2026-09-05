@@ -90,6 +90,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: data-uploader/package-lock.json
       - run: npm ci
+      # `package:win` runs `npm run icon`, which now delegates to the repo-root
+      # brand-icon generator so there is exactly ONE renderer for the family
+      # (a second one in data-uploader/ would drift and ship a different mark).
+      # That generator lives in the root workspace, so its devDeps must exist.
+      - name: Install root deps (brand-icon generator)
+        run: npm ci
+        working-directory: .
       - name: Generate release token
         id: token
         # The full UUID is the authentication secret — only the 8-char

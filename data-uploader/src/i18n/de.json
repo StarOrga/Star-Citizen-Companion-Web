@@ -222,7 +222,7 @@
     "toolsFailed": "Tool-Download fehlgeschlagen",
     "buildFailed": "Build fehlgeschlagen",
     "uploading": "Upload läuft…",
-    "done": "3D-Skins fertig — {n} Schiff(e) live.",
+    "done": "3D-Skins fertig — {{n}} Schiff(e) live.",
     "partial": "Schiffe hochgeladen (Rest siehe Log)",
     "building": "3D-Skins werden gebaut",
     "none": "Keine baubaren 3D-Skins gefunden.",
@@ -231,7 +231,9 @@
     "stepUpload": "Liveries werden hochgeladen",
     "shipProgress": "Schiff {{current}} / {{total}}",
     "hintBuild": "Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.",
-    "hintUpload": "Große Livery-Dateien werden übertragen — je nach Größe dauert das."
+    "hintUpload": "Große Livery-Dateien werden übertragen — je nach Größe dauert das.",
+    "stepUploadDone": "Liveries hochgeladen",
+    "noModels": "{{n}} Schiff(e) ohne baubare Livery"
   },
   "progress": {
     "still": "arbeitet noch",

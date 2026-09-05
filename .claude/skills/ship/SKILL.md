@@ -177,6 +177,21 @@ below is canonical — external docs cite it.)
    commands + the Supabase-auth blocker:
    `.claude/deep-knowledge/data-uploader-release.md`.
 
+   **Do not stall this on a confirmation.** The Data Uploader is a
+   collaborator/admin tool — it is not a public download, and `/desktop`
+   role-clamps the rings anyway (admin→alpha, collaborator→beta,
+   viewer→stable). A new build lands on **alpha**, and alpha is alpha: the
+   people who receive it are the same people who asked for the change. So the
+   tag push and the catalog-register CTE are ordinary ship steps, not
+   outward-facing publishing that needs sign-off. Treat "this reaches real
+   users" caution as belonging to *stable* promotion, which is a separate,
+   deliberate act via `/admin/desktop-releases` or
+   `promote_desktop_channel(version, channel)`.
+
+   The monotonic-tag rule (never delete + re-push a tag, §4) is about keeping
+   the release history honest, not a reason to hesitate before tagging — a
+   failed build is answered with the next patch tag, which is cheap.
+
    *Why this rule exists:* 2026-06-13 I bumped the uploader to 0.7.0 and rendered
    `ship-successful` with no binary built → `/desktop` still served 0.6.1.
    2026-07-09 I shipped 0.13.0 source-only and stopped — the user had to say

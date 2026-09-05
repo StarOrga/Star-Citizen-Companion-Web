@@ -79,6 +79,20 @@ describe('CodexZoneRailComponent', () => {
       expect(el.querySelector('.rail-sub')).toBeNull();
     });
 
+    // Round three: "wenn ich ship im hangar aufrufe, dann sehe ich fuer zu fuss
+    // an board immer noch nicht die person als spalte sondern nur die
+    // textleiste." An unequipped set is still a person, so an EMPTY filled-set
+    // is a hero like any other — the plain strip is not an option for AN BORD.
+    it('shows the AN BORD figure even when nothing is equipped', async () => {
+      const fixture = await setup({ kind: 'board', summary: 'FixIt', heroSuit: new Set<string>() });
+      const el: HTMLElement = fixture.nativeElement;
+
+      expect(el.querySelector('.rail-hero sc-codex-board-figure')).not.toBeNull();
+      expect(el.querySelector('button.zone-rail.has-hero')).not.toBeNull();
+      expect(el.querySelector('.rail-sub')).toBeNull();
+      expect(words(el)).toBe('zone.eyebrow');
+    });
+
     it('falls back to the ship glyph when the hull has no art', async () => {
       const fixture = await setup({ kind: 'hangar', summary: 'Gladius', heroArt: [] });
       const el: HTMLElement = fixture.nativeElement;
@@ -91,8 +105,9 @@ describe('CodexZoneRailComponent', () => {
     });
   });
 
-  // Nothing equipped / empty hangar: there is no hero to show, so the rail is
-  // the strip it has always been, summary line included.
+  // Empty hangar: there is no ship to show — and a hull the user does not own
+  // would be a lie, not a hero — so the rail is the strip it has always been,
+  // summary line included. AN BORD can no longer reach this state (round three).
   describe('without a hero', () => {
     it('keeps the plain rail and its summary', async () => {
       const fixture = await setup({ kind: 'hangar', summary: 'Aegis Avenger Stalker' });
@@ -104,7 +119,7 @@ describe('CodexZoneRailComponent', () => {
     });
 
     it('names the empty state when there is nothing to summarise', async () => {
-      const fixture = await setup({ kind: 'board', summary: null });
+      const fixture = await setup({ kind: 'hangar', summary: null });
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.rail-sub')?.textContent?.trim()).toBe('zone.fallback');
     });

@@ -222,7 +222,7 @@
     "toolsFailed": "Tool download failed",
     "buildFailed": "Build failed",
     "uploading": "Uploading…",
-    "done": "3D skins done — {n} ship(s) live.",
+    "done": "3D skins done — {{n}} ship(s) live.",
     "partial": "ships uploaded (see log for the rest)",
     "building": "Building 3D skins",
     "none": "No buildable 3D skins found.",
@@ -231,7 +231,9 @@
     "stepUpload": "Uploading liveries",
     "shipProgress": "Ship {{current}} / {{total}}",
     "hintBuild": "First build assembles each ship one by one — can take a few minutes per ship.",
-    "hintUpload": "Transferring large livery files — this depends on their size."
+    "hintUpload": "Transferring large livery files — this depends on their size.",
+    "stepUploadDone": "Liveries uploaded",
+    "noModels": "{{n}} ship(s) without a buildable livery"
   },
   "progress": {
     "still": "still working",

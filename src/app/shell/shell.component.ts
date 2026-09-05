@@ -67,7 +67,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
         routerLink="/news"
         [attr.aria-label]="'nav.brandAria' | translate"
         (click)="onNavActivate($event, '/news')">
-        <img class="logo" src="icons/scc-favicon.svg" alt="" width="32" height="32" />
+        <img class="logo" src="icons/brand/scc-mark-compact.svg" alt="" width="36" height="36" />
         <span class="wordmark">
           <span class="title">Star Citizen Companion</span>
           <span class="alpha-badge">alpha</span>
@@ -334,9 +334,9 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
       color: inherit;
     }
     .brand .logo {
-      width: 32px;
-      height: 32px;
-      filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+      width: 36px;
+      height: 36px;
+      filter: drop-shadow(0 0 7px rgba(82, 193, 230, 0.45));
     }
     /* Positioning context for the alpha badge only — the title is the sole item
        in flow here, so the wordmark's box (and the title's baseline) is exactly

@@ -341,7 +341,9 @@ export interface FleetGroup {
         } @else {
           <!-- Collapsed AN BORD: the figure and nothing else (feedback
                77668f11). The set's name, the six positions and their values
-               all belong to the expanded panel. -->
+               all belong to the expanded panel. The figure is unconditional —
+               round three: an unequipped suit is still the person, and it is
+               what the expanded zone draws in that state too. -->
           <sc-codex-zone-rail
             kind="board"
             eyebrowKey="codex.landing.me.eyebrow"
@@ -1409,24 +1411,32 @@ export class CodexLandingComponent implements OnInit {
 
   /**
    * The collapsed AN BORD hero: which positions the active set has equipped —
-   * the only state the figure carries. Null when nothing is equipped, because a
-   * fully open suit is a picture of an empty set; the rail falls back to its
-   * plain "noch nicht eingekleidet" strip there.
+   * the only state the figure carries. ALWAYS a set, never null.
+   *
+   * Round two withheld the figure while nothing was equipped, on the theory
+   * that a fully open suit is "a picture of an empty set". Round three of the
+   * same feedback threw that out: "wenn ich ship im hangar aufrufe, dann sehe
+   * ich für zu fuß an board immer noch nicht die person als spalte sondern nur
+   * die textleiste" — and it is right, because the figure is the CHARACTER, not
+   * the set. An unequipped suit is an honest empty one, it is exactly what the
+   * EXPANDED zone draws in that same state, and the whole ask was to see "das
+   * männchen" instead of a text strip.
+   *
+   * IM HANGAR keeps its null (`flagshipArt`): an empty hangar has no ship, and
+   * a hull the user does not own would be a lie rather than a hero.
    */
-  readonly boardHero = computed<ReadonlySet<string> | null>(() => {
-    const filled = new Set(
-      this.paperdollSlots().filter((s) => s.className).map((s) => s.roleSlot),
-    );
-    return filled.size > 0 ? filled : null;
-  });
+  readonly boardHero = computed<ReadonlySet<string>>(
+    () => new Set(this.paperdollSlots().filter((s) => s.className).map((s) => s.roleSlot)),
+  );
 
   /**
    * Does the currently COLLAPSED half have a hero? Only then does the rail earn
-   * its extra width — an empty hangar or an unequipped set keeps the 52px
-   * strip and gives the whole surface back to the expanded zone.
+   * its extra width. AN BORD always does — the figure is the character and it
+   * is there whether or not anything is equipped; only an empty HANGAR keeps
+   * the 52px strip and gives the whole surface back to the expanded zone.
    */
   readonly railHasHero = computed(() =>
-    this.openZone() === 'board' ? this.flagshipArt() !== null : this.boardHero() !== null,
+    this.openZone() === 'board' ? this.flagshipArt() !== null : true,
   );
 
   private readonly paperdollBySlot = computed(() => {

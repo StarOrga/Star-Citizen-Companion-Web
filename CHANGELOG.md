@@ -4,6 +4,168 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.76.0] - 2026-09-05
+
+### Changed
+
+- **Every SC Companion product now has its own icon, and all of them are
+  visibly the same family.** Until now the web app, the Data Uploader and
+  Starscape shipped the *identical* SCC monogram, so a taskbar full of SCC
+  windows gave you no way to tell which one you were about to click — while
+  the PWA install icon, the Safari pinned-tab icon and the entire browser
+  extension were still on a third, long-retired mark ("Verse Compass"). The
+  desktop app's brain-nebula artwork is now the master for all of them:
+  `public/icons/brand/scc-mark.svg`, vendored byte-for-byte from that repo.
+  Starscape and the Data Uploader are the *same drawing* with two surgical
+  swaps — Starscape's core becomes a four-point nova and its accretion disk a
+  single wide planetary ring; the Uploader's core becomes an ascending data
+  stream and its orbits break open where that stream exits. Same palette, same
+  nebula, same star field.
+- **Colour is deliberately not what tells the products apart.** The desktop
+  app's tray already uses hue to encode *state* — active, notification, error
+  — so a red icon there has to mean "something is wrong", never "this is the
+  uploader". Identity is carried by shape alone. That constraint drove the
+  glyph choice: measured at 16 px against the master's soft core, a
+  crescent-lit planet collapsed into the same blob and a framed "vista"
+  rectangle turned to mush, so both were dropped in favour of the nova, which
+  stays unambiguous down to a 16 px tray slot.
+- **Each mark now has three size tiers instead of one drawing stretched
+  across all of them.** The full artwork keeps its Gaussian blur above 128 px;
+  a redrawn compact tier (no blur — it dissolves — with a bolder ring and a
+  larger glyph) serves 16–64 px; and a tray tier keeps the dark disc but adds
+  a bright rim, so the disc carries the silhouette on a light taskbar and the
+  rim carries it on a dark one. That last one matters: a bare `#0d2635` disc on
+  a dark Windows taskbar is invisible, which is exactly why a tray icon can read
+  as missing. The tray geometry is the desktop app's own, so all four products'
+  tray icons are built the same way — with the nova and the data stream drawn
+  larger than the master's core, which at 16 px would otherwise collapse all
+  three into the same dot.
+
+### Added
+
+- **One generator for every brand raster** (`npm run gen:brand-icons`). The
+  repo previously had a single generator — the Data Uploader's — and nine
+  orphaned binaries with no source and no reproducible build:
+  `public/favicon.ico`, both PWA PNGs, all four browser-extension PNGs and
+  Starscape's `.ico`. All of them now derive from the master SVG.
+  `npm run check:brand-icons` runs in `prebuild`, so a hand-edited or stale
+  artifact fails the build instead of shipping — including the two places
+  that need the mark as literal markup (the boot splash and the uploader's
+  header), which used to be hand-copied duplicates that nothing kept in sync.
+
+### Fixed
+
+- **The site had no working link preview and no working iOS home-screen
+  icon.** `og:image`, `twitter:image` and `apple-touch-icon` all pointed at an
+  SVG; X, Facebook and iOS Safari silently ignore SVG in all three positions.
+  They now point at a generated 1200×630 PNG card and a 180×180 opaque
+  raster, and the Twitter card is `summary_large_image`.
+- **Brand assets under `/icons/` were cached forever.** The `ngsw-config.json`
+  glob `/*.(svg|png|…)` matches root-level files only, so nothing under
+  `/icons/` belonged to any asset group: the files are copied unhashed, so an
+  overwritten icon could be served stale by the CDN and every browser cache
+  indefinitely. `/icons/**` is now in the assets group, and the replacement
+  marks were given new filenames rather than overwriting the old ones.
+- **`manifest.webmanifest` declared ICO sizes the file did not have** (it
+  claimed 64/32/24/16 while the ICO held 16/32/48). The generated ICO now
+  really carries all seven Windows sizes, and the manifest says so.
+
+## [0.75.1] - 2026-09-05
+
+### Fixed
+
+- **Data Uploader: der 3D-Livery-Cache überlebt das Aufräumen**
+  (data-uploader 0.25.3). Nach einem bestätigten Upload löschte der Purge
+  jeden Ordner unter `.sc-companion-extracts` — auch `skins-<Version>`, den
+  Cache mit den gebauten glbs. Das ist aber kein wiederherstellbares
+  Nebenprodukt wie das Extrakt: neu extrahieren dauert Minuten, alle Schiffe
+  neu bauen elf Stunden, und der Cache ist das Einzige, woran `--skip-existing`
+  anknüpfen kann. Weil er außerdem per Design keinen `_uploaded.json`-Marker
+  trägt (der Upload-Zustand liegt pro Schiff in `<Schiff>/.uploaded`), hätte
+  ihn einen Tag später ohnehin die Alters-Regel des Startup-Sweeps geholt —
+  dieselbe Regel, die in 0.74.1 schon das pausierte Extrakt gefressen hat. Der
+  Cache wird jetzt nur noch beim Patch-Wechsel freigegeben, und nur von der
+  einen Stelle, die weiß, welcher Patch aktuell ist.
+- **Data Uploader: Schiffe ohne baubare Livery sind kein Fehler mehr.** Ein
+  Katalog-Lauf endete mit „21 / 309" — gelesen als 288 fehlgeschlagene
+  Schiffe. Tatsächlich hatten die 288 schlicht kein einziges glb: das
+  Build-Manifest nimmt jedes Schiff auf, bei dem irgendein Paint ein Material
+  hat, was viel weiter greift als „am Ende kommt ein Modell heraus", weshalb
+  auch Trümmer-Entitäten darin landen. Für so ein Schiff ist die Objektliste
+  leer, und eine leere Liste beantwortet `ingest-skins` mit einem 400 — jedes
+  Mal als gescheitertes Schiff verbucht. Solche Schiffe werden jetzt als
+  erledigt gezählt und markiert, statt eine Anfrage zu stellen, die nur
+  scheitern kann.
+- **Data Uploader: die Upload-Phase zeigt Fortschritt, endet sichtbar und
+  protokolliert ihre Fehler.** Sie war ein einziges undurchsichtiges Warten:
+  die Karte behielt die Zahlen der Bau-Phase, der Balken stand, und am Ende
+  fror sie auf genau diesem Bild ein — inklusive einer Restzeit, die aus zwei
+  Messpunkten über die ganze Phase entstanden war. Eine fertige Ausführung war
+  von einer hängenden nicht zu unterscheiden. Jetzt meldet jedes Schiff seinen
+  Fortschritt, und die Karte wird auf einen Endzustand gemalt, bevor die Uhr
+  stehen bleibt. Die Fehlerpfade sagten außerdem nirgends etwas — die
+  Statuszeile verwies auf ein Protokoll, in das nie jemand schrieb. Sie melden
+  jetzt an die Oberfläche und in `main.log`, mit einer Zusammenfassung pro
+  Lauf.
+
+## [0.75.0] - 2026-09-05
+
+### Added
+
+- **Verse News: die Patch-Notes-Seite ist ein Zeitstapel mit Dossier.** Statt
+  gestapelter Bänder führt `/news/patches` jetzt eine strikt monotone Achse:
+  der nächste Patch, der laufende als Hero, der abgelöste, ältere gefaltet.
+  Jede Karte öffnet ein Dossier mit Inhaltsverzeichnis und vier Abschnitten,
+  die nach ihrer Frage benannt sind — wie bereite ich mich vor, was steckt
+  drin, haben sie … gefixt, wann kommt der nächste. Deren Reihenfolge folgt
+  dem Zustand des Patches: solange er nicht draußen ist, führen die Fragen
+  nach vorn (wann kommt er, wie bereite ich mich vor); sobald er gelandet ist,
+  führen Inhalt und Fix-Suche, und die Vorbereitung rutscht ans Ende. Zwei
+  Überschriften wechseln mit der Zeitform mit: ein noch nicht erschienener
+  Patch fragt „Wann kommt dieser Patch?", ein abgelöster „Was kam danach?".
+  Eine Suche vom Board trägt ihre Anfrage ins Dossier und stellt die
+  Trefferliste voran. Die Zyklus-Achse misst die reale Lage gegen den üblichen
+  Takt vom selben Anker aus — gedämpfter Balken für den Takt, aktiver für das,
+  was wirklich geschah, bernstein für den Überstand. Ein nur angekündigter
+  Patch hat nichts zu zeichnen und antwortet stattdessen in Worten: geplantes
+  Quartal, der aus dem Takt projizierte Live-Termin, und die zwei Mediane,
+  auf denen das ruht.
+- **Feedback: Seite aufnehmen und markieren, was man meint.** Ein Bericht kann
+  die aktuelle Ansicht als Bild mitschicken, samt Markierungen darauf.
+- **Feedback: Nutzer-Feedback wird im Abarbeiten-Lauf mit abgearbeitet** statt
+  nur gesammelt.
+- **Social: Kontosperre, geteilte Loadouts und ablaufende Freundschaftsanfragen**
+  (Phase 1 des sozialen Ausbaus).
+- **Auth: Rollenauswahl im Seitenthema, und eingeladene Nutzer vergeben ihr
+  Passwort selbst.**
+- **Codex: der Zonen-Held bleibt auch in der eingeklappten Leiste sichtbar.**
+- **Rechtliches: die öffentlichen Seiten haben einen Weg zurück zur Startseite.**
+
+### Changed
+
+- **Hangar: der eigenständige Loadout-Editor entfällt, Sets werden im Codex
+  bearbeitet** — ein Ort statt zwei für dieselbe Arbeit.
+- **Codex: das „Live"-Abzeichen entfällt**; neuere Patches erscheinen ausgegraut,
+  und die Umschaltung zeigt höchstens drei.
+- **Starscape: Roadmap Roundup ist aus der Galerie und der App entfernt.**
+- **Desktop-Downloads werden auf dem Telefon nicht mehr angeboten** — sie sind
+  Windows-only und dort nutzlos.
+- **Shell: die Rollenvorschau ist als erhöhter Zugriff gekennzeichnet.**
+- **Feedback: eine Nachricht endet bei 2.000 Zeichen**, und ein überlanges Wort
+  bricht die Ansicht nicht mehr auf.
+
+### Fixed
+
+- **Codex: Schiffs- und Komponentenseiten scrollen auf dem Telefon nicht mehr
+  seitwärts.**
+- **Codex: die AN-BORD-Figur bleibt auf der Leiste sichtbar, auch wenn das Set
+  leer ist.**
+- **Feedback: die Bildschirmaufnahme verliert die Artwork-Ebene nicht mehr.**
+- **Datenbank: `is_suspended` wird definiert, bevor der erste Migrationsteil es
+  benutzt.**
+- **Data Uploader: der eingebettete Python-Download wird im Tag-Build
+  wiederholt** statt beim ersten Fehlversuch aufzugeben (data-uploader 0.25.2).
+
 ## [0.74.1] - 2026-09-03
 
 ### Fixed

@@ -32,7 +32,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
         <div class="landing-grid">
           <section class="hero">
             <div class="brand">
-              <img src="icons/scc-favicon.svg" alt="" width="56" height="56" class="brand-logo" />
+              <img src="icons/brand/scc-mark-compact.svg" alt="" width="64" height="64" class="brand-logo" />
               <h1>{{ 'auth.landing.appName' | translate }}</h1>
             </div>
             <p class="tag">{{ 'auth.tagline' | translate }}</p>
@@ -472,7 +472,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
       }
       .hero { text-align: center; }
       .brand { justify-content: center; }
-      .brand-logo { width: 44px; height: 44px; }
+      .brand-logo { width: 48px; height: 48px; }
       .tag { margin-top: 6px; }
       .join { margin-top: 12px; }
       .pitch, .perks { display: none; }
