@@ -4,18 +4,43 @@
   "id": "/",
   "lang": "en",
   "dir": "ltr",
-  "description": "Star Citizen Companion (SCC) — unofficial community companion app for Star Citizen: Verse news, codex, hangar and loadout tools. Not affiliated with Cloud Imperium Games.",
-  "categories": ["utilities", "games", "news"],
+  "description": "Star Citizen Companion (SCC) \u2014 unofficial community companion app for Star Citizen: Verse news, codex, hangar and loadout tools. Not affiliated with Cloud Imperium Games.",
+  "categories": [
+    "utilities",
+    "games",
+    "news"
+  ],
   "theme_color": "#0a0e1a",
   "background_color": "#050810",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
   "icons": [
-    { "src": "icons/verse-compass-favicon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "icons/verse-compass.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "favicon.ico", "sizes": "64x64 32x32 24x24 16x16", "type": "image/x-icon" }
+    {
+      "src": "icons/brand/scc-mark-compact.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icons/brand/scc-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/brand/scc-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/brand/scc-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon.ico",
+      "sizes": "256x256 128x128 64x64 48x48 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
   ]
 }
