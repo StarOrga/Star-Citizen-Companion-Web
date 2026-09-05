@@ -965,6 +965,11 @@
       "unit": {
         "segments": "seg",
         "coolant": "cooling seg"
+      },
+      "tooltipTitle": {
+        "ir": "Infrared",
+        "em": "Electromagnetic",
+        "crossSection": "Cross-section"
       }
     },
     "swap": {
