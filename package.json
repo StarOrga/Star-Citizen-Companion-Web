@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.80.1",
+  "version": "0.80.2",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -18,6 +18,7 @@
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
     "gate:mobile": "node scripts/mobile-gate.mjs",
     "gate:mobile:quick": "node scripts/mobile-gate.mjs --quick",
+    "gate:mobile:auth": "node scripts/mobile-gate.mjs --auth",
     "gate:mobile:selftest": "node scripts/mobile-gate.mjs --selftest",
     "lint": "echo 'no-op: add @angular-eslint and run ng lint'",
     "stack:up": "supabase start",
