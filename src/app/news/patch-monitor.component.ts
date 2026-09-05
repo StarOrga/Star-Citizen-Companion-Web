@@ -4,7 +4,8 @@ import { LocaleService } from '../core/locale/locale.service';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import type { PatchLineGroup } from './patch-notes';
 import { buildPatchCycle } from './patch-cycle';
-import type { PatchStack, StackCard } from './patch-stack';
+import { computeNextPatch, daysUntilNextPatch, nextPatchDistance } from './patch-stats';
+import { stackCards, type PatchStack, type StackCard } from './patch-stack';
 
 /** Everything the panel puts on screen, resolved once per clock tick. */
 interface MonitorView {
@@ -55,11 +56,17 @@ interface MonitorView {
  * date as the headline, because that is what the end marker means). A coarse
  * month scale hangs off the rail so the distance has a unit.
  *
- * Nothing here is new data — it is `buildPatchCycle()` on the live line (or the
- * line in testing when nothing is live), the same model the dossier axis draws.
+ * Nothing here is new data — it is `buildPatchCycle()` on the line the shared
+ * next-patch estimate is anchored on, the same model the dossier axis draws.
  * The prose that used to carry the caveats — median estimate, no official
  * dates, what the colours mean — sits behind the (i), so the panel is four
  * short lines instead of ten.
+ *
+ * The DATE is not this panel's own arithmetic any more (feedback ae9f8cba):
+ * it and the Build-Stand card on `/news` both render `computeNextPatch()`, and
+ * both phrase the distance through `nextPatchDistance()`. Two surfaces that
+ * answer the same question printed "in 20 Tagen" and "in ~6 Wochen" on the
+ * same afternoon, because one was version-level and one line-level.
  */
 @Component({
   selector: 'sc-patch-monitor',
@@ -219,24 +226,46 @@ export class PatchMonitorComponent {
   readonly groups = input.required<readonly PatchLineGroup[]>();
   readonly now = input<number>(Date.now());
 
-  /** The line the question is about: what is live, or what is being tested. */
-  private readonly card = computed<StackCard | null>(() => this.stack().live ?? this.stack().next);
+  /**
+   * THE estimate — the same function the Build-Stand card on `/news` renders
+   * (feedback ae9f8cba). The panel does not compute a date of its own any more.
+   */
+  private readonly estimate = computed(() => computeNextPatch(this.groups()));
+
+  /**
+   * The line the question is about — the one the estimate is anchored on, so
+   * the rail's goal marker and the headline are the same instant by
+   * construction: a line already in a test ring runs its first-test → Live
+   * stretch, otherwise the live line runs its Live → Live cadence. The
+   * `?? live ?? next` tail only catches the case where no estimate exists at
+   * all, and `view()` bails on that anyway.
+   */
+  private readonly card = computed<StackCard | null>(() => {
+    const line = this.estimate()?.anchorLine;
+    const anchored = line ? stackCards(this.stack()).find((c) => c.line === line) : undefined;
+    return anchored ?? this.stack().live ?? this.stack().next;
+  });
 
   readonly view = computed<MonitorView | null>(() => {
     const card = this.card();
+    const est = this.estimate();
     if (!card) return null;
     const cycle = buildPatchCycle(card, this.groups(), this.now());
     const main = cycle?.main ?? null;
     // A finished cycle answers a historical question, not "when is the next
     // one" — the panel then has nothing to monitor and stays out of the way.
     if (!cycle || !main || main.finished) return null;
+    // The rail's goal marker; the headline prefers the shared estimate, which
+    // for the anchored card is the identical instant (pinned in the spec).
     const usualAt = cycle.points.find((p) => p.key === 'usual')?.at ?? NaN;
     if (!Number.isFinite(usualAt)) return null;
+    const at = est?.at ?? usualAt;
+    const days = est ? daysUntilNextPatch(est, this.now()) : (cycle.daysToNext ?? 0);
 
     return {
       state: main.deltaDays > 0 ? 'over' : 'ontrack',
-      date: this.date(usualAt),
-      when: this.until(cycle.daysToNext ?? 0),
+      date: this.date(at),
+      when: this.until(days),
       key: main.key,
       version: card.line ? this.t.instant('news.patch.line', { version: card.line }) : '',
       elapsedDays: main.realDays,
@@ -356,13 +385,19 @@ export class PatchMonitorComponent {
     }
   }
 
-  /** "in ~6 Wochen" / "2 Wo. überfällig" — the forecast grammar the app speaks. */
+  /**
+   * "in ~6 Wochen" / "2 Wo. überfällig" — the forecast grammar the app speaks.
+   * The days/weeks threshold comes from `nextPatchDistance`, shared with the
+   * Build-Stand card, so the two surfaces cannot pick different units for the
+   * same date (feedback ae9f8cba).
+   */
   private until(days: number): string {
-    if (days === 0) return this.t.instant('news.patch.forecast.today');
-    const overdue = days < 0;
-    const n = Math.abs(days);
-    if (n < 14) return this.t.instant(overdue ? 'news.patch.forecast.overdueDays' : 'news.patch.forecast.inDays', { n });
-    const weeks = Math.round(n / 7);
-    return this.t.instant(overdue ? 'news.patch.forecast.overdueWeeks' : 'news.patch.forecast.inWeeks', { n: weeks });
+    const d = nextPatchDistance(days);
+    if (d.unit === 'today') return this.t.instant('news.patch.forecast.today');
+    const key =
+      d.unit === 'days'
+        ? d.overdue ? 'news.patch.forecast.overdueDays' : 'news.patch.forecast.inDays'
+        : d.overdue ? 'news.patch.forecast.overdueWeeks' : 'news.patch.forecast.inWeeks';
+    return this.t.instant(key, { n: d.n });
   }
 }

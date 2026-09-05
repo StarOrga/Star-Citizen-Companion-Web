@@ -1,5 +1,5 @@
 import { PatchLineGroup, compareVersionsDesc } from './patch-notes';
-import { firstTestAt, liveReleaseAt } from './patch-stats';
+import { firstTestAt, linesInTesting, liveReleaseAt } from './patch-stats';
 import type { RoadmapPayload, RoadmapRelease } from './roadmap';
 
 /**
@@ -144,16 +144,14 @@ export function buildPatchStack(
   const unversioned = groups.find((g) => !g.line) ?? null;
   const liveGroup = versioned.find((g) => g.isCurrentLive) ?? null;
 
-  // Lines ABOVE live that have not shipped are the build(s) in testing. The
-  // lowest of them is the immediate next release; anything higher is a
-  // straggler we do not promote (the forecast module makes the same call).
-  const ahead = versioned.filter(
-    (g) => !g.hasLive && (liveGroup === null || compareVersionsDesc(g.segments, liveGroup.segments) < 0),
-  );
+  // Lines ABOVE live that have not shipped are the build(s) in testing, lowest
+  // first — the same list the next-patch estimate anchors on, imported rather
+  // than re-derived so the stack's "next" card and the estimate's basis line
+  // can never name two different builds (feedback ae9f8cba).
+  const ahead = linesInTesting(groups);
   let next: StackCard | null = null;
   if (ahead.length > 0) {
-    const lowest = ahead.reduce((acc, g) => (compareVersionsDesc(g.segments, acc.segments) > 0 ? g : acc));
-    next = cardOf(lowest, testStatus(lowest), roadmap, null);
+    next = cardOf(ahead[0], testStatus(ahead[0]), roadmap, null);
   } else if (roadmap?.next && roadmap.next.patchLine && roadmap.next.patchLine !== liveGroup?.line) {
     next = plannedCard(roadmap.next);
   }

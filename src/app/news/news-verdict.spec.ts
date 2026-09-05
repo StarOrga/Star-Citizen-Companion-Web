@@ -145,8 +145,10 @@ describe('Verse News — the build-status card', () => {
     expect(el('.verdict')!.classList).not.toContain('fresh');
     const line = el('.verdict-line')!.textContent!;
     const basis = el('.verdict-basis')?.textContent ?? '';
-    // The sentence owns the countdown…
-    expect(line).toMatch(/in \d+ Tagen/);
+    // The sentence owns the countdown — in days inside a fortnight, in weeks
+    // beyond it, which is the grammar the board's monitor panel already spoke
+    // and the card now shares with it (feedback ae9f8cba).
+    expect(line).toMatch(/in ~?\d+ (Tagen|Wochen)/);
     // …and the basis no longer restates it as the median it was derived from.
     expect(basis).not.toMatch(/\d/);
     expect(basis.toLowerCase()).not.toContain('median');

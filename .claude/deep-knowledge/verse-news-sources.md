@@ -81,6 +81,46 @@ Patch notes are excluded from the time buckets (`Heute / Diese Woche / Älter`) 
 every channel view — they own their own section, and the `patch` filter chip
 narrows the page down to it.
 
+### "When is the next patch?" has exactly one answer
+
+`computeNextPatch()` in `src/app/news/patch-stats.ts` is the only place that
+dates the next MAIN patch. Everything that shows the answer renders it:
+
+| Surface | Route | What it renders |
+| --- | --- | --- |
+| Build-Stand card (`buildVerdict`) | `/news` | the sentence and its basis caption |
+| Monitor panel (`sc-patch-monitor`) | `/news/patches` | the headline date, the distance and the rail's goal marker |
+| Forecast table, `live` row | `/news/patches` (charts carousel) | the projected date |
+
+The rule, in order:
+
+1. a main **line** already sits in a test ring → its first test build plus the
+   median lead time (that build demonstrably exists, so it beats the rhythm);
+2. otherwise → the live line's release plus the median **line** cadence.
+
+Both branches are **line-level**. That is the whole point: a version-level read
+counts `4.10.1`'s PTU thread as "the next build", which is true and is not the
+next main patch — and it is exactly how the card came to print "nächster
+Hauptpatch in 20 Tagen" while the monitor panel two clicks away said "14. Okt.,
+in ~6 Wochen" (feedback ae9f8cba, 2026-09-06). Sub-patch questions keep their
+own version-level series in the `subPatch` / `ptuSubPatch` forecast rows.
+
+Two details that also have to stay shared, or the surfaces read as two claims
+about one date:
+
+- **the phrasing bucket** — `nextPatchDistance()` decides days vs weeks
+  (day-exact inside a fortnight, `~n Wochen` beyond it);
+- **the basis caption** — `NextPatchEstimate.basis` says which measurement
+  produced the number, so the card stops captioning a lead-time projection
+  "Schätzung aus der bisherigen Patch-Kadenz".
+
+There is deliberately **no announced-date branch**: RSI publishes no release
+dates and the roadmap payload carries a quarter (`Q3 2026`), never a day. An
+announced date would outrank both branches if a source for one ever appeared.
+
+`src/app/news/next-patch.spec.ts` pins the invariant by rendering both surfaces
+against one feed and comparing what they say.
+
 ## Patch CONTENT: `rsi-roadmap` edge function (feedback 961ab0a5)
 
 Everything above gives the patch board patch note **titles**. The `rsi-roadmap`
