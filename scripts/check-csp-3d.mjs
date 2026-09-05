@@ -17,19 +17,21 @@
  *   4. `script-src 'wasm-unsafe-eval'` — instantiating the Draco WebAssembly
  *                            module. This is deliberately NOT 'unsafe-eval':
  *                            it permits WASM compilation only, not eval().
- *   5. `connect-src https://www.gstatic.com` — model-viewer fetches the Draco
- *                            decoder from Google's CDN. Self-hosting it via the
- *                            documented `dracoDecoderLocation` does NOT work:
- *                            model-viewer resets that static back to its own
- *                            default while loading (measured, not assumed).
- *                            Removing this entry therefore requires changing
- *                            the COMPRESSION in the uploader, not the CSP.
+ * `connect-src https://www.gstatic.com` used to be entry 5: model-viewer fetches
+ * the Draco decoder from Google's CDN, and self-hosting it via the documented
+ * `dracoDecoderLocation` does NOT work — model-viewer resets that static back to
+ * its own default while loading (measured, not assumed). The only way out was to
+ * change the COMPRESSION in the uploader, which #305 did: `hull3d.py` emits
+ * meshopt, whose decoder is served same-origin from `public/meshopt/`, and the
+ * viewer reads both formats.
  *
- * The gstatic entry is TRANSITIONAL (#305). `hull3d.py` now emits meshopt, whose
- * decoder is served same-origin from `public/meshopt/`, and the viewer already
- * reads both formats. Once every hull in the bucket has been re-exported as
- * meshopt, drop `https://www.gstatic.com` from vercel.json AND from REQUIRED
- * below — but not before, or the Draco hulls still in the bucket go dark.
+ * That entry is now GONE, and this file asserts it stays gone (see FORBIDDEN):
+ * loading a hull talks to nobody but us. A hull still compressed with Draco
+ * cannot be decoded under this policy — re-export that one ship rather than
+ * re-opening the origin:
+ *
+ *     python -m sc_extract.skin_export_app --p4k <Data.p4k> --out <cache> \
+ *         --converter <cgf-converter.exe> --ship <SHIP_ID>
  *
  * This is a static check, and it is honest about that: it proves the policy
  * still contains what the renderer needs, not that the renderer works. The
@@ -70,7 +72,21 @@ const REQUIRED = [
   ['connect-src', 'blob:', 'those blob: textures are fetched back'],
   ['worker-src', 'blob:', 'the Draco decoder runs in a blob: worker'],
   ['script-src', "'wasm-unsafe-eval'", 'instantiating the Draco WebAssembly module'],
-  ['connect-src', 'https://www.gstatic.com', "model-viewer's Draco decoder CDN"],
+];
+
+/**
+ * [directive, source, why it must NOT come back]
+ *
+ * A removed CSP source stays removed only until someone debugging a dead hull
+ * adds it back "just to see". The point of #305 is that loading a ship talks to
+ * nobody but us — that is a property worth a check, not a comment.
+ */
+const FORBIDDEN = [
+  [
+    'connect-src',
+    'https://www.gstatic.com',
+    "Draco's decoder CDN — hulls are meshopt now (#305); a Draco hull must be re-exported, not re-allowed",
+  ],
 ];
 
 const missing = REQUIRED.filter(([directive, source]) => {
@@ -99,6 +115,19 @@ if (MESHOPT_DECODER) {
   process.exit(1);
 }
 
+const reintroduced = FORBIDDEN.filter(([directive, source]) =>
+  (directives.get(directive) || []).includes(source),
+);
+
+if (reintroduced.length > 0) {
+  console.error('✗ The Content-Security-Policy in vercel.json re-opens a third-party origin.\n');
+  for (const [directive, source, why] of reintroduced) {
+    console.error(`  ${directive} allows ${source} again`);
+    console.error(`    it must not: ${why}\n`);
+  }
+  process.exit(1);
+}
+
 if (missing.length > 0) {
   console.error('✗ The Content-Security-Policy in vercel.json would break the Codex 3D ship view.\n');
   for (const [directive, source, why] of missing) {
@@ -110,4 +139,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-console.log(`✓ CSP still permits the 3D viewer (${REQUIRED.length} required sources present).`);
+console.log(
+  `✓ CSP still permits the 3D viewer (${REQUIRED.length} required sources present, ` +
+    `${FORBIDDEN.length} third-party origin(s) kept out).`,
+);

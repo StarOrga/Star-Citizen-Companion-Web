@@ -22,6 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installer, always the newest build. It is not shown on a device that cannot
   install a desktop application at all.
 
+## [0.80.5] - 2026-09-06
+
+### Changed
+
+- **Looking at a ship in 3D no longer talks to Google.** The viewer used to
+  fetch its mesh decoder from Google's CDN on every model load, which meant no
+  3D at all on networks that block `gstatic.com` — corporate proxies, AV web
+  filters, privacy extensions — and a request to a third party for everyone
+  else. Hulls have been exported in a format whose decoder ships with the app
+  since July, so the exception is gone from the security policy, and a check
+  now keeps it from creeping back. (#305)
+
 ## [0.80.4] - 2026-09-06
 
 ### Fixed
