@@ -158,7 +158,7 @@ const STATION_GLYPH_PATHS: Readonly<Record<StationGlyph, string>> = {
   doing:
     'M18.4 4.1 A4.6 4.6 0 0 0 12.3 10.2 L4.6 17.9 A1.9 1.9 0 0 0 7.3 20.6 L15 12.9 A4.6 4.6 0 0 0 21.1 6.8 L18 9.9 L15.3 9.9 L15.3 7.2 Z',
   // A loop arrow: the topic is going round again instead of forward.
-  recycle: 'M15.75 5.5 A7.5 7.5 0 1 0 19.5 12 M17.6 8.6 L15.75 5.5 L19.3 5.5',
+  recycle: 'M12 4.5 A7.5 7.5 0 1 0 19.5 12 M15.8 7.1 L12 4.5 L15.8 1.9',
   // A cross: this one does not get built.
   rejected: 'M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5',
   // A check: geliefert, die Abnahme steht noch aus.
