@@ -113,6 +113,7 @@ const MAX_ATTACHMENTS = 10;
     <div
       class="composer sc-nest"
       [class.compact]="compact()"
+      [class.large]="large()"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
@@ -136,14 +137,49 @@ const MAX_ATTACHMENTS = 10;
            cannot do (feedback fe69a821 removed the markdown buttons — typing
            the markup is faster than hunting for a B). -->
       <div class="actions">
-        <button
-          type="button"
-          class="attach"
-          (click)="fileInput.click()"
-          [title]="'adminFeedback.compose.attach' | translate"
-          [attr.aria-label]="'adminFeedback.compose.attach' | translate">
-          🖼
-        </button>
+        @if (screenshot()) {
+          <!-- "+" opens the two ways in (a file, a screenshot); 📷 is the
+               screenshot as its own one-tap button (round-2 feedback: the
+               "+" alone hid it). Both land in the same thumbnail row. -->
+          <button
+            type="button"
+            class="attach plus"
+            (click)="toggleAttachMenu()"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="attachMenuOpen()"
+            [title]="'adminFeedback.compose.attachMenu' | translate"
+            [attr.aria-label]="'adminFeedback.compose.attachMenu' | translate">＋</button>
+          @if (attachMenuOpen()) {
+            <div class="attach-menu" role="menu">
+              <button type="button" class="am-item" role="menuitem" (click)="closeAttachMenu(); fileInput.click()">
+                🖼 {{ 'adminFeedback.compose.attachFile' | translate }}
+              </button>
+              @if (supportsScreenshot) {
+                <button type="button" class="am-item" role="menuitem" (click)="closeAttachMenu(); captureScreenshot()">
+                  📷 {{ 'adminFeedback.compose.screenshot' | translate }}
+                </button>
+              }
+            </div>
+          }
+          @if (supportsScreenshot) {
+            <button
+              type="button"
+              class="attach"
+              (click)="captureScreenshot()"
+              [disabled]="capturing()"
+              [title]="'adminFeedback.compose.screenshotTitle' | translate"
+              [attr.aria-label]="'adminFeedback.compose.screenshotTitle' | translate">📷</button>
+          }
+        } @else {
+          <button
+            type="button"
+            class="attach"
+            (click)="fileInput.click()"
+            [title]="'adminFeedback.compose.attach' | translate"
+            [attr.aria-label]="'adminFeedback.compose.attach' | translate">
+            🖼
+          </button>
+        }
         <input #fileInput type="file" accept="image/*" multiple hidden (change)="onFileInput($event)" />
         <span class="grow"></span>
         <!-- Draft state + the only thing that deletes a draft besides sending
@@ -200,6 +236,7 @@ const MAX_ATTACHMENTS = 10;
           class="sc-btn"
           [class.sc-btn-primary]="!compact()"
           [class.micro]="compact()"
+          [class.hot]="primaryHot()"
           (click)="submit()"
           [disabled]="!canSend()">
           {{ sendLabel() | translate }}
@@ -261,6 +298,15 @@ const MAX_ATTACHMENTS = 10;
       cursor: pointer;
     }
     .attach:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .attach { min-width: 40px; min-height: 36px; }
+    .attach:disabled { opacity: 0.5; cursor: progress; }
+    .actions { position: relative; }
+    .attach-menu { position: absolute; left: 0; top: 100%; z-index: 4; margin-top: 4px; display: flex; flex-direction: column; min-width: 200px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); overflow: hidden; }
+    .am-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
+    .am-item:hover { background: var(--sc-bg-3); }
+    /* The ONE red call to action a sheet gets (red = the admin's own move). */
+    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: #fff; }
+    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .grow { flex: 1; }
     .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .draft-flag.warn { color: var(--sc-accent-hot); }
@@ -293,6 +339,8 @@ const MAX_ATTACHMENTS = 10;
       line-height: 1.5;
     }
     .composer.compact .input { min-height: 44px; font-size: 0.86rem; }
+    /* The opened topic's box: room to write (round-1 feedback). */
+    .composer.large .input { min-height: 132px; }
     .input:focus {
       outline: none;
       border-color: var(--sc-accent);
@@ -337,6 +385,23 @@ export class FeedbackComposerComponent implements OnDestroy {
    * turn a one-time hint into noise.
    */
   readonly areaPicker = input(false);
+  /**
+   * Offer a screenshot of the current screen next to the file picker (concept
+   * 2026-09-04, decision r2-shot-display): "+" becomes a two-entry menu and a
+   * 📷 button captures via `getDisplayMedia`. Off by default — the author
+   * channel and the viewer's answer box keep the plain picker.
+   */
+  readonly screenshot = input(false);
+  /** Paint the send button in the elevated-access red — the sheet's one CTA. */
+  readonly primaryHot = input(false);
+  /** The opened topic's composer: a taller field (≥ 132 px). */
+  readonly large = input(false);
+  /**
+   * `getDisplayMedia` exists here (not on iOS): decided once, so the 📷 button
+   * and the menu entry are simply absent where they could never work.
+   */
+  readonly supportsScreenshot =
+    typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function';
   /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
@@ -647,6 +712,90 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.draftRestored.set(false);
     this.saveDraft();
     el.focus();
+  }
+
+  // ---- Screenshot of the current screen (decision r2-shot-display) ---------
+
+  readonly attachMenuOpen = signal(false);
+  readonly capturing = signal(false);
+
+  toggleAttachMenu(): void {
+    this.attachMenuOpen.update((v) => !v);
+  }
+
+  closeAttachMenu(): void {
+    this.attachMenuOpen.set(false);
+  }
+
+  /**
+   * Grab one frame of the screen through the browser's own picker
+   * (`getDisplayMedia`): pixel-exact, 3D views included, no library. The
+   * feedback panel itself is hidden while the frame is taken so the shot shows
+   * the page, not the box the shot is going into. Not available on iOS — the
+   * button says so instead of failing silently, and "+" → file stays.
+   */
+  async captureScreenshot(): Promise<void> {
+    const md = navigator.mediaDevices;
+    if (!md || typeof md.getDisplayMedia !== 'function') {
+      this.errorMsg.set(this.translate.instant('adminFeedback.compose.screenshotUnsupported'));
+      return;
+    }
+    if (this.capturing()) return;
+    this.capturing.set(true);
+    this.errorMsg.set(null);
+    const panel = this.hostPanel();
+    let stream: MediaStream | null = null;
+    try {
+      // Hide before the picker: the browser's preview already shows the page.
+      if (panel) panel.style.visibility = 'hidden';
+      stream = await md.getDisplayMedia({
+        video: { displaySurface: 'browser' },
+        audio: false,
+        // Chromium hints: offer the current tab first, no "share audio" row.
+        preferCurrentTab: true,
+        selfBrowserSurface: 'include',
+        surfaceSwitching: 'exclude',
+      } as DisplayMediaStreamOptions);
+      const file = await this.frameToFile(stream);
+      await this.addFiles([file]);
+    } catch (e) {
+      // The user closed the picker — not an error worth a red box.
+      if (!(e instanceof DOMException && e.name === 'NotAllowedError')) {
+        this.errorMsg.set(this.translate.instant('adminFeedback.compose.screenshotFailed'));
+      }
+    } finally {
+      stream?.getTracks().forEach((t) => t.stop());
+      if (panel) panel.style.visibility = '';
+      this.capturing.set(false);
+    }
+  }
+
+  /** The panel this composer lives in — hidden during a capture — or null on the full page. */
+  private hostPanel(): HTMLElement | null {
+    const el = this.ta()?.nativeElement;
+    return el ? (el.closest('.panel') as HTMLElement | null) : null;
+  }
+
+  /** Decode one frame of the captured stream into a PNG file. */
+  private async frameToFile(stream: MediaStream): Promise<File> {
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.muted = true;
+    await video.play();
+    // One or two frames so the compositor has painted without the panel.
+    await new Promise((r) => setTimeout(r, 180));
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) throw new Error('empty frame');
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 2d context unavailable');
+    ctx.drawImage(video, 0, 0, w, h);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('encode failed');
+    return new File([blob], `screenshot-${Date.now()}.png`, { type: 'image/png' });
   }
 
   // ---- Image attachments -------------------------------------------------

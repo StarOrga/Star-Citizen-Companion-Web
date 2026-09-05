@@ -42,6 +42,7 @@ import {
   adminAsk,
   deliveredByDay,
   doneTime,
+  isDelivered,
   flightPosition,
   isLongMessage,
   isNewSince,
@@ -1392,9 +1393,22 @@ describe('deliveredByDay (the Geliefert feed)', () => {
       row('f', 'shipped', day('04', '08'), { shipped_at: day('04', '09'), reviewed_at: null }), // still in review
     ];
     const days = deliveredByDay(rows, new Map());
-    expect(days.map((d) => d.items.map((i) => i.id))).toEqual([['c', 'b'], ['d'], ['a']]);
+    // 'f' shipped and waits for its sign-off: it IS in the feed on its ship day
+    // (the ✓ sits in the row) and in the "Du bist dran" band at the same time.
+    expect(days.map((d) => d.items.map((i) => i.id))).toEqual([['f'], ['c', 'b'], ['d'], ['a']]);
     expect(days[0].day).toBeGreaterThan(days[1].day);
     expect(days[1].day).toBeGreaterThan(days[2].day);
+    expect(days[2].day).toBeGreaterThan(days[3].day);
+  });
+
+  it('isDelivered: an outcome, signed off or not — never an open topic or a continuation', () => {
+    expect(isDelivered(row('a', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: null }))).toBeTrue();
+    expect(isDelivered(row('b', 'issue_created', day('01', '08'), { reviewed_at: null }))).toBeTrue();
+    expect(isDelivered(row('c', 'declined', day('01', '08')))).toBeTrue();
+    expect(isDelivered(row('d', 'open', day('01', '08')))).toBeFalse();
+    expect(isDelivered(row('e', 'needs_input', day('01', '08')))).toBeFalse();
+    const cont = row('f', 'shipped', day('01', '08'), { shipped_at: day('01', '09'), reviewed_at: day('01', '10') });
+    expect(isDelivered(cont, [msg('m', 'f', false, day('02', '09'))])).toBeFalse();
   });
 
   it('a post-ship continuation is not delivered any more', () => {
@@ -1420,24 +1434,30 @@ describe('deliveredByDay (the Geliefert feed)', () => {
 });
 
 describe('parseAnswerOptions ([[A|B]] convention)', () => {
-  it('splits the marked options off the question text', () => {
-    expect(parseAnswerOptions('Soll ich das Panel rot lassen? [[Ja|Nein|Später]]'))
+  it('splits the marked last line off the question text', () => {
+    expect(parseAnswerOptions('Soll ich das Panel rot lassen?\n\n[[Ja|Nein|Später]]'))
       .toEqual({ text: 'Soll ich das Panel rot lassen?', options: ['Ja', 'Nein', 'Später'] });
+    expect(parseAnswerOptions('Frage?\n[[ Erhalten | Zurücksetzen ]]\n\n'))
+      .toEqual({ text: 'Frage?', options: ['Erhalten', 'Zurücksetzen'] });
   });
 
-  it('is null without markup, with a single option, or with too many', () => {
+  it('is null without markup, with one option, with more than four, or with an empty / overlong label', () => {
     expect(parseAnswerOptions('Plain question?')).toBeNull();
-    expect(parseAnswerOptions('One? [[Ja]]')).toBeNull();
-    expect(parseAnswerOptions('Many? [[1|2|3|4|5|6|7]]')).toBeNull();
-    expect(parseAnswerOptions('Empty? [[ | ]]')).toBeNull();
+    expect(parseAnswerOptions('One?\n[[Ja]]')).toBeNull();
+    expect(parseAnswerOptions('Many?\n[[1|2|3|4|5]]')).toBeNull();
+    expect(parseAnswerOptions('Empty?\n[[ | ]]')).toBeNull();
+    expect(parseAnswerOptions('Long?\n[[' + 'x'.repeat(41) + '|Nein]]')).toBeNull();
+    expect(parseAnswerOptions('')).toBeNull();
   });
 
-  it('trims whitespace, keeps the text around the marker', () => {
-    expect(parseAnswerOptions('Vorne [[ A | B ]] hinten.')).toEqual({ text: 'Vorne  hinten.', options: ['A', 'B'] });
+  it('only reads the LAST line — a marker mid-text is prose', () => {
+    expect(parseAnswerOptions('Vorne [[A|B]] hinten.')).toBeNull();
+    expect(parseAnswerOptions('[[A|B]]\nUnd dann noch Text.')).toBeNull();
   });
 
   it('does not eat a markdown link or a code span that happens to use brackets', () => {
     expect(parseAnswerOptions('See [docs](https://x) and [[not|a\nchoice]]')).toBeNull();
+    expect(parseAnswerOptions('Frage?\n`[[A|B]]`')).toBeNull();
   });
 });
 

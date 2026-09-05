@@ -1566,18 +1566,29 @@ export interface DeliveredDay {
 }
 
 /**
- * Every finished topic (shipped, handed to an issue, declined, legacy rejected —
- * signed off where a sign-off applies) grouped by the local day it was done,
- * NEWEST DAY FIRST and newest topic first within a day. This is the admin's
- * "what shipped while I was away": the last day on top, so the panel answers
- * "what can I go and look at" before it answers anything else.
+ * True for every topic that belongs in the Geliefert feed: an outcome exists —
+ * shipped, handed to an issue, declined, legacy rejected — whether or not the
+ * admin signed it off yet. A shipped topic that still waits for its Abnahme is
+ * in the feed on its ship day (with the ✓ right in the row) AND in the "Du bist
+ * dran" band; only a post-ship continuation leaves the feed again, because its
+ * outcome is being reworked.
+ */
+export function isDelivered(row: FeedbackRow, replies?: readonly FeedbackMessage[]): boolean {
+  return isArchived(row, replies) || awaitsReview(row, replies);
+}
+
+/**
+ * Every delivered topic (see {@link isDelivered}) grouped by the local day it
+ * was done, NEWEST DAY FIRST and newest topic first within a day. This is the
+ * admin's "what shipped while I was away": the last day on top, so the panel
+ * answers "what can I go and look at" before it answers anything else.
  */
 export function deliveredByDay(
   rows: readonly FeedbackRow[],
   threads: ReadonlyMap<string, readonly FeedbackMessage[]>,
 ): DeliveredDay[] {
   const done = rows
-    .filter((r) => isArchived(r, threads.get(r.id)))
+    .filter((r) => isDelivered(r, threads.get(r.id)))
     .sort((a, b) => doneTime(b) - doneTime(a));
   const days: DeliveredDay[] = [];
   let current: DeliveredDay | null = null;
@@ -1605,30 +1616,44 @@ export function isNewSince(row: FeedbackRow, lastSeen: number): boolean {
 // ---- One-tap answer options ("[[A|B]]" convention) -------------------------
 
 /**
- * A routine question may end in a marked option list — `[[Ja|Nein|Später]]` —
- * and the board renders one button per option (decision r2-options). The
- * options are stripped from the text; a click posts the option's plain text as
- * the admin's reply, so the routine reads exactly the words it offered.
- * Without the markup nothing changes: `null` means "no options, plain text".
+ * A routine question may END in a marked option list — its last line nothing
+ * but `[[Ja|Nein|Später]]` — and the board renders one button per option
+ * (decision r2-options). The marker is stripped from the text; a click posts
+ * the option's plain text as the admin's reply, so the routine reads exactly
+ * the words it offered. Without the markup nothing changes: `null` means "no
+ * options, plain text".
+ *
+ * The rule is deliberately narrow and mirrored word for word in
+ * docs/feedback-routine.md § One-tap answer options: last non-empty line only
+ * (a `[[…]]` mid-text is prose), two to four options, each 1–40 characters of
+ * plain text. Anything else is not a choice and renders as it was written.
  */
 export interface AnswerOptions {
   text: string;
   options: string[];
 }
 
-const ANSWER_OPTIONS_RE = /\[\[([^\[\]\n]+)\]\]/;
-const MAX_ANSWER_OPTIONS = 6;
+const ANSWER_OPTIONS_LINE_RE = /^\[\[([^\[\]\n]+)\]\]$/;
+const MIN_ANSWER_OPTIONS = 2;
+const MAX_ANSWER_OPTIONS = 4;
+const MAX_ANSWER_OPTION_CHARS = 40;
 
 export function parseAnswerOptions(body: string): AnswerOptions | null {
-  const m = ANSWER_OPTIONS_RE.exec(body ?? '');
+  const lines = (body ?? '').split('\n');
+  let last = lines.length - 1;
+  while (last >= 0 && lines[last].trim() === '') last--;
+  if (last < 0) return null;
+  const m = ANSWER_OPTIONS_LINE_RE.exec(lines[last].trim());
   if (!m) return null;
-  const options = m[1]
-    .split('|')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  // One option is a statement, not a choice; more than six is a form.
-  if (options.length < 2 || options.length > MAX_ANSWER_OPTIONS) return null;
-  const text = (body.slice(0, m.index) + body.slice(m.index + m[0].length)).trim();
+  const options = m[1].split('|').map((s) => s.trim());
+  if (
+    options.length < MIN_ANSWER_OPTIONS ||
+    options.length > MAX_ANSWER_OPTIONS ||
+    options.some((o) => o.length === 0 || o.length > MAX_ANSWER_OPTION_CHARS)
+  ) {
+    return null;
+  }
+  const text = lines.slice(0, last).join('\n').trim();
   return { text, options };
 }
 

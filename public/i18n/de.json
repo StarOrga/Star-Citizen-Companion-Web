@@ -2365,7 +2365,13 @@
       "dropHere": "Bilder hier ablegen",
       "imageError": "Bild konnte nicht verarbeitet werden.",
       "tooManyImages": "Maximal {{max}} Bilder pro Nachricht.",
-      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen."
+      "uploadError": "Bild-Upload fehlgeschlagen. Bitte erneut versuchen.",
+      "screenshot": "Screenshot",
+      "screenshotTitle": "Screenshot vom aktuellen Bildschirm anhängen",
+      "screenshotUnsupported": "Screenshots gehen in diesem Browser nicht — bitte ein Bild anhängen.",
+      "screenshotFailed": "Screenshot fehlgeschlagen.",
+      "attachFile": "Bild anhängen",
+      "attachMenu": "Anhängen"
     },
     "view": {
       "label": "Ansicht wechseln",
@@ -2553,6 +2559,94 @@
       "admin": "Admins",
       "user": "Nutzer",
       "untriagedHint": "Hier wartet Nutzer-Feedback darauf, für die Routine freigegeben zu werden."
+    },
+    "stream": {
+      "yourTurn": "Du bist dran",
+      "running": "Läuft",
+      "delivered": "Geliefert",
+      "emptyYourTurn": "Nichts wartet auf dich.",
+      "emptyRunning": "Nichts in Arbeit.",
+      "emptyDelivered": "Noch nichts geliefert.",
+      "newSince": "neu seit deinem letzten Blick",
+      "newBadge": "neu",
+      "newCount": "{{count}} neu",
+      "moreDays": "{{count}} weitere Tage anzeigen",
+      "view": "Ansehen",
+      "viewTitle": "Im App ansehen: {{area}}",
+      "openTopic": "Thema öffnen",
+      "progress": "Fortschritt",
+      "backToStream": "Zurück zum Strom",
+      "collapseBand": "{{band}} einklappen",
+      "expandBand": "{{band}} ausklappen",
+      "waitingSince": "seit {{time}}",
+      "newTopic": "Neues Thema"
+    },
+    "turn": {
+      "admin": "Du bist dran",
+      "routine": "Bei der Routine",
+      "user": "Wartet auf den Nutzer",
+      "nobody": "Erledigt"
+    },
+    "ask": {
+      "question": "Rückfrage an dich",
+      "review": "Abnahme steht aus",
+      "release": "Freigabe steht aus"
+    },
+    "station": {
+      "inbox": "Eingang",
+      "queued": "Wartet auf die Routine",
+      "work": "In Arbeit",
+      "delivered": "Geliefert",
+      "accepted": "Abgenommen",
+      "issue": "Als Issue übergeben",
+      "declined": "Nicht umgesetzt",
+      "rejected": "Verworfen",
+      "loop": "Nachbesserung",
+      "pathLabel": "Stand: {{station}}"
+    },
+    "kind": {
+      "order": "Auftrag",
+      "userFeedback": "Nutzer-Feedback",
+      "ai": "AI"
+    },
+    "role": {
+      "admin": "Admin",
+      "collaborator": "Mitwirkender",
+      "viewer": "Nutzer"
+    },
+    "sheet": {
+      "close": "Zurück zur Liste",
+      "topic": "Thema",
+      "firstMessage": "Erste Nachricht",
+      "latest": "Neueste Nachricht",
+      "showOneMore": "1 weitere einblenden ({{count}} dazwischen)",
+      "hideBetween": "Zwischennachrichten ausblenden",
+      "readMore": "Mehr anzeigen",
+      "readLess": "Weniger anzeigen",
+      "options": "Mit einem Tipp antworten",
+      "quickAnswer": "Antworten",
+      "cancel": "Abbrechen"
+    },
+    "filters": {
+      "title": "Filter",
+      "open": "Filter",
+      "who": "Wer?",
+      "whoAll": "Alle",
+      "whoMine": "Meine Themen",
+      "whoOthers": "Andere Admins",
+      "whoUsers": "Nutzer-Feedback",
+      "where": "Wo steht es?",
+      "whereAll": "Überall",
+      "area": "Bereich",
+      "areaAll": "Alle Bereiche",
+      "reset": "Zurücksetzen",
+      "done": "Fertig",
+      "activeHint": "{{count}} Filter aktiv"
+    },
+    "actions": {
+      "viewInApp": "Im App ansehen",
+      "messageAuthor": "Nutzer anschreiben",
+      "more": "Weitere Aktionen"
     }
   },
   "feedbackFab": {
@@ -2806,7 +2900,8 @@
       "question": "Rückfrage an dich",
       "done": "Umgesetzt",
       "declined": "Nicht umgesetzt"
-    }
+    },
+    "viewInApp": "Im App ansehen"
   },
   "feedbackArea": {
     "aria": "Bereich des Feedbacks wählen",

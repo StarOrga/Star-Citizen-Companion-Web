@@ -48,6 +48,7 @@ const PREFERENCE_KEYS = [
   'sc-companion.upcoming.baseline',
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
+  'sc.adminFeedback.lastSeenDelivered',
   'sc.userFeedback.draft',
 ] as const;
 

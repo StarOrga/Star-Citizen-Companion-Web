@@ -2365,7 +2365,13 @@
       "dropHere": "Drop images here",
       "imageError": "Could not process the image.",
       "tooManyImages": "At most {{max}} images per message.",
-      "uploadError": "Image upload failed. Please try again."
+      "uploadError": "Image upload failed. Please try again.",
+      "screenshot": "Screenshot",
+      "screenshotTitle": "Attach a screenshot of the current screen",
+      "screenshotUnsupported": "Screenshots are not available in this browser — please attach an image.",
+      "screenshotFailed": "Screenshot failed.",
+      "attachFile": "Attach image",
+      "attachMenu": "Attach"
     },
     "view": {
       "label": "Switch view",
@@ -2553,6 +2559,94 @@
       "admin": "Admins",
       "user": "Users",
       "untriagedHint": "User feedback here is still waiting to be released to the routine."
+    },
+    "stream": {
+      "yourTurn": "Your move",
+      "running": "In flight",
+      "delivered": "Delivered",
+      "emptyYourTurn": "Nothing is waiting on you.",
+      "emptyRunning": "Nothing in progress.",
+      "emptyDelivered": "Nothing delivered yet.",
+      "newSince": "new since your last look",
+      "newBadge": "new",
+      "newCount": "{{count}} new",
+      "moreDays": "Show {{count}} more days",
+      "view": "View",
+      "viewTitle": "View in the app: {{area}}",
+      "openTopic": "Open topic",
+      "progress": "Progress",
+      "backToStream": "Back to the stream",
+      "collapseBand": "Collapse {{band}}",
+      "expandBand": "Expand {{band}}",
+      "waitingSince": "since {{time}}",
+      "newTopic": "New topic"
+    },
+    "turn": {
+      "admin": "Your move",
+      "routine": "With the routine",
+      "user": "Waiting on the user",
+      "nobody": "Done"
+    },
+    "ask": {
+      "question": "Question for you",
+      "review": "Sign-off pending",
+      "release": "Release pending"
+    },
+    "station": {
+      "inbox": "Inbox",
+      "queued": "Waiting for the routine",
+      "work": "In progress",
+      "delivered": "Delivered",
+      "accepted": "Accepted",
+      "issue": "Handed to an issue",
+      "declined": "Not implemented",
+      "rejected": "Rejected",
+      "loop": "Follow-up",
+      "pathLabel": "Status: {{station}}"
+    },
+    "kind": {
+      "order": "Instruction",
+      "userFeedback": "User feedback",
+      "ai": "AI"
+    },
+    "role": {
+      "admin": "Admin",
+      "collaborator": "Collaborator",
+      "viewer": "User"
+    },
+    "sheet": {
+      "close": "Back to the list",
+      "topic": "Topic",
+      "firstMessage": "First message",
+      "latest": "Latest message",
+      "showOneMore": "Show 1 more ({{count}} in between)",
+      "hideBetween": "Hide the messages in between",
+      "readMore": "Show more",
+      "readLess": "Show less",
+      "options": "Answer with one tap",
+      "quickAnswer": "Answer",
+      "cancel": "Cancel"
+    },
+    "filters": {
+      "title": "Filter",
+      "open": "Filter",
+      "who": "Who?",
+      "whoAll": "Everyone",
+      "whoMine": "My topics",
+      "whoOthers": "Other admins",
+      "whoUsers": "User feedback",
+      "where": "Where is it?",
+      "whereAll": "Anywhere",
+      "area": "Area",
+      "areaAll": "All areas",
+      "reset": "Reset",
+      "done": "Done",
+      "activeHint": "{{count}} filters active"
+    },
+    "actions": {
+      "viewInApp": "View in the app",
+      "messageAuthor": "Message the user",
+      "more": "More actions"
     }
   },
   "feedbackFab": {
@@ -2806,7 +2900,8 @@
       "question": "Question for you",
       "done": "Implemented",
       "declined": "Not implemented"
-    }
+    },
+    "viewInApp": "View in the app"
   },
   "feedbackArea": {
     "aria": "Choose the feedback area",

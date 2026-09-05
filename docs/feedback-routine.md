@@ -35,6 +35,11 @@ oldest `created_at` first.
 > "just the sign-offs" is a chip rather than a view. A remembered `review` view
 > opens the run on that chip, and the in-card gate in the Übersicht is untouched.
 >
+> **Since concept 2026-09-04 the run is gone.** The sign-off is a card in the
+> panel's "Du bist dran" band (first card pre-opened with ✓ / ↻ inline) and a
+> ✓ in the Geliefert feed row — see "The admin side: the stream" below. The
+> contract stays: `reviewed_at` or `status = 'open'`, nothing new to read.
+>
 > **"Gespräch wieder aufnehmen" now carries a message.** In the run it opens the
 > same answer box every thread has; sending posts the steer *and* sets
 > `status = 'open'`. So a reopened topic reaches the routine with the reason
@@ -1168,6 +1173,36 @@ Keep the system reply concrete: state what's blocking, list the options or the
 exact decision needed, and (when relevant) link the GitHub issue you opened for
 the deeper discussion.
 
+### One-tap answer options (`[[A|B]]`)
+
+When the Rückfrage is a choice between a few discrete answers, END the system
+reply with one line that contains nothing but the options marker:
+
+```
+Soll das Panel die Farbe behalten oder auf den Standard zurück?
+
+[[Erhalten|Zurücksetzen]]
+```
+
+The panel then renders one button per option under the question (concept
+2026-09-04, decision r2-options); a click posts the option's text — verbatim,
+as a normal human reply — so the resume query above picks the topic up exactly
+as it would after a typed answer. The rules are narrow on purpose and mirrored
+word for word by `parseAnswerOptions` in `feedback.types.ts`:
+
+- the marker is the **last non-empty line** of the message — a `[[…]]`
+  anywhere else is prose and renders as written;
+- **two to four** options, `|`-separated, each **1–40 characters** of plain
+  text — no markdown, no line breaks, no `|`, `[` or `]` inside a label;
+- word each option as a complete answer you can act on without the question
+  ("Erhalten", not "A"); the prose above must still state the question and the
+  options in full sentences, because the marker is invisible in SQL and in the
+  run report;
+- only on the Rückfrage that parks a topic `needs_input` — never on the
+  post-ship review reply or a review-hold escalation (nothing resumes those);
+- the free-text box stays under the buttons, so an option is never the only
+  way to answer. Without the marker nothing changes.
+
 **Resuming a `needs_input` topic.** Each run, after the `open` queue, also pick
 up `needs_input` topics whose **latest thread message is human** (the admin
 answered — `is_system=false` and newer than the last system reply):
@@ -1349,168 +1384,87 @@ topic, because that is who reads them.
 **The routine never sets `declined`** — like `rejected` and `issue_created`, that
 call belongs to the admin alone.
 
-## The admin side: the feedback panel's three views
+## The admin side: the stream (concept 2026-09-04, direction E)
 
 The routine's counterpart is the admins-only panel (`sc-feedback-fab` →
-`sc-admin-feedback`, embedded in a FAB overlay reachable from every page). It
-has one view switch at the top, available in the docked panel, the maximized
-panel and on the full board page alike:
+`sc-admin-feedback`, embedded in a FAB overlay reachable from every page, and
+the same component on the full board page `/admin/feedback`). Since concept
+2026-09-04 the three views (Übersicht / Abarbeiten / Fortschritt) are gone:
+Übersicht and Abarbeiten were two views of one pile, and the panel now IS that
+pile — **one scroll in three bands, ordered by whose turn it is**. Nothing the
+routine reads or writes changed; this section only describes what the admin
+sees.
 
-| View | Component | What it is for |
-|------|-----------|----------------|
-| **Übersicht** | `admin-feedback.component.ts` | the classic board — an Aktiv/Archiv tab pair (see "Active vs. Archive"), day-grouped topic list with each topic's stable `#N` (see below), fuzzy search (see below), status/author filters, new-topic composer. Every topic is a **collapsible card** with at most two composers and one "Weitere Aktionen" disclosure (see below) |
-| **Abarbeiten** | `feedback-workflow.component.ts` | guided one-at-a-time run through everything that waits on the admin — Rückfragen (oldest first) and, since feedback d4990269, the Abnahmen behind them — **and nothing else** (feedback b0cc6efc). Shows topic + thread + either the inline answer box or the Abnahme's two decisions, plus a "3 von 7" progress rail, "Überspringen", and two lenses: **wessen** (mine/others/all) and **welche Art** (Alle / Rückfragen / Abnahmen — the ex-Abnahme tab). The thread is folded to the message the run points at, with one "…" for the history |
-| **Fortschritt** | `feedback-dashboard.component.ts` | "Diesen Monat" and "All-time" side by side — donut (shipped share) + bars for shipped / ToDo / beantwortete Rückfragen, plus pace, throughput and the live lifecycle map (see below) |
+| Band | What is in it | Order |
+|------|---------------|-------|
+| **Du bist dran** | every open Rückfrage (`needs_input` with the routine's message last), every pending sign-off (`shipped` / `issue_created` with `reviewed_at is null`), every user topic still held back (`triaged = false`) | longest wait first (`waitingSince`) |
+| **Läuft** | the routine's pile — untouched `open`, answered Rückfragen, `in_progress`, post-ship continuations — and questions parked at a user (`needs_input_author`) | newest activity first |
+| **Geliefert** | every outcome — shipped, handed to an issue, declined, legacy rejected — **by day, the last day on top**, signed off or not | newest day first, newest topic first inside a day |
 
-**Abarbeiten is the default view** (feedback fda4e3ea). The panel opens in the
-processing mode in all three shells — docked, maximized and full page — because
-opening the board almost always means "what do I have to answer". The choice is
-remembered per browser under `sc.adminFeedback.view` (behind the preferences
-consent), so picking Übersicht or Fortschritt from the view switch still wins on
-the next open; only the fallback changed. With an empty queue the mode shows its
-"Alles abgearbeitet" screen, one click away from Fortschritt.
+The derivations live in `feedback.types.ts` and are the single source for the
+bands, the filter sheet, the card glyph and the opened topic: `turnOf` (admin ·
+routine · user · nobody), `adminAsk` (question · review · release — what the
+admin is asked for), `flightPosition` (the place on the four-station path
+Eingang → In Arbeit → Geliefert → Abgenommen, with a branch endcap for issue /
+declined / rejected, a `loop` flag for a post-ship continuation and a `queued`
+flag that tells the routine's queue from a topic it holds right now), and
+`deliveredByDay`. Every one of the eleven states the old status pills spelled
+out is still distinguishable through that quartet — as a place on a line plus
+a few words instead of a pile of pills (`feedback.types.spec.ts` asserts it).
 
-**The queue holds only what waits on the admin** (feedback b0cc6efc). It used to
-append untouched `open` ToDos after the Rückfragen, which made the mode read as a
-backlog to work off — but an `open` topic is one the admin already wrote and that
-now waits on the *routine*; there is nothing to answer there. A topic enters the
-queue the moment the routine asks something back (`needs_input` with the routine's
-message last = the `awaiting_admin` bucket) and leaves it the moment the admin
-answers. ToDos stay fully visible in the Übersicht list and in the dashboard's
-ToDo counter — the processing mode is the admin's *inbox*, not the board.
+**The first card of "Du bist dran" opens with its action inline** — the
+routine's question (labelled `AI`, no avatar) with an answer box, the sign-off
+with ✓ Abnehmen / ↻ Gespräch wieder aufnehmen, or the release button on a user
+topic. Acting on it moves the topic out of the band and the next card rises.
+Every other card, and the lead card too, **opens the topic as a full-panel
+sheet**: the poster's first message, the newest message, and between them one
+"…" that unfolds one more message per tap (from the newest backwards); the
+review gate, the release button and — on a user topic — the author channel
+follow; the composer is glued to the bottom edge (a tall field, 72 px
+thumbnails, "+" for a file, 📷 for a screenshot via `getDisplayMedia`, one red
+send button). Sent messages longer than three lines fold behind "Mehr
+anzeigen". The rare acts — Issue erstellen / Zurücknehmen, Nicht umsetzen &
+löschen (with the canned reasons), Löschen, Im App ansehen — sit behind the
+one ⋯ in the sheet's head.
 
-Three things the processing mode does so a Rückfrage never has to be hunted for
-and no step goes unnoticed:
+**Controls at rest are two**: the search field (unchanged fuzzy search, see
+"Searching the board") and one Filter button that opens a full-height sheet —
+*Wer?* (Alle / Meine Themen / Andere Admins / Nutzer-Feedback / one author),
+*Wo steht es?* (every presentation bucket, with counts), *Bereich* (the area
+tags). A search flattens the bands into one relevance-ordered list. The
+Fortschritt dashboard is byte-identical and lives behind the 📊 glyph next to
+the filter button. The new-topic composer is the bar pinned under the stream.
 
-- **It scrolls to the open Rückfrage.** The thread box opens at the message the
-  admin is expected to react to — `workflowFocusIndex` in `feedback.types.ts`
-  picks the *first* message of the trailing routine run (so a long question is
-  read from its beginning, not its tail) and falls back to the thread end when
-  the admin had the last word. That message is marked "Offene Rückfrage".
-  Scrolling animates unless `prefers-reduced-motion: reduce` is set, and it
-  happens once per message, so the board's polling refresh never yanks the
-  thread back while it is being read.
-- **The answer panel is pinned.** Composer and the Überspringen/Erledigt controls
-  sit in a sticky footer at the bottom edge of the scrollport, so however long the
-  topic and its thread are, the reply box is always on screen.
-- **Moving on is visible** (feedback 96872872). "Erledigt" pulls the topic out
-  of the queue, so the card refills with the next topic in place — previously
-  only the "3 von 7" counter moved and the admin could miss that a new topic was
-  open. The next card now slides in (~380 ms), wears a short accent ring and a
-  `role="status"` line names the step ("Erledigt – weiter mit 2 von 6"). Under
-  `prefers-reduced-motion: reduce` the slide is dropped; ring and line stay, so
-  the advance is still perceivable. Überspringen uses the same slide (without the
-  line — the click itself is the explanation), and so does an Abnahme decision
-  once the write came back and the topic left the queue. Draining the last topic
-  reports itself through the "Alles abgearbeitet" screen instead.
+**Roles and red.** Avatars are initials coloured by `profiles.role` — admin in
+the elevated-access red (`--sc-accent-hot`), collaborator light blue, viewer /
+unknown grey-blue; the topics select `author:profiles(display_name, username,
+role)` (admins may read every profile, policy `profiles_admin_read_all`, so no
+projection was needed). A topic reads *Auftrag* (`source = 'admin'`) or
+*Nutzer-Feedback* (`source = 'user'`); a routine message carries the plain
+text label *AI* and no circle. Red is used exactly twice: the admin avatar and
+the one primary call to action of a card or sheet (send / ✓ Abnehmen / Für die
+Routine freigeben). `--sc-danger` stays reserved for errors and destructive
+acts.
 
-### One topic card in the Übersicht (feedback 03d7e546)
+**"Neu seit deinem letzten Blick".** The Geliefert band's head counts every
+outcome that finished after the previous visit
+(`sc.adminFeedback.lastSeenDelivered`, written behind the preferences consent
+at each open, registered in `PREFERENCE_KEYS`), and each such row wears a
+`neu` chip. Delivered rows carry `▸ Ansehen` — a real `<a [routerLink]>` to the
+section root of the topic's area (`areaRoute`, the inverse of `areaForUrl`;
+nothing on an untagged topic) — and the PR / issue link. A shipped topic that
+still waits for its sign-off is in the feed on its ship day (with the ✓ in the
+row) *and* in "Du bist dran". The ship-cheer banner is gone; the confetti
+burst stays.
 
-Reviewing a topic on the board had grown into a wall: two thread lists at full
-length, two composers, a per-message "mehr" clamp, the sign-off gate and a
-permanent row of "Issue erstellt / freigeben / nicht umsetzen / löschen" buttons
-under every card — and on the **full board page** the card could not even be
-folded, because only the docked panel rendered a clickable head. The card is now
-the same control in both shells:
-
-- **The head is a button, everywhere.** Chevron · `#N` · generated title ·
-  author · date (full board only — the panel's day heading carries it) · status
-  pills. The panel keeps topics **collapsed** by default, the full board keeps
-  them **open**; the component stores only the deviation from that default
-  (`_flipped`), and "alle aus-/einklappen" exists in both shells. The
-  two-sentence body clamp is gone with it: a card that folds does not need a
-  second fold inside itself.
-- **Both threads are folded to their two ends.** `foldThread` in
-  `feedback.types.ts` returns `{ lead, hidden, tail }` — the conversation's
-  first message, everything between it behind one "…" that names its count, and
-  the newest message, which is what the admin has to react to. One rule, used by
-  the admin ↔ routine thread *and* the author channel; the Abarbeiten run folds
-  the same way (anchored at its focus index instead of at the thread start).
-  Unfolding is per thread and session-local.
-- **One question affordance per thread.** The admin ↔ routine thread has exactly
-  one composer, the author channel exactly one — plus its single "als Rückfrage
-  senden" switch, which is now **per topic** (it used to be one board-wide flag,
-  so ticking it on one card armed every other open card's composer).
-- **The rare acts sit behind one disclosure.** "Weitere Aktionen" reveals
-  "Issue erstellen" (the order, with its undo), "nicht umsetzen & löschen" /
-  "löschen" and their inline forms; closing it discards a half-typed form rather
-  than leaving it open out of sight. `declined`, the triage release and the
-  sign-off gate's two decisions all live one click deeper. `issue_created` is
-  **not** among them: the panel has no by-hand write for it since admin feedback
-  18e96ad3 — the routine sets it when it carries out an `**[ISSUE]**` order.
-  The one action that stays in the open is "Für die Routine freigeben"
-  on an untriaged topic: the topic is *blocked* on it, so hiding it would hide
-  the reason nothing is happening.
-
-### The run is a carousel with skip (feedback d4990269)
-
-Two kinds of step share the queue, in a fixed order rather than interleaved by
-date: **Rückfragen first** (they block the routine's next run), **Abnahmen after
-them** (they close a topic out), each oldest-first inside its kind. An Abnahme
-step is aged and dated by `reviewSince` (`shipped_at ?? processed_at ??
-updated_at`) — the moment its outcome landed, which is how long it has actually
-been waiting — while a Rückfrage keeps its `created_at`. Both live in
-`buildWorkflowQueue`; a queue entry now carries a `kind` (`'question' |
-'review'`) that decides the card's badge, the controls at its foot and the kind
-lens. The rows and the `awaitsReview` rule behind them are unchanged; the two
-decisions are still "Ins Archiv — erledigt" (→ `reviewed_at`) and "Gespräch
-wieder aufnehmen" (→ `status='open'`).
-
-Round 2 of the same feedback changed *how* the second one is taken and what the
-card shows around it:
-
-- **Reopening is an answer.** The button opens the run's composer instead of
-  writing on the spot; the two decisions step aside while it is open, and sending
-  posts the reply and reopens the topic in one handler
-  (`workflowReopenBound` → `sendReply` → `reopenFromReview`). Backing out writes
-  nothing. The draft has its own scope (`admin:workflow-reopen:<id>`), so a
-  half-written steer can never surface in the Rückfrage box.
-- **The thread is folded.** Only the message the run points at
-  (`workflowFocusIndex`) and everything after it is on screen; the history sits
-  behind one "…" that says how many messages it hides. The card already shows the
-  topic's first post, so "erster Post → … → letzter Post" falls out of it — and
-  because the fold is anchored to the focus index, the open Rückfrage is never
-  the thing being hidden. Unfolding is per card and session-local; the next card
-  starts folded again.
-- **"Thema öffnen" is gone**, together with the Abnahme tab it belonged to: the
-  card shows the whole topic, so there is nothing left to jump to.
-
-**Überspringen** parks the current topic for this lap and steps to the next one
-the lap has not shown yet. When nothing unseen is left, the lap closes and the
-run comes back around to the parked topics (plus whatever arrived meanwhile),
-announced by a `role="status"` line; the card that comes back wears an
-"Übersprungen" badge, and a counter next to the progress rail says how many are
-still owed a second look. Skipping is **session-local and never written**: no
-column, no status value, no localStorage — exactly like the "Erledigt" tick-off,
-it is a view-level "not now". A lap resets when either lens changes, and a
-topic that gets answered, ticked off or decided is dropped from it, so the
-carousel never promises to come back to something that is already gone.
-
-Queue, aggregation and search rules live as pure functions in `feedback.types.ts`
-(`buildWorkflowQueue`, `workflowFocusIndex`, `reviewSince`, `computeStats`, `computePace`,
-`shippedPerWeek`, `lifecycleSnapshot`, `neededInput`, `isArchived`, `refKind`,
-`feedbackBucket`, `searchFeedback`), unit-tested in `feedback.types.spec.ts`. All three views
-share that vocabulary: a terminal topic is out of the processing queue, out of
-the dashboard's ToDo bucket and in the overview's Archive tab, from the one
-`isArchived` rule.
-
-**Presentation buckets ≠ DB status.** What the panel shows is a topic's
-*bucket* (`feedbackBucket`), not its raw status — the DB values are untouched:
-
-| Bucket | Label (DE/EN) | Which rows |
-|--------|---------------|------------|
-| `todo` | **ToDo** | `status='open'` **and** a `needs_input` topic whose newest thread message is the admin's answer — the routine still has to pick it up, so it is ToDo, not "done" |
-| `awaiting_admin` | Rückfrage / Needs input | `needs_input` whose newest message is the routine's (or none yet) — the ball is with the admin |
-| `awaiting_author` | Rückfrage an Absender / Asked the sender | `needs_input_author` — the admin asked a user topic's author and waits on them |
-| `in_progress` | In Arbeit / In progress | `status='in_progress'` |
-| `shipped` / `issue_created` / `declined` / `rejected` | as before | terminal → Archive tab |
-
-The status filter chips, the day-grouped list and the dashboard's ToDo counter
-all resolve through that one rule. An answered Rückfrage keeps a small
-"beantwortet" marker next to its ToDo pill (it records that the admin's part is
-done) but is otherwise counted and filtered as ToDo. The "offen"/"Open" label
-is gone from the UI — it reads **ToDo** everywhere (feedback 34c44134); the
-status value on the wire is still `open`.
+**What the retired run offered and the stream does not.** Überspringen with
+the lap, the local "Erledigt" tick-off (`sc.adminFeedback.handled`), the swipe
+gestures, the progress rail and the scope / kind lenses went with
+`feedback-workflow.component.ts` — the band is the queue, its order is the
+walk, and acting on a card is what advances it. The toolbar's expand/collapse-
+all and the motivating stats line went with the chip rows. The localStorage
+keys `sc.adminFeedback.view`, `.handled`, `.workflowScope`, `.workflowKind`
+are no longer read.
 
 ### What the Fortschritt view shows (feedback ef15ea67)
 
