@@ -49,6 +49,14 @@ const PREFERENCE_KEYS = [
   'sc-telemetry-product',
   'sc.adminFeedback.draft',
   'sc.adminFeedback.lastSeenDelivered',
+  // Retired by the 2026-09-04 rethink and no longer written: the view
+  // switch, the run's tick-off map and its two lenses. Listed so a decline
+  // clears them for anyone who never opens the panel again;
+  // `AdminFeedbackComponent` also drops them on load.
+  'sc.adminFeedback.view',
+  'sc.adminFeedback.handled',
+  'sc.adminFeedback.workflowScope',
+  'sc.adminFeedback.workflowKind',
   'sc.userFeedback.draft',
 ] as const;
 
