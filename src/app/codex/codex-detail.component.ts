@@ -1477,8 +1477,14 @@ export class CodexDetailComponent implements OnInit {
         // Ship pages: resolve the pinned pledge link (own > global). Best
         // effort — a missing link just falls back to the RSI ships listing.
         if (kind === 'ship') void this.shipLinks.loadForShip(d.classNameSlug);
-        // Ship pages: the Einordnung cohort — never blocks the page (§3).
-        if (kind === 'ship') void this.loadRankCohort();
+        // Ship pages: the Einordnung cohort. It reads the WHOLE fleet, so it
+        // must never race the ship's own queries for the connection — kicked
+        // off only once the browser has had a turn, and it yields while it
+        // scores (see CodexService.getRankCohort). Measured live on
+        // 2026-09-05: started inline it starved the page for tens of seconds.
+        if (kind === 'ship') {
+          setTimeout(() => void this.loadRankCohort(), 0);
+        }
       }
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');

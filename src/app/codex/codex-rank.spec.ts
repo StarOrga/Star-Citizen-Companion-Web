@@ -173,3 +173,26 @@ describe('cohort cache', () => {
     expect(readCohortCache(cohortCacheKey('new', 'all'))).not.toBeNull();
   });
 });
+
+describe('cohort cache — an oversized fleet must not be retried every visit', () => {
+  it('refuses a payload larger than the localStorage share instead of throwing', () => {
+    const fat = Array.from({ length: 400 }, (_, i) => ({
+      className: 'SHIP_' + i,
+      sizeClass: null,
+      career: null,
+      // ~3 kB per ship pushes the blob past the 2 MB guard
+      sheet: { note: 'x'.repeat(3000) } as unknown as RankShipInput['sheet'],
+    })) as RankShipInput[];
+    expect(writeCohortCache('scc-cohort-test-fat', fat)).toBeFalse();
+    expect(localStorage.getItem('scc-cohort-test-fat')).toBeNull();
+  });
+
+  it('still stores a cohort that fits', () => {
+    const lean: RankShipInput[] = [
+      { className: 'CNOU_Nomad', sizeClass: null, career: null, sheet: { alpha: 131 } as never },
+    ];
+    expect(writeCohortCache('scc-cohort-test-lean', lean)).toBeTrue();
+    expect(readCohortCache('scc-cohort-test-lean')?.length).toBe(1);
+    localStorage.removeItem('scc-cohort-test-lean');
+  });
+});
