@@ -14,9 +14,21 @@
  *   node scripts/mobile-gate.mjs --routes=/news,/codex --devices=iphone-14
  *   node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
  *   node scripts/mobile-gate.mjs --selftest           # prove every check still fires
+ *   node scripts/mobile-gate.mjs --auth                # + the role-gated routes and panels
  *   node scripts/mobile-gate.mjs --skip-if-unavailable # exit 0 + SKIPPED when no Chromium exists
  *
  * Exit codes: 0 green · 1 blocking findings (gate failed) · 2 could not run.
+ *
+ * `--auth` adds an opt-in authenticated pass (#516). Public routes alone leave
+ * the feedback panels — the admin board and the viewer panel, both full-bleed
+ * sheets below 720px — completely unaudited, so the gate could report GREEN
+ * without ever having seen them. With `--auth` the gate signs a test user in
+ * through the app's own login form and then audits `auth.routes` plus the FAB
+ * panel opened on top of `auth.panelRoutes`.
+ *
+ * Credentials come from the environment, never from the repo:
+ *   SC_GATE_EMAIL / SC_GATE_PASSWORD   — a dedicated test account
+ * Without them `--auth` exits 2 rather than quietly auditing nothing.
  *
  * No npm dependencies: uses node:http, the built-in WebSocket client and a
  * locally installed Chrome/Edge binary.
@@ -700,7 +712,69 @@ async function resolveTarget(cfg) {
 // Per-device run
 // ---------------------------------------------------------------------------
 
-async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir) {
+/**
+ * Sign a test user in through the app's own login form (#516).
+ *
+ * Deliberately the real form rather than an injected Supabase session: the
+ * point of the authenticated pass is that a real sign-in on a phone works, and
+ * a hand-forged localStorage entry would skip exactly the code that could be
+ * broken. Values go in through the native setter plus `input`/`change` events —
+ * Angular's reactive forms listen for those, not for a plain `.value =`.
+ *
+ * Never logs, echoes or stores the password.
+ */
+async function signIn(cdp, sessionId, baseUrl, creds, state, cfg) {
+  await navigate(cdp, sessionId, baseUrl + '/login', state, cfg);
+  const pre = await evaluate(cdp, sessionId, `(() => {
+    const email = document.querySelector('input[type="email"]');
+    const pass = document.querySelector('input[type="password"]');
+    const submit = document.querySelector('form button[type="submit"]');
+    if (!email || !pass || !submit) return { ok: false, why: 'login form not found' };
+    const set = (el, v) => {
+      const d = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value');
+      d.set.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    set(email, ${JSON.stringify(creds.email)});
+    set(pass, ${JSON.stringify(creds.password)});
+    return { ok: true };
+  })()`, true);
+  if (!pre || !pre.ok) throw new Error((pre && pre.why) || 'could not reach the login form');
+
+  // Angular keeps submit disabled until the form is valid; give it a tick.
+  await sleep(cfg.timing.scrollSettleMs);
+  await evaluate(cdp, sessionId, `document.querySelector('form button[type="submit"]').click()`, true);
+
+  const deadline = Date.now() + cfg.timing.navigationTimeoutMs;
+  for (;;) {
+    await sleep(cfg.timing.scrollSettleMs);
+    const where = await evaluate(cdp, sessionId, `(() => ({
+      path: location.pathname,
+      err: (document.querySelector('form .err') || {}).textContent || null,
+    }))()`, true);
+    if (where && where.err) throw new Error(`sign-in rejected: ${String(where.err).trim().slice(0, 160)}`);
+    if (where && where.path && !where.path.startsWith('/login')) return where.path;
+    if (Date.now() > deadline) throw new Error('sign-in did not leave /login before the navigation timeout');
+  }
+}
+
+/** Open the feedback FAB, so the panel itself is audited and not just its launcher. */
+async function openFeedbackPanel(cdp, sessionId, cfg) {
+  const opened = await evaluate(cdp, sessionId, `(() => {
+    const fab = document.querySelector('sc-feedback-fab .fab, sc-user-feedback-fab .fab');
+    if (!fab) return { ok: false, why: 'no feedback FAB on this route' };
+    if (fab.classList.contains('is-open')) return { ok: true };
+    fab.click();
+    return { ok: true };
+  })()`, true);
+  if (!opened || !opened.ok) throw new Error((opened && opened.why) || 'feedback FAB not reachable');
+  await sleep(cfg.timing.settleMs);
+  const visible = await evaluate(cdp, sessionId, `!!document.querySelector('.panel:not(.minimized)')`, true);
+  if (!visible) throw new Error('feedback panel did not become visible after the tap');
+}
+
+async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth = null) {
   const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
@@ -749,14 +823,23 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir) {
   }, sessionId);
 
   const results = [];
-  for (const route of routes) {
+
+  /**
+   * Navigate to one route and run the full audit on it. `prepare` runs after
+   * the page has loaded and before anything is measured — that is where the
+   * authenticated pass opens the feedback panel, so the sheet is what gets
+   * audited rather than the page behind it. `label` names the row in the
+   * report when it is not simply the route.
+   */
+  const auditRoute = async (route, { prepare = null, label = null } = {}) => {
     state.console.length = 0;
     state.network.length = 0;
     state.inflight = 0;
     const url = baseUrl + route;
-    const result = { device: device.id, route, url, findings: [], error: null, finalUrl: null };
+    const result = { device: device.id, route: label || route, url, findings: [], error: null, finalUrl: null };
     try {
       await navigate(cdp, sessionId, url, state, cfg);
+      if (prepare) await prepare();
       // Sweep the page so sticky/fixed chrome is measured where it actually lands.
       const occlusionOpts = { maxFindingsPerCheck: cfg.thresholds.maxFindingsPerCheck };
       for (let step = 0; step < cfg.timing.maxScrollSteps; step++) {
@@ -804,7 +887,35 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir) {
     }
     results.push(result);
     const errs = result.findings.filter((f) => severityOf(f, cfg) === 'error').length;
-    console.log(`  ${errs ? 'FAIL' : ' ok '}  ${device.id.padEnd(14)} ${route.padEnd(20)} ${errs ? errs + ' finding(s)' : ''}`);
+    console.log(`  ${errs ? 'FAIL' : ' ok '}  ${device.id.padEnd(14)} ${result.route.padEnd(24)} ${errs ? errs + ' finding(s)' : ''}`);
+  };
+
+  for (const route of routes) await auditRoute(route);
+
+  // ---- authenticated pass (#516) -----------------------------------------
+  // Role-gated surfaces are invisible to the public walk above: /admin/feedback
+  // redirects to /login, and the FAB panels never open at all. Phones only —
+  // above 720px the panels are docked windows next to the page the public pass
+  // already measured, and the sheet layout under test does not exist there.
+  if (auth && device.width < 768) {
+    try {
+      await signIn(cdp, sessionId, baseUrl, auth.credentials, state, cfg);
+      for (const route of auth.routes) await auditRoute(route);
+      for (const route of auth.panelRoutes) {
+        await auditRoute(route, {
+          label: `${route} [panel]`,
+          prepare: () => openFeedbackPanel(cdp, sessionId, cfg),
+        });
+      }
+    } catch (err) {
+      // A broken sign-in must never read as "the panels are fine".
+      results.push({
+        device: device.id, route: '[auth]', url: baseUrl + '/login', finalUrl: null,
+        error: err.message,
+        findings: [{ check: 'console-error', message: `authenticated pass failed: ${err.message}`, selector: null, detail: 'auth' }],
+      });
+      console.log(`  FAIL  ${device.id.padEnd(14)} ${'[auth]'.padEnd(24)} ${err.message}`);
+    }
   }
 
   await cdp.send('Target.closeTarget', { targetId }).catch(() => {});
@@ -1039,6 +1150,32 @@ async function main() {
     .filter((r) => !(cfg.ignore.routes || []).includes(r))
     .map((r) => (r.startsWith('/') ? r : '/' + r));
 
+  // Opt-in authenticated pass (#516). Credentials live in the environment,
+  // never in the repo — and a missing one is a hard stop, because an --auth
+  // run that silently audits nothing is exactly the false GREEN this closes.
+  const wantsAuth = args.flags.has('auth') || process.env.MOBILE_GATE_AUTH === '1';
+  let auth = null;
+  if (wantsAuth && !selftest) {
+    const email = process.env.SC_GATE_EMAIL;
+    const password = process.env.SC_GATE_PASSWORD;
+    if (!email || !password) {
+      fail(
+        '--auth needs SC_GATE_EMAIL and SC_GATE_PASSWORD in the environment ' +
+          '(a dedicated test account with the role you want audited). ' +
+          'Refusing to run an authenticated pass that would audit nothing.',
+      );
+    }
+    const a = cfg.auth || {};
+    auth = {
+      credentials: { email, password },
+      routes: (a.routes || []).filter((r) => !(cfg.ignore.routes || []).includes(r)),
+      panelRoutes: a.panelRoutes || [],
+    };
+    if (!auth.routes.length && !auth.panelRoutes.length) {
+      fail('--auth: `auth.routes` and `auth.panelRoutes` are both empty in mobile-gate.config.json.');
+    }
+  }
+
   const screenshotDir = args.opts.screenshots ? resolve(REPO_ROOT, args.opts.screenshots) : null;
   if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
 
@@ -1060,7 +1197,12 @@ async function main() {
   const cdp = await Cdp.connect(browser.wsUrl);
   teardown.push(() => cdp.close());
 
-  console.log(`[mobile-gate] ${target.baseUrl} (${target.mode}) · ${devices.length} devices × ${routes.length} routes`);
+  const authSuffix = auth
+    ? ` · +auth (${auth.routes.length} route(s), ${auth.panelRoutes.length} panel(s), phones only)`
+    : '';
+  console.log(
+    `[mobile-gate] ${target.baseUrl} (${target.mode}) · ${devices.length} devices × ${routes.length} routes${authSuffix}`,
+  );
 
   const concurrency = Math.max(1, Number(args.opts.concurrency || Math.min(devices.length, 2)));
   const queue = [...devices];
@@ -1069,7 +1211,7 @@ async function main() {
     for (;;) {
       const device = queue.shift();
       if (!device) return;
-      const res = await runDevice(cdp, device, routes, target.baseUrl, cfg, screenshotDir);
+      const res = await runDevice(cdp, device, routes, target.baseUrl, cfg, screenshotDir, auth);
       results.push(...res);
     }
   });
@@ -1080,10 +1222,18 @@ async function main() {
     runTeardown();
   }
 
-  results.sort((a, b) => deviceIds.indexOf(a.device) - deviceIds.indexOf(b.device) || routes.indexOf(a.route) - routes.indexOf(b.route));
+  const reportRoutes = [
+    ...routes,
+    ...(auth ? [...auth.routes, ...auth.panelRoutes.map((r) => `${r} [panel]`), '[auth]'] : []),
+  ];
+  results.sort(
+    (a, b) =>
+      deviceIds.indexOf(a.device) - deviceIds.indexOf(b.device) ||
+      reportRoutes.indexOf(a.route) - reportRoutes.indexOf(b.route),
+  );
   const errorCount = selftest
     ? reportSelftest(results)
-    : report(results, cfg, { baseUrl: target.baseUrl, mode: target.mode, devices, routes });
+    : report(results, cfg, { baseUrl: target.baseUrl, mode: target.mode, devices, routes: reportRoutes });
 
   if (args.opts.json) {
     const out = resolve(REPO_ROOT, args.opts.json);

@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.80.2] - 2026-09-06
+## [0.80.3] - 2026-09-06
 
 ### Changed
 
@@ -40,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   swap was a table of dashes; the column menu, the table and the footer now
   agree with each other, and picking one column no longer wipes the rest. On a
   phone the three columns shown are the ones that port actually has.
+
+## [0.80.2] - 2026-09-06
+
+### Changed
+
+- **The mobile gate can now audit the feedback panels it used to be blind to.**
+  It walked public routes only, so the admin feedback board and the viewer
+  panel — both full-bleed sheets on a phone — were never measured and the gate
+  could report GREEN without ever having seen them. An opt-in `--auth` pass
+  signs a test account in through the app's own login form and audits the
+  role-gated routes plus the panel itself. Credentials come from the
+  environment, never from the repository. (#516)
 
 ## [0.80.1] - 2026-09-06
 
