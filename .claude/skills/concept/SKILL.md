@@ -21,6 +21,29 @@ Plugin defaults still apply; only the rules below override or add.
    concepts embed Supabase Edge-Function URLs and interactive demos (e.g.
    live-checking a deployed function) fetch them from the page.
 
+2. **Donor chrome is never engine-current — re-sync the engine, then prove
+   P15b by clicking.** This repo builds concept pages from the newest page in
+   `docs/concepts/` as the chrome donor (fast, but the donor carries the
+   engine of the plugin version that generated it). Observed 2026-09-04
+   (`2026-09-04-patch-board-neu.html`, donor from 2026-09-02): the donor's
+   screen-nav handler compared against the **build-time** `active` design
+   and `showScreen()` had no membership guard, so "switch design via the
+   ghost bar → click a nav entry of another design" hid every screen of the
+   design on the canvas. Because the donor also lacked CSS rule 46 (design
+   mode hides `.concept-content > header` + `.iteration-intro`), the blank
+   canvas showed the page header overlapping the iteration intro — the
+   "content breaks when switching" symptom. Before opening ANY donor-built
+   page:
+   - run the **complete** Phase 1 + design-P grep list from
+     `validation-gate.md` — no hand-picked subset (46/47 and P15b were the
+     ones skipped);
+   - re-sync these three engine blocks verbatim from `templates.md`: the
+     click-time `const cur = activeDesign()` nav handler, the
+     `screens[0].id` fallback in `showScreen()`, and CSS rules 46/47;
+   - then assert P15b **behaviourally** in a browser: switch to every design
+     via the switcher, click every `#screen-nav` entry, and after each click
+     count screens with `getClientRects().length > 0` — exactly 1, never 0.
+
 ## Retired rules (absorbed upstream — do not re-add)
 
 The legacy `devops-concept` extension carried two more rules: "copy the
