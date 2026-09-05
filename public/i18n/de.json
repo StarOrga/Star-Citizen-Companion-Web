@@ -1394,6 +1394,53 @@
         "expandAll": "Alle Notes ausklappen",
         "collapseAll": "Alle Notes einklappen"
       },
+      "stability": {
+        "title": "Stabilität",
+        "chipAria": "Stabilität von Patch {{version}}: {{level}}",
+        "earlyShort": "früh",
+        "early": "Tag {{day}} von {{threshold}} – Einordnung noch vorläufig",
+        "insufficient": "Noch zu wenig Daten für eine Einordnung.",
+        "historical": "Endstand – kein Tagesverlauf, der Patch lief vor dem Start der täglichen Messung.",
+        "score": "Index {{score}} / 100",
+        "component": {
+          "community": "Community",
+          "service": "Dienste",
+          "cig": "CIG Known Issues",
+          "none": "keine Daten"
+        },
+        "componentHint": {
+          "community": "Neue Antworten pro Tag auf Notes- und Hotfix-Thread, Anteil und Upvote-Gewicht der Antworten mit Issue-Council-Ticket",
+          "service": "Ungeplante Störungsminuten pro Tag laut RSI-Status (7 Tage), plus offene Störung",
+          "cig": "Offene Einträge im Known-Issues-Artikel von CIG und deren Zuwachs über 7 Tage"
+        },
+        "level": {
+          "1": "Alle Systeme nominal",
+          "2": "Leichte Turbulenzen",
+          "3": "Systeme beeinträchtigt",
+          "4": "Instabil",
+          "5": "Kritisch"
+        },
+        "timeline": "Verlauf seit LIVE",
+        "timelineAria": "Stabilität pro Tag seit LIVE, {{days}} Messpunkte",
+        "dayTitle": "{{date}}: {{level}} ({{score}}), {{velocity}} neue Antworten/Tag",
+        "hotfixMark": "Hotfix {{build}} am {{date}}",
+        "hotfixes": "{{count}} Hotfixes",
+        "tickets": {
+          "title": "Was die Community meldet",
+          "hint": "Issue-Council-Tickets aus den höchstbewerteten Antworten",
+          "votes": "{{count}} Stimmen",
+          "empty": "Keine Tickets in den Top-Antworten."
+        },
+        "kb": "{{count}} offene Known Issues laut CIG",
+        "cigFixes": "CIG: {{fixes}} Fixes in diesem Patch, {{ic}} davon aus dem Issue Council",
+        "source": "Quellen: Spectrum-Kommentare, RSI-Status, CIG Known Issues. Keine Issue-Council-Zahlen (Login-Pflicht).",
+        "history": {
+          "title": "Stabilität je Patch",
+          "hint": "Endstand je LIVE-Patch; der aktuelle ist schraffiert, solange er früh ist",
+          "colAria": "Patch {{version}}: {{level}}",
+          "noData": "ohne Einordnung"
+        }
+      },
       "status": {
         "next": "Nächster",
         "evocati": "Evocati",

@@ -9,17 +9,19 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { NewsService } from './news.service';
 import { outlineMatchCount } from './patch-outline';
 import { matchesTokens, tokenizeQuery } from './patch-search';
 import { PatchMonitorComponent } from './patch-monitor.component';
+import { PatchStabilityService } from './patch-stability.service';
 import { buildPatchStack, stackCards, type StackCard } from './patch-stack';
 import { computePatchForecast } from './patch-stats';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
+import { StabilityHistoryComponent } from './stability-history.component';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -55,7 +57,7 @@ interface CardHits {
 @Component({
   selector: 'sc-patch-board',
   standalone: true,
-  imports: [TranslateModule, RouterLink, RouterOutlet, PatchMonitorComponent],
+  imports: [TranslateModule, RouterLink, RouterOutlet, PatchMonitorComponent, StabilityHistoryComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="board">
@@ -73,6 +75,10 @@ interface CardHits {
         <!-- The question people arrive with, answered before the list starts
              (feedback 01df732d): a monitoring panel over search and stack. -->
         <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" />
+
+        @if (!stability.unavailable()) {
+          <sc-stability-history [verdicts]="stability.allTime()" (showLine)="openLine($event)" />
+        }
 
         <!-- The ONE control on this level. A label, not a placeholder, so the
              field keeps its description while you type. -->
@@ -289,8 +295,10 @@ interface CardHits {
 export class PatchBoardComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
   readonly roadmap = inject(RoadmapService);
+  readonly stability = inject(PatchStabilityService);
   private readonly t = inject(TranslateService);
   private readonly locale = inject(LocaleService);
+  private readonly router = inject(Router);
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
@@ -319,6 +327,11 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   /** The roadmap is what names the "next" card, so it belongs to the board now. */
   private readonly loadRoadmapOnce = effect(() => {
     void this.roadmap.loadRoadmap();
+  });
+
+  /** The all-time chart needs its own tables; quiet-fail like everything else here. */
+  private readonly loadStabilityOnce = effect(() => {
+    void this.stability.load();
   });
 
   /**
@@ -353,6 +366,11 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   }
   toggleOlder(): void {
     this.olderOpen.update((v) => !v);
+  }
+
+  /** A chart column picks a line the same way a card does: into its dossier, query preserved. */
+  openLine(line: string): void {
+    void this.router.navigate(['/news/patches', line], this.query() ? { queryParams: { q: this.query() } } : {});
   }
 
   /** What the query hits inside a card — null when nothing does. */
