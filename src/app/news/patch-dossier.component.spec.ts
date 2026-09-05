@@ -273,7 +273,9 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     const sentence = text('#pd-next .sentence');
     expect(sentence).toContain('Alpha 4.11 ist für Q3 2026 geplant.');
     expect(sentence).toContain('Noch kein Testbuild');
-    expect(sentence).toContain('Median-Schätzungen');
+    // The caveat is still said — one click away, under the (i) (feedback 01df732d).
+    expect(text('#pd-next sc-info-note .pop')).toContain('Median-Schätzungen');
+    expect((root().querySelector('#pd-next sc-info-note .pop') as HTMLElement).hidden).toBeTrue();
     expect(text('#pd-next .facts')).toContain('Live → Live:');
     // No real stretch exists, so nothing is drawn — a borrowed axis would lie.
     expect(root().querySelector('#pd-next .axis')).toBeNull();
