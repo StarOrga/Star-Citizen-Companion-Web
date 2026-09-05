@@ -18,6 +18,7 @@ import { PasswordFormComponent } from '../auth/password-form.component';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { ComposerPrefsService } from '../core/composer-prefs.service';
+import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { ConsentService } from '../core/consent.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { AnalyticsService } from '../core/analytics.service';
@@ -314,6 +315,36 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
                     (composerPrefs.sendOnEnter()
                       ? 'settings.composer.sendOnEnter.descOn'
                       : 'settings.composer.sendOnEnter.descOff') | translate
+                  }}
+                </p>
+              </div>
+
+              <!-- The feedback launcher is a corner button on EVERY page, so
+                   whether it is there at all is a preference, not a fixed part
+                   of the chrome. Opt-out only: the default is on, and this card
+                   is the way back — it is the one control that reports the app
+                   is broken, so it must never be switchable off from a place
+                   the user cannot find again. -->
+              <div class="sc-card section">
+                <h3>{{ 'settings.feedbackFab.title' | translate }}</h3>
+                <p class="hint">{{ 'settings.feedbackFab.hint' | translate }}</p>
+                <div class="row">
+                  <span class="label">{{ 'settings.feedbackFab.show.label' | translate }}</span>
+                  <span class="value">
+                    <label class="consent-toggle">
+                      <input
+                        type="checkbox"
+                        [checked]="feedbackFabPrefs.show()"
+                        (change)="onFeedbackFabToggle($event)" />
+                      {{ (feedbackFabPrefs.show() ? 'consent.settings.on' : 'consent.settings.off') | translate }}
+                    </label>
+                  </span>
+                </div>
+                <p class="consent-desc">
+                  {{
+                    (feedbackFabPrefs.show()
+                      ? 'settings.feedbackFab.show.descOn'
+                      : 'settings.feedbackFab.show.descOff') | translate
                   }}
                 </p>
               </div>
@@ -855,6 +886,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly profile = inject(ProfileService);
   readonly consent = inject(ConsentService);
   readonly composerPrefs = inject(ComposerPrefsService);
+  readonly feedbackFabPrefs = inject(FeedbackFabPrefsService);
   readonly locale = inject(LocaleService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly translate = inject(TranslateService);
@@ -1230,6 +1262,12 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     const on = (e.target as HTMLInputElement).checked;
     this.composerPrefs.setSendOnEnter(on);
     this.analytics.capture('settings_send_on_enter_changed', { on });
+  }
+
+  onFeedbackFabToggle(e: Event) {
+    const on = (e.target as HTMLInputElement).checked;
+    this.feedbackFabPrefs.setShow(on);
+    this.analytics.capture('settings_feedback_fab_changed', { on });
   }
 
   onConsentToggle(e: Event) {

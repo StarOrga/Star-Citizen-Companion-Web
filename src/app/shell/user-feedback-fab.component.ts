@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
+import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
 import { unreadBadgeText } from '../feedback/user-feedback.types';
@@ -278,18 +279,24 @@ export class UserFeedbackFabComponent {
   private readonly roles = inject(RoleService);
   private readonly imp = inject(ImpersonationService);
   private readonly feedback = inject(UserFeedbackService);
+  private readonly fabPrefs = inject(FeedbackFabPrefsService);
 
   /**
-   * Signed in, role resolved, and not an admin. Waiting for `loaded()` avoids
-   * the flash where the role defaults to `viewer` and an admin briefly sees the
-   * wrong FAB next to their own.
+   * Signed in, role resolved, not an admin, and the launcher not switched off
+   * in Settings → Feedback. Waiting for `loaded()` avoids the flash where the
+   * role defaults to `viewer` and an admin briefly sees the wrong FAB next to
+   * their own.
    *
    * Deliberately unchanged for the preview: an admin previewing as
    * viewer/collaborator is exactly the case this is meant to show them, so it
    * stays visible — see `blocked()` below for what changes instead.
    */
   readonly visible = computed(
-    () => !!this.auth.user() && this.roles.loaded() && !this.roles.isAdmin(),
+    () =>
+      !!this.auth.user() &&
+      this.roles.loaded() &&
+      !this.roles.isAdmin() &&
+      this.fabPrefs.show(),
   );
 
   /**
