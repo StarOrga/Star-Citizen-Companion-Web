@@ -1,6 +1,13 @@
 import type { VerseNewsItem } from './news.service';
 import type { PatchLineGroup } from './patch-notes';
-import { computePatchForecast, firstTestAt, liveReleaseAt } from './patch-stats';
+import {
+  computeNextPatch,
+  daysUntilNextPatch,
+  firstTestAt,
+  liveReleaseAt,
+  nextLineInTesting,
+  type NextPatchBasis,
+} from './patch-stats';
 
 /**
  * The Verse News entry — "Bühne · Befund · Strom" (design Ⓐ of the 2026-08-20
@@ -146,6 +153,13 @@ export interface BuildVerdict {
   medianDays: number | null;
   /** Sample count behind the median — the honest caveat, never dropped. */
   samples: number | null;
+  /**
+   * WHICH measurement produced `nextLiveAt`. The card used to caption every
+   * estimate "Schätzung aus der bisherigen Patch-Kadenz" even when the number
+   * came from a build already in the test ring (feedback ae9f8cba) — a caption
+   * that names the wrong basis is a wrong statement, not a rounding detail.
+   */
+  nextBasis: NextPatchBasis | null;
   /** Whole days since `liveLine` reached players (0 = today). Null when unknown. */
   daysSinceLive: number | null;
   /** Whole days since `testLine` first entered a test ring. Null when unknown. */
@@ -174,18 +188,24 @@ function withinFreshWindow(days: number | null): boolean {
  * the reader: which build is live, and when the next one is due.
  *
  * This is a re-presentation of logic that already existed — `isCurrentLive`
- * from `groupPatchNotes` and the `live` row of `computePatchForecast` — not new
- * data work. The rotating carousel, the two filter axes and the full history
- * moved to `/news/patches` unchanged.
+ * from `groupPatchNotes` and `computeNextPatch` — not new data work. The
+ * rotating carousel, the two filter axes and the full history moved to
+ * `/news/patches` unchanged.
+ *
+ * The date comes from `computeNextPatch` and from nowhere else. It used to come
+ * from the `live` forecast row, which is version-level, so the card could count
+ * down to a point release under the heading "nächster Hauptpatch" while the
+ * board's monitor panel counted down to the next main line — the two surfaces
+ * the admin put side by side in feedback ae9f8cba.
  */
 export function buildVerdict(groups: readonly PatchLineGroup[], now: number): BuildVerdict {
   const live = groups.find((g) => g.isCurrentLive);
-  // The newest line above the live one that has not shipped yet — that is the
-  // build in testing. Groups are already sorted newest line first; the `g.line`
-  // guard keeps the trailing unversioned bucket from posing as a test ring.
-  const test = groups.find((g) => g.line && !g.hasLive);
-  const row = computePatchForecast(groups).find((r) => r.key === 'live') ?? null;
-  const at = row ? Date.parse(row.at) : NaN;
+  // The line in a test ring, picked by the same rule the estimate uses, so
+  // "4.11 im Test" on the card and "the estimate rests on 4.11" can never name
+  // two different lines. A test-only straggler BELOW the live line (a build
+  // whose LIVE note never parsed) is not a test ring and is excluded there.
+  const test = nextLineInTesting(groups);
+  const next = computeNextPatch(groups);
   // Both instants are read off the MAIN line, so a point release (4.10.1) does
   // not re-open the window its parent line opened weeks earlier: liveReleaseAt
   // is the line's EARLIEST live note, firstTestAt its earliest test note.
@@ -194,10 +214,11 @@ export function buildVerdict(groups: readonly PatchLineGroup[], now: number): Bu
   return {
     liveLine: live?.line ?? '',
     testLine: test?.line ?? '',
-    nextLiveAt: row?.at ?? null,
-    daysUntilLive: Number.isFinite(at) ? Math.round((at - now) / DAY_MS) : null,
-    medianDays: row?.medianDays ?? null,
-    samples: row?.samples ?? null,
+    nextLiveAt: next?.atIso ?? null,
+    daysUntilLive: next ? daysUntilNextPatch(next, now) : null,
+    medianDays: next?.medianDays ?? null,
+    samples: next?.samples ?? null,
+    nextBasis: next?.basis ?? null,
     daysSinceLive,
     daysSinceTest,
     fresh: withinFreshWindow(daysSinceLive)

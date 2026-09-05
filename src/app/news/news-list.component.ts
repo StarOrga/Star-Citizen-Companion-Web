@@ -21,6 +21,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { NewsService, VerseNewsItem } from './news.service';
+import { nextPatchDistance } from './patch-stats';
 import { relativeTime } from './relative-time';
 import { NewsThumbComponent } from './news-thumb.component';
 import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component';
@@ -908,6 +909,11 @@ export class NewsListComponent implements OnInit, OnDestroy {
    * live") and carries no countdown: three days after a patch landed, "the next
    * one is due in 48 days" is neither the news nor what anyone opened the page
    * for — and it is the same number the estimate's own basis line would print.
+   *
+   * The countdown switches to weeks past a fortnight, through the very helper
+   * the board's monitor panel uses. It used to print days no matter how far
+   * away the date was, so the two surfaces read as "in 20 Tagen" and "in ~6
+   * Wochen" — two claims, one date (feedback ae9f8cba).
    */
   readonly verdictLine = computed(() => {
     const v = this.verdict();
@@ -920,14 +926,13 @@ export class NewsListComponent implements OnInit, OnDestroy {
     }
     const days = v.daysUntilLive;
     if (days === null) return this.t.instant('news.verdict.liveOnly', { line: live });
-    if (days < 0) {
-      return this.t.instant('news.verdict.overdue', {
-        line: live,
-        days: `<b class="late">${Math.abs(days)}</b>`,
-      });
-    }
-    if (days === 0) return this.t.instant('news.verdict.today', { line: live });
-    return this.t.instant('news.verdict.due', { line: live, days: `<b>${days}</b>` });
+    const d = nextPatchDistance(days);
+    if (d.unit === 'today') return this.t.instant('news.verdict.today', { line: live });
+    const key = d.overdue
+      ? d.unit === 'weeks' ? 'news.verdict.overdueWeeks' : 'news.verdict.overdue'
+      : d.unit === 'weeks' ? 'news.verdict.dueWeeks' : 'news.verdict.due';
+    const n = d.overdue ? `<b class="late">${d.n}</b>` : `<b>${d.n}</b>`;
+    return this.t.instant(key, { line: live, days: n, weeks: n });
   });
 
   /**
@@ -940,6 +945,11 @@ export class NewsListComponent implements OnInit, OnDestroy {
    * arithmetic; the median itself is on the patch board, where the numbers are
    * the subject rather than a footnote. The sample count still gates the line —
    * no samples, no basis.
+   *
+   * Which nature it names follows `nextBasis`, not "is there a test line":
+   * while a build is in a test ring the date comes from that build plus the
+   * usual test run, and calling that "die bisherige Patch-Kadenz" would put a
+   * wrong caption under a right number (feedback ae9f8cba).
    *
    * Fresh state: how long the release has been up, plus the other ring, so the
    * card stays a complete build status while it celebrates.
@@ -964,10 +974,16 @@ export class NewsListComponent implements OnInit, OnDestroy {
       });
     }
     if (v.medianDays === null || v.samples === null) return '';
-    const key = v.testLine ? 'news.verdict.basisWithTest' : 'news.verdict.basis';
-    return this.t.instant(key, {
-      test: this.t.instant('news.patch.line', { version: v.testLine }),
-    });
+    // Name the measurement that actually produced the date. Saying "Schätzung
+    // aus der Patch-Kadenz" under a lead-time projection is simply false, and
+    // it was one half of why two surfaces looked like one of them was stale
+    // (feedback ae9f8cba).
+    if (v.nextBasis === 'leadTime' && v.testLine) {
+      return this.t.instant('news.verdict.basisTesting', {
+        test: this.t.instant('news.patch.line', { version: v.testLine }),
+      });
+    }
+    return this.t.instant('news.verdict.basis');
   });
 
   /** "Seit heute" / "Seit gestern" / "Seit 3 Tagen" — no plural rule needed. */
