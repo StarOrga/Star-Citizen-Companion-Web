@@ -650,6 +650,108 @@ interface GearRecipe {
         }
         </div>
 
+
+        <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
+             Six headline numbers for the active mission, plus the profile
+             chips that reorder/fold the loadout and analysis columns below.
+             Supersedes the old three-panel "Kampfübersicht" (461288f9) — the
+             new analysis column says the same things without duplicating
+             the page. ───────────────────────────────────────────── -->
+        @if (kind() === 'ship') {
+          <sc-codex-kpi-band [cells]="kpiCells()" />
+          <div class="mission-draft-bar">
+            <sc-codex-mission-bar
+              [active]="activeMissionId()"
+              [capabilities]="shipCapabilities()"
+              [changed]="draftChangedCount()"
+              (missionChange)="setMission($event)" />
+            <sc-codex-loadout-save-bar
+              class="draft-controls"
+              [changed]="draftChangedCount()"
+              [saveable]="saveableEntries().length"
+              [saving]="saving()"
+              [error]="saveError()"
+              [inHangar]="inHangar()"
+              (save)="saveLoadoutDraft()"
+              (discard)="discardLoadoutDraft()"
+              (addAndSave)="saveLoadoutDraft()" />
+          </div>
+        }
+
+        <!-- The old "Rumpf, Groesse und Flugeigenschaften" block stood here
+             and is gone (decision 3, Variante A). It was a strict subset of the
+             Analyse card's Schiff panel, which additionally explains every gap
+             — and it was the wrong one: it summed the mass of the WERKS loadout
+             while the card sums the mass of the ENTWURF, so after any swap the
+             same page showed two different masses. One source now. -->
+
+        <!-- ── Loadout | Analyse: two-column split (MASTER §1/§6/§7) ── -->
+        <div class="m-cols" [class.single]="kind() !== 'ship' || moduleCount() < 4">
+          <!-- ── Ship modules, configurable blocks first (461288f9), now
+               mission-ordered/folded (PR C) ── -->
+          @if (moduleSections().length > 0) {
+            <section class="sc-card block col-loadout">
+              <h2 class="col-head">
+                <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
+                <span class="n">{{ moduleCount() }}</span>
+                <span class="rule" aria-hidden="true"></span>
+                @if (hiddenEmptyCount() > 0) {
+                  <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                    {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                  </button>
+                }
+              </h2>
+              <!-- "What even IS a hardpoint?" — answered up front, once. -->
+              <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
+              <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
+              <!-- The "no stock guns in this extract" disclosure used to sit here,
+                   far above the block it is about. It now rides on the Weapons
+                   section itself (1add86a4) — see moduleSections below. -->
+              <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
+                   only when this ship's extract carries coordinates; every ship
+                   without them keeps exactly the previous list-only layout. -->
+              @if (hardpointFrame(); as frame) {
+                <sc-ship-hardpoint-map
+                  [markers]="hardpointMarkers()"
+                  [frame]="frame"
+                  [activePorts]="activePorts()"
+                  (hovered)="setActivePorts($event)" />
+              }
+              <sc-codex-hardpoint-layout
+                [sections]="moduleSections()"
+                [sectionOrder]="moduleSectionOrder()"
+                [foldedSections]="foldedModuleSections()"
+                [occupantsBySection]="occupantsBySection()"
+                [locatablePorts]="locatablePorts()"
+                [activePorts]="activePorts()"
+                (reverted)="onRevertPaths($event)"
+                (hovered)="setActivePorts($event)"
+                (inspected)="openInspect($event)"
+                (swapRequested)="openSwapPicker($event)" />
+            </section>
+          }
+
+          <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
+          @if (kind() === 'ship') {
+            <div class="analysis-col col-analyse">
+              <h2 class="col-head">
+                <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
+                <span class="n">3</span>
+                <span class="rule" aria-hidden="true"></span>
+              </h2>
+              <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
+              <sc-codex-defensive-panel [panel]="defensivePanel()" />
+              <sc-codex-ship-panel [groups]="shipFactGroups()" />
+            </div>
+          }
+        </div>
+
+        <!-- ── Below the concept skeleton ─────────────────────────
+             The concept draws exactly crumbrow › m-top › m-kpis ›
+             m-mission › m-cols › mini-dock (#t1, confirmed by #f1/#h1).
+             Everything this app adds on top lives BELOW that skeleton,
+             so the KPI strip is the third block on the page and starts
+             sticking near the top instead of a thousand pixels down. -->
         <!-- ── Ship liveries — always-on 3D view at hero level (#137 part 2) ──
              Moved directly beneath the hero so the interactive 3D model stays
              on-screen (RSI-site feel) instead of being buried below the spec
@@ -786,109 +888,6 @@ interface GearRecipe {
             }
           </section>
         }
-
-        <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
-             Six headline numbers for the active mission, plus the profile
-             chips that reorder/fold the loadout and analysis columns below.
-             Supersedes the old three-panel "Kampfübersicht" (461288f9) — the
-             new analysis column says the same things without duplicating
-             the page. ───────────────────────────────────────────── -->
-        @if (kind() === 'ship') {
-          <sc-codex-kpi-band [cells]="kpiCells()" />
-          <div class="mission-draft-bar">
-            <sc-codex-mission-bar
-              [active]="activeMissionId()"
-              [capabilities]="shipCapabilities()"
-              [changed]="draftChangedCount()"
-              (missionChange)="setMission($event)" />
-            <sc-codex-loadout-save-bar
-              class="draft-controls"
-              [changed]="draftChangedCount()"
-              [saveable]="saveableEntries().length"
-              [saving]="saving()"
-              [error]="saveError()"
-              [inHangar]="inHangar()"
-              (save)="saveLoadoutDraft()"
-              (discard)="discardLoadoutDraft()"
-              (addAndSave)="saveLoadoutDraft()" />
-          </div>
-          <sc-codex-energy-dock
-            [occupants]="draftSummaryOccupants()"
-            [shipStats]="shipPayload()?.stats ?? null"
-            [shipClassName]="shipClassName()"
-            [schemaVersion]="build()?.schemaVersion ?? null"
-            [userId]="currentUserId()"
-            [crossSection]="crossSectionMax()"
-            (sheetChange)="powerSheet.set($event)" />
-        }
-
-        <!-- The old "Rumpf, Groesse und Flugeigenschaften" block stood here
-             and is gone (decision 3, Variante A). It was a strict subset of the
-             Analyse card's Schiff panel, which additionally explains every gap
-             — and it was the wrong one: it summed the mass of the WERKS loadout
-             while the card sums the mass of the ENTWURF, so after any swap the
-             same page showed two different masses. One source now. -->
-
-        <!-- ── Loadout | Analyse: two-column split (MASTER §1/§6/§7) ── -->
-        <div class="m-cols" [class.single]="kind() !== 'ship' || moduleCount() < 4">
-          <!-- ── Ship modules, configurable blocks first (461288f9), now
-               mission-ordered/folded (PR C) ── -->
-          @if (moduleSections().length > 0) {
-            <section class="sc-card block col-loadout">
-              <h2 class="col-head">
-                <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
-                <span class="n">{{ moduleCount() }}</span>
-                <span class="rule" aria-hidden="true"></span>
-                @if (hiddenEmptyCount() > 0) {
-                  <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                    {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                  </button>
-                }
-              </h2>
-              <!-- "What even IS a hardpoint?" — answered up front, once. -->
-              <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
-              <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
-              <!-- The "no stock guns in this extract" disclosure used to sit here,
-                   far above the block it is about. It now rides on the Weapons
-                   section itself (1add86a4) — see moduleSections below. -->
-              <!-- WHERE each hardpoint sits on the hull (#137 part 3). Rendered
-                   only when this ship's extract carries coordinates; every ship
-                   without them keeps exactly the previous list-only layout. -->
-              @if (hardpointFrame(); as frame) {
-                <sc-ship-hardpoint-map
-                  [markers]="hardpointMarkers()"
-                  [frame]="frame"
-                  [activePorts]="activePorts()"
-                  (hovered)="setActivePorts($event)" />
-              }
-              <sc-codex-hardpoint-layout
-                [sections]="moduleSections()"
-                [sectionOrder]="moduleSectionOrder()"
-                [foldedSections]="foldedModuleSections()"
-                [occupantsBySection]="occupantsBySection()"
-                [locatablePorts]="locatablePorts()"
-                [activePorts]="activePorts()"
-                (reverted)="onRevertPaths($event)"
-                (hovered)="setActivePorts($event)"
-                (inspected)="openInspect($event)"
-                (swapRequested)="openSwapPicker($event)" />
-            </section>
-          }
-
-          <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
-          @if (kind() === 'ship') {
-            <div class="analysis-col col-analyse">
-              <h2 class="col-head">
-                <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
-                <span class="n">3</span>
-                <span class="rule" aria-hidden="true"></span>
-              </h2>
-              <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
-              <sc-codex-defensive-panel [panel]="defensivePanel()" />
-              <sc-codex-ship-panel [groups]="shipFactGroups()" />
-            </div>
-          }
-        </div>
 
         <!-- ── Hardpoints, grouped by category ───────────────────── -->
         @if (hardpointGroups().length > 0) {
@@ -1046,6 +1045,21 @@ interface GearRecipe {
           }
           @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
         </section>
+        <!-- The dock is the LAST element, as the concept places it
+             (#f1/#h1: mini-dock closes m-wrap). It is position:sticky,
+             so wherever it sits it keeps that much space in the flow —
+             placed early that space is a hole between the mission bar
+             and the columns; placed last there is nothing to hollow. -->
+        @if (kind() === 'ship') {
+            <sc-codex-energy-dock
+              [occupants]="draftSummaryOccupants()"
+              [shipStats]="shipPayload()?.stats ?? null"
+              [shipClassName]="shipClassName()"
+              [schemaVersion]="build()?.schemaVersion ?? null"
+              [userId]="currentUserId()"
+              [crossSection]="crossSectionMax()"
+              (sheetChange)="powerSheet.set($event)" />
+        }
       }
 
       <sc-codex-compare-tray />

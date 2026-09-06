@@ -336,6 +336,40 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(fixture.componentInstance.has3dView()).toBeFalse();
     expect(el.querySelector('.view-switch')).toBeNull();
   });
+
+  // ── the concept's page skeleton ──────────────────────────────────────────
+  // #t1 draws crumbrow > m-top > m-kpis > m-mission > m-cols, and #f1/#h1
+  // close m-wrap with the dock. Nothing may wedge between the masthead and
+  // the KPI strip: the strip is the sticky one, and every block placed above
+  // it pushes the page's only live feedback channel further down. Anything
+  // this app adds beyond the concept goes BELOW m-cols.
+  it('lays the page out in the concept order, extras below the skeleton', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const page = el.querySelector('.detail-page');
+    expect(page).toBeTruthy();
+
+    // Direct children only — a nested match (the hero's own stage art is a
+    // skin viewer too) would make this assertion pass for the wrong reason.
+    const at = (sel: string): number =>
+      Array.from(page!.children).findIndex((c) => c.matches(sel));
+
+    const crumbs = at('.crumbrow');
+    const top = at('.m-top');
+    const kpis = at('sc-codex-kpi-band');
+    const mission = at('.mission-draft-bar');
+    const cols = at('.m-cols');
+
+    expect(crumbs).toBeGreaterThanOrEqual(0);
+    expect(top).toBeGreaterThan(crumbs);
+    expect(kpis).toBe(top + 1); // nothing wedged in between
+    expect(mission).toBe(kpis + 1);
+    expect(cols).toBe(mission + 1);
+
+    // The standalone livery viewer is an addition the concept never draws, so
+    // it belongs after the columns, not in the masthead seam.
+    const viewer = at('sc-ship-skin-viewer');
+    if (viewer >= 0) expect(viewer).toBeGreaterThan(cols);
+  });
 });
 
 describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () => {
