@@ -1761,7 +1761,7 @@
         "basis": "Median {{median}}d · from {{version}}"
       },
       "board": {
-        "title": "Patches",
+        "title": "Patch Central",
         "sub": "Future on top, now in the middle, past below — a patch opens its dossier",
         "back": "Back to Verse News"
       },
@@ -2054,7 +2054,7 @@
       "onStage": "On the stage"
     },
     "verdict": {
-      "label": "Build status",
+      "label": "Live in the Verse",
       "liveOnly": "{{line}} is live",
       "due": "{{line}} is live · next main patch in {{days}} days",
       "dueWeeks": "{{line}} is live · next main patch in ~{{weeks}} weeks",
@@ -2072,7 +2072,7 @@
       "sinceToday": "Since today",
       "sinceYesterday": "Since yesterday",
       "sinceDays": "For {{days}} days",
-      "toBoard": "Patch history",
+      "toBoard": "Patch Central",
       "toNotes": "Read the patch notes"
     }
   },
@@ -3264,8 +3264,6 @@
       "answered": "Answered · waiting for the routine"
     },
     "kind": {
-      "order": "Instruction",
-      "userFeedback": "User feedback",
       "ai": "AI"
     },
     "role": {

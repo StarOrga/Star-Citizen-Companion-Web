@@ -19,7 +19,7 @@ you leave again with **Zurück**.
 
 **The build verdict.** One sentence docked into the stage: which Alpha line is
 live, and how many days until the next main patch is due (or how far it is
-overdue), plus the median interval that estimate rests on. **Patch-Historie**
+overdue), plus the median interval that estimate rests on. **Patch-Zentrale**
 opens the full patch board at `/news/patches` — everything below under
 *Patch notes* lives there, not on the landing page.
 

@@ -488,11 +488,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     {{ stationLabelKey(pos) | translate }}
                   }
                 </span>
-                @if (fromUser(m)) {
-                  <span class="kind user">{{ 'adminFeedback.kind.userFeedback' | translate }}</span>
-                } @else {
-                  <span class="kind">{{ 'adminFeedback.kind.order' | translate }}</span>
-                }
                 @if (areaOf(m); as a) {
                   <span class="chip area">{{ areaLabelKey(a) | translate }}</span>
                 }
@@ -1061,7 +1056,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .page { position: relative; display: flex; flex-direction: column; gap: var(--sc-gap-2); max-width: 860px; min-height: 0; }
     .page:not(.embedded) { min-height: 70vh; }
     .page.embedded { max-width: none; flex: 1 1 auto; padding: var(--sc-pad-2); box-sizing: border-box; }
-    .scroll { flex: 1 1 auto; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-gap-2); scrollbar-width: thin; }
+    /* overflow-x: the stream scrolls DOWN, never sideways (admin feedback
+       96259f21). overflow-y: auto alone leaves the x axis at "visible", which
+       computes to "auto" — so a few stray pixels anywhere in the list (a
+       rotated glyph, a wide chip) put a horizontal scrollbar under the whole
+       overview. Nothing in a row is meant to be reached sideways. */
+    .scroll { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-gap-2); scrollbar-width: thin; }
     .page:not(.embedded) .scroll { overflow: visible; }
     .page.overlay-open .scroll, .page.overlay-open .topbar, .page.overlay-open .new-topic-bar, .page.overlay-open .compose-sheet, .page.overlay-open .main-composer { visibility: hidden; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -1098,7 +1098,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .bh-count { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-3); color: var(--sc-fg-1); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
     .bh-count.hot { background: var(--sc-accent); color: var(--sc-bg-0); }
     .bh-new { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; }
-    .band-head .chev { margin-left: auto; color: var(--sc-fg-2); transition: transform 0.16s ease; }
+    /* The chevron is a fixed square box. Rotated 90° an inline glyph box turns
+       its LINE HEIGHT into its width, and that overhang counts as scrollable
+       overflow — every expanded band pushed the list ~3 px sideways and gave
+       the overview a horizontal scrollbar (admin feedback 96259f21). */
+    .band-head .chev { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; line-height: 1; color: var(--sc-fg-2); transition: transform 0.16s ease; }
     .chev.open { transform: rotate(90deg); }
     .band-empty { margin: 0; padding: 8px 4px; color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
     .day-head { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sc-fg-2); }
@@ -1106,8 +1110,13 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .load-more { min-height: 44px; background: transparent; border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
     .load-more:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
 
-    /* ---- Card ---- */
-    .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); }
+    /* ---- Card ----
+       A row sits ON the panel surface: outline only, no fill and no glow.
+       The sc-card glow has a 16 px blur and the rows are 8 px apart, so the
+       halos of a band's rows overlapped into one continuous light haze —
+       an odd shared background wrapped around every group of issues (admin
+       feedback 96259f21). The 1 px border still tells one row from the next. */
+    .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); background: transparent; box-shadow: none; }
     .card.lead { border-color: var(--sc-accent); }
     .card.done { opacity: 0.88; }
     .card-head { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
@@ -1123,8 +1132,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .baton { font-weight: 600; color: var(--sc-fg-1); }
     .baton.t-admin { color: var(--sc-fg-0); }
     .baton.t-nobody { color: var(--sc-fg-2); font-weight: 500; }
-    .kind { font-size: max(0.68rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-fg-2); }
-    .kind.user { color: var(--sc-accent); }
     .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sc-border); font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-2); white-space: nowrap; }
     .chip.area { border-style: dashed; }
     .chip.new { border-color: var(--sc-accent); color: var(--sc-accent); }

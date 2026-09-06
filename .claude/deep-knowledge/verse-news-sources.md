@@ -88,7 +88,7 @@ dates the next MAIN patch. Everything that shows the answer renders it:
 
 | Surface | Route | What it renders |
 | --- | --- | --- |
-| Build-Stand card (`buildVerdict`) | `/news` | the sentence and its basis caption |
+| "Aktuell im Verse" card (`buildVerdict`) | `/news` | the sentence and its basis caption |
 | Monitor panel (`sc-patch-monitor`) | `/news/patches` | the headline date, the distance and the rail's goal marker |
 | Forecast table, `live` row | `/news/patches` (charts carousel) | the projected date |
 
