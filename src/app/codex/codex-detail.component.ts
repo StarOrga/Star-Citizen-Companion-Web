@@ -330,10 +330,6 @@ interface GearRecipe {
               }
             </div>
 
-            <div class="stage-fg">
-              @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
-              <h1>{{ displayName() }}</h1>
-            </div>
 
             <!-- 2D ⇄ 3D on the card itself. A toggle, not a navigation, so a
                  real button: deliberately quiet and half-transparent, and it
@@ -360,10 +356,23 @@ interface GearRecipe {
                  wrapped to a second row the chips disappeared behind them. A
                  column that grows from the bottom cannot collide with itself. -->
             <div class="stage-foot">
+              <!-- Same treatment the codex fleet tiles give a ship: maker and
+                   role as one small accent eyebrow, the name compact and bold
+                   under it, both sitting on the bottom edge over a gradient.
+                   The role lives here rather than in the chip row so it is not
+                   printed twice. -->
+              <div class="stage-ident">
+                @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
+                <h1>{{ displayName() }}</h1>
+              </div>
+
+              <div class="stage-side">
             @if (heroChips().length > 0) {
               <ul class="chips">
                 @for (c of heroChips(); track c.key) {
-                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                  @if (c.key !== 'role') {
+                    <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                  }
                 }
               </ul>
             }
@@ -387,6 +396,7 @@ interface GearRecipe {
                 {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
               </a>
             </div>
+              </div>
             </div>
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
@@ -1113,8 +1123,8 @@ interface GearRecipe {
        band, so the foot can grow (wrapped buttons, many chips) and push the
        stage taller instead of sliding under the row above it or being cut off
        by the overflow clip. 246px stays the floor, never the ceiling. */
-    .hero.stage { display: grid; grid-template-rows: auto 1fr auto; position: relative;
-      min-height: 246px; padding: 12px 14px; gap: 8px;
+    .hero.stage { display: grid; grid-template-rows: 1fr auto; position: relative;
+      min-height: 246px; padding: 12px 14px;
       overflow: hidden; background: var(--sc-bg-1); }
     .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
       justify-content: center; pointer-events: none;
@@ -1125,22 +1135,36 @@ interface GearRecipe {
     .hero.stage .stage-art.live { pointer-events: auto; }
     .hero.stage .stage-art sc-ship-skin-viewer { display: block; width: 100%; height: 100%; }
     /* Readability floor for whatever the render happens to be. */
+    /* The art is the card; everything readable sits in the band at its foot,
+       so the wash comes up from the bottom instead of across the diagonal —
+       the same shape a codex fleet tile uses for its caption. */
     .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(105deg, color-mix(in srgb, var(--sc-bg-0) 78%, transparent) 0%,
-        color-mix(in srgb, var(--sc-bg-0) 24%, transparent) 46%, transparent 70%); }
-    .hero.stage .stage-fg { grid-row: 1; position: relative; z-index: 1;
-      pointer-events: none; max-width: min(72%, 44ch);
-      /* Clear of the 2D/3D switch, which stays pinned to the top-right. */
-      padding-inline-end: 52px; }
-    .hero.stage .mfr { margin: 0; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.22em;
-      text-transform: uppercase; color: var(--sc-fg-2); }
-    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(22px, 4vw, 28px); font-weight: 300;
-      line-height: 1.12; color: var(--sc-fg-0); overflow-wrap: anywhere; }
-    .hero.stage .stage-foot { grid-row: 3; position: relative; z-index: 1;
-      display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+      background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent) 0%,
+        color-mix(in srgb, var(--sc-bg-0) 72%, transparent) 34%, transparent 68%); }
+    .hero.stage .stage-ident { min-width: 0; flex: 1 1 12ch; pointer-events: none; }
+    /* Typography lifted from the codex fleet tile (.fleet-tile__mfr / __name)
+       so the same hull reads the same way wherever it is shown. */
+    .hero.stage .mfr { margin: 0; font-family: var(--sc-font-display);
+      font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.08em; line-height: 1.2;
+      text-transform: uppercase; color: color-mix(in srgb, var(--sc-accent) 78%, var(--sc-fg-0)); }
+    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(17px, 1.7vw, 22px); font-weight: 600;
+      line-height: 1.15; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .hero.stage .stage-foot { grid-row: 2; position: relative; z-index: 1;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px 12px; }
+    .hero.stage .stage-side { display: flex; flex-direction: column; align-items: flex-end;
+      gap: 6px; margin-inline-start: auto; min-width: 0; }
     .hero.stage .chips { list-style: none; margin: 0; padding: 0;
       display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
     .hero.stage .acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    /* A mouse does not need the 48px touch floor, and four German labels at
+       that height stack into a wall on the half-width hero. Coarse pointers —
+       and therefore the mobile gate, which emulates one — keep the full
+       target. */
+    @media (pointer: fine) {
+      .hero.stage .acts .btn { min-height: 30px; padding: 3px 9px;
+        font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
+    }
 
     /* The one button on this page (concept section 2). Never the hot accent:
        nothing here is admin-gated. */
@@ -1411,8 +1435,10 @@ interface GearRecipe {
       .hero.stage { display: flex; flex-direction: column; min-height: 0; padding: 0; gap: 0; }
       .hero.stage .stage-art { position: relative; inset: auto; min-height: 190px; }
       .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
-      .hero.stage .stage-fg { padding: 10px 14px 0; max-width: none; padding-inline-end: 14px; }
-      .hero.stage .stage-foot { align-items: stretch; gap: 8px; padding-bottom: 12px; }
+      .hero.stage .stage-ident { padding: 10px 14px 0; }
+      .hero.stage .stage-foot { flex-direction: column; align-items: stretch; gap: 8px;
+        padding-bottom: 12px; }
+      .hero.stage .stage-side { align-items: stretch; margin-inline-start: 0; }
       .hero.stage .chips, .hero.stage .acts { justify-content: flex-start;
         padding: 0 14px; max-width: none; }
       .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
@@ -2828,6 +2854,17 @@ export class CodexDetailComponent implements OnInit {
 
   /** Hero chip row (MASTER §2): career, cargo (gold/ghost), mass in tonnes —
    * on top of the existing `facts()` (role/crew/dimensions/quantum). */
+  /**
+   * "AEGIS DYNAMICS · ABFANGJÄGER" — maker and role on one line, exactly how a
+   * codex fleet tile captions the same ship. The role is dropped from the chip
+   * row in the template so it is not stated twice.
+   */
+  protected readonly heroEyebrow = computed<string | null>(() => {
+    const mfr = this.manufacturerName();
+    const role = this.heroChips().find((c) => c.key === 'role')?.text ?? null;
+    return [mfr, role].filter(Boolean).join(' · ') || null;
+  });
+
   readonly heroChips = computed<{ key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
