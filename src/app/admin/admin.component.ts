@@ -5,8 +5,12 @@ import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
 import { AuthService } from '../auth/auth.service';
 import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admin-protection';
+import { PeopleRow, mergePeopleRows } from './people-rows';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+// Pure function, no Angular dependency — the same "vor 3 Std." formatter the
+// news surfaces use (and the `news.relative.*` keys it is documented to read).
+import { relativeTime } from '../news/relative-time';
 import { ModerationService } from '../social/moderation.service';
 import {
   MODERATION_REASON_MAX,
@@ -101,8 +105,12 @@ type SortKey = 'user' | 'email' | 'role' | 'reports' | 'joined' | 'lastSeen';
 type SortDir = 'asc' | 'desc';
 type RoleFilter = 'all' | Role;
 
-type AllowlistSortKey = 'email' | 'role' | 'status' | 'added';
-type AllowlistStatusFilter = 'all' | 'pending' | 'joined';
+/**
+ * One line of the single people list (feedback 5e2facd9) — either a real
+ * account or a still-open invitation. The merge rule and the row shape live in
+ * `people-rows.ts` so they can be tested without a TestBed.
+ */
+type AdminPeopleRow = PeopleRow<AdminUserRow, AllowedEmailRow>;
 
 /** Register-form response contract (C5 — `invite-user` edge function). */
 type RegisterStatus = 'allowlisted' | 'approved_existing' | 'invited';
@@ -419,101 +427,18 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         }
       </div>
 
-      <div class="sc-card allowlist-card">
-        <div class="invite-head">
-          <h2>{{ 'admin.allowlist.title' | translate }}</h2>
-          <p class="hint">{{ 'admin.allowlist.subtitle' | translate }}</p>
-        </div>
-
-        @if (allowlistErrorMsg()) {
-          <div class="err">
-            <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ allowlistErrorMsg() }}
-          </div>
-        }
-
-        @if (allowlistBusy() && allowedEmails().length === 0) {
-          <div class="empty">{{ 'admin.loading' | translate }}</div>
-        } @else if (allowedEmails().length === 0 && !allowlistBusy()) {
-          <div class="empty">—</div>
-        } @else {
-          <div class="filter-bar">
-            <input type="search"
-                   class="filter-search"
-                   [value]="allowlistSearch()"
-                   (input)="allowlistSearch.set(asInput($event))"
-                   [placeholder]="'admin.filter.searchPlaceholder' | translate"
-                   [attr.aria-label]="'admin.filter.searchPlaceholder' | translate">
-            <sc-select
-              class="filter-role"
-              [options]="allowlistStatusOptions"
-              [allowEmpty]="false"
-              [value]="allowlistStatusFilter()"
-              (valueChange)="allowlistStatusFilter.set(asAllowlistStatus($event))"
-              [ariaLabel]="'admin.allowlist.col.status' | translate" />
-            <span class="filter-count">
-              {{ 'admin.filter.count' | translate: { shown: filteredSortedAllowlist().length, total: allowedEmails().length } }}
-            </span>
-          </div>
-
-          <table class="table">
-            <thead>
-              <tr>
-                <th class="sortable" (click)="toggleAllowlistSort('email')"
-                    (keydown.enter)="toggleAllowlistSort('email')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('email')"
-                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('email')" [class.active]="allowlistSortKey() === 'email'">
-                  {{ 'admin.col.email' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('email') }}</span>
-                </th>
-                <th class="sortable" (click)="toggleAllowlistSort('role')"
-                    (keydown.enter)="toggleAllowlistSort('role')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('role')"
-                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('role')" [class.active]="allowlistSortKey() === 'role'">
-                  {{ 'admin.col.role' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('role') }}</span>
-                </th>
-                <th class="sortable" (click)="toggleAllowlistSort('status')"
-                    (keydown.enter)="toggleAllowlistSort('status')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('status')"
-                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('status')" [class.active]="allowlistSortKey() === 'status'">
-                  {{ 'admin.allowlist.col.status' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('status') }}</span>
-                </th>
-                <th class="sortable" (click)="toggleAllowlistSort('added')"
-                    (keydown.enter)="toggleAllowlistSort('added')" (keydown.space)="$event.preventDefault(); toggleAllowlistSort('added')"
-                    tabindex="0" [attr.aria-sort]="ariaAllowlistSort('added')" [class.active]="allowlistSortKey() === 'added'">
-                  {{ 'admin.allowlist.col.added' | translate }}<span class="sort-ind">{{ allowlistSortIndicator('added') }}</span>
-                </th>
-                <th>{{ 'admin.allowlist.col.note' | translate }}</th>
-                <th>{{ 'admin.col.actions' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (a of filteredSortedAllowlist(); track a.email) {
-                <tr>
-                  <td class="mono">{{ a.email }}</td>
-                  <td>
-                    <span class="role-pill" [class]="a.role">
-                      {{ ('profile.roles.' + a.role) | translate }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="role-pill" [class.joined]="a.joined" [class.pending]="!a.joined">
-                      {{ (a.joined ? 'admin.allowlist.status.joined' : 'admin.allowlist.status.pending') | translate }}
-                    </span>
-                  </td>
-                  <td>{{ a.created_at | scDate }}</td>
-                  <td class="note">{{ a.note ?? '—' }}</td>
-                  <td class="actions">
-                    <button class="sc-btn micro danger"
-                            (click)="removeAllowedEmail(a)"
-                            [disabled]="allowlistBusy()">
-                      {{ 'admin.allowlist.remove' | translate }}
-                    </button>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="6" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
+      <!--
+        ONE people list (feedback 5e2facd9). The allowlist used to have its own
+        card above this table, which meant every invited address that had since
+        signed in was listed twice — once as an allowlist row reading "joined",
+        once as the account it had become. The allowlist is now folded in here:
+        an entry shows up only while it is still an OPEN invitation (no account
+        on that address), carrying its own timer and a withdraw action, and it
+        disappears from the list the moment it turns into an account row.
+      -->
+      <div class="invite-head people-head">
+        <h2>{{ 'admin.people.title' | translate }}</h2>
+        <p class="hint">{{ 'admin.people.subtitle' | translate }}</p>
       </div>
 
       @if (errorMsg()) {
@@ -521,10 +446,15 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
           <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ errorMsg() }}
         </div>
       }
+      @if (allowlistErrorMsg()) {
+        <div class="err">
+          <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ allowlistErrorMsg() }}
+        </div>
+      }
 
-      @if (busy() && users().length === 0) {
+      @if (peopleLoading()) {
         <div class="sc-card empty">{{ 'admin.loading' | translate }}</div>
-      } @else if (users().length === 0 && !busy()) {
+      } @else if (people().length === 0) {
         <div class="sc-card empty">—</div>
       } @else {
         <div class="filter-bar sc-card">
@@ -542,7 +472,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
             (valueChange)="roleFilter.set(asRoleFilterValue($event))"
             [ariaLabel]="'admin.col.role' | translate" />
           <span class="filter-count">
-            {{ 'admin.filter.count' | translate: { shown: filteredSortedUsers().length, total: users().length } }}
+            {{ 'admin.filter.count' | translate: { shown: filteredSortedPeople().length, total: people().length } }}
           </span>
           @if (filtersActive()) {
             <button type="button" class="sc-btn micro" (click)="clearFilters()">
@@ -574,10 +504,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   tabindex="0" [attr.aria-sort]="ariaSort('reports')" [class.active]="sortKey() === 'reports'">
                 {{ 'admin.col.reports' | translate }}<span class="sort-ind">{{ sortIndicator('reports') }}</span>
               </th>
+              <!-- "Since", not "Joined": the same column dates an account's
+                   sign-up and an open invitation's creation. -->
               <th class="sortable" (click)="toggleSort('joined')"
                   (keydown.enter)="toggleSort('joined')" (keydown.space)="$event.preventDefault(); toggleSort('joined')"
                   tabindex="0" [attr.aria-sort]="ariaSort('joined')" [class.active]="sortKey() === 'joined'">
-                {{ 'admin.col.joined' | translate }}<span class="sort-ind">{{ sortIndicator('joined') }}</span>
+                {{ 'admin.col.since' | translate }}<span class="sort-ind">{{ sortIndicator('joined') }}</span>
               </th>
               <th class="sortable" (click)="toggleSort('lastSeen')"
                   (keydown.enter)="toggleSort('lastSeen')" (keydown.space)="$event.preventDefault(); toggleSort('lastSeen')"
@@ -588,7 +520,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
             </tr>
           </thead>
           <tbody>
-            @for (u of filteredSortedUsers(); track u.id) {
+            @for (p of filteredSortedPeople(); track p.key) {
+            @if (p.user; as u) {
               <tr [class.is-self]="u.id === selfId()">
                 <td>
                   <span class="user-name">{{ u.display_name ?? '—' }}</span>
@@ -670,6 +603,45 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   </button>
                 </td>
               </tr>
+            } @else if (p.invite; as inv) {
+              <!--
+                An open invitation. No account exists yet, so everything an
+                account row carries — reports, last seen, role changes, delete —
+                has nothing to act on and reads as an em dash. What is left is
+                exactly what the admin asked for: how long the invitation has
+                been out, and the way to take it back.
+              -->
+              <tr class="invited-row">
+                <td>
+                  <span class="role-pill pending" [title]="'admin.people.invitedTitle' | translate">
+                    {{ 'admin.people.invitedPill' | translate }}
+                  </span>
+                  <span class="invite-age">{{ inviteAge(inv.created_at) }}</span>
+                </td>
+                <td class="mono">
+                  {{ inv.email }}
+                  @if (inv.note) { <span class="invite-note">{{ inv.note }}</span> }
+                </td>
+                <td>
+                  <span class="role-pill" [class]="inv.role">
+                    {{ ('profile.roles.' + inv.role) | translate }}
+                  </span>
+                </td>
+                <td><span class="muted-zero">—</span></td>
+                <td [title]="inv.created_at | scDate: 'datetime'">{{ inv.created_at | scDate }}</td>
+                <td><span class="muted-zero">—</span></td>
+                <td class="actions">
+                  <!-- The old card said it in a subline nobody re-read; here the
+                       promise sits on the button that needs it. -->
+                  <button type="button" class="sc-btn micro danger"
+                          (click)="withdrawInvite(inv)"
+                          [title]="'admin.people.withdrawTitle' | translate"
+                          [disabled]="allowlistBusy()">
+                    {{ 'admin.people.withdraw' | translate }}
+                  </button>
+                </td>
+              </tr>
+            }
             } @empty {
               <tr>
                 <td colspan="7" class="no-matches">{{ 'admin.filter.noMatches' | translate }}</td>
@@ -769,7 +741,24 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       box-shadow: inset 2px 0 0 var(--sc-accent);
     }
     .mono { font-family: monospace; font-size: 0.82rem; color: var(--sc-fg-1); overflow-wrap: anywhere; }
-    .note { color: var(--sc-fg-2); max-width: 240px; overflow-wrap: anywhere; }
+    /* An open invitation is a lighter row than an account — it is a promise,
+       not a member. Same grid, muted background, no hover emphasis of its own. */
+    .table tbody tr.invited-row { background: rgba(251, 191, 36, 0.04); }
+    .invite-age {
+      display: block;
+      margin-top: 4px;
+      color: var(--sc-fg-2);
+      font-size: max(0.76rem, var(--sc-fs-floor));
+    }
+    .invite-note {
+      display: block;
+      margin-top: 2px;
+      max-width: 240px;
+      color: var(--sc-fg-2);
+      font-family: var(--sc-font-body, inherit);
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
     .role-pill {
       display: inline-block;
       padding: 2px 8px;
@@ -795,9 +784,10 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         margin-left: 6px;
         cursor: help;
       }
-      &.joined { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.pending { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
     }
+    /* The pill is the row's only explanation of what "Eingeladen" means. */
+    .invited-row .role-pill.pending { cursor: help; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
     /* Conspicuous accounts (feedback cf0ddf7d) */
     .reports-card { display: flex; flex-direction: column; gap: 12px; }
@@ -901,11 +891,14 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       color: var(--sc-bg-0);
     }
 
-    .invite-card, .allowlist-card {
+    .invite-card {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+    /* The people list has no card of its own (filter bar + table each are one),
+       so its heading sits directly on the page background. */
+    .people-head { margin-top: 4px; }
     /* Access requests (feedback 56f328ea) */
     .req-count {
       display: inline-block;
@@ -1096,16 +1089,35 @@ export class AdminComponent implements OnInit {
     () => this.search().trim() !== '' || this.roleFilter() !== 'all',
   );
 
-  readonly filteredSortedUsers = computed<AdminUserRow[]>(() => {
+  /**
+   * Accounts + still-open invitations, merged into the one list the admin
+   * manages people in. An allowlist entry is dropped as soon as it has an
+   * account behind it — `joined` is the RPC's own `auth.users` probe, the
+   * email comparison is the belt-and-braces half for a row that predates it.
+   */
+  readonly people = computed<AdminPeopleRow[]>(() =>
+    mergePeopleRows(this.users(), this.allowedEmails()),
+  );
+
+  /**
+   * Both feeds are loaded in parallel; the page only claims to be loading
+   * while it has nothing at all to show, so a background auto-refresh never
+   * blanks a populated table.
+   */
+  readonly peopleLoading = computed(
+    () => (this.busy() || this.allowlistBusy()) && this.people().length === 0,
+  );
+
+  readonly filteredSortedPeople = computed<AdminPeopleRow[]>(() => {
     const term = this.search().trim().toLowerCase();
     const roleF = this.roleFilter();
     const key = this.sortKey();
     const dir = this.sortDir();
 
-    const filtered = this.users().filter((u) => {
-      if (roleF !== 'all' && u.role !== roleF) return false;
+    const filtered = this.people().filter((p) => {
+      if (roleF !== 'all' && p.role !== roleF) return false;
       if (!term) return true;
-      const haystack = [u.display_name, u.username, u.email]
+      const haystack = [p.user?.display_name, p.user?.username, p.email, p.invite?.note]
         .filter((v): v is string => !!v)
         .join(' ')
         .toLowerCase();
@@ -1124,16 +1136,18 @@ export class AdminComponent implements OnInit {
       return String(a).localeCompare(String(b)) * factor;
     };
 
-    const val = (u: AdminUserRow): string | number | null => {
+    const val = (p: AdminPeopleRow): string | number | null => {
       switch (key) {
-        case 'user': return u.display_name ?? u.username ?? null;
-        case 'email': return u.email;
-        case 'role': return ROLE_RANK[u.role];
+        // An invitation has no name yet — nulls-last keeps it out of the
+        // alphabet instead of inventing a placeholder to sort on.
+        case 'user': return p.user ? (p.user.display_name ?? p.user.username ?? null) : null;
+        case 'email': return p.email;
+        case 'role': return ROLE_RANK[p.role];
         // 0 is a real value here, not "missing" — a user with no reports must
         // not be pushed to the bottom by the nulls-last rule in cmp().
-        case 'reports': return this.reportCount(u);
-        case 'joined': return u.created_at;
-        case 'lastSeen': return u.last_sign_in_at;
+        case 'reports': return p.user ? this.reportCount(p.user) : 0;
+        case 'joined': return p.since;
+        case 'lastSeen': return p.user?.last_sign_in_at ?? null;
       }
     };
 
@@ -1158,12 +1172,6 @@ export class AdminComponent implements OnInit {
     { value: 'viewer', labelKey: 'profile.roles.viewer' },
   ];
 
-  readonly allowlistStatusOptions: readonly ScSelectOption[] = [
-    { value: 'all', labelKey: 'admin.allowlist.status.all' },
-    { value: 'pending', labelKey: 'admin.allowlist.status.pending' },
-    { value: 'joined', labelKey: 'admin.allowlist.status.joined' },
-  ];
-
   // Register-form state (C5/C6 — replaces the old plain invite form).
   readonly inviteEmail = signal('');
   readonly inviteRole = signal<Role>('collaborator');
@@ -1183,46 +1191,11 @@ export class AdminComponent implements OnInit {
   /** Per-request role picker; absent = the `viewer` default. */
   private readonly requestRoles = signal<Record<string, Role>>({});
 
-  // Allowlist table state (C6).
+  // Allowlist feed (C6). It has no table of its own any more — the open
+  // entries are rows of the people list, see people().
   readonly allowedEmails = signal<AllowedEmailRow[]>([]);
   readonly allowlistBusy = signal(false);
   readonly allowlistErrorMsg = signal<string | null>(null);
-  readonly allowlistSearch = signal('');
-  readonly allowlistStatusFilter = signal<AllowlistStatusFilter>('all');
-  readonly allowlistSortKey = signal<AllowlistSortKey>('added');
-  readonly allowlistSortDir = signal<SortDir>('desc');
-
-  readonly filteredSortedAllowlist = computed<AllowedEmailRow[]>(() => {
-    const term = this.allowlistSearch().trim().toLowerCase();
-    const statusF = this.allowlistStatusFilter();
-    const key = this.allowlistSortKey();
-    const dir = this.allowlistSortDir();
-
-    const filtered = this.allowedEmails().filter((a) => {
-      if (statusF === 'pending' && a.joined) return false;
-      if (statusF === 'joined' && !a.joined) return false;
-      if (!term) return true;
-      const haystack = [a.email, a.note].filter((v): v is string => !!v).join(' ').toLowerCase();
-      return haystack.includes(term);
-    });
-
-    const factor = dir === 'asc' ? 1 : -1;
-    const cmp = (a: string | number, b: string | number): number =>
-      typeof a === 'number' && typeof b === 'number'
-        ? (a - b) * factor
-        : String(a).localeCompare(String(b)) * factor;
-
-    const val = (a: AllowedEmailRow): string | number => {
-      switch (key) {
-        case 'email': return a.email;
-        case 'role': return ROLE_RANK[a.role];
-        case 'status': return a.joined ? 1 : 0;
-        case 'added': return a.created_at;
-      }
-    };
-
-    return [...filtered].sort((a, b) => cmp(val(a), val(b)));
-  });
 
   asInput(e: Event): string {
     return (e.target as HTMLInputElement).value;
@@ -1244,10 +1217,6 @@ export class AdminComponent implements OnInit {
 
   asRoleFilterValue(v: string | null): RoleFilter {
     return (v ?? 'all') as RoleFilter;
-  }
-
-  asAllowlistStatus(v: string | null): AllowlistStatusFilter {
-    return (v ?? 'all') as AllowlistStatusFilter;
   }
 
   /** Default sort direction per column — recency columns start descending. */
@@ -1275,27 +1244,13 @@ export class AdminComponent implements OnInit {
     return this.sortDir() === 'asc' ? '▲' : '▼';
   }
 
-  private defaultAllowlistDir(key: AllowlistSortKey): SortDir {
-    return key === 'added' ? 'desc' : 'asc';
-  }
-
-  toggleAllowlistSort(key: AllowlistSortKey): void {
-    if (this.allowlistSortKey() === key) {
-      this.allowlistSortDir.set(this.allowlistSortDir() === 'asc' ? 'desc' : 'asc');
-    } else {
-      this.allowlistSortKey.set(key);
-      this.allowlistSortDir.set(this.defaultAllowlistDir(key));
-    }
-  }
-
-  ariaAllowlistSort(key: AllowlistSortKey): 'ascending' | 'descending' | 'none' {
-    if (this.allowlistSortKey() !== key) return 'none';
-    return this.allowlistSortDir() === 'asc' ? 'ascending' : 'descending';
-  }
-
-  allowlistSortIndicator(key: AllowlistSortKey): string {
-    if (this.allowlistSortKey() !== key) return '';
-    return this.allowlistSortDir() === 'asc' ? '▲' : '▼';
+  /**
+   * How long this invitation has been out — "vor 3 Tagen" / "3 days ago".
+   * `allowed_emails` has no expiry column, so this is elapsed time since the
+   * entry was added, not a countdown: the honest reading of the data we have.
+   */
+  inviteAge(iso: string): string {
+    return relativeTime(iso, Date.now(), (key, params) => this.translate.instant(key, params));
   }
 
   clearFilters(): void {
@@ -1661,8 +1616,14 @@ export class AdminComponent implements OnInit {
     this.allowlistBusy.set(false);
   }
 
-  async removeAllowedEmail(row: AllowedEmailRow) {
-    const msg = this.translate.instant('admin.allowlist.removeConfirm', { email: row.email });
+  /**
+   * Takes an open invitation back — the same `remove_allowed_email()` RPC the
+   * old allowlist table's "Entfernen" button called, no new privileged path.
+   * Only reachable on a row with no account behind it, which is why the
+   * wording can promise plainly that nothing joined is affected.
+   */
+  async withdrawInvite(row: AllowedEmailRow) {
+    const msg = this.translate.instant('admin.people.withdrawConfirm', { email: row.email });
     if (!window.confirm(msg)) return;
     this.allowlistBusy.set(true);
     this.allowlistErrorMsg.set(null);

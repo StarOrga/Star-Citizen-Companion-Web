@@ -83,7 +83,12 @@ optionally still send a Supabase invite mail.
   `auth.users` row already exists for that email) and
   `remove_allowed_email(target_email)`. Both SECURITY DEFINER, `raise
   exception` for non-admins, `EXECUTE` granted to `authenticated` (the
-  function body is the real gate).
+  function body is the real gate). **UI since 2026-09-06 (feedback
+  5e2facd9):** the admin panel has no allowlist table of its own any more —
+  `list_allowed_emails()` rows with `joined = false` are merged into the one
+  people list as "invited" rows (age + "withdraw invitation" →
+  `remove_allowed_email`), `joined = true` rows are dropped because the
+  account row already represents them.
 - **`email_to_user_id(target_email)`** — SECURITY DEFINER, `service_role`
   execute only. Exists because the GoTrue admin JS SDK's `listUsers()` has
   no reliable server-side email filter across client versions; the
