@@ -3,7 +3,8 @@
     "Config for scripts/mobile-gate.mjs — the mobile & tablet gate that /ship runs.",
     "Thresholds are contractual: do NOT relax them to make a red run green.",
     "Every entry under `ignore` MUST carry a justification and a follow-up issue in $waivers.",
-    "`auth` drives the opt-in --auth pass (#516): role-gated routes and the FAB panels, audited on the phone devices after signing a test account in. Credentials come from SC_GATE_EMAIL / SC_GATE_PASSWORD — never from this file."
+    "`routes` is the PUBLIC pass — only routes an anonymous visitor actually reaches. The app is a login wall (app.routes.ts hangs canActivateChild [authGuard, approvedGuard] on the shell), so anything behind it must live under `auth.routes`: put it here and the gate would measure the login page and call it GREEN. The `auth-redirect` check now catches that, but the right list is still the cheaper fix.",
+    "`auth` drives the opt-in --auth pass (#516). `auth.routes` are audited on EVERY device; `auth.panelRoutes` open the feedback FAB and stay phones-only, because above 720px the panel is a docked window rather than the full-bleed sheet under test. Credentials come from SC_GATE_EMAIL / SC_GATE_PASSWORD — never from this file."
   ],
   "devices": [
     "iphone-14",
@@ -16,26 +17,23 @@
     "ipad-air"
   ],
   "routes": [
-    "/news",
-    "/codex",
-    "/codex/index",
-    "/codex/keybinds",
-    "/codex/ship/CNOU_Nomad",
-    "/starscape",
-    "/hangar",
-    "/release-notes",
     "/about",
     "/login"
   ],
   "quickRoutes": [
-    "/news",
-    "/codex",
-    "/codex/ship/CNOU_Nomad",
-    "/hangar",
+    "/about",
     "/login"
   ],
   "auth": {
     "routes": [
+      "/news",
+      "/codex",
+      "/codex/index",
+      "/codex/keybinds",
+      "/codex/ship/CNOU_Nomad",
+      "/starscape",
+      "/hangar",
+      "/release-notes",
       "/admin/feedback"
     ],
     "panelRoutes": [
@@ -57,7 +55,8 @@
     "fixed-overlay-covers-control": "error",
     "viewport-meta": "error",
     "console-error": "error",
-    "network-error": "warn"
+    "network-error": "warn",
+    "auth-redirect": "error"
   },
   "ignore": {
     "selectors": {},

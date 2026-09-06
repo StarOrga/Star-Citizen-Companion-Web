@@ -2,7 +2,10 @@
 
 A machine-checkable responsive quality gate. It drives a real Chromium over the
 DevTools Protocol, emulates iOS and Android phones and tablets, walks the app's
-public routes and fails the build when a mobile-usability rule is violated.
+routes and fails the build when a mobile-usability rule is violated. A plain
+run walks the **public** surface; everything behind the login wall needs
+`--auth` (see below) and is otherwise reported as UNCHECKED rather than quietly
+left out of the verdict.
 
 It exists because "mobile looks fine" kept being a judgement call. The gate
 turns the judgement into assertions that run at the latest at ship time.
@@ -17,15 +20,20 @@ turns the judgement into assertions that run at the latest at ship time.
 ## Running it
 
 ```bash
-npm run gate:mobile             # full run — 4 devices x 11 routes
-npm run gate:mobile:quick       # 2 devices x 4 routes (fast inner loop)
+npm run gate:mobile             # public routes only — 4 devices x 2 routes
+npm run gate:mobile:auth        # + the 9 signed-in routes and the FAB panels
+npm run gate:mobile:quick       # 2 devices, public routes (fast inner loop)
 npm run gate:mobile:selftest    # prove the checks themselves still work
 
 # explicit target (preview deployment, prod, another port)
 node scripts/mobile-gate.mjs --base-url=https://sc-companion.vercel.app
 
-# narrow it down while fixing something
-node scripts/mobile-gate.mjs --devices=iphone-14 --routes=/news,/codex
+# narrow it down while fixing something (public routes only)
+node scripts/mobile-gate.mjs --devices=iphone-14 --routes=/about,/login
+
+# a gated route cannot be singled out this way: --routes feeds the public pass
+# only and never reaches auth.routes. Narrow the signed-in pass by device.
+SC_GATE_EMAIL=… SC_GATE_PASSWORD=…   node scripts/mobile-gate.mjs --auth --devices=iphone-14
 
 # artefacts
 node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
@@ -61,8 +69,8 @@ or `MOBILE_GATE_CHROME`). No npm dependencies — the script uses `node:http`,
 the built-in `WebSocket` client and the Chrome DevTools Protocol directly, so
 it cannot rot with the Angular dependency tree.
 
-> Git Bash mangles `--routes=/news` into a Windows path. Either prefix-free
-> (`--routes=news,codex`, the script re-adds the slash) or `MSYS_NO_PATHCONV=1`.
+> Git Bash mangles `--routes=/about` into a Windows path. Either prefix-free
+> (`--routes=about,login`, the script re-adds the slash) or `MSYS_NO_PATHCONV=1`.
 
 ---
 
@@ -97,6 +105,7 @@ Every check is measured in-page, on every device × route combination. All are
 | Check | Fails when | Why |
 |-------|-----------|-----|
 | `horizontal-overflow` | the page can **actually** be dragged sideways — the check scrolls right and reads `scrollX` back, so a wide-but-clipped `scrollWidth` (horizontal carousels, `overflow-x: hidden` wrappers) does not false-positive | the page scrolls sideways — the #1 broken-mobile symptom. The report names the deepest elements that stick out un-clipped, and falls back to "possible cause: this box is N px wide" when everything is inside a clip/scroll container |
+| `auth-redirect` | a route was asked for and `/login` was rendered instead | the app is a login wall (`app.routes.ts` hangs `canActivateChild: [authGuard, approvedGuard]` on the shell), so an unauthenticated visit to a gated route does not fail — it silently becomes a perfectly fine login form that passes every other check. The gate checks where it landed **before** measuring and skips the audit entirely, because login-page findings filed under the ship page's name are worse than none |
 | `tap-target-too-small` | an interactive element's box is smaller than 44 × 44 px | Apple HIG 44pt / WCAG 2.5.8. Wrapper "touch-target" child elements count as the real hit area; inline links inside running prose are exempt; off-canvas (closed drawer) controls are skipped |
 | `text-too-small` | rendered text has `font-size < 12px` | below ~12px body text stops being comfortably readable at arm's length on a phone |
 | `content-clipped` | a box with `overflow: hidden/clip` has `scrollWidth`/`scrollHeight` beyond its client box **and** no `text-overflow: ellipsis` / `-webkit-line-clamp` | text silently cut in half. Deliberate truncation (ellipsis, line-clamp) passes |
@@ -189,7 +198,11 @@ change) — for those, the ship skill skips the gate automatically anyway.
 
 `npm run gate:mobile:selftest` serves
 [`scripts/mobile-gate.fixture.html`](../scripts/mobile-gate.fixture.html) — a
-page that violates every rule on purpose — and asserts that **each check fires**:
+page that violates every rule on purpose — and asserts that **each check fires**.
+
+`auth-redirect` is the one check with no fixture entry: a static file cannot
+bounce you to a login form, so its decision is pinned by a case table in the
+script instead. It is checked in the same run and fails the same way.
 
 ```
    ok   viewport-meta
@@ -200,6 +213,7 @@ page that violates every rule on purpose — and asserts that **each check fires
    ok   overlapping-content
    ok   fixed-overlay-covers-control
    ok   console-error
+   ok   auth-redirect  (8 cases, no fixture — decided in code)
   RESULT: GREEN — all checks detect their fixture violation.
 ```
 
@@ -220,7 +234,9 @@ login form** — not by forging a Supabase session in `localStorage`, because a
 forged session would skip exactly the sign-in code that could be broken on a
 phone — and then audits:
 
-- every route in `auth.routes` (default: `/admin/feedback`), and
+- every route in `auth.routes` — which is most of the app: `/news`, `/codex`,
+  `/codex/index`, `/codex/keybinds`, `/codex/ship/…`, `/starscape`, `/hangar`,
+  `/release-notes` and `/admin/feedback` all sit behind the shell's guard — and
 - the feedback panel opened on top of each route in `auth.panelRoutes`
   (default: `/news`), reported as `/news [panel]`.
 
@@ -237,8 +253,12 @@ Rules it keeps:
 - **Missing credentials are a hard stop** (exit `2`), never a silent skip — an
   `--auth` run that audits nothing is the false GREEN this feature exists to
   prevent.
-- **Phones only.** Above 720px the panels are docked windows beside the page the
-  public pass already measured; the sheet layout under test does not exist there.
+- **`auth.routes` run on every device.** A ship page that breaks on a tablet
+  breaks whether or not a login stands in front of it, so the signed-in routes
+  get the full device matrix like any public one.
+- **`auth.panelRoutes` are phones only.** Above 720px the panels are docked
+  windows beside a page the public pass already measured; the full-bleed sheet
+  layout under test does not exist there.
 - **A failed sign-in is a finding**, reported on the `[auth]` row, so a broken
   test account cannot read as "the panels are fine".
 
@@ -247,8 +267,23 @@ board, a plain approved user sees the viewer panel.
 
 ## Adding routes
 
-`routes` in the config is the authoritative list; it covers the **public**
-surface (auth-gated routes redirect to `/login` when the gate visits them, so
-they are not included). When a new public route ships, add it there in the same
-PR — an untested route is an untested phone. Role-gated routes go into
-`auth.routes` instead and only run under `--auth`.
+`routes` in the config covers the **public** surface only — routes an anonymous
+visitor actually reaches. Anything behind the shell's guard goes into
+`auth.routes` and runs under `--auth`. When a new route ships, add it to the
+right list in the same PR: an untested route is an untested phone.
+
+Putting a gated route in `routes` used to be an invisible mistake — the gate
+would follow the redirect, measure the login page and report GREEN for a route
+it never rendered. That is what the `auth-redirect` check now catches, so the
+misfiling turns the run RED instead of quietly shrinking its coverage.
+
+A run without `SC_GATE_EMAIL` / `SC_GATE_PASSWORD` cannot reach `auth.routes`
+at all. It does not pretend otherwise: the header lists them under `UNCHECKED`
+and the verdict reads
+
+```
+  RESULT: GREEN for the 2 route(s) audited — 9 route(s) went UNCHECKED (see above).
+```
+
+rather than a bare GREEN. Treat that as "the public surface is fine and the
+rest is unknown", never as a pass for the app.
