@@ -68,7 +68,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
         routerLink="/news"
         [attr.aria-label]="'nav.brandAria' | translate"
         (click)="onNavActivate($event, '/news')">
-        <img class="logo" src="icons/brand/scc-mark-compact.svg" alt="" width="36" height="36" />
+        <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
           <span class="title">Star Citizen Companion</span>
           <span class="alpha-badge">alpha</span>

@@ -12,6 +12,6 @@
     <ellipse cx="50" cy="50" rx="21.9" ry="7.5" fill="none" stroke="#7dd5f0" stroke-width="2.5" stroke-opacity=".33"/>
   </g>
   <circle cx="50" cy="50" r="26.25" fill="url(#uploader-tray-halo)"/>
-  <path d="M50,20 L74,60 L26,60 Z" fill="url(#uploader-tray-core)"/>
-  <rect x="34" y="66" width="32" height="9" rx="4.5" fill="#a0dcf0"/>
+  <path d="M50,22 L72,50 L59,50 L59,62 L41,62 L41,50 L28,50 Z" fill="url(#uploader-tray-core)"/>
+  <rect x="34" y="68" width="32" height="8" rx="4" fill="#a0dcf0"/>
 </svg>
