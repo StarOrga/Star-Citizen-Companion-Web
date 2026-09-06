@@ -167,6 +167,17 @@ const STATION_GLYPH_PATHS: Readonly<Record<StationGlyph, string>> = {
   accepted: 'M3 12 A9 9 0 1 1 21 12 A9 9 0 1 1 3 12 M7.8 12.4 L10.7 15.3 L16.3 8.9',
 };
 
+/**
+ * The Fortschritt door's own glyph: an axis with three rising bars. It used to
+ * be the bar-chart emoji, which the platform draws in its own colour and its
+ * own font weight next to a board where every other mark is a 24x24 stroke
+ * path (admin feedback a33ba528). Same idiom as {@link STATION_GLYPH_PATHS}
+ * and the Codex category icons - one `d`, no fill, `currentColor` - so it
+ * inherits the button's rest, hover and focus colours instead of ignoring them.
+ */
+const PROGRESS_GLYPH_PATH =
+  'M4 3.5 V19 A1.5 1.5 0 0 0 5.5 20.5 H20.5 M8.5 19 V14 M13 19 V10.5 M17.5 19 V7';
+
 /** Role → avatar tint. Anyone without a known role is drawn as a plain user. */
 type AvatarTone = 'adm' | 'col' | 'usr';
 
@@ -210,11 +221,22 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       }
 
       @if (view() === 'progress') {
-        <!-- Fortschritt, byte-identical, re-homed behind the 📊 glyph. -->
+        <!-- Fortschritt, byte-identical, re-homed behind the chart glyph. -->
         <div class="topbar">
           <button type="button" class="tb-btn" (click)="setView('stream')">
             ← {{ 'adminFeedback.stream.backToStream' | translate }}
           </button>
+          <span class="tb-icon head" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path
+                [attr.d]="progressGlyphPath"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </span>
           <span class="tb-title">{{ 'adminFeedback.stream.progress' | translate }}</span>
         </div>
         <div class="scroll alt">
@@ -222,8 +244,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
         </div>
       } @else {
         <!-- CONTROLS AT REST: a search field and one Filter button — nothing
-             else stands between the admin and the first topic. The 📊 glyph
-             is the only other thing here, and it is a door, not a filter. -->
+             else stands between the admin and the first topic. The chart
+             glyph is the only other thing here, and it is a door, not a
+             filter. -->
         <div class="topbar">
           <div class="search-box" [class.active]="searchQuery().length > 0">
             <span class="search-icon" aria-hidden="true">&#9099;</span>
@@ -266,7 +289,17 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             (click)="setView('progress')"
             [attr.title]="'adminFeedback.stream.progressHint' | translate"
             [attr.aria-label]="'adminFeedback.stream.progressHint' | translate">
-            <span aria-hidden="true">📊</span>
+            <span class="tb-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path
+                  [attr.d]="progressGlyphPath"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </span>
             <span class="tb-label">{{ 'adminFeedback.stream.progress' | translate }}</span>
           </button>
         </div>
@@ -1048,6 +1081,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .tb-btn.active { border-color: var(--sc-accent); color: var(--sc-accent); }
     .tb-btn.progress { font-size: max(0.86rem, var(--sc-fs-floor)); }
+    /* Stroke glyph, not an emoji: it takes the button's colour, so hover and
+       the active accent reach it too (admin feedback a33ba528). */
+    .tb-icon { display: block; flex: none; width: 18px; height: 18px; }
+    .tb-icon.head { color: var(--sc-accent); }
+    .tb-icon svg { display: block; width: 100%; height: 100%; }
     .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
     @media (max-width: 420px) { .tb-btn.filter .tb-label, .tb-btn.progress .tb-label { display: none; } }
 
@@ -1290,6 +1328,9 @@ export class AdminFeedbackComponent implements OnInit {
   readonly stationIndex = stationIndex;
   readonly stationGlyphs = stationGlyphs;
   readonly stationGlyphLabelKey = stationGlyphLabelKey;
+
+  /** The Fortschritt glyph (see {@link PROGRESS_GLYPH_PATH}). */
+  readonly progressGlyphPath = PROGRESS_GLYPH_PATH;
 
   /** The one `d` path per glyph (24×24 stroke idiom, as in the Codex icons). */
   glyphPath(glyph: StationGlyph): string {
