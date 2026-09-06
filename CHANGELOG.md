@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.5] - 2026-09-06
+
+### Fixed
+
+- **Die Starscape-Werbung lag auf dem Feedback-Knopf.** Beide beanspruchten
+  dieselbe Ecke unten rechts: die 56px-Scheibe des Feedback-Knopfs deckte die
+  Fußzeile der Werbekarte zu, und die Karte legte sich über den Knopf, den man
+  genau dann braucht, wenn etwas komisch aussieht. Die Karte steht jetzt
+  **links neben** dem Knopf, mit bündiger Unterkante, und der Knopf bleibt exakt
+  dort, wo er war — er ist der Ankerpunkt, den alle kennen.
+  Der Abstand ist keine geratene Zahl, sondern die tatsächliche Größe des
+  Knopfs (`--sc-fab-lane` = Randabstand + Durchmesser, neu in `styles.scss`):
+  Wird der Knopf größer oder rückt er weiter in die Ecke, rückt die Karte
+  automatisch mit, statt die Überlappung still wieder herzustellen.
+
 ## [0.81.4] - 2026-09-06
 
 ### Changed

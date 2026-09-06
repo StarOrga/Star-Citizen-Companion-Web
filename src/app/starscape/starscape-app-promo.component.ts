@@ -33,6 +33,10 @@ const ROTATE_MS = 2600;
  * three seconds after arriving; the ✕ opts out permanently (localStorage); any
  * other close only ends it for this session, so it returns on the next visit.
  * Never shown on the Data-Uploader side — that tool needs no advertising.
+ *
+ * It parks in the bottom-right corner but yields the launcher lane
+ * (`--sc-fab-lane`) to the feedback FAB, which is the anchor users know and
+ * therefore the one thing here that does not move (admin feedback 172ee966).
  */
 @Component({
   selector: 'sc-starscape-app-promo',
@@ -73,8 +77,24 @@ const ROTATE_MS = 2600;
   `,
   styles: [`
     .promo {
-      position: fixed; right: 22px; bottom: 22px; z-index: 900;
-      width: 320px; display: flex; flex-direction: column; gap: 0;
+      position: fixed;
+      /* Beside the feedback launcher, never on top of it (admin feedback
+         172ee966: the disc sat over the card's footnote). The offset is the
+         launcher's own footprint — inset + diameter — published as
+         --sc-fab-lane in styles.scss, so resizing or re-insetting the FAB
+         moves this card with it instead of silently re-creating the overlap.
+         The fallbacks keep the card sane if it is ever rendered outside the
+         app shell (a lone component fixture has no global tokens). */
+      right: calc(var(--sc-fab-lane, 80px) + var(--sc-fab-gutter, 12px));
+      /* Bottom edges flush with the launcher, so the two read as one row. */
+      bottom: var(--sc-fab-inset, 24px);
+      z-index: 900;
+      /* 320px everywhere the pitch is actually shown (>= 901px, see below):
+         the lane plus both gutters cost ~104px, leaving well over 700px. The
+         clamp only bites if that stops being true, and it shrinks the card
+         rather than letting it run off the left edge. */
+      width: min(320px, calc(100vw - var(--sc-fab-lane, 80px) - 2 * var(--sc-fab-gutter, 12px)));
+      display: flex; flex-direction: column; gap: 0;
       padding: 14px 16px 16px;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
