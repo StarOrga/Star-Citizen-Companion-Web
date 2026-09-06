@@ -129,6 +129,38 @@
   }
 }
 
+/* ============================================================
+   LAUNCHER LANE — the bottom-right corner belongs to the FAB
+   (admin feedback 172ee966: "die starscape werbe popup
+   überlappt mit dem feedback button")
+
+   The feedback launcher (sc-feedback-fab / sc-user-feedback-fab)
+   is a fixed 56px disc in the bottom-right corner and it is the
+   anchor every user has learned — so it never moves, and anything
+   else that wants that corner has to get out of ITS way.
+
+   `--sc-fab-lane` is that strip measured from the right viewport
+   edge: the launcher's inset plus its own diameter. A floating
+   surface that must not cover the launcher offsets itself by the
+   lane plus a gutter, instead of copying a magic number that goes
+   stale the moment the disc is resized.
+   ============================================================ */
+:root {
+  --sc-fab-size: 56px;
+  --sc-fab-inset: 24px;
+  --sc-fab-lane: calc(var(--sc-fab-inset) + var(--sc-fab-size));
+  /* Breathing room between the launcher and whatever sits beside it. */
+  --sc-fab-gutter: 12px;
+}
+@media (max-width: 720px) {
+  :root {
+    /* The launchers pull into the corner on a phone; the lane follows,
+       so neighbours keep clearing them without their own breakpoint. */
+    --sc-fab-inset: 16px;
+    --sc-fab-gutter: 10px;
+  }
+}
+
 /* ---- De-nesting: a frame inside a frame ----
    Shrinking every padding is only half the fix. The other half is that a
    BORDER inside a border is pure cost on a narrow screen: the parent already

@@ -147,8 +147,11 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
   styles: [`
     .fab-root {
       position: fixed;
-      right: 24px;
-      bottom: 24px;
+      /* Same 24px as before — now published as a token so a neighbour can
+         derive the corner it has to keep free instead of hard-coding it
+         (--sc-fab-lane in styles.scss, admin feedback 172ee966). */
+      right: var(--sc-fab-inset);
+      bottom: var(--sc-fab-inset);
       /* THE app's layer ladder, as far as this launcher is concerned:
            10–50    page furniture (sticky topbar, nav sweep, compare tray,
                     popovers) — where this FAB used to live, at 40.
@@ -180,8 +183,8 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
+      width: var(--sc-fab-size);
+      height: var(--sc-fab-size);
       border-radius: 50%;
       border: 1px solid var(--sc-border);
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
@@ -290,9 +293,10 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
 
     @media (max-width: 720px) {
       .fab-root {
-        right: 16px;
+        /* The 16px phone inset now lives on --sc-fab-inset (styles.scss), so
+           the lane a neighbour clears shrinks with the launcher. */
         /* Clear of the home indicator / gesture bar on a phone. */
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--sc-fab-inset) + env(safe-area-inset-bottom, 0px));
         gap: 10px;
       }
       /* The sheet fills the screen (see .sc-sheet), so its head IS the app bar

@@ -124,8 +124,11 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
   styles: [`
     .fab-root {
       position: fixed;
-      right: 24px;
-      bottom: 24px;
+      /* Same 24px as before, read from the shared launcher tokens so both
+         launchers and the surfaces that must clear them agree on one corner
+         (--sc-fab-lane in styles.scss, admin feedback 172ee966). */
+      right: var(--sc-fab-inset);
+      bottom: var(--sc-fab-inset);
       /* Same rung as the admin launcher, which owns the full ladder comment
          (sc-feedback-fab): above the modal band (60–1300) so an open popup's
          backdrop can neither hide it nor eat its clicks, below the global
@@ -145,8 +148,8 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 56px;
-      height: 56px;
+      width: var(--sc-fab-size);
+      height: var(--sc-fab-size);
       border-radius: 50%;
       border: 1px solid var(--sc-border);
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
@@ -272,8 +275,9 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
 
     @media (max-width: 720px) {
       .fab-root {
-        right: 16px;
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        /* Phone inset lives on --sc-fab-inset (styles.scss) — see the admin
+           launcher for why the lane has to shrink with it. */
+        bottom: calc(var(--sc-fab-inset) + env(safe-area-inset-bottom, 0px));
         gap: 10px;
       }
       .panel-head { padding: 10px 14px; }
