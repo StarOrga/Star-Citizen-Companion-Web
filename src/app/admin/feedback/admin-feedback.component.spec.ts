@@ -522,3 +522,37 @@ describe('AdminFeedbackComponent — the flight path reads as four steps', () =>
     expect(el.querySelector('#fb-card-u1 .fp')!.classList).toContain('s0');
   });
 });
+
+describe('AdminFeedbackComponent — the Fortschritt door wears the house icon', () => {
+  it('draws a stroke glyph in currentColor, not an emoji, and keeps its name', async () => {
+    const { fixture, el } = await mount(fixtureTables());
+
+    const door = el.querySelector<HTMLElement>('.tb-btn.progress')!;
+    expect(door).toBeTruthy();
+
+    // The same 24×24 stroke idiom the flight path and the Codex icons use, so
+    // the button's colour reaches the icon (admin feedback a33ba528).
+    const path = door.querySelector<SVGPathElement>('svg path')!;
+    expect(door.querySelector('svg')!.getAttribute('viewBox')).toBe('0 0 24 24');
+    expect((path.getAttribute('d') ?? '').length).toBeGreaterThan(0);
+    expect(path.getAttribute('stroke')).toBe('currentColor');
+    expect(path.getAttribute('fill')).toBe('none');
+
+    // No emoji left anywhere in the button — that was the whole finding.
+    expect(door.textContent ?? '').not.toMatch(/\p{Extended_Pictographic}/u);
+
+    // The drawing stays out of the accessibility tree; the button keeps the
+    // name and tooltip that say where the door leads.
+    expect(door.querySelector('.tb-icon')!.getAttribute('aria-hidden')).toBe('true');
+    expect(door.getAttribute('aria-label')).toBe('adminFeedback.stream.progressHint');
+    expect(door.getAttribute('title')).toBe('adminFeedback.stream.progressHint');
+
+    // …and the page behind the door carries the same mark.
+    door.click();
+    fixture.detectChanges();
+    const head = el.querySelector<HTMLElement>('.tb-icon.head')!;
+    expect(head).toBeTruthy();
+    expect(head.querySelector('svg path')!.getAttribute('d')).toBe(path.getAttribute('d'));
+    expect(head.getAttribute('aria-hidden')).toBe('true');
+  });
+});
