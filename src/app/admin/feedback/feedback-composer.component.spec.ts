@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService, DraftEntry } from '../../feedback/feedback-draft.service';
 import { DraftImageRef } from '../../feedback/feedback-draft.types';
@@ -871,4 +871,129 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
         .toBeLessThanOrEqual(foot.top + 1);
     });
   }
+});
+
+/**
+ * THE SEND ROW (admin feedback 187574ed).
+ *
+ * The box used to spend three bands on everything that is not writing: a draft
+ * line ABOVE the field, a band of 72px thumbnails under it, and a row that held
+ * nothing but the send button. On the opened topic's sheet that added up to
+ * more screen than the thread it belongs to.
+ *
+ * One row now: chips on the left, draft state and the button on the right. The
+ * assertions are geometric on purpose — "does not take room above the field" is
+ * a measurement, and a stylesheet is the only place it can go wrong.
+ */
+describe('FeedbackComposerComponent - the send row', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let host: HTMLElement;
+
+  async function mount(inputs: Record<string, unknown> = {}, storedDraft = false): Promise<void> {
+    const store = new FakeDraftStore();
+    if (storedDraft) store.seed('sheet:t1', { body: 'half a thought' });
+
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: store },
+      ],
+    }).compileComponents();
+
+    // Real sentences for the keys under test — an uninterpolated placeholder is
+    // exactly the failure the last case here is looking for.
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      adminFeedback: {
+        compose: { placeholder: 'What could be better?', draftRestored: 'Draft restored' },
+        thread: { reply: 'Reply', replyPlaceholderNo: 'Reply to #{{no}} - "{{title}}"' },
+      },
+    });
+    translate.use('en');
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
+    fixture.componentRef.setInput('sendLabel', 'adminFeedback.thread.reply');
+    if (storedDraft) fixture.componentRef.setInput('draftScope', 'sheet:t1');
+    for (const [key, value] of Object.entries(inputs)) fixture.componentRef.setInput(key, value);
+    host = fixture.nativeElement as HTMLElement;
+    host.style.width = '420px';
+    document.body.appendChild(host);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  const q = (sel: string): HTMLElement | null => host.querySelector(sel);
+  const box = (sel: string): DOMRect => q(sel)!.getBoundingClientRect();
+
+  afterEach(() => {
+    host?.remove();
+    TestBed.resetTestingModule();
+  });
+
+  it('carries the attachment chips and the send button on ONE line', async () => {
+    await mount();
+    const row = q('.foot .att-row');
+    expect(row).withContext('the chips live in the send row').not.toBeNull();
+
+    const chips = box('.foot .att-row');
+    const send = box('.foot .send');
+    // Left of the button, not above it - in both media branches, because the
+    // row never turns into a column any more.
+    expect(chips.right).withContext('chips end before the button starts').toBeLessThanOrEqual(
+      send.left + 1,
+    );
+    expect(Math.abs(chips.top - send.top))
+      .withContext('same line')
+      .toBeLessThan(Math.max(chips.height, send.height));
+  });
+
+  it('leaves nothing at all above the field - the draft notice included', async () => {
+    await mount({}, true);
+    const flag = q('.draft-flag');
+    expect(flag).withContext('a restored draft still says so').not.toBeNull();
+    expect(q('.draft-clear')).withContext('and can still be discarded').not.toBeNull();
+
+    const field = box('textarea');
+    // The notice is BELOW the writing room, on the send row.
+    expect(box('.draft-flag').top)
+      .withContext('draft state sits under the field, not over it')
+      .toBeGreaterThanOrEqual(field.bottom - 1);
+    expect(q('.draft-flag')!.closest('.foot')).withContext('on the send row').not.toBeNull();
+
+    // Nothing between the top of the box and the field but the box's own padding.
+    const frame = box('.composer');
+    const padTop = parseFloat(getComputedStyle(q('.composer')!).paddingTop);
+    expect(field.top - frame.top)
+      .withContext('the field opens the box')
+      .toBeLessThanOrEqual(padTop + 2);
+  });
+
+  it('drops its own frame where the surface around it already draws one', async () => {
+    await mount({ frameless: true });
+    const cs = getComputedStyle(q('.composer')!);
+    expect(cs.borderTopWidth).withContext('no second border').toBe('0px');
+    expect(parseFloat(cs.paddingTop)).withContext('no second padding').toBe(0);
+    // The field itself keeps its border - that one says "type here".
+    expect(getComputedStyle(q('textarea')!).borderTopWidth).not.toBe('0px');
+  });
+
+  it('keeps its frame where it is a surface of its own', async () => {
+    await mount();
+    expect(parseFloat(getComputedStyle(q('.composer')!).borderTopWidth)).toBeGreaterThan(0);
+  });
+
+  it('names the topic a reply will land in', async () => {
+    await mount({
+      placeholder: 'adminFeedback.thread.replyPlaceholderNo',
+      placeholderParams: { no: 211, title: 'the composer is too tall' },
+    });
+    const ta = q('textarea') as HTMLTextAreaElement;
+    // Interpolated, not the raw key and not an unresolved {{no}}.
+    expect(ta.placeholder).toContain('211');
+    expect(ta.placeholder).toContain('the composer is too tall');
+    expect(ta.getAttribute('aria-label')).toBe(ta.placeholder);
+  });
 });

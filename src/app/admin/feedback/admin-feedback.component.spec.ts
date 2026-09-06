@@ -196,6 +196,39 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(reachedDocument).toBeFalse();
   });
 
+  /**
+   * Admin feedback 187574ed: "wenn ich in dem issue drin bin brauche ich die
+   * Headerzeile mit Profil und Statusleiste etc. nicht mehr, ich will ja dann
+   * lesen: erster Post + letzter Post + Inputfeld".
+   *
+   * The two chrome rows are gone from the opened topic. The one thing on them
+   * that was NOT repeated anywhere else in this sheet — the PR / issue behind
+   * the topic — moved into the ⋯ menu instead of disappearing with them.
+   */
+  it('opens the topic straight into the reading: no profile row, no status bar', async () => {
+    const { fixture, cmp, el } = await mount(fixtureTables());
+    cmp.openTopic('r1');
+    fixture.detectChanges();
+
+    const sheet = el.querySelector('.sheet.topic')!;
+    expect(sheet.querySelector('.sh-meta')).withContext('no profile row').toBeNull();
+    expect(sheet.querySelector('.sh-status')).withContext('no status bar').toBeNull();
+    // What is left, in this order: the first post, then the composer.
+    expect(sheet.querySelector('.sh-body')!.firstElementChild!.classList)
+      .withContext('the topic itself opens the body')
+      .toContain('msg');
+    expect(sheet.querySelector('.sh-composer sc-feedback-composer')).not.toBeNull();
+
+    cmp.toggleMore('r1');
+    fixture.detectChanges();
+    const link = Array.from(sheet.querySelectorAll('.more-menu a')).find(
+      (a) => a.getAttribute('href') === 'https://github.com/x/y/pull/1',
+    ) as HTMLAnchorElement | undefined;
+    expect(link).withContext('the ship link is still reachable').not.toBeUndefined();
+    expect(link!.target).toBe('_blank');
+    expect(link!.rel).toBe('noopener noreferrer');
+  });
+
   it('shows one-tap options only for a routine question that ends in [[A|B]] — and a click posts the words', async () => {
     const { fixture, cmp, el, sb } = await mount(fixtureTables());
     const q1 = cmp.messages().find((m) => m.id === 'q1')!;

@@ -4,6 +4,33 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.2] - 2026-09-06
+
+### Changed
+
+- **Ein geöffnetes Thema im Feedback-Panel fängt jetzt beim Lesen an.** Über dem
+  ersten Beitrag standen zwei Zeilen Rahmenwerk — Profil, Art, Zeitstempel, dann
+  Flugbahn, Staffelstab und Chips —, die beide nur wiederholten, was auf der
+  gerade angetippten Karte im Stream schon stand, und den ersten Satz des Themas
+  unter die Falz geschoben haben. Beide Zeilen sind raus: erster Beitrag,
+  letzter Beitrag, Eingabefeld. Das Einzige, was dort **nicht** doppelt war —
+  der Link auf den PR bzw. das Issue —, ist ins „⋯"-Menü umgezogen und damit
+  weiterhin erreichbar.
+- **Das Antwortfeld eines Themas nennt das Thema.** Der Platzhalter heißt nicht
+  mehr allgemein „Antwort schreiben…", sondern „Antwort zu #211 — ‚…'" mit
+  Nummer und (gekürztem) Titel des offenen Themas, damit sichtbar bleibt, wo die
+  Nachricht landet. Derselbe Text ist das `aria-label` des Feldes.
+- **Die Eingabe kostet nur noch halb so viel Fläche.** Sie hatte drei Bänder für
+  alles, was nicht Schreiben ist: eine Entwurfszeile **über** dem Feld, ein Band
+  aus 72-px-Miniaturen darunter und eine Zeile, in der nur der Senden-Knopf
+  stand. Jetzt ist es eine Zeile: Anhänge links, Entwurfsstand und Senden
+  rechts. Die Anhänge-Chips sind dort halb so groß (36 px statt 72 — im Thread,
+  im Autoren-Kanal und in der Workflow-Ansicht bleiben sie unverändert groß),
+  der Kasten hat weniger Innenabstand, und in der klebenden Leiste des Themas
+  sowie im „Neues Thema"-Blatt zeichnet er keinen zweiten Rahmen mehr — die
+  Trennlinie der Leiste ist die Abgrenzung. Das Feld selbst öffnet unverändert
+  mit drei Zeilen und wächst mit dem Text nach oben mit.
+
 ## [0.82.1] - 2026-09-06
 
 ### Fixed

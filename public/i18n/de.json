@@ -3044,6 +3044,8 @@
     "thread": {
       "reply": "Antworten",
       "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
+      "replyPlaceholderNo": "Antwort zu #{{no}} — „{{title}}“",
+      "replyPlaceholderTopic": "Antwort zu „{{title}}“",
       "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
     },
     "compose": {

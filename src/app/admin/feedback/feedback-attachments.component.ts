@@ -82,7 +82,7 @@ export interface AnnotationResult {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showRow()) {
-      <div class="att-row" [attr.aria-label]="labelKey() | translate">
+      <div class="att-row" [class.dense]="dense()" [attr.aria-label]="labelKey() | translate">
         @for (img of images(); track $index) {
           <!-- Chip wrapper, not a nested button: the remove control has to sit
                on top of the thumbnail without living inside its <button>. -->
@@ -319,6 +319,23 @@ export interface AnnotationResult {
       gap: 8px;
       margin: 8px 0 2px;
     }
+    /* Half size, and no band of its own: in the composer's send row the strip
+       is a receipt line next to the send button (admin feedback 187574ed). The
+       glyphs and the remove badge come down with it, and a file chip drops its
+       name — 36px is a box for the extension, not for a caption. */
+    .att-row.dense {
+      --att-size: 36px;
+      gap: 6px;
+      margin: 0;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .att-row.dense .tile-glyph { font-size: 1.05rem; }
+    .att-row.dense .tile-glyph svg { width: 18px; height: 18px; }
+    .att-row.dense .att-remove { width: 15px; height: 15px; font-size: 0.6rem; }
+    .att-row.dense .af-name { display: none; }
+    .att-row.dense .af-ext { font-size: max(0.6rem, var(--sc-fs-floor)); }
+
     .att-chip { position: relative; line-height: 0; }
     .att-thumb {
       display: block;
@@ -539,6 +556,16 @@ export class FeedbackAttachmentsComponent {
   readonly capturing = input(false);
   /** Offer mark-up in the enlarged view (composer only). */
   readonly editable = input(false);
+  /**
+   * Half-size chips (admin feedback 187574ed: "die attachments 50% kleiner").
+   *
+   * For the composer's send row, where the strip shares one line with the send
+   * button instead of owning a band of its own — a queued attachment there is a
+   * receipt for something that was just added, not a picture to look at. The
+   * full 72px size stays everywhere the image IS the content: thread messages,
+   * the author channel, the workflow view.
+   */
+  readonly dense = input(false);
 
   /** Index of the thumbnail whose remove badge was pressed. */
   readonly remove = output<number>();
