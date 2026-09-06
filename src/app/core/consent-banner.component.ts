@@ -37,7 +37,13 @@ import { ConsentService } from './consent.service';
       left: 50%;
       bottom: 16px;
       transform: translateX(-50%);
-      z-index: 1100;
+      /* Global notice band — the top rung of the ladder documented in
+         sc-feedback-fab, above that launcher (1400) rather than below it.
+         The two share the bottom edge, and on a phone this bar spans almost
+         the full width, so a launcher that outranked it would drop its 56px
+         disc straight onto these buttons. A storage decision the user has not
+         made yet owns the screen; the launcher waits its turn. */
+      z-index: 1500;
       display: flex;
       align-items: center;
       gap: 16px;

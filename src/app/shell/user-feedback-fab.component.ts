@@ -126,7 +126,14 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
       position: fixed;
       right: 24px;
       bottom: 24px;
-      z-index: 40;
+      /* Same rung as the admin launcher, which owns the full ladder comment
+         (sc-feedback-fab): above the modal band (60–1300) so an open popup's
+         backdrop can neither hide it nor eat its clicks, below the global
+         notice band (1500). Two launchers in one corner that layer by
+         different rules would be a bug generator, and a viewer staring at a
+         broken popup has the same reason to report it as an admin does
+         (admin feedback bb2c82de). */
+      z-index: 1400;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
