@@ -1886,6 +1886,9 @@
         "nextLive": "nächster Live-Patch {{when}} (Schätzung)",
         "notes": "{{n}} Notes",
         "planned": "{{n}} Roadmap-Einträge",
+        "openDossier": "Dossier zu {{name}} öffnen",
+        "openItem": "{{name}} im Dossier öffnen",
+        "moreItems": "{{n}} weitere Roadmap-Einträge ansehen",
         "older": "Ältere Patches · {{lines}}",
         "olderHide": "Ältere Patches einklappen"
       },

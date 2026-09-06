@@ -126,7 +126,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
 
   // `q` defaults to undefined on purpose: that is what the router binds for a
   // missing query param, and it overrides the input's own default of ''.
-  async function render(line: string, q: string | undefined = undefined, roadmap: RoadmapPayload | null = ROADMAP): Promise<void> {
+  async function render(line: string, q: string | undefined = undefined, roadmap: RoadmapPayload | null = ROADMAP, focus: string | undefined = undefined): Promise<void> {
     localStorage.clear();
     TestBed.resetTestingModule();
     stub = roadmapStub(roadmap);
@@ -148,6 +148,7 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     fixture = TestBed.createComponent(PatchDossierComponent);
     fixture.componentRef.setInput('line', line);
     fixture.componentRef.setInput('q', q);
+    fixture.componentRef.setInput('focus', focus);
     fixture.detectChanges();
     for (let i = 0; i < 4; i++) await Promise.resolve();
     fixture.detectChanges();
@@ -214,6 +215,37 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     (cards[0].querySelector('.more') as HTMLButtonElement | null)!.click();
     fixture.detectChanges();
     expect(cards[0].textContent).toContain('Long text about Orison.');
+  });
+
+  /**
+   * Feedback fdaad6b7: "wenn man auf ein bildchen dort schon draufklickt
+   * sollte sofort das spezifische roadmap icon geöffnet werden bzw. dort
+   * hingescrollt werden." The board's teaser links carry `?focus=<card id>`.
+   */
+  it('opens, lights and scrolls to the ONE roadmap card the board linked to', async () => {
+    const scroll = spyOn(Element.prototype, 'scrollIntoView');
+    await render('4.10', undefined, ROADMAP, 'orison');
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    fixture.detectChanges();
+
+    const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
+    const [orison, fuel] = cards;
+    expect(orison.dataset['card']).withContext('the card is addressable at all').toBe('orison');
+    expect(orison.classList.contains('open')).withContext('opened, not just scrolled to').toBeTrue();
+    expect(orison.textContent).toContain('Long text about Orison.');
+    expect(orison.classList.contains('flash')).withContext('and it says "here I am"').toBeTrue();
+    expect(fuel.classList.contains('open')).withContext('only that one').toBeFalse();
+    expect(scroll).toHaveBeenCalled();
+    expect(scroll.calls.mostRecent().object).toBe(orison);
+  });
+
+  it('ignores a focus that names no card of this release', async () => {
+    await render('4.10', undefined, ROADMAP, 'not-a-card');
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    fixture.detectChanges();
+    const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
+    expect(cards.length).toBe(2);
+    expect(cards.some((c) => c.classList.contains('open') || c.classList.contains('flash'))).toBeFalse();
   });
 
   it('search inside the patch: hits in context, honest coverage, and a way to load the rest', async () => {
