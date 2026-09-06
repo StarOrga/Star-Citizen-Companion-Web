@@ -153,6 +153,31 @@ describe('CodexEnergyDockComponent', () => {
     expect(fixture2.componentInstance['position']()).toBe('right');
   });
 
+  it('offers four placements and puts the chosen one on the HOST, which is what sticks', async () => {
+    // The host is the sticky element: its box is what has travel inside
+    // .detail-page. Sticking the inner .mini-dock instead gave it a zero-pixel
+    // range and it never stuck at all — so the attribute has to reach the host.
+    const fixture = await setup({ userId: 'user-pos' });
+    const c = fixture.componentInstance;
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(c['positions']).toEqual(['left', 'center', 'right', 'inline']);
+    expect(host.querySelectorAll('.pos-pick button').length).toBe(4);
+
+    for (const pos of ['left', 'center', 'right', 'inline'] as const) {
+      c['setPosition'](pos);
+      fixture.detectChanges();
+      expect(host.getAttribute('data-pos')).toBe(pos);
+    }
+  });
+
+  it('keeps a stored position from before inline existed', async () => {
+    // Old installs hold 'center'; widening the union must not reset them.
+    localStorage.setItem(dockPositionStorageKey('user-old'), 'center');
+    const fixture = await setup({ userId: 'user-old' });
+    expect(fixture.componentInstance['position']()).toBe('center');
+  });
+
   it('persists cut groups per ship and encodes them into the pw param', async () => {
     const fixture = await setup();
     const c = fixture.componentInstance;

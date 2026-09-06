@@ -353,6 +353,13 @@ interface GearRecipe {
               </button>
             }
 
+            <!-- Chips and actions share ONE bottom block. They used to be two
+                 absolutely positioned rows at hand-picked offsets (bottom 56px
+                 and bottom 10px) while a button is 48px tall — so they already
+                 overlapped by 2px on one line, and the moment the buttons
+                 wrapped to a second row the chips disappeared behind them. A
+                 column that grows from the bottom cannot collide with itself. -->
+            <div class="stage-foot">
             @if (heroChips().length > 0) {
               <ul class="chips">
                 @for (c of heroChips(); track c.key) {
@@ -379,6 +386,7 @@ interface GearRecipe {
               <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
                 {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
               </a>
+            </div>
             </div>
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
@@ -1099,7 +1107,14 @@ interface GearRecipe {
     /* ── BUEHNE (concept section 2) ─────────────────────────────────────────
        The art fills the card; name, chips and the four frequent actions sit
        ON it. Nothing else lives here. */
-    .hero.stage { display: block; position: relative; min-height: 246px; padding: 0;
+    /* The concept's 246px stage: art edge to edge, name top-left, chips and
+       actions bottom-right. A GRID rather than a stack of absolutely placed
+       overlays — the name row, the flexible middle and the foot each own a
+       band, so the foot can grow (wrapped buttons, many chips) and push the
+       stage taller instead of sliding under the row above it or being cut off
+       by the overflow clip. 246px stays the floor, never the ceiling. */
+    .hero.stage { display: grid; grid-template-rows: auto 1fr auto; position: relative;
+      min-height: 246px; padding: 12px 14px; gap: 8px;
       overflow: hidden; background: var(--sc-bg-1); }
     .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
       justify-content: center; pointer-events: none;
@@ -1113,18 +1128,19 @@ interface GearRecipe {
     .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
       background: linear-gradient(105deg, color-mix(in srgb, var(--sc-bg-0) 78%, transparent) 0%,
         color-mix(in srgb, var(--sc-bg-0) 24%, transparent) 46%, transparent 70%); }
-    .hero.stage .stage-fg { position: absolute; top: 12px; inset-inline-start: 14px;
-      pointer-events: none; max-width: min(72%, 44ch); }
+    .hero.stage .stage-fg { grid-row: 1; position: relative; z-index: 1;
+      pointer-events: none; max-width: min(72%, 44ch);
+      /* Clear of the 2D/3D switch, which stays pinned to the top-right. */
+      padding-inline-end: 52px; }
     .hero.stage .mfr { margin: 0; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.22em;
       text-transform: uppercase; color: var(--sc-fg-2); }
     .hero.stage h1 { margin: 2px 0 0; font-size: clamp(22px, 4vw, 28px); font-weight: 300;
       line-height: 1.12; color: var(--sc-fg-0); overflow-wrap: anywhere; }
-    .hero.stage .chips { position: absolute; inset-inline-end: 12px; bottom: 56px;
-      list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px;
-      justify-content: flex-end; max-width: calc(100% - 24px); }
-    .hero.stage .acts { position: absolute; inset-inline-end: 12px; bottom: 10px;
-      display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
-      max-width: calc(100% - 24px); }
+    .hero.stage .stage-foot { grid-row: 3; position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .hero.stage .chips { list-style: none; margin: 0; padding: 0;
+      display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .hero.stage .acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 
     /* The one button on this page (concept section 2). Never the hot accent:
        nothing here is admin-gated. */
@@ -1146,7 +1162,7 @@ interface GearRecipe {
 
     /* 2D <-> 3D. Quiet on purpose: a two-character label at half opacity that
        only steps forward when you reach for it. */
-    .view-switch { position: absolute; top: 12px; inset-inline-end: 12px;
+    .view-switch { position: absolute; top: 12px; inset-inline-end: 12px; z-index: 2;
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 48px; min-height: 48px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent);
       border-radius: var(--radius-md, 4px);
@@ -1392,13 +1408,13 @@ interface GearRecipe {
       /* A phone has no room for four overlays on one picture: the stage keeps
          the art and the name, and hands chips and actions to normal flow
          underneath it. Nothing is dropped, nothing overlaps. */
-      .hero.stage { display: flex; flex-direction: column; min-height: 0; }
+      .hero.stage { display: flex; flex-direction: column; min-height: 0; padding: 0; gap: 0; }
       .hero.stage .stage-art { position: relative; inset: auto; min-height: 190px; }
       .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
-      .hero.stage .stage-fg { position: static; padding: 10px 14px 0; max-width: none; }
-      .hero.stage .chips, .hero.stage .acts { position: static; justify-content: flex-start;
+      .hero.stage .stage-fg { padding: 10px 14px 0; max-width: none; padding-inline-end: 14px; }
+      .hero.stage .stage-foot { align-items: stretch; gap: 8px; padding-bottom: 12px; }
+      .hero.stage .chips, .hero.stage .acts { justify-content: flex-start;
         padding: 0 14px; max-width: none; }
-      .hero.stage .acts { padding-bottom: 12px; }
       .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
     }
     @media (max-width: 400px) {

@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.2] - 2026-09-06
+
+### Fixed
+
+- **Auf der Schiffsseite lagen die Fakten-Chips hinter den Aktionsknöpfen.** Die
+  beiden Reihen hingen an festen Abständen vom unteren Rand der Bühne — 56 px für
+  die Chips, 10 px für die Knöpfe — während ein Knopf 48 px hoch ist. Schon
+  einzeilig überlappte das um 2 px, und weil die vier Knöpfe auf breiten Bildschirmen
+  in zwei Zeilen umbrechen, verschwand "Abfangjäger · 1 Crew · Kein Laderaum"
+  komplett dahinter. Beide Reihen teilen sich jetzt einen Fußblock, der nach unten
+  wächst, und die Bühne wächst mit, statt den Überhang abzuschneiden.
+- **Das Energie-Dock klebte nie.** Es sollte beim Scrollen am unteren Rand stehen
+  bleiben, aber der Kleber saß auf dem inneren Kasten — und der ist exakt so hoch
+  wie das Dock selbst, hat also keinen Weg, auf dem er kleben könnte. Jetzt klebt
+  die Hülle, die die ganze Seitenhöhe zur Verfügung hat.
+
+### Added
+
+- **Das Energie-Dock kann jetzt auch im Seitenfluss stehen.** Der Positionswähler
+  im Dock-Kopf hatte drei Knöpfe, die nur die waagerechte Ausrichtung änderten. Er
+  hat jetzt vier und sagt auch, was sie tun: unten links, unten mittig, unten rechts
+  — oder im Seitenfluss, wo das Dock nicht mehr schwebt, sondern als normale Karte
+  in voller Spaltenbreite mitläuft. Die Wahl wird weiterhin pro Nutzer gemerkt, und
+  eine ältere gespeicherte Einstellung bleibt gültig.
+
 ## [0.81.1] - 2026-09-06
 
 ### Fixed
