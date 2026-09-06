@@ -63,10 +63,11 @@ export const draftScopes = {
   /** Workflow view, answer to the routine's open question. */
   adminWorkflow: (feedbackId: string): string => `admin:workflow:${feedbackId}`,
   /**
-   * Workflow view, the steer that reopens a finished topic ("Gespräch wieder
-   * aufnehmen", feedback d4990269). Its own scope rather than the answer box's:
-   * the two boxes can be open on the same topic at different times, and a
-   * half-written steer must not surface as an answer.
+   * RETIRED (admin feedback 187574ed): the steer box that reopened a finished
+   * topic is gone — replying in the topic's own composer reopens it now. The
+   * key stays in the registry so drafts still stored under it keep a home the
+   * scope parser understands (it is what maps a row back to its topic), and so
+   * a new scope can never be given this string by accident.
    */
   adminWorkflowReopen: (feedbackId: string): string => `admin:workflow-reopen:${feedbackId}`,
 } as const;

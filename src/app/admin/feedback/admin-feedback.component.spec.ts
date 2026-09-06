@@ -436,8 +436,88 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(labels.some((l) => l.includes('adminFeedback.review.accept'))).toBeTrue();
     expect(labels.some((l) => l.includes('adminFeedback.review.reopen'))).toBeFalse();
 
-    // The topic sheet still owns the reopen — the card only dropped the shortcut.
+    // The reopen lives in the topic — as the reply itself, not as a button.
     expect(el.querySelector('.card.lead ~ .inline-actions')).toBeNull();
+  });
+
+  /**
+   * Admin feedback 187574ed, round 2: "auf der detailseite eines issues, kann
+   * in app ansehen raus […] Abgenommen sollte als button neben antworten links
+   * rein […] Gespärch wiederaufnehmen button ist auch unnötig".
+   *
+   * The opened topic keeps exactly two moves for a pending sign-off, and both
+   * of them are on the composer's line: accept it, or answer it.
+   */
+  it('decides a pending sign-off from the composer row, with no gate and no deep link', async () => {
+    const { fixture, cmp, el } = await mount({
+      admin_feedback: [
+        row('r1', 'shipped', T('07'), {
+          shipped_at: T('11'),
+          reviewed_at: null,
+          area: 'codex',
+          ship_ref: 'https://github.com/x/y/pull/1',
+        }),
+      ],
+      admin_feedback_messages: [],
+      feedback_author_messages: [],
+    });
+    cmp.openTopic('r1');
+    fixture.detectChanges();
+
+    const sheet = el.querySelector('.sheet.topic')!;
+    expect(sheet.querySelector('.review-gate')).withContext('no review box in the sheet').toBeNull();
+
+    // The sign-off is IN the composer, left of the send button.
+    const signOff = sheet.querySelector<HTMLButtonElement>('.sh-composer .sign-off')!;
+    expect(signOff).not.toBeNull();
+    expect(signOff.textContent).toContain('adminFeedback.review.accept');
+    const send = sheet.querySelector<HTMLElement>('.sh-composer .foot .send')!;
+    expect(signOff.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .withContext('sign-off comes before the send button')
+      .toBeTruthy();
+
+    // "In App ansehen" is the card's job — the ⋯ menu keeps only the PR link.
+    cmp.toggleMore('r1');
+    fixture.detectChanges();
+    const items = Array.from(sheet.querySelectorAll('.more-menu a, .more-menu button')).map(
+      (n) => n.textContent ?? '',
+    );
+    expect(items.some((t) => t.includes('adminFeedback.actions.viewInApp'))).toBeFalse();
+  });
+
+  /**
+   * The reopen semantics survive the button that used to carry them
+   * (docs/feedback-routine.md, "Contract" / "Post-ship review & continue"):
+   * reply first, `status='open'` second. A topic already in the work loop is
+   * left alone — a plain reply must not reset a running claim.
+   */
+  it('reopens a finished topic through the reply itself, and only a finished one', async () => {
+    const { cmp, sb } = await mount({
+      admin_feedback: [
+        row('r1', 'shipped', T('07'), { shipped_at: T('11'), reviewed_at: null }), // sign-off pending
+        row('d1', 'shipped', T('06'), { shipped_at: T('12'), reviewed_at: T('13') }), // archived
+        row('o1', 'open', T('10')), // already in the queue
+      ],
+      admin_feedback_messages: [],
+      feedback_author_messages: [],
+    });
+
+    for (const id of ['r1', 'd1']) {
+      sb.updates.length = 0;
+      await cmp.sheetReplySubmitFor(id)({ text: `steer for ${id}`, images: [] });
+      expect(sb.inserts.some((i) => i.table === 'admin_feedback_messages'))
+        .withContext('the reason lands in the thread first')
+        .toBeTrue();
+      expect(sb.updates.map((u) => u.patch))
+        .withContext(`${id} goes back into the routine's queue`)
+        .toEqual([
+          { status: 'open', reviewed_at: null, processing_note: null, processed_at: null },
+        ]);
+    }
+
+    sb.updates.length = 0;
+    await cmp.sheetReplySubmitFor('o1')({ text: 'one more thing', images: [] });
+    expect(sb.updates).withContext('an open topic is not re-opened').toEqual([]);
   });
 
   // #518: nothing reads these any more. The panel is the only place that can
