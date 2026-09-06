@@ -92,10 +92,18 @@ the whole thing off and shows the raw records again.
 
 ## Ship detail — the stock loadout
 
-A ship page shows its factory loadout as hardpoint blocks, the ones you can
-configure first: weapons, remote turrets, missiles, countermeasures, pods,
-shields, power plant, quantum drive, radar, coolers, life support — then the
-fixed airframe below. Every occupied hardpoint reads as a component card:
+The card at the top of a ship page is a stage: the render fills it, the name
+sits on it, and a small half-transparent **3D / 2D** switch in its corner swaps
+the picture for the interactive model and back. Everything that is not "which
+ship am I looking at?" — the edition, the livery, the port overview, the link
+out to RSI — sits in one flat tool row directly underneath.
+
+Below that, the loadout reads as **four blocks**: *Weapons*, *Missiles*,
+*Shields* and *Propulsion & systems*. The last one holds the power plant, the
+quantum drive, the coolers, the radar and life support as subgroups — each with
+its own count and its own preview, one level down, because a hull has far more
+systems than decisions. Countermeasures and the airframe keep their own blocks
+below. Every occupied hardpoint reads as a component card:
 
 - **Size class** — `S3`, or `3× S3` when several identical hardpoints carry the
   same item and collapse into one row. Shield bays and countermeasure launchers
@@ -128,7 +136,8 @@ picker says when its list was inferred from a sibling bay.
 - **Guns mounted through a gimbal** name both parts: the mount is what bolts to
   the hull, and the gun it holds is listed under it as the sub-slot's occupant.
 - **Countermeasures** (decoy and noise/chaff launchers) are their own block
-  directly below the missiles, and are swappable like any other module.
+  below the four, and are for reference only: the game gives you no way to
+  change a launcher, so the block does not pretend to be a decision.
 
 ### What the game data does not contain
 

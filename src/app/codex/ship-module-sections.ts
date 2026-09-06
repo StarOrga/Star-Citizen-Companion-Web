@@ -107,6 +107,74 @@ export function isIndividualSection(section: ShipModuleSection): boolean {
   return INDIVIDUAL_SHIP_SECTIONS.has(section);
 }
 
+// ── Display GROUPS ───────────────────────────────────────────────────────────
+// The classification above is deliberately fine-grained: a cooler is not a
+// radar and the draft, the power dock and the fold preview all need to tell
+// them apart. The ship PAGE has a different constraint — the concept
+// (`docs/concepts/codex-schiffsseite-ui-spec.md` §6/§7) draws the loadout as a
+// single column of FOUR blocks, and eleven headings in that column read as a
+// list of parts rather than as a set of decisions.
+//
+// So the page groups what the model still separates. `powerPlants`, `quantum`,
+// `coolers`, `radar` and `lifeSupport` are one block, "Antrieb & Systeme", with
+// the five sections kept as SUBGROUPS inside it — nothing is merged away, the
+// nesting is purely presentational and every section keeps its own census,
+// notes, split toggle and fold preview. Countermeasures and the airframe keep
+// their own block, exactly as before.
+//
+// This is a mapping, not a second taxonomy: `shipModuleGroupOf` is total over
+// `ShipModuleSection`, so a new section has to declare where it shows up.
+
+/** One block in the loadout column — a group of one or more sections. */
+export type ShipModuleGroup =
+  | 'weapons'
+  | 'remoteTurrets'
+  | 'missiles'
+  | 'pod'
+  | 'shields'
+  | 'systems'
+  | 'countermeasures'
+  | 'structure';
+
+/** The sections the "Antrieb & Systeme" block carries, in display order. */
+export const SYSTEMS_GROUP_SECTIONS: readonly ShipModuleSection[] = [
+  'powerPlants',
+  'quantum',
+  'coolers',
+  'radar',
+  'lifeSupport',
+] as const;
+
+const SECTION_GROUP: Readonly<Record<ShipModuleSection, ShipModuleGroup>> = {
+  weapons: 'weapons',
+  remoteTurrets: 'remoteTurrets',
+  missiles: 'missiles',
+  pod: 'pod',
+  shields: 'shields',
+  powerPlants: 'systems',
+  quantum: 'systems',
+  coolers: 'systems',
+  radar: 'systems',
+  lifeSupport: 'systems',
+  countermeasures: 'countermeasures',
+  structure: 'structure',
+};
+
+/** Which block a section is rendered in. Total by construction. */
+export function shipModuleGroupOf(section: ShipModuleSection): ShipModuleGroup {
+  return SECTION_GROUP[section];
+}
+
+/** Groups that carry more than one section and therefore nest. */
+export function isMergedShipModuleGroup(group: ShipModuleGroup): boolean {
+  return group === 'systems';
+}
+
+/** i18n key for a group's heading — a merged group has its own name. */
+export function shipModuleGroupLabelKey(group: ShipModuleGroup): string {
+  return `codex.moduleSection.${group}`;
+}
+
 /** What we know about the thing installed on a hardpoint (all optional). */
 export interface ShipModuleOccupant {
   /** `weapon` | `component` | `item` — the codex entity kind. */

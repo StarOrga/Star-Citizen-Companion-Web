@@ -183,6 +183,7 @@ import {
     .profile-chip.active { border-color: var(--sc-accent); color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .profile-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+    .lens-note { margin: 4px 0 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .scope-select { margin-left: auto; }
     .scope-hint { flex-basis: 100%; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor));
       color: var(--sc-fg-2); font-style: italic; }

@@ -202,9 +202,11 @@ export interface ComponentInspectEntry {
     .chip { font-size: max(0.58rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
       padding: 0 5px; border-radius: 3px; background: var(--sc-bg-2); color: var(--sc-fg-2);
       border: 1px solid var(--sc-border); white-space: nowrap; }
-    .chip.dmg { color: var(--sc-accent-hot, #ff7a45);
-      border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent);
-      background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
+    /* Same rule as the module row it opens from: the hot accent means
+       "elevated access" and is banned on the ship page (concept section 0). */
+    .chip.dmg { color: var(--sc-warn);
+      border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent);
+      background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
     .cm-close { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
       cursor: pointer; font-size: 0.9rem; line-height: 1; }
@@ -220,7 +222,7 @@ export interface ComponentInspectEntry {
 
     .cm-block h3 { margin: 0 0 6px; font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase;
       letter-spacing: 0.07em; color: var(--sc-fg-2); }
-    .cm-block.ammo h3 { color: var(--sc-accent-hot, #ff7a45); }
+    .cm-block.ammo h3 { color: var(--sc-warn); }
     .cm-table { width: 100%; border-collapse: collapse; }
     .cm-table tr { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
     .cm-table tr:last-child { border-bottom: none; }
