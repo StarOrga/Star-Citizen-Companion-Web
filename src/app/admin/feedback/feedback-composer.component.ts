@@ -139,8 +139,11 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
  * DRAFTS (`draftScope`): everything typed here — text *and* attached
  * screenshots — is stored on the user's account (`FeedbackDraftService`) and
  * restored the next time this composer opens, on any device. It is cleared by
- * exactly two events: a successful send, or the user pressing discard. Not by a
- * reload, not by closing the panel, not by a failed write. The previous
+ * exactly two events: a successful send, or the box being emptied by hand (the
+ * ✕ that used to do the second one is gone — admin feedback 187574ed — because
+ * selecting the text and deleting it says the same thing with the keys the
+ * writing already uses). Not by a reload, not by closing the panel, not by a
+ * failed write. The previous
  * behaviour (one localStorage key, new-topic box only, text only, gated behind
  * the opt-in preferences consent) lost a long report to a closed tab, which is
  * what this replaces.
@@ -226,7 +229,17 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
                     [attr.aria-label]="placeholder() | translate: placeholderParams()"
                     [attr.maxlength]="maxChars"></textarea>
         </div>
-        <sc-char-counter [used]="charCount()" [max]="maxChars" placement="below" />
+        <!-- The readout line: draft state directly LEFT of the character count
+             (admin feedback 187574ed — "Entwurf gesichert kann gern direkt
+             links neben der zeichenzähleranzeige"). Both are the same kind of
+             thing — a quiet status about the text above them — so they share
+             one line instead of one sitting in the action row. -->
+        <div class="meta">
+          @if (draftLabel(); as label) {
+            <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
+          }
+          <sc-char-counter [used]="charCount()" [max]="maxChars" placement="below" />
+        </div>
       </div>
 
       <!-- SEND ROW — one line for everything that is not the writing itself
@@ -236,13 +249,20 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
            Left: the pending attachments, the same chip row the thread renders
            (feedback 99723afc) at half size, carrying the "+" and "capture page"
            tiles (admin feedback 312a4acc) so adding one looks like what it
-           produces. Right: draft state — which used to own a row ABOVE the
-           field and now costs nothing vertically — and the send button.
+           produces. Right: whatever the surface projects in (the opened topic's
+           sign-off) and the send button. Draft state moved out of this row
+           entirely — it now shares the readout line with the character count.
+
+           No "discard draft" ✕ any more (admin feedback 187574ed): emptying the
+           box already deletes the stored draft (see saveDraft), so the control
+           was a second way to do what clearing the field does — at the price of
+           two clicks of chrome in the tightest row of the panel.
 
            No explainer line (feedback d08f1983): pasting an image and
            Enter-vs-Shift-Enter are conventions anybody who writes in a text box
            already knows. The one part that is NOT universal — WHICH key sends,
-           because that is a setting — rides along as the button's tooltip. -->
+           because that is a setting — rides along as the button's tooltip, and
+           on an iconSend button it IS the button. -->
       <div class="foot">
         <sc-feedback-attachments
           [images]="pendingImages()"
@@ -259,38 +279,28 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
           (capture)="captureScreenshot()"
           (annotate)="onAnnotated($event)" />
 
-        <!-- Draft state + the only thing that deletes a draft besides sending
-             it. Two-step on purpose: one stray click must not throw away text
-             the user spent minutes on. -->
-        @if (draftLabel(); as label) {
-          <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
-        }
-        @if (hasStoredDraft()) {
-          @if (discardArmed()) {
-            <button
-              type="button"
-              class="draft-clear armed"
-              (click)="discardDraft()">
-              {{ 'adminFeedback.compose.draftDiscardConfirm' | translate }}
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="draft-clear"
-              (click)="armDiscard()"
-              [title]="'adminFeedback.compose.draftDiscard' | translate"
-              [attr.aria-label]="'adminFeedback.compose.draftDiscard' | translate">✕</button>
-          }
-        }
+        <!-- Whatever the surrounding surface wants decided right here, LEFT of
+             the send button (admin feedback 187574ed: the opened topic's
+             "Abgenommen" sits next to "Antworten" instead of in a review box of
+             its own above the composer). Projected, so this component keeps
+             knowing nothing about the workflow it is embedded in. -->
+        <ng-content select="[composerAction]" />
+
         <button
           class="sc-btn send"
           [class.sc-btn-primary]="!compact()"
           [class.micro]="compact()"
           [class.hot]="primaryHot()"
+          [class.key]="iconSend()"
           [attr.title]="sendHintKey() | translate"
+          [attr.aria-label]="sendLabel() | translate"
           (click)="submit()"
           [disabled]="!canSend()">
-          {{ sendLabel() | translate }}
+          @if (iconSend()) {
+            <span aria-hidden="true">{{ sendKeyLabel() | translate }}</span>
+          } @else {
+            {{ sendLabel() | translate }}
+          }
         </button>
       </div>
     </div>
@@ -359,9 +369,10 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       font-size: max(0.78rem, var(--sc-fs-floor));
     }
 
-    /* Draft state lives in the send row now (admin feedback 187574ed) — it may
-       never push the field down, and it may never widen the row: it is the one
-       thing here that is allowed to be cut short. */
+    /* Draft state rides on the readout line, immediately left of the count
+       (admin feedback 187574ed) — it may never push the field down, and it may
+       never widen the row: it is the one thing here that is allowed to be cut
+       short. */
     .draft-flag {
       flex: 0 1 auto;
       min-width: 0;
@@ -372,24 +383,13 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       color: var(--sc-fg-2);
     }
     .draft-flag.warn { color: var(--sc-accent-hot); }
-    .draft-clear {
-      padding: 2px 7px;
-      background: transparent;
-      color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      line-height: 1.3;
-      cursor: pointer;
-    }
-    .draft-clear:hover { color: var(--sc-danger); border-color: var(--sc-danger); }
-    .draft-clear.armed { color: var(--sc-danger); border-color: var(--sc-danger); }
 
     /* The box and its readout, stacked. Normal flow on purpose: the counter
        is a sibling under the field, so no ancestor's overflow can cut it off
        and no growth of the field can push it out of view. */
     .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    /* One line for both quiet readouts, pinned to the field's right edge. */
+    .meta { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
 
     /* The auto-grow cell. Its ::after is an invisible replica of the text with
        byte-identical metrics — same font, same padding, same border width, same
@@ -447,6 +447,17 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     .foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .foot .send { flex: 0 0 auto; }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
+    /* The key-symbol send button (admin feedback 187574ed): the label is the
+       shortcut that triggers it, so it is square-ish and the glyph carries the
+       size instead of the word. The words are still there for anyone who needs
+       them — as the accessible name and as the tooltip. */
+    .sc-btn.send.key {
+      min-width: 46px;
+      padding: 6px 12px;
+      font-size: 1rem;
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+    }
 
     @media (max-width: 720px) {
       /* Still ONE row on a phone (admin feedback 187574ed) — at 36px the chips
@@ -519,6 +530,17 @@ export class FeedbackComposerComponent implements OnDestroy {
   /** Paint the send button in the elevated-access red — the sheet's one CTA. Admin surfaces only. */
   readonly primaryHot = input(false);
   /**
+   * Label the send button with the key that sends instead of a word (admin
+   * feedback 187574ed: "antworten button vllt. einfach mit enter symbol oder
+   * strg+enter symbol je nachdem statt textlich").
+   *
+   * Set on the opened topic's composer, where the button sits beside a second
+   * action and every millimetre of that row is contested. The word does not
+   * disappear — it becomes the button's accessible name — and the glyph follows
+   * the user's own mapping, so it never promises a key that does not send.
+   */
+  readonly iconSend = input(false);
+  /**
    * Identity of this composer in the account-bound draft store (see
    * `draftScopes`). Null turns persistence off entirely — every composer in the
    * feedback surface sets one; the input stays nullable so an embedding outside
@@ -556,11 +578,8 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly dragActive = signal(false);
   readonly sending = signal(false);
   readonly errorMsg = signal<string | null>(null);
-  /** Discard is two-step — this is the armed state of the confirm button. */
-  readonly discardArmed = signal(false);
-  private discardTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** A draft for this composer exists in the store (so it can be discarded). */
+  /** A draft for this composer exists in the store. */
   readonly hasStoredDraft = computed(() => {
     const scope = this.draftScope();
     return !!scope && !!this.drafts.entries().get(scope);
@@ -588,6 +607,18 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.composerPrefs.sendOnEnter()
       ? 'adminFeedback.compose.sendHint'
       : 'adminFeedback.compose.sendHintCtrl',
+  );
+
+  /**
+   * The key cap an `iconSend` button carries: the RETURN arrow on its own where
+   * Enter sends, and the arrow behind the modifier where it does not. Localized
+   * because the modifier is a WORD on the platforms that spell it out ("Strg"),
+   * and a button that names the wrong key is worse than one that names none.
+   */
+  readonly sendKeyLabel = computed(() =>
+    this.composerPrefs.sendOnEnter()
+      ? 'adminFeedback.compose.sendKey'
+      : 'adminFeedback.compose.sendKeyCtrl',
   );
 
   /** The shared cap, exposed for the template's `maxlength` and the counter. */
@@ -626,7 +657,6 @@ export class FeedbackComposerComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.discardTimer) clearTimeout(this.discardTimer);
     // Closing the panel, collapsing the topic or navigating away must not cost
     // the last few characters sitting in the debounce window.
     this.flushDraft();
@@ -667,7 +697,6 @@ export class FeedbackComposerComponent implements OnDestroy {
         // topic starts from the page the user is on rather than from the last
         // thing they happened to correct.
         this.area.set(null);
-        this.disarmDiscard();
         // Sent: the draft has become a message and its uploads are referenced
         // by that message's body, so the row goes and the objects stay.
         const scope = this.draftScope();
@@ -690,7 +719,6 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.area.set(null);
     this.draftRestored.set(false);
     this.errorMsg.set(null);
-    this.disarmDiscard();
     if (next) void this.restoreDraft(next);
   }
 
@@ -720,6 +748,16 @@ export class FeedbackComposerComponent implements OnDestroy {
   private saveDraft(): void {
     const scope = this.draftScope();
     if (!scope) return;
+    // Emptying the box IS the discard (admin feedback 187574ed — the ✕ that
+    // used to sit in the send row is gone). The store already deletes a row
+    // that went empty; what only the explicit path did was clean up the
+    // screenshots the draft had uploaded, so an emptied box takes that route
+    // and nothing is left behind in the bucket.
+    if (!this.draft().trim() && this.attachments().length === 0) {
+      this.draftRestored.set(false);
+      if (this.drafts.entries().get(scope)) void this.drafts.discard(scope);
+      return;
+    }
     this.drafts.stage(
       scope,
       this.draft(),
@@ -735,31 +773,6 @@ export class FeedbackComposerComponent implements OnDestroy {
   flushDraft(): void {
     const scope = this.draftScope();
     if (scope) void this.drafts.flush(scope);
-  }
-
-  /** First click arms the confirm, and disarms itself again after a few seconds. */
-  armDiscard(): void {
-    this.discardArmed.set(true);
-    if (this.discardTimer) clearTimeout(this.discardTimer);
-    this.discardTimer = setTimeout(() => this.discardArmed.set(false), 5000);
-  }
-
-  private disarmDiscard(): void {
-    if (this.discardTimer) clearTimeout(this.discardTimer);
-    this.discardTimer = null;
-    this.discardArmed.set(false);
-  }
-
-  /** The user's explicit "throw this away" — the only non-send path that clears. */
-  discardDraft(): void {
-    this.disarmDiscard();
-    const scope = this.draftScope();
-    this.draft.set('');
-    this.attachments.set([]);
-    this.area.set(null);
-    this.draftRestored.set(false);
-    this.errorMsg.set(null);
-    if (scope) void this.drafts.discard(scope);
   }
 
   /**

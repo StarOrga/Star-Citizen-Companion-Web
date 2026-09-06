@@ -566,7 +566,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   </div>
                 }
                 @case ('review') {
-                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true, inline: true }"></ng-container>
+                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true }"></ng-container>
                 }
                 @case ('release') {
                   @let body = render(m.body);
@@ -700,19 +700,20 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- REVIEW GATE — the work is done, the topic is not, until an admin
            looked at the result (migration 20260729130000). -->
-      <ng-template #reviewGate let-m let-hot="hot" let-inline="inline">
-        <section class="review-gate" [class.sc-nest]="!inline" [class.sc-nest--rule]="!inline" [class.inline]="inline">
+      <ng-template #reviewGate let-m let-hot="hot">
+        <section class="review-gate inline">
           <!-- No headline (feedback d08f1983): the row right above this box
                already says "Abnahme steht aus" on the flight path, with its own
                status mark. Repeating "Geshipped — bitte abnehmen" underneath it
                said the same thing a second time and pushed the two buttons that
                actually decide something further down.
 
-               "inline" = this gate sits ON a stream card (feedback a398fc94), and
-               there it wears no frame of its own: a box inside a box drew a
+               The gate only ever sits ON a stream card now (feedback a398fc94),
+               and there it wears no frame of its own: a box inside a box drew a
                border around three buttons that are simply what this card offers.
-               The topic sheet keeps the framed version, where the gate really is
-               a separate section under a conversation. -->
+               The opened topic no longer draws a gate at all (admin feedback
+               187574ed) — its sign-off moved into the composer row and its
+               reopen is the reply itself. -->
           @if (!embedded()) {
             <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
           }
@@ -720,48 +721,21 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             @if (areaLink(m); as href) {
               <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
             }
-            @if (inline) {
-              <!-- On a card, "open the topic" belongs in this row: it is the
-                   second way to LOOK at the thing, next to looking at it live.
-                   It also absorbs "Gespräch wieder aufnehmen", which was the
-                   same move with extra steps — the reopen lives inside the
-                   topic, where the steer gets typed anyway. -->
-              <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
-                {{ 'adminFeedback.stream.openTopic' | translate }}
-              </button>
-            }
+            <!-- On a card, "open the topic" belongs in this row: it is the
+                 second way to LOOK at the thing, next to looking at it live.
+                 It also absorbs "Gespräch wieder aufnehmen", which was the
+                 same move with extra steps — the reopen lives inside the
+                 topic, where the steer gets typed anyway. -->
+            <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
+              {{ 'adminFeedback.stream.openTopic' | translate }}
+            </button>
             <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
           </div>
-          @if (reopeningFor() === reopenKey(m.id, hot)) {
-            <!-- The steer goes into the thread FIRST, the reopen follows once
-                 it is saved (the retired run's order): a topic never reaches
-                 the routine's queue without the reason in the thread. -->
-            <p class="rg-hint">{{ 'adminFeedback.review.reopenHint' | translate }}</p>
-            <sc-feedback-composer
-              [compact]="true"
-              [draftScope]="reopenScope(m.id)"
-              [busy]="busy()"
-              [allowFiles]="true"
-              placeholder="adminFeedback.review.reopenPlaceholder"
-              sendLabel="adminFeedback.review.reopenSend"
-              [onSubmit]="reopenSubmitFor(m.id)" />
-            <div class="rg-actions">
-              <button class="sc-btn micro ghost" type="button" (click)="cancelReopen()">
-                {{ 'adminFeedback.review.reopenCancel' | translate }}
-              </button>
-            </div>
-          } @else {
-            <div class="rg-actions">
-              <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
-                ✓ {{ 'adminFeedback.review.accept' | translate }}
-              </button>
-              @if (!inline) {
-                <button class="sc-btn micro" (click)="startReopen(m, hot)" [disabled]="busy()">
-                  ↻ {{ 'adminFeedback.review.reopen' | translate }}
-                </button>
-              }
-            </div>
-          }
+          <div class="rg-actions">
+            <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
+              ✓ {{ 'adminFeedback.review.accept' | translate }}
+            </button>
+          </div>
         </section>
       </ng-template>
 
@@ -798,10 +772,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           @if (moreOpen(m.id)) {
             <!-- Rare, deliberate acts behind the one ⋯ (feedback 03d7e546). -->
             <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
-              @if (areaLink(m); as href) {
-                <a class="menu-item" [routerLink]="href" (click)="onViewInApp($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
-              }
-              <!-- The PR / issue behind the topic. It used to sit on the status
+              <!-- No "In App ansehen" here (admin feedback 187574ed): the card
+                   the admin tapped to get into this topic carries that link, so
+                   inside the topic it was a third copy of a route that is one
+                   tap behind the reader anyway.
+
+                   The PR / issue behind the topic. It used to sit on the status
                    row this sheet no longer has (admin feedback 187574ed) —
                    looking up the diff is a rare, deliberate act, which is
                    exactly what this menu is for. -->
@@ -868,9 +844,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               </div>
             }
 
-            @if (inReview(m)) {
-              <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: false }"></ng-container>
-            }
+            <!-- No review box in the sheet any more (admin feedback 187574ed):
+                 "Abgenommen" is a button in the composer row, and the second
+                 way out — picking the conversation back up — IS writing the
+                 reply, so it needs neither a button nor a box of its own. -->
             @if (untriaged(m) && !archived(m) && !inReview(m)) {
               <div class="inline-actions">
                 <button class="sc-btn micro" (click)="releaseToRoutine(m)" [disabled]="busy()">
@@ -939,7 +916,14 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                It wears no frame of its own (admin feedback 187574ed) — the
                sticky top border of this bar is the separation, and a second
                rounded box a few pixels inside it was the "Doppelumrandung". The
-               placeholder names the topic the reply will land in. -->
+               placeholder names the topic the reply will land in.
+
+               This row is where the topic is DECIDED (admin feedback 187574ed):
+               while a sign-off is pending, "Abgenommen" stands left of the send
+               button, and the send button itself is the key that triggers it.
+               Two moves, one line: accept the result, or answer it — and
+               answering is what puts the topic back on the routine's pile
+               (sheetReplySubmitFor). -->
           <div class="sh-composer">
             <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             <sc-feedback-composer
@@ -949,10 +933,23 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [large]="true"
               [frameless]="true"
               [primaryHot]="true"
+              [iconSend]="true"
               [placeholder]="topicNo(m) ? 'adminFeedback.thread.replyPlaceholderNo' : 'adminFeedback.thread.replyPlaceholderTopic'"
               [placeholderParams]="{ no: topicNo(m), title: cardTitle(m, 42) }"
               sendLabel="adminFeedback.thread.reply"
-              [onSubmit]="replySubmitFor(m.id)" />
+              [onSubmit]="sheetReplySubmitFor(m.id)">
+              @if (inReview(m)) {
+                <button
+                  composerAction
+                  type="button"
+                  class="sc-btn micro sign-off"
+                  (click)="acceptReview(m)"
+                  [disabled]="busy()"
+                  [attr.title]="'adminFeedback.review.hint' | translate">
+                  ✓ {{ 'adminFeedback.review.accept' | translate }}
+                </button>
+              }
+            </sc-feedback-composer>
           </div>
         </div>
       }
@@ -1222,6 +1219,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        ones. The bottom keeps the safe-area inset: on a phone the home bar
        would otherwise sit on the send button. */
     .sh-composer { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 8px var(--sc-pad-3); border-top: 1px solid var(--sc-border); background: var(--sc-bg-1); padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+    /* The sign-off, projected into the composer's send row (admin feedback
+       187574ed). It is the SECOND decision on that line, so it stays a quiet
+       outline next to the red send button — never a second CTA — and it never
+       shrinks below the touch floor the rest of the row keeps. */
+    .sh-composer .sign-off { flex: 0 0 auto; white-space: nowrap; }
     .more-menu { display: flex; flex-direction: column; flex: 0 0 auto; border-bottom: 1px solid var(--sc-border); background: var(--sc-bg-2); }
     .menu-item { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 var(--sc-pad-1); background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; text-decoration: none; cursor: pointer; }
     .menu-item:hover { background: var(--sc-bg-3); }
@@ -1720,7 +1722,6 @@ export class AdminFeedbackComponent implements OnInit {
     if (this.openId() === null) return;
     this.openId.set(null);
     this._moreOpen.set(new Set());
-    this.reopeningFor.set(null);
     this.returnFocus();
   }
 
@@ -2099,7 +2100,6 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly threadScopes = new Map<string, string>();
   private readonly authorScopes = new Map<string, string>();
   private readonly leadScopes = new Map<string, string>();
-  private readonly reopenScopes = new Map<string, string>();
 
   /**
    * The lead card's inline answer box and the sheet's composer can be in the
@@ -2109,10 +2109,6 @@ export class AdminFeedbackComponent implements OnInit {
    */
   leadScope(feedbackId: string): string {
     return memoScope(this.leadScopes, feedbackId, draftScopes.adminWorkflow);
-  }
-
-  reopenScope(feedbackId: string): string {
-    return memoScope(this.reopenScopes, feedbackId, draftScopes.adminWorkflowReopen);
   }
 
   threadScope(feedbackId: string): string {
@@ -2208,51 +2204,47 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /**
-   * Which review gate is in "reopen" mode — the steer box is open. Keyed by
-   * SURFACE and topic: the lead card and the opened sheet both draw the gate
-   * for one topic, and a shared flag would mount two composers on one draft
-   * key. Only the gate the admin clicked switches.
+   * The reply IS the reopen (admin feedback 187574ed). There is no "Gespräch
+   * wieder aufnehmen" button any more — it asked for a click to reach the box
+   * the admin is already looking at — so writing into a finished topic carries
+   * the reopen, exactly as `docs/feedback-routine.md` ("Contract" /
+   * "Post-ship review & continue") describes it: reply first, reopen second.
+   *
+   * Only a topic that is actually OUT of the work loop is reopened. A `shipped`
+   * row the admin already continued is back in the queue through query (d) and
+   * must keep its status; an `open`/`in_progress` row was never gone. Note the
+   * decision is taken BEFORE the reply lands — afterwards every topic looks
+   * like a continuation, because the newest message is the admin's.
    */
-  readonly reopeningFor = signal<string | null>(null);
-
-  reopenKey(id: string, lead: boolean): string {
-    return `${lead ? 'lead' : 'sheet'}:${id}`;
-  }
-
-  startReopen(m: FeedbackRow, lead: boolean): void {
-    this.reopeningFor.set(this.reopenKey(m.id, lead));
-  }
-
-  cancelReopen(): void {
-    this.reopeningFor.set(null);
-  }
-
-  private readonly reopenSubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
-
-  reopenSubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
-    let fn = this.reopenSubmitters.get(feedbackId);
+  sheetReplySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
+    let fn = this.sheetReplySubmitters.get(feedbackId);
     if (!fn) {
       fn = async (p: ComposerPayload) => {
         const row = this.messages().find((m) => m.id === feedbackId);
-        if (!row) return false;
-        return this.reopenWithReply(row, p);
+        if (!row) return this.sendReply(feedbackId, p);
+        const finished = this.archived(row) || this.inReview(row);
+        return finished ? this.reopenWithReply(row, p) : this.sendReply(feedbackId, p);
       };
-      this.reopenSubmitters.set(feedbackId, fn);
+      this.sheetReplySubmitters.set(feedbackId, fn);
     }
     return fn;
   }
 
+  private readonly sheetReplySubmitters = new Map<
+    string,
+    (p: ComposerPayload) => Promise<boolean>
+  >();
+
   /**
-   * "Gespräch wieder aufnehmen": post the steer into the thread, THEN put the
-   * topic back into the routine's queue. In this order on purpose — if the
-   * reply fails nothing is reopened, and if the reopen fails the admin's words
-   * are already saved; the routine then finds a reopened topic *with* the
-   * reason in the thread, which is exactly what its continuation path reads.
+   * Post the steer into the thread, THEN put the topic back into the routine's
+   * queue. In this order on purpose — if the reply fails nothing is reopened,
+   * and if the reopen fails the admin's words are already saved; the routine
+   * then finds a reopened topic *with* the reason in the thread, which is
+   * exactly what its continuation path reads.
    */
   async reopenWithReply(m: FeedbackRow, payload: ComposerPayload): Promise<boolean> {
     if (!(await this.sendReply(m.id, payload))) return false;
     await this.reopenFromReview(m);
-    this.reopeningFor.set(null);
     return true;
   }
 

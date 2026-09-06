@@ -3059,8 +3059,8 @@
       "draftSaving": "Entwurf wird gesichert…",
       "draftSaved": "Entwurf gesichert",
       "draftFailed": "Entwurf nicht gesichert – Verbindung?",
-      "draftDiscard": "Entwurf verwerfen",
-      "draftDiscardConfirm": "Wirklich verwerfen?",
+      "sendKey": "⏎",
+      "sendKeyCtrl": "Strg+⏎",
       "attachNotCached": "Bild konnte nicht zwischengespeichert werden – es geht beim Neuladen verloren, wird aber mitgesendet.",
       "attachmentsLabel": "Anhänge",
       "dropHere": "Bilder hier ablegen",
@@ -3211,13 +3211,8 @@
       }
     },
     "review": {
-      "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, nimm das Gespräch wieder auf — das Thema geht zurück in die Warteschlange der Routine.",
-      "accept": "Abgenommen",
-      "reopen": "Gespräch wieder aufnehmen",
-      "reopenHint": "Schreib kurz, was noch nicht passt — die Routine nimmt das Thema damit wieder auf und liest deine Antwort als Auftrag.",
-      "reopenPlaceholder": "Was soll noch anders werden?",
-      "reopenSend": "Senden & wieder aufnehmen",
-      "reopenCancel": "Abbrechen"
+      "hint": "Schau dir das Ergebnis live an. Passt es, ist das Thema erledigt. Passt es nicht, antworte einfach — deine Antwort nimmt das Thema wieder auf und geht als Auftrag zurück in die Warteschlange der Routine.",
+      "accept": "Abgenommen"
     },
     "sourceFilter": {
       "untriagedHint": "Hier wartet Nutzer-Feedback darauf, für die Routine freigegeben zu werden."
