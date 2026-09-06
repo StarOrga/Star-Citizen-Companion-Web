@@ -669,3 +669,81 @@ describe('AdminFeedbackComponent — the Fortschritt door wears the house icon',
     expect(head.getAttribute('aria-hidden')).toBe('true');
   });
 });
+
+/**
+ * The overview's own surface (admin feedback 96259f21). Three findings from one
+ * screenshot of the docked panel: the list scrolled sideways, every row spelled
+ * out "AUFTRAG" next to an avatar that already says the same in colour, and the
+ * rows sat in a light haze that read as a box drawn around each band's group.
+ *
+ * Karma renders at 749 px, so the measurements pin their own width instead of
+ * trusting the window — and the invariants below hold in both media branches.
+ */
+describe('AdminFeedbackComponent — the overview fits its panel', () => {
+  function inHost(el: HTMLElement, width: number) {
+    let host = document.getElementById('fb-width-host') as HTMLElement | null;
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'fb-width-host';
+      host.style.cssText = 'height:600px;display:flex;flex-direction:column;overflow:hidden;';
+      document.body.appendChild(host);
+      host.appendChild(el);
+    }
+    host.style.width = `${width}px`;
+    void host.offsetWidth; // flush layout
+    return host;
+  }
+
+  afterEach(() => document.getElementById('fb-width-host')?.remove());
+
+  it('never scrolls sideways — at panel width and at board width', async () => {
+    const { el } = await mount(fixtureTables());
+
+    for (const width of [360, 480, 720]) {
+      inHost(el, width);
+      const scroll = el.querySelector<HTMLElement>('.scroll.stream')!;
+      expect(getComputedStyle(scroll).overflowX).toBe('hidden');
+      expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth + 1);
+
+      // The band head is where it went wrong: `.chev` is an inline glyph, and
+      // rotating it 90° when the band is open turned its line height into its
+      // width, overhanging the row by ~3 px — enough for a scrollbar under the
+      // whole list. Every row of the list has to stay inside its own box.
+      for (const head of Array.from(el.querySelectorAll<HTMLElement>('.band-head'))) {
+        expect(head.scrollWidth).toBeLessThanOrEqual(head.clientWidth + 1);
+      }
+      const chev = el.querySelector<HTMLElement>('.band-head .chev.open')!;
+      expect(chev.getBoundingClientRect().width).toBeLessThanOrEqual(17);
+    }
+  });
+
+  it('leaves the order-vs-feedback distinction to the avatar colour, no words', async () => {
+    const { el } = await mount(fixtureTables());
+
+    // The words are gone from every row of every band…
+    expect(el.querySelectorAll('.ch-meta .kind').length).toBe(0);
+    expect(el.querySelector('.scroll.stream')!.textContent).not.toContain('adminFeedback.kind.order');
+    expect(el.querySelector('.scroll.stream')!.textContent).not.toContain('adminFeedback.kind.userFeedback');
+
+    // …and the colour that carries the distinction is still on the avatar:
+    // the admin's own topics red, the viewer's topic grey-blue.
+    expect(el.querySelector('#fb-card-o1 .card-head .av.adm')).not.toBeNull();
+    expect(el.querySelector('#fb-card-u1 .card-head .av.usr')).not.toBeNull();
+  });
+
+  it('stands the rows on the panel surface — no fill and no glow to merge into a box', async () => {
+    const { el } = await mount(fixtureTables());
+    const cards = Array.from(el.querySelectorAll<HTMLElement>('.scroll.stream .card'));
+    expect(cards.length).toBeGreaterThan(1);
+    for (const card of cards) {
+      const cs = getComputedStyle(card);
+      // `.sc-card`'s 16 px cyan glow on rows 8 px apart merged into one light
+      // haze around each band — the "shared background" of the finding.
+      expect(cs.boxShadow).toBe('none');
+      expect(cs.backgroundImage).toBe('none');
+      expect(cs.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+      // The outline stays: it is what separates one row from the next.
+      expect(parseFloat(cs.borderTopWidth)).toBeGreaterThan(0);
+    }
+  });
+});

@@ -3264,8 +3264,6 @@
       "answered": "Answered · waiting for the routine"
     },
     "kind": {
-      "order": "Instruction",
-      "userFeedback": "User feedback",
       "ai": "AI"
     },
     "role": {

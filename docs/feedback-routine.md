@@ -1671,13 +1671,26 @@ the filter button — the glyph now carries the word *Fortschritt* beside it
 (hidden below 420 px like the filter label) and a tooltip that says what the
 page is rather than repeating the button's own label (feedback a33ba528). The new-topic composer is the bar pinned under the stream.
 
+**A row sits on the panel, and the panel never scrolls sideways.** Stream rows
+draw an outline and nothing else: no fill, no `--sc-card` glow. The glow blurs
+16 px and the rows are 8 px apart, so the halos merged into one continuous
+light haze that read as a shared background box wrapped around each band's
+group of issues (feedback 96259f21). The list itself is `overflow-y: auto` /
+`overflow-x: hidden` — `overflow-y` alone leaves x at `visible`, which computes
+to `auto`, and then a few stray pixels put a horizontal scrollbar under the
+whole overview. The band head's chevron was exactly that: an inline glyph
+rotated 90° turns its line height into its width, so every expanded band
+overhung its row by ~3 px. It is a fixed 16 × 16 box now.
+
 **Roles and red.** Avatars are initials coloured by `profiles.role` — admin in
 the elevated-access red (`--sc-accent-hot`), collaborator light blue, viewer /
 unknown grey-blue; the topics select `author:profiles(display_name, username,
 role)` (admins may read every profile, policy `profiles_admin_read_all`, so no
-projection was needed). A topic reads *Auftrag* (`source = 'admin'`) or
-*Nutzer-Feedback* (`source = 'user'`); a routine message carries the plain
-text label *AI* and no circle. Red is used exactly twice: the admin avatar and
+projection was needed). That colour is the whole answer to "order or user
+feedback?" — the stream row used to spell it out as *Auftrag* / *Nutzer-
+Feedback* next to it, which said the same thing twice and cost the meta line a
+third of its width, so the words are gone (feedback 96259f21). A routine
+message carries the plain text label *AI* and no circle. Red is used exactly twice: the admin avatar and
 the one primary call to action of a card or sheet (send / ✓ Abnehmen / Für die
 Routine freigeben). `--sc-danger` stays reserved for errors and destructive
 acts.

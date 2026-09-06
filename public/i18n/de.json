@@ -3264,8 +3264,6 @@
       "answered": "Beantwortet · wartet auf die Routine"
     },
     "kind": {
-      "order": "Auftrag",
-      "userFeedback": "Nutzer-Feedback",
       "ai": "AI"
     },
     "role": {
