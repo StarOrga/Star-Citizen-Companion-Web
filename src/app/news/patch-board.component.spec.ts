@@ -200,10 +200,24 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
       expect(a!.getAttribute('aria-label'))
         .withContext('a stretched link has no text of its own').toContain('Alpha');
     }
-    // The live card carries hotfix count and note count; the next card its roadmap teaser.
+    // The live card carries its hotfix count; the next card its roadmap teaser.
     expect(live.textContent).toContain('1 Hotfix');
-    expect(live.textContent).toContain('3 Notes');
     expect(rows()[0].querySelectorAll('.teaser .tz:not(.rest)').length).toBe(2);
+  });
+
+  /**
+   * Feedback fdaad6b7 round 2: "die x notes in dieser Übersicht ist auch
+   * unnötig, kannst du rausnehmen". The number of patch notes behind a line
+   * is not something anyone picks a patch by — and the dossier, which is
+   * where it means something, still says it.
+   */
+  it('no longer counts the notes on the overview card', async () => {
+    await render(FEED, ROADMAP);
+    for (const row of rows()) {
+      expect(row.textContent).withContext(row.querySelector('.ver')?.textContent ?? '').not.toContain('Notes');
+    }
+    expect(root().querySelector('.stack .counts, .stack .ct'))
+      .withContext('the cell went with it — an empty column is still a column').toBeNull();
   });
 
   /**
@@ -217,8 +231,6 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     const next = rows()[0];
     expect(next.textContent)
       .withContext('the count was struck through in both places it appeared').not.toContain('Roadmap-Einträge');
-    expect(next.querySelector('.counts .ct'))
-      .withContext('the "next" card has no note count either, so the column is empty').toBeNull();
     const strip = next.querySelector('.teaser') as HTMLElement;
     expect(strip.textContent?.replace(/[…\s]/g, ''))
       .withContext('the strip is pictures and an ellipsis, not a name list').toBe('');
@@ -233,11 +245,11 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('fills the strip with as many icons as fit, then a "…" that links on', async () => {
     await render(FEED, ROADMAP_MANY);
     const board = fixture.componentInstance;
-    board.onTeaserBox('4.11', { width: 426, item: 48, gap: 6, rest: 26 });
+    board.onTeaserBox('4.11', { width: 426, item: 96, gap: 6, rest: 40, rows: 2 });
     fixture.detectChanges();
 
     const icons = () => Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
-    expect(icons().length).withContext('the old strip stopped at three').toBe(7);
+    expect(icons().length).withContext('four per line, plus three beside the "…"').toBe(7);
     const rest = rows()[0].querySelector('.teaser .rest') as HTMLAnchorElement;
     expect(rest).withContext('and says there is more').not.toBeNull();
     expect(rest.textContent?.trim()).toBe('…');
@@ -245,7 +257,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/news/patches/4.11?focus=r8');
 
     // Narrower card, fewer icons — nothing hardcoded, nothing lost.
-    board.onTeaserBox('4.11', { width: 160, item: 42, gap: 6, rest: 22 });
+    board.onTeaserBox('4.11', { width: 160, item: 84, gap: 6, rest: 34, rows: 2 });
     fixture.detectChanges();
     expect(icons().length).toBe(2);
     expect(rows()[0].querySelector('.teaser .rest')?.getAttribute('aria-label')).toContain('8 weitere');
@@ -253,7 +265,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
 
   it('every icon is a real link into its OWN roadmap entry', async () => {
     await render(FEED, ROADMAP_MANY);
-    fixture.componentInstance.onTeaserBox('4.11', { width: 900, item: 48, gap: 6, rest: 26 });
+    fixture.componentInstance.onTeaserBox('4.11', { width: 900, item: 96, gap: 6, rest: 40, rows: 2 });
     fixture.detectChanges();
     const icons = Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
     expect(icons.length).toBeGreaterThan(3);
@@ -278,11 +290,44 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     const icons = Array.from(strip().querySelectorAll('.tz:not(.rest)')) as HTMLElement[];
     expect(icons.length)
       .withContext('the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
-    // Whatever the viewport, the strip stays ONE clipped line and its content
-    // never spills out of the card — the invariant that has to hold on the
-    // phone branch Karma renders in AND on the desktop one it does not.
+    // Whatever the viewport, the strip stays inside its TWO clipped lines and
+    // its content never spills out of the card — the invariant that has to
+    // hold on the phone branch Karma renders in AND on the desktop one it
+    // does not. 2 × 52 + 6 is the phone cap; the desktop one is 2 × 60 + 6.
     expect(strip().scrollWidth).withContext('the strip does not overflow itself').toBeLessThanOrEqual(strip().clientWidth + 1);
-    expect(Math.round(strip().getBoundingClientRect().height)).toBeLessThanOrEqual(30);
+    expect(strip().scrollHeight).withContext('and never wraps onto a third line').toBeLessThanOrEqual(strip().clientHeight + 1);
+    expect(Math.round(strip().getBoundingClientRect().height)).toBeLessThanOrEqual(126);
+  });
+
+  /**
+   * Round 2 of feedback fdaad6b7: "die roadmap icons können noch ruhig doppelt
+   * so groß dargestellt werden". Measured on the element, because the number
+   * lives in CSS — and a doubled thumbnail is also the first one on this strip
+   * that clears the 48 px tap target round 1 left it short of.
+   */
+  it('draws the thumbnails at double size, over two rows, inside the card', async () => {
+    await render(FEED, ROADMAP_MANY);
+    const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
+    // Same as above: the strip reports its box after layout, so give it frames.
+    for (let frame = 0; frame < 8 && strip().querySelectorAll('.tz:not(.rest)').length <= 3; frame++) {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      fixture.detectChanges();
+    }
+    const icon = (strip().querySelector('.tz:not(.rest)') as HTMLElement).getBoundingClientRect();
+    expect(Math.round(icon.width)).withContext('42/48 px in round 1').toBeGreaterThanOrEqual(84);
+    expect(Math.round(icon.height)).withContext('26/30 px in round 1').toBeGreaterThanOrEqual(52);
+    expect(Math.min(icon.width, icon.height))
+      .withContext('a touch target you can actually hit').toBeGreaterThanOrEqual(48);
+
+    // Ten items at this width do not fit on one line any more, so the wrap is
+    // the thing being tested — and the card, whose height is FIXED, has to
+    // have room for it. A clipped second row would still satisfy every count.
+    const stripBox = strip().getBoundingClientRect();
+    expect(stripBox.height).withContext('the strip wrapped onto a second row').toBeGreaterThan(icon.height + 1);
+    const card = rows()[0].querySelector('.card')!.getBoundingClientRect();
+    expect(Math.round(stripBox.bottom))
+      .withContext(`strip bottom ${stripBox.bottom} vs card bottom ${card.bottom}`)
+      .toBeLessThanOrEqual(Math.round(card.bottom));
   });
 
   it('unfolds the older lines on demand', async () => {

@@ -23,6 +23,15 @@ export interface TeaserBox {
   gap: number;
   /** Width the trailing "…" needs when not everything fits (`--tz-rest`). */
   rest: number;
+  /**
+   * How many lines the strip may wrap onto (`--tz-rows`).
+   *
+   * The thumbnails doubled in size (feedback fdaad6b7 round 2 — "die roadmap
+   * icons können noch ruhig doppelt so groß dargestellt werden … Mach aber
+   * ruhig zwei Reihen"), so a single line would now hold half of what it used
+   * to. The second row buys that back.
+   */
+  rows: number;
 }
 
 /** What a strip renders: the first `visible` items, and how many were left out. */
@@ -47,15 +56,20 @@ export const TEASER_MAX = 12;
 export const TEASER_FALLBACK = 3;
 
 /** Geometry fallbacks, mirroring the component's CSS for a headless caller. */
-export const TEASER_BOX: TeaserBox = { width: 0, item: 48, gap: 6, rest: 26 };
+export const TEASER_BOX: TeaserBox = { width: 0, item: 96, gap: 6, rest: 40, rows: 2 };
 
 /**
- * How many thumbnails fit into `box.width`, and how many that leaves over.
+ * How many thumbnails fit into `box.rows` lines of `box.width`, and how many
+ * that leaves over.
  *
- * Two rules beyond the arithmetic:
+ * The strip wraps, so the arithmetic is per line: every line but the last is
+ * filled to the brim, and the last one has to end in the "…" whenever
+ * something is left over. Three rules beyond that:
  *
  *  - room for the "…" is reserved whenever anything is left over, so the
  *    indicator can never be the thing that gets clipped;
+ *  - the indicator lives on the LAST line — a strip that wrapped it onto a
+ *    third line would be clipped away by the container's max-height;
  *  - at least one thumbnail is always rendered. A strip narrower than a single
  *    icon is a layout accident, and showing nothing but an ellipsis would hide
  *    the one thing this row is for.
@@ -67,12 +81,17 @@ export function teaserFit(total: number, box: TeaserBox, cap: number = TEASER_MA
     const visible = Math.min(limit, TEASER_FALLBACK);
     return { visible, rest: total - visible };
   }
-  const widthOf = (n: number) => n * box.item + Math.max(0, n - 1) * box.gap;
+  const rows = Math.max(1, Math.floor(box.rows) || 1);
+  // One thumbnail costs its own width plus the gap that follows it; the last
+  // one in a line does not pay that gap, hence the `+ box.gap` on the width.
+  const step = box.item + box.gap;
+  const perRow = Math.max(1, Math.floor((box.width + box.gap) / step));
   // Everything, with nothing left to announce: no room reserved for the "…".
-  if (limit === total && widthOf(total) <= box.width) return { visible: total, rest: 0 };
-  let n = 0;
-  while (n < limit && widthOf(n + 1) + box.gap + box.rest <= box.width) n++;
-  const visible = Math.max(1, n);
+  if (limit === total && total <= perRow * rows) return { visible: total, rest: 0 };
+  const lead = perRow * (rows - 1);
+  // The last line: n thumbnails, each paying its gap, then the indicator.
+  const lastRow = Math.max(0, Math.floor((box.width - box.rest) / step));
+  const visible = Math.max(1, Math.min(limit, lead + lastRow));
   return { visible, rest: Math.max(0, total - visible) };
 }
 
@@ -83,11 +102,11 @@ export function teaserFit(total: number, box: TeaserBox, cap: number = TEASER_MA
  * width available to it — independent of how many children it currently has,
  * which is what keeps the measure → render → measure loop from oscillating.
  *
- * Item width and gap are read from CSS rather than restated in TypeScript: the
- * phone breakpoint shrinks the thumbnails (48 → 42 px), and a second copy of
- * that number in the component would be a silent lie on one of the two
- * branches. Emissions are deduplicated, so a resize that does not change the
- * box costs nothing.
+ * Item width, gap and row count are read from CSS rather than restated in
+ * TypeScript: the phone breakpoint shrinks the thumbnails (96 → 84 px), and a
+ * second copy of that number in the component would be a silent lie on one of
+ * the two branches. Emissions are deduplicated, so a resize that does not
+ * change the box costs nothing.
  */
 @Directive({ selector: '[scTeaserStrip]', standalone: true })
 export class TeaserStripDirective implements OnDestroy {
@@ -122,18 +141,20 @@ export class TeaserStripDirective implements OnDestroy {
     const style = getComputedStyle(el);
     const box: TeaserBox = {
       width: Math.round(el.getBoundingClientRect().width),
-      item: px(style.getPropertyValue('--tz-w'), TEASER_BOX.item),
-      gap: px(style.columnGap, TEASER_BOX.gap),
-      rest: px(style.getPropertyValue('--tz-rest'), TEASER_BOX.rest),
+      item: positive(style.getPropertyValue('--tz-w'), TEASER_BOX.item),
+      gap: positive(style.columnGap, TEASER_BOX.gap),
+      rest: positive(style.getPropertyValue('--tz-rest'), TEASER_BOX.rest),
+      rows: positive(style.getPropertyValue('--tz-rows'), TEASER_BOX.rows),
     };
-    const key = `${box.width}/${box.item}/${box.gap}/${box.rest}`;
+    const key = `${box.width}/${box.item}/${box.gap}/${box.rest}/${box.rows}`;
     if (key === this.last) return;
     this.last = key;
     this.scTeaserStrip.emit(box);
   }
 }
 
-function px(value: string, fallback: number): number {
+/** A positive number out of a computed CSS value — px lengths and bare counts. */
+function positive(value: string, fallback: number): number {
   const n = Number.parseFloat(value);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }

@@ -2,16 +2,27 @@ import { TEASER_BOX, TEASER_FALLBACK, TEASER_MAX, TeaserBox, teaserFit } from '.
 
 /**
  * The strip's arithmetic (feedback fdaad6b7): as many roadmap thumbnails as
- * the width holds, then "…".
+ * TWO rows of the measured width hold, then "…".
  *
  * Both breakpoints are exercised explicitly. Karma renders at 749 px, i.e. in
- * the phone branch, so a rule that only holds for the 48 px desktop thumbnail
+ * the phone branch, so a rule that only holds for the 96 px desktop thumbnail
  * would pass here and be wrong where the admin looks.
  */
 const DESKTOP: TeaserBox = { ...TEASER_BOX, width: 0 };
-const PHONE: TeaserBox = { width: 0, item: 42, gap: 6, rest: 22 };
+const PHONE: TeaserBox = { width: 0, item: 84, gap: 6, rest: 34, rows: 2 };
+const ONE_ROW: TeaserBox = { ...DESKTOP, rows: 1 };
 
 const at = (box: TeaserBox, width: number): TeaserBox => ({ ...box, width });
+
+/** How many thumbnails one line of `box` holds — the CSS wrap, in arithmetic. */
+const perRow = (box: TeaserBox) => Math.max(1, Math.floor((box.width + box.gap) / (box.item + box.gap)));
+
+/** The width the last line actually uses, indicator included. */
+const lastRowWidth = (box: TeaserBox, fit: { visible: number; rest: number }) => {
+  const onLast = fit.visible - perRow(box) * (box.rows - 1);
+  const items = onLast * box.item + Math.max(0, onLast - 1) * box.gap;
+  return fit.rest > 0 ? items + box.gap + box.rest : items;
+};
 
 describe('Patch board — the roadmap teaser strip', () => {
   it('shows nothing for a release without roadmap items', () => {
@@ -19,25 +30,42 @@ describe('Patch board — the roadmap teaser strip', () => {
   });
 
   it('fills the width instead of stopping at three', () => {
-    // 8 × 48 + 7 × 6 = 426 px — the old strip showed three here.
+    // 4 × 96 + 3 × 6 = 402 px, so 426 px holds four per line.
     const wide = teaserFit(10, at(DESKTOP, 426));
     expect(wide.visible).toBeGreaterThan(TEASER_FALLBACK);
     expect(wide.visible + wide.rest).toBe(10);
   });
 
-  it('leaves room for the "…" whenever something is left over', () => {
-    const box = at(DESKTOP, 426);
-    const fit = teaserFit(10, box);
-    const used = fit.visible * box.item + (fit.visible - 1) * box.gap + box.gap + box.rest;
-    expect(fit.rest).withContext('10 items do not fit into 426 px').toBeGreaterThan(0);
-    expect(used).withContext('items plus the "…" stay inside the strip').toBeLessThanOrEqual(box.width);
+  /**
+   * Round 2 of feedback fdaad6b7: "die roadmap icons können noch ruhig doppelt
+   * so groß dargestellt werden … Mach aber ruhig zwei Reihen". Doubling the
+   * thumbnail halves what one line holds, and the second line is what buys it
+   * back — so the two have to be tested together, at one and the same width.
+   */
+  it('wraps onto a second row rather than showing half a strip', () => {
+    const oneRow = teaserFit(10, at(ONE_ROW, 426));
+    const twoRows = teaserFit(10, at(DESKTOP, 426));
+    expect(oneRow.visible).withContext('four fit per line, minus the "…"').toBe(3);
+    expect(twoRows.visible).withContext('the second line more than doubles that').toBe(7);
+    expect(twoRows.visible + twoRows.rest).toBe(10);
+  });
+
+  it('leaves room for the "…" on the LAST row whenever something is left over', () => {
+    for (const box of [at(DESKTOP, 426), at(PHONE, 380), at(DESKTOP, 700)]) {
+      const fit = teaserFit(30, box);
+      expect(fit.rest).withContext(`30 items do not fit into ${box.width}px`).toBeGreaterThan(0);
+      expect(fit.visible)
+        .withContext('never more rows than the strip can show').toBeLessThanOrEqual(perRow(box) * box.rows);
+      expect(lastRowWidth(box, fit))
+        .withContext(`items plus the "…" stay inside ${box.width}px`).toBeLessThanOrEqual(box.width);
+    }
   });
 
   it('drops the "…" when everything fits — no room reserved for nothing', () => {
-    // 4 × 48 + 3 × 6 = 210 px exactly.
-    expect(teaserFit(4, at(DESKTOP, 210))).toEqual({ visible: 4, rest: 0 });
-    // One pixel short: the fourth gives way to the indicator.
-    const tight = teaserFit(4, at(DESKTOP, 209));
+    // 2 × 96 + 6 = 198 px per line, two lines: four items fit exactly.
+    expect(teaserFit(4, at(DESKTOP, 198))).toEqual({ visible: 4, rest: 0 });
+    // One pixel short: the line holds one icon, so half the strip gives way.
+    const tight = teaserFit(4, at(DESKTOP, 197));
     expect(tight.rest).toBeGreaterThan(0);
     expect(tight.visible).toBeLessThan(4);
   });
