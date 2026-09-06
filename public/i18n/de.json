@@ -904,9 +904,10 @@
       "draftNote": "Abgeschaltete Gruppen bleiben Entwurf — sie werden nie im Hangar gespeichert.",
       "position": {
         "title": "Position des Docks",
-        "left": "links",
-        "center": "mittig",
-        "right": "rechts"
+        "left": "unten links",
+        "center": "unten mittig",
+        "right": "unten rechts",
+        "inline": "im Seitenfluss"
       },
       "group": {
         "weapons": "Waffen",
@@ -3260,12 +3261,12 @@
       "loop": "Nachbesserung",
       "pathLabel": "Stand: {{station}}",
       "step": {
-        "contract": "Eingereicht \u00b7 Freigabe steht aus",
-        "doing": "Zur Umsetzung \u00fcbergeben",
-        "recycle": "R\u00fcckfrage \u00b7 dreht noch eine Runde",
-        "rejected": "Abgelehnt \u00b7 wird nicht umgesetzt",
-        "delivered": "Geliefert \u00b7 Abnahme steht aus",
-        "accepted": "Abgenommen \u00b7 fertig"
+        "contract": "Eingereicht · Freigabe steht aus",
+        "doing": "Zur Umsetzung übergeben",
+        "recycle": "Rückfrage · dreht noch eine Runde",
+        "rejected": "Abgelehnt · wird nicht umgesetzt",
+        "delivered": "Geliefert · Abnahme steht aus",
+        "accepted": "Abgenommen · fertig"
       },
       "answered": "Beantwortet · wartet auf die Routine"
     },

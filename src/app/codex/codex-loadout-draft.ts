@@ -295,7 +295,7 @@ export function serializeDockPosition(dock: PowerDraftState['dock']): string {
 /** Tolerant read — anything but the three known positions yields `null`. */
 export function parseDockPosition(raw: string | null | undefined): PowerDraftState['dock'] | null {
   const v = (raw ?? '').trim();
-  return v === 'left' || v === 'center' || v === 'right' ? v : null;
+  return v === 'left' || v === 'center' || v === 'right' || v === 'inline' ? v : null;
 }
 
 export interface PowerDraftState {
@@ -303,7 +303,8 @@ export interface PowerDraftState {
   cutGroups: readonly string[];
   mode: 'scm' | 'nav';
   preset: 'auto' | 'stealth';
-  dock: 'left' | 'center' | 'right';
+  /** Mirrors `DockPosition` in codex-power.ts — keep the two in step. */
+  dock: 'left' | 'center' | 'right' | 'inline';
 }
 
 export const DEFAULT_POWER_DRAFT: PowerDraftState = {

@@ -103,6 +103,9 @@ let uidSeq = 0;
   standalone: true,
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // The HOST is what sticks, so the chosen position has to live here and not
+  // only on the inner .mini-dock — see the :host rules below for why.
+  host: { '[attr.data-pos]': 'position()' },
   template: `
     <div
       class="mini-dock"
@@ -296,13 +299,27 @@ let uidSeq = 0;
   `,
   styles: [
     `
+      /*
+       * The dock sticks to the bottom of the page while you scroll (concept
+       * iteration 6 onwards, unconditional). That has to happen on the HOST:
+       * a sticky box only shifts inside its containing block, and the
+       * host box is exactly as tall as the dock it wraps — so sticking the
+       * inner .mini-dock gave it a zero-pixel travel range and it never
+       * actually stuck to anything. The host is a flex item of .detail-page,
+       * which is as tall as the whole page, so that is where the travel is.
+       */
       :host {
         display: block;
-      }
-      .mini-dock {
         position: sticky;
         inset-block-end: 12px;
         z-index: 14;
+      }
+      /* inline (PO request, 2026-09-06): stop floating, ride the flow. */
+      :host([data-pos='inline']) {
+        position: static;
+        inset-block-end: auto;
+      }
+      .mini-dock {
         inline-size: fit-content;
         max-inline-size: 100%;
         margin-inline: auto;
@@ -318,6 +335,13 @@ let uidSeq = 0;
       }
       .mini-dock[data-pos='right'] {
         margin-inline: auto 0;
+      }
+      /* In the flow it is a panel like any other: full column width, and no
+         drop shadow, because nothing is floating above anything any more. */
+      .mini-dock[data-pos='inline'] {
+        inline-size: 100%;
+        margin-inline: 0;
+        box-shadow: none;
       }
       .md-head {
         display: flex;
@@ -734,12 +758,13 @@ export class CodexEnergyDockComponent {
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
 
-  protected readonly positions: readonly DockPosition[] = ['left', 'center', 'right'];
+  protected readonly positions: readonly DockPosition[] = ['left', 'center', 'right', 'inline'];
   protected readonly modes: readonly FlightMode[] = ['scm', 'nav'];
   protected readonly posGlyph: Readonly<Record<DockPosition, string>> = {
     left: '◧',
     center: '▣',
     right: '◨',
+    inline: '≡',
   };
 
   private readonly uid = `energy-dock-${++uidSeq}`;

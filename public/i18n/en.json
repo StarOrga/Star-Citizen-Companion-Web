@@ -904,9 +904,10 @@
       "draftNote": "Cut groups stay a draft — they are never written to your hangar.",
       "position": {
         "title": "Dock position",
-        "left": "left",
-        "center": "centre",
-        "right": "right"
+        "left": "bottom left",
+        "center": "bottom centre",
+        "right": "bottom right",
+        "inline": "in the page flow"
       },
       "group": {
         "weapons": "Weapons",
@@ -3260,12 +3261,12 @@
       "loop": "Follow-up",
       "pathLabel": "Status: {{station}}",
       "step": {
-        "contract": "Filed \u00b7 release pending",
+        "contract": "Filed · release pending",
         "doing": "Handed over for implementation",
-        "recycle": "Question \u00b7 going round once more",
-        "rejected": "Rejected \u00b7 not being built",
-        "delivered": "Delivered \u00b7 sign-off pending",
-        "accepted": "Signed off \u00b7 done"
+        "recycle": "Question · going round once more",
+        "rejected": "Rejected · not being built",
+        "delivered": "Delivered · sign-off pending",
+        "accepted": "Signed off · done"
       },
       "answered": "Answered · waiting for the routine"
     },

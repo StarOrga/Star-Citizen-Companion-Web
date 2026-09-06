@@ -91,7 +91,13 @@ export const POWER_GROUP_ORDER: readonly PowerGroup[] = [
 
 export type FlightMode = 'scm' | 'nav';
 export type PowerPreset = 'auto' | 'stealth';
-export type DockPosition = 'left' | 'center' | 'right';
+/**
+ * Where the energy dock sits. The concept authored three (links / mittig /
+ * rechts) as the horizontal alignment of a dock that is ALWAYS bottom-sticky;
+ * `inline` is the PO's addition on 2026-09-06 — the dock stops sticking and
+ * rides in the page flow for anyone who does not want a floating panel.
+ */
+export type DockPosition = 'left' | 'center' | 'right' | 'inline';
 
 /**
  * Occupant → power group. Three ordered signals, most reliable first:
@@ -787,5 +793,5 @@ export function isFlightMode(v: unknown): v is FlightMode {
 }
 
 export function isDockPosition(v: unknown): v is DockPosition {
-  return v === 'left' || v === 'center' || v === 'right';
+  return v === 'left' || v === 'center' || v === 'right' || v === 'inline';
 }
