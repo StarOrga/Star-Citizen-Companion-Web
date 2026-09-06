@@ -922,7 +922,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       }
 
       <!-- ============================================================ -->
-      <!-- FILTER SHEET: three questions, big rows (≥ 48 px). -->
+      <!-- FILTER SHEET: three questions, each answered by a wrapping row of
+           chips (≥ 48 px). Stacked full-width rows spent the whole horizontal
+           axis on one option and pushed the later ones out of the sheet's
+           scroll port — feedback 04013a4c saw a half-cut "Nutzer-Feedback". -->
       @if (filtersOpen()) {
         <div class="sheet filters" role="dialog" aria-modal="true" [attr.aria-label]="'adminFeedback.filters.title' | translate">
           <header class="sh-head">
@@ -934,37 +937,37 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           </header>
           <div class="sh-body">
             <div class="fq">{{ 'adminFeedback.filters.who' | translate }}</div>
-            <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="whoIs('all')" [attr.aria-pressed]="whoIs('all')" (click)="setWho('all')">{{ 'adminFeedback.filters.whoAll' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')">{{ 'adminFeedback.filters.whoMine' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('others')" [attr.aria-pressed]="whoIs('others')" (click)="setWho('others')">{{ 'adminFeedback.filters.whoOthers' | translate }}</button>
-              <button type="button" class="f-row" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
-                {{ 'adminFeedback.filters.whoUsers' | translate }}
+            <div class="f-chips" role="group" [attr.aria-label]="'adminFeedback.filters.who' | translate">
+              <button type="button" class="f-chip" [class.on]="whoIs('all')" [attr.aria-pressed]="whoIs('all')" (click)="setWho('all')"><span class="f-label">{{ 'adminFeedback.filters.whoAll' | translate }}</span></button>
+              <button type="button" class="f-chip" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')"><span class="f-label">{{ 'adminFeedback.filters.whoMine' | translate }}</span></button>
+              <button type="button" class="f-chip" [class.on]="whoIs('others')" [attr.aria-pressed]="whoIs('others')" (click)="setWho('others')"><span class="f-label">{{ 'adminFeedback.filters.whoOthers' | translate }}</span></button>
+              <button type="button" class="f-chip" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
+                <span class="f-label">{{ 'adminFeedback.filters.whoUsers' | translate }}</span>
                 @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
               </button>
               @for (a of authorOptions(); track a.id) {
-                <button type="button" class="f-row sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
-                  {{ authorLabel(a.row) }} <span class="f-count">{{ a.count }}</span>
+                <button type="button" class="f-chip sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">
+                  <span class="f-label">{{ authorLabel(a.row) }}</span> <span class="f-count">{{ a.count }}</span>
                 </button>
               }
             </div>
 
             <div class="fq">{{ 'adminFeedback.filters.where' | translate }}</div>
-            <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="whereFilter() === null" [attr.aria-pressed]="whereFilter() === null" (click)="setWhere(null)">{{ 'adminFeedback.filters.whereAll' | translate }}</button>
+            <div class="f-chips" role="group" [attr.aria-label]="'adminFeedback.filters.where' | translate">
+              <button type="button" class="f-chip" [class.on]="whereFilter() === null" [attr.aria-pressed]="whereFilter() === null" (click)="setWhere(null)"><span class="f-label">{{ 'adminFeedback.filters.whereAll' | translate }}</span></button>
               @for (w of whereOptions(); track w.bucket) {
-                <button type="button" class="f-row" [class.on]="whereFilter() === w.bucket" [attr.aria-pressed]="whereFilter() === w.bucket" (click)="setWhere(w.bucket)">
-                  {{ w.labelKey | translate }} <span class="f-count">{{ w.count }}</span>
+                <button type="button" class="f-chip" [class.on]="whereFilter() === w.bucket" [attr.aria-pressed]="whereFilter() === w.bucket" (click)="setWhere(w.bucket)">
+                  <span class="f-label">{{ w.labelKey | translate }}</span> <span class="f-count">{{ w.count }}</span>
                 </button>
               }
             </div>
 
             <div class="fq">{{ 'adminFeedback.filters.area' | translate }}</div>
-            <div class="f-rows" role="group">
-              <button type="button" class="f-row" [class.on]="areaFilter() === null" [attr.aria-pressed]="areaFilter() === null" (click)="setArea(null)">{{ 'adminFeedback.filters.areaAll' | translate }}</button>
+            <div class="f-chips" role="group" [attr.aria-label]="'adminFeedback.filters.area' | translate">
+              <button type="button" class="f-chip" [class.on]="areaFilter() === null" [attr.aria-pressed]="areaFilter() === null" (click)="setArea(null)"><span class="f-label">{{ 'adminFeedback.filters.areaAll' | translate }}</span></button>
               @for (a of areaOptions(); track a.area) {
-                <button type="button" class="f-row" [class.on]="areaFilter() === a.area" [attr.aria-pressed]="areaFilter() === a.area" (click)="setArea(a.area)">
-                  {{ areaLabelKey(a.area) | translate }} <span class="f-count">{{ a.count }}</span>
+                <button type="button" class="f-chip" [class.on]="areaFilter() === a.area" [attr.aria-pressed]="areaFilter() === a.area" (click)="setArea(a.area)">
+                  <span class="f-label">{{ areaLabelKey(a.area) | translate }}</span> <span class="f-count">{{ a.count }}</span>
                 </button>
               }
             </div>
@@ -1185,9 +1188,22 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .f-rows { display: flex; flex-direction: column; border: 1px solid var(--sc-border); border-radius: 8px; overflow: hidden; }
     .f-row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; background: var(--sc-bg-2); border: 0; border-bottom: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
     .f-row:last-child { border-bottom: 0; }
-    .f-row.sub { padding-left: 28px; }
     .f-row.on { color: var(--sc-fg-0); background: rgba(0, 212, 255, 0.1); box-shadow: inset 3px 0 0 var(--sc-accent); }
-    .f-count { margin-left: auto; color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); }
+    /* Filter answers: chips that wrap instead of stacking, so a three-question
+       sheet stays one screen tall at 490 px and every option stays visible. */
+    .f-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .f-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 48px; padding: 0 14px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: 999px; color: var(--sc-fg-1); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
+    .f-chip:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .f-chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .f-chip.sub { border-style: dashed; }
+    /* Selected is a filled pill with a tick — the state has to read without
+       colour, the way the old left accent bar did. */
+    .f-chip.on { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
+    .f-chip.on::before { content: '✓'; flex: 0 0 auto; font-size: 0.9em; line-height: 1; }
+    .f-chip.on .dot.hot { background: var(--sc-bg-0); }
+    .f-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .f-count { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-1); color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor)); font-weight: 600; }
+    .f-chip.on .f-count { background: rgba(0, 0, 0, 0.24); color: var(--sc-bg-0); }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
     .dot.hot { background: var(--sc-accent); }
     .decline-form { gap: 10px; }

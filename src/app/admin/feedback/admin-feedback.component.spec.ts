@@ -268,6 +268,71 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(cmp.areaOptions().map((a) => a.area)).toEqual(['codex']);
   });
 
+  /**
+   * The filter sheet used to answer each question with a column of full-width
+   * rows: one option per line, so a three-question sheet outgrew its scroll
+   * port and cut the fourth "Wer?" option in half (admin feedback 04013a4c,
+   * screenshot at ~490 px). The answers are chips now — they sit side by side
+   * and wrap, and every option of every group is in the DOM.
+   */
+  it('answers every filter question with side-by-side chips that wrap', async () => {
+    const { fixture, cmp, el } = await mount(fixtureTables());
+    cmp.openFilters();
+    fixture.detectChanges();
+    const sheet = el.querySelector('.sheet.filters')!;
+    const groups = Array.from(sheet.querySelectorAll('.f-chips')) as HTMLElement[];
+    expect(groups.length).toBe(3); // Wer? / Wo steht es? / Bereich
+    expect(sheet.querySelector('.f-rows')).toBeNull(); // no stacked rows left
+
+    for (const g of groups) {
+      // Wrapping, never a sideways scroll — and the group labels itself.
+      expect(getComputedStyle(g).flexWrap).toBe('wrap');
+      expect(g.scrollWidth).toBeLessThanOrEqual(g.clientWidth + 1);
+      expect(g.getAttribute('role')).toBe('group');
+      expect(g.getAttribute('aria-label')).toBeTruthy();
+      for (const chip of Array.from(g.querySelectorAll('.f-chip')) as HTMLElement[]) {
+        // 48, not 44: two overlapping scale animations shave a pixel off a
+        // touch target under the mobile gate. Holds in both media branches.
+        expect(getComputedStyle(chip).minHeight).toBe('48px');
+        expect(chip.getAttribute('aria-pressed')).toBeTruthy();
+      }
+    }
+
+    // Every option is rendered: the four "Wer?" answers plus one chip per
+    // distinct author, and "Alle …" plus one chip per non-empty bucket / area.
+    expect(groups[0].querySelectorAll('.f-chip').length).toBe(4 + cmp.authorOptions().length);
+    expect(groups[1].querySelectorAll('.f-chip').length).toBe(1 + cmp.whereOptions().length);
+    expect(groups[2].querySelectorAll('.f-chip').length).toBe(1 + cmp.areaOptions().length);
+
+    // The counts survived the move into the chip.
+    const whereCounts = Array.from(groups[1].querySelectorAll('.f-count')).map((c) => c.textContent?.trim());
+    expect(whereCounts).toEqual(cmp.whereOptions().map((w) => String(w.count)));
+    expect(groups[2].querySelector('.f-chip.on .f-count')).toBeNull(); // "Alle Bereiche" has no count
+    expect(groups[2].querySelectorAll('.f-count').length).toBe(cmp.areaOptions().length);
+  });
+
+  it('moves the selected-chip mark as the pick changes', async () => {
+    const { fixture, cmp, el } = await mount(fixtureTables());
+    cmp.openFilters();
+    fixture.detectChanges();
+    const who = () => Array.from(el.querySelectorAll('.sheet.filters .f-chips')[0].querySelectorAll('.f-chip')) as HTMLButtonElement[];
+    expect(who().map((b) => b.classList.contains('on'))).toEqual([true, false, false, false, false, false]);
+    expect(who()[0].getAttribute('aria-pressed')).toBe('true');
+
+    who()[3].click(); // "Nutzer-Feedback" — the option the old layout clipped
+    fixture.detectChanges();
+    expect(cmp.whoFilter()).toBe('users');
+    expect(who().map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'true', 'false', 'false']);
+    expect(who().filter((b) => b.classList.contains('on')).length).toBe(1); // single choice
+
+    // An author chip is the same single-choice set, one tier down.
+    who()[4].click();
+    fixture.detectChanges();
+    expect(cmp.whoIsAuthor(cmp.authorOptions()[0].id)).toBeTrue();
+    expect(who()[3].getAttribute('aria-pressed')).toBe('false');
+    expect(who()[4].classList).toContain('sub');
+  });
+
   it('colours avatars by role and labels a routine message "AI" without a circle', async () => {
     const tables = fixtureTables();
     tables['admin_feedback'] = (tables['admin_feedback'] as FeedbackRow[]).filter((r) => r.id !== 'u1');

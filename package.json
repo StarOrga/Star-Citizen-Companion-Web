@@ -16,6 +16,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
+    "verify:ship-live": "node scripts/verify-ship-live.mjs",
     "gate:mobile": "node scripts/mobile-gate.mjs",
     "gate:mobile:quick": "node scripts/mobile-gate.mjs --quick",
     "gate:mobile:auth": "node scripts/mobile-gate.mjs --auth",
