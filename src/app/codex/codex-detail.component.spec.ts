@@ -257,7 +257,12 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     const el: HTMLElement = fixture.nativeElement;
     const hero = el.querySelector('.hero') as HTMLElement;
     expect(hero.classList).toContain('stage');
-    expect(hero.querySelector('.stage-fg h1')).toBeTruthy();
+    // Identity sits in the bottom band with the chips and actions, the way a
+    // codex fleet tile captions the same ship — not floating over the art.
+    const foot = hero.querySelector('.stage-foot') as HTMLElement;
+    expect(foot).toBeTruthy();
+    expect(foot.querySelector('.stage-ident h1')).toBeTruthy();
+    expect(foot.querySelector('.stage-side .acts')).toBeTruthy();
     expect(hero.querySelector('.acts')).toBeTruthy();
     // The fact tiles left the hero (they live in the Analyse card now).
     expect(hero.querySelector('.facts')).toBeNull();
@@ -266,6 +271,20 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(toolrow).toBeTruthy();
     expect(toolrow.querySelector('.loadout-summary')).toBeTruthy();
     expect(toolrow.querySelector('.rsi-link')).toBeTruthy();
+  });
+
+  it('states the role once — in the eyebrow beside the maker, not also as a chip', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const eyebrow = el.querySelector('.hero.stage .mfr')?.textContent?.trim() ?? '';
+    const chips = Array.from(el.querySelectorAll('.hero.stage .hchip')).map((c) =>
+      c.textContent?.trim(),
+    );
+    // Whatever role the fixture carries, it belongs to the eyebrow line.
+    if (eyebrow.includes(' · ')) {
+      const role = eyebrow.split(' · ').slice(1).join(' · ');
+      expect(role.length).toBeGreaterThan(0);
+      expect(chips).not.toContain(role);
+    }
   });
 
   it('"Schiff wechseln" navigates, so it is an anchor and not a button', () => {

@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.5] - 2026-09-06
+
+### Fixed
+
+- **Der Kopfbereich der Schiffsseite liest sich jetzt wie eine Codex-Kachel.**
+  Hersteller und Rolle standen als gesperrte Grossbuchstaben oben ueber der
+  Kunst, darunter der Name in drei Zeilen — waehrend dasselbe Schiff in der
+  Codex-Uebersicht eine schmale Zeile "AEGIS DYNAMICS · ABFANGJÄGER" mit dem
+  Namen kompakt darunter bekommt. Beides sitzt nun unten auf der Buehne, in
+  derselben Typografie wie dort, und die Rolle wird nur noch einmal genannt.
+- **Die Aktionsknoepfe fuellten den halben Kopfbereich.** Sie trugen die
+  48-Pixel-Mindesthoehe fuer Fingertipps auch am Schreibtisch, wo vier deutsche
+  Beschriftungen dadurch untereinander brachen. Mit Maus sind sie jetzt 30
+  Pixel hoch und passen in eine Zeile; auf Touch-Geraeten bleibt das volle
+  Ziel erhalten. Der Kopfbereich ist damit wieder rund 270 statt 550 Pixel hoch.
+- **Chips und Knoepfe stehen wieder rechts, die Angaben am unteren Rand.**
+
 ## [0.81.4] - 2026-09-06
 
 ### Changed
