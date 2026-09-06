@@ -313,8 +313,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
         @if (selected(); as item) {
           <article class="nd-panel sc-card" role="dialog" aria-modal="true"
                    [attr.aria-label]="item.title" (click)="$event.stopPropagation()">
-            <!-- Same back affordance as the patch board's "← Patch-Historie
-                 verlassen": a text link, not a floating ✕ disc. It is a real
+            <!-- Same back affordance as the patch board's "← Zurück zu Verse
+                 News": a text link, not a floating ✕ disc. It is a real
                  <button> because it closes an overlay rather than navigating,
                  but it carries the link's shape so the two read as one idiom. -->
             <header class="nd-head">
@@ -886,7 +886,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
    */
   readonly verdictFresh = computed(() => this.verdict().fresh);
 
-  /** Card heading: the event while it is fresh, "Build-Stand" the rest of the time. */
+  /** Card heading: the event while it is fresh, "Aktuell im Verse" the rest of the time. */
   readonly verdictLabelKey = computed(() => {
     switch (this.verdictFresh()) {
       case 'live': return 'news.verdict.freshLiveLabel';

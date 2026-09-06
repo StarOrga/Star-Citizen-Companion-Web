@@ -1761,7 +1761,7 @@
         "basis": "Median {{median}} T. · ab {{version}}"
       },
       "board": {
-        "title": "Patches",
+        "title": "Patch-Zentrale",
         "sub": "Zukunft oben, Jetzt in der Mitte, Vergangenheit unten — ein Patch öffnet sein Dossier",
         "back": "Zurück zu Verse News"
       },
@@ -2054,7 +2054,7 @@
       "onStage": "Auf der Bühne"
     },
     "verdict": {
-      "label": "Build-Stand",
+      "label": "Aktuell im Verse",
       "liveOnly": "{{line}} ist live",
       "due": "{{line}} ist live · nächster Hauptpatch in {{days}} Tagen",
       "dueWeeks": "{{line}} ist live · nächster Hauptpatch in ~{{weeks}} Wochen",
@@ -2072,7 +2072,7 @@
       "sinceToday": "Seit heute",
       "sinceYesterday": "Seit gestern",
       "sinceDays": "Seit {{days}} Tagen",
-      "toBoard": "Patch-Historie",
+      "toBoard": "Patch-Zentrale",
       "toNotes": "Patch-Notes lesen"
     }
   },
