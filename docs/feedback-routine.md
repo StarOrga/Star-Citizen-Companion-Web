@@ -40,13 +40,23 @@ oldest `created_at` first.
 > ✓ in the Geliefert feed row — see "The admin side: the stream" below. The
 > contract stays: `reviewed_at` or `status = 'open'`, nothing new to read.
 >
-> **"Gespräch wieder aufnehmen" now carries a message.** In the run it opens the
-> same answer box every thread has; sending posts the steer *and* sets
-> `status = 'open'`. So a reopened topic reaches the routine with the reason
-> already in the thread — which is what the continuation path (query (d) / the
-> `shipped_at` + newer-human-message rule) reads anyway. The write order is
-> reply-then-reopen: a failed reply reopens nothing, a failed reopen has at least
-> kept the admin's words.
+> **"Gespräch wieder aufnehmen" is gone as a button — the reply IS the reopen**
+> (admin feedback 187574ed). It used to open the same answer box every thread
+> has, one click away from the box already sitting at the bottom of the topic. So
+> the opened topic has no reopen control any more: sending a reply into a topic
+> that is *finished* — archived, or waiting for its sign-off — posts the steer
+> *and* sets `status = 'open'`. Unchanged: a reopened topic reaches the routine
+> with the reason already in the thread, which is what the continuation path
+> (query (d) / the `shipped_at` + newer-human-message rule) reads anyway, and the
+> write order is still **reply-then-reopen** — a failed reply reopens nothing, a
+> failed reopen has at least kept the admin's words. A topic that is still in the
+> loop (`open` / `in_progress` / `needs_input`) gets the reply only: a plain
+> answer must never reset a running claim.
+>
+> The panel's own row of controls follows from that. In the opened topic the only
+> two moves are on the composer's line: **Abgenommen** left of the send button,
+> and the send button itself (labelled with the key that triggers it). No review
+> box, no "In App ansehen" — the card the admin came from carries that link.
 
 Status lifecycle the routine drives:
 
@@ -1620,8 +1630,8 @@ a few words instead of a pile of pills (`feedback.types.spec.ts` asserts it).
 
 **The first card of "Du bist dran" opens with its action inline** — the
 routine's question (labelled `AI`, no avatar) with an answer box, the sign-off
-with ✓ Abnehmen / ↻ Gespräch wieder aufnehmen, or the release button on a user
-topic. Acting on it moves the topic out of the band and the next card rises.
+with ✓ Abnehmen (reopening happens by replying inside the topic), or the release
+button on a user topic. Acting on it moves the topic out of the band and the next card rises.
 Every other card, and the lead card too, **opens the topic as a full-panel
 sheet**: the poster's first message, the newest message, and between them one
 "…" that unfolds one more message per tap (from the newest backwards); the

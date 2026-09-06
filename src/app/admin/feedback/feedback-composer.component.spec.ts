@@ -352,18 +352,34 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
     expect(cmp.draft()).toBe('');
   });
 
-  it('needs two clicks to discard, and then wipes text, attachments and row', async () => {
+  /**
+   * The ✕ that used to discard a draft is gone (admin feedback 187574ed) —
+   * emptying the box IS the discard now. Which means the empty box has to do
+   * the whole job the button did, including dropping the stored row; leaving it
+   * behind would resurrect deleted text on the next visit.
+   */
+  it('discards the stored draft when the box is emptied by hand', async () => {
     drafts.seed(SCOPE, { body: 'typed', images: [{ id: 'i1', name: 'shot', url: IMG }] });
     await mount();
 
-    cmp.armDiscard();
-    expect(cmp.discardArmed()).toBeTrue();
-    expect(drafts.discarded).toEqual([]);
+    // A screenshot is still attached — the draft is not empty, so it stays.
+    type('');
+    expect(drafts.discarded).withContext('an attachment keeps the draft alive').toEqual([]);
+    expect(cmp.hasStoredDraft()).toBeTrue();
 
-    cmp.discardDraft();
+    cmp.removeAt(0);
     expect(drafts.discarded).toEqual([SCOPE]);
     expect(cmp.draft()).toBe('');
     expect(cmp.attachments()).toEqual([]);
+    expect(cmp.hasStoredDraft()).toBeFalse();
+  });
+
+  it('treats whitespace-only text as empty rather than as a draft worth keeping', async () => {
+    drafts.seed(SCOPE, { body: 'typed' });
+    await mount();
+
+    type('   \n  ');
+    expect(drafts.discarded).toEqual([SCOPE]);
     expect(cmp.hasStoredDraft()).toBeFalse();
   });
 
@@ -881,9 +897,11 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
  * nothing but the send button. On the opened topic's sheet that added up to
  * more screen than the thread it belongs to.
  *
- * One row now: chips on the left, draft state and the button on the right. The
- * assertions are geometric on purpose — "does not take room above the field" is
- * a measurement, and a stylesheet is the only place it can go wrong.
+ * One row now: chips on the left, the projected topic action and the button on
+ * the right — and the draft state one line up, beside the character count
+ * (round 2 of the same feedback). The assertions are geometric on purpose —
+ * "does not take room above the field" is a measurement, and a stylesheet is
+ * the only place it can go wrong.
  */
 describe('FeedbackComposerComponent - the send row', () => {
   let fixture: ComponentFixture<FeedbackComposerComponent>;
@@ -906,7 +924,14 @@ describe('FeedbackComposerComponent - the send row', () => {
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('en', {
       adminFeedback: {
-        compose: { placeholder: 'What could be better?', draftRestored: 'Draft restored' },
+        compose: {
+          placeholder: 'What could be better?',
+          draftRestored: 'Draft restored',
+          sendHint: 'Enter = send · Shift+Enter = new line',
+          sendHintCtrl: 'Ctrl/Cmd+Enter = send · Enter = new line',
+          sendKey: '⏎',
+          sendKeyCtrl: 'Ctrl+⏎',
+        },
         thread: { reply: 'Reply', replyPlaceholderNo: 'Reply to #{{no}} - "{{title}}"' },
       },
     });
@@ -954,14 +979,15 @@ describe('FeedbackComposerComponent - the send row', () => {
     await mount({}, true);
     const flag = q('.draft-flag');
     expect(flag).withContext('a restored draft still says so').not.toBeNull();
-    expect(q('.draft-clear')).withContext('and can still be discarded').not.toBeNull();
+    // No ✕ any more (admin feedback 187574ed) - emptying the box is the discard.
+    expect(q('.draft-clear')).withContext('no discard control in this panel').toBeNull();
 
     const field = box('textarea');
-    // The notice is BELOW the writing room, on the send row.
+    // The notice is BELOW the writing room, on the readout line.
     expect(box('.draft-flag').top)
       .withContext('draft state sits under the field, not over it')
       .toBeGreaterThanOrEqual(field.bottom - 1);
-    expect(q('.draft-flag')!.closest('.foot')).withContext('on the send row').not.toBeNull();
+    expect(q('.draft-flag')!.closest('.meta')).withContext('on the readout line').not.toBeNull();
 
     // Nothing between the top of the box and the field but the box's own padding.
     const frame = box('.composer');
@@ -969,6 +995,46 @@ describe('FeedbackComposerComponent - the send row', () => {
     expect(field.top - frame.top)
       .withContext('the field opens the box')
       .toBeLessThanOrEqual(padTop + 2);
+  });
+
+  /**
+   * Admin feedback 187574ed: "Entwurf gesichert kann gern direkt links neben
+   * der zeichenzähleranzeige". Both are quiet readouts about the text above
+   * them, so they share one line — and the draft state is the one on the left.
+   * Asserted in both media branches: Karma renders at 749px, i.e. the phone
+   * side, and this row never turns into a column on either side.
+   */
+  it('puts the draft state directly left of the character counter', async () => {
+    await mount({}, true);
+    const flag = box('.draft-flag');
+    const counter = box('sc-char-counter');
+
+    expect(flag.right).withContext('left of the count').toBeLessThanOrEqual(counter.left + 1);
+    expect(Math.abs(flag.top - counter.top))
+      .withContext('same line')
+      .toBeLessThan(Math.max(flag.height, counter.height));
+  });
+
+  /**
+   * The send button in the opened topic wears the key that triggers it instead
+   * of a word (same feedback). A bare glyph with no name would be unreadable to
+   * a screen reader, so the word survives as the accessible name.
+   */
+  it('labels the icon-send button with the sending key and keeps its name', async () => {
+    localStorage.setItem('sc.composer.sendOnEnter', '1');
+    await mount({ iconSend: true });
+    const send = q('.foot .send')!;
+
+    expect(send.textContent?.trim()).withContext('the key, not the word').toBe('⏎');
+    expect(send.getAttribute('aria-label')).toBe('Reply');
+    expect(send.getAttribute('title')).withContext('the mapping in words').toContain('Enter');
+  });
+
+  it('names Ctrl+Enter on the icon-send button when Enter does not send', async () => {
+    localStorage.setItem('sc.composer.sendOnEnter', '0');
+    await mount({ iconSend: true });
+    expect(q('.foot .send')!.textContent?.trim()).toBe('Ctrl+⏎');
+    localStorage.setItem('sc.composer.sendOnEnter', '1');
   });
 
   it('drops its own frame where the surface around it already draws one', async () => {

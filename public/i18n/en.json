@@ -3052,8 +3052,8 @@
       "draftSaving": "Saving draft…",
       "draftSaved": "Draft saved",
       "draftFailed": "Draft not saved – connection?",
-      "draftDiscard": "Discard draft",
-      "draftDiscardConfirm": "Discard for good?",
+      "sendKey": "⏎",
+      "sendKeyCtrl": "Ctrl+⏎",
       "attachNotCached": "Image could not be cached – it will be lost on reload but is still sent along.",
       "attachmentsLabel": "Attachments",
       "dropHere": "Drop images here",
@@ -3204,13 +3204,8 @@
       }
     },
     "review": {
-      "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, pick the conversation back up — the topic returns to the routine’s queue.",
-      "accept": "Signed off",
-      "reopen": "Resume the conversation",
-      "reopenHint": "Say briefly what is still off — this reopens the topic and the routine reads your answer as the brief.",
-      "reopenPlaceholder": "What should be different?",
-      "reopenSend": "Send & reopen",
-      "reopenCancel": "Cancel"
+      "hint": "Look at the result on the live app. If it is right, the topic is done. If it is not, just reply — your answer picks the topic back up and returns it to the routine’s queue as the brief.",
+      "accept": "Signed off"
     },
     "sourceFilter": {
       "untriagedHint": "User feedback here is still waiting to be released to the routine."
