@@ -440,6 +440,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [busy]="busy()"
               [areaPicker]="true"
               [allowFiles]="true"
+              [frameless]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
               [onSubmit]="createComposerBound" />
@@ -768,10 +769,18 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <!-- THE TOPIC, opened: takes the whole panel (round-1 feedback — one
            needs room to read). First message of the poster, the newest
            message, and between them one "…" that unfolds one more message
-           per tap. The composer is glued to the bottom edge. -->
+           per tap. The composer is glued to the bottom edge.
+
+           READING ROOM (admin feedback 187574ed: "wenn ich in dem issue drin
+           bin brauche ich die Headerzeile mit Profil und Statusleiste etc.
+           nicht mehr, ich will ja dann lesen: erster Post + letzter Post +
+           Inputfeld"). The two chrome rows that used to open this sheet — the
+           poster/kind/timestamp line and the flight-path/baton/chips line — are
+           gone. Both said what the stream card the admin just tapped already
+           said, and together they pushed the first sentence of the topic below
+           the fold. What was NOT elsewhere in this sheet was the ship/issue
+           link, so that one moved into the ⋯ menu rather than disappearing. -->
       @if (openRow(); as m) {
-        @let oturn = turnOf(m);
-        @let opos = positionOf(m);
         <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="cardTitle(m, 96)" [attr.inert]="declineTopicRow() ? '' : null">
           <header class="sh-head">
             <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate">←</button>
@@ -791,6 +800,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <div class="more-menu" role="group" [attr.aria-label]="'adminFeedback.actions.more' | translate">
               @if (areaLink(m); as href) {
                 <a class="menu-item" [routerLink]="href" (click)="onViewInApp($event) && closeTopic()">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
+              }
+              <!-- The PR / issue behind the topic. It used to sit on the status
+                   row this sheet no longer has (admin feedback 187574ed) —
+                   looking up the diff is a rare, deliberate act, which is
+                   exactly what this menu is for. -->
+              @if (m.ship_ref) {
+                <a class="menu-item" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
+                  ↗ {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }}
+                </a>
               }
               @if (!archived(m) && !inReview(m)) {
                 @if (issueRequested(m)) {
@@ -816,29 +834,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           }
 
           <div class="sh-body">
-            <!-- Where it stands, who filed it, what it is. -->
-            <div class="sh-meta">
-              <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: m.author, self: m.author_id === selfId() }"></ng-container>
-              <span class="who">{{ authorLabel(m) }}</span>
-              <span class="kind" [class.user]="fromUser(m)">
-                {{ (fromUser(m) ? 'adminFeedback.kind.userFeedback' : 'adminFeedback.kind.order') | translate }}
-              </span>
-              <span class="msg-ts">{{ m.created_at | scDate: 'datetime' }}</span>
-            </div>
-            <div class="sh-status">
-              <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: opos }"></ng-container>
-              <span class="baton" [class]="'baton t-' + oturn">
-                {{ (askOf(m) ? ('adminFeedback.ask.' + askOf(m)) : stationLabelKey(opos)) | translate }}
-              </span>
-              @if (areaOf(m); as a) { <span class="chip area">{{ areaLabelKey(a) | translate }}</span> }
-              @if (issueRequested(m)) { <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span> }
-              @if (untriaged(m)) { <span class="chip hot">{{ 'adminFeedback.userTopic.untriaged' | translate }}</span> }
-              @if (m.ship_ref && !inReview(m)) {
-                <a class="link-btn quiet" [href]="m.ship_ref" target="_blank" rel="noopener noreferrer">
-                  {{ (linkKind(m) === 'issue' ? 'adminFeedback.issueRef' : 'adminFeedback.shipRef') | translate }} ↗
-                </a>
-              }
-            </div>
             @if (m.processing_note) {
               <p class="proc-note">{{ m.processing_note }}</p>
             }
@@ -937,8 +932,14 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             }
           </div>
 
-          <!-- The composer, glued to the bottom edge of the sheet. Big field,
-               72px thumbnails, "+" (attach) and 📷 (screenshot), one red send. -->
+          <!-- The composer, glued to the bottom edge of the sheet: three rows
+               that grow with what is typed, half-size chips with "+" (attach)
+               and 📷 (screenshot) beside one red send button.
+
+               It wears no frame of its own (admin feedback 187574ed) — the
+               sticky top border of this bar is the separation, and a second
+               rounded box a few pixels inside it was the "Doppelumrandung". The
+               placeholder names the topic the reply will land in. -->
           <div class="sh-composer">
             <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             <sc-feedback-composer
@@ -946,8 +947,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [busy]="busy()"
               [allowFiles]="true"
               [large]="true"
+              [frameless]="true"
               [primaryHot]="true"
-              placeholder="adminFeedback.thread.replyPlaceholder"
+              [placeholder]="topicNo(m) ? 'adminFeedback.thread.replyPlaceholderNo' : 'adminFeedback.thread.replyPlaceholderTopic'"
+              [placeholderParams]="{ no: topicNo(m), title: cardTitle(m, 42) }"
               sendLabel="adminFeedback.thread.reply"
               [onSubmit]="replySubmitFor(m.id)" />
           </div>
@@ -1213,10 +1216,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .sh-btn.text { font-size: max(0.78rem, var(--sc-fs-floor)); padding: 0 10px; color: var(--sc-accent); }
     .sh-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; font-size: 0.9rem; }
     .sh-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--sc-gap-2); padding: var(--sc-pad-2); scrollbar-width: thin; }
-    .sh-composer { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3) var(--sc-pad-2); border-top: 1px solid var(--sc-border); background: var(--sc-bg-1); padding-bottom: calc(var(--sc-pad-3) + env(safe-area-inset-bottom, 0px)); }
-    .sh-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .sh-meta .who { font-weight: 600; color: var(--sc-fg-1); }
-    .sh-status { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* The sticky reply bar. Its top border is the ONLY frame down here (admin
+       feedback 187574ed) — the composer inside runs frameless — and the
+       distance to the panel edge is one small padding instead of two nested
+       ones. The bottom keeps the safe-area inset: on a phone the home bar
+       would otherwise sit on the send button. */
+    .sh-composer { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 8px var(--sc-pad-3); border-top: 1px solid var(--sc-border); background: var(--sc-bg-1); padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
     .more-menu { display: flex; flex-direction: column; flex: 0 0 auto; border-bottom: 1px solid var(--sc-border); background: var(--sc-bg-2); }
     .menu-item { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 var(--sc-pad-1); background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; text-decoration: none; cursor: pointer; }
     .menu-item:hover { background: var(--sc-bg-3); }

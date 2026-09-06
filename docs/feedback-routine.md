@@ -1521,9 +1521,13 @@ The board and the author-facing panel both go through that one
 path; a new surface that renders a feedback body should too.
 
 The composer joins them (feedback 99723afc): its pending-image strip is the same
-`sc-feedback-attachments` row with `removable` set, so the 72 px chip is defined
-in exactly one place and an image looks identical from the moment it is pasted to
-every later re-read of the thread. The row keeps the composer's own aria-label
+`sc-feedback-attachments` row with `removable` set, so the chip is defined in
+exactly one place and an image looks identical from the moment it is pasted to
+every later re-read of the thread. In the composer the row runs `dense` (admin
+feedback 187574ed): half size, 36 px, because there it shares a line with the
+send button and is a receipt for something just added rather than a picture to
+look at. Everywhere the image *is* the content — thread message, author channel,
+workflow view — it stays 72 px. The row keeps the composer's own aria-label
 via `labelKey`, and the enlarged view pages through a message's screenshots with
 ‹ › or the arrow keys instead of closing and reopening per image.
 
@@ -1622,13 +1626,23 @@ Every other card, and the lead card too, **opens the topic as a full-panel
 sheet**: the poster's first message, the newest message, and between them one
 "…" that unfolds one more message per tap (from the newest backwards); the
 review gate, the release button and — on a user topic — the author channel
-follow; the composer is glued to the bottom edge (a tall field, 72 px
-thumbnails, the "+" and "capture this page" tiles of the attachment row
+follow; the composer is glued to the bottom edge (a tall field, the half-size
+chips with the "+" and "capture this page" tiles of the attachment row
 (admin feedback 312a4acc, `PageScreenshotService`), one red
-send button). Sent messages longer than three lines fold behind "Mehr
+send button, and no frame of its own — the sticky bar's top border is the
+separation). Its placeholder names the topic the reply lands in ("Antwort zu
+#211 — …"). Sent messages longer than three lines fold behind "Mehr
 anzeigen". The rare acts — Issue erstellen / Zurücknehmen, Nicht umsetzen &
-löschen (with the canned reasons), Löschen, Im App ansehen — sit behind the
-one ⋯ in the sheet's head.
+löschen (with the canned reasons), Löschen, Im App ansehen and the link to the
+PR / issue — sit behind the one ⋯ in the sheet's head.
+
+The sheet carries **no chrome above the first post** (admin feedback 187574ed):
+the poster/kind/timestamp row and the flight-path/baton/chips row it used to
+open with repeated what the stream card the admin just tapped already said, and
+together they pushed the topic's first sentence below the fold. Both are gone —
+what is left is first post, last post, input field. The one thing on them that
+was not repeated elsewhere in the sheet, the ship/issue link, moved into the ⋯
+menu rather than disappearing with them.
 
 **Controls at rest are two**: the search field (unchanged fuzzy search, see
 "Searching the board") and one Filter button that opens a full-height sheet —

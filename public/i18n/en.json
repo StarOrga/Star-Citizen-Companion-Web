@@ -3044,6 +3044,8 @@
     "thread": {
       "reply": "Reply",
       "replyPlaceholder": "Write a reply… (Markdown supported)",
+      "replyPlaceholderNo": "Reply to #{{no}} — “{{title}}”",
+      "replyPlaceholderTopic": "Reply to “{{title}}”",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
     },
     "compose": {
