@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sind entfernt; `scc-mark.svg` (das Original) ersetzt sie überall. Der Generator
   kann mit `--sheet=<pfad>` nur das Referenzblatt rendern, ohne die Raster im Baum
   anzufassen — die Schleife zum Entwerfen eines Abzeichens.
+- **Data Uploader 0.28.0 und Starscape 0.9.0** werden mit diesen Icons neu gebaut.
+  Seit dem Icon-Umbau am 5. September gab es kein neues Starscape-Release — der
+  Auto-Updater hatte schlicht nichts Neueres als 0.8.0 anzubieten. 0.28.0 nimmt
+  außerdem den bislang nur im Quelltext gelandeten Uploader-Fix 0.27.1 mit (Livery-
+  Manifest nur für Schiffe mit Material).
 
 ## [0.81.4] - 2026-09-06
 
