@@ -192,7 +192,7 @@ describe('Verse News — the build-status card', () => {
     expect(card.classList).not.toContain('fresh');
     expect(card.getAttribute('data-fresh')).toBeNull();
     expect(el('.verdict .pulse')).toBeNull();
-    expect(el('.verdict-label')!.textContent).toContain('Build-Stand');
-    expect(el('.verdict-link')!.textContent).toContain('Patch-Historie');
+    expect(el('.verdict-label')!.textContent).toContain('Aktuell im Verse');
+    expect(el('.verdict-link')!.textContent).toContain('Patch-Zentrale');
   });
 });
