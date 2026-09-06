@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.5] - 2026-09-06
+
+### Fixed
+
+- **Die Schiffsseite steht jetzt in der Blockreihenfolge des Konzepts.** Das
+  Konzept zeichnet genau fünf Blöcke und schließt mit dem Dock — Krümelzeile,
+  Masthead, KPI-Leiste, Missionsleiste, die beiden Spalten, dann das Dock. Die
+  Seite hatte zehn, und die zusätzlichen waren keine Ergänzung obendrauf,
+  sondern die ältere vertikale Seite, in die die Konzeptregionen einsortiert
+  worden waren. Der 3D-Livery-Betrachter und die Beschreibungskarte standen
+  zwischen Masthead und KPI-Leiste und schoben damit das einzige Element, das
+  dauerhaft sichtbar bleiben muss, rund neunhundert Pixel nach unten: Die
+  KPI-Leiste ist die Ausgabe der Konzept-Schleife — Linse wählen, Zahlen sich
+  bewegen sehen — und sie beginnt erst an ihrer eigenen Position zu kleben. Sie
+  ist jetzt der dritte Block. Das Energie-Dock stand zwischen Missionsleiste
+  und Spalten; da es klebend positioniert ist, behält es seinen Platz im Fluss,
+  wo immer es steht, und dieser Platz war dort ein dockhohes Loch mitten auf
+  der Seite. Es schließt die Seite jetzt ab, wie im Konzept, und klebt dabei
+  unverändert. Alles, was diese App über das Konzept hinaus zeigt, bleibt
+  erhalten und behält seine Reihenfolge — es liegt nur unter dem Skelett statt
+  darin. Gelöscht wurde nichts. Dazu die erste Zusicherung überhaupt auf die
+  Blockreihenfolge: bisher konnte sie von fünf auf zehn wachsen, ohne dass ein
+  einziger Test rot wurde.
+
 ## [0.82.4] - 2026-09-06
 
 ### Fixed
