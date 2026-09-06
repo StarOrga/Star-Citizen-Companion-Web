@@ -61,47 +61,94 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
   styles: [`
     :host { display: block; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+    /* The concept draws this bar as a BOX, not a bare row: .ship-mock
+       .m-mission (concept part-02:190) is a hairline frame with a 4px radius
+       around .4rem .6rem of padding. Concept rem values are translated to the
+       px they render at in the mock (rem x 13), because the app root is 15px
+       and a raw rem would come out 1.15x too large.
+       The mock's overflow:hidden stays overflow-x:auto here — MASTER 13 wants
+       the row to scroll, never clip. */
     .mission-bar {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 5px;
       overflow-x: auto;
       white-space: nowrap;
-      padding: 8px 4px;
+      border: 1px solid var(--sc-border);
+      border-radius: 4px;
+      padding: 5px 8px;
     }
+    /* .ship-mock .m-mission .lab (part-02:191) — a 9.5px micro-label on .14em,
+       not the 0.72rem/.08em it was. --sc-fs-floor keeps it readable on touch. */
     .mission-label {
       font-family: var(--sc-font-display);
-      font-size: max(0.72rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em;
+      font-size: max(9.5px, var(--sc-fs-floor));
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--sc-fg-2);
       flex: none;
+      margin-right: 4px;
     }
-    .mission-chips { display: flex; gap: 8px; flex: none; }
+    .mission-chips { display: flex; gap: 5px; flex: none; }
+    /* The chips ARE the concept's .btn primitive (part-02:159), the same one
+       the hero acts use: a 3px rectangle carrying a 10px uppercase label on
+       .12em — never a pill, never mixed case. Ground and text sit at the same
+       roles the mock gives them (translucent canvas, muted text).
+       The 48px touch floor stays in this base rule; the concept's real, compact
+       box lives in the pointer:fine block at the bottom, the same way
+       .hero.stage .acts .btn does it in codex-detail.component.ts. */
     .mission-chip {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       min-height: 48px;
       padding: 8px 14px;
-      background: var(--sc-bg-2);
+      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
       border: 1px solid var(--sc-border);
-      border-radius: 999px;
-      color: var(--sc-fg-1);
+      border-radius: 3px;
+      color: var(--sc-fg-2);
       cursor: pointer;
       flex: none;
       font-family: var(--sc-font-body);
-      font-size: 13px;
+      font-size: max(10px, var(--sc-fs-floor));
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
-    .mission-chip.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
-    .mission-chip:disabled { opacity: 0.45; cursor: not-allowed; }
-    .chip-icon { font-size: 15px; }
-    .idle-draft { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+    /* .ship-mock .btn.on (part-02:160): accent text on a faintly tinted ground
+       behind a DIMMED accent border — a lit outline, not a filled accent block. */
+    .mission-chip.active {
+      border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      color: var(--sc-accent);
+      background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-0));
+    }
+    /* .ship-mock .btn:disabled, .ship-mock .btn.off (part-02:162) */
+    .mission-chip:disabled { opacity: 0.38; cursor: not-allowed; }
+    /* The concept sets the glyph as plain text inside the button's own type run
+       (part-03:100), so it rides at the chip size instead of the old 15px. */
+    .chip-icon { font-size: inherit; }
+    /* .ship-mock .m-mission .sp (part-02:192) — pushed right, .4rem apart, and
+       its buttons are the same .btn primitive as the chips. */
+    .idle-draft { display: flex; align-items: center; gap: 5px; flex: none; margin-left: auto; }
     .idle-draft .btn {
-      padding: 7px 14px; border-radius: 6px; font: inherit; font-size: max(0.76rem, var(--sc-fs-floor));
-      cursor: pointer; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+      padding: 8px 14px; border-radius: 3px; cursor: pointer;
+      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-2);
+      font-family: var(--sc-font-body);
+      font-size: max(10px, var(--sc-fs-floor));
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
     }
-    .idle-draft .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .idle-draft .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    /* A mouse does not need the 48px touch floor, and seven of them turn this
+       row into the wall of pills the concept never had. On a fine pointer the
+       chip collapses onto the concept's own box — .28rem .6rem of padding,
+       roughly 24px tall (part-02:159). Coarse pointers, and therefore the
+       mobile gate that emulates one, keep the full target. */
+    @media (pointer: fine) {
+      .mission-chip, .idle-draft .btn { min-height: 24px; padding: 4px 8px; }
+    }
   `],
 })
 export class CodexMissionBarComponent {

@@ -46,14 +46,15 @@ import { KpiStripCell } from './codex-kpi-sets';
   `,
   styles: [`
     :host { display: block; }
+    /* Mollywator draws ONE continuous band, not six tiles: no gap, no radius,
+       and the cells share a single 1px rule (part-02.html:177-179). The band
+       carries no border of its own — every cell paints top/left/bottom and the
+       last one closes the right edge. Dropping the radius also drops the
+       overflow clip, so the label tooltips are no longer cut off at the band. */
     .kpi-band {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 1px;
-      background: var(--sc-border);
-      border: 1px solid var(--sc-border);
-      border-radius: 8px;
-      overflow: hidden;
+      background: var(--sc-bg-0);
       position: sticky;
       /* Approximates the shell topbar's rendered height (14px padding × 2 +
          content) plus any active impersonation banner — see shell.component.ts. */
@@ -63,26 +64,43 @@ import { KpiStripCell } from './codex-kpi-sets';
     }
     @media (max-width: 1120px) {
       .kpi-band { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      /* part-02.html:290 — once the band wraps, the cell that ends a row would
+         sit open on its right, so every cell closes its own edge. */
+      .kpi-cell { border-right: 1px solid var(--sc-border); }
     }
     @media (max-width: 480px) {
       .kpi-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+    /* One baseline ROW per cell — label left, value pushed right, delta chip
+       trailing (part-02.html:178). Not a stacked column. */
     .kpi-cell {
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
-      padding: 10px 12px;
+      border: 1px solid var(--sc-border);
+      border-right: none;
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      align-items: baseline;
+      gap: 6px;
+      /* Coarse pointers keep the 48px floor from styles.scss; the vertical
+         padding is sized so the row sits centred in it instead of being pinned
+         to the top by the baseline alignment. */
+      padding: 14px 9px;
       min-height: 48px;
-      justify-content: center;
+    }
+    .kpi-cell:last-child { border-right: 1px solid var(--sc-border); }
+    @media (pointer: fine) {
+      /* The concept's own .45rem .7rem at the mock 13px root = 6px 9px, which
+         is the ~25px baseline row a mouse user is meant to see. */
+      .kpi-cell { padding: 6px 9px; min-height: 0; }
     }
     .kpi-cell.accent { background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 18%, var(--sc-bg-2)), var(--sc-bg-1)); border-bottom: 2px solid var(--sc-accent); }
-    .kpi-label { font-size: 12px; color: var(--sc-fg-2); letter-spacing: 0.02em; text-transform: uppercase; }
-    .kpi-value { font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; font-size: 15px; color: var(--sc-fg-0); }
-    .kpi-cell.gap .kpi-value.gap-dash { color: var(--sc-fg-2); cursor: help; }
-    .kpi-delta { font-size: 12px; font-variant-numeric: tabular-nums; }
-    .kpi-delta.good { color: var(--sc-success); }
-    .kpi-delta.bad { color: var(--sc-danger); }
+    .kpi-label { font-size: max(9.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); letter-spacing: 0.13em; text-transform: uppercase; }
+    .kpi-value { margin-left: auto; font-family: var(--sc-font-display); font-variant-numeric: tabular-nums; font-size: 17px; color: var(--sc-fg-0); }
+    .kpi-cell.gap .kpi-value.gap-dash { color: var(--sc-fg-2); font-size: 15px; cursor: help; }
+    /* The delta is a tinted CHIP, not bare text (part-02.html:184-186). */
+    .kpi-delta { font-size: max(10px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums;
+      padding: 1px 4px; border-radius: 2px; }
+    .kpi-delta.good { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 12%, transparent); }
+    .kpi-delta.bad { color: var(--sc-danger); background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .kpi-cell.from-power { border-bottom: 2px solid var(--sc-danger); }
     .kpi-info { position: relative; margin-left: 3px; cursor: help; color: var(--sc-fg-2); font-size: 10px;
       background: none; border: none; padding: 0; font-family: inherit; }

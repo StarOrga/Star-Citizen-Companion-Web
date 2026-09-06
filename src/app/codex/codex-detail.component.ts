@@ -1074,6 +1074,12 @@ interface GearRecipe {
   styles: [`
     :host { display: block; }
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; max-width: 1500px; margin: 0 auto; width: 100%; }
+    /* Card chrome, concept part-02:140 (.m-card): a 4px corner and a flat
+       surface - the mock draws no glow at all. The app-wide .sc-card keeps its
+       8px radius and its cyan halo everywhere else; only this page is redrawn,
+       so the rule is scoped instead of edited globally. */
+    .detail-page .sc-card,
+    .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     .crumb-spacer { flex: 1 1 auto; }
     .back { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
@@ -1086,13 +1092,17 @@ interface GearRecipe {
     /* Loadout | Analyse (MASTER §1/§6/§7) */
     .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
     .m-cols.single { grid-template-columns: 1fr; }
-    .col-head { margin: 0 0 12px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
-      padding-bottom: 8px;
+    /* Concept part-02:197 (.m-colhead): 10px at .16em, and MUTED - it is a
+       divider label, not a headline, so the accent stays with the card titles
+       it sits above. The count next to it is the mock's bordered 2px box
+       (part-02:198), not a filled badge. */
+    .col-head { margin: 0 0 5px; font-size: max(10px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.16em;
+      padding-bottom: 0; color: var(--sc-fg-2);
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .col-head .label { color: var(--sc-accent); }
-    .col-head .n { display: inline-flex; align-items: center; justify-content: center; min-width: 20px;
-      padding: 1px 6px; border-radius: var(--radius-sm, 4px); background: var(--sc-bg-2);
-      color: var(--sc-fg-1); font-size: max(0.68rem, var(--sc-fs-floor)); }
+    .col-head .label { color: var(--sc-fg-2); }
+    .col-head .n { display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 4px; border-radius: 2px; background: transparent; border: 1px solid var(--sc-border);
+      color: var(--sc-fg-2); font-size: max(10px, var(--sc-fs-floor)); }
     .col-head .rule { flex: 1 1 auto; height: 1px; background: var(--sc-border); }
     .col-head .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .col-analyse { display: flex; flex-direction: column; gap: 12px; }
@@ -1109,12 +1119,20 @@ interface GearRecipe {
     .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
     .draft-controls { flex: 0 0 auto; }
 
-    /* Hero chip row (MASTER §2): career / role / crew / cargo / mass, one line. */
-    .hchip { font-size: max(12px, var(--sc-fs-floor)); padding: 2px 8px; border-radius: var(--radius-md, 4px);
+    /* Hero chip row (MASTER §2): career / role / crew / cargo / mass, one line.
+       Shape and type come from the concept's .chip (part-02:156): a 3px
+       rectangle carrying a 10px uppercase run at .12em - not a rounded pill.
+       10px is the size the mock renders at; the coarse-pointer readability
+       floor lifts it to 12px on a phone, so nothing shrinks on touch. */
+    .hchip { font-size: max(10px, var(--sc-fs-floor)); padding: 3px 7px; border-radius: 3px;
+      letter-spacing: 0.12em; text-transform: uppercase;
       background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
       border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
     .hchip.accent { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .hchip.ghost { color: var(--sc-fg-2); font-style: italic; background: transparent; border-style: dashed; }
+    /* part-02:158 makes the ghost chip muted text and nothing else. The italic
+       and the dashed edge it used to carry shouted louder than the mock draws
+       a chip that simply says "not fitted". */
+    .hchip.ghost { color: var(--sc-fg-2); }
     /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
     .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
       border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
@@ -1171,24 +1189,26 @@ interface GearRecipe {
     .hero.stage .chips { list-style: none; margin: 0; padding: 0;
       display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
     .hero.stage .acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-    /* A mouse does not need the 48px touch floor, and four German labels at
-       that height stack into a wall on the half-width hero. Coarse pointers —
-       and therefore the mobile gate, which emulates one — keep the full
-       target. */
-    @media (pointer: fine) {
-      .hero.stage .acts .btn { min-height: 30px; padding: 3px 9px;
-        font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
-    }
-
-    /* The one button on this page (concept section 2). Never the hot accent:
-       nothing here is admin-gated. */
+    /* The one button on this page (concept section 2, part-02:159). Never the
+       hot accent: nothing here is admin-gated. A 3px rectangle with a 10px
+       uppercase label at .12em - the mock's button, not a pill.
+       The hero actions used to keep a compact size of their own right here;
+       they no longer need to, because this rule IS the concept's button at
+       every occurrence, so the four German labels on the half-width hero and
+       the ones in the tool row are one and the same control. */
     .btn, .pin { position: relative; display: inline-flex; align-items: center; gap: 5px;
-      padding: 4px 10px; min-height: 48px;
-      border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
+      padding: 4px 8px; min-height: 48px;
+      border: 1px solid var(--sc-border); border-radius: 3px;
       background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
       color: var(--sc-fg-2); font-family: var(--sc-font-display); text-decoration: none;
-      font-size: max(12px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase;
+      font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase;
       cursor: pointer; }
+    /* The mock draws this button about 24px tall. A mouse gets exactly that;
+       coarse pointers - and therefore the mobile gate, which emulates one -
+       keep the 48px floor declared above. */
+    @media (pointer: fine) {
+      .btn, .pin { min-height: 24px; }
+    }
     .btn:hover, .pin:hover { color: var(--sc-fg-0);
       border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
     .btn.on, .pin.pinned { color: var(--sc-accent);
@@ -1220,7 +1240,17 @@ interface GearRecipe {
       padding: 6px 2px; border-top: 1px solid var(--sc-border); }
     .toolrow .tool-spacer { flex: 1 1 auto; }
     .toolrow .picker { position: relative; margin-top: 0; max-width: 260px; }
-    .toolrow .picker > summary { min-height: 48px; }
+    /* The concept has no picker of its own; its dropdown vocabulary is the
+       mock select (part-02:193 select.m-sel): a 3px rectangle, 10.5px type,
+       .25rem/.4rem of padding. The 48px touch floor stays for coarse pointers
+       and only a mouse gets the drawn height. */
+    .toolrow .picker > summary { min-height: 48px; padding: 3px 6px; gap: 6px; border-radius: 3px; }
+    @media (pointer: fine) {
+      .toolrow .picker > summary { min-height: 24px; }
+    }
+    .toolrow .sp-label,
+    .toolrow .sp-current,
+    .toolrow .sp-count { font-size: max(10.5px, var(--sc-fs-floor)); }
     .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
     .toolrow .loadout-summary { margin: 0; }
 
@@ -1297,10 +1327,15 @@ interface GearRecipe {
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
 
+    /* Port overview. The mock has no element of its own for it, so it takes
+       the chip vocabulary it sits next to (part-02:156): count and category
+       are one 10px uppercase run at .12em inside a 3px rectangle. The pill
+       shape and the 14px count were the app's own invention. */
     .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 11px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .ls-count { font-family: var(--sc-font-display); font-size: 0.95rem; color: var(--sc-fg-0); }
-    .ls-cat { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+    .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 7px; border-radius: 3px;
+      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); border: 1px solid var(--sc-border); }
+    .ls-count { font-family: var(--sc-font-display); font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.12em; color: var(--sc-fg-0); }
+    .ls-cat { font-size: max(10px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.12em; color: var(--sc-fg-2); }
     /* No hot accent and no mock literals here (concept section 0): nothing in
        the port overview is admin-gated and none of it is an error. */
     .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
@@ -1328,9 +1363,10 @@ interface GearRecipe {
     .in-hangar { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .prov { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
-    /* Generic block */
+    /* Generic block. The card title is the mock's .m-h2 (part-02:141):
+       10.5px at .14em, semibold, accent. */
     .block { padding: 16px 18px; }
-    .block h2 { margin: 0 0 12px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-accent);
+    .block h2 { margin: 0 0 12px; font-size: max(10.5px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600; color: var(--sc-accent);
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .block h2 .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -1398,7 +1434,10 @@ interface GearRecipe {
     .hp-size { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
     .compat { padding: 4px 12px 12px 34px; background: var(--sc-bg-0); }
 
-    .chip { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 6px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-2); border: 1px solid var(--sc-border); white-space: nowrap; }
+    /* Size / grade / type tokens inside a slot row. The mock draws these as
+       .sz and .gr (part-02:216-217): a bordered 2px box, 10px, no fill and no
+       uppercasing - a part name or a humanised type must not be shouted. */
+    .chip { font-size: max(10px, var(--sc-fs-floor)); padding: 0 3px; border-radius: 2px; background: transparent; color: var(--sc-fg-1); border: 1px solid var(--sc-border); white-space: nowrap; }
     .muted { color: var(--sc-fg-2); margin: 0; font-size: 0.82rem; }
     .hint { color: var(--sc-fg-2); margin: 0 0 12px; font-size: max(0.74rem, var(--sc-fs-floor)); }
     /* Data-gap disclosure: visible enough to be read, quiet enough not to
@@ -1415,7 +1454,9 @@ interface GearRecipe {
        text — a dead link would be worse than no link. */
     .compat-link.plain { color: var(--sc-fg-0); }
     .compat-link.plain:hover { text-decoration: none; }
-    .chip.subtle { background: transparent; }
+    /* The base chip lost its fill, so "subtle" now says what it always meant:
+       a muted token next to a full-strength one. */
+    .chip.subtle { color: var(--sc-fg-2); }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);

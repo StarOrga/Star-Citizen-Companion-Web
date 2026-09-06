@@ -24,15 +24,30 @@ const DAMAGE_CHANNEL_COLORS: Readonly<Record<string, string>> = {
 
 const PANEL_STYLES = `
   :host { display: block; }
-  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; margin: 0;
-    font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sc-accent); list-style: none; }
+
+  /* Card head — concept .m-h2 (part-02:141). This is a micro-label, not a
+     heading: 10.5px at .14em tracking in the accent, weight 600. It used to be
+     15px at .04em, which read as a section title and dwarfed the values it
+     introduces. The hairline under it is the concept's head strip, so it is
+     pulled out to the card edges with the card's own padding, and only drawn
+     while the panel is open (concept part-01:674-675). */
+  .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 7px; cursor: pointer; margin: 0;
+    font-size: max(10.5px, var(--sc-fs-floor)); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--sc-accent); list-style: none; }
   .panel-head::-webkit-details-marker { display: none; }
+  details[open] > .panel-head { padding: 0 var(--sc-pad-1) 8px; margin: 0 calc(var(--sc-pad-1) * -1) 10px;
+    border-bottom: 1px solid var(--sc-border); }
+
   .fold-hint { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: normal;
     color: var(--sc-fg-2); font-style: italic; }
-  .panel-hint { margin: 2px 0 12px; font-size: 13px; color: var(--sc-fg-2); }
+  /* The read-out the concept parks on the right of the head (.m-h2 .r,
+     part-02:143): muted, 11px, sentence case, gentle tracking. */
+  .panel-hint { margin: 2px 0 10px; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2); }
   .chev { transition: transform 0.15s ease; }
   .chev.open { transform: rotate(90deg); }
-  .gap-row { font-size: 13px; color: var(--sc-fg-2); }
+  /* A missing value reads muted at 12px in the concept (.m-f.gap, part-02:238). */
+  .gap-row { font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+
   /* A weapon table is the widest thing on the page: five columns plus class
      names like APAR_BallisticGatling_S4, which have no break opportunity. Its
      min-content width used to become the floor for the whole detail page and
@@ -40,19 +55,81 @@ const PANEL_STYLES = `
      break, and whatever is still too wide scrolls inside its own wrapper
      instead of taking the page with it. */
   .table-wrap { overflow-x: auto; }
-  table.analysis-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
-  table.analysis-table th, table.analysis-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  table.analysis-table tfoot td { font-weight: 600; color: var(--sc-fg-0); }
+  /* Tables — concept table.m-t (part-02:239-244). Two things were wrong: the
+     type ran at 13px against the concept's 11px, and every cell was left
+     aligned, so a column of figures could not be read down. In the concept only
+     the first column is left aligned; everything else is flush right, the head
+     is a 9.5px uppercase micro-label, and the row rule is far fainter than a
+     card border (rgba .08 against the .22 of the mock's line token). */
+  table.analysis-table { width: 100%; border-collapse: collapse; font-size: max(11px, var(--sc-fs-floor)); margin: 0 0 8px; }
+  table.analysis-table th { text-align: right; font-weight: 500; font-size: max(9.5px, var(--sc-fs-floor));
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--sc-fg-2);
+    padding: 3px 4px; border-bottom: 1px solid var(--sc-border); }
+  table.analysis-table td { text-align: right; padding: 3px 4px;
+    border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 40%, transparent); }
+  table.analysis-table th, table.analysis-table td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  table.analysis-table th:first-child, table.analysis-table td:first-child { text-align: left; }
+  /* Total row: accent, uppercase label, no rule under it — and the figures
+     themselves drop the tracking and run a size up (part-02:243-244). */
+  table.analysis-table tfoot td { font-weight: 400; color: var(--sc-accent); border-bottom: none;
+    font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; }
+  table.analysis-table tfoot td:not(:first-child) { font-size: max(12px, var(--sc-fs-floor)); letter-spacing: 0; text-transform: none; }
+
   .dmg-bars { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
-  .dmg-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .dmg-bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--sc-bg-2); overflow: hidden; }
-  .dmg-bar-fill { height: 100%; border-radius: 4px; }
-  .warn-note { color: var(--sc-warn, #e8a33d); font-size: 12px; margin: 4px 0; }
-  h3.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--sc-fg-1); margin: 14px 0 6px; }
-  dl.fact-grid { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 4px 0; }
-  dl.fact-grid dt { color: var(--sc-fg-2); font-size: 12px; }
-  dl.fact-grid dd { margin: 0; font-variant-numeric: tabular-nums; }
-  .note { font-size: 12px; color: var(--sc-fg-2); margin: 4px 0; }
+  .dmg-bar-row { display: flex; align-items: center; gap: 8px; font-size: max(11px, var(--sc-fs-floor)); }
+  /* Mini bar — concept .m-f .t (part-02:235-236): a 3px hairline track with a
+     2px radius, not the 8px pill this used to draw. The track is a translucent
+     light wash in the concept, which matters here: --sc-bg-2 is literally the
+     top stop of the .sc-card gradient, so a bg-2 track disappears into the
+     card at 3px. */
+  .dmg-bar-track { flex: 1; height: 3px; border-radius: 2px;
+    background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); overflow: hidden; }
+  .dmg-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* Notes are left-bordered callouts in the concept (part-02:224-225), not bare
+     lines: gold for a warning, dim accent for information. */
+  .warn-note { border-left: 2px solid var(--sc-warn, #e8a33d);
+    background: color-mix(in srgb, var(--sc-warn, #e8a33d) 8%, transparent);
+    padding: 6px 8px; margin: 6px 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+  .note { border-left: 2px solid color-mix(in srgb, var(--sc-accent) 60%, var(--sc-fg-2));
+    background: color-mix(in srgb, var(--sc-accent) 6%, transparent);
+    padding: 6px 8px; margin: 6px 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+
+  /* Sub-head — concept .m-sub (part-02:229): a 9.5px dim-accent micro-label at
+     .15em, sitting tight above its grid. It used to be a 13px muted heading. */
+  h3.section-title { font-size: max(9.5px, var(--sc-fs-floor)); font-weight: 400; text-transform: uppercase;
+    letter-spacing: 0.15em; color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-fg-2)); margin: 7px 0 4px; }
+
+  /* Fact grid — concept .m-g3 / .m-f (part-02:230-232): three equal columns,
+     each one a 9.5px uppercase key stacked ABOVE a 15px value. This was a
+     two-column dt/dd list at 12/13px, which is a different element entirely.
+
+     The template alternates dt/dd and must not change, so the columns are
+     assigned by position: children 1..6 are key/value/key/value/key/value of
+     one band. Dense packing is what makes that work — a definite column with
+     an auto row searches from the first row again under dense, so the three
+     keys land on the band's first line and their values on its second. Row gap
+     stays 0 (a key must touch its own value) and the .5rem between bands is
+     carried by the value's bottom margin instead. minmax(0,1fr) keeps a long
+     value from pushing the grid wider than the card on a phone. */
+  dl.fact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: row dense; column-gap: 10px; row-gap: 0; margin: 4px 0 0; }
+  dl.fact-grid dt { font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--sc-fg-2); overflow-wrap: anywhere; }
+  dl.fact-grid dd { margin: 0 0 7px; font-size: 15px; color: var(--sc-fg-0);
+    font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  dl.fact-grid dt:nth-child(6n + 1), dl.fact-grid dd:nth-child(6n + 2) { grid-column: 1; }
+  dl.fact-grid dt:nth-child(6n + 3), dl.fact-grid dd:nth-child(6n + 4) { grid-column: 2; }
+  dl.fact-grid dt:nth-child(6n + 5), dl.fact-grid dd:nth-child(6n + 6) { grid-column: 3; }
+  /* Below the two-column split the analysis card is full width but narrow, and
+     three columns of tracked-out keys would wrap every label. Two-wide bands
+     there; a dt is always an odd child and a dd always an even one, so 4n+1..4
+     covers every element and the later block wins on source order. */
+  @media (max-width: 720px) {
+    dl.fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    dl.fact-grid dt:nth-child(4n + 1), dl.fact-grid dd:nth-child(4n + 2) { grid-column: 1; }
+    dl.fact-grid dt:nth-child(4n + 3), dl.fact-grid dd:nth-child(4n + 4) { grid-column: 2; }
+  }
 `;
 
 /** Waffen / Raketen — offensive read-out for the active loadout (PR C). */

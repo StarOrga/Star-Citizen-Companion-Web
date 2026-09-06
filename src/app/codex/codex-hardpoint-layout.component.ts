@@ -598,10 +598,20 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     </ng-template>
   `,
   styles: [`
-    :host { display: block; }
+    :host { display: block;
+      /* The concept stacks the slot row ON the module card: card = --m-panel
+         (#0b1a26), row = --m-panel-2 (#0e2130), i.e. the row is LIGHTER
+         (concept/part-02.html:140 vs :204). The app had it inverted (bg-0 row
+         on a bg-1 card). --sc-bg-2 is not usable here: it resolves to #103246
+         against the card's #123246, so it carries no elevation at all. The mix
+         reproduces the concept's exact step (~1.08:1 luminance ratio, the mock
+         draws 1.075:1) without overshooting into --sc-bg-3, which would push
+         the muted --sc-fg-2 body text under the AA 4.5:1 floor. */
+      --sc-slot-ground: color-mix(in srgb, var(--sc-bg-3) 30%, var(--sc-bg-1));
+    }
     .layout { display: flex; flex-direction: column; gap: 14px; }
 
-    .mod-sec { border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
+    .mod-sec { border-radius: 4px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       padding: 10px 12px; }
     /* Concept section 0 bans the hot accent on this page (nothing here is
        admin-gated) and bans mock literals outright, so the per-block colour
@@ -611,11 +621,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .mod-sec:not(.fixed) { border-top: 2px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     /* "Antrieb & Systeme": the merged block and its nested sections. */
     .sub-stack { display: flex; flex-direction: column; gap: 8px; }
-    .mod-sub { border-radius: 6px; background: var(--sc-bg-2); border: 1px solid var(--sc-border);
+    .mod-sub { border-radius: 4px; background: var(--sc-bg-2); border: 1px solid var(--sc-border);
       padding: 8px 10px; }
     .mod-sub > .sub-head { margin: 0; }
     .mod-sub[open] > .sub-head { margin-bottom: 8px; }
-    .mod-sec.merged > .sec-head { color: var(--sc-fg-0); }
     /* Nothing here can be configured, so the block steps back visually. */
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
@@ -624,40 +633,63 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        this row's min-content became the floor for the whole detail page and
        pushed it into horizontal scroll (feedback 2c7ed0d0). Wrapping keeps the
        heading a heading on desktop and lets the toggles drop to their own line
-       on a narrow screen. */
-    .sec-head { margin: 0 0 8px; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
-      color: var(--sc-fg-1); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0;
+       on a narrow screen.
+       The block heading is the concept's .m-h2 (concept/part-02.html:141):
+       10.5px, .14em, uppercase, 600, in the ACCENT — not a muted --sc-fg-1
+       label. The px value is the mock's rem rendered at ITS 13px root; the
+       max() keeps the coarse-pointer readability floor from styles.scss. */
+    .sec-head { margin: 0 0 8px; font-size: max(10.5px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.14em;
+      font-weight: 600; color: var(--sc-accent); display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0;
       cursor: pointer; list-style: none; }
     .sec-head::-webkit-details-marker { display: none; }
+    /* An OPEN block draws a hairline under its heading (part-01.html:675) —
+       full-bleed, so it reads as the card's own divider, which is why the
+       negative inline margin matches each card's padding. */
+    .mod-sec[open] > .sec-head { margin-inline: -12px; padding: 0 12px 8px;
+      border-bottom: 1px solid var(--sc-border); }
+    .mod-sub[open] > .sub-head { margin-inline: -10px; padding: 0 10px 8px;
+      border-bottom: 1px solid var(--sc-border); }
     .sec-glyph { color: var(--sc-accent); font-size: 0.8rem; }
-    .caret { margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
-      color: var(--sc-accent); font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; }
+    /* The heading's 600 belongs to the heading TEXT; the mock keeps every
+       child of .m-h2 at the body weight (part-02.html:142-144). */
+    .caret { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-weight: 400;
+      color: var(--sc-accent); font-size: max(10px, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0.06em; }
     .caret.open { color: var(--sc-fg-2); }
     .sec-head:hover .caret { text-decoration: underline; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     /* Folded preview — chips + aggregate + lock hint, INSIDE the summary
        (MASTER §6): what's installed, at a glance, no controls while folded. */
-    .fold-preview { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-      margin-top: 4px; text-transform: none; letter-spacing: 0; }
-    .fp-chip { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
-    .fp-chip.fp-agg { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .fold-preview { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4.5px 12px; align-items: baseline;
+      margin-top: 4px; text-transform: none; letter-spacing: 0; font-weight: 400;
+      font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* .fold-peek .pk (part-01.html:682) is a bare value+label run, NOT a chip.
+       The 999px pill with its border and fill is what made the folded block
+       read as a row of tags instead of a readout, so it goes entirely. */
+    .fp-chip { display: inline-flex; align-items: baseline; gap: 4px;
+      font-size: inherit; padding: 0; border: 0; border-radius: 0; background: none;
+      color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
+    .fp-chip.fp-agg { color: var(--sc-accent); }
     .fp-role { color: var(--sc-fg-2); margin-left: 3px; }
-    .fp-lock { font-size: max(0.62rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; margin-left: auto; }
+    /* part-01.html:684 — accent-dim, 10.5px. --m-cy-dim sits ~5:1 on the mock's
+       card; mixing the accent toward --sc-fg-2 lands the same "dimmed accent"
+       role here at 5.9:1 rather than borrowing a literal hex. */
+    .fp-lock { font-size: max(10.5px, var(--sc-fs-floor)); margin-left: auto;
+      color: color-mix(in srgb, var(--sc-accent) 70%, var(--sc-fg-2)); }
     /* Passive shield generator (MASTER §6/B-C19): desaturated + darker until
        hovered; still swappable — this is not a disabled row. */
     .slot.inactive .slot-btn { filter: grayscale(0.65) brightness(0.82); }
     .slot.inactive:hover .slot-btn, .slot.inactive .slot-btn:focus-within { filter: none; }
-    .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px;
+    .sec-ct { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; font-weight: 400;
+      letter-spacing: 0.04em;
       background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
     .sec-tag { font-size: max(0.56rem, var(--sc-fs-floor)); letter-spacing: 0.06em; color: var(--sc-fg-2);
-      border: 1px solid var(--sc-border); border-radius: 3px; padding: 0 5px; }
+      font-weight: 400; border: 1px solid var(--sc-border); border-radius: 2px; padding: 0 5px; }
     /* "Einzeln / zusammen" and the airframe fold. Quiet by default — the block
        heading must stay a heading — but a real 32px-tall target. */
     .sec-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
       min-height: 32px; padding: 2px 8px; border-radius: 6px; cursor: pointer;
       background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2);
-      font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.05em;
+      font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); font-weight: 400; letter-spacing: 0.05em;
       text-transform: uppercase; }
     .sec-btn + .sec-btn { margin-left: 0; }
     .sec-btn:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
@@ -693,14 +725,20 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 
     /* The row's ONE headline figure (MASTER §6) — number, unit, absolute
        delta chip. Sits between the identity block and the ⓘ/⇄ tools, same
-       spot the concept's .fig occupies next to .tools. */
-    .fig { flex: 0 0 auto; align-self: center; display: flex; align-items: baseline; gap: 4px;
+       spot the concept's .fig occupies next to .tools.
+       The mock stacks it (part-02.html:210-215): number, unit UNDER it as a
+       block micro-label, delta as a tinted chip — not one baseline row. */
+    .fig { flex: 0 0 auto; align-self: center;
       padding: 0 4px; min-width: 64px; text-align: right; }
-    .fig .n { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
-    .fig .u { font-size: max(0.6rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .fig .dl { font-size: max(0.62rem, var(--sc-fs-floor)); font-weight: 600; }
-    .fig .dl.up { color: var(--sc-success, #4caf50); }
-    .fig .dl.down { color: var(--sc-danger, #ff5252); }
+    .fig .n { font-size: max(16px, var(--sc-fs-floor)); color: var(--sc-fg-0); font-variant-numeric: tabular-nums; }
+    .fig .u { display: block; font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--sc-fg-2); }
+    .fig .dl { display: inline-block; margin-top: 2px; font-size: max(10px, var(--sc-fs-floor));
+      padding: 0 3.5px; border-radius: 2px; }
+    .fig .dl.up { color: var(--sc-success, #4caf50);
+      background: color-mix(in srgb, var(--sc-success, #4caf50) 12%, transparent); }
+    .fig .dl.down { color: var(--sc-danger, #ff5252);
+      background: color-mix(in srgb, var(--sc-danger, #ff5252) 12%, transparent); }
 
     /* Draft write-path: a row edited away from stock. */
     .tag.draft { align-self: center; text-transform: none; letter-spacing: 0; color: var(--sc-accent-gold, #c8a84b);
@@ -715,12 +753,14 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       font-size: 0.85rem; cursor: pointer; }
     .slot-revert:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
+    /* .m-slot (part-02.html:204): 3px, and RAISED off the card — the row sits
+       ON the module, so it is the lighter of the two surfaces. */
     .slot-btn, .kid-btn { display: flex; flex-direction: column; gap: 3px; padding: 7px 8px;
-      border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border);
+      border-radius: 3px; background: var(--sc-slot-ground); border: 1px solid var(--sc-border);
       text-decoration: none; text-align: left; width: 100%; font: inherit; color: inherit; }
     button.slot-btn, button.kid-btn { cursor: pointer; }
     button.slot-btn:hover, button.kid-btn:hover { border-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
+      background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-slot-ground)); }
     .slot.empty > .duo > .slot-btn { background: transparent; border-style: dashed; }
     .slot.empty > .duo > button.slot-btn.open-bay:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
@@ -729,16 +769,20 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        hull map highlights it, the rail lights up. */
     .slot.located .slot-btn { border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .slot.located.on .slot-btn { border-left-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-0)); }
+      background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-slot-ground)); }
 
     /* Size badge | name + meta — the two things that identify the occupant. */
     .slot-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
     .slot-ident { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .size-tag { flex: 0 0 auto; font-size: max(0.66rem, var(--sc-fs-floor)); font-weight: 600; line-height: 1.4;
-      padding: 1px 6px; border-radius: 4px; white-space: nowrap;
-      font-variant-numeric: tabular-nums; color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* .sz (part-02.html:216) is NEUTRAL — a 1px outline at 2px radius in the
+       body colour. The accent-filled pill this used to be gave every row a
+       coloured badge the mock never draws; the accent belongs to the item
+       name beside it. */
+    .size-tag { flex: 0 0 auto; font-size: max(10px, var(--sc-fs-floor)); font-weight: 400; line-height: 1.4;
+      padding: 0 3.5px; border-radius: 2px; white-space: nowrap;
+      font-variant-numeric: tabular-nums; color: var(--sc-fg-1);
+      background: transparent;
+      border: 1px solid var(--sc-border); }
     .size-tag.muted { color: var(--sc-fg-2); background: transparent; border-color: var(--sc-border); }
 
     .slot-item { font-size: 0.84rem; line-height: 1.25; color: var(--sc-accent);
@@ -767,10 +811,13 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
        factory part wears a gold rail. The hover state it also asks for is
        already there on the card itself (button.slot-btn:hover above) and stays
        at the app's stronger accent - polish follows the app (section 14). */
-    .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); border-radius: 6px; }
+    .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); border-radius: 3px; }
 
-    /* Port name is context, not headline — it sits last and quiet. */
-    .slot-port { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
+    /* Port name is context, not headline — it sits last and quiet. The mock's
+       .l3 is plain --m-mut with no extra opacity (part-02.html:209); dropping
+       the 0.85 keeps this line at AA on the now-lighter row ground, where it
+       would otherwise fall to ~3.7:1. */
+    .slot-port { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
     .slot-empty { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .kid-empty { font-size: 0.84rem; color: var(--sc-fg-2); }
 

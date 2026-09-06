@@ -407,9 +407,13 @@ let uidSeq = 0;
         gap: 12px;
         padding: 2px 12px 8px;
       }
+      /* Concept part-01:442 sets .3rem between the stacks, 3.9px in the
+         mock's 13px root. At 10px the eight groups pushed the dock 43px wider
+         than drawn. Pips are not tap targets - the group button below them is -
+         so the tighter gap costs no reachability. */
       .md-pips {
         display: flex;
-        gap: 10px;
+        gap: 4px;
       }
       .vr {
         background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
@@ -456,11 +460,14 @@ let uidSeq = 0;
         font-variant-numeric: tabular-nums;
         color: color-mix(in srgb, var(--sc-bg-0) 85%, #000);
       }
+      /* part-01:341 gives .grp-btn a transparent border that only lights up
+         on hover. Eight permanently outlined boxes read as eight controls
+         competing with the pips they sit under. The hit area is untouched. */
       .grp-btn {
         min-inline-size: max(28px, var(--sc-tap-min));
         min-block-size: max(28px, var(--sc-tap-min));
-        border: 1px solid var(--sc-border);
-        border-radius: 4px;
+        border: 1px solid transparent;
+        border-radius: 3px;
         background: transparent;
         color: var(--sc-fg-2);
         cursor: pointer;
@@ -511,6 +518,15 @@ let uidSeq = 0;
         font-size: max(12px, var(--sc-fs-floor));
         z-index: 20;
       }
+      .tipbox::after {
+        content: '';
+        position: absolute;
+        inset-block-start: 100%;
+        inset-inline-start: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-block-start-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      }
       .tipbox b {
         display: block;
         font-size: max(11px, var(--sc-fs-floor));
@@ -560,7 +576,7 @@ let uidSeq = 0;
       }
       .md-fact .ico {
         align-self: center;
-        color: var(--sc-fg-2);
+        color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-fg-2));
       }
       .md-fact .k,
       .md-heat .k {
@@ -619,14 +635,31 @@ let uidSeq = 0;
       .md-ok.no {
         color: var(--sc-warn);
       }
+      /* Five values, no wrap, in a fixed 100%-wide box below 640px: the last
+         two fell off the screen, and a fixed element makes no scrollbar to get
+         them back. Wrapping keeps every value the minimised state exists for. */
       .md-strip {
         display: flex;
+        flex-wrap: wrap;
+        row-gap: 4px;
         gap: 14px;
         padding: 0 12px 8px;
         font-size: max(12px, var(--sc-fs-floor));
       }
       .md-strip .ok {
         color: var(--sc-success);
+      }
+      /* The concept's micro-type: an 8px numeral inside a 9px pip, 8px group
+         states, 8.5px fact labels (part-01:445-457). A coarse pointer keeps the
+         --sc-fs-floor sizes above, so this only sharpens the mouse view - and it
+         stops the pip numeral, floored at 11px in a 9px box, from spilling onto
+         the pips either side of it. */
+      @media (pointer: fine) {
+        .stack b { block-size: 9px; }
+        .stack b.top::after { font-size: 8px; }
+        .grp-state { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+        .md-fact .k, .md-heat .k { font-size: 8.5px; }
+        .md-fact .ico { inline-size: 13px; block-size: 13px; }
       }
       .md-strip .ok.no {
         color: var(--sc-warn);
