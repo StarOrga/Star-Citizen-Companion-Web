@@ -704,4 +704,67 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(weapons.querySelector('.fold-preview')).toBeNull();
     expect(weapons.querySelector('.sec-rows')).toBeTruthy();
   });
+
+  // ── "Antrieb & Systeme": eleven headings become four blocks (decision 2) ──
+
+  /** The five sections the concept folds into one block, plus the other three. */
+  const FOUR_BLOCK_SHIP: LayoutSection[] = [
+    { section: 'weapons', slots: [PANTHER] },
+    { section: 'missiles', slots: [slot({ port: 'Hardpoint Missile Rack Left', className: 'R', kind: 'item', name: 'Rack' })] },
+    { section: 'shields', slots: [slot({ port: 'Hardpoint Shield Generator 01', className: 'S', kind: 'component', name: 'WEB' })] },
+    { section: 'powerPlants', slots: [slot({ port: 'Hardpoint Powerplant 01', className: 'P', kind: 'component', name: 'IonBurst' })] },
+    { section: 'quantum', slots: [slot({ port: 'Hardpoint Quantum Drive', className: 'Q', kind: 'component', name: 'Expedition' })] },
+    { section: 'coolers', slots: [slot({ port: 'Hardpoint Cooler 01', className: 'C', kind: 'component', name: 'Ultra-Flow' })] },
+    { section: 'radar', slots: [slot({ port: 'Hardpoint Radar', className: 'D', kind: 'item', name: 'Beacon' })] },
+    { section: 'lifeSupport', slots: [slot({ port: 'Hardpoint Life Support', className: 'L', kind: 'item', name: 'Bolon' })] },
+  ];
+
+  it('renders the loadout column as the concept’s four blocks', () => {
+    const el = render(FOUR_BLOCK_SHIP);
+    const blocks = Array.from(el.querySelectorAll('.mod-sec')).map((b) => b.getAttribute('data-sec'));
+    expect(blocks).toEqual(['weapons', 'missiles', 'shields', 'systems']);
+  });
+
+  it('keeps all five system sections as subgroups inside the merged block', () => {
+    const el = render(FOUR_BLOCK_SHIP);
+    const merged = el.querySelector('.mod-sec[data-sec="systems"]') as HTMLDetailsElement;
+    expect(merged.classList).toContain('merged');
+    const subs = Array.from(merged.querySelectorAll('.mod-sub')).map((b) => b.getAttribute('data-sec'));
+    // Order inside the block is the lens' section order, not the input order.
+    expect(subs).toEqual(['powerPlants', 'quantum', 'radar', 'coolers', 'lifeSupport']);
+    // The block counts every hardpoint it carries, not its subgroups.
+    expect(merged.querySelector('.sec-ct')?.textContent).toContain('codex.module.censusSlots');
+  });
+
+  it('a subgroup starts closed — a reactor is one level below the block', () => {
+    const el = render(FOUR_BLOCK_SHIP);
+    const reactor = el.querySelector('.mod-sub[data-sec="powerPlants"]') as HTMLDetailsElement;
+    expect(reactor.open).toBeFalse();
+    // Closed is not hidden: the fold preview still names what is installed.
+    expect(reactor.querySelector('.fold-preview')).toBeTruthy();
+    fixture.componentInstance.toggleFold('powerPlants');
+    fixture.detectChanges();
+    expect(reactor.querySelector('.sec-rows .slot-item')?.textContent?.trim()).toBe('IonBurst');
+  });
+
+  it('a lens reorders and folds, it never drops a block (concept §7)', () => {
+    fixture.componentRef.setInput('sectionOrder', ['weapons', 'shields'] as const);
+    const el = render([
+      { section: 'weapons', slots: [PANTHER] },
+      { section: 'countermeasures', slots: [slot({ port: 'Hardpoint Countermeasure Left', className: 'X', kind: 'item', name: 'Decoy' })] },
+      { section: 'structure', slots: [slot({ port: 'Hardpoint Thruster', className: 'T', kind: 'component', name: 'T' })] },
+    ]);
+    const blocks = Array.from(el.querySelectorAll('.mod-sec')).map((b) => b.getAttribute('data-sec'));
+    expect(blocks).toEqual(['weapons', 'countermeasures', 'structure']);
+  });
+
+  it('does not nest a group that has nothing to merge', () => {
+    const el = render([
+      { section: 'weapons', slots: [PANTHER] },
+      { section: 'coolers', slots: [slot({ port: 'Hardpoint Cooler 01', className: 'C', kind: 'component', name: 'Ultra-Flow' })] },
+    ]);
+    expect(el.querySelector('.mod-sec[data-sec="systems"]')).toBeNull();
+    expect(el.querySelector('.mod-sec[data-sec="coolers"]')).toBeTruthy();
+    expect(el.querySelector('.mod-sub')).toBeNull();
+  });
 });

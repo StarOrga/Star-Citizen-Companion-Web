@@ -99,6 +99,15 @@ export class DesktopCapabilityService {
   private readonly noHover = signal(false);
   private readonly staticEnv: Omit<DeviceEnv, 'coarsePointer' | 'noHover'>;
 
+  /**
+   * `(pointer: coarse)` — live. The one place the app asks "is this a touch
+   * pointer?"; components read this signal instead of writing their own media
+   * query, so a 2-in-1 folding out of tablet mode updates every consumer at
+   * once. A hover tooltip is unreachable here, which is why a control that is
+   * blocked-with-a-reason has to say the reason on press instead.
+   */
+  readonly hasCoarsePointer: Signal<boolean> = this.coarsePointer.asReadonly();
+
   /** True when a downloaded desktop application could actually be installed. */
   readonly canInstall: Signal<boolean>;
   /** Inverse, for the (more readable) "show the mobile notice" branches. */

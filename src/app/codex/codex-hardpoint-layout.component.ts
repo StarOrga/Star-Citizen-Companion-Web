@@ -9,9 +9,15 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
-import { buildFoldPreview, FoldPeekChip, FoldPreview } from './codex-fold-preview';
+import {
+  FOLD_PEEK_LOCK_KEY,
+  buildFoldPreview,
+  FoldPeekChip,
+  FoldPreview,
+} from './codex-fold-preview';
 import type { SummaryOccupant } from './ship-summary-panels';
 import {
   EquippedStat,
@@ -23,8 +29,12 @@ import {
 } from './codex-equipped-stats';
 import {
   SHIP_MODULE_SECTION_ORDER,
+  ShipModuleGroup,
   ShipModuleSection,
   isConfigurableSection,
+  isMergedShipModuleGroup,
+  shipModuleGroupLabelKey,
+  shipModuleGroupOf,
 } from './ship-module-sections';
 import { formatNumber } from './codex-format';
 
@@ -200,6 +210,27 @@ interface RenderSection {
 }
 
 /**
+ * One BLOCK of the loadout column: either a single section (Bewaffnung,
+ * Raketen, Schilde …) or the merged "Antrieb & Systeme" block, which nests its
+ * five sections one level deeper (see `ship-module-sections.ts`).
+ */
+interface RenderGroup {
+  group: ShipModuleGroup;
+  /** i18n key of the block heading. */
+  labelKey: string;
+  /** The sections this block carries, in the active lens' order. */
+  subs: RenderSection[];
+  /** True when the block renders its sections as nested `<details>`. */
+  nested: boolean;
+  /** Every hardpoint the block holds, across all its sections. */
+  count: number;
+  /** At least one section in the block can be swapped. */
+  configurable: boolean;
+  /** The block itself is open. */
+  open: boolean;
+}
+
+/**
  * Blocks that start folded away. The airframe block is a hull inventory — a
  * capital ship puts hundreds of thrusters, seats and doors in it and none of
  * them is a decision, so it opens only when asked for (32659942: *"Die Ganzen
@@ -232,14 +263,73 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslateModule, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="layout">
-      @for (sec of renderSections(); track sec.section) {
-        <details class="mod-sec" [attr.data-sec]="sec.section" [class.fixed]="!sec.configurable"
-                 [open]="sec.open" (toggle)="onToggle(sec.section, $event)">
-          <summary class="sec-head">
+      @for (grp of renderGroups(); track grp.group) {
+        @if (grp.nested) {
+          <!-- "Antrieb & Systeme" (concept §6/§7): Reaktor, Quantum, Kühler,
+               Radar and Lebenserhaltung are ONE block with subgroups, so the
+               loadout column stays the four blocks the concept draws. Nothing
+               is merged AWAY: each section keeps its own census, notes, split
+               toggle and fold preview one level down. -->
+          <details class="mod-sec merged" [attr.data-sec]="grp.group"
+                   [open]="grp.open" (toggle)="onGroupToggle(grp.group, $event)">
+            <summary class="sec-head">
+              <span class="sec-glyph" aria-hidden="true">◈</span>
+              {{ grp.labelKey | translate }}
+              <span class="sec-ct">{{ 'codex.module.censusSlots' | translate: { slots: grp.count } }}</span>
+              <span class="caret" [class.open]="grp.open">
+                <span aria-hidden="true">{{ (grp.open ? '▴' : '▾') }}</span>
+                {{ (grp.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}
+              </span>
+              @if (!grp.open) {
+                <span class="fold-preview">
+                  @for (chip of groupChips(grp); track chip.id) {
+                    <span class="fp-chip">
+                      {{ chip.count > 1 ? chip.count + '× ' : '' }}{{ chip.size ? 'S' + chip.size + ' ' : '' }}{{ chip.name }}
+                      @if (chip.roleKey) { <span class="fp-role">{{ chip.roleKey | translate }}</span> }
+                    </span>
+                  }
+                  <span class="fp-lock">{{ lockKey | translate }}</span>
+                </span>
+              }
+            </summary>
+            @if (grp.open) {
+              <div class="sub-stack">
+                @for (sec of grp.subs; track sec.section) {
+                  <details class="mod-sub" [attr.data-sec]="sec.section"
+                           [open]="sec.open" (toggle)="onToggle(sec.section, $event)">
+                    <summary class="sec-head sub-head">
+                      <ng-container *ngTemplateOutlet="secSummary; context: { $implicit: sec }"></ng-container>
+                    </summary>
+                    @if (sec.open) {
+                      <ng-container *ngTemplateOutlet="secBody; context: { $implicit: sec }"></ng-container>
+                    }
+                  </details>
+                }
+              </div>
+            }
+          </details>
+        } @else {
+          @for (sec of grp.subs; track sec.section) {
+            <details class="mod-sec" [attr.data-sec]="sec.section" [class.fixed]="!sec.configurable"
+                     [open]="sec.open" (toggle)="onToggle(sec.section, $event)">
+              <summary class="sec-head">
+                <ng-container *ngTemplateOutlet="secSummary; context: { $implicit: sec }"></ng-container>
+              </summary>
+              @if (sec.open) {
+                <ng-container *ngTemplateOutlet="secBody; context: { $implicit: sec }"></ng-container>
+              }
+            </details>
+          }
+        }
+      }
+    </div>
+
+    <!-- One block heading, used at both nesting levels. -->
+    <ng-template #secSummary let-sec>
             <span class="sec-glyph" aria-hidden="true">◈</span>
             {{ ('codex.moduleSection.' + sec.section) | translate }}
             <span class="sec-ct">{{ censusKey(sec) | translate: censusParams(sec) }}</span>
@@ -279,8 +369,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                 <span class="fp-lock">{{ preview(sec).lockKey | translate }}</span>
               </span>
             }
-          </summary>
-          @if (sec.open) {
+    </ng-template>
+
+    <!-- One block body, used at both nesting levels. -->
+    <ng-template #secBody let-sec>
           <!-- What this block can and cannot tell you — named where it is read,
                not once at the top of the page (1add86a4). -->
           @for (n of sec.notes; track n.key) {
@@ -503,10 +595,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
               </li>
             }
           </ul>
-          }
-        </details>
-      }
-    </div>
+    </ng-template>
   `,
   styles: [`
     :host { display: block; }
@@ -514,12 +603,19 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 
     .mod-sec { border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       padding: 10px 12px; }
-    .mod-sec[data-sec="weapons"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 55%, transparent); }
-    .mod-sec[data-sec="remoteTurrets"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 35%, transparent); }
-    .mod-sec[data-sec="missiles"] { border-top: 2px solid color-mix(in srgb, #ff5252 45%, transparent); }
-    .mod-sec[data-sec="countermeasures"] { border-top: 2px solid color-mix(in srgb, #f0c419 45%, transparent); }
-    .mod-sec[data-sec="shields"] { border-top: 2px solid color-mix(in srgb, var(--sc-accent) 55%, transparent); }
-    .mod-sec[data-sec="powerPlants"] { border-top: 2px solid color-mix(in srgb, #ffc14d 45%, transparent); }
+    /* Concept section 0 bans the hot accent on this page (nothing here is
+       admin-gated) and bans mock literals outright, so the per-block colour
+       coding this list used to carry (#ff7a45 / #ff5252 / #f0c419 / #ffc14d) is
+       gone. A configurable block is marked by ONE accent hairline; the airframe
+       keeps none. */
+    .mod-sec:not(.fixed) { border-top: 2px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* "Antrieb & Systeme": the merged block and its nested sections. */
+    .sub-stack { display: flex; flex-direction: column; gap: 8px; }
+    .mod-sub { border-radius: 6px; background: var(--sc-bg-2); border: 1px solid var(--sc-border);
+      padding: 8px 10px; }
+    .mod-sub > .sub-head { margin: 0; }
+    .mod-sub[open] > .sub-head { margin-bottom: 8px; }
+    .mod-sec.merged > .sec-head { color: var(--sc-fg-0); }
     /* Nothing here can be configured, so the block steps back visually. */
     .mod-sec.fixed { background: transparent; opacity: 0.78; }
     .mod-sec.fixed:hover { opacity: 1; }
@@ -661,9 +757,17 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .tag.role { text-transform: none; letter-spacing: 0; color: var(--sc-fg-1); }
     .tag.pick { text-transform: none; letter-spacing: 0; color: var(--sc-accent);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    .tag.dmg { color: var(--sc-accent-hot, #ff7a45);
-      border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent);
-      background: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 10%, transparent); }
+    /* Damage channel. The hot accent is reserved for elevated access and is
+       banned on this page (concept section 0), so the tag reads in the warn
+       tone instead of a second, meaningless red. */
+    .tag.dmg { color: var(--sc-warn);
+      border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent);
+      background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
+    /* The concept's "tuned" edge (section 6): a slot that no longer holds its
+       factory part wears a gold rail. The hover state it also asks for is
+       already there on the card itself (button.slot-btn:hover above) and stays
+       at the app's stronger accent - polish follows the app (section 14). */
+    .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); border-radius: 6px; }
 
     /* Port name is context, not headline — it sits last and quiet. */
     .slot-port { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); opacity: 0.85; overflow-wrap: anywhere; }
@@ -736,12 +840,33 @@ export class CodexHardpointLayoutComponent {
       const folded = this.foldedSections();
       untracked(() => {
         const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
-        const open = new Set<ShipModuleSection>(
-          this.sections()
-            .map((s) => s.section)
-            .filter((s) => !closedDefault.has(s)),
+        const present = this.sections()
+          .filter((s) => s.slots.length > 0)
+          .map((s) => s.section);
+        // Sections that end up NESTED inside a merged block start closed: the
+        // block is the decision, a reactor is one level below it. Their fold
+        // preview still names what is installed, so nothing is hidden.
+        const perGroup = new Map<ShipModuleGroup, ShipModuleSection[]>();
+        for (const sec of present) {
+          const g = shipModuleGroupOf(sec);
+          const hit = perGroup.get(g);
+          if (hit) hit.push(sec);
+          else perGroup.set(g, [sec]);
+        }
+        const nested = new Set<ShipModuleSection>();
+        const openGroups = new Set<ShipModuleGroup>();
+        for (const [group, members] of perGroup) {
+          if (isMergedShipModuleGroup(group) && members.length > 1) {
+            for (const sec of members) nested.add(sec);
+          }
+          if (members.some((sec) => !closedDefault.has(sec))) openGroups.add(group);
+        }
+        this.openGroups.set(openGroups);
+        this.openSections.set(
+          new Set<ShipModuleSection>(
+            present.filter((sec) => !closedDefault.has(sec) && !nested.has(sec)),
+          ),
         );
-        this.openSections.set(open);
       });
     });
   }
@@ -869,6 +994,29 @@ export class CodexHardpointLayoutComponent {
   private readonly splitSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
   /** Foldable blocks currently open (the airframe starts folded). */
   private readonly openSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
+  /** Loadout BLOCKS currently open — the level the merged block toggles at. */
+  private readonly openGroups = signal<ReadonlySet<ShipModuleGroup>>(new Set());
+
+  /** The "zum Ändern aufklappen" hint, shared by every folded block. */
+  readonly lockKey = FOLD_PEEK_LOCK_KEY;
+
+  /** Native `<details>` of a merged block toggled by the user. */
+  onGroupToggle(group: ShipModuleGroup, ev: Event): void {
+    const isOpen = (ev.target as HTMLDetailsElement).open;
+    const next = new Set(this.openGroups());
+    if (isOpen) next.add(group);
+    else next.delete(group);
+    this.openGroups.set(next);
+  }
+
+  /**
+   * What a folded merged block shows: every section's peek chips in order. The
+   * per-section AGGREGATE chips are dropped — "Pool 6.480" and "Kühlung
+   * gesamt" mean different things and must not queue up as one row of totals.
+   */
+  groupChips(group: RenderGroup): FoldPeekChip[] {
+    return group.subs.flatMap((sec) => this.preview(sec).chips);
+  }
 
   private toggle(
     store: WritableSignal<ReadonlySet<ShipModuleSection>>,
@@ -892,16 +1040,14 @@ export class CodexHardpointLayoutComponent {
   private ordered = computed<RenderSection[]>(() => {
     const split = this.splitSections();
     const open = this.openSections();
-    const baseOrder = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
-    // A lens may only reorder and fold — never remove a module the ship
-    // actually has (MASTER §5: "Lens = {order, fold}; it never removes a
-    // module"). Any section missing from a mission's own `order` array (e.g.
-    // countermeasures/structure, which no mission group names) is appended in
-    // the default display order, so it still renders — folded if it likes,
-    // but never dropped (D17).
+    const lens = this.sectionOrder() ?? SHIP_MODULE_SECTION_ORDER;
+    // Concept §7: the lens REORDERS and may FOLD — it never removes a module.
+    // The mission orders only name the four decision groups, so Gegenmaßnahmen
+    // and the airframe used to fall off the page entirely whenever a lens was
+    // active. They keep their default place at the end instead.
     const order = [
-      ...baseOrder,
-      ...SHIP_MODULE_SECTION_ORDER.filter((s) => !baseOrder.includes(s)),
+      ...lens,
+      ...SHIP_MODULE_SECTION_ORDER.filter((s) => !lens.includes(s)),
     ];
     const foldable = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...this.foldedSections()]);
     return order
@@ -927,6 +1073,45 @@ export class CodexHardpointLayoutComponent {
   });
 
   readonly renderSections = this.ordered;
+
+  /**
+   * The loadout column as BLOCKS (concept §6): one block per group, in the
+   * order the lens puts that group's first section. A group whose sections are
+   * not adjacent in the lens order is still rendered contiguously — a block is
+   * a block.
+   */
+  private readonly grouped = computed<RenderGroup[]>(() => {
+    const openGroups = this.openGroups();
+    const out: RenderGroup[] = [];
+    const index = new Map<ShipModuleGroup, RenderGroup>();
+    for (const sec of this.ordered()) {
+      const group = shipModuleGroupOf(sec.section);
+      let hit = index.get(group);
+      if (!hit) {
+        hit = {
+          group,
+          labelKey: shipModuleGroupLabelKey(group),
+          subs: [],
+          nested: false,
+          count: 0,
+          configurable: false,
+          open: openGroups.has(group),
+        };
+        index.set(group, hit);
+        out.push(hit);
+      }
+      hit.subs.push(sec);
+      hit.count += sec.count;
+      hit.configurable ||= sec.configurable;
+    }
+    // A group only NESTS when it actually merges something. A hull whose only
+    // system is a cooler keeps the plain "Kühler" block it always had rather
+    // than burying one row under a second heading.
+    for (const grp of out) grp.nested = isMergedShipModuleGroup(grp.group) && grp.subs.length > 1;
+    return out;
+  });
+
+  readonly renderGroups = this.grouped;
 
   /** "3× S3" / "S3" / "3×" — never a guessed size (see sizeBadge). */
   badge(row: GroupedSlot<LayoutSlot>): string | null {
