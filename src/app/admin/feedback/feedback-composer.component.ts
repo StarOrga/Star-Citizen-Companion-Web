@@ -165,6 +165,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       class="composer sc-nest"
       [class.compact]="compact()"
       [class.large]="large()"
+      [class.frameless]="frameless()"
       [class.drag-active]="dragActive()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
@@ -184,43 +185,18 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
         <sc-feedback-area-picker [(area)]="area" />
       }
 
-      <!-- Action row. The former 🖼 icon button is gone (admin feedback
-           312a4acc): adding an attachment now happens in the attachment row
-           itself, on a tile the size of the thumbnail it will become. What is
-           left here is draft state. -->
-      <div class="actions" [class.bare]="!draftLabel() && !hasStoredDraft()">
-        <input
-          #fileInput
-          type="file"
-          [attr.accept]="allowFiles() ? null : 'image/*'"
-          multiple
-          hidden
-          (change)="onFileInput($event)" />
-        <span class="grow"></span>
-        <!-- Draft state + the only thing that deletes a draft besides sending
-             it. Two-step on purpose: one stray click must not throw away text
-             the user spent minutes on. -->
-        @if (draftLabel(); as label) {
-          <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
-        }
-        @if (hasStoredDraft()) {
-          @if (discardArmed()) {
-            <button
-              type="button"
-              class="draft-clear armed"
-              (click)="discardDraft()">
-              {{ 'adminFeedback.compose.draftDiscardConfirm' | translate }}
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="draft-clear"
-              (click)="armDiscard()"
-              [title]="'adminFeedback.compose.draftDiscard' | translate"
-              [attr.aria-label]="'adminFeedback.compose.draftDiscard' | translate">✕</button>
-          }
-        }
-      </div>
+      <!-- The picker's file input. It has no row of its own any more (admin
+           feedback 187574ed): the row it used to share with the draft state sat
+           ABOVE the field and cost a line there whether or not it had anything
+           to say. Hidden either way, and a hidden input still answers a
+           programmatic .click() from the "+" tile. -->
+      <input
+        #fileInput
+        type="file"
+        [attr.accept]="allowFiles() ? null : 'image/*'"
+        multiple
+        hidden
+        (change)="onFileInput($event)" />
 
       <!-- The field and its live character readout are one column: three rows
            of writing room that grow with every added line, and the readout on a
@@ -246,41 +222,68 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
                     (keydown)="onKeydown($event)"
                     (paste)="onPaste($event)"
                     (blur)="flushDraft()"
-                    [placeholder]="placeholder() | translate"
-                    [attr.aria-label]="placeholder() | translate"
+                    [placeholder]="placeholder() | translate: placeholderParams()"
+                    [attr.aria-label]="placeholder() | translate: placeholderParams()"
                     [attr.maxlength]="maxChars"></textarea>
         </div>
         <sc-char-counter [used]="charCount()" [max]="maxChars" placement="below" />
       </div>
 
-      <!-- Pending attachments use the very same chip row the thread renders
-           (feedback 99723afc): one 72px thumbnail size, click to enlarge,
-           from paste through to every later re-read of the message. The row
-           also carries the "+" and "capture page" tiles (admin feedback
-           312a4acc), so adding one looks like what it produces. -->
-      <sc-feedback-attachments
-        [images]="pendingImages()"
-        [removable]="true"
-        [addTile]="true"
-        [addLabelKey]="allowFiles() ? 'feedbackAttachments.addFile' : 'feedbackAttachments.addImage'"
-        [captureTile]="true"
-        [capturing]="screenshots.busy()"
-        [editable]="true"
-        labelKey="adminFeedback.compose.attachmentsLabel"
-        (remove)="removeAt($event)"
-        (add)="fileInput.click()"
-        (capture)="captureScreenshot()"
-        (annotate)="onAnnotated($event)" />
+      <!-- SEND ROW — one line for everything that is not the writing itself
+           (admin feedback 187574ed: "die attachments müssen links neben dem
+           antworten button sein … generell weniger Fläche").
 
-      <!-- No explainer line under the field (feedback d08f1983): pasting an
-           image and Enter-vs-Shift-Enter are conventions anybody who writes in a
-           text box already knows, and this board is mostly text boxes. The one
-           part that is NOT universal — WHICH key sends, because that is a
-           setting — rides along as the send button's tooltip instead of a
-           permanent two-line paragraph. -->
+           Left: the pending attachments, the same chip row the thread renders
+           (feedback 99723afc) at half size, carrying the "+" and "capture page"
+           tiles (admin feedback 312a4acc) so adding one looks like what it
+           produces. Right: draft state — which used to own a row ABOVE the
+           field and now costs nothing vertically — and the send button.
+
+           No explainer line (feedback d08f1983): pasting an image and
+           Enter-vs-Shift-Enter are conventions anybody who writes in a text box
+           already knows. The one part that is NOT universal — WHICH key sends,
+           because that is a setting — rides along as the button's tooltip. -->
       <div class="foot">
+        <sc-feedback-attachments
+          [images]="pendingImages()"
+          [removable]="true"
+          [addTile]="true"
+          [addLabelKey]="allowFiles() ? 'feedbackAttachments.addFile' : 'feedbackAttachments.addImage'"
+          [captureTile]="true"
+          [capturing]="screenshots.busy()"
+          [editable]="true"
+          [dense]="true"
+          labelKey="adminFeedback.compose.attachmentsLabel"
+          (remove)="removeAt($event)"
+          (add)="fileInput.click()"
+          (capture)="captureScreenshot()"
+          (annotate)="onAnnotated($event)" />
+
+        <!-- Draft state + the only thing that deletes a draft besides sending
+             it. Two-step on purpose: one stray click must not throw away text
+             the user spent minutes on. -->
+        @if (draftLabel(); as label) {
+          <span class="draft-flag" [class.warn]="draftFailed()">{{ label | translate }}</span>
+        }
+        @if (hasStoredDraft()) {
+          @if (discardArmed()) {
+            <button
+              type="button"
+              class="draft-clear armed"
+              (click)="discardDraft()">
+              {{ 'adminFeedback.compose.draftDiscardConfirm' | translate }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="draft-clear"
+              (click)="armDiscard()"
+              [title]="'adminFeedback.compose.draftDiscard' | translate"
+              [attr.aria-label]="'adminFeedback.compose.draftDiscard' | translate">✕</button>
+          }
+        }
         <button
-          class="sc-btn"
+          class="sc-btn send"
           [class.sc-btn-primary]="!compact()"
           [class.micro]="compact()"
           [class.hot]="primaryHot()"
@@ -297,8 +300,8 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     .composer {
       display: flex;
       flex-direction: column;
-      gap: var(--sc-gap-3);
-      padding: var(--sc-pad-2);
+      gap: 6px;
+      padding: var(--sc-pad-3);
       background: var(--sc-bg-2);
       border: 1px solid var(--sc-border);
       border-radius: 10px;
@@ -308,10 +311,24 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       --sc-field-fs: 0.9rem;
       --sc-field-cap: 320px;
     }
-    .composer.compact { padding: var(--sc-pad-3); gap: 6px; --sc-field-fs: 0.86rem; --sc-field-cap: 220px; }
+    .composer.compact { padding: 8px; gap: 5px; --sc-field-fs: 0.86rem; --sc-field-cap: 220px; }
     /* The opened topic's sheet has the room, so its box may run further before
        it hands over to its own scrollbar (concept 2026-09-04). */
     .composer.large { --sc-field-cap: 420px; }
+    /* No frame of its own where the surface around it already draws one (admin
+       feedback 187574ed: "Keine Doppelumrandung für den ganzen Bereich, der ist
+       schon sticky abgetrennt"). The field keeps its own border — that one says
+       "you can type here" — and the padding is handed back to the parent, which
+       is what pays for the distance to the panel edge. */
+    .composer.frameless {
+      padding: 0;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+    }
+    /* …except while something is being dropped on it: the highlight IS a
+       border, so it comes back for as long as the drag lasts. */
+    .composer.frameless.drag-active { border: 1px solid var(--sc-accent); border-radius: 8px; }
     /* Drag-to-upload affordance: highlight the composer and overlay a hint. */
     .composer.drag-active {
       position: relative;
@@ -342,13 +359,18 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       font-size: max(0.78rem, var(--sc-fs-floor));
     }
 
-    .actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    /* Nothing to say about the draft yet — do not spend a row's worth of gap
-       on an empty line above the field. The hidden file input inside still
-       answers a programmatic .click(). */
-    .actions.bare { display: none; }
-    .grow { flex: 1; }
-    .draft-flag { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* Draft state lives in the send row now (admin feedback 187574ed) — it may
+       never push the field down, and it may never widen the row: it is the one
+       thing here that is allowed to be cut short. */
+    .draft-flag {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: max(0.72rem, var(--sc-fs-floor));
+      color: var(--sc-fg-2);
+    }
     .draft-flag.warn { color: var(--sc-accent-hot); }
     .draft-clear {
       padding: 2px 7px;
@@ -418,18 +440,20 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
 
-    /* Pending-image thumbnails sit between the textarea and the send row and
-       are rendered by sc-feedback-attachments — the same chip the thread uses,
-       so the composer carries no size of its own. */
-
-    .foot { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+    /* The send row: attachment chips on the left (they grow into the gap),
+       draft state and the send button pinned right. One line instead of the
+       three bands this used to be — a thumbnail band, a draft band above the
+       field and a button band (admin feedback 187574ed). */
+    .foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .foot .send { flex: 0 0 auto; }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
 
     @media (max-width: 720px) {
-      /* The send button is the box's whole point on a phone: full width,
-         under the hint, instead of a 90px pill squeezed against the edge. */
-      .foot { flex-direction: column; align-items: stretch; }
-      .foot .sc-btn { width: 100%; justify-content: center; }
+      /* Still ONE row on a phone (admin feedback 187574ed) — at 36px the chips
+         no longer need a band of their own, so the send button stays beside
+         them and simply takes whatever width is left rather than dropping onto
+         a line below them. */
+      .foot .send { flex: 1 1 auto; justify-content: center; min-width: 96px; }
     }
   `],
 })
@@ -443,6 +467,13 @@ export class FeedbackComposerComponent implements OnDestroy {
 
   /** i18n key for the textarea placeholder / aria-label. */
   readonly placeholder = input('');
+  /**
+   * Interpolation values for that key (admin feedback 187574ed). A reply box
+   * that belongs to ONE topic says which one — "Antwort zu #211 „…“" rather
+   * than a generic "Antwort schreiben…", so the hint names the context the
+   * message will land in. Empty for the composers that have no such context.
+   */
+  readonly placeholderParams = input<Record<string, unknown> | undefined>(undefined);
   /** i18n key for the send button label. */
   readonly sendLabel = input('');
   /** Parent-driven busy flag (a refresh / other write in flight). */
@@ -475,6 +506,16 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly allowFiles = input(false);
   /** The opened topic's composer (concept 2026-09-04): a taller field. */
   readonly large = input(false);
+  /**
+   * Drop the box's own frame and padding (admin feedback 187574ed).
+   *
+   * Set where the composer is glued into a surface that already separates it —
+   * the opened topic's sticky bottom bar, the docked panel's "Neues Thema"
+   * sheet. Both drew a second border a few pixels inside the first one and paid
+   * twice for the distance to the panel edge. The pinned board composer is a
+   * top-level surface and keeps its frame.
+   */
+  readonly frameless = input(false);
   /** Paint the send button in the elevated-access red — the sheet's one CTA. Admin surfaces only. */
   readonly primaryHot = input(false);
   /**
