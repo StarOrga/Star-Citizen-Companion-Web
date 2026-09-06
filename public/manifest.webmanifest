@@ -17,7 +17,7 @@
   "start_url": "./",
   "icons": [
     {
-      "src": "icons/brand/scc-mark-compact.svg",
+      "src": "icons/brand/scc-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
