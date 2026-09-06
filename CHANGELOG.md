@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.1] - 2026-09-06
+
+### Fixed
+
+- **The mobile gate stops reporting GREEN for pages it never rendered.** The app
+  is a login wall, but eight of the ten routes the gate walked without a session
+  — the ship page, the codex, the hangar, the news and patch pages — sit behind
+  that wall. They did not fail: they quietly became the login form, which passes
+  every check. A full run printed "40 page audits · 0 blocking findings · GREEN"
+  where 32 of those audits were four devices looking at the same login page, so
+  a broken ship page could ship green. The gate now reads where it actually
+  landed **before** measuring, refuses to file login-page findings under another
+  route's name, and fails the run instead. The gated routes moved to the
+  signed-in pass, which no longer skips tablets. A run without test credentials
+  says so in the verdict — "GREEN for the 2 route(s) audited — 9 route(s) went
+  UNCHECKED" — rather than reading as a clean bill of health.
+
 ## [0.81.0] - 2026-09-06
 
 ### Added

@@ -10,11 +10,14 @@
  * Usage:
  *   node scripts/mobile-gate.mjs                       # auto: running dev server, else dist/
  *   node scripts/mobile-gate.mjs --base-url=https://sc-companion.vercel.app
- *   node scripts/mobile-gate.mjs --quick               # 2 devices x 4 routes
- *   node scripts/mobile-gate.mjs --routes=/news,/codex --devices=iphone-14
+ *   node scripts/mobile-gate.mjs --quick               # 2 devices x the public routes
+ *   node scripts/mobile-gate.mjs --routes=/about,/login --devices=iphone-14
  *   node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
  *   node scripts/mobile-gate.mjs --selftest           # prove every check still fires
- *   node scripts/mobile-gate.mjs --auth                # + the role-gated routes and panels
+ *   node scripts/mobile-gate.mjs --auth                # + the signed-in routes and panels
+ *
+ * `--routes` narrows the PUBLIC pass only — it never reaches `auth.routes`, so
+ * a gated route cannot be singled out that way; narrow by `--devices` instead.
  *   node scripts/mobile-gate.mjs --skip-if-unavailable # exit 0 + SKIPPED when no Chromium exists
  *
  * Exit codes: 0 green · 1 blocking findings (gate failed) · 2 could not run.
@@ -97,6 +100,7 @@ const DEFAULT_CONFIG = {
     'overlapping-content': 'error',
     'fixed-overlay-covers-control': 'error',
     'viewport-meta': 'error',
+    'auth-redirect': 'error',
     'console-error': 'error',
     'network-error': 'warn',
   },
@@ -836,9 +840,33 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth 
     state.network.length = 0;
     state.inflight = 0;
     const url = baseUrl + route;
-    const result = { device: device.id, route: label || route, url, findings: [], error: null, finalUrl: null };
+    const result = { device: device.id, route: label || route, path: route, url, findings: [], error: null, finalUrl: null };
     try {
       await navigate(cdp, sessionId, url, state, cfg);
+
+      // The app is a login wall by default (app.routes.ts hangs
+      // `canActivateChild: [...PRIVATE]` on the shell), so a route we hold no
+      // session for does not fail here — it quietly becomes /login. Every
+      // check below would then measure a perfectly fine login form and pass.
+      // That is how a run reports "40 page audits · 0 blocking findings ·
+      // GREEN" without once having rendered the page it named. Ask where we
+      // landed BEFORE measuring, and skip a measurement that cannot mean
+      // anything — login-page findings filed under the ship page's name are
+      // worse than no findings.
+      result.finalUrl = await evaluate(cdp, sessionId, 'location.pathname + location.search');
+      const landed = authRedirect(route, result.finalUrl);
+      if (landed) {
+        result.findings.push({
+          check: 'auth-redirect',
+          message: `asked for ${route}, rendered ${landed} — nothing on this route was audited`,
+          selector: null,
+          detail: auth ? 'signed-in pass' : 'public pass — this route needs a session',
+        });
+        results.push(result);
+        console.log(`  FAIL  ${device.id.padEnd(14)} ${result.route.padEnd(24)} auth-redirect`);
+        return;
+      }
+
       if (prepare) await prepare();
       // Sweep the page so sticky/fixed chrome is measured where it actually lands.
       const occlusionOpts = { maxFindingsPerCheck: cfg.thresholds.maxFindingsPerCheck };
@@ -863,7 +891,6 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth 
         maxFindingsPerCheck: cfg.thresholds.maxFindingsPerCheck,
       });
       for (const f of audit.findings) result.findings.push(f);
-      result.finalUrl = await evaluate(cdp, sessionId, 'location.pathname + location.search');
 
       for (const c of dedupeMessages(state.console)) {
         result.findings.push({ check: 'console-error', message: c.text, selector: null, detail: c.kind });
@@ -893,15 +920,20 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth 
   for (const route of routes) await auditRoute(route);
 
   // ---- authenticated pass (#516) -----------------------------------------
-  // Role-gated surfaces are invisible to the public walk above: /admin/feedback
-  // redirects to /login, and the FAB panels never open at all. Phones only —
-  // above 720px the panels are docked windows next to the page the public pass
-  // already measured, and the sheet layout under test does not exist there.
-  if (auth && device.width < 768) {
+  // Everything behind the shell's `canActivateChild: [...PRIVATE]` is invisible
+  // to the public walk above — it does not fail there, it silently becomes
+  // /login. So the signed-in routes run on EVERY device: a ship page that
+  // breaks on a tablet breaks whether or not a login stands in front of it.
+  //
+  // The FAB panels stay phones-only, and for their own reason: above 720px
+  // they are docked windows beside a page the public pass already measured,
+  // so the full-bleed sheet layout under test does not exist there.
+  const panelRoutes = device.width < 768 ? auth?.panelRoutes ?? [] : [];
+  if (auth && ((auth.routes?.length ?? 0) || panelRoutes.length)) {
     try {
       await signIn(cdp, sessionId, baseUrl, auth.credentials, state, cfg);
-      for (const route of auth.routes) await auditRoute(route);
-      for (const route of auth.panelRoutes) {
+      for (const route of auth.routes ?? []) await auditRoute(route);
+      for (const route of panelRoutes) {
         await auditRoute(route, {
           label: `${route} [panel]`,
           prepare: () => openFeedbackPanel(cdp, sessionId, cfg),
@@ -979,6 +1011,23 @@ async function navigate(cdp, sessionId, url, state, cfg) {
 // Severity / ignore handling + reporting
 // ---------------------------------------------------------------------------
 
+/**
+ * The route the page actually rendered, when a guard bounced us somewhere else.
+ * Null when we landed where we asked to — including on /login itself, which is
+ * a legitimate destination when /login is what was requested.
+ */
+function authRedirect(requested, finalUrl) {
+  if (!finalUrl) return null;
+  // Whole path segments, not a prefix: `/loginish` is its own route, not the
+  // login wall. (The selftest table pins that case.)
+  const isLogin = (path) => path === '/login' || path.startsWith('/login/');
+  const landedPath = String(finalUrl).split('?')[0];
+  const askedPath = String(requested).split('?')[0];
+  if (!isLogin(landedPath)) return null;
+  if (askedPath === landedPath || isLogin(askedPath)) return null;
+  return String(finalUrl);
+}
+
 function severityOf(finding, cfg) {
   return cfg.severity[finding.check] || 'error';
 }
@@ -1007,6 +1056,7 @@ const CHECK_HELP = {
   'viewport-meta': 'the viewport meta tag is missing or blocks pinch-zoom',
   'console-error': 'the page logged an error or threw while rendering on this device',
   'network-error': 'a request failed or returned >= 400 on this device',
+  'auth-redirect': 'a guard bounced this route to /login — the audit was skipped, nothing on the route was measured',
 };
 
 function report(results, cfg, ctx) {
@@ -1020,6 +1070,10 @@ function report(results, cfg, ctx) {
   console.log(`  target : ${ctx.baseUrl}  (${ctx.mode})`);
   console.log(`  devices: ${ctx.devices.map((d) => `${d.label} ${d.width}×${d.height} ${d.os}`).join(' · ')}`);
   console.log(`  routes : ${ctx.routes.join(' ')}`);
+  if (ctx.unchecked && ctx.unchecked.routes.length) {
+    console.log(`  UNCHECKED: ${ctx.unchecked.routes.join(' ')}`);
+    console.log(`             ${ctx.unchecked.why}`);
+  }
   console.log('─'.repeat(72));
 
   for (const r of results) {
@@ -1030,7 +1084,9 @@ function report(results, cfg, ctx) {
     if (!errs.length && !warns.length) continue;
     const dev = DEVICES[r.device];
     console.log('');
-    const redirected = r.finalUrl && r.finalUrl !== r.route ? `  (redirected → ${r.finalUrl})` : '';
+    // Against the requested PATH — `r.route` carries the " [panel]" label for
+    // panel rows, so comparing to it flagged every one of them as redirected.
+    const redirected = r.finalUrl && r.finalUrl !== (r.path || r.route) ? `  (redirected → ${r.finalUrl})` : '';
     console.log(`${errs.length ? 'FAIL' : 'warn'}  ${dev.label} ${dev.width}×${dev.height} ${dev.os}   ${r.route}${redirected}`);
     const shown = [...errs, ...warns];
     const limit = Number(args.opts['max-lines'] || 6);
@@ -1069,6 +1125,13 @@ function report(results, cfg, ctx) {
     console.log('  Fix the findings above, or (only with a justification + follow-up issue)');
     console.log('  add a narrow ignore entry in scripts/mobile-gate.config.json.');
     console.log('  Details: docs/mobile-gate.md');
+  } else if (ctx.unchecked && ctx.unchecked.routes.length) {
+    // A GREEN that silently covers a fraction of the app is the failure this
+    // whole check exists to prevent — so the verdict says what it did NOT see.
+    console.log(
+      `  RESULT: GREEN for the ${ctx.routes.length} route(s) audited — ` +
+        `${ctx.unchecked.routes.length} route(s) went UNCHECKED (see above).`,
+    );
   } else {
     console.log('  RESULT: GREEN — phone + tablet layouts pass every check.');
   }
@@ -1092,6 +1155,34 @@ const SELFTEST_EXPECTED = [
   'console-error',
 ];
 
+/**
+ * `auth-redirect` is the one check with no fixture: the selftest serves a
+ * static file, and a static file cannot bounce you to a login form. So prove
+ * the decision itself instead — a silent regression here would put the whole
+ * login-wall blind spot back, and nothing else in the suite would notice.
+ */
+const AUTH_REDIRECT_CASES = [
+  { requested: '/codex/ship/CNOU_Nomad', finalUrl: '/login?redirect=%2Fcodex%2Fship', expect: true },
+  { requested: '/news', finalUrl: '/login', expect: true },
+  { requested: '/login', finalUrl: '/login', expect: false },
+  { requested: '/login', finalUrl: '/login?redirect=%2Fnews', expect: false },
+  { requested: '/about', finalUrl: '/about', expect: false },
+  { requested: '/hangar', finalUrl: '/hangar?tab=fleet', expect: false },
+  { requested: '/admin/feedback', finalUrl: '/loginish', expect: false },
+  { requested: '/news', finalUrl: null, expect: false },
+];
+
+function selftestAuthRedirect() {
+  const failed = [];
+  for (const c of AUTH_REDIRECT_CASES) {
+    const got = authRedirect(c.requested, c.finalUrl) !== null;
+    if (got !== c.expect) {
+      failed.push(`${c.requested} → ${c.finalUrl}: expected ${c.expect ? 'a finding' : 'no finding'}`);
+    }
+  }
+  return failed;
+}
+
 function reportSelftest(results) {
   const fired = new Set();
   for (const r of results) for (const f of r.findings) fired.add(f.check);
@@ -1104,6 +1195,14 @@ function reportSelftest(results) {
     const ok = fired.has(check);
     if (!ok) missing.push(check);
     console.log(`   ${ok ? 'ok  ' : 'DEAD'} ${check}`);
+  }
+  const authCases = selftestAuthRedirect();
+  if (authCases.length) {
+    missing.push('auth-redirect');
+    console.log(`   DEAD auth-redirect  (${authCases.length} case(s) wrong)`);
+    for (const f of authCases) console.log(`        ${f}`);
+  } else {
+    console.log(`   ok   auth-redirect  (${AUTH_REDIRECT_CASES.length} cases, no fixture — decided in code)`);
   }
   console.log('─'.repeat(72));
   if (missing.length) {
@@ -1198,10 +1297,10 @@ async function main() {
   teardown.push(() => cdp.close());
 
   const authSuffix = auth
-    ? ` · +auth (${auth.routes.length} route(s), ${auth.panelRoutes.length} panel(s), phones only)`
+    ? ` · +auth (${auth.routes.length} route(s) on every device, ${auth.panelRoutes.length} panel(s) on phones)`
     : '';
   console.log(
-    `[mobile-gate] ${target.baseUrl} (${target.mode}) · ${devices.length} devices × ${routes.length} routes${authSuffix}`,
+    `[mobile-gate] ${target.baseUrl} (${target.mode}) · ${devices.length} devices × ${routes.length} public route(s)${authSuffix}`,
   );
 
   const concurrency = Math.max(1, Number(args.opts.concurrency || Math.min(devices.length, 2)));
@@ -1231,9 +1330,26 @@ async function main() {
       deviceIds.indexOf(a.device) - deviceIds.indexOf(b.device) ||
       reportRoutes.indexOf(a.route) - reportRoutes.indexOf(b.route),
   );
+  // Routes that exist in the config but no pass could reach this run. Without
+  // credentials the signed-in pass never happens, and every route behind the
+  // login wall is simply absent from the verdict — which must be said out loud.
+  // Deduped: a panel route is usually also a signed-in route, and listing it
+  // twice would overstate how much went unchecked.
+  const configuredAuthRoutes = [
+    ...new Set([...((cfg.auth || {}).routes || []), ...((cfg.auth || {}).panelRoutes || [])]),
+  ];
+  const unchecked = !auth && configuredAuthRoutes.length
+    ? {
+        routes: configuredAuthRoutes,
+        why: wantsAuth
+          ? 'the authenticated pass could not run'
+          : 'these need a signed-in session: re-run with --auth and SC_GATE_EMAIL / SC_GATE_PASSWORD set',
+      }
+    : null;
+
   const errorCount = selftest
     ? reportSelftest(results)
-    : report(results, cfg, { baseUrl: target.baseUrl, mode: target.mode, devices, routes: reportRoutes });
+    : report(results, cfg, { baseUrl: target.baseUrl, mode: target.mode, devices, routes: reportRoutes, unchecked });
 
   if (args.opts.json) {
     const out = resolve(REPO_ROOT, args.opts.json);
