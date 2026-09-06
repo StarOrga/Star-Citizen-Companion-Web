@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.81.3] - 2026-09-06
+
+### Changed
+
+- **Die Tür zur Fortschritt-Seite trug ein Emoji.** Der Einstieg in die
+  Feedback-Statistik war ein 📊 aus der Systemschrift: eine fremde Farbpalette
+  mitten in einer Leiste aus Strichglyphen, und weil ein Emoji seine eigenen
+  Farben mitbringt, hat es Hover und Fokus des Buttons schlicht ignoriert. An
+  seiner Stelle steht jetzt ein Pfad im Hausstil — dasselbe Idiom wie die
+  Codex-Kategorien und die Flight-Path-Stationen (24×24, `fill: none`,
+  `stroke: currentColor`, Strichstärke 2.2, runde Enden): eine Achse mit drei
+  ansteigenden Balken, bei 18 px noch als Diagramm lesbar. Weil die Glyphe
+  `currentColor` erbt, nimmt sie Hover- und Fokusfarbe des Buttons mit; die
+  Fortschritt-Seite trägt dieselbe Marke im Kopf, damit Tür und Raum
+  zusammenpassen. Label, Tooltip und Accessible Name sind unverändert, es
+  kommen also keine neuen Übersetzungsschlüssel dazu.
+
 ## [0.81.2] - 2026-09-06
 
 ### Fixed
