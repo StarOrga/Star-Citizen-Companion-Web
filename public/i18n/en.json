@@ -2339,27 +2339,20 @@
       "copied": "Share link copied to clipboard.",
       "copyFailed": "Could not copy the link — copy it manually."
     },
-    "allowlist": {
-      "title": "Allowlist",
-      "subtitle": "Emails pre-registered for sign-in. Removing an entry does not affect an account that already joined.",
-      "col": {
-        "status": "Status",
-        "added": "Added",
-        "note": "Note"
-      },
-      "status": {
-        "all": "All statuses",
-        "pending": "Pending",
-        "joined": "Joined"
-      },
-      "remove": "Remove",
-      "removeConfirm": "Remove {{email}} from the allowlist? Anyone already signed in keeps their access."
+    "people": {
+      "title": "People",
+      "subtitle": "Accounts and still-open invitations in one list. An invitation drops out of it the moment the address signs in.",
+      "invitedPill": "Invited",
+      "invitedTitle": "Pre-registered for sign-in — no account has used this address yet.",
+      "withdraw": "Withdraw invitation",
+      "withdrawTitle": "Only takes the pre-registration back — an account that already joined is never affected.",
+      "withdrawConfirm": "Withdraw the invitation for {{email}}? The address loses its pre-registered access and nobody is notified."
     },
     "col": {
       "user": "User",
       "email": "Email",
       "role": "Role",
-      "joined": "Joined",
+      "since": "Since",
       "lastSeen": "Last seen",
       "actions": "Actions",
       "reports": "Reports"
@@ -2447,7 +2440,7 @@
       "allRoles": "All roles",
       "count": "{{shown}} of {{total}}",
       "clear": "Clear filters",
-      "noMatches": "No users match the filters."
+      "noMatches": "Nothing matches the filters."
     },
     "requests": {
       "title": "Access requests",

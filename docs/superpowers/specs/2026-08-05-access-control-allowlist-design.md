@@ -97,6 +97,16 @@ In `src/app/admin/admin.component.ts`:
 - Keep the existing user table + role/delete controls unchanged.
 - All new strings localized in `public/i18n/{de,en}.json`.
 
+> **Amended 2026-09-06 (feedback 5e2facd9).** The separate Allowlist section is
+> gone. Every address that had signed in appeared twice — once as an allowlist
+> row reading "joined", once as the account it had become. `list_allowed_emails()`
+> is still the feed, but its rows are merged into the single people table and
+> only while they are still **open** invitations (`joined = false` and no account
+> on that address). Such a row carries an "Eingeladen" pill, how long the invite
+> has been outstanding, and a **"Einladung zurückziehen"** button — the same
+> `remove_allowed_email()` call the old "Entfernen" made. Consumed allowlist rows
+> render as their account row only. No schema, RPC or RLS change.
+
 ### C7 — Share button + PostHog UTM (frontend)
 - **Button** in the admin "Benutzer" area next to "Registrieren": copies `${location.origin}/login?utm_source=admin_share&utm_medium=referral&utm_campaign=access_invite` to clipboard (Clipboard API + fallback), shows a toast. It is a copy **action** → `<button>`. No PII in the link.
 - **Capture** in `src/app/core/analytics.service.ts`: a one-shot `captureLanding()` run at app init that, only when `statistics` consent is granted, reads `utm_source/medium/campaign` from `location.search` and passes them as event properties (register once). The existing `pageviewUrl()` keeps stripping query/fragment from stored URLs, so UTM never persists in tracked page URLs.

@@ -2339,27 +2339,20 @@
       "copied": "Share-Link in die Zwischenablage kopiert.",
       "copyFailed": "Link konnte nicht kopiert werden — bitte manuell kopieren."
     },
-    "allowlist": {
-      "title": "Allowlist",
-      "subtitle": "Für den Login vorregistrierte E-Mails. Ein entfernter Eintrag betrifft einen bereits beigetretenen Account nicht.",
-      "col": {
-        "status": "Status",
-        "added": "Hinzugefügt",
-        "note": "Notiz"
-      },
-      "status": {
-        "all": "Alle Status",
-        "pending": "Ausstehend",
-        "joined": "Beigetreten"
-      },
-      "remove": "Entfernen",
-      "removeConfirm": "{{email}} aus der Allowlist entfernen? Bereits angemeldete Accounts behalten ihren Zugang."
+    "people": {
+      "title": "Personen",
+      "subtitle": "Accounts und noch offene Einladungen in einer Liste. Eine Einladung verschwindet daraus, sobald sich die Adresse anmeldet.",
+      "invitedPill": "Eingeladen",
+      "invitedTitle": "Für den Login vorregistriert — bisher nutzt kein Account diese Adresse.",
+      "withdraw": "Einladung zurückziehen",
+      "withdrawTitle": "Nimmt nur die Vorregistrierung zurück — ein bereits beigetretener Account ist davon nie betroffen.",
+      "withdrawConfirm": "Einladung für {{email}} zurückziehen? Die Adresse verliert ihren vorregistrierten Zugang, benachrichtigt wird niemand."
     },
     "col": {
       "user": "User",
       "email": "E-Mail",
       "role": "Rolle",
-      "joined": "Beigetreten",
+      "since": "Seit",
       "lastSeen": "Zuletzt aktiv",
       "actions": "Aktionen",
       "reports": "Meldungen"
@@ -2447,7 +2440,7 @@
       "allRoles": "Alle Rollen",
       "count": "{{shown}} von {{total}}",
       "clear": "Filter zurücksetzen",
-      "noMatches": "Keine User passen zu den Filtern."
+      "noMatches": "Keine Einträge passen zu den Filtern."
     },
     "requests": {
       "title": "Einladungsanfragen",
