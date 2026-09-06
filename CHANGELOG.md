@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.3] - 2026-09-06
+
+### Changed
+
+- **Die Roadmap-Bildchen auf der Patch-Uebersicht sind doppelt so gross.** Sie
+  waren 48x30 Pixel und damit kleiner als jedes Tippziel auf der Seite; jetzt
+  sind es 96x60 (Telefon 84x52), und der Streifen darf dafuer in eine zweite
+  Reihe umbrechen. Wie viele hineinpassen, kommt weiterhin aus der gemessenen
+  Breite — das "..." sitzt jetzt garantiert in der letzten Zeile und kann nicht
+  mehr abgeschnitten werden. Klick, Mittelklick und Strg-Klick auf ein Bildchen
+  oeffnen unveraendert genau diesen Roadmap-Eintrag.
+- **Die Notiz-Zahl ist aus der Uebersicht verschwunden.** Sie stand als eigene
+  Spalte samt Chip in jeder Zeile und kostete Platz, den jetzt die Bildchen
+  bekommen; die Karte hat dadurch eine Spalte weniger.
+
 ## [0.82.2] - 2026-09-06
 
 ### Changed
