@@ -61,6 +61,25 @@ const ROADMAP: RoadmapPayload = {
   updatedAt: '',
 };
 
+/**
+ * A next release with a full roadmap: ten items, nine of them with a picture,
+ * and the picture-less one FIRST — so "pictures lead the strip" is visible in
+ * the rendered order rather than an accident of the payload.
+ */
+const ROADMAP_MANY: RoadmapPayload = {
+  ...ROADMAP,
+  next: {
+    id: 'n', name: '4.11', quarter: 'Q3 2026', status: 'tentative', patchLine: '4.11',
+    cards: [
+      { id: 'x1', slug: 'No-Art', name: 'Ohne Bild', description: '', body: '', status: 'tentative', category: 'Core Tech', thumbnail: null },
+      ...['Nyx I', 'Genesis: Starchitect', 'Kastak Arms Verdict', 'Tiburon Offerings', 'Engineering', 'Base Building', 'Pyro Outposts', 'Volumetric Clouds', 'Item Recovery'].map((name, i) => ({
+        id: `r${i + 1}`, slug: `slug-${i + 1}`, name, description: '', body: '',
+        status: 'tentative' as const, category: 'Gameplay', thumbnail: `https://cdn.example/r${i + 1}.jpg`,
+      })),
+    ],
+  },
+};
+
 const OUTLINE: PatchOutline = {
   slug: 'l410', subject: 'x', truncated: false, bulletCount: 1,
   nodes: [{ kind: 'heading', text: 'Features', depth: 0 }, { kind: 'bullet', text: 'Hydrogen & Quantum Fuel Rebalance', depth: 0 }],
@@ -175,14 +194,95 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rows()[0].querySelector('.status')?.textContent).toContain('Nächster');
     expect(rows()[2].querySelector('.status')?.textContent).toContain('Abgelöst');
     for (const row of rows()) {
-      const a = (row.querySelector('a.card') as HTMLAnchorElement | null);
+      const a = (row.querySelector('a.card-link') as HTMLAnchorElement | null);
       expect(a).withContext('a card is an anchor').not.toBeNull();
       expect(a!.getAttribute('href')).toMatch(/^\/news\/patches\/4\.\d+$/);
+      expect(a!.getAttribute('aria-label'))
+        .withContext('a stretched link has no text of its own').toContain('Alpha');
     }
     // The live card carries hotfix count and note count; the next card its roadmap teaser.
     expect(live.textContent).toContain('1 Hotfix');
     expect(live.textContent).toContain('3 Notes');
-    expect(rows()[0].querySelector('.teaser')?.textContent).toContain('Nyx I');
+    expect(rows()[0].querySelectorAll('.teaser .tz:not(.rest)').length).toBe(2);
+  });
+
+  /**
+   * Feedback fdaad6b7, with the screenshot annotated in red: the roadmap
+   * COUNT was on the card twice — once in the quiet facts line, once as a chip
+   * on the right — and the item names ran along the teaser strip taking the
+   * width the icons wanted. All three were struck through as "irrelevant".
+   */
+  it('says the roadmap count nowhere on the card, and lists no item names on the strip', async () => {
+    await render(FEED, ROADMAP_MANY);
+    const next = rows()[0];
+    expect(next.textContent)
+      .withContext('the count was struck through in both places it appeared').not.toContain('Roadmap-Einträge');
+    expect(next.querySelector('.counts .ct'))
+      .withContext('the "next" card has no note count either, so the column is empty').toBeNull();
+    const strip = next.querySelector('.teaser') as HTMLElement;
+    expect(strip.textContent?.replace(/[…\s]/g, ''))
+      .withContext('the strip is pictures and an ellipsis, not a name list').toBe('');
+  });
+
+  /**
+   * "von den roadmap icons mehr ergänzen … so viel wie platz ist und danach
+   * '…'" — the count is width-driven now. Fed through the component's own
+   * measurement port so the assertion is about the ARITHMETIC, not about how
+   * wide Karma's 749 px viewport happens to make the card.
+   */
+  it('fills the strip with as many icons as fit, then a "…" that links on', async () => {
+    await render(FEED, ROADMAP_MANY);
+    const board = fixture.componentInstance;
+    board.onTeaserBox('4.11', { width: 426, item: 48, gap: 6, rest: 26 });
+    fixture.detectChanges();
+
+    const icons = () => Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
+    expect(icons().length).withContext('the old strip stopped at three').toBe(7);
+    const rest = rows()[0].querySelector('.teaser .rest') as HTMLAnchorElement;
+    expect(rest).withContext('and says there is more').not.toBeNull();
+    expect(rest.textContent?.trim()).toBe('…');
+    expect(rest.getAttribute('aria-label')).toContain('3 weitere');
+    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/news/patches/4.11?focus=r8');
+
+    // Narrower card, fewer icons — nothing hardcoded, nothing lost.
+    board.onTeaserBox('4.11', { width: 160, item: 42, gap: 6, rest: 22 });
+    fixture.detectChanges();
+    expect(icons().length).toBe(2);
+    expect(rows()[0].querySelector('.teaser .rest')?.getAttribute('aria-label')).toContain('8 weitere');
+  });
+
+  it('every icon is a real link into its OWN roadmap entry', async () => {
+    await render(FEED, ROADMAP_MANY);
+    fixture.componentInstance.onTeaserBox('4.11', { width: 900, item: 48, gap: 6, rest: 26 });
+    fixture.detectChanges();
+    const icons = Array.from(rows()[0].querySelectorAll('.teaser .tz:not(.rest)')) as HTMLAnchorElement[];
+    expect(icons.length).toBeGreaterThan(3);
+    // Pictures first — they are the interesting ones.
+    expect(icons[0].querySelector('img')?.getAttribute('src')).toBe('https://cdn.example/r1.jpg');
+    expect(icons.map((a) => a.getAttribute('href')).slice(0, 3))
+      .toEqual(['/news/patches/4.11?focus=r1', '/news/patches/4.11?focus=r2', '/news/patches/4.11?focus=r3']);
+    expect(icons[0].getAttribute('aria-label')).toContain('Nyx I');
+    // The card itself still opens the dossier — the icons sit on top of it.
+    expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/news/patches/4.11');
+  });
+
+  it('measures itself: the strip reports its width without being told', async () => {
+    await render(FEED, ROADMAP_MANY);
+    const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
+    // The strip reports its box from a ResizeObserver, i.e. after layout —
+    // so give the browser frames rather than microtasks.
+    for (let frame = 0; frame < 8 && strip().querySelectorAll('.tz:not(.rest)').length <= 3; frame++) {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      fixture.detectChanges();
+    }
+    const icons = Array.from(strip().querySelectorAll('.tz:not(.rest)')) as HTMLElement[];
+    expect(icons.length)
+      .withContext('the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
+    // Whatever the viewport, the strip stays ONE clipped line and its content
+    // never spills out of the card — the invariant that has to hold on the
+    // phone branch Karma renders in AND on the desktop one it does not.
+    expect(strip().scrollWidth).withContext('the strip does not overflow itself').toBeLessThanOrEqual(strip().clientWidth + 1);
+    expect(Math.round(strip().getBoundingClientRect().height)).toBeLessThanOrEqual(30);
   });
 
   it('unfolds the older lines on demand', async () => {
