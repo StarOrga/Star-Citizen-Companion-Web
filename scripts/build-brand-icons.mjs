@@ -26,21 +26,21 @@ import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import pngToIco from 'png-to-ico';
-import {
-  deriveAppMark,
-  compactMark,
-  trayMark,
-  monoMark,
-  inlineMark,
-  PRODUCTS,
-  C,
-} from './brand/marks.mjs';
+import { deriveAppMark, trayMark, monoMark, inlineMark, PRODUCTS, C } from './brand/marks.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BRAND = resolve(ROOT, 'public/icons/brand');
 const MASTER = resolve(BRAND, 'scc-mark.svg');
 
 const CHECK = process.argv.includes('--check');
+
+/**
+ * `--sheet=<path>` renders ONLY the family reference sheet, to that path, and
+ * touches nothing in the tree. This is the loop for designing a badge: edit
+ * `scripts/brand/marks.mjs`, render the sheet, look, repeat — without churning
+ * every committed raster on each iteration.
+ */
+const SHEET_ONLY = (process.argv.find((a) => a.startsWith('--sheet=')) ?? '').slice('--sheet='.length);
 
 /**
  * `--only=<product>` limits output to one product's artifacts.
@@ -58,6 +58,9 @@ if (ONLY && !PRODUCTS.includes(ONLY)) {
 }
 const drift = [];
 let written = 0;
+const say = (msg) => {
+  if (!SHEET_ONLY) console.log(msg);
+};
 
 /** Windows packs these sizes into an .ico so Explorer/taskbar/Start all match. */
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
@@ -87,6 +90,7 @@ function pngBox(svg, width, height, background) {
 const BUILD_ONLY = new Set(['data-uploader/build/icon.ico']);
 
 function emit(absPath, buf) {
+  if (SHEET_ONLY) return;
   const rel = relative(ROOT, absPath).replace(/\\/g, '/');
   if (CHECK) {
     if (BUILD_ONLY.has(rel)) return;
@@ -108,7 +112,7 @@ function emit(absPath, buf) {
 
 const text = (s) => Buffer.from(s, 'utf-8');
 
-// ── 1. Sources: derive the two sibling marks + all three tiers ──────────────
+// ── 1. Sources: derive the two sibling marks + the tray tier ────────────────
 
 if (!existsSync(MASTER)) {
   console.error(
@@ -120,29 +124,35 @@ if (!existsSync(MASTER)) {
 }
 const masterSvg = readFileSync(MASTER, 'utf-8');
 
-console.log(CHECK ? 'checking brand sources…' : 'writing brand sources…');
+say(CHECK ? 'checking brand sources…' : 'writing brand sources…');
 const appMark = {};
+const smallMark = {};
 for (const p of PRODUCTS) {
-  appMark[p] = deriveAppMark(masterSvg, p);
+  appMark[p] = deriveAppMark(masterSvg, p, 'app');
+  smallMark[p] = deriveAppMark(masterSvg, p, 'small');
   // `scc` IS the master — do not rewrite it, it is vendored, not generated.
   if (p !== 'scc') emit(resolve(BRAND, `${p}-mark.svg`), text(appMark[p]));
-  emit(resolve(BRAND, `${p}-mark-compact.svg`), text(compactMark(p)));
   emit(resolve(BRAND, `${p}-mark-tray.svg`), text(trayMark(p)));
 }
+// The small tier is never written as a file: for `scc` it IS the master, and for
+// the siblings it only exists to be rasterised below (and inlined into HTML).
 
-const compact = Object.fromEntries(PRODUCTS.map((p) => [p, compactMark(p)]));
 const tray = Object.fromEntries(PRODUCTS.map((p) => [p, trayMark(p)]));
+
+/** Pick the tier for a raster size — the badge gets bolder below 128px. */
+const markFor = (p, s) => (s <= 64 ? smallMark[p] : appMark[p]);
 
 // ── 2. Web app ──────────────────────────────────────────────────────────────
 //
-// Small sizes take the compact tier, large sizes the full artwork: the master's
-// Gaussian blurs turn to grey mush below ~64px, which is what made the old
-// favicon unreadable in a browser tab.
+// Every size is the master artwork, rendered straight from the vector — the
+// same thing the desktop app does for its taskbar icon. At 16px that is a dark
+// disc with a glowing point, and that is the point: it is the icon people
+// already recognise on their taskbar, so the browser tab must be the same one.
 
 if (want('scc')) {
-console.log(CHECK ? 'checking web rasters…' : 'writing web rasters…');
+say(CHECK ? 'checking web rasters…' : 'writing web rasters…');
 
-emit(resolve(ROOT, 'public/favicon.ico'), await pngToIco(ICO_SIZES.map((s) => png(compact.scc, s))));
+emit(resolve(ROOT, 'public/favicon.ico'), await pngToIco(ICO_SIZES.map((s) => png(appMark.scc, s))));
 
 // PWA install icons. New filenames on purpose: `public/icons/` is copied
 // unhashed and is not covered by any ngsw asset group, so overwriting the old
@@ -168,7 +178,7 @@ emit(resolve(BRAND, 'scc-maskable-512.png'), png(maskable, 512, { background: C.
 
 // iOS Add-to-Home-Screen needs an opaque raster; it ignores SVG entirely, which
 // is why `apple-touch-icon` pointed at an SVG and silently did nothing.
-emit(resolve(BRAND, 'scc-apple-touch-180.png'), png(compact.scc, 180, { background: C.canvas }));
+emit(resolve(BRAND, 'scc-apple-touch-180.png'), png(appMark.scc, 180, { background: C.canvas }));
 
 // Social preview. X and Facebook do not render SVG, so the og:image was a
 // no-op; this is the raster that replaces it. No text — a font missing on a
@@ -201,9 +211,9 @@ const INLINE_TARGETS = [
   ['data-uploader/src/renderer/index.html', 'uploader', '        ', 'class="logo" aria-hidden="true"'],
 ];
 
-console.log(CHECK ? 'checking inlined marks…' : 'splicing inlined marks…');
+say(CHECK ? 'checking inlined marks…' : 'splicing inlined marks…');
 for (const [rel, product, indent, rootAttrs] of INLINE_TARGETS) {
-  if (!want(product)) continue;
+  if (!want(product) || SHEET_ONLY) continue;
   const file = resolve(ROOT, rel);
   if (!existsSync(file)) {
     drift.push(`${rel} — missing (inline mark target)`);
@@ -227,7 +237,7 @@ for (const [rel, product, indent, rootAttrs] of INLINE_TARGETS) {
     );
     process.exit(1);
   }
-  const body = inlineMark(product, rootAttrs)
+  const body = inlineMark(masterSvg, product, rootAttrs)
     .split('\n')
     .map((l) => (l.trim() ? indent + l.trim() : l))
     .join('\n');
@@ -243,23 +253,21 @@ for (const [rel, product, indent, rootAttrs] of INLINE_TARGETS) {
 }
 
 // ── 3. Browser extension ────────────────────────────────────────────────────
-// The only product still entirely on the retired Verse-Compass mark.
 
 if (want('scc')) {
-  console.log(CHECK ? 'checking extension rasters…' : 'writing extension rasters…');
-  for (const s of [16, 32, 48]) {
-    emit(resolve(ROOT, `browser-extension/icons/icon-${s}.png`), png(compact.scc, s));
+  say(CHECK ? 'checking extension rasters…' : 'writing extension rasters…');
+  for (const s of [16, 32, 48, 128]) {
+    emit(resolve(ROOT, `browser-extension/icons/icon-${s}.png`), png(appMark.scc, s));
   }
-  emit(resolve(ROOT, 'browser-extension/icons/icon-128.png'), png(appMark.scc, 128));
 }
 
 // ── 4. Data Uploader (Electron) ─────────────────────────────────────────────
 
 if (want('uploader')) {
-console.log(CHECK ? 'checking uploader rasters…' : 'writing uploader rasters…');
+say(CHECK ? 'checking uploader rasters…' : 'writing uploader rasters…');
 emit(
   resolve(ROOT, 'data-uploader/build/icon.ico'),
-  await pngToIco(ICO_SIZES.map((s) => png(s <= 64 ? compact.uploader : appMark.uploader, s))),
+  await pngToIco(ICO_SIZES.map((s) => png(markFor('uploader', s), s))),
 );
 emit(resolve(ROOT, 'data-uploader/build/icon.png'), png(appMark.uploader, 256));
 emit(resolve(ROOT, 'data-uploader/build/tray.png'), png(tray.uploader, 256));
@@ -271,16 +279,16 @@ emit(resolve(ROOT, 'data-uploader/build/tray.png'), png(tray.uploader, 256));
 // internal size list matters — keep ICO_SIZES in sync with what it expects.
 
 if (want('starscape')) {
-  console.log(CHECK ? 'checking starscape rasters…' : 'writing starscape rasters…');
+  say(CHECK ? 'checking starscape rasters…' : 'writing starscape rasters…');
   emit(
     resolve(ROOT, 'wallpaper-app/assets/starscape.ico'),
-    await pngToIco(ICO_SIZES.map((s) => png(s <= 64 ? compact.starscape : appMark.starscape, s))),
+    await pngToIco(ICO_SIZES.map((s) => png(markFor('starscape', s), s))),
   );
   // A SECOND ico for the notification area. `gfx.rs::load_tray_icon` picks the
-  // entry nearest 32px, and in the app ico that is the compact tier — a dark
-  // #0d2635 disc, which on a dark Windows tray is the invisible icon this whole
-  // change exists to fix. The tray tier (bright annulus on transparency) has to
-  // be its own file, because the app ico still needs the dark disc for Explorer.
+  // entry nearest 32px, and in the app ico that is the master's dark #0d2635
+  // disc, which on a dark Windows tray is the invisible icon this whole change
+  // exists to fix. The tray tier (dark disc plus bright rim) has to be its own
+  // file, because the app ico still needs the untouched master for Explorer.
   emit(
     resolve(ROOT, 'wallpaper-app/assets/starscape-tray.ico'),
     await pngToIco([16, 20, 24, 32, 48].map((s) => png(tray.starscape, s))),
@@ -296,7 +304,7 @@ if (want('starscape')) {
 // It regenerates with everything else, so it cannot go stale.
 
 if (!ONLY) {
-  console.log(CHECK ? 'checking family sheet…' : 'writing family sheet…');
+  say(CHECK ? 'checking family sheet…' : 'writing family sheet…');
   const img = (buf, x, y, s) =>
     `<image href="data:image/png;base64,${buf.toString('base64')}" x="${x}" y="${y}" width="${s}" height="${s}"/>`;
   // No <text> anywhere in this sheet, deliberately: resvg resolves fonts from
@@ -306,10 +314,7 @@ if (!ONLY) {
 
   const rows = [
     ['app tier', (p) => [[png(appMark[p], 128), 128]]],
-    [
-      'compact tier',
-      (p) => [48, 32, 24, 16].map((s) => [png(compact[p], s), s]),
-    ],
+    ['small tier', (p) => [48, 32, 24, 16].map((s) => [png(smallMark[p], s), s])],
     ['tray tier', (p) => [24, 16].map((s) => [png(tray[p], s), s])],
   ];
 
@@ -334,7 +339,7 @@ if (!ONLY) {
     parts.push(`<rect x="40" y="${y + 4}" width="600" height="30" fill="${bg}"/>`);
     let x = 54;
     for (const p of PRODUCTS) {
-      parts.push(img(png(compact[p], 24), x, y + 7, 24));
+      parts.push(img(png(smallMark[p], 24), x, y + 7, 24));
       x += 40;
     }
     x += 34;
@@ -350,7 +355,14 @@ if (!ONLY) {
   <rect width="700" height="${H}" fill="${C.canvas}"/>
   ${parts.join('\n  ')}
 </svg>`;
-  emit(resolve(BRAND, 'family-sheet.png'), pngBox(sheet, 700, H, C.canvas));
+  const sheetPng = pngBox(sheet, 700, H, C.canvas);
+  if (SHEET_ONLY) {
+    mkdirSync(dirname(resolve(SHEET_ONLY)), { recursive: true });
+    writeFileSync(resolve(SHEET_ONLY), sheetPng);
+    console.log(`wrote family sheet → ${SHEET_ONLY}`);
+    process.exit(0);
+  }
+  emit(resolve(BRAND, 'family-sheet.png'), sheetPng);
 }
 
 // ── Result ──────────────────────────────────────────────────────────────────

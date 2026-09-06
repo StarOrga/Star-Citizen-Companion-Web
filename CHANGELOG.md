@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.0] - 2026-09-06
+
+### Changed
+
+- **Die Web-App trägt jetzt das Icon der Desktop-App — in jeder Größe.** Der
+  SVG-Master war zwar schon identisch mit der App, aber für alles unter 64 px
+  (Browser-Tab, Favicon, Header-Logo, Boot-Splash, Browser-Erweiterung, iOS-Kachel)
+  wurde eine eigene „compact"-Variante mit harten Orbit-Ringen und einem Brain-Glyph
+  gezeichnet. Im Tab sah die Web-App damit aus wie ein anderes Produkt als die App
+  in der Taskleiste. Diese Neuzeichnung ist weg: Jede Größe wird direkt aus dem
+  Original gerendert, so wie es die Desktop-App für ihr Taskleisten-Icon auch tut.
+- **Data Uploader und Starscape sind jetzt das unveränderte Original plus ein
+  Abzeichen.** Bisher wurden für die beiden Kern und Akkretionsscheibe ausgetauscht
+  (Nova bzw. Datenstrom, aufgebrochene Orbits) — die Icons waren Cousins, keine
+  Geschwister. Jetzt bleibt die Basis Pixel für Pixel das App-Icon, und über dem
+  Kern liegt ein Abzeichen: ein nach oben zeigender Pfeil für den Uploader, ein
+  Bildschirm für Starscape. Beide sind für 16–64 px in einer kräftigeren Fassung
+  gezeichnet, damit sie in der Taskleiste lesbar bleiben; das Tray-Tier behält den
+  hellen Rand, der auf dunklen Taskleisten die Silhouette trägt.
+- `scc-mark-compact.svg`, `starscape-mark-compact.svg` und `uploader-mark-compact.svg`
+  sind entfernt; `scc-mark.svg` (das Original) ersetzt sie überall. Der Generator
+  kann mit `--sheet=<pfad>` nur das Referenzblatt rendern, ohne die Raster im Baum
+  anzufassen — die Schleife zum Entwerfen eines Abzeichens.
+
 ## [0.81.2] - 2026-09-06
 
 ### Fixed

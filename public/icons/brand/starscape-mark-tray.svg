@@ -12,5 +12,7 @@
     <ellipse cx="50" cy="50" rx="21.9" ry="7.5" fill="none" stroke="#7dd5f0" stroke-width="2.5" stroke-opacity=".33"/>
   </g>
   <circle cx="50" cy="50" r="26.25" fill="url(#starscape-tray-halo)"/>
-  <path d="M50,19 C53.1,42 58,46.9 81,50 C58,53.1 53.1,58 50,81 C46.9,58 42,53.1 19,50 C42,46.9 46.9,42 50,19 Z" fill="url(#starscape-tray-core)"/>
+  <rect x="30" y="30" width="40" height="27" rx="4" fill="#0d2635" stroke="url(#starscape-tray-core)" stroke-width="5"/>
+  <rect x="45" y="57" width="10" height="6" fill="#a0dcf0"/>
+  <rect x="34" y="63" width="32" height="7" rx="3.5" fill="#a0dcf0"/>
 </svg>
