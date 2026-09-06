@@ -1602,7 +1602,14 @@ one ⋯ in the sheet's head.
 "Searching the board") and one Filter button that opens a full-height sheet —
 *Wer?* (Alle / Meine Themen / Andere Admins / Nutzer-Feedback / one author),
 *Wo steht es?* (every presentation bucket, with counts), *Bereich* (the area
-tags). A search flattens the bands into one relevance-ordered list. The
+tags). Each question is answered by a **wrapping row of chips**, not a column
+of full-width rows: stacked rows spent the whole horizontal axis on one option
+and pushed the later ones out of the sheet's scroll port — at ~490 px the
+fourth *Wer?* option was cut in half (feedback 04013a4c). Chips are ≥ 48 px
+tall, wrap instead of scrolling sideways, carry their count inline, and the
+picked one is a filled accent pill with a ✓ so the state reads without colour
+(it replaced the left accent bar). An author chip is dashed — the same
+single-choice set, one tier down. A search flattens the bands into one relevance-ordered list. The
 Fortschritt dashboard lives behind the 📊 glyph next to
 the filter button — the glyph now carries the word *Fortschritt* beside it
 (hidden below 420 px like the filter label) and a tooltip that says what the
