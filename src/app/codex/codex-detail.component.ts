@@ -78,6 +78,7 @@ import {
 import {
   ShipModuleSection,
   classifyShipModule,
+  shipModuleGroupOf,
   isConfigurableSection,
   isIndividualSection,
   shipPortFamily,
@@ -128,6 +129,7 @@ import {
   CodexOffensivePanelComponent,
   CodexShipPanelComponent,
   ShipFactGroup,
+  ShipFactRow,
 } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
@@ -236,14 +238,6 @@ interface LoadoutGroup {
   items: LoadoutItem[];
 }
 
-// One row of the hull / dimensions block. `value === null` renders "—": the
-// ship HAS the property, this extract just does not carry it (admin request
-// 461288f9: never show nothing).
-interface HullFact {
-  labelKey: string;
-  value: string | null;
-}
-
 // What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
 interface PortFit {
   attachType: string;
@@ -299,16 +293,99 @@ interface GearRecipe {
       } @else {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         <div class="m-top" [class.ship-mode]="kind() === 'ship'">
-        <!-- ── Hero (ships get the dim Bay scene — P2 frame, same content) ── -->
-        <header class="hero sc-card" [class.bay]="kind() === 'ship'">
+        <div class="hero-stack">
+        <!-- ── Hero ───────────────────────────────────────────────────
+             A ship gets the concept's BÜHNE (§2): the art fills the card, the
+             manufacturer and the name sit on it top-left, the chips and the
+             four frequent actions bottom-right. Everything that is not "which
+             ship am I looking at?" — Ausführung, Lackierung, Port-Übersicht and
+             the rarer actions — moved one row down into the flat tool row; the
+             fact tiles moved into the Analyse card, quantum fuel and hydrogen
+             included (they existed nowhere else on the page).
+             Every other codex kind keeps the two-column hero it always had: it
+             has no analysis card to move its facts into. ── -->
+        <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'">
+          @if (kind() === 'ship') {
+            <!-- The stage art is a picture and therefore inert — unless it is
+                 the live 3D model, which has to stay interactive. -->
+            <div class="stage-art" [class.live]="heroView3d()"
+                 [attr.aria-hidden]="heroView3d() ? null : 'true'">
+              @if (heroView3d() && shipClassName(); as cls) {
+                <sc-ship-skin-viewer
+                  class="stage-viewer"
+                  [shipId]="cls"
+                  [embedded]="true"
+                  [hardpointPorts]="hardpointPortRefs()"
+                  [activePorts]="activePorts()"
+                  (hovered)="setActivePorts($event)"
+                  (locatable)="glbLocatablePorts.set($event)"
+                  (available)="onArtAvailable($event)" />
+              } @else {
+                <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
+                  <span class="art-fallback">
+                    <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
+                    <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
+                  </span>
+                </sc-fallback-image>
+              }
+            </div>
+
+            <div class="stage-fg">
+              @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
+              <h1>{{ displayName() }}</h1>
+            </div>
+
+            <!-- 2D ⇄ 3D on the card itself. A toggle, not a navigation, so a
+                 real button: deliberately quiet and half-transparent, and it
+                 names the view you would switch TO (pressing "3D" gives you
+                 3D). The two characters are decorative; the accessible name is
+                 the whole sentence. -->
+            @if (has3dView()) {
+              <button
+                type="button"
+                class="view-switch"
+                [class.on]="heroView3d()"
+                [attr.aria-pressed]="heroView3d()"
+                [attr.aria-label]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
+                [attr.title]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
+                (click)="toggleHeroView()">
+                <span aria-hidden="true">{{ (heroView3d() ? 'codex.detail.heroView2d' : 'codex.detail.heroView3d') | translate }}</span>
+              </button>
+            }
+
+            @if (heroChips().length > 0) {
+              <ul class="chips">
+                @for (c of heroChips(); track c.key) {
+                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                }
+              </ul>
+            }
+
+            <div class="acts">
+              <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
+                <span aria-hidden="true">{{ isPinned() ? '★' : '☆' }}</span>
+                {{ (isPinned() ? 'codex.compare.pinned' : 'codex.detail.actionCompare') | translate }}
+              </button>
+              <button type="button" class="btn" (click)="discardLoadoutDraft()">
+                {{ 'codex.detail.actionFactoryLoadout' | translate }}
+              </button>
+              <button type="button" class="btn copy" (click)="copyShareLink()">
+                {{ 'codex.detail.actionCopyLink' | translate }}
+                @if (linkCopied()) {
+                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
+                }
+              </button>
+              <!-- Navigates, so it is an anchor and never a button (§2). -->
+              <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
+                {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
+              </a>
+            </div>
+          } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
             <div class="art">
               <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
                 <span class="art-fallback">
                   <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
-                  @if (kind() === 'ship') {
-                    <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
-                  }
                 </span>
               </sc-fallback-image>
             </div>
@@ -321,9 +398,9 @@ interface GearRecipe {
 
             <!-- Skin picker (feedback d5e39f86). The list collapses a weapon's
                  paint jobs into ONE entry, so this is where they stay
-                 reachable. Native <details> for the fold; every option is a
-                 real anchor to that record's own detail route, so a livery
-                 keeps a shareable URL and middle-click still opens a tab. -->
+                 reachable. Native details for the fold; every option is a real
+                 anchor to that record's own detail route, so a livery keeps a
+                 shareable URL and middle-click still opens a tab. -->
             @if (skinOptions().length > 1) {
               <details class="picker skin-picker">
                 <summary>
@@ -346,12 +423,8 @@ interface GearRecipe {
               </details>
             }
 
-            <!-- Edition picker (feedback 77ecad2a). The ship grid collapses a
-                 hull's duplicate file records and its marketing editions into
-                 ONE card, so this is where they stay reachable. Same shape as
-                 the skin picker above: a native <details>, and every option is
-                 a real anchor to that record's own detail route, so an edition
-                 keeps a shareable URL and middle-click still opens a tab. -->
+            <!-- Edition picker (feedback 77ecad2a). Same shape as the skin
+                 picker above: a native details, options are real anchors. -->
             @if (editionOptions().length > 1) {
               <details class="picker edition-picker">
                 <summary>
@@ -385,14 +458,69 @@ interface GearRecipe {
               </ul>
             }
 
-            @if (kind() === 'ship' && heroChips().length > 0) {
-              <ul class="chip-row">
-                @for (c of heroChips(); track c.key) {
-                  <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+            <div class="hero-actions">
+              <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
+                {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+              </button>
+              <button type="button" class="pin" (click)="copyShareLink()">
+                {{ 'codex.detail.actionCopyLink' | translate }}
+                @if (linkCopied()) {
+                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
                 }
-              </ul>
-            }
+              </button>
+            </div>
+          </div>
+          }
+        </header>
 
+        @if (kind() === 'ship') {
+          <!-- ── WERKZEUGZEILE (decision 1, Variante B) ──────────────────
+               One flat row directly under the stage: Ausführung, Lackierung,
+               the port overview and the rarer actions. Both pickers stay a
+               single click away and their options are real anchors. ── -->
+          <div class="toolrow">
+            @if (editionOptions().length > 1) {
+              <details class="picker edition-picker">
+                <summary>
+                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
+                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
+                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
+                </summary>
+                <ul class="sp-list">
+                  @for (o of editionOptions(); track o.classNameSlug) {
+                    <li>
+                      <a class="sp-opt"
+                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
+                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
+                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
+                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
+            @if (skinOptions().length > 1) {
+              <details class="picker skin-picker">
+                <summary>
+                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
+                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
+                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
+                </summary>
+                <ul class="sp-list">
+                  @for (o of skinOptions(); track o.classNameSlug) {
+                    <li>
+                      <a class="sp-opt"
+                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
+                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
+                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
+                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </details>
+            }
             @if (portSummary().length > 0) {
               <ul class="loadout-summary" [attr.aria-label]="'codex.detail.equipment' | translate">
                 @for (s of portSummary(); track s.category) {
@@ -403,124 +531,92 @@ interface GearRecipe {
                 }
               </ul>
             }
-
-            <div class="hero-actions">
-              <button type="button" class="pin" [class.pinned]="isPinned()" (click)="togglePin()">
-                {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+            <code class="cls">{{ detail()!.classNameSlug }}</code>
+            <span class="tool-spacer"></span>
+            @if (!inHangar()) {
+              <button type="button" class="btn add-hangar" (click)="addToHangar()">
+                {{ 'quickSearch.addToHangar' | translate }}
               </button>
-              @if (kind() === 'ship') {
-                <button type="button" class="pin" (click)="discardLoadoutDraft()">
-                  {{ 'codex.detail.actionFactoryLoadout' | translate }}
-                </button>
-              }
-              <button type="button" class="pin" (click)="copyShareLink()">
-                {{ 'codex.detail.actionCopyLink' | translate }}
-                @if (linkCopied()) {
-                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-                }
+            }
+            <!-- Deep-link out to the official RSI site. We have no reliable
+                 per-ship RSI slug (our classNameSlug is not the RSI URL slug),
+                 so without a pinned link this lands on the official ships
+                 listing rather than 404-ing on a guessed deeplink. A pinned
+                 value is attacker-controlled, so it is bound with [href] on a
+                 plain anchor and nothing else: no innerHTML, no LLM prompt. -->
+            @if (pledgeLink(); as pledge) {
+              <a class="btn rsi-link" [href]="pledge" target="_blank" rel="noopener noreferrer nofollow">
+                {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
+              </a>
+            } @else {
+              <a class="btn rsi-link"
+                 href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
+                 target="_blank" rel="noopener noreferrer">
+                {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
+              </a>
+            }
+            @if (auth.user()) {
+              <button type="button" class="btn quiet" (click)="toggleLinkForm()">
+                {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
               </button>
-              @if (kind() === 'ship') {
-                <a class="pin on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
-                  {{ 'codex.detail.actionSwitchShip' | translate }} ⇄
-                </a>
-              }
-              @if (kind() === 'ship') {
-                <!-- The Codex page IS the editor now (MASTER §1/R-A43): a
-                     ship already in the hangar has nowhere left to "jump" to
-                     — the loadout below already edits it in place. -->
-                @if (!inHangar()) {
-                  <button type="button" class="pin add-hangar" (click)="addToHangar()">
-                    {{ 'quickSearch.addToHangar' | translate }}
-                  </button>
-                }
-                <!-- Deep-link out to the official RSI site. We have no reliable
-                     per-ship RSI slug (our classNameSlug ≠ RSI URL slug), so
-                     without a pinned link this lands on the official ships
-                     listing (admin-chosen target: name-sorted) rather than
-                     404-ing on a guessed deeplink. Users can pin the real
-                     pledge page themselves (feedback f7d3bd9a) — that value is
-                     attacker-controlled, so it is bound with [href] on a plain
-                     anchor and nothing else: no innerHTML, no LLM prompt. -->
-                @if (pledgeLink(); as pledge) {
-                  <a
-                    class="pin rsi-link"
-                    [href]="pledge"
-                    target="_blank"
-                    rel="noopener noreferrer nofollow">
-                    {{ 'codex.detail.viewOnRsi' | translate }} ↗
-                  </a>
-                } @else {
-                  <a
-                    class="pin rsi-link"
-                    href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                    {{ 'codex.detail.viewOnRsi' | translate }} ↗
-                  </a>
-                }
-                @if (auth.user()) {
-                  <button type="button" class="raw-toggle" (click)="toggleLinkForm()">
-                    {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
-                  </button>
-                }
-              }
-            </div>
-
-            <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
-                 you; an admin can publish one for everyone, never automatic. -->
-            @if (kind() === 'ship' && showLinkForm()) {
-              <form class="ship-link-form" (submit)="saveShipLink($event)">
-                <p class="sl-hint">{{ 'codex.shipLink.hint' | translate }}</p>
-                <div class="sl-row">
-                  <input
-                    type="url"
-                    class="sl-input"
-                    [value]="shipLinkInput()"
-                    (input)="onShipLinkInput($event)"
-                    [attr.placeholder]="'codex.shipLink.placeholder' | translate"
-                    [attr.aria-label]="'codex.shipLink.label' | translate"
-                    [attr.aria-invalid]="shipLinkError() ? 'true' : null" />
-                  <button type="submit" class="pin" [disabled]="shipLinks.saving()">
-                    {{ 'codex.shipLink.save' | translate }}
-                  </button>
-                  @if (myPledgeLink()) {
-                    <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
-                            (click)="removeShipLink()">
-                      {{ 'codex.shipLink.remove' | translate }}
-                    </button>
-                  }
-                  <button type="button" class="raw-toggle" (click)="toggleLinkForm()">
-                    {{ 'codex.shipLink.cancel' | translate }}
-                  </button>
-                </div>
-                @if (shipLinkError(); as errKey) {
-                  <p class="sl-error" role="alert">
-                    {{ ('codex.shipLink.error.' + errKey) | translate }}
-                  </p>
-                }
-                @if (shipLinkSaved()) {
-                  <p class="sl-ok" role="status">{{ 'codex.shipLink.saved' | translate }}</p>
-                }
-                @if (role.isAdmin()) {
-                  <div class="sl-admin">
-                    <span class="sl-admin-tag">{{ 'codex.shipLink.adminTitle' | translate }}</span>
-                    <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
-                            (click)="promoteShipLink()">
-                      {{ 'codex.shipLink.promote' | translate }}
-                    </button>
-                    @if (globalPledgeLink()) {
-                      <button type="button" class="raw-toggle" [disabled]="shipLinks.saving()"
-                              (click)="unpromoteShipLink()">
-                        {{ 'codex.shipLink.unpromote' | translate }}
-                      </button>
-                    }
-                    <span class="sl-admin-hint">{{ 'codex.shipLink.adminHint' | translate }}</span>
-                  </div>
-                }
-              </form>
             }
           </div>
-        </header>
+
+          <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
+               you; an admin can publish one for everyone, never automatic. -->
+          @if (showLinkForm()) {
+            <form class="ship-link-form" (submit)="saveShipLink($event)">
+              <p class="sl-hint">{{ 'codex.shipLink.hint' | translate }}</p>
+              <div class="sl-row">
+                <input
+                  type="url"
+                  class="sl-input"
+                  [value]="shipLinkInput()"
+                  (input)="onShipLinkInput($event)"
+                  [attr.placeholder]="'codex.shipLink.placeholder' | translate"
+                  [attr.aria-label]="'codex.shipLink.label' | translate"
+                  [attr.aria-invalid]="shipLinkError() ? 'true' : null" />
+                <button type="submit" class="btn" [disabled]="shipLinks.saving()">
+                  {{ 'codex.shipLink.save' | translate }}
+                </button>
+                @if (myPledgeLink()) {
+                  <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
+                          (click)="removeShipLink()">
+                    {{ 'codex.shipLink.remove' | translate }}
+                  </button>
+                }
+                <button type="button" class="btn quiet" (click)="toggleLinkForm()">
+                  {{ 'codex.shipLink.cancel' | translate }}
+                </button>
+              </div>
+              @if (shipLinkError(); as errKey) {
+                <p class="sl-error" role="alert">
+                  {{ ('codex.shipLink.error.' + errKey) | translate }}
+                </p>
+              }
+              @if (shipLinkSaved()) {
+                <p class="sl-ok" role="status">{{ 'codex.shipLink.saved' | translate }}</p>
+              }
+              @if (role.isAdmin()) {
+                <div class="sl-admin">
+                  <span class="sl-admin-tag">{{ 'codex.shipLink.adminTitle' | translate }}</span>
+                  <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
+                          (click)="promoteShipLink()">
+                    {{ 'codex.shipLink.promote' | translate }}
+                  </button>
+                  @if (globalPledgeLink()) {
+                    <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
+                            (click)="unpromoteShipLink()">
+                      {{ 'codex.shipLink.unpromote' | translate }}
+                    </button>
+                  }
+                  <span class="sl-admin-hint">{{ 'codex.shipLink.adminHint' | translate }}</span>
+                </div>
+              }
+            </form>
+          }
+        }
+        </div>
 
         @if (kind() === 'ship') {
           <sc-codex-rank-card
@@ -544,14 +640,21 @@ interface GearRecipe {
              by default on mobile (opened on demand to spare cellular data).
              Comparison is intentionally NOT duplicated here — the existing
              floating compare tray (<sc-codex-compare-tray/>, pinned via the hero
-             ★ action) is the single comparison surface. -->
+             ★ action) is the single comparison surface.
+             Placement is unchanged (decision 4, Variante C). The one thing
+             that moves it is the hero's own 2D/3D switch: while the stage shows
+             the model, this section steps aside so the ~3 MB glb is never
+             loaded twice, and it comes straight back on the way to 2D. -->
         @if (shipClassName(); as cls) {
-          <sc-ship-skin-viewer
-            [shipId]="cls"
-            [hardpointPorts]="hardpointPortRefs()"
-            [activePorts]="activePorts()"
-            (hovered)="setActivePorts($event)"
-            (locatable)="glbLocatablePorts.set($event)" />
+          @if (!heroView3d()) {
+            <sc-ship-skin-viewer
+              [shipId]="cls"
+              [hardpointPorts]="hardpointPortRefs()"
+              [activePorts]="activePorts()"
+              (hovered)="setActivePorts($event)"
+              (locatable)="glbLocatablePorts.set($event)"
+              (available)="onArtAvailable($event)" />
+          }
         }
 
         <!-- ── Description ───────────────────────────────────────── -->
@@ -701,26 +804,12 @@ interface GearRecipe {
             (sheetChange)="powerSheet.set($event)" />
         }
 
-        <!-- ── Ships: hull, size and flight characteristics ────────
-             Every row is rendered even when the value is absent, so the block
-             answers "does the catalog know this?" rather than silently
-             shrinking. ──────────────────────────────────────────── -->
-        @if (hullFacts().length > 0) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.hull.title' | translate }}</h2>
-            <dl class="hull-grid">
-              @for (f of hullFacts(); track f.labelKey) {
-                <div class="hull-fact" [class.unknown]="!f.value">
-                  <dt>{{ f.labelKey | translate }}</dt>
-                  <dd>{{ f.value ?? '—' }}</dd>
-                </div>
-              }
-            </dl>
-            @if (flightDataMissing()) {
-              <p class="hint warn">{{ 'codex.hull.flightMissing' | translate }}</p>
-            }
-          </section>
-        }
+        <!-- The old "Rumpf, Groesse und Flugeigenschaften" block stood here
+             and is gone (decision 3, Variante A). It was a strict subset of the
+             Analyse card's Schiff panel, which additionally explains every gap
+             — and it was the wrong one: it summed the mass of the WERKS loadout
+             while the card sums the mass of the ENTWURF, so after any swap the
+             same page showed two different masses. One source now. -->
 
         <!-- ── Loadout | Analyse: two-column split (MASTER §1/§6/§7) ── -->
         <div class="m-cols" [class.single]="kind() !== 'ship' || moduleCount() < 4">
@@ -989,9 +1078,9 @@ interface GearRecipe {
     .draft-controls { flex: 0 0 auto; }
 
     /* Hero chip row (MASTER §2): career / role / crew / cargo / mass, one line. */
-    .chip-row { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .hchip { font-size: max(0.7rem, var(--sc-fs-floor)); padding: 4px 10px; border-radius: 999px;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
+    .hchip { font-size: max(12px, var(--sc-fs-floor)); padding: 2px 8px; border-radius: var(--radius-md, 4px);
+      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
     .hchip.accent { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
     .hchip.ghost { color: var(--sc-fg-2); font-style: italic; background: transparent; border-style: dashed; }
     /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
@@ -1001,6 +1090,85 @@ interface GearRecipe {
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
       border-radius: 999px; padding: 3px 10px; background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
+
+    /* The hero and the tool row are one unit and share the masthead's left
+       half, so the row sits directly under the stage rather than in the next
+       grid track. */
+    .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+    /* ── BUEHNE (concept section 2) ─────────────────────────────────────────
+       The art fills the card; name, chips and the four frequent actions sit
+       ON it. Nothing else lives here. */
+    .hero.stage { display: block; position: relative; min-height: 246px; padding: 0;
+      overflow: hidden; background: var(--sc-bg-1); }
+    .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; pointer-events: none;
+      --sc-img-max-h: none;
+      --sc-img-shadow: drop-shadow(0 12px 34px rgba(0,0,0,0.72));
+      --sc-icon-max: 132px; }
+    /* The live model is the one piece of stage art you may grab. */
+    .hero.stage .stage-art.live { pointer-events: auto; }
+    .hero.stage .stage-art sc-ship-skin-viewer { display: block; width: 100%; height: 100%; }
+    /* Readability floor for whatever the render happens to be. */
+    .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(105deg, color-mix(in srgb, var(--sc-bg-0) 78%, transparent) 0%,
+        color-mix(in srgb, var(--sc-bg-0) 24%, transparent) 46%, transparent 70%); }
+    .hero.stage .stage-fg { position: absolute; top: 12px; inset-inline-start: 14px;
+      pointer-events: none; max-width: min(72%, 44ch); }
+    .hero.stage .mfr { margin: 0; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--sc-fg-2); }
+    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(22px, 4vw, 28px); font-weight: 300;
+      line-height: 1.12; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .hero.stage .chips { position: absolute; inset-inline-end: 12px; bottom: 56px;
+      list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px;
+      justify-content: flex-end; max-width: calc(100% - 24px); }
+    .hero.stage .acts { position: absolute; inset-inline-end: 12px; bottom: 10px;
+      display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
+      max-width: calc(100% - 24px); }
+
+    /* The one button on this page (concept section 2). Never the hot accent:
+       nothing here is admin-gated. */
+    .btn, .pin { position: relative; display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; min-height: 48px;
+      border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
+      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
+      color: var(--sc-fg-2); font-family: var(--sc-font-display); text-decoration: none;
+      font-size: max(12px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; }
+    .btn:hover, .pin:hover { color: var(--sc-fg-0);
+      border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
+    .btn.on, .pin.pinned { color: var(--sc-accent);
+      border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
+    .btn:focus-visible, .pin:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .btn:disabled, .pin:disabled { opacity: 0.38; cursor: not-allowed; }
+    .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
+
+    /* 2D <-> 3D. Quiet on purpose: a two-character label at half opacity that
+       only steps forward when you reach for it. */
+    .view-switch { position: absolute; top: 12px; inset-inline-end: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 48px; min-height: 48px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent);
+      border-radius: var(--radius-md, 4px);
+      background: color-mix(in srgb, var(--sc-bg-0) 45%, transparent);
+      color: var(--sc-fg-1); opacity: 0.5;
+      font-family: var(--sc-font-display); font-size: max(12px, var(--sc-fs-floor));
+      letter-spacing: 0.12em; cursor: pointer; }
+    .view-switch:hover, .view-switch:focus-visible { opacity: 1; }
+    .view-switch.on { color: var(--sc-accent); opacity: 0.85;
+      border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
+    .view-switch:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+
+    /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
+       One flat row, no card: Ausfuehrung, Lackierung, port overview, then the
+       rarer actions pushed to the end. */
+    .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+      padding: 6px 2px; border-top: 1px solid var(--sc-border); }
+    .toolrow .tool-spacer { flex: 1 1 auto; }
+    .toolrow .picker { position: relative; margin-top: 0; max-width: 260px; }
+    .toolrow .picker > summary { min-height: 48px; }
+    .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
+    .toolrow .loadout-summary { margin: 0; }
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -1029,9 +1197,9 @@ interface GearRecipe {
     }
     /* No artwork anywhere: say so instead of leaving a lost glyph in a big
        empty frame — the catalog simply has no render for this hull yet. */
-    .hero-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    .hero-art .art-fallback, .stage-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 10px; width: 100%; padding: 14px; box-sizing: border-box; }
-    .hero-art .art-note { font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.35; text-align: center;
+    .hero-art .art-note, .stage-art .art-note { font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.35; text-align: center;
       color: var(--sc-fg-2); max-width: 24ch; text-wrap: balance; }
     .hero-art .hero-icon { width: 100%; min-height: 120px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -1039,7 +1207,7 @@ interface GearRecipe {
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
-    .hero-body .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
+    .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
 
     /* Skin / edition picker — a native <details> dropdown, options are anchors. */
     .picker { margin-top: 10px; max-width: 320px; }
@@ -1079,21 +1247,18 @@ interface GearRecipe {
     .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 11px; border-radius: 999px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .ls-count { font-family: var(--sc-font-display); font-size: 0.95rem; color: var(--sc-fg-0); }
     .ls-cat { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
-    .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent-hot, #ff7a45) 45%, transparent); }
-    .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent-hot, #ff7a45); }
-    .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, #ff5252 45%, transparent); }
-    .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* No hot accent and no mock literals here (concept section 0): nothing in
+       the port overview is admin-gated and none of it is an error. */
+    .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
+    .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent); }
+    .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
+    .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
       background: var(--sc-bg-1, #14161b); color: var(--sc-fg-1); border: 1px solid var(--sc-accent);
       border-radius: var(--radius-sm, 4px); padding: 2px 8px; font-size: 0.7rem; white-space: nowrap; pointer-events: none; }
-    .hero-actions .pin { position: relative; }
-    .pin { padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
-      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
-    .pin:hover, .pin.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
     .add-hangar { color: var(--sc-accent); }
-    a.rsi-link { display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
 
     .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .sl-hint { margin: 0 0 8px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -1115,18 +1280,6 @@ interface GearRecipe {
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .block h2 .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .desc { margin: 0; color: var(--sc-fg-1); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-
-    /* Hull, size and flight — a row per property, "—" when unknown */
-    .hull-grid { margin: 0; display: grid; gap: 8px;
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
-    .hull-fact { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
-      border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .hull-fact dt { font-size: max(0.63rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em;
-      color: var(--sc-fg-2); }
-    .hull-fact dd { margin: 0; font-size: 0.95rem; color: var(--sc-fg-0);
-      font-family: var(--sc-font-display); }
-    .hull-fact.unknown { border-style: dashed; }
-    .hull-fact.unknown dd { color: var(--sc-fg-2); }
 
     /* Stat grid (components / weapons), grouped by purpose */
     .sg-head { margin: 14px 0 8px; font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.07em;
@@ -1236,6 +1389,17 @@ interface GearRecipe {
       .hero-art { min-height: 180px; }
       .hero-body { padding: 20px; }
       .dmg { grid-template-columns: 84px 1fr 56px; }
+      /* A phone has no room for four overlays on one picture: the stage keeps
+         the art and the name, and hands chips and actions to normal flow
+         underneath it. Nothing is dropped, nothing overlaps. */
+      .hero.stage { display: flex; flex-direction: column; min-height: 0; }
+      .hero.stage .stage-art { position: relative; inset: auto; min-height: 190px; }
+      .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
+      .hero.stage .stage-fg { position: static; padding: 10px 14px 0; max-width: none; }
+      .hero.stage .chips, .hero.stage .acts { position: static; justify-content: flex-start;
+        padding: 0 14px; max-width: none; }
+      .hero.stage .acts { padding-bottom: 12px; }
+      .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
     }
     @media (max-width: 400px) {
       .hero-body { padding: 16px; }
@@ -1267,6 +1431,32 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     return !!d && this.hangar.ships().some((s) => s.shipClassName === d.classNameSlug);
   });
+  /**
+   * Which view the hero stage shows. 2D is the default — the store render is
+   * the picture of the ship, and it costs nothing. The switch on the card
+   * swaps in the interactive model, and the standalone livery section below
+   * steps aside while it does, so only one glb is ever live (see the template).
+   */
+  readonly heroView3d = signal(false);
+  /** The skin catalog actually has a 3D model — no model, no switch. */
+  readonly has3dView = signal(false);
+
+  toggleHeroView(): void {
+    this.heroView3d.update((v) => !v);
+  }
+
+  /**
+   * Availability LATCHES. A freshly mounted viewer reports "no model" for one
+   * turn while its catalog request is still in flight — and the viewer remounts
+   * every time the switch is pressed, because it moves between the stage and
+   * the livery section. Without the latch the switch would vanish under the
+   * user's finger the moment they pressed it, stranding them in 3D. Cleared
+   * only when the page loads a different ship (see load()).
+   */
+  onArtAvailable(available: boolean): void {
+    if (available) this.has3dView.set(true);
+  }
+
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
@@ -1421,6 +1611,9 @@ export class CodexDetailComponent implements OnInit {
   }
 
   private async load(kind: CodexKind, className: string): Promise<void> {
+    // A new ship is a new answer to "is there a model?" — see onArtAvailable.
+    this.has3dView.set(false);
+    this.heroView3d.set(false);
     this.loading.set(true);
     this.error.set(null);
     this.expandedPort.set(null);
@@ -2723,12 +2916,21 @@ export class CodexDetailComponent implements OnInit {
     this.moduleSections().reduce((sum, s) => sum + s.slots.length, 0),
   );
 
-  /** Rendered loadout MODULES (sections with at least one slot) — fewer than
-   * four collapses the Loadout | Analyse split into one column (MASTER §1).
-   * Slot count is the wrong unit: a hull with 3 sections/10 slots must still
-   * collapse, and one with 4 sparse sections must not. */
+  /**
+   * Rendered loadout BLOCKS — fewer than four collapses the Loadout | Analyse
+   * split into one column (MASTER §1) and this is the number the column head
+   * prints. Slot count is the wrong unit (a hull with 3 blocks and 10 slots
+   * must still collapse), and so is the section count now that five sections
+   * share the "Antrieb & Systeme" block: the concept counts what a reader
+   * counts, which is headings.
+   */
   readonly moduleCount = computed(
-    () => this.moduleSections().filter((s) => s.slots.length > 0).length,
+    () =>
+      new Set(
+        this.moduleSections()
+          .filter((s) => s.slots.length > 0)
+          .map((s) => shipModuleGroupOf(s.section)),
+      ).size,
   );
 
   readonly offensivePanel = computed(() => {
@@ -2756,8 +2958,18 @@ export class CodexDetailComponent implements OnInit {
     const dim = this.dimensions();
     const mass = equippedMass(this.draftSummaryOccupants());
     const sheet = this.currentKpiSheet();
+    const tech = this.techStats();
     const num = (v: number | null | undefined, unit: string): string | null =>
       v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
+
+    const flightRows: ShipFactRow[] = [
+      { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+      { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+      { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
+      { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+      { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+      { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
+    ];
 
     // "6.604 / 3.302 / 9.712" — only axes that actually exist; null when none do.
     const axes = crossSectionAxes(p.stats as Record<string, Record<string, unknown>> | undefined);
@@ -2767,14 +2979,10 @@ export class CodexDetailComponent implements OnInit {
     const groups: ShipFactGroup[] = [
       {
         titleKey: 'codex.analysis.ship.flightPerformance',
-        rows: [
-          { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-          { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-          { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-          { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-          { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-          { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-        ],
+        rows: flightRows,
+        // The sentence the deleted "Rumpf & Flug" block used to carry: said
+        // once, where the empty rows are, and only when they are ALL empty.
+        note: flightRows.every((r) => r.value == null) ? this.t.instant('codex.hull.flightMissing') : null,
       },
       {
         titleKey: 'codex.analysis.ship.mass',
@@ -2787,6 +2995,11 @@ export class CodexDetailComponent implements OnInit {
           { labelKey: 'codex.kpi.quantumSpeed', value: num(sheet.quantumSpeed, 'km/s'), gapKey: 'codex.summary.gap.noQuantum' },
           { labelKey: 'codex.kpi.quantumRange', value: sheet.quantumRange != null ? `${formatNumber(sheet.quantumRange / 1_000_000)} Gm` : null, gapKey: 'codex.summary.gap.noQuantum' },
           { labelKey: 'codex.kpi.spool', value: num(sheet.spool, 's'), gapKey: 'codex.summary.gap.noQuantum' },
+          // The two tank figures. They lived ONLY in the hero's fact tiles, so
+          // moving the tiles into this card had to bring them along or the
+          // page would simply stop knowing them (decision 1, hard constraint).
+          { labelKey: 'codex.detail.quantumFuel', value: tech?.quantumFuelCapacity != null ? formatNumber(tech.quantumFuelCapacity) : null, gapKey: 'codex.summary.gap.noQuantum' },
+          { labelKey: 'codex.detail.fuelCapacity', value: tech?.hydrogenCapacity != null ? formatNumber(tech.hydrogenCapacity) : null, gapKey: 'codex.summary.gap.noFlight' },
         ],
       },
       {
@@ -3127,46 +3340,6 @@ export class CodexDetailComponent implements OnInit {
     if (!port) return null;
     return port.minSize != null && port.minSize === port.maxSize ? port.minSize : null;
   }
-
-  /**
-   * Hull HP, size and flight characteristics — the block under the panels.
-   * Every row is rendered even when the value is missing ("—"), because the
-   * ship undeniably HAS a hull and a top speed; only our extract does not.
-   */
-  readonly hullFacts = computed<HullFact[]>(() => {
-    const d = this.detail();
-    if (!d || d.kind !== 'ship') return [];
-    const p = d.payload as ShipPayload | undefined;
-    const dim = this.dimensions();
-    const flight = p?.flight;
-    const mass = equippedMass(this.summaryOccupants());
-    const num = (v: number | null | undefined, unit: string): string | null =>
-      v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
-    return [
-      { labelKey: 'codex.hull.hullHp', value: null },
-      {
-        labelKey: 'codex.hull.dimensions',
-        value: dim
-          ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m`
-          : null,
-      },
-      { labelKey: 'codex.hull.crew', value: p?.crew?.size ? String(p.crew.size) : null },
-      { labelKey: 'codex.hull.equippedMass', value: num(mass, 'kg') },
-      { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s') },
-      { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s') },
-      { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s') },
-      { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s') },
-      { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s') },
-      { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s') },
-    ];
-  });
-
-  /** True while no flight number at all is in the extract — worth saying once. */
-  readonly flightDataMissing = computed(() =>
-    this.hullFacts()
-      .filter((f) => f.labelKey.includes('Speed') || ['codex.hull.pitch', 'codex.hull.yaw', 'codex.hull.roll'].includes(f.labelKey))
-      .every((f) => f.value === null),
-  );
 
   // ── component overlay (461288f9) ────────────────────────────────────────────
   /** The occupant currently open in the full-stat overlay, or null. */

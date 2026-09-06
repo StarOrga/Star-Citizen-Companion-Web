@@ -12,6 +12,7 @@ import { RoleService } from '../auth/role.service';
 import { UexShopService } from './uex-shop.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
+import { ShipSkin, ShipSkinsService } from './ship-skins.service';
 import { RankShipInput } from './codex-rank';
 import {
   NOMAD_POWER_FIXTURE,
@@ -129,7 +130,21 @@ function makeCodexServiceStub(): Partial<CodexService> {
   };
 }
 
-async function setup(kind: 'ship' | 'weapon') {
+/** One livery with a real glb — enough for the hero to offer its 3D switch. */
+const NOMAD_SKIN: ShipSkin = {
+  shipId: 'CNOU_Nomad',
+  skinId: 'default',
+  name: 'Standard',
+  description: '',
+  source: 'factory',
+  nameVerified: true,
+  modelPath: 'cnou_nomad/default.glb',
+  iconPath: null,
+  modelBytes: 1,
+  sort: 1,
+};
+
+async function setup(kind: 'ship' | 'weapon', skins: ShipSkin[] = []) {
   const className = kind === 'ship' ? 'cnou_nomad' : 'klwe_laserrepeater_s3';
   await TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
@@ -158,6 +173,13 @@ async function setup(kind: 'ship' | 'weapon') {
       },
       { provide: AuthService, useValue: { user: signal(null) } as Partial<AuthService> },
       { provide: RoleService, useValue: {} as Partial<RoleService> },
+      {
+        provide: ShipSkinsService,
+        useValue: {
+          listSkins: async () => ({ skins, error: false }),
+          assetUrl: (path: string | null) => path,
+        } as Partial<ShipSkinsService>,
+      },
       { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
       {
         provide: UpcomingShipsService,
@@ -216,6 +238,132 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.querySelector('sc-codex-energy-dock')).toBeTruthy();
     expect(el.querySelector('sc-codex-swap-picker')).toBeTruthy();
     expect(el.querySelector('sc-codex-weapon-detail')).toBeTruthy();
+  });
+
+  it('the Loadout head counts BLOCKS, the way a reader counts headings', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const sections = fixture.componentInstance.moduleSections().filter((s) => s.slots.length > 0);
+    const blocks = fixture.componentInstance.moduleCount();
+    // The Nomad fixture has more sections than blocks — that is the whole point.
+    expect(blocks).toBeLessThan(sections.length);
+    const rendered = el.querySelectorAll('sc-codex-hardpoint-layout .mod-sec').length;
+    expect(rendered).toBe(blocks);
+    expect(el.querySelector('.col-loadout .col-head .n')?.textContent?.trim()).toBe(String(blocks));
+  });
+
+  // ── decision 1: the BÜHNE and the tool row under it ──────────────────────
+
+  it('draws the hero as a stage with the name on it and the tool row beneath', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const hero = el.querySelector('.hero') as HTMLElement;
+    expect(hero.classList).toContain('stage');
+    expect(hero.querySelector('.stage-fg h1')).toBeTruthy();
+    expect(hero.querySelector('.acts')).toBeTruthy();
+    // The fact tiles left the hero (they live in the Analyse card now).
+    expect(hero.querySelector('.facts')).toBeNull();
+    // …and the rarer things sit in the flat row below the card.
+    const toolrow = el.querySelector('.toolrow') as HTMLElement;
+    expect(toolrow).toBeTruthy();
+    expect(toolrow.querySelector('.loadout-summary')).toBeTruthy();
+    expect(toolrow.querySelector('.rsi-link')).toBeTruthy();
+  });
+
+  it('"Schiff wechseln" navigates, so it is an anchor and not a button', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const acts = el.querySelector('.hero .acts') as HTMLElement;
+    const anchor = acts.querySelector('a[href]') as HTMLAnchorElement;
+    expect(anchor).toBeTruthy();
+    expect(anchor.getAttribute('href')).toContain('/codex');
+  });
+
+  // ── decision 1 (hard constraint): the two tank figures survived the move ──
+
+  it('carries quantum fuel and hydrogen into the Analyse card', () => {
+    const groups = fixture.componentInstance.shipFactGroups();
+    const systems = groups.find((g) => g.titleKey === 'codex.analysis.ship.systems');
+    const labels = systems?.rows.map((r) => r.labelKey) ?? [];
+    expect(labels).toContain('codex.detail.quantumFuel');
+    expect(labels).toContain('codex.detail.fuelCapacity');
+  });
+
+  // ── decision 3: the "Rumpf & Flug" block, and the two-masses bug with it ──
+
+  it('no longer renders the Rumpf & Flug block', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.hull-grid')).toBeNull();
+    expect(el.textContent).not.toContain('codex.hull.title');
+  });
+
+  it('has exactly one source for the equipped mass', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const massRows = Array.from(el.querySelectorAll('dt')).filter((dt) =>
+      dt.textContent?.includes('codex.hull.equippedMass'),
+    );
+    expect(massRows.length).toBe(1);
+  });
+
+  it('keeps the "no flight data at all" sentence the deleted block owned', () => {
+    const groups = fixture.componentInstance.shipFactGroups();
+    const flight = groups.find((g) => g.titleKey === 'codex.analysis.ship.flightPerformance');
+    // The Nomad fixture HAS flight data, so the note must stay silent here.
+    expect(flight?.note).toBeNull();
+    expect(flight?.rows.length).toBe(6);
+  });
+
+  // ── decision 4: the 2D/3D switch on the hero card ────────────────────────
+
+  it('offers no view switch while the ship has no 3D model', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    expect(fixture.componentInstance.has3dView()).toBeFalse();
+    expect(el.querySelector('.view-switch')).toBeNull();
+  });
+});
+
+describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+
+  beforeEach(async () => {
+    fixture = await setup('ship', [NOMAD_SKIN]);
+  });
+
+  it('swaps the stage art for the 3D view and back', async () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const switchEl = () => el.querySelector('.view-switch') as HTMLButtonElement;
+
+    // The skin catalog resolves in a floating promise inside the viewer, so
+    // give it one more turn than the shared setup does.
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    // The catalog answered "there is a model", so the card offers the switch.
+    expect(fixture.componentInstance.has3dView()).toBeTrue();
+    const btn = switchEl();
+    expect(btn).toBeTruthy();
+    expect(btn.tagName).toBe('BUTTON');
+    expect(btn.getAttribute('type')).toBe('button');
+    // Reachable by keyboard with a name that says what pressing it does.
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    expect(btn.getAttribute('aria-label')).toBe('codex.detail.heroSwitchTo3d');
+    expect(btn.textContent?.trim()).toBe('codex.detail.heroView3d');
+    // 2D: the picture is on the stage, the livery section owns the model.
+    expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
+    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();
+
+    btn.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.heroView3d()).toBeTrue();
+    expect(switchEl().getAttribute('aria-pressed')).toBe('true');
+    expect(switchEl().getAttribute('aria-label')).toBe('codex.detail.heroSwitchTo2d');
+    expect(switchEl().textContent?.trim()).toBe('codex.detail.heroView2d');
+    // The model is on the stage now — and only there, never twice.
+    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeTruthy();
+    expect(el.querySelectorAll('sc-ship-skin-viewer').length).toBe(1);
+
+    switchEl().click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.heroView3d()).toBeFalse();
+    expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
+    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();
   });
 });
 

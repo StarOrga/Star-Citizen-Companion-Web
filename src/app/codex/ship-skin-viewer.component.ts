@@ -99,7 +99,8 @@ const GLB_HEAD_BYTES = 1_048_576;
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     @if (skins().length) {
-      <section class="skins">
+      <section class="skins" [class.embedded]="embedded()">
+        @if (!embedded()) {
         <header class="skins-head">
           <button
             type="button"
@@ -113,9 +114,11 @@ const GLB_HEAD_BYTES = 1_048_576;
           </button>
           <span class="src">{{ 'codex.skins.source' | translate }}</span>
         </header>
-        @if (expanded()) {
+        }
+        @if (expanded() || embedded()) {
         <div class="skins-body">
           <div class="stage">
+            @if (!embedded()) {
             <div class="modes">
               <button
                 type="button"
@@ -129,6 +132,7 @@ const GLB_HEAD_BYTES = 1_048_576;
                 {{ 'codex.skins.modePaint' | translate }}
               </button>
             </div>
+            }
 
             @if (mode() === '3d' && modelUrl() && !modelError()) {
               <!-- keyed by skinId: Angular destroys + recreates the element on
@@ -194,7 +198,7 @@ const GLB_HEAD_BYTES = 1_048_576;
               <div class="empty">{{ 'codex.skins.no3d' | translate }}</div>
             }
 
-            @if (current(); as c) {
+            @if (!embedded() && current(); as c) {
               <div class="badge">
                 <strong>{{ c.name }}</strong>
                 @if (c.description) {
@@ -210,6 +214,7 @@ const GLB_HEAD_BYTES = 1_048_576;
             }
           </div>
 
+          @if (!embedded()) {
           <ul class="list" role="listbox" [attr.aria-label]="'codex.skins.title' | translate">
             @for (s of skins(); track s.skinId) {
               <li
@@ -238,6 +243,7 @@ const GLB_HEAD_BYTES = 1_048_576;
               </li>
             }
           </ul>
+          }
         </div>
         }
       </section>
@@ -260,6 +266,20 @@ const GLB_HEAD_BYTES = 1_048_576;
         border-radius: 12px;
         overflow: hidden;
         background: var(--surface, #15171c);
+      }
+      /* Bare stage inside the hero card: no chrome, no border, no rounding —
+         the card already provides all three. */
+      .skins.embedded {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        block-size: 100%;
+      }
+      .skins.embedded .skins-body,
+      .skins.embedded .stage {
+        block-size: 100%;
+        margin: 0;
+        padding: 0;
       }
       .skins-head {
         display: flex;
@@ -599,6 +619,19 @@ export class ShipSkinViewerComponent {
   /** Ports this model can locate — drives the row affordance in the list. */
   readonly locatable = output<string[]>();
 
+  /**
+   * Render as bare stage: no header, no mode buttons, no skin list, no badge —
+   * only the model. Used by the ship page's hero card, whose own 2D/3D switch
+   * already owns the decision this component's chrome would duplicate.
+   */
+  readonly embedded = input(false);
+  /**
+   * Whether this ship has an interactive model at all. The hero switch is only
+   * offered when the answer is yes, and only this component can answer it: the
+   * skin catalog is what says whether a glb exists.
+   */
+  readonly available = output<boolean>();
+
   // Persist the collapsed/expanded state of the whole viewer (#137 part 2).
   // Default when the user never toggled it: expanded on desktop, collapsed on
   // mobile (the 3D stage eats a lot of vertical space on phones). The stored
@@ -661,6 +694,10 @@ export class ShipSkinViewerComponent {
     // Publish what the model can locate, so the list rows can offer the
     // affordance only for ports that really have a marker.
     effect(() => this.locatable.emit(this.hotspots().map((h) => h.port)));
+    // Publish whether a 3D model exists at all, so the hero can offer (or not
+    // offer) its 2D/3D switch. Emitted from the catalog, not from a loaded
+    // model: the answer must be known before anything is downloaded.
+    effect(() => this.available.emit(this.skins().some((s) => !!s.modelPath)));
   }
 
   /**
