@@ -965,6 +965,34 @@ checked — and it has already burned us:
 > merges behind. The estimate was wrong twice over, because the four production
 > deploys before it had taken 5.3 / 6.2 / 8.2 / 9.5 minutes. Never one.
 
+**And then it burned us again, the same night, with the rules above already
+written down** — which is why step 5b is no longer only prose:
+
+> Topic `a33ba528` (PR #531) merged at 22:02:38Z. The review reply went out
+> **68 seconds later**, again with *"Vercel braucht nach dem Merge ~1 Min"*, and
+> again without the PWA caveat. The admin looked at 22:06:56Z and answered *"ich
+> sehe live 0 unterschied?!"*. He was right: the Production deployment for the
+> merge SHA did not report `success` until **22:12:10Z** — five minutes after he
+> looked, nine and a half after the merge. The change itself was fine and is live.
+
+Twice in one night is not forgetfulness, it is a **process defect**: at the end of
+a long ship the correct reply costs a poll loop and the wrong one costs nothing,
+so under pressure the wrong one wins every time. A rule that is only prose in a
+2000-line runbook loses that race. So the rule now has a body:
+
+```bash
+npm run verify:ship-live -- --sha <merge-sha> --pr <PR-Link> \
+  --changed "<ein Satz>" --route admin/feedback --probe <new i18n key>
+```
+
+`scripts/verify-ship-live.mjs` does the waiting and **prints the reply to post**.
+It emits the ✅ wording *only* after it has observed the deployment `success` (and,
+when `--probe` is given, seen the new string actually served); otherwise it prints
+the ⏳ "merged, not live yet" reply and exits non-zero. The observed `HH:MM` and the
+PWA caveat are baked into its output, so the correct reply is now the cheap one and
+a ✅ nobody verified cannot be produced by accident. Pass `--route` **without** the
+leading slash — Git Bash rewrites a leading-slash argument into a Windows path.
+
 So step 5b runs as four rules, in this order:
 
 1. **Wait for the production deployment that carries the merge SHA.** After the
@@ -973,6 +1001,10 @@ So step 5b runs as four rules, in this order:
    bounded at **15 minutes** (poll every ~30 s). Match on the **merge SHA** — "the
    site responds" proves nothing, the site was up the entire time it was serving
    the old build:
+
+   `npm run verify:ship-live` (above) is the sanctioned way to do this — it polls
+   on a 30 s interval to a 15-minute bound and hands you the finished reply. The
+   calls it makes, if you ever need them by hand:
 
    ```bash
    SHA=$(git rev-parse origin/main)   # the squash-merge commit
