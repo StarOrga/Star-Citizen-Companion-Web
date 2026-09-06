@@ -32,7 +32,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
         <div class="landing-grid">
           <section class="hero">
             <div class="brand">
-              <img src="icons/brand/scc-mark-compact.svg" alt="" width="64" height="64" class="brand-logo" />
+              <img src="icons/brand/scc-mark.svg" alt="" width="64" height="64" class="brand-logo" />
               <h1>{{ 'auth.landing.appName' | translate }}</h1>
             </div>
             <p class="tag">{{ 'auth.tagline' | translate }}</p>
