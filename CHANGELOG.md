@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.6] - 2026-09-06
+
+### Fixed
+
+- **Die Elemente der Schiffsseite sehen jetzt aus, wie Christoph sie gezeichnet
+  hat.** Die Blockreihenfolge stimmte seit 0.82.5, die Bauteile darin nicht:
+  Missionschips waren 48 Pixel hohe Pillen mit 13-Pixel-Gemischtschrift auf
+  einer Leiste ganz ohne Rahmen — das Konzept zeichnet 3-Pixel-Rechtecke mit
+  10-Pixel-Versalien in einem umrandeten Kasten. Die KPI-Leiste bestand aus
+  sechs gerundeten Kacheln von rund 68 Pixeln Höhe mit dem Wert unter seinem
+  Label; im Konzept ist sie ein durchgehendes Band aus etwa 25 Pixel hohen
+  Grundlinienzeilen mit geteilten Haarlinien, der Wert rechts, das Delta als
+  getönter Chip. Modulüberschriften waren zu gedämpftem Fließtext geworden,
+  Faltvorschauen zu Pillen, und die Slot-Erhebung war invertiert — die Zeilen
+  lagen *in* der Karte statt darauf. Die Analysetabellen waren vollständig
+  linksbündig, sodass jede DPS-Spalte sich wie Prosa las. Der Bereichswähler des
+  Tausch-Fensters bestand aus zwei massiven Akzentblöcken, und seine
+  Prozentbalken übergossen die ganze Zelle, statt als 3-Pixel-Messstrich unter
+  der Zahl zu stehen. Das Dock war 43 Pixel breiter als gezeichnet, zeigte acht
+  dauerhaft umrandete Gruppenknöpfe, die das Konzept nur beim Überfahren
+  hervorhebt, und sein minimierter Streifen schnitt auf einem 390 Pixel breiten
+  Telefon die letzten beiden Werte ab. Zwei Regeln haben das davor bewahrt, eine
+  Verschlechterung zu werden: Alle Werte stehen in absoluten Pixeln, umgerechnet
+  aus der 13-Pixel-Grundschrift des Entwurfs, weil die App auf 15 läuft — die
+  Grundschrift selbst bleibt unangetastet. Und jede Regel unterhalb von 48 Pixeln
+  gilt nur für Mauszeiger, damit die Tippflächen auf Touch erhalten bleiben.
+- **Die Perzentil-Balken der Einordnung waren auf jeder Bildschirmbreite 39
+  Pixel lang.** Die Kette: die Shell deckelt bei 1280 Pixeln, die Masthead-Hälfte
+  nimmt davon 604, die Karte zieht Polsterung und den 210 Pixel breiten Radar ab,
+  die zweispaltige Liste halbiert den Rest, und Label plus Wert plus Spalten
+  belegen 124 Pixel. Unterhalb von 1124 Pixeln Fensterbreite wurde der Rest
+  negativ und die Zeile lief über. Die vorhandene Sicherung maß die Fensterbreite
+  — die Karte wird aber nie so breit wie das Fenster, also griff sie nie. Die
+  Karte ist jetzt ihr eigener Maßstab: eine Balkenspalte als Standard, zwei erst,
+  wenn die Karte selbst breit genug dafür ist. Das ergibt 228 Pixel ablesbare
+  Balkenlänge statt 39.
+
 ## [0.82.5] - 2026-09-06
 
 ### Fixed

@@ -158,23 +158,39 @@ import {
   `,
   styles: [`
     :host { display: block; }
-    .rank-card { padding: 16px 18px; display: grid; grid-template-columns: 210px 1fr; gap: 10px 18px; }
+    /* container-type makes the card itself the yardstick for the bar list
+       inside it. The card is NARROWEST when the viewport is widest — the
+       masthead splits 50/50 from 1100px up, so the card is half the shell
+       there and the full shell below it. A viewport breakpoint would
+       therefore answer the question backwards; only the card's own inline
+       size can say whether two bar columns still leave a readable track.
+       Column gap is the concept's .8rem (10.4px at the mock's 13px root). */
+    .rank-card { padding: 16px 18px; display: grid; grid-template-columns: 210px 1fr; gap: 10px;
+      container-type: inline-size; container-name: rankcard; }
     .rank-head { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; }
     .rank-col-radar { display: flex; flex-direction: column; gap: 8px; }
     .rank-col-bars { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
     /* Loading and the no-cohort gap draw no radar, so the one remaining column
        takes the whole card instead of leaving a 210px hole beside itself. */
     .rank-card:not(:has(.rank-col-radar)) .rank-col-bars { grid-column: 1 / -1; }
-    /* The two-column card needs ~560px before the bar grid starts overflowing
-       (210 radar + 18 gap + two 74|bar|34 bar columns + 14 gap + padding), so
-       it collapses there rather than at the bar list's own width. */
+    /* Below 560px the 210px radar column eats more than a third of the card,
+       so radar and bars stack instead and each gets the full width. Kept as a
+       viewport query: at these sizes the card IS the viewport minus the shell
+       padding, so the two measure the same thing. */
     @media (max-width: 560px) {
       .rank-card { grid-template-columns: 1fr; }
     }
-    h2 { margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-accent);
+    /* Card head type comes straight off the concept's head rule: 10.5px,
+       .14em tracking, weight 600 accent caps, with the cohort count beside
+       it at 11px in the muted role and no caps of its own. */
+    h2 { margin: 0; font-size: max(10.5px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.14em;
+      font-weight: 600; color: var(--sc-accent);
       display: flex; align-items: center; gap: 8px; }
-    .glyph { font-size: 0.9rem; }
-    .cohort-line { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* In the concept the diamond is just the first character of the head, so
+       it takes the head size; only the tracking is reset so it does not sit
+       8px + .14em away from the word. */
+    .glyph { font-size: inherit; letter-spacing: normal; }
+    .cohort-line { margin: 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
     .profile-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .profile-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 4px 10px;
@@ -183,7 +199,6 @@ import {
     .profile-chip.active { border-color: var(--sc-accent); color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .profile-chip:disabled { opacity: 0.45; cursor: not-allowed; }
-    .lens-note { margin: 4px 0 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .scope-select { margin-left: auto; }
     .scope-hint { flex-basis: 100%; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor));
       color: var(--sc-fg-2); font-style: italic; }
@@ -194,7 +209,13 @@ import {
     .rank-skel { height: 220px; border-radius: 8px; }
     .gap-note { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
-    .verdict { position: relative; margin: 0; font-size: 0.86rem; color: var(--sc-fg-0); }
+    .verdict { position: relative; margin: 0; font-size: max(12px, var(--sc-fs-floor)); color: var(--sc-fg-0); }
+    /* The concept sets the percentage itself in a 15px accent b, the rest of
+       the line in 12px body text. The app's verdict is ONE translated string
+       with the number interpolated into it, so there is no element to hit
+       today — this is the rule that b lands on the moment the template (or
+       the i18n string, rendered as markup) carries one. */
+    .verdict b { font-size: 15px; color: var(--sc-accent); font-variant-numeric: tabular-nums; }
     .verdict.gap { color: var(--sc-fg-2); font-style: italic; }
     .cohort-line.gap { font-style: italic; }
     .tip { margin-left: 4px; cursor: help; color: var(--sc-fg-2); background: none; border: none; padding: 0;
@@ -216,19 +237,43 @@ import {
     .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend .ship { color: var(--sc-accent); }
 
-    .bar-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; align-content: start; }
+    /* ONE column by default. A row spends 74 + 34 + two 5px gaps = 118px on
+       label, value and gutters and gives the rest to the track, so the track
+       is only as wide as the column it sits in. On the widest desktop the
+       card is 604px (1224px of shell content halved with a 16px gap) = 566px
+       of content, 346px of that in the bars column: one column leaves a
+       228px track, two would leave 114px each — and every step narrower took
+       the two-column track towards zero and then overflowed the row. */
+    .bar-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr;
+      gap: 4px 12px; align-content: start; }
+    /* Two columns only once the CARD can pay for them: 708px of card content
+       = 210 radar + 10 gap + 2x238 bar columns + 12 gap, and 238 - 118 leaves
+       the ~120px track the concept draws (part-02 renders 121px). The card
+       reaches that only where the masthead is a single column, i.e. below
+       1100px viewport, where the card is the full shell minus its padding. */
+    @container rankcard (min-width: 708px) {
+      .bar-list { grid-template-columns: 1fr 1fr; }
+    }
+    /* Floor for the phone and for any engine without container queries — it
+       follows the container block, so below 520px it wins outright. */
     @media (max-width: 520px) {
       .bar-list { grid-template-columns: 1fr; }
     }
-    .bar-row { display: grid; grid-template-columns: 74px 1fr 34px; align-items: center; gap: 8px; }
-    .bar-label { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
-    .bar-track { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
-    .bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
+    .bar-row { display: grid; grid-template-columns: 74px 1fr 34px; align-items: center; gap: 5px; }
+    .bar-label { font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    /* The concept's track is a 4px hairline with a 2px radius on a faint
+       muted ground (16% of the muted foreground) — not an 8px pill. The fill
+       is square-ended; the track's own radius and overflow clip it. */
+    .bar-track { height: 4px; border-radius: 2px; overflow: hidden;
+      background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); }
+    .bar-fill { display: block; height: 100%; background: var(--sc-accent); }
     .bar-fill.weak { background: var(--sc-danger); }
-    .bar-value { font-size: max(0.68rem, var(--sc-fs-floor)); text-align: right; color: var(--sc-fg-0);
+    .bar-value { font-size: max(11px, var(--sc-fs-floor)); text-align: right; color: var(--sc-fg-0);
       font-variant-numeric: tabular-nums; }
     .gap-dash { color: var(--sc-fg-2); cursor: help; }
-    .lens-note { margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    /* The concept's own footnote under the bars: 10px, muted, upright — it is
+       a caption, not an aside, so it carries no italic there. */
+    .lens-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
   `],
 })
 export class CodexRankCardComponent {

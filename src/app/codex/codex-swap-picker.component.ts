@@ -430,10 +430,14 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     :host { display: contents; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+    /* Concept part-01:403-404. padding 3.2rem 4.5rem at the mock's 13px root
+       = 42px 58px, and cursor:pointer - the veil IS the close affordance, so it
+       has to read as clickable. The window takes the arrow back (part-01:406). */
     .pick-veil { position: fixed; inset: 0; z-index: 150;
       background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent);
       -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-      display: grid; place-items: center; padding: 52px 72px; overflow-y: auto; }
+      display: grid; place-items: center; padding: 42px 58px; overflow-y: auto;
+      cursor: pointer; }
     .pick-hint { position: absolute; top: 16px; left: 0; right: 0; text-align: center;
       font-size: max(0.75rem, var(--sc-fs-floor)); color: var(--sc-fg-2); pointer-events: none; margin: 0; }
     .pick-hint.inferred { position: static; pointer-events: auto; text-align: left; margin: 0 18px;
@@ -443,7 +447,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       display: flex; flex-direction: column; background: var(--sc-bg-1);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
       border-radius: var(--radius-md, 4px); box-shadow: 0 24px 70px rgb(0 0 0 / .7);
-      overflow: hidden; padding: 16px 18px 14px; gap: 10px; }
+      overflow: hidden; padding: 16px 18px 14px; gap: 10px; cursor: default; }
 
     .pick-head { display: flex; align-items: flex-start; gap: 10px;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
@@ -461,14 +465,43 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
     .pick-msg.err { color: var(--sc-danger); }
 
-    .pick-scope { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+    /* Concept .scope-bar (part-01:632-634): ONE centred row - label, chips,
+       label, chips, count pushed right - at gap .5rem / padding .45rem .1rem
+       .6rem of a 13px root (6px / 6px 1px 8px). The label sits BESIDE its
+       switch (part-07:131-134), not stacked above it. */
+    .pick-scope { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+      padding: 6px 1px 8px; font-size: max(11px, var(--sc-fs-floor)); }
     .pick-search { flex: 1 1 200px; min-width: 160px; }
     .pick-search input { width: 100%; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: 0.8rem; }
-    .pick-seg { display: flex; flex-direction: column; gap: 3px; }
-    .pick-seg-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .pick-seg { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+    .pick-seg-label { font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
     .pick-preview-hint { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); max-width: 220px; }
-    .pick-count { margin: 0 0 6px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-1); align-self: flex-end; }
+    .pick-count { margin: 0 0 0 auto; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); align-self: center; }
+
+    /* -- Scope switch: chips, not slabs -------------------------------------
+       Mollywator draws the two switches as a row of small uppercase chips whose
+       ACTIVE member is accent TEXT on a tinted ground (.seg part-02:11-13,
+       .btn / .btn.on part-02:159-160). The shared sc-segmented control paints
+       the active segment as a solid accent block at 48px instead, which put two
+       heavy cyan slabs in the picker head. Re-dressed HERE, scoped to the
+       picker, so the shared component keeps its markup, roving tabindex and
+       radio-group arrow keys untouched.
+       .btn padding .28rem .6rem at the mock's 13px root = 4px 8px. */
+    .pick-seg sc-segmented ::ng-deep .seg { border-radius: 3px; background: transparent; }
+    .pick-seg sc-segmented ::ng-deep .seg-btn { padding: 4px 8px;
+      font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; }
+    .pick-seg sc-segmented ::ng-deep .seg-btn.active,
+    .pick-seg sc-segmented ::ng-deep .seg-btn.active:hover {
+      background: color-mix(in srgb, var(--sc-accent) 18%, transparent);
+      color: var(--sc-accent); font-weight: inherit; }
+    /* The concept chip is ~24px tall. That is below the app's touch floor, so
+       it only applies to a mouse - a coarse pointer keeps the shared control's
+       48px segments (src/styles.scss), exactly as .hero.stage .acts .btn does. */
+    @media (pointer: fine) {
+      .pick-seg sc-segmented ::ng-deep .seg-btn { min-height: 24px; }
+    }
 
     .pick-cols { position: relative; align-self: flex-end; }
     .pick-cols-sum { cursor: pointer; padding: 6px 10px; border-radius: 6px; background: var(--sc-bg-0);
@@ -498,11 +531,20 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
        relax its overflow at all — it stays a normal, always-scrollable
        container regardless of any open menu. */
     .pick-scroll { overflow: auto; border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px); flex: 1 1 auto; }
-    .wt { min-inline-size: 1080px; width: 100%; border-collapse: collapse; font-size: max(12px, var(--sc-fs-floor));
+    /* Concept table.wt part-01:621-622 - 11px body, and a 9px / .08em head
+       that must NOT wrap: without white-space:nowrap a two-word column title
+       broke over two lines and doubled the height of the whole header band.
+       padding .3rem .35rem of a 13px root = 4px 5px; the head's bottom rule is
+       accent-dim (--m-cy-dim), not the neutral border. */
+    .wt { min-inline-size: 1080px; width: 100%; border-collapse: collapse; font-size: max(11px, var(--sc-fs-floor));
       font-variant-numeric: tabular-nums; }
     .wt thead th { position: sticky; top: 0; z-index: 2; background: var(--sc-bg-2);
-      border-bottom: 1px solid var(--sc-border); padding: 4px 8px; text-align: right;
-      font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
+      border-bottom: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+      padding: 4px 5px; text-align: right; white-space: nowrap; font-weight: 500;
+      font-size: max(9px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+    /* sc-column-menu's unit suffix carries its own 11px floor, which would
+       outsize the 9px head it hangs off. */
+    .wt thead th sc-column-menu ::ng-deep .unit { font-size: max(9px, var(--sc-fs-floor)); }
     .wt th.c-name { text-align: left; position: sticky; left: 0; z-index: 4; }
     .wt td.c-name { position: sticky; left: 0; z-index: 3; background: var(--sc-bg-1); }
 
@@ -512,7 +554,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-row.cur { background: color-mix(in srgb, var(--sc-warn) 8%, transparent); }
     .pick-row.cur td.c-name { background: color-mix(in srgb, var(--sc-warn) 14%, var(--sc-bg-0)); }
 
-    td.c-name { padding: 6px 8px; }
+    td.c-name { padding: 4px 5px; }
     .pick-ident { display: flex; flex-direction: column; gap: 1px; min-width: 0; margin-left: 4px; }
     .pick-name { font-size: 0.8rem; color: var(--sc-fg-0); overflow-wrap: anywhere; display: inline-flex; align-items: center; gap: 6px; }
     .pick-meta { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
@@ -523,10 +565,23 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       color: var(--sc-accent); border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, transparent);
       background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
 
-    td.c-num { position: relative; padding: 6px 8px; text-align: right; color: var(--sc-fg-1); white-space: nowrap; }
+    td.c-num { position: relative; padding: 4px 5px; text-align: right; color: var(--sc-fg-1); white-space: nowrap; }
     td.c-num.gapc { color: var(--sc-fg-2); }
-    .bar { position: absolute; inset: 2px auto 2px 0; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--sc-accent) 20%, transparent); }
-    .opt { position: absolute; inset-block: 2px; inline-size: 1px; background: var(--sc-warn); }
+    /* Concept .cellbar part-02:5-7 - a 3px METER on its own line UNDER the
+       number (track + accent fill + a 1px gold optimum tick, .18rem = 2px clear
+       of the text), not the 20% accent wash that used to flood the whole cell
+       and swallow the value. The track is the cell's own ::before so it shares
+       the fill's containing block and the two line up to the pixel. */
+    td.c-num:has(.bar) { padding-bottom: 9px; }
+    td.c-num:has(.bar)::before { content: ''; position: absolute; inset-inline: 0; bottom: 4px;
+      block-size: 3px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 26%, transparent); }
+    .bar { position: absolute; inset-inline-start: 0; top: auto; bottom: 4px; block-size: 3px;
+      border-radius: 2px; background: var(--sc-accent); }
+    .opt { position: absolute; inset-inline-end: 0; top: auto; bottom: 3px; inline-size: 1px;
+      block-size: 5px; background: var(--sc-warn); }
+    /* No spread in the column means no meter, and then the optimum tick has
+       nothing left to mark. */
+    td.c-num:not(:has(.bar)) > .opt { display: none; }
     .cell { position: relative; }
     .cell.d.up { color: var(--sc-success); }
     .cell.d.down { color: var(--sc-danger); }
@@ -550,6 +605,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       .pick-win { max-width: none; border-radius: 0; }
       .pick-scope { flex-direction: column; align-items: stretch; }
       .pick-count, .pick-cols { align-self: flex-start; }
+      .pick-count { margin-left: 0; }
     }
   `],
 })
