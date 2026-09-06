@@ -24,30 +24,43 @@ cp ../Star-Citizen-Companion-App/modules/desktop/resources/app-icon-taskbar.svg 
 npm run gen:brand-icons
 ```
 
-`scripts/brand/marks.mjs` derives the sibling marks by splicing on comment markers in that
-file (`<!-- ===== ACCRETION DISK`, `<!-- ===== BRAIN-NEBULA CORE`, `<!-- Brain lobes`). If the
+The web app ships that file **unchanged at every size** — browser tab, PWA icon, header logo,
+boot splash, extension — exactly as the desktop app does for its taskbar icon. It is the icon
+people already recognise, so nothing here redraws it for small sizes. (An earlier version did:
+a "compact" mark with hard orbit rings and a brain glyph, which is why the browser tab looked
+like a different product from the app on the taskbar.)
+
+`scripts/brand/marks.mjs` derives the sibling marks by **appending a badge after** the master's
+markup, asserting only on its close marker (`<!-- end N% margin scale group -->`). If the
 upstream artwork is restructured, the generator **fails loudly** rather than emitting a broken
-icon — fix the markers in `marks.mjs` and re-run.
+icon — fix the marker in `marks.mjs` and re-run.
 
 ## The family
 
-| Product | Mark | Core glyph | Accretion disk |
-|---|---|---|---|
-| SC Companion (app + web) | `scc-mark*` | brain-nebula | three orbits |
-| Starscape | `starscape-mark*` | four-point nova | one wide planetary ring |
-| Data Uploader | `uploader-mark*` | ascending data stream | orbits broken open |
+| Product | Mark | What it is |
+|---|---|---|
+| SC Companion (app + web) | `scc-mark*` | The master, untouched. |
+| Data Uploader | `uploader-mark*` | The master, untouched, with an **upward arrow** badge over the core — it pushes extracted data up into SCC. |
+| Starscape | `starscape-mark*` | The master, untouched, with a **monitor** badge over the core — it paints the verse across the desktop. |
 
-All three are the **same artwork** in the **same cyan**. Colour is deliberately not a
-differentiator: the desktop app's tray already uses hue to encode *state* (active /
-notification / error), so a red icon there must mean "error", never "uploader".
+The base artwork is pixel-for-pixel the desktop app's in all three; the badge sits on top,
+centred on the core and inside the accretion disk's inner orbit, so the ring and wisps stay
+fully visible around it. A product reads as "SCC, plus this" — never as a cousin.
+
+All three are in the **same cyan**. Colour is deliberately not a differentiator: the desktop
+app's tray already uses hue to encode *state* (active / notification / error), so a red icon
+there must mean "error", never "uploader".
 
 ## The tiers
 
 | Tier | Sizes | Why it exists |
 |---|---|---|
-| `-mark` | ≥128px | The full artwork, Gaussian blur and all. |
-| `-mark-compact` | 16–64px | No blur — it dissolves into grey mush at small sizes. Bolder ring, tighter core, larger glyph. |
+| `-mark` (app) | ≥128px | The master, badge drawn at its natural weight. |
+| small | 16–64px | The master with a **bolder, larger** badge. At these sizes the master collapses to a disc and a glowing point — that *is* the desktop app's 16px icon — and the badge has to survive it. Never written as a file: for SCC it is the master itself, for the siblings it is only rasterised (and inlined into the uploader's HTML). |
 | `-mark-tray` | 16–24px | Dark disc **plus a bright rim**: the disc carries the silhouette on a *light* taskbar, the rim on a *dark* one. A disc alone is the bug — `#0d2635` on a dark taskbar is invisible, which is exactly how the desktop app's tray icon came to read as missing. Geometry mirrors the desktop app's own tray mark. |
+
+To iterate on a badge without churning every committed raster, render only the reference
+sheet: `node scripts/build-brand-icons.mjs --sheet=/tmp/sheet.png`.
 
 ## `family-sheet.png`
 
@@ -58,8 +71,8 @@ render differently on the Linux build machine and fail `--check` on nothing but 
 The legend therefore lives here:
 
 - **Columns**, left to right: SC Companion · Starscape · Data Uploader.
-- **Rows**, top to bottom: app tier at 128px · compact tier at 48/32/24/16 · tray tier at 24/16.
-- **The two strips** at the bottom are the point of the exercise: compact @24 then tray @16,
+- **Rows**, top to bottom: app tier at 128px · small tier at 48/32/24/16 · tray tier at 24/16.
+- **The two strips** at the bottom are the point of the exercise: small @24 then tray @16,
   on the Windows dark taskbar (`#1c1c1c`) and the light one (`#f3f3f3`). This is where a
   dark disc used to disappear and where the three products have to stay apart.
 

@@ -1,46 +1,46 @@
 /**
- * SCC brand mark family — one master, two derivations, three size tiers.
+ * SCC brand mark family — one master, two badges, three size tiers.
  *
  * ## Why this file exists
  *
  * Four products ship an icon: the SC Companion desktop app (a separate repo),
- * this web app, the Data Uploader (Electron) and Starscape (Rust). Before this
- * module they shared *one* mark verbatim — so on a taskbar you could not tell
- * which SCC window you were clicking — while the PWA install icon and the
- * browser extension were still on a third, retired mark ("Verse Compass").
+ * this web app, the Data Uploader (Electron) and Starscape (Rust). The desktop
+ * app's icon is the one people already know from their taskbar, so it is the
+ * anchor of the family: every product has to be recognisable as *that* icon
+ * first, and as a specific product second.
  *
  * ## The system
  *
  * MASTER: `public/icons/brand/scc-mark.svg` is the desktop app's icon,
  * vendored byte-for-byte. It is the single source of the family's identity:
  * the dark verse disc (StarUI `--surface-canvas` #0d2635), the nebula wisps,
- * the tilted accretion disk and the glowing cyan core.
+ * the tilted accretion disk and the glowing cyan core. The web app ships it
+ * unchanged at every size, exactly as the desktop app does — an earlier version
+ * of this file redrew a "compact" mark for the small sizes, and that redraw is
+ * what made the browser tab, the header logo and the boot splash look like a
+ * different product from the app on the taskbar.
  *
- * DERIVATION: Starscape and the Data Uploader are the SAME artwork with two
- * surgical swaps — the core glyph, and the accretion disk's signature. Nothing
- * else changes: same palette, same wisps, same star field. They are siblings,
- * not cousins.
+ * DERIVATION: Starscape and the Data Uploader are the master, untouched, with a
+ * product badge laid over its core. Nothing in the master's markup is edited,
+ * moved or removed — the badge is appended on top, so the base artwork stays
+ * pixel-for-pixel the desktop app's and the product reads as "SCC, plus this".
+ *   - Data Uploader: an upward arrow — it pushes extracted data up into SCC.
+ *   - Starscape:     a monitor — it paints the verse across the desktop.
  *
  * COLOUR IS DELIBERATELY NOT A DIFFERENTIATOR. In the desktop app the tray icon
  * already uses hue to encode *state* (active / notification / error). If it
  * also encoded product identity, a red icon would be ambiguous: broken, or the
  * uploader? So every product is cyan, and shape alone carries identity.
  *
- * That constraint has a cost, and it is paid in the glyph choice. A glyph must
- * stay unambiguous at 16px, which is the size Windows actually hands a tray.
- * Measured against the master's soft core at that size:
- *   - a crescent-lit planet collapses into the same blob    → rejected
- *   - a framed "vista" rectangle turns to mush below 24px   → rejected
- *   - a hard-edged four-point nova survives                 → shipped
- *
- * TIERS: one drawing cannot serve 16px and 512px, so each product has three.
- *   app      >=128px — the full master artwork, blur and all.
- *   compact  16-64px — redrawn: no Gaussian blur (it dissolves), bolder ring,
- *                      tighter core, glyph scaled up to carry the silhouette.
- *   tray     16-24px — NO dark disc. A dark disc on a dark Windows taskbar is
- *                      invisible, which is exactly how the old tray icon read
- *                      as "missing". Bright annulus + solid glyph on
- *                      transparency instead: legible on light AND dark.
+ * TIERS: one badge cannot serve 16px and 512px, so each product has three.
+ *   app    >=128px — the master with the badge drawn at its natural weight.
+ *   small  16-64px — the master with a bolder, larger badge: at these sizes the
+ *                    master itself collapses to a disc and a dot (that IS the
+ *                    desktop app's 16px icon), and the badge has to survive it.
+ *   tray   16-24px — mirrors the desktop app's own tray construction: a dark
+ *                    disc plus a bright rim, no blur, no margin. A dark disc on
+ *                    a dark Windows taskbar is invisible, which is exactly how
+ *                    the old tray icon read as "missing".
  */
 
 // StarUI design tokens — the master is already built on these.
@@ -54,193 +54,177 @@ export const C = {
 
 export const PRODUCTS = ['scc', 'starscape', 'uploader'];
 
-// ─── Core glyphs, authored in the master's inner 300-unit space (centre 150,150)
-
-/** Four-point nova — Starscape paints the verse across the desktop. */
-const novaMaster = `
-  <!-- Starscape: four-point nova replaces the brain lobes -->
-  <path d="M150,66 C157.5,120 180,142.5 234,150 C180,157.5 157.5,180 150,234 C142.5,180 120,157.5 66,150 C120,142.5 142.5,120 150,66 Z"
-        fill="${C.hi}" fill-opacity=".55"/>
-  <path d="M150,96 C154.2,129 171,145.8 204,150 C171,154.2 154.2,171 150,204 C145.8,171 129,154.2 96,150 C129,145.8 145.8,129 150,96 Z"
-        fill="#eaf7fd" fill-opacity=".95"/>`;
-
-/** Ascending stream — the uploader pushes extracted data into SCC. */
-const arrowMaster = `
-  <!-- Data Uploader: ascending data stream replaces the brain lobes -->
-  <path d="M150,78 L201,150 L172.5,150 L172.5,189 L127.5,189 L127.5,150 L99,150 Z"
-        fill="${C.hi}" fill-opacity=".9" stroke="${C.bright}" stroke-width="6" stroke-linejoin="round"/>
-  <rect x="108" y="204" width="84" height="16.5" rx="8.25" fill="${C.bright}" fill-opacity=".9"/>`;
-
-// ─── Accretion-disk signatures, same coordinate space ────────────────────────
-
-/** Starscape: ONE wide, steeply tilted band — a planetary ring, not a disk. */
-const ringStarscape = `
-  <!-- Starscape signature: a single wide planetary ring instead of the 3-orbit disk -->
-  <g>
-    <ellipse cx="150" cy="150" rx="138" ry="45" fill="none" stroke="${C.base}" stroke-width="3.2" opacity=".5" transform="rotate(-24,150,150)"/>
-    <ellipse cx="150" cy="150" rx="138" ry="45" fill="none" stroke="${C.gold}" stroke-width="1.2" opacity=".3" transform="rotate(-24,150,150)"/>
-    <ellipse cx="150" cy="150" rx="138" ry="45" fill="none" stroke="${C.bright}" stroke-width="5" stroke-dasharray="8 760" opacity=".85" transform="rotate(-24,150,150)" filter="url(#fDk)"/>
-  </g>`;
-
-/** Uploader: the orbits are broken — the stream punches out through the disk. */
-const ringUploader = `
-  <!-- Data Uploader signature: orbits broken open where the stream exits -->
-  <g>
-    <ellipse cx="150" cy="150" rx="105" ry="28" fill="none" stroke="${C.base}" stroke-width="1.8" opacity=".34" stroke-dasharray="78 39" stroke-dashoffset="19" transform="rotate(-20,150,150)"/>
-    <ellipse cx="150" cy="150" rx="86" ry="22" fill="none" stroke="${C.base}" stroke-width="1.5" opacity=".28" stroke-dasharray="60 30" stroke-dashoffset="15" transform="rotate(-20,150,150)"/>
-    <ellipse cx="150" cy="150" rx="105" ry="28" fill="none" stroke="${C.bright}" stroke-width="5" stroke-dasharray="8 577" opacity=".85" transform="rotate(-20,150,150)" filter="url(#fDk)"/>
-    <ellipse cx="150" cy="150" rx="86" ry="22" fill="none" stroke="${C.base}" stroke-width="4.5" stroke-dasharray="7 464" opacity=".8" transform="rotate(-20,150,150)" filter="url(#fDk)"/>
-  </g>`;
-
-const DERIVATION = {
-  starscape: { glyph: novaMaster, disk: ringStarscape, label: 'Starscape' },
-  uploader: { glyph: arrowMaster, disk: ringUploader, label: 'SC Data Uploader' },
-};
-
-// ─── app tier: surgical derivation from the vendored master ──────────────────
-
-const MARK_DISK = '<!-- ===== ACCRETION DISK';
-const MARK_CORE = '<!-- ===== BRAIN-NEBULA CORE';
-const MARK_LOBES = '<!-- Brain lobes';
-// Matched by shape, not by wording: the margin percentage in this comment
-// changes whenever the mark is resized upstream (it went 15% → 5% when the
-// taskbar icon was enlarged), and that is a legitimate edit that must not
-// hard-fail an otherwise-valid derivation.
-const MARK_END_RE = /<\/g><!-- end \d+% margin scale group -->/;
+// ─── Product badges ───────────────────────────────────────────────────────────
+//
+// Authored in the master's OUTER 300-unit space: the canvas is 0..300 and the
+// core sits at (150,150). The master's 5% margin group maps its inner (150,150)
+// onto the same outer point, so "centre of the core" is (150,150) in both.
+//
+// Every id is namespaced (`<product>-badge-…`) because the app-tier SVG gets
+// inlined into HTML documents, where gradient ids are document-global.
+//
+// No <text>, no fonts, no external references: the renderer resolves fonts from
+// the host, and a label would make the bytes differ between a dev box and the
+// Linux build machine, which would fail `--check` on nothing but a font.
 
 /**
- * Derive a product's app-tier mark from the master SVG source.
- *
- * The master is edited in the *other* repo, so this asserts on the section
- * markers rather than trusting line numbers: if the artwork is restructured
- * upstream, the build fails loudly instead of emitting a silently broken icon.
+ * `tier` decides how much finesse the plate can afford:
+ *   app   — the plate is a translucent pane of glass: the master's core glow
+ *           (already sitting behind it) bleeds through, so a soft blur filter
+ *           on the outer halo is safe (blur is fine at >=128px).
+ *   small — the plate has to survive 16px as a bold silhouette, so it stays
+ *           near-opaque and no blur filter is defined at all.
  */
-export function deriveAppMark(masterSvg, product) {
+const badgeDefs = (product, tier) => `
+  <defs>
+    ${tier === 'app' ? `<filter id="${product}-badge-soft" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>` : ''}
+    <radialGradient id="${product}-badge-halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${C.bright}" stop-opacity="${tier === 'app' ? '.34' : '.5'}"/><stop offset="35%" stop-color="${C.base}" stop-opacity="${tier === 'app' ? '.16' : '.2'}"/><stop offset="70%" stop-color="${C.base}" stop-opacity="${tier === 'app' ? '.06' : '.08'}"/><stop offset="100%" stop-color="${C.base}" stop-opacity="0"/></radialGradient>
+    <radialGradient id="${product}-badge-plate" cx="50%" cy="40%" r="62%"><stop offset="0%" stop-color="#1a3d54" stop-opacity="${tier === 'app' ? '.42' : '.92'}"/><stop offset="100%" stop-color="${C.canvas}" stop-opacity="${tier === 'app' ? '.5' : '.9'}"/></radialGradient>
+    <radialGradient id="${product}-badge-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${C.hi}" stop-opacity=".82"/><stop offset="55%" stop-color="${C.bright}" stop-opacity=".3"/><stop offset="100%" stop-color="${C.bright}" stop-opacity="0"/></radialGradient>
+    <linearGradient id="${product}-badge-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${C.hi}" stop-opacity=".95"/><stop offset="55%" stop-color="${C.base}" stop-opacity=".65"/><stop offset="100%" stop-color="${C.base}" stop-opacity=".35"/></linearGradient>
+    <linearGradient id="${product}-badge-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="${C.hi}"/></linearGradient>
+  </defs>`;
+
+/**
+ * Data Uploader — an ascending arrow over a landing bar, with a faint motion
+ * trail of two shrinking chevrons underneath: the arrow isn't just present,
+ * it's mid-ascent.
+ *
+ * `r` is the badge plate radius (the disc that lifts the glyph off the nebula);
+ * the arrow is sized so its shaft sits on the core and its head clears the
+ * accretion disk's inner orbit. `tier` selects the glass-plate finesse
+ * (see `badgeDefs`) — the glyph geometry itself is still supplied per tier by
+ * the caller so `small` stays bold.
+ */
+const uploaderBadge = ({ tier, r, rim, head, shaft, bar, trail, stroke }) => `
+<!-- ===== PRODUCT BADGE: Data Uploader (laid over the untouched master) ===== -->
+<g>${badgeDefs('uploader', tier)}
+  <circle cx="150" cy="150" r="${r + 20}" fill="url(#uploader-badge-halo)"${tier === 'app' ? ` filter="url(#uploader-badge-soft)"` : ''}/>
+  ${tier === 'app' ? `<circle cx="150" cy="150" r="${r}" fill="none" stroke="${C.bright}" stroke-width="${rim * 1.8}" stroke-opacity=".22" filter="url(#uploader-badge-soft)"/>` : ''}
+  <circle cx="150" cy="150" r="${r}" fill="url(#uploader-badge-plate)"/>
+  <circle cx="150" cy="150" r="${r * 0.86}" fill="url(#uploader-badge-core)"/>
+  <circle cx="150" cy="150" r="${r}" fill="none" stroke="${tier === 'app' ? `url(#uploader-badge-rim)` : C.base}" stroke-width="${rim}" stroke-opacity="${tier === 'app' ? '.85' : '.9'}"/>
+  ${tier === 'app' ? `<circle cx="150" cy="150" r="${r - rim * 2}" fill="none" stroke="${C.hi}" stroke-width="${rim * 0.4}" stroke-opacity=".3"/>` : ''}
+  <path d="M${150 - trail.w},${150 + trail.y} L150,${150 + trail.y - trail.h} L${150 + trail.w},${150 + trail.y}"
+        fill="none" stroke="${C.bright}" stroke-width="${trail.sw}" stroke-linecap="round" stroke-opacity=".5"/>
+  <path d="M${150 - trail.w * 0.66},${150 + trail.y + trail.gap} L150,${150 + trail.y + trail.gap - trail.h * 0.7} L${150 + trail.w * 0.66},${150 + trail.y + trail.gap}"
+        fill="none" stroke="${C.bright}" stroke-width="${trail.sw}" stroke-linecap="round" stroke-opacity=".25"/>
+  <path d="M150,${150 - head.top} L${150 + head.w},${150 - head.base} L${150 + shaft.w},${150 - head.base} L${150 + shaft.w},${150 + shaft.bottom} L${150 - shaft.w},${150 + shaft.bottom} L${150 - shaft.w},${150 - head.base} L${150 - head.w},${150 - head.base} Z"
+        fill="url(#uploader-badge-ink)" stroke="${C.bright}" stroke-width="${stroke}" stroke-linejoin="round"/>
+  <rect x="${150 - bar.w}" y="${150 + bar.y}" width="${bar.w * 2}" height="${bar.h}" rx="${bar.h / 2}" fill="${C.bright}"/>
+</g>`;
+
+/** Four-point star path centred on (cx,cy) with half-size `s` — the verse on screen. */
+const star4 = (cx, cy, s) => {
+  const k = s * 0.16;
+  return `M${cx},${cy - s} C${cx + k},${cy - k} ${cx + k},${cy - k} ${cx + s},${cy} C${cx + k},${cy + k} ${cx + k},${cy + k} ${cx},${cy + s} C${cx - k},${cy + k} ${cx - k},${cy + k} ${cx - s},${cy} C${cx - k},${cy - k} ${cx - k},${cy - k} ${cx},${cy - s} Z`;
+};
+
+/**
+ * Starscape — a monitor on a stand, its screen lit by a small four-point star:
+ * the verse, on the desktop. `tier` selects the glass-plate finesse (see
+ * `badgeDefs`); the app tier also gets a faint diagonal sheen across the
+ * screen, echoing the master's tilted disk without competing with it.
+ */
+const starscapeBadge = ({ tier, r, rim, screen, bezel, stand, star }) => {
+  const top = 150 - screen.top;
+  const mid = top + screen.h / 2;
+  return `
+<!-- ===== PRODUCT BADGE: Starscape (laid over the untouched master) ===== -->
+<g>${badgeDefs('starscape', tier)}
+  <circle cx="150" cy="150" r="${r + 20}" fill="url(#starscape-badge-halo)"${tier === 'app' ? ` filter="url(#starscape-badge-soft)"` : ''}/>
+  ${tier === 'app' ? `<circle cx="150" cy="150" r="${r}" fill="none" stroke="${C.bright}" stroke-width="${rim * 1.8}" stroke-opacity=".22" filter="url(#starscape-badge-soft)"/>` : ''}
+  <circle cx="150" cy="150" r="${r}" fill="url(#starscape-badge-plate)"/>
+  <circle cx="150" cy="150" r="${r * 0.86}" fill="url(#starscape-badge-core)"/>
+  <circle cx="150" cy="150" r="${r}" fill="none" stroke="${tier === 'app' ? `url(#starscape-badge-rim)` : C.base}" stroke-width="${rim}" stroke-opacity="${tier === 'app' ? '.85' : '.9'}"/>
+  ${tier === 'app' ? `<circle cx="150" cy="150" r="${r - rim * 2}" fill="none" stroke="${C.hi}" stroke-width="${rim * 0.4}" stroke-opacity=".3"/>` : ''}
+  <rect x="${150 - screen.w}" y="${top}" width="${screen.w * 2}" height="${screen.h}" rx="${screen.rx}"
+        fill="${C.canvas}" fill-opacity=".92" stroke="url(#starscape-badge-ink)" stroke-width="${bezel}"/>
+  ${tier === 'app' ? `<path d="M${150 - screen.w + bezel},${top + screen.h * 0.62} L${150 - screen.w * 0.25},${top + bezel} L${150 + screen.w * 0.1},${top + bezel} L${150 - screen.w + bezel},${top + screen.h * 0.92} Z" fill="${C.hi}" fill-opacity=".08"/>` : ''}
+  <path d="${star4(150, mid, star)}" fill="#eaf7fd"/>
+  <rect x="${150 - stand.neck}" y="${top + screen.h}" width="${stand.neck * 2}" height="${stand.gap}" fill="${C.bright}"/>
+  <rect x="${150 - stand.foot}" y="${top + screen.h + stand.gap}" width="${stand.foot * 2}" height="${stand.h}" rx="${stand.h / 2}" fill="${C.bright}"/>
+</g>`;
+};
+
+/** Badge geometry per tier. `small` is bolder and larger so it survives 16px. */
+const BADGE = {
+  uploader: {
+    app: uploaderBadge({
+      tier: 'app', r: 52, rim: 3,
+      head: { top: 34, base: 6, w: 27 }, shaft: { w: 10, bottom: 18 },
+      bar: { w: 19, y: 26, h: 7 }, trail: { w: 10, y: 34, gap: 8, h: 6, sw: 2.5 }, stroke: 3,
+    }),
+    small: uploaderBadge({
+      tier: 'small', r: 64, rim: 6,
+      head: { top: 42, base: 4, w: 36 }, shaft: { w: 14, bottom: 22 },
+      bar: { w: 26, y: 32, h: 10 }, trail: { w: 13, y: 42, gap: 10, h: 8, sw: 3.5 }, stroke: 4,
+    }),
+  },
+  starscape: {
+    app: starscapeBadge({
+      tier: 'app', r: 52, rim: 3,
+      screen: { w: 32, top: 32, h: 42, rx: 5 }, bezel: 4,
+      stand: { neck: 5, gap: 8, foot: 18, h: 6 }, star: 11,
+    }),
+    small: starscapeBadge({
+      tier: 'small', r: 64, rim: 6,
+      screen: { w: 40, top: 40, h: 52, rx: 6 }, bezel: 7,
+      stand: { neck: 7, gap: 9, foot: 24, h: 9 }, star: 15,
+    }),
+  },
+};
+
+// The master's own close marker. Matched by shape, not by wording: the margin
+// percentage changes whenever the mark is resized upstream (it went 15% → 5%
+// when the taskbar icon was enlarged), which is a legitimate edit.
+const MARK_END_RE = /<\/g><!-- end \d+% margin scale group -->\s*<\/svg>\s*$/;
+
+/**
+ * Derive a product's mark from the master SVG source.
+ *
+ * `tier` is `app` (>=128px) or `small` (16-64px). For `scc` both are the master
+ * itself — the web app ships the desktop app's icon unchanged.
+ *
+ * The master is edited in the *other* repo, so this asserts on its close marker
+ * rather than trusting structure: if the artwork is restructured upstream, the
+ * build fails loudly instead of emitting a silently broken icon.
+ */
+export function deriveAppMark(masterSvg, product, tier = 'app') {
+  if (!PRODUCTS.includes(product)) throw new Error(`unknown product: ${product}`);
+  if (tier !== 'app' && tier !== 'small') throw new Error(`unknown tier: ${tier}`);
   if (product === 'scc') return masterSvg;
-  const d = DERIVATION[product];
-  if (!d) throw new Error(`unknown product: ${product}`);
 
-  for (const [name, marker] of [
-    ['ACCRETION DISK', MARK_DISK],
-    ['BRAIN-NEBULA CORE', MARK_CORE],
-    ['Brain lobes', MARK_LOBES],
-  ]) {
-    if (!masterSvg.includes(marker)) {
-      throw new Error(
-        `master mark no longer contains the "${name}" marker (${marker}). ` +
-          'The upstream artwork was restructured — re-vendor scc-mark.svg and ' +
-          'update scripts/brand/marks.mjs to match before shipping.',
-      );
-    }
-  }
-
-  const iDisk = masterSvg.indexOf(MARK_DISK);
-  const iCore = masterSvg.indexOf(MARK_CORE);
-  const iLobes = masterSvg.indexOf(MARK_LOBES);
-  const endMatch = MARK_END_RE.exec(masterSvg);
-  if (!endMatch) {
+  if (!MARK_END_RE.test(masterSvg)) {
     throw new Error(
-      'master mark has no "end <n>% margin scale group" close marker. The upstream ' +
-        'artwork was restructured — re-vendor scc-mark.svg and update scripts/brand/marks.mjs.',
+      'master mark no longer ends with its "end <n>% margin scale group" close marker. ' +
+        'The upstream artwork was restructured — re-vendor scc-mark.svg and update ' +
+        'scripts/brand/marks.mjs before shipping.',
     );
   }
-  const iEnd = endMatch.index;
-  if (!(iDisk < iCore && iCore < iLobes && iLobes < iEnd)) {
-    throw new Error('master mark sections are out of order — re-check scc-mark.svg');
-  }
-
-  const head = masterSvg.slice(0, iDisk); // defs, background, clouds, wisps, stars
-  const coreHead = masterSvg.slice(iCore, iLobes); // halo + core glow: shared
-  const tail = masterSvg.slice(iEnd); // close the margin group + </svg>
-
-  return `${head}${d.disk}
-
-${coreHead}${d.glyph}
-
-  <!-- Soft centre — kept from the master so the core reads identically -->
-  <circle cx="150" cy="150" r="3.5" fill="${C.hi}" opacity=".6"/>
-</g>
-
-${tail}`;
-}
-
-// ─── compact + tray tiers: redrawn for small sizes ───────────────────────────
-
-const GLYPH_COMPACT = {
-  scc: () => {
-    // The master's lobes, mapped from its 300-space onto the 100-unit canvas.
-    const s = 0.5;
-    const tx = (50 - 150 * s).toFixed(2);
-    const ty = (50 - 147 * s).toFixed(2);
-    return `<g transform="translate(${tx},${ty}) scale(${s})">
-    <path d="M150,125 C137,120 123,125 120,136 C117,147 119,160 126,166 C133,172 143,172 150,170" fill="${C.hi}" fill-opacity=".40"/>
-    <path d="M150,125 C163,120 177,125 180,136 C183,147 181,160 174,166 C167,172 157,172 150,170" fill="${C.hi}" fill-opacity=".40"/>
-    <path d="M150,126 C139,127 127,136 124,147 C121,156 122,164 128,170 C134,174 143,172 150,170" fill="none" stroke="${C.bright}" stroke-width="6.5" stroke-linecap="round"/>
-    <path d="M150,126 C161,127 173,136 176,147 C179,156 178,164 172,170 C166,174 157,172 150,170" fill="none" stroke="${C.bright}" stroke-width="6.5" stroke-linecap="round"/>
-    <line x1="150" y1="124" x2="150" y2="171" stroke="${C.hi}" stroke-width="4"/>
-  </g>`;
-  },
-  starscape: () => `<path d="M50,22 C52.5,40 60,47.5 78,50 C60,52.5 52.5,60 50,78 C47.5,60 40,52.5 22,50 C40,47.5 47.5,40 50,22 Z" fill="${C.hi}"/>
-  <path d="M50,32 C51.4,43 57,48.6 68,50 C57,51.4 51.4,57 50,68 C48.6,57 43,51.4 32,50 C43,48.6 48.6,43 50,32 Z" fill="#eaf7fd"/>`,
-  uploader: () => `<path d="M50,26 L67,50 L57.5,50 L57.5,63 L42.5,63 L42.5,50 L33,50 Z" fill="${C.hi}" stroke="${C.bright}" stroke-width="2" stroke-linejoin="round"/>
-  <rect x="36" y="68" width="28" height="5.5" rx="2.75" fill="${C.bright}"/>`,
-};
-
-const RING_COMPACT = {
-  scc: `<g transform="rotate(-20 50 50)">
-    <ellipse cx="50" cy="50" rx="45" ry="12.5" fill="none" stroke="${C.base}" stroke-width="2.2" opacity=".65"/>
-    <ellipse cx="50" cy="50" rx="36" ry="10" fill="none" stroke="${C.base}" stroke-width="1.7" opacity=".5"/>
-    <ellipse cx="50" cy="50" rx="27" ry="7.5" fill="none" stroke="${C.base}" stroke-width="1.3" opacity=".4"/>
-    <circle cx="95" cy="50" r="2.6" fill="${C.bright}"/><circle cx="14" cy="50" r="2.2" fill="${C.hi}"/>
-  </g>`,
-  starscape: `<g transform="rotate(-24 50 50)">
-    <ellipse cx="50" cy="50" rx="46" ry="15" fill="none" stroke="${C.base}" stroke-width="3.2" opacity=".7"/>
-    <ellipse cx="50" cy="50" rx="46" ry="15" fill="none" stroke="${C.gold}" stroke-width="1.2" opacity=".45"/>
-    <circle cx="96" cy="50" r="2.4" fill="${C.bright}"/>
-  </g>`,
-  uploader: `<g transform="rotate(-20 50 50)">
-    <ellipse cx="50" cy="50" rx="45" ry="12.5" fill="none" stroke="${C.base}" stroke-width="2.4" opacity=".68" stroke-dasharray="52 26" stroke-dashoffset="13"/>
-    <ellipse cx="50" cy="50" rx="34" ry="9.5" fill="none" stroke="${C.base}" stroke-width="1.8" opacity=".5" stroke-dasharray="40 20" stroke-dashoffset="10"/>
-    <circle cx="95" cy="50" r="2.6" fill="${C.bright}"/>
-  </g>`,
-};
-
-/** compact tier — 16-64px. No blur filters: they dissolve at these sizes. */
-export function compactMark(product) {
-  // Namespaced because the compact mark gets INLINED into HTML documents, where
-  // SVG gradient ids are document-global — a bare id="c" would collide with any
-  // other inline SVG on the page and silently swap one mark's fill for another.
-  const gD = `${product}-mark-disc`;
-  const gC = `${product}-mark-core`;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!-- GENERATED by scripts/build-brand-icons.mjs — edit scripts/brand/marks.mjs instead. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="64" height="64" role="img">
-  <defs>
-    <radialGradient id="${gD}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#143049"/><stop offset="70%" stop-color="${C.canvas}"/><stop offset="100%" stop-color="${C.canvas}"/></radialGradient>
-    <radialGradient id="${gC}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${C.hi}" stop-opacity=".9"/><stop offset="45%" stop-color="${C.bright}" stop-opacity=".42"/><stop offset="100%" stop-color="${C.base}" stop-opacity="0"/></radialGradient>
-  </defs>
-  <circle cx="50" cy="50" r="49.5" fill="url(#${gD})"/>
-  <circle cx="50" cy="50" r="48.4" fill="none" stroke="${C.base}" stroke-width="2.2" opacity=".55"/>
-  ${RING_COMPACT[product]}
-  <circle cx="50" cy="50" r="22" fill="url(#${gC})"/>
-  ${GLYPH_COMPACT[product]()}
+  const iEnd = masterSvg.lastIndexOf('</svg>');
+  return `${masterSvg.slice(0, iEnd)}${BADGE[product][tier]}
 </svg>
 `;
 }
 
 /**
- * The compact mark's markup without the XML prolog, for inlining into HTML.
+ * A mark's markup without the XML prolog, for inlining into HTML.
  *
  * The boot splash and the uploader's header cannot fetch an asset — the splash
  * paints before Angular boots, the uploader derives its favicon from the DOM.
  * Both used to carry a hand-copied duplicate of the mark that nothing kept in
  * sync; this is spliced in by the generator instead and verified by `--check`.
+ *
+ * Ids are namespaced on the way in: the master's `id="coreG"` is fine in a
+ * standalone file, but inline it shares the document with every other SVG.
  */
-export function inlineMark(product, rootAttrs = '') {
-  const svg = compactMark(product)
+export function inlineMark(masterSvg, product, rootAttrs = '') {
+  const svg = deriveAppMark(masterSvg, product, 'small')
     .replace(/^<\?xml[^>]*\?>\s*/, '')
-    .replace(/^<!--[\s\S]*?-->\s*/, '')
-    .trim();
+    .trim()
+    .replace(/\bid="([^"]+)"/g, (_, id) => `id="${product}-mark-${id}"`)
+    .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${product}-mark-${id})`);
   return rootAttrs ? svg.replace('<svg ', `<svg ${rootAttrs} `) : svg;
 }
 
@@ -260,19 +244,21 @@ export function monoMark() {
 `;
 }
 
+// ─── tray tier ────────────────────────────────────────────────────────────────
+
 const GLYPH_TRAY = {
   // Identity at 16px is the glyph silhouette — colour stays uniform, because in
   // the desktop app hue already means tray STATE.
   //
   // SCC keeps the master's small core: a glowing point IS its mark. The two
-  // siblings do not get that luxury. At the master's core radius their glyphs
-  // land on ~1.7 device pixels in a 16px slot and all three tray icons collapse
-  // into the same dot, so nova and stream are drawn roughly 2.5x larger — big
-  // enough to survive the downscale, still inside the accretion ring.
+  // siblings carry their badge glyph instead, drawn large enough to survive the
+  // downscale to 16px and still sit inside the accretion ring.
   scc: `<circle cx="50" cy="50" r="10.6" fill="url(#scc-tray-core)"/>`,
-  starscape: `<path d="M50,19 C53.1,42 58,46.9 81,50 C58,53.1 53.1,58 50,81 C46.9,58 42,53.1 19,50 C42,46.9 46.9,42 50,19 Z" fill="url(#starscape-tray-core)"/>`,
-  uploader: `<path d="M50,20 L74,60 L26,60 Z" fill="url(#uploader-tray-core)"/>
-  <rect x="34" y="66" width="32" height="9" rx="4.5" fill="${C.hi}"/>`,
+  starscape: `<rect x="30" y="30" width="40" height="27" rx="4" fill="${C.canvas}" stroke="url(#starscape-tray-core)" stroke-width="5"/>
+  <rect x="45" y="57" width="10" height="6" fill="${C.hi}"/>
+  <rect x="34" y="63" width="32" height="7" rx="3.5" fill="${C.hi}"/>`,
+  uploader: `<path d="M50,22 L72,50 L59,50 L59,62 L41,62 L41,50 L28,50 Z" fill="url(#uploader-tray-core)"/>
+  <rect x="34" y="68" width="32" height="8" rx="4" fill="${C.hi}"/>`,
 };
 
 /**

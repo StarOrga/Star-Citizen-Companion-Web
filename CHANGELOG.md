@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.81.5] - 2026-09-06
+## [0.82.4] - 2026-09-06
 
 ### Fixed
 
@@ -18,6 +18,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Knopfs (`--sc-fab-lane` = Randabstand + Durchmesser, neu in `styles.scss`):
   Wird der Knopf größer oder rückt er weiter in die Ecke, rückt die Karte
   automatisch mit, statt die Überlappung still wieder herzustellen.
+
+## [0.82.3] - 2026-09-06
+
+### Changed
+
+- **Die Roadmap-Bildchen auf der Patch-Uebersicht sind doppelt so gross.** Sie
+  waren 48x30 Pixel und damit kleiner als jedes Tippziel auf der Seite; jetzt
+  sind es 96x60 (Telefon 84x52), und der Streifen darf dafuer in eine zweite
+  Reihe umbrechen. Wie viele hineinpassen, kommt weiterhin aus der gemessenen
+  Breite — das "..." sitzt jetzt garantiert in der letzten Zeile und kann nicht
+  mehr abgeschnitten werden. Klick, Mittelklick und Strg-Klick auf ein Bildchen
+  oeffnen unveraendert genau diesen Roadmap-Eintrag.
+- **Die Notiz-Zahl ist aus der Uebersicht verschwunden.** Sie stand als eigene
+  Spalte samt Chip in jeder Zeile und kostete Platz, den jetzt die Bildchen
+  bekommen; die Karte hat dadurch eine Spalte weniger.
+
+## [0.82.2] - 2026-09-06
+
+### Changed
+
+- **Ein geöffnetes Thema im Feedback-Panel fängt jetzt beim Lesen an.** Über dem
+  ersten Beitrag standen zwei Zeilen Rahmenwerk — Profil, Art, Zeitstempel, dann
+  Flugbahn, Staffelstab und Chips —, die beide nur wiederholten, was auf der
+  gerade angetippten Karte im Stream schon stand, und den ersten Satz des Themas
+  unter die Falz geschoben haben. Beide Zeilen sind raus: erster Beitrag,
+  letzter Beitrag, Eingabefeld. Das Einzige, was dort **nicht** doppelt war —
+  der Link auf den PR bzw. das Issue —, ist ins „⋯"-Menü umgezogen und damit
+  weiterhin erreichbar.
+- **Das Antwortfeld eines Themas nennt das Thema.** Der Platzhalter heißt nicht
+  mehr allgemein „Antwort schreiben…", sondern „Antwort zu #211 — ‚…'" mit
+  Nummer und (gekürztem) Titel des offenen Themas, damit sichtbar bleibt, wo die
+  Nachricht landet. Derselbe Text ist das `aria-label` des Feldes.
+- **Die Eingabe kostet nur noch halb so viel Fläche.** Sie hatte drei Bänder für
+  alles, was nicht Schreiben ist: eine Entwurfszeile **über** dem Feld, ein Band
+  aus 72-px-Miniaturen darunter und eine Zeile, in der nur der Senden-Knopf
+  stand. Jetzt ist es eine Zeile: Anhänge links, Entwurfsstand und Senden
+  rechts. Die Anhänge-Chips sind dort halb so groß (36 px statt 72 — im Thread,
+  im Autoren-Kanal und in der Workflow-Ansicht bleiben sie unverändert groß),
+  der Kasten hat weniger Innenabstand, und in der klebenden Leiste des Themas
+  sowie im „Neues Thema"-Blatt zeichnet er keinen zweiten Rahmen mehr — die
+  Trennlinie der Leiste ist die Abgrenzung. Das Feld selbst öffnet unverändert
+  mit drei Zeilen und wächst mit dem Text nach oben mit.
+
+## [0.82.1] - 2026-09-06
+
+### Fixed
+
+- **Der Kopfbereich der Schiffsseite liest sich jetzt wie eine Codex-Kachel.**
+  Hersteller und Rolle standen als gesperrte Grossbuchstaben oben ueber der
+  Kunst, darunter der Name in drei Zeilen — waehrend dasselbe Schiff in der
+  Codex-Uebersicht eine schmale Zeile "AEGIS DYNAMICS · ABFANGJÄGER" mit dem
+  Namen kompakt darunter bekommt. Beides sitzt nun unten auf der Buehne, in
+  derselben Typografie wie dort, und die Rolle wird nur noch einmal genannt.
+- **Die Aktionsknoepfe fuellten den halben Kopfbereich.** Sie trugen die
+  48-Pixel-Mindesthoehe fuer Fingertipps auch am Schreibtisch, wo vier deutsche
+  Beschriftungen dadurch untereinander brachen. Mit Maus sind sie jetzt 30
+  Pixel hoch und passen in eine Zeile; auf Touch-Geraeten bleibt das volle
+  Ziel erhalten. Der Kopfbereich ist damit wieder rund 270 statt 550 Pixel hoch.
+- **Chips und Knoepfe stehen wieder rechts, die Angaben am unteren Rand.**
+
+## [0.82.0] - 2026-09-06
+
+### Changed
+
+- **Die Web-App trägt jetzt das Icon der Desktop-App — in jeder Größe.** Der
+  SVG-Master war zwar schon identisch mit der App, aber für alles unter 64 px
+  (Browser-Tab, Favicon, Header-Logo, Boot-Splash, Browser-Erweiterung, iOS-Kachel)
+  wurde eine eigene „compact"-Variante mit harten Orbit-Ringen und einem Brain-Glyph
+  gezeichnet. Im Tab sah die Web-App damit aus wie ein anderes Produkt als die App
+  in der Taskleiste. Diese Neuzeichnung ist weg: Jede Größe wird direkt aus dem
+  Original gerendert, so wie es die Desktop-App für ihr Taskleisten-Icon auch tut.
+- **Data Uploader und Starscape sind jetzt das unveränderte Original plus ein
+  Abzeichen.** Bisher wurden für die beiden Kern und Akkretionsscheibe ausgetauscht
+  (Nova bzw. Datenstrom, aufgebrochene Orbits) — die Icons waren Cousins, keine
+  Geschwister. Jetzt bleibt die Basis Pixel für Pixel das App-Icon, und über dem
+  Kern liegt ein Abzeichen: ein nach oben zeigender Pfeil für den Uploader, ein
+  Bildschirm für Starscape. Beide sind für 16–64 px in einer kräftigeren Fassung
+  gezeichnet, damit sie in der Taskleiste lesbar bleiben; das Tray-Tier behält den
+  hellen Rand, der auf dunklen Taskleisten die Silhouette trägt.
+- `scc-mark-compact.svg`, `starscape-mark-compact.svg` und `uploader-mark-compact.svg`
+  sind entfernt; `scc-mark.svg` (das Original) ersetzt sie überall. Der Generator
+  kann mit `--sheet=<pfad>` nur das Referenzblatt rendern, ohne die Raster im Baum
+  anzufassen — die Schleife zum Entwerfen eines Abzeichens.
+- **Data Uploader 0.28.0 und Starscape 0.9.0** werden mit diesen Icons neu gebaut.
+  Seit dem Icon-Umbau am 5. September gab es kein neues Starscape-Release — der
+  Auto-Updater hatte schlicht nichts Neueres als 0.8.0 anzubieten. 0.28.0 nimmt
+  außerdem den bislang nur im Quelltext gelandeten Uploader-Fix 0.27.1 mit (Livery-
+  Manifest nur für Schiffe mit Material).
 
 ## [0.81.4] - 2026-09-06
 

@@ -160,12 +160,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                     @if (facts(card); as f) { <span class="facts">{{ f }}</span> }
                     @if (card.status === 'next' || card.status === 'ptu' || card.status === 'evocati') {
                       @if (teaserPool(card).length > 0) {
-                        <!-- As many roadmap items as the width holds, then "…"
-                             — and every one of them a link to its own entry in
-                             the dossier. The names that used to run along the
-                             strip are gone: they were the thing that made room
-                             for three icons and no more (feedback fdaad6b7).
-                             They survive as the links' accessible names. -->
+                        <!-- As many roadmap items as TWO rows of the measured
+                             width hold, then "…" — and every one of them a
+                             link to its own entry in the dossier. The names
+                             that used to run along the strip are gone: they
+                             were the thing that made room for three icons and
+                             no more (feedback fdaad6b7). They survive as the
+                             links' accessible names. -->
                         <span class="teaser" (scTeaserStrip)="onTeaserBox(card.line, $event)">
                           @for (item of teaser(card); track item.id) {
                             <a class="tz" [routerLink]="['/news/patches', card.line]"
@@ -187,9 +188,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                       }
                     }
                   </span>
-                  <span class="counts">
-                    @if (card.noteCount > 0) { <span class="ct">{{ 'news.patch.stack.notes' | translate:{ n: card.noteCount } }}</span> }
-                  </span>
+                  <!-- No note count here any more: "die x notes in dieser
+                       Übersicht ist auch unnötig" (feedback fdaad6b7). How
+                       many notes a line has is a fact of the dossier, which
+                       still states it; on the board it was a number nobody
+                       chose a patch by. -->
                   <!-- How the patch RAN, as a picture in the corner — only on
                        lines that actually shipped (owner, 2026-09-05). -->
                   @if (verdictFor(card); as v) {
@@ -302,12 +305,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
        version number by 40 px between neighbouring rows and made the stack
        look like three different lists. Status and version now sit in the same
        two columns on every row, and the live card is louder through colour,
-       type size and breathing room instead of through geometry. The last two
-       columns collapse to 0 when the card carries neither counts nor a
-       stability badge, so nothing reserves space for an absent thing. */
+       type size and breathing room instead of through geometry. The last
+       column collapses to 0 when the card carries no stability badge, so
+       nothing reserves space for an absent thing. */
     .card {
       position: relative;
-      display: grid; grid-template-columns: 116px 150px minmax(0, 1fr) auto auto;
+      display: grid; grid-template-columns: 116px 150px minmax(0, 1fr) auto;
       align-items: center; gap: 10px 18px;
       padding: 14px 16px; min-height: var(--row-h); overflow: hidden;
       border: 1px solid var(--sc-border); border-radius: 10px;
@@ -317,9 +320,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
        hoch"). A min-height cannot deliver that on its own — the "next" card
        carries a roadmap teaser its neighbour does not, which pushed it 60 px
        taller. So the ordinary rows get a FIXED height and their contents are
-       kept inside it: the teaser is one clipped strip, the sentence clamps to
-       two lines. The live card is the deliberate exception and stays taller. */
-    .stack { --row-h: 128px; }
+       kept inside it: the teaser is a clipped block of at most two rows, the
+       sentence clamps to two lines.
+
+       That fixed height grew with the thumbnails (feedback fdaad6b7 round 2:
+       double the icons, two rows). The whole stack pays for the teaser card,
+       which is the price of the shared height — and the hero grows with it,
+       because a LIVE card shorter than the rows around it would be the loudest
+       thing on the page rendered as the smallest. */
+    .stack { --row-h: 220px; }
     .row:not(.hero) .card { height: var(--row-h); }
     .sent b {
       display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
@@ -334,7 +343,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .card:has(.card-link:focus-visible) { border-color: var(--sc-accent); }
     .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .row.hero .card {
-      padding: 22px 16px; min-height: 132px;
+      padding: 22px 16px; min-height: var(--row-h);
       border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border));
       background: linear-gradient(135deg, color-mix(in srgb, var(--sc-success) 10%, var(--sc-bg-1)), var(--sc-bg-1) 60%);
       box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc-success) 18%, transparent);
@@ -374,42 +383,45 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .sent { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .sent b { color: var(--sc-fg-0); font-weight: 500; }
     .row.hero .sent { font-size: max(0.84rem, var(--sc-fs-floor)); }
-    /* One strip, never two: no-wrap and a fixed height is what keeps the
-       card's height independent of how many items the roadmap lists. The two
-       custom properties are the strip's geometry — TeaserStripDirective reads
-       them back, so the phone breakpoint below is the ONLY place the smaller
-       thumbnail is written down. */
+    /* Two rows, never three: the wrap is capped by a max-height derived from
+       the same custom properties the strip is drawn with, which is what keeps
+       the card's height independent of how many items the roadmap lists. The
+       properties ARE the strip's geometry — TeaserStripDirective reads them
+       back out of the computed style, so the phone breakpoint below is the
+       ONLY place the smaller thumbnail is written down.
+
+       The thumbnails are double their round-1 size (48 → 96 px wide, 30 → 60
+       tall) at the admin's request. A welcome side effect: at 96 × 60 every
+       thumbnail clears the 48 px tap target that the round-1 strip missed on
+       both breakpoints. */
     .teaser {
-      --tz-w: 48px; --tz-h: 30px; --tz-rest: 26px;
-      display: flex; align-items: center; gap: 6px; margin-top: 4px;
-      flex-wrap: nowrap; min-width: 0; height: var(--tz-h); overflow: hidden;
+      --tz-w: 96px; --tz-h: 60px; --tz-rest: 40px; --tz-gap: 6px; --tz-rows: 2;
+      display: flex; align-items: center; align-content: flex-start;
+      gap: var(--tz-gap); margin-top: 4px; flex-wrap: wrap; min-width: 0;
+      max-height: calc(var(--tz-rows) * var(--tz-h) + (var(--tz-rows) - 1) * var(--tz-gap));
+      overflow: hidden;
     }
     /* Each thumbnail is its own link into its own roadmap entry, so it has to
        sit ABOVE the stretched card link (feedback fdaad6b7). */
     .teaser .tz {
       position: relative; z-index: 1; display: block; flex: none;
-      width: var(--tz-w); height: var(--tz-h); border-radius: 4px; overflow: hidden;
+      width: var(--tz-w); height: var(--tz-h); border-radius: 6px; overflow: hidden;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); background: var(--sc-bg-2);
     }
     .teaser .tz img, .teaser .tz i { display: block; width: 100%; height: 100%; object-fit: cover; }
     .teaser .tz:hover { border-color: var(--sc-accent); box-shadow: 0 0 10px -2px var(--sc-accent); }
     .teaser .tz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-    /* "… and more" — the same height as a thumbnail so the strip stays one
-       line, narrow because it is a sign, not a tile. */
+    /* "… and more" — the same height as a thumbnail so it sits on the strip's
+       last row, narrower because it is a sign, not a tile. */
     .teaser .rest {
       width: var(--tz-rest); display: flex; align-items: center; justify-content: center;
       border-style: dashed; background: transparent; color: var(--sc-fg-2); text-decoration: none;
-      font-size: max(0.8rem, var(--sc-fs-floor)); line-height: 1;
+      font-size: max(1rem, var(--sc-fs-floor)); line-height: 1;
     }
     .teaser .rest:hover { color: var(--sc-fg-0); }
-    .counts { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
     /* Top-right corner of the card, in its own column so it can never land on
-       top of the counts the way an absolutely positioned badge would. */
+       top of the sentence the way an absolutely positioned badge would. */
     .stab { display: inline-flex; align-self: start; }
-    .ct {
-      font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); padding: 1px 8px; border-radius: 999px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); white-space: nowrap;
-    }
 
     .fold::before { width: 8px; height: 8px; left: -19px; opacity: 0.6; }
     .fold-btn {
@@ -429,17 +441,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       .row::before { left: -17px; }
       .row[data-status='live']::before { left: -19px; }
       .fold::before { left: -16px; }
-      /* Phones stack the cells into three rows, so the shared height is a
+      /* Phones stack the cells into two rows, so the shared height is a
          bigger number here — but it stays SHARED: "abgelöst und nächster
          gleich hoch" is not a desktop-only promise. */
-      .stack { --row-h: 188px; }
+      .stack { --row-h: 248px; }
       .card, .row.hero .card {
         grid-template-columns: 104px minmax(0, 1fr) auto; gap: 8px 10px; padding: 12px;
       }
-      .row.hero .card { min-height: 200px; }
-      .teaser { --tz-w: 42px; --tz-h: 26px; --tz-rest: 22px; }
-      .sent, .counts { grid-column: 1 / -1; }
-      .counts { flex-direction: row; justify-content: flex-start; }
+      .teaser { --tz-w: 84px; --tz-h: 52px; --tz-rest: 34px; }
+      .sent { grid-column: 1 / -1; }
       .row.hero .ver { font-size: 1.6rem; }
       .stab { grid-row: 1; grid-column: 3; }
     }
@@ -665,9 +675,9 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
    * Measured geometry per row, keyed by patch line.
    *
    * Per ROW, not per board: the cards differ in what else sits beside the
-   * strip (a note count, a stability badge), so the width they leave it is not
-   * the same number — and a shared one would be wrong on whichever row was not
-   * measured.
+   * strip (a stability badge, a longer version number), so the width they
+   * leave it is not the same number — and a shared one would be wrong on
+   * whichever row was not measured.
    */
   private readonly teaserBoxes = signal<ReadonlyMap<string, TeaserBox>>(new Map());
 

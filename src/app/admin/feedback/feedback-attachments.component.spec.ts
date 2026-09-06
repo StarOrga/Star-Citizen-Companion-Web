@@ -210,6 +210,33 @@ describe('FeedbackAttachmentsComponent', () => {
         .toBeTrue();
     });
 
+    /**
+     * Half size for the composer's send row (admin feedback 187574ed: "die
+     * attachments 50% kleiner"), full size everywhere the image IS the content.
+     * Measured, not read off the declaration: the size is a custom property and
+     * the tiles have to come down with the thumbnails, or "attach" and
+     * "attached" stop being one control.
+     */
+    /** The size everywhere the image IS the content — thread, channel, workflow. */
+    const FULL = 72;
+
+    it('renders a chip at the one thread size by default', async () => {
+      await setup(IMAGES, true, { addTile: true, captureTile: true });
+      expect(thumbs()[0].getBoundingClientRect().width).toBe(FULL);
+      expect((fixture.nativeElement.querySelector('.att-add') as HTMLElement).getBoundingClientRect().width).toBe(FULL);
+    });
+
+    it('halves every chip in the row when it is dense — thumbnails and tiles alike', async () => {
+      await setup(IMAGES, true, { addTile: true, captureTile: true, dense: true });
+      const half = thumbs()[0].getBoundingClientRect().width;
+      expect(half).withContext('half of the thread size').toBe(FULL / 2);
+      for (const tile of ['.att-add', '.att-capture']) {
+        const box = (fixture.nativeElement.querySelector(tile) as HTMLElement).getBoundingClientRect();
+        expect(box.width).withContext(tile + ' comes down with them').toBe(half);
+        expect(box.height).withContext(tile + ' stays square').toBe(half);
+      }
+    });
+
     it('opens the row even when nothing is attached yet', async () => {
       await setup([], true, { addTile: true, captureTile: true });
       expect(fixture.nativeElement.querySelector('.att-row')).not.toBeNull();
