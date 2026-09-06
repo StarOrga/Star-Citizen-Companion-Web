@@ -62,7 +62,11 @@ import { ImpersonationBannerComponent } from './shell/impersonation-banner.compo
         left: 50%;
         bottom: 24px;
         transform: translateX(-50%);
-        z-index: 1000;
+        /* Global notice band, same rung as the consent bar (ladder documented
+           in sc-feedback-fab): a bottom-centre toast whose Reload / Dismiss
+           buttons have to stay hittable, and on a narrow viewport it reaches
+           into the feedback launcher's corner (1400). */
+        z-index: 1500;
         display: flex;
         align-items: center;
         gap: 14px;

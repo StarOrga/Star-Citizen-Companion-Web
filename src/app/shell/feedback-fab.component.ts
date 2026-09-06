@@ -149,7 +149,27 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
       position: fixed;
       right: 24px;
       bottom: 24px;
-      z-index: 40;
+      /* THE app's layer ladder, as far as this launcher is concerned:
+           10–50    page furniture (sticky topbar, nav sweep, compare tray,
+                    popovers) — where this FAB used to live, at 40.
+           60–1300  the modal band: every popup is its own
+                    'position: fixed; inset: 0' layer, numbered locally —
+                    patch dossier 60, quick-search 100, news lightbox 120,
+                    codex component/weapon/swap-picker 140–150, starscape +
+                    uploader-access + desktop-download 1200, feedback
+                    attachments 1300.
+           1400     this launcher.
+           1500     global notices (storage-consent bar, update prompt).
+         At 40 the launcher lost to every single popup, and because those
+         backdrops span the whole viewport they did not merely hide the
+         button — they swallowed its clicks. So the one moment a user most
+         wants to report something (a popup misbehaving in front of them) was
+         the one moment they could not (admin feedback bb2c82de). Nothing
+         exotic caused it: no ancestor of this element opens a stacking
+         context, so it is plain paint order and the honest fix is to move the
+         launcher above the band it must beat. It deliberately stops BELOW the
+         notice band — see sc-consent-banner. */
+      z-index: 1400;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
