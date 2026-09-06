@@ -28,6 +28,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   kann mit `--sheet=<pfad>` nur das Referenzblatt rendern, ohne die Raster im Baum
   anzufassen — die Schleife zum Entwerfen eines Abzeichens.
 
+## [0.81.4] - 2026-09-06
+
+### Changed
+
+- **Die Patch-Karte hat ihren Platz an Text verschenkt, den niemand braucht.**
+  Die Roadmap-Zahl stand zweimal auf derselben Karte — einmal in der leisen
+  Faktenzeile, einmal als Chip rechts daneben — und neben den Roadmap-Bildchen
+  lief eine Namensliste mit, die den Streifen abschnitt, bevor er anfangen
+  konnte. Beide Doppelungen und die Namensliste sind raus; die Namen leben als
+  `aria-label` der Links weiter, sind für Screenreader also unverändert da.
+  Der frei gewordene Platz gehört jetzt den Bildchen: der Streifen füllt sich
+  mit so vielen Roadmap-Icons, wie die **gemessene** Breite hergibt (Deckel bei
+  12), und schließt mit einem „…" ab — auf dem Handy entsprechend weniger,
+  ohne fest verdrahtete Zahl.
+
+### Fixed
+
+- **Ein Klick auf ein Roadmap-Bildchen landete nur irgendwo im Dossier.** Jedes
+  Bildchen ist jetzt ein echter Anker auf genau seinen Eintrag
+  (`/news/patches/<version>?focus=<id>`): das Dossier öffnet ihn aufgeklappt,
+  scrollt hin und hebt ihn kurz hervor. Das abschließende „…" führt zum ersten
+  Eintrag, der nicht mehr in den Streifen gepasst hat. Weil es Anker sind,
+  funktionieren Mittelklick und Strg/⌘-Klick wie überall sonst im Browser.
+
 ## [0.81.3] - 2026-09-06
 
 ### Changed

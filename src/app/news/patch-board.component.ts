@@ -21,6 +21,8 @@ import type { StabilityVerdict } from './patch-stability';
 import { PatchStabilityService } from './patch-stability.service';
 import { buildPatchStack, stackCards, type StackCard } from './patch-stack';
 import { computePatchForecast } from './patch-stats';
+import { TEASER_BOX, TeaserStripDirective, teaserFit, type TeaserBox, type TeaserFit } from './patch-teaser';
+import type { RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { StabilityBadgeComponent } from './stability-badge.component';
@@ -56,6 +58,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   imports: [
     TranslateModule, RouterLink, RouterOutlet, PatchMonitorComponent,
     StabilityHistoryComponent, StabilityBadgeComponent, PatchFindResultsComponent,
+    TeaserStripDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -137,9 +140,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             @for (card of visible(); track card.line; let i = $index) {
               <li class="row" [attr.data-status]="card.status" [class.hero]="card.status === 'live'"
                   [style.--in-delay]="i * 60 + 'ms'">
-                <!-- The whole card is the way into the dossier → a real anchor,
-                     so middle click and "open in new tab" keep working. -->
-                <a class="card" [routerLink]="['/news/patches', card.line]" [queryParams]="query() ? { q: query() } : null">
+                <div class="card">
+                  <!-- The whole card is the way into the dossier → a real
+                       anchor, so middle click and "open in new tab" keep
+                       working. It is STRETCHED over the card rather than
+                       wrapping it, because the roadmap thumbnails inside are
+                       links of their own now (feedback fdaad6b7) and an anchor
+                       inside an anchor is not HTML. -->
+                  <a class="card-link" [routerLink]="['/news/patches', card.line]"
+                     [queryParams]="query() ? { q: query() } : null"
+                     [attr.aria-label]="cardLabel(card)"></a>
                   <span class="status" [attr.data-status]="card.status">
                     {{ ('news.patch.status.' + card.status) | translate }}
                     @if (statusNote(card); as note) { <small>{{ note }}</small> }
@@ -149,30 +159,43 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                     <b>{{ sentence(card) }}</b>
                     @if (facts(card); as f) { <span class="facts">{{ f }}</span> }
                     @if (card.status === 'next' || card.status === 'ptu' || card.status === 'evocati') {
-                      @if (teaser(card); as items) {
-                        <span class="teaser">
-                          @for (item of items; track item.id) {
-                            @if (item.thumbnail) {
-                              <img [src]="item.thumbnail" alt="" loading="lazy" decoding="async" />
-                            } @else {
-                              <i aria-hidden="true"></i>
-                            }
+                      @if (teaserPool(card).length > 0) {
+                        <!-- As many roadmap items as the width holds, then "…"
+                             — and every one of them a link to its own entry in
+                             the dossier. The names that used to run along the
+                             strip are gone: they were the thing that made room
+                             for three icons and no more (feedback fdaad6b7).
+                             They survive as the links' accessible names. -->
+                        <span class="teaser" (scTeaserStrip)="onTeaserBox(card.line, $event)">
+                          @for (item of teaser(card); track item.id) {
+                            <a class="tz" [routerLink]="['/news/patches', card.line]"
+                               [queryParams]="itemParams(item)"
+                               [attr.aria-label]="'news.patch.stack.openItem' | translate:{ name: item.name }">
+                              @if (item.thumbnail) {
+                                <img [src]="item.thumbnail" alt="" loading="lazy" decoding="async" />
+                              } @else {
+                                <i aria-hidden="true"></i>
+                              }
+                            </a>
                           }
-                          <span>{{ teaserNames(card) }}</span>
+                          @if (teaserRest(card); as rest) {
+                            <a class="tz rest" [routerLink]="['/news/patches', card.line]"
+                               [queryParams]="itemParams(firstHidden(card))"
+                               [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }">…</a>
+                          }
                         </span>
                       }
                     }
                   </span>
                   <span class="counts">
                     @if (card.noteCount > 0) { <span class="ct">{{ 'news.patch.stack.notes' | translate:{ n: card.noteCount } }}</span> }
-                    @if (card.plannedCount > 0) { <span class="ct">{{ 'news.patch.stack.planned' | translate:{ n: card.plannedCount } }}</span> }
                   </span>
                   <!-- How the patch RAN, as a picture in the corner — only on
                        lines that actually shipped (owner, 2026-09-05). -->
                   @if (verdictFor(card); as v) {
                     <span class="stab"><sc-stability-badge [verdict]="v" [size]="card.status === 'live' ? 'md' : 'sm'" /></span>
                   }
-                </a>
+                </div>
               </li>
             }
             @if (stack().older.length > 0) {
@@ -303,7 +326,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       overflow: hidden;
     }
     .card:hover { border-color: var(--sc-accent); }
-    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* The stretched link: it covers the card, so a click anywhere that is not
+       one of the roadmap thumbnails opens the dossier — the behaviour the
+       wrapping anchor had, without nesting anchors. Absolutely positioned, so
+       it claims no grid track. */
+    .card-link { position: absolute; inset: 0; border-radius: 10px; }
+    .card:has(.card-link:focus-visible) { border-color: var(--sc-accent); }
+    .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .row.hero .card {
       padding: 22px 16px; min-height: 132px;
       border-color: color-mix(in srgb, var(--sc-success) 55%, var(--sc-border));
@@ -345,17 +374,34 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .sent { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .sent b { color: var(--sc-fg-0); font-weight: 500; }
     .row.hero .sent { font-size: max(0.84rem, var(--sc-fs-floor)); }
-    /* One strip, never two: no-wrap plus a clipped name is what keeps the
-       card's height independent of how many items the roadmap lists. */
-    .teaser { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: nowrap; min-width: 0; height: 30px; }
-    .teaser img, .teaser i {
-      width: 48px; height: 30px; border-radius: 4px; object-fit: cover; flex: none;
+    /* One strip, never two: no-wrap and a fixed height is what keeps the
+       card's height independent of how many items the roadmap lists. The two
+       custom properties are the strip's geometry — TeaserStripDirective reads
+       them back, so the phone breakpoint below is the ONLY place the smaller
+       thumbnail is written down. */
+    .teaser {
+      --tz-w: 48px; --tz-h: 30px; --tz-rest: 26px;
+      display: flex; align-items: center; gap: 6px; margin-top: 4px;
+      flex-wrap: nowrap; min-width: 0; height: var(--tz-h); overflow: hidden;
+    }
+    /* Each thumbnail is its own link into its own roadmap entry, so it has to
+       sit ABOVE the stretched card link (feedback fdaad6b7). */
+    .teaser .tz {
+      position: relative; z-index: 1; display: block; flex: none;
+      width: var(--tz-w); height: var(--tz-h); border-radius: 4px; overflow: hidden;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); background: var(--sc-bg-2);
     }
-    .teaser span {
-      font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin-left: 4px;
-      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    .teaser .tz img, .teaser .tz i { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .teaser .tz:hover { border-color: var(--sc-accent); box-shadow: 0 0 10px -2px var(--sc-accent); }
+    .teaser .tz:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    /* "… and more" — the same height as a thumbnail so the strip stays one
+       line, narrow because it is a sign, not a tile. */
+    .teaser .rest {
+      width: var(--tz-rest); display: flex; align-items: center; justify-content: center;
+      border-style: dashed; background: transparent; color: var(--sc-fg-2); text-decoration: none;
+      font-size: max(0.8rem, var(--sc-fs-floor)); line-height: 1;
     }
+    .teaser .rest:hover { color: var(--sc-fg-0); }
     .counts { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
     /* Top-right corner of the card, in its own column so it can never land on
        top of the counts the way an absolutely positioned badge would. */
@@ -391,8 +437,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
         grid-template-columns: 104px minmax(0, 1fr) auto; gap: 8px 10px; padding: 12px;
       }
       .row.hero .card { min-height: 200px; }
-      .teaser { height: 26px; }
-      .teaser img, .teaser i { width: 42px; height: 26px; }
+      .teaser { --tz-w: 42px; --tz-h: 26px; --tz-rest: 22px; }
       .sent, .counts { grid-column: 1 / -1; }
       .counts { flex-direction: row; justify-content: flex-start; }
       .row.hero .ver { font-size: 1.6rem; }
@@ -598,24 +643,76 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
       const live = this.forecast().find((r) => r.key === 'live');
       if (live) parts.push(this.t.instant('news.patch.stack.nextLive', { when: this.until(Date.parse(live.at)) }));
     }
-    if (card.status === 'next' && card.plannedCount > 0) {
-      parts.push(this.t.instant('news.patch.stack.planned', { n: card.plannedCount }));
-    }
     return parts.join(' · ');
   }
 
-  /** The three biggest roadmap items of an upcoming patch — its "exciting" strip. */
-  teaser(card: StackCard) {
-    const cards = card.release?.cards ?? [];
-    if (cards.length === 0) return null;
-    const withImage = cards.filter((c) => c.thumbnail);
-    return (withImage.length >= 3 ? withImage : cards).slice(0, 3);
+  /**
+   * The accessible name of the stretched card link.
+   *
+   * A wrapping anchor took its name from the card's own text; a stretched one
+   * is empty and has to be told. "Dossier zu Alpha 4.11 öffnen" — the version
+   * is what the reader is choosing between, everything else on the card is
+   * detail they can read for themselves.
+   */
+  cardLabel(card: StackCard): string {
+    const name = card.line
+      ? this.t.instant('news.patch.line', { version: card.line })
+      : this.t.instant('news.patch.otherLine');
+    return this.t.instant('news.patch.stack.openDossier', { name });
   }
-  teaserNames(card: StackCard): string {
-    const items = this.teaser(card) ?? [];
-    const rest = (card.release?.cards.length ?? 0) - items.length;
-    const names = items.map((c) => c.name).join(' · ');
-    return rest > 0 ? `${names} …` : names;
+
+  /**
+   * Measured geometry per row, keyed by patch line.
+   *
+   * Per ROW, not per board: the cards differ in what else sits beside the
+   * strip (a note count, a stability badge), so the width they leave it is not
+   * the same number — and a shared one would be wrong on whichever row was not
+   * measured.
+   */
+  private readonly teaserBoxes = signal<ReadonlyMap<string, TeaserBox>>(new Map());
+
+  onTeaserBox(line: string, box: TeaserBox): void {
+    const current = this.teaserBoxes().get(line);
+    if (current && current.width === box.width && current.item === box.item && current.gap === box.gap && current.rest === box.rest) return;
+    this.teaserBoxes.update((map) => new Map(map).set(line, box));
+  }
+
+  /**
+   * Every roadmap item of an upcoming patch, the ones with a picture first —
+   * "die sind ja die spannenden" (feedback fdaad6b7). The itemless ones keep
+   * their place in the strip as placeholders rather than vanishing, so the
+   * count under the "…" is the release's real count.
+   */
+  teaserPool(card: StackCard): readonly RoadmapCard[] {
+    const cards = card.release?.cards ?? [];
+    if (cards.length === 0) return cards;
+    const withImage = cards.filter((c) => c.thumbnail);
+    if (withImage.length === 0 || withImage.length === cards.length) return cards;
+    return [...withImage, ...cards.filter((c) => !c.thumbnail)];
+  }
+
+  private fit(card: StackCard): TeaserFit {
+    return teaserFit(this.teaserPool(card).length, this.teaserBoxes().get(card.line) ?? TEASER_BOX);
+  }
+
+  /** The thumbnails this row has room for. */
+  teaser(card: StackCard): readonly RoadmapCard[] {
+    return this.teaserPool(card).slice(0, this.fit(card).visible);
+  }
+  /** How many roadmap items did not fit — 0 when everything is on the strip. */
+  teaserRest(card: StackCard): number {
+    return this.fit(card).rest;
+  }
+  /** Where the "…" leads: the first item the strip could not show. */
+  firstHidden(card: StackCard): RoadmapCard | null {
+    const pool = this.teaserPool(card);
+    return pool[this.fit(card).visible] ?? pool[pool.length - 1] ?? null;
+  }
+  /** A link into ONE roadmap entry of the dossier, carrying the board's query along. */
+  itemParams(item: RoadmapCard | null): Record<string, string> {
+    const params: Record<string, string> = item ? { focus: item.id } : {};
+    const q = this.query();
+    return q ? { ...params, q } : params;
   }
 
   private daysSince(ms: number): number {

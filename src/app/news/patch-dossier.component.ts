@@ -214,7 +214,11 @@ const SPY_CLEARANCE_PX = 24;
                       <h4>{{ group.category || ('news.patch.roadmap.uncategorized' | translate) }} <span class="ct">{{ group.cards.length }}</span></h4>
                       <ul class="cards">
                         @for (item of group.cards; track item.id; let ci = $index) {
-                          <li class="fc" [class.open]="isLong(item.id)" [style.--in-delay]="ci * 45 + 'ms'">
+                          <!-- data-card is how a click on the board's teaser
+                               strip finds its way back to exactly this entry
+                               (?focus=id, feedback fdaad6b7). -->
+                          <li class="fc" [attr.data-card]="item.id" [class.open]="isLong(item.id)"
+                              [class.flash]="flashCard() === item.id" [style.--in-delay]="ci * 45 + 'ms'">
                             <!-- The picture goes to RSI's Release View entry
                                  for exactly this card, which opens with its
                                  panel already expanded (owner, 2026-09-05).
@@ -441,7 +445,7 @@ const SPY_CLEARANCE_PX = 24;
       100% { background: transparent; box-shadow: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .sec, .sec.flash, .fc { animation: none; }
+      .sec, .sec.flash, .fc, .fc.flash { animation: none; }
     }
     /* Scroll room under the last section — see the template comment. */
     .tail { height: 72vh; pointer-events: none; }
@@ -491,6 +495,10 @@ const SPY_CLEARANCE_PX = 24;
       animation: pd-card-in 0.34s ease-out both; animation-delay: var(--in-delay, 0ms);
     }
     @keyframes pd-card-in { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: none; } }
+    /* Arrived here from the board's teaser: the card says "here I am", the
+       same way a section picked from the table of contents does. */
+    .fc { scroll-margin-top: 110px; scroll-margin-bottom: 24px; }
+    .fc.flash { animation: pd-flash 1.25s ease-out; border-color: var(--sc-accent); }
     .fc.open { grid-column: 1 / -1; grid-template-columns: minmax(200px, 34%) minmax(0, 1fr); border-color: color-mix(in srgb, var(--sc-accent) 50%, var(--sc-border)); }
     .fc .img { position: relative; display: block; min-height: 150px; height: 100%; background: linear-gradient(135deg, var(--sc-bg-3), var(--sc-bg-0)); }
     .fc .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s ease; }
@@ -583,6 +591,16 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   /** Route params, bound by the router. */
   readonly line = input.required<string>();
   readonly q = input<string>('');
+  /**
+   * One roadmap card's id, from the board's teaser strip (`?focus=1589`).
+   *
+   * "wenn man auf ein bildchen dort schon draufklickt sollte sofort das
+   * spezifische roadmap icon geöffnet werden bzw. dort hingescrollt werden"
+   * (feedback fdaad6b7) — so the dossier opens that entry expanded, scrolls it
+   * into view and lights it, instead of dropping the reader at the top of a
+   * list of a dozen cards.
+   */
+  readonly focus = input<string>('');
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
@@ -611,7 +629,10 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
   readonly notesOpen = signal(false);
   /** The section that was just jumped to; cleared when its glow has run. */
   readonly flash = signal<SectionId | null>(null);
+  /** The roadmap card that was just jumped to — same idea, one level down. */
+  readonly flashCard = signal<string | null>(null);
   private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  private cardFlashTimer: ReturnType<typeof setTimeout> | null = null;
   readonly generalKeys = GENERAL_PREP_KEYS;
   private readonly longOverride = signal<ReadonlyMap<string, boolean>>(new Map());
   private readonly entryOverride = signal<ReadonlyMap<string, boolean>>(new Map());
@@ -733,6 +754,52 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     void this.roadmap.loadRoadmap();
   });
 
+  /**
+   * Open the roadmap card the reader clicked on the board — once.
+   *
+   * Latched on the id rather than run on every recompute: the roadmap payload
+   * and the note outlines arrive at their own pace, and a scroll that
+   * re-triggers whenever one of them lands would fight the reader for the
+   * scroll position. Runs when the card actually EXISTS in the release, so an
+   * id from a stale link is simply ignored.
+   */
+  private focusedCard = '';
+  private readonly openFocusedCard = effect(() => {
+    const id = (this.focus() ?? '').trim();
+    const exists = (this.card()?.release?.cards ?? []).some((c) => c.id === id);
+    if (!id || !exists || this.focusedCard === id) return;
+    untracked(() => {
+      this.focusedCard = id;
+      this.chosen.set('contents');
+      const next = new Map(this.longOverride());
+      next.set(id, true);
+      this.longOverride.set(next);
+      this.revealCard(id);
+    });
+  });
+
+  /**
+   * Scroll one roadmap card into view and light it.
+   *
+   * After a frame, because the effect runs while the section is still being
+   * rendered — and by data attribute rather than by `#id`, since RSI's card ids
+   * are theirs to shape and a selector built from foreign text is a bug
+   * waiting for the first id with a dot in it.
+   */
+  private revealCard(id: string): void {
+    const run = () => {
+      const el = Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('.fc'))
+        .find((n) => n.dataset['card'] === id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (this.cardFlashTimer !== null) clearTimeout(this.cardFlashTimer);
+      this.flashCard.set(id);
+      this.cardFlashTimer = setTimeout(() => this.flashCard.set(null), 1400);
+    };
+    if (typeof requestAnimationFrame === 'undefined') run();
+    else requestAnimationFrame(run);
+  }
+
   ngOnInit(): void {
     if (typeof document !== 'undefined') {
       this.previousOverflow = document.body.style.overflow;
@@ -749,6 +816,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (typeof document !== 'undefined') document.body.style.overflow = this.previousOverflow;
     clearInterval(this.clockTimer);
     if (this.flashTimer !== null) clearTimeout(this.flashTimer);
+    if (this.cardFlashTimer !== null) clearTimeout(this.cardFlashTimer);
     const panel = this.host.nativeElement.querySelector<HTMLElement>('.panel');
     if (panel && this.scrollListener) panel.removeEventListener('scroll', this.scrollListener);
   }
