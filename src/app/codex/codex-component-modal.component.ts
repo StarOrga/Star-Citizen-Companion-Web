@@ -275,11 +275,20 @@ export class CodexComponentModalComponent {
     return e ? damageChannelsOf(e.payload, e.ammoPayload) : [];
   });
 
-  /** The curated stats for this occupant's type — the same the rows show. */
+  /**
+   * The curated stats for this occupant's type — a superset of what the compact
+   * hardpoint row shows. `Infinity`, not the row cap: this overlay IS the full
+   * stat sheet ("vor allem die Tabelle mit allen Werten"), so silently dropping
+   * everything past the sixth row is exactly the wrong trade here. The header
+   * is a wrapping flex list and grows without breaking.
+   */
   readonly headline = computed<EquippedStat[]>(() => {
     const e = this.entry();
     if (!e) return [];
-    return equippedStats({ kind: e.kind, payload: e.payload, ammoPayload: e.ammoPayload });
+    return equippedStats(
+      { kind: e.kind, payload: e.payload, ammoPayload: e.ammoPayload },
+      Infinity,
+    );
   });
 
   /** The item's own parameter block (weaponParams / curated component stats). */

@@ -98,6 +98,40 @@ lets a consumer pair a mount with what it carries.
 nesting. `Data/Scripts/Loadouts/Vehicles/` (13 files) is a red herring — no
 player ship's armament is there.
 
+## Power / energy per module — the resource network (schema 3)
+
+Every powered item's energy numbers live in `ItemResourceComponentParams`, but
+**not** where a generic dump finds them: they sit inside `states[]` and its
+nested `deltas[]`, and both are **lists**, which the extractor's generic
+depth-2 flatten drops entirely. A pre-schema-3 build therefore ships that
+struct looking populated — `isRelay`, `defaultPriority`, `selfRepair.*` — while
+carrying *zero* power values. That is the single most misleading shape in this
+data set: the group is present, so "does the item have resource data?" answers
+yes and every actual number still reads `null`.
+
+`dataforge_extract.py::_add_resource_network` (schema 3, PR #523) projects the
+lists into flat, **state-prefixed** keys — `online.power.consumeSegments`,
+`online.power.generateSegments`, `online.power.minFraction`,
+`online.coolant.{consume,generate}`, `online.em.nominal`, `online.ir.nominal`,
+plus `stateNames` — and the web app reads the prefixed form **only**, with no
+bare-key fallback (`test_resource_stats_contract.py` is the tripwire).
+
+Consequences worth not re-deriving:
+
+- A cooler's cooling rate and a power plant's output are **not** missing from
+  the game files, as older comments in `codex-equipped-stats.ts` claimed. They
+  are `online.coolant.generate` / `online.power.generateSegments` and appear the
+  moment a build is extracted at schema 3.
+- Components draw whole `SPowerSegmentResourceUnit` segments; weapons draw
+  fractional `SStandardResourceUnit` power. **4/3 standard units = 1 segment**
+  (`STANDARD_UNITS_PER_SEGMENT` in `codex.types.ts`) — the one conversion that
+  puts a repeater and a cooler on a comparable scale.
+- Nothing in the app can backfill this. `codex_builds.schema_version` is written
+  by the uploader that produced the extract, so per-module energy stays blank
+  until the admin re-runs the data uploader. Checked 2026-09-08: the `is_current`
+  LIVE 4.10.0 build was extracted with tool 0.25.3 at schema **2**, ~5 h before
+  #523 merged — which is why the energy dock reports `reExtractPending`.
+
 ## Ivo geometry chunks — hardpoint positions (reverse-engineered 2026-07-26)
 
 `scdatatools` 1.0.4 cannot parse SC 4.x Ivo *geometry* chunks, so

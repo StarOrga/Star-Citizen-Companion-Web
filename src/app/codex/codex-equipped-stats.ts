@@ -28,10 +28,20 @@
 //   * weapon fireRate → therefore no DPS and no sustained-fire numbers
 //   * weapon ammoContainerRecord → therefore no magazine / max-ammo count
 //   * weapon heatPerShot on ship guns → no overheat numbers
-//   * cooler cooling rate, power-plant power output, cargo-grid SCU
+//   * cargo-grid SCU
+// Cooler cooling rate and power-plant power output used to be on that list.
+// They are NOT missing from the game files — they sit in the resource-network
+// group the extractor only started projecting at schema 3 (see the energy
+// section below). They stay blank on any build extracted before that.
 
 import { formatNumber, humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
+import {
+  RESOURCE_STATS_GROUP,
+  STANDARD_UNITS_PER_SEGMENT,
+  resolveResourceState,
+  resourceKey,
+} from './codex.types';
 
 /** How the UI renders a raw stat value (source units documented per case). */
 export type EquippedStatFormat =
@@ -308,6 +318,58 @@ function pushHealth(out: EquippedStat[], stats: StatsMap): void {
   push(out, 'codex.equipped.health', findStat(stats, null, ['Health']), 'int');
 }
 
+// ── energy / resource network (extractor schema 3) ───────────────────────────
+// Feedback 590230e3: "alles könnte Energie brauchen — Waffen, Schilde,
+// Antriebe". Every powered module carries its own draw in the flat
+// `ItemResourceComponentParams` group (see codex.types.ts), but until now only
+// the ship's aggregate energy dock and the swap picker read it — the per-module
+// sheet, which is where a pilot looks at ONE thing, said nothing about energy.
+//
+// The same hard rule as everywhere in this module applies: a build below
+// extractor schema 3 carries the group WITHOUT its state-prefixed keys, so
+// every read below is `null` and not a single row is emitted. Nothing here
+// invents a number, and no row appears until the catalog is re-extracted.
+
+/** One state-prefixed field of the resource group, or null. */
+function resourceStat(stats: StatsMap, field: string, state: string | null): number | null {
+  return state === null ? null : findStat(stats, RESOURCE_STATS_GROUP, [resourceKey(field, state)]);
+}
+
+/**
+ * What the module takes off the reactor, in whole power segments — the one
+ * energy figure compact enough for a hardpoint card. Guns draw fractional
+ * `SStandardResourceUnit` power instead of segments; those are converted
+ * (4/3 units = 1 segment, hence `derived`) so a repeater and a cooler compare
+ * on one scale. Exactly the derivation the swap picker's Power column uses.
+ */
+function pushPowerDraw(out: EquippedStat[], stats: StatsMap, state: string | null): void {
+  const segments = resourceStat(stats, 'power.consumeSegments', state);
+  const units = resourceStat(stats, 'power.consumeUnits', state);
+  if (segments === null && units === null) return;
+  const total = (segments ?? 0) + (units ?? 0) / STANDARD_UNITS_PER_SEGMENT;
+  push(
+    out,
+    'codex.equipped.powerDraw',
+    Math.round(total * 100) / 100,
+    'dec',
+    units !== null && units > 0,
+  );
+}
+
+/**
+ * The rest of the module's network footprint. Deliberately appended AFTER
+ * durability: these belong on the full stat sheet (the inspect modal, which
+ * asks for every row) rather than on a six-row hardpoint card.
+ */
+function pushResourceDetail(out: EquippedStat[], stats: StatsMap, state: string | null): void {
+  // minimumConsumptionFraction is a 0..1 ratio — the share of its draw the
+  // module keeps even when the pilot cuts its channel to the floor.
+  push(out, 'codex.equipped.minPower', resourceStat(stats, 'power.minFraction', state), 'percent');
+  push(out, 'codex.equipped.coolantDraw', resourceStat(stats, 'coolant.consume', state), 'perSec');
+  push(out, 'codex.equipped.emSignature', resourceStat(stats, 'em.nominal', state), 'int');
+  push(out, 'codex.equipped.irSignature', resourceStat(stats, 'ir.nominal', state), 'int');
+}
+
 function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   const out: EquippedStat[] = [];
   const subType = (payload as { subType?: string | null } | null | undefined)?.subType ?? '';
@@ -340,12 +402,19 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   push(out, 'codex.equipped.projectileSpeed', toFiniteNumber(ammo?.speed ?? null), 'mps');
   push(out, 'codex.equipped.range', projectileRange(ammo?.speed, ammo?.lifetime), 'metres', true);
   push(out, 'codex.equipped.penetration', penetrationDistance(ammoPayload), 'metresDec');
+
+  // A gun is a consumer like any other module — it just pays in standard units.
+  const stats = statsOf(payload);
+  const state = resolveResourceState(payload);
+  pushPowerDraw(out, stats, state);
+  pushResourceDetail(out, stats, state);
   return out;
 }
 
 function componentStats(kind: string, payload: unknown): EquippedStat[] {
   const out: EquippedStat[] = [];
   const stats = statsOf(payload);
+  const state = resolveResourceState(payload);
 
   switch (kind) {
     case 'Shield':
@@ -411,12 +480,37 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
     case 'FuelIntake':
       push(out, 'codex.equipped.fuelRate', findStat(stats, 'fuelintake', ['fuelPushRate']), 'perSec');
       break;
+    case 'PowerPlant':
+      // The reactor's segment budget — the number the ship's whole energy dock
+      // is funded from, and the reactor's real headline stat. Before schema 3
+      // a power plant showed durability and nothing else.
+      push(
+        out,
+        'codex.equipped.powerOutput',
+        resourceStat(stats, 'power.generateSegments', state),
+        'dec',
+      );
+      break;
+    case 'Cooler':
+      // Cooling output in SRU/s — likewise the cooler's headline, and likewise
+      // absent from every pre-schema-3 build.
+      push(
+        out,
+        'codex.equipped.coolingRate',
+        resourceStat(stats, 'coolant.generate', state),
+        'perSec',
+      );
+      break;
     default:
-      // Coolers and power plants land here: the extract carries no cooling rate
-      // and no power output, so durability is honestly all we can show.
+      // Radar, life support, tractor beams and friends have no dedicated
+      // params struct; the resource rows below are all they can honestly show.
       break;
   }
 
+  // Placed after the type block and BEFORE durability on purpose: the card caps
+  // at MAX_STATS_PER_SLOT, and on a shield or a quantum drive "what does this
+  // cost me" outranks the distortion pool. The modal asks for every row.
+  pushPowerDraw(out, stats, state);
   pushHealth(out, stats);
   push(
     out,
@@ -424,6 +518,7 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
     findStat(stats, 'distortion', ['Maximum']),
     'int',
   );
+  pushResourceDetail(out, stats, state);
   return out;
 }
 

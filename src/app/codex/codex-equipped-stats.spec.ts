@@ -156,11 +156,75 @@ const SHIELD = {
   },
 };
 
-/** Coolers genuinely carry no cooling rate in the extract. */
+/** A cooler as a PRE-schema-3 build carries it: no resource-network keys at all. */
 const COOLER = {
   entityKind: 'component',
   kind: 'Cooler',
   stats: { SHealthComponentParams: { Health: 3200 } },
+};
+
+// ── schema-3 resource-network fixtures ───────────────────────────────────────
+// Key shapes copied from the extractor's own contract test
+// (`data-uploader/python/tests/test_resource_stats_contract.py`): `stateNames`
+// plus `<state>.`-prefixed numbers, and no bare-key fallback anywhere.
+
+/** A cooler on a schema-3 build: draws 3 segments, puts out 34 SRU/s coolant. */
+const COOLER_S3 = {
+  entityKind: 'component',
+  kind: 'Cooler',
+  stats: {
+    SHealthComponentParams: { Health: 3200 },
+    ItemResourceComponentParams: {
+      stateNames: 'Online',
+      defaultPriority: 50,
+      'online.power.consumeSegments': 3,
+      'online.power.minFraction': 0.6667,
+      'online.coolant.generate': 34.0,
+      'online.em.nominal': 1490.0,
+      'online.ir.nominal': 7130.0,
+    },
+  },
+};
+
+/** A power plant: 14 segments of budget — the number the whole dock spends. */
+const REACTOR_S3 = {
+  entityKind: 'component',
+  kind: 'PowerPlant',
+  stats: {
+    SHealthComponentParams: { Health: 9000 },
+    ItemResourceComponentParams: {
+      stateNames: 'Online',
+      'online.power.generateSegments': 14,
+      'online.em.nominal': 5250.0,
+    },
+  },
+};
+
+/** A shield on schema 3 — already at the six-row cap before energy arrives. */
+const SHIELD_S3 = {
+  ...SHIELD,
+  stats: {
+    ...SHIELD.stats,
+    SDistortionParams: { Maximum: 4000 },
+    ItemResourceComponentParams: {
+      stateNames: 'Online',
+      'online.power.consumeSegments': 2,
+      'online.coolant.consume': 12.5,
+    },
+  },
+};
+
+/** A gun pays in standard resource units, not whole segments. */
+const WEAPON_S3 = {
+  ...PANTHER_WEAPON,
+  stats: {
+    ...(PANTHER_WEAPON as { stats?: Record<string, unknown> }).stats,
+    ItemResourceComponentParams: {
+      stateNames: 'Online',
+      'online.power.consumeUnits': 1.0,
+      'online.em.nominal': 0.0,
+    },
+  },
 };
 
 describe('codex-equipped-stats', () => {
@@ -630,6 +694,98 @@ describe('codex-equipped-stats', () => {
         ammoPayload: BEHR_FLARE_AMMO,
       });
       expect(linked.some((s) => s.labelKey === 'codex.equipped.cmInfrared')).toBe(true);
+    });
+  });
+
+  // ── feedback 590230e3: "keine Energie Punkte für die jeweiligen Module" ────
+  describe('equippedStats — energy (schema 3 resource network)', () => {
+    const keysOf = (payload: unknown, kind = 'component'): string[] =>
+      equippedStats({ kind, payload }, Infinity).map((r) => r.labelKey);
+
+    const valueOf = (payload: unknown, key: string, kind = 'component'): number | undefined =>
+      equippedStats({ kind, payload }, Infinity).find((r) => r.labelKey === key)?.value;
+
+    it('gives a power plant its segment output as the headline stat', () => {
+      const rows = equippedStats({ kind: 'component', payload: REACTOR_S3 }, Infinity);
+      // stats[0] drives the module row's right-hand figure and its delta chip —
+      // for a reactor that has to be the budget it funds, not its durability.
+      expect(rows[0].labelKey).toBe('codex.equipped.powerOutput');
+      expect(rows[0].value).toBe(14);
+      expect(rows.map((r) => r.labelKey)).toContain('codex.equipped.health');
+    });
+
+    it('gives a cooler its cooling output AND what it costs to run', () => {
+      const keys = keysOf(COOLER_S3);
+      expect(keys).toContain('codex.equipped.coolingRate');
+      expect(keys).toContain('codex.equipped.powerDraw');
+      expect(valueOf(COOLER_S3, 'codex.equipped.coolingRate')).toBe(34);
+      expect(valueOf(COOLER_S3, 'codex.equipped.powerDraw')).toBe(3);
+      expect(valueOf(COOLER_S3, 'codex.equipped.minPower')).toBe(0.6667);
+      expect(valueOf(COOLER_S3, 'codex.equipped.emSignature')).toBe(1490);
+      expect(valueOf(COOLER_S3, 'codex.equipped.irSignature')).toBe(7130);
+    });
+
+    it('converts a gun\'s standard units into comparable segments, marked derived', () => {
+      const row = equippedStats({ kind: 'weapon', payload: WEAPON_S3 }, Infinity).find(
+        (r) => r.labelKey === 'codex.equipped.powerDraw',
+      );
+      // 1.0 standard unit ÷ (4/3 units per segment) = 0.75 segments.
+      expect(row?.value).toBe(0.75);
+      expect(row?.derived).toBe(true);
+    });
+
+    it('keeps the power draw on the compact card even for a saturated type', () => {
+      // A shield already fills MAX_STATS_PER_SLOT without energy. "What does
+      // this cost me" has to survive the cap — otherwise the admin's complaint
+      // stands on exactly the module he was looking at.
+      const card = equippedStats({ kind: 'component', payload: SHIELD_S3 });
+      expect(card.length).toBe(MAX_STATS_PER_SLOT);
+      expect(card.map((r) => r.labelKey)).toContain('codex.equipped.powerDraw');
+      // …and the full sheet loses nothing.
+      const sheet = keysOf(SHIELD_S3);
+      expect(sheet).toContain('codex.equipped.distortion');
+      expect(sheet).toContain('codex.equipped.coolantDraw');
+    });
+
+    it('never reorders the headline stat of a type that already had one', () => {
+      // `headlineStatDeltaPct` compares stats[0] on both sides — a shield must
+      // still lead with its HP, or every swap delta silently changes meaning.
+      expect(equippedStats({ kind: 'component', payload: SHIELD_S3 })[0].labelKey).toBe(
+        'codex.equipped.shieldHp',
+      );
+      expect(
+        equippedStats({ kind: 'weapon', payload: WEAPON_S3, ammoPayload: PANTHER_AMMO })[0].labelKey,
+      ).toBe('codex.equipped.alphaDamage');
+    });
+
+    it('emits NOTHING on a pre-schema-3 build instead of inventing a zero', () => {
+      // The live 4.10.0 catalog is schema 2: the group is present but carries
+      // only its housekeeping scalars, so every state-prefixed read is absent.
+      const preSchema3 = {
+        entityKind: 'component',
+        kind: 'Cooler',
+        stats: {
+          SHealthComponentParams: { Health: 3200 },
+          ItemResourceComponentParams: { isRelay: false, defaultPriority: 50 },
+        },
+      };
+      expect(keysOf(preSchema3)).toEqual(['codex.equipped.health']);
+      expect(keysOf(COOLER)).toEqual(['codex.equipped.health']);
+    });
+
+    it('reads the first listed state when a record has no Online state', () => {
+      const nav = {
+        entityKind: 'component',
+        kind: 'Thruster',
+        stats: {
+          ItemResourceComponentParams: {
+            stateNames: 'Nav|Standby',
+            'nav.power.consumeSegments': 5,
+            'standby.power.consumeSegments': 1,
+          },
+        },
+      };
+      expect(valueOf(nav, 'codex.equipped.powerDraw')).toBe(5);
     });
   });
 });

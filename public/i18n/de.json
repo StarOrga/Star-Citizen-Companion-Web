@@ -983,7 +983,7 @@
       },
       "gap": {
         "noReactorData": "Keine Reaktordaten in diesem Build — das Energiebudget bleibt leer, bis der Extract sie mitbringt.",
-        "reExtractPending": "Re-Extract ausstehend — die Energiewerte stammen aus einem älteren Schema.",
+        "reExtractPending": "Dieser Katalog-Build bringt noch keine Energiewerte mit — weder für die einzelnen Module noch für das Budget. Sie kommen mit dem nächsten Katalog-Upload (Extract-Schema 3).",
         "noChannelInMode": "In diesem Flugmodus hat diese Gruppe keinen Kanal.",
         "noCoolingData": "Keine Kühlerdaten in diesem Build — die Kühllast bleibt leer.",
         "noSignatureData": "Keine Signaturdaten in diesem Extract — Re-Extract ausstehend."
@@ -1246,6 +1246,13 @@
       "fuelRate": "Treibstoffrate",
       "health": "Haltbarkeit",
       "distortion": "Distortion-Kapazität",
+      "powerDraw": "Energiebedarf (Seg)",
+      "powerOutput": "Energieabgabe (Seg)",
+      "minPower": "Mindest-Energie",
+      "coolantDraw": "Kühlbedarf",
+      "coolingRate": "Kühlleistung",
+      "emSignature": "EM-Signatur",
+      "irSignature": "IR-Signatur",
       "derivedHint": "Abgeleiteter Wert, aus anderen extrahierten Werten berechnet.",
       "noStats": "Für diese Waffe liegen im aktuellen Extract keine Werte vor.",
       "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst.",
