@@ -350,6 +350,23 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
          starts at the same three rows. */
       --sc-field-fs: 0.9rem;
       --sc-field-cap: 320px;
+      /* ONE height for every control in the send row (admin feedback af47232a:
+         "die anhänge buttons im feedback panel dürfen ruhig so hoch sein wie
+         der main action button wie z. B. senden … auch bei rückfragen etc.").
+
+         The attachment tiles, the send button and whatever the surface projects
+         in all take this number, so the row reads as one band rather than as
+         three sizes that were each derived from their own padding: the tiles
+         stood at 36px next to a 37px "Senden", a 30px key-cap send and — in the
+         Rückfragen boxes the admin names — a 22px micro button. The value is
+         the full "Senden" button's own height rounded to an even number, so the
+         band is the main action's size and nothing in the row has to shrink.
+
+         It stays the same in every variant on purpose: a reply composer is
+         tighter in its field (see .compact), not in the controls you have to
+         hit. On a coarse pointer the global 48px tap floor lifts the whole row
+         together, which is the same invariant one size up. */
+      --sc-composer-action-h: 38px;
     }
     .composer.compact { padding: 8px; gap: 5px; --sc-field-fs: 0.86rem; --sc-field-cap: 220px; }
     /* The opened topic's sheet has the room, so its box may run further before
@@ -475,7 +492,14 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
        three bands this used to be — a thumbnail band, a draft band above the
        field and a button band (admin feedback 187574ed). */
     .foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-    .foot .send { flex: 0 0 auto; }
+    .foot .send { flex: 0 0 auto; min-height: var(--sc-composer-action-h); }
+    /* What the surface projects into this row is part of the same band — the
+       opened topic's "Abgenommen" sign-off is a micro button and would
+       otherwise be the one control left standing short next to the tiles.
+       Reaching for the projection attribute rather than for .sc-btn on
+       purpose: the attachment strip lives in this row too, and its lightbox
+       carries .sc-btn micro buttons that hold their own 48px tap size. */
+    .foot ::ng-deep [composerAction] { min-height: var(--sc-composer-action-h); }
     /* Sits in the send row like a control, not like body text: the same
        vertical rhythm as the micro button beside it, and it may never be the
        thing that wraps the row onto a second line. */
