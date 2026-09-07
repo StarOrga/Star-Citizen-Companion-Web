@@ -6,6 +6,13 @@
  * blockquotes, paragraphs and line breaks. Everything else renders as plain
  * text.
  *
+ * BARE URLS ARE LINKED TOO (feedback 85cfb5ca): almost nobody writing feedback
+ * types `[text](url)` — they paste the URL. A pasted `https://`, `http://` or
+ * `www.` run therefore becomes a real anchor, emitted by the same code path —
+ * and with the same `target`/`rel` — as an explicit markdown link. A host with
+ * neither marker (`example.com`) is left alone on purpose: prose is full of
+ * dotted tokens, and `markdown.util.ts` would otherwise link to the `.ts` TLD.
+ *
  * IMAGES ARE NOT PART OF THE HTML. Every `![alt](src)` is *lifted out* of the
  * text flow and returned separately (feedback a660536a): a chat message that
  * carries screenshots should read as text with small attachment thumbnails at
@@ -54,10 +61,104 @@ export interface RenderedFeedbackBody {
 const CODE_MARK = '￼';
 const CODE_MARK_RE = new RegExp(CODE_MARK + '(\\d+)' + CODE_MARK, 'g');
 
+// Same sentinel char, distinct shape (`L` prefix), for anchors built out of a
+// bare URL. They are shielded for the same reason code spans are: an `_` or a
+// `*` inside a pasted URL must not be read as emphasis once it sits in an href.
+// Explicit `[text](url)` links are deliberately NOT shielded — they keep going
+// through the emphasis passes exactly as they did before.
+const LINK_MARK_RE = new RegExp(CODE_MARK + 'L(\\d+)' + CODE_MARK, 'g');
+
+// A pasted URL, matched on the ALREADY-ESCAPED text: the run can contain
+// entities (`&amp;` in a query string) but never a raw `<`, `>` or `"`. The
+// leading guard keeps the match off things that only look like a URL inside a
+// bigger token (`user@www.x`, `.../https://...`); `CODE_MARK` is excluded so an
+// adjacent code sentinel is never swallowed into an href. Brackets, stars and
+// backticks end the run as well, so leftover markdown around a URL is not
+// eaten into it; round parentheses stay in, because `.../Foo_(bar)` is a real
+// URL and `splitUrlTail` hands an unbalanced one back to the sentence.
+const AUTOLINK_RE = new RegExp(
+  '(^|[^\\w@/])((?:https?://|www\\.)[^\\s<>"`*\\[\\]' + CODE_MARK + ']+)',
+  'gi',
+);
+
+// Sentence punctuation — including the escaped form of a closing quote — that a
+// writer puts AFTER a URL rather than into it.
+const URL_TAIL_RE = /(?:&(?:quot|amp|lt|gt|#\d+);|[.,;:!?'"\u00ab\u00bb])$/;
+const URL_CLOSERS: Readonly<Record<string, string>> = { ')': '(', ']': '[', '}': '{' };
+
 // Image sources we trust: https, or the compressed data URIs the composer
 // produces (raster only — never SVG, which can carry script when treated as a
 // document).
 const IMG_SRC_RE = /^(?:https:\/\/|data:image\/(?:png|jpe?g|gif|webp);base64,)/i;
+
+const occurrences = (s: string, ch: string) => s.split(ch).length - 1;
+
+/**
+ * Split a greedily matched URL run into the URL itself and the trailing
+ * punctuation that belongs to the sentence: `see https://a.b/x.` links `x`, not
+ * `x.`, and `(https://a.b)` keeps its bracket outside the anchor — while a URL
+ * whose own brackets balance (`.../Foo_(bar)`) survives intact.
+ */
+function splitUrlTail(raw: string): [url: string, tail: string] {
+  let url = raw;
+  let tail = '';
+  for (;;) {
+    const m = URL_TAIL_RE.exec(url);
+    if (m) {
+      tail = m[0] + tail;
+      url = url.slice(0, -m[0].length);
+      continue;
+    }
+    const last = url.slice(-1);
+    const open = URL_CLOSERS[last];
+    if (open && occurrences(url, last) > occurrences(url, open)) {
+      tail = last + tail;
+      url = url.slice(0, -1);
+      continue;
+    }
+    break;
+  }
+  return [url, tail];
+}
+
+/** Turn every bare URL in one escaped text run into a shielded anchor. */
+function linkifyRun(text: string, links: string[]): string {
+  if (!text) return text;
+  return text.replace(AUTOLINK_RE, (m: string, before: string, raw: string) => {
+    const [url, tail] = splitUrlTail(raw);
+    // A `www.` match still has to look like host + TLD; a `https://` one needs
+    // an authority at all. Anything else stays the literal text it was.
+    const schemeless = /^www\./i.test(url);
+    const ok = schemeless
+      ? /^www\.[\w-]+\.[a-z]{2,}/i.test(url)
+      : /^https?:\/\/[^\s/?#]/i.test(url);
+    if (!ok) return m;
+    const href = schemeless ? `https://${url}` : url;
+    links.push(`<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    return `${before}${CODE_MARK}L${links.length - 1}${CODE_MARK}${tail}`;
+  });
+}
+
+/**
+ * Run `linkifyRun` over a fragment that already holds the anchors built from
+ * explicit `[text](url)` markup, skipping both those tags and everything
+ * between `<a>` and `</a>` — so an explicit link is never linked a second time
+ * and anchors are never nested.
+ */
+function autolink(fragment: string, links: string[]): string {
+  let inAnchor = false;
+  return fragment
+    .split(TAG_SPLIT_RE)
+    .map((part, idx) => {
+      if (idx % 2 === 1) {
+        if (/^<a[\s>]/i.test(part)) inAnchor = true;
+        else if (/^<\/a\s*>/i.test(part)) inAnchor = false;
+        return part;
+      }
+      return inAnchor ? part : linkifyRun(part, links);
+    })
+    .join('');
+}
 
 function esc(s: string): string {
   return s
@@ -75,6 +176,7 @@ function inline(raw: string, images: FeedbackImage[]): string {
   // Pull inline-code spans out first so their contents aren't re-formatted —
   // and so image markup inside backticks stays literal code.
   const codes: string[] = [];
+  const links: string[] = [];
   let s = raw.replace(/`([^`]+)`/g, (_m, c: string) => {
     codes.push(esc(c));
     return CODE_MARK + (codes.length - 1) + CODE_MARK;
@@ -98,11 +200,20 @@ function inline(raw: string, images: FeedbackImage[]): string {
     return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
   });
 
+  // Bare URLs: after the explicit links, so their text and href already sit
+  // inside an <a> and are skipped; before the emphasis passes, which the
+  // sentinel this leaves behind is immune to.
+  s = autolink(s, links);
+
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
   s = s.replace(/(^|[^_\w])_([^_]+)_/g, '$1<em>$2</em>');
 
   s = markLongWords(s);
+
+  // Restore the autolinked anchors, running the long-word pass over each one so
+  // a pasted URL is marked exactly like the text of an explicit link would be.
+  s = s.replace(LINK_MARK_RE, (_m, i: string) => markLongWords(links[+i]));
 
   // Restore protected code spans.
   s = s.replace(CODE_MARK_RE, (_m, i: string) => `<code>${codes[+i]}</code>`);
