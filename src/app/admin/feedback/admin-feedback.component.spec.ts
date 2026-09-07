@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
+import { deepestBoxNesting, drawsBox } from '../../feedback/testing/frame-nesting';
 import { ConsentService } from '../../core/consent.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { CelebrationService } from './celebration.service';
@@ -100,7 +101,7 @@ async function mount(tables: Record<string, unknown[]>) {
       provideRouter([]),
       provideTranslateService({ fallbackLang: 'en' }),
       { provide: SupabaseClientProvider, useValue: sb.provider },
-      { provide: AuthService, useValue: { user: signal({ id: SELF }), session: signal(null), ready: () => Promise.resolve() } },
+      { provide: AuthService, useValue: { user: signal({ id: SELF }), session: signal(null), ready: () => Promise.resolve(), realUser: () => null } },
       { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
       { provide: LocaleService, useValue: { language: () => 'de', region: () => 'DE' } },
       { provide: CelebrationService, useValue: { burst: () => undefined, burstFrom: () => undefined, reducedMotion: () => true } },
@@ -745,5 +746,56 @@ describe('AdminFeedbackComponent — the overview fits its panel', () => {
       // The outline stays: it is what separates one row from the next.
       expect(parseFloat(cs.borderTopWidth)).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * FRAME NESTING (admin feedback ae072e63: "schau mal wie viele
+ * Randverschachtelungen wir haben! 4 Stück im Feedback Panel mit der Außenwand,
+ * ich finde 3 maximal, wenn nicht sogar nur 2 maximal").
+ *
+ * The docked panel draws a wall of its own, OUTSIDE this component, so the
+ * admin's three on screen is a ceiling of TWO boxes in here — see
+ * `feedback/testing/frame-nesting`, which the user panel's spec measures with
+ * too. Every surface that already frames its content therefore embeds the
+ * composer `frameless` instead of letting it draw a second box a few pixels
+ * inside the first.
+ */
+describe('AdminFeedbackComponent — frame nesting', () => {
+  it('nests at most two boxes inside the panel wall, in the stream', async () => {
+    const { el } = await mount(fixtureTables());
+    const worst = deepestBoxNesting(el);
+    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+  });
+
+  it('nests at most two boxes with the new-topic sheet open, and the sheet is not one of them', async () => {
+    const { el, fixture } = await mount(fixtureTables());
+    el.querySelector<HTMLButtonElement>('.new-topic-bar')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const sheet = el.querySelector<HTMLElement>('.compose-sheet')!;
+    expect(sheet).not.toBeNull();
+    // The sheet parts itself from the stream with a rule, not a frame — so the
+    // chain down to the field is panel wall → field, and nothing between.
+    expect(drawsBox(sheet)).toBeFalse();
+    expect(parseFloat(getComputedStyle(sheet).borderTopWidth)).toBeGreaterThan(0);
+    expect(sheet.querySelector('.composer.frameless')).not.toBeNull();
+
+    const worst = deepestBoxNesting(el);
+    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+  });
+
+  it('nests at most two boxes in an opened topic, author channel included', async () => {
+    const { el, cmp, fixture } = await mount(fixtureTables());
+    cmp.openTopic('a1');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.sheet')).not.toBeNull();
+    const worst = deepestBoxNesting(el);
+    expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
   });
 });

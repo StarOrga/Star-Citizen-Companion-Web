@@ -99,10 +99,15 @@ type UserFeedbackTab = 'compose' | 'mine';
           @if (sentJustNow()) {
             <div class="ok" role="status">{{ 'userFeedback.sent' | translate }}</div>
           }
+          <!-- Frameless (admin feedback ae072e63: "weniger Rahmen in Rahmen in
+               Rahmen"). This panel is always inside the FAB's wall, so a box
+               here would be a second one a few pixels in; the field's own
+               border is the one that says "you can type". Wall -> field. -->
           <sc-feedback-composer
             [draftScope]="composeScope"
             [busy]="feedback.busy()"
             [areaPicker]="true"
+            [frameless]="true"
             placeholder="userFeedback.placeholder"
             sendLabel="userFeedback.send"
             [onSubmit]="submitBound" />
@@ -211,6 +216,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                     @if (t.author_status === 'question') {
                       <sc-feedback-composer
                         [compact]="true"
+                        [frameless]="true"
                         [draftScope]="replyScope(t.id)"
                         [busy]="feedback.busy()"
                         placeholder="userFeedback.answerPlaceholder"
@@ -437,13 +443,16 @@ type UserFeedbackTab = 'compose' | 'mine';
     }
 
     .thread { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
+    /* A rule, not a box (admin feedback ae072e63). Inside the topic card these
+       were the third frame — card inside panel wall inside a replied-to
+       message — and the fourth was the reply composer under them. A single
+       inline-start rule groups the same thing and keeps the one part of that
+       frame that carried meaning: its colour, which says who wrote this. */
     .reply {
-      padding: var(--sc-pad-3);
-      border: 1px solid var(--sc-border);
-      border-radius: 6px;
-      background: var(--sc-bg-1);
+      padding-inline-start: 10px;
+      border-inline-start: 3px solid var(--sc-border);
     }
-    .reply.is-admin { border-color: var(--sc-accent); }
+    .reply.is-admin { border-inline-start-color: var(--sc-accent); }
     .reply-head { display: flex; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .reply-author { font-weight: 600; color: var(--sc-fg-1); }
     .reply-badge {

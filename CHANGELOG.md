@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.7] - 2026-09-07
+
+### Changed
+
+- **Die Feedback-Panels stapeln keine vier Rahmen mehr.** Im angedockten Panel
+  lief die Kette Außenwand → Blatt → Antwortbox → Eingabefeld: vier Kästen
+  ineinander, von denen nur der innerste etwas aussagte ("hier kannst du
+  tippen"). Das Blatt für ein neues Thema trennt sich jetzt mit einer einzelnen
+  Linie vom Stream ab statt sich einzurahmen, und jede Eingabebox auf einer
+  Fläche, die ohnehin schon rahmt, wird rahmenlos eingebettet. Im Nutzer-Panel
+  gilt dasselbe: die Compose-Box zeichnet keinen eigenen Kasten mehr, und die
+  Antworten im Thread stehen an einer Randlinie statt in einer Box — deren
+  Farbe sagt weiterhin, wer geschrieben hat. Damit bleiben es höchstens zwei
+  Kästen innerhalb der Komponente, drei mit der Panelwand. Gemessen wird das
+  jetzt: ein gemeinsamer Test-Helfer läuft den DOM ab, zählt nur vollständig
+  gezeichnete Rahmen und nennt im Fehlerfall die tiefste gefundene Kette.
+
 ## [0.82.6] - 2026-09-06
 
 ### Fixed
