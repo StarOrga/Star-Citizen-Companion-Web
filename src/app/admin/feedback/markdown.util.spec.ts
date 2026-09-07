@@ -141,6 +141,114 @@ describe('renderFeedbackBody', () => {
   });
 
   /**
+   * Bare URLs (admin feedback 85cfb5ca: "IM Feedback Panel wenn da links sind
+   * diese bitte auch als Links markieren!"). Nobody writing feedback types
+   * `[text](url)` — they paste the URL, and a pasted URL has to end up as a
+   * real anchor without becoming a second way to smuggle markup in.
+   */
+  describe('bare URLs', () => {
+    const anchor = (href: string, text = href) =>
+      `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+
+    it('links a pasted https and http URL', () => {
+      expect(html('https://a.example/x')).toBe(`<p>${anchor('https://a.example/x')}</p>`);
+      expect(html('http://a.example/x')).toBe(`<p>${anchor('http://a.example/x')}</p>`);
+    });
+
+    it('gives a scheme-less www host https, but shows the text as typed', () => {
+      expect(html('www.foo.test')).toBe(`<p>${anchor('https://www.foo.test', 'www.foo.test')}</p>`);
+    });
+
+    it('leaves the punctuation after a URL outside the link', () => {
+      expect(html('Siehe https://a.example/x. Danke')).toBe(
+        `<p>Siehe ${anchor('https://a.example/x')}. Danke</p>`,
+      );
+      expect(html('(https://a.example/x)')).toBe(`<p>(${anchor('https://a.example/x')})</p>`);
+    });
+
+    it('keeps brackets that balance — they belong to the URL', () => {
+      const url = 'https://a.example/Foo_(bar)';
+      expect(html(url)).toBe(`<p>${anchor(url)}</p>`);
+    });
+
+    it('does not read an underscore inside a pasted URL as emphasis', () => {
+      const url = 'https://a.example/_a_b_';
+      const out = html(url);
+      expect(out).toBe(`<p>${anchor(url)}</p>`);
+      expect(out).not.toContain('<em>');
+    });
+
+    it('survives being wrapped in bold', () => {
+      expect(html('**https://a.example/x**')).toBe(
+        `<p><strong>${anchor('https://a.example/x')}</strong></p>`,
+      );
+    });
+
+    it('never double-links an explicit [text](url)', () => {
+      const url = 'https://a.example/x';
+      expect(html(`[click](${url})`)).toBe(`<p>${anchor(url, 'click')}</p>`);
+      // Not even when the link TEXT is that same URL — anchors must not nest.
+      const out = html(`[${url}](${url})`);
+      expect(out).toBe(`<p>${anchor(url)}</p>`);
+      expect(out.match(/<a /g)?.length).toBe(1);
+    });
+
+    it('leaves a URL inside inline code as code', () => {
+      expect(html('`https://a.example/x`')).toBe('<p><code>https://a.example/x</code></p>');
+      expect(html('use `www.foo.test` here')).toBe('<p>use <code>www.foo.test</code> here</p>');
+    });
+
+    it('does not touch image markup — src and alt are still lifted out verbatim', () => {
+      const src = 'https://a.example/x.png';
+      expect(renderFeedbackBody(`![${src}](${src})`)).toEqual({
+        html: '',
+        images: [{ src, alt: src }],
+      });
+    });
+
+    it('links a URL sitting next to an image in the same run', () => {
+      const out = renderFeedbackBody('see https://a.example/x ![p](https://a.example/1.png)');
+      expect(out.html).toBe(`<p>see ${anchor('https://a.example/x')} </p>`);
+      expect(out.images).toEqual([{ src: 'https://a.example/1.png', alt: 'p' }]);
+    });
+
+    it('leaves a host with neither scheme nor www alone', () => {
+      expect(html('markdown.util.ts is the file')).toBe('<p>markdown.util.ts is the file</p>');
+      expect(html('user@www.foo.test')).toBe('<p>user@www.foo.test</p>');
+    });
+
+    it('links http(s) only — other schemes stay literal text', () => {
+      expect(html('ftp://a.example/x')).toBe('<p>ftp://a.example/x</p>');
+      expect(html('javascript:alert(1)')).toBe('<p>javascript:alert(1)</p>');
+    });
+
+    it('keeps a query string intact and escaped in href and text alike', () => {
+      const escaped = 'https://a.example/x?a=1&amp;b=2';
+      expect(html('https://a.example/x?a=1&b=2')).toBe(`<p>${anchor(escaped)}</p>`);
+    });
+
+    it('cannot break out of the href it builds', () => {
+      const out = html('https://a.example/"><script>alert(1)</script>');
+      expect(out).not.toContain('<script');
+      expect(out).toContain('&lt;script&gt;');
+    });
+
+    it('marks a runaway URL like any other runaway token, inside the link', () => {
+      const url = `https://a.example/${'p'.repeat(FEEDBACK_LONG_WORD_CHARS)}`;
+      const marked = `<span class="sc-longword">${url}</span>`;
+      expect(html(url)).toBe(`<p>${anchor(url, marked)}</p>`);
+    });
+
+    it('links every URL in a list', () => {
+      const one = anchor('https://a.example/1');
+      const two = anchor('https://a.example/2');
+      expect(html('- https://a.example/1\n- https://a.example/2')).toBe(
+        `<ul><li>${one}</li><li>${two}</li></ul>`,
+      );
+    });
+  });
+
+  /**
    * The 9.800-character "aaaa…" topic (admin feedback 0a0fad31). Breaking such a
    * run mid-word turns one message into a wall of full-width lines; marking it
    * lets the CSS keep it on one line and let it overflow its own box instead.
