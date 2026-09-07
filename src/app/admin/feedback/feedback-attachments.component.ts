@@ -322,9 +322,17 @@ export interface AnnotationResult {
     /* Half size, and no band of its own: in the composer's send row the strip
        is a receipt line next to the send button (admin feedback 187574ed). The
        glyphs and the remove badge come down with it, and a file chip drops its
-       name — 36px is a box for the extension, not for a caption. */
+       name — this is a box for the extension, not for a caption.
+
+       The exact number comes from the composer, not from here (admin feedback
+       af47232a: "die anhänge buttons … dürfen ruhig so hoch sein wie der main
+       action button wie z. B. senden"). The property --sc-composer-action-h
+       is the one height every control in that row takes, so the ＋ and the
+       capture tile line up with the send button by construction instead of by
+       two numbers that happen to be close. The fallback keeps this component standing on
+       its own anywhere dense mode is set outside a composer. */
     .att-row.dense {
-      --att-size: 36px;
+      --att-size: var(--sc-composer-action-h, 36px);
       gap: 6px;
       margin: 0;
       flex: 1 1 auto;
