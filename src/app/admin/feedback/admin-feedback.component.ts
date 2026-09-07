@@ -426,7 +426,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
         } @else if (composerOpen()) {
-          <div class="compose-sheet sc-nest">
+          <div class="compose-sheet">
             <div class="cs-head">
               <span class="cs-title">{{ 'adminFeedback.compose.newTopic' | translate }}</span>
               <button
@@ -545,8 +545,13 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     </div>
                   }
                   <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  <!-- Frameless: the card is the box (admin feedback ae072e63).
+                       A framed composer here put a third frame inside the
+                       card inside the panel wall, with the field's own border
+                       making four. -->
                   <sc-feedback-composer
                     [compact]="true"
+                    [frameless]="true"
                     [draftScope]="leadScope(m.id)"
                     [busy]="busy()"
                     [allowFiles]="true"
@@ -891,8 +896,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <input type="checkbox" [checked]="asksAuthor(m.id)" (change)="toggleAskAuthor(m.id)" />
                     {{ 'adminFeedback.userTopic.asQuestion' | translate }}
                   </label>
+                  <!-- Frameless for the same reason as the lead card's box
+                       (admin feedback ae072e63): the author channel already
+                       draws the dashed frame that groups this. -->
                   <sc-feedback-composer
                     [compact]="true"
+                    [frameless]="true"
                     [draftScope]="authorScope(m.id)"
                     [busy]="busy()"
                     [allowFiles]="true"
@@ -1175,6 +1184,14 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .msg.system { border-left: 3px solid var(--sc-accent); }
     .msg.self { border-left: 3px solid var(--sc-accent-hot); }
     .msg.first { background: transparent; border: 0; padding: 0; }
+    /* On a card the inline message IS the card's content, so it draws no second
+       box inside the one the card already draws — the same rule
+       .review-gate.inline follows (feedback a398fc94), applied to the lead
+       card's answer preview (admin feedback ae072e63). The routine/self accent
+       stays: of that frame it is the only part that carries meaning. */
+    .card-inline .msg { padding: 0; background: transparent; border: 0; border-radius: 0; }
+    .card-inline .msg.system { border-left: 3px solid var(--sc-accent); padding-left: 10px; }
+    .card-inline .msg.self { border-left: 3px solid var(--sc-accent-hot); padding-left: 10px; }
     .msg-head { display: flex; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .msg-head .who { font-weight: 600; color: var(--sc-fg-1); }
     .msg-ts { margin-left: auto; white-space: nowrap; }
@@ -1268,7 +1285,14 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .new-topic-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--sc-bg-2); border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .new-topic-bar:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .nt-plus { font-size: 1.1rem; color: var(--sc-accent); }
-    .compose-sheet { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: var(--sc-pad-3); border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1); }
+    /* No box of its own (admin feedback ae072e63: "4 Randverschachtelungen im
+       Feedback Panel mit der Außenwand, ich finde 3 maximal, wenn nicht sogar
+       nur 2"). The panel wall already frames this sheet, and the field inside
+       draws the one border down here that says something — "you can type". So
+       the sheet keeps a single top rule to part it from the stream, the way the
+       opened topic's reply bar (.sh-composer) already does, and hands its side
+       padding back to the page. Panel wall → field: two. */
+    .compose-sheet { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; padding: 8px 0 0; border-top: 1px solid var(--sc-border); }
     .cs-head { display: flex; align-items: center; justify-content: space-between; }
     .cs-title { font-weight: 600; font-size: max(0.82rem, var(--sc-fs-floor)); }
     .cs-close { min-width: 40px; min-height: 40px; background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1rem; cursor: pointer; }
