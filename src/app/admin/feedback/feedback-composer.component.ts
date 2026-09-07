@@ -69,6 +69,13 @@ export interface ComposerPayload {
    * not "Sonstiges", it is untagged.
    */
   area?: FeedbackArea | null;
+  /**
+   * The "work this one at a raised reasoning level" opt-in (admin feedback
+   * 423e5130). Only a composer that shows the checkbox (`complexToggle`) sets
+   * it; everywhere else it stays undefined, which the handler persists as the
+   * column default `false`.
+   */
+  complex?: boolean;
 }
 
 /** Longest-edge cap (px) applied when re-encoding pasted/dropped images. */
@@ -286,6 +293,29 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
              knowing nothing about the workflow it is embedded in. -->
         <ng-content select="[composerAction]" />
 
+        <!-- "Komplex" — the admin's own estimate of the topic they just wrote,
+             ticked immediately LEFT of the send button (admin feedback
+             423e5130: "soll links neben dem senden button eine checkbox sein
+             für 'complex'"). It rides on the new-topic box only: it is a
+             property of the TOPIC, and a reply belongs to a topic that already
+             carries it.
+
+             A real <input type="checkbox"> inside its <label>, so the words are
+             the hit area, Tab reaches it and a screen reader announces state
+             and name together — the styled <div> this could have been would
+             have had to re-implement all three. What it means for the work is
+             in the tooltip rather than in a second line of chrome in the
+             tightest row of the panel. -->
+        @if (complexToggle()) {
+          <label class="complex" [attr.title]="'adminFeedback.compose.complexHint' | translate">
+            <input
+              type="checkbox"
+              [checked]="complex()"
+              (change)="setComplex($event)" />
+            <span>{{ 'adminFeedback.compose.complex' | translate }}</span>
+          </label>
+        }
+
         <button
           class="sc-btn send"
           [class.sc-btn-primary]="!compact()"
@@ -446,6 +476,37 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
        field and a button band (admin feedback 187574ed). */
     .foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .foot .send { flex: 0 0 auto; }
+    /* Sits in the send row like a control, not like body text: the same
+       vertical rhythm as the micro button beside it, and it may never be the
+       thing that wraps the row onto a second line. */
+    .complex {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 2px;
+      color: var(--sc-fg-1);
+      font-size: max(0.74rem, var(--sc-fs-floor));
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .complex input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--sc-accent);
+      cursor: pointer;
+    }
+    .complex:hover { color: var(--sc-fg-0); }
+    /* The focus ring belongs on the whole control, not on the 16px box alone —
+       the label is the hit area, so it is also what the keyboard lands on. */
+    .complex:has(input:focus-visible) {
+      outline: 2px solid var(--sc-accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
     .sc-btn.micro { padding: 4px 10px; font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     /* The key-symbol send button (admin feedback 187574ed): the label is the
        shortcut that triggers it, so it is square-ish and the glyph carries the
@@ -527,6 +588,17 @@ export class FeedbackComposerComponent implements OnDestroy {
    * top-level surface and keeps its frame.
    */
   readonly frameless = input(false);
+  /**
+   * Show the "Komplex" checkbox in the send row (admin feedback 423e5130).
+   *
+   * ADMIN NEW-TOPIC BOXES ONLY. The flag is an instruction to the routine about
+   * how much thinking a topic gets, so it is the board's call and not the
+   * submitter's — the viewer-facing FAB composer must never offer it (the
+   * database pins the column to false on a user-submitted insert either way).
+   * Off by default, so a new embedding that forgets the input gets the plain
+   * composer rather than an unpinned lever.
+   */
+  readonly complexToggle = input(false);
   /** Paint the send button in the elevated-access red — the sheet's one CTA. Admin surfaces only. */
   readonly primaryHot = input(false);
   /**
@@ -562,6 +634,13 @@ export class FeedbackComposerComponent implements OnDestroy {
    * the fresher guess of the two, and correctable either way.
    */
   readonly area = signal<FeedbackArea | null>(null);
+  /**
+   * State of that checkbox. Deliberately NOT part of the persisted draft — like
+   * `area` it describes the topic being sent, and a restored draft carrying a
+   * days-old "complex" the writer no longer sees ticked would be worse than
+   * asking again. Reset after every successful send.
+   */
+  readonly complex = signal(false);
   readonly draftRestored = signal(false);
   readonly attachments = signal<PendingImage[]>([]);
   /**
@@ -672,6 +751,8 @@ export class FeedbackComposerComponent implements OnDestroy {
       // Undefined (not null) where no picker is shown, so a reply handler can
       // tell "this composer has no opinion" from "explicitly untagged".
       area: this.areaPicker() ? this.area() : undefined,
+      // Same rule as `area`: only a composer that actually asks has an opinion.
+      complex: this.complexToggle() ? this.complex() : undefined,
     };
     const handler = this.onSubmit();
     if (!handler) return;
@@ -697,6 +778,9 @@ export class FeedbackComposerComponent implements OnDestroy {
         // topic starts from the page the user is on rather than from the last
         // thing they happened to correct.
         this.area.set(null);
+        // …and so does the complexity opt-in: the NEXT topic is an ordinary one
+        // until its writer says otherwise.
+        this.complex.set(false);
         // Sent: the draft has become a message and its uploads are referenced
         // by that message's body, so the row goes and the objects stay.
         const scope = this.draftScope();
@@ -705,6 +789,11 @@ export class FeedbackComposerComponent implements OnDestroy {
     } finally {
       this.sending.set(false);
     }
+  }
+
+  /** Checkbox → signal. The DOM element is the source of truth for its own state. */
+  setComplex(ev: Event): void {
+    this.complex.set((ev.target as HTMLInputElement).checked);
   }
 
   // ---- Draft persistence (account-bound, see FeedbackDraftService) --------
@@ -717,6 +806,7 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.draft.set('');
     this.attachments.set([]);
     this.area.set(null);
+    this.complex.set(false);
     this.draftRestored.set(false);
     this.errorMsg.set(null);
     if (next) void this.restoreDraft(next);

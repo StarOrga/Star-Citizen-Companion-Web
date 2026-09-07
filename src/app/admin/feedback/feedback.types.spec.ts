@@ -1706,3 +1706,46 @@ describe('isLongMessage (fold sent messages > 3 lines)', () => {
     expect(isLongMessage('Text\n![a](u1)\n![b](u2)\n![c](u3)\n![d](u4)')).toBeFalse();
   });
 });
+
+/**
+ * The `complex` flag (feedback 423e5130, migration 20260907220000) is a message
+ * to whoever WORKS a topic — "spend two more reasoning steps on this one" — and
+ * nothing else. That makes its contract a negative one, which is exactly the
+ * kind that rots silently: every queue, band and counter on the board must
+ * behave identically whether or not the box was ticked. Absent must read like
+ * `false`, because that is the column default and the state of every topic
+ * filed before the checkbox existed.
+ */
+describe('complex flag (feedback 423e5130)', () => {
+  const plain = row('a', 'open', '2026-09-01T09:00:00Z');
+  const flagged = row('a', 'open', '2026-09-01T09:00:00Z', { complex: true });
+
+  it('is absent by default and carries the admin opt-in when set', () => {
+    expect(plain.complex).toBeUndefined();
+    expect(flagged.complex).toBeTrue();
+  });
+
+  it('changes nothing about where a topic sits', () => {
+    expect(feedbackBucket(flagged)).toBe(feedbackBucket(plain));
+    expect(isArchived(flagged)).toBe(isArchived(plain));
+    expect(turnOf(flagged)).toBe(turnOf(plain));
+    expect(flightPosition(flagged, [])).toEqual(flightPosition(plain, []));
+    expect(awaitsTriage(flagged)).toBe(awaitsTriage(plain));
+    expect(awaitsReview(flagged)).toBe(awaitsReview(plain));
+  });
+
+  it('changes nothing about the queue or the counters', () => {
+    const queue = buildWorkflowQueue([flagged], new Map(), new Map());
+    expect(queue.map((i) => i.row.id)).toEqual(
+      buildWorkflowQueue([plain], new Map(), new Map()).map((i) => i.row.id),
+    );
+    expect(computeStats([flagged], new Map(), null)).toEqual(
+      computeStats([plain], new Map(), null),
+    );
+  });
+
+  it('is not searchable text — it is an instruction, not content', () => {
+    expect(searchFeedback([flagged], new Map(), 'complex').length).toBe(0);
+    expect(displayTitle(flagged)).toBe(displayTitle(plain));
+  });
+});

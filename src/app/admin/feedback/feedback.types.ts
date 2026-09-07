@@ -183,6 +183,21 @@ export interface FeedbackRow {
    * falls back to the body.
    */
   summary?: string | null;
+  /**
+   * The admin's "this one is bigger than it looks" opt-in (migration
+   * 20260907220000, feedback 423e5130), ticked in the new-topic composer next
+   * to the send button. It is an instruction to whoever WORKS the topic — the
+   * routine raises its reasoning/effort two steps above the default for a
+   * flagged topic (`docs/feedback-routine.md`) — and changes nothing about how
+   * the topic is queued, ordered or shown.
+   *
+   * Optional so fixture rows and projections that omit the column keep
+   * compiling; absent reads as `false`, which is exactly the column default and
+   * the value of every topic filed before the flag existed. Never set on a
+   * user-submitted topic at insert time (the DB guard pins it), so a `true`
+   * here always means an admin said so.
+   */
+  complex?: boolean;
 }
 
 /**

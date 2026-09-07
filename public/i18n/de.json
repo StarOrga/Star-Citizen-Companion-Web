@@ -3061,6 +3061,8 @@
       "placeholder": "Was könnte besser sein? Markdown möglich.",
       "send": "Senden",
       "newTopic": "Neues Thema",
+      "complex": "Komplex",
+      "complexHint": "Aufwendigeres Thema — die Routine arbeitet es mit höherer Denktiefe ab",
       "collapse": "Schließen",
       "sendHint": "Enter = senden · Shift+Enter = neue Zeile",
       "sendHintCtrl": "Strg/Cmd+Enter = senden · Enter = neue Zeile",

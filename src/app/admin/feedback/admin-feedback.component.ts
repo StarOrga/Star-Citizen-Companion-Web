@@ -424,6 +424,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [busy]="busy()"
             [areaPicker]="true"
             [allowFiles]="true"
+            [complexToggle]="true"
             placeholder="adminFeedback.compose.placeholder"
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
@@ -442,6 +443,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [busy]="busy()"
               [areaPicker]="true"
               [allowFiles]="true"
+              [complexToggle]="true"
               [frameless]="true"
               placeholder="adminFeedback.compose.placeholder"
               sendLabel="adminFeedback.compose.send"
@@ -492,6 +494,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </span>
                 @if (areaOf(m); as a) {
                   <span class="chip area">{{ areaLabelKey(a) | translate }}</span>
+                }
+                <!-- The writer's own "this one is bigger" mark (feedback
+                     423e5130) — shown back on the card so the tick is visible
+                     after the box that set it is gone. -->
+                @if (m.complex) {
+                  <span class="chip" [attr.title]="'adminFeedback.compose.complexHint' | translate">{{ 'adminFeedback.compose.complex' | translate }}</span>
                 }
                 @if (issueRequested(m)) {
                   <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span>
@@ -2008,7 +2016,7 @@ export class AdminFeedbackComponent implements OnInit {
       .from('admin_feedback')
       // `author.role` colours the avatar; admins may read every profile
       // (policy profiles_admin_read_all), so no projection is needed.
-      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, summary, author:profiles(display_name, username, role)')
+      .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, summary, complex, author:profiles(display_name, username, role)')
       .order('created_at', { ascending: true });
     if (error) {
       this.errorMsg.set(error.message);
@@ -2127,7 +2135,7 @@ export class AdminFeedbackComponent implements OnInit {
     if (!body) return false;
     const { error } = await this.sb.client
       .from('admin_feedback')
-      .insert({ body, author_id: uid, area: payload.area ?? null });
+      .insert({ body, author_id: uid, area: payload.area ?? null, complex: payload.complex ?? false });
     if (error) {
       this.errorMsg.set(error.message);
       return false;

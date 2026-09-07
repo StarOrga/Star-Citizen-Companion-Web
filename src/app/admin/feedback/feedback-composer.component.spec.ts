@@ -1063,3 +1063,143 @@ describe('FeedbackComposerComponent - the send row', () => {
     expect(ta.getAttribute('aria-label')).toBe(ta.placeholder);
   });
 });
+
+/**
+ * THE "KOMPLEX" OPT-IN (admin feedback 423e5130).
+ *
+ * "links neben dem senden button eine checkbox für 'complex'" — a marker the
+ * admin sets on a NEW topic to say that the routine should work it at a raised
+ * reasoning level. Three things are load-bearing and each of them is a way this
+ * can silently be wrong: it must be a REAL checkbox (keyboard + screen reader),
+ * it must sit LEFT of the send button, and its state must actually reach the
+ * payload the parent persists — a checkbox that renders but sends nothing looks
+ * perfect in a screenshot.
+ */
+describe('FeedbackComposerComponent - the complex opt-in', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let host: HTMLElement;
+  let sent: ComposerPayload[];
+
+  async function mount(inputs: Record<string, unknown> = {}): Promise<void> {
+    sent = [];
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: new FakeDraftStore() },
+      ],
+    }).compileComponents();
+
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', {
+      adminFeedback: {
+        compose: {
+          placeholder: 'What could be better?',
+          send: 'Send',
+          complex: 'Complex',
+          complexHint: 'Bigger than usual - the routine works this topic at a raised reasoning level',
+        },
+      },
+    });
+    translate.use('en');
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
+    fixture.componentRef.setInput('sendLabel', 'adminFeedback.compose.send');
+    fixture.componentRef.setInput('onSubmit', (p: ComposerPayload) => {
+      sent.push(p);
+      return Promise.resolve(true);
+    });
+    for (const [key, value] of Object.entries(inputs)) fixture.componentRef.setInput(key, value);
+    host = fixture.nativeElement as HTMLElement;
+    host.style.width = '560px';
+    document.body.appendChild(host);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  const q = (sel: string): HTMLElement | null => host.querySelector(sel);
+  const cb = (): HTMLInputElement => host.querySelector('.foot .complex input')!;
+
+  function type(value: string): void {
+    const el: HTMLTextAreaElement = host.querySelector('textarea')!;
+    el.value = value;
+    fixture.componentInstance.onInput({ target: el } as unknown as Event);
+    fixture.detectChanges();
+  }
+
+  afterEach(() => {
+    host?.remove();
+    TestBed.resetTestingModule();
+  });
+
+  it('is absent on a composer that is not a new-topic box', async () => {
+    await mount();
+    expect(q('.foot .complex')).withContext('a reply inherits its topic').toBeNull();
+  });
+
+  it('is a real checkbox with a name, not a styled div', async () => {
+    await mount({ complexToggle: true });
+    const input = cb();
+    expect(input.type).toBe('checkbox');
+    expect(input.checked).withContext('opt-in, so it starts off').toBeFalse();
+
+    // The label wraps the input, which is what makes the words the hit area and
+    // gives the control its accessible name without an id/for pair to drift.
+    const label = input.closest('label');
+    expect(label).withContext('wrapped in its label').not.toBeNull();
+    expect(label!.textContent?.trim()).toBe('Complex');
+    expect(label!.getAttribute('title')).withContext('what it means, in words').toContain(
+      'reasoning',
+    );
+  });
+
+  it('sits left of the send button, on the same line', async () => {
+    await mount({ complexToggle: true });
+    const label = q('.foot .complex')!.getBoundingClientRect();
+    const send = q('.foot .send')!.getBoundingClientRect();
+
+    expect(label.width).withContext('rendered').toBeGreaterThan(0);
+    expect(label.right).withContext('left of the button').toBeLessThanOrEqual(send.left + 1);
+    expect(Math.abs(label.top - send.top))
+      .withContext('same line')
+      .toBeLessThan(Math.max(label.height, send.height));
+  });
+
+  it('sends false while the box is untouched and true once it is ticked', async () => {
+    await mount({ complexToggle: true });
+    type('an ordinary ask');
+    await fixture.componentInstance.submit();
+    expect(sent.map((p) => p.complex)).toEqual([false]);
+
+    type('a big one');
+    cb().checked = true;
+    cb().dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.complex()).toBeTrue();
+
+    await fixture.componentInstance.submit();
+    expect(sent.map((p) => p.complex)).toEqual([false, true]);
+  });
+
+  it('clears itself after a send - the next topic is ordinary again', async () => {
+    await mount({ complexToggle: true });
+    type('a big one');
+    cb().checked = true;
+    cb().dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    await fixture.componentInstance.submit();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.complex()).toBeFalse();
+    expect(cb().checked).withContext('and the box shows it').toBeFalse();
+  });
+
+  it('has no opinion at all where the checkbox is not shown', async () => {
+    await mount();
+    type('a thread reply');
+    await fixture.componentInstance.submit();
+    expect(sent[0].complex).toBeUndefined();
+  });
+});
