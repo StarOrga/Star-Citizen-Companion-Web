@@ -253,6 +253,87 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(kid?.querySelector('.meta-txt')?.textContent?.trim()).toBe('Weapon Gun');
   });
 
+  // ── admin feedback dbdb2ffe ───────────────────────────────────────────────
+
+  it('renders the sub-slot as an indented sub-entry, not as a sibling of the mount', () => {
+    // "Der Strich neben Gimbal muss unter drunter links neben die waffe da es
+    // ein unterbereich ist von Gimbal! Wie ein Absatz der eingerückt ist!"
+    const el = render([{ section: 'weapons', slots: [VARIPUCK] }]);
+    const duo = el.querySelector('.duo')!;
+    const children = Array.from(duo.children);
+    // Exactly two levels, in order: the mount's own line, then its sub-slots.
+    expect(children.length).toBe(2);
+    expect(children[0].classList).toContain('main');
+    expect(children[1].tagName).toBe('UL');
+    expect(children[1].classList).toContain('kids');
+    // The mount's card, figure and tools live on the mount's line…
+    expect(duo.querySelector('.main > .slot-btn')).toBeTruthy();
+    // …and the horizontal dash that used to sit beside the mount is gone.
+    expect(el.querySelector('.chain')).toBeNull();
+  });
+
+  it('keeps the mount tools on the MOUNT line, never beside the gun inside it', () => {
+    // "Das tooltip ist rechts neben der Repeater von Gimbal? das muss in
+    // Gimbal rein da es damit zusammenhängt."
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          {
+            ...VARIPUCK,
+            children: [
+              child({
+                port: 'Hardpoint Class 3',
+                className: 'KLWE_LaserRepeater_S3',
+                kind: 'weapon' as const,
+                name: 'CF-337 Panther Repeater',
+                size: 3,
+              }),
+            ],
+          },
+        ],
+      },
+    ]);
+    expect(el.querySelector('.main > .slot-swap')).toBeTruthy();
+    expect(el.querySelector('.main > .slot-swap-action')).toBeTruthy();
+    expect(el.querySelector('.kids .slot-swap-action')).toBeNull();
+  });
+
+  it('gives the gun inside a mount its OWN stat sheet button', () => {
+    // "von den Waffen fehlt es komplett" — the mount's ⓘ describes the mount.
+    const inspects: LayoutTarget[] = [];
+    fixture.componentInstance.inspected.subscribe((v) => inspects.push(v));
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          { ...VARIPUCK, port: 'Hardpoint Weapon Wing Left', rawPort: 'hardpoint_weapon_wing_left',
+            children: [
+              child({
+                port: 'Hardpoint Class 3',
+                rawPorts: ['hardpoint_class_3'],
+                className: 'KLWE_LaserRepeater_S3',
+                kind: 'weapon' as const,
+                name: 'CF-337 Panther Repeater',
+                size: 3,
+                stats: [{ labelKey: 'codex.equipped.alphaDamage', value: 43.65, format: 'dec' }],
+              }),
+            ] },
+        ],
+      },
+    ]);
+    const kidInfo = el.querySelector('.kid .slot-swap') as HTMLButtonElement;
+    expect(kidInfo).toBeTruthy();
+    kidInfo.click();
+    expect(inspects.length).toBe(1);
+    // The GUN, not the gimbal it sits in.
+    expect(inspects[0].child?.className).toBe('KLWE_LaserRepeater_S3');
+    expect(inspects[0].slot.className).toBe('Mount_Gimbal_S3');
+    expect(inspects[0].rawPorts).toEqual(['hardpoint_weapon_wing_left.hardpoint_class_3']);
+    // The alpha figure the admin pointed at stays beside the gun it belongs to.
+    expect(el.querySelector('.kid .fig .n')?.textContent?.trim()).toBe('43.65');
+  });
+
   it('marks a row as locatable only when its port has a hull position', () => {
     const located = { ...PANTHER, rawPort: 'hardpoint_weapon_top_left' };
     const unknown = slot({ port: 'Hardpoint Weapon Bottom', rawPort: 'hardpoint_weapon_bottom' });
@@ -360,8 +441,16 @@ describe('CodexHardpointLayoutComponent', () => {
     (el.querySelector('button.slot-btn') as HTMLButtonElement).click();
     expect(swaps.length).toBe(0);
     expect(inspects.length).toBe(1);
-    // Nothing to swap here, so the row carries no side button either.
-    expect(el.querySelector('.slot-swap')).toBeNull();
+    // Nothing to swap here, so the row carries no swap button…
+    expect(el.querySelector('.slot-swap-action')).toBeNull();
+    // …but its numbers are as worth reading as a gun's, so the ⓘ stays
+    // (feedback dbdb2ffe: "die anderen Module auch überprüfen … ob alles
+    // alles hat"). It was configurable-only before.
+    expect(el.querySelector('.slot-swap')).toBeTruthy();
+    (el.querySelector('.slot-swap') as HTMLButtonElement).click();
+    expect(inspects.length).toBe(2);
+    expect(inspects[1].slot.className).toBe('T');
+    expect(inspects[1].child).toBeNull();
   });
 
   it('keeps the full stat sheet reachable from a configurable row', () => {
@@ -608,7 +697,7 @@ describe('CodexHardpointLayoutComponent', () => {
     // Every mount is now its own decision, each naming its own position.
     expect(el.querySelectorAll('.slot').length).toBe(3);
     expect(
-      Array.from(el.querySelectorAll('.duo > .slot-btn > .slot-port')).map((p) =>
+      Array.from(el.querySelectorAll('.duo > .main > .slot-btn > .slot-port')).map((p) =>
         p.textContent?.trim(),
       ),
     ).toEqual([

@@ -36,6 +36,7 @@ import {
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig } from '../hangar/hangar.types';
+import { InfoNoteComponent } from '../shared/info-note.component';
 import {
   computeLoadoutStats,
   findStat,
@@ -265,7 +266,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -694,6 +695,18 @@ interface GearRecipe {
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
                 <span class="n">{{ moduleCount() }}</span>
+                <!-- "What even IS a hardpoint?" — two paragraphs that used to
+                     stand permanently between the heading and the modules
+                     themselves. They answer a question you ask once, so they
+                     moved behind the heading's own ⓘ (feedback dbdb2ffe:
+                     *"Beschreibung oben in Loadout bitte als Tooltip
+                     einfügen"*). sc-info-note is a real button with an Escape
+                     and an outside-click dismiss, so the note is reachable by
+                     keyboard and by touch — not a hover-only title. -->
+                <sc-info-note class="head-note" [label]="'codex.detail.loadoutExplainerLabel' | translate">
+                  <p>{{ 'codex.detail.hardpointExplainer' | translate }}</p>
+                  <p>{{ 'codex.detail.moduleOrderHint' | translate }}</p>
+                </sc-info-note>
                 <span class="rule" aria-hidden="true"></span>
                 @if (hiddenEmptyCount() > 0) {
                   <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
@@ -701,9 +714,6 @@ interface GearRecipe {
                   </button>
                 }
               </h2>
-              <!-- "What even IS a hardpoint?" — answered up front, once. -->
-              <p class="hint">{{ 'codex.detail.hardpointExplainer' | translate }}</p>
-              <p class="hint">{{ 'codex.detail.moduleOrderHint' | translate }}</p>
               <!-- The "no stock guns in this extract" disclosure used to sit here,
                    far above the block it is about. It now rides on the Weapons
                    section itself (1add86a4) — see moduleSections below. -->
@@ -1105,6 +1115,12 @@ interface GearRecipe {
       color: var(--sc-fg-2); font-size: max(10px, var(--sc-fs-floor)); }
     .col-head .rule { flex: 1 1 auto; height: 1px; background: var(--sc-border); }
     .col-head .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* The loadout explainer's ⓘ sits with the heading, not with the rule that
+       runs out to the card edge — and its note carries running prose, so the
+       heading's uppercase/tracking must not leak into it. */
+    .col-head .head-note { flex: 0 0 auto; text-transform: none; letter-spacing: normal; }
+    .col-head .head-note p { margin: 0 0 6px; }
+    .col-head .head-note p:last-child { margin-bottom: 0; }
     .col-analyse { display: flex; flex-direction: column; gap: 12px; }
 
     @media (max-width: 1100px) {

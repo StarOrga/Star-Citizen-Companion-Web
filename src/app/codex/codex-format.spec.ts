@@ -1,4 +1,5 @@
 import {
+  activeNumberLocale,
   ammoDamage,
   buildCompareTable,
   categorizePort,
@@ -23,6 +24,7 @@ import {
   isNoiseKey,
   meaningfulRows,
   rowHasDifferences,
+  setNumberLocale,
   summarizePorts,
   unescapeText,
   unitForField,
@@ -120,13 +122,41 @@ describe('codex-format', () => {
       expect(formatNumber(2244)).toBe('2,244');
       expect(formatNumber(5.829999)).toBe('5.83');
     });
-    it('uses comma thousands + period decimal regardless of host locale', () => {
-      // Regression: toLocaleString could emit German "1.196" — manual format
-      // must always produce the English presentation.
+    it('uses comma thousands + period decimal regardless of HOST locale', () => {
+      // Regression: toLocaleString could emit German "1.196" for an explicit
+      // 'en-US'. The separators are still asked of Intl for a NAMED locale,
+      // never taken from the host default, so an English UI on a German
+      // machine keeps the English presentation.
       expect(formatNumber(1196.31005859375)).toBe('1,196.31');
       expect(formatNumber(1113.800048828125)).toBe('1,113.8');
       expect(formatNumber(1650)).toBe('1,650');
       expect(formatNumber(1000000)).toBe('1,000,000');
+    });
+    it('follows the UI locale — German separators for a German UI (dbdb2ffe)', () => {
+      // "wir sind Deutsche also Deutsches Format außer ich englische Sprache
+      // eingestellt": same figure, two presentations, driven by the app's
+      // resolved locale and NOT by a hardcoded separator table.
+      expect(formatNumber(1636.88, 'de')).toBe('1.636,88');
+      expect(formatNumber(1636.88, 'en')).toBe('1,636.88');
+      expect(formatNumber(130.95, 'de')).toBe('130,95');
+      expect(formatNumber(-1234.5, 'de')).toBe('-1.234,5');
+      // Rounding, trimming and the sentinel are locale-independent.
+      expect(formatNumber(5.0, 'de')).toBe('5');
+      expect(formatNumber(3.4028e38, 'de')).toBe('∞');
+    });
+    it('renders in whatever locale was last pushed in, and defaults to English', () => {
+      expect(activeNumberLocale()).toBe('en');
+      try {
+        setNumberLocale('de');
+        expect(activeNumberLocale()).toBe('de');
+        expect(formatNumber(1636.88)).toBe('1.636,88');
+        // An empty/absent tag must never leave the app formatting for "".
+        setNumberLocale('');
+        expect(activeNumberLocale()).toBe('en');
+        expect(formatNumber(1636.88)).toBe('1,636.88');
+      } finally {
+        setNumberLocale('en');
+      }
     });
     it('trims trailing-zero decimals and handles negatives', () => {
       expect(formatNumber(5.5)).toBe('5.5');

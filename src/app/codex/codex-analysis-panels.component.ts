@@ -41,8 +41,10 @@ const PANEL_STYLES = `
   .fold-hint { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: normal;
     color: var(--sc-fg-2); font-style: italic; }
   /* The read-out the concept parks on the right of the head (.m-h2 .r,
-     part-02:143): muted, 11px, sentence case, gentle tracking. */
-  .panel-hint { margin: 2px 0 10px; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2); }
+     part-02:143): muted, 11px, sentence case, gentle tracking. Rendered only
+     while the panel is folded — see the template. */
+  .head-peek { font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-fg-2);
+    text-transform: none; font-weight: 400; font-variant-numeric: tabular-nums; }
   .chev { transition: transform 0.15s ease; }
   .chev.open { transform: rotate(90deg); }
   /* A missing value reads muted at 12px in the concept (.m-f.gap, part-02:238). */
@@ -142,10 +144,16 @@ const PANEL_STYLES = `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
       <summary class="panel-head">
         {{ 'codex.analysis.offensive.title' | translate }}
+        <!-- The totals line used to sit UNDER the head, inside the open panel,
+             quoting exactly the two figures the table's own total row quotes a
+             few pixels further down (feedback dbdb2ffe: *"Wofür steht 1,636.88
+             oben und der Alpha wert der steht unten auch! Also raus damit"*).
+             It is a peek at what is folded away, so it belongs to the folded
+             state only — open the panel and the table is the single source. -->
+        @if (!open() && hint(); as h) { <span class="head-peek">{{ h }}</span> }
         <span class="fold-hint">{{ 'codex.analysis.readHint' | translate }}</span>
         <span class="chev" [class.open]="open()" aria-hidden="true">›</span>
       </summary>
-      @if (hint(); as h) { <p class="panel-hint">{{ h }}</p> }
       @if (open()) {
         @if (panel(); as p) {
           @if (p.gapKeys.includes('codex.summary.gap.noStockGuns')) {
