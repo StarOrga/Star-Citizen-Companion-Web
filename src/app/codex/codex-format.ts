@@ -1,5 +1,8 @@
-// Codex presentation helpers — pure, framework-free formatting + grouping logic.
+// Codex presentation helpers — pure formatting + grouping logic.
 // -----------------------------------------------------------------------------
+// Framework-free apart from ONE signal: the active number locale (see
+// `numberLocale` below). Everything else here is a pure function of its inputs.
+//
 // The codex payloads are raw datamine output: descriptions carry literal "\n"
 // escape sequences, component `stats` are huge struct dumps (mostly engine
 // noise + unresolved @LOC_* keys + file paths), numbers include FLT_MAX
@@ -7,6 +10,8 @@
 //
 // Everything here is GENERIC per entity *type* — no per-ship / per-item special
 // cases. The detail view composes these into a readable presentation.
+
+import { signal } from '@angular/core';
 
 // ── text ─────────────────────────────────────────────────────────────────────
 
@@ -157,29 +162,88 @@ export function humanizeKey(raw: string): string {
 // Floats at/above this are FLT_MAX-style sentinels ("unset" / "infinite").
 const SENTINEL = 1e12;
 
+/** The BCP-47 tag every codex number renders in until the app says otherwise. */
+const DEFAULT_NUMBER_LOCALE = 'en';
+
 /**
- * Format a numeric stat: comma-grouped thousands, up to 2 decimals (trailing
- * zeros trimmed), FLT_MAX → ∞.
+ * The locale codex numbers are grouped in. A signal, not a plain variable, so a
+ * language switch invalidates every `computed()` that formats a figure — the
+ * ship page derives most of its read-outs that way, and a plain variable would
+ * leave them showing the previous locale until some unrelated input changed.
  *
- * Deliberately locale-INDEPENDENT (manual grouping, no `toLocaleString`). The
- * SC catalog is rendered English-only, and `Number.prototype.toLocaleString`
- * proved unreliable in practice — depending on locale-data load order / host
- * Intl it could emit German separators ("1.196") even when called with
- * `'en-US'`. Manual formatting guarantees a single, stable presentation
- * everywhere regardless of the host environment.
+ * Fed by `CodexNumberLocaleService` (`codex-number-locale.ts`) from
+ * `LocaleService.intlLocale()`; nothing else may write it.
  */
-export function formatNumber(v: number): string {
+const numberLocale = signal<string>(DEFAULT_NUMBER_LOCALE);
+
+/** Point every subsequent {@link formatNumber} at this BCP-47 tag. */
+export function setNumberLocale(tag: string | null | undefined): void {
+  numberLocale.set((tag ?? '').trim() || DEFAULT_NUMBER_LOCALE);
+}
+
+/** The tag {@link formatNumber} currently groups in — for tests and read-outs. */
+export function activeNumberLocale(): string {
+  return numberLocale();
+}
+
+interface NumberSeparators {
+  group: string;
+  decimal: string;
+}
+
+const SEPARATOR_CACHE = new Map<string, NumberSeparators>();
+
+/**
+ * The group/decimal characters a locale uses, ASKED OF `Intl` rather than
+ * hardcoded — "German is a dot" is a table nobody should maintain here.
+ *
+ * Only the two CHARACTERS come from Intl; the grouping and rounding below stay
+ * hand-rolled. That is deliberate: `toLocaleString` was dropped from this file
+ * once before because, depending on locale-data load order, it emitted German
+ * separators for an explicit `'en-US'`. Reading `formatToParts` of a known
+ * sample and doing the grouping ourselves keeps that failure impossible while
+ * still never naming a separator in code.
+ */
+function separatorsFor(locale: string): NumberSeparators {
+  const cached = SEPARATOR_CACHE.get(locale);
+  if (cached) return cached;
+  let seps: NumberSeparators = { group: ',', decimal: '.' };
+  try {
+    const parts = new Intl.NumberFormat(locale).formatToParts(12345.6);
+    const group = parts.find((p) => p.type === 'group')?.value;
+    const decimal = parts.find((p) => p.type === 'decimal')?.value;
+    if (group && decimal) seps = { group, decimal };
+  } catch {
+    /* no Intl data for this tag — the en fallback above still renders. */
+  }
+  SEPARATOR_CACHE.set(locale, seps);
+  return seps;
+}
+
+/**
+ * Format a numeric stat: grouped thousands, up to 2 decimals (trailing zeros
+ * trimmed), FLT_MAX → ∞.
+ *
+ * Locale-aware since feedback dbdb2ffe (*"wir sind Deutsche also Deutsches
+ * Format außer ich englische Sprache eingestellt"*): the separators come from
+ * the active UI locale, so the same figure reads `1,636.88` in English and
+ * `1.636,88` in German. The rounding and the grouping RULE are unchanged — only
+ * the two characters differ — so nothing that compared these strings before
+ * behaves differently while the locale stays English.
+ */
+export function formatNumber(v: number, locale: string = numberLocale()): string {
   if (!Number.isFinite(v) || Math.abs(v) >= SENTINEL) return '∞';
+  const { group, decimal } = separatorsFor(locale);
   const rounded = Math.round(v * 100) / 100;
   const neg = rounded < 0;
   const abs = Math.abs(rounded);
   const intPart = Math.trunc(abs);
   const frac = Math.round((abs - intPart) * 100); // 0..99
-  const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, group);
   let out = grouped;
   if (frac > 0) {
     const fracStr = (frac % 10 === 0 ? String(frac / 10) : String(frac).padStart(2, '0'));
-    out = `${grouped}.${fracStr}`;
+    out = `${grouped}${decimal}${fracStr}`;
   }
   return neg ? `-${out}` : out;
 }

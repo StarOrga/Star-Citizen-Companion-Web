@@ -248,9 +248,15 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
  * visually de-emphasised.
  *
  * A weapon row reads mount-first, exactly like the loadout tools do: the thing
- * bolted to the hull ("3× S3 VariPuck S3 Gimbal Mount") on the left, and what
- * sits INSIDE it ("3× S3 CF-337 Panther Repeater", or a "—" placeholder when
- * the extract has no stock weapon) chained to its right.
+ * bolted to the hull ("3× S3 VariPuck S3 Gimbal Mount") on its own line, and
+ * what sits INSIDE it ("3× S3 CF-337 Panther Repeater", or a "—" placeholder
+ * when the extract has no stock weapon) INDENTED beneath it. The gun used to
+ * sit beside the mount with a 14px dash between them; a gun in a gimbal is a
+ * sub-entry of that gimbal, not its sibling (feedback dbdb2ffe).
+ *
+ * Every occupied row and every occupied sub-slot carries its own ⓘ to its own
+ * full stat sheet — the mount's numbers are not the gun's, and until dbdb2ffe
+ * the gun had no way to reach its own at all.
  *
  * Clicking a card in a CONFIGURABLE block opens the swap picker — that block is
  * exactly the set of things a pilot can change, so "click the weapon" answering
@@ -386,6 +392,13 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                   (mouseenter)="emitHover(row)" (mouseleave)="hovered.emit(null)"
                   (focusin)="emitHover(row)" (focusout)="hovered.emit(null)">
                 <div class="duo">
+                  <!-- The mount's OWN line: its card, its figure, its tools.
+                       Nothing that belongs to the mount may wrap down next to
+                       the thing inside it (feedback dbdb2ffe: *"Das tooltip ist
+                       rechts neben der Repeater … das muss in Gimbal rein"*) —
+                       before this wrapper the ⓘ/⇄ pair sat in the same flex
+                       flow as the sub-slot list and ended up beside the gun. -->
+                  <div class="main">
                   @if (row.slot.className) {
                     <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
                             [attr.title]="portTitle(row)">
@@ -481,15 +494,51 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                     </span>
                   }
 
+                  <!-- Draft write-path (PR B): a row edited away from stock
+                       carries a chip naming its state, plus a revert action. -->
+                  @if (row.slot.draftState; as ds) {
+                    <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">
+                      {{ ('codex.loadout.draftState.' + ds) | translate }}
+                    </span>
+                    @if (row.slot.draftPaths?.length) {
+                      <button type="button" class="slot-revert" (click)="revertRow(row)"
+                              [attr.aria-label]="'codex.loadout.revert' | translate"
+                              [attr.title]="'codex.loadout.revert' | translate">↺</button>
+                    }
+                  }
+                  <!-- The full stat sheet, on EVERY occupied row (feedback
+                       dbdb2ffe: *"Die Positionen bei den andern Modulen auch
+                       überprüfen und ob alles alles hat"*). A fixed row opens
+                       the same sheet by clicking its card, but only the ⓘ says
+                       so — a thruster is as worth reading as a gun. The swap
+                       action stays on the rows that actually have a choice. -->
+                  @if (row.slot.className) {
+                    <button type="button" class="slot-swap" (click)="inspectRow(row)"
+                            [attr.aria-label]="'codex.inspect.openStats' | translate"
+                            [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
+                    @if (sec.configurable) {
+                      <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
+                              [attr.aria-label]="'codex.swap.open' | translate"
+                              [attr.title]="'codex.swap.open' | translate">⇄</button>
+                    }
+                  }
+                  </div>
+
                   <!-- What sits INSIDE the mount: the gun in the gimbal, the
                        missiles in the rack. Rendered even when the extract
                        resolves nothing, so the pilot sees the empty seat
-                       instead of a mount that pretends to be the weapon. -->
+                       instead of a mount that pretends to be the weapon.
+
+                       A SUB-ENTRY, not a sibling (feedback dbdb2ffe: *"Der
+                       Strich neben Gimbal muss unter drunter links neben die
+                       waffe … wie ein Absatz der eingerückt ist"*): the list
+                       drops under the mount and is indented behind the rail
+                       that used to be a 14px dash beside it. -->
                   @if (row.slot.children?.length) {
-                    <span class="chain" aria-hidden="true"></span>
                     <ul class="kids">
                       @for (kid of row.slot.children; track kid.port) {
                         <li class="kid" [class.empty]="!kid.className">
+                          <div class="kid-line">
                           @if (kid.className) {
                             <button type="button" class="kid-btn linked"
                                     (click)="openChild(row, kid, sec.configurable)">
@@ -526,12 +575,25 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
                               }
                             </button>
+                            <!-- The carried item's own group total — the alpha
+                                 damage of the three guns in the three gimbals,
+                                 which belongs to the GUN and not to the mount
+                                 (feedback dbdb2ffe). It reads beside the gun,
+                                 and the same figure is spelled out inside the
+                                 gun's own sheet behind the ⓘ. -->
                             @if (kidFig(row, kid); as fig) {
                               <div class="fig">
                                 <span class="n">{{ fig.value }}</span>
                                 <span class="u">{{ fig.unitKey | translate }}</span>
                               </div>
                             }
+                            <!-- The gun's OWN stat sheet. It had none at all
+                                 before (feedback dbdb2ffe: *"von den Waffen
+                                 fehlt es komplett"*) — the mount's ⓘ describes
+                                 the mount, which is not the thing that shoots. -->
+                            <button type="button" class="slot-swap kid-swap" (click)="inspectChild(row, kid)"
+                                    [attr.aria-label]="'codex.inspect.openStats' | translate"
+                                    [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
                           } @else if (kid.rawTypes.length > 0 && sec.configurable) {
                             <!-- An unfitted sub-slot we know the accepted engine
                                  type(s) for is still a real choice (Falle 3). -->
@@ -563,33 +625,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               <span class="slot-port">{{ kid.port }}</span>
                             </span>
                           }
+                          </div>
                         </li>
                       }
                     </ul>
-                  }
-
-                  <!-- Draft write-path (PR B): a row edited away from stock
-                       carries a chip naming its state, plus a revert action. -->
-                  @if (row.slot.draftState; as ds) {
-                    <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">
-                      {{ ('codex.loadout.draftState.' + ds) | translate }}
-                    </span>
-                    @if (row.slot.draftPaths?.length) {
-                      <button type="button" class="slot-revert" (click)="revertRow(row)"
-                              [attr.aria-label]="'codex.loadout.revert' | translate"
-                              [attr.title]="'codex.loadout.revert' | translate">↺</button>
-                    }
-                  }
-                  <!-- On a configurable row the card itself is the swap action,
-                       so the side button is the way BACK to the full stat sheet
-                       shipped in the first pass. -->
-                  @if (row.slot.className && sec.configurable) {
-                    <button type="button" class="slot-swap" (click)="inspectRow(row)"
-                            [attr.aria-label]="'codex.inspect.openStats' | translate"
-                            [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
-                    <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
-                            [attr.aria-label]="'codex.swap.open' | translate"
-                            [attr.title]="'codex.swap.open' | translate">⇄</button>
                   }
                 </div>
               </li>
@@ -707,17 +746,29 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .sec-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .sec-rows.dense { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 
-    /* mount | chain | what is inside it | swap */
-    .duo { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; }
-    .duo > .slot-btn { flex: 1 1 240px; min-width: 0; }
-    .chain { flex: 0 0 auto; align-self: center; width: 14px; height: 2px;
-      background: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
-    .kids { list-style: none; margin: 0; padding: 0; flex: 2 1 300px; min-width: 0;
-      display: flex; flex-direction: column; gap: 4px; }
-    /* The carried item now renders a full row of its own (stat run + headline
-       figure), so the seat lays them out side by side exactly like a slot. */
-    .kid { min-width: 0; display: flex; align-items: stretch; gap: 6px; }
-    .kid > .kid-btn { flex: 1 1 auto; min-width: 0; }
+    /* The mount, then — INDENTED UNDER IT — what it carries.
+       This used to be one wrapping flex row (mount | 14px dash | gun | tools),
+       which put the dash to the right of the mount and pushed the mount's own
+       ⓘ/⇄ down beside the gun as soon as the column was narrower than the four
+       of them (feedback dbdb2ffe). A mount and the gun inside it are not
+       siblings: the mount owns its line, the gun is a paragraph below it. */
+    .duo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    /* mount | figure | draft chip | tools — one line, never broken up. */
+    .main { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    .main > .slot-btn { flex: 1 1 240px; min-width: 0; }
+    /* The connector the concept drew as a dash beside the mount, turned into
+       the rail of the indented block it actually belongs to. */
+    .kids { list-style: none; margin: 0 0 0 10px; padding: 0 0 0 12px; min-width: 0;
+      display: flex; flex-direction: column; gap: 4px;
+      border-left: 2px solid color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    /* The carried item renders a full row of its own (stat run + headline
+       figure + its own stat sheet), laid out exactly like a slot. */
+    .kid { min-width: 0; position: relative; }
+    /* The elbow off the rail — the "Strich" now sits to the LEFT of the gun. */
+    .kid::before { content: ''; position: absolute; left: -12px; top: 18px; width: 8px; height: 2px;
+      background: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+    .kid-line { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; min-width: 0; }
+    .kid-line > .kid-btn { flex: 1 1 200px; min-width: 0; }
 
     .slot-swap, .slot-swap-action { flex: 0 0 auto; padding: 0 9px; border-radius: 6px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-size: 0.9rem; cursor: pointer; }
@@ -761,8 +812,8 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     button.slot-btn, button.kid-btn { cursor: pointer; }
     button.slot-btn:hover, button.kid-btn:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-slot-ground)); }
-    .slot.empty > .duo > .slot-btn { background: transparent; border-style: dashed; }
-    .slot.empty > .duo > button.slot-btn.open-bay:hover { border-color: var(--sc-accent);
+    .slot.empty > .duo > .main > .slot-btn { background: transparent; border-style: dashed; }
+    .slot.empty > .duo > .main > button.slot-btn.open-bay:hover { border-color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
     .kid.empty .kid-btn { background: transparent; border-style: dashed; }
     /* A row whose position on the hull is known gets a locator rail; when the
@@ -831,10 +882,12 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
     .slot-note { margin-top: 4px; font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
+    /* The indent is the whole point of the block, so it survives a phone —
+       only its width gives way (Karma renders at 749px, i.e. inside this
+       branch: the rail and the elbow must hold in BOTH branches). */
     @media (max-width: 720px) {
-      .chain { display: none; }
-      .kids { flex-basis: 100%; padding-left: 12px;
-        border-left: 2px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+      .kids { margin-left: 4px; padding-left: 10px; }
+      .kid::before { left: -10px; }
     }
   `],
 })
@@ -1009,6 +1062,22 @@ export class CodexHardpointLayoutComponent {
   /** The ⓘ side button: always the full stat sheet for the mount itself. */
   inspectRow(row: GroupedSlot<LayoutSlot>): void {
     this.inspected.emit({ slot: row.slot, count: row.count, child: null, rawPorts: this.rawPorts(row) });
+  }
+
+  /**
+   * The sub-slot's own ⓘ: the stat sheet of the thing INSIDE the mount, never
+   * the mount's. A gun in a gimbal had no way to its own numbers at all — the
+   * card click opens the swap picker in a configurable block, and the row's ⓘ
+   * describes the mount (feedback dbdb2ffe). Counted like a sub-slot click, so
+   * the sheet quotes the same "3 × 1 gun" run the row does.
+   */
+  inspectChild(row: GroupedSlot<LayoutSlot>, child: LayoutChild): void {
+    this.inspected.emit({
+      slot: row.slot,
+      count: row.count * child.count,
+      child,
+      rawPorts: this.childRawPorts(row, child),
+    });
   }
 
   /**

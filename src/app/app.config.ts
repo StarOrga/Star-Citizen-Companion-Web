@@ -8,6 +8,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
+import { provideCodexNumberLocale } from './codex/codex-number-locale';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -45,5 +46,8 @@ export const appConfig: ApplicationConfig = {
       fallbackLang: 'en',
     }),
     provideTranslateHttpLoader({ prefix: 'i18n/', suffix: '.json' }),
+    // Every catalog figure is grouped in the resolved UI locale (feedback
+    // dbdb2ffe). Bootstrap-eager on purpose — see codex-number-locale.ts.
+    provideCodexNumberLocale(),
   ],
 };
