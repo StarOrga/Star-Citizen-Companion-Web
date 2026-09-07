@@ -3061,6 +3061,8 @@
       "placeholder": "What could be better? Markdown supported.",
       "send": "Send",
       "newTopic": "New topic",
+      "complex": "Complex",
+      "complexHint": "Bigger than usual — the routine works this topic at a raised reasoning level",
       "collapse": "Close",
       "sendHint": "Enter = send · Shift+Enter = new line",
       "sendHintCtrl": "Ctrl/Cmd+Enter = send · Enter = new line",

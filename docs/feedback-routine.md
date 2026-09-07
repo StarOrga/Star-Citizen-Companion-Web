@@ -1192,6 +1192,42 @@ and every row from before this column existed — keeps reading exactly as it di
 It is admin-only, like `seq`: it is deliberately NOT in the author-facing
 `my_feedback` view, where the author sees their own words.
 
+## Complex topics are worked one gear higher (`complex`)
+
+Every topic on this board is worked at the same default reasoning depth, and
+most of them deserve exactly that. A few do not — one that spans three layers,
+rewrites a flow, or turns on a judgement call is worked *badly* by an agent that
+treats it like a label change. The one person who knows that before the work
+starts is the admin who wrote the topic, so they say so: the new-topic composer
+carries a **Komplex** checkbox left of the send button, and a ticked box sets
+`admin_feedback.complex = true` (migration `20260907220000`, feedback
+`423e5130`).
+
+**The rule, for every agent that works a topic:**
+
+> A topic with `complex = true` is worked at a reasoning/effort level **two
+> steps above the default** — `high` → `max` for a model whose scale ends there,
+> otherwise the highest level that model offers. It applies to the whole item:
+> the worker that implements it, and any sub-agent it fans the item out to.
+
+Two steps up is the ceiling, not a licence to widen the item: scope, gates and
+the ship rules are unchanged, and a complex topic is still one PR. If the model
+in use has no adjustable level, the flag still means something — read wider
+before touching anything (the whole thread, the neighbouring code, the concept
+docs) and prefer a design pass over a first-guess patch.
+
+The flag is **admin-only input**. It is never set on a user-submitted topic at
+insert time — the `admin_feedback_normalize_user_insert` guard pins it to
+`false` for `source = 'user'`, so how much thinking a topic gets stays the
+board's call and cannot be self-declared by whoever files it. An admin may still
+raise it at triage through the normal UPDATE path. The routine itself never
+writes the column: it is an instruction *to* the routine, and clearing it would
+throw away the one signal it carries.
+
+`complex` is `not null default false`, so every pre-existing topic — and every
+topic whose writer left the box alone — is an ordinary one and nothing about
+queueing, ordering or status changes.
+
 ## Per-item procedure
 
 This runs **once per admitted batch item** — for a batch of one, inline; for a
@@ -1211,7 +1247,10 @@ For each admitted `open` row (process independently, most-recent context wins):
    runs safe; never process an item you did not successfully claim.
 2. **Understand.** Read `body` (markdown) **and the topic's thread** (all
    `admin_feedback_messages` for this id, oldest first — the admin may have
-   already answered a prior question). Having read it, **write the topic's title**
+   already answered a prior question). **Check `complex`** while you are there:
+   a `true` means this item is worked two reasoning steps above the default (see
+   "Complex topics are worked one gear higher"), and that has to be decided
+   *before* the implementing agent is spawned, not after. Having read it, **write the topic's title**
    if it has none — `update admin_feedback set summary='<one line>' where
    id=<id>` (see "The topic's title" above; that is the only moment anybody has
    the whole topic in front of them). Then classify:
@@ -1913,6 +1952,7 @@ news. The burst is suppressed under `prefers-reduced-motion: reduce`.
 | `decision_note`  | the admin's explanation on a `declined` user topic — **author-visible** (only while the topic is declined) |
 | `status_before_author_question` | admin-only memo: the status a topic had when an admin asked its author something, restored by the answer |
 | `summary`        | the routine's one-line title for the topic (migration `20260906140000`, ≤ 120 chars) — written on the claim, `null` until then; the board falls back to the body. **Admin-only**, not in `my_feedback` — see "The topic's title" |
+| `complex`        | admin opt-in (migration `20260907220000`, feedback `423e5130`): work this topic **two reasoning/effort steps above the default**. `not null default false`; ticked in the admin new-topic composer, pinned to `false` for `source = 'user'` inserts by `admin_feedback_normalize_user_insert`. Never written by the routine — see "Complex topics are worked one gear higher" |
 
 `public.routine_heartbeat` (see migration `20260730173500_routine_heartbeat.sql`)
 — one row per routine, overwritten in place; see "Liveness heartbeat" above:
