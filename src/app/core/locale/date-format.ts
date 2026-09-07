@@ -153,3 +153,39 @@ export function formatScDate(value: ScDateInput, options: ScDateFormatOptions): 
   if (style === 'date') return calendar;
   return `${calendar}${DATE_TIME_SEPARATOR}${formatScTime(date, language, region)}`;
 }
+
+/**
+ * The coarse "how long ago" buckets the admin panel labels a topic with
+ * (feedback 9a65a040): a card says *heute* / *gestern* / *letzte Woche* and
+ * carries the exact timestamp in its tooltip, because a scanning reader wants
+ * the age, not the calendar.
+ *
+ * `null` means "no bucket fits" — a future date, or an unparseable one. Call
+ * sites fall back to the absolute date, which is never wrong.
+ */
+export type ScRelativeDayBucket = 'today' | 'yesterday' | 'lastWeek' | 'lastMonth' | 'earlier';
+
+const DAY_MS = 86_400_000;
+
+/** Local midnight of `date`, so the buckets follow calendar days, not 24h spans. */
+function startOfLocalDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+/**
+ * Which bucket `value` falls into, relative to `now` (default: the current
+ * clock). Boundaries are calendar days in the viewer's own timezone — 23:59
+ * yesterday is *gestern*, not "22 hours ago".
+ */
+export function relativeDayBucket(value: ScDateInput, now: ScDateInput = new Date()): ScRelativeDayBucket | null {
+  const date = toDateOrNull(value);
+  const ref = toDateOrNull(now);
+  if (!date || !ref) return null;
+  const days = Math.round((startOfLocalDay(ref) - startOfLocalDay(date)) / DAY_MS);
+  if (days < 0) return null;
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days <= 7) return 'lastWeek';
+  if (days <= 31) return 'lastMonth';
+  return 'earlier';
+}

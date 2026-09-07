@@ -4,6 +4,22 @@
       "none": "Keine Auswahl"
     }
   },
+  "date": {
+    "relative": {
+      "today": "Heute",
+      "yesterday": "Gestern",
+      "lastWeek": "Letzte Woche",
+      "lastMonth": "Letzten Monat",
+      "earlier": "Früher"
+    },
+    "relativeSince": {
+      "today": "seit heute",
+      "yesterday": "seit gestern",
+      "lastWeek": "seit letzter Woche",
+      "lastMonth": "seit letztem Monat",
+      "earlier": "seit Längerem"
+    }
+  },
   "update": {
     "available": "Neue Version verfügbar",
     "reload": "Neu laden",
@@ -3228,7 +3244,6 @@
       "backToStream": "Zurück zum Strom",
       "collapseBand": "{{band}} einklappen",
       "expandBand": "{{band}} ausklappen",
-      "waitingSince": "seit {{time}}",
       "progressHint": "Fortschritt: was diese Woche lief, was auf dich wartet und der Durchsatz"
     },
     "turn": {

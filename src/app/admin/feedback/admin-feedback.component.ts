@@ -85,6 +85,7 @@ import {
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
+import { ScDateRelativePipe } from '../../core/locale/sc-relative-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
 import {
@@ -186,6 +187,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
   standalone: true,
   imports: [
     ScDatePipe,
+    ScDateRelativePipe,
     NgTemplateOutlet,
     RouterLink,
     TranslateModule,
@@ -500,13 +502,19 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 @if (isNew(m)) {
                   <span class="chip new">{{ 'adminFeedback.stream.newBadge' | translate }}</span>
                 }
-                <span class="ch-time">
-                  @if (turn === 'admin') {
-                    {{ 'adminFeedback.stream.waitingSince' | translate: { time: (waitingSinceIso(m) | scDate: 'date') } }}
-                  } @else {
-                    {{ lastActivityIso(m) | scDate: 'date' }}
-                  }
-                </span>
+                <!-- The age, not the calendar (feedback 9a65a040): a card is
+                     scanned, and "gestern" answers the question "07 / September
+                     / 2026" makes the reader compute. The exact stamp stays one
+                     hover away, in the viewer's own region format. -->
+                @if (turn === 'admin') {
+                  <span class="ch-time" [attr.title]="waitingSinceIso(m) | scDate: 'datetime'">
+                    {{ waitingSinceIso(m) | scDateRelative: 'since' }}
+                  </span>
+                } @else {
+                  <span class="ch-time" [attr.title]="lastActivityIso(m) | scDate: 'datetime'">
+                    {{ lastActivityIso(m) | scDateRelative }}
+                  </span>
+                }
               </span>
             </span>
           </button>
