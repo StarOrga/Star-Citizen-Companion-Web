@@ -4,6 +4,22 @@
       "none": "No selection"
     }
   },
+  "date": {
+    "relative": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "lastWeek": "Last week",
+      "lastMonth": "Last month",
+      "earlier": "Earlier"
+    },
+    "relativeSince": {
+      "today": "since today",
+      "yesterday": "since yesterday",
+      "lastWeek": "since last week",
+      "lastMonth": "since last month",
+      "earlier": "for a while now"
+    }
+  },
   "update": {
     "available": "A new version is available",
     "reload": "Reload",
@@ -3228,7 +3244,6 @@
       "backToStream": "Back to the stream",
       "collapseBand": "Collapse {{band}}",
       "expandBand": "Expand {{band}}",
-      "waitingSince": "since {{time}}",
       "progressHint": "Progress: what this week did, what waits on you, and the throughput"
     },
     "turn": {

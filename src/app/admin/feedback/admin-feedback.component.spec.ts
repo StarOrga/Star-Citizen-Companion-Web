@@ -688,8 +688,12 @@ describe('AdminFeedbackComponent — the overview fits its panel', () => {
       host.id = 'fb-width-host';
       host.style.cssText = 'height:600px;display:flex;flex-direction:column;overflow:hidden;';
       document.body.appendChild(host);
-      host.appendChild(el);
     }
+    // Adopt on every call, not only when the host is fresh: a host left over
+    // from an earlier spec used to leave `el` sitting in the body at its full
+    // width, so the measurements below silently graded an unconstrained
+    // element and passed or failed on spec order alone.
+    if (el.parentElement !== host) host.appendChild(el);
     host.style.width = `${width}px`;
     void host.offsetWidth; // flush layout
     return host;
@@ -797,5 +801,56 @@ describe('AdminFeedbackComponent — frame nesting', () => {
     expect(el.querySelector('.sheet')).not.toBeNull();
     const worst = deepestBoxNesting(el);
     expect(worst.depth).withContext(`deepest chain: ${worst.path}`).toBeLessThanOrEqual(2);
+  });
+});
+
+/**
+ * THE CARD'S TIME CHIP (admin feedback 9a65a040: "auf einem issue darf das
+ * datum gern abgekürzt werden mit heute, gestern, letzte woche, letzten
+ * monat, früher… und nur wenn man drüber hovered steht das exakte datum und
+ * uhrzeit im entsprechenden Regionsformat").
+ *
+ * A card is scanned, not read: the age is the answer, and `07 / September /
+ * 2026` makes the reader work it out. The exact stamp is not lost — it moves
+ * into the chip's tooltip, still in the viewer's own region format.
+ *
+ * The fixtures are dated off `Date.now()` on purpose. A hard-coded date would
+ * quietly change bucket as the calendar moves past it and turn this into a
+ * test that fails on a Tuesday in a month's time.
+ */
+describe('AdminFeedbackComponent — a card states the age, not the calendar', () => {
+  const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+
+  it('labels today as today and hides the exact stamp in the tooltip', async () => {
+    const created = iso(2 * 3600_000);
+    const { el } = await mount({
+      admin_feedback: [row('o9', 'open', created)],
+      admin_feedback_messages: [],
+      feedback_author_messages: [],
+    });
+
+    const chip = el.querySelector<HTMLElement>('.scroll.stream .ch-time')!;
+    expect(chip).not.toBeNull();
+    expect(chip.textContent!.trim()).toBe('date.relative.today');
+    // No calendar fields left in the visible label — that was the complaint.
+    expect(chip.textContent).not.toContain('2026');
+
+    // …and the full stamp, region-ordered with the clock, one hover away.
+    expect(chip.getAttribute('title')).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
+  });
+
+  it('uses the prepositional label where the row reads "waiting since"', async () => {
+    // A Rückfrage the routine asked: the baton is with the admin, so the chip
+    // says how long he has been sitting on it.
+    const asked = iso(26 * 3600_000);
+    const { el } = await mount({
+      admin_feedback: [row('q9', 'needs_input', asked)],
+      admin_feedback_messages: [msg('mq9', 'q9', true, asked, 'Kurze Frage?')],
+      feedback_author_messages: [],
+    });
+
+    const chip = el.querySelector<HTMLElement>('.scroll.stream .ch-time')!;
+    expect(chip.textContent!.trim()).toBe('date.relativeSince.yesterday');
+    expect(chip.getAttribute('title')).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
   });
 });
