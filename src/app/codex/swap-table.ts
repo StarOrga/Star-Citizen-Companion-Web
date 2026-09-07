@@ -30,7 +30,7 @@ import {
 import { StatRow, humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import { resolveResourceState } from './codex-power';
-import { RESOURCE_STATS_GROUP, resourceKey } from './codex.types';
+import { RESOURCE_STATS_GROUP, STANDARD_UNITS_PER_SEGMENT, resourceKey } from './codex.types';
 
 // ── candidates ───────────────────────────────────────────────────────────────
 
@@ -183,8 +183,10 @@ export function swapTypeLabel(
 //   distortion — `SDistortionParams.Maximum` (the pool, matching the summary).
 //   mass     — whatever the payload carries as its mass, in kg.
 
-/** Standard resource units per whole power segment (see `power` above). */
-export const STANDARD_UNITS_PER_SEGMENT = 4 / 3;
+/** Standard resource units per whole power segment (see `power` above). The
+ * constant itself lives in `codex.types.ts` so the per-module stat sheet
+ * converts identically; re-exported here for this module's own consumers. */
+export { STANDARD_UNITS_PER_SEGMENT };
 
 function statsRecord(payload: unknown): Record<string, Record<string, unknown>> | undefined {
   const s = (payload as { stats?: unknown } | null | undefined)?.stats;

@@ -58,7 +58,7 @@
 import { findStat } from '../hangar/loadout-stats';
 import { crossSectionAxes } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
-import { RESOURCE_DEFAULT_STATE, RESOURCE_STATS_GROUP, resourceKey } from './codex.types';
+import { RESOURCE_STATS_GROUP, resolveResourceState, resourceKey } from './codex.types';
 
 /** The extractor `schema_version` the energy model needs (schema 3 added the
  * flat `ItemResourceComponentParams` group). A build below this cannot be
@@ -177,54 +177,12 @@ function statsOf(payload: unknown): Record<string, Record<string, unknown>> | un
   return s && typeof s === 'object' ? (s as Record<string, Record<string, unknown>>) : undefined;
 }
 
-/** Case-insensitive lookup of ONE raw field inside the resource stats group. */
-function resourceRaw(payload: unknown, field: string): unknown {
-  const stats = statsOf(payload);
-  if (!stats) return undefined;
-  for (const [structName, fields] of Object.entries(stats)) {
-    if (!structName.toLowerCase().includes(RESOURCE_STATS_GROUP.toLowerCase())) continue;
-    if (!fields || typeof fields !== 'object') continue;
-    for (const [k, v] of Object.entries(fields)) {
-      if (k.toLowerCase() === field.toLowerCase()) return v;
-    }
-  }
-  return undefined;
-}
-
-/** True when the payload carries an `ItemResourceComponentParams` group at all. */
-export function hasResourceGroup(payload: unknown): boolean {
-  const stats = statsOf(payload);
-  if (!stats) return false;
-  return Object.keys(stats).some((k) =>
-    k.toLowerCase().includes(RESOURCE_STATS_GROUP.toLowerCase()),
-  );
-}
-
-/**
- * The resource states a record carries, in extractor order. Schema 3 writes
- * them `|`-joined into `stateNames`; an empty list means the group is absent.
- */
-export function resourceStateNames(payload: unknown): string[] {
-  const raw = resourceRaw(payload, 'stateNames');
-  if (typeof raw !== 'string') return [];
-  return raw
-    .split('|')
-    .map((n) => n.trim())
-    .filter((n) => n !== '');
-}
-
-/**
- * Which state's numbers to read (R8). The extractor ALWAYS prefixes its keys
- * with the lower-cased state name, so there is no bare-key fallback to try:
- * prefer `online`, otherwise the first state the record lists. `null` when the
- * record carries no resource group at all — that is `missing`, not a zero.
- */
-export function resolveResourceState(payload: unknown): string | null {
-  const names = resourceStateNames(payload).map((n) => n.toLowerCase());
-  if (names.length === 0) return hasResourceGroup(payload) ? RESOURCE_DEFAULT_STATE : null;
-  if (names.includes(RESOURCE_DEFAULT_STATE)) return RESOURCE_DEFAULT_STATE;
-  return names[0];
-}
+// `hasResourceGroup` / `resourceStateNames` / `resolveResourceState` moved into
+// `codex.types.ts` (the resource CONTRACT module) when the per-module stat
+// sheet started reading the same group — importing them from here would have
+// closed the cycle codex-power → codex-loadout-stats → codex-equipped-stats →
+// codex-power. Re-exported so every existing import path keeps working (R8).
+export { hasResourceGroup, resourceStateNames, resolveResourceState } from './codex.types';
 
 function resourceStat(payload: unknown, field: string, state: string): number | null {
   const stats = statsOf(payload);

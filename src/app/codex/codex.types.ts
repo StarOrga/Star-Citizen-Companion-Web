@@ -230,6 +230,72 @@ export function resourceKey(field: string, state: string = RESOURCE_DEFAULT_STAT
 }
 
 /**
+ * Standard resource units per whole power segment. Weapons draw
+ * `SStandardResourceUnit` power (1.0 units each) while components draw whole
+ * `SPowerSegmentResourceUnit` segments; dividing by this puts a gun and a
+ * cooler on ONE comparable scale. Lives here, not in a consumer, because the
+ * swap picker and the per-module stat sheet both convert and must never drift.
+ */
+export const STANDARD_UNITS_PER_SEGMENT = 4 / 3;
+
+// ── reading the resource group ───────────────────────────────────────────────
+// These three live in the types module rather than in `codex-power.ts` because
+// BOTH the energy dock and the per-module stat sheet need them, and the dock
+// sits downstream of the stat sheet in the import graph (codex-power →
+// codex-loadout-stats → codex-equipped-stats). `codex-power.ts` re-exports
+// them, so every existing import path keeps working.
+
+function resourceStatsMap(payload: unknown): Record<string, Record<string, unknown>> | undefined {
+  const s = (payload as { stats?: unknown } | null | undefined)?.stats;
+  return s && typeof s === 'object' ? (s as Record<string, Record<string, unknown>>) : undefined;
+}
+
+/** True when the payload carries an `ItemResourceComponentParams` group at all. */
+export function hasResourceGroup(payload: unknown): boolean {
+  const stats = resourceStatsMap(payload);
+  if (!stats) return false;
+  return Object.keys(stats).some((k) =>
+    k.toLowerCase().includes(RESOURCE_STATS_GROUP.toLowerCase()),
+  );
+}
+
+/**
+ * The resource states a record carries, in extractor order. Schema 3 writes
+ * them `|`-joined into `stateNames`; an empty list means the group is absent.
+ */
+export function resourceStateNames(payload: unknown): string[] {
+  const stats = resourceStatsMap(payload);
+  let raw: unknown;
+  if (stats) {
+    for (const [structName, fields] of Object.entries(stats)) {
+      if (!structName.toLowerCase().includes(RESOURCE_STATS_GROUP.toLowerCase())) continue;
+      if (!fields || typeof fields !== 'object') continue;
+      for (const [k, v] of Object.entries(fields)) {
+        if (k.toLowerCase() === 'statenames') raw = v;
+      }
+    }
+  }
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split('|')
+    .map((n) => n.trim())
+    .filter((n) => n !== '');
+}
+
+/**
+ * Which state's numbers to read. The extractor ALWAYS prefixes its keys with
+ * the lower-cased state name, so there is no bare-key fallback to try: prefer
+ * `online`, otherwise the first state the record lists. `null` when the record
+ * carries no resource group at all — that is `missing`, not a zero.
+ */
+export function resolveResourceState(payload: unknown): string | null {
+  const names = resourceStateNames(payload).map((n) => n.toLowerCase());
+  if (names.length === 0) return hasResourceGroup(payload) ? RESOURCE_DEFAULT_STATE : null;
+  if (names.includes(RESOURCE_DEFAULT_STATE)) return RESOURCE_DEFAULT_STATE;
+  return names[0];
+}
+
+/**
  * The extractor `schema_version` this app's ship page is written against.
  * A loaded build BELOW this number is missing the schema-3 additions above —
  * the data pill turns gold with "Re-Extract ausstehend" (MASTER §2/§11).
