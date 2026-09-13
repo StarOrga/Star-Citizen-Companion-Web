@@ -311,6 +311,171 @@ describe('CodexEnergyDockComponent', () => {
     expect(el.querySelector('.md-foot')).toBeTruthy();
   });
 
+  // ── the pip stack (admin feedback 590230e3) ──────────────────────────────
+
+  const pipsOf = (root: HTMLElement, group: string): HTMLButtonElement[] =>
+    Array.from(root.querySelectorAll<HTMLButtonElement>(`.md-col[data-group="${group}"] button.pip`));
+  const rowOf = (c: CodexEnergyDockComponent, group: string) =>
+    c['sheet']().groups.find((g) => g.group === group)!;
+
+  it('renders the eight groups in the fixed order, absent ones as an empty column', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const order = Array.from(root.querySelectorAll<HTMLElement>('.md-col')).map((el) => el.dataset['group']);
+    expect(order).toEqual(['weapons', 'thrusters', 'shields', 'quantum', 'tractor', 'radar', 'life', 'coolers']);
+    // the Nomad has no tractor beam: the column stays, with a ghost pip and no control
+    const tractor = root.querySelector<HTMLElement>('.md-col[data-group="tractor"]')!;
+    expect(tractor.classList.contains('absent')).toBeTrue();
+    expect(tractor.querySelector('.pip.ghost')).toBeTruthy();
+    expect(pipsOf(root, 'tractor').length).toBe(0);
+    expect(tractor.querySelector('.grp-state')?.textContent?.trim()).toBe('codex.energy.state.absent');
+  });
+
+  it('pips fill upward: level 1 is the bottom pip, the stack grows toward the top', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const coolers = pipsOf(root, 'coolers');
+    expect(coolers.length).toBe(6);
+    expect(coolers.map((b) => b.dataset['level'])).toEqual(['1', '2', '3', '4', '5', '6']);
+    const stack = root.querySelector<HTMLElement>('.md-col[data-group="coolers"] .stack')!;
+    expect(getComputedStyle(stack).flexDirection).toBe('column-reverse');
+    const bottom = coolers[0].getBoundingClientRect();
+    const top = coolers[5].getBoundingClientRect();
+    expect(bottom.top).toBeGreaterThan(top.top);
+    // the Nomad's auto deal lights coolers 1..4 (gold minimum), 5..6 stay empty
+    expect(coolers.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'true', 'true', 'true', 'false', 'false']);
+  });
+
+  it('every stack has the same height so the icon row sits on one line', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const stacks = Array.from(root.querySelectorAll<HTMLElement>('.md-col .stack'));
+    expect(stacks.length).toBe(8);
+    const heights = new Set(stacks.map((s) => Math.round(s.getBoundingClientRect().height)));
+    expect(heights.size).withContext([...heights].join(',')).toBe(1);
+    // the tallest stack (6 cooler pips) sets the height, so it never clips
+    const pipH = pipsOf(root, 'coolers')[0].getBoundingClientRect().height;
+    expect([...heights][0]).toBeGreaterThanOrEqual(Math.floor(6 * pipH));
+    // icons: one row on a wide layout, at most two on the ≤640px phone grid —
+    // and never one height per column.
+    const icons = Array.from(root.querySelectorAll<HTMLElement>('.grp-btn'));
+    const tops = new Set(icons.map((b) => Math.round(b.getBoundingClientRect().top)));
+    expect(tops.size).toBeLessThanOrEqual(window.innerWidth > 640 ? 1 : 2);
+  });
+
+  it('clicking pip N sets the group to exactly N', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    expect(rowOf(c, 'coolers').allocated).toBe(4);
+
+    pipsOf(root, 'coolers')[1].click(); // level 2 — below the gold floor of 4
+    fixture.detectChanges();
+    expect(rowOf(c, 'coolers').allocated).toBe(2);
+    expect(rowOf(c, 'coolers').pinned).toBeTrue();
+    expect(rowOf(c, 'coolers').belowMinimum).toBeTrue();
+    expect(root.querySelector('.md-col[data-group="coolers"] .grp-state')?.classList).toContain('warn');
+    expect(c['sheet']().budgetUsed).toBe(12);
+
+    pipsOf(root, 'coolers')[5].click(); // level 6 — two more than the reactor has
+    fixture.detectChanges();
+    expect(rowOf(c, 'coolers').allocated).toBe(6);
+    expect(c['sheet']().budgetUsed).toBe(16);
+    expect(c['sheet']().overBudget).toBeTrue();
+    expect(root.querySelector('.bud')?.classList).toContain('over');
+    // the other groups kept what the auto deal gave them
+    expect(rowOf(c, 'shields').allocated).toBe(4);
+    expect(rowOf(c, 'weapons').allocated).toBe(3);
+  });
+
+  it('the topmost pip switches a group at full capacity off; a lower pip brings it back', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    const weapons = pipsOf(root, 'weapons');
+    expect(rowOf(c, 'weapons').allocated).toBe(3);
+    expect(weapons[2].getAttribute('aria-label')).toContain('codex.energy.pip.topOff');
+    expect(weapons[1].getAttribute('aria-label')).toContain('codex.energy.pip.level');
+
+    weapons[2].click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'weapons').state).toBe('off');
+    expect(rowOf(c, 'weapons').allocated).toBe(0);
+    expect(c['sheet']().weaponsCut).toBeTrue();
+    expect(c['sheet']().budgetUsed).toBe(11);
+
+    pipsOf(root, 'weapons')[1].click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'weapons').state).toBe('active');
+    expect(rowOf(c, 'weapons').allocated).toBe(2);
+    expect(c['sheet']().weaponsCut).toBeFalse();
+    expect(c['sheet']().budgetUsed).toBe(13);
+
+    // at 2 of 3 the top pip is a raise, not a cut
+    pipsOf(root, 'weapons')[2].click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'weapons').allocated).toBe(3);
+    expect(c['sheet']().weaponsCut).toBeFalse();
+  });
+
+  it('pips are disabled where nothing can be set (no channel in this mode)', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    c['setMode']('nav');
+    fixture.detectChanges();
+    const shields = pipsOf(root, 'shields');
+    expect(shields.length).toBeGreaterThan(0);
+    expect(shields.every((b) => b.disabled)).toBeTrue();
+    shields[0].click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'shields').pinned).toBeFalse();
+  });
+
+  it('arrow keys walk the stack upward and downward', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const coolers = pipsOf(root, 'coolers');
+    coolers[0].focus();
+    coolers[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(document.activeElement).toBe(coolers[1]);
+    coolers[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(document.activeElement).toBe(coolers[0]);
+  });
+
+  it('a preset or reset clears the pins, and pins survive a reload via the pw param', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    pipsOf(root, 'shields')[0].click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'shields').allocated).toBe(1);
+    expect(localStorage.getItem(powerStorageKey(SHIP))).toContain('"shields":1');
+    expect(root.querySelector('.draft-note')).toBeTruthy();
+
+    c['setPreset']('stealth');
+    fixture.detectChanges();
+    expect(rowOf(c, 'shields').pinned).toBeFalse();
+    expect(rowOf(c, 'shields').allocated).toBe(2);
+
+    const pw = encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { coolers: 5 } })!;
+    const fixture2 = await setup({ queryParam: pw });
+    expect(rowOf(fixture2.componentInstance, 'coolers').allocated).toBe(5);
+    fixture2.componentInstance['reset']();
+    fixture2.detectChanges();
+    expect(rowOf(fixture2.componentInstance, 'coolers').allocated).toBe(4);
+  });
+
+  it('the tooltip names the demand the equipped modules ask for', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const tip = root.querySelector('.md-col[data-group="weapons"] .tipbox .demand');
+    expect(tip).toBeTruthy();
+    // three 1.0-unit repeaters = 2.25 segments, on 3 pips
+    expect(rowOf(fixture.componentInstance, 'weapons').demand).toBe(2.25);
+    expect(root.querySelector('.md-col[data-group="tractor"] .tipbox .demand')).toBeNull();
+  });
+
   it('every group/fact/state/gap key rendered resolves in de and en', async () => {
     const fixture = await setup({ schemaVersion: 2 });
     const c = fixture.componentInstance;
@@ -334,6 +499,17 @@ describe('CodexEnergyDockComponent', () => {
     fixture.componentRef.setInput('schemaVersion', POWER_REQUIRED_SCHEMA);
     fixture.detectChanges();
     collect(c['sheet']());
+    for (const key of [
+      'codex.energy.pip.level',
+      'codex.energy.pip.topOff',
+      'codex.energy.demandLine',
+      'codex.energy.belowMinimum',
+      'codex.energy.pinned',
+      'codex.energy.overBudget',
+      'codex.energy.draftNote',
+    ]) {
+      keys.add(key);
+    }
     for (const key of keys) {
       expect(lookup(en as Catalogue, key)).withContext(`en.${key}`).toBeDefined();
       expect(lookup(de as Catalogue, key)).withContext(`de.${key}`).toBeDefined();

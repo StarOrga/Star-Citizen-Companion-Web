@@ -103,6 +103,45 @@ describe('power distribution (R1)', () => {
     expect(shields.pips.map((p) => p.kind)).toEqual(['min', 'min', 'on', 'on']);
   });
 
+  it('a pin sets its own group to exactly the clicked level and re-deals nothing (F1c)', () => {
+    const auto = sheet();
+    // coolers auto-deal to 4 of 6; pinning shields down to 2 frees exactly 2
+    const down = sheet({ occupants: nomadOccupants(), levels: { shields: 2 } });
+    expect(row(down, 'shields').allocated).toBe(2);
+    expect(row(down, 'shields').pinned).toBeTrue();
+    expect(row(down, 'coolers').allocated).toBe(row(auto, 'coolers').allocated);
+    expect(down.budgetUsed).toBe(auto.budgetUsed - 2);
+    expect(down.overBudget).toBeFalse();
+  });
+
+  it('a pin above the free budget prints the deficit instead of trimming a neighbour', () => {
+    const s = sheet({ occupants: nomadOccupants(), levels: { coolers: 6 } });
+    expect(row(s, 'coolers').allocated).toBe(6);
+    expect(s.budgetUsed).toBe(16);
+    expect(s.budgetTotal).toBe(14);
+    expect(s.overBudget).toBeTrue();
+    expect(s.ready).toBeFalse();
+    // nobody else lost anything
+    expect(row(s, 'weapons').allocated).toBe(3);
+    expect(row(s, 'shields').allocated).toBe(4);
+  });
+
+  it('a pin below the gold floor is honoured and flagged', () => {
+    const s = sheet({ occupants: nomadOccupants(), levels: { coolers: 2 } });
+    expect(row(s, 'coolers').allocated).toBe(2);
+    expect(row(s, 'coolers').minimum).toBe(4);
+    expect(row(s, 'coolers').belowMinimum).toBeTrue();
+    expect(row(s, 'coolers').pips.map((p) => p.kind)).toEqual(['min', 'min', 'empty', 'empty', 'empty', 'empty']);
+  });
+
+  it('a pin is clamped to the stack and dormant on a cut or channel-less group', () => {
+    const s = sheet({ occupants: nomadOccupants(), levels: { weapons: 9, shields: 1, quantum: 1 }, cutGroups: ['shields'] });
+    expect(row(s, 'weapons').allocated).toBe(3);
+    expect(row(s, 'shields').allocated).toBe(0);
+    expect(row(s, 'shields').pinned).toBeFalse();
+    expect(row(s, 'quantum').pinned).toBeFalse();
+  });
+
   it('distributePower keeps min ≤ alloc ≤ capacity', () => {
     const out = distributePower(
       [

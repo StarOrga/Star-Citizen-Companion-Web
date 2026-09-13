@@ -5,8 +5,9 @@
 // only needs to place `<sc-codex-energy-dock>` and listen to `(sheetChange)`.
 //
 // Storage/URL contract (MASTER §8, `codex-loadout-draft.ts`):
-//   * cut groups / mode / preset are PER-SHIP  → `powerStorageKey(shipClassName)`
-//     + the `pw` URL query param (shareable, `replaceUrl`).
+//   * cut groups / pinned levels / mode / preset are PER-SHIP
+//     → `powerStorageKey(shipClassName)` + the `pw` URL query param
+//     (shareable, `replaceUrl`).
 //   * dock position is PER-USER                → `dockPositionStorageKey(userId)`.
 //   * the minimised flag rides next to the position, in its own sibling key —
 //     it has no `PowerDraftState` field of its own (that shape is frozen for
@@ -36,12 +37,16 @@ import {
   PowerFact,
   PowerFactKey,
   PowerGroup,
+  PowerGroupRow,
+  PowerLevels,
   PowerPreset,
   PowerSheet,
+  clickPowerPip,
   computePowerSheet,
   isDockPosition,
   isFlightMode,
   parsePowerGroups,
+  parsePowerLevels,
   resetPowerState,
   togglePowerGroup,
 } from './codex-power';
@@ -121,7 +126,14 @@ let uidSeq = 0;
       <div class="md-head">
         <h3>{{ 'codex.energy.title' | translate }}</h3>
         @if (sheet().available) {
-          <span class="bud" [attr.aria-label]="'codex.energy.budgetLabel' | translate"
+          <span
+            class="bud"
+            [class.over]="sheet().overBudget"
+            [attr.aria-label]="
+              sheet().overBudget
+                ? ('codex.energy.overBudget' | translate: { used: sheet().budgetUsed, total: sheet().budgetTotal })
+                : ('codex.energy.budgetLabel' | translate)
+            "
             >{{ sheet().budgetUsed }}<small>&nbsp;/&nbsp;{{ sheet().budgetTotal }} {{ 'codex.energy.unit.segments' | translate }}</small></span
           >
         } @else {
@@ -174,17 +186,45 @@ let uidSeq = 0;
       } @else {
         <div class="md-body" [id]="bodyId">
           @if (sheet().available) {
-          <div class="md-pips">
+          <!-- One fixed-height stack per group (--pips = the tallest stack on
+               this ship), filled bottom-up: the icon row underneath sits at the
+               same height in every column no matter how many pips a group
+               has (590230e3). -->
+          <div class="md-pips" [style.--pips]="maxPips()">
             @for (row of sheet().groups; track row.group) {
-              <div class="md-col" [class.off]="row.state === 'off'" [class.act]="row.state === 'active'">
-                <div class="stack">
+              <div
+                class="md-col"
+                [class.off]="row.state === 'off'"
+                [class.act]="row.state === 'active'"
+                [class.absent]="row.state === 'absent'"
+                [attr.data-group]="row.group"
+              >
+                <div
+                  class="stack"
+                  role="group"
+                  [attr.aria-label]="row.labelKey | translate"
+                  (keydown.arrowUp)="stepPipFocus($event, 1)"
+                  (keydown.arrowDown)="stepPipFocus($event, -1)"
+                >
                   @for (pip of row.pips; track $index) {
-                    <b
+                    <button
+                      type="button"
+                      class="pip"
                       [class.on]="pip.kind === 'on'"
                       [class.min]="pip.kind === 'min'"
                       [class.top]="pip.numeral !== null"
                       [attr.data-n]="pip.numeral"
-                    ></b>
+                      [attr.data-level]="$index + 1"
+                      [attr.aria-pressed]="pip.kind !== 'empty'"
+                      [attr.aria-label]="
+                        (isTopOffPip(row, $index + 1) ? 'codex.energy.pip.topOff' : 'codex.energy.pip.level')
+                          | translate: { group: (row.labelKey | translate), n: $index + 1, m: row.capacity }
+                      "
+                      [disabled]="!pipsEnabled(row)"
+                      (click)="clickPip(row, $index + 1)"
+                    ></button>
+                  } @empty {
+                    <span class="pip ghost" aria-hidden="true"></span>
                   }
                 </div>
                 <div class="tipw">
@@ -203,6 +243,15 @@ let uidSeq = 0;
                   <div class="tipbox" [id]="tipId(row.group)" role="tooltip">
                     <b>{{ row.tooltipTitleKey | translate }}</b>
                     <p>{{ row.tooltipBodyKey | translate }}</p>
+                    @if (row.state !== 'absent') {
+                      <p class="demand">{{ 'codex.energy.demandLine' | translate: { demand: fmt(row.demand), items: row.items, allocated: row.allocated } }}</p>
+                    }
+                    @if (row.belowMinimum) {
+                      <p class="warnv">{{ 'codex.energy.belowMinimum' | translate: { min: row.minimum } }}</p>
+                    }
+                    @if (row.pinned) {
+                      <p class="gapv">{{ 'codex.energy.pinned' | translate }}</p>
+                    }
                     @if (row.state === 'noChannel') {
                       <p class="gapv">{{ 'codex.energy.gap.noChannelInMode' | translate }}</p>
                     }
@@ -211,7 +260,7 @@ let uidSeq = 0;
                 <span class="visually-hidden" [id]="metaId(row.group)"
                   >{{ 'codex.energy.allocated' | translate: { n: row.allocated } }} · {{ 'codex.energy.minimum' | translate: { n: row.minimum } }}</span
                 >
-                <div class="grp-state" [class.off]="row.state === 'off'">
+                <div class="grp-state" [class.off]="row.state === 'off'" [class.warn]="row.belowMinimum">
                   @if (row.stateLabelKey) {
                     {{ row.stateLabelKey | translate }}
                   } @else {
@@ -291,7 +340,7 @@ let uidSeq = 0;
           <button type="button" (click)="reset()">{{ 'codex.energy.preset.reset' | translate }}</button>
         </div>
 
-        @if (sheet().cutGroups.size > 0) {
+        @if (sheet().cutGroups.size > 0 || hasPins()) {
           <p class="draft-note">{{ 'codex.energy.draftNote' | translate }}</p>
         }
       }
@@ -364,6 +413,11 @@ let uidSeq = 0;
         font-size: max(11px, var(--sc-fs-floor));
         color: var(--sc-fg-2);
       }
+      /* the reactor cannot hold what is asked of it — an error, not a hint. */
+      .bud.over,
+      .bud.over small {
+        color: var(--sc-danger);
+      }
       .act {
         margin-inline-start: auto;
         display: flex;
@@ -414,6 +468,12 @@ let uidSeq = 0;
       .md-pips {
         display: flex;
         gap: 4px;
+        /* pip geometry in one place: the stack height below is derived from
+           it, and the two pointer branches only retune these three values. */
+        --pip-h: max(9px, var(--sc-fs-floor));
+        --pip-gap: 2px;
+        --pip-w: 22px;
+        --pips: 1;
       }
       .vr {
         background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
@@ -424,32 +484,54 @@ let uidSeq = 0;
         align-items: center;
         gap: 4px;
       }
+      /* column-reverse + flex-start = the first pip (level 1) sits at the
+         BOTTOM and the stack grows upward. The block-size is the tallest
+         stack on the ship, so every column's icon row starts at one height. */
       .stack {
         display: flex;
         flex-direction: column-reverse;
-        gap: 2px;
-        min-block-size: 40px;
+        gap: var(--pip-gap);
         justify-content: flex-start;
+        block-size: calc(var(--pips) * var(--pip-h) + (var(--pips) - 1) * var(--pip-gap));
+        min-block-size: 40px;
       }
-      .stack b {
+      .stack .pip {
         display: block;
         position: relative;
-        inline-size: 22px;
-        block-size: max(9px, var(--sc-fs-floor));
+        flex: 0 0 auto;
+        box-sizing: border-box;
+        inline-size: var(--pip-w);
+        block-size: var(--pip-h);
+        padding: 0;
+        margin: 0;
+        border: none;
         border-radius: 2px;
         background: color-mix(in srgb, var(--sc-fg-2) 22%, transparent);
         overflow: visible;
+        cursor: pointer;
       }
-      .md-col.off .stack b {
+      .stack .pip:focus-visible {
+        outline: 2px solid var(--sc-accent);
+        outline-offset: 1px;
+      }
+      .stack .pip:disabled {
+        cursor: default;
+      }
+      .stack .pip.ghost,
+      .md-col.absent .stack .pip {
+        background: color-mix(in srgb, var(--sc-fg-2) 8%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--sc-fg-2) 30%, transparent);
+      }
+      .md-col.off .stack .pip {
         background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent);
       }
-      .stack b.on {
+      .stack .pip.on {
         background: var(--sc-accent);
       }
-      .stack b.min {
+      .stack .pip.min {
         background: var(--sc-warn);
       }
-      .stack b.top::after {
+      .stack .pip.top::after {
         content: attr(data-n);
         position: absolute;
         inset: 0;
@@ -497,6 +579,15 @@ let uidSeq = 0;
       .grp-state.off {
         color: var(--sc-danger);
       }
+      .grp-state.warn {
+        color: var(--sc-warn);
+      }
+      /* one line, always: a wrapping label would push the next row's icons. */
+      .grp-state {
+        white-space: nowrap;
+        line-height: 1.2;
+        min-block-size: 1.2em;
+      }
       .tipw {
         position: relative;
       }
@@ -539,8 +630,16 @@ let uidSeq = 0;
         margin: 0;
         color: var(--sc-fg-1);
       }
-      .tipbox p.gapv {
+      .tipbox p.gapv,
+      .tipbox p.demand,
+      .tipbox p.warnv {
         margin-block-start: 4px;
+      }
+      .tipbox p.demand {
+        font-variant-numeric: tabular-nums;
+      }
+      .tipbox p.warnv {
+        color: var(--sc-warn);
       }
       .tipw:hover .tipbox,
       .tipw:focus-within .tipbox {
@@ -655,14 +754,24 @@ let uidSeq = 0;
          stops the pip numeral, floored at 11px in a 9px box, from spilling onto
          the pips either side of it. */
       @media (pointer: fine) {
-        .stack b { block-size: 9px; }
-        .stack b.top::after { font-size: 8px; }
+        .md-pips { --pip-h: 9px; }
+        .stack .pip.top::after { font-size: 8px; }
         .grp-state { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
         .md-fact .k, .md-heat .k { font-size: 8.5px; }
         .md-fact .ico { inline-size: 13px; block-size: 13px; }
       }
       .md-strip .ok.no {
         color: var(--sc-warn);
+      }
+      /* A pip is a tap target now (click sets the level). A 9px bar cannot be
+         hit with a thumb, so a coarse pointer gets taller, wider pips; the
+         stack height follows through --pip-h automatically. */
+      @media (pointer: coarse) {
+        .md-pips {
+          --pip-h: 16px;
+          --pip-gap: 3px;
+          --pip-w: 30px;
+        }
       }
       .md-foot {
         display: flex;
@@ -804,6 +913,8 @@ export class CodexEnergyDockComponent {
   protected readonly bodyId = `${this.uid}-body`;
 
   private readonly cutGroups = signal<ReadonlySet<PowerGroup>>(new Set());
+  /** the pilot's pinned levels (codex-power.ts F1c) — empty = every group auto. */
+  private readonly levels = signal<PowerLevels>({});
   /** `protected` — the footer template reads these to mark the active SCM/NAV
    * and Auto/Schleichen buttons; AOT template type-checking needs at least
    * `protected` visibility for a member a component's own template touches. */
@@ -826,6 +937,7 @@ export class CodexEnergyDockComponent {
       mode: this.mode(),
       preset: this.preset(),
       cutGroups: this.cutGroups(),
+      levels: this.levels(),
       previous: this.previousSheet,
     });
     this.previousSheet = result;
@@ -842,6 +954,14 @@ export class CodexEnergyDockComponent {
 
   /** hides every tooltip until the next focus/pointer interaction (MEDIUM-7). */
   protected readonly tipsHidden = signal(false);
+
+  /** the tallest pip stack on this ship — every stack is sized to it so the
+   * icon row below lines up (at least 1 so an all-absent dock still has a row). */
+  protected readonly maxPips = computed(() =>
+    Math.max(1, ...this.sheet().groups.map((g) => g.pips.length)),
+  );
+
+  protected readonly hasPins = computed(() => this.sheet().groups.some((g) => g.pinned));
 
   protected readonly irFact = computed(() => this.sheet().facts.find((f) => f.key === 'ir'));
   protected readonly emFact = computed(() => this.sheet().facts.find((f) => f.key === 'em'));
@@ -927,6 +1047,7 @@ export class CodexEnergyDockComponent {
     }
     const draft = urlDraft ?? local ?? DEFAULT_POWER_DRAFT;
     this.cutGroups.set(parsePowerGroups(draft.cutGroups));
+    this.levels.set(parsePowerLevels(draft.levels));
     this.mode.set(isFlightMode(draft.mode) ? draft.mode : 'scm');
     this.preset.set(draft.preset === 'stealth' ? 'stealth' : 'auto');
 
@@ -946,6 +1067,7 @@ export class CodexEnergyDockComponent {
   private currentDraft(): PowerDraftState {
     return {
       cutGroups: [...this.cutGroups()],
+      levels: { ...this.levels() } as Record<string, number>,
       mode: this.mode(),
       preset: this.preset(),
       dock: this.position(),
@@ -1038,19 +1160,54 @@ export class CodexEnergyDockComponent {
     this.persistDraft();
   }
 
+  /** Pips can be set on a group that has hardware and a channel in this mode. */
+  protected pipsEnabled(row: PowerGroupRow): boolean {
+    return row.state !== 'absent' && row.state !== 'noChannel' && row.capacity > 0;
+  }
+
+  /** The topmost pip of a group sitting at full capacity: one more click cuts it. */
+  protected isTopOffPip(row: PowerGroupRow, level: number): boolean {
+    return !row.cut && level === row.capacity && row.allocated === row.capacity && row.capacity > 0;
+  }
+
+  /** Click pip `level` (1 = bottom): pin the group there, or cut it from the top. */
+  protected clickPip(row: PowerGroupRow, level: number): void {
+    if (!this.pipsEnabled(row)) return;
+    const next = clickPowerPip(this.cutGroups(), this.levels(), row, level);
+    this.cutGroups.set(next.cutGroups);
+    this.levels.set(next.levels);
+    this.persistDraft();
+  }
+
+  /** Arrow keys walk a stack: up = the next higher pip (DOM order is bottom-up). */
+  protected stepPipFocus(event: Event, dir: 1 | -1): void {
+    const stack = event.currentTarget as HTMLElement | null;
+    if (!stack) return;
+    const pips = Array.from(stack.querySelectorAll<HTMLButtonElement>('button.pip:not([disabled])'));
+    const at = pips.findIndex((b) => b === document.activeElement);
+    if (at < 0) return;
+    const to = pips[at + dir];
+    if (!to) return;
+    event.preventDefault();
+    to.focus();
+  }
+
   protected setMode(mode: FlightMode): void {
     this.mode.set(mode);
     this.persistDraft();
   }
 
+  /** A preset is a full re-deal — it clears every pin, the cuts stay. */
   protected setPreset(preset: PowerPreset): void {
     this.preset.set(preset);
+    this.levels.set({});
     this.persistDraft();
   }
 
   protected reset(): void {
     const next = resetPowerState();
     this.cutGroups.set(next.cutGroups);
+    this.levels.set(next.levels);
     this.mode.set(next.mode);
     this.preset.set(next.preset);
     this.persistDraft();

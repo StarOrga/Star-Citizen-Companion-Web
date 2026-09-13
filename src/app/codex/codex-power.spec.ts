@@ -1,5 +1,6 @@
 import {
   classifyPowerGroup,
+  clickPowerPip,
   computePowerSheet,
   occupantDraw,
   parsePowerGroups,
@@ -186,6 +187,32 @@ describe('computePowerSheet — the Nomad baseline', () => {
     expect(sheet.groups.map((g) => g.group)).toEqual([...POWER_GROUP_ORDER]);
   });
 
+  it('renders the eight groups in the order the admin fixed (590230e3), absent ones included', () => {
+    // Waffen, Antriebe, Schilde, Quantum, Tractor, Radar, Lebenserhaltung, Kühlung
+    expect(sheet.groups.map((g) => g.group)).toEqual([
+      'weapons',
+      'thrusters',
+      'shields',
+      'quantum',
+      'tractor',
+      'radar',
+      'life',
+      'coolers',
+    ]);
+    // the Nomad has no quantum drive and no tractor beam — the columns stay
+    expect(sheet.groups.find((g) => g.group === 'tractor')!.state).toBe('absent');
+    expect(sheet.groups.length).toBe(8);
+  });
+
+  it('prints the exact demand the stat sheet prints, and ceils it once for the pips', () => {
+    // three 1.0-unit repeaters = 3 / (4/3) = 2.25 segments → 3 pips
+    const weapons = sheet.groups.find((g) => g.group === 'weapons')!;
+    expect(weapons.demand).toBe(2.25);
+    expect(weapons.capacity).toBe(3);
+    const shield = sheet.groups.find((g) => g.group === 'shields')!;
+    expect(shield.demand).toBe(3);
+  });
+
   it('marks the shield minimum as two gold pips (3 × 0.5, rounded up)', () => {
     const shield = sheet.groups.find((g) => g.group === 'shields')!;
     expect(shield.minimum).toBe(2);
@@ -304,14 +331,49 @@ describe('dock state helpers', () => {
     expect(cut.has('weapons')).toBeFalse();
   });
 
-  it('resets to auto / SCM / nothing cut', () => {
+  it('resets to auto / SCM / nothing cut / no pins', () => {
     const s = resetPowerState();
     expect(s.mode).toBe('scm');
     expect(s.preset).toBe('auto');
     expect(s.cutGroups.size).toBe(0);
+    expect(s.levels).toEqual({});
   });
 
   it('drops unknown group keys when parsing', () => {
     expect([...parsePowerGroups(['weapons', 'nope', 'radar'])]).toEqual(['weapons', 'radar']);
+  });
+});
+
+describe('clickPowerPip (590230e3)', () => {
+  const none: ReadonlySet<PowerGroup> = new Set();
+  const shields = { group: 'shields' as const, allocated: 3, capacity: 3, cut: false };
+
+  it('clicking pip N pins the group at exactly N', () => {
+    const r = clickPowerPip(none, {}, shields, 2);
+    expect(r.levels).toEqual({ shields: 2 });
+    expect(r.cutGroups.has('shields')).toBeFalse();
+  });
+
+  it('clicking the topmost pip of a group at full capacity switches it off', () => {
+    const r = clickPowerPip(none, { shields: 3 }, shields, 3);
+    expect(r.cutGroups.has('shields')).toBeTrue();
+    expect(r.levels).toEqual({});
+  });
+
+  it('the top pip does NOT switch off a group that is below capacity — it raises it', () => {
+    const r = clickPowerPip(none, {}, { ...shields, allocated: 1 }, 3);
+    expect(r.cutGroups.has('shields')).toBeFalse();
+    expect(r.levels).toEqual({ shields: 3 });
+  });
+
+  it('any pip on a cut group switches it back on at that level', () => {
+    const r = clickPowerPip(new Set<PowerGroup>(['shields']), {}, { ...shields, allocated: 0, cut: true }, 3);
+    expect(r.cutGroups.has('shields')).toBeFalse();
+    expect(r.levels).toEqual({ shields: 3 });
+  });
+
+  it('clamps the level to the stack and keeps other pins', () => {
+    const r = clickPowerPip(none, { coolers: 4 }, { ...shields, allocated: 1 }, 9);
+    expect(r.levels).toEqual({ coolers: 4, shields: 3 });
   });
 });

@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.9] - 2026-09-13
+
+### Changed
+
+- **Das Energie-Dock hat eine feste Reihenfolge, und die Punkte füllen sich
+  von unten.** Die Gruppen stehen jetzt immer als Waffen · Antriebe · Schilde ·
+  Quantum · Tractor · Radar · Lebenserhaltung · Kühlung; eine Gruppe, die das
+  Schiff nicht hat, bleibt als leere Spalte mit „—" stehen, damit nichts
+  verrutscht. Alle Symbole und Beschriftungen liegen auf einer Linie, jeder
+  Stapel ist so hoch wie der höchste. Die Energiepunkte sind Buttons: Klick auf
+  Punkt N setzt die Gruppe genau auf N, der oberste Punkt bei voller Belegung
+  schaltet sie aus, ein Klick auf einen Punkt einer abgeschalteten Gruppe
+  schaltet sie mit dieser Stufe wieder ein; Pfeiltasten laufen den Stapel. Der
+  Bedarf je Gruppe wird aus den tatsächlich verbauten Modulen summiert (dieselben
+  Werte wie in den Modulzeilen); ein Pin über dem Reaktor zeigt das Defizit im
+  Kopf, ein Pin unter dem Minimum wird gelb markiert. Pins sind Teil des
+  Entwurfs (localStorage + optionaler sechster Teil im `pw`-Parameter, alte
+  Links bleiben gültig); Auto, Schleichen und Reset löschen sie.
+
+### Fixed
+
+- Der Entwurfs-Decoder verwarf die Dock-Position `inline` und damit den ganzen
+  gespeicherten Entwurf.
+
 ## [0.82.8] - 2026-09-13
 
 ### Fixed

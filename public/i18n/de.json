@@ -918,7 +918,15 @@
       "minimum": "Mindestbedarf {{n}} Segmente",
       "toggleOff": "{{group}} — Energie abschalten",
       "toggleOn": "{{group}} — Energie wieder zuschalten",
-      "draftNote": "Abgeschaltete Gruppen bleiben Entwurf — sie werden nie im Hangar gespeichert.",
+      "overBudget": "Reaktor überlastet: {{used}} von {{total}} Segmenten belegt",
+      "demandLine": "Bedarf {{demand}} Seg aus {{items}} Modulen · zugeteilt {{allocated}} Seg",
+      "belowMinimum": "Unter dem Mindestbedarf von {{min}} Seg — die Gruppe fällt aus.",
+      "pinned": "Von dir gesetzt — Auto, Schleichen oder Zurücksetzen hebt es auf.",
+      "pip": {
+        "level": "{{group}}: Stufe {{n}} von {{m}}",
+        "topOff": "{{group}}: Stufe {{n}} von {{m}} — Klick schaltet die Gruppe ab"
+      },
+      "draftNote": "Abgeschaltete Gruppen und gesetzte Stufen bleiben Entwurf — sie werden nie im Hangar gespeichert.",
       "position": {
         "title": "Position des Docks",
         "left": "unten links",
