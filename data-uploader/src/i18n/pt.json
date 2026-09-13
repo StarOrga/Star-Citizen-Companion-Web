@@ -68,7 +68,6 @@
     "toolsFailed": "Falha ao baixar a ferramenta",
     "buildFailed": "Falha na construção",
     "uploading": "Enviando…",
-    "partial": "naves enviadas (veja o registro para o resto)",
     "stepUploadDone": "Pinturas enviadas",
     "noModels": "{{n}} nave(s) sem pintura construível"
   },
