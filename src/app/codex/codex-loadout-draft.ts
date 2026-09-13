@@ -266,6 +266,10 @@ const POWER_PARAM_VERSION = 'p1';
 
 /** Separator inside the `pw` param's group list — see {@link encodePowerParam}. */
 export const POWER_GROUP_SEPARATOR = '-';
+/** Separator between a pinned group and its level (`shields~2`) — `~` is what
+ * the loadout param already uses between a port and its class, so it is known
+ * to survive the router's query encoding unchanged. */
+export const POWER_LEVEL_SEPARATOR = '~';
 // R10 — TWO storage scopes, because the two halves of the dock state have
 // different lifetimes:
 //   * where the dock sits is a PER-USER preference and must survive a ship
@@ -292,7 +296,7 @@ export function serializeDockPosition(dock: PowerDraftState['dock']): string {
   return dock;
 }
 
-/** Tolerant read — anything but the three known positions yields `null`. */
+/** Tolerant read — anything but the four known positions yields `null`. */
 export function parseDockPosition(raw: string | null | undefined): PowerDraftState['dock'] | null {
   const v = (raw ?? '').trim();
   return v === 'left' || v === 'center' || v === 'right' || v === 'inline' ? v : null;
@@ -301,6 +305,8 @@ export function parseDockPosition(raw: string | null | undefined): PowerDraftSta
 export interface PowerDraftState {
   /** cut group keys (see codex-power.ts `PowerGroup`) — order irrelevant. */
   cutGroups: readonly string[];
+  /** pilot-pinned level per group key (codex-power.ts F1c) — absent = auto. */
+  levels: Readonly<Record<string, number>>;
   mode: 'scm' | 'nav';
   preset: 'auto' | 'stealth';
   /** Mirrors `DockPosition` in codex-power.ts — keep the two in step. */
@@ -309,6 +315,7 @@ export interface PowerDraftState {
 
 export const DEFAULT_POWER_DRAFT: PowerDraftState = {
   cutGroups: [],
+  levels: {},
   mode: 'scm',
   preset: 'auto',
   dock: 'center',
@@ -317,10 +324,19 @@ export const DEFAULT_POWER_DRAFT: PowerDraftState = {
 function isDefaultPower(s: PowerDraftState): boolean {
   return (
     s.cutGroups.length === 0 &&
+    Object.keys(s.levels).length === 0 &&
     s.mode === DEFAULT_POWER_DRAFT.mode &&
     s.preset === DEFAULT_POWER_DRAFT.preset &&
     s.dock === DEFAULT_POWER_DRAFT.dock
   );
+}
+
+/** Whole, non-negative levels only — the pin format has no room for anything else. */
+function levelEntries(levels: Readonly<Record<string, number>>): [string, number][] {
+  return Object.entries(levels)
+    .filter(([g, n]) => g !== '' && Number.isFinite(n) && n >= 0)
+    .map(([g, n]): [string, number] => [g, Math.floor(n)])
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 /** `null` for the default state — no point putting noise in the URL. */
@@ -328,9 +344,16 @@ export function encodePowerParam(state: PowerDraftState): string | null {
   if (isDefaultPower(state)) return null;
   // `-` is a safe separator: every PowerGroup key is `[a-z]+` (asserted by a
   // spec against POWER_GROUP_ORDER), so a hyphen can never occur INSIDE a key
-  // and the round-trip needs no escaping. The URL format is unchanged.
+  // and the round-trip needs no escaping. The pins ride in an OPTIONAL sixth
+  // part (`shields~2-coolers~6`) — a link without pins is byte-for-byte the
+  // p1 format every already-shared link uses, and an old client that reads
+  // five parts simply ignores the sixth.
   const groups = [...state.cutGroups].map((g) => encodeURIComponent(g)).join(POWER_GROUP_SEPARATOR);
-  return `${POWER_PARAM_VERSION}.${state.mode}.${state.preset}.${state.dock}.${groups}`;
+  const pins = levelEntries(state.levels)
+    .map(([g, n]) => `${encodeURIComponent(g)}${POWER_LEVEL_SEPARATOR}${n}`)
+    .join(POWER_GROUP_SEPARATOR);
+  const head = `${POWER_PARAM_VERSION}.${state.mode}.${state.preset}.${state.dock}.${groups}`;
+  return pins === '' ? head : `${head}.${pins}`;
 }
 
 /** Tolerant parse — malformed or foreign-version input yields `null`, never a throw. */
@@ -338,10 +361,18 @@ export function decodePowerParam(raw: string | null | undefined): PowerDraftStat
   if (!raw) return null;
   const parts = raw.split('.');
   if (parts.length < 4 || parts[0] !== POWER_PARAM_VERSION) return null;
-  const [, mode, preset, dock, groups = ''] = parts;
+  const [, mode, preset, dock, groups = '', pins = ''] = parts;
   if (mode !== 'scm' && mode !== 'nav') return null;
   if (preset !== 'auto' && preset !== 'stealth') return null;
-  if (dock !== 'left' && dock !== 'center' && dock !== 'right') return null;
+  if (dock !== 'left' && dock !== 'center' && dock !== 'right' && dock !== 'inline') return null;
+  const levels: Record<string, number> = {};
+  for (const pin of pins.split(POWER_GROUP_SEPARATOR)) {
+    const [g, n] = pin.split(POWER_LEVEL_SEPARATOR);
+    const group = safeDecode(g ?? '');
+    // whole digits only — `Number('')` is 0 and would pin a group by accident
+    if (group === '' || !/^\d+$/.test(n ?? '')) continue;
+    levels[group] = Number(n);
+  }
   return {
     mode,
     preset,
@@ -350,6 +381,7 @@ export function decodePowerParam(raw: string | null | undefined): PowerDraftStat
       .split(POWER_GROUP_SEPARATOR)
       .map((g) => safeDecode(g))
       .filter((g) => g !== ''),
+    levels,
   };
 }
 
@@ -366,9 +398,16 @@ export function parseLocalPowerDraft(raw: string | null | undefined): LocalStora
   try {
     const v = JSON.parse(raw) as Partial<LocalStoragePowerDraft>;
     if (typeof v.shipClassName !== 'string') return null;
+    const levels =
+      v.levels && typeof v.levels === 'object'
+        ? levelEntries(v.levels as Record<string, number>)
+            .map(([g, n]) => `${g}${POWER_LEVEL_SEPARATOR}${n}`)
+            .join(POWER_GROUP_SEPARATOR)
+        : '';
     const decoded = decodePowerParam(
       `${POWER_PARAM_VERSION}.${v.mode ?? 'scm'}.${v.preset ?? 'auto'}.${v.dock ?? 'center'}.` +
-        (Array.isArray(v.cutGroups) ? v.cutGroups.join(POWER_GROUP_SEPARATOR) : ''),
+        (Array.isArray(v.cutGroups) ? v.cutGroups.join(POWER_GROUP_SEPARATOR) : '') +
+        (levels === '' ? '' : `.${levels}`),
     );
     return decoded ? { shipClassName: v.shipClassName, ...decoded } : null;
   } catch {

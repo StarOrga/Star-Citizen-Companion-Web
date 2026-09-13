@@ -50,8 +50,15 @@ component detail: type, manufacturer, grade, every stat.
 **Energy at a glance.** A compact dock carries the reactor budget, the
 allocation per system group, cooling load and the IR, EM and cross-section
 signatures, each with a tooltip explaining what it means and what moves it.
-Cutting a whole group's power is one click. It can be minimised to values only,
-and its position on screen is the reader's choice.
+The eight groups always sit in the same order — weapons, thrusters, shields,
+quantum drive, tractor beam, radar, life support, coolers — and each one is a
+stack of pips that fills from the bottom up. Clicking a pip sets that group to
+exactly that level; clicking the topmost pip of a group running at full tilt
+switches it off, as does the group's icon. What a group asks for comes from the
+modules actually fitted (the same draw the module rows show), so pinning more
+than the reactor funds is shown as a deficit, never hidden by trimming a
+neighbour. It can be minimised to values only, and its position on screen is
+the reader's choice.
 
 **Choosing is a comparison.** The component picker opens as a centred overlay —
 the page stays visible behind it — and lists every reachable value per

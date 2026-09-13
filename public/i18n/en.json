@@ -918,7 +918,15 @@
       "minimum": "Minimum draw {{n}} segments",
       "toggleOff": "{{group}} — cut power",
       "toggleOn": "{{group}} — restore power",
-      "draftNote": "Cut groups stay a draft — they are never written to your hangar.",
+      "overBudget": "Reactor overloaded: {{used}} of {{total}} segments in use",
+      "demandLine": "Demand {{demand}} seg from {{items}} modules · allocated {{allocated}} seg",
+      "belowMinimum": "Below the minimum of {{min}} seg — the group fails.",
+      "pinned": "Set by you — Auto, Stealth or Reset clears it.",
+      "pip": {
+        "level": "{{group}}: level {{n}} of {{m}}",
+        "topOff": "{{group}}: level {{n}} of {{m}} — click to cut the group"
+      },
+      "draftNote": "Cut groups and pinned levels stay a draft — they are never written to your hangar.",
       "position": {
         "title": "Dock position",
         "left": "bottom left",

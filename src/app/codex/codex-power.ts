@@ -7,13 +7,17 @@
 // `null` / a gap key, NEVER a zero and never an estimate.
 //
 // ── The formulas, in one place ────────────────────────────────────────────────
-// F1  Group CAPACITY (segments the group can occupy at full tilt)
-//        capacity(g) = Σ_items ( consumeSegments × count )
-//                    + ceil( Σ_items ( consumeUnits × count ) − 1e-6 )
+// F1  Group DEMAND and CAPACITY (segments the group can occupy at full tilt)
+//        demand(g)   = Σ_items ( consumeSegments × count
+//                              + consumeUnits × count / STANDARD_UNITS_PER_SEGMENT )
+//        capacity(g) = ceil( demand(g) − 1e-6 )
 //     Items that draw `SStandardResourceUnit` power (weapons: 1.0 units each)
-//     occupy no whole segment on their own. They are folded into their group by
-//     summing the standard units of the WHOLE group and rounding UP once — a
-//     group of three 1.0-unit repeaters costs 3 segments, a single one costs 1.
+//     occupy no whole segment on their own. Their units are converted with the
+//     SAME constant the per-module stat sheet and the swap picker print
+//     (4/3 units = 1 segment, `codex.types.ts`), summed over the WHOLE group
+//     and rounded UP once — three 1.0-unit repeaters demand 2.25 segments and
+//     occupy 3 pips; a single one demands 0.75 and occupies 1. `demand` is the
+//     exact figure (the tooltip prints it), `capacity` the pip count.
 // F2  Group MINIMUM (the gold pips)
 //        min(g) = ceil( Σ_items ( consumeSegments × minFraction × count ) − 1e-6 )
 //     `minFraction` is stored rounded to 4 dp, so 3 × 0.6667 = 2.0001 would ceil
@@ -35,6 +39,15 @@
 //       4. if `Σ minimum > budget` the sheet flips `overBudget:true`,
 //          `ready:false`, `codex.energy.readiness.no` and LEAVES the groups at
 //          their minimum — the dock then prints a deficit instead of hiding it.
+// F1c PINS — the pilot's own levels (admin feedback 590230e3). Clicking pip N
+//     of a group pins that group at EXACTLY N segments (`levels`). A pin
+//     overrides steps 1–2 for its own group and nothing else: the auto groups
+//     are dealt as if the pin did not exist, so lowering a pin frees exactly
+//     its segments (like a cut) and raising one above the free budget shows up
+//     as `overBudget` — `16 / 14 Seg` in the header, never a silent trim of a
+//     neighbour. A pin below the group's minimum is allowed and flagged
+//     `belowMinimum` (the pilot asked for it; the dock says what it costs).
+//     Pins are draft state next to the cuts; a preset or reset clears them.
 // F4  Coolant
 //        used  = Σ_powered items ( coolant.consume × count )
 //        total = Σ_powered items ( coolant.generate × count )
@@ -58,7 +71,12 @@
 import { findStat } from '../hangar/loadout-stats';
 import { crossSectionAxes } from './codex-loadout-stats';
 import type { SummaryOccupant } from './ship-summary-panels';
-import { RESOURCE_STATS_GROUP, resolveResourceState, resourceKey } from './codex.types';
+import {
+  RESOURCE_STATS_GROUP,
+  STANDARD_UNITS_PER_SEGMENT,
+  resolveResourceState,
+  resourceKey,
+} from './codex.types';
 
 /** The extractor `schema_version` the energy model needs (schema 3 added the
  * flat `ItemResourceComponentParams` group). A build below this cannot be
@@ -77,17 +95,26 @@ export type PowerGroup =
   | 'quantum'
   | 'tractor';
 
-/** Dock column order (MASTER §8). */
+/**
+ * Dock column order AND surplus priority (F1b step 2). The admin fixed the
+ * order on 2026-09-10 (feedback 590230e3): Waffen, Antriebe, Schilde, Quantum,
+ * Tractor, Radar, Lebenserhaltung, Kühlung. Every group renders in this order
+ * on every ship — an absent group keeps its (empty) column so the row never
+ * shifts between ships.
+ */
 export const POWER_GROUP_ORDER: readonly PowerGroup[] = [
   'weapons',
-  'shields',
   'thrusters',
-  'coolers',
-  'radar',
-  'life',
+  'shields',
   'quantum',
   'tractor',
+  'radar',
+  'life',
+  'coolers',
 ] as const;
+
+/** Pilot-pinned allocation per group (F1c) — absent = auto. */
+export type PowerLevels = Readonly<Partial<Record<PowerGroup, number>>>;
 
 export type FlightMode = 'scm' | 'nav';
 export type PowerPreset = 'auto' | 'stealth';
@@ -306,6 +333,13 @@ export interface PowerGroupRow {
   minimum: number;
   /** what the group would draw at full tilt (F1) = the pip stack length. */
   capacity: number;
+  /** the exact segments the equipped items ask for (F1), before the ceil —
+   * 2.25 for three 1.0-unit repeaters. What the tooltip prints as "Bedarf". */
+  demand: number;
+  /** the pilot pinned this group's level by clicking a pip (F1c). */
+  pinned: boolean;
+  /** running below its gold floor (only a pin can do that). */
+  belowMinimum: boolean;
   pips: PowerPip[];
   state: PowerGroupState;
   /** i18n key for the text under the pips (`aus`, `—`, `0`, or the numeral). */
@@ -348,9 +382,10 @@ export interface PowerSheet {
   budgetUsed: number;
   /** Σ of every eligible group's minimum — what the ship needs just to run. */
   budgetMinimum: number;
-  /** true when `budgetMinimum > budgetTotal`: the reactor cannot even hold the
-   * minimums. Allocations stay AT the minimum so the dock can print the
-   * deficit honestly instead of silently trimming a group (R1). */
+  /** true when `budgetMinimum > budgetTotal` (the reactor cannot even hold
+   * the minimums) OR when the pilot's pins push `budgetUsed` past the budget
+   * (F1c). Allocations stay where they are so the dock can print the deficit
+   * honestly instead of silently trimming a group (R1). */
   overBudget: boolean;
   groups: PowerGroupRow[];
   facts: PowerFact[];
@@ -374,6 +409,8 @@ export interface PowerSheetInput {
   mode?: FlightMode;
   preset?: PowerPreset;
   cutGroups?: Iterable<PowerGroup>;
+  /** pilot-pinned levels per group (F1c); a cut group's pin is dormant. */
+  levels?: PowerLevels | null;
   /** the allocation the facts' deltas are measured against (usually the last sheet). */
   previous?: PowerSheet | null;
 }
@@ -481,25 +518,40 @@ export function distributePower(
   demands: readonly GroupDemand[],
   budget: number,
   preset: PowerPreset,
+  levels: PowerLevels | null = null,
 ): Map<PowerGroup, number> {
   const out = new Map<PowerGroup, number>();
   for (const d of demands) out.set(d.group, Math.min(d.minimum, d.capacity));
   const minimums = demands.reduce((s, d) => s + Math.min(d.minimum, d.capacity), 0);
-  if (preset === 'stealth' || minimums >= budget) return out;
-
-  let remaining = budget - minimums;
-  for (const group of POWER_GROUP_ORDER) {
-    if (remaining <= 0) break;
-    const d = demands.find((x) => x.group === group);
-    if (!d) continue;
-    const head = Math.max(0, d.capacity - (out.get(group) ?? 0));
-    const give = Math.min(head, remaining);
-    if (give > 0) {
-      out.set(group, (out.get(group) ?? 0) + give);
-      remaining -= give;
+  if (preset !== 'stealth' && minimums < budget) {
+    let remaining = budget - minimums;
+    for (const group of POWER_GROUP_ORDER) {
+      if (remaining <= 0) break;
+      const d = demands.find((x) => x.group === group);
+      if (!d) continue;
+      const head = Math.max(0, d.capacity - (out.get(group) ?? 0));
+      const give = Math.min(head, remaining);
+      if (give > 0) {
+        out.set(group, (out.get(group) ?? 0) + give);
+        remaining -= give;
+      }
     }
   }
+  // F1c — the pins go on LAST and touch only their own group: the auto deal
+  // above is exactly what the pilot would get without the pin, so a pin
+  // frees or claims precisely its own difference.
+  for (const d of demands) {
+    const pin = pinnedLevel(levels, d.group);
+    if (pin !== null) out.set(d.group, Math.min(pin, d.capacity));
+  }
   return out;
+}
+
+/** A pin is a whole number ≥ 0; anything else (NaN, negative, absent) is "auto". */
+export function pinnedLevel(levels: PowerLevels | null | undefined, group: PowerGroup): number | null {
+  const v = levels?.[group];
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null;
+  return Math.floor(v);
 }
 
 /**
@@ -510,6 +562,7 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const mode: FlightMode = input.mode ?? 'scm';
   const preset: PowerPreset = input.preset ?? 'auto';
   const cutGroups = new Set<PowerGroup>(input.cutGroups ?? []);
+  const levels = input.levels ?? null;
   const draws = input.occupants.map((o) => occupantDraw(o));
 
   // R5 — a build below schema 3 has no resource group at all; say so once and
@@ -531,12 +584,16 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const demands: GroupDemand[] = [];
   const rowMeta = new Map<PowerGroup, { hasChannel: boolean; cut: boolean; present: boolean }>();
   const rawDemand = new Map<PowerGroup, GroupDemand>();
+  const exactDemand = new Map<PowerGroup, number>();
 
   for (const group of POWER_GROUP_ORDER) {
     const mine = draws.filter((d) => d.group === group);
     const segments = mine.reduce((s, d) => s + d.consumeSegments, 0);
     const units = mine.reduce((s, d) => s + d.consumeUnits, 0);
-    const capacity = segments + (units > 0 ? ceilUnits(units) : 0);
+    // F1 — the per-item figure the stat sheet prints, summed, ceil'd once.
+    const demand = round(segments + units / STANDARD_UNITS_PER_SEGMENT);
+    const capacity = demand > 0 ? ceilUnits(demand) : 0;
+    exactDemand.set(group, demand);
     const minimum = Math.min(
       capacity,
       ceilMinimum(
@@ -576,8 +633,7 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const budgetMinimum = demands
     .filter((d) => !(rowMeta.get(d.group)?.cut ?? false))
     .reduce((s, d) => s + d.minimum, 0);
-  const overBudget = budgetTotal !== null && budgetMinimum > budgetTotal;
-  const allocation = distributePower(demands, budgetTotal ?? 0, preset);
+  const allocation = distributePower(demands, budgetTotal ?? 0, preset, levels);
 
   const groups: PowerGroupRow[] = [];
   let budgetUsed = 0;
@@ -587,6 +643,10 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
     const d = rawDemand.get(group)!;
     const meta = rowMeta.get(group)!;
     const allocated = meta.hasChannel && !meta.cut ? (allocation.get(group) ?? 0) : 0;
+    // a pin only counts while it can act: the group is present, has a channel
+    // in this mode, is not cut and has something to pin.
+    const pinned =
+      d.present && meta.hasChannel && !meta.cut && d.capacity > 0 && pinnedLevel(levels, group) !== null;
 
     let state: PowerGroupState;
     if (!d.present) state = 'absent';
@@ -628,6 +688,9 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
       // is off; `state` is what the component styles the column by.
       minimum: meta.hasChannel ? d.minimum : 0,
       capacity,
+      demand: exactDemand.get(group) ?? 0,
+      pinned,
+      belowMinimum: pinned && allocated < d.minimum,
       pips: pipStack(allocated, meta.hasChannel ? d.minimum : 0, capacity),
       state,
       stateLabelKey,
@@ -635,6 +698,11 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
       items: d.items,
     });
   }
+
+  // R1 + F1c — the reactor cannot hold the floors, or the pilot pinned more
+  // than it funds. Either way the header prints the deficit.
+  const overBudget =
+    budgetTotal !== null && (budgetMinimum > budgetTotal || budgetUsed > budgetTotal);
 
   // F4/F5 over the powered set. Power plants (group null) always run, and so
   // does a PASSIVE shield generator — it is not on the net, but it is installed
@@ -729,9 +797,42 @@ export function togglePowerGroup(
   return next;
 }
 
-/** `Zurücksetzen` — the default dock state (auto, nothing cut, SCM). */
-export function resetPowerState(): { cutGroups: ReadonlySet<PowerGroup>; mode: FlightMode; preset: PowerPreset } {
-  return { cutGroups: new Set<PowerGroup>(), mode: 'scm', preset: 'auto' };
+/**
+ * What ONE click on pip `level` (1-based, counted from the bottom) of a group
+ * does to the draft (F1c, feedback 590230e3):
+ *   * the TOPMOST pip while the group already sits at full capacity → the
+ *     group switches OFF (a cut, exactly like the icon button);
+ *   * any other pip → the group is switched on (if it was cut) and pinned at
+ *     exactly `level` segments — lower pips lower it, higher pips raise it.
+ * Pure: returns the next cut set + levels, never mutates the inputs.
+ */
+export function clickPowerPip(
+  cutGroups: ReadonlySet<PowerGroup>,
+  levels: PowerLevels,
+  row: Pick<PowerGroupRow, 'group' | 'allocated' | 'capacity' | 'cut'>,
+  level: number,
+): { cutGroups: ReadonlySet<PowerGroup>; levels: PowerLevels } {
+  const n = Math.max(0, Math.min(row.capacity, Math.floor(level)));
+  const nextCut = new Set(cutGroups);
+  const nextLevels: Partial<Record<PowerGroup, number>> = { ...levels };
+  if (!row.cut && n > 0 && n === row.capacity && row.allocated === row.capacity) {
+    nextCut.add(row.group);
+    delete nextLevels[row.group];
+  } else {
+    nextCut.delete(row.group);
+    nextLevels[row.group] = n;
+  }
+  return { cutGroups: nextCut, levels: nextLevels };
+}
+
+/** `Zurücksetzen` — the default dock state (auto, nothing cut, no pins, SCM). */
+export function resetPowerState(): {
+  cutGroups: ReadonlySet<PowerGroup>;
+  levels: PowerLevels;
+  mode: FlightMode;
+  preset: PowerPreset;
+} {
+  return { cutGroups: new Set<PowerGroup>(), levels: {}, mode: 'scm', preset: 'auto' };
 }
 
 const GROUP_BY_KEY = new Map<string, PowerGroup>(POWER_GROUP_ORDER.map((g) => [g, g]));
@@ -742,6 +843,19 @@ export function parsePowerGroups(raw: readonly string[] | null | undefined): Set
   for (const r of raw ?? []) {
     const g = GROUP_BY_KEY.get(r.trim());
     if (g) out.add(g);
+  }
+  return out;
+}
+
+/** Tolerant parse of serialized pins — unknown groups and junk values are dropped. */
+export function parsePowerLevels(raw: Readonly<Record<string, unknown>> | null | undefined): PowerLevels {
+  const out: Partial<Record<PowerGroup, number>> = {};
+  for (const [k, v] of Object.entries(raw ?? {})) {
+    const g = GROUP_BY_KEY.get(k.trim());
+    if (!g) continue;
+    const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+    if (!Number.isFinite(n) || n < 0) continue;
+    out[g] = Math.floor(n);
   }
   return out;
 }
