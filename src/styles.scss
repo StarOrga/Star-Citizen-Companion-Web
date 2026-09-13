@@ -663,6 +663,18 @@ button {
   color: var(--sc-danger);
   color: color-mix(in srgb, var(--sc-danger) 80%, var(--sc-fg-0));
 }
+/* A run is working right now (the gate's run lock is held): the accent, not
+   green — "busy" is a different fact from "idle and reachable". */
+[scRoutineStatus].sc-routine-tint.is-running {
+  color: var(--sc-accent);
+  color: color-mix(in srgb, var(--sc-accent) 80%, var(--sc-fg-0));
+}
+/* The usage-limit brake is engaged: alive, polling, claiming nothing. Amber,
+   because neither green ("being worked") nor red ("dead") would be true. */
+[scRoutineStatus].sc-routine-tint.is-paused {
+  color: var(--sc-warning, #e0b452);
+  color: color-mix(in srgb, var(--sc-warning, #e0b452) 80%, var(--sc-fg-0));
+}
 /* No rule for hidden wording here on purpose. An earlier round put the
    state into a clip-rect <span> inside the title; it showed up on screen
    as "(DEV-PC ERREICHBAR)Feedback", the exact line the admin had asked us
