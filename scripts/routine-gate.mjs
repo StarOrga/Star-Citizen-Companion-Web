@@ -367,5 +367,8 @@ try {
   // honest note; if even that fails the panel simply ages out to red.
   try { if (cmd === 'check' && !has('dry-run')) await sql(`update public.routine_heartbeat set note = 'gate-error', updated_at = now() where id = ${q(HEARTBEAT_ID)}`); } catch { /* nothing more to do */ }
   emit({ verdict: 'error', error: String(err.message).slice(0, 200) });
-  process.exit(2);
+  // exitCode, not process.exit(): on Windows an immediate exit while the failed
+  // fetch's socket is still closing trips a libuv assertion (abort, exit 127)
+  // and the promised "exit 2" never reaches the caller.
+  process.exitCode = 2;
 }

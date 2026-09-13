@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.4] - 2026-09-13
+
+### Fixed
+
+- **Das Gate-Skript der Feedback-Routine stürzt im Fehlerfall nicht mehr ab.**
+  Ein fehlgeschlagener SQL-Aufruf (etwa eine falsche Spalte über
+  `routine-gate.mjs sql`) endete unter Windows mit einer libuv-Assertion und
+  Exit-Code 127 statt dem zugesagten Exit 2 — der sofortige `process.exit()`
+  traf den noch schließenden Socket des Fehl-Requests. Das Skript setzt jetzt
+  nur den Exit-Code und lässt Node sauber auslaufen; die JSON-Fehlerzeile und
+  der `gate-error`-Vermerk bleiben wie gehabt.
+
 ## [0.84.3] - 2026-09-13
 
 ### Changed
