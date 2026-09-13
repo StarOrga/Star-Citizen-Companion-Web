@@ -297,10 +297,12 @@ export function resolveResourceState(payload: unknown): string | null {
 
 /**
  * The extractor `schema_version` this app's ship page is written against.
- * A loaded build BELOW this number is missing the schema-3 additions above —
+ * A loaded build BELOW this number is missing additions this page reads —
  * the data pill turns gold with "Re-Extract ausstehend" (MASTER §2/§11).
+ * Schema 4 (feedback #227): plain ITEMS keep their resource network, which is
+ * where the radar, life-support, tractor and flight-controller draws live.
  */
-export const EXPECTED_SCHEMA_VERSION = 3;
+export const EXPECTED_SCHEMA_VERSION = 4;
 
 /** True when the loaded build predates {@link EXPECTED_SCHEMA_VERSION}. */
 export function isReExtractPending(schemaVersion: number | null | undefined): boolean {
