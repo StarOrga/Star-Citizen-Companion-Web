@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.5] - 2026-09-13
+
+### Changed
+
+- **Feedback-Board: die Abnahme führt zurück in die Übersicht, und das Thema
+  animiert sich dort weg.** „Abgenommen" im geöffneten Thema schließt die
+  Ansicht sofort; die Zeile unter „Du bist dran" wird ins Bild geholt und
+  klappt zu, während der Schreibvorgang läuft — nach dem nächsten Abgleich
+  landet sie mit einem einmaligen Leuchten unter „Geliefert". Dieselbe
+  Bewegung nimmt das Löschen eines Themas. Eine Abnahme direkt auf der
+  Geliefert-Karte bleibt an Ort und Stelle und setzt sich mit einem Ring.
+- **Das Feedback-Board bewegt sich — dezent, einmalig, nie in Schleife.**
+  Zeilen steigen gestaffelt ins Bild (gedeckelt bei acht), eine Zeile, die
+  seit dem letzten Abgleich in ein anderes Band gewandert ist (Rückfrage
+  eingetroffen, Ship gelandet, neues Thema), leuchtet dort einmal an der
+  linken Kante auf und der Zähler des Bandes schlägt einmal; Themen-, Filter-
+  und Ablehnen-Ansicht gleiten hoch, das ⋯-Menü klappt herunter, Nachrichten
+  im Verlauf steigen ein, tippbare Kleinflächen heben sich unter dem Zeiger
+  um einen Pixel. `prefers-reduced-motion` bekommt überall sofort den
+  Endzustand.
+
 ## [0.84.4] - 2026-09-13
 
 ### Fixed

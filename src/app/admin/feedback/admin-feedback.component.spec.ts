@@ -8,6 +8,7 @@ import { deepestBoxNesting, drawsBox } from '../../feedback/testing/frame-nestin
 import { ConsentService } from '../../core/consent.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { CelebrationService } from './celebration.service';
+import { FeedbackMotionService } from './feedback-motion.service';
 import { AdminFeedbackComponent } from './admin-feedback.component';
 import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { FeedbackMessage, FeedbackRow, FeedbackStatus } from './feedback.types';
@@ -93,8 +94,30 @@ function fakeSupabase(tables: Record<string, unknown[]>) {
   };
 }
 
+/** The motion service, with its waits cut out: the spec records what folded. */
+function fakeMotion() {
+  const folded: string[] = [];
+  const restored: string[] = [];
+  return {
+    folded,
+    restored,
+    service: {
+      reducedMotion: true,
+      reveal: () => undefined,
+      collapse: (el: HTMLElement | null) => {
+        if (el) folded.push(el.id);
+        return Promise.resolve();
+      },
+      restore: (el: HTMLElement | null) => {
+        if (el) restored.push(el.id);
+      },
+    } as unknown as FeedbackMotionService,
+  };
+}
+
 async function mount(tables: Record<string, unknown[]>) {
   const sb = fakeSupabase(tables);
+  const motion = fakeMotion();
   await TestBed.configureTestingModule({
     imports: [AdminFeedbackComponent],
     providers: [
@@ -105,6 +128,7 @@ async function mount(tables: Record<string, unknown[]>) {
       { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
       { provide: LocaleService, useValue: { language: () => 'de', region: () => 'DE' } },
       { provide: CelebrationService, useValue: { burst: () => undefined, burstFrom: () => undefined, reducedMotion: () => true } },
+      { provide: FeedbackMotionService, useValue: motion.service },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(AdminFeedbackComponent);
@@ -112,7 +136,7 @@ async function mount(tables: Record<string, unknown[]>) {
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
-  return { fixture, cmp: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, sb };
+  return { fixture, cmp: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, sb, motion };
 }
 
 const QUESTION = 'Soll der Filter oben oder unten sitzen?\n\n[[Oben|Unten]]';
@@ -547,6 +571,10 @@ describe('AdminFeedbackComponent — the stream', () => {
     for (const key of retired) expect(localStorage.getItem(key)).toBeNull();
     // the marker the Geliefert band still uses is not collateral damage
     expect(localStorage.getItem('sc.adminFeedback.lastSeenDelivered')).not.toBeNull();
+    // …but it must not leak into the next spec: with it set, every later
+    // mount shows the "neu" badge (an untranslated key, 190 px wide) in the
+    // Geliefert band head, and the width specs fail on spec order alone.
+    localStorage.removeItem('sc.adminFeedback.lastSeenDelivered');
   });
 
 
@@ -876,5 +904,120 @@ describe('AdminFeedbackComponent — a card states the age, not the calendar', (
     const chip = el.querySelector<HTMLElement>('.scroll.stream .ch-time')!;
     expect(chip.textContent!.trim()).toBe('date.relativeSince.yesterday');
     expect(chip.getAttribute('title')).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
+  });
+});
+
+/**
+ * MOTION (admin feedback cf74472a: "wenn man in ein issue rein geht und auf
+ * abgenommen klickt, sollte man direkt danach wieder in die übersicht
+ * zurückkehren und das issue dort sich weg animieren"). The sign-off taken
+ * inside a topic closes the sheet FIRST and folds the row out of Du bist dran
+ * while the write is on the wire; after the poll the same topic wears the
+ * one-time `arrived` glow in Geliefert. Taken on the Geliefert card, nothing
+ * moves — the row settles in place. Every one-time highlight is a diff
+ * against the previous poll, so the first load highlights nothing.
+ */
+describe('AdminFeedbackComponent — motion', () => {
+  it('sign-off inside the topic: back to the stream, row folds out, arrives in Geliefert', async () => {
+    const tables = fixtureTables();
+    const { fixture, cmp, el, sb, motion } = await mount(tables);
+    expect(cmp.arrived('r1')).withContext('the first load highlights nothing').toBeFalse();
+
+    cmp.openTopic('r1');
+    fixture.detectChanges();
+    expect(el.querySelector('.sheet.topic')).not.toBeNull();
+
+    // The write will land: the fake table carries the sign-off the poll reads.
+    const r1 = { ...(tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')! };
+    (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')!.reviewed_at = '2026-09-01T14:00:00Z';
+    const accepted = cmp.acceptReview(r1);
+    // Before the write even resolves, the sheet is gone and the row folds.
+    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+    fixture.detectChanges();
+    expect(cmp.openRow()).withContext('the sheet closes at once').toBeNull();
+    expect(el.querySelector('.sheet.topic')).toBeNull();
+    await accepted;
+    fixture.detectChanges();
+    expect(motion.folded).withContext('the Du-bist-dran row folded out').toEqual(['fb-card-r1']);
+    expect(sb.updates.map((u) => u.patch)).toEqual([jasmine.objectContaining({ reviewed_at: jasmine.any(String) })]);
+
+    // The poll after the write moved the topic to Geliefert — only that one glows.
+    expect(cmp.yourTurn().map((m) => m.id)).not.toContain('r1');
+    expect(cmp.arrived('r1')).toBeTrue();
+    expect(cmp.bandPulse('nobody')).withContext('the Geliefert count beats once').toBeTrue();
+    expect(cmp.bandPulse('admin')).toBeFalse();
+    expect(el.querySelector('#fb-card-r1-feed.arrived')).not.toBeNull();
+    expect(el.querySelectorAll('.card.arrived').length).toBe(1);
+  });
+
+  it('sign-off on the Geliefert card: nothing folds, the row settles in place', async () => {
+    const tables = fixtureTables();
+    const { fixture, cmp, motion } = await mount(tables);
+    const r1 = (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')!;
+
+    await cmp.acceptReview(r1);
+    fixture.detectChanges();
+    expect(motion.folded).toEqual([]);
+    expect(cmp.settled('r1')).toBeTrue();
+    expect(cmp.openRow()).toBeNull();
+  });
+
+  it('a failed sign-off puts the folded row back and shows the error', async () => {
+    const tables = fixtureTables();
+    const { fixture, cmp, sb, motion } = await mount(tables);
+    // The next update fails.
+    const client = sb.provider.client as unknown as { from: (t: string) => Record<string, unknown> };
+    const from = client.from;
+    client.from = (t: string) => {
+      const c = from(t);
+      if (t === 'admin_feedback') {
+        c['update'] = () => ({ eq: () => Promise.resolve({ data: null, error: { message: 'boom' } }) });
+      }
+      return c;
+    };
+    cmp.openTopic('r1');
+    fixture.detectChanges();
+    const r1 = (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')!;
+    await cmp.acceptReview(r1);
+    fixture.detectChanges();
+    expect(motion.folded).toEqual(['fb-card-r1']);
+    expect(motion.restored).withContext('the row comes back').toEqual(['fb-card-r1']);
+    expect(cmp.errorMsg()).toBe('boom');
+    expect(cmp.yourTurn().map((m) => m.id)).withContext('still waiting for the sign-off').toContain('r1');
+  });
+
+  it('a poll that moves a topic into another band marks it arrived, once', async () => {
+    const tables = fixtureTables();
+    const { fixture, cmp, el } = await mount(tables);
+    expect(el.querySelectorAll('.card.arrived').length).toBe(0);
+
+    // The routine answers o1 with a question: routine's pile → Du bist dran.
+    (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'o1')!.status = 'needs_input';
+    (tables.admin_feedback_messages as FeedbackMessage[]).push(msg('m9', 'o1', true, T('12'), 'Und jetzt?'));
+    await cmp.refresh();
+    fixture.detectChanges();
+    expect(cmp.arrived('o1')).toBeTrue();
+    expect(cmp.bandPulse('admin')).toBeTrue();
+    expect(cmp.bandPulse('routine')).toBeFalse();
+    expect(el.querySelector('#fb-card-o1.arrived')).not.toBeNull();
+    // Nothing else moved, nothing else glows.
+    expect(el.querySelectorAll('.card.arrived').length).toBe(1);
+  });
+
+  it('a brand-new topic arrives in the routine\'s pile', async () => {
+    const tables = fixtureTables();
+    const { fixture, cmp } = await mount(tables);
+    (tables.admin_feedback as FeedbackRow[]).push(row('n1', 'open', T('13')));
+    await cmp.refresh();
+    fixture.detectChanges();
+    expect(cmp.arrived('n1')).toBeTrue();
+    expect(cmp.bandPulse('routine')).toBeTrue();
+  });
+
+  it('rows carry their index so the rise-in staggers, capped in CSS', async () => {
+    const { el } = await mount(fixtureTables());
+    const yours = Array.from(el.querySelectorAll<HTMLElement>('.band.yours .card'));
+    expect(yours.length).toBeGreaterThan(1);
+    yours.forEach((card, i) => expect(card.style.getPropertyValue('--i')).toBe(String(i)));
   });
 });
