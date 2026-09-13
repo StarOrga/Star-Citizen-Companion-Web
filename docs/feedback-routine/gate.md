@@ -196,6 +196,14 @@ over two days because every run stopped after one wave; it now drains in one.
 - **Run lock.** `check --in-run` ignores it (it is ours); a fresh tick sees it
   and stands down. Release it at the end of the run, always — a `try/finally`
   in spirit: even the "nothing more to do" exit runs `end-run`.
+
+**`sql --file <path.sql>` / `--query "<sql>"` / stdin** — runs one statement
+through the Management API with the gate's PAT and prints the rows as a JSON
+array. It exists for working runs whose session has no authorised Supabase MCP
+(observed 2026-09-13 13:27: the tick reported the MCP as unauthorised — harmless
+for an idle tick, a blocker for a working one). Same service-role power, same
+rules: never a secret on the command line, never `rejected`, replies only into
+`admin_feedback_messages`.
 - **Worktree hygiene.** Each wave's worktrees are removed after their merge
   (the routine's own `scfb-*` only), so a long drain does not pile them up.
 

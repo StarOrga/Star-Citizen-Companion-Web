@@ -42,9 +42,14 @@
  *   node scripts/routine-gate.mjs end-run --state idle --note shipped:2
  *   node scripts/routine-gate.mjs heartbeat --note running
  *   node scripts/routine-gate.mjs next-runs [--now <iso>]     (prints the cadence table check)
+ *   node scripts/routine-gate.mjs sql --file <path.sql>          (or --query "<sql>", or stdin)
+ *     Runs ONE statement through the same Management-API path the gate uses and
+ *     prints the rows as a JSON array — the fallback for a working run whose
+ *     Supabase MCP is not authorised (observed 2026-09-13 13:27 tick). Same power
+ *     as the MCP (service role), same token rule: never on the command line.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -339,7 +344,19 @@ function nextRuns() {
   emit({ now: now.toISOString(), local: `${hour}:${String(minute).padStart(2, '0')}`, window: windowFor(hour).name, thisTickDue: slotIsDue(slotStart(now)), next: out });
 }
 
-const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns };
+async function runSql() {
+  let query = flag('query');
+  const file = flag('file');
+  if (!query && file) query = readFileSync(file, 'utf8');
+  if (!query && !process.stdin.isTTY) query = readFileSync(0, 'utf8');
+  query = (query || '').trim();
+  if (!query) throw new Error('sql: pass --file <path.sql>, --query "<sql>" or pipe the statement on stdin');
+  const rows = await sql(query);
+  log(`sql: ${Array.isArray(rows) ? rows.length : 0} row(s)`);
+  emit(rows);
+}
+
+const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql };
 try {
   const h = handlers[cmd];
   if (!h) throw new Error(`unknown command ${cmd}`);

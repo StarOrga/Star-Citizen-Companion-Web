@@ -54,6 +54,14 @@ An idle tick reports one line and stops **without reading this runbook**. Every
 working run ends with `end-run` (STEP 6). Pass the Supabase CLI PAT via the
 environment, never on a command line that ends up in a transcript.
 
+**If the Supabase MCP is not authorised in the run's session**, every SQL of
+STEPS 1–6 goes through the same script instead:
+`node scripts/routine-gate.mjs sql --file <statement.sql>` (write the statement
+to a temp file first; `--query` only for one-liners). It uses the gate's PAT and
+prints the rows as JSON — same service-role power as the MCP, so the privacy
+rule and the "never `rejected`" rule apply unchanged. Do not park an item or
+skip a wave because the MCP is missing.
+
 ## Contract
 
 Source of work: rows in `public.admin_feedback` with `status = 'open'`,
@@ -221,7 +229,9 @@ question costs a day.
 ## STEP 1 — the six queue reads (a)–(f)
 
 Run all six every working run. **(f) comes first, before anything new is
-claimed.** Each letter routes to its appendix; the SQL is the contract.
+claimed.** Each letter routes to its appendix; the SQL is the contract. Run
+them through the Supabase MCP, or — when it is not authorised — through
+`node scripts/routine-gate.mjs sql --file <statement.sql>` (STEP 0).
 
 ```sql
 -- (a) the work queue: oldest first, and untriaged user topics are not work for the routine
