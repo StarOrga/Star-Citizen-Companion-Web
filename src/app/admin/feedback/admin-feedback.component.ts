@@ -321,12 +321,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <div class="sc-card empty">{{ 'adminFeedback.search.empty' | translate: { query: searchQuery() } }}</div>
             }
             @for (m of searchResults(); track m.id) {
-              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false }"></ng-container>
+              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
             }
           } @else {
             <!-- BAND 1 · Du bist dran: every Rückfrage, sign-off and release
-                 that waits on the admin, longest wait first. The first card
-                 opens with its action inline — one click to act. -->
+                 that waits on the admin, longest wait first. Every card is a
+                 closed row — the act happens in the opened topic (admin
+                 feedback 0691a00b: the first card used to unfold its answer box
+                 inline, which read as an expandable list; one tap into the
+                 topic is enough). -->
             <section class="band yours">
               <button
                 type="button"
@@ -342,8 +345,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 @if (yourTurn().length === 0) {
                   <p class="band-empty">{{ 'adminFeedback.stream.emptyYourTurn' | translate }}</p>
                 }
-                @for (m of yourTurn(); track m.id; let first = $first) {
-                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: first }"></ng-container>
+                @for (m of yourTurn(); track m.id) {
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
                 }
               }
             </section>
@@ -366,7 +369,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   <p class="band-empty">{{ 'adminFeedback.stream.emptyRunning' | translate }}</p>
                 }
                 @for (m of running(); track m.id) {
-                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false }"></ng-container>
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
                 }
               }
             </section>
@@ -401,7 +404,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <span class="dh-count">{{ d.items.length }}</span>
                   </div>
                   @for (m of d.items; track m.id) {
-                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, lead: false, feed: true }"></ng-container>
+                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, feed: true }"></ng-container>
                   }
                 }
                 @if (hiddenDeliveredDays() > 0) {
@@ -459,14 +462,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- ============================================================ -->
       <!-- ONE ROW OF THE STREAM. Head = avatar · #N title · flight path +
-           baton words · area · time. The lead card (first of "Du bist dran")
-           carries its action inline; every card opens the full-panel topic. -->
-      <ng-template #row let-m let-lead="lead" let-feed="feed">
+           baton words · area · time. A row never unfolds: every card opens the
+           full-panel topic, and the act (answer, sign-off, release) happens in
+           there (admin feedback 0691a00b — the old inline lead card made the
+           list read as expandable). -->
+      <ng-template #row let-m let-feed="feed">
         @let turn = turnOf(m);
         @let pos = positionOf(m);
         <article
           class="card sc-card"
-          [class.lead]="lead"
           [class.done]="turn === 'nobody'"
           [class.is-new]="isNew(m)"
           [id]="feed ? cardDomId(m.id) + '-feed' : cardDomId(m.id)">
@@ -550,64 +554,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </a>
               }
               <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-            </div>
-          }
-
-          <!-- THE LEAD CARD: the one thing waiting on the admin, with its
-               answer right here (success criterion 2). -->
-          @if (lead) {
-            <div class="card-inline">
-              @switch (askOf(m)) {
-                @case ('question') {
-                  @if (lastSystemMessage(m); as q) {
-                    <ng-container [ngTemplateOutlet]="message" [ngTemplateOutletContext]="{ $implicit: q, kind: 'system' }"></ng-container>
-                  } @else if (m.processing_note) {
-                    <div class="msg system">
-                      <div class="msg-head"><span class="ai">{{ 'adminFeedback.kind.ai' | translate }}</span></div>
-                      <p class="msg-body">{{ m.processing_note }}</p>
-                    </div>
-                  }
-                  <ng-container [ngTemplateOutlet]="options" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-                  <!-- Frameless: the card is the box (admin feedback ae072e63).
-                       A framed composer here put a third frame inside the
-                       card inside the panel wall, with the field's own border
-                       making four. -->
-                  <sc-feedback-composer
-                    [compact]="true"
-                    [frameless]="true"
-                    [draftScope]="leadScope(m.id)"
-                    [busy]="busy()"
-                    [allowFiles]="true"
-                    [primaryHot]="true"
-                    placeholder="adminFeedback.thread.replyPlaceholder"
-                    sendLabel="adminFeedback.thread.reply"
-                    [onSubmit]="replySubmitFor(m.id)" />
-                  <div class="inline-actions">
-                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
-                      {{ 'adminFeedback.stream.openTopic' | translate }}
-                    </button>
-                  </div>
-                }
-                @case ('review') {
-                  <ng-container [ngTemplateOutlet]="reviewGate" [ngTemplateOutletContext]="{ $implicit: m, hot: true }"></ng-container>
-                }
-                @case ('release') {
-                  @let body = render(m.body);
-                  <div class="msg" [class.clamped]="isLong(m.id, m.body)">
-                    <div class="msg-body" [innerHTML]="body.html"></div>
-                    <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: m.id, body: m.body }"></ng-container>
-                    <sc-feedback-attachments class="sent" [images]="body.images" />
-                  </div>
-                  <div class="inline-actions">
-                    <button class="sc-btn micro hot" (click)="releaseToRoutine(m)" [disabled]="busy()">
-                      {{ 'adminFeedback.userTopic.release' | translate }}
-                    </button>
-                    <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
-                      {{ 'adminFeedback.stream.openTopic' | translate }}
-                    </button>
-                  </div>
-                }
-              }
             </div>
           }
         </article>
@@ -720,47 +666,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [attr.title]="refLabel"
             [attr.aria-label]="refLabel">↗</a>
         }
-      </ng-template>
-
-      <!-- REVIEW GATE — the work is done, the topic is not, until an admin
-           looked at the result (migration 20260729130000). -->
-      <ng-template #reviewGate let-m let-hot="hot">
-        <section class="review-gate inline">
-          <!-- No headline (feedback d08f1983): the row right above this box
-               already says "Abnahme steht aus" on the flight path, with its own
-               status mark. Repeating "Geshipped — bitte abnehmen" underneath it
-               said the same thing a second time and pushed the two buttons that
-               actually decide something further down.
-
-               The gate only ever sits ON a stream card now (feedback a398fc94),
-               and there it wears no frame of its own: a box inside a box drew a
-               border around three buttons that are simply what this card offers.
-               The opened topic no longer draws a gate at all (admin feedback
-               187574ed) — its sign-off moved into the composer row and its
-               reopen is the reply itself. -->
-          @if (!embedded()) {
-            <p class="rg-hint">{{ 'adminFeedback.review.hint' | translate }}</p>
-          }
-          <div class="rg-links">
-            @if (areaLink(m); as href) {
-              <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)">▸ {{ 'adminFeedback.actions.viewInApp' | translate }}</a>
-            }
-            <!-- On a card, "open the topic" belongs in this row: it is the
-                 second way to LOOK at the thing, next to looking at it live.
-                 It also absorbs "Gespräch wieder aufnehmen", which was the
-                 same move with extra steps — the reopen lives inside the
-                 topic, where the steer gets typed anyway. -->
-            <button class="sc-btn micro ghost" (click)="openTopic(m.id)">
-              {{ 'adminFeedback.stream.openTopic' | translate }}
-            </button>
-            <ng-container [ngTemplateOutlet]="refLink" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
-          </div>
-          <div class="rg-actions">
-            <button class="sc-btn micro" [class.hot]="hot" (click)="acceptReview(m)" [disabled]="busy()">
-              ✓ {{ 'adminFeedback.review.accept' | translate }}
-            </button>
-          </div>
-        </section>
       </ng-template>
 
       <!-- ============================================================ -->
@@ -920,9 +825,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <input type="checkbox" [checked]="asksAuthor(m.id)" (change)="toggleAskAuthor(m.id)" />
                     {{ 'adminFeedback.userTopic.asQuestion' | translate }}
                   </label>
-                  <!-- Frameless for the same reason as the lead card's box
-                       (admin feedback ae072e63): the author channel already
-                       draws the dashed frame that groups this. -->
+                  <!-- Frameless (admin feedback ae072e63): the author channel
+                       already draws the dashed frame that groups this. -->
                   <sc-feedback-composer
                     [compact]="true"
                     [frameless]="true"
@@ -1150,7 +1054,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        an odd shared background wrapped around every group of issues (admin
        feedback 96259f21). The 1 px border still tells one row from the next. */
     .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); background: transparent; box-shadow: none; }
-    .card.lead { border-color: var(--sc-accent); }
     .card.done { opacity: 0.88; }
     .card-head { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
     .card-head:focus-visible, .band-head:focus-visible, .tb-btn:focus-visible, .sh-btn:focus-visible, .read-more:focus-visible, .link-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
@@ -1172,7 +1075,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .chip.area { border-style: dashed; }
     .chip.new { border-color: var(--sc-accent); color: var(--sc-accent); }
     .chip.hot { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .card-links, .inline-actions, .rg-actions, .rg-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .card-links, .inline-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .link-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
     .link-btn.quiet { border-color: var(--sc-border); color: var(--sc-fg-1); }
     /* The PR / issue arrow sits on the far right of its row and stays quiet
@@ -1180,7 +1083,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .link-btn.ref { margin-left: auto; min-width: 36px; justify-content: center; padding: 0 8px; border-color: transparent; color: var(--sc-fg-2); font-size: 1rem; }
     .link-btn.ref:hover { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .link-btn:hover { background: rgba(0, 212, 255, 0.08); }
-    .card-inline { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; border-top: 1px solid var(--sc-border); }
 
     /* ---- Avatar (role colours; red = elevated access) ---- */
     .av { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; letter-spacing: 0.02em; background: rgba(120, 150, 190, 0.28); color: #b9c9de; }
@@ -1215,14 +1117,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .msg.system { border-left: 3px solid var(--sc-accent); }
     .msg.self { border-left: 3px solid var(--sc-accent-hot); }
     .msg.first { background: transparent; border: 0; padding: 0; }
-    /* On a card the inline message IS the card's content, so it draws no second
-       box inside the one the card already draws — the same rule
-       .review-gate.inline follows (feedback a398fc94), applied to the lead
-       card's answer preview (admin feedback ae072e63). The routine/self accent
-       stays: of that frame it is the only part that carries meaning. */
-    .card-inline .msg { padding: 0; background: transparent; border: 0; border-radius: 0; }
-    .card-inline .msg.system { border-left: 3px solid var(--sc-accent); padding-left: 10px; }
-    .card-inline .msg.self { border-left: 3px solid var(--sc-accent-hot); padding-left: 10px; }
     .msg-head { display: flex; align-items: center; gap: 8px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .msg-head .who { font-weight: 600; color: var(--sc-fg-1); }
     .msg-ts { margin-left: auto; white-space: nowrap; }
@@ -1246,15 +1140,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .sc-btn.danger:hover:not(:disabled) { background: var(--sc-danger); color: #fff; box-shadow: none; }
     .proc-note { margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .reopen-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .review-gate { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--sc-border); border-left: 3px solid var(--sc-accent); border-radius: 8px; }
-    /* On a card the gate IS the card's content — no second frame around it
-       (feedback a398fc94). The card already draws the box. */
-    .review-gate.inline { padding: 0; border: 0; border-radius: 0; }
     .author-channel { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-accent); border-radius: 8px; }
     .ac-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .ac-title { font-weight: 700; font-size: max(0.72rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-accent); }
-    .ac-status, .ac-hint, .rg-hint { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .ac-hint, .rg-hint { margin: 0; }
+    .ac-status, .ac-hint { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .ac-hint { margin: 0; }
     .ac-ask { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     .ac-ask input { width: 20px; height: 20px; }
 
@@ -1435,7 +1325,7 @@ export class AdminFeedbackComponent implements OnInit {
     return isContinuedAfterShip(m, this.threads().get(m.id));
   }
 
-  /** The routine's newest reply — the question the lead card shows. */
+  /** The routine's newest reply — the open question the sheet answers. */
   lastSystemMessage(m: FeedbackRow): FeedbackMessage | null {
     const replies = this.messagesFor(m.id);
     for (let i = replies.length - 1; i >= 0; i--) {
@@ -2161,17 +2051,6 @@ export class AdminFeedbackComponent implements OnInit {
 
   private readonly threadScopes = new Map<string, string>();
   private readonly authorScopes = new Map<string, string>();
-  private readonly leadScopes = new Map<string, string>();
-
-  /**
-   * The lead card's inline answer box and the sheet's composer can be in the
-   * DOM at the same time for one topic — two boxes on one draft key would
-   * overwrite each other. The inline box therefore keeps the retired run's
-   * scope, which also carries over any draft typed there before the rewrite.
-   */
-  leadScope(feedbackId: string): string {
-    return memoScope(this.leadScopes, feedbackId, draftScopes.adminWorkflow);
-  }
 
   threadScope(feedbackId: string): string {
     return memoScope(this.threadScopes, feedbackId, draftScopes.adminThread);
@@ -2179,17 +2058,6 @@ export class AdminFeedbackComponent implements OnInit {
 
   authorScope(feedbackId: string): string {
     return memoScope(this.authorScopes, feedbackId, draftScopes.adminAuthor);
-  }
-
-  private readonly replySubmitters = new Map<string, (p: ComposerPayload) => Promise<boolean>>();
-
-  replySubmitFor(feedbackId: string): (p: ComposerPayload) => Promise<boolean> {
-    let fn = this.replySubmitters.get(feedbackId);
-    if (!fn) {
-      fn = (p: ComposerPayload) => this.sendReply(feedbackId, p);
-      this.replySubmitters.set(feedbackId, fn);
-    }
-    return fn;
   }
 
   /** Post a human reply into a topic's thread. Returns true once persisted. */
