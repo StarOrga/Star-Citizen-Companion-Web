@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.2] - 2026-09-13
+
+### Fixed
+
+- **Ein Arbeitslauf der Feedback-Routine hängt nicht mehr an einem
+  ausgefallenen Supabase-MCP.** Der Tick um 13:27 meldete den MCP in seiner
+  Session als nicht autorisiert; ein leerer Tick stört das nicht, ein
+  arbeitender hätte Warteschlange, Claims und Antworten nicht schreiben
+  können. `scripts/routine-gate.mjs sql --file <statement.sql>` führt jetzt
+  eine Anweisung über denselben Management-API-Pfad aus, den das Gate schon
+  nutzt; Prompt und Runbook nennen es als Ersatzweg für jede SQL der Schritte
+  1 bis 6 — mit denselben Regeln (kein Token auf der Kommandozeile, nie
+  `rejected`, Antworten nur in `admin_feedback_messages`).
+
 ## [0.84.1] - 2026-09-13
 
 ### Changed
