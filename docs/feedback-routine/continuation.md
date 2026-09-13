@@ -59,14 +59,19 @@ so under pressure the wrong one wins every time. A rule that is only prose in a
 2000-line runbook loses that race. So the rule now has a body:
 
 ```bash
-npm run verify:ship-live -- --sha <merge-sha> --pr <PR-Link> \
-  --changed "<ein Satz>" --route admin/feedback --probe <new i18n key>
+npm run verify:ship-live -- --sha <merge-sha> --pr <PR-Link> --changed "<ein Satz>" --route admin/feedback
 ```
 
 `scripts/verify-ship-live.mjs` does the waiting and **prints the reply to post**.
-It emits the ✅ wording *only* after it has observed the deployment `success` (and,
-when `--probe` is given, seen the new string actually served); otherwise it prints
-the ⏳ "merged, not live yet" reply and exits non-zero. The observed `HH:MM` and the
+It emits the ✅ wording *only* after it has observed the deployment `success` and
+seen the merge actually served: by default it greps `release-notes.json` for the
+version the commit carries in `package.json` (every ship bumps it, so every ship
+has a needle); pass `--probe <needle>` only for a string the merge introduced,
+and `--probe-url` as a site path **without** the leading slash. A short `--sha`
+is resolved to the full one — the deployments endpoint answers an abbreviated id
+with an empty list, which reads as "no deployment yet" and polled a green deploy
+to the timeout twice on 2026-09-13. Otherwise it prints the ⏳ "merged, not live
+yet" reply and exits non-zero. The observed `HH:MM` and the
 PWA caveat are baked into its output, so the correct reply is now the cheap one and
 a ✅ nobody verified cannot be produced by accident. Pass `--route` **without** the
 leading slash — Git Bash rewrites a leading-slash argument into a Windows path.

@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.6] - 2026-09-13
+
+### Fixed
+
+- **Die Live-Prüfung nach einem Ship braucht keinen Such-String mehr und
+  verschluckt keine Kurz-SHA.** `verify:ship-live` griff mit einer
+  abgekürzten Merge-SHA ins Leere (die Deployments-API antwortet darauf mit
+  einer leeren Liste, nicht mit einem Fehler) und pollte ein längst grünes
+  Deployment bis zum Timeout; ohne passenden `--probe`-Needle prüfte es
+  `i18n/de.json`, das sich bei den meisten Merges nicht ändert. Jetzt wird
+  jede SHA auf die volle aufgelöst, ohne `--probe` sucht das Skript die
+  Version des Commits in `release-notes.json`, und `--probe-url` nimmt auch
+  einen Pfad ohne führenden Slash.
+- **Routine-Merges tragen wieder das Alpha-Tag.** Der 15:07-Lauf hat #590
+  ohne `tag` gemergt, `alpha/v0.84.5` fehlte und wurde von Hand gesetzt; der
+  Prompt und das Runbook verlangen den Tag jetzt bei jedem `ship_release`.
+
 ## [0.84.5] - 2026-09-13
 
 ### Changed
