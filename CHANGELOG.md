@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.82.8] - 2026-09-13
+
+### Fixed
+
+- **Data Uploader (0.28.1): der Liveries-Schritt zählt, was er wirklich
+  hochgeladen hat.** Die Abschluss-Karte malte „251 / 276 (100 %)" — Schiffe,
+  für die der Build kein Livery-Modell erzeugt hat (oder deren Upload
+  fehlschlug), standen im Nenner, nicht im Zähler, und die Prozentzahl war
+  fest verdrahtet. Der Nenner ist jetzt „versucht" (ohne modelllose Schiffe),
+  die Prozentzahl wird aus demselben Bruch gerechnet, und darunter steht
+  getrennt „N übersprungen (kein Livery-Modell)" bzw. „N fehlgeschlagen"; bei
+  Verlust heißt die Überschrift „Liveries hochgeladen — N fehlgeschlagen" und
+  die Warnung überlebt das abschließende „Upload OK". Das main.log nennt
+  dieselben Zahlen samt Schiffs-IDs der Fehlschläge.
+
 ## [0.82.7] - 2026-09-07
 
 ### Changed

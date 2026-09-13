@@ -50,6 +50,7 @@ import {
   type SkinExportFinal,
 } from './skin-bridge.js';
 import { uploadSkins, type SkinUploadResult } from './skin-ingest.js';
+import { tallySkinUpload } from '../lib/skin-upload-summary.js';
 import { uploadCatalog, type CatalogUploadResult } from './catalog-bridge.js';
 import {
   persistAuthResult,
@@ -943,13 +944,14 @@ ipcMain.handle(
         },
       );
       uploadJob.update((s) => ({ ...s, skins: { ...s.skins, status: 'done' } }));
-      const live = results.filter((r) => r.ok && !r.empty).length;
-      const empty = results.filter((r) => r.empty).length;
-      const failed = results.filter((r) => !r.ok);
+      // Same tally the renderer paints, so main.log and the card agree.
+      const tally = tallySkinUpload(results);
       log.info(
-        `[skin-upload] ${results.length} ship(s): ${live} uploaded, ${empty} without a built livery, ${failed.length} failed`,
+        `[skin-upload] ${tally.total} ship(s): ${tally.live} live (${tally.fresh} uploaded, ${tally.cached} cached), ` +
+          `${tally.empty} skipped without a built livery, ${tally.failed} failed — ${tally.live}/${tally.attempted} (${tally.pct} %)`,
       );
-      if (failed.length) {
+      if (tally.failed) {
+        const failed = results.filter((r) => !r.ok);
         log.warn(`[skin-upload] failed ships: ${failed.map((r) => `${r.ship_id} (${r.error})`).join(', ')}`);
       }
       return results;
