@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.83.0] - 2026-09-13
+
+### Added
+
+- **Data Uploader (0.29.0): Radar, Lebenserhaltung und der Flugcontroller
+  liefern ihren Energiebedarf.** Der Extractor hat die Energiewerte
+  (`ItemResourceComponentParams`) bisher nur für Waffen (inkl. Tractor-Beams),
+  Schilde, Kühler, Power Plant, Quantum und Triebwerke behalten — alles andere
+  lief als „Item" ohne Stat-Block durch, und das Energie-Dock zeigte für
+  Radar, Lebenserhaltung und Antriebe „—". Jedes Item, das im Spiel ein
+  Energie-Netz trägt (Radar, LifeSupportGenerator, FlightController, EMP,
+  Quantum-Interdiction, Batterie …), behält seinen Stat-Block jetzt.
+  Katalog-Schema 4; das Daten-Pill meldet „Re-Extract ausstehend", bis ein
+  neuer Upload gelaufen ist.
+- **Das Energie-Dock rechnet die Antriebe über den Flugcontroller ab.** Gegen
+  LIVE 4.9 geprüft: die Triebwerke selbst ziehen keine Energie, der
+  `Controller_Flight_<Hull>` des Schiffs tut es (z. B. RAFT: 6 Segmente). Er
+  landet jetzt in der Gruppe „Antriebe" statt unsichtbar in der Struktur.
+
 ## [0.82.9] - 2026-09-13
 
 ### Changed
