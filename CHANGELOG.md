@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.0] - 2026-09-13
+
+### Added
+
+- **Die Feedback-Routine hat ein Gate, und ein leerer Tick kostet nichts mehr.**
+  `scripts/routine-gate.mjs` entscheidet ohne Modell, ob ein Tick überhaupt
+  arbeitet: Lauf-Sperre („läuft noch ein anderer Durchlauf?"), Kadenz-Tabelle
+  (abends alle 20 Minuten, tagsüber stündlich, nachts alle zwei Stunden),
+  Reaper mit Liveness-Prüfung des Worktrees, die Warteschlangen-Zähler (a)–(f)
+  inklusive der `triaged`-Sperre, und der Heartbeat mit dem nächsten geplanten
+  Lauf. Ein Arbeitslauf nimmt die Sperre, liest den Kern des Runbooks, arbeitet
+  die Warteschlange Welle für Welle leer und prüft die Nutzungsbremse nur
+  zwischen den Wellen — ein begonnenes Thema wird immer fertig.
+- **Ein geshipptes Thema merkt sich, dass seine Antwort noch aussteht.**
+  `review_reply_pending` wird mit dem Ship gesetzt und beim Posten der
+  ✅/⏳-Antwort gelöscht; die neue Warteschlange (f) trägt nach, was ein Lauf
+  schuldig blieb, der während der Deploy-Prüfung am Limit starb.
+
+### Changed
+
+- **Der Titel des Feedback-Panels sagt die Wahrheit über den Dev-PC.** Statt
+  einer 45-Minuten-Konstante, die nach dem Wechsel auf den Stundentakt ein
+  Viertel jeder gesunden Stunde rot war, rechnet die Färbung mit dem
+  angekündigten nächsten Lauf. Zwei neue Zustände: Akzent, während ein Lauf die
+  Sperre hält, und Amber, während die Nutzungsbremse greift. Der Tooltip nennt
+  das letzte Lebenszeichen, die übersetzte Notiz des letzten Laufs und sagt,
+  dass die Routine nur läuft, solange der Dev-PC an ist.
+- **Das Routine-Runbook ist ein 600-Zeilen-Kern plus Situations-Anhänge.**
+  Gate, Reaper, Holds, Continuation, Rückfragen, Nutzer-Feedback, Sweep,
+  Admin-Panel und eine Historie der Vorfälle liegen unter
+  `docs/feedback-routine/`; ein Lauf liest nur, was seine Situation braucht.
+  Widersprüche (`rejected`-Erlaubnis, „native Themen parken") sind gestrichen.
+
 ## [0.83.0] - 2026-09-13
 
 ### Added
