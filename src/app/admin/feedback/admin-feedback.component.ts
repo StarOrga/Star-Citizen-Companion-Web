@@ -21,6 +21,7 @@ import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
 import { CelebrationService } from './celebration.service';
+import { FeedbackMotionService, HIGHLIGHT_MS } from './feedback-motion.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { RoutineStatusDirective } from './routine-status.directive';
 import {
@@ -241,7 +242,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           </span>
           <span class="tb-title">{{ 'adminFeedback.stream.progress' | translate }}</span>
         </div>
-        <div class="scroll alt">
+        <div class="scroll alt view-in">
           <sc-feedback-dashboard [rows]="messages()" [threads]="threads()" [compact]="embedded()" />
         </div>
       } @else {
@@ -321,7 +322,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <div class="sc-card empty">{{ 'adminFeedback.search.empty' | translate: { query: searchQuery() } }}</div>
             }
             @for (m of searchResults(); track m.id) {
-              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, i: $index }"></ng-container>
             }
           } @else {
             <!-- BAND 1 · Du bist dran: every Rückfrage, sign-off and release
@@ -338,7 +339,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 [attr.aria-expanded]="!bandCollapsed('admin')"
                 [attr.title]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.yourTurn' | translate }}</span>
-                <span class="bh-count" [class.hot]="yourTurn().length > 0">{{ yourTurn().length }}</span>
+                <span class="bh-count" [class.hot]="yourTurn().length > 0" [class.pulse]="bandPulse('admin')">{{ yourTurn().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('admin')" aria-hidden="true">▸</span>
               </button>
               @if (!bandCollapsed('admin')) {
@@ -346,7 +347,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   <p class="band-empty">{{ 'adminFeedback.stream.emptyYourTurn' | translate }}</p>
                 }
                 @for (m of yourTurn(); track m.id) {
-                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, i: $index }"></ng-container>
                 }
               }
             </section>
@@ -361,7 +362,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 [attr.aria-expanded]="!bandCollapsed('routine')"
                 [attr.title]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.running' | translate }}</span>
-                <span class="bh-count">{{ running().length }}</span>
+                <span class="bh-count" [class.pulse]="bandPulse('routine')">{{ running().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('routine')" aria-hidden="true">▸</span>
               </button>
               @if (!bandCollapsed('routine')) {
@@ -369,7 +370,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   <p class="band-empty">{{ 'adminFeedback.stream.emptyRunning' | translate }}</p>
                 }
                 @for (m of running(); track m.id) {
-                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m }"></ng-container>
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, i: $index }"></ng-container>
                 }
               }
             </section>
@@ -386,7 +387,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 [attr.aria-expanded]="!bandCollapsed('nobody')"
                 [attr.title]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.delivered' | translate }}</span>
-                <span class="bh-count">{{ deliveredCount() }}</span>
+                <span class="bh-count" [class.pulse]="bandPulse('nobody')">{{ deliveredCount() }}</span>
                 @if (newDeliveredCount() > 0) {
                   <span class="bh-new" [attr.title]="'adminFeedback.stream.newSince' | translate">
                     {{ 'adminFeedback.stream.newCount' | translate: { count: newDeliveredCount() } }}
@@ -404,7 +405,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                     <span class="dh-count">{{ d.items.length }}</span>
                   </div>
                   @for (m of d.items; track m.id) {
-                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, feed: true }"></ng-container>
+                    <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: m, feed: true, i: $index }"></ng-container>
                   }
                 }
                 @if (hiddenDeliveredDays() > 0) {
@@ -466,13 +467,21 @@ type AvatarTone = 'adm' | 'col' | 'usr';
            full-panel topic, and the act (answer, sign-off, release) happens in
            there (admin feedback 0691a00b — the old inline lead card made the
            list read as expandable). -->
-      <ng-template #row let-m let-feed="feed">
+      <ng-template #row let-m let-feed="feed" let-i="i">
         @let turn = turnOf(m);
         @let pos = positionOf(m);
+        <!-- MOTION (admin feedback cf74472a): a row rises into place when it
+             is drawn (staggered by its index, capped so a long band never
+             makes the reader wait), wears a one-time glow when it just
+             ARRIVED in this band from another, and a sign-off taken on the
+             card itself settles with one ring instead of moving anywhere. -->
         <article
           class="card sc-card"
           [class.done]="turn === 'nobody'"
           [class.is-new]="isNew(m)"
+          [class.arrived]="arrived(m.id)"
+          [class.settled]="settled(m.id)"
+          [style.--i]="i ?? 0"
           [id]="feed ? cardDomId(m.id) + '-feed' : cardDomId(m.id)">
           <button
             type="button"
@@ -1000,6 +1009,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        overview. Nothing in a row is meant to be reached sideways. */
     .scroll { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; min-height: 0; display: flex; flex-direction: column; gap: var(--sc-gap-2); scrollbar-width: thin; }
     .page:not(.embedded) .scroll { overflow: visible; }
+    .view-in { animation: fb-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     .page.overlay-open .scroll, .page.overlay-open .topbar, .page.overlay-open .new-topic-bar, .page.overlay-open .compose-sheet, .page.overlay-open .main-composer { visibility: hidden; }
     .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
@@ -1053,8 +1063,66 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        halos of a band's rows overlapped into one continuous light haze —
        an odd shared background wrapped around every group of issues (admin
        feedback 96259f21). The 1 px border still tells one row from the next. */
-    .card { display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); background: transparent; box-shadow: none; }
+    .card { position: relative; display: flex; flex-direction: column; gap: 8px; padding: var(--sc-pad-3); background: transparent; box-shadow: none; }
     .card.done { opacity: 0.88; }
+
+    /* ---- Motion (admin feedback cf74472a) ----
+       Four moments, each with one small movement, none of them looping:
+       1. A row RISES into place when it is drawn — a 6 px lift and a fade,
+          staggered by its index so a band builds top-down instead of popping
+          in as one block. The stagger is capped at eight rows: past that the
+          reader would be waiting on the animation, not reading.
+       2. A row that just ARRIVED in a band (moved here since the last poll,
+          or brand new) glows once along its left edge and fades back within
+          two seconds — "this one is new here", said once, then quiet.
+       3. A row LEAVES by folding shut (Web Animations API, feedback-motion
+          .service.ts) — height, padding and the gap under it go to zero while
+          it slides out to the right; the data catches up after.
+       4. A sign-off taken ON a Geliefert card SETTLES with one accent ring —
+          the sc-snap idiom from styles.scss — because it does not move.
+       The global reduced-motion rule clamps every duration here to 0.01 ms,
+       and the service skips its own waits, so a reduced viewer gets the end
+       state at once. */
+    .card { animation: fb-rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(min(var(--i, 0), 8) * 28ms); }
+    @keyframes fb-rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .card::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; opacity: 0; }
+    .card.arrived::before { box-shadow: inset 3px 0 0 var(--sc-accent), 0 0 14px color-mix(in srgb, var(--sc-accent) 35%, transparent); animation: fb-arrive 1.8s ease-out both; }
+    @keyframes fb-arrive {
+      0%   { opacity: 0; }
+      12%  { opacity: 1; }
+      55%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    .card.settled::before { border: 1px solid var(--sc-accent); animation: fb-settle 620ms ease-out both; }
+    @keyframes fb-settle {
+      0%   { opacity: 0; transform: scale(0.985); }
+      30%  { opacity: 1; transform: none; box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
+      100% { opacity: 0; transform: none; box-shadow: none; }
+    }
+    /* The last station (Haken im Kreis) pops once as the sign-off lands. */
+    .card.settled .fp i:nth-child(4) { animation: fb-pop 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    @keyframes fb-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+    /* A band's count beats once when a row just arrived in it — the CTA's
+       nudge, not a siren: one beat, then the number stands still. */
+    .bh-count.pulse { animation: fb-beat 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    @keyframes fb-beat {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.22); }
+      100% { transform: scale(1); }
+    }
+    /* Hover: the title takes the accent and a tappable micro button lifts a
+       pixel — enough to say "this reacts", never enough to move the layout. */
+    .topic-title, .card-head { transition: color 0.16s ease; }
+    .sc-btn.micro, .link-btn, .load-more, .new-topic-bar, .tb-btn, .f-chip { transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease; }
+    .sc-btn.micro:hover:not(:disabled), .link-btn:hover { transform: translateY(-1px); }
+    .sc-btn.micro:active:not(:disabled), .link-btn:active { transform: none; transition-duration: 0.06s; }
     .card-head { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 44px; padding: 0; background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 6px; }
     .card-head:focus-visible, .band-head:focus-visible, .tb-btn:focus-visible, .sh-btn:focus-visible, .read-more:focus-visible, .link-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.32); }
     .f-row:focus-visible, .menu-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--sc-accent); }
@@ -1130,6 +1198,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .read-more { align-self: flex-start; min-height: 32px; padding: 0 6px; background: transparent; border: 0; color: var(--sc-accent); font: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
     .sent { --att-size: 40px; }
     .thread { display: flex; flex-direction: column; gap: 6px; }
+    /* A message that enters the thread — one more revealed behind "…", or the
+       reply just sent — rises in the same way a row does. */
+    .thread .msg { animation: fb-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .band-empty { animation: fb-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     .answer-options { display: flex; flex-wrap: wrap; gap: 8px; }
     .sc-btn.micro { padding: 6px 12px; min-height: 40px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.option { min-height: 44px; }
@@ -1149,7 +1221,13 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .ac-ask input { width: 20px; height: 20px; }
 
     /* ---- Sheets (topic, filters, decline) — the whole panel ---- */
-    .sheet { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; background: var(--sc-bg-1); border-radius: inherit; }
+    .sheet { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; background: var(--sc-bg-1); border-radius: inherit; animation: fb-sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    /* A sheet slides up out of the stream it covers; closing is instant, so
+       the eye is already on the stream when a row folds away behind it. */
+    @keyframes fb-sheet-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: none; }
+    }
     .page.embedded .sheet { inset: 0; }
     .page:not(.embedded) .sheet { position: fixed; z-index: 30; max-width: 860px; margin: 0 auto; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5); }
     .sh-head { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; min-height: 52px; padding: 6px var(--sc-pad-2); border-bottom: 1px solid var(--sc-border); }
@@ -1169,7 +1247,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        outline next to the red send button — never a second CTA — and it never
        shrinks below the touch floor the rest of the row keeps. */
     .sh-composer .sign-off { flex: 0 0 auto; white-space: nowrap; }
-    .more-menu { display: flex; flex-direction: column; flex: 0 0 auto; border-bottom: 1px solid var(--sc-border); background: var(--sc-bg-2); }
+    .more-menu { display: flex; flex-direction: column; flex: 0 0 auto; border-bottom: 1px solid var(--sc-border); background: var(--sc-bg-2); animation: fb-drop 160ms ease-out both; }
+    @keyframes fb-drop {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
     .menu-item { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 var(--sc-pad-1); background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); text-align: left; text-decoration: none; cursor: pointer; }
     .menu-item:hover { background: var(--sc-bg-3); }
     .menu-item.danger { color: var(--sc-danger); }
@@ -1232,6 +1314,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly consent = inject(ConsentService);
   private readonly panelNav = inject(PanelNavigationService);
   private readonly celebration = inject(CelebrationService);
+  private readonly motion = inject(FeedbackMotionService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** When embedded in the feedback FAB panel, the page chrome (title, subtitle)
@@ -1639,6 +1722,85 @@ export class AdminFeedbackComponent implements OnInit {
     this.messages().some((m) => awaitsTriage(m) && !isArchived(m, this.threads().get(m.id))),
   );
 
+  // ---- Motion state (admin feedback cf74472a) --------------------------------
+
+  /**
+   * Rows that changed band since the previous poll (or are brand new to the
+   * board), keyed by id, with the band they landed in. A card in this set
+   * wears the one-time `arrived` glow — the board's way of saying "this one
+   * is new HERE" without a banner: a Rückfrage that just landed in Du bist
+   * dran, a ship that just reached Geliefert, the topic the admin just
+   * filed. Cleared after {@link HIGHLIGHT_MS}, so the next poll cannot
+   * replay it. The first load seeds the snapshot and highlights nothing.
+   */
+  private readonly _arrived = signal<ReadonlyMap<string, FeedbackTurn>>(new Map());
+  private arrivedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  arrived(id: string): boolean {
+    return this._arrived().has(id);
+  }
+
+  /** The band's count badge beats once when something just arrived in it. */
+  bandPulse(turn: FeedbackTurn): boolean {
+    for (const t of this._arrived().values()) if (t === turn) return true;
+    return false;
+  }
+
+  /** Rows whose sign-off was just taken ON the card (they stay where they are). */
+  private readonly _settled = signal<ReadonlySet<string>>(new Set());
+
+  settled(id: string): boolean {
+    return this._settled().has(id);
+  }
+
+  /** Where every row stood at the previous poll; `null` until the first load. */
+  private turnsSeen: Map<string, FeedbackTurn> | null = null;
+
+  /**
+   * Diff the bands against the previous poll and mark what moved. Called from
+   * {@link refresh} once rows AND threads are in, because the band is a
+   * function of both (a continuation is read off the thread).
+   */
+  private detectArrivals(rows: readonly FeedbackRow[]): void {
+    const now = new Map<string, FeedbackTurn>();
+    for (const r of rows) now.set(r.id, this.turnOf(r));
+    const before = this.turnsSeen;
+    this.turnsSeen = now;
+    if (before === null) return;
+    const moved = new Map<string, FeedbackTurn>();
+    for (const [id, turn] of now) if (before.get(id) !== turn) moved.set(id, turn);
+    if (moved.size === 0) return;
+    this._arrived.update((prev) => new Map([...prev, ...moved]));
+    if (this.arrivedTimer) clearTimeout(this.arrivedTimer);
+    this.arrivedTimer = setTimeout(() => {
+      this.arrivedTimer = null;
+      this._arrived.set(new Map());
+    }, HIGHLIGHT_MS);
+  }
+
+  /** The DOM node of a row in the stream (the Geliefert copy when `feed`). */
+  private cardEl(id: string, feed = false): HTMLElement | null {
+    const domId = feed ? `${this.cardDomId(id)}-feed` : this.cardDomId(id);
+    return this.host.nativeElement.querySelector<HTMLElement>(`#${CSS.escape(domId)}`);
+  }
+
+  /**
+   * Fold a row out of the stream while its write is on the wire: close the
+   * sheet first (the stream is hidden behind it), bring the row into view,
+   * then collapse it. Resolves with the element so a failed write can put it
+   * back. The row is NOT removed from the data here — the refresh after the
+   * write does that, and by then the fold has already closed the gap.
+   */
+  private async foldOut(id: string): Promise<HTMLElement | null> {
+    if (this.openId() === id) this.closeTopic();
+    // The sheet's @if has to unrender before the stream can be scrolled.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const el = this.cardEl(id) ?? this.cardEl(id, true);
+    this.motion.reveal(el);
+    await this.motion.collapse(el);
+    return el;
+  }
+
   // ---- The opened topic (full-panel sheet) ----------------------------------
 
   private readonly openId = signal<string | null>(null);
@@ -1931,6 +2093,7 @@ export class AdminFeedbackComponent implements OnInit {
       await this.loadThreads(rows.map((r) => r.id));
       await this.loadAuthorThreads(rows.filter(isUserSubmitted).map((r) => r.id));
       this.detectShipped(rows);
+      this.detectArrivals(rows);
     }
     this.busy.set(false);
   }
@@ -2129,8 +2292,42 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Review gate ----------------------------------------------------------
 
+  /**
+   * The sign-off (admin feedback cf74472a: "wenn man in ein issue rein geht
+   * und auf abgenommen klickt, sollte man direkt danach wieder in die
+   * übersicht zurückkehren und das issue dort sich weg animieren"). Taken from
+   * inside the topic, the sheet closes at once and the row folds out of Du
+   * bist dran while the write travels; the refresh then lets it arrive in
+   * Geliefert with the one-time glow. Taken on the Geliefert card itself,
+   * the row has nowhere to go — it settles with one ring and loses its ✓.
+   * A failed write puts the folded row back and shows the error.
+   */
   async acceptReview(m: FeedbackRow): Promise<void> {
-    await this.writeReview(m, { reviewed_at: new Date().toISOString() });
+    const patch = { reviewed_at: new Date().toISOString() };
+    const onCard = this.openId() !== m.id && this.delivered(m);
+    if (onCard) {
+      this._settled.update((s) => new Set(s).add(m.id));
+      setTimeout(() => this._settled.update((s) => {
+        const next = new Set(s);
+        next.delete(m.id);
+        return next;
+      }), HIGHLIGHT_MS);
+      await this.writeReview(m, patch);
+      return;
+    }
+    this.busy.set(true);
+    this.errorMsg.set(null);
+    const write = this.sb.client.from('admin_feedback').update(patch).eq('id', m.id);
+    const [{ error }, el] = await Promise.all([write, this.foldOut(m.id)]);
+    if (error) {
+      this.motion.restore(el);
+      this.errorMsg.set(error.message);
+      this.busy.set(false);
+      return;
+    }
+    await this.refresh();
+    // The poll did not move it after all (still waiting): unfold, do not hide.
+    if (this.yourTurn().some((r) => r.id === m.id)) this.motion.restore(el);
   }
 
   /**
@@ -2395,9 +2592,13 @@ export class AdminFeedbackComponent implements OnInit {
     if (!window.confirm(this.translate.instant('adminFeedback.deleteConfirm'))) return;
     this.busy.set(true);
     this.errorMsg.set(null);
-    const { error } = await this.sb.client.from('admin_feedback').delete().eq('id', m.id);
-    if (error) this.errorMsg.set(error.message);
-    this.closeTopic();
+    // Same exit as the sign-off: back to the stream, and the row folds away.
+    const del = this.sb.client.from('admin_feedback').delete().eq('id', m.id);
+    const [{ error }, el] = await Promise.all([del, this.foldOut(m.id)]);
+    if (error) {
+      this.motion.restore(el);
+      this.errorMsg.set(error.message);
+    }
     await this.refresh();
   }
 }
