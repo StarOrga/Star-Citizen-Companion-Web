@@ -1,7 +1,13 @@
 import { DestroyRef, Directive, ElementRef, Renderer2, effect, inject, input } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService } from '@ngx-translate/core';
-import { HEARTBEAT_POLL_MS, HeartbeatState, RoutineHeartbeatService, relativeFromNow } from './routine-heartbeat.service';
+import {
+  HEARTBEAT_POLL_MS,
+  HeartbeatState,
+  RoutineHeartbeatService,
+  noteKey,
+  relativeFromNow,
+} from './routine-heartbeat.service';
 import { LocaleService } from '../../core/locale/locale.service';
 
 /** Marker class the global tint rules hang off (see `src/styles.scss`). */
@@ -9,6 +15,8 @@ const TINT_CLASS = 'sc-routine-tint';
 /** State → modifier class. `unknown` deliberately has none: grey is the resting look. */
 const STATE_CLASS: Record<HeartbeatState, string | null> = {
   online: 'is-online',
+  running: 'is-running',
+  paused: 'is-paused',
   offline: 'is-offline',
   unknown: null,
 };
@@ -28,22 +36,25 @@ const STATE_CLASS: Record<HeartbeatState, string | null> = {
  * That is why this is a directive and not a component. It owns no markup of its
  * own — it decorates whichever element already says "Feedback" (the FAB panel
  * head when docked or maximized, the `<h1>` on the full board page), so the
- * three states render identically in all three places without any of them
- * growing a status row.
+ * states render identically in all places without any of them growing a status
+ * row.
  *
  * **The directive adds no text node, ever.** The round after that one shipped a
  * visually hidden `<span>` inside the title, and it turned up on screen as a
  * prefix — the heading read "(DEV-PC ERREICHBAR)Feedback" instead of a tinted
- * "Feedback", which is exactly the line the admin had just asked us to remove
- * ("Sollte aber NUR 'Feedback' heißen, und das dann Rot oder Grün entsprechend
- * einfärben"). A clip-rect span is only invisible while every stylesheet that
- * could reach it behaves; the safe version is not to put the wording in the
- * document at all. The state now rides on `aria-label` plus the `title`
- * tooltip: both are genuine non-colour carriers for assistive tech, and neither
- * can ever leak into the layout, whatever CSS does or fails to load.
+ * "Feedback", which is exactly the line the admin had just asked us to remove.
+ * The state rides on `aria-label` plus the `title` tooltip: both are genuine
+ * non-colour carriers for assistive tech, and neither can ever leak into the
+ * layout, whatever CSS does or fails to load.
  *
- * The host's own title stays the single source of the visible text — the
- * directive only ever touches classes and attributes on it, never its content.
+ * Since the 2026-09-13 concept the tooltip is also the honest availability
+ * sentence (option 2d): whenever the routine is not simply online, it says in
+ * words that the routine only runs while the dev PC is up, shows the last
+ * run's note, and names the moment it last checked in — so "why is nothing
+ * happening?" is answered on hover, not by asking in chat. Native `title` is
+ * the tooltip mechanism on purpose: it needs no markup, so the "no text node"
+ * rule above keeps holding.
+ *
  * `scRoutineStatus` takes the translation key of that title as a plain static
  * attribute value (`scRoutineStatus="feedbackFab.title"`) so the accessible
  * name can stay "Feedback — Dev-PC erreichbar" instead of collapsing to the
@@ -80,11 +91,24 @@ export class RoutineStatusDirective {
       const when = relativeFromNow(this.heartbeat.lastSeen(), this.heartbeat.checkedAt(), locale);
       // No usable timestamp means we cannot name a moment — fall back to the
       // neutral sentence rather than printing one with a hole in it.
-      const detail =
+      const headline =
         state === 'unknown' || !when
           ? this.translate.instant('adminFeedback.heartbeat.unknownTitle')
           : this.translate.instant(`adminFeedback.heartbeat.${state}Title`, { time: when });
       const wording = this.translate.instant(`adminFeedback.heartbeat.${state}`);
+
+      // The last run's note, translated when it is one of the gate's keys and
+      // shown as-is otherwise; nothing when there is none.
+      const rawNote = this.heartbeat.note();
+      const mapped = noteKey(rawNote);
+      const noteText = mapped ? this.translate.instant(mapped.key, mapped.params) : (rawNote ?? '');
+      // The availability sentence only when the routine is not plainly working
+      // — an online routine needs no disclaimer, a quiet one owes one.
+      const availability =
+        state === 'online' || state === 'running'
+          ? ''
+          : this.translate.instant('adminFeedback.heartbeat.availability');
+      const detail = [headline, noteText, availability].filter((s) => !!s).join(' · ');
 
       for (const cls of Object.values(STATE_CLASS)) {
         if (cls) this.renderer.removeClass(host, cls);

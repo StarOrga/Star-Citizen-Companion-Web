@@ -27,17 +27,24 @@ class HostComponent {}
  * are deliberately about the *whole* element: not "the visible part reads
  * Feedback once you ignore the hidden bits", but "the title has no child nodes
  * and its text is the title, full stop".
+ *
+ * Since the 2026-09-13 concept the hover tooltip is also the honest
+ * availability sentence plus the last run's note (option 2d) — still without a
+ * single node inside the title.
  */
 describe('RoutineStatusDirective', () => {
   let fixture: ComponentFixture<HostComponent>;
   let state: WritableSignal<HeartbeatState>;
+  let note: WritableSignal<string | null>;
 
-  async function setup(initial: HeartbeatState, seenAt: string | null) {
+  async function setup(initial: HeartbeatState, seenAt: string | null, initialNote: string | null = null) {
     state = signal(initial);
+    note = signal<string | null>(initialNote);
     const stub = {
       state,
       lastSeen: signal(seenAt),
-      note: signal<string | null>(null),
+      note,
+      nextRunAt: signal<string | null>(null),
       checkedAt: signal(NOW),
       refresh: () => Promise.resolve(),
     };
@@ -54,12 +61,18 @@ describe('RoutineStatusDirective', () => {
       adminFeedback: {
         heartbeat: {
           online: 'Dev PC reachable',
+          running: 'Dev PC is working right now',
+          paused: 'Routine paused',
           offline: 'Dev PC unreachable',
           unknown: 'Dev PC status unknown',
           onlineTitle: 'Dev PC reachable - checked in {{time}}.',
+          runningTitle: 'Dev PC reachable - working right now (checked in {{time}}).',
+          pausedTitle: 'Routine paused - checked in {{time}}.',
           offlineTitle: 'Dev PC unreachable - last checked in {{time}}.',
           unknownTitle: 'Status unknown.',
+          availability: 'The routine only runs while the dev PC is on.',
           ariaLabel: '{{title}} - {{state}}',
+          note: { queueEmpty: 'Last run: nothing open', work: 'Last run: picked up {{n}} topic(s)' },
         },
       },
     });
@@ -101,18 +114,43 @@ describe('RoutineStatusDirective', () => {
     expect(title().getAttribute('title')).toContain('last checked in');
   });
 
+  it('says on hover that the routine depends on the dev PC whenever it is not simply online', async () => {
+    await setup('offline', iso(3 * 60 * MIN));
+    expect(title().getAttribute('title')).toContain('only runs while the dev PC is on');
+    await setup('online', iso(5 * MIN));
+    expect(title().getAttribute('title')).not.toContain('only runs while');
+  });
+
+  it("translates the gate's note keys and shows a free-text note verbatim", async () => {
+    await setup('online', iso(5 * MIN), 'work:3');
+    expect(title().getAttribute('title')).toContain('picked up 3 topic(s)');
+    await setup('online', iso(5 * MIN), 'queue empty, keine Holds');
+    expect(title().getAttribute('title')).toContain('queue empty, keine Holds');
+  });
+
+  it('paints a working run in the accent and a paused routine amber, each with its own wording', async () => {
+    await setup('running', iso(MIN));
+    expect(title().classList).toContain('is-running');
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Dev PC is working right now');
+    expect(title().getAttribute('title')).toContain('working right now');
+    await setup('paused', iso(MIN));
+    expect(title().classList).toContain('is-paused');
+    expect(title().classList).not.toContain('is-running');
+    expect(title().getAttribute('aria-label')).toBe('Feedback - Routine paused');
+  });
+
   it('leaves the title untinted when nothing is known', async () => {
     await setup('unknown', null);
     expect(title().classList).toContain('sc-routine-tint');
     expect(title().classList).not.toContain('is-online');
     expect(title().classList).not.toContain('is-offline');
-    expect(title().getAttribute('title')).toBe('Status unknown.');
+    expect(title().getAttribute('title')).toBe('Status unknown. · The routine only runs while the dev PC is on.');
   });
 
   it('falls back to the neutral sentence when a known state has no timestamp', async () => {
     await setup('offline', null);
     expect(title().classList).toContain('is-offline');
-    expect(title().getAttribute('title')).toBe('Status unknown.');
+    expect(title().getAttribute('title')).toContain('Status unknown.');
   });
 
   it('never leaves colour as the only carrier', async () => {

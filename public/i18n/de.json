@@ -3023,6 +3023,21 @@
       "onlineTitle": "Dev-PC erreichbar — die Feedback-Routine hat sich {{time}} gemeldet. Neue Themen werden bearbeitet.",
       "offlineTitle": "Dev-PC nicht erreichbar — die Feedback-Routine hat sich zuletzt {{time}} gemeldet. Rechner aus, Claude nicht offen oder Tokens verbraucht; neue Themen bleiben liegen, bis er wieder läuft.",
       "unknownTitle": "Status unbekannt — bisher keine Rückmeldung der Feedback-Routine.",
+      "running": "Dev-PC arbeitet gerade",
+      "paused": "Routine pausiert",
+      "runningTitle": "Dev-PC erreichbar — die Feedback-Routine arbeitet gerade (Lebenszeichen {{time}}).",
+      "pausedTitle": "Routine pausiert — das Nutzungskontingent ist fast aufgebraucht, Lebenszeichen {{time}}. Neue Themen warten, bis das Fenster wieder frei ist.",
+      "availability": "Die Routine läuft nur, solange der Dev-PC an und Claude offen ist — neue Themen werden bearbeitet, sobald er wieder online ist.",
+      "note": {
+        "queueEmpty": "Letzter Lauf: nichts offen",
+        "work": "Letzter Lauf: {{n}} Thema/Themen aufgegriffen",
+        "shipped": "Letzter Lauf: {{n}} geshipped",
+        "claimed": "Letzter Lauf: {{n}} Thema/Themen in Arbeit",
+        "pausedUsageLimit": "Pausiert: Nutzungskontingent fast aufgebraucht",
+        "skipCadence": "Nur Lebenszeichen — außerhalb des Arbeitsfensters",
+        "gateError": "Vorprüfung fehlgeschlagen — Routine läuft im Vollmodus",
+        "running": "Ein Durchlauf ist gerade aktiv"
+      },
       "ariaLabel": "{{title}} — {{state}}"
     },
     "loading": "Lädt…",

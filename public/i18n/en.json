@@ -3023,6 +3023,21 @@
       "onlineTitle": "Dev PC reachable — the feedback routine checked in {{time}}. New topics are being worked.",
       "offlineTitle": "Dev PC unreachable — the feedback routine last checked in {{time}}. Machine off, Claude not running, or usage limit reached; new topics wait until it is back.",
       "unknownTitle": "Status unknown — no sign of the feedback routine yet.",
+      "running": "Dev PC is working right now",
+      "paused": "Routine paused",
+      "runningTitle": "Dev PC reachable — the feedback routine is working right now (checked in {{time}}).",
+      "pausedTitle": "Routine paused — the usage budget is nearly spent, checked in {{time}}. New topics wait until the window is free again.",
+      "availability": "The routine only runs while the dev PC is on and Claude is open — new topics are worked as soon as it is back online.",
+      "note": {
+        "queueEmpty": "Last run: nothing open",
+        "work": "Last run: picked up {{n}} topic(s)",
+        "shipped": "Last run: shipped {{n}}",
+        "claimed": "Last run: {{n}} topic(s) in progress",
+        "pausedUsageLimit": "Paused: usage budget nearly spent",
+        "skipCadence": "Heartbeat only — outside the working window",
+        "gateError": "Pre-check failed — routine running in full mode",
+        "running": "A run is active right now"
+      },
       "ariaLabel": "{{title}} — {{state}}"
     },
     "loading": "Loading…",
