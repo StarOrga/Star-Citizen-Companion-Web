@@ -68,7 +68,6 @@
     "toolsFailed": "Échec du téléchargement de l’outil",
     "buildFailed": "Échec de la construction",
     "uploading": "Téléversement…",
-    "partial": "vaisseaux téléversés (voir le journal pour le reste)",
     "stepUploadDone": "Livrées téléversées",
     "noModels": "{{n}} vaisseau(x) sans livrée constructible"
   },

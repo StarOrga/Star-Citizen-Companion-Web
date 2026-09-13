@@ -8,6 +8,7 @@
 
 import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
 import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -210,6 +211,8 @@ const state = {
   // 3D-livery build result from the upload step (skins ride along the normal
   // extract → upload flow — no separate view).
   skinResult: null as SkinShipResult[] | null,
+  /** Warn-level outcome of the last skin upload (failed ships) — survives the cleanup status line. */
+  skinUploadStatus: null as string | null,
   // Portable-only "a newer version is available" hint, shown on the Discover
   // (first) screen only and dismissible for the session.
   manualUpdate: null as { currentVersion: string; latestVersion: string } | null,
@@ -2247,10 +2250,15 @@ async function doUploadAfterAuth(): Promise<void> {
       version: result.patch_version,
     });
     if (cleaned.ok) {
+      // A skin stage that lost ships must not be papered over by "Upload OK":
+      // the bundle IS confirmed, but the operator still has to act on the
+      // failed liveries, so that verdict stays on screen — as a warning.
+      const skinsWarn = state.skinUploadStatus;
       setAuthStatus(
         `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'} · ` +
-          (t('upload.cleaned', {}) || 'Extrahierte Dateien aufgeräumt (Upload bestätigt)'),
-        'ok',
+          (t('upload.cleaned', {}) || 'Extrahierte Dateien aufgeräumt (Upload bestätigt)') +
+          (skinsWarn ? ` · ${skinsWarn}` : ''),
+        skinsWarn ? 'warn' : 'ok',
       );
     }
   }
@@ -2561,6 +2569,7 @@ async function buildAndUploadSkins(
   result: ExtractResultPayload,
   progress?: ProgressController | null,
 ): Promise<void> {
+  state.skinUploadStatus = null;
   if (!state.authToken) return;
   const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
   if (!ch) return;
@@ -2682,30 +2691,24 @@ async function buildAndUploadSkins(
       built.ships.map((s) => ({ shipId: s.ship_id, dir: s.export_dir })),
     )
     .finally(unsubUpload);
-  // `empty` ships built no glb at all — a no-op, not a failure. Counting them
-  // as failures is what turned a healthy run into a "21 / 309" scare.
-  const live = results.filter((r) => r.ok && !r.empty).length;
-  const empty = results.filter((r) => r.empty).length;
-  const failed = results.filter((r) => !r.ok).length;
+  // One tally feeds the card AND the status line (lib/skin-upload-summary):
+  // `current / total` is live / attempted, the percentage is that same
+  // fraction, and skipped (no livery model) or failed ships are named in the
+  // detail line. The old frame painted live over ships.length with a
+  // hard-coded 100 % — "251 / 276 (100 %)" — and the status line that
+  // explained the gap was overwritten by the cleanup message moments later.
+  const tally = tallySkinUpload(results);
   // Repaint into a terminal state BEFORE the caller stops the clock: the card
   // freezes on whatever this last frame says, so it must not still read
   // "uploading" with a phantom ETA.
   progress?.update({
-    phaseLabel: tOr('skins.stepUploadDone', 'Liveries hochgeladen'),
+    ...skinUploadFrame(tally, t),
     indeterminate: false,
-    current: live,
-    total: results.length,
-    overallPct: 100,
-    detail: '',
     hint: '',
   });
-  const summary = failed
-    ? `${live}/${results.length} ${tOr('skins.partial', 'Schiffe hochgeladen (Rest siehe Protokoll)')}`
-    : tOr('skins.done', `3D-Skins fertig — ${live} Schiff(e) live.`, { n: String(live) });
-  setAuthStatus(
-    empty ? `${summary} · ${tOr('skins.noModels', `${empty} ohne baubare Livery`, { n: String(empty) })}` : summary,
-    failed ? 'warn' : 'ok',
-  );
+  const status = skinUploadStatus(tally, t);
+  state.skinUploadStatus = status.level === 'warn' ? status.message : null;
+  setAuthStatus(status.message, status.level);
 }
 
 void init();
