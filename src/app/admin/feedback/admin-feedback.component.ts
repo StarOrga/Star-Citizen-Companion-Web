@@ -484,9 +484,16 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 <span class="topic-title">{{ cardTitle(m, 96) }}</span>
               </span>
               <span class="ch-meta">
-                <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: pos }"></ng-container>
-                <span class="baton" [class]="'baton t-' + turn">
-                  @if (askOf(m); as ask) {
+                @let ask = askOf(m);
+                <!-- "Rückfrage an dich" wears the admin red — words AND the loop
+                     glyph on the path (feedback 7a450101): in the muted meta
+                     line a question the routine is waiting on read like any
+                     other station name and was scrolled past. Only the ask
+                     addressed to the admin turns red; a question to the author
+                     keeps its normal colour, because it is not this reader's. -->
+                <ng-container [ngTemplateOutlet]="path" [ngTemplateOutletContext]="{ $implicit: pos, hot: ask === 'question' }"></ng-container>
+                <span class="baton" [class]="'baton t-' + turn + (ask === 'question' ? ' ask-question' : '')">
+                  @if (ask) {
                     {{ ('adminFeedback.ask.' + ask) | translate }}
                   } @else {
                     {{ stationLabelKey(pos) | translate }}
@@ -623,11 +630,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
            role="img" whose aria-label names where the topic stands, so a
            screen reader hears the state in words rather than four glyph names;
            each step additionally carries its own name as a hover title. -->
-      <ng-template #path let-pos>
+      <ng-template #path let-pos let-hot="hot">
         <span
           class="fp"
           role="img"
           [class.loop]="pos.loop"
+          [class.hot]="hot"
           [class]="'fp s' + stationIndex(pos.station) + (pos.branch ? ' b-' + pos.branch : '') + (pos.loop ? ' loop' : '')"
           [attr.aria-label]="'adminFeedback.station.pathLabel' | translate: { station: (stationLabelKey(pos) | translate) }">
           @for (g of stationGlyphs(pos); track $index) {
@@ -1156,6 +1164,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .ch-time { margin-left: auto; white-space: nowrap; }
     .baton { font-weight: 600; color: var(--sc-fg-1); }
     .baton.t-admin { color: var(--sc-fg-0); }
+    /* The routine's question to the admin, in the admin red (feedback
+       7a450101) — the one baton word that must not blend into the meta line. */
+    .baton.ask-question { color: var(--sc-accent-hot); }
     .baton.t-nobody { color: var(--sc-fg-2); font-weight: 500; }
     .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sc-border); font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-2); white-space: nowrap; }
     .chip.area { border-style: dashed; }
@@ -1193,6 +1204,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        foreground rather than the accent (--sc-danger is reserved for errors and
        destructive actions), and the two steps it will never reach go faint. */
     .fp.b-declined i:nth-child(2), .fp.b-rejected i:nth-child(2) { color: var(--sc-fg-2); opacity: 1; }
+    /* The loop arrow of a Rückfrage an dich matches the red baton beside it
+       (feedback 7a450101); the same arrow for a question to the author stays
+       accent, because that one is not waiting on this reader. */
+    .fp.hot i:nth-child(2) { color: var(--sc-accent-hot); }
     .fp.b-declined i:nth-child(n+3), .fp.b-rejected i:nth-child(n+3) { opacity: 0.3; }
 
     /* ---- Messages ---- */

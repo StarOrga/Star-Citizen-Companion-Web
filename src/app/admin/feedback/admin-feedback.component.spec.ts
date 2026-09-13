@@ -635,6 +635,22 @@ describe('AdminFeedbackComponent — the flight path reads as four steps', () =>
     // The unreleased user topic sits on the contract step.
     expect(el.querySelector('#fb-card-u1 .fp')!.classList).toContain('s0');
   });
+
+  it('paints "Rückfrage an dich" and its loop arrow in the admin red — and only that one (7a450101)', async () => {
+    const { el } = await mount(fixtureTables());
+
+    // The routine's question to the admin: baton word + station-2 glyph red.
+    const askedBaton = el.querySelector<HTMLElement>('#fb-card-q1 .baton')!;
+    expect(askedBaton.textContent!.trim()).toBe('adminFeedback.ask.question');
+    expect(askedBaton.classList).toContain('ask-question');
+    expect(el.querySelector('#fb-card-q1 .fp')!.classList).toContain('hot');
+
+    // The same loop arrow for a question to the AUTHOR is not this reader's
+    // turn — it keeps the normal colour, as does a plain in-progress card.
+    expect(el.querySelector('#fb-card-a1 .baton')!.classList).not.toContain('ask-question');
+    expect(el.querySelector('#fb-card-a1 .fp')!.classList).not.toContain('hot');
+    expect(el.querySelector('#fb-card-o1 .fp')!.classList).not.toContain('hot');
+  });
 });
 
 describe('AdminFeedbackComponent — the Fortschritt door wears the house icon', () => {

@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.1] - 2026-09-13
+
+### Changed
+
+- **Feedback-Board: „Rückfrage an dich" steht in Admin-Rot.** In der gedämpften
+  Meta-Zeile einer Karte las sich die Frage, auf die die Routine wartet, wie
+  jeder andere Stationsname und wurde überscrollt. Das Baton-Wort und der
+  Schleifen-Pfeil auf dem Flugpfad tragen jetzt das Admin-Rot — nur für die
+  Rückfrage an den Admin; eine Rückfrage an den Autor bleibt in der normalen
+  Farbe, weil sie nicht auf diesen Leser wartet.
+
 ## [0.84.0] - 2026-09-13
 
 ### Added
