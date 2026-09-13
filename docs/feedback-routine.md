@@ -467,6 +467,10 @@ shared seam-file collisions (i18n keys, version bump) deterministically:
   after all) → don't force it: leave that item `open`, or hold it as a review-PR
   with a `ship_ref` if a human should look, and let the next cadence run redo it
   against the now-merged main. **Never merge two feedback PRs simultaneously.**
+- The merge itself goes through the `ship_release` MCP **with `tag: v<version>`**:
+  that is the alpha ring tag (`alpha/v<version>`) a later `ship_promote` re-tags.
+  A merge without it (#590, 2026-09-13) leaves `main` ahead of every ring and
+  has to be tagged by hand — pass it every time.
 
 Two hazards: **spawning sub-workers can reset a shared worktree to
 `origin/main` mid-flight**, so the orchestrator never edits code while workers

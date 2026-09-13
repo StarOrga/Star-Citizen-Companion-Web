@@ -36,7 +36,9 @@
  *     --route admin/feedback \
  *     --probe verdictDown
  *
- *   --sha <sha>        commit to verify        (default: git rev-parse origin/main)
+ *   --sha <sha>        commit to verify        (default: git rev-parse origin/main);
+ *                      a short SHA is resolved to the full one — the deployments
+ *                      endpoint silently returns nothing for an abbreviated id
  *   --pr <url>         PR link for the reply
  *   --changed <text>   one sentence on what changed
  *   --route <path>     the exact route to send the admin to (default: /).
@@ -44,8 +46,14 @@
  *                      leading-slash argument into a Windows path
  *                      (`/admin/feedback` → `C:/Program Files/Git/admin/feedback`)
  *                      and would silently bake that into the reply.
- *   --probe <needle>   string the merge introduced, grepped in --probe-url
- *   --probe-url <url>  unhashed asset to grep (default: /i18n/de.json)
+ *   --probe <needle>   string the merge introduced, grepped in --probe-url.
+ *                      Default: the version the commit carries in package.json,
+ *                      looked for as `"current": "<version>"` in release-notes.json
+ *                      — every ship bumps it, so every ship can be probed
+ *   --probe-url <url>  unhashed asset to grep: a full URL, or a path on the site
+ *                      WITHOUT the leading slash (Git Bash mangles it, see --route).
+ *                      Default: release-notes.json for the version probe,
+ *                      i18n/de.json for an explicit --probe
  *   --timeout <sec>    give up after this long  (default: 900 = 15 min)
  *   --interval <sec>   poll every               (default: 30)
  *   --once             single check, no polling — for a quick status read
@@ -78,7 +86,35 @@ const gh = (path) =>
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 
-const sha = flag('sha') ?? git('rev-parse', 'origin/main');
+/**
+ * The deployments endpoint wants the FULL sha: `?sha=1bfc9f2` is not an error,
+ * it is an empty list, which this script reads as "no deployment yet" and polls
+ * on a deploy that was green all along (the 15:07 run on 2026-09-13 restarted
+ * twice over it). Resolve whatever was passed — locally first, then via the
+ * commits endpoint for a merge this clone has not fetched yet.
+ */
+const isFullSha = (value) => /^[0-9a-f]{40}$/i.test(value ?? '');
+const resolveSha = (value) => {
+  if (!value) return git('rev-parse', 'origin/main');
+  if (isFullSha(value)) return value.toLowerCase();
+  try {
+    return git('rev-parse', '--verify', '--quiet', `${value}^{commit}`);
+  } catch {
+    /* not in this clone — ask GitHub */
+  }
+  let full = null;
+  try {
+    full = gh(`repos/${REPO}/commits/${value}`).sha;
+  } catch {
+    /* fall through to the loud exit below */
+  }
+  if (!isFullSha(full)) {
+    log(`--sha "${value}" is neither a local commit nor known to GitHub — pass the merge SHA.`);
+    process.exit(2);
+  }
+  return full;
+};
+const sha = resolveSha(flag('sha'));
 const pr = flag('pr', '<PR-Link>');
 const changed = flag('changed', '<ein Satz>');
 /**
@@ -99,8 +135,44 @@ const normaliseRoute = (value) => {
   return value === '/' ? '/' : `/${value.replace(/^\/+/, '')}`;
 };
 const route = normaliseRoute(flag('route'));
-const probe = flag('probe');
-const probeUrl = flag('probe-url', `${SITE}/i18n/de.json`);
+/**
+ * The version the commit carries — the one needle every ship introduces, so a
+ * run never has to invent one (and never grep `i18n/de.json` for a change that
+ * touched no string, which is how the 14:07 run on 2026-09-13 polled a live
+ * deploy to a miss).
+ */
+const versionAt = (commit) => {
+  try {
+    return JSON.parse(git('show', `${commit}:package.json`)).version ?? null;
+  } catch {
+    /* not in this clone */
+  }
+  try {
+    const { content } = gh(`repos/${REPO}/contents/package.json?ref=${commit}`);
+    return JSON.parse(Buffer.from(content, 'base64').toString('utf8')).version ?? null;
+  } catch {
+    return null;
+  }
+};
+/** A full URL as given; a site path with or without the leading slash otherwise. */
+const siteUrl = (value) => {
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^[A-Za-z]:[\\/]/.test(value)) {
+    log(
+      `probe-url "${value}" looks like a Git-Bash-mangled path.\n` +
+        'Pass it WITHOUT the leading slash (--probe-url release-notes.json), or set MSYS_NO_PATHCONV=1.',
+    );
+    process.exit(2);
+  }
+  return `${SITE}/${value.replace(/^\/+/, '')}`;
+};
+const explicitProbe = flag('probe');
+const version = explicitProbe ? null : versionAt(sha);
+/** What "served" means: the explicit needle as a substring, else the version line. */
+const escapeRe = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const probe = explicitProbe ?? (version ? new RegExp(`"current"\\s*:\\s*"${escapeRe(version)}"`) : null);
+const probeUrl = siteUrl(flag('probe-url', explicitProbe ? 'i18n/de.json' : 'release-notes.json'));
+if (!explicitProbe && !version) log('   no --probe and no package.json version at that commit — deployment status only');
 const timeoutMs = Number(flag('timeout', '900')) * 1000;
 const intervalMs = Number(flag('interval', '30')) * 1000;
 
@@ -132,7 +204,8 @@ async function probeIsLive() {
   try {
     const res = await fetch(`${probeUrl}${sep}ngsw-bypass=true`, { cache: 'no-store' });
     if (!res.ok) return false;
-    return (await res.text()).includes(probe);
+    const text = await res.text();
+    return typeof probe === 'string' ? text.includes(probe) : probe.test(text);
   } catch (err) {
     log(`   probe failed: ${err.message}`);
     return false;
@@ -178,6 +251,7 @@ const replyNotLive = (at, deployment) =>
 async function main() {
   const started = Date.now();
   log(`verify-ship-live: ${sha.slice(0, 7)} → ${SITE}${route}`);
+  if (probe) log(`   probe: ${typeof probe === 'string' ? JSON.stringify(probe) : probe} in ${probeUrl}`);
 
   let deployment = null;
   for (;;) {
