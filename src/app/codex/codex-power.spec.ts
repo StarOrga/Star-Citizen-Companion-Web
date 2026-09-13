@@ -24,6 +24,7 @@ interface OccOptions {
   entityKind?: string;
   componentKind?: string;
   className?: string;
+  attachType?: string;
   count?: number;
   resource?: Res;
   extraStats?: Record<string, Record<string, unknown>>;
@@ -44,6 +45,7 @@ function occ(o: OccOptions): SummaryOccupant {
       entityKind: o.entityKind ?? 'component',
       kind: o.componentKind,
       className: o.className ?? 'TEST_ITEM',
+      attachType: o.attachType ?? null,
       size: 1,
       stats,
     },
@@ -146,6 +148,27 @@ describe('classifyPowerGroup', () => {
   it('routes a tractor beam out of the weapons group', () => {
     const tractor = occ({ section: 'weapons', entityKind: 'weapon', className: 'TRACTOR_BEAM_S1' });
     expect(classifyPowerGroup(tractor)).toBe('tractor');
+  });
+
+  it('charges the flight controller to the thrusters group (#227)', () => {
+    // LIVE 4.9: thrusters draw no power themselves; the ship's FlightController
+    // item does, and its port is airframe furniture (section `structure`).
+    const fc = occ({
+      section: 'structure',
+      entityKind: 'item',
+      className: 'Controller_Flight_ARGO_RAFT',
+      attachType: 'FlightController',
+      resource: { 'power.consumeSegments': 6 },
+    });
+    expect(classifyPowerGroup(fc)).toBe('thrusters');
+    expect(occupantDraw(fc).consumeSegments).toBe(6);
+  });
+
+  it('routes a powered radar / life-support ITEM by its attach type (#227)', () => {
+    const radar = occ({ section: 'structure', entityKind: 'item', className: 'RADR_NAVE_S01_SNSR6', attachType: 'Radar' });
+    const life = occ({ section: 'structure', entityKind: 'item', className: 'LFSP_TYDT_S02_ComfortAirPlus', attachType: 'LifeSupportGenerator' });
+    expect(classifyPowerGroup(radar)).toBe('radar');
+    expect(classifyPowerGroup(life)).toBe('life');
   });
 });
 

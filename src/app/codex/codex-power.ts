@@ -131,8 +131,9 @@ export type DockPosition = 'left' | 'center' | 'right' | 'inline';
  *   1. codex entity kind — anything the extract calls a `weapon` is a weapon;
  *   2. `ComponentPayload.kind` (PowerPlant/Shield/Cooler/QuantumDrive/Thruster);
  *   3. the module section the port was bucketed into, then finally the port /
- *      attach-type name (radar, life support, tractor beam have no dedicated
- *      ComponentKind, so the port name is the only handle the data gives us).
+ *      attach-type name (radar, life support, tractor beam and the flight
+ *      controller have no dedicated ComponentKind, so the port name is the
+ *      only handle the data gives us).
  * Power plants map to NO group: they fund the budget, they do not spend it.
  * Anything unrecognised returns `null` and is excluded from the dock entirely
  * rather than being dumped into a catch-all column.
@@ -192,6 +193,13 @@ export function classifyPowerGroup(occupant: SummaryOccupant): PowerGroup | null
   if (hay.includes('radar') || hay.includes('scanner') || hay.includes('ping')) return 'radar';
   if (hay.includes('life') || hay.includes('oxygen')) return 'life';
   if (hay.includes('tractor') || hay.includes('towing')) return 'tractor';
+  // Feedback #227, probed against LIVE 4.9: the thrusters themselves carry a
+  // resource group without any Power consumption — the "Antriebe" draw sits
+  // on the ship's FlightController item (`Controller_Flight_<Hull>`, e.g. the
+  // RAFT's pulls 6 segments). Its port is airframe furniture
+  // (`hardpoint_controller_flight` → `structure`), so without this line the
+  // group would always read "—".
+  if (hay.includes('flightcontroller') || hay.includes('controller_flight')) return 'thrusters';
   if (hay.includes('thruster') || hay.includes('maneuver')) return 'thrusters';
   if (hay.includes('quantum')) return 'quantum';
   return null;

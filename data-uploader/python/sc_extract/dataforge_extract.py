@@ -1781,8 +1781,23 @@ class CodexExtractor:
         # actually being present (SCItemVehicleArmorParams), not on AttachDef.Type
         # — the per-hull ARMR_<ship> items don't use the Char_Armor_* vocabulary.
         has_vehicle_armor = _find_component(comps, "SCItemVehicleArmorParams") is not None
-        if atype in _ARMOR_TYPES or has_vehicle_armor:
-            stats = self._component_stats(comps, "Armor")
+        # Powered ITEMS get the same block (feedback c73f83e9 / #227): Radar,
+        # LifeSupportGenerator, FlightController, EMP, QuantumInterdiction-
+        # Generator, Battery … all carry `ItemResourceComponentParams` with a
+        # real Power draw, but none of them is a ComponentKind — so until now
+        # the projection threw the resource network away and the energy dock
+        # showed "—" for radar, life support and thrusters. Gate on the struct
+        # being PRESENT (like the vehicle armor above), never on
+        # AttachDef.Type: the vocabulary is CIG's and it grows. Probed against
+        # LIVE 4.9 on 2026-09-13: the thrusters themselves (MainThruster /
+        # ManneuverThruster) carry a resource group WITHOUT any Power
+        # consumption — the "Antriebe" draw sits on the ship's FlightController
+        # item (e.g. Controller_Flight_ARGO_RAFT: 6 segments), which this now
+        # keeps. Tractor / towing beams carry SCItemWeaponComponentParams and
+        # take the weapon path above, whose stats allowlist already kept it.
+        has_resource_network = _find_component(comps, "ItemResourceComponentParams") is not None
+        if atype in _ARMOR_TYPES or has_vehicle_armor or has_resource_network:
+            stats = self._component_stats(comps, "Item")
             if stats:
                 base["stats"] = stats
         return base

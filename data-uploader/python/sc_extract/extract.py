@@ -72,7 +72,13 @@ class ExtractResult:
     # on every item, component and weapon (power segments, coolant, shield
     # regen, IR/EM signature, power ranges); weapons gain a `stats` block;
     # ships gain `hull.{hp,mass}`, `armorHp`, `cargoScu` and `career`.
-    schema_version: int = 3
+    # v4 (feedback #227): the v3 promise "on every item" was only true for
+    # armor — a plain item's projection dropped its resource network. Now every
+    # ITEM carrying `ItemResourceComponentParams` keeps a `stats` block too
+    # (Radar, LifeSupportGenerator, TractorBeam, FlightController, EMP, …), so
+    # the energy dock's radar / life-support / tractor / thruster groups get
+    # real draws instead of "—".
+    schema_version: int = 4
     quality_score: float = 0.0
     entity_counts: Dict[str, int] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)
