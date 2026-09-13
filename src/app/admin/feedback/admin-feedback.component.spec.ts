@@ -14,8 +14,8 @@ import { FeedbackMessage, FeedbackRow, FeedbackStatus } from './feedback.types';
 
 /**
  * The stream's state machine (concept 2026-09-04, direction E), rendered
- * against a fake PostgREST: which band a topic lands in, what the lead card
- * offers, how the topic sheet opens, folds, survives a poll and closes on
+ * against a fake PostgREST: which band a topic lands in, that every row stays
+ * closed, how the topic sheet opens, folds, survives a poll and closes on
  * Escape before the shell sees the key, and that a one-tap option posts the
  * option's words and nothing else.
  */
@@ -152,26 +152,42 @@ describe('AdminFeedbackComponent — the stream', () => {
     expect(cmp.deliveredDays()[0].items[0].id).toBe('d1'); // newest day on top
   });
 
-  it('renders the first "Du bist dran" card with its inline action — and the others closed', async () => {
+  /**
+   * Admin feedback 0691a00b: "die issues sollten nicht aufgeklappt /
+   * aufklappbar sein, weil es reicht wenn man drauf drückt das man dann rein
+   * geht". The first "Du bist dran" card used to unfold its answer box, the
+   * sign-off or the release inline — every row is now a closed head, and the
+   * act lives in the opened topic.
+   */
+  it('renders every "Du bist dran" card closed — no inline answer box, sign-off or release', async () => {
     const { el } = await mount(fixtureTables());
     const cards = Array.from(el.querySelectorAll('.band.yours .card'));
     expect(cards.length).toBe(4);
-    expect(cards[0].classList).toContain('lead');
-    // The lead is the release: the topic's text and the one red "Freigeben".
-    expect(cards[0].querySelector('.card-inline .msg-body')).not.toBeNull();
-    expect(cards[0].querySelector('.card-inline .sc-btn.hot')).not.toBeNull();
-    expect(cards[0].querySelector('.card-inline sc-feedback-composer')).toBeNull();
-    expect(cards[1].querySelector('.card-inline')).toBeNull();
+    for (const card of cards) {
+      expect(card.classList).not.toContain('lead');
+      expect(card.querySelector('.card-inline')).withContext(card.id).toBeNull();
+      expect(card.querySelector('sc-feedback-composer')).withContext(card.id).toBeNull();
+      expect(card.querySelector('.review-gate')).withContext(card.id).toBeNull();
+      expect(card.querySelector('.msg-body')).withContext(card.id).toBeNull();
+      // Nothing on the row but its head: the one tap into the topic.
+      expect(card.querySelectorAll('button').length).withContext(card.id).toBe(1);
+      expect(card.querySelector('button')?.classList).toContain('card-head');
+    }
   });
 
-  it('a Rückfrage as the lead card carries the routine’s question and the answer box inline', async () => {
+  it('a Rückfrage answers in the opened topic, not on the card', async () => {
     const tables = fixtureTables();
     tables['admin_feedback'] = (tables['admin_feedback'] as FeedbackRow[]).filter((r) => r.id !== 'u1');
-    const { el } = await mount(tables);
-    const lead = el.querySelector('.band.yours .card.lead')!;
-    expect(lead.id).toBe('fb-card-q2');
-    expect(lead.querySelector('.card-inline sc-feedback-composer')).not.toBeNull();
-    expect(lead.querySelector('.card-inline .msg.system .ai')).not.toBeNull();
+    const { fixture, cmp, el } = await mount(tables);
+    const first = el.querySelector('.band.yours .card')!;
+    expect(first.id).toBe('fb-card-q2');
+    expect(first.querySelector('sc-feedback-composer')).toBeNull();
+    (first.querySelector('.card-head') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(cmp.openRow()?.id).toBe('q2');
+    const sheet = el.querySelector('.sheet.topic')!;
+    expect(sheet.querySelector('.sh-composer sc-feedback-composer')).not.toBeNull();
+    expect(sheet.querySelector('.msg.system .ai')).not.toBeNull();
   });
 
   it('opens a topic as the full-panel sheet, keeps it across a poll, and closes it on Escape before the shell', async () => {
@@ -370,17 +386,21 @@ describe('AdminFeedbackComponent — the stream', () => {
   it('colours avatars by role and labels a routine message "AI" without a circle', async () => {
     const tables = fixtureTables();
     tables['admin_feedback'] = (tables['admin_feedback'] as FeedbackRow[]).filter((r) => r.id !== 'u1');
-    const { cmp, el } = await mount(tables);
+    const { fixture, cmp, el } = await mount(tables);
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'admin' })).toBe('adm');
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'collaborator' })).toBe('col');
     expect(cmp.toneOf({ display_name: 'x', username: null, role: 'viewer' })).toBe('usr');
     expect(cmp.toneOf(null)).toBe('usr');
     expect(cmp.initials({ display_name: 'Vera Viewer', username: 'vera' }, false)).toBe('VV');
     expect(cmp.initials({ display_name: null, username: 'jerry' }, false)).toBe('JE');
-    const lead = el.querySelector('.band.yours .card.lead')!;
-    expect(lead.querySelector('.card-head .av.adm')).not.toBeNull();
-    expect(lead.querySelector('.card-inline .msg.system .av')).toBeNull();
-    expect(lead.querySelector('.card-inline .msg.system .ai')?.textContent?.trim()).toBe('adminFeedback.kind.ai');
+    const first = el.querySelector('.band.yours .card')!;
+    expect(first.querySelector('.card-head .av.adm')).not.toBeNull();
+    // The routine's message is drawn in the opened topic (the card stays closed).
+    cmp.openTopic('q2');
+    fixture.detectChanges();
+    const sheet = el.querySelector('.sheet.topic')!;
+    expect(sheet.querySelector('.msg.system .av')).toBeNull();
+    expect(sheet.querySelector('.msg.system .ai')?.textContent?.trim()).toBe('adminFeedback.kind.ai');
   });
 
   it('puts a delivered row\'s deep link and PR link on the feed card, as real anchors — with unique ids', async () => {
@@ -398,13 +418,12 @@ describe('AdminFeedbackComponent — the stream', () => {
   });
 
   /**
-   * The sign-off on a stream card is three controls in the card's own body
-   * (feedback a398fc94): look at it live, open the topic, sign it off. No frame
-   * of its own around them, and no "Gespräch wieder aufnehmen" — reopening a
-   * topic means writing WHY, and that happens inside the topic.
+   * A pending sign-off in "Du bist dran" is a closed row like any other (admin
+   * feedback 0691a00b) — no gate unfolded on the card. The ✓ lives on the
+   * delivered-feed copy of the row and in the opened topic's composer line.
    */
-  it('shows the sign-off on the lead card frameless, without a second way to reopen', async () => {
-    const { el } = await mount({
+  it('keeps a pending sign-off closed in "Du bist dran" and signs it off from the feed or the topic', async () => {
+    const { fixture, cmp, el } = await mount({
       admin_feedback: [
         row('r9', 'shipped', T('07'), {
           shipped_at: T('11'),
@@ -414,31 +433,20 @@ describe('AdminFeedbackComponent — the stream', () => {
         }),
       ],
       admin_feedback_messages: [],
+      feedback_author_messages: [],
     });
 
-    const gate = el.querySelector<HTMLElement>('.card.lead .card-inline .review-gate')!;
-    expect(gate).not.toBeNull();
-    expect(gate.classList.contains('inline')).toBeTrue();
-    expect(gate.classList.contains('sc-nest')).toBeFalse();
+    const yours = el.querySelector('#fb-card-r9')!;
+    expect(yours.querySelector('.review-gate')).toBeNull();
+    expect(yours.querySelector('.card-inline')).toBeNull();
+    expect(yours.querySelectorAll('button').length).toBe(1);
 
-    // Assert the frame the admin sees, not the class that is supposed to remove
-    // it: a global `.sc-nest` rule or a later `.review-gate` declaration can
-    // paint a border back on without this markup changing a character. Round 2
-    // of a398fc94 was spent answering "is the box still there?" by hand.
-    const frame = getComputedStyle(gate);
-    for (const side of [frame.borderTopWidth, frame.borderRightWidth, frame.borderBottomWidth, frame.borderLeftWidth]) {
-      expect(side).toBe('0px');
-    }
-    expect(frame.paddingLeft).toBe('0px');
+    const feed = el.querySelector('#fb-card-r9-feed')!;
+    expect(feed.querySelector('.card-links .sc-btn')?.textContent).toContain('adminFeedback.review.accept');
 
-    const labels = Array.from(gate.querySelectorAll('button, a')).map((b) => b.textContent?.trim() ?? '');
-    expect(labels.some((l) => l.includes('adminFeedback.actions.viewInApp'))).toBeTrue();
-    expect(labels.some((l) => l.includes('adminFeedback.stream.openTopic'))).toBeTrue();
-    expect(labels.some((l) => l.includes('adminFeedback.review.accept'))).toBeTrue();
-    expect(labels.some((l) => l.includes('adminFeedback.review.reopen'))).toBeFalse();
-
-    // The reopen lives in the topic — as the reply itself, not as a button.
-    expect(el.querySelector('.card.lead ~ .inline-actions')).toBeNull();
+    cmp.openTopic('r9');
+    fixture.detectChanges();
+    expect(el.querySelector('.sheet.topic .sh-composer .sign-off')).not.toBeNull();
   });
 
   /**
