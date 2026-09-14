@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.1] - 2026-09-14
+
+### Changed
+
+- **Energie-Dock: jeder Kühler ist eine eigene Spalte.** Kühler werden nicht
+  mehr zu einer „Kühlung"-Spalte zusammengerechnet — jede verbaute Einheit
+  erscheint als „Kühler 1", „Kühler 2" … in Hardpoint-Reihenfolge mit eigenem
+  Bedarf, eigenem Gold-Minimum, eigenen Pips, eigenem Pin und eigenem
+  Aus-Schalter, so wie das Energiemanagement im Spiel die Kühler behandelt.
+  Ein Schiff ohne Kühler behält weiterhin eine leere Spalte, damit die Reihe
+  nie verrutscht. Gespeicherte Entwürfe und geteilte Links mit dem alten
+  Sammel-Pin werden beim Laden auf die Einheiten verteilt. Der Pip-Streifen
+  bricht bei neun und mehr Spalten um, statt über den Dock-Rand zu laufen; auf
+  dem Handy füllt das Raster so viele Spalten, wie Platz haben.
+
 ## [0.85.0] - 2026-09-14
 
 ### Added
