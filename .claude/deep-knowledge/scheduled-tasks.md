@@ -31,6 +31,25 @@ that a cron job on a server would not.
   interactive session (`list_sessions` → `archive_session` per routine
   session, no dialog there).
 
+## The sanctioned cleanup: the app's own inactive auto-archive
+
+Claude Desktop ships an `AutoArchiveEngine` (found in the 1.52386 bundle) with
+two rules: *PR landed* (Settings → Local sessions → "Auto-archive after PR
+merge or close", preference `ccAutoArchiveOnPrClose`) and *inactive*
+(Settings → Local sessions → "Archive inactive sessions", preference
+`ccAutoArchiveInactiveDays`, presets Never / 1 / 2 / 7 / 14 / 30 days, whole
+days only, default Never). The engine sweeps on its own timer and archives a
+session whose last activity *and* last focus are older than the limit,
+holding back sessions that are running, pinned, on screen, awaiting input,
+carrying losable work (dirty worktree) or unarchived by hand. It is the app's
+own action, so it needs no consent card — the very thing the tick's
+`archive_session` call cannot avoid. Routine sessions (no worktree, never
+pinned, closed within a minute) qualify after the limit. With 1 day the
+un-archived backlog is bounded at one day of ticks (72 with the current cron,
+34 with a cron that fires only on cadence slots) instead of growing forever.
+The preference lives under `preferences` in `%APPDATA%/Claude/claude_desktop_config.json`;
+set it in the Settings UI, a file edit is only read at the next app start.
+
 ## Rules
 
 1. **Every tick should end by cleaning up** — idle ticks and working runs
@@ -43,6 +62,8 @@ that a cron job on a server would not.
    dialog into a scheduled prompt; one such call idles the whole task. The
    suspended step stays documented in the prompt (STEP 0 and STEP 6) and
    `docs/feedback-routine/gate.md` so it can be switched back on in one edit.
+   The replacement is the app-level inactive auto-archive above, plus a
+   cron that fires only on cadence slots if the daily count still matters.
 2. **Renaming the task renames the title** — the hygiene step matches on the
    title, so add the old title to the match list when the task is renamed.
 3. **Before changing the cron or the cadence table, do the arithmetic:** how
