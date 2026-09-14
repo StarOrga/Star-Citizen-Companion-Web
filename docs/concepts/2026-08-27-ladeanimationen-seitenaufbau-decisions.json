@@ -1,0 +1,60 @@
+[
+  {
+    "iteration": 1,
+    "action": "iterate",
+    "receivedAt": "2026-08-27T19:31:00Z",
+    "comments": {
+      "general": "",
+      "designs": {
+        "ist": "Schon spannender, aber immer noch verhältnismäßig langweilig und nicht 2157 und AI zeitalter...",
+        "chor": "ja gern nach leserichtung..."
+      },
+      "screens": {}
+    },
+    "decisions": [],
+    "attachments": {}
+  },
+  {
+    "iteration": 2,
+    "action": "iterate",
+    "receivedAt": "2026-08-27T19:44:00Z",
+    "comments": {
+      "general": "",
+      "designs": {
+        "rekon": "das einrasten und text aufbauen finde ich mega cool. Rote farbe jetzt nicht unbedingt, aber vom prinzip her!",
+        "pred": "fällt raus",
+        "dekoh": "finde ich super nach dem einrasten. Aber gern statt so karierten sachen eher neujronen logik"
+      },
+      "screens": {}
+    },
+    "decisions": [],
+    "attachments": {}
+  },
+  {
+    "iteration": 3,
+    "action": "iterate",
+    "receivedAt": "2026-08-29T07:35:00Z",
+    "comments": {
+      "general": "",
+      "designs": {
+        "farbe": "Die Neuronen sind nochc nix! schau mal wie geil das im wqizward von scc app ausieht!Q\nDie interferenzschicht für alles außer die inhaltskacheln ok...."
+      },
+      "screens": {}
+    },
+    "decisions": [],
+    "attachments": {}
+  },
+  {
+    "iteration": 4,
+    "action": "implement",
+    "receivedAt": "2026-08-29T08:15:00Z",
+    "comments": {
+      "general": "",
+      "designs": {},
+      "screens": {}
+    },
+    "decisions": [],
+    "attachments": {},
+    "note": "implement — Umsetzung der ueber vier Runden gesetzten Sprache"
+  }
+]

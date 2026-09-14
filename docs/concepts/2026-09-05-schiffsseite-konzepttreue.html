@@ -1797,7 +1797,7 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 
     <main>
 
-      <section data-iteration="1" data-iteration-template="decision" id="iter-1" data-active>
+      <section data-iteration="1" data-iteration-template="decision" id="iter-1" hidden>
         <header class="iteration-intro">
           <h2>Iteration 1 &middot; F&uuml;nf Kollisionen zwischen Konzept und Seite</h2>
           <p>Die Seite ist live und im Mittel bei rund <strong>60&nbsp;% Konzepttreue</strong> (Dock/Picker 86, Linse/KPI 61, Masthead 45, Loadout-Spalte 44). Die eindeutigen Abweichungen setze ich parallel bereits um &mdash; Radar-Achsenordnung, Linse l&ouml;scht Module, Waffenwerte im aufgeklappten Modul, Peek-Gruppierung, absolute KPI-Deltas, Picker-Spalten je Porttyp, Modul&uuml;berschriften, Reisen-Gate.</p>
@@ -1850,10 +1850,10 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <ul class="plus"><li>Die obere Seitenh&auml;lfte liest sich in einem Blick <span>&mdash; genau der Punkt der ganzen Iteration&nbsp;3</span></li><li>Nichts geht verloren, alles hat eine neue Adresse</li></ul>
               <ul class="minus"><li>Gr&ouml;&szlig;ter Einzelumbau <span>&mdash; Hero, Analyse-Karte und ein neues Band in einem Zug</span></li><li>Livery/Edition brauchen einen Klick mehr</li></ul>
               <div class="eval-group">
-                <label><input type="radio" name="dec-hero-buehne" value="include" checked> Miteinbeziehen</label>
-                <label><input type="radio" name="dec-hero-buehne" value="discard"> Verwerfen</label>
+                <label><input type="radio" name="dec-hero-buehne" value="include" checked disabled> Miteinbeziehen</label>
+                <label><input type="radio" name="dec-hero-buehne" value="discard" disabled> Verwerfen</label>
               </div>
-              <div class="note-row"><label for="hero-buehne-note">Notiz</label><textarea id="hero-buehne-note" data-comment="hero-buehne-note" data-attachable placeholder="z. B. „ja, aber Port-Übersicht bitte ganz weg"></textarea></div>
+              <div class="note-row"><label for="hero-buehne-note">Notiz</label><textarea id="hero-buehne-note" data-comment="hero-buehne-note" data-attachable placeholder="z. B. „ja, aber Port-Übersicht bitte ganz weg" disabled readonly></textarea></div>
             </div>
 
             <div class="card" data-decision="hero-zweizeiler">
@@ -1863,10 +1863,10 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <ul class="plus"><li>Livery und Edition bleiben ein Klick entfernt</li><li>Kleinerer Eingriff, kein Popover zu bauen</li></ul>
               <ul class="minus"><li>Eine Zeile, die das Konzept nicht kennt, zwischen Hero und KPI-Leiste</li><li>Die klebende KPI-Leiste startet weiter unten</li></ul>
               <div class="eval-group">
-                <label><input type="radio" name="dec-hero-zweizeiler" value="include" checked> Miteinbeziehen</label>
-                <label><input type="radio" name="dec-hero-zweizeiler" value="discard"> Verwerfen</label>
+                <label><input type="radio" name="dec-hero-zweizeiler" value="include" checked disabled> Miteinbeziehen</label>
+                <label><input type="radio" name="dec-hero-zweizeiler" value="discard" disabled> Verwerfen</label>
               </div>
-              <div class="note-row"><label for="hero-zweizeiler-note">Notiz</label><textarea id="hero-zweizeiler-note" data-comment="hero-zweizeiler-note" data-attachable placeholder="…"></textarea></div>
+              <div class="note-row"><label for="hero-zweizeiler-note">Notiz</label><textarea id="hero-zweizeiler-note" data-comment="hero-zweizeiler-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
 
             <div class="card" data-decision="hero-bleibt">
@@ -1876,10 +1876,10 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <ul class="plus"><li>Kleinster Eingriff, kein Verlustrisiko</li><li>Alles bleibt, wo du es heute suchst</li></ul>
               <ul class="minus"><li>Die auff&auml;lligste Konzeptabweichung bleibt bestehen <span>&mdash; genau die, die dir aufgefallen ist</span></li><li>Elf Bl&ouml;cke vor der ersten Aktion</li></ul>
               <div class="eval-group">
-                <label><input type="radio" name="dec-hero-bleibt" value="include" checked> Miteinbeziehen</label>
-                <label><input type="radio" name="dec-hero-bleibt" value="discard"> Verwerfen</label>
+                <label><input type="radio" name="dec-hero-bleibt" value="include" checked disabled> Miteinbeziehen</label>
+                <label><input type="radio" name="dec-hero-bleibt" value="discard" disabled> Verwerfen</label>
               </div>
-              <div class="note-row"><label for="hero-bleibt-note">Notiz</label><textarea id="hero-bleibt-note" data-comment="hero-bleibt-note" data-attachable placeholder="…"></textarea></div>
+              <div class="note-row"><label for="hero-bleibt-note">Notiz</label><textarea id="hero-bleibt-note" data-comment="hero-bleibt-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
           </div>
           <p class="loss"><strong>Was in jeder Variante mitgedacht werden muss:</strong> Quantum-Treibstoff und Wasserstoff stehen <em>ausschlie&szlig;lich</em> in den Fakten-Kacheln. R&auml;umt man sie aus dem Hero, ohne sie in die Analyse-Karte mitzunehmen, sind sie von der Seite verschwunden.</p>
@@ -1896,8 +1896,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>K&uuml;hler, Quantum, Reaktor, Radar und Lebenserhaltung werden ein Block <em>Antrieb&nbsp;&amp;&nbsp;Systeme</em> mit Untergruppen darin. Gegenma&szlig;nahmen und Zelle bleiben eigenst&auml;ndig.</p>
               <ul class="plus"><li>Die Spalte wird lesbar, die Faltung bekommt Sinn</li><li>Die Einspalten-Regel des Konzepts greift wieder</li></ul>
               <ul class="minus"><li>Eine Verschachtelungsebene mehr im Markup</li><li>Ein Reaktor liegt zwei Klicks tief statt einem</li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-module-vier" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-module-vier" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="module-vier-note">Notiz</label><textarea id="module-vier-note" data-comment="module-vier-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-module-vier" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-module-vier" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="module-vier-note">Notiz</label><textarea id="module-vier-note" data-comment="module-vier-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
             <div class="card" data-decision="module-elf">
               <span class="tag heute">Variante B</span>
@@ -1905,8 +1905,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Die elf Bl&ouml;cke bleiben, bekommen aber die Konzeptnamen und die Konzeptreihenfolge. Die &Uuml;berschrift z&auml;hlt Module statt eingebauter Teile.</p>
               <ul class="plus"><li>Jede Sektion direkt erreichbar, kein Klick mehr</li><li>Sehr kleiner Eingriff</li></ul>
               <ul class="minus"><li>Die Spalte bleibt eine lange Liste</li><li>Konzeptvorgabe &bdquo;vier Bl&ouml;cke&ldquo; bleibt unerf&uuml;llt</li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-module-elf" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-module-elf" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="module-elf-note">Notiz</label><textarea id="module-elf-note" data-comment="module-elf-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-module-elf" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-module-elf" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="module-elf-note">Notiz</label><textarea id="module-elf-note" data-comment="module-elf-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
           </div>
         </section>
@@ -1922,8 +1922,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Der Block verschwindet, die Analyse-Karte bleibt. Sie ist die Obermenge und hat zus&auml;tzlich die L&uuml;cken-Begr&uuml;ndungen.</p>
               <ul class="plus"><li>Der Massenwiderspruch ist damit weg</li><li>Konzeptform, weniger Seite</li></ul>
               <ul class="minus"><li>Die Werte stehen nicht mehr oberhalb der Spalten <span>&mdash; ein Scroll mehr</span></li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-rumpf-weg" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-rumpf-weg" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="rumpf-weg-note">Notiz</label><textarea id="rumpf-weg-note" data-comment="rumpf-weg-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-rumpf-weg" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-rumpf-weg" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="rumpf-weg-note">Notiz</label><textarea id="rumpf-weg-note" data-comment="rumpf-weg-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
             <div class="card" data-decision="rumpf-bleibt">
               <span class="tag misch">Variante B</span>
@@ -1931,8 +1931,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Beide Darstellungen bleiben, rechnen aber beide aus dem Entwurf. Der Widerspruch verschwindet, die Doppelung bleibt.</p>
               <ul class="plus"><li>Kernwerte bleiben ohne Scroll sichtbar</li><li>Winziger Eingriff</li></ul>
               <ul class="minus"><li>Dieselben zehn Zahlen zweimal <span>&mdash; wer eine falsch findet, misstraut beiden Stellen</span></li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-rumpf-bleibt" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-rumpf-bleibt" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="rumpf-bleibt-note">Notiz</label><textarea id="rumpf-bleibt-note" data-comment="rumpf-bleibt-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-rumpf-bleibt" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-rumpf-bleibt" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="rumpf-bleibt-note">Notiz</label><textarea id="rumpf-bleibt-note" data-comment="rumpf-bleibt-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
           </div>
         </section>
@@ -1948,8 +1948,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Beide wandern ans Ende der Seite. Die Konzeptfolge oben ist damit ununterbrochen.</p>
               <ul class="plus"><li>Klebende Leiste greift sofort</li><li>Konzeptreihenfolge intakt</li></ul>
               <ul class="minus"><li>Der Viewer ist weit unten <span>&mdash; wer wegen der Lackierung kommt, scrollt</span></li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-viewer-unten" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-unten" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="viewer-unten-note">Notiz</label><textarea id="viewer-unten-note" data-comment="viewer-unten-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-viewer-unten" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-unten" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="viewer-unten-note">Notiz</label><textarea id="viewer-unten-note" data-comment="viewer-unten-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
             <div class="card" data-decision="viewer-karte">
               <span class="tag misch">Variante B</span>
@@ -1957,8 +1957,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Der Viewer wird ein <em>&#9662;</em>-Element in der Schiff-Karte, die Beschreibung wandert unter die Spalten.</p>
               <ul class="plus"><li>Viewer bleibt in Reichweite, kostet aber keinen Platz</li><li>L&auml;dt erst beim Aufklappen</li></ul>
               <ul class="minus"><li>Ein 3D-Viewer in einer Analyse-Karte ist gew&ouml;hnungsbed&uuml;rftig</li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-viewer-karte" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-karte" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="viewer-karte-note">Notiz</label><textarea id="viewer-karte-note" data-comment="viewer-karte-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-viewer-karte" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-karte" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="viewer-karte-note">Notiz</label><textarea id="viewer-karte-note" data-comment="viewer-karte-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
             <div class="card" data-decision="viewer-bleibt">
               <span class="tag heute">Variante C</span>
@@ -1966,8 +1966,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Nichts &auml;ndern. Der Viewer ist ein Schaust&uuml;ck und darf oben stehen.</p>
               <ul class="plus"><li>Kein Eingriff</li></ul>
               <ul class="minus"><li>Konzeptfolge bleibt unterbrochen, Leiste klebt sp&auml;t</li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-viewer-bleibt" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-bleibt" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="viewer-bleibt-note">Notiz</label><textarea id="viewer-bleibt-note" data-comment="viewer-bleibt-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-viewer-bleibt" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-viewer-bleibt" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="viewer-bleibt-note">Notiz</label><textarea id="viewer-bleibt-note" data-comment="viewer-bleibt-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
           </div>
         </section>
@@ -1983,8 +1983,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Der technische Satz wandert in den Titel-Tooltip der deaktivierten Schaltfl&auml;che. Sichtbar bleibt die Dreiteilung.</p>
               <ul class="plus"><li>Leiste liest sich wie im Konzept</li><li>Die Information bleibt erreichbar</li></ul>
               <ul class="minus"><li>Warum &bdquo;Speichern&ldquo; ausgegraut ist, steht nur noch im Tooltip <span>&mdash; auf Touch schwer erreichbar</span></li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-entwurf-konzept" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-entwurf-konzept" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="entwurf-konzept-note">Notiz</label><textarea id="entwurf-konzept-note" data-comment="entwurf-konzept-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-entwurf-konzept" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-entwurf-konzept" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="entwurf-konzept-note">Notiz</label><textarea id="entwurf-konzept-note" data-comment="entwurf-konzept-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
             <div class="card" data-decision="entwurf-kurz">
               <span class="tag misch">Variante B</span>
@@ -1992,8 +1992,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
               <p>Die drei Teile, und im Chip zus&auml;tzlich <em>0/3 speicherbar</em>. Der Erkl&auml;rsatz nur im Tooltip.</p>
               <ul class="plus"><li>Der wichtige Teil bleibt sichtbar, auch auf Touch</li><li>Nah am Konzept</li></ul>
               <ul class="minus"><li>Ein Zeichen mehr, als das Konzept zeichnet</li></ul>
-              <div class="eval-group"><label><input type="radio" name="dec-entwurf-kurz" value="include" checked> Miteinbeziehen</label><label><input type="radio" name="dec-entwurf-kurz" value="discard"> Verwerfen</label></div>
-              <div class="note-row"><label for="entwurf-kurz-note">Notiz</label><textarea id="entwurf-kurz-note" data-comment="entwurf-kurz-note" data-attachable placeholder="…"></textarea></div>
+              <div class="eval-group"><label><input type="radio" name="dec-entwurf-kurz" value="include" checked disabled> Miteinbeziehen</label><label><input type="radio" name="dec-entwurf-kurz" value="discard" disabled> Verwerfen</label></div>
+              <div class="note-row"><label for="entwurf-kurz-note">Notiz</label><textarea id="entwurf-kurz-note" data-comment="entwurf-kurz-note" data-attachable placeholder="…" disabled readonly></textarea></div>
             </div>
           </div>
         </section>
@@ -2001,7 +2001,132 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
         <section id="d-sonst" data-nav-label="Sonstiges">
           <h3>Sonst noch etwas?</h3>
           <p class="lead">Freitext f&uuml;r alles, was dir an der Live-Seite auff&auml;llt und in keine der f&uuml;nf Fragen passt. Auch Screenshots kannst du hier anh&auml;ngen.</p>
-          <div class="note-row"><label for="sonstiges-note">Freitext</label><textarea id="sonstiges-note" data-comment="sonstiges-note" data-attachable placeholder="…" style="min-height:140px"></textarea></div>
+          <div class="note-row"><label for="sonstiges-note">Freitext</label><textarea id="sonstiges-note" data-comment="sonstiges-note" data-attachable placeholder="…" style="min-height:140px" disabled readonly></textarea></div>
+        </section>
+      </section>
+
+      <section data-iteration="2" data-iteration-template="free" id="iter-2" data-final-report data-active>
+        <header class="iteration-intro">
+          <h2>Abschlussbericht</h2>
+          <p>Alle f&uuml;nf Entscheidungen aus Iteration 1 sind umgesetzt und gemerged.</p>
+        </header>
+
+        <section id="summary" data-nav-label="Zusammenfassung">
+          <h3>Zusammenfassung</h3>
+          <p>Alle f&uuml;nf Entscheidungen sind umgesetzt und gemerged: <strong>PR&nbsp;#547</strong>, Merge-Commit <code>5d5ef80</code>, Branch <code>feat/schiffsseite-konzepttreue</code>. Gemessene Konzepttreue <strong>97,3&nbsp;% (358 von 368 gepr&uuml;ften Punkten)</strong> &mdash; die von dir gesetzte Latte lag bei 95&nbsp;%.</p>
+        </section>
+
+        <section id="entscheidungen" data-nav-label="Die f&uuml;nf Entscheidungen">
+          <h3>Die f&uuml;nf Entscheidungen</h3>
+          <ol>
+            <li>
+              <strong>Hero, Variante B (B&uuml;hne + Werkzeugzeile):</strong>
+              Render f&uuml;llt die Karte und ist inert, Hersteller/Name oben links, Chips und die vier h&auml;ufigen Aktionen unten rechts; alles Seltenere (Ausf&uuml;hrung, Lackierung, Port-&Uuml;bersicht, RSI-Link, Pledge-Formular) in einer flachen Werkzeugzeile darunter. Andere Codex-Typen behalten den alten Zwei-Spalten-Hero. Harte Nebenbedingung eingehalten: Quantum-Treibstoff und Wasserstoff sind in die Systeme-Gruppe der Schiff-Karte gewandert statt mit den Fakten-Kacheln zu verschwinden &mdash; per Spec abgesichert.
+            </li>
+            <li>
+              <strong>Module, Variante A (vier Bl&ouml;cke):</strong>
+              Reaktor, Quantum, K&uuml;hler, Radar und Lebenserhaltung liegen als Untergruppen in &bdquo;Antrieb &amp; Systeme&ldquo;; Gegenma&szlig;nahmen und Zelle bleiben eigenst&auml;ndig. Nebenbefund und mitbehoben: die Missionsbrillen benennen nur die vier Entscheidungsgruppen, dadurch fielen Gegenma&szlig;nahmen und Zelle bei aktiver Brille komplett von der Seite.
+            </li>
+            <li>
+              <strong>Rumpf &amp; Flug, Variante A (gel&ouml;scht):</strong>
+              Block entfernt, der Massenwiderspruch ist nachweislich weg &mdash; es existiert nur noch die Entwurfs-Massenquelle, abgesichert durch eine Spec, die die Vorkommen z&auml;hlt und genau eines verlangt.
+            </li>
+            <li>
+              <strong>Viewer bleibt oben (Variante C) + der gew&uuml;nschte Umschalter:</strong>
+              unauff&auml;lliger, halbtransparenter Knopf auf der Hero-Karte, der das 2D-Bild gegen das 3D-Modell tauscht. Er benennt die Ansicht, in die er wechselt, hat ein 48px-Ziel, <code>aria-pressed</code> und ein &uuml;bersetztes Label, und erscheint nur, wenn es wirklich ein Modell gibt. Die Verf&uuml;gbarkeit rastet ein, damit ein neu montierter Viewer den Schalter nicht mitten in der Nutzung verschwinden l&auml;sst.
+            </li>
+            <li>
+              <strong>Entwurfsleiste, Variante A (nur die drei Teile):</strong>
+              der technische Satz sitzt am Speichern-Knopf als <code>title</code> und <code>aria-describedby</code>. Nach deiner Notiz ist ein blockiertes Speichern auf Touch <strong>nicht</strong> <code>disabled</code>, sondern fokussierbar und dr&uuml;ckbar und antwortet mit dem Grund als Inline-Text, statt grau zu sein.
+            </li>
+          </ol>
+        </section>
+
+        <section id="verifikation" data-nav-label="Verifikation">
+          <h3>Verifikation</h3>
+          <p><code>npm run typecheck</code> sauber &middot; Production-Build 0 Fehler &middot; <code>npm test</code> <strong>2530/2530 gr&uuml;n</strong> &middot; gemessene Konzeptdeckung 97,3&nbsp;%. Eine CSS-Budget-<strong>Warnung</strong> bleibt: die Styles von <code>codex-detail.component.ts</code> liegen bei 20,20&nbsp;kB gegen eine Warnschwelle von 18&nbsp;kB (harte Fehlerschwelle 24&nbsp;kB).</p>
+        </section>
+
+        <section id="deploy-hinweis" data-nav-label="Hinweis zum Deploy">
+          <h3>Hinweis zum Deploy</h3>
+          <p>Der Merge ist <strong>noch nicht live</strong>. Vercel hat das Tageslimit erreicht (<code>Deployment rate limited &mdash; retry in 24 hours</code>, Hobby&nbsp;= 100 Deployments/Tag, an dem Tag 105). Seit 22:38&nbsp;Uhr wurde nichts mehr ausgeliefert; f&uuml;r <code>5d5ef80</code> existiert kein Production-Deployment. Nach dem Reset bitte hart neu laden (Strg+Shift+R) oder <code>?ngsw-bypass=true</code> anh&auml;ngen, sonst zeigt der Service Worker die alte Version.</p>
+        </section>
+
+        <section id="open-questions" data-nav-label="Offene Punkte" data-open-questions>
+          <h3>Offene Punkte</h3>
+          <p class="lead">Zehn gemessene Abweichungen bleiben von den 97,3&nbsp;%. Die Persistenz-Auswahl und ihre drei Keys sind bewusst <strong>nicht</strong> umgesetzt &mdash; sie widersprechen der gew&auml;hlten Variante&nbsp;A, das ist keine offene Frage, sondern eine bewusste Entscheidung.</p>
+          <ul class="open-questions-list">
+            <li>
+              <label>
+                <input type="checkbox" name="oq-groessenklasse"
+                       data-issue-title="[CHORE] Gr&ouml;&szlig;enklassen-Chip nachr&uuml;sten"
+                       data-issue-type="chore"
+                       data-issue-body="Der Gr&ouml;&szlig;enklassen-Chip aus dem Konzept wird nicht gerendert &mdash; im Extract existiert derzeit kein Feld daf&uuml;r. Feld erg&auml;nzen (P4K-Extract) und Chip anschlie&szlig;end verdrahten."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">Gr&ouml;&szlig;enklassen-Chip wird nicht gerendert &mdash; im Extract existiert kein Feld daf&uuml;r.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-kpi-einheit"
+                       data-issue-title="[CHORE] KPI-Einheit als eigenes Element rendern"
+                       data-issue-type="chore"
+                       data-issue-body="Die KPI-Einheit ist aktuell kein eigenes DOM-Element, sondern Teil des Werttexts. Konzept sieht eine separate Einheit-Span vor (z. B. f&uuml;r Styling/Screenreader)."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">KPI-Einheit ist kein eigenes Element.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-kpi-labels"
+                       data-issue-title="[CHORE] KPI-Labels auf codex.kpi.short.* umziehen"
+                       data-issue-type="chore"
+                       data-issue-body="KPI-Labels liegen aktuell unter dem i18n-Namespace codex.kpi.* statt der im Konzept vorgesehenen Kurzform codex.kpi.short.*. Keys migrieren, de/en pflegen."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">KPI-Labels liegen unter <code>codex.kpi.*</code> statt <code>codex.kpi.short.*</code>.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-draft-reset-apply"
+                       data-issue-title="[CHORE] draftReset/draftApply-Paar statt lensReset einf&uuml;hren"
+                       data-issue-type="chore"
+                       data-issue-body="Es existiert kein eigenes draftReset/draftApply-Paar &mdash; das wird derzeit als lensReset ausgeliefert. Konzept trennt beide Aktionen begrifflich; pr&uuml;fen ob eine echte Trennung n&ouml;tig ist oder ob lensReset als Alias dokumentiert wird."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">Kein <code>draftReset</code>/<code>draftApply</code>-Paar &mdash; wird derzeit als <code>lensReset</code> ausgeliefert.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-tuned-badge-key"
+                       data-issue-title="[CHORE] Tuned-Badge-i18n-Key umbenennen"
+                       data-issue-type="chore"
+                       data-issue-body="Das Tuned-Badge ist als codex.loadout.draftState.changed formuliert; die goldene Kante selbst ist vorhanden und korrekt, nur der Key-Name tr&auml;gt noch den alten Zustandsnamen. Umbenennen auf einen tuned-spezifischen Key, de/en nachziehen."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">Tuned-Badge ist als <code>codex.loadout.draftState.changed</code> formuliert (die goldene Kante selbst ist vorhanden).</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-kpi-breakpoint"
+                       data-issue-title="[CHORE] KPI-Breakpoint von 1120px auf 1100px korrigieren"
+                       data-issue-type="chore"
+                       data-issue-body="Der KPI-Breakpoint liegt im Code bei 1120px statt der im Konzept gezeichneten 1100px. Media-Query-Wert korrigieren und Layout im Bereich 1090-1130px erneut pr&uuml;fen."
+                       data-issue-module="codex" checked>
+                <span class="oq-label">KPI-Breakpoint liegt bei 1120px statt der im Konzept gezeichneten 1100px.</span>
+              </label>
+            </li>
+            <li>
+              <label>
+                <input type="checkbox" name="oq-css-budget"
+                       data-issue-title="[REFACTOR] codex-detail.component.ts CSS-Budget aufteilen"
+                       data-issue-type="refactor"
+                       data-issue-body="Das CSS-Budget von codex-detail.component.ts &uuml;berschreitet die Warnschwelle (20,20 kB gegen 18 kB, harte Grenze 24 kB). Komponente in kleinere Sub-Komponenten mit eigenen Stylesheets aufteilen, bevor die harte Grenze erreicht wird."
+                       data-issue-role="frontend" data-issue-module="codex" checked>
+                <span class="oq-label">CSS-Budget von <code>codex-detail.component.ts</code> &uuml;berschreitet die Warnschwelle (20,20&nbsp;kB / 18&nbsp;kB) &mdash; Komponente aufteilen.</span>
+              </label>
+            </li>
+          </ul>
         </section>
       </section>
 
@@ -2029,7 +2154,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
   <aside class="concept-decision-panel overlay" id="decision-panel">
     <button id="panel-close" class="panel-close-btn" aria-label="Schliessen">✕</button>
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
-      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="true" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
+      <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="true" aria-controls="iter-2" data-final-report>Abschlussbericht</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated (design iterations) -->
