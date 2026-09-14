@@ -108,7 +108,10 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
               </div>
             </header>
             <div class="panel-body">
-              <sc-admin-feedback [embedded]="true" />
+              <!-- The board knows only "docked" and "large": maximized here is
+                   large, the docked window is not — the board's quick filters
+                   and search cap follow that one flag (admin feedback a4f30011). -->
+              <sc-admin-feedback [embedded]="true" [large]="maximized()" />
             </div>
           </div>
         }
@@ -208,7 +211,7 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
     .panel {
       /* Docked size — kept roomy so several expanded threads stay visible at
          once without needing near-fullscreen (feedback fc5373d5). */
-      width: min(480px, calc(100vw - 32px));
+      width: min(var(--sc-feedback-dock-width), calc(100vw - 32px));
       height: min(680px, calc(100vh - 120px));
       /* User-resizable: drag the corner grip to enlarge the chat window. */
       resize: both;
