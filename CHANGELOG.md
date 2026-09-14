@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.2] - 2026-09-14
+
+### Changed
+
+- **Feedback-Board: Suche nicht mehr über die ganze Breite, Schnellfilter
+  daneben.** Auf der Seite `/admin/feedback` und im maximierten Panel ist das
+  Suchfeld jetzt nur noch so breit wie im kleinen angedockten Fenster; in den
+  freigewordenen Platz rücken die Wer-Filter *Alle / Meine Themen /
+  Nutzer-Feedback* als Chips direkt neben die Suche — dieselben Schalter wie
+  im Filter-Blatt, dort weiterhin gedrückt und mitgezählt. *Andere*, die
+  Autoren, *Wo* und *Bereich* bleiben unter „Filter". Das angedockte Fenster
+  bleibt unverändert; wird die Zeile zu schmal (Tablet, Handy), falten sich
+  die Chips wieder ins Blatt zurück. (Feedback a4f30011)
+
 ## [0.85.1] - 2026-09-14
 
 ### Changed
