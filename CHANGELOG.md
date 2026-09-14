@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.84.7] - 2026-09-14
+
+### Fixed
+
+- **Der Supabase-MCP der Feedback-Routine braucht kein OAuth mehr.** Der
+  Login-Lauf über `/mcp` endete für dieses Projekt mit „Unauthorized", und
+  eine Scheduled-Task-Session kann ihn ohnehin nicht führen — jeder
+  Arbeitslauf lief deshalb über den SQL-Fallback. Der Server in `.mcp.json`
+  schickt jetzt den CLI-Token als `Authorization`-Header aus der
+  Umgebungsvariable `SUPABASE_ACCESS_TOKEN` (ohne die Variable: „Failed to
+  connect", der Fallback greift wie bisher). Prompt, Runbook und
+  Deep-Knowledge nennen den Zusammenhang.
+
 ## [0.84.6] - 2026-09-13
 
 ### Fixed

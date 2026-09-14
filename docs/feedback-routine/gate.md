@@ -201,7 +201,11 @@ over two days because every run stopped after one wave; it now drains in one.
 through the Management API with the gate's PAT and prints the rows as a JSON
 array. It exists for working runs whose session has no authorised Supabase MCP
 (observed 2026-09-13 13:27: the tick reported the MCP as unauthorised — harmless
-for an idle tick, a blocker for a working one). Same service-role power, same
+for an idle tick, a blocker for a working one). Since 0.84.7 the project MCP
+authenticates with the same PAT as a request header (`.mcp.json` →
+`SUPABASE_ACCESS_TOKEN`), so an unauthorised or unconnectable MCP now means
+that variable is missing in the session's environment — report it, take the
+fallback. Same service-role power, same
 rules: never a secret on the command line, never `rejected`, replies only into
 `admin_feedback_messages`.
 - **Worktree hygiene.** Each wave's worktrees are removed after their merge

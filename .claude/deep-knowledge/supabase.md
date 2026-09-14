@@ -253,6 +253,23 @@ Use the no-OAuth shared MCP `mcp__10628b5d-14d2-4872-a01b-5c41055eb300__*`. Tool
 - `get_logs(service=...)` — debug runtime issues
 - `get_advisors(type=security|performance)` — automated lint
 
+### Project-scoped MCP (`.mcp.json`) — PAT header, no OAuth
+
+The repo's own `supabase` server in `.mcp.json` sends `Authorization: Bearer ${SUPABASE_ACCESS_TOKEN:-}`.
+`mcp.supabase.com` accepts the CLI personal access token there (verified 2026-09-14: `initialize` → 200
+with the PAT, 401 without), so no OAuth round-trip is needed — the OAuth flow ended in "Unauthorized" for
+this project on 2026-09-13, and a non-interactive scheduled-task session cannot run it anyway.
+
+- The variable is a **user-level Windows env var** holding the same token as Credential Manager
+  `Supabase CLI:supabase` (set once via `[Environment]::SetEnvironmentVariable(..., 'User')` from that
+  entry — never paste the token on a command line). Claude Desktop must be restarted after setting it,
+  or its scheduled-task sessions keep the old environment.
+- Missing variable → `claude mcp get supabase` says "Failed to connect" (not "needs authentication");
+  the feedback routine then falls back to `node scripts/routine-gate.mjs sql`, which reads the same
+  token from Credential Manager.
+- `.mcp.json` still needs the one-time project approval per checkout path
+  (`.claude/settings.local.json` → `enabledMcpjsonServers: ["supabase"]`; done for the primary checkout).
+
 ## What MCP does NOT give us
 
 - **Auth provider config** (toggling Google, SMTP, email confirmation). Dashboard-only: <https://supabase.com/dashboard/project/hcnqhvzlavdycidqyaai/auth/providers>.
