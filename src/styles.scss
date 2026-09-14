@@ -151,6 +151,11 @@
   --sc-fab-lane: calc(var(--sc-fab-inset) + var(--sc-fab-size));
   /* Breathing room between the launcher and whatever sits beside it. */
   --sc-fab-gutter: 12px;
+  /* The docked feedback window's width. The board inside it caps its search
+     field at this size wherever it has more room (the /admin/feedback page,
+     the maximized panel), so "large" never means "a search bar across the
+     whole screen" (admin feedback a4f30011). */
+  --sc-feedback-dock-width: 480px;
 }
 @media (max-width: 720px) {
   :root {

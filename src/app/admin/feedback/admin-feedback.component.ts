@@ -207,6 +207,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       class="page"
       [class.embedded]="embedded()"
       [class.sc-dense]="embedded()"
+      [class.large]="isLarge()"
       [class.overlay-open]="overlayOpen()">
       @if (!embedded()) {
         <header class="head">
@@ -249,7 +250,20 @@ type AvatarTone = 'adm' | 'col' | 'usr';
         <!-- CONTROLS AT REST: a search field and one Filter button — nothing
              else stands between the admin and the first topic. The chart
              glyph is the only other thing here, and it is a door, not a
-             filter. -->
+             filter.
+
+             In the docked window that is the whole row. Where the board is
+             LARGE — the /admin/feedback page, the maximized panel — the search
+             field used to grow across the entire width (admin feedback
+             a4f30011). It is now capped at the docked window's width, and the
+             room that frees up carries the "Wer?" answers the admin reaches
+             for most (Alle / Ich / Nutzer) as quick chips, the same signals
+             as the sheet's chips: press one here and the sheet shows it
+             pressed, and it counts as an active filter exactly as before.
+             Andere, the author chips, Wo and Bereich stay under Filter. The
+             chips are a state decision (isLarge) first and a width decision
+             second: a large board that is nonetheless narrow (the page on a
+             phone) hides them again via the container query on the topbar. -->
         <div class="topbar">
           <div class="search-box" [class.active]="searchQuery().length > 0">
             <span class="search-icon" aria-hidden="true">&#9099;</span>
@@ -270,6 +284,16 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 [attr.aria-label]="'adminFeedback.search.clear' | translate">&times;</button>
             }
           </div>
+          @if (isLarge()) {
+            <div class="quick-chips" role="group" [attr.aria-label]="'adminFeedback.filters.who' | translate">
+              <button type="button" class="f-chip" [class.on]="whoIs('all')" [attr.aria-pressed]="whoIs('all')" (click)="setWho('all')"><span class="f-label">{{ 'adminFeedback.filters.whoAll' | translate }}</span></button>
+              <button type="button" class="f-chip" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')"><span class="f-label">{{ 'adminFeedback.filters.whoMine' | translate }}</span></button>
+              <button type="button" class="f-chip more" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
+                <span class="f-label">{{ 'adminFeedback.filters.whoUsers' | translate }}</span>
+                @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
+              </button>
+            </div>
+          }
           <button
             type="button"
             class="tb-btn filter"
@@ -1017,7 +1041,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .empty { text-align: center; color: var(--sc-fg-2); padding: 32px var(--sc-pad-1); }
 
     /* ---- Controls at rest ---- */
-    .topbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .topbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; container-type: inline-size; container-name: topbar; }
     .tb-title { font-weight: 600; font-size: 0.9rem; }
     .search-box { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; }
     .search-box:focus-within, .search-box.active { border-color: var(--sc-accent); }
@@ -1035,6 +1059,23 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .tb-icon svg { display: block; width: 100%; height: 100%; }
     .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
     @media (max-width: 420px) { .tb-btn.filter .tb-label, .tb-btn.progress .tb-label { display: none; } }
+    /* Large board (page / maximized panel): the search field stops at the
+       docked window's content width instead of spanning the row, the quick
+       "Wer?" chips take the freed room, and Filter + Fortschritt keep the
+       right edge (admin feedback a4f30011). The chips borrow the sheet's
+       .f-chip look but sit at the row's 44px so the four controls read as one
+       line. The row gives the chips up in two steps as the topbar narrows —
+       below ~800px "Nutzer-Feedback" (the widest, marked .more) goes first,
+       below ~640px the pair "Alle / Meine Themen" follows — so the search
+       always keeps ~200px of its own. Both fold back into the sheet, which
+       carries every answer regardless. That second step is what covers the
+       page on a phone, where "large" is a state but not a width. */
+    .page.large .search-box { max-width: calc(var(--sc-feedback-dock-width) - 2 * var(--sc-pad-2)); }
+    .page.large .tb-btn.filter { margin-left: auto; }
+    .quick-chips { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .quick-chips .f-chip { min-height: 44px; }
+    @container topbar (max-width: 799px) { .quick-chips .f-chip.more { display: none; } }
+    @container topbar (max-width: 639px) { .quick-chips { display: none; } }
 
     /* ---- Bands ---- */
     .band { display: flex; flex-direction: column; gap: var(--sc-gap-3); }
@@ -1320,6 +1361,11 @@ export class AdminFeedbackComponent implements OnInit {
   /** When embedded in the feedback FAB panel, the page chrome (title, subtitle)
    *  is dropped — the panel supplies its own header. */
   readonly embedded = input(false);
+
+  /** Embedded only: the panel host says whether it is maximized. The standalone
+   *  page is always large; the docked window never is (admin feedback a4f30011). */
+  readonly large = input(false);
+  readonly isLarge = computed(() => !this.embedded() || this.large());
 
   readonly messages = signal<FeedbackRow[]>([]);
   readonly busy = signal(false);

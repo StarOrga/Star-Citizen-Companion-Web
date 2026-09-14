@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
 import { deepestBoxNesting, drawsBox } from '../../feedback/testing/frame-nesting';
@@ -802,6 +802,124 @@ describe('AdminFeedbackComponent — the overview fits its panel', () => {
       // The outline stays: it is what separates one row from the next.
       expect(parseFloat(cs.borderTopWidth)).toBeGreaterThan(0);
     }
+  });
+
+  /**
+   * CONTROLS AT REST, large vs docked (admin feedback a4f30011: "die Suchleiste
+   * ist sehr groß … größe z.B. nur die Größe von dem kleinen Popup-Fenster,
+   * Rest mit Filtersachen anbieten"). The docked window keeps search + Filter
+   * and nothing else; the large board (page, maximized panel) caps the search
+   * at the docked width and puts the quick "Wer?" chips beside it.
+   */
+  /** The row is measured with the German words it really carries — a key like
+   *  "adminFeedback.filters.whoUsers" is twice as wide as "Nutzer-Feedback". */
+  function realWords() {
+    TestBed.inject(TranslateService).setTranslation(
+      'en',
+      { adminFeedback: { filters: { whoAll: 'Alle', whoMine: 'Meine Themen', whoUsers: 'Nutzer-Feedback', open: 'Filter' }, stream: { progress: 'Fortschritt' } } },
+      true,
+    );
+  }
+
+  it('docked: search and Filter only — no quick chips, no cap on the search', async () => {
+    const { el } = await mount(fixtureTables());
+    inHost(el, 480);
+    expect(el.querySelector('.page')!.classList).not.toContain('large');
+    expect(el.querySelector('.quick-chips')).toBeNull();
+    const search = el.querySelector<HTMLElement>('.topbar .search-box')!;
+    expect(getComputedStyle(search).maxWidth).toBe('none');
+    // The sheet still answers "Wer?" in full.
+    expect(el.querySelectorAll('.topbar .f-chip').length).toBe(0);
+  });
+
+  it('large: the search stops at the docked width and the quick chips take the room', async () => {
+    const { fixture, el } = await mount(fixtureTables());
+    realWords();
+    fixture.componentRef.setInput('large', true);
+    fixture.detectChanges();
+    inHost(el, 900);
+    expect(el.querySelector('.page')!.classList).toContain('large');
+
+    // The docked window is 480px wide and pads its board by --sc-pad-2 (12px)
+    // on each side: the search never grows past that content width.
+    const search = el.querySelector<HTMLElement>('.topbar .search-box')!;
+    expect(search.getBoundingClientRect().width).toBeLessThanOrEqual(480 - 2 * 12 + 1);
+    expect(search.getBoundingClientRect().width).toBeGreaterThan(300);
+
+    const chips = el.querySelector<HTMLElement>('.topbar .quick-chips')!;
+    expect(chips).not.toBeNull();
+    expect(getComputedStyle(chips).display).toBe('flex');
+    expect(chips.getAttribute('role')).toBe('group');
+    expect(chips.getAttribute('aria-label')).toBeTruthy();
+    const buttons = Array.from(chips.querySelectorAll<HTMLButtonElement>('.f-chip'));
+    expect(buttons.length).toBe(3); // Alle / Ich / Nutzer — Andere, authors, Wo, Bereich stay in the sheet
+    for (const b of buttons) {
+      expect(b.getAttribute('aria-pressed')).toBeTruthy();
+      expect(b.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    }
+    // Filter and Fortschritt keep the right edge; the chips sit next to the search.
+    const filter = el.querySelector<HTMLElement>('.topbar .tb-btn.filter')!;
+    expect(chips.getBoundingClientRect().left).toBeGreaterThanOrEqual(search.getBoundingClientRect().right);
+    expect(filter.getBoundingClientRect().left).toBeGreaterThanOrEqual(chips.getBoundingClientRect().right);
+    const topbar = el.querySelector<HTMLElement>('.topbar')!;
+    expect(topbar.scrollWidth).toBeLessThanOrEqual(topbar.clientWidth + 1);
+  });
+
+  it('large but narrower: the chips fold back into the sheet in two steps, the row never overflows', async () => {
+    const { fixture, el } = await mount(fixtureTables());
+    realWords();
+    fixture.componentRef.setInput('large', true);
+    fixture.detectChanges();
+    const topbar = el.querySelector<HTMLElement>('.topbar')!;
+    const chips = el.querySelector<HTMLElement>('.topbar .quick-chips')!;
+    const visible = () => Array.from(chips.querySelectorAll<HTMLElement>('.f-chip')).filter((c) => c.getClientRects().length > 0).length;
+    const search = () => el.querySelector<HTMLElement>('.topbar .search-box')!.getBoundingClientRect().width;
+
+    // A tablet-sized maximized panel: the widest chip ("Nutzer-Feedback") goes first.
+    inHost(el, 740);
+    expect(getComputedStyle(chips).display).toBe('flex');
+    expect(visible()).toBe(2);
+    expect(topbar.scrollWidth).toBeLessThanOrEqual(topbar.clientWidth + 1);
+    expect(search()).toBeGreaterThan(160);
+
+    // The page on a phone: "large" is a state, not a width — the row is back
+    // to search + Filter + Fortschritt, and the search is still a search.
+    inHost(el, 390);
+    expect(getComputedStyle(chips).display).toBe('none');
+    expect(visible()).toBe(0);
+    expect(topbar.scrollWidth).toBeLessThanOrEqual(topbar.clientWidth + 1);
+    expect(search()).toBeGreaterThan(120);
+  });
+
+  it('a quick chip is the same filter as the sheet chip: pressed in both, counted once', async () => {
+    const { fixture, cmp, el } = await mount(fixtureTables());
+    fixture.componentRef.setInput('large', true);
+    fixture.detectChanges();
+    inHost(el, 900);
+    const quick = () => Array.from(el.querySelectorAll<HTMLButtonElement>('.topbar .quick-chips .f-chip'));
+    expect(quick().map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+    expect(cmp.filterCount()).toBe(0); // "Alle" is the rest state, not a filter
+
+    quick()[1].click(); // Ich
+    fixture.detectChanges();
+    expect(cmp.whoFilter()).toBe('mine');
+    expect(cmp.filterCount()).toBe(1);
+    expect(quick().map((b) => b.classList.contains('on'))).toEqual([false, true, false]);
+
+    cmp.openFilters();
+    fixture.detectChanges();
+    const sheetWho = Array.from(el.querySelectorAll('.sheet.filters .f-chips')[0].querySelectorAll<HTMLButtonElement>('.f-chip'));
+    expect(sheetWho.slice(0, 4).map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'false', 'false']);
+    sheetWho[3].click(); // Nutzer, from the sheet — the quick chip follows
+    fixture.detectChanges();
+    expect(quick().map((b) => b.classList.contains('on'))).toEqual([false, false, true]);
+    cmp.closeFilters();
+    fixture.detectChanges();
+
+    quick()[0].click(); // Alle
+    fixture.detectChanges();
+    expect(cmp.whoFilter()).toBe('all');
+    expect(cmp.filterCount()).toBe(0);
   });
 });
 
