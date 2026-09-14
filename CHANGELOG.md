@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.0] - 2026-09-14
+
+### Added
+
+- **Konzeptseiten laufen jetzt auf der Webseite.** Eine interaktive
+  Konzeptseite (Auswahl, Notizen, „Zur nächsten Iteration" / „Mit Feedback
+  implementieren") lässt sich unter `/konzept/<id>` öffnen — nur für Admins
+  und nur über den Link, der im Feedback-Thread steht. Keine lokale Bridge
+  mehr: die Seite wird von der neuen Edge Function `concept-page` hinter
+  einem 12-Stunden-Ticket ausgeliefert, Entscheidungen und Notizen landen in
+  `concept_pages`, und eine neue Iteration lädt die offene Seite von selbst
+  nach. Erstes Konzept: „Layout Bewaffnung — Erstiteration" (Feedback #224).
+
 ## [0.84.7] - 2026-09-14
 
 ### Fixed

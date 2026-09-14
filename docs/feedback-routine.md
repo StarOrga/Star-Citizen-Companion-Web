@@ -27,6 +27,7 @@ situation.
 | Any topic with `source = 'user'` — untriaged, author questions, attachments, declining | [`feedback-routine/user-feedback.md`](feedback-routine/user-feedback.md) |
 | End of a working run: loose ends no query sees | [`feedback-routine/sweep.md`](feedback-routine/sweep.md) |
 | The admin asks about the board UI (stream, Fortschritt, `#42`, search) | [`feedback-routine/admin-panel.md`](feedback-routine/admin-panel.md) |
+| The admin asks for a concept page / a concept iteration, or answers one (`/konzept/<id>`) | [`feedback-routine/concepts.md`](feedback-routine/concepts.md) |
 | "Why is this rule here?" — the incident behind a rule | [`feedback-routine/history.md`](feedback-routine/history.md) |
 
 ## STEP 0 — the gate: one script call before anything else

@@ -174,6 +174,15 @@ verify_jwt = true
 # platform gate is the right first line of defence here.
 verify_jwt = true
 
+[functions.concept-page]
+# JWT verification OFF — the function does its own auth. The concept document
+# is loaded by an <iframe src> (no headers can be attached to a navigation),
+# and the page's bridge sub-requests carry an HMAC ticket in the query string
+# that only `POST /ticket` (admin session, checked in index.ts) can mint.
+# With the platform gate ON the iframe could never load. Don't revert without
+# reworking the auth model in the function body.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"

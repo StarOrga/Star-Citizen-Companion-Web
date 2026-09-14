@@ -3813,5 +3813,14 @@
       "notApproved": "Dein Konto ist nicht freigeschaltet.",
       "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
     }
+  },
+  "conceptPage": {
+    "title": "Konzeptseite",
+    "back": "Zurück zum Feedback",
+    "openTab": "In neuem Tab öffnen",
+    "loading": "Konzeptseite wird geöffnet…",
+    "forbidden": "Diese Konzeptseite ist nur für Admins erreichbar.",
+    "notFound": "Diese Konzeptseite gibt es nicht (mehr).",
+    "error": "Die Konzeptseite konnte nicht geladen werden. Bitte später noch einmal versuchen."
   }
 }
