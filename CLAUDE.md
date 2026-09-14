@@ -30,3 +30,4 @@ Angular 21 PWA · Supabase · Vercel — live at `sc-companion.vercel.app` (the 
 - `.claude/deep-knowledge/p4k-format.md` — CryEngine PAK / ZIP heuristics, what we currently parse
 - `.claude/deep-knowledge/local-dev.md` — dev-server IPv4-only bind (localhost ≠ 127.0.0.1), Docker, worktrees
 - `.claude/deep-knowledge/patch-stability.md` — stability indicator sources (Spectrum replies, status JSON, CIG KB), API quirks, where the formula lives
+- `.claude/deep-knowledge/scheduled-tasks.md` — the feedback routine as a Desktop scheduled task: one session per tick, why every tick archives older sessions and itself, what to check before touching cron or cadence
