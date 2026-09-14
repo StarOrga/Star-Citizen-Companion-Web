@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.8] - 2026-09-14
+
+### Changed
+
+- **Session-Aufräumen der Feedback-Routine: der Weg über die App.** Claude
+  Desktop bringt eine eigene Auto-Archivierung für inaktive Sessions mit
+  (Settings → Local sessions → „Archive inactive sessions", 1/2/7/14/30 Tage).
+  Sie läuft ohne Zustimmungsdialog und archiviert damit auch die Sessions der
+  Scheduled-Task-Ticks — das, was der ausgesetzte Prompt-Schritt nicht konnte.
+  Runbook und Deep-Knowledge beschreiben Einstellung, Haltegründe der Engine
+  und die verbleibende Stellschraube (Cron nur auf Cadence-Slots).
+
 ## [0.85.7] - 2026-09-14
 
 ### Fixed
