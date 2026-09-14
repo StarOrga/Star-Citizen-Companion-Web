@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.6] - 2026-09-14
+
+### Changed
+
+- **Abhängigkeiten: die vier grünen Dependabot-Bumps landen (#576, #578,
+  #581, #582).** Die Dependabot-PRs sind aus dem Repo-Tooling heraus nicht
+  mergebar, deshalb kommen die Versionen über den normalen Ship-Weg auf main;
+  Dependabot schließt seine PRs daraufhin selbst. Web: `hono` 4.13.7
+  (transitiv). Data Uploader 0.29.2: `sharp` 0.35.4, `js-yaml` 4.3.2,
+  `@gltf-transform/cli` 4.5.0, `@types/node` 26.5.1, `electron` 44.3.0,
+  `vitest` 5.0.0 — 287 Uploader-Tests unter vitest 5 grün, `tsc` sauber.
+  Nicht gelandet, weil `npm install` auf der Vercel-Preview scheitert:
+  #552 (Angular 22 verlangt TypeScript 6 — eine Migration, kein Bump),
+  #586 (`@google/model-viewer` 4.3.1 will `three ^0.183`, wir sind auf
+  0.186) und #577 (`@angular/compiler` 21.2.20 ohne `compiler-cli`).
+
 ## [0.85.5] - 2026-09-14
 
 ### Fixed
