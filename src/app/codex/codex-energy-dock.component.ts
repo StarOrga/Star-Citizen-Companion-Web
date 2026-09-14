@@ -35,6 +35,7 @@ import {
   DockPosition,
   FlightMode,
   PowerFact,
+  PowerColumnKey,
   PowerFactKey,
   PowerGroup,
   PowerGroupRow,
@@ -43,8 +44,10 @@ import {
   PowerSheet,
   clickPowerPip,
   computePowerSheet,
+  coolerUnitCount,
   isDockPosition,
   isFlightMode,
+  migrateLegacyCoolerDraft,
   parsePowerGroups,
   parsePowerLevels,
   resetPowerState,
@@ -191,18 +194,19 @@ let uidSeq = 0;
                same height in every column no matter how many pips a group
                has (590230e3). -->
           <div class="md-pips" [style.--pips]="maxPips()">
-            @for (row of sheet().groups; track row.group) {
+            @for (row of sheet().groups; track row.key) {
               <div
                 class="md-col"
                 [class.off]="row.state === 'off'"
                 [class.act]="row.state === 'active'"
                 [class.absent]="row.state === 'absent'"
                 [attr.data-group]="row.group"
+                [attr.data-key]="row.key"
               >
                 <div
                   class="stack"
                   role="group"
-                  [attr.aria-label]="row.labelKey | translate"
+                  [attr.aria-label]="row.labelKey | translate: row.labelParams"
                   (keydown.arrowUp)="stepPipFocus($event, 1)"
                   (keydown.arrowDown)="stepPipFocus($event, -1)"
                 >
@@ -218,7 +222,7 @@ let uidSeq = 0;
                       [attr.aria-pressed]="pip.kind !== 'empty'"
                       [attr.aria-label]="
                         (isTopOffPip(row, $index + 1) ? 'codex.energy.pip.topOff' : 'codex.energy.pip.level')
-                          | translate: { group: (row.labelKey | translate), n: $index + 1, m: row.capacity }
+                          | translate: { group: (row.labelKey | translate: row.labelParams), n: $index + 1, m: row.capacity }
                       "
                       [disabled]="!pipsEnabled(row)"
                       (click)="clickPip(row, $index + 1)"
@@ -232,16 +236,16 @@ let uidSeq = 0;
                     type="button"
                     class="grp-btn"
                     [attr.aria-pressed]="row.cut"
-                    [attr.aria-describedby]="tipId(row.group) + ' ' + metaId(row.group)"
-                    [attr.aria-label]="(row.cut ? 'codex.energy.toggleOn' : 'codex.energy.toggleOff') | translate: { group: row.labelKey | translate }"
-                    (click)="toggleGroup(row.group)"
+                    [attr.aria-describedby]="tipId(row.key) + ' ' + metaId(row.key)"
+                    [attr.aria-label]="(row.cut ? 'codex.energy.toggleOn' : 'codex.energy.toggleOff') | translate: { group: row.labelKey | translate: row.labelParams }"
+                    (click)="toggleGroup(row.key)"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ico" aria-hidden="true">
                       <path [attr.d]="iconPath(row.group)" />
                     </svg>
                   </button>
-                  <div class="tipbox" [id]="tipId(row.group)" role="tooltip">
-                    <b>{{ row.tooltipTitleKey | translate }}</b>
+                  <div class="tipbox" [id]="tipId(row.key)" role="tooltip">
+                    <b>{{ row.tooltipTitleKey | translate: row.labelParams }}</b>
                     <p>{{ row.tooltipBodyKey | translate }}</p>
                     @if (row.state !== 'absent') {
                       <p class="demand">{{ 'codex.energy.demandLine' | translate: { demand: fmt(row.demand), items: row.items, allocated: row.allocated } }}</p>
@@ -257,7 +261,7 @@ let uidSeq = 0;
                     }
                   </div>
                 </div>
-                <span class="visually-hidden" [id]="metaId(row.group)"
+                <span class="visually-hidden" [id]="metaId(row.key)"
                   >{{ 'codex.energy.allocated' | translate: { n: row.allocated } }} · {{ 'codex.energy.minimum' | translate: { n: row.minimum } }}</span
                 >
                 <div class="grp-state" [class.off]="row.state === 'off'" [class.warn]="row.belowMinimum">
@@ -457,7 +461,12 @@ let uidSeq = 0;
       }
       .md-body {
         display: grid;
-        grid-template-columns: auto 1px auto;
+        /* minmax(0, …): Blink reports a wrapping row-flex container's
+           min-content as the sum of its items, so an auto track holding
+           nine or more columns is forced wider than the dock and the strip
+           overflows instead of wrapping (590230e3, one column per cooler).
+           A zero minimum lets the track shrink to what the dock has. */
+        grid-template-columns: minmax(0, max-content) 1px minmax(0, max-content);
         gap: 12px;
         padding: 2px 12px 8px;
       }
@@ -467,6 +476,11 @@ let uidSeq = 0;
          so the tighter gap costs no reachability. */
       .md-pips {
         display: flex;
+        /* one column per cooler unit (590230e3, F1d) makes the strip nine or
+           more columns wide; wrapping keeps it inside the dock on any width —
+           the page body must never scroll sideways. */
+        flex-wrap: wrap;
+        min-inline-size: 0;
         gap: 4px;
         /* pip geometry in one place: the stack height below is derived from
            it, and the two pointer branches only retune these three values. */
@@ -855,7 +869,7 @@ let uidSeq = 0;
 
       @media (max-width: 820px) {
         .md-body {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
         }
         .vr {
           display: none;
@@ -874,7 +888,9 @@ let uidSeq = 0;
         }
         .md-pips {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          /* as many columns as fit a tap target: nine columns (two coolers)
+             become 5 + 4 on a 390px phone instead of a third row of one. */
+          grid-template-columns: repeat(auto-fill, minmax(max(56px, var(--sc-tap-min)), 1fr));
         }
         .pos-pick {
           display: none;
@@ -912,8 +928,9 @@ export class CodexEnergyDockComponent {
   private readonly uid = `energy-dock-${++uidSeq}`;
   protected readonly bodyId = `${this.uid}-body`;
 
-  private readonly cutGroups = signal<ReadonlySet<PowerGroup>>(new Set());
-  /** the pilot's pinned levels (codex-power.ts F1c) — empty = every group auto. */
+  /** cut COLUMNS — a cooler unit under its own `cooler<n>` key (codex-power.ts F1d). */
+  private readonly cutGroups = signal<ReadonlySet<PowerColumnKey>>(new Set());
+  /** the pilot's pinned levels per column (codex-power.ts F1c) — empty = every column auto. */
   private readonly levels = signal<PowerLevels>({});
   /** `protected` — the footer template reads these to mark the active SCM/NAV
    * and Auto/Schleichen buttons; AOT template type-checking needs at least
@@ -1046,8 +1063,16 @@ export class CodexEnergyDockComponent {
       urlDraft = null;
     }
     const draft = urlDraft ?? local ?? DEFAULT_POWER_DRAFT;
-    this.cutGroups.set(parsePowerGroups(draft.cutGroups));
-    this.levels.set(parsePowerLevels(draft.levels));
+    // F1d — a draft saved before the coolers split carries one `coolers`
+    // cut/pin for the summed group; spread it over this ship's cooler units
+    // (see `migrateLegacyCoolerDraft` for the exact mapping).
+    const migrated = migrateLegacyCoolerDraft(
+      parsePowerGroups(draft.cutGroups),
+      parsePowerLevels(draft.levels),
+      coolerUnitCount(this.occupants()),
+    );
+    this.cutGroups.set(migrated.cutGroups);
+    this.levels.set(migrated.levels);
     this.mode.set(isFlightMode(draft.mode) ? draft.mode : 'scm');
     this.preset.set(draft.preset === 'stealth' ? 'stealth' : 'auto');
 
@@ -1119,12 +1144,12 @@ export class CodexEnergyDockComponent {
     return kpiKey ? kpiLowerIsBetter(kpiKey) : f.lowerIsBetter;
   }
 
-  protected tipId(group: PowerGroup): string {
-    return `${this.uid}-tip-${group}`;
+  protected tipId(key: PowerColumnKey): string {
+    return `${this.uid}-tip-${key}`;
   }
 
-  protected metaId(group: PowerGroup): string {
-    return `${this.uid}-meta-${group}`;
+  protected metaId(key: PowerColumnKey): string {
+    return `${this.uid}-meta-${key}`;
   }
 
   protected factTipId(key: PowerFactKey): string {
@@ -1155,12 +1180,12 @@ export class CodexEnergyDockComponent {
     if (this.tipsHidden()) this.tipsHidden.set(false);
   }
 
-  protected toggleGroup(group: PowerGroup): void {
-    this.cutGroups.set(togglePowerGroup(this.cutGroups(), group));
+  protected toggleGroup(key: PowerColumnKey): void {
+    this.cutGroups.set(togglePowerGroup(this.cutGroups(), key));
     this.persistDraft();
   }
 
-  /** Pips can be set on a group that has hardware and a channel in this mode. */
+  /** Pips can be set on a column that has hardware and a channel in this mode. */
   protected pipsEnabled(row: PowerGroupRow): boolean {
     return row.state !== 'absent' && row.state !== 'noChannel' && row.capacity > 0;
   }

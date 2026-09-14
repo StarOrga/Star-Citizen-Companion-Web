@@ -15,7 +15,7 @@ import {
   powerStorageKey,
   serializeLocalPowerDraft,
 } from './codex-loadout-draft';
-import { NOMAD_SHIP_STATS, nomadOccupants } from './testing/nomad-power.fixture';
+import { NOMAD_COOLER, NOMAD_POWER_FIXTURE, NOMAD_SHIP_STATS, nomadOccupants } from './testing/nomad-power.fixture';
 
 const SHIP = 'CNOU_Nomad';
 
@@ -33,6 +33,8 @@ async function setup(opts: {
   queryParam?: string | null;
   schemaVersion?: number | null;
   userId?: string | null;
+  /** override the loadout (default: the Nomad with its two coolers). */
+  occupants?: ReturnType<typeof nomadOccupants>;
   beforeDetect?: (fixture: ComponentFixture<CodexEnergyDockComponent>) => void;
 } = {}): Promise<ComponentFixture<CodexEnergyDockComponent>> {
   TestBed.resetTestingModule();
@@ -53,7 +55,7 @@ async function setup(opts: {
   }).compileComponents();
 
   const fixture = TestBed.createComponent(CodexEnergyDockComponent);
-  fixture.componentRef.setInput('occupants', nomadOccupants());
+  fixture.componentRef.setInput('occupants', opts.occupants ?? nomadOccupants());
   fixture.componentRef.setInput('shipStats', NOMAD_SHIP_STATS);
   fixture.componentRef.setInput('shipClassName', SHIP);
   fixture.componentRef.setInput('schemaVersion', opts.schemaVersion ?? POWER_REQUIRED_SCHEMA);
@@ -266,7 +268,7 @@ describe('CodexEnergyDockComponent', () => {
     const fixture = await setup();
     const rootB: HTMLElement = fixture.nativeElement;
     const buttons = Array.from(rootB.querySelectorAll<HTMLButtonElement>('.grp-btn'));
-    expect(buttons.length).toBe(8);
+    expect(buttons.length).toBe(9); // seven groups + one per Nomad cooler unit (F1d)
     for (const b of buttons) expect(b.getAttribute('aria-label')?.length ?? 0).toBeGreaterThan(0);
   });
 
@@ -313,16 +315,39 @@ describe('CodexEnergyDockComponent', () => {
 
   // ── the pip stack (admin feedback 590230e3) ──────────────────────────────
 
-  const pipsOf = (root: HTMLElement, group: string): HTMLButtonElement[] =>
-    Array.from(root.querySelectorAll<HTMLButtonElement>(`.md-col[data-group="${group}"] button.pip`));
-  const rowOf = (c: CodexEnergyDockComponent, group: string) =>
-    c['sheet']().groups.find((g) => g.group === group)!;
+  // columns are addressed by their COLUMN key: a group key, or `cooler<n>`
+  // for one cooler unit (F1d) — `data-group` is `coolers` on every unit.
+  const pipsOf = (root: HTMLElement, key: string): HTMLButtonElement[] =>
+    Array.from(root.querySelectorAll<HTMLButtonElement>(`.md-col[data-key="${key}"] button.pip`));
+  const rowOf = (c: CodexEnergyDockComponent, key: string) =>
+    c['sheet']().groups.find((g) => g.key === key)!;
 
-  it('renders the eight groups in the fixed order, absent ones as an empty column', async () => {
+  it('renders the seven groups in the fixed order plus one column per cooler, absent ones as an empty column', async () => {
     const fixture = await setup();
     const root: HTMLElement = fixture.nativeElement;
-    const order = Array.from(root.querySelectorAll<HTMLElement>('.md-col')).map((el) => el.dataset['group']);
-    expect(order).toEqual(['weapons', 'thrusters', 'shields', 'quantum', 'tractor', 'radar', 'life', 'coolers']);
+    const cols = Array.from(root.querySelectorAll<HTMLElement>('.md-col'));
+    expect(cols.map((el) => el.dataset['key'])).toEqual([
+      'weapons',
+      'thrusters',
+      'shields',
+      'quantum',
+      'tractor',
+      'radar',
+      'life',
+      'cooler1',
+      'cooler2',
+    ]);
+    expect(cols.map((el) => el.dataset['group'])).toEqual([
+      'weapons',
+      'thrusters',
+      'shields',
+      'quantum',
+      'tractor',
+      'radar',
+      'life',
+      'coolers',
+      'coolers',
+    ]);
     // the Nomad has no tractor beam: the column stays, with a ghost pip and no control
     const tractor = root.querySelector<HTMLElement>('.md-col[data-group="tractor"]')!;
     expect(tractor.classList.contains('absent')).toBeTrue();
@@ -334,28 +359,33 @@ describe('CodexEnergyDockComponent', () => {
   it('pips fill upward: level 1 is the bottom pip, the stack grows toward the top', async () => {
     const fixture = await setup();
     const root: HTMLElement = fixture.nativeElement;
-    const coolers = pipsOf(root, 'coolers');
-    expect(coolers.length).toBe(6);
-    expect(coolers.map((b) => b.dataset['level'])).toEqual(['1', '2', '3', '4', '5', '6']);
-    const stack = root.querySelector<HTMLElement>('.md-col[data-group="coolers"] .stack')!;
+    const shields = pipsOf(root, 'shields');
+    expect(shields.length).toBe(4);
+    expect(shields.map((b) => b.dataset['level'])).toEqual(['1', '2', '3', '4']);
+    const stack = root.querySelector<HTMLElement>('.md-col[data-key="shields"] .stack')!;
     expect(getComputedStyle(stack).flexDirection).toBe('column-reverse');
-    const bottom = coolers[0].getBoundingClientRect();
-    const top = coolers[5].getBoundingClientRect();
+    const bottom = shields[0].getBoundingClientRect();
+    const top = shields[3].getBoundingClientRect();
     expect(bottom.top).toBeGreaterThan(top.top);
-    // the Nomad's auto deal lights coolers 1..4 (gold minimum), 5..6 stay empty
-    expect(coolers.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'true', 'true', 'true', 'false', 'false']);
+    // each cooler unit is its own 3-pip stack: the auto deal lights 1..2 (gold
+    // minimum), 3 stays empty — on BOTH units, never summed (F1d)
+    for (const key of ['cooler1', 'cooler2']) {
+      const cooler = pipsOf(root, key);
+      expect(cooler.map((b) => b.dataset['level'])).toEqual(['1', '2', '3']);
+      expect(cooler.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'true', 'false']);
+    }
   });
 
   it('every stack has the same height so the icon row sits on one line', async () => {
     const fixture = await setup();
     const root: HTMLElement = fixture.nativeElement;
     const stacks = Array.from(root.querySelectorAll<HTMLElement>('.md-col .stack'));
-    expect(stacks.length).toBe(8);
+    expect(stacks.length).toBe(9);
     const heights = new Set(stacks.map((s) => Math.round(s.getBoundingClientRect().height)));
     expect(heights.size).withContext([...heights].join(',')).toBe(1);
-    // the tallest stack (6 cooler pips) sets the height, so it never clips
-    const pipH = pipsOf(root, 'coolers')[0].getBoundingClientRect().height;
-    expect([...heights][0]).toBeGreaterThanOrEqual(Math.floor(6 * pipH));
+    // the tallest stack (4 shield pips) sets the height, so it never clips
+    const pipH = pipsOf(root, 'shields')[0].getBoundingClientRect().height;
+    expect([...heights][0]).toBeGreaterThanOrEqual(Math.floor(4 * pipH));
     // icons: one row on a wide layout, at most two on the ≤640px phone grid —
     // and never one height per column.
     const icons = Array.from(root.querySelectorAll<HTMLElement>('.grp-btn'));
@@ -367,20 +397,23 @@ describe('CodexEnergyDockComponent', () => {
     const fixture = await setup();
     const c = fixture.componentInstance;
     const root: HTMLElement = fixture.nativeElement;
-    expect(rowOf(c, 'coolers').allocated).toBe(4);
+    expect(rowOf(c, 'cooler1').allocated).toBe(2);
 
-    pipsOf(root, 'coolers')[1].click(); // level 2 — below the gold floor of 4
+    pipsOf(root, 'cooler1')[0].click(); // level 1 — below the unit's gold floor of 2
     fixture.detectChanges();
-    expect(rowOf(c, 'coolers').allocated).toBe(2);
-    expect(rowOf(c, 'coolers').pinned).toBeTrue();
-    expect(rowOf(c, 'coolers').belowMinimum).toBeTrue();
-    expect(root.querySelector('.md-col[data-group="coolers"] .grp-state')?.classList).toContain('warn');
-    expect(c['sheet']().budgetUsed).toBe(12);
+    expect(rowOf(c, 'cooler1').allocated).toBe(1);
+    expect(rowOf(c, 'cooler1').pinned).toBeTrue();
+    expect(rowOf(c, 'cooler1').belowMinimum).toBeTrue();
+    expect(root.querySelector('.md-col[data-key="cooler1"] .grp-state')?.classList).toContain('warn');
+    expect(c['sheet']().budgetUsed).toBe(13);
+    // the sibling cooler is its own column and did not move (F1d)
+    expect(rowOf(c, 'cooler2').allocated).toBe(2);
+    expect(rowOf(c, 'cooler2').pinned).toBeFalse();
 
-    pipsOf(root, 'coolers')[5].click(); // level 6 — two more than the reactor has
+    pipsOf(root, 'cooler1')[2].click(); // level 3 — one more than the reactor has
     fixture.detectChanges();
-    expect(rowOf(c, 'coolers').allocated).toBe(6);
-    expect(c['sheet']().budgetUsed).toBe(16);
+    expect(rowOf(c, 'cooler1').allocated).toBe(3);
+    expect(c['sheet']().budgetUsed).toBe(15);
     expect(c['sheet']().overBudget).toBeTrue();
     expect(root.querySelector('.bud')?.classList).toContain('over');
     // the other groups kept what the auto deal gave them
@@ -435,7 +468,7 @@ describe('CodexEnergyDockComponent', () => {
   it('arrow keys walk the stack upward and downward', async () => {
     const fixture = await setup();
     const root: HTMLElement = fixture.nativeElement;
-    const coolers = pipsOf(root, 'coolers');
+    const coolers = pipsOf(root, 'cooler1');
     coolers[0].focus();
     coolers[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
     expect(document.activeElement).toBe(coolers[1]);
@@ -458,12 +491,99 @@ describe('CodexEnergyDockComponent', () => {
     expect(rowOf(c, 'shields').pinned).toBeFalse();
     expect(rowOf(c, 'shields').allocated).toBe(2);
 
-    const pw = encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { coolers: 5 } })!;
+    const pw = encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { cooler2: 3 } })!;
     const fixture2 = await setup({ queryParam: pw });
-    expect(rowOf(fixture2.componentInstance, 'coolers').allocated).toBe(5);
+    expect(rowOf(fixture2.componentInstance, 'cooler2').allocated).toBe(3);
+    expect(rowOf(fixture2.componentInstance, 'cooler1').allocated).toBe(2);
     fixture2.componentInstance['reset']();
     fixture2.detectChanges();
-    expect(rowOf(fixture2.componentInstance, 'coolers').allocated).toBe(4);
+    expect(rowOf(fixture2.componentInstance, 'cooler2').allocated).toBe(2);
+  });
+
+  // ── one column per cooler unit (admin reply 2026-09-14, F1d) ────────────
+
+  it('renders every installed cooler as its own column with its own label, pin and cut', async () => {
+    const fixture = await setup();
+    const c = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    const units = Array.from(root.querySelectorAll<HTMLElement>('.md-col[data-group="coolers"]'));
+    expect(units.length).toBe(2);
+    expect(rowOf(c, 'cooler1').labelKey).toBe('codex.energy.group.coolerUnit');
+    expect(rowOf(c, 'cooler1').labelParams).toEqual({ n: 1 });
+    // the stack's accessible name carries the unit index, not the group word
+    const stack2 = root.querySelector<HTMLElement>('.md-col[data-key="cooler2"] .stack')!;
+    expect(stack2.getAttribute('aria-label')).toBe('codex.energy.group.coolerUnit');
+    // each unit has its own toggle: cutting unit 2 leaves unit 1 running
+    units[1].querySelector<HTMLButtonElement>('.grp-btn')!.click();
+    fixture.detectChanges();
+    expect(rowOf(c, 'cooler2').state).toBe('off');
+    expect(rowOf(c, 'cooler1').state).toBe('active');
+    expect(c['sheet']().budgetUsed).toBe(12);
+    expect(localStorage.getItem(powerStorageKey(SHIP))).toContain('cooler2');
+    // ids are keyed by column, so the two tooltips never collide
+    const tipIds = units.map((u) => u.querySelector('.tipbox')!.id);
+    expect(new Set(tipIds).size).toBe(2);
+  });
+
+  it('a ship without coolers keeps ONE empty cooling column', async () => {
+    const fixture = await setup({ occupants: nomadOccupants(NOMAD_POWER_FIXTURE.filter((f) => f !== NOMAD_COOLER)) });
+    const root: HTMLElement = fixture.nativeElement;
+    const cols = Array.from(root.querySelectorAll<HTMLElement>('.md-col'));
+    expect(cols.length).toBe(8);
+    const cooling = cols[7];
+    expect(cooling.dataset['key']).toBe('coolers');
+    expect(cooling.classList.contains('absent')).toBeTrue();
+    expect(cooling.querySelector('.pip.ghost')).toBeTruthy();
+    expect(cooling.querySelector('.grp-state')?.textContent?.trim()).toBe('codex.energy.state.absent');
+  });
+
+  it('a legacy draft with a single `coolers` pin or cut is mapped onto every unit', async () => {
+    // a pw link shared before the split: the summed group pinned at 5 → ⌈5/2⌉ = 3 per unit
+    const pinned = await setup({ queryParam: encodePowerParam({ ...DEFAULT_POWER_DRAFT, levels: { coolers: 5 } })! });
+    expect(rowOf(pinned.componentInstance, 'cooler1').allocated).toBe(3);
+    expect(rowOf(pinned.componentInstance, 'cooler2').allocated).toBe(3);
+    expect(rowOf(pinned.componentInstance, 'cooler2').pinned).toBeTrue();
+    expect(pinned.componentInstance['sheet']().budgetUsed).toBe(16);
+
+    // a localStorage draft with the group cut: both units off, and a
+    // per-unit toggle brings ONE back without fighting the old group cut
+    localStorage.setItem(
+      powerStorageKey(SHIP),
+      serializeLocalPowerDraft(SHIP, { ...DEFAULT_POWER_DRAFT, cutGroups: ['coolers'] }),
+    );
+    const cut = await setup();
+    const c = cut.componentInstance;
+    expect(rowOf(c, 'cooler1').state).toBe('off');
+    expect(rowOf(c, 'cooler2').state).toBe('off');
+    c['toggleGroup']('cooler1');
+    cut.detectChanges();
+    expect(rowOf(c, 'cooler1').state).toBe('active');
+    expect(rowOf(c, 'cooler2').state).toBe('off');
+    expect(localStorage.getItem(powerStorageKey(SHIP))).not.toContain('"coolers"');
+  });
+
+  it('nine columns never make the dock scroll sideways', async () => {
+    const fixture = await setup();
+    const root: HTMLElement = fixture.nativeElement;
+    const dock = root.querySelector<HTMLElement>('.mini-dock')!.getBoundingClientRect();
+    const stripEl = root.querySelector<HTMLElement>('.md-pips')!;
+    const strip = stripEl.getBoundingClientRect();
+    // measured on the columns' boxes, not scrollWidth: the (hidden) tooltips
+    // are absolutely positioned 230px boxes that count toward scrollWidth
+    // without ever taking part in the layout.
+    for (const col of Array.from(root.querySelectorAll<HTMLElement>('.md-col'))) {
+      const r = col.getBoundingClientRect();
+      expect(r.right).toBeLessThanOrEqual(strip.right + 1);
+      expect(r.left).toBeGreaterThanOrEqual(strip.left - 1);
+    }
+    expect(strip.right).toBeLessThanOrEqual(dock.right + 1);
+    expect(dock.width).toBeLessThanOrEqual(window.innerWidth);
+    // the wide layout wraps rather than overflowing; the phone layout is a
+    // grid that fits as many columns as have room (Karma renders at 749px,
+    // so only the wide branch is measured here)
+    const display = getComputedStyle(stripEl).display;
+    if (display === 'flex') expect(getComputedStyle(stripEl).flexWrap).toBe('wrap');
+    else expect(display).toBe('grid');
   });
 
   it('the tooltip names the demand the equipped modules ask for', async () => {

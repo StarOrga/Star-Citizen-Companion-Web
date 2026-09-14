@@ -14,7 +14,7 @@ import {
   POWER_GROUP_SEPARATOR,
   powerStorageKey,
 } from './codex-loadout-draft';
-import { POWER_GROUP_ORDER } from './codex-power';
+import { coolerUnitKey, POWER_GROUP_ORDER } from './codex-power';
 import { rankShip, resolveCareerLabel } from './codex-rank';
 import type { RankShipInput } from './codex-rank';
 import { fixtureOccupant, NOMAD_COOLER, NOMAD_REPEATERS } from './testing/nomad-power.fixture';
@@ -71,6 +71,14 @@ describe('power draft storage keys (R10)', () => {
   it('every group key is [a-z]+, so "-" is a safe separator', () => {
     for (const g of POWER_GROUP_ORDER) expect(g).toMatch(/^[a-z]+$/);
     expect(POWER_GROUP_SEPARATOR).toBe('-');
+  });
+
+  it('a cooler unit key is cooler<digits>, so it needs no escaping either (F1d)', () => {
+    for (const n of [1, 2, 12]) expect(coolerUnitKey(n)).toMatch(/^[a-z]+[0-9]+$/);
+    const state = { ...DEFAULT_POWER_DRAFT, cutGroups: ['cooler2'], levels: { cooler1: 1 } };
+    const raw = encodePowerParam(state)!;
+    expect(raw).toBe('p1.scm.auto.center.cooler2.cooler1~1');
+    expect(decodePowerParam(raw)).toEqual(state);
   });
 
   it('round-trips a multi-group cut through the URL param unchanged', () => {

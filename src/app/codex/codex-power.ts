@@ -48,6 +48,18 @@
 //     neighbour. A pin below the group's minimum is allowed and flagged
 //     `belowMinimum` (the pilot asked for it; the dock says what it costs).
 //     Pins are draft state next to the cuts; a preset or reset clears them.
+// F1d COOLER UNITS — the admin's 2026-09-14 reply on 590230e3: "Kühler müssen
+//     aber mehrere sein … bitte auch 2 Stück anzeigen und nicht zusammen-
+//     rechnen." In the game's power management every cooler is its own item,
+//     so the `coolers` GROUP is not one column: each installed cooler unit is
+//     a column of its own (`cooler1`, `cooler2`, … in hardpoint order) with
+//     its own demand, minimum, pips, pin and cut. The other seven groups stay
+//     one column each. A ship without any cooler keeps ONE empty `coolers`
+//     column ("—") so the row never shifts (admin, 2026-09-10). Cuts and pins
+//     are therefore keyed by COLUMN (`PowerColumnKey`), not by group; the
+//     surplus priority (F1b step 2) walks the columns in dock order, so the
+//     first cooler fills before the second. The ship-wide coolant balance (F4)
+//     is untouched — it is a balance, not a column.
 // F4  Coolant
 //        used  = Σ_powered items ( coolant.consume × count )
 //        total = Σ_powered items ( coolant.generate × count )
@@ -113,8 +125,46 @@ export const POWER_GROUP_ORDER: readonly PowerGroup[] = [
   'coolers',
 ] as const;
 
-/** Pilot-pinned allocation per group (F1c) — absent = auto. */
-export type PowerLevels = Readonly<Partial<Record<PowerGroup, number>>>;
+const GROUP_BY_KEY = new Map<string, PowerGroup>(POWER_GROUP_ORDER.map((g) => [g, g]));
+
+/**
+ * One installed cooler unit's column key (F1d): `cooler1`, `cooler2`, … in
+ * hardpoint order. Digits only after the word, so the key still contains no
+ * `-`, `~` or `.` and rides in the `pw` URL param unescaped (R10).
+ */
+export type CoolerUnitKey = `cooler${number}`;
+
+/**
+ * What a dock COLUMN is keyed by — and therefore what cuts and pins index
+ * (F1d). Seven groups are one column each under their group key; the coolers
+ * group contributes one `CoolerUnitKey` per installed unit, or the plain
+ * `coolers` key for the single empty column of a ship without coolers.
+ */
+export type PowerColumnKey = PowerGroup | CoolerUnitKey;
+
+export function coolerUnitKey(unit: number): CoolerUnitKey {
+  return `cooler${unit}`;
+}
+
+/** `cooler2` → 2; anything else (including the group key `coolers`) → null. */
+export function parseCoolerUnit(key: string): number | null {
+  const m = /^cooler([1-9]\d*)$/.exec(key);
+  return m ? Number(m[1]) : null;
+}
+
+export function isPowerColumnKey(key: string): key is PowerColumnKey {
+  return GROUP_BY_KEY.has(key) || parseCoolerUnit(key) !== null;
+}
+
+/** How many cooler columns a loadout renders: one per installed unit (F1d). */
+export function coolerUnitCount(occupants: readonly SummaryOccupant[]): number {
+  return occupants
+    .filter((o) => classifyPowerGroup(o) === 'coolers')
+    .reduce((n, o) => n + Math.max(1, o.count || 1), 0);
+}
+
+/** Pilot-pinned allocation per column (F1c) — absent = auto. */
+export type PowerLevels = Readonly<Partial<Record<PowerColumnKey, number>>>;
 
 export type FlightMode = 'scm' | 'nav';
 export type PowerPreset = 'auto' | 'stealth';
@@ -328,8 +378,17 @@ export type PowerGroupState =
   | 'absent';
 
 export interface PowerGroupRow {
+  /** the group this column belongs to — `coolers` for every cooler unit. */
   group: PowerGroup;
+  /** the column's own identity: what cuts, pins and DOM ids are keyed by (F1d). */
+  key: PowerColumnKey;
+  /** 1-based hardpoint index of a cooler unit; null for the seven group columns
+   * and for the empty `coolers` placeholder of a ship without coolers. */
+  unit: number | null;
   labelKey: string;
+  /** interpolation params for `labelKey` / `tooltipTitleKey` (`{ n }` on a
+   * cooler unit); undefined for the plain group labels. */
+  labelParams?: Readonly<Record<string, number>>;
   /** the tooltip's heading — the group label itself (the designer authored no
    * separate `.title` string; the body lives under a FLAT tooltip key). */
   tooltipTitleKey: string;
@@ -383,7 +442,8 @@ export interface PowerSheet {
   gapKeys: string[];
   mode: FlightMode;
   preset: PowerPreset;
-  cutGroups: ReadonlySet<PowerGroup>;
+  /** cut COLUMNS — a cooler unit is cut under its own `cooler<n>` key (F1d). */
+  cutGroups: ReadonlySet<PowerColumnKey>;
   /** Σ generated segments (F3), null when nothing generates. */
   budgetTotal: number | null;
   /** Σ allocated segments over all groups — never greater than `budgetTotal`. */
@@ -416,8 +476,9 @@ export interface PowerSheetInput {
   schemaVersion?: number | null;
   mode?: FlightMode;
   preset?: PowerPreset;
-  cutGroups?: Iterable<PowerGroup>;
-  /** pilot-pinned levels per group (F1c); a cut group's pin is dormant. */
+  /** cut columns — group keys, or `cooler<n>` for one cooler unit (F1d). */
+  cutGroups?: Iterable<PowerColumnKey>;
+  /** pilot-pinned levels per column (F1c); a cut column's pin is dormant. */
   levels?: PowerLevels | null;
   /** the allocation the facts' deltas are measured against (usually the last sheet). */
   previous?: PowerSheet | null;
@@ -433,6 +494,9 @@ const GROUP_LABEL: Readonly<Record<PowerGroup, string>> = {
   quantum: 'codex.energy.group.quantum',
   tractor: 'codex.energy.group.tractor',
 };
+
+/** One cooler unit's column label — `{ n }` is its hardpoint index (F1d). */
+const COOLER_UNIT_LABEL = 'codex.energy.group.coolerUnit';
 
 /** Flat tooltip bodies — same slug set as the labels (`life` → `lifeSupport`). */
 const GROUP_TOOLTIP: Readonly<Record<PowerGroup, string>> = {
@@ -505,9 +569,12 @@ function ceilMinimum(product: number, segments: number): number {
   return Math.ceil(product - (5e-5 * Math.abs(segments) + 1e-9));
 }
 
-/** What ONE group wants and what it cannot go below, before distribution. */
+/** What ONE column wants and what it cannot go below, before distribution. */
 export interface GroupDemand {
   group: PowerGroup;
+  /** the column the demand belongs to — equals `group` except for cooler
+   * units, which carry their own `cooler<n>` key (F1d). */
+  key: PowerColumnKey;
   capacity: number;
   minimum: number;
   items: number;
@@ -519,47 +586,88 @@ export interface GroupDemand {
  * I add a plant" preview) can exercise the distribution on its own.
  *
  * Contract: the result has one entry per demand, `min ≤ alloc ≤ capacity`, and
- * `Σ alloc ≤ budget` unless `Σ min > budget` — in which case every group sits
- * at its minimum and the caller reports `overBudget`.
+ * `Σ alloc ≤ budget` unless `Σ min > budget` — in which case every column sits
+ * at its minimum and the caller reports `overBudget`. The surplus is handed
+ * out in the ORDER OF `demands`, which the caller passes in dock order (group
+ * order, cooler units in hardpoint order — F1d).
  */
 export function distributePower(
   demands: readonly GroupDemand[],
   budget: number,
   preset: PowerPreset,
   levels: PowerLevels | null = null,
-): Map<PowerGroup, number> {
-  const out = new Map<PowerGroup, number>();
-  for (const d of demands) out.set(d.group, Math.min(d.minimum, d.capacity));
+): Map<PowerColumnKey, number> {
+  const out = new Map<PowerColumnKey, number>();
+  for (const d of demands) out.set(d.key, Math.min(d.minimum, d.capacity));
   const minimums = demands.reduce((s, d) => s + Math.min(d.minimum, d.capacity), 0);
   if (preset !== 'stealth' && minimums < budget) {
     let remaining = budget - minimums;
-    for (const group of POWER_GROUP_ORDER) {
+    for (const d of demands) {
       if (remaining <= 0) break;
-      const d = demands.find((x) => x.group === group);
-      if (!d) continue;
-      const head = Math.max(0, d.capacity - (out.get(group) ?? 0));
+      const head = Math.max(0, d.capacity - (out.get(d.key) ?? 0));
       const give = Math.min(head, remaining);
       if (give > 0) {
-        out.set(group, (out.get(group) ?? 0) + give);
+        out.set(d.key, (out.get(d.key) ?? 0) + give);
         remaining -= give;
       }
     }
   }
-  // F1c — the pins go on LAST and touch only their own group: the auto deal
+  // F1c — the pins go on LAST and touch only their own column: the auto deal
   // above is exactly what the pilot would get without the pin, so a pin
   // frees or claims precisely its own difference.
   for (const d of demands) {
-    const pin = pinnedLevel(levels, d.group);
-    if (pin !== null) out.set(d.group, Math.min(pin, d.capacity));
+    const pin = pinnedLevel(levels, d.key);
+    if (pin !== null) out.set(d.key, Math.min(pin, d.capacity));
   }
   return out;
 }
 
 /** A pin is a whole number ≥ 0; anything else (NaN, negative, absent) is "auto". */
-export function pinnedLevel(levels: PowerLevels | null | undefined, group: PowerGroup): number | null {
-  const v = levels?.[group];
+export function pinnedLevel(levels: PowerLevels | null | undefined, key: PowerColumnKey): number | null {
+  const v = levels?.[key];
   if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null;
   return Math.floor(v);
+}
+
+/** A dock column before the numbers: which group, which unit, which draws. */
+interface PowerColumn {
+  key: PowerColumnKey;
+  group: PowerGroup;
+  unit: number | null;
+  draws: OccupantDraw[];
+}
+
+/**
+ * The dock's columns for a loadout, in dock order (F1d): the seven fixed
+ * groups, then one column per installed cooler unit — or the single empty
+ * `coolers` column when the ship has none. A cooler occupant collapsed to
+ * `count: 2` is split back into two unit draws (each read at count 1), so
+ * each unit carries exactly its own demand, minimum and signature.
+ */
+function powerColumns(occupants: readonly SummaryOccupant[]): PowerColumn[] {
+  const columns: PowerColumn[] = [];
+  const draws = occupants.map((o) => ({ occupant: o, draw: occupantDraw(o) }));
+  for (const group of POWER_GROUP_ORDER) {
+    const mine = draws.filter((d) => d.draw.group === group);
+    if (group !== 'coolers') {
+      columns.push({ key: group, group, unit: null, draws: mine.map((d) => d.draw) });
+      continue;
+    }
+    let unit = 0;
+    for (const { occupant, draw } of mine) {
+      for (let i = 0; i < draw.count; i++) {
+        unit += 1;
+        columns.push({
+          key: coolerUnitKey(unit),
+          group,
+          unit,
+          draws: [occupantDraw({ ...occupant, count: 1 })],
+        });
+      }
+    }
+    if (unit === 0) columns.push({ key: 'coolers', group, unit: null, draws: [] });
+  }
+  return columns;
 }
 
 /**
@@ -569,9 +677,20 @@ export function pinnedLevel(levels: PowerLevels | null | undefined, group: Power
 export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   const mode: FlightMode = input.mode ?? 'scm';
   const preset: PowerPreset = input.preset ?? 'auto';
-  const cutGroups = new Set<PowerGroup>(input.cutGroups ?? []);
+  const cutGroups = new Set<PowerColumnKey>(input.cutGroups ?? []);
   const levels = input.levels ?? null;
-  const draws = input.occupants.map((o) => occupantDraw(o));
+  const columns = powerColumns(input.occupants);
+  // Every draw with the column it charges to: the power plants (group null)
+  // charge to no column and always run; a cooler unit's draw charges to its
+  // own `cooler<n>` column (F1d). The F4/F5 aggregates run over this list.
+  const entries: { key: PowerColumnKey | null; draw: OccupantDraw }[] = [
+    ...input.occupants
+      .map((o) => occupantDraw(o))
+      .filter((d) => d.group === null)
+      .map((draw) => ({ key: null, draw })),
+    ...columns.flatMap((c) => c.draws.map((draw) => ({ key: c.key, draw }))),
+  ];
+  const draws = entries.map((e) => e.draw);
 
   // R5 — a build below schema 3 has no resource group at all; say so once and
   // stop, rather than rendering a dock full of zeros.
@@ -590,18 +709,19 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   // Per-group demand (F1/F2) — the passive shield generator draws nothing and
   // therefore adds NOTHING to its group's capacity (R2).
   const demands: GroupDemand[] = [];
-  const rowMeta = new Map<PowerGroup, { hasChannel: boolean; cut: boolean; present: boolean }>();
-  const rawDemand = new Map<PowerGroup, GroupDemand>();
-  const exactDemand = new Map<PowerGroup, number>();
+  const rowMeta = new Map<PowerColumnKey, { hasChannel: boolean; cut: boolean; present: boolean }>();
+  const rawDemand = new Map<PowerColumnKey, GroupDemand>();
+  const exactDemand = new Map<PowerColumnKey, number>();
 
-  for (const group of POWER_GROUP_ORDER) {
-    const mine = draws.filter((d) => d.group === group);
+  for (const column of columns) {
+    const { key, group } = column;
+    const mine = column.draws;
     const segments = mine.reduce((s, d) => s + d.consumeSegments, 0);
     const units = mine.reduce((s, d) => s + d.consumeUnits, 0);
     // F1 — the per-item figure the stat sheet prints, summed, ceil'd once.
     const demand = round(segments + units / STANDARD_UNITS_PER_SEGMENT);
     const capacity = demand > 0 ? ceilUnits(demand) : 0;
-    exactDemand.set(group, demand);
+    exactDemand.set(key, demand);
     const minimum = Math.min(
       capacity,
       ceilMinimum(
@@ -610,51 +730,41 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
       ),
     );
     const hasChannel = powerGroupHasChannel(group, mode);
-    const cut = cutGroups.has(group);
+    const cut = cutGroups.has(key);
     const present = mine.length > 0;
-    rowMeta.set(group, { hasChannel, cut, present });
+    rowMeta.set(key, { hasChannel, cut, present });
     // NOTE the cut is NOT part of the eligibility test: the distribution is
-    // computed once per (mode, preset) so that cutting a group frees EXACTLY
-    // that group's segments instead of silently re-dealing them to the next
-    // column. `budgetUsed` therefore drops by the cut group's allocation, which
+    // computed once per (mode, preset) so that cutting a column frees EXACTLY
+    // that column's segments instead of silently re-dealing them to the next
+    // one. `budgetUsed` therefore drops by the cut column's allocation, which
     // is the only reading of the dock a pilot can verify.
+    const items = mine.reduce((s, d) => s + d.count, 0);
     if (present && hasChannel && capacity > 0) {
-      demands.push({
-        group,
-        capacity,
-        minimum,
-        items: mine.reduce((s, d) => s + d.count, 0),
-        present,
-      });
+      demands.push({ group, key, capacity, minimum, items, present });
     }
     // stash the raw figures for the row build below
-    rawDemand.set(group, {
-      group,
-      capacity,
-      minimum,
-      items: mine.reduce((s, d) => s + d.count, 0),
-      present,
-    });
+    rawDemand.set(key, { group, key, capacity, minimum, items, present });
   }
 
-  // What the ship needs just to run: the minimums of the groups that are ON.
+  // What the ship needs just to run: the minimums of the columns that are ON.
   const budgetMinimum = demands
-    .filter((d) => !(rowMeta.get(d.group)?.cut ?? false))
+    .filter((d) => !(rowMeta.get(d.key)?.cut ?? false))
     .reduce((s, d) => s + d.minimum, 0);
   const allocation = distributePower(demands, budgetTotal ?? 0, preset, levels);
 
   const groups: PowerGroupRow[] = [];
   let budgetUsed = 0;
-  const poweredGroups = new Set<PowerGroup>();
+  const poweredColumns = new Set<PowerColumnKey>();
 
-  for (const group of POWER_GROUP_ORDER) {
-    const d = rawDemand.get(group)!;
-    const meta = rowMeta.get(group)!;
-    const allocated = meta.hasChannel && !meta.cut ? (allocation.get(group) ?? 0) : 0;
-    // a pin only counts while it can act: the group is present, has a channel
+  for (const column of columns) {
+    const { key, group, unit } = column;
+    const d = rawDemand.get(key)!;
+    const meta = rowMeta.get(key)!;
+    const allocated = meta.hasChannel && !meta.cut ? (allocation.get(key) ?? 0) : 0;
+    // a pin only counts while it can act: the column is present, has a channel
     // in this mode, is not cut and has something to pin.
     const pinned =
-      d.present && meta.hasChannel && !meta.cut && d.capacity > 0 && pinnedLevel(levels, group) !== null;
+      d.present && meta.hasChannel && !meta.cut && d.capacity > 0 && pinnedLevel(levels, key) !== null;
 
     let state: PowerGroupState;
     if (!d.present) state = 'absent';
@@ -680,23 +790,32 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
 
     if (allocated > 0) {
       budgetUsed += allocated;
-      poweredGroups.add(group);
+      poweredColumns.add(key);
     } else if (state === 'idle' && d.present) {
       // idle hardware still runs (0 segments) — its signature counts.
-      poweredGroups.add(group);
+      poweredColumns.add(key);
     }
+
+    // F1d — a cooler unit is labelled by its hardpoint index ("Kühler 2");
+    // the seven group columns and the empty coolers placeholder keep the
+    // group label.
+    const labelKey = unit === null ? GROUP_LABEL[group] : COOLER_UNIT_LABEL;
+    const labelParams = unit === null ? undefined : { n: unit };
 
     groups.push({
       group,
-      labelKey: GROUP_LABEL[group],
-      tooltipTitleKey: GROUP_LABEL[group],
+      key,
+      unit,
+      labelKey,
+      labelParams,
+      tooltipTitleKey: labelKey,
       tooltipBodyKey: GROUP_TOOLTIP[group],
       allocated,
       // the floor is a property of the HARDWARE, reported even when the group
       // is off; `state` is what the component styles the column by.
       minimum: meta.hasChannel ? d.minimum : 0,
       capacity,
-      demand: exactDemand.get(group) ?? 0,
+      demand: exactDemand.get(key) ?? 0,
       pinned,
       belowMinimum: pinned && allocated < d.minimum,
       pips: pipStack(allocated, meta.hasChannel ? d.minimum : 0, capacity),
@@ -715,7 +834,9 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   // F4/F5 over the powered set. Power plants (group null) always run, and so
   // does a PASSIVE shield generator — it is not on the net, but it is installed
   // and it radiates (R2).
-  const powered = draws.filter((d) => d.group === null || poweredGroups.has(d.group));
+  const powered = entries
+    .filter((e) => e.key === null || poweredColumns.has(e.key))
+    .map((e) => e.draw);
   const coolantUsedRaw = round(powered.reduce((s, d) => s + d.coolantConsume, 0));
   const coolantTotalRaw = round(draws.reduce((s, d) => s + d.coolantGenerate, 0));
   const hasCoolantData = draws.some((d) => d.coolantGenerate > 0 || d.coolantConsume > 0);
@@ -795,77 +916,110 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
   };
 }
 
-/** Toggle one group's cut state (the icon button is a toggle — B-C2). */
+/** Toggle one column's cut state (the icon button is a toggle — B-C2). */
 export function togglePowerGroup(
-  cutGroups: ReadonlySet<PowerGroup>,
-  group: PowerGroup,
-): ReadonlySet<PowerGroup> {
+  cutGroups: ReadonlySet<PowerColumnKey>,
+  key: PowerColumnKey,
+): ReadonlySet<PowerColumnKey> {
   const next = new Set(cutGroups);
-  if (!next.delete(group)) next.add(group);
+  if (!next.delete(key)) next.add(key);
   return next;
 }
 
 /**
- * What ONE click on pip `level` (1-based, counted from the bottom) of a group
+ * What ONE click on pip `level` (1-based, counted from the bottom) of a column
  * does to the draft (F1c, feedback 590230e3):
- *   * the TOPMOST pip while the group already sits at full capacity → the
- *     group switches OFF (a cut, exactly like the icon button);
- *   * any other pip → the group is switched on (if it was cut) and pinned at
+ *   * the TOPMOST pip while the column already sits at full capacity → the
+ *     column switches OFF (a cut, exactly like the icon button);
+ *   * any other pip → the column is switched on (if it was cut) and pinned at
  *     exactly `level` segments — lower pips lower it, higher pips raise it.
  * Pure: returns the next cut set + levels, never mutates the inputs.
  */
 export function clickPowerPip(
-  cutGroups: ReadonlySet<PowerGroup>,
+  cutGroups: ReadonlySet<PowerColumnKey>,
   levels: PowerLevels,
-  row: Pick<PowerGroupRow, 'group' | 'allocated' | 'capacity' | 'cut'>,
+  row: Pick<PowerGroupRow, 'key' | 'allocated' | 'capacity' | 'cut'>,
   level: number,
-): { cutGroups: ReadonlySet<PowerGroup>; levels: PowerLevels } {
+): { cutGroups: ReadonlySet<PowerColumnKey>; levels: PowerLevels } {
   const n = Math.max(0, Math.min(row.capacity, Math.floor(level)));
   const nextCut = new Set(cutGroups);
-  const nextLevels: Partial<Record<PowerGroup, number>> = { ...levels };
+  const nextLevels: Partial<Record<PowerColumnKey, number>> = { ...levels };
   if (!row.cut && n > 0 && n === row.capacity && row.allocated === row.capacity) {
-    nextCut.add(row.group);
-    delete nextLevels[row.group];
+    nextCut.add(row.key);
+    delete nextLevels[row.key];
   } else {
-    nextCut.delete(row.group);
-    nextLevels[row.group] = n;
+    nextCut.delete(row.key);
+    nextLevels[row.key] = n;
   }
   return { cutGroups: nextCut, levels: nextLevels };
 }
 
 /** `Zurücksetzen` — the default dock state (auto, nothing cut, no pins, SCM). */
 export function resetPowerState(): {
-  cutGroups: ReadonlySet<PowerGroup>;
+  cutGroups: ReadonlySet<PowerColumnKey>;
   levels: PowerLevels;
   mode: FlightMode;
   preset: PowerPreset;
 } {
-  return { cutGroups: new Set<PowerGroup>(), levels: {}, mode: 'scm', preset: 'auto' };
+  return { cutGroups: new Set<PowerColumnKey>(), levels: {}, mode: 'scm', preset: 'auto' };
 }
 
-const GROUP_BY_KEY = new Map<string, PowerGroup>(POWER_GROUP_ORDER.map((g) => [g, g]));
-
-/** Tolerant parse of a serialized group list — unknown keys are dropped. */
-export function parsePowerGroups(raw: readonly string[] | null | undefined): Set<PowerGroup> {
-  const out = new Set<PowerGroup>();
+/** Tolerant parse of a serialized column-key list — unknown keys are dropped. */
+export function parsePowerGroups(raw: readonly string[] | null | undefined): Set<PowerColumnKey> {
+  const out = new Set<PowerColumnKey>();
   for (const r of raw ?? []) {
-    const g = GROUP_BY_KEY.get(r.trim());
-    if (g) out.add(g);
+    const k = r.trim();
+    if (isPowerColumnKey(k)) out.add(k);
   }
   return out;
 }
 
-/** Tolerant parse of serialized pins — unknown groups and junk values are dropped. */
+/** Tolerant parse of serialized pins — unknown keys and junk values are dropped. */
 export function parsePowerLevels(raw: Readonly<Record<string, unknown>> | null | undefined): PowerLevels {
-  const out: Partial<Record<PowerGroup, number>> = {};
+  const out: Partial<Record<PowerColumnKey, number>> = {};
   for (const [k, v] of Object.entries(raw ?? {})) {
-    const g = GROUP_BY_KEY.get(k.trim());
-    if (!g) continue;
+    const key = k.trim();
+    if (!isPowerColumnKey(key)) continue;
     const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
     if (!Number.isFinite(n) || n < 0) continue;
-    out[g] = Math.floor(n);
+    out[key] = Math.floor(n);
   }
   return out;
+}
+
+/**
+ * Legacy draft → per-unit columns (F1d). Drafts saved before the coolers
+ * split (localStorage or a shared `pw` link) carry ONE `coolers` entry for the
+ * summed group. Mapped onto every installed unit on load:
+ *   * a `coolers` CUT switches every unit off;
+ *   * a `coolers` PIN of N segments becomes ⌈N / units⌉ on each unit — the
+ *     pilot had pinned the group's TOTAL, so the split keeps that total (or
+ *     rounds one segment up) instead of multiplying it by the unit count;
+ *   * a unit that already carries its own key keeps it.
+ * The legacy key itself is removed so that a later per-unit toggle cannot
+ * fight a group-level cut still sitting in the set. With no cooler installed
+ * nothing is mapped: the single empty `coolers` column has nothing to pin.
+ */
+export function migrateLegacyCoolerDraft(
+  cutGroups: ReadonlySet<PowerColumnKey>,
+  levels: PowerLevels,
+  units: number,
+): { cutGroups: ReadonlySet<PowerColumnKey>; levels: PowerLevels } {
+  const legacyCut = cutGroups.has('coolers');
+  const legacyPin = pinnedLevel(levels, 'coolers');
+  if (units < 1 || (!legacyCut && legacyPin === null)) return { cutGroups, levels };
+  const nextCut = new Set(cutGroups);
+  const nextLevels: Partial<Record<PowerColumnKey, number>> = { ...levels };
+  nextCut.delete('coolers');
+  delete nextLevels['coolers'];
+  for (let u = 1; u <= units; u++) {
+    const key = coolerUnitKey(u);
+    if (legacyCut) nextCut.add(key);
+    if (legacyPin !== null && pinnedLevel(levels, key) === null) {
+      nextLevels[key] = Math.ceil(legacyPin / units);
+    }
+  }
+  return { cutGroups: nextCut, levels: nextLevels };
 }
 
 export function isFlightMode(v: unknown): v is FlightMode {

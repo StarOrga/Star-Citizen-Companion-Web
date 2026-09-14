@@ -303,9 +303,10 @@ export function parseDockPosition(raw: string | null | undefined): PowerDraftSta
 }
 
 export interface PowerDraftState {
-  /** cut group keys (see codex-power.ts `PowerGroup`) — order irrelevant. */
+  /** cut column keys (codex-power.ts `PowerColumnKey`: a group key, or
+   * `cooler<n>` for one cooler unit — F1d) — order irrelevant. */
   cutGroups: readonly string[];
-  /** pilot-pinned level per group key (codex-power.ts F1c) — absent = auto. */
+  /** pilot-pinned level per column key (codex-power.ts F1c) — absent = auto. */
   levels: Readonly<Record<string, number>>;
   mode: 'scm' | 'nav';
   preset: 'auto' | 'stealth';
@@ -342,10 +343,10 @@ function levelEntries(levels: Readonly<Record<string, number>>): [string, number
 /** `null` for the default state — no point putting noise in the URL. */
 export function encodePowerParam(state: PowerDraftState): string | null {
   if (isDefaultPower(state)) return null;
-  // `-` is a safe separator: every PowerGroup key is `[a-z]+` (asserted by a
-  // spec against POWER_GROUP_ORDER), so a hyphen can never occur INSIDE a key
-  // and the round-trip needs no escaping. The pins ride in an OPTIONAL sixth
-  // part (`shields~2-coolers~6`) — a link without pins is byte-for-byte the
+  // `-` is a safe separator: every PowerGroup key is `[a-z]+` and a cooler
+  // unit key is `cooler<digits>` (both asserted by a spec), so a hyphen can
+  // never occur INSIDE a key and the round-trip needs no escaping. The pins
+  // ride in an OPTIONAL sixth part (`shields~2-cooler1~3`) — a link without pins is byte-for-byte the
   // p1 format every already-shared link uses, and an old client that reads
   // five parts simply ignores the sixth.
   const groups = [...state.cutGroups].map((g) => encodeURIComponent(g)).join(POWER_GROUP_SEPARATOR);
