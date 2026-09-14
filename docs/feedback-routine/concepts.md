@@ -60,13 +60,34 @@ every open.
 ## Reading the answer back
 
 The page's submit (`Zur nächsten Iteration` / `Mit Feedback implementieren`)
-POSTs the engine payload to `/decisions`; the function stores it and stamps
-`submitted_at`. Nothing pushes it to the routine — a run has to look:
+POSTs the engine payload to `/decisions`; the function stores it, stamps
+`submitted_at` **and echoes the submit into the topic's thread** — one
+`admin_feedback_messages` row, `is_system = false`, `author_id` = the admin the
+ticket was minted for (the ticket is `<id>.<uid>.<exp>.<hmac>`, so every ticketed
+request knows who acts). The body is a compact German summary
+(`**Konzept abgeschickt:** „<title>" — <action> (<n> Entscheidungen, <m>
+Notizen)` + up to 8 `label → value` bullets + the notes, capped at 2000 chars,
+built by `supabase/functions/concept-page/echo.ts`). Because it is a HUMAN
+message, the queue's queries **(b)** (`needs_input`, newest message human) and
+**(d)** (`shipped`, human reply after `shipped_at`) fire on the next run —
+nobody has to type into the thread any more. The run then reads the full
+payload and, once it has acted, marks it processed:
 
 ```
 node scripts/routine-gate.mjs concept-read --id <uuid>
 node scripts/routine-gate.mjs concept-read --id <uuid> --mark-processed
 ```
+
+The echo is posted only for a real submit (`submitted === true`), only when the
+row has a `feedback_id`, and never for the engine's replay of a submission the
+row already holds (same `submission_id`, or — iterate/implement carry none —
+the identical payload while the row is still unprocessed — after
+`--mark-processed` the same answer again is a new submit); a replay also leaves
+`submitted_at`/`processed_at` alone. The insert is best effort: a failed echo is logged, the submission is
+still durable, and the manual path below still works.
+
+**Manual fallback** (no echo, e.g. a page published without `--feedback`, or an
+echo that failed): a run has to look on its own —
 
 - `decisions.submitted === true` and a `submitted_at` newer than the last
   iteration → the admin answered. `decisions.action` is `iterate` or `implement`.
@@ -79,10 +100,10 @@ node scripts/routine-gate.mjs concept-read --id <uuid> --mark-processed
   next iteration, **then** mark processed (or mark processed right away when
   the answer closes the concept).
 - A new submit resets `processed_at` to null, so "submitted and not processed"
-  is always `submitted_at is not null and processed_at is null`. The routine's
-  queue does **not** see it yet; check it as part of the topic's continuation
-  (query (d)/(b) fire when the admin also writes in the thread — ask him to,
-  in the reply that posts the link).
+  is always `submitted_at is not null and processed_at is null`. Without the
+  echo the routine's queue does **not** see it; check it as part of the topic's
+  continuation (query (d)/(b) fire when the admin writes in the thread — ask
+  him to, in the reply that posts the link).
 
 ## What the hosted page cannot do (v1)
 
@@ -97,8 +118,8 @@ node scripts/routine-gate.mjs concept-read --id <uuid> --mark-processed
 
 ## Security notes
 
-- The ticket is `base64url(<id>.<exp>.<hmac-sha256(<id>.<exp>, service-role key)>)`,
-  12 h, bound to one id, constant-time compared. Whoever holds a ticketed URL
+- The ticket is `base64url(<id>.<uid>.<exp>.<hmac-sha256(<id>.<uid>.<exp>, service-role key)>)`,
+  12 h, bound to one id and to the minting admin (`uid`), constant-time compared. Whoever holds a ticketed URL
   can read and write **that** concept until it expires — which is why the
   routine posts only the `/konzept/<id>` link.
 - The stored html is trusted (routine-written). Page POST bodies land in

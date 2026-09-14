@@ -16,7 +16,9 @@
 //                                admin only → { url, title, expiresAt }
 //   GET  /:id?t=                 the concept document (html + shim)
 //   GET  /:id/decisions?t=       stored /decisions payload (+ _processed_at)
-//   POST /:id/decisions?t=       store the payload; submitted_at on submitted
+//   POST /:id/decisions?t=       store the payload; submitted_at on submitted,
+//                                and a HUMAN summary reply into the feedback
+//                                thread (echo.ts) so the routine's queue sees it
 //   GET  /:id/reload?t=          { counter }
 //   GET  /:id/heartbeat?t=       { ts, claude_ts, server_ts } — always "connected"
 //   GET  /:id/draft?t=           { found, recovered }
@@ -29,11 +31,14 @@
 //   * TWO gates, one secret. The ticket route needs a real admin session:
 //     `auth.getUser(jwt)` on the service client, then `profiles.role =
 //     'admin'` (the same column `public.is_admin()` reads). Everything else
-//     is authorised by the TICKET alone: base64url(`<id>.<exp>.<hmac>`),
-//     HMAC-SHA256 over `<id>.<exp>` keyed with SUPABASE_SERVICE_ROLE_KEY,
-//     compared in constant time, 12 h lifetime, bound to one concept id. The
-//     iframe cannot carry the session (it is a cross-origin document), so
-//     the ticket IS the session for this page — treat the link as such.
+//     is authorised by the TICKET alone: base64url(`<id>.<uid>.<exp>.<hmac>`),
+//     HMAC-SHA256 over `<id>.<uid>.<exp>` keyed with SUPABASE_SERVICE_ROLE_KEY,
+//     compared in constant time, 12 h lifetime, bound to one concept id AND
+//     to the admin who minted it (`uid` = auth user id) — the submit echo
+//     below is posted in that admin's name. The iframe cannot carry the
+//     session (it is a cross-origin document), so the ticket IS the session
+//     for this page — treat the link as such. Tickets from before the uid
+//     was added (3 parts) simply fail verification; the app re-mints on open.
 //   * The service-role key is the HMAC secret and never leaves the isolate;
 //     it is not part of the ticket and not in any response.
 //   * The html is served with `Cache-Control: no-store`, `X-Robots-Tag:
@@ -55,6 +60,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import { SHIM } from './shim.ts';
+import { buildEchoBody, isReplayOf, type ConceptSubmission } from './echo.ts';
 
 const TICKET_TTL_SEC = 12 * 60 * 60;
 const MAX_BODY_BYTES = 1_000_000;
@@ -125,27 +131,39 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
-async function mintTicket(secret: string, id: string): Promise<{ ticket: string; exp: number }> {
+async function mintTicket(
+  secret: string,
+  id: string,
+  uid: string,
+): Promise<{ ticket: string; exp: number }> {
   const exp = Math.floor(Date.now() / 1000) + TICKET_TTL_SEC;
-  const sig = await hmac(secret, `${id}.${exp}`);
-  const ticket = b64url(enc.encode(`${id}.${exp}.${b64url(sig)}`));
+  const sig = await hmac(secret, `${id}.${uid}.${exp}`);
+  const ticket = b64url(enc.encode(`${id}.${uid}.${exp}.${b64url(sig)}`));
   return { ticket, exp };
 }
 
-/** True when `ticket` was minted for exactly this `id` and has not expired. */
-async function verifyTicket(secret: string, id: string, ticket: string | null): Promise<boolean> {
-  if (!ticket) return false;
+/**
+ * The admin the ticket was minted for, when `ticket` is valid for exactly
+ * this `id` and has not expired; null otherwise.
+ */
+async function verifyTicket(
+  secret: string,
+  id: string,
+  ticket: string | null,
+): Promise<{ uid: string } | null> {
+  if (!ticket) return null;
   const raw = b64urlDecode(ticket);
-  if (!raw) return false;
+  if (!raw) return null;
   const parts = new TextDecoder().decode(raw).split('.');
-  if (parts.length !== 3) return false;
-  const [tid, expStr, sigStr] = parts;
+  if (parts.length !== 4) return null;
+  const [tid, uid, expStr, sigStr] = parts;
   const exp = Number(expStr);
-  if (tid !== id || !Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
+  if (tid !== id || !UUID_RE.test(uid) || !Number.isFinite(exp)) return null;
+  if (exp < Math.floor(Date.now() / 1000)) return null;
   const given = b64urlDecode(sigStr);
-  if (!given) return false;
-  const expected = await hmac(secret, `${tid}.${exp}`);
-  return timingSafeEqual(given, expected);
+  if (!given) return null;
+  const expected = await hmac(secret, `${tid}.${uid}.${exp}`);
+  return timingSafeEqual(given, expected) ? { uid } : null;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -267,7 +285,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (error) return json({ error: 'db_error', message: error.message }, 500);
     if (!row) return json({ error: 'not_found' }, 404);
 
-    const { ticket, exp } = await mintTicket(serviceKey, id);
+    const { ticket, exp } = await mintTicket(serviceKey, id, user.id);
     // The function's own public base. Inside the edge runtime `req.url` has the
     // `/functions/v1` prefix stripped (see api/_router.ts) and may carry an
     // internal host, so the public URL is built from SUPABASE_URL instead.
@@ -284,8 +302,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const sub = seg[1] ?? '';
   if (!UUID_RE.test(id) || seg.length > 2) return json({ error: 'not_found' }, 404);
 
-  const ok = await verifyTicket(serviceKey, id, url.searchParams.get('t'));
-  if (!ok) {
+  const ticket = await verifyTicket(serviceKey, id, url.searchParams.get('t'));
+  if (!ticket) {
     return sub === '' ? htmlResponse(EXPIRED_HTML, 401) : json({ error: 'unauthorized' }, 401);
   }
 
@@ -345,10 +363,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!body || typeof body !== 'object' || Array.isArray(body)) {
         return json({ error: 'invalid_body' }, 400);
       }
-      const payload = body as Record<string, unknown>;
+      const payload = body as Record<string, unknown> & ConceptSubmission;
       const submitted = payload.submitted === true;
+
+      // Read before write: the echo below must know whether this POST is the
+      // engine replaying a submission the row already holds (offline queue,
+      // lost response) — a second thread message would be a duplicate.
+      const { data: cur, error: readErr } = await admin
+        .from('concept_pages')
+        .select('title, feedback_id, decisions, submitted_at, processed_at')
+        .eq('id', id)
+        .maybeSingle();
+      if (readErr) return json({ error: 'db_error', message: readErr.message }, 500);
+      if (!cur) return json({ error: 'not_found' }, 404);
+      const replay = submitted && isReplayOf(cur, payload);
+
       const patch: Record<string, unknown> = { decisions: payload };
-      if (submitted) {
+      if (submitted && !replay) {
         patch.submitted_at = new Date().toISOString();
         // A new submission is unprocessed by definition — otherwise the page
         // would see the OLD processed_at and reset its panel prematurely.
@@ -362,9 +393,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .maybeSingle();
       if (error) return json({ error: 'db_error', message: error.message }, 500);
       if (!row) return json({ error: 'not_found' }, 404);
+
+      // Echo the submit into the topic's thread AS THE ADMIN (is_system =
+      // false, author_id = the uid the ticket carries). The routine's queue
+      // reads look at admin_feedback_messages only, and a human message is
+      // exactly what makes queries (b)/(d) pick the topic up on the next run
+      // (docs/feedback-routine/concepts.md). Drafts (`submitted !== true`)
+      // and replays never post. The insert is best effort: the submission is
+      // already durable, and the routine's manual `concept-read` path still
+      // works, so a failed echo is logged and does not fail the page.
+      let echoed = false;
+      if (submitted && !replay && cur.feedback_id) {
+        const { error: echoErr } = await admin.from('admin_feedback_messages').insert({
+          feedback_id: cur.feedback_id,
+          author_id: ticket.uid,
+          is_system: false,
+          body: buildEchoBody(id, cur.title ?? '', payload),
+        });
+        if (echoErr) console.error('concept-page: echo insert failed', id, echoErr.message);
+        else echoed = true;
+      }
+
       return json({
         ok: true,
         durable: true,
+        echoed,
         submission_id: typeof payload.submission_id === 'string' ? payload.submission_id : null,
       });
     }

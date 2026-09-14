@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.3] - 2026-09-14
+
+### Fixed
+
+- **Konzeptseiten: Abschicken landet im Thread.** Wer auf einer gehosteten
+  Konzeptseite (`/konzept/<id>`) „Zur nächsten Iteration" oder „Mit Feedback
+  implementieren" klickt, hinterlässt damit jetzt automatisch eine Antwort im
+  Feedback-Thread — als eigene Nachricht mit Kurzfassung der Entscheidungen
+  und Notizen. Die Routine sieht die Einreichung dadurch im nächsten Lauf,
+  ohne dass zusätzlich etwas in den Thread getippt werden muss. Das
+  Seiten-Ticket ist dafür an den anmeldenden Admin gebunden; Wiederholungen
+  des Engine-Offline-Puffers erzeugen keine doppelte Nachricht.
+
 ## [0.85.2] - 2026-09-14
 
 ### Changed
