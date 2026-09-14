@@ -91,15 +91,17 @@ export function isConfigurableSection(section: ShipModuleSection): boolean {
  * hides that those are two independently swappable generators, and a decoy plus
  * a noise launcher are never interchangeable. All three blocks list every slot.
  *
- * `coolers` joined them in 32659942 (*"Coolers müssten 2 sein nicht nur eins!"*):
- * a hull's two identical coolers collapsed into a single "2× S1" row, and the
- * multiplier in the badge is much easier to miss than a second line. Every other
- * block can be split on demand — see the layout component's per-block toggle.
+ * `coolers` joined them in 32659942 (*"Coolers müssten 2 sein nicht nur eins!"*)
+ * and left again in 4263fed1 (*"Hier auch wie bei Waffen einen Zusammenmodus
+ * anbieten. z.B. wenn 2x Ultra Flow drin sind, dann können diese auch als 2x
+ * Ultraflow angezeigt werden"*): two identical coolers now fold into one
+ * "2× S1 UltraFlow" row whose card carries the block's cooling total, and the
+ * per-block "Einzeln" toggle still lists them one by one. Every other block can
+ * be split on demand — see the layout component's per-block toggle.
  */
 const INDIVIDUAL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set([
   'shields',
   'countermeasures',
-  'coolers',
 ]);
 
 /** True when a block must list every hardpoint separately (never collapse). */
@@ -195,6 +197,35 @@ export interface ShipModuleOccupant {
 // `hardpoint_missile_rack_right`, which is real armament.
 const STRUCTURAL_PORT =
   /seat|access|console|cabinet|locker|weapon_?rack|door|light|ladder|interior|dashboard|flair|paint|decal|(^|_)cap(_|$)|(^|_)controller(_|$)/i;
+
+// Hull furniture identified by WHAT IS BOLTED IN, for ports whose NAME names a
+// module block. The Nomad's `hardpoint_power_plant_rack` carries a `Door`
+// (the reactor bay's hatch, `$uneditable` in the vehicle XML) and used to land
+// in the power-plant block beside the one real reactor (4263fed1: *"da ist
+// eine 'door' drin die hat da nichts zu suchen … also raus aus den Modulen"*).
+// A door, a seat, a dashboard or a paint job is never a decision, whatever
+// the port is called — the airframe is where they belong.
+const FURNITURE_TYPE = new Set([
+  'door',
+  'seat',
+  'seataccess',
+  'dashboard',
+  'paint',
+  'flair',
+  'locker',
+  'light',
+  'lightgroup',
+]);
+
+/** True when the occupant itself says it is hull furniture (door, seat, …). */
+function isFurnitureOccupant(occupant: ShipModuleOccupant | null | undefined): boolean {
+  if (!occupant) return false;
+  for (const raw of [occupant.attachType, occupant.componentKind, occupant.subType]) {
+    const key = (raw ?? '').trim().toLowerCase();
+    if (key && FURNITURE_TYPE.has(key)) return true;
+  }
+  return false;
+}
 
 /**
  * The ship's SHIELD CONTROL module (`hardpoint_controller_shield`, occupied by
@@ -332,6 +363,9 @@ export function classifyShipModule(
   // Furniture first — it is the only rule allowed to beat the occupant's type,
   // because a turret SEAT genuinely is not a turret.
   if (port && STRUCTURAL_PORT.test(port)) return 'structure';
+  // …and furniture by OCCUPANT beats the port name, because a bay hatch on
+  // `hardpoint_power_plant_rack` is a door, not a second reactor.
+  if (isFurnitureOccupant(occupant)) return 'structure';
   if (port) {
     for (const [re, section] of PORT_SECTION_RULES) {
       if (re.test(port)) return section;

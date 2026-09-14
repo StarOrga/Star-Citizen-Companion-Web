@@ -1327,6 +1327,7 @@
       "caretCollapse": "collapse",
       "census": "{{slots}} slots · {{active}} active · {{passive}} passive",
       "censusSlots": "{{slots}} slots",
+      "total": "Total",
       "badge": {
         "active": "Active",
         "passive": "Passive · off the grid",

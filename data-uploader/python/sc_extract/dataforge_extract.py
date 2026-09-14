@@ -2218,8 +2218,19 @@ def _port_types(p: Dict[str, Any]) -> List[str]:
 
 
 def _as_list(v: Any) -> List[str]:
+    """Flag/tag fields as a list of tokens.
+
+    VERIFIED against LIVE 4.10 (probe 2026-09-14, feedback 4263fed1): the
+    DataCore emits ``SItemPortDef.Flags`` as ONE whitespace-separated string
+    (``"invisible $uneditable"``, ``"dockingport1 uneditable"``), never as a
+    list — so the list-only reading below shipped every ``codex_item_ports``
+    row with an empty ``flags`` column. Strings are split on whitespace and
+    commas; a list is kept token by token.
+    """
     if isinstance(v, list):
         return [str(x) for x in v if not isinstance(x, (dict, list))]
+    if isinstance(v, str):
+        return [t for t in re.split(r"[\s,]+", v.strip()) if t]
     return []
 
 

@@ -44,6 +44,14 @@ export interface SummaryOccupant {
   ammoPayload?: unknown;
   /** how many identical hardpoints this occupant stands for (≥1). */
   count: number;
+  /**
+   * The HARDPOINT says this generator is off the grid: its item port is
+   * flagged `invisible` in the ship's port definition, i.e. the game never
+   * shows it to the pilot (4263fed1: *"Ingame sieht man nur 2 Schilde aber es
+   * gibt logische 3"*). `isPassiveShield` honours this beside its own
+   * resource-draw rule; undefined/false = decide from the item data alone.
+   */
+  passive?: boolean;
 }
 
 /** A headline panel: a few aggregate stats plus the gaps it had to admit. */

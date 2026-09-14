@@ -272,7 +272,11 @@ export function buildPowerPlantPreview(occupants: readonly SummaryOccupant[]): F
   return out;
 }
 
-/** Coolers: coolant output, aggregate = total cooling capacity. */
+/**
+ * Coolers: cooling output, aggregate = total cooling capacity. A plain figure,
+ * not a rate — the game shows "34", never "34/s" (4263fed1), and the module
+ * row's headline quotes this very chip.
+ */
 export function buildCoolerPreview(occupants: readonly SummaryOccupant[]): FoldPreview {
   const out = empty('coolers');
   let sum = 0;
@@ -284,12 +288,12 @@ export function buildCoolerPreview(occupants: readonly SummaryOccupant[]): FoldP
       sum += value;
       known = true;
     }
-    out.chips.push(chip(o, null, value, 'perSec', 'codex.energy.unit.coolant'));
+    out.chips.push(chip(o, null, value, 'dec', 'codex.equipped.coolingRate'));
     out.census.slots += draw.count;
     out.census.active += draw.count;
   }
   out.aggregate = known
-    ? aggregateChip('codex.module.peek.coolingTotal', Math.round(sum * 100) / 100, 'perSec')
+    ? aggregateChip('codex.module.peek.coolingTotal', Math.round(sum * 100) / 100, 'dec')
     : null;
   return out;
 }

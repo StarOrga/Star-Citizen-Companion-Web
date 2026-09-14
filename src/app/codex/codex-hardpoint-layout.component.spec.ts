@@ -127,6 +127,34 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('130.95'); // 43.65 × 3
     const perItem = Array.from(el.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim());
     expect(perItem[0]).toBe('43.65');
+    // 4263fed1: the total lives INSIDE the card, top right, and says "Gesamt";
+    // every per-item stat says how many units it stands for ("3× Alphaschaden").
+    const fig = el.querySelector('button.slot-btn .fig.total')!;
+    expect(fig).toBeTruthy();
+    expect(fig.querySelector('.fig-l')?.textContent?.trim()).toBe('codex.module.total');
+    expect(el.querySelector('.main > .fig')).toBeNull(); // no longer a column beside the card
+    const mults = Array.from(el.querySelectorAll('.slot-stats dt .mult')).map((m) => m.textContent?.trim());
+    expect(mults).toEqual(['3×', '3×', '3×', '3×']);
+  });
+
+  it('drops "Gesamt" and the "3×" prefix once the block is split into single rows', () => {
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [PANTHER, { ...PANTHER, port: 'Hardpoint Weapon Top Right' }, { ...PANTHER, port: 'Hardpoint Weapon Nose' }],
+      },
+    ]);
+    (el.querySelector('.mod-sec[data-sec="weapons"] .sec-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('li.slot').length).toBe(3);
+    // Each row is one gun: its figure is its own value, unlabelled, and no
+    // stat pretends to stand for more than one unit.
+    expect(el.querySelector('.fig.total')).toBeNull();
+    expect(el.querySelector('.fig-l')).toBeNull();
+    expect(el.querySelector('.slot-stats .mult')).toBeNull();
+    expect(
+      Array.from(el.querySelectorAll('.fig .n')).map((n) => n.textContent?.trim()),
+    ).toEqual(['43.65', '43.65', '43.65']);
   });
 
   it('gives the carried gun its own maker line, damage channel, stat run and figure', () => {
@@ -164,7 +192,51 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(
       Array.from(kid.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim()),
     ).toEqual(['43.65']);
-    expect(kid.querySelector('.fig .n')?.textContent?.trim()).toBe('43.65');
+    // One mount, one gun: the figure is the gun's own value — no "Gesamt".
+    expect(kid.querySelector('button.kid-btn .fig .n')?.textContent?.trim()).toBe('43.65');
+    expect(kid.querySelector('.fig.total')).toBeNull();
+    expect(kid.querySelector('.slot-stats .mult')).toBeNull();
+  });
+
+  it('labels the gun\'s summed figure "Gesamt" inside its card when three gimbals collapse', () => {
+    // 4263fed1: "der gesamte Alphaschaden rechts außen — in das Feld der Waffe
+    // reinbringen oben rechts 'Gesamt', und unten bei Alpha Schaden 3× dazu".
+    const gun = child({
+      port: 'Hardpoint Class 3',
+      typeLabel: 'Gun',
+      size: 3,
+      className: 'KLWE_LaserRepeater_S3',
+      kind: 'weapon',
+      name: 'CF-337 Panther Repeater',
+      stats: [
+        { labelKey: 'codex.equipped.alphaDamage', value: 43.65, format: 'dec' },
+        { labelKey: 'codex.equipped.projectileSpeed', value: 1480, format: 'mps' },
+      ],
+    });
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          { ...VARIPUCK, port: 'Hardpoint Weapon Wing Left', children: [gun] },
+          { ...VARIPUCK, port: 'Hardpoint Weapon Wing Right', children: [gun] },
+          { ...VARIPUCK, port: 'Hardpoint Weapon Nose', children: [gun] },
+        ],
+      },
+    ]);
+    expect(el.querySelectorAll('li.slot').length).toBe(1);
+    const kid = el.querySelector('.kid')!;
+    const fig = kid.querySelector('button.kid-btn .fig.total')!;
+    expect(fig).toBeTruthy();
+    expect(fig.querySelector('.fig-l')?.textContent?.trim()).toBe('codex.module.total');
+    expect(fig.querySelector('.n')?.textContent?.trim()).toBe('130.95');
+    expect(kid.querySelector('.kid-line > .fig')).toBeNull();
+    // Per-unit values stay per unit, prefixed with how many units they cover.
+    expect(
+      Array.from(kid.querySelectorAll('.slot-stats dt .mult')).map((m) => m.textContent?.trim()),
+    ).toEqual(['3×', '3×']);
+    expect(
+      Array.from(kid.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim()),
+    ).toEqual(['43.65', '1,480 m/s']);
   });
 
   it('shows who made it and what it is on one meta line', () => {
@@ -566,6 +638,73 @@ describe('CodexHardpointLayoutComponent', () => {
     // Three bays, three rows — never "2× S1" plus one empty.
     expect(el.querySelectorAll('.slot').length).toBe(3);
     expect(el.querySelectorAll('.tag.role').length).toBe(3);
+  });
+
+  it('greys the passive shield generator and says so in words (4263fed1)', () => {
+    const bay = (port: string, roleKey: string) =>
+      slot({
+        port,
+        className: 'SHLD_SECO_S01',
+        kind: 'component',
+        name: 'WEB',
+        size: 1,
+        noCollapse: true,
+        roleKey,
+        stats: [{ labelKey: 'codex.equipped.shieldHp', value: 2160, format: 'int' }],
+      });
+    const el = render([
+      {
+        section: 'shields',
+        slots: [
+          bay('Hardpoint Shield Generator 01', 'codex.module.badge.active'),
+          bay('Hardpoint Shield Generator 02', 'codex.module.badge.active'),
+          bay('Hardpoint Shield Generator 03', 'codex.module.badge.passive'),
+        ],
+      },
+    ]);
+    const rows = Array.from(el.querySelectorAll('li.slot'));
+    expect(rows.length).toBe(3);
+    expect(rows.map((r) => r.classList.contains('inactive'))).toEqual([false, false, true]);
+    expect(rows[2].querySelector('.tag.role')?.textContent?.trim()).toBe('codex.module.badge.passive');
+    // Single bays: no "Gesamt", no multiplier — each row is one generator.
+    expect(el.querySelector('.fig.total')).toBeNull();
+    expect(el.querySelector('.slot-stats .mult')).toBeNull();
+  });
+
+  it('folds two identical coolers into one "2×" row with the cooling total on the card', () => {
+    // 4263fed1: "wenn 2x Ultra Flow drin sind, dann können diese auch als 2x
+    // Ultraflow angezeigt werden … Kühlleistung ins Fenster oben rechts".
+    const cooler = (port: string) =>
+      slot({
+        port,
+        className: 'COOL_JUST_S01_UltraFlow',
+        kind: 'component',
+        name: 'UltraFlow',
+        size: 1,
+        manufacturerCode: 'JUST',
+        typeLabel: 'Cooler',
+        stats: [
+          { labelKey: 'codex.equipped.coolingRate', value: 34, format: 'dec' },
+          { labelKey: 'codex.equipped.powerDraw', value: 3, format: 'dec' },
+        ],
+      });
+    const el = render([
+      { section: 'coolers', slots: [cooler('Hardpoint Cooler Left'), cooler('Hardpoint Cooler Right')] },
+    ]);
+    expect(el.querySelectorAll('li.slot').length).toBe(1);
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('2× S1');
+    const fig = el.querySelector('button.slot-btn .fig.total')!;
+    expect(fig.querySelector('.fig-l')?.textContent?.trim()).toBe('codex.module.total');
+    expect(fig.querySelector('.n')?.textContent?.trim()).toBe('68'); // 34 × 2, no "/s"
+    expect(fig.querySelector('.u')?.textContent?.trim()).toBe('codex.equipped.coolingRate');
+    expect(
+      Array.from(el.querySelectorAll('.slot-stats dt')).map((d) => d.textContent?.replace(/\s+/g, ' ').trim()),
+    ).toEqual(['2× codex.equipped.coolingRate', '2× codex.equipped.powerDraw']);
+    expect(
+      Array.from(el.querySelectorAll('.slot-stats dd')).map((d) => d.textContent?.trim()),
+    ).toEqual(['34', '3']);
+    // The block still offers to list them one by one.
+    expect(el.querySelector('.mod-sec[data-sec="coolers"] .sec-btn')).toBeTruthy();
   });
 
   it('tells the shield CONTROL module apart from a generator bay', () => {

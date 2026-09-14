@@ -346,10 +346,14 @@ export function occupantDraw(occupant: SummaryOccupant, state?: string): Occupan
  * counting the passive generator as a consumer inflated the Nomad's 3-slot
  * shield bay to 6 segments of capacity instead of 4.
  *
- * Decided from the resource data, never from the port name. Without resource
- * data we cannot claim "passive", so the answer is `false`.
+ * Decided from the resource data, never from the port NAME. Without resource
+ * data we cannot claim "passive", so the answer is `false` — unless the
+ * hardpoint itself is flagged as hidden from the pilot (`occupant.passive`,
+ * read from the port definition's `invisible` flag by the detail page), which
+ * is the one other honest signal the game files carry (4263fed1).
  */
 export function isPassiveShield(occupant: SummaryOccupant): boolean {
+  if (occupant.passive === true) return true;
   const draw = occupantDraw(occupant);
   if (draw.missing) return false;
   return draw.consumeSegments === 0 && draw.consumeUnits === 0;

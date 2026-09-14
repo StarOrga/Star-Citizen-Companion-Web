@@ -2753,6 +2753,20 @@ export class CodexDetailComponent implements OnInit {
     return out;
   });
 
+  /**
+   * A shield bay the game never shows the pilot: its item port carries the
+   * `invisible` flag in the hull's port definition (`codex_item_ports.flags`).
+   * That is the only port-level signal the game files offer for a "logical"
+   * third generator (4263fed1) — the Nomad's three bays are all `editable`
+   * there, so this stays false for it and the resource-draw rule decides.
+   * Older catalog builds ingested the flags column empty → always false.
+   */
+  private passiveByPort(section: ShipModuleSection, portName: string | null): boolean {
+    if (section !== 'shields' || !portName) return false;
+    const port = this.detail()?.ports.find((p) => p.portName === portName);
+    return !!port?.flags?.some((f) => f.replace(/^\$/, '').toLowerCase() === 'invisible');
+  }
+
   /** Aggregation input for the Damage / Defence / Power panels. */
   private readonly summaryOccupants = computed<SummaryOccupant[]>(() =>
     this.resolvedLoadout().flatMap((r) => [
@@ -2762,6 +2776,7 @@ export class CodexDetailComponent implements OnInit {
         payload: r.payload,
         ammoPayload: r.ammoPayload,
         count: 1,
+        passive: this.passiveByPort(r.section, r.item.port),
       },
       ...this.carriedOccupants(r.section, r.item.carried),
     ]),
@@ -2789,6 +2804,7 @@ export class CodexDetailComponent implements OnInit {
           payload: pending ? null : overlay.item.payload,
           ammoPayload: pending ? undefined : overlay.item.ammoPayload,
           count: 1,
+          passive: this.passiveByPort(r.section, r.item.port),
         },
       ];
       if (draftEntry === undefined) out.push(...this.carriedOccupants(r.section, r.item.carried));
@@ -3024,6 +3040,7 @@ export class CodexDetailComponent implements OnInit {
           payload: pending ? null : overlay.item.payload,
           ammoPayload: pending ? undefined : overlay.item.ammoPayload,
           count: 1,
+          passive: this.passiveByPort(r.section, r.item.port),
         });
       }
       if (draftEntry === undefined) {
@@ -3383,8 +3400,10 @@ export class CodexDetailComponent implements OnInit {
         draftPaths: draftEntry !== undefined ? [l.port] : [],
         deltaPct: overlay.state === 'changed' ? this.headlineStatDeltaPct(item, overlay.item) : null,
         // Passive generator: desaturated, "nicht am Netz" (MASTER §6, B-C19).
-        // `isPassiveShield` reads the resource block, so on a schema-2 build
-        // (no `ItemResourceComponentParams`) every row honestly stays 'active'.
+        // `isPassiveShield` reads the resource block — or the port's own
+        // `invisible` flag (4263fed1) — so on a schema-2 build (no
+        // `ItemResourceComponentParams`, empty flags) every row honestly
+        // stays 'active'.
         roleKey:
           r.section === 'shields' && overlay.className
             ? isPassiveShield({
@@ -3393,6 +3412,7 @@ export class CodexDetailComponent implements OnInit {
                 payload: overlay.item.payload,
                 ammoPayload: overlay.item.ammoPayload,
                 count: 1,
+                passive: this.passiveByPort(r.section, l.port),
               })
               ? 'codex.module.badge.passive'
               : 'codex.module.badge.active'

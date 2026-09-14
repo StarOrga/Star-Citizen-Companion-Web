@@ -1327,6 +1327,7 @@
       "caretCollapse": "einklappen",
       "census": "{{slots}} Slots · {{active}} aktiv · {{passive}} passiv",
       "censusSlots": "{{slots}} Slots",
+      "total": "Gesamt",
       "badge": {
         "active": "Aktiv",
         "passive": "Passiv · nicht am Netz",

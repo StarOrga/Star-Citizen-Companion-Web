@@ -402,30 +402,59 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                   @if (row.slot.className) {
                     <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
                             [attr.title]="portTitle(row)">
-                      <span class="slot-head">
-                        @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
-                        <span class="slot-ident">
-                          <span class="slot-item">{{ row.slot.name }}</span>
-                          <span class="slot-meta">
-                            @if (row.slot.roleKey) {
-                              <span class="tag role">{{ row.slot.roleKey | translate }}</span>
-                            }
-                            @if (metaLine(row); as m) { <span class="meta-txt">{{ m }}</span> }
-                            @for (ch of row.slot.damageChannels; track ch) {
-                              <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
-                            }
-                            @if (row.slot.grade) { <span class="tag">{{ row.slot.grade }}</span> }
-                            @if (row.slot.statChip) { <span class="tag accent">{{ row.slot.statChip }}</span> }
+                      <span class="slot-top">
+                        <span class="slot-head">
+                          @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
+                          <span class="slot-ident">
+                            <span class="slot-item">{{ row.slot.name }}</span>
+                            <span class="slot-meta">
+                              @if (row.slot.roleKey) {
+                                <span class="tag role">{{ row.slot.roleKey | translate }}</span>
+                              }
+                              @if (metaLine(row); as m) { <span class="meta-txt">{{ m }}</span> }
+                              @for (ch of row.slot.damageChannels; track ch) {
+                                <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                              }
+                              @if (row.slot.grade) { <span class="tag">{{ row.slot.grade }}</span> }
+                              @if (row.slot.statChip) { <span class="tag accent">{{ row.slot.statChip }}</span> }
+                            </span>
                           </span>
                         </span>
+                        <!-- ONE headline figure per row (MASTER §6: "right
+                             figure … with delta chip when changed") — the same
+                             quantity the fold-peek aggregates, with the
+                             absolute delta (not a percentage) riding inside
+                             it. It sits INSIDE the card, top right, and a
+                             collapsed run labels it "Gesamt" (4263fed1:
+                             *"Könnte man diese bitte in das Feld der Waffe
+                             reinbringen oben rechts 'Gesamt'"*). A row that
+                             stands for ONE hardpoint carries no such label —
+                             there is nothing to sum. -->
+                        @if (headlineFig(sec, row); as fig) {
+                          <span class="fig" [class.total]="fig.total">
+                            @if (fig.total) {
+                              <span class="fig-l">{{ 'codex.module.total' | translate }}</span>
+                            }
+                            <span class="n">{{ fig.value }}</span>
+                            <span class="u">{{ fig.unitKey | translate }}</span>
+                            @if (fig.deltaText) {
+                              <span class="dl" [class.up]="fig.delta! > 0" [class.down]="fig.delta! < 0">{{ fig.deltaText }}</span>
+                            }
+                          </span>
+                        }
                       </span>
                       <span class="slot-port">{{ portLabel(row) }}</span>
                       @if (secondaryStats(row); as rest) {
                         @if (rest.length) {
+                          <!-- Per-item values. A collapsed run says how many
+                               units each one stands for ("3× Alphaschaden
+                               43,65") so the per-unit number is never read
+                               as the total; a split block drops the prefix. -->
                           <dl class="slot-stats">
                             @for (st of rest; track st.labelKey) {
                               <div class="stat">
                                 <dt>
+                                  @if (row.count > 1) { <span class="mult">{{ row.count }}×</span> }
                                   {{ st.labelKey | translate }}
                                   @if (st.derived) {
                                     <span class="derived"
@@ -441,19 +470,6 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                         }
                       }
                     </button>
-                    <!-- ONE right-hand headline figure per row (MASTER §6:
-                         "right figure … with delta chip when changed") — the
-                         same quantity the fold-peek aggregates, with the
-                         absolute delta (not a percentage) riding inside it. -->
-                    @if (headlineFig(sec, row); as fig) {
-                      <div class="fig">
-                        <span class="n">{{ fig.value }}</span>
-                        <span class="u">{{ fig.unitKey | translate }}</span>
-                        @if (fig.deltaText) {
-                          <span class="dl" [class.up]="fig.delta! > 0" [class.down]="fig.delta! < 0">{{ fig.deltaText }}</span>
-                        }
-                      </div>
-                    }
                   } @else if (row.slot.emptySwappable && sec.configurable) {
                     <!-- An unfitted bay we DO know the accepted item type for
                          (from the hardpoint itself or from an identical fitted
@@ -542,18 +558,38 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                           @if (kid.className) {
                             <button type="button" class="kid-btn linked"
                                     (click)="openChild(row, kid, sec.configurable)">
-                              <span class="slot-head">
-                                @if (kidBadge(row, kid); as b) { <span class="size-tag">{{ b }}</span> }
-                                <span class="slot-ident">
-                                  <span class="slot-item">{{ kid.name }}</span>
-                                  <span class="slot-meta">
-                                    @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
-                                    @for (ch of kid.damageChannels; track ch) {
-                                      <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
-                                    }
-                                    @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
+                              <span class="slot-top">
+                                <span class="slot-head">
+                                  @if (kidBadge(row, kid); as b) { <span class="size-tag">{{ b }}</span> }
+                                  <span class="slot-ident">
+                                    <span class="slot-item">{{ kid.name }}</span>
+                                    <span class="slot-meta">
+                                      @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
+                                      @for (ch of kid.damageChannels; track ch) {
+                                        <span class="tag dmg">{{ ('codex.damage.' + ch) | translate }}</span>
+                                      }
+                                      @if (kid.grade) { <span class="tag">{{ kid.grade }}</span> }
+                                    </span>
                                   </span>
                                 </span>
+                                <!-- The carried item's own group total — the
+                                     alpha damage of the three guns in the three
+                                     gimbals, or of every missile in both racks
+                                     if all of them hit — which belongs to the
+                                     GUN and not to the mount (feedback
+                                     dbdb2ffe). Top right inside the gun's own
+                                     card, labelled "Gesamt" (4263fed1); the
+                                     same figure is spelled out inside the
+                                     gun's own sheet behind the ⓘ. -->
+                                @if (kidFig(row, kid); as fig) {
+                                  <span class="fig" [class.total]="fig.total">
+                                    @if (fig.total) {
+                                      <span class="fig-l">{{ 'codex.module.total' | translate }}</span>
+                                    }
+                                    <span class="n">{{ fig.value }}</span>
+                                    <span class="u">{{ fig.unitKey | translate }}</span>
+                                  </span>
+                                }
                               </span>
                               <span class="slot-port">{{ kid.port }}</span>
                               @if (kid.stats?.length) {
@@ -561,6 +597,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                   @for (st of kid.stats; track st.labelKey) {
                                     <div class="stat">
                                       <dt>
+                                        @if (kidMult(row, kid) > 1) { <span class="mult">{{ kidMult(row, kid) }}×</span> }
                                         {{ st.labelKey | translate }}
                                         @if (st.derived) {
                                           <span class="derived"
@@ -575,18 +612,6 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
                               }
                             </button>
-                            <!-- The carried item's own group total — the alpha
-                                 damage of the three guns in the three gimbals,
-                                 which belongs to the GUN and not to the mount
-                                 (feedback dbdb2ffe). It reads beside the gun,
-                                 and the same figure is spelled out inside the
-                                 gun's own sheet behind the ⓘ. -->
-                            @if (kidFig(row, kid); as fig) {
-                              <div class="fig">
-                                <span class="n">{{ fig.value }}</span>
-                                <span class="u">{{ fig.unitKey | translate }}</span>
-                              </div>
-                            }
                             <!-- The gun's OWN stat sheet. It had none at all
                                  before (feedback dbdb2ffe: *"von den Waffen
                                  fehlt es komplett"*) — the mount's ⓘ describes
@@ -775,15 +800,23 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .slot-swap:hover, .slot-swap-action:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
     /* The row's ONE headline figure (MASTER §6) — number, unit, absolute
-       delta chip. Sits between the identity block and the ⓘ/⇄ tools, same
-       spot the concept's .fig occupies next to .tools.
-       The mock stacks it (part-02.html:210-215): number, unit UNDER it as a
-       block micro-label, delta as a tinted chip — not one baseline row. */
-    .fig { flex: 0 0 auto; align-self: center;
-      padding: 0 4px; min-width: 64px; text-align: right; }
-    .fig .n { font-size: max(16px, var(--sc-fs-floor)); color: var(--sc-fg-0); font-variant-numeric: tabular-nums; }
+       delta chip. It used to sit OUTSIDE the card between the identity block
+       and the ⓘ/⇄ tools; since 4263fed1 it is the card's own top-right
+       corner (*"in das Feld der Waffe reinbringen oben rechts"*), so the
+       number reads as part of the thing it describes, not as a column
+       beside it. The mock stacks it (part-02.html:210-215): number, unit
+       UNDER it as a block micro-label, delta as a tinted chip — not one
+       baseline row. A collapsed run adds the "Gesamt" micro-label ABOVE. */
+    .slot-top { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+    .slot-top > .slot-head { flex: 1 1 auto; }
+    .fig { flex: 0 0 auto; margin-left: auto; padding-left: 4px; text-align: right;
+      display: flex; flex-direction: column; align-items: flex-end; }
+    .fig .fig-l { font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--sc-accent); }
+    .fig .n { font-size: max(16px, var(--sc-fs-floor)); line-height: 1.15; color: var(--sc-fg-0);
+      font-variant-numeric: tabular-nums; white-space: nowrap; }
     .fig .u { display: block; font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--sc-fg-2); }
+      text-transform: uppercase; color: var(--sc-fg-2); text-align: right; }
     .fig .dl { display: inline-block; margin-top: 2px; font-size: max(10px, var(--sc-fs-floor));
       padding: 0 3.5px; border-radius: 2px; }
     .fig .dl.up { color: var(--sc-success, #4caf50);
@@ -877,6 +910,10 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       border-top: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent); }
     .slot-stats .stat { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
     .slot-stats dt { font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    /* "3× Alphaschaden" — how many units the per-item value stands for while
+       the run is collapsed. Reads in the body colour so it is not mistaken
+       for part of the (muted) label. */
+    .slot-stats .mult { color: var(--sc-fg-1); font-variant-numeric: tabular-nums; }
     .slot-stats dd { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-1); white-space: nowrap;
       font-variant-numeric: tabular-nums; }
     .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
@@ -1288,15 +1325,32 @@ export class CodexHardpointLayoutComponent {
   }
 
   /**
-   * The carried item's own headline figure, multiplied out to every seat the
-   * row stands for: three gimbals each holding one Panther is "3 × 1" guns, so
-   * the gun's own stat carries the mount's count as well as its own.
+   * How many units of the carried item the row stands for — the mount count
+   * times the seats per mount: three gimbals each holding one Panther is
+   * "3 × 1" guns, two racks of four missiles are "2 × 4" missiles.
    */
-  kidFig(row: GroupedSlot<LayoutSlot>, kid: LayoutChild): { value: string; unitKey: string } | null {
+  kidMult(row: GroupedSlot<LayoutSlot>, kid: LayoutChild): number {
+    return Math.max(1, kid.count) * row.count;
+  }
+
+  /**
+   * The carried item's own headline figure, multiplied out to every seat the
+   * row stands for ({@link kidMult}), so the gun's own stat carries the
+   * mount's count as well as its own. `total` says whether that is a SUM
+   * over several units (→ the card labels it "Gesamt") or one unit's value.
+   */
+  kidFig(
+    row: GroupedSlot<LayoutSlot>,
+    kid: LayoutChild,
+  ): { value: string; unitKey: string; total: boolean } | null {
     const stat = kid.stats?.[0];
     if (!stat) return null;
-    const total = stat.value * Math.max(1, kid.count) * row.count;
-    return { value: this.fmtStat({ ...stat, value: total }), unitKey: stat.labelKey };
+    const mult = this.kidMult(row, kid);
+    return {
+      value: this.fmtStat({ ...stat, value: stat.value * mult }),
+      unitKey: stat.labelKey,
+      total: mult > 1,
+    };
   }
 
   fmtStat(stat: EquippedStat): string {
@@ -1353,7 +1407,7 @@ export class CodexHardpointLayoutComponent {
   headlineFig(
     sec: RenderSection,
     row: GroupedSlot<LayoutSlot>,
-  ): { value: string; unitKey: string; delta: number | null; deltaText: string } | null {
+  ): { value: string; unitKey: string; total: boolean; delta: number | null; deltaText: string } | null {
     const fig = this.groupFigure(sec, row);
     if (!fig) return null;
     const pct = row.slot.deltaPct;
@@ -1364,6 +1418,9 @@ export class CodexHardpointLayoutComponent {
     return {
       value: this.fmtStat(fig),
       unitKey: fig.labelKey,
+      // A collapsed run's figure is the SUM over its hardpoints and says so
+      // ("Gesamt"); a single hardpoint's figure is just its own value.
+      total: row.count > 1,
       delta,
       deltaText: delta == null || delta === 0 ? '' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`,
     };

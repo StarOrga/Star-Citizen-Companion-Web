@@ -492,13 +492,15 @@ function componentStats(kind: string, payload: unknown): EquippedStat[] {
       );
       break;
     case 'Cooler':
-      // Cooling output in SRU/s — likewise the cooler's headline, and likewise
-      // absent from every pre-schema-3 build.
+      // Cooling output — likewise the cooler's headline, and likewise absent
+      // from every pre-schema-3 build. The game shows it as a plain figure
+      // ("34"), never as a rate, so it carries no "/s" here either (4263fed1:
+      // *"Kühlleistung wird ingame nur als Einheit und nicht mit /s definiert"*).
       push(
         out,
         'codex.equipped.coolingRate',
         resourceStat(stats, 'coolant.generate', state),
-        'perSec',
+        'dec',
       );
       break;
     default:
