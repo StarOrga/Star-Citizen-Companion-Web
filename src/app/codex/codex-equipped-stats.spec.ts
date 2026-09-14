@@ -719,6 +719,12 @@ describe('codex-equipped-stats', () => {
       expect(keys).toContain('codex.equipped.coolingRate');
       expect(keys).toContain('codex.equipped.powerDraw');
       expect(valueOf(COOLER_S3, 'codex.equipped.coolingRate')).toBe(34);
+      // 4263fed1: the game shows cooling as a plain "34", never as a rate —
+      // so the row renders no "/s" either.
+      const cooling = equippedStats({ kind: 'component', payload: COOLER_S3 }, Infinity).find(
+        (r) => r.labelKey === 'codex.equipped.coolingRate',
+      )!;
+      expect(formatEquippedStat(cooling)).toBe('34');
       expect(valueOf(COOLER_S3, 'codex.equipped.powerDraw')).toBe(3);
       expect(valueOf(COOLER_S3, 'codex.equipped.minPower')).toBe(0.6667);
       expect(valueOf(COOLER_S3, 'codex.equipped.emSignature')).toBe(1490);

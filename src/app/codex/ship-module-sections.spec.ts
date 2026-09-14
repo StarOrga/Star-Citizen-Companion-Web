@@ -118,6 +118,23 @@ describe('classifyShipModule', () => {
     expect(classifyShipModule('hardpoint_class_2', { attachType: 'Radar' })).toBe('radar');
   });
 
+  it('keeps a door out of the power-plant block, whatever its port is called', () => {
+    // The Nomad's reactor bay hatch sits on `hardpoint_power_plant_rack` and
+    // carries a `Door` item (`$uneditable` in the vehicle XML). The port name
+    // says "power plant"; the occupant says furniture — and furniture wins
+    // (4263fed1: "da ist eine 'door' drin die hat da nichts zu suchen").
+    expect(classifyShipModule('hardpoint_power_plant_rack', { attachType: 'Door' })).toBe(
+      'structure',
+    );
+    expect(classifyShipModule('hardpoint_power_plant_rack', { subType: 'Door' })).toBe('structure');
+    // The real reactor on the same hull keeps its block.
+    expect(classifyShipModule('hardpoint_power_plant', { attachType: 'PowerPlant' })).toBe(
+      'powerPlants',
+    );
+    // Other furniture by occupant: a seat on a turret-named port stays airframe.
+    expect(classifyShipModule('hardpoint_turret_gunner', { attachType: 'Seat' })).toBe('structure');
+  });
+
   it('ignores the engine placeholder types instead of letting them win', () => {
     expect(classifyShipModule('hardpoint_unknown_thing', { subType: 'UNDEFINED' })).toBe(
       'structure',
@@ -163,11 +180,12 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
     }
   });
 
-  it('lists shields, countermeasures and coolers slot by slot, everything else collapsed', () => {
+  it('lists shields and countermeasures slot by slot, everything else collapsed', () => {
+    // 4263fed1: coolers fold like weapons again ("2× UltraFlow" with the
+    // cooling total on the card); the per-block "Einzeln" toggle still lists
+    // them one by one, which is what 32659942 actually needed.
     for (const s of SHIP_MODULE_SECTION_ORDER) {
-      expect(isIndividualSection(s)).toBe(
-        s === 'shields' || s === 'countermeasures' || s === 'coolers',
-      );
+      expect(isIndividualSection(s)).toBe(s === 'shields' || s === 'countermeasures');
     }
   });
 });

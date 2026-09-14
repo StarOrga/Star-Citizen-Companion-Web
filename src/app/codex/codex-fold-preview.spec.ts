@@ -76,6 +76,16 @@ describe('isPassiveShield', () => {
     expect(isPassiveShield(shieldOcc(1, 100, 0))).toBeTrue();
     expect(isPassiveShield(shieldOcc(1, 100, 2))).toBeFalse();
   });
+
+  it('trusts the hardpoint when its port is flagged hidden from the pilot (4263fed1)', () => {
+    // `invisible` on the item port is the one port-level signal the game
+    // files carry for a generator the pilot never sees; it beats a resource
+    // block that says "draws power".
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: true })).toBeTrue();
+    // …and an explicit `false` changes nothing: the resource rule decides.
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 0), passive: false })).toBeTrue();
+    expect(isPassiveShield({ ...shieldOcc(1, 100, 2), passive: false })).toBeFalse();
+  });
 });
 
 describe('buildFoldPreview dispatch', () => {

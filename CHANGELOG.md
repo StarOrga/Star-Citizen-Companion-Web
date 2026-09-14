@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.4] - 2026-09-14
+
+### Changed
+
+- **Schiffsseite — Modulzeilen: Gesamt im Karteneintrag, Anzahl an jedem
+  Wert.** Die Gesamtsumme einer zusammengefassten Zeile (z. B. 3× Panther,
+  2× Kühler, alle Raketen) steht jetzt oben rechts im Karteneintrag unter
+  „Gesamt", und jeder Einzelwert nennt die Anzahl („3× Alphaschaden"); nach
+  „Einzeln" entfällt beides. Kühler werden wie Waffen zusammengefasst
+  („2× UltraFlow") und zeigen die Kühlleistung als reine Zahl ohne „/s".
+  Türen und andere Hüllen-Ausstattung erscheinen nicht mehr im
+  Generator-Block (Nomad: ein Generator). Data Uploader 0.29.1 liefert die
+  Item-Port-Flags (z. B. `invisible`) mit, die bisher leer ankamen; ein als
+  unsichtbar markierter Schildplatz wird als „Passiv" ausgegraut — für die
+  Nomad enthalten die Spieldateien kein solches Signal. (Feedback #232)
+
 ## [0.85.3] - 2026-09-14
 
 ### Fixed
