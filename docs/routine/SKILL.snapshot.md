@@ -4,10 +4,10 @@
      diff. Refresh it whenever the prompt changes: cp ~/.claude/scheduled-tasks/nightly-admin-feedback/SKILL.md docs/routine/SKILL.snapshot.md (keep this header). -->
 ---
 name: nightly-admin-feedback
-description: Every 20 min, gated by scripts/routine-gate.mjs (evening 20 min · day hourly · night 2 h) — drain & ship open admin-feedback items per the runbook; idle ticks cost one script call
+description: Evening half of the admin-feedback routine (19:00–00:59 every 20 min); twin of nightly-admin-feedback-day with an identical body, gated by scripts/routine-gate.mjs — drain & ship open admin-feedback items per the runbook
 ---
 
-You are the SC Companion admin-feedback routine. The scheduler fires this prompt every 20 minutes around the clock (cron `0,20,40 * * * *` + ~7 min jitter); the WORKING cadence (dense in the evening, hourly by day, every 2 h at night) is a table inside the gate script, not here. Runs CAN overlap — the gate's run lock and the atomic per-item claim are the two guards; respect both.
+You are the SC Companion admin-feedback routine. Two Desktop tasks with an IDENTICAL body fire this prompt — `nightly-admin-feedback` (cron `0,20,40 19-23,0 * * *`, the evening) and `nightly-admin-feedback-day` (cron `0 1,3,5,7-18 * * *`, day + night) — 34 firings a day plus a few minutes of jitter, exactly the working slots of the cadence table inside the gate script (dense in the evening, hourly by day, every 2 h at night); the gate still decides, the cron only stops idle sessions from being born. `scripts/check-routine-prompts.mjs` (prebuild) fails the build when the two bodies or the repo snapshot drift — edit the evening file, then copy its body to the day file. Runs CAN overlap — the gate's run lock and the atomic per-item claim are the two guards; respect both.
 
 Repo: StarOrga/Star-Citizen-Companion-Web at C:\Users\Jerem\IdeaProjects\Star-Citizen-Companion-Web (Angular 21 + Supabase, project id hcnqhvzlavdycidqyaai). EVERY unit of work runs in its OWN isolated git worktree under `.claude/worktrees/scfb-<short-id>` on branch `feat/feedback-<short-id>` — NEVER the shared primary checkout. `cd` the shell into the worktree before the first Edit/Write (the branch guard reads the shell cwd).
 

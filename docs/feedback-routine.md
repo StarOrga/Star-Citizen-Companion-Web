@@ -2,10 +2,14 @@
 
 Autonomous routine that turns the admins-only feedback board
 (`public.admin_feedback`) into shipped changes. Runs as a **local Claude
-scheduled task** (`nightly-admin-feedback`, cron `0,20,40 * * * *` — but the
-**working cadence is a table in `scripts/routine-gate.mjs`**: every 20 min in
-the evening, hourly by day, every two hours at night; a tick outside its
-window only stamps the heartbeat, see [`gate.md`](feedback-routine/gate.md)) — it fires
+scheduled task** — two of them with one prompt body: `nightly-admin-feedback`
+(cron `0,20,40 19-23,0 * * *`, the evening) and `nightly-admin-feedback-day`
+(cron `0 1,3,5,7-18 * * *`, day and night), 34 firings a day that mirror the
+**working cadence table in `scripts/routine-gate.mjs`**: every 20 min in
+the evening, hourly by day, every two hours at night; the gate still decides,
+a tick outside its window only stamps the heartbeat, see
+[`gate.md`](feedback-routine/gate.md). `scripts/check-routine-prompts.mjs`
+(prebuild) fails every build when the two bodies or the snapshot drift — it fires
 only while Claude is running on the dev machine, **not** a PC-independent
 cloud agent. A true event-driven / PC-independent build would require a
 claude.ai Cloud environment + Supabase INSERT webhook; considered and
