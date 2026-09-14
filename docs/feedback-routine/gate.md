@@ -37,7 +37,14 @@ It prints one JSON line (`verdict` ∈ `idle` · `skip-cadence` · `running` ·
 5. **Heartbeat** with `next_run_at`, `state` and a machine-readable `note`.
 
 **On `idle` / `skip-cadence` / `running` the tick reports one line and stops
-without reading this runbook.** On `work` the tick takes the run lock
+without reading this runbook** — after the session hygiene: every tick is its
+own Desktop session, and an un-archived one is restored as a tab (its own
+`claude.exe`, node service and SessionStart hooks) after the next restart; ~120
+of them pinned the NVMe at 100 % for 15 minutes after a bluescreen on
+2026-09-14. So each tick lists the sessions, archives the routine's older
+non-running ones (same title only) and finally archives itself — one
+`list_sessions`, n `archive_session`, no runbook read. Working runs do the
+same at the end of STEP 6. On `work` the tick takes the run lock
 (`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`
 means stand down), reads this runbook, and continues with STEP 1. On `error`
 (token missing, SQL down) the gate is fail-open: the tick falls back to the

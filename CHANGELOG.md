@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.5] - 2026-09-14
+
+### Fixed
+
+- **Die Feedback-Routine räumt ihre eigenen Desktop-Sessions weg.** Jeder
+  Tick des Scheduled Tasks ist eine eigene Desktop-Session, und eine nicht
+  archivierte Session wird beim nächsten Neustart als Tab wiederhergestellt —
+  mit eigenem `claude.exe`, Node-Dienst und allen SessionStart-Hooks. Nach
+  einem Bluescreen am 14.09. hingen so ~120 Routine-Sessions gleichzeitig am
+  Start und hielten die NVMe 15 Minuten bei 100 %. Der Prompt endet jetzt bei
+  jedem Tick (Idle wie Arbeitslauf) mit einem Aufräumschritt: ältere,
+  nicht laufende Sessions mit dem Routine-Titel archivieren, dann die eigene.
+
 ## [0.85.4] - 2026-09-14
 
 ### Changed
