@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.7] - 2026-09-14
+
+### Fixed
+
+- **Der Aufräumschritt der Feedback-Routine hat die Routine selbst blockiert.**
+  Aus einer Scheduled-Task-Session wartet jeder `archive_session`-Aufruf (ältere
+  Sessions wie „self") auf einen Bestätigungsdialog, den nur der Nutzer klicken
+  kann — trotz Bypass-Modus. Solange der Dialog offen ist, gilt die Session als
+  laufend und der Scheduler feuert den Task nicht erneut: der 21:47-Tick hing
+  81 Minuten, die Ticks 22:07, 22:27 und 22:47 fielen aus. Der Archivierschritt
+  ist im Prompt ausgesetzt (Tick meldet nur noch die Gate-Zeile); Runbook und
+  Deep-Knowledge halten Befund und Handlungsweg fest, die Sessions werden bis
+  auf Weiteres aus einer interaktiven Session weggeräumt.
+
 ## [0.85.6] - 2026-09-14
 
 ### Changed
