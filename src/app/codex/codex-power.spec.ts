@@ -2,12 +2,16 @@ import {
   classifyPowerGroup,
   clickPowerPip,
   computePowerSheet,
+  coolerUnitCount,
+  migrateLegacyCoolerDraft,
   occupantDraw,
+  parseCoolerUnit,
   parsePowerGroups,
+  parsePowerLevels,
   POWER_GROUP_ORDER,
   resetPowerState,
   togglePowerGroup,
-  type PowerGroup,
+  type PowerColumnKey,
 } from './codex-power';
 import type { SummaryOccupant } from './ship-summary-panels';
 import type { ShipModuleSection } from './ship-module-sections';
@@ -208,6 +212,8 @@ describe('computePowerSheet — the Nomad baseline', () => {
 
   it('keeps the dock column order', () => {
     expect(sheet.groups.map((g) => g.group)).toEqual([...POWER_GROUP_ORDER]);
+    // one cooler installed: its column is the unit, not the group
+    expect(sheet.groups.map((g) => g.key)).toEqual([...POWER_GROUP_ORDER.slice(0, 7), 'cooler1']);
   });
 
   it('renders the eight groups in the order the admin fixed (590230e3), absent ones included', () => {
@@ -347,7 +353,7 @@ describe('computePowerSheet — modes, presets and gaps', () => {
 
 describe('dock state helpers', () => {
   it('toggles a group in and out of the cut set', () => {
-    let cut: ReadonlySet<PowerGroup> = new Set();
+    let cut: ReadonlySet<PowerColumnKey> = new Set();
     cut = togglePowerGroup(cut, 'weapons');
     expect(cut.has('weapons')).toBeTrue();
     cut = togglePowerGroup(cut, 'weapons');
@@ -365,11 +371,23 @@ describe('dock state helpers', () => {
   it('drops unknown group keys when parsing', () => {
     expect([...parsePowerGroups(['weapons', 'nope', 'radar'])]).toEqual(['weapons', 'radar']);
   });
+
+  it('accepts cooler unit keys and the legacy group key when parsing (F1d)', () => {
+    expect([...parsePowerGroups(['cooler1', 'cooler2', 'coolers', 'cooler0', 'cooler', 'coolerx'])]).toEqual([
+      'cooler1',
+      'cooler2',
+      'coolers',
+    ]);
+    expect(parsePowerLevels({ cooler2: 3, coolers: '4', cooler0: 1, nope: 2 })).toEqual({ cooler2: 3, coolers: 4 });
+    expect(parseCoolerUnit('cooler12')).toBe(12);
+    expect(parseCoolerUnit('coolers')).toBeNull();
+    expect(parseCoolerUnit('cooler01')).toBeNull();
+  });
 });
 
 describe('clickPowerPip (590230e3)', () => {
-  const none: ReadonlySet<PowerGroup> = new Set();
-  const shields = { group: 'shields' as const, allocated: 3, capacity: 3, cut: false };
+  const none: ReadonlySet<PowerColumnKey> = new Set();
+  const shields = { key: 'shields' as const, allocated: 3, capacity: 3, cut: false };
 
   it('clicking pip N pins the group at exactly N', () => {
     const r = clickPowerPip(none, {}, shields, 2);
@@ -390,13 +408,122 @@ describe('clickPowerPip (590230e3)', () => {
   });
 
   it('any pip on a cut group switches it back on at that level', () => {
-    const r = clickPowerPip(new Set<PowerGroup>(['shields']), {}, { ...shields, allocated: 0, cut: true }, 3);
+    const r = clickPowerPip(new Set<PowerColumnKey>(['shields']), {}, { ...shields, allocated: 0, cut: true }, 3);
     expect(r.cutGroups.has('shields')).toBeFalse();
     expect(r.levels).toEqual({ shields: 3 });
   });
 
   it('clamps the level to the stack and keeps other pins', () => {
-    const r = clickPowerPip(none, { coolers: 4 }, { ...shields, allocated: 1 }, 9);
-    expect(r.levels).toEqual({ coolers: 4, shields: 3 });
+    const r = clickPowerPip(none, { cooler1: 2 }, { ...shields, allocated: 1 }, 9);
+    expect(r.levels).toEqual({ cooler1: 2, shields: 3 });
+  });
+
+  it('a cooler unit pins and cuts under its own key, the sibling unit is untouched', () => {
+    const unit2 = { key: 'cooler2' as const, allocated: 3, capacity: 3, cut: false };
+    const pinned = clickPowerPip(none, { cooler1: 1 }, unit2, 2);
+    expect(pinned.levels).toEqual({ cooler1: 1, cooler2: 2 });
+    const cut = clickPowerPip(none, {}, unit2, 3);
+    expect([...cut.cutGroups]).toEqual(['cooler2']);
+  });
+});
+
+describe('cooler units (590230e3, F1d)', () => {
+  const twoCoolers = nomad.map((o) => (o === coolers ? { ...o, count: 2 } : o));
+  const noCoolers = nomad.filter((o) => o !== coolers);
+  const cooler2 = occ({
+    section: 'coolers',
+    componentKind: 'Cooler',
+    className: 'COOL_JUST_S01_UltraFlow_B',
+    resource: { 'power.consumeSegments': 2, 'power.minFraction': 0.5, 'coolant.generate': 20, 'ir.nominal': 500 },
+  });
+  const col = (s: ReturnType<typeof computePowerSheet>, key: string) => s.groups.find((g) => g.key === key)!;
+
+  it('renders one column per installed cooler, in hardpoint order, after the seven groups', () => {
+    const s = computePowerSheet({ occupants: twoCoolers });
+    const cols = s.groups.filter((g) => g.group === 'coolers');
+    expect(cols.map((g) => g.key)).toEqual(['cooler1', 'cooler2']);
+    expect(cols.map((g) => g.unit)).toEqual([1, 2]);
+    expect(s.groups.map((g) => g.key).slice(0, 7)).toEqual([...POWER_GROUP_ORDER.slice(0, 7)]);
+    expect(s.groups.length).toBe(9);
+    expect(coolerUnitCount(twoCoolers)).toBe(2);
+    expect(coolerUnitCount(noCoolers)).toBe(0);
+  });
+
+  it('does NOT sum the units: each carries its own demand, capacity, minimum and pips', () => {
+    const s = computePowerSheet({ occupants: twoCoolers });
+    for (const key of ['cooler1', 'cooler2']) {
+      const c = col(s, key);
+      expect(c.demand).toBe(3);
+      expect(c.capacity).toBe(3);
+      expect(c.minimum).toBe(2); // 3 x 0.6667 -> 2 (R6), per unit
+      expect(c.items).toBe(1);
+      expect(c.pips.length).toBe(3);
+    }
+  });
+
+  it('splits a mixed pair into two columns with their own figures', () => {
+    const s = computePowerSheet({ occupants: [...nomad, cooler2] });
+    const [a, b] = s.groups.filter((g) => g.group === 'coolers');
+    expect(a.capacity).toBe(3);
+    expect(b.capacity).toBe(2);
+    expect(b.minimum).toBe(1);
+  });
+
+  it('labels the units by their hardpoint index and keeps the group tooltip', () => {
+    const s = computePowerSheet({ occupants: twoCoolers });
+    const c = col(s, 'cooler2');
+    expect(c.labelKey).toBe('codex.energy.group.coolerUnit');
+    expect(c.labelParams).toEqual({ n: 2 });
+    expect(c.tooltipTitleKey).toBe('codex.energy.group.coolerUnit');
+    expect(c.tooltipBodyKey).toBe('codex.energy.tooltip.coolers');
+    expect(col(s, 'weapons').labelParams).toBeUndefined();
+  });
+
+  it('pins, cuts and the powered set work per unit', () => {
+    const auto = computePowerSheet({ occupants: twoCoolers });
+    const pinned = computePowerSheet({ occupants: twoCoolers, levels: { cooler2: 1 } });
+    expect(col(pinned, 'cooler2').allocated).toBe(1);
+    expect(col(pinned, 'cooler2').pinned).toBeTrue();
+    expect(col(pinned, 'cooler2').belowMinimum).toBeTrue();
+    expect(col(pinned, 'cooler1').pinned).toBeFalse();
+    expect(col(pinned, 'cooler1').allocated).toBe(col(auto, 'cooler1').allocated);
+
+    const cut = computePowerSheet({ occupants: twoCoolers, cutGroups: ['cooler1'], previous: auto });
+    expect(col(cut, 'cooler1').state).toBe('off');
+    expect(col(cut, 'cooler2').state).toBe('active');
+    // only the cut unit's signature leaves the IR sum: one UltraFlow = 7130
+    expect(cut.facts.find((f) => f.key === 'ir')!.delta).toBe(-7130);
+    // the ship-wide coolant balance is untouched by the split
+    expect(auto.coolant.total).toBe(68);
+  });
+
+  it('a ship without coolers keeps ONE empty cooling column so the row never shifts', () => {
+    const s = computePowerSheet({ occupants: noCoolers });
+    const cols = s.groups.filter((g) => g.group === 'coolers');
+    expect(cols.length).toBe(1);
+    expect(cols[0].key).toBe('coolers');
+    expect(cols[0].unit).toBeNull();
+    expect(cols[0].state).toBe('absent');
+    expect(cols[0].labelKey).toBe('codex.energy.group.coolers');
+    expect(s.groups.length).toBe(8);
+  });
+
+  it('a legacy single `coolers` cut/pin is mapped onto every unit on load', () => {
+    const cut = migrateLegacyCoolerDraft(new Set<PowerColumnKey>(['coolers', 'weapons']), {}, 2);
+    expect([...cut.cutGroups].sort()).toEqual(['cooler1', 'cooler2', 'weapons']);
+    // a pin of 5 on the summed group -> ceil(5 / 2) = 3 per unit, the total stays
+    const pin = migrateLegacyCoolerDraft(new Set<PowerColumnKey>(), { coolers: 5, shields: 2 }, 2);
+    expect(pin.levels).toEqual({ cooler1: 3, cooler2: 3, shields: 2 });
+    // a unit that already has its own pin keeps it
+    const mixed = migrateLegacyCoolerDraft(new Set<PowerColumnKey>(), { coolers: 4, cooler1: 1 }, 2);
+    expect(mixed.levels).toEqual({ cooler1: 1, cooler2: 2 });
+    // nothing to map onto: no coolers, or no legacy entry
+    const none = migrateLegacyCoolerDraft(new Set<PowerColumnKey>(['coolers']), { coolers: 4 }, 0);
+    expect([...none.cutGroups]).toEqual(['coolers']);
+    const untouched = migrateLegacyCoolerDraft(new Set<PowerColumnKey>(['weapons']), { cooler1: 1 }, 2);
+    expect(untouched.levels).toEqual({ cooler1: 1 });
+    // and the migrated draft actually drives the sheet per unit
+    const s = computePowerSheet({ occupants: twoCoolers, cutGroups: cut.cutGroups, levels: pin.levels });
+    expect(s.groups.filter((g) => g.group === 'coolers').every((g) => g.state === 'off')).toBeTrue();
   });
 });

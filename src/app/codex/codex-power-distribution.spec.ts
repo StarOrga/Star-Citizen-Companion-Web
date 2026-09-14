@@ -26,8 +26,12 @@ type SheetInput = Parameters<typeof computePowerSheet>[0];
 const sheet = (over: Partial<SheetInput> = {}): ReturnType<typeof computePowerSheet> =>
   computePowerSheet({ occupants: nomadOccupants(), shipStats: NOMAD_SHIP_STATS, ...over });
 
-const row = (s: ReturnType<typeof computePowerSheet>, g: string) =>
-  s.groups.find((r) => r.group === g)!;
+/** the column under `key` — a group key, or `cooler<n>` for one cooler unit (F1d). */
+const row = (s: ReturnType<typeof computePowerSheet>, key: string) =>
+  s.groups.find((r) => r.key === key)!;
+/** the two Nomad cooler units summed — what the pre-F1d single column read. */
+const coolersTotal = (s: ReturnType<typeof computePowerSheet>): number =>
+  s.groups.filter((r) => r.group === 'coolers').reduce((n, r) => n + r.allocated, 0);
 
 describe('power distribution (R1)', () => {
   it('never allocates more than the reactor funds', () => {
@@ -41,16 +45,20 @@ describe('power distribution (R1)', () => {
   it('seeds every group with its minimum, then spends the surplus weapons-first', () => {
     const s = sheet();
     // capacity: weapons 3 (three 1.0-unit repeaters), shields 4 (2 active × 2,
-    // the passive one draws nothing), coolers 6 (2 × 3), 1 each for the rest.
+    // the passive one draws nothing), 3 per cooler UNIT (F1d: two columns,
+    // never summed), 1 each for the rest.
     expect(row(s, 'weapons').capacity).toBe(3);
     expect(row(s, 'shields').capacity).toBe(4);
-    expect(row(s, 'coolers').capacity).toBe(6);
-    // minimums: 0 / 2 / 4 / 1 / 1 / 1 → 9 of the 14 segments are spoken for.
+    expect(row(s, 'cooler1').capacity).toBe(3);
+    expect(row(s, 'cooler2').capacity).toBe(3);
+    // minimums: 0 / 2 / 2 + 2 / 1 / 1 / 1 → 9 of the 14 segments are spoken for.
     expect(s.budgetMinimum).toBe(9);
     // the remaining 5 go weapons (3) then shields (2).
     expect(row(s, 'weapons').allocated).toBe(3);
     expect(row(s, 'shields').allocated).toBe(4);
-    expect(row(s, 'coolers').allocated).toBe(4);
+    expect(row(s, 'cooler1').allocated).toBe(2);
+    expect(row(s, 'cooler2').allocated).toBe(2);
+    expect(coolersTotal(s)).toBe(4);
     expect(s.budgetUsed).toBe(14);
     expect(s.overBudget).toBeFalse();
     expect(s.ready).toBeTrue();
@@ -68,7 +76,7 @@ describe('power distribution (R1)', () => {
     const s = sheet({ occupants: nomadOccupants(), preset: 'stealth' });
     expect(row(s, 'weapons').allocated).toBe(0);
     expect(row(s, 'shields').allocated).toBe(2);
-    expect(row(s, 'coolers').allocated).toBe(4);
+    expect(coolersTotal(s)).toBe(4);
     expect(s.budgetUsed).toBe(9);
   });
 
@@ -83,40 +91,38 @@ describe('power distribution (R1)', () => {
     expect(s.ready).toBeFalse();
     expect(s.readinessKey).toBe('codex.energy.readiness.no');
     // allocations stay AT the minimum — the dock prints 9 / 3, it does not lie
-    expect(row(s, 'coolers').allocated).toBe(4);
+    expect(coolersTotal(s)).toBe(4);
     expect(s.budgetUsed).toBe(s.budgetMinimum);
   });
 
   it('pips are capacity slots: min, then on, then empty', () => {
     const s = sheet();
-    const coolers = row(s, 'coolers');
-    expect(coolers.pips.length).toBe(6);
-    expect(coolers.pips.map((p) => p.kind)).toEqual([
-      'min',
-      'min',
-      'min',
-      'min',
-      'empty',
-      'empty',
-    ]);
+    // each cooler unit is its own 3-pip stack: two gold, one empty (F1d)
+    for (const key of ['cooler1', 'cooler2']) {
+      const cooler = row(s, key);
+      expect(cooler.pips.length).toBe(3);
+      expect(cooler.pips.map((p) => p.kind)).toEqual(['min', 'min', 'empty']);
+    }
     const shields = row(s, 'shields');
     expect(shields.pips.map((p) => p.kind)).toEqual(['min', 'min', 'on', 'on']);
   });
 
   it('a pin sets its own group to exactly the clicked level and re-deals nothing (F1c)', () => {
     const auto = sheet();
-    // coolers auto-deal to 4 of 6; pinning shields down to 2 frees exactly 2
+    // the coolers auto-deal to 2 of 3 each; pinning shields down to 2 frees exactly 2
     const down = sheet({ occupants: nomadOccupants(), levels: { shields: 2 } });
     expect(row(down, 'shields').allocated).toBe(2);
     expect(row(down, 'shields').pinned).toBeTrue();
-    expect(row(down, 'coolers').allocated).toBe(row(auto, 'coolers').allocated);
+    expect(row(down, 'cooler1').allocated).toBe(row(auto, 'cooler1').allocated);
+    expect(row(down, 'cooler2').allocated).toBe(row(auto, 'cooler2').allocated);
     expect(down.budgetUsed).toBe(auto.budgetUsed - 2);
     expect(down.overBudget).toBeFalse();
   });
 
   it('a pin above the free budget prints the deficit instead of trimming a neighbour', () => {
-    const s = sheet({ occupants: nomadOccupants(), levels: { coolers: 6 } });
-    expect(row(s, 'coolers').allocated).toBe(6);
+    const s = sheet({ occupants: nomadOccupants(), levels: { cooler1: 3, cooler2: 3 } });
+    expect(row(s, 'cooler1').allocated).toBe(3);
+    expect(row(s, 'cooler2').allocated).toBe(3);
     expect(s.budgetUsed).toBe(16);
     expect(s.budgetTotal).toBe(14);
     expect(s.overBudget).toBeTrue();
@@ -127,11 +133,14 @@ describe('power distribution (R1)', () => {
   });
 
   it('a pin below the gold floor is honoured and flagged', () => {
-    const s = sheet({ occupants: nomadOccupants(), levels: { coolers: 2 } });
-    expect(row(s, 'coolers').allocated).toBe(2);
-    expect(row(s, 'coolers').minimum).toBe(4);
-    expect(row(s, 'coolers').belowMinimum).toBeTrue();
-    expect(row(s, 'coolers').pips.map((p) => p.kind)).toEqual(['min', 'min', 'empty', 'empty', 'empty', 'empty']);
+    const s = sheet({ occupants: nomadOccupants(), levels: { cooler1: 1 } });
+    expect(row(s, 'cooler1').allocated).toBe(1);
+    expect(row(s, 'cooler1').minimum).toBe(2);
+    expect(row(s, 'cooler1').belowMinimum).toBeTrue();
+    expect(row(s, 'cooler1').pips.map((p) => p.kind)).toEqual(['min', 'empty', 'empty']);
+    // the sibling unit is not the pinned one
+    expect(row(s, 'cooler2').allocated).toBe(2);
+    expect(row(s, 'cooler2').belowMinimum).toBeFalse();
   });
 
   it('a pin is clamped to the stack and dormant on a cut or channel-less group', () => {
@@ -145,8 +154,8 @@ describe('power distribution (R1)', () => {
   it('distributePower keeps min ≤ alloc ≤ capacity', () => {
     const out = distributePower(
       [
-        { group: 'weapons', capacity: 3, minimum: 0, items: 3, present: true },
-        { group: 'shields', capacity: 4, minimum: 2, items: 2, present: true },
+        { group: 'weapons', key: 'weapons', capacity: 3, minimum: 0, items: 3, present: true },
+        { group: 'shields', key: 'shields', capacity: 4, minimum: 2, items: 2, present: true },
       ],
       4,
       'auto',
@@ -181,16 +190,19 @@ describe('weaponsCut (R3)', () => {
 });
 
 describe('minFraction rounding (R6)', () => {
-  it('two UltraFlow coolers floor at 4 segments, not 5', () => {
+  it('an UltraFlow cooler floors at 2 segments, not 3 — 4 over both units, not 5', () => {
     const s = computePowerSheet({ occupants: nomadOccupants([NOMAD_COOLER]) });
-    expect(row(s, 'coolers').minimum).toBe(4);
+    // per unit: 3 × 0.6667 = 2.0001 → 2 (F1d splits the pair into two columns)
+    expect(row(s, 'cooler1').minimum).toBe(2);
+    expect(row(s, 'cooler2').minimum).toBe(2);
+    expect(s.budgetMinimum).toBe(4);
   });
 
   it('a genuine fraction above the floor still rounds up', () => {
     const s = computePowerSheet({
       occupants: nomadOccupants([{ ...NOMAD_COOLER, count: 1, minFraction: 0.7 }]),
     });
-    expect(row(s, 'coolers').minimum).toBe(3); // 3 × 0.7 = 2.1 → 3
+    expect(row(s, 'cooler1').minimum).toBe(3); // 3 × 0.7 = 2.1 → 3
   });
 });
 
