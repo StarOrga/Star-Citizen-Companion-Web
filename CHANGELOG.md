@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.9] - 2026-09-14
+
+### Changed
+
+- **Konzeptseiten-Archiv vollständig.** Zwei Konzeptseiten, die bisher nur
+  lokal lagen — Ladeanimationen/Seitenaufbau (27.08.) und der Patch-Board-Neubau
+  (04.09.) — liegen jetzt samt ihrer Entscheidungen unter `docs/concepts/`; die
+  Schiffsseiten-Konzepttreue-Seite trägt den Stand nach Iteration 1. Reine
+  Doku, kein Code.
+
 ## [0.85.8] - 2026-09-14
 
 ### Changed

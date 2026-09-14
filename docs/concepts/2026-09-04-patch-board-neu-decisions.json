@@ -1,0 +1,127 @@
+[
+  {
+    "iteration": 1,
+    "template": "design",
+    "action": "iterate",
+    "submitted_at": "2026-09-04T21:01:00Z",
+    "comments": {
+      "general": "Das ist mir alles noch nicht integriert und gestaffelt genug, schon besser aber noch 100 Hauptelemente gefühlt. Suche ok, Schnellauswahl ok, dann sollten die Patches dargestellt werden und man kann ggf. in einen rein gehen => Popup ggf. dort dann übersichtlich alle Details nach Use Case warum man sie sehen will gut UX UI angeordnet....",
+      "designs": {},
+      "screens": {}
+    },
+    "approvals": {
+      "removals_ticked": []
+    },
+    "outcome": "iterate — new direction: board = search + quick selection + patch list; opening a patch = detail surface organised by use case"
+  },
+  {
+    "iteration": 2,
+    "template": "design",
+    "action": "iterate",
+    "submitted_at": "2026-09-04T21:10:46.615Z",
+    "comments": {
+      "general": "Generell in die patch details mit reinnehmen wie man sich drauf vorbereitet (was wird gelöscht und was nciht laut spectrum....)",
+      "designs": {},
+      "screens": {
+        "e-s1": "verstehe die stati nicht, es sollte viel offenssichtlicher sein was in welchem status ist und live ist überragend.",
+        "e-s3": "interesssant",
+        "f-s1": "die patch auswahl neben der suche macht keinen sinn. wir haben die patches ja schon übersichtlich unten.",
+        "f-s2": "finde ich schon die richitge richtung, aber visuell eine katastrophe, aktuell mit bildernkurztesxt, und möglcihen langtext von der roadmap ist doch super. Dann dazu auch infos aus dem spectrum oder sonstwo gut eingefügt, alles gut.",
+        "f-s3": "richtig gut!"
+      }
+    },
+    "approvals": {
+      "removals_ticked": []
+    },
+    "outcome": "iterate — Ⓕ is the direction; fixes: status must be obvious (Live dominant), no patch chips beside search, dossier must be image-led (roadmap cards + note info), new use case 'how to prepare (wipe/LTP per Spectrum)'"
+  },
+  {
+    "iteration": 3,
+    "template": "design",
+    "action": "iterate",
+    "submitted_at": "2026-09-04T21:29:35.854Z",
+    "comments": {
+      "general": "",
+      "designs": {},
+      "screens": {
+        "h-s1": "Viel besser! Wobei ich verwirrend finde, dass die patches nicht aufsteigend sind. und der nächste patch 4.11 sollte exciting sein, nicht so rpäsent wie der live aber exciting.",
+        "h-s2": "Finde ich gut, aber verwirrend die headline auswahl vs das es ja ein vertikal scrollen ist, ggf. mehr von den einstellungen abgucken mit dem einhaltsverzeichnis.",
+        "h-s3": "Wann kommt der nächste scheint mir nicht sehr verständlich zu sein fü+r die drei testbuild live vorherigen live sub patch, das steht da ztueinander noch zsuammenhangslos...",
+        "i-s1": "daf inde ich es vertikal besser wobei vertikal nur den zukünftigen, den aktuellen und bis zum letzten patch, der in keinem aktivne status ist anzeigen."
+      }
+    },
+    "approvals": {
+      "removals_ticked": []
+    },
+    "outcome": "iterate — Ⓗ 'viel besser'; fixes: monotonic time order, 4.11 exciting, only next/current/last-inactive expanded, settings-style TOC in the dossier, cadence as one cycle timeline"
+  },
+  {
+    "iteration": 4,
+    "template": "design",
+    "action": "implement",
+    "submitted_at": "2026-09-04T21:56:10.300Z",
+    "comments": {
+      "general": "",
+      "designs": {
+        "k-stack": "sehr viel besser! wobei der balken zu heftig ist, vllt. zwei balken, einer mit gedämpften farben im hintergrund etwas vertikal größer (für die erwartete situation... aber nur bzgl. punkte in der zukunft... ) und der andere darüber mit aktiven farben (reale situation)"
+      },
+      "screens": {}
+    },
+    "approvals": {
+      "removals_ticked": []
+    },
+    "decision": "Design Ⓚ — Zeitstrahl-Stapel · TOC-Dossier · ein Zyklus",
+    "outcome": "implement (pending)"
+  },
+  {
+    "iteration": 4,
+    "template": "design",
+    "action": "implement",
+    "submitted_at": "2026-09-04T22:07:05.638Z",
+    "processed_at": "2026-09-05T06:30:00Z",
+    "comments": {
+      "general": "",
+      "designs": {
+        "k-stack": "sehr viel besser! wobei der balken zu heftig ist, vllt. zwei balken, einer mit gedämpften farben im hintergrund etwas vertikal größer (für die erwartete situation... aber nur bzgl. punkte in der zukunft... ) und der andere darüber mit aktiven farben (reale situation)"
+      },
+      "screens": {}
+    },
+    "approvals": {
+      "removals_ticked": []
+    },
+    "outcome": "implemented",
+    "artifacts": {
+      "branch": "claude/verse-news-patch-notes-redesign-18c94e",
+      "commits": [
+        "5bb90ca feat(news): patch board as a time stack with TOC dossier and cycle axis",
+        "4186ae7 fix(news): finish the note matcher and the cycle axis",
+        "83c0103 test(news): render the patch board and the dossier in Karma (local only)"
+      ],
+      "new": [
+        "src/app/news/patch-stack.ts",
+        "src/app/news/patch-prep.ts",
+        "src/app/news/patch-match.ts",
+        "src/app/news/patch-cycle.ts",
+        "src/app/news/patch-cycle.component.ts",
+        "src/app/news/patch-dossier.component.ts",
+        "+ specs"
+      ],
+      "changed": [
+        "src/app/news/patch-board.component.ts",
+        "src/app/app.routes.ts",
+        "public/i18n/de.json",
+        "public/i18n/en.json"
+      ],
+      "deleted": [
+        "src/app/news/patch-notes-section.component.ts",
+        "src/app/news/patch-roadmap-band.component.ts"
+      ]
+    },
+    "verification": {
+      "typecheck": "clean (app + spec)",
+      "unit_tests": "2126 SUCCESS / 0 FAILED (incl. DOM specs for board + dossier)",
+      "build": "dist produced 2026-09-05 09:41 with the dossier chunk; ng build did not exit on its own (known hang), process stopped",
+      "not_done": "visual check in a signed-in browser"
+    }
+  }
+]
