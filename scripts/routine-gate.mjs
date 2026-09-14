@@ -47,6 +47,15 @@
  *     prints the rows as a JSON array — the fallback for a working run whose
  *     Supabase MCP is not authorised (observed 2026-09-13 13:27 tick). Same power
  *     as the MCP (service role), same token rule: never on the command line.
+ *   concept-publish --file <html> --title "<t>" [--feedback <uuid>] [--id <uuid>]
+ *     Hosts an interactive concept page ON the website (admin feedback #224):
+ *     inserts a `concept_pages` row (or, with --id, replaces its html/title and
+ *     bumps `reload_counter` so an open page reloads itself) and prints ONE JSON
+ *     line { id, url } — the url is what goes into the feedback thread.
+ *   concept-read --id <uuid> [--mark-processed]
+ *     Prints { id, title, decisions, submitted_at, processed_at } — what the
+ *     admin chose on the hosted page. --mark-processed stamps processed_at so
+ *     the page's panel returns to "ready". See docs/feedback-routine/concepts.md.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -356,7 +365,66 @@ async function runSql() {
   emit(rows);
 }
 
-const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql };
+// ---------------------------------------------------------------- concepts
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CONCEPT_URL_BASE = 'https://sc-companion.vercel.app/konzept/';
+/**
+ * Dollar-quote a literal for SQL. The html is hundreds of KB of arbitrary
+ * text (quotes, backslashes, `$$` inside the engine), so a quote-doubling
+ * escape is fragile; a dollar tag with a random suffix cannot occur in it —
+ * and if it did, the loop below picks another one.
+ */
+function dq(s) {
+  let tag;
+  do { tag = '$c' + Math.random().toString(36).slice(2, 10) + '$'; } while (s.includes(tag));
+  return tag + s + tag;
+}
+async function conceptPublish() {
+  const file = flag('file');
+  const title = flag('title');
+  const feedback = flag('feedback');
+  const id = flag('id');
+  if (!file || !title) throw new Error('concept-publish: --file <html> and --title "<t>" are required');
+  if (feedback && !UUID_RE.test(feedback)) throw new Error('concept-publish: --feedback must be a uuid');
+  if (id && !UUID_RE.test(id)) throw new Error('concept-publish: --id must be a uuid');
+  const html = readFileSync(resolve(file), 'utf8');
+  if (!/<html[\s>]/i.test(html) || !/<head[\s>]/i.test(html)) throw new Error('concept-publish: file is not a full html document');
+  let rows;
+  if (id) {
+    rows = await sql(`update public.concept_pages
+      set html = ${dq(html)}, title = ${q(title)}, reload_counter = reload_counter + 1
+        ${feedback ? `, feedback_id = ${q(feedback)}` : ''}
+      where id = ${q(id)}
+      returning id, reload_counter`);
+    if (!rows.length) throw new Error(`concept-publish: no concept_pages row with id ${id}`);
+  } else {
+    rows = await sql(`insert into public.concept_pages (feedback_id, title, html)
+      values (${feedback ? q(feedback) : 'null'}, ${q(title)}, ${dq(html)})
+      returning id, reload_counter`);
+  }
+  const row = rows[0];
+  log(`concept ${id ? 'republished' : 'published'}: ${row.id} (${html.length} chars, reload_counter=${row.reload_counter})`);
+  emit({ id: row.id, url: CONCEPT_URL_BASE + row.id, reloadCounter: row.reload_counter });
+}
+async function conceptRead() {
+  const id = flag('id');
+  if (!id || !UUID_RE.test(id)) throw new Error('concept-read: --id <uuid> is required');
+  const rows = await sql(`select id, title, feedback_id, decisions, submitted_at, processed_at, reload_counter
+    from public.concept_pages where id = ${q(id)}`);
+  if (!rows.length) throw new Error(`concept-read: no concept_pages row with id ${id}`);
+  const row = rows[0];
+  if (has('mark-processed')) {
+    const upd = await sql(`update public.concept_pages set processed_at = now()
+      where id = ${q(id)} returning processed_at`);
+    row.processed_at = upd[0]?.processed_at ?? row.processed_at;
+    log(`concept ${id}: processed_at stamped`);
+  }
+  const submitted = row.decisions && row.decisions.submitted === true;
+  log(`concept ${id}: ${submitted ? 'SUBMITTED ' + row.submitted_at : 'not submitted yet'}${row.processed_at ? ', processed ' + row.processed_at : ''}`);
+  emit(row);
+}
+
+const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead };
 try {
   const h = handlers[cmd];
   if (!h) throw new Error(`unknown command ${cmd}`);

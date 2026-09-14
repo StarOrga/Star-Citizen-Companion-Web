@@ -325,6 +325,25 @@ export const routes: Routes = [
           import('./admin/feedback/admin-feedback.component').then((m) => m.AdminFeedbackComponent),
       },
       {
+        // A hosted concept page (admin feedback #224): the routine posts
+        // `/konzept/<id>` into a feedback thread, the admin opens it here and
+        // works through the interactive concept in an iframe served by the
+        // `concept-page` edge function. The German path is the link shape
+        // the admin asked for; `concept/:id` below is the alias. Admin-only
+        // on top of the blanket gate — and the function refuses to mint a
+        // ticket for anyone else, so the guard is not the only lock.
+        path: 'konzept/:id',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/concepts/concept-page.component').then((m) => m.ConceptPageComponent),
+      },
+      {
+        path: 'concept/:id',
+        canActivate: [roleGuard('admin')],
+        loadComponent: () =>
+          import('./admin/concepts/concept-page.component').then((m) => m.ConceptPageComponent),
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./settings/settings.component').then((m) => m.SettingsComponent),

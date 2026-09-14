@@ -3813,5 +3813,14 @@
       "notApproved": "Your account is not approved.",
       "generic": "That did not work. Please try again."
     }
+  },
+  "conceptPage": {
+    "title": "Concept page",
+    "back": "Back to feedback",
+    "openTab": "Open in new tab",
+    "loading": "Opening the concept page…",
+    "forbidden": "This concept page is only available to admins.",
+    "notFound": "This concept page does not exist (any more).",
+    "error": "The concept page could not be loaded. Please try again later."
   }
 }
