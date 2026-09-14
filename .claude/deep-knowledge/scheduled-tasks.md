@@ -8,9 +8,24 @@ that a cron job on a server would not.
 ## Mental model
 
 - **Every tick is its own Desktop session.** The scheduler opens a fresh session
-  per firing, even when the tick does nothing but one gate call. The cron
-  (`0,20,40 * * * *`) fires 72 times a day; the *working* cadence lives in
-  `scripts/routine-gate.mjs`, so most of those 72 are idle.
+  per firing, even when the tick does nothing but one gate call. Until
+  2026-09-15 one cron (`0,20,40 * * * *`) fired 72 times a day while the
+  *working* cadence in `scripts/routine-gate.mjs` used 34 of them; since 0.85.10
+  two tasks with one prompt body fire only on those slots —
+  `nightly-admin-feedback` (`0,20,40 19-23,0 * * *`, title "SCC Web
+  Auto-Feedback Developpment") and `nightly-admin-feedback-day`
+  (`0 1,3,5,7-18 * * *`, title "… (day)"). The gate is unchanged and still the
+  authority; the cron only stops idle sessions from being born. A tick lands
+  in its 20-min slot whatever the per-task jitter (≤ 10 min), so both tasks
+  pass the same cadence check.
+- **Two files, one body — enforced.** `scripts/check-routine-prompts.mjs` runs
+  in `prebuild` (every `npm run build`, so every ship and every routine
+  worker) and fails when the two SKILL.md bodies differ or
+  `docs/routine/SKILL.snapshot.md` drifted from the evening file; it SKIPs
+  where `~/.claude/scheduled-tasks` does not exist (CI, Vercel). Edit the
+  evening file, copy its body (everything after the frontmatter) to the day
+  file, refresh the snapshot — `npm run verify:routine-prompts` tells you when
+  you are done.
 - **An un-archived session is not "over".** After the next restart or crash the
   Desktop app restores every un-archived session as a tab — each with its own
   `claude.exe` (300–600 MB), a node service and all SessionStart hooks
@@ -65,14 +80,17 @@ set it in the Settings UI, a file edit is only read at the next app start.
    The replacement is the app-level inactive auto-archive above, plus a
    cron that fires only on cadence slots if the daily count still matters.
 2. **Renaming the task renames the title** — the hygiene step matches on the
-   title, so add the old title to the match list when the task is renamed.
+   title, so add the old title to the match list when the task is renamed
+   (the day task already carries "… (day)"; the Desktop app refuses two
+   tasks with the same title).
 3. **Before changing the cron or the cadence table, do the arithmetic:** how
    many sessions per day will exist, how long each lives, and who archives
-   them. A cadence in the gate keeps the run-lock/jitter logic in one place but
-   costs a session per idle firing; a cadence in the cron (several tasks, or a
-   cron that fires only on working slots) creates no idle sessions but splits
-   the lock/jitter reasoning across task definitions. Either is defensible;
-   "the scheduler fires and nobody cleans up" is not.
+   them. The cadence lives in the gate AND the two crons mirror it; change
+   both together or the panel's `next_run_at` lies. Two tasks also mean the
+   scheduler's own "don't fire while running" guard is per task — a 00:40
+   evening run and a 01:00 day run can overlap, and then the gate's run lock
+   is the only brake (that is what it is for). "The scheduler fires and
+   nobody cleans up" is never defensible.
 4. **When the Desktop app restarts after a crash**, check `list_sessions` for
    routine sessions with `isArchived:false` before anything else; if there are
    more than one, sweep them first — it is the difference between a 30-second

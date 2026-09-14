@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.10] - 2026-09-15
+
+### Changed
+
+- **Die Feedback-Routine feuert nur noch auf ihren Arbeits-Slots.** Statt
+  eines Crons alle 20 Minuten rund um die Uhr (72 Desktop-Sessions am Tag, 38
+  davon Leerlauf) gibt es zwei Tasks mit identischem Prompt: abends
+  `0,20,40 19-23,0`, tags und nachts `0 1,3,5,7-18` — 34 Sessions, exakt die
+  Cadence-Tabelle des Gates, das weiterhin entscheidet.
+  `scripts/check-routine-prompts.mjs` läuft im Prebuild und bricht jeden Build
+  ab, sobald die beiden Prompt-Dateien oder der Repo-Snapshot auseinanderlaufen
+  (`npm run verify:routine-prompts` zum Nachprüfen). Runbook und
+  Deep-Knowledge beschreiben Split, Check und die Überlappungs-Bremse.
+
 ## [0.85.9] - 2026-09-14
 
 ### Changed

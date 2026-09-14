@@ -20,7 +20,9 @@ It prints one JSON line (`verdict` ∈ `idle` · `skip-cadence` · `running` ·
    `run_started_at` younger than 3 h, not finished) means another tick is still
    working → `verdict: running`, heartbeat stamped, **stop**. "Läuft noch ein
    anderer Durchlauf?" is answered before anything is claimed.
-2. **Cadence.** The cron fires every 20 min around the clock; the *working*
+2. **Cadence.** Two tasks fire only on cadence slots since 0.85.10 (evening
+   `0,20,40 19-23,0`, day/night `0 1,3,5,7-18`; before that one cron fired
+   every 20 min around the clock and 38 ticks a day were idle); the *working*
    cadence is a table in the script (Europe/Berlin): 19:00–00:59 every tick,
    08:00–18:59 the :00 tick only, 01/03/05/07 the :00 tick only. A tick outside
    its window stamps the heartbeat with `skip-cadence` and **stops** — the
