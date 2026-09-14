@@ -41,10 +41,18 @@ without reading this runbook** — after the session hygiene: every tick is its
 own Desktop session, and an un-archived one is restored as a tab (its own
 `claude.exe`, node service and SessionStart hooks) after the next restart; ~120
 of them pinned the NVMe at 100 % for 15 minutes after a bluescreen on
-2026-09-14. So each tick lists the sessions, archives the routine's older
-non-running ones (same title only) and finally archives itself — one
-`list_sessions`, n `archive_session`, no runbook read. Working runs do the
-same at the end of STEP 6. On `work` the tick takes the run lock
+2026-09-14. The intended step — each tick lists the sessions, archives the
+routine's older non-running ones (same title only) and finally itself — is
+**suspended since 2026-09-14 23:20**: from a scheduled-task session every
+`archive_session` call (older sessions and `"self"` alike) blocks on an
+approval dialog only the user can click, bypass mode notwithstanding. While
+it waits the session counts as running and the scheduler skips the task: the
+21:47 tick hung 81 minutes on its self-archive and the 22:07, 22:27 and 22:47
+ticks never fired. Until the Desktop app lets an unattended session archive
+without a click, the tick prints its report line and stops, and the operator
+sweeps the routine's sessions from an interactive session (`list_sessions` →
+`archive_session` per routine session — no dialog there). Working runs
+behave the same at the end of STEP 6. On `work` the tick takes the run lock
 (`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`
 means stand down), reads this runbook, and continues with STEP 1. On `error`
 (token missing, SQL down) the gate is fail-open: the tick falls back to the
