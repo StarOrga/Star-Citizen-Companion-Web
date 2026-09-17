@@ -825,7 +825,7 @@ interface GearRecipe {
              component as the loadout card above, fed the tail sections
              instead. -->
         @if (tailModuleSections().length > 0) {
-          <section class="sc-card block col-loadout">
+          <section class="sc-card block col-loadout col-loadout-tail">
             <h2 class="col-head">
               <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
               <span class="n">{{ tailModuleCount() }}</span>

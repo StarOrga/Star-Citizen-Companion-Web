@@ -220,10 +220,14 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.querySelector('sc-codex-kpi-band')).toBeTruthy();
   });
 
-  it('renders both column heads (Loadout / Analyse)', () => {
+  it('renders three column heads (Loadout / Analyse / Zelle & feste Systeme)', () => {
     const el: HTMLElement = fixture.nativeElement;
+    // Loadout + Analyse sit in the m-cols split; a third head belongs to the
+    // tail card that carries the airframe (and countermeasures while this
+    // extract carries no per-launcher values) below the paints block
+    // (feedback #236).
     const heads = el.querySelectorAll('.col-head');
-    expect(heads.length).toBe(2);
+    expect(heads.length).toBe(3);
   });
 
   it('renders the mission/draft bar', () => {
@@ -246,9 +250,11 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     const blocks = fixture.componentInstance.moduleCount();
     // The Nomad fixture has more sections than blocks — that is the whole point.
     expect(blocks).toBeLessThan(sections.length);
-    const rendered = el.querySelectorAll('sc-codex-hardpoint-layout .mod-sec').length;
+    // Scoped to the PRIMARY loadout card: the tail card (feedback #236) has
+    // its own sc-codex-hardpoint-layout with the airframe's own .mod-sec.
+    const rendered = el.querySelectorAll('.col-loadout:not(.col-loadout-tail) .mod-sec').length;
     expect(rendered).toBe(blocks);
-    expect(el.querySelector('.col-loadout .col-head .n')?.textContent?.trim()).toBe(String(blocks));
+    expect(el.querySelector('.col-loadout:not(.col-loadout-tail) .col-head .n')?.textContent?.trim()).toBe(String(blocks));
   });
 
   // ── decision 1: the BÜHNE and the tool row under it ──────────────────────
@@ -290,7 +296,14 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     const sections = fixture.componentInstance.moduleSections();
     // One chip per rendered block, the airframe excluded, each carrying the
     // very slot count the block's own "N Slots" heading prints.
-    expect(chips.length).toBe(fixture.componentInstance.moduleCount() - 1);
+    // moduleCount() now counts only the PRIMARY card's blocks (feedback
+    // #236 moved the airframe — and countermeasures, while it carries no
+    // values — into a tail card below the paints block); the airframe group
+    // stageCounts always excludes now lives in that tail count, so add it
+    // back in.
+    expect(chips.length).toBe(
+      fixture.componentInstance.moduleCount() + fixture.componentInstance.tailModuleCount() - 1,
+    );
     expect(chips.find((c) => c.group === 'structure')).toBeUndefined();
     const weapons = chips.find((c) => c.group === 'weapons');
     expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);

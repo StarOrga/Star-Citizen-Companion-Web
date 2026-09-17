@@ -97,29 +97,6 @@ export const TAIL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipMo
   'structure',
 ]);
 
-/**
- * Sections the ship PAGE renders in a second, TAIL block below the paint/skin
- * viewer instead of inside the main loadout card (feedback #236: "Zellen und
- * Feste Systeme nach unten unter Lackierungen packen" + "[Gegenmaßnahmen]
- * wenn [keine Werte existieren] unter Lackierungen packen").
- *
- *  always sits here — it never was a decision (32659942). Whether
- *  joins it depends on a question the admin asked directly:
- * "gibt es da Werte dazu … damit man berechnen kann wie viele man braucht?"
- * As of 4.9.0 the answer is no —  in
- *  already reads the round's signature numbers
- * (infrared/EM/cross-section/radius/lifetime), but the extract does not link
- * a launcher to the round it fires ( is null on every
- * countermeasure launcher), so the block carries no numbers today. The day
- * the extractor resolves that link and a hardpoint actually shows figures,
- *  earns its old spot back above the paints block — this is
- * the one place to flip that back.
- */
-export const TAIL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSection>([
-  'countermeasures',
-  'structure',
-]);
-
 const CONFIGURABLE_SET: ReadonlySet<ShipModuleSection> = new Set(CONFIGURABLE_SHIP_SECTIONS);
 
 /** True for the sections a pilot can swap items in. */
