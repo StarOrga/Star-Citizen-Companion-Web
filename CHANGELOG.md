@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.5] - 2026-09-17
+
+### Changed
+
+- **Schiff-Hero im Codex (Feedback #234).** Die Aktions-Buttons (Vergleichen,
+  Loadout verwerfen, Link kopieren, Schiff wechseln) sitzen jetzt in einer
+  eigenen Zeile direkt unter dem Bild; nur der 2D/3D-Schalter bleibt im Bild.
+  Die Slot-Zusammenfassung (Waffen, Raketen, ...) wandert unten rechts ins Bild
+  und wird aus denselben Hardpoint-Daten abgeleitet wie die Modul-Liste
+  darunter - Raketen nennen Gesamtzahl und Werfer („8 Raketen · 2 Werfer“).
+  Das „3D“ trennt Ziffer und Buchstabe typografisch, damit das D nicht wie
+  eine 0 liest; Name und Herstellerzeile stehen kräftiger auf einer
+  halbtransparenten Textplatte.
+
 ## [0.86.4] - 2026-09-17
 
 ### Changed
