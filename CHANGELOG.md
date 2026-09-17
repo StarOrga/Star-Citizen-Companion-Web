@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.2] - 2026-09-17
+
+### Fixed
+
+- **Data Uploader (0.30.2): Salvage-Wracks sind keine Schiffe mehr.**
+  `SalvageableDebris_<Schiff>` (Avenger Titan, Ares Inferno, Redeemer, C2,
+  890 Jump …) trägt `VehicleComponentParams` und die XML des echten Rumpfs
+  und landete deshalb als Schiff im Katalog — mit sechs `hull mass`-Warnungen
+  pro Lauf. `debris` ist jetzt ein Junk-Token wie `wreck` oder `derelict`:
+  die Wrack-Brocken fallen aus `ships/`, `SCItem_Debris` und
+  `VehicleItemDebris` aus `items/`. Regressionstest ergänzt.
+
 ## [0.86.1] - 2026-09-17
 
 ### Changed
