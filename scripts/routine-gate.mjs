@@ -58,7 +58,7 @@
  *     the page's panel returns to "ready". See docs/feedback-routine/concepts.md.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -221,9 +221,46 @@ export function transcriptDirFor(root, home = homedir()) {
  * with sid=null the newest write of ANY session in that transcript dir (the
  * fallback when the lock holder was not recorded). null when nothing exists.
  */
+const ACTIVITY_RECORD_TYPES = new Set(['user', 'assistant', 'system', 'progress']);
+const ACTIVITY_TAIL_BYTES = 64 * 1024;
+/**
+ * When did this transcript last carry a REAL record — a user/assistant/system/
+ * progress line with a timestamp? The Desktop app also appends untimestamped
+ * bookkeeping records (custom-title, last-prompt, mode, queue-operation) whenever
+ * a session is merely touched (listed, focused, retitled); those moved the file's
+ * mtime on 2026-09-17 21:43 for a run that had been dead since 21:26 and kept
+ * its lock alive. Falls back to the mtime when the tail holds no such record
+ * (an empty or foreign file), which is the safe direction: a live session
+ * always has a fresh real record.
+ */
+export function transcriptActivity(file) {
+  let fd;
+  try { fd = openSync(file, 'r'); } catch { return null; }
+  try {
+    const size = fstatSync(fd).size;
+    const len = Math.min(size, ACTIVITY_TAIL_BYTES);
+    const buf = Buffer.alloc(len);
+    if (len > 0) readSync(fd, buf, 0, len, size - len);
+    const lines = buf.toString('utf8').split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line.startsWith('{')) continue;
+      let rec;
+      try { rec = JSON.parse(line); } catch { continue; }
+      if (!ACTIVITY_RECORD_TYPES.has(rec?.type) || !rec.timestamp) continue;
+      const t = Date.parse(rec.timestamp);
+      if (Number.isFinite(t)) return t;
+    }
+    return fstatSync(fd).mtimeMs;
+  } catch {
+    return null;
+  } finally {
+    try { closeSync(fd); } catch { /* already closed */ }
+  }
+}
 export function newestActivity(dir, sid = null) {
   let newest = null;
-  const consider = (p) => { try { const t = statSync(p).mtimeMs; if (newest === null || t > newest) newest = t; } catch { /* vanished */ } };
+  const consider = (p) => { const t = transcriptActivity(p); if (t !== null && (newest === null || t > newest)) newest = t; };
   const subagentsOf = (id) => {
     const d = join(dir, id, 'subagents');
     if (!existsSync(d)) return;

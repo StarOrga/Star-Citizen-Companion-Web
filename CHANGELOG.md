@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.3] - 2026-09-17
+
+### Fixed
+
+- **Ein unterbrochener Routine-Lauf nimmt seine Arbeit wieder auf.** Der
+  20:07-Lauf wurde um 21:26 in einem Tool-Aufruf unterbrochen, antwortete auf
+  „Continue from where you left off“ mit „No response requested“, ließ seinen
+  Worker für #234 gestoppt liegen (Item blieb als nacktes `in_progress`) und
+  hielt den Run-Lock, bis der Operator ihn von Hand freigab. Der Prompt hat
+  jetzt eine RESUME RULE: Continue-Prompt, unterbrochenes Tool-Ergebnis oder
+  gestoppter Worker heißen „du hältst den Lock noch“ — Zustand pro Item aus
+  Worktree, PR-Liste und DB-Zeile neu lesen, Worker einmal neu starten oder
+  das Item mit Notiz auf `open` zurückgeben, dann `end-run`.
+- **Lock-Liveness liest den letzten echten Transcript-Eintrag statt der
+  Datei-mtime.** Die App hängt beim bloßen Anfassen einer Session
+  zeitstempellose Buchhaltungseinträge (Titel, letzter Prompt, Modus) an — die
+  haben den toten Lauf 17 Minuten nach seinem Ende noch „lebendig“ aussehen
+  lassen. `transcriptActivity` wertet die letzten 64 KB nach
+  user/assistant/system/progress-Einträgen aus, mtime nur als Rückfall;
+  Test in `routine-gate.liveness.test.mjs`.
+
 ## [0.86.2] - 2026-09-17
 
 ### Fixed

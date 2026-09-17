@@ -48,7 +48,11 @@ whole checkout's transcripts count, so a live session always keeps the lock
 (safe direction). The JSON carries `lockReaped: {since, sid, idleMin}`; the
 dead run's bare claims go through the ordinary reaper with its worktree
 liveness. Before this, a run killed by an app quit (2026-09-17 19:41) held
-the lock for the full 3 h while two worktrees sat stranded.
+the lock for the full 3 h while two worktrees sat stranded. "Writing" means
+a real transcript record (user/assistant/system/progress); the app's
+untimestamped bookkeeping records (title, last prompt, mode) that land
+whenever a session is touched do not count (0.86.3). An interrupted run must
+resume on its own — prompt RESUME RULE, `reaper.md` "An interrupted run".
 
 **The devops workspace check is expected noise in a tick.** The orchestrator
 session starts in the primary checkout on `main` by design (gate, heartbeat,
