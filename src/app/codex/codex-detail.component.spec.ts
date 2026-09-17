@@ -519,6 +519,55 @@ describe('CodexDetailComponent — stage census, racks without a nested fit', ()
   });
 });
 
+// ── feedback #235: "Raketen auch zusammenfassend machen … wie bei der
+// Bewaffnung" — two racks that CIG names with distinct per-side class names
+// (`_Left` / `_Right`, verbatim from the 4.9.0 Nomad extract) must still
+// collapse into one grouped row, the way two identical gimbal mounts do.
+const NOMAD_SIDED_RACKS_PAYLOAD: ShipPayload = {
+  ...NOMAD_PAYLOAD,
+  defaultLoadout: [
+    ...(NOMAD_PAYLOAD.defaultLoadout ?? []),
+    ...(['Left', 'Right'] as const).map((side) => ({
+      itemPortName: `hardpoint_missile_rack_${side.toLowerCase()}`,
+      entityClassName: `MRCK_S04_CNOU_Quad_S02_${side}`,
+    })),
+  ],
+};
+
+describe('CodexDetailComponent — missile rack grouping (feedback #235)', () => {
+  it('groups two racks with per-side class names into one row, like the weapons', async () => {
+    const fixture = await setup('ship', [], NOMAD_SIDED_RACKS_PAYLOAD);
+    const missiles = fixture.componentInstance
+      .moduleSections()
+      .find((s) => s.section === 'missiles');
+    // Two hardpoints, but ONE group key — the row-collapsing the layout
+    // component runs on `groupKey` therefore folds them into a single row.
+    expect(missiles?.slots.length).toBe(2);
+    const keys = new Set(missiles?.slots.map((s) => s.groupKey));
+    expect(keys.size).toBe(1);
+    const el: HTMLElement = fixture.nativeElement;
+    const rows = el.querySelectorAll('sc-codex-hardpoint-layout .mod-sec[data-sec="missiles"] li.slot');
+    expect(rows.length).toBe(1);
+  });
+
+  it('still keeps two DIFFERENT racks apart', async () => {
+    const mixed: ShipPayload = {
+      ...NOMAD_SIDED_RACKS_PAYLOAD,
+      defaultLoadout: (NOMAD_SIDED_RACKS_PAYLOAD.defaultLoadout ?? []).map((e) =>
+        e.itemPortName === 'hardpoint_missile_rack_right'
+          ? { ...e, entityClassName: 'MRCK_S02_Different_Rack' }
+          : e,
+      ),
+    };
+    const fixture = await setup('ship', [], mixed);
+    const missiles = fixture.componentInstance
+      .moduleSections()
+      .find((s) => s.section === 'missiles');
+    const keys = new Set(missiles?.slots.map((s) => s.groupKey));
+    expect(keys.size).toBe(2);
+  });
+});
+
 describe('CodexDetailComponent — weapon kind (legacy regions)', () => {
   let fixture: ComponentFixture<CodexDetailComponent>;
 

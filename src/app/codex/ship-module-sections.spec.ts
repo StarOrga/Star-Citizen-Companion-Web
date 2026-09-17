@@ -8,6 +8,7 @@ import {
   isIndividualSection,
   isShieldControlPort,
   shipPortFamily,
+  classNamePositionFamily,
 } from './ship-module-sections';
 
 // Port names below are verbatim from the 4.9.0 catalog (build b77f1586) —
@@ -215,6 +216,30 @@ describe('shipPortFamily', () => {
     expect(shipPortFamily('hardpoint_weapon_rack_01')).not.toBe(
       shipPortFamily('hardpoint_weapon_top_left'),
     );
+  });
+});
+
+// feedback #235: two of a Nomad's MSD-442 missile racks resolve to distinct
+// per-side class names in the real 4.9.0 extract (`..._Left` / `..._Right`),
+// unlike a gimbal mount whose class name never carries a side.
+describe('classNamePositionFamily', () => {
+  it('folds a left/right occupant pair to the same family', () => {
+    const left = classNamePositionFamily('MRCK_S04_CNOU_Quad_S02_Left');
+    const right = classNamePositionFamily('MRCK_S04_CNOU_Quad_S02_Right');
+    expect(left).toBe(right);
+    expect(left).toBe('mrck_s04_cnou_quad_s02');
+  });
+
+  it('leaves a position-agnostic class name untouched', () => {
+    expect(classNamePositionFamily('KLWE_LaserRepeater_S3_SCItem')).toBe(
+      'klwe_laserrepeater_s3_scitem',
+    );
+  });
+
+  it('never strips a class name down to nothing, and is total over null', () => {
+    expect(classNamePositionFamily('left')).toBe('left');
+    expect(classNamePositionFamily(null)).toBe('');
+    expect(classNamePositionFamily(undefined)).toBe('');
   });
 });
 
