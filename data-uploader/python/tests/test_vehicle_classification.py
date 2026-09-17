@@ -15,6 +15,7 @@ from sc_extract.dataforge_extract import (
     _VEHICLE_COMPONENT,
     _VEHICLE_ROOT_RE,
     _find_component,
+    _is_catalog_entity,
     _norm_path,
 )
 
@@ -60,3 +61,21 @@ def test_vehicle_component_is_the_off_root_fallback() -> None:
     comps = [{"_Type_": "SGeometryResourceParams"}, {"_Type_": _VEHICLE_COMPONENT}]
     assert _find_component(comps, _VEHICLE_COMPONENT) is not None
     assert _find_component([{"_Type_": "SAttachableComponentParams"}], _VEHICLE_COMPONENT) is None
+
+
+def test_salvageable_debris_is_not_a_catalog_entity() -> None:
+    """SalvageableDebris_<Ship> is a vehicle record (VehicleComponentParams,
+    the real hull's XML, a localised ship name) but a floating wreck chunk,
+    not a ship anyone can own. It used to land in ships/ and trip the
+    hull-mass warning six times per run."""
+    for name in (
+        "SalvageableDebris",
+        "SalvageableDebris_890",
+        "SalvageableDebris_AvengerTitan",
+        "SCItem_Debris",
+        "VehicleItemDebris",
+    ):
+        assert not _is_catalog_entity(name), name
+    # Real hulls stay in.
+    for name in ("ORIG_890Jump", "AEGS_Avenger_Titan", "ANVL_C8_Pisces"):
+        assert _is_catalog_entity(name), name
