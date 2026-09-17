@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.1] - 2026-09-17
+
+### Changed
+
+- **Routine-Ticks wiederholen den Workspace-Check des devops-Plugins nicht
+  mehr.** Der SessionStart-Hook meldet in jeder Orchestrator-Session „On main
+  in repo root … call AskUserQuestion“, weil die Session konstruktionsbedingt
+  im Primär-Checkout auf `main` startet (Gate, Heartbeat, Worktrees anlegen)
+  und selbst nie Code anfasst — die Worker arbeiten in ihren `scfb-*`
+  Worktrees. STEP 0 des Prompts benennt den Block jetzt als erwartetes
+  Rauschen: keine Rückfrage, kein `DEVOPS_ALLOW_MAIN`, kein Worktree für den
+  Orchestrator, höchstens eine Berichtszeile. Beide Task-Dateien und der
+  Snapshot sind synchron (Parity-Check grün).
+
 ## [0.86.0] - 2026-09-17
 
 ### Added

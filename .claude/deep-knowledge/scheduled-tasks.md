@@ -18,6 +18,21 @@ that a cron job on a server would not.
   authority; the cron only stops idle sessions from being born. A tick lands
   in its 20-min slot whatever the per-task jitter (≤ 10 min), so both tasks
   pass the same cadence check.
+- **The orchestrator sits on `main` by design — and the devops workspace
+  check flags it every tick.** The tick's session starts in the primary
+  checkout (gate, heartbeat, worktree creation) and never edits code; every
+  edit happens in a worker's `scfb-*` worktree on `feat/feedback-<id>`. The
+  plugin's SessionStart hook `ss.git.check` (0.169.x) cannot tell a scheduled
+  session from an interactive one and prints its "On `main` in repo root …
+  call AskUserQuestion … Worktree + Feature-Branch anlegen / Hier bleiben"
+  block into every tick, demanding it be restated in the final message —
+  which is exactly what the 2026-09-17 20:47 and 21:08 reports did (no
+  AskUserQuestion was ever called; nothing blocked). Since 0.86.1 prompt
+  STEP 0 names the block as expected noise: no AskUserQuestion, no
+  `DEVOPS_ALLOW_MAIN`, no worktree for the orchestrator, at most one report
+  line. The app's session record (`%APPDATA%/Claude/claude-code-sessions`,
+  `scheduledTaskId` + `cliSessionId`) would let the hook detect a scheduled
+  session; that is a plugin change, not ours.
 - **Two files, one body — enforced.** `scripts/check-routine-prompts.mjs` runs
   in `prebuild` (every `npm run build`, so every ship and every routine
   worker) and fails when the two SKILL.md bodies differ or
