@@ -246,6 +246,26 @@ routine has not looked at the worktree and the PR list, the honest phrasing is
 "claimed 29 min ago by another run, work state not inspected" — which invites the
 next tick to check, instead of closing the question.
 
+## An interrupted run must resume, not fall silent
+
+The Desktop app can interrupt a run's pending tool call (a stop click, a
+process recycle) and then hands the session "Continue from where you left
+off."; the workers it spawned arrive as task-notifications with status
+`stopped`. On 2026-09-17 21:26 the orchestrator of the 20:07 run answered
+that prompt with "No response requested." and ignored the worker's
+notification: item #234 stayed a bare `in_progress` (its `wip:` commits were
+safe on the branch), the run never reached STEP 6, and the lock lived on
+until the operator released it by hand. The prompt's RESUME RULE now names
+the three signals — continue prompt, interrupted tool result, stopped
+worker — as "you still hold the lock": re-read the state per item from the
+worktree, the PR list and the DB row, restart a stopped worker once from its
+worktree or hand the item back to `open` with a `processing_note`, and end
+with `end-run`. The gate's liveness check is the backstop, not the plan:
+since 0.86.3 it judges a lock by the holder's last *real* transcript record
+(user/assistant/system/progress), because the app appends untimestamped
+bookkeeping records (title, last prompt, mode) whenever a session is merely
+touched, and those moved the file's mtime 17 minutes after the run had died.
+
 ## Surfacing open review-holds (the reaper's mirror image) — see [`holds.md`](holds.md)
 
 A sensitive/red item the routine parks for the admin lives as `in_progress`

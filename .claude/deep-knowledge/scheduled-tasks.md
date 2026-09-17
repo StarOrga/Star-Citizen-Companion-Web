@@ -134,6 +134,16 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
    running session) goes through `scripts/ship-via-mcp.cjs`. Before quitting
    the app deliberately, look at the routine's heartbeat: `state=running` means
    a run is mid-flight.
+6. **An interrupted run does not resume by itself.** The app's "Continue
+   from where you left off." after an interrupted tool call, and the
+   `stopped` task-notifications of the run's workers, are prompts a routine
+   session must treat as "I still hold the lock" — the 20:07 run on
+   2026-09-17 answered "No response requested.", left #234 as a bare
+   `in_progress` and kept the lock. The prompt's RESUME RULE names the
+   signals and the recovery (re-read state per item, restart or hand back,
+   `end-run`). The gate's liveness backstop reads the last real transcript
+   record, not the file mtime, because the app touches the file with
+   bookkeeping records long after a run died.
 5. **When the Desktop app restarts after a crash**, check `list_sessions` for
    routine sessions with `isArchived:false` before anything else; if there are
    more than one, sweep them first — it is the difference between a 30-second

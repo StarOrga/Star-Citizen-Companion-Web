@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, utimesSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { newestActivity, runIsDead, transcriptDirFor } from './routine-gate.mjs';
+import { newestActivity, runIsDead, transcriptActivity, transcriptDirFor } from './routine-gate.mjs';
 
 const MIN = 60_000;
 const touch = (p, ageMin, now) => { writeFileSync(p, '{}\n'); const t = (now - ageMin * MIN) / 1000; utimesSync(p, t, t); };
@@ -32,6 +32,36 @@ test('newestActivity: a session counts its own transcript and its subagents', ()
     assert.ok(Math.abs(now - any - 1 * MIN) < 5_000, 'without a sid the newest write of any session counts');
     assert.equal(newestActivity(dir, 'zzz'), null, 'unknown session has no activity');
     assert.equal(newestActivity(join(dir, 'missing'), null), null);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('transcriptActivity: the last real record counts, not the app\'s bookkeeping writes', () => {
+  const now = Date.now();
+  const dir = mkdtempSync(join(tmpdir(), 'gate-live-'));
+  try {
+    const dead = new Date(now - 40 * MIN).toISOString();
+    const f = join(dir, 'run.jsonl');
+    writeFileSync(f, [
+      JSON.stringify({ type: 'assistant', timestamp: new Date(now - 50 * MIN).toISOString(), message: {} }),
+      JSON.stringify({ type: 'user', timestamp: dead, message: {} }),
+      JSON.stringify({ type: 'queue-operation', timestamp: new Date(now - 39 * MIN).toISOString() }),
+      JSON.stringify({ type: 'custom-title', customTitle: 'x' }),
+      JSON.stringify({ type: 'last-prompt', leafUuid: 'y' }),
+      JSON.stringify({ type: 'mode', mode: 'normal' }),
+      '',
+    ].join('\n'));
+    // The app touched the file just now — the mtime is fresh, the run is not.
+    const t = now / 1000; utimesSync(f, t, t);
+    assert.equal(transcriptActivity(f), Date.parse(dead), 'newest user/assistant record wins over mtime');
+    assert.equal(newestActivity(dir, 'run'), Date.parse(dead));
+    assert.ok(runIsDead({ startedAt: now - 120 * MIN, newest: newestActivity(dir, 'run'), now }), 'dead 40 min after its last real record');
+
+    const plain = join(dir, 'plain.jsonl');
+    touch(plain, 3, now);
+    assert.ok(Math.abs(now - transcriptActivity(plain) - 3 * MIN) < 5_000, 'no timestamped record → mtime fallback');
+    assert.equal(transcriptActivity(join(dir, 'missing.jsonl')), null);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
