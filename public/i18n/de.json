@@ -894,6 +894,8 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Zur 3D-Ansicht wechseln",
       "heroSwitchTo2d": "Zurück zum 2D-Bild wechseln",
+      "stageLaunchers": "{{n}} Werfer",
+      "stageMissileRacks": "Raketenwerfer",
       "linkCopied": "Link kopiert",
       "dataPill": "DATEN {{build}} · schema {{n}}",
       "dataPillPending": "Re-Extract ausstehend",
