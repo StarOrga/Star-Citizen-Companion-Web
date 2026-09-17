@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.4] - 2026-09-17
+
+### Changed
+
+- **Sweep-Check 5: unregistrierte Desktop-Releases.** Ein `data-uploader-v*`-
+  oder `wallpaper-app-v*`-Tag bzw. Mirror-Release ohne `desktop_releases`-Zeile
+  ist nicht live — kein Auto-Update, kein Ring. Der Lauf, der den Tag pusht,
+  besitzt die Registrierung (Zeile + alpha-Zeiger, Version = Binary-Version,
+  nicht der Tag) und meldet das Release bis dahin als „gebaut + gespiegelt,
+  NICHT live“. Hintergrund: Uploader 0.30.0 (Feedback #233) stand zwei Stunden
+  gespiegelt, aber unregistriert, weil der CI-Mirror-Publish zweimal am
+  Asset-Upload scheiterte und der Lauf mitten in der Handarbeit unterbrochen
+  wurde; von Hand nachregistriert, alpha zeigt auf 0.30.0.
+
 ## [0.86.3] - 2026-09-17
 
 ### Fixed

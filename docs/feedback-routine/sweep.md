@@ -34,6 +34,7 @@ must not do").
 | 2 | **Pushed, no PR, not in main** — an orphan branch | `gh pr list --state all --limit 200 --json headRefName --jq '.[].headRefName' \| sort -u` vs. `git for-each-ref --format='%(refname:short)' refs/remotes/origin`, minus branches already an ancestor of `origin/main` (`git merge-base --is-ancestor origin/<b> origin/main`) |
 | 3 | **Stale worktrees / stashes** — abandoned workbenches | `git worktree list` (branch merged or gone?) · `git stash list` |
 | 4 | **Pending promote** — alpha ahead of beta/stable | desktop: the join below · web: newest `alpha/v*` tag vs. newest `stable/v*` / `beta/v*` tag |
+| 5 | **Unregistered desktop release** — a tag/mirror release with no `desktop_releases` row | `gh release list --repo StarOrga/Star-Citizen-Companion-Binaries --limit 5` vs. the newest `desktop_releases.version` per product (query below); a CI-retry tag (`v0.30.1`) can carry a binary version (`0.30.0`) — compare the binary version |
 
 ```sql
 -- pending promotes, desktop products (alpha ahead of beta/stable = a promote nobody ran)
@@ -41,7 +42,20 @@ select c.product, c.channel, r.version, c.updated_at
 from public.desktop_channels c
 join public.desktop_releases r on r.id = c.release_id
 order by c.product, case c.channel when 'alpha' then 1 when 'beta' then 2 else 3 end;
+
+-- unregistered desktop releases: newest registered binary version per product
+select product, max(version) as newest_registered from public.desktop_releases group by product;
 ```
+
+Check 5 exists because of 2026-09-17: the run that shipped feedback #233 pushed
+`data-uploader-v0.30.0`, whose CI build failed at the public-mirror publish
+step; the retry tag `v0.30.1` failed at the same step ("Error saving asset"),
+the run mirrored the assets by hand and was interrupted before the
+`desktop_releases` row — a release that was built, mirrored and reported as
+shipped, yet invisible to every installed uploader for two hours. The row and
+the alpha pointer are the "make it live" switch
+(`.claude/deep-knowledge/data-uploader-release.md`); the run that pushes the
+tag owns them and must say "built + mirrored, NOT live" until they land.
 
 Keep it cheap and quiet: all four are read-only, and each line appears in the
 report **only when it finds something** — a clean sweep adds nothing to the

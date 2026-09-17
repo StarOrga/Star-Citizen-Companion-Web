@@ -46,6 +46,26 @@ A data-uploader release is not visible to users until ALL of:
    NOT GitHub directly — without the row + pointer the page shows the previous
    version even when the GitHub release is correct.
 
+## A CI-retry tag is not a new version — and "Error saving asset" is not the PAT
+
+2026-09-17: `data-uploader-v0.30.0` failed at the public-mirror publish step
+with a transient GitHub "Error saving asset"; the feedback run pushed
+`data-uploader-v0.30.1` on the SAME source (no `data-uploader/package.json`
+bump), which failed identically. The assets of both builds are named
+`*-0.30.0-x64.exe` and `latest.yml` says `version: 0.30.0` — the binary
+version, which is what the `desktop_releases` row must carry (the CI's
+"Print catalog-register SQL" step reads it from the file name for that
+reason). The mirror release lives under the retry tag, so the `url`s point at
+`…/download/data-uploader-v0.30.1/data-uploader-setup-0.30.0-x64.exe`.
+Recipe used to finish it by hand (~5 min, no rebuild): `gh run download <run>
+-n release-token` for the UUID, `gh release download <tag> --repo …-Binaries
+--pattern '*.exe'` + `sha512sum` (cross-check the setup hash against the
+base64 `sha512:` in `latest.yml`), then the CTE from point 3 through
+`node scripts/routine-gate.mjs sql --file <file.sql>` so the token never
+enters a command line or a transcript. The feedback routine's loose-ends
+sweep now lists an unregistered release (sweep check 5) so a run that dies
+between mirror and row is caught by the next working run.
+
 ## BINARIES_RELEASE_TOKEN (cross-repo publish PAT)
 
 The CI step "Publish to PUBLIC binaries-mirror" uses the `BINARIES_RELEASE_TOKEN`
