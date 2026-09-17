@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.13] - 2026-09-17
+
+### Changed
+
+- **`/routine-janitor` löscht Leerlauf-Ticks statt sie nur zu archivieren.**
+  Ein Tick, der nur das Gate gefragt hat, wird sofort archiviert und nach einer
+  Stunde gelöscht — pro Sweep eine Freigabe-Karte mit bis zu 25 Sessions, die
+  der Operator klickt, wenn es passt; ohne Klick bleibt alles archiviert.
+  Arbeitsläufe (Umsetzung) werden nie gelöscht: die drei neuesten bleiben
+  offen, ältere werden archiviert. Für den Nachholbetrieb liest der Janitor
+  die Session-Records der App statt der auf 50 begrenzten Run-Liste.
+
 ## [0.85.12] - 2026-09-17
 
 ### Fixed
