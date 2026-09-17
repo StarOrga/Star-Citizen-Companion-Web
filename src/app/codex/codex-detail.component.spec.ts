@@ -262,7 +262,9 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     const foot = hero.querySelector('.stage-foot') as HTMLElement;
     expect(foot).toBeTruthy();
     expect(foot.querySelector('.stage-ident h1')).toBeTruthy();
-    expect(foot.querySelector('.stage-side .stage-counts')).toBeTruthy();
+    expect(foot.querySelector('.stage-counts')).toBeTruthy();
+    // …and the census is the LAST thing in the band: bottom-right of the art.
+    expect(foot.lastElementChild?.classList).toContain('stage-counts');
     // Nothing clickable is left on the art (feedback 140dfb7e) — the 2D/3D
     // switch is the one exception and it is not part of the foot.
     expect(foot.querySelector('a, button')).toBeNull();

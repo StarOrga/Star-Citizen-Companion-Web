@@ -375,19 +375,20 @@ interface GearRecipe {
                  tool row. A column that grows from the bottom cannot collide
                  with itself. -->
             <div class="stage-foot">
-              <!-- Maker and role as one small eyebrow, the name bold and in
-                   the accent under it — the ship IS the subject — on a
-                   translucent panel so both stay legible on any render.
-                   The role lives here rather than in the chip row so it is
-                   not printed twice. -->
-              <div class="stage-ident">
-                @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
-                <h1>{{ displayName() }}</h1>
-              </div>
+              <!-- Upper line of the band: identity left, stat chips right. -->
+              <div class="stage-row">
+                <!-- Maker and role as one small eyebrow, the name bold and in
+                     the accent under it — the ship IS the subject — on a
+                     translucent panel so both stay legible on any render.
+                     The role lives here rather than in the chip row so it is
+                     not printed twice. -->
+                <div class="stage-ident">
+                  @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
+                  <h1>{{ displayName() }}</h1>
+                </div>
 
-              <div class="stage-side">
                 @if (heroChips().length > 0) {
-                  <ul class="chips">
+                  <ul class="chips stage-side">
                     @for (c of heroChips(); track c.key) {
                       @if (c.key !== 'role') {
                         <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
@@ -395,24 +396,26 @@ interface GearRecipe {
                     }
                   </ul>
                 }
-                <!-- Module census, bottom-right ON the art. Read from the same
-                     resolved sections the loadout column renders, so "3
-                     Bewaffnung" here is the "Bewaffnung · 3 Slots" heading down
-                     there — never a second classifier with its own opinion. -->
-                @if (stageCounts().length > 0) {
-                  <ul class="loadout-summary stage-counts" [attr.aria-label]="'codex.detail.equipment' | translate">
-                    @for (s of stageCounts(); track s.group) {
-                      <li class="ls-item" [attr.data-cat]="s.group">
-                        <span class="ls-count">{{ s.count }}</span>
-                        <span class="ls-cat">{{ s.labelKey | translate }}</span>
-                        @if (s.detailKey) {
-                          <span class="ls-detail">· {{ s.detailKey | translate: { n: s.detailCount } }}</span>
-                        }
-                      </li>
-                    }
-                  </ul>
-                }
               </div>
+              <!-- Module census, bottom-right ON the art, on its own line so
+                   it can use the full width of the stage and wraps into two or
+                   three short rows instead of a tall column. Read from the
+                   same resolved sections the loadout column renders, so "3
+                   Bewaffnung" here is the "Bewaffnung · 3 Slots" heading down
+                   there — never a second classifier with its own opinion. -->
+              @if (stageCounts().length > 0) {
+                <ul class="loadout-summary stage-counts" [attr.aria-label]="'codex.detail.equipment' | translate">
+                  @for (s of stageCounts(); track s.group) {
+                    <li class="ls-item" [attr.data-cat]="s.group">
+                      <span class="ls-count">{{ s.count }}</span>
+                      <span class="ls-cat">{{ s.labelKey | translate }}</span>
+                      @if (s.detailKey) {
+                        <span class="ls-detail">· {{ s.detailKey | translate: { n: s.detailCount } }}</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
             </div>
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
@@ -1182,6 +1185,10 @@ interface GearRecipe {
     /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
     .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
       border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
+    /* On the stage every chip sits on the art, the disclosed gap included:
+       a transparent dashed box over a white hull is unreadable, so it takes
+       the same translucent ground as its neighbours (feedback 140dfb7e). */
+    .hero.stage .hchip.gap { background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); }
 
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
@@ -1200,8 +1207,14 @@ interface GearRecipe {
        overlays — the name row, the flexible middle and the foot each own a
        band, so the foot can grow (wrapped buttons, many chips) and push the
        stage taller instead of sliding under the row above it or being cut off
-       by the overflow clip. 246px stays the floor, never the ceiling. */
-    .hero.stage { display: grid; grid-template-rows: 1fr auto; position: relative;
+       by the overflow clip. 246px stays the floor, never the ceiling; the
+       top band keeps at least the 2D/3D switch's height free so a tall foot
+       never climbs into it. */
+    /* ONE column: the base .hero rule is a two-column grid (art | body) and
+       used to leak through, so the whole foot band was squeezed into the
+       320px art column while the right two thirds of the card stayed empty. */
+    .hero.stage { display: grid; grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(56px, 1fr) auto; position: relative;
       min-height: 246px; padding: 12px 14px;
       overflow: hidden; background: var(--sc-bg-1); }
     .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
@@ -1224,7 +1237,7 @@ interface GearRecipe {
        white hull, a bright engine glow — the eyebrow and the name keep their
        contrast. bg-0 based, so it is dark on the dark theme and light on the
        light one, and the text tokens on top of it stay readable in both. */
-    .hero.stage .stage-ident { min-width: 0; flex: 0 1 auto; max-width: 100%; pointer-events: none;
+    .hero.stage .stage-ident { min-width: min-content; flex: 0 1 auto; pointer-events: none;
       align-self: flex-end; padding: 8px 12px; border-radius: 4px;
       background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
@@ -1237,17 +1250,19 @@ interface GearRecipe {
       font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.08em; line-height: 1.2;
       text-transform: uppercase; color: var(--sc-fg-1); }
     .hero.stage h1 { margin: 2px 0 0; font-size: clamp(19px, 1.9vw, 25px); font-weight: 700;
-      line-height: 1.15; color: var(--sc-accent); overflow-wrap: anywhere; }
+      line-height: 1.15; color: var(--sc-accent); overflow-wrap: normal; }
     .hero.stage .stage-foot { grid-row: 2; position: relative; z-index: 1;
-      display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 8px 12px; }
-    /* Figures on the right: stat chips, then the module census underneath —
-       bottom-right of the picture. Capped at ~62% of the band so a long census
-       wraps into more lines instead of pushing the name off the panel. */
-    .hero.stage .stage-side { display: flex; flex-direction: column; align-items: flex-end;
-      gap: 6px; margin-inline-start: auto; min-width: 0; max-width: 62%; }
+      display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+    /* Identity and stat chips share one line and never wrap onto two: the
+       chips own 45-50% of the band (enough that a long caveat chip folds into
+       two lines, not five), the panel takes the rest, folds its eyebrow and
+       never breaks a word of the name (min-content is its floor). */
+    .hero.stage .stage-row { display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 8px 12px; }
     .hero.stage .chips { list-style: none; margin: 0; padding: 0;
       display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .hero.stage .stage-side { flex: 1 1 0; min-width: 45%; max-width: 50%; }
+    /* The census takes the full width of the band, right-aligned. */
     .hero.stage .stage-counts { margin: 0; justify-content: flex-end; }
     /* The census chips sit on the art, so they take the stat chips' opaque-ish
        ground rather than the tool row's near-transparent one. */
@@ -1568,11 +1583,12 @@ interface GearRecipe {
       /* Below the art the name needs no panel — it sits on the card. */
       .hero.stage .stage-ident { padding: 10px 14px 0; background: none; border: 0;
         backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 0; }
-      .hero.stage .stage-foot { flex-direction: column; align-items: stretch; gap: 8px;
-        padding-bottom: 12px; }
-      .hero.stage .stage-side { align-items: stretch; margin-inline-start: 0; max-width: none; }
+      .hero.stage .stage-foot { padding-bottom: 12px; }
+      .hero.stage .stage-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .hero.stage .stage-ident { min-width: 0; flex: 0 0 auto; }
+      .hero.stage .stage-side { min-width: 0; max-width: none; }
       .hero.stage .chips, .hero.stage .stage-counts { justify-content: flex-start;
-        padding: 0 14px; max-width: none; }
+        padding: 0 14px; }
       .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
       .stage-actions .btn { flex: 1 1 auto; justify-content: center; }
     }
