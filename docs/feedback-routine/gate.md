@@ -50,6 +50,15 @@ dead run's bare claims go through the ordinary reaper with its worktree
 liveness. Before this, a run killed by an app quit (2026-09-17 19:41) held
 the lock for the full 3 h while two worktrees sat stranded.
 
+**The devops workspace check is expected noise in a tick.** The orchestrator
+session starts in the primary checkout on `main` by design (gate, heartbeat,
+worktree creation) and never edits code — every edit happens in a worker's
+`scfb-*` worktree. The plugin's SessionStart hook cannot tell a scheduled
+session from an interactive one and prints its "On `main` in repo root … call
+AskUserQuestion" block into every tick; prompt STEP 0 (0.86.1) tells the tick
+to neither ask nor bypass nor restate it — at most one report line,
+`Workspace check: orchestrator on main by design (workers in scfb-* worktrees)`.
+
 **On `idle` / `skip-cadence` / `running` the tick reports one line and stops
 without reading this runbook** — after the session hygiene: every tick is its
 own Desktop session, and an un-archived one is restored as a tab (its own
