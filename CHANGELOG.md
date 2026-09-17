@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.11] - 2026-09-17
+
+### Added
+
+- **`/routine-janitor` räumt die Sessions der Feedback-Routine nach Regel
+  weg.** Leerlauf-Ticks nach einer Stunde, Arbeitsläufe bis auf die drei
+  neuesten, laufende nie — entschieden anhand der Laufdauer aus den
+  Run-Listen beider Tasks. Läuft als `/loop /routine-janitor` in einer
+  gepinnten interaktiven Session, weil nur dort `archive_session` ohne
+  Zustimmungskarte auskommt. Die globale App-Einstellung „Archive inactive
+  sessions" bleibt aus (sie träfe alle Sessions). Runbook und Deep-Knowledge
+  nachgezogen.
+
 ## [0.85.10] - 2026-09-15
 
 ### Changed

@@ -65,6 +65,15 @@ un-archived backlog is bounded at one day of ticks (72 with the current cron,
 The preference lives under `preferences` in `%APPDATA%/Claude/claude_desktop_config.json`;
 set it in the Settings UI, a file edit is only read at the next app start.
 
+**Operator decision 2026-09-17: the setting stays on Never** — it is global and
+would archive every other session after the same delay. The routine's sessions
+are instead swept by `/routine-janitor` (`.claude/skills/routine-janitor/`):
+idle ticks after 1 h, working runs beyond the 3 newest, never a running one,
+classified by run duration (≥ 180 s ⇒ working) from `list_task_runs`. It runs
+as `/loop /routine-janitor` in one pinned interactive session, because only an
+interactive session archives without a consent card; it lives as long as that
+session and is restarted after a Desktop restart.
+
 ## Rules
 
 1. **Every tick should end by cleaning up** — idle ticks and working runs
@@ -77,8 +86,9 @@ set it in the Settings UI, a file edit is only read at the next app start.
    dialog into a scheduled prompt; one such call idles the whole task. The
    suspended step stays documented in the prompt (STEP 0 and STEP 6) and
    `docs/feedback-routine/gate.md` so it can be switched back on in one edit.
-   The replacement is the app-level inactive auto-archive above, plus a
-   cron that fires only on cadence slots if the daily count still matters.
+   The replacement is the `/routine-janitor` loop above (the app-level
+   inactive auto-archive was rejected as too global), plus the two crons
+   that fire only on cadence slots.
 2. **Renaming the task renames the title** — the hygiene step matches on the
    title, so add the old title to the match list when the task is renamed
    (the day task already carries "… (day)"; the Desktop app refuses two
