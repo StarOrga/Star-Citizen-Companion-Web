@@ -894,6 +894,8 @@
       "heroView2d": "2D",
       "heroSwitchTo3d": "Switch to the 3D view",
       "heroSwitchTo2d": "Switch back to the 2D image",
+      "stageLaunchers": "{{n}} launchers",
+      "stageMissileRacks": "Missile racks",
       "linkCopied": "Link copied",
       "dataPill": "DATA {{build}} · schema {{n}}",
       "dataPillPending": "Re-extract pending",

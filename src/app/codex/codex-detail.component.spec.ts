@@ -87,7 +87,7 @@ const NOMAD_PAYLOAD: ShipPayload = {
   stats: NOMAD_SHIP_STATS as never,
 } as unknown as ShipPayload;
 
-function makeCodexServiceStub(): Partial<CodexService> {
+function makeCodexServiceStub(payload: ShipPayload = NOMAD_PAYLOAD): Partial<CodexService> {
   const entityPayloads = entityPayloadsFrom(NOMAD_POWER_FIXTURE);
   const resolved = resolvedEntitiesFrom(NOMAD_POWER_FIXTURE);
   const cohort: RankShipInput[] = [
@@ -105,7 +105,7 @@ function makeCodexServiceStub(): Partial<CodexService> {
     compareKeys: signal<string[]>([]) as never,
     getDetail: async (kind) =>
       kind === 'ship'
-        ? { classNameSlug: 'cnou_nomad', kind: 'ship', row: { role: null }, payload: NOMAD_PAYLOAD, ports: [], strings: [] }
+        ? { classNameSlug: 'cnou_nomad', kind: 'ship', row: { role: null }, payload, ports: [], strings: [] }
         : {
             classNameSlug: 'klwe_laserrepeater_s3',
             kind: 'weapon',
@@ -144,14 +144,14 @@ const NOMAD_SKIN: ShipSkin = {
   sort: 1,
 };
 
-async function setup(kind: 'ship' | 'weapon', skins: ShipSkin[] = []) {
+async function setup(kind: 'ship' | 'weapon', skins: ShipSkin[] = [], payload: ShipPayload = NOMAD_PAYLOAD) {
   const className = kind === 'ship' ? 'cnou_nomad' : 'klwe_laserrepeater_s3';
   await TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
       provideRouter([]),
       provideTranslateService({}),
-      { provide: CodexService, useValue: makeCodexServiceStub() },
+      { provide: CodexService, useValue: makeCodexServiceStub(payload) },
       {
         provide: ActivatedRoute,
         useValue: {
@@ -253,24 +253,52 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
 
   // ── decision 1: the BÜHNE and the tool row under it ──────────────────────
 
-  it('draws the hero as a stage with the name on it and the tool row beneath', () => {
+  it('draws the hero as a stage with the name on it and the actions beneath', () => {
     const el: HTMLElement = fixture.nativeElement;
     const hero = el.querySelector('.hero') as HTMLElement;
     expect(hero.classList).toContain('stage');
-    // Identity sits in the bottom band with the chips and actions, the way a
-    // codex fleet tile captions the same ship — not floating over the art.
+    // Identity sits in the bottom band with the chips and the module census,
+    // the way a codex fleet tile captions the same ship.
     const foot = hero.querySelector('.stage-foot') as HTMLElement;
     expect(foot).toBeTruthy();
     expect(foot.querySelector('.stage-ident h1')).toBeTruthy();
-    expect(foot.querySelector('.stage-side .acts')).toBeTruthy();
-    expect(hero.querySelector('.acts')).toBeTruthy();
+    expect(foot.querySelector('.stage-counts')).toBeTruthy();
+    // …and the census is the LAST thing in the band: bottom-right of the art.
+    expect(foot.lastElementChild?.classList).toContain('stage-counts');
+    // Nothing clickable is left on the art (feedback 140dfb7e) — the 2D/3D
+    // switch is the one exception and it is not part of the foot.
+    expect(foot.querySelector('a, button')).toBeNull();
     // The fact tiles left the hero (they live in the Analyse card now).
     expect(hero.querySelector('.facts')).toBeNull();
-    // …and the rarer things sit in the flat row below the card.
+    // The four frequent actions sit in their own row directly under the card…
+    const actions = el.querySelector('.stage-actions') as HTMLElement;
+    expect(actions).toBeTruthy();
+    expect(hero.contains(actions)).toBeFalse();
+    expect(hero.nextElementSibling).toBe(actions);
+    expect(actions.querySelectorAll('.btn').length).toBe(4);
+    // …and the rarer things in the flat row below that, without the census.
     const toolrow = el.querySelector('.toolrow') as HTMLElement;
     expect(toolrow).toBeTruthy();
-    expect(toolrow.querySelector('.loadout-summary')).toBeTruthy();
+    expect(actions.nextElementSibling).toBe(toolrow);
+    expect(toolrow.querySelector('.loadout-summary')).toBeNull();
     expect(toolrow.querySelector('.rsi-link')).toBeTruthy();
+  });
+
+  it('counts the census on the stage from the loadout blocks themselves', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const chips = fixture.componentInstance.stageCounts();
+    const sections = fixture.componentInstance.moduleSections();
+    // One chip per rendered block, the airframe excluded, each carrying the
+    // very slot count the block's own "N Slots" heading prints.
+    expect(chips.length).toBe(fixture.componentInstance.moduleCount() - 1);
+    expect(chips.find((c) => c.group === 'structure')).toBeUndefined();
+    const weapons = chips.find((c) => c.group === 'weapons');
+    expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);
+    expect(weapons?.labelKey).toBe('codex.moduleSection.weapons');
+    const rendered = Array.from(
+      el.querySelectorAll('.hero.stage .stage-counts .ls-item .ls-count'),
+    ).map((n) => n.textContent?.trim());
+    expect(rendered).toEqual(chips.map((c) => String(c.count)));
   });
 
   it('states the role once — in the eyebrow beside the maker, not also as a chip', () => {
@@ -289,7 +317,7 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
 
   it('"Schiff wechseln" navigates, so it is an anchor and not a button', () => {
     const el: HTMLElement = fixture.nativeElement;
-    const acts = el.querySelector('.hero .acts') as HTMLElement;
+    const acts = el.querySelector('.stage-actions') as HTMLElement;
     const anchor = acts.querySelector('a[href]') as HTMLAnchorElement;
     expect(anchor).toBeTruthy();
     expect(anchor.getAttribute('href')).toContain('/codex');
@@ -417,6 +445,77 @@ describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () =
     expect(fixture.componentInstance.heroView3d()).toBeFalse();
     expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
     expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();
+  });
+});
+
+// ── feedback 140dfb7e: the census must agree with the loadout column ───────
+
+/**
+ * The Nomad as the admin sees it: three gun mounts plus a tractor beam that
+ * the generic port classifier used to count as a fourth "weapon", and two
+ * MSD-442 racks carrying four missiles each.
+ */
+const NOMAD_ARMED_PAYLOAD: ShipPayload = {
+  ...NOMAD_PAYLOAD,
+  defaultLoadout: [
+    ...(NOMAD_PAYLOAD.defaultLoadout ?? []),
+    { itemPortName: 'hardpoint_weapon_top_right', entityClassName: 'KLWE_LaserRepeater_S3_SCItem' },
+    { itemPortName: 'hardpoint_weapon_bottom', entityClassName: 'KLWE_LaserRepeater_S3_SCItem' },
+    { itemPortName: 'hardpoint_tractor_beam', entityClassName: 'CNOU_Nomad_TractorBeam' },
+    ...(['left', 'right'] as const).map((side) => ({
+      itemPortName: `hardpoint_missile_rack_${side}`,
+      entityClassName: 'MSD_442_SCItem',
+      entries: [1, 2, 3, 4].map((n) => ({
+        itemPortName: `missile_slot_${n}`,
+        entityClassName: 'MSD_442_Missile_SCItem',
+      })),
+    })),
+  ],
+};
+
+describe('CodexDetailComponent — stage census (feedback 140dfb7e)', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+
+  beforeEach(async () => {
+    fixture = await setup('ship', [], NOMAD_ARMED_PAYLOAD);
+  });
+
+  it('counts three weapon slots, not four: the tractor beam is airframe', () => {
+    const chips = fixture.componentInstance.stageCounts();
+    const weapons = chips.find((c) => c.group === 'weapons');
+    expect(weapons?.count).toBe(3);
+    // …which is exactly what the armament block says.
+    const block = fixture.componentInstance.moduleSections().find((s) => s.section === 'weapons');
+    expect(block?.slots.length).toBe(3);
+  });
+
+  it('counts the missiles the racks carry and names the rack count as detail', () => {
+    const missiles = fixture.componentInstance.stageCounts().find((c) => c.group === 'missiles');
+    expect(missiles?.count).toBe(8);
+    expect(missiles?.labelKey).toBe('codex.moduleSection.missiles');
+    expect(missiles?.detailKey).toBe('codex.detail.stageLaunchers');
+    expect(missiles?.detailCount).toBe(2);
+    const el: HTMLElement = fixture.nativeElement;
+    const chip = el.querySelector('.hero.stage .stage-counts .ls-item[data-cat="missiles"]') as HTMLElement;
+    expect(chip.querySelector('.ls-count')?.textContent?.trim()).toBe('8');
+    expect(chip.querySelector('.ls-detail')).toBeTruthy();
+  });
+});
+
+describe('CodexDetailComponent — stage census, racks without a nested fit', () => {
+  it('falls back to the rack count when the extract names no missile', async () => {
+    // Same hull, racks without nested entries: "unknown", never "empty".
+    const racksOnly: ShipPayload = {
+      ...NOMAD_ARMED_PAYLOAD,
+      defaultLoadout: (NOMAD_ARMED_PAYLOAD.defaultLoadout ?? []).map((e) =>
+        e.itemPortName?.startsWith('hardpoint_missile_rack') ? { ...e, entries: undefined } : e,
+      ),
+    };
+    const fx = await setup('ship', [], racksOnly);
+    const missiles = fx.componentInstance.stageCounts().find((c) => c.group === 'missiles');
+    expect(missiles?.count).toBe(2);
+    expect(missiles?.labelKey).toBe('codex.detail.stageMissileRacks');
+    expect(missiles?.detailKey).toBeNull();
   });
 });
 

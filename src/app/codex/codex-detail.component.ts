@@ -50,7 +50,6 @@ import {
   SpecSection,
   StatGroup,
   StatRow,
-  PortSummaryEntry,
   ammoDamage,
   categorizePort,
   cleanLocaleValue,
@@ -62,7 +61,6 @@ import {
   formatNumber,
   humanizePortType,
   meaningfulRows,
-  summarizePorts,
   unescapeText,
 } from './codex-format';
 import {
@@ -78,13 +76,26 @@ import {
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
 import {
+  SHIP_MODULE_SECTION_ORDER,
+  ShipModuleGroup,
   ShipModuleSection,
   classifyShipModule,
+  shipModuleGroupLabelKey,
   shipModuleGroupOf,
   isConfigurableSection,
   isIndividualSection,
   shipPortFamily,
 } from './ship-module-sections';
+
+/** One census chip on the stage: a loadout block, its count, an optional detail. */
+export interface StageCountChip {
+  group: ShipModuleGroup;
+  count: number;
+  labelKey: string;
+  /** i18n key taking `{ n: detailCount }`, or null when the count says it all. */
+  detailKey: string | null;
+  detailCount: number;
+}
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { EditionOption, resolveEditionGroup } from './codex-edition-group';
 import { SummaryOccupant, equippedMass } from './ship-summary-panels';
@@ -339,6 +350,10 @@ interface GearRecipe {
                  3D). The two characters are decorative; the accessible name is
                  the whole sentence. -->
             @if (has3dView()) {
+              <!-- The label is split into its digit and its letter: Orbitron
+                   draws a "D" that reads as a "0"/"O" next to the "3", so the
+                   letter is set in the body face (feedback 140dfb7e). -->
+              @let viewLabel = (heroView3d() ? 'codex.detail.heroView2d' : 'codex.detail.heroView3d') | translate;
               <button
                 type="button"
                 class="view-switch"
@@ -347,58 +362,60 @@ interface GearRecipe {
                 [attr.aria-label]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
                 [attr.title]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
                 (click)="toggleHeroView()">
-                <span aria-hidden="true">{{ (heroView3d() ? 'codex.detail.heroView2d' : 'codex.detail.heroView3d') | translate }}</span>
+                <span class="vs-num" aria-hidden="true">{{ viewLabel.slice(0, -1) }}</span><span class="vs-letter" aria-hidden="true">{{ viewLabel.slice(-1) }}</span>
               </button>
             }
 
-            <!-- Chips and actions share ONE bottom block. They used to be two
-                 absolutely positioned rows at hand-picked offsets (bottom 56px
-                 and bottom 10px) while a button is 48px tall — so they already
-                 overlapped by 2px on one line, and the moment the buttons
-                 wrapped to a second row the chips disappeared behind them. A
-                 column that grows from the bottom cannot collide with itself. -->
+            <!-- The bottom band of the stage: identity left, figures right.
+                 Nothing in here is clickable any more — the four frequent
+                 actions moved out of the picture into their own row directly
+                 beneath it (feedback 140dfb7e: "die anklickbaren Links raus
+                 aus dem Bild"), so the band carries the name, the stat chips
+                 and, bottom-right, the module census that used to sit in the
+                 tool row. A column that grows from the bottom cannot collide
+                 with itself. -->
             <div class="stage-foot">
-              <!-- Same treatment the codex fleet tiles give a ship: maker and
-                   role as one small accent eyebrow, the name compact and bold
-                   under it, both sitting on the bottom edge over a gradient.
-                   The role lives here rather than in the chip row so it is not
-                   printed twice. -->
-              <div class="stage-ident">
-                @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
-                <h1>{{ displayName() }}</h1>
-              </div>
+              <!-- Upper line of the band: identity left, stat chips right. -->
+              <div class="stage-row">
+                <!-- Maker and role as one small eyebrow, the name bold and in
+                     the accent under it — the ship IS the subject — on a
+                     translucent panel so both stay legible on any render.
+                     The role lives here rather than in the chip row so it is
+                     not printed twice. -->
+                <div class="stage-ident">
+                  @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
+                  <h1>{{ displayName() }}</h1>
+                </div>
 
-              <div class="stage-side">
-            @if (heroChips().length > 0) {
-              <ul class="chips">
-                @for (c of heroChips(); track c.key) {
-                  @if (c.key !== 'role') {
-                    <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                @if (heroChips().length > 0) {
+                  <ul class="chips stage-side">
+                    @for (c of heroChips(); track c.key) {
+                      @if (c.key !== 'role') {
+                        <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
+                      }
+                    }
+                  </ul>
+                }
+              </div>
+              <!-- Module census, bottom-right ON the art, on its own line so
+                   it can use the full width of the stage and wraps into two or
+                   three short rows instead of a tall column. Read from the
+                   same resolved sections the loadout column renders, so "3
+                   Bewaffnung" here is the "Bewaffnung · 3 Slots" heading down
+                   there — never a second classifier with its own opinion. -->
+              @if (stageCounts().length > 0) {
+                <ul class="loadout-summary stage-counts" [attr.aria-label]="'codex.detail.equipment' | translate">
+                  @for (s of stageCounts(); track s.group) {
+                    <li class="ls-item" [attr.data-cat]="s.group">
+                      <span class="ls-count">{{ s.count }}</span>
+                      <span class="ls-cat">{{ s.labelKey | translate }}</span>
+                      @if (s.detailKey) {
+                        <span class="ls-detail">· {{ s.detailKey | translate: { n: s.detailCount } }}</span>
+                      }
+                    </li>
                   }
-                }
-              </ul>
-            }
-
-            <div class="acts">
-              <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
-                <span aria-hidden="true">{{ isPinned() ? '★' : '☆' }}</span>
-                {{ (isPinned() ? 'codex.compare.pinned' : 'codex.detail.actionCompare') | translate }}
-              </button>
-              <button type="button" class="btn" (click)="discardLoadoutDraft()">
-                {{ 'codex.detail.actionFactoryLoadout' | translate }}
-              </button>
-              <button type="button" class="btn copy" (click)="copyShareLink()">
-                {{ 'codex.detail.actionCopyLink' | translate }}
-                @if (linkCopied()) {
-                  <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-                }
-              </button>
-              <!-- Navigates, so it is an anchor and never a button (§2). -->
-              <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
-                {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
-              </a>
-            </div>
-              </div>
+                </ul>
+              }
             </div>
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
@@ -494,10 +511,35 @@ interface GearRecipe {
         </header>
 
         @if (kind() === 'ship') {
+          <!-- ── The four frequent actions, directly under the picture ─────
+               They sat on the art until feedback 140dfb7e asked for every
+               clickable thing except the 2D/3D switch to leave the image.
+               One row, wraps on a phone. ── -->
+          <div class="stage-actions">
+            <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
+              <span aria-hidden="true">{{ isPinned() ? '★' : '☆' }}</span>
+              {{ (isPinned() ? 'codex.compare.pinned' : 'codex.detail.actionCompare') | translate }}
+            </button>
+            <button type="button" class="btn" (click)="discardLoadoutDraft()">
+              {{ 'codex.detail.actionFactoryLoadout' | translate }}
+            </button>
+            <button type="button" class="btn copy" (click)="copyShareLink()">
+              {{ 'codex.detail.actionCopyLink' | translate }}
+              @if (linkCopied()) {
+                <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
+              }
+            </button>
+            <!-- Navigates, so it is an anchor and never a button (§2). -->
+            <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
+              {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
+            </a>
+          </div>
+
           <!-- ── WERKZEUGZEILE (decision 1, Variante B) ──────────────────
-               One flat row directly under the stage: Ausführung, Lackierung,
-               the port overview and the rarer actions. Both pickers stay a
-               single click away and their options are real anchors. ── -->
+               One flat row under the actions: Ausführung, Lackierung and the
+               rarer actions. Both pickers stay a single click away and their
+               options are real anchors. The port overview moved up onto the
+               stage (feedback 140dfb7e). ── -->
           <div class="toolrow">
             @if (editionOptions().length > 1) {
               <details class="picker edition-picker">
@@ -540,16 +582,6 @@ interface GearRecipe {
                   }
                 </ul>
               </details>
-            }
-            @if (portSummary().length > 0) {
-              <ul class="loadout-summary" [attr.aria-label]="'codex.detail.equipment' | translate">
-                @for (s of portSummary(); track s.category) {
-                  <li class="ls-item" [attr.data-cat]="s.category">
-                    <span class="ls-count">{{ s.count }}</span>
-                    <span class="ls-cat">{{ ('codex.portCategory.' + s.category) | translate }}</span>
-                  </li>
-                }
-              </ul>
             }
             <code class="cls">{{ detail()!.classNameSlug }}</code>
             <span class="tool-spacer"></span>
@@ -1153,6 +1185,10 @@ interface GearRecipe {
     /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
     .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
       border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
+    /* On the stage every chip sits on the art, the disclosed gap included:
+       a transparent dashed box over a white hull is unreadable, so it takes
+       the same translucent ground as its neighbours (feedback 140dfb7e). */
+    .hero.stage .hchip.gap { background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); }
 
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
@@ -1171,8 +1207,14 @@ interface GearRecipe {
        overlays — the name row, the flexible middle and the foot each own a
        band, so the foot can grow (wrapped buttons, many chips) and push the
        stage taller instead of sliding under the row above it or being cut off
-       by the overflow clip. 246px stays the floor, never the ceiling. */
-    .hero.stage { display: grid; grid-template-rows: 1fr auto; position: relative;
+       by the overflow clip. 246px stays the floor, never the ceiling; the
+       top band keeps at least the 2D/3D switch's height free so a tall foot
+       never climbs into it. */
+    /* ONE column: the base .hero rule is a two-column grid (art | body) and
+       used to leak through, so the whole foot band was squeezed into the
+       320px art column while the right two thirds of the card stayed empty. */
+    .hero.stage { display: grid; grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(56px, 1fr) auto; position: relative;
       min-height: 246px; padding: 12px 14px;
       overflow: hidden; background: var(--sc-bg-1); }
     .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
@@ -1190,22 +1232,47 @@ interface GearRecipe {
     .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
       background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent) 0%,
         color-mix(in srgb, var(--sc-bg-0) 72%, transparent) 34%, transparent 68%); }
-    .hero.stage .stage-ident { min-width: 0; flex: 1 1 12ch; pointer-events: none; }
-    /* Typography lifted from the codex fleet tile (.fleet-tile__mfr / __name)
-       so the same hull reads the same way wherever it is shown. */
+    /* The identity block sits on a translucent panel (feedback 140dfb7e:
+       "Texthintergrund einfügen"): whatever the render puts behind it — a
+       white hull, a bright engine glow — the eyebrow and the name keep their
+       contrast. bg-0 based, so it is dark on the dark theme and light on the
+       light one, and the text tokens on top of it stay readable in both. */
+    .hero.stage .stage-ident { min-width: min-content; flex: 0 1 auto; pointer-events: none;
+      align-self: flex-end; padding: 8px 12px; border-radius: 4px;
+      background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    /* Typography lifted from the codex fleet tile (.fleet-tile__mfr / __name),
+       with the emphasis swapped: the NAME carries the accent now — it is the
+       ship this page is about ("das ist das Schiff, darum geht es") — and the
+       maker/role eyebrow steps back to the secondary text colour. */
     .hero.stage .mfr { margin: 0; font-family: var(--sc-font-display);
       font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.08em; line-height: 1.2;
-      text-transform: uppercase; color: color-mix(in srgb, var(--sc-accent) 78%, var(--sc-fg-0)); }
-    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(17px, 1.7vw, 22px); font-weight: 600;
-      line-height: 1.15; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+      text-transform: uppercase; color: var(--sc-fg-1); }
+    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(19px, 1.9vw, 25px); font-weight: 700;
+      line-height: 1.15; color: var(--sc-accent); overflow-wrap: normal; }
     .hero.stage .stage-foot { grid-row: 2; position: relative; z-index: 1;
-      display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 8px 12px; }
-    .hero.stage .stage-side { display: flex; flex-direction: column; align-items: flex-end;
-      gap: 6px; margin-inline-start: auto; min-width: 0; }
+      display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+    /* Identity and stat chips share one line and never wrap onto two: the
+       chips own 45-50% of the band (enough that a long caveat chip folds into
+       two lines, not five), the panel takes the rest, folds its eyebrow and
+       never breaks a word of the name (min-content is its floor). */
+    .hero.stage .stage-row { display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 8px 12px; }
     .hero.stage .chips { list-style: none; margin: 0; padding: 0;
       display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-    .hero.stage .acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .hero.stage .stage-side { flex: 1 1 0; min-width: 45%; max-width: 50%; }
+    /* The census takes the full width of the band, right-aligned. */
+    .hero.stage .stage-counts { margin: 0; justify-content: flex-end; }
+    /* The census chips sit on the art, so they take the stat chips' opaque-ish
+       ground rather than the tool row's near-transparent one. */
+    .hero.stage .stage-counts .ls-item {
+      background: color-mix(in srgb, var(--sc-bg-0) 82%, transparent); }
+    .ls-detail { font-size: max(10px, var(--sc-fs-floor)); text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--sc-fg-2); }
+
+    /* The four frequent actions in their own row directly under the stage. */
+    .stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     /* The one button on this page (concept section 2, part-02:159). Never the
        hot accent: nothing here is admin-gated. A 3px rectangle with a 10px
        uppercase label at .12em - the mock's button, not a pill.
@@ -1235,24 +1302,31 @@ interface GearRecipe {
     .btn:disabled, .pin:disabled { opacity: 0.38; cursor: not-allowed; }
     .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
 
-    /* 2D <-> 3D. Quiet on purpose: a two-character label at half opacity that
-       only steps forward when you reach for it. */
+    /* 2D <-> 3D. Quiet on purpose: a two-character label that only steps
+       fully forward when you reach for it. */
     .view-switch { position: absolute; top: 12px; inset-inline-end: 12px; z-index: 2;
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 48px; min-height: 48px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent);
       border-radius: var(--radius-md, 4px);
       background: color-mix(in srgb, var(--sc-bg-0) 45%, transparent);
-      color: var(--sc-fg-1); opacity: 0.5;
+      color: var(--sc-fg-1); opacity: 0.8;
       font-family: var(--sc-font-display); font-size: max(12px, var(--sc-fs-floor));
       letter-spacing: 0.12em; cursor: pointer; }
     .view-switch:hover, .view-switch:focus-visible { opacity: 1; }
     .view-switch.on { color: var(--sc-accent); opacity: 0.85;
       border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
     .view-switch:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* "3D", not "30": the digit keeps the display face, the letter is set in
+       the body face (Inter) at a heavier weight so its straight stem and flat
+       bowl cannot be mistaken for a zero (feedback 140dfb7e). Half-opacity
+       was the other half of the problem, so the label starts at 0.8 above. */
+    .view-switch .vs-num { font-family: var(--sc-font-display); }
+    .view-switch .vs-letter { font-family: var(--sc-font-body, 'Inter', system-ui, sans-serif);
+      font-weight: 700; font-size: 1.15em; letter-spacing: 0; margin-inline-start: 0.08em; line-height: 1; }
 
     /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
-       One flat row, no card: Ausfuehrung, Lackierung, port overview, then the
-       rarer actions pushed to the end. */
+       One flat row, no card: Ausfuehrung, Lackierung, then the rarer actions
+       pushed to the end (the module census sits on the stage now). */
     .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
       padding: 6px 2px; border-top: 1px solid var(--sc-border); }
     .toolrow .tool-spacer { flex: 1 1 auto; }
@@ -1269,7 +1343,6 @@ interface GearRecipe {
     .toolrow .sp-current,
     .toolrow .sp-count { font-size: max(10.5px, var(--sc-fs-floor)); }
     .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
-    .toolrow .loadout-summary { margin: 0; }
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -1344,8 +1417,8 @@ interface GearRecipe {
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
 
-    /* Port overview. The mock has no element of its own for it, so it takes
-       the chip vocabulary it sits next to (part-02:156): count and category
+    /* Module census (bottom-right of the stage). The mock has no element of
+       its own for it, so it takes the chip vocabulary (part-02:156): count and category
        are one 10px uppercase run at .12em inside a 3px rectangle. The pill
        shape and the 14px count were the app's own invention. */
     .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1358,7 +1431,7 @@ interface GearRecipe {
     .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
     .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent); }
     .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
-    .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    .ls-item[data-cat="shields"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
@@ -1507,13 +1580,17 @@ interface GearRecipe {
       .hero.stage { display: flex; flex-direction: column; min-height: 0; padding: 0; gap: 0; }
       .hero.stage .stage-art { position: relative; inset: auto; min-height: 190px; }
       .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
-      .hero.stage .stage-ident { padding: 10px 14px 0; }
-      .hero.stage .stage-foot { flex-direction: column; align-items: stretch; gap: 8px;
-        padding-bottom: 12px; }
-      .hero.stage .stage-side { align-items: stretch; margin-inline-start: 0; }
-      .hero.stage .chips, .hero.stage .acts { justify-content: flex-start;
-        padding: 0 14px; max-width: none; }
+      /* Below the art the name needs no panel — it sits on the card. */
+      .hero.stage .stage-ident { padding: 10px 14px 0; background: none; border: 0;
+        backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 0; }
+      .hero.stage .stage-foot { padding-bottom: 12px; }
+      .hero.stage .stage-row { flex-direction: column; align-items: stretch; gap: 8px; }
+      .hero.stage .stage-ident { min-width: 0; flex: 0 0 auto; }
+      .hero.stage .stage-side { min-width: 0; max-width: none; }
+      .hero.stage .chips, .hero.stage .stage-counts { justify-content: flex-start;
+        padding: 0 14px; }
       .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
+      .stage-actions .btn { flex: 1 1 auto; justify-content: center; }
     }
     @media (max-width: 400px) {
       .hero-body { padding: 16px; }
@@ -3617,16 +3694,59 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /**
-   * Ship equipment summary (weapon/shield/… counts) for the hero. Derived from
-   * the INSTALLED default-loadout, not codex_item_ports — a ship's item_ports
-   * are structural only (fuel/ATC/relay/lifesupport) and carry no weapon/shield
-   * hardpoints, so the loadout is the only source that reflects real equipment.
+   * Module census on the stage (feedback 140dfb7e). One chip per loadout BLOCK,
+   * in the loadout column's own order and with its own headings, counting the
+   * same hardpoints the block's "N Slots" census counts — `moduleSections` is
+   * the single source for both, so the two can never disagree again.
+   *
+   * It used to be `summarizePorts` over the generic `HardpointCategory`, a
+   * second classifier with its own opinion: the Nomad's tractor beam counted
+   * as a fourth "weapon" up here while the armament block listed three.
+   *
+   * Missiles are the one block where the slot is not the unit a pilot counts:
+   * a rack is a slot, the missiles are what it carries. The chip therefore
+   * reads "8 Raketen · 2 Werfer" — the stock missiles across every rack, with
+   * the rack count as the detail — and falls back to counting the racks alone
+   * when the extract names no missile on any of them.
    */
-  readonly portSummary = computed<PortSummaryEntry[]>(() => {
-    const d = this.detail();
-    if (!d || d.kind !== 'ship') return [];
-    const installed = this.loadoutAll().filter((l) => l.className);
-    return summarizePorts(installed.map((l) => ({ types: [], portName: l.port })));
+  readonly stageCounts = computed<StageCountChip[]>(() => {
+    if (this.kind() !== 'ship') return [];
+    const bySection = new Map(this.moduleSections().map((s) => [s.section, s] as const));
+    // Blocks in the order their first section appears — the loadout column's
+    // order. The airframe is the one block that is not a decision; it stays
+    // off the picture.
+    const groups = [...new Set(SHIP_MODULE_SECTION_ORDER.map((s) => shipModuleGroupOf(s)))];
+    const out: StageCountChip[] = [];
+    for (const group of groups) {
+      if (group === 'structure') continue;
+      const sections = SHIP_MODULE_SECTION_ORDER.filter((s) => shipModuleGroupOf(s) === group)
+        .map((s) => bySection.get(s))
+        .filter((s): s is LayoutSection => !!s && s.slots.length > 0);
+      const slots = sections.reduce((n, s) => n + s.slots.length, 0);
+      if (slots === 0) continue;
+      const labelKey = shipModuleGroupLabelKey(group);
+      if (group === 'missiles') {
+        const missiles = sections
+          .flatMap((s) => s.slots)
+          .flatMap((slot) => slot.children ?? [])
+          .filter((c) => !!c.className)
+          .reduce((n, c) => n + c.count, 0);
+        if (missiles > 0) {
+          out.push({
+            group,
+            count: missiles,
+            labelKey,
+            detailKey: 'codex.detail.stageLaunchers',
+            detailCount: slots,
+          });
+          continue;
+        }
+        out.push({ group, count: slots, labelKey: 'codex.detail.stageMissileRacks', detailKey: null, detailCount: 0 });
+        continue;
+      }
+      out.push({ group, count: slots, labelKey, detailKey: null, detailCount: 0 });
+    }
+    return out;
   });
 
   /** Hardpoints grouped into functional categories, in display order. */
