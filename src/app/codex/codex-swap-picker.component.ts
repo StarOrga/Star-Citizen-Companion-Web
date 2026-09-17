@@ -500,7 +500,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       color: var(--sc-accent); font-weight: inherit; }
     /* The concept chip is ~24px tall. That is below the app's touch floor, so
        it only applies to a mouse - a coarse pointer keeps the shared control's
-       48px segments (src/styles.scss), exactly as .hero.stage .acts .btn does. */
+       48px segments (src/styles.scss), exactly as .stage-actions .btn does. */
     @media (pointer: fine) {
       .pick-seg sc-segmented ::ng-deep .seg-btn { min-height: 24px; }
     }

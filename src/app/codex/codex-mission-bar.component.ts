@@ -97,7 +97,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
        roles the mock gives them (translucent canvas, muted text).
        The 48px touch floor stays in this base rule; the concept's real, compact
        box lives in the pointer:fine block at the bottom, the same way
-       .hero.stage .acts .btn does it in codex-detail.component.ts. */
+       .stage-actions .btn does it in codex-detail.component.ts. */
     .mission-chip {
       display: inline-flex;
       align-items: center;

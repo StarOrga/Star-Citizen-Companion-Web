@@ -1248,7 +1248,7 @@ interface GearRecipe {
       gap: 6px; margin-inline-start: auto; min-width: 0; max-width: 62%; }
     .hero.stage .chips { list-style: none; margin: 0; padding: 0;
       display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-    .hero.stage .stage-counts { justify-content: flex-end; }
+    .hero.stage .stage-counts { margin: 0; justify-content: flex-end; }
     /* The census chips sit on the art, so they take the stat chips' opaque-ish
        ground rather than the tool row's near-transparent one. */
     .hero.stage .stage-counts .ls-item {
@@ -1310,8 +1310,8 @@ interface GearRecipe {
       font-weight: 700; font-size: 1.15em; letter-spacing: 0; margin-inline-start: 0.08em; line-height: 1; }
 
     /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
-       One flat row, no card: Ausfuehrung, Lackierung, port overview, then the
-       rarer actions pushed to the end. */
+       One flat row, no card: Ausfuehrung, Lackierung, then the rarer actions
+       pushed to the end (the module census sits on the stage now). */
     .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
       padding: 6px 2px; border-top: 1px solid var(--sc-border); }
     .toolrow .tool-spacer { flex: 1 1 auto; }
@@ -1328,7 +1328,6 @@ interface GearRecipe {
     .toolrow .sp-current,
     .toolrow .sp-count { font-size: max(10.5px, var(--sc-fs-floor)); }
     .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
-    .toolrow .loadout-summary { margin: 0; }
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -1403,8 +1402,8 @@ interface GearRecipe {
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
 
-    /* Port overview. The mock has no element of its own for it, so it takes
-       the chip vocabulary it sits next to (part-02:156): count and category
+    /* Module census (bottom-right of the stage). The mock has no element of
+       its own for it, so it takes the chip vocabulary (part-02:156): count and category
        are one 10px uppercase run at .12em inside a 3px rectangle. The pill
        shape and the 14px count were the app's own invention. */
     .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1417,7 +1416,7 @@ interface GearRecipe {
     .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
     .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent); }
     .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
-    .ls-item[data-cat="defense"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    .ls-item[data-cat="shields"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
