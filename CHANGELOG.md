@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.6] - 2026-09-17
+
+### Changed
+
+- **Raketen-Racks werden wie Waffen zusammengefasst (Feedback #235).** Gleiche
+  Raketenwerfer mit gleicher Bestückung erscheinen im Codex-Loadout als eine
+  Zeile mit „×N“; ein Wechsel in dieser Zeile gilt für alle Werfer der Gruppe.
+  Ursache: Rack-Klassennamen tragen ein Seiten-Suffix (`_Left`/`_Right`), das
+  den Gruppenschlüssel bisher auseinandergezogen hat - der Schlüssel nutzt
+  jetzt die Positionsfamilie, der Grad bleibt getrennt.
+
 ## [0.86.5] - 2026-09-17
 
 ### Changed
