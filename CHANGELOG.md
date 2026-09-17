@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.7] - 2026-09-18
+
+### Changed
+
+- **Gegenmaßnahmen, Zelle & feste Systeme unter den Lackierungen (Feedback #236).**
+  Auf der Schiffsseite sitzen Gegenmaßnahmen, Zellen und feste Systeme jetzt
+  in einer eigenen Karte unterhalb der Lackierungen; die Hauptkarte zählt nur
+  noch die Module davor. Gegenmaßnahmen wandern zurück nach oben, sobald der
+  Extractor den Werfer mit seiner Munition verknüpft (heute ist
+  `ammoContainerRecord` bei allen 188 Werfern leer, die Signaturwerte der
+  Täuschkörper liegen zwar in den Daten, erreichen aber keinen Hardpoint).
+
 ## [0.86.6] - 2026-09-17
 
 ### Changed
