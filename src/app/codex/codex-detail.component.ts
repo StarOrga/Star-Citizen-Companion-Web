@@ -79,6 +79,7 @@ import {
   SHIP_MODULE_SECTION_ORDER,
   ShipModuleGroup,
   ShipModuleSection,
+  TAIL_SHIP_SECTIONS,
   classifyShipModule,
   shipModuleGroupLabelKey,
   shipModuleGroupOf,
@@ -724,7 +725,7 @@ interface GearRecipe {
         <div class="m-cols" [class.single]="kind() !== 'ship' || moduleCount() < 4">
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
-          @if (moduleSections().length > 0) {
+          @if (primaryModuleSections().length > 0) {
             <section class="sc-card block col-loadout">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
@@ -742,11 +743,6 @@ interface GearRecipe {
                   <p>{{ 'codex.detail.moduleOrderHint' | translate }}</p>
                 </sc-info-note>
                 <span class="rule" aria-hidden="true"></span>
-                @if (hiddenEmptyCount() > 0) {
-                  <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                    {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                  </button>
-                }
               </h2>
               <!-- The "no stock guns in this extract" disclosure used to sit here,
                    far above the block it is about. It now rides on the Weapons
@@ -762,7 +758,7 @@ interface GearRecipe {
                   (hovered)="setActivePorts($event)" />
               }
               <sc-codex-hardpoint-layout
-                [sections]="moduleSections()"
+                [sections]="primaryModuleSections()"
                 [sectionOrder]="moduleSectionOrder()"
                 [foldedSections]="foldedModuleSections()"
                 [occupantsBySection]="occupantsBySection()"
@@ -819,6 +815,39 @@ interface GearRecipe {
               (locatable)="glbLocatablePorts.set($event)"
               (available)="onArtAvailable($event)" />
           }
+        }
+
+        <!-- ── Zelle & feste Systeme (+ Gegenmaßnahmen while this extract
+             carries no per-launcher values) — BELOW the paints block (feedback
+             #236: neither is a decision, and the countermeasure numbers a
+             pilot would size a loadout against are not in this extract yet;
+             see TAIL_SHIP_SECTIONS in ship-module-sections.ts). Same layout
+             component as the loadout card above, fed the tail sections
+             instead. -->
+        @if (tailModuleSections().length > 0) {
+          <section class="sc-card block col-loadout">
+            <h2 class="col-head">
+              <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
+              <span class="n">{{ tailModuleCount() }}</span>
+              <span class="rule" aria-hidden="true"></span>
+              @if (hiddenEmptyCount() > 0) {
+                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                </button>
+              }
+            </h2>
+            <sc-codex-hardpoint-layout
+              [sections]="tailModuleSections()"
+              [sectionOrder]="moduleSectionOrder()"
+              [foldedSections]="foldedModuleSections()"
+              [occupantsBySection]="occupantsBySection()"
+              [locatablePorts]="locatablePorts()"
+              [activePorts]="activePorts()"
+              (reverted)="onRevertPaths($event)"
+              (hovered)="setActivePorts($event)"
+              (inspected)="openInspect($event)"
+              (swapRequested)="openSwapPicker($event)" />
+          </section>
         }
 
         <!-- ── Description ───────────────────────────────────────── -->
@@ -3137,21 +3166,38 @@ export class CodexDetailComponent implements OnInit {
   );
 
   /**
-   * Rendered loadout BLOCKS — fewer than four collapses the Loadout | Analyse
-   * split into one column (MASTER §1) and this is the number the column head
-   * prints. Slot count is the wrong unit (a hull with 3 blocks and 10 slots
-   * must still collapse), and so is the section count now that five sections
-   * share the "Antrieb & Systeme" block: the concept counts what a reader
-   * counts, which is headings.
+   * `moduleSections`, split into the two cards the ship page actually
+   * renders: the main loadout card (everything a pilot can act on) and a
+   * second, TAIL card below the paint/skin viewer for `structure` and — while
+   * this extract carries no per-launcher values — `countermeasures` (feedback
+   * #236, see `TAIL_SHIP_SECTIONS`).
    */
-  readonly moduleCount = computed(
-    () =>
-      new Set(
-        this.moduleSections()
-          .filter((s) => s.slots.length > 0)
-          .map((s) => shipModuleGroupOf(s.section)),
-      ).size,
+  readonly primaryModuleSections = computed(() =>
+    this.moduleSections().filter((s) => !TAIL_SHIP_SECTIONS.has(s.section)),
   );
+  readonly tailModuleSections = computed(() =>
+    this.moduleSections().filter((s) => TAIL_SHIP_SECTIONS.has(s.section)),
+  );
+
+  /**
+   * Rendered loadout BLOCKS in a set of sections — fewer than four collapses
+   * the Loadout | Analyse split into one column (MASTER §1) and this is the
+   * number the column head prints. Slot count is the wrong unit (a hull with
+   * 3 blocks and 10 slots must still collapse), and so is the section count
+   * now that five sections share the "Antrieb & Systeme" block: the concept
+   * counts what a reader counts, which is headings.
+   */
+  private moduleGroupCount(sections: readonly LayoutSection[]): number {
+    return new Set(
+      sections.filter((s) => s.slots.length > 0).map((s) => shipModuleGroupOf(s.section)),
+    ).size;
+  }
+
+  /** Blocks in the main loadout card — drives its "n" badge and the
+   *  Loadout | Analyse column split (only the primary card participates). */
+  readonly moduleCount = computed(() => this.moduleGroupCount(this.primaryModuleSections()));
+  /** Blocks in the tail card's own "n" badge. */
+  readonly tailModuleCount = computed(() => this.moduleGroupCount(this.tailModuleSections()));
 
   readonly offensivePanel = computed(() => {
     if (this.kind() !== 'ship') return null;

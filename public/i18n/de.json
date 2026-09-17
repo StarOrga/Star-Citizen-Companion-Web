@@ -902,6 +902,7 @@
       "dataPillAria": "Datenstand: Build {{build}}, Schema {{n}}",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analyse",
+      "columnFixed": "Zelle & feste Systeme",
       "draftLabel": "Entwurf",
       "draftChanged": "{{n}} Slot geändert",
       "draftChangedPlural": "{{n}} Slots geändert",
