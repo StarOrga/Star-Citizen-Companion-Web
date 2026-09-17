@@ -68,11 +68,19 @@ set it in the Settings UI, a file edit is only read at the next app start.
 **Operator decision 2026-09-17: the setting stays on Never** — it is global and
 would archive every other session after the same delay. The routine's sessions
 are instead swept by `/routine-janitor` (`.claude/skills/routine-janitor/`):
-idle ticks after 1 h, working runs beyond the 3 newest, never a running one,
-classified by run duration (≥ 180 s ⇒ working) from `list_task_runs`. It runs
-as `/loop /routine-janitor` in one pinned interactive session, because only an
-interactive session archives without a consent card; it lives as long as that
-session and is restarted after a Desktop restart.
+idle ticks archived at once and **deleted** after 1 h, working runs archived
+beyond the 3 newest and never deleted, running ones never touched; classified
+by run duration (≥ 180 s ⇒ working). It runs as `/loop /routine-janitor` in
+one pinned interactive session, because only an interactive session archives
+without a consent card and `delete_session` gets one approval card per call
+(≤ 25 sessions, every permission mode, unavailable in unattended sessions) —
+the janitor issues at most one such card per sweep and never waits for it.
+The task's run history in the Desktop "Ausführungen" pane lists archived
+runs too; only deletion removes an entry there. It lives as long as that
+session and is restarted after a Desktop restart. `list_task_runs` returns
+50 runs per task at most; a catch-up scans the session records under
+`%APPDATA%\Claude\claude-code-sessions` by `scheduledTaskId` instead
+(2026-09-17: 835 routine records, 512 idle, deleted in cards of 25).
 
 ## Rules
 

@@ -67,8 +67,9 @@ without a click, the tick prints its report line and stops, and the operator
 sweeps the routine's sessions from an interactive session (`list_sessions` →
 `archive_session` per routine session — no dialog there): since 2026-09-17
 that is `/routine-janitor`, looped hourly in one pinned interactive session
-(idle ticks after 1 h, working runs beyond the 3 newest; the app's global
-"Archive inactive sessions" setting stays off by the operator's choice), see
+(idle ticks archived at once and deleted after 1 h via one approval card per
+sweep, working runs archived beyond the 3 newest and never deleted; the app's
+global "Archive inactive sessions" setting stays the operator's), see
 `.claude/deep-knowledge/scheduled-tasks.md`. Working runs behave the same at
 the end of STEP 6. On `work` the tick takes the run lock
 (`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`
