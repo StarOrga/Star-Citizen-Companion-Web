@@ -176,6 +176,11 @@ _NPC_TOKENS = (
     "ai", "derelict", "unmanned", "shipboarded", "boarded", "lootable",
     "wreck", "hijacked", "stunt", "lowfuel", "nocargo", "halfcargo",
     "modifiers", "simpod",
+    # Salvage props: SalvageableDebris_<Ship> is a vehicle record (it carries
+    # VehicleComponentParams and reuses the real hull's XML, so it even
+    # projects hull mass), but it is a floating wreck chunk, not a ship anyone
+    # can own. Also drops SCItem_Debris / VehicleItemDebris from items.
+    "debris",
 )
 _NONCATALOG_RE = re.compile(
     r"(?:^|_)(?:" + "|".join(_JUNK_TOKENS + _NPC_TOKENS) + r")(?:_|$)",
