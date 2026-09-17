@@ -149,6 +149,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       return 'codex.picker.unit.mps';
     case 'percent':
       return 'codex.picker.unit.percent';
+    case 'degrees':
+      return 'codex.picker.unit.deg';
     default:
       return null;
   }

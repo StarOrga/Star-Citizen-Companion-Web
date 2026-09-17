@@ -21,6 +21,7 @@ import {
 import type { SummaryOccupant } from './ship-summary-panels';
 import {
   EquippedStat,
+  EquippedStatFormat,
   GroupedSlot,
   commonPortLabel,
   formatEquippedStat,
@@ -79,6 +80,30 @@ export interface LayoutChild {
    * numbers). Unlike `statsMissing` it renders even when some rows exist.
    */
   statsNoteKey?: string | null;
+}
+
+/**
+ * Stat formats whose value does NOT add up across identical units — a reach,
+ * a speed, a duration, an angle, a ratio, a size class. A collapsed run of
+ * such rows quotes ONE unit's value and drops "Gesamt": two SureGrips do not
+ * reach 300 m (feedback #233), where three Panthers do deal 3× the alpha.
+ */
+const PER_UNIT_FORMATS: ReadonlySet<EquippedStatFormat> = new Set<EquippedStatFormat>([
+  'seconds',
+  'metres',
+  'metresDec',
+  'mps',
+  'gm',
+  'kms',
+  'size',
+  'percent',
+  'degrees',
+]);
+
+/** The stat scaled to `mult` units where that is a sum, unchanged where it is not. */
+function scaledFigure(stat: EquippedStat, mult: number): { stat: EquippedStat; summed: boolean } {
+  if (mult <= 1 || PER_UNIT_FORMATS.has(stat.format)) return { stat, summed: false };
+  return { stat: { ...stat, value: stat.value * mult }, summed: true };
 }
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
@@ -1358,7 +1383,8 @@ export class CodexHardpointLayoutComponent {
    * The carried item's own headline figure, multiplied out to every seat the
    * row stands for ({@link kidMult}), so the gun's own stat carries the
    * mount's count as well as its own. `total` says whether that is a SUM
-   * over several units (→ the card labels it "Gesamt") or one unit's value.
+   * over several units (→ the card labels it "Gesamt") or one unit's value —
+   * a per-unit quantity (a beam's reach, a speed) is never multiplied.
    */
   kidFig(
     row: GroupedSlot<LayoutSlot>,
@@ -1366,11 +1392,11 @@ export class CodexHardpointLayoutComponent {
   ): { value: string; unitKey: string; total: boolean } | null {
     const stat = kid.stats?.[0];
     if (!stat) return null;
-    const mult = this.kidMult(row, kid);
+    const scaled = scaledFigure(stat, this.kidMult(row, kid));
     return {
-      value: this.fmtStat({ ...stat, value: stat.value * mult }),
+      value: this.fmtStat(scaled.stat),
       unitKey: stat.labelKey,
-      total: mult > 1,
+      total: scaled.summed,
     };
   }
 
@@ -1402,15 +1428,21 @@ export class CodexHardpointLayoutComponent {
    * Fallback for the sections whose peek carries no figure: the first curated
    * stat, multiplied out to the group the row represents.
    */
-  private groupFigure(sec: RenderSection, row: GroupedSlot<LayoutSlot>): EquippedStat | null {
+  private groupFigure(
+    sec: RenderSection,
+    row: GroupedSlot<LayoutSlot>,
+  ): { stat: EquippedStat; summed: boolean } | null {
     const chip = this.preview(sec).chips.find(
       (c) => c.count === row.count && c.id.startsWith(`${row.slot.className}:`),
     );
     if (chip?.figure != null && chip.unitKey) {
-      return { labelKey: chip.unitKey, value: chip.figure, format: chip.format };
+      return {
+        stat: { labelKey: chip.unitKey, value: chip.figure, format: chip.format },
+        summed: row.count > 1,
+      };
     }
     const stat = row.slot.stats?.[0];
-    return stat ? { ...stat, value: stat.value * row.count } : null;
+    return stat ? scaledFigure(stat, row.count) : null;
   }
 
   /**
@@ -1429,8 +1461,9 @@ export class CodexHardpointLayoutComponent {
     sec: RenderSection,
     row: GroupedSlot<LayoutSlot>,
   ): { value: string; unitKey: string; total: boolean; delta: number | null; deltaText: string } | null {
-    const fig = this.groupFigure(sec, row);
-    if (!fig) return null;
+    const group = this.groupFigure(sec, row);
+    if (!group) return null;
+    const fig = group.stat;
     const pct = row.slot.deltaPct;
     let delta: number | null = null;
     if (pct != null && Number.isFinite(pct) && 100 + pct !== 0) {
@@ -1440,8 +1473,9 @@ export class CodexHardpointLayoutComponent {
       value: this.fmtStat(fig),
       unitKey: fig.labelKey,
       // A collapsed run's figure is the SUM over its hardpoints and says so
-      // ("Gesamt"); a single hardpoint's figure is just its own value.
-      total: row.count > 1,
+      // ("Gesamt"); a single hardpoint's figure — or a per-unit quantity like
+      // a beam's reach — is just one unit's value.
+      total: group.summed,
       delta,
       deltaText: delta == null || delta === 0 ? '' : `${delta > 0 ? '+' : ''}${formatNumber(delta)}`,
     };
