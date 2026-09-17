@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.85.12] - 2026-09-17
+
+### Fixed
+
+- **Die Feedback-Routine bleibt nicht mehr an einem toten Lauf hängen.** Wird
+  die Desktop-App mitten in einem Arbeitslauf beendet, hielt der Lauf seinen
+  Lock bis zum 3-Stunden-Timeout und zwei Worktrees mit ungesicherter Arbeit
+  blieben liegen (17.09., 19:41). Das Gate merkt sich jetzt beim `start-run`,
+  welche Session den Lock hält, prüft bei jedem Tick deren Transkript-Aktivität
+  (inklusive Worker) und gibt den Lock nach 30 Minuten Stille frei
+  (`lockReaped`); Worker pushen sofort einen `wip:`-Commit; und wenn der
+  Ship-MCP unter einer laufenden Session wegbricht (Plugin-Auto-Update),
+  merged `scripts/ship-via-mcp.cjs` über denselben Server aus dem aktuellen
+  Plugin-Cache. Tests: `node --test scripts/routine-gate.liveness.test.mjs`.
+
 ## [0.85.11] - 2026-09-17
 
 ### Added

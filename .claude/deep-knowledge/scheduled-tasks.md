@@ -101,7 +101,17 @@ session and is restarted after a Desktop restart.
    evening run and a 01:00 day run can overlap, and then the gate's run lock
    is the only brake (that is what it is for). "The scheduler fires and
    nobody cleans up" is never defensible.
-4. **When the Desktop app restarts after a crash**, check `list_sessions` for
+4. **Quitting the app kills every running run — background workers included.**
+   The orchestrator ends its turn while `run_in_background` workers write; an
+   app quit takes all of them down and nothing commits (2026-09-17: 1.800
+   uncommitted lines in two worktrees, lock held until the 3-h timeout). The
+   gate now releases a lock whose session stopped writing for 30 min
+   (`lockReaped`, `scripts/routine-gate.mjs`), workers push `wip:` commits
+   early, and a merge that finds the ship MCP dead (plugin auto-update under a
+   running session) goes through `scripts/ship-via-mcp.cjs`. Before quitting
+   the app deliberately, look at the routine's heartbeat: `state=running` means
+   a run is mid-flight.
+5. **When the Desktop app restarts after a crash**, check `list_sessions` for
    routine sessions with `isArchived:false` before anything else; if there are
    more than one, sweep them first — it is the difference between a 30-second
    restart and a 15-minute disk stall.

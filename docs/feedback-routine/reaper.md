@@ -131,7 +131,9 @@ continue it right away. Two things follow from the reaper's guards:
 ### A reaped item usually still has recoverable work
 
 The reaper reasons only about DB state (`ship_ref IS NULL`), which cannot see a
-pushed branch, a CI verdict, or a dirty worktree — and every run works in a
+pushed branch, a CI verdict, or a dirty worktree — since 0.85.12 workers also
+push a `wip:` commit right after their first edit and before every long build,
+so an app quit loses minutes, not the item — and every run works in a
 **per-item worktree that survives the interruption**. Treating a reaped item as a
 blank redo therefore throws away real, often already-certified work:
 
