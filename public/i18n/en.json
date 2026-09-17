@@ -902,6 +902,7 @@
       "dataPillAria": "Data state: build {{build}}, schema {{n}}",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analysis",
+      "columnFixed": "Airframe & Fixed Systems",
       "draftLabel": "Draft",
       "draftChanged": "{{n}} slot changed",
       "draftChangedPlural": "{{n}} slots changed",
