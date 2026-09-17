@@ -59,8 +59,9 @@
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const PROJECT_REF = 'hcnqhvzlavdycidqyaai';
 const HEARTBEAT_ID = 'admin-feedback-routine';
@@ -74,6 +75,17 @@ const RUN_LOCK_MAX_MIN = 180;
 const STALE_CLAIM_MIN = 60;
 /** … unless its worktree showed git activity inside this window. */
 const WORKTREE_LIVE_MIN = 60;
+/**
+ * Lock liveness (0.85.12): a run whose Desktop session — transcript plus its
+ * subagents' transcripts — has not written for this long is dead (the app was
+ * quit, the session crashed, the usage limit killed it) and its lock is released
+ * on the next tick instead of after RUN_LOCK_MAX_MIN. 2026-09-17: the app quit
+ * at 19:41 under a run started 19:14 and every tick until 22:14 would have said
+ * "running" over two stranded worktrees.
+ */
+const RUN_DEAD_MIN = 30;
+/** …but a fresh lock gets this long before its transcript is judged at all. */
+const RUN_LOCK_GRACE_MIN = 15;
 
 /**
  * Cadence — the ONLY place it lives. Hours are local (Europe/Berlin), a tick
@@ -186,6 +198,66 @@ function lockHeldBy(hb, now) {
   if (finished !== null && finished >= started) return false;
   return now - started < RUN_LOCK_MAX_MIN * 60_000;
 }
+// ---- lock liveness: which session holds the lock, and is it still writing?
+/** `.claude/routine-run.json` in the primary checkout — written by start-run, removed by end-run. Git-ignored. */
+function runFile() {
+  return join(repoRoots().root, '.claude', 'routine-run.json');
+}
+function recordRunSession(sid, startedAt) {
+  try { writeFileSync(runFile(), JSON.stringify({ sid, startedAt }, null, 2)); } catch (e) { log(`could not record the run session: ${e.message}`); }
+}
+function readRunSession() {
+  try { return JSON.parse(readFileSync(runFile(), 'utf8')); } catch { return null; }
+}
+function clearRunSession() {
+  try { rmSync(runFile(), { force: true }); } catch { /* nothing to clear */ }
+}
+/** Claude Code keeps one transcript dir per checkout path: ~/.claude/projects/<path with every non-alphanumeric as '-'>. */
+export function transcriptDirFor(root, home = homedir()) {
+  return join(home, '.claude', 'projects', root.replace(/[^A-Za-z0-9]/g, '-'));
+}
+/**
+ * Newest write (ms) among a session's transcript and its subagents' transcripts;
+ * with sid=null the newest write of ANY session in that transcript dir (the
+ * fallback when the lock holder was not recorded). null when nothing exists.
+ */
+export function newestActivity(dir, sid = null) {
+  let newest = null;
+  const consider = (p) => { try { const t = statSync(p).mtimeMs; if (newest === null || t > newest) newest = t; } catch { /* vanished */ } };
+  const subagentsOf = (id) => {
+    const d = join(dir, id, 'subagents');
+    if (!existsSync(d)) return;
+    for (const f of readdirSync(d)) if (f.endsWith('.jsonl')) consider(join(d, f));
+  };
+  if (!existsSync(dir)) return null;
+  if (sid) {
+    consider(join(dir, `${sid}.jsonl`));
+    subagentsOf(sid);
+    return newest;
+  }
+  for (const f of readdirSync(dir)) {
+    if (f.endsWith('.jsonl')) { consider(join(dir, f)); subagentsOf(f.slice(0, -6)); }
+  }
+  return newest;
+}
+/** Pure verdict: is a lock started at `startedAt` dead, given the holder's newest transcript write? */
+export function runIsDead({ startedAt, newest, now, graceMin = RUN_LOCK_GRACE_MIN, deadMin = RUN_DEAD_MIN }) {
+  if (now - startedAt < graceMin * 60_000) return false;
+  if (newest === null) return true; // never wrote a line after the grace period
+  return now - newest > deadMin * 60_000;
+}
+function deadLock(hb, now) {
+  const startedAt = Date.parse(hb.run_started_at);
+  const run = readRunSession();
+  // Only trust the recorded session when it belongs to THIS lock; a stale file
+  // from an older run would judge the wrong transcript. Otherwise judge the whole
+  // checkout: any session writing there keeps the lock (safe direction).
+  const sid = run?.sid && run.startedAt === hb.run_started_at ? run.sid : null;
+  const newest = newestActivity(transcriptDirFor(repoRoots().root), sid);
+  const dead = runIsDead({ startedAt, newest, now });
+  return { dead, sid, newest, idleMin: newest === null ? null : Math.round((now - newest) / 60_000) };
+}
+
 async function stampHeartbeat({ note, next, state, keepRunning }) {
   const stateExpr = keepRunning
     ? `case when routine_heartbeat.state = 'running' and routine_heartbeat.run_started_at > now() - interval '${RUN_LOCK_MAX_MIN} minutes'
@@ -280,15 +352,30 @@ async function check() {
   const win = windowFor(hour).name;
 
   const hb = await readHeartbeat();
+  let lockReaped = null;
   if (!inRun && lockHeldBy(hb, now)) {
-    const note = 'running';
-    if (!dryRun) await stampHeartbeat({ note, next, state: 'running', keepRunning: true });
-    log(`another run holds the lock since ${hb.run_started_at} — nothing to do`);
-    return emit({ verdict: 'running', lockedSince: hb.run_started_at, nextRunAt: next.toISOString(), window: win });
+    const liveness = deadLock(hb, now);
+    if (!liveness.dead) {
+      const note = 'running';
+      if (!dryRun) await stampHeartbeat({ note, next, state: 'running', keepRunning: true });
+      log(`another run holds the lock since ${hb.run_started_at} (session ${liveness.sid ?? 'unknown'} wrote ${liveness.idleMin ?? '?'} min ago) — nothing to do`);
+      return emit({ verdict: 'running', lockedSince: hb.run_started_at, holderIdleMin: liveness.idleMin, nextRunAt: next.toISOString(), window: win });
+    }
+    // The holder stopped writing: app quit, crash, usage limit. Release the lock now;
+    // its claims go through the normal reaper below (worktree liveness applies).
+    lockReaped = { since: hb.run_started_at, sid: liveness.sid, idleMin: liveness.idleMin };
+    if (!dryRun) {
+      await sql(`update public.routine_heartbeat
+        set state = 'idle', run_finished_at = now(), note = 'lock-reaped:dead-session', updated_at = now()
+        where id = ${q(HEARTBEAT_ID)} and state = 'running' and run_started_at = ${q(hb.run_started_at)}`);
+      clearRunSession();
+    }
+    log(`lock held since ${hb.run_started_at} by a DEAD run (session ${liveness.sid ?? 'unknown'}, last write ${liveness.idleMin ?? 'never'} min ago) — released`);
   }
 
   const due = force || inRun || slotIsDue(slot);
   const reaperResult = await reap(now, dryRun);
+  if (lockReaped) reaperResult.lockReaped = lockReaped;
   const c = await counts();
   const work = actionable(c);
 
@@ -316,8 +403,10 @@ async function startRun() {
                and (run_finished_at is null or run_finished_at < run_started_at))
     returning run_started_at`);
   const acquired = rows.length === 1;
-  log(acquired ? `run lock acquired at ${rows[0].run_started_at}` : 'run lock is held by another run — do NOT claim anything');
-  emit({ acquired, runStartedAt: rows[0]?.run_started_at ?? null });
+  const sid = flag('session') || process.env.CLAUDE_CODE_SESSION_ID || null;
+  if (acquired) recordRunSession(sid, rows[0].run_started_at);
+  log(acquired ? `run lock acquired at ${rows[0].run_started_at} (session ${sid ?? 'unknown'})` : 'run lock is held by another run — do NOT claim anything');
+  emit({ acquired, runStartedAt: rows[0]?.run_started_at ?? null, session: acquired ? sid : undefined });
   if (!acquired) process.exitCode = 1;
 }
 
@@ -329,6 +418,7 @@ async function endRun() {
   await sql(`update public.routine_heartbeat
     set state = ${q(state)}, run_finished_at = now(), note = ${q(note)}, next_run_at = ${q(next.toISOString())}, last_seen_at = now(), updated_at = now()
     where id = ${q(HEARTBEAT_ID)}`);
+  clearRunSession();
   log(`run lock released → ${state} (${note})`);
   emit({ released: true, state, note, nextRunAt: next.toISOString() });
 }
@@ -425,7 +515,9 @@ async function conceptRead() {
 }
 
 const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead };
-try {
+// Only dispatch when run as a script — the liveness helpers are imported by the tests.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isMain) try {
   const h = handlers[cmd];
   if (!h) throw new Error(`unknown command ${cmd}`);
   await h();

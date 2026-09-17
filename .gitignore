@@ -104,3 +104,6 @@ graphify-out/
 # the marker can appear in any nested project dir, not just the repo root
 **/.claude/batch-activity
 **/.claude/batch.md
+
+# routine gate: which session holds the run lock (written by start-run, removed by end-run)
+.claude/routine-run.json

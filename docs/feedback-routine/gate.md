@@ -38,6 +38,18 @@ It prints one JSON line (`verdict` ∈ `idle` · `skip-cadence` · `running` ·
    `bare_in_progress` for the report.
 5. **Heartbeat** with `next_run_at`, `state` and a machine-readable `note`.
 
+**Lock liveness (0.85.12).** `start-run` records the holder's session id in
+`.claude/routine-run.json` (git-ignored, primary checkout). On every tick a
+held lock is judged by that session's transcript writes — its own
+`~/.claude/projects/<checkout>/<sid>.jsonl` plus `<sid>/subagents/*.jsonl` —
+and released with `note=lock-reaped:dead-session` when nothing was written
+for 30 min (15 min grace after `start-run`). Without a recorded session the
+whole checkout's transcripts count, so a live session always keeps the lock
+(safe direction). The JSON carries `lockReaped: {since, sid, idleMin}`; the
+dead run's bare claims go through the ordinary reaper with its worktree
+liveness. Before this, a run killed by an app quit (2026-09-17 19:41) held
+the lock for the full 3 h while two worktrees sat stranded.
+
 **On `idle` / `skip-cadence` / `running` the tick reports one line and stops
 without reading this runbook** — after the session hygiene: every tick is its
 own Desktop session, and an un-archived one is restored as a tab (its own
