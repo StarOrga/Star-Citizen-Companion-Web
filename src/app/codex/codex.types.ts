@@ -193,6 +193,10 @@ export interface WeaponPayload extends BaseEntityPayload {
   subType: string | null;
   size: number | null;
   grade: string | null;
+  // Flat scalars of `SCItemWeaponComponentParams` plus the derived combat set
+  // (fireRate, projectileSpeed, impactDamage …). Schema 5 adds the
+  // tractor-beam block for beams (see TRACTOR_BEAM_PARAM_PREFIX): flat
+  // `tractorBeam.<key>` numbers read from the beam's own fire action.
   weaponParams: Record<string, string | number | boolean | null>;
   itemPorts: ItemPort[];
   // Schema 3: weapons gain the same struct-keyed `stats` map components and
@@ -301,8 +305,69 @@ export function resolveResourceState(payload: unknown): string | null {
  * the data pill turns gold with "Re-Extract ausstehend" (MASTER §2/§11).
  * Schema 4 (feedback #227): plain ITEMS keep their resource network, which is
  * where the radar, life-support, tractor and flight-controller draws live.
+ * Schema 5 (feedback #233): tractor beams carry their reach and pull
+ * (`weaponParams.tractorBeam.*`).
  */
-export const EXPECTED_SCHEMA_VERSION = 4;
+export const EXPECTED_SCHEMA_VERSION = 5;
+
+// ── tractor beams (extractor schema 5, feedback #233) ────────────────────────
+// A tractor / towing beam is a weapon whose only fire action is CIG's
+// `SWeaponActionFireTractorBeamParams`. The extractor flattens that struct's
+// scalars onto `weaponParams` under this prefix, SI units as stored:
+//
+//   tractorBeam.maxDistance           m    — how far the beam reaches at all
+//   tractorBeam.fullStrengthDistance  m    — up to here it pulls at full force
+//   tractorBeam.minDistance           m
+//   tractorBeam.maxForce              N    — the pull; NOT a mass (see below)
+//   tractorBeam.minForce              N
+//   tractorBeam.maxVolume                  — engine volume cap of the target
+//   tractorBeam.maxAngle              °    — off-boresight cone
+//   tractorBeam.tetherBreakTime       s    — how long an overstressed tether holds
+//   tractorBeam.safeRangeValueFactor  0..1 — of maxDistance
+//   tractorBeam.minSpeed / maxSpeed   m/s  — movement band of the held object
+//   tractorBeam.minAcceleration / maxAcceleration  m/s²
+//
+// The game files know NO mass limit for a beam — what it can move is a force
+// (F = m·a: a heavier object simply moves slower, and the tether breaks when
+// the required force stays above `maxForce` for `tetherBreakTime`). The UI
+// therefore shows the force and says so, and never derives a "max mass".
+export const TRACTOR_BEAM_PARAM_PREFIX = 'tractorBeam.';
+
+/** Flat key builder for the block — `tractorBeamKey('maxDistance')`. */
+export function tractorBeamKey(field: string): string {
+  return `${TRACTOR_BEAM_PARAM_PREFIX}${field}`;
+}
+
+/**
+ * True when the weapon IS a tractor / towing beam — by CIG's own attach type
+ * (`TractorBeam`, `TowingBeam`) or, for the size-3 heads that attach as
+ * `SalvageHead` (GRIN_TractorBeam_S3, WEP_TractorBeam_S3_*), by the class
+ * name. Deliberately NOT by name alone: the remote TURRET that carries a beam
+ * (`DRAK_Ironclad_Remote_Turret_Tractor_Beam`, attachType `Turret`) is a
+ * mount, has no beam numbers of its own and must never be told it is missing
+ * them. Independent of whether the extract already carries the beam's
+ * numbers, so the UI can say "not in this extract" on a pre-schema-5 build.
+ */
+export function isTractorBeamWeapon(payload: unknown): boolean {
+  const p = payload as
+    | { entityKind?: string; attachType?: string | null; className?: string | null }
+    | null
+    | undefined;
+  if (!p || typeof p !== 'object' || p.entityKind !== 'weapon') return false;
+  const attach = (p.attachType ?? '').toLowerCase();
+  if (attach === 'tractorbeam' || attach === 'towingbeam') return true;
+  return attach === 'salvagehead' && /tractor|towing/i.test(p.className ?? '');
+}
+
+/** True when the payload carries at least one `tractorBeam.*` number. */
+export function hasTractorBeamParams(payload: unknown): boolean {
+  const params = (payload as { weaponParams?: Record<string, unknown> } | null | undefined)
+    ?.weaponParams;
+  if (!params || typeof params !== 'object') return false;
+  return Object.entries(params).some(
+    ([k, v]) => k.startsWith(TRACTOR_BEAM_PARAM_PREFIX) && typeof v === 'number',
+  );
+}
 
 /** True when the loaded build predates {@link EXPECTED_SCHEMA_VERSION}. */
 export function isReExtractPending(schemaVersion: number | null | undefined): boolean {

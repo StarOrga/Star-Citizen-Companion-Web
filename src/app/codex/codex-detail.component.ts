@@ -71,6 +71,7 @@ import {
   ammoClassNamesFor,
   damageChannelsOf,
   equippedStats,
+  equippedStatsNoteKey,
   equippedTypeLabel,
   formatEquippedStat,
   isWeaponMountPort,
@@ -3299,6 +3300,7 @@ export class CodexDetailComponent implements OnInit {
         damageChannels: damageChannelsOf(item.payload, item.ammoPayload),
         stats: equippedStats(item),
         statsMissing: weaponStatsUnavailable(item),
+        statsNoteKey: equippedStatsNoteKey(item),
       };
     });
   }
@@ -3384,6 +3386,7 @@ export class CodexDetailComponent implements OnInit {
         damageChannels: damageChannelsOf(overlay.item.payload, overlay.item.ammoPayload),
         stats: overlay.state === 'pending' ? [] : equippedStats(overlay.item),
         statsMissing: overlay.state === 'pending' ? false : weaponStatsUnavailable(overlay.item),
+        statsNoteKey: overlay.state === 'pending' ? null : equippedStatsNoteKey(overlay.item),
         children,
         portSize: this.portSizeOf(l.port) ?? fit?.size ?? null,
         // Two identical mounts holding different things must not collapse.

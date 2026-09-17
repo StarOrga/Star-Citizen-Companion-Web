@@ -1747,6 +1747,12 @@ class CodexExtractor:
                     params["heatPerShot"] = heat
         else:
             params.pop("fireRate", None)
+        # Tractor / towing beams (feedback #233): the beam's reach and pull
+        # live on its OWN fire-action struct, which carries no `fireRate` and
+        # so never reached the payload — a SureGrip showed nothing but its
+        # power draw. Flat `tractorBeam.*` keys, emitted only when the record
+        # carries the leaf; see `_tractor_beam_params`.
+        params.update(_tractor_beam_params(wcp))
         return params
 
     def _project_component(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
@@ -2361,6 +2367,88 @@ def _collect_fire_actions(node: Any, _depth: int = 0,
         for item in node:
             found.extend(_collect_fire_actions(item, _depth + 1, _max_depth))
     return found
+
+
+# ── tractor beams (feedback #233) ────────────────────────────────────────────
+# A tractor / towing beam is a weapon whose single fire action is a
+# `SWeaponActionFireTractorBeamParams` struct. VERIFIED against the LIVE
+# 4.10 P4K on 2026-09-17 (GRIN_TractorBeam_S1 "SureGrip S1", GRIN_TractorBeam_S3,
+# WEP_TractorBeam_S1_Military_1, WEP_TractorBeam_S2_Utility_1,
+# ARGO_ATLS_TractorBeam_S1): the struct carries NO `fireRate`, so the generic
+# fire-action walk above never selects it, and its scalars — the beam's reach
+# (`maxDistance` / `fullStrengthDistance`, metres) and pull (`minForce` /
+# `maxForce`, newtons; `maxVolume`) — never reached the payload.
+#
+# There is deliberately NO mass figure here: the game files express what a
+# beam can move as a FORCE (plus a volume cap and the movement params'
+# acceleration band), never as a mass limit. Consumers must not invent one.
+# `SGlobalTractorBeamParams` holds only holo/outline visuals (probed) — nothing
+# per-beam lives there.
+_TRACTOR_ACTION_TYPE = "SWeaponActionFireTractorBeamParams"
+_TRACTOR_PARAMS_PREFIX = "tractorBeam."
+# (source key on the action struct, emitted key) — SI units as stored.
+_TRACTOR_SCALAR_KEYS = (
+    ("minForce", "minForce"),                        # N
+    ("maxForce", "maxForce"),                        # N
+    ("minDistance", "minDistance"),                  # m
+    ("maxDistance", "maxDistance"),                  # m
+    ("fullStrengthDistance", "fullStrengthDistance"),  # m
+    ("maxAngle", "maxAngle"),                        # degrees off boresight
+    ("maxVolume", "maxVolume"),                      # engine volume units
+    ("tetherBreakTime", "tetherBreakTime"),          # s
+    ("safeRangeValueFactor", "safeRangeValueFactor"),  # 0..1 of maxDistance
+)
+_TRACTOR_MOVEMENT_KEYS = (
+    ("minSpeed", "minSpeed"),                        # m/s
+    ("maxSpeed", "maxSpeed"),                        # m/s
+    ("minAcceleration", "minAcceleration"),          # m/s²
+    ("maxAcceleration", "maxAcceleration"),          # m/s²
+)
+
+
+def _find_tractor_action(node: Any, _depth: int = 0,
+                         _max_depth: int = 10) -> Optional[Dict[str, Any]]:
+    """First `SWeaponActionFireTractorBeamParams` struct under `node` (DFS,
+    descends into sequence wrappers and lists like `_collect_fire_actions`)."""
+    if _depth > _max_depth:
+        return None
+    if isinstance(node, dict):
+        if node.get("_Type_") == _TRACTOR_ACTION_TYPE:
+            return node
+        for k, v in node.items():
+            if isinstance(k, str) and k.startswith("_") and k.endswith("_"):
+                continue
+            found = _find_tractor_action(v, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for item in node:
+            found = _find_tractor_action(item, _depth + 1, _max_depth)
+            if found is not None:
+                return found
+    return None
+
+
+def _tractor_beam_params(wcp: Dict[str, Any]) -> Dict[str, float]:
+    """Flat `tractorBeam.<key>` scalars of a weapon's tractor-beam fire action,
+    or {} for every weapon that has none. Nothing is defaulted: a key is
+    emitted only when the struct carries a numeric value for it — an explicit
+    0.0 (e.g. `minDistance`) is kept as 0.0, an absent field stays absent."""
+    fa = _find_tractor_action(wcp.get("fireActions"))
+    if fa is None:
+        return {}
+    out: Dict[str, float] = {}
+    for src, dst in _TRACTOR_SCALAR_KEYS:
+        v = _to_float(fa.get(src))
+        if v is not None:
+            out[_TRACTOR_PARAMS_PREFIX + dst] = v
+    movement = fa.get("movementParams")
+    if isinstance(movement, dict):
+        for src, dst in _TRACTOR_MOVEMENT_KEYS:
+            v = _to_float(movement.get(src))
+            if v is not None:
+                out[_TRACTOR_PARAMS_PREFIX + dst] = v
+    return out
 
 
 def _select_fire_action(

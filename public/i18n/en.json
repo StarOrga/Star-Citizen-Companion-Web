@@ -1273,7 +1273,15 @@
       "cmRadius": "Cloud radius",
       "cmCloudLifetime": "Cloud duration",
       "cmLifetime": "Round lifetime",
-      "burstDps": "Burst DPS"
+      "burstDps": "Burst DPS",
+      "tractorRange": "Range",
+      "tractorFullStrengthRange": "Full strength up to",
+      "tractorForce": "Max. pull",
+      "tractorForceHint": "The game files cap a tractor beam by its pulling force, not by a mass: the heavier the object, the slower it moves (F = m·a), and the tether breaks when the required force stays above the pull.",
+      "tractorAngle": "Max. angle",
+      "tractorTetherBreak": "Tether break time",
+      "tractorSpeed": "Max. move speed",
+      "tractorNoStats": "This tractor beam's range and pull are not in this extract yet — they arrive with the next re-extract."
     },
     "shipLink": {
       "add": "Add pledge link",

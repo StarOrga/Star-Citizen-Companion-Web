@@ -157,6 +157,77 @@ describe('CodexHardpointLayoutComponent', () => {
     ).toEqual(['43.65', '43.65', '43.65']);
   });
 
+  // Feedback #233: "Info in Traktor Beam. Welche Reichweite und welche Masse
+  // kann das tragen." — the beam's reach leads its row, the pull carries the
+  // force-not-mass hint, and a collapsed run never sums a reach.
+  const SUREGRIP = slot({
+    port: 'Hardpoint Tractor Beam',
+    className: 'GRIN_TractorBeam_S1',
+    kind: 'weapon',
+    name: 'SureGrip S1 Tractor Beam',
+    size: 1,
+    grade: null,
+    manufacturerCode: 'GRIN',
+    typeLabel: 'Tractor Beam',
+    damageChannels: [],
+    stats: [
+      { labelKey: 'codex.equipped.tractorRange', value: 150, format: 'metres' },
+      { labelKey: 'codex.equipped.tractorFullStrengthRange', value: 75, format: 'metres' },
+      {
+        labelKey: 'codex.equipped.tractorForce',
+        value: 500000,
+        format: 'kn',
+        hintKey: 'codex.equipped.tractorForceHint',
+      },
+      { labelKey: 'codex.equipped.powerDraw', value: 1, format: 'dec' },
+    ],
+  });
+
+  it('leads a tractor beam with its reach and marks the pull with the force hint', () => {
+    const el = render([{ section: 'weapons', slots: [SUREGRIP] }]);
+    expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('150 m');
+    expect(el.querySelector('.fig .u')?.textContent?.trim()).toBe('codex.equipped.tractorRange');
+    const rows = Array.from(el.querySelectorAll('.slot-stats .stat'));
+    const force = rows.find((r) => r.textContent?.includes('codex.equipped.tractorForce'))!;
+    expect(force.getAttribute('title')).toBe('codex.equipped.tractorForceHint');
+    expect(force.querySelector('dd')?.textContent?.trim()).toBe('500 kN');
+    expect(force.querySelector('.hint')).toBeTruthy();
+    // nothing on the row claims a mass, and no gap note fires when the numbers are there
+    expect(el.textContent).not.toContain('tractorNoStats');
+  });
+
+  it('quotes ONE beam reach for a collapsed pair — a reach is not a sum', () => {
+    const el = render([
+      { section: 'weapons', slots: [SUREGRIP, { ...SUREGRIP, port: 'Hardpoint Tractor Beam Aft' }] },
+    ]);
+    expect(el.querySelectorAll('.mod-sec[data-sec="weapons"] li.slot').length).toBe(1);
+    expect(el.querySelector('.size-tag')?.textContent?.trim()).toBe('2× S1');
+    expect(el.querySelector('.fig .n')?.textContent?.trim()).toBe('150 m');
+    expect(el.querySelector('.fig.total')).toBeNull();
+    expect(el.querySelector('.fig-l')).toBeNull();
+    // …while the per-item run still says how many beams each value stands for
+    expect(el.querySelector('.slot-stats dt .mult')?.textContent?.trim()).toBe('2×');
+  });
+
+  it('asks for a re-extract under a beam whose build predates its numbers', () => {
+    const el = render([
+      {
+        section: 'weapons',
+        slots: [
+          {
+            ...SUREGRIP,
+            stats: [{ labelKey: 'codex.equipped.powerDraw', value: 1, format: 'dec' }],
+            statsNoteKey: 'codex.equipped.tractorNoStats',
+          },
+        ],
+      },
+    ]);
+    // the power row is still there — the row is incomplete, not bare
+    expect(el.querySelectorAll('.slot-stats .stat').length).toBe(1);
+    const notes = Array.from(el.querySelectorAll('.slot-note')).map((n) => n.textContent?.trim());
+    expect(notes).toEqual(['codex.equipped.tractorNoStats']);
+  });
+
   it('gives the carried gun its own maker line, damage channel, stat run and figure', () => {
     // concept/part-06.html:320-324 draws the gun inside the gimbal as a FULL
     // row — "Waffe · Klaus & Werner (KLWE) · Grade A · Energie" over its stat

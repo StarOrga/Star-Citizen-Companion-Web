@@ -20,6 +20,7 @@ import {
   EquippedStat,
   damageChannelsOf,
   equippedStats,
+  equippedStatsNoteKey,
   formatEquippedStat,
 } from './codex-equipped-stats';
 import { AmmunitionPayload, ComponentPayload, ItemPayload, WeaponPayload } from './codex.types';
@@ -93,7 +94,7 @@ export interface ComponentInspectEntry {
           @if (headline().length > 0) {
             <dl class="cm-headline">
               @for (st of headline(); track st.labelKey) {
-                <div class="hs">
+                <div class="hs" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
                   <dt>
                     {{ st.labelKey | translate }}
                     @if (st.derived) {
@@ -104,6 +105,16 @@ export interface ComponentInspectEntry {
                 </div>
               }
             </dl>
+          }
+          <!-- Reading aids the card only carries as hover text — spelled out
+               here, where a phone user can actually read them (a tractor
+               beam's pull is a force, not a mass). Plus the extract-gap note
+               for a beam whose numbers this build does not carry yet. -->
+          @for (key of hintKeys(); track key) {
+            <p class="cm-hint">{{ key | translate }}</p>
+          }
+          @if (noteKey(); as key) {
+            <p class="cm-hint">{{ key | translate }}</p>
           }
 
           @if (paramRows().length > 0) {
@@ -232,6 +243,7 @@ export interface ComponentInspectEntry {
     .ct-unit { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); }
 
     .cm-empty { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .cm-hint { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; line-height: 1.4; }
     .cm-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px;
       flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--sc-border); }
     .cm-open { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); text-decoration: none; }
@@ -289,6 +301,21 @@ export class CodexComponentModalComponent {
       { kind: e.kind, payload: e.payload, ammoPayload: e.ammoPayload },
       Infinity,
     );
+  });
+
+  /** Every distinct reading aid the headline rows carry, in row order. */
+  readonly hintKeys = computed<string[]>(() => {
+    const keys: string[] = [];
+    for (const st of this.headline()) {
+      if (st.hintKey && !keys.includes(st.hintKey)) keys.push(st.hintKey);
+    }
+    return keys;
+  });
+
+  /** The extract-gap note for this occupant, when its stats are incomplete. */
+  readonly noteKey = computed<string | null>(() => {
+    const e = this.entry();
+    return e ? equippedStatsNoteKey({ kind: e.kind, payload: e.payload, ammoPayload: e.ammoPayload }) : null;
   });
 
   /** The item's own parameter block (weaponParams / curated component stats). */

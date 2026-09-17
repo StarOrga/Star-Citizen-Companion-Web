@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.0] - 2026-09-17
+
+### Added
+
+- **Traktorstrahlen zeigen Reichweite und Zugkraft.** Ein Traktorstrahl-
+  Hardpoint (z. B. der GRIN SureGrip der Nomad) zeigt jetzt seine Reichweite,
+  die Reichweite bei voller Kraft und die maximale Zugkraft in kN — dazu
+  Winkel, Reißzeit und Energiebedarf, im Stat-Sheet außerdem das Bewegungs-
+  tempo. Eine „tragbare Masse" kennen die Spieldateien nicht: der Strahl ist
+  über seine Kraft begrenzt (F = m·a — schwerer heißt langsamer, und das
+  Halteseil reißt, wenn die nötige Kraft dauerhaft über der Zugkraft liegt);
+  genau das sagt der Hinweis am Wert. Gleiche Strahlen in einer Reihe
+  multiplizieren ihre Reichweite nicht mehr zu einem falschen „Gesamt".
+  (Feedback #233)
+- **Data Uploader (0.30.0): der Extractor liest die Traktorstrahl-Werte.**
+  `SWeaponActionFireTractorBeamParams` (Distanzen, Kräfte, Volumen, Winkel,
+  Reißzeit, Bewegungsband) landet flach als `weaponParams.tractorBeam.*`.
+  Katalog-Schema 5; das Daten-Pill meldet „Re-Extract ausstehend", bis ein
+  neuer Upload gelaufen ist — bis dahin steht am Strahl ein Hinweis, dass die
+  Werte mit dem nächsten Re-Extract kommen.
+
 ## [0.85.13] - 2026-09-17
 
 ### Changed
