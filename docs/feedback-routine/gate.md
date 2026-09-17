@@ -53,11 +53,12 @@ it waits the session counts as running and the scheduler skips the task: the
 ticks never fired. Until the Desktop app lets an unattended session archive
 without a click, the tick prints its report line and stops, and the operator
 sweeps the routine's sessions from an interactive session (`list_sessions` →
-`archive_session` per routine session — no dialog there), or — the sanctioned
-way — lets the Desktop app do it: Settings → Local sessions → "Archive
-inactive sessions" (1 day) archives every idle routine session without a
-click, see `.claude/deep-knowledge/scheduled-tasks.md`. Working runs behave
-the same at the end of STEP 6. On `work` the tick takes the run lock
+`archive_session` per routine session — no dialog there): since 2026-09-17
+that is `/routine-janitor`, looped hourly in one pinned interactive session
+(idle ticks after 1 h, working runs beyond the 3 newest; the app's global
+"Archive inactive sessions" setting stays off by the operator's choice), see
+`.claude/deep-knowledge/scheduled-tasks.md`. Working runs behave the same at
+the end of STEP 6. On `work` the tick takes the run lock
 (`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`
 means stand down), reads this runbook, and continues with STEP 1. On `error`
 (token missing, SQL down) the gate is fail-open: the tick falls back to the
