@@ -400,13 +400,40 @@ const POSITIONAL_SUFFIX =
  * Never strips the whole name: a port called just `left` keeps its own family.
  */
 export function shipPortFamily(portName: string | null | undefined): string {
-  let name = (portName ?? '').trim().toLowerCase();
+  const name = (portName ?? '').trim().toLowerCase();
   if (!name) return '';
+  return stripPositionalSuffix(name);
+}
+
+/** Repeatedly strips one trailing positional word — shared by `shipPortFamily`
+ * (port names) and `classNamePositionFamily` (installed class names) below. */
+function stripPositionalSuffix(raw: string): string {
+  let name = raw;
   for (;;) {
     const next = name.replace(POSITIONAL_SUFFIX, '');
     if (next === name || next === '' || next === 'hardpoint') return name;
     name = next;
   }
+}
+
+/**
+ * The identity family of an installed CLASS NAME, with any positional tail
+ * word removed. CIG gives some symmetric occupants distinct per-side class
+ * names — a Nomad's two `MSD-442` missile racks resolve to
+ * `MRCK_S04_CNOU_Quad_S02_Left` / `..._Right` — while a gimbal mount's class
+ * name stays position-agnostic. Grouping identical hardpoints by the raw
+ * class name therefore collapses the weapons fine but never the racks
+ * (feedback #235: *"Raketen auch zusammenfassend machen … wie bei der
+ * Bewaffnung"*). This is the same family test `shipPortFamily` already runs
+ * on port names, applied to the occupant's class name instead — a grade
+ * suffix like `_A`/`_B` is stripped here too, but that is harmless: the
+ * caller always ANDs this family with the item's own `grade` field, so two
+ * different grades never collapse into one row.
+ */
+export function classNamePositionFamily(className: string | null | undefined): string {
+  const name = (className ?? '').trim().toLowerCase();
+  if (!name) return '';
+  return stripPositionalSuffix(name);
 }
 
 /**

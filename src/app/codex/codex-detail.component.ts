@@ -85,6 +85,7 @@ import {
   isConfigurableSection,
   isIndividualSection,
   shipPortFamily,
+  classNamePositionFamily,
 } from './ship-module-sections';
 
 /** One census chip on the stage: a loadout block, its count, an optional detail. */
@@ -3442,8 +3443,21 @@ export class CodexDetailComponent implements OnInit {
       // Grouping stays anchored to the STOCK identity, computed BEFORE any
       // draft overlay below — a per-slot draft edit can never split or
       // reorder a collapsed run mid-interaction (R5/Falle 4).
-      const variantKey = children.map((c) => `${c.className ?? ''}:${c.count}`).join(',');
-      const groupKey = `${l.className ?? ' '}|${l.size ?? ''}|${l.grade ?? ''}|${variantKey}`;
+      // The variant identity uses each carried child's POSITION FAMILY too —
+      // a rack's own missile sub-ports can be as side-specific as the rack
+      // itself (feedback #235), so two racks loaded with the same missile
+      // must still fold together even if the extract names the sub-ports'
+      // occupant class per side.
+      const variantKey = children
+        .map((c) => `${classNamePositionFamily(c.className)}:${c.count}`)
+        .join(',');
+      // Grouped by the occupant's POSITION FAMILY, not its raw class name —
+      // CIG gives some symmetric mounts (a Nomad's two MSD-442 missile racks)
+      // distinct per-side class names while a gimbal mount's stays
+      // position-agnostic, so raw-class grouping folded the weapons but never
+      // the racks (feedback #235: 'wie bei der Bewaffnung'). `grade` still
+      // guards two genuinely different grades of the same base part apart.
+      const groupKey = `${classNamePositionFamily(l.className) || ' '}|${l.size ?? ''}|${l.grade ?? ''}|${variantKey}`;
 
       const draftEntry = configurable ? this.draft().get(l.port) : undefined;
       const overlay = this.draftOverlayFor(l.port, draftEntry, item);
