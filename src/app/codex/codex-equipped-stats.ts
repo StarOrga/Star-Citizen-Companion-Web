@@ -448,10 +448,16 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   // A tractor beam shoots nothing: no alpha, no fire rate, no projectile. Its
   // reach and pull lead, then it pays for power like any other module.
   if (isTractorBeamWeapon(payload)) {
-    out.push(...tractorBeamStats(payload));
+    // The card holds MAX_STATS_PER_SLOT rows: reach, full-strength reach,
+    // pull, cone and tether time, then the power draw the row already showed
+    // before — the move speed is a stat-sheet extra behind it.
+    const beam = tractorBeamStats(payload);
+    const isSpeed = (r: EquippedStat): boolean => r.labelKey === 'codex.equipped.tractorSpeed';
+    out.push(...beam.filter((r) => !isSpeed(r)));
     const stats = statsOf(payload);
     const state = resolveResourceState(payload);
     pushPowerDraw(out, stats, state);
+    out.push(...beam.filter(isSpeed));
     pushResourceDetail(out, stats, state);
     return out;
   }

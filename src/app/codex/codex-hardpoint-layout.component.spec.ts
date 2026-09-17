@@ -196,7 +196,7 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.textContent).not.toContain('tractorNoStats');
   });
 
-  it('quotes ONE beam's reach for a collapsed pair — a reach is not a sum', () => {
+  it('quotes ONE beam reach for a collapsed pair — a reach is not a sum', () => {
     const el = render([
       { section: 'weapons', slots: [SUREGRIP, { ...SUREGRIP, port: 'Hardpoint Tractor Beam Aft' }] },
     ]);
