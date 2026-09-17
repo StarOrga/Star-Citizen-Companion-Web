@@ -39,8 +39,11 @@ import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import {
   RESOURCE_STATS_GROUP,
   STANDARD_UNITS_PER_SEGMENT,
+  hasTractorBeamParams,
+  isTractorBeamWeapon,
   resolveResourceState,
   resourceKey,
+  tractorBeamKey,
 } from './codex.types';
 
 /** How the UI renders a raw stat value (source units documented per case). */
@@ -57,7 +60,8 @@ export type EquippedStatFormat =
   | 'scu' // 1.6 SCU
   | 'kn' // source newtons → 1,587 kN
   | 'size' // 2 → S2 (a hardpoint/ordnance size, not a quantity)
-  | 'percent'; // source 0–1 ratio → 25 %
+  | 'percent' // source 0–1 ratio → 25 %
+  | 'degrees'; // 60 → 60°
 
 /** One curated headline stat of an equipped item. */
 export interface EquippedStat {
@@ -68,6 +72,13 @@ export interface EquippedStat {
   format: EquippedStatFormat;
   /** True when the value was computed rather than read verbatim (UI marks it). */
   derived?: boolean;
+  /**
+   * i18n key of a one-line reading aid the UI attaches to the row (hover
+   * title on the card, spelled out on the stat sheet). Set only where the
+   * bare number invites a wrong reading — a tractor beam's pull is a FORCE,
+   * not the mass it can lift.
+   */
+  hintKey?: string;
 }
 
 /**
@@ -370,6 +381,62 @@ function pushResourceDetail(out: EquippedStat[], stats: StatsMap, state: string 
   push(out, 'codex.equipped.irSignature', resourceStat(stats, 'ir.nominal', state), 'int');
 }
 
+// ── tractor beams (extractor schema 5, feedback #233) ────────────────────────
+// "Info in Traktor Beam. Welche Reichweite und welche Masse kann das tragen."
+// The beam's numbers live on its own fire action and reach the payload as
+// flat `weaponParams.tractorBeam.*` scalars (see codex.types.ts for the key
+// contract). Reach is two distances — where the beam still grips at all and
+// up to where it pulls at full force. "Mass" has no source: the game files
+// cap a beam by FORCE (and volume), never by mass, so the pull is shown in
+// kN with a hint saying exactly that, and nothing is derived from it.
+
+/** One `tractorBeam.*` number of the payload, or null. */
+function tractorParam(payload: unknown, field: string): number | null {
+  const params = (payload as { weaponParams?: Record<string, unknown> } | null | undefined)
+    ?.weaponParams;
+  return toFiniteNumber(params?.[tractorBeamKey(field)] ?? null);
+}
+
+/**
+ * The tractor beam's own rows, card order: reach first (the question asked),
+ * then the pull, then the handling numbers the stat sheet still wants.
+ */
+export function tractorBeamStats(payload: unknown): EquippedStat[] {
+  const out: EquippedStat[] = [];
+  push(out, 'codex.equipped.tractorRange', tractorParam(payload, 'maxDistance'), 'metres');
+  push(
+    out,
+    'codex.equipped.tractorFullStrengthRange',
+    tractorParam(payload, 'fullStrengthDistance'),
+    'metres',
+  );
+  const force = usable(tractorParam(payload, 'maxForce'));
+  if (force !== null) {
+    out.push({
+      labelKey: 'codex.equipped.tractorForce',
+      value: force,
+      format: 'kn',
+      hintKey: 'codex.equipped.tractorForceHint',
+    });
+  }
+  push(out, 'codex.equipped.tractorAngle', tractorParam(payload, 'maxAngle'), 'degrees');
+  push(out, 'codex.equipped.tractorTetherBreak', tractorParam(payload, 'tetherBreakTime'), 'seconds');
+  push(out, 'codex.equipped.tractorSpeed', tractorParam(payload, 'maxSpeed'), 'mps');
+  return out;
+}
+
+/**
+ * The i18n key of the note a hardpoint row shows UNDER its stats when the
+ * occupant is a tractor beam whose reach and pull this extract does not carry
+ * (every build below schema 5). Null for everything else — a beam with its
+ * numbers, a gun, a mount. Distinct from {@link weaponStatsUnavailable}: the
+ * beam still has its power rows, so the row is not bare, just incomplete.
+ */
+export function equippedStatsNoteKey(item: EquippedItem): string | null {
+  if (!isTractorBeamWeapon(item.payload)) return null;
+  return hasTractorBeamParams(item.payload) ? null : 'codex.equipped.tractorNoStats';
+}
+
 function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   const out: EquippedStat[] = [];
   const subType = (payload as { subType?: string | null } | null | undefined)?.subType ?? '';
@@ -377,6 +444,17 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   // A countermeasure launcher has no damage of its own — everything a pilot can
   // act on sits on the round it throws.
   if (subType === 'CountermeasureLauncher') return countermeasureStats(ammoPayload);
+
+  // A tractor beam shoots nothing: no alpha, no fire rate, no projectile. Its
+  // reach and pull lead, then it pays for power like any other module.
+  if (isTractorBeamWeapon(payload)) {
+    out.push(...tractorBeamStats(payload));
+    const stats = statsOf(payload);
+    const state = resolveResourceState(payload);
+    pushPowerDraw(out, stats, state);
+    pushResourceDetail(out, stats, state);
+    return out;
+  }
 
   // A rack leads with what it CARRIES; its own size is already the row badge.
   const rack = missileRackLoad(payload);
@@ -656,6 +734,8 @@ export function formatEquippedStat(stat: EquippedStat): string {
       return `S${n}`;
     case 'percent':
       return `${n} %`;
+    case 'degrees':
+      return `${n}°`;
   }
 }
 
@@ -690,6 +770,8 @@ export function formatEquippedStatNumber(stat: EquippedStat): string {
       return formatNumber(Math.round(v / 1_000));
     case 'percent':
       return formatNumber(Math.round(v * 100));
+    case 'degrees':
+      return formatNumber(Math.round(v));
   }
 }
 

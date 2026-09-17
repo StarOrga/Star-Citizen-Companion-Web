@@ -78,7 +78,12 @@ class ExtractResult:
     # (Radar, LifeSupportGenerator, TractorBeam, FlightController, EMP, …), so
     # the energy dock's radar / life-support / tractor / thruster groups get
     # real draws instead of "—".
-    schema_version: int = 4
+    # v5 (feedback #233): tractor / towing beams gain flat
+    # `weaponParams.tractorBeam.*` scalars (max/full-strength distance,
+    # min/max force, volume cap, tether break time, movement band) read from
+    # their `SWeaponActionFireTractorBeamParams` fire action — a struct the
+    # fire-rate walk never selects because it carries no `fireRate`.
+    schema_version: int = 5
     quality_score: float = 0.0
     entity_counts: Dict[str, int] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)

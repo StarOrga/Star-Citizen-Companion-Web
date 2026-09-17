@@ -1273,7 +1273,15 @@
       "cmRadius": "Wolkenradius",
       "cmCloudLifetime": "Wolkenstandzeit",
       "cmLifetime": "Wirkdauer",
-      "burstDps": "Burst-DPS"
+      "burstDps": "Burst-DPS",
+      "tractorRange": "Reichweite",
+      "tractorFullStrengthRange": "Volle Kraft bis",
+      "tractorForce": "Max. Zugkraft",
+      "tractorForceHint": "Die Spieldateien begrenzen einen Traktorstrahl über seine Zugkraft, nicht über eine Masse: je schwerer das Objekt, desto langsamer bewegt es sich (F = m·a), und der Strahl reißt, wenn die nötige Kraft dauerhaft über der Zugkraft liegt.",
+      "tractorAngle": "Max. Winkel",
+      "tractorTetherBreak": "Reißzeit",
+      "tractorSpeed": "Max. Bewegungstempo",
+      "tractorNoStats": "Reichweite und Zugkraft dieses Traktorstrahls stecken noch nicht in diesem Extract — sie kommen mit dem nächsten Re-Extract."
     },
     "shipLink": {
       "add": "Pledge-Link hinzufügen",

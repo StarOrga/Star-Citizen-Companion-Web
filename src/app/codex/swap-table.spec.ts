@@ -213,6 +213,38 @@ describe('defaultSwapColumnsFor (D24: kind-aware default column seed)', () => {
   it('returns the weapon set for an empty candidate list', () => {
     expect(defaultSwapColumnsFor([])).toEqual(DEFAULT_SWAP_COLUMNS);
   });
+
+  // Feedback #233: a tractor-beam port's candidates are weapons by kind but
+  // shoot nothing — the gun columns would render as an all-dashes table.
+  it('seeds a beam-only candidate set from the beam columns, not the gun set', () => {
+    const beam = (className: string, maxDistance: number): SwapCandidate => ({
+      className,
+      kind: 'weapon',
+      name: className,
+      manufacturerCode: 'GRIN',
+      size: 1,
+      grade: null,
+      typeLabel: 'Tractor Beam',
+      archetype: null,
+      damageChannels: [],
+      attachType: 'TractorBeam',
+      stats: {
+        'codex.equipped.tractorRange': { value: maxDistance, format: 'metres' },
+        'codex.equipped.tractorForce': { value: 500000, format: 'kn' },
+        'codex.equipped.powerDraw': { value: 1, format: 'dec' },
+      },
+      equipped: false,
+    });
+    const cols = defaultSwapColumnsFor([beam('GRIN_TractorBeam_S1', 150), beam('WEP_TractorBeam_S1_Utility_1', 130)]);
+    expect(cols).toContain('codex.equipped.tractorRange');
+    expect(cols).toContain('codex.equipped.tractorForce');
+    expect(cols).not.toContain('codex.equipped.alphaDamage');
+    expect(cols).not.toContain('codex.equipped.dps');
+    // one gun in the mix and the set is a weapon set again
+    expect(defaultSwapColumnsFor([beam('GRIN_TractorBeam_S1', 150), PANTHER])).toEqual(
+      DEFAULT_SWAP_COLUMNS,
+    );
+  });
 });
 
 describe('sortSwapCandidates', () => {

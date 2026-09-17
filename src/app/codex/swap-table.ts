@@ -748,6 +748,15 @@ export const SWAP_VALUE_CATALOGUE: readonly SwapValueDef[] = [
   V('codex.equipped.thrust', 'int', false),
   V('codex.equipped.fuelCapacity', 'int', false),
   V('codex.equipped.fuelRate', 'perSec', false, true),
+  // tractor beams (schema 5, feedback #233) — a beam port is not a weapon
+  // candidate set in the concept's sense, so these fill in via the
+  // "at least one candidate carries it" rule of `defaultSwapColumnsFor`.
+  V('codex.equipped.tractorRange', 'metres', false),
+  V('codex.equipped.tractorFullStrengthRange', 'metres', false),
+  V('codex.equipped.tractorForce', 'kn', false),
+  V('codex.equipped.tractorAngle', 'degrees', false),
+  V('codex.equipped.tractorTetherBreak', 'seconds', false),
+  V('codex.equipped.tractorSpeed', 'mps', false),
 ];
 
 /** The 17 columns the picker opens with — the concept's own `#g3` weapon set. */
@@ -760,6 +769,20 @@ export function isWeaponCandidateSet(candidates: readonly SwapCandidate[]): bool
   return candidates.length === 0 || candidates.every((c) => c.kind === 'weapon');
 }
 
+// Attach types of the beams that ride the weapon path without shooting
+// anything (schema 5, feedback #233). A port whose every candidate is one of
+// these would get the gun columns — DPS, alpha, fire rate — as an all-dashes
+// table, so it takes the union rule below instead.
+const BEAM_ATTACH_TYPES = new Set(['tractorbeam', 'towingbeam', 'salvagehead']);
+
+/** True when every candidate is a tractor / towing / salvage beam. */
+export function isBeamCandidateSet(candidates: readonly SwapCandidate[]): boolean {
+  return (
+    candidates.length > 0 &&
+    candidates.every((c) => BEAM_ATTACH_TYPES.has((c.attachType ?? '').toLowerCase()))
+  );
+}
+
 /**
  * The default column seed for a port kind. The concept only ever drew a
  * weapon port, so `DEFAULT_SWAP_COLUMNS` stays the answer there; every other
@@ -769,7 +792,7 @@ export function isWeaponCandidateSet(candidates: readonly SwapCandidate[]): bool
  * showing an all-dashes weapon table.
  */
 export function defaultSwapColumnsFor(candidates: readonly SwapCandidate[]): readonly string[] {
-  if (isWeaponCandidateSet(candidates)) {
+  if (isWeaponCandidateSet(candidates) && !isBeamCandidateSet(candidates)) {
     return DEFAULT_SWAP_COLUMNS;
   }
   return SWAP_VALUE_CATALOGUE.filter(

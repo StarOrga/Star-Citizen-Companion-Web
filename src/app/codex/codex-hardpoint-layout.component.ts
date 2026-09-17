@@ -73,6 +73,12 @@ export interface LayoutChild {
   stats?: EquippedStat[];
   /** The carried item is a real gun but this extract has no stats for it. */
   statsMissing?: boolean;
+  /**
+   * i18n key of a note shown UNDER the stats when they are incomplete for a
+   * known reason (a tractor beam on a build that predates its reach/pull
+   * numbers). Unlike `statsMissing` it renders even when some rows exist.
+   */
+  statsNoteKey?: string | null;
 }
 
 // One labelled slot in the read-only layout (Rung 1): the port, what the
@@ -105,6 +111,8 @@ export interface LayoutSlot {
   stats?: EquippedStat[];
   /** The occupant is a real gun but this extract has no stats for it. */
   statsMissing?: boolean;
+  /** Note under incomplete stats — see `LayoutChild.statsNoteKey`. */
+  statsNoteKey?: string | null;
   /** Sub-slots the occupant exposes (mount → weapon, rack → missiles). */
   children?: LayoutChild[];
   /** Size the hardpoint itself accepts, when the extract knows it. */
@@ -452,13 +460,16 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                as the total; a split block drops the prefix. -->
                           <dl class="slot-stats">
                             @for (st of rest; track st.labelKey) {
-                              <div class="stat">
+                              <div class="stat" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
                                 <dt>
                                   @if (row.count > 1) { <span class="mult">{{ row.count }}×</span> }
                                   {{ st.labelKey | translate }}
                                   @if (st.derived) {
                                     <span class="derived"
                                           [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                  }
+                                  @if (st.hintKey) {
+                                    <span class="derived hint" aria-hidden="true">ⓘ</span>
                                   }
                                 </dt>
                                 <dd>{{ fmtStat(st) }}</dd>
@@ -467,6 +478,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                           </dl>
                         } @else if (!row.slot.stats?.length && row.slot.statsMissing) {
                           <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                        }
+                        @if (row.slot.statsNoteKey) {
+                          <span class="slot-note">{{ row.slot.statsNoteKey | translate }}</span>
                         }
                       }
                     </button>
@@ -595,13 +609,16 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               @if (kid.stats?.length) {
                                 <dl class="slot-stats">
                                   @for (st of kid.stats; track st.labelKey) {
-                                    <div class="stat">
+                                    <div class="stat" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
                                       <dt>
                                         @if (kidMult(row, kid) > 1) { <span class="mult">{{ kidMult(row, kid) }}×</span> }
                                         {{ st.labelKey | translate }}
                                         @if (st.derived) {
                                           <span class="derived"
                                                 [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                        }
+                                        @if (st.hintKey) {
+                                          <span class="derived hint" aria-hidden="true">ⓘ</span>
                                         }
                                       </dt>
                                       <dd>{{ fmtStat(st) }}</dd>
@@ -610,6 +627,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 </dl>
                               } @else if (kid.statsMissing) {
                                 <span class="slot-note">{{ 'codex.equipped.noStats' | translate }}</span>
+                              }
+                              @if (kid.statsNoteKey) {
+                                <span class="slot-note">{{ kid.statsNoteKey | translate }}</span>
                               }
                             </button>
                             <!-- The gun's OWN stat sheet. It had none at all
@@ -917,6 +937,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     .slot-stats dd { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-1); white-space: nowrap;
       font-variant-numeric: tabular-nums; }
     .slot-stats .derived { color: var(--sc-fg-2); cursor: help; }
+    .slot-stats .derived.hint { font-size: 0.85em; margin-left: 2px; }
     .slot-note { margin-top: 4px; font-size: max(0.63rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
     /* The indent is the whole point of the block, so it survives a phone —

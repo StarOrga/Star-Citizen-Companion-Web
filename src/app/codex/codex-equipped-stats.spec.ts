@@ -6,6 +6,7 @@ import {
   damageChannelsOf,
   damagePerSecond,
   equippedStats,
+  equippedStatsNoteKey,
   equippedTypeLabel,
   formatEquippedStat,
   groupIdenticalSlots,
@@ -17,9 +18,59 @@ import {
   penetrationDistance,
   projectileRange,
   sizeBadge,
+  tractorBeamStats,
   weaponStatsUnavailable,
   type EquippedStat,
 } from './codex-equipped-stats';
+import { hasTractorBeamParams, isTractorBeamWeapon } from './codex.types';
+
+/**
+ * GRIN_TractorBeam_S1 — the Nomad's "SureGrip S1 Tractor Beam", as the
+ * schema-5 extractor writes it (values verified against the LIVE 4.10 P4K on
+ * 2026-09-17). The flat `tractorBeam.*` block is the whole point of the
+ * fixture; the resource group is the schema-3 shape every weapon carries.
+ */
+const SUREGRIP_S1 = {
+  entityKind: 'weapon',
+  className: 'GRIN_TractorBeam_S1',
+  weaponClass: 'Ship',
+  attachType: 'TractorBeam',
+  subType: 'UNDEFINED',
+  size: 1,
+  grade: null,
+  weaponParams: {
+    fireOnAim: false,
+    'tractorBeam.minForce': 1500,
+    'tractorBeam.maxForce': 500000,
+    'tractorBeam.minDistance': 0,
+    'tractorBeam.maxDistance': 150,
+    'tractorBeam.fullStrengthDistance': 75,
+    'tractorBeam.maxAngle': 60,
+    'tractorBeam.maxVolume': 300000,
+    'tractorBeam.tetherBreakTime': 1.5,
+    'tractorBeam.safeRangeValueFactor': 0.85,
+    'tractorBeam.minSpeed': 5,
+    'tractorBeam.maxSpeed': 10,
+    'tractorBeam.minAcceleration': 0.1,
+    'tractorBeam.maxAcceleration': 20,
+  },
+  itemPorts: [],
+  stats: {
+    ItemResourceComponentParams: {
+      stateNames: 'Online',
+      'online.power.consumeSegments': 1,
+      'online.power.minFraction': 1,
+      'online.em.nominal': 0,
+      'online.ir.nominal': 0,
+    },
+  },
+};
+
+/** The same beam on the live schema-3 build: no `tractorBeam.*` keys at all. */
+const SUREGRIP_S1_PRE_SCHEMA_5 = {
+  ...SUREGRIP_S1,
+  weaponParams: { fireOnAim: false },
+};
 
 // Fixtures below are trimmed copies of REAL 4.9.0 catalog payloads, so the
 // expectations double as a regression guard on the extract's actual shape.
@@ -419,6 +470,120 @@ describe('codex-equipped-stats', () => {
     });
   });
 
+  // Admin feedback #233: "Info in Traktor Beam. Welche Reichweite und welche
+  // Masse kann das tragen." — the SureGrip row showed only its power draw.
+  describe('equippedStats — tractor beams (schema 5)', () => {
+    it('leads the card with reach and pull, then the power rows', () => {
+      const rows = equippedStats({ kind: 'weapon', payload: SUREGRIP_S1 });
+      expect(rows.map((r) => r.labelKey)).toEqual([
+        'codex.equipped.tractorRange',
+        'codex.equipped.tractorFullStrengthRange',
+        'codex.equipped.tractorForce',
+        'codex.equipped.tractorAngle',
+        'codex.equipped.tractorTetherBreak',
+        'codex.equipped.powerDraw',
+      ]);
+      expect(rows.length).toBe(MAX_STATS_PER_SLOT);
+    });
+
+    it('reads every number verbatim from the flat tractorBeam.* block', () => {
+      const rows = tractorBeamStats(SUREGRIP_S1);
+      const byKey = new Map(rows.map((r) => [r.labelKey, r]));
+      expect(byKey.get('codex.equipped.tractorRange')?.value).toBe(150);
+      expect(byKey.get('codex.equipped.tractorFullStrengthRange')?.value).toBe(75);
+      expect(byKey.get('codex.equipped.tractorForce')?.value).toBe(500000);
+      expect(byKey.get('codex.equipped.tractorAngle')?.value).toBe(60);
+      expect(byKey.get('codex.equipped.tractorTetherBreak')?.value).toBe(1.5);
+      expect(byKey.get('codex.equipped.tractorSpeed')?.value).toBe(10);
+      // nothing here is computed — no derived marker anywhere
+      expect(rows.some((r) => r.derived)).toBe(false);
+    });
+
+    it('renders the reach in metres and the pull in kilonewtons', () => {
+      const rows = tractorBeamStats(SUREGRIP_S1);
+      const text = Object.fromEntries(rows.map((r) => [r.labelKey, formatEquippedStat(r)]));
+      expect(text['codex.equipped.tractorRange']).toBe('150 m');
+      expect(text['codex.equipped.tractorFullStrengthRange']).toBe('75 m');
+      expect(text['codex.equipped.tractorForce']).toBe('500 kN');
+      expect(text['codex.equipped.tractorAngle']).toBe('60°');
+      expect(text['codex.equipped.tractorSpeed']).toBe('10 m/s');
+    });
+
+    it('never invents a mass — the pull carries the force-not-mass hint instead', () => {
+      const rows = tractorBeamStats(SUREGRIP_S1);
+      expect(rows.some((r) => /mass/i.test(r.labelKey))).toBe(false);
+      expect(rows.find((r) => r.labelKey === 'codex.equipped.tractorForce')?.hintKey).toBe(
+        'codex.equipped.tractorForceHint',
+      );
+      expect(rows.filter((r) => r.hintKey).length).toBe(1);
+    });
+
+    it('shows no gun rows for a beam even when an ammo payload is handed in', () => {
+      const rows = equippedStats(
+        { kind: 'weapon', payload: SUREGRIP_S1, ammoPayload: PANTHER_AMMO },
+        Infinity,
+      );
+      const keys = rows.map((r) => r.labelKey);
+      expect(keys).not.toContain('codex.equipped.alphaDamage');
+      expect(keys).not.toContain('codex.equipped.range');
+      expect(keys).not.toContain('codex.equipped.projectileSpeed');
+      expect(keys).toContain('codex.equipped.tractorSpeed');
+      expect(keys).toContain('codex.equipped.minPower');
+    });
+
+    it('on a pre-schema-5 build keeps the power rows and asks for a re-extract', () => {
+      const item = { kind: 'weapon', payload: SUREGRIP_S1_PRE_SCHEMA_5 };
+      expect(equippedStats(item).map((r) => r.labelKey)).toEqual([
+        'codex.equipped.powerDraw',
+        'codex.equipped.minPower',
+      ]);
+      expect(equippedStatsNoteKey(item)).toBe('codex.equipped.tractorNoStats');
+      // …and the row is NOT bare, so the gun-style noStats note must not fire too
+      expect(weaponStatsUnavailable(item)).toBe(false);
+    });
+
+    it('drops the note the moment the numbers arrive', () => {
+      expect(equippedStatsNoteKey({ kind: 'weapon', payload: SUREGRIP_S1 })).toBeNull();
+    });
+
+    it('identifies beams by attach type, and S3 heads by name — never a mount', () => {
+      const beam = (attachType: string, className: string) => ({
+        entityKind: 'weapon',
+        attachType,
+        className,
+      });
+      expect(isTractorBeamWeapon(SUREGRIP_S1)).toBe(true);
+      expect(isTractorBeamWeapon(beam('TowingBeam', 'ARGO_TowingBeam_S3'))).toBe(true);
+      expect(isTractorBeamWeapon(beam('SalvageHead', 'GRIN_TractorBeam_S3'))).toBe(true);
+      // the remote turret CARRYING a beam is a mount, not the beam
+      expect(
+        isTractorBeamWeapon(beam('Turret', 'DRAK_Ironclad_Remote_Turret_Tractor_Beam')),
+      ).toBe(false);
+      expect(isTractorBeamWeapon(beam('SalvageHead', 'SALV_Head_S3'))).toBe(false);
+      expect(isTractorBeamWeapon(PANTHER_WEAPON)).toBe(false);
+      expect(isTractorBeamWeapon(null)).toBe(false);
+      // a gun never gets the beam note, whatever its params say
+      expect(equippedStatsNoteKey({ kind: 'weapon', payload: PANTHER_WEAPON })).toBeNull();
+    });
+
+    it('only counts numeric tractorBeam.* keys as "has params"', () => {
+      expect(hasTractorBeamParams(SUREGRIP_S1)).toBe(true);
+      expect(hasTractorBeamParams(SUREGRIP_S1_PRE_SCHEMA_5)).toBe(false);
+      expect(hasTractorBeamParams({ weaponParams: { 'tractorBeam.maxForce': null } })).toBe(false);
+      expect(hasTractorBeamParams({ weaponParams: { 'tractorBeam.maxForce': 'n/a' } })).toBe(false);
+      expect(hasTractorBeamParams({})).toBe(false);
+    });
+
+    it('omits any single number the extract does not carry, never a zero', () => {
+      const partial = {
+        ...SUREGRIP_S1,
+        weaponParams: { 'tractorBeam.maxDistance': 150, 'tractorBeam.maxForce': 0 },
+      };
+      const keys = tractorBeamStats(partial).map((r) => r.labelKey);
+      expect(keys).toEqual(['codex.equipped.tractorRange']);
+    });
+  });
+
   describe('equippedStats — components', () => {
     it('gives a shield HP, regen and its delays — and no DPS', () => {
       const rows = equippedStats({ kind: 'component', payload: SHIELD });
@@ -484,6 +649,7 @@ describe('codex-equipped-stats', () => {
       expect(fmt('mps', 1480)).toBe('1,480 m/s');
       expect(fmt('scu', 1.6)).toBe('1.6 SCU');
       expect(fmt('percent', 0.25)).toBe('25 %');
+      expect(fmt('degrees', 60)).toBe('60°');
     });
 
     it('scales large engine units into readable ones', () => {
