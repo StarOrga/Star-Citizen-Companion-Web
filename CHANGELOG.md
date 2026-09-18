@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--min-age-min` bleibt (Default 0), der Task-Prompt schickt alle
   Archiv-Aufrufe in einem Batch (eine Karte pro Lauf), Skill, Snapshot und
   Deep-Knowledge beschreiben das Muster; beide Probe-Tasks gelöscht.
+- **Vercel-Build seit #626 rot:** `docs/routine/RESTORE.md` nannte die SSH-Clone-URL
+  (`git@github.com:…`), die der E-Mail-Guard im Prebuild als Adresse wertet —
+  jetzt die HTTPS-URL.
 
 ## [0.86.17] - 2026-09-18
 
