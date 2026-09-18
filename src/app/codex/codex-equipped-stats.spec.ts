@@ -2,6 +2,7 @@ import {
   alphaDamage,
   ammoClassNameFor,
   ammoClassNamesFor,
+  explicitAmmoClassName,
   commonPortLabel,
   damageChannelsOf,
   damagePerSecond,
@@ -136,9 +137,9 @@ const NOMAD_MISSILE_RACK = {
 };
 
 /**
- * CNOU_Nomad_CML_Flare — the Nomad's decoy launcher. Every number on it is zero
- * or null and `ammoContainerRecord` is unresolved, which is true for all 188
- * countermeasure launchers in 4.9.0.
+ * CNOU_Nomad_CML_Flare — the Nomad's decoy launcher as a build BELOW extractor
+ * schema 6 carries it: every number zero or null, `ammoContainerRecord` null
+ * (true for all 188 countermeasure launchers) and no explicit round.
  */
 const NOMAD_CML_FLARE = {
   entityKind: 'weapon',
@@ -148,6 +149,21 @@ const NOMAD_CML_FLARE = {
   size: 1,
   itemPorts: [],
   weaponParams: { fireRate: 0, heatPerShot: 0, ammoContainerRecord: null },
+};
+
+/**
+ * The same launcher at extractor schema 6 (feedback #237): the extractor read
+ * the launcher's own `SAmmoContainerComponentParams` — `ammoParamsRecord` →
+ * `AmmoParams.BEHR_Flare`, `maxAmmoCount` 48 — verified against LIVE 4.10.
+ */
+const NOMAD_CML_FLARE_V6 = {
+  ...NOMAD_CML_FLARE,
+  weaponParams: {
+    ...NOMAD_CML_FLARE.weaponParams,
+    ammoClassName: 'BEHR_Flare',
+    ammoGuid: '86b74da3-efe3-9621-f43b-f59403434aac',
+    ammoCapacity: 48,
+  },
 };
 
 /** BEHR_Flare — a decoy ROUND, where the signature values actually live. */
@@ -289,6 +305,36 @@ describe('codex-equipped-stats', () => {
     });
     it('de-duplicates a batch', () => {
       expect(ammoClassNamesFor(['A', 'A', null, 'B'])).toEqual(['A_AMMO', 'B_AMMO']);
+    });
+
+    // ── schema 6 (feedback #237): the extractor names the round ────────────
+    it('prefers the explicit link the schema-6 payload carries', () => {
+      // The Nomad's decoy launcher fires BEHR_Flare — a name the convention
+      // (`CNOU_Nomad_CML_Flare_AMMO`) can never produce.
+      expect(ammoClassNameFor('CNOU_Nomad_CML_Flare', NOMAD_CML_FLARE_V6)).toBe('BEHR_Flare');
+      expect(explicitAmmoClassName(NOMAD_CML_FLARE_V6)).toBe('BEHR_Flare');
+    });
+    it('falls back to the convention when the payload carries no link', () => {
+      expect(ammoClassNameFor('CNOU_Nomad_CML_Flare', NOMAD_CML_FLARE)).toBe(
+        'CNOU_Nomad_CML_Flare_AMMO',
+      );
+      expect(explicitAmmoClassName(NOMAD_CML_FLARE)).toBeNull();
+      expect(explicitAmmoClassName(undefined)).toBeNull();
+      expect(explicitAmmoClassName({ weaponParams: { ammoClassName: '  ' } })).toBeNull();
+      expect(explicitAmmoClassName({ weaponParams: { ammoClassName: 42 } })).toBeNull();
+    });
+    it('batches the explicit names through the payload lookup, de-duplicated', () => {
+      const payloads = new Map<string, unknown>([
+        ['CNOU_Nomad_CML_Flare', NOMAD_CML_FLARE_V6],
+        ['AEGS_CML_Decoy_Small', NOMAD_CML_FLARE_V6], // same round, listed once
+        ['KLWE_LaserRepeater_S3', PANTHER_WEAPON], // no link → convention
+      ]);
+      expect(
+        ammoClassNamesFor(
+          ['CNOU_Nomad_CML_Flare', 'AEGS_CML_Decoy_Small', 'KLWE_LaserRepeater_S3', null],
+          (cn) => payloads.get(cn),
+        ),
+      ).toEqual(['BEHR_Flare', 'KLWE_LaserRepeater_S3_AMMO']);
     });
   });
 
@@ -843,11 +889,33 @@ describe('codex-equipped-stats', () => {
     });
 
     it('emits nothing rather than zeros when the round is unknown', () => {
-      // The reality on every 4.9.0 hull: `ammoContainerRecord` is null on all
-      // 188 countermeasure launchers and no `<launcher>_AMMO` record exists, so
-      // the row stays silent instead of printing invented numbers.
+      // A build below extractor schema 6: `ammoContainerRecord` is null on all
+      // 188 countermeasure launchers, no explicit link, no `<launcher>_AMMO`
+      // record — the row stays silent instead of printing invented numbers.
       expect(countermeasureStats(undefined)).toEqual([]);
       expect(equippedStats({ kind: 'weapon', payload: NOMAD_CML_FLARE })).toEqual([]);
+    });
+
+    it('leads with the rounds carried once the schema-6 launcher names them', () => {
+      // The other half of "wie viele brauche ich": 48 flares in the Nomad's
+      // launcher, then the per-round signature values.
+      const rows = equippedStats({
+        kind: 'weapon',
+        payload: NOMAD_CML_FLARE_V6,
+        ammoPayload: BEHR_FLARE_AMMO,
+      });
+      expect(rows.map((s) => [s.labelKey, formatEquippedStat(s)])).toEqual([
+        ['codex.equipped.cmCapacity', '48'],
+        ['codex.equipped.cmInfrared', '20,000'],
+        ['codex.equipped.cmElectromagnetic', '20,000'],
+        ['codex.equipped.cmCrossSection', '6,500'],
+        ['codex.equipped.cmLifetime', '8 s'],
+      ]);
+      // A launcher that names its round but has no round payload yet (the
+      // ammo fetch failed) still reports what it carries — and nothing else.
+      expect(
+        countermeasureStats(undefined, NOMAD_CML_FLARE_V6).map((s) => s.labelKey),
+      ).toEqual(['codex.equipped.cmCapacity']);
     });
 
     it('never borrows another manufacturer\'s round for a launcher', () => {
@@ -860,6 +928,28 @@ describe('codex-equipped-stats', () => {
         ammoPayload: BEHR_FLARE_AMMO,
       });
       expect(linked.some((s) => s.labelKey === 'codex.equipped.cmInfrared')).toBe(true);
+    });
+  });
+
+  // ── schema 6 side effect: a salvage head's placeholder round ───────────────
+  describe('equippedStats — salvage head', () => {
+    it('ignores the rifle round the DataCore links to a salvage head', () => {
+      // LIVE 4.10: `Salvage_Head_standard` → `klwe_rifle_energy_01_ammo_laser`
+      // (21 energy) — an engine placeholder, not something the head shoots.
+      const head = {
+        entityKind: 'weapon',
+        className: 'Salvage_Head_standard',
+        attachType: 'SalvageHead',
+        subType: 'UNDEFINED',
+        weaponParams: { ammoClassName: 'klwe_rifle_energy_01_ammo_laser' },
+      };
+      const rifleRound = { className: 'klwe_rifle_energy_01_ammo_laser', speed: 1200, lifetime: 1, impactDamage: { energy: 21 } };
+      const keys = equippedStats({ kind: 'weapon', payload: head, ammoPayload: rifleRound }, Infinity).map(
+        (s) => s.labelKey,
+      );
+      expect(keys).not.toContain('codex.equipped.alphaDamage');
+      expect(keys).not.toContain('codex.equipped.projectileSpeed');
+      expect(keys).not.toContain('codex.equipped.range');
     });
   });
 

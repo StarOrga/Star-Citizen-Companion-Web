@@ -167,6 +167,7 @@ import {
   HydrationEpoch,
   acceptedClassNames,
   beginHydration,
+  extendHydration,
   changedCount as draftChangedCount,
   decodeDraftParam,
   deleteDraftPaths,
@@ -817,13 +818,12 @@ interface GearRecipe {
           }
         }
 
-        <!-- ── Zelle & feste Systeme (+ Gegenmaßnahmen while this extract
-             carries no per-launcher values) — BELOW the paints block (feedback
-             #236: neither is a decision, and the countermeasure numbers a
-             pilot would size a loadout against are not in this extract yet;
-             see TAIL_SHIP_SECTIONS in ship-module-sections.ts). Same layout
-             component as the loadout card above, fed the tail sections
-             instead. -->
+        <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
+             the airframe is not a decision; see TAIL_SHIP_SECTIONS in
+             ship-module-sections.ts — the countermeasures moved back up into
+             the loadout card with #237, now that their rounds carry values).
+             Same layout component as the loadout card above, fed the tail
+             sections instead. -->
         @if (tailModuleSections().length > 0) {
           <section class="sc-card block col-loadout col-loadout-tail">
             <h2 class="col-head">
@@ -2030,10 +2030,12 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /**
-   * Resolve the projectile ("ammo") payloads for the guns in a stock loadout.
-   * The extract leaves every weapon's ammoContainerRecord null, so the only
-   * link is the `<weaponClass>_AMMO` name convention — one batched query, and
-   * whatever does not exist simply yields no projectile stats.
+   * Resolve the projectile ("ammo") payloads for the weapons in a stock
+   * loadout. Since extractor schema 6 each weapon payload names its round
+   * (`weaponParams.ammoClassName` — the link that gives a countermeasure
+   * launcher its decoy's values, feedback #237); older builds fall back to
+   * the `<weaponClass>_AMMO` name convention. One batched query, and whatever
+   * does not exist simply yields no projectile stats.
    */
   private async resolveLoadoutAmmo(
     payloads: Map<string, { kind: CodexKind; payload: unknown }>,
@@ -2041,7 +2043,7 @@ export class CodexDetailComponent implements OnInit {
     const weaponClasses = [...payloads.entries()]
       .filter(([, v]) => (v.payload as { entityKind?: string } | null)?.entityKind === 'weapon')
       .map(([className]) => className);
-    const ammoNames = ammoClassNamesFor(weaponClasses);
+    const ammoNames = ammoClassNamesFor(weaponClasses, (cn) => payloads.get(cn)?.payload);
     if (ammoNames.length === 0) return;
     try {
       this.ammoPayloads.set(await this.svc.getAmmoPayloads(ammoNames));
@@ -2478,17 +2480,24 @@ export class CodexDetailComponent implements OnInit {
     return null;
   }
 
-  /** Async stat hydration for a draft-swapped class, epoch-guarded (R6/Falle 2). */
+  /**
+   * Async stat hydration for a draft-swapped class, epoch-guarded (R6/Falle 2).
+   * The round is fetched AFTER the entity payload, because the payload is
+   * what names it (`weaponParams.ammoClassName`, schema 6) — a swapped-in
+   * launcher must show ITS round's values, not a name-convention guess.
+   */
   private async hydrateDraftClass(className: string): Promise<void> {
     this.pendingClasses.update((s) => new Set(s).add(className));
-    const ammoNames = ammoClassNamesFor([className]);
-    const epoch = beginHydration(this.hydrationEpoch, [className, ...ammoNames]);
+    const epoch = beginHydration(this.hydrationEpoch, [className]);
     try {
-      const [payloads, resolved, ammo] = await Promise.all([
+      const [payloads, resolved] = await Promise.all([
         this.svc.getEntityPayloads([className]),
         this.svc.resolveEntities([className]),
-        ammoNames.length > 0 ? this.svc.getAmmoPayloads(ammoNames) : Promise.resolve(new Map<string, unknown>()),
       ]);
+      const ammoNames = ammoClassNamesFor([className], (cn) => payloads.get(cn)?.payload);
+      extendHydration(this.hydrationEpoch, ammoNames, epoch);
+      const ammo =
+        ammoNames.length > 0 ? await this.svc.getAmmoPayloads(ammoNames) : new Map<string, unknown>();
       const okMain = acceptedClassNames(this.hydrationEpoch, [className], epoch);
       const okAmmo = acceptedClassNames(this.hydrationEpoch, ammoNames, epoch);
       if (okMain.length > 0) {
@@ -2798,7 +2807,7 @@ export class CodexDetailComponent implements OnInit {
         kind: hit?.kind ?? l.kind,
         payload,
         occupant,
-        ammoPayload: l.className ? ammo.get(ammoClassNameFor(l.className) ?? '') : undefined,
+        ammoPayload: l.className ? ammo.get(ammoClassNameFor(l.className, payload) ?? '') : undefined,
         section: classifyShipModule(l.port, occupant) as ShipModuleSection,
       };
     });
@@ -3167,10 +3176,10 @@ export class CodexDetailComponent implements OnInit {
 
   /**
    * `moduleSections`, split into the two cards the ship page actually
-   * renders: the main loadout card (everything a pilot can act on) and a
-   * second, TAIL card below the paint/skin viewer for `structure` and — while
-   * this extract carries no per-launcher values — `countermeasures` (feedback
-   * #236, see `TAIL_SHIP_SECTIONS`).
+   * renders: the main loadout card (everything a pilot can act on, the
+   * countermeasures with their round's values included since schema 6 —
+   * feedback #237) and a second, TAIL card below the paint/skin viewer for
+   * `structure` (feedback #236, see `TAIL_SHIP_SECTIONS`).
    */
   readonly primaryModuleSections = computed(() =>
     this.moduleSections().filter((s) => !TAIL_SHIP_SECTIONS.has(s.section)),
@@ -3378,7 +3387,9 @@ export class CodexDetailComponent implements OnInit {
       item: {
         kind: payloadHit?.kind ?? null,
         payload: payloadHit?.payload ?? null,
-        ammoPayload: this.draftAmmoPayloads().get(ammoClassNameFor(draftValue) ?? ''),
+        ammoPayload: this.draftAmmoPayloads().get(
+          ammoClassNameFor(draftValue, payloadHit?.payload) ?? '',
+        ),
       },
     };
   }
@@ -3415,7 +3426,7 @@ export class CodexDetailComponent implements OnInit {
       const item = {
         kind: payloadHit?.kind ?? hit?.kind ?? null,
         payload: payloadHit?.payload ?? null,
-        ammoPayload: ammo.get(ammoClassNameFor(slot.className) ?? ''),
+        ammoPayload: ammo.get(ammoClassNameFor(slot.className, payloadHit?.payload) ?? ''),
       };
       return {
         ...slot,
@@ -3449,7 +3460,7 @@ export class CodexDetailComponent implements OnInit {
         section,
         kind: hit.kind,
         payload: hit.payload,
-        ammoPayload: ammo.get(ammoClassNameFor(className) ?? ''),
+        ammoPayload: ammo.get(ammoClassNameFor(className, hit.payload) ?? ''),
         count: 1,
       });
     }
@@ -3670,7 +3681,9 @@ export class CodexDetailComponent implements OnInit {
     if (!source.className) return;
     const hit = this.loadoutPayloads().get(source.className);
     const resolvedKind = hit?.kind ?? source.kind;
-    const ammoPayload = this.ammoPayloads().get(ammoClassNameFor(source.className) ?? '');
+    const ammoPayload = this.ammoPayloads().get(
+      ammoClassNameFor(source.className, hit?.payload) ?? '',
+    );
     if (resolvedKind === 'weapon') {
       this.weaponDetail.set({
         className: source.className,

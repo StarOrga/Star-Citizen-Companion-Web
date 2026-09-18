@@ -728,7 +728,12 @@ export class CodexSwapPickerComponent {
       for (const extra of seedNames) if (!names.includes(extra)) names.push(extra);
 
       const payloads = await this.hydrate(names, (n) => this.svc.getEntityPayloads(n));
-      const ammo = await this.hydrate(ammoClassNamesFor(names), (n) => this.svc.getAmmoPayloads(n));
+      // The payload names the round (schema 6), so a launcher candidate lists
+      // ITS decoy's values — the convention only fills in for older builds.
+      const ammo = await this.hydrate(
+        ammoClassNamesFor(names, (cn) => payloads.get(cn)?.payload),
+        (n) => this.svc.getAmmoPayloads(n),
+      );
 
       const rows = items.map((it) =>
         this.toCandidate(it, payloads, ammo, it.classNameSlug === installedName),
@@ -780,7 +785,7 @@ export class CodexSwapPickerComponent {
       grade: it.grade,
       subType: it.subType,
       payload: hit?.payload ?? null,
-      ammoPayload: ammo.get(ammoClassNameFor(it.classNameSlug) ?? ''),
+      ammoPayload: ammo.get(ammoClassNameFor(it.classNameSlug, hit?.payload) ?? ''),
       equipped,
     });
   }

@@ -307,8 +307,12 @@ export function resolveResourceState(payload: unknown): string | null {
  * where the radar, life-support, tractor and flight-controller draws live.
  * Schema 5 (feedback #233): tractor beams carry their reach and pull
  * (`weaponParams.tractorBeam.*`).
+ * Schema 6 (feedback #237): every weapon links to the round it fires
+ * (`weaponParams.ammoClassName` / `ammoGuid` / `ammoCapacity`) — the link a
+ * countermeasure launcher needs before its hardpoint can show the decoy's
+ * signature values and the rounds carried.
  */
-export const EXPECTED_SCHEMA_VERSION = 5;
+export const EXPECTED_SCHEMA_VERSION = 6;
 
 // ── tractor beams (extractor schema 5, feedback #233) ────────────────────────
 // A tractor / towing beam is a weapon whose only fire action is CIG's

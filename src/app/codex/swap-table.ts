@@ -13,7 +13,9 @@
 // (re-verified against the live catalog on 2026-07-27, build b77f1586, over all
 // 97 size-3 ship weapons):
 //   * fireRate is 0 on every row  → no RATE column, and therefore no DPS
-//   * ammoContainerRecord is null → no magazine / AMMO column
+//   * ammoContainerRecord is null → no magazine / AMMO column (schema 6 now
+//     carries `weaponParams.ammoCapacity` for ballistic guns; no column reads
+//     it yet)
 //   * no spread, no power draw, no EM signature, no per-weapon health
 // so a gun table shows ALPHA / PEN / RANGE / SPEED and honestly omits the rest,
 // and each of those columns starts working by itself the day the extract grows

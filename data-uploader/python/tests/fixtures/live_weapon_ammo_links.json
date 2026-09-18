@@ -1,0 +1,574 @@
+{
+ "_source": "LIVE 4.10 Data/Game2.dcb, probed 2026-09-18 (feedback #237); structs trimmed to what _weapon_ammo_link reads",
+ "weapons": {
+  "CNOU_Nomad_CML_Flare": {
+   "guid": "2d6e4c92-a868-57fe-0391-1e26dc21a890",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 48,
+     "maxAmmoCount": 48,
+     "ammoParamsRecord": {
+      "_RecordId_": "86b74da3-efe3-9621-f43b-f59403434aac",
+      "_RecordName_": "AmmoParams.BEHR_Flare",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.behr_flare.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "BEHR_Flare",
+    "ammoGuid": "86b74da3-efe3-9621-f43b-f59403434aac",
+    "ammoCapacity": 48
+   }
+  },
+  "CNOU_Nomad_CML_Chaff": {
+   "guid": "bfca4121-60a8-9ea4-16b5-08287f946c86",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 5,
+     "maxAmmoCount": 5,
+     "ammoParamsRecord": {
+      "_RecordId_": "1bee4ef0-5492-fba1-a90e-503c5e81fd8e",
+      "_RecordName_": "AmmoParams.TALN_Chaff",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.taln_chaff.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "TALN_Chaff",
+    "ammoGuid": "1bee4ef0-5492-fba1-a90e-503c5e81fd8e",
+    "ammoCapacity": 5
+   }
+  },
+  "AEGS_CML_Decoy_Small": {
+   "guid": "93764967-828e-27b8-1df1-1784bf8194ab",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 48,
+     "maxAmmoCount": 48,
+     "ammoParamsRecord": {
+      "_RecordId_": "86b74da3-efe3-9621-f43b-f59403434aac",
+      "_RecordName_": "AmmoParams.BEHR_Flare",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.behr_flare.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "BEHR_Flare",
+    "ammoGuid": "86b74da3-efe3-9621-f43b-f59403434aac",
+    "ammoCapacity": 48
+   }
+  },
+  "AEGS_Javelin_CML_Decoy": {
+   "guid": "e1bd4c25-055e-8bc0-d86e-40d94634a192",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 92,
+     "maxAmmoCount": 92,
+     "ammoParamsRecord": {
+      "_RecordId_": "59044d4a-9a87-7b54-2d72-43a0ea34c1a6",
+      "_RecordName_": "AmmoParams.JOKR_Flare",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.jokr_flare.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "JOKR_Flare",
+    "ammoGuid": "59044d4a-9a87-7b54-2d72-43a0ea34c1a6",
+    "ammoCapacity": 92
+   }
+  },
+  "MISC_Starlancer_CML_Chaff": {
+   "guid": "ae864d81-3126-a6e5-e24a-3bacd1a335ba",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 60,
+     "maxAmmoCount": 60,
+     "ammoParamsRecord": {
+      "_RecordId_": "425c4722-df64-6c4f-fb8c-6eb0eddf86b2",
+      "_RecordName_": "AmmoParams.JOKR_Chaff",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.jokr_chaff.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "JOKR_Chaff",
+    "ammoGuid": "425c4722-df64-6c4f-fb8c-6eb0eddf86b2",
+    "ammoCapacity": 60
+   }
+  },
+  "RSI_Perseus_BallisticCannon_B_S8": {
+   "guid": "af6d40fc-7d27-1741-3c31-abb76dab97af",
+   "components": [
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 900,
+     "maxAmmoCount": 900,
+     "ammoParamsRecord": {
+      "_RecordId_": "e55849bf-8184-fb85-fa45-b86df070939a",
+      "_RecordName_": "AmmoParams.RSI_Perseus_BallisticCannon_S8_AMMO",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/rsi_perseus_ballisticcannon_s8_ammo.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponGun",
+      "SubType": "Gun",
+      "Size": 8
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {
+    "ammoClassName": "RSI_Perseus_BallisticCannon_S8_AMMO",
+    "ammoGuid": "e55849bf-8184-fb85-fa45-b86df070939a",
+    "ammoCapacity": 900
+   }
+  },
+  "KLWE_LaserRepeater_S3": {
+   "guid": "12614b71-235d-bd13-26b5-bea8d1ae2fb3",
+   "components": [
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 0,
+     "maxAmmoCount": 0,
+     "ammoParamsRecord": {
+      "_RecordId_": "bfd24a4d-987a-4573-70fd-0e3e617a7ab9",
+      "_RecordName_": "AmmoParams.KLWE_LaserRepeater_S3_AMMO",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.klwe_laserrepeater_s3_ammo.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponGun",
+      "SubType": "Gun",
+      "Size": 3
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {
+    "ammoClassName": "KLWE_LaserRepeater_S3_AMMO",
+    "ammoGuid": "bfd24a4d-987a-4573-70fd-0e3e617a7ab9"
+   }
+  },
+  "RPOD_S1_FSKI_3x_S3": {
+   "guid": "eec344ec-0757-4d3e-ac80-6cfaaa5e03b6",
+   "components": [
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 6,
+     "maxAmmoCount": 6,
+     "ammoParamsRecord": {
+      "_RecordId_": "8a2d41e5-7a9c-3105-4135-4fe3511630a1",
+      "_RecordName_": "AmmoParams.apar_special_ballistic_02_ammo_rockets",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/apar_special_ballistic_02_ammo_rockets.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponGun",
+      "SubType": "Rocket",
+      "Size": 1
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {
+    "ammoClassName": "apar_special_ballistic_02_ammo_rockets",
+    "ammoGuid": "8a2d41e5-7a9c-3105-4135-4fe3511630a1",
+    "ammoCapacity": 6
+   }
+  },
+  "behr_rifle_ballistic_01": {
+   "guid": "fa984086-cd2e-02d4-27ea-e8fc2d6be1ae",
+   "components": [
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponPersonal",
+      "SubType": "Medium",
+      "Size": 2
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": {
+      "_RecordId_": "22de4c73-45fb-1f88-0868-061b1dede6b6",
+      "_RecordName_": "EntityClassDefinition.behr_rifle_ballistic_01_mag",
+      "_RecordPath_": "libs/foundry/records/entities/scitem/weapons/magazines/behr_rifle_ballistic_01_mag.xml"
+     },
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {
+    "ammoClassName": "behr_rifle_ballistic_01_ammo_5mm",
+    "ammoGuid": "19cc454e-57c9-4532-e030-7f1ab03cb28c",
+    "ammoCapacity": 40
+   }
+  },
+  "Mining_Laser_GRIN_Arbor_S1": {
+   "guid": "6c674bec-261a-8bfc-c96e-087e4071b5b5",
+   "components": [
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponMining",
+      "SubType": "Gun",
+      "Size": 1
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {}
+  },
+  "GRIN_TractorBeam_S1": {
+   "guid": "41bc4245-a503-34f8-1194-a3c824e8eaba",
+   "components": [
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 0,
+     "maxAmmoCount": 0,
+     "ammoParamsRecord": {
+      "_RecordId_": "ee414b73-2537-d1bf-3302-5901b9bddda8",
+      "_RecordName_": "AmmoParams.VehicleBullets",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.vehiclebullets.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "TractorBeam",
+      "SubType": "UNDEFINED",
+      "Size": 1
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {
+    "ammoClassName": "VehicleBullets",
+    "ammoGuid": "ee414b73-2537-d1bf-3302-5901b9bddda8"
+   }
+  },
+  "Salvage_Head_standard": {
+   "guid": "83b94b08-bcb1-f8aa-4dcd-8270c7ac4688",
+   "components": [
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "SalvageHead",
+      "SubType": "UNDEFINED",
+      "Size": 2
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 0,
+     "maxAmmoCount": 2147483647,
+     "ammoParamsRecord": {
+      "_RecordId_": "edd844ce-19ed-ee8f-ced5-10fd3a74a1ba",
+      "_RecordName_": "AmmoParams.klwe_rifle_energy_01_ammo_laser",
+      "_RecordPath_": "libs/foundry/records/ammoparams/fps/klwe_rifle_energy_01_ammo_laser.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Salvage"
+    }
+   ],
+   "expected": {
+    "ammoClassName": "klwe_rifle_energy_01_ammo_laser",
+    "ammoGuid": "edd844ce-19ed-ee8f-ced5-10fd3a74a1ba"
+   }
+  },
+  "BEHR_JavelinBallisticCannon_S7_LowPoly": {
+   "guid": "ece44c43-a49e-e2ca-1088-ac296f781485",
+   "components": [
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 276,
+     "maxAmmoCount": 276,
+     "ammoParamsRecord": null,
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponGun",
+      "SubType": "Gun",
+      "Size": 7
+     }
+    },
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    }
+   ],
+   "expected": {}
+  },
+  "RSI_Polaris_CML_Noise": {
+   "guid": "baf04a14-ae93-2af8-c08d-9934d7218586",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 15,
+     "maxAmmoCount": 15,
+     "ammoParamsRecord": {
+      "_RecordId_": "425c4722-df64-6c4f-fb8c-6eb0eddf86b2",
+      "_RecordName_": "AmmoParams.JOKR_Chaff",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.jokr_chaff.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "JOKR_Chaff",
+    "ammoGuid": "425c4722-df64-6c4f-fb8c-6eb0eddf86b2",
+    "ammoCapacity": 15
+   }
+  },
+  "AEGS_Tiburon_CML_Flare": {
+   "guid": "6d4e4300-bc2d-2caf-8991-6900f9044a92",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 25,
+     "maxAmmoCount": 25,
+     "ammoParamsRecord": {
+      "_RecordId_": "59044d4a-9a87-7b54-2d72-43a0ea34c1a6",
+      "_RecordName_": "AmmoParams.JOKR_Flare",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/ammoparams.jokr_flare.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "JOKR_Flare",
+    "ammoGuid": "59044d4a-9a87-7b54-2d72-43a0ea34c1a6",
+    "ammoCapacity": 25
+   }
+  },
+  "TMBL_Nova_CML_Noise_Small": {
+   "guid": "de324532-03f1-5b2b-b01a-68f66381a7a7",
+   "components": [
+    {
+     "_Type_": "SCItemWeaponComponentParams",
+     "ammoContainerRecord": null,
+     "ShouldIgnorePrimaryAmmoContainer": false
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 5,
+     "maxAmmoCount": 5,
+     "ammoParamsRecord": {
+      "_RecordId_": "3c5f4863-a980-9728-d754-e9c0af842ca6",
+      "_RecordName_": "AmmoParams.NOVA_Chaff",
+      "_RecordPath_": "libs/foundry/records/ammoparams/vehicle/nova_chaff.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    },
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponDefensive",
+      "SubType": "CountermeasureLauncher",
+      "Size": 1
+     }
+    }
+   ],
+   "expected": {
+    "ammoClassName": "NOVA_Chaff",
+    "ammoGuid": "3c5f4863-a980-9728-d754-e9c0af842ca6",
+    "ammoCapacity": 5
+   }
+  }
+ },
+ "magazines": {
+  "22de4c73-45fb-1f88-0868-061b1dede6b6": {
+   "name": "EntityClassDefinition.behr_rifle_ballistic_01_mag",
+   "components": [
+    {
+     "_Type_": "SAttachableComponentParams",
+     "AttachDef": {
+      "_Type_": "SItemDefinition",
+      "Type": "WeaponAttachment",
+      "SubType": "Magazine",
+      "Size": 1
+     }
+    },
+    {
+     "_Type_": "SAmmoContainerComponentParams",
+     "initialAmmoCount": 40,
+     "maxAmmoCount": 40,
+     "ammoParamsRecord": {
+      "_RecordId_": "19cc454e-57c9-4532-e030-7f1ab03cb28c",
+      "_RecordName_": "AmmoParams.behr_rifle_ballistic_01_ammo_5mm",
+      "_RecordPath_": "libs/foundry/records/ammoparams/fps/behr_rifle_ballistic_01_ammo_5mm.xml"
+     },
+     "secondaryAmmoParamsRecord": null,
+     "ammoContainerType": "Primary"
+    }
+   ]
+  }
+ }
+}

@@ -147,6 +147,21 @@ export function beginHydration(state: HydrationEpoch, classNames: readonly strin
 }
 
 /**
+ * Tag MORE classes with an already-running request's epoch — for the names a
+ * request only learns mid-flight (the round a weapon payload names in
+ * `weaponParams.ammoClassName`, schema 6). Same guarantee as `beginHydration`:
+ * a later request for the same class moves it on, and this one's late answer
+ * for it is then dropped.
+ */
+export function extendHydration(
+  state: HydrationEpoch,
+  classNames: readonly string[],
+  epoch: number,
+): void {
+  for (const c of classNames) state.latest.set(c, epoch);
+}
+
+/**
  * Of the classes a request resolved, only the ones still at THIS epoch are
  * safe to merge in — a class re-requested by a later swap has moved on, and a
  * response for the OLD request must not overwrite whatever the later one

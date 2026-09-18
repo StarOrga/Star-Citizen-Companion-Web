@@ -223,9 +223,8 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
   it('renders three column heads (Loadout / Analyse / Zelle & feste Systeme)', () => {
     const el: HTMLElement = fixture.nativeElement;
     // Loadout + Analyse sit in the m-cols split; a third head belongs to the
-    // tail card that carries the airframe (and countermeasures while this
-    // extract carries no per-launcher values) below the paints block
-    // (feedback #236).
+    // tail card that carries the airframe below the paints block (feedback
+    // #236; the countermeasures moved back up with #237).
     const heads = el.querySelectorAll('.col-head');
     expect(heads.length).toBe(3);
   });
@@ -297,10 +296,9 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     // One chip per rendered block, the airframe excluded, each carrying the
     // very slot count the block's own "N Slots" heading prints.
     // moduleCount() now counts only the PRIMARY card's blocks (feedback
-    // #236 moved the airframe — and countermeasures, while it carries no
-    // values — into a tail card below the paints block); the airframe group
-    // stageCounts always excludes now lives in that tail count, so add it
-    // back in.
+    // #236 moved the airframe into a tail card below the paints block); the
+    // airframe group stageCounts always excludes now lives in that tail
+    // count, so add it back in.
     expect(chips.length).toBe(
       fixture.componentInstance.moduleCount() + fixture.componentInstance.tailModuleCount() - 1,
     );

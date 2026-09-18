@@ -1270,6 +1270,7 @@
       "armamentMissing": "{{count}} Waffenaufhängungen führen in diesem Extract keine Standardwaffe — das Spiel hinterlegt Standard-Bewaffnung in einem separaten Datensatz, den unser P4K-Extractor noch nicht auflöst.",
       "missileCount": "Raketen",
       "missileSize": "Raketengröße",
+      "cmCapacity": "Vorrat",
       "cmInfrared": "Infrarot-Signatur",
       "cmElectromagnetic": "EM-Signatur",
       "cmCrossSection": "Querschnitt",

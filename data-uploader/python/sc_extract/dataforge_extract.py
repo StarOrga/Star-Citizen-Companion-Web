@@ -223,6 +223,23 @@ def _attach_def(comps: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _ammo_params_ref(container: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """The ``AmmoParams`` Reference stub on an ``SAmmoContainerComponentParams``
+    struct — ``{_RecordId_, _RecordName_: "AmmoParams.<class>", …}`` — or
+    ``None`` when the container names no round. A container whose reference
+    resolved to something that is not an AmmoParams record is treated as no
+    link rather than a wrong one."""
+    if not isinstance(container, dict):
+        return None
+    ref = container.get("ammoParamsRecord")
+    if not isinstance(ref, dict):
+        return None
+    name = ref.get("_RecordName_")
+    if not isinstance(name, str) or not name.startswith("AmmoParams."):
+        return None
+    return ref
+
+
 # ── default loadout ───────────────────────────────────────────────────────────
 # A ship's stock fit lives in SEntityComponentDefaultLoadoutParams.loadout, an
 # SItemPortLoadout*Params whose `entries` are SItemPortLoadoutEntryParams. Each
@@ -1658,9 +1675,68 @@ class CodexExtractor:
                 out[out_key] = _to_float(mav.get(axis))
         return out
 
+    # ── weapon → ammunition link (schema 6, feedback #237) ────────────────────
+    # VERIFIED against the LIVE 4.10 Data/Game2.dcb (probe 2026-09-18, all
+    # 1 000+ catalog weapons): the round a weapon fires is NOT on
+    # `SCItemWeaponComponentParams.ammoContainerRecord` for ship weapons — that
+    # field is null on every ship gun and on all 188 countermeasure launchers.
+    # The link lives one component over, on the weapon entity's OWN
+    #
+    #   Components[_Type_ == "SAmmoContainerComponentParams"].ammoParamsRecord
+    #
+    # a cross-file Reference stub `{_RecordId_, _RecordName_: "AmmoParams.X",
+    # _RecordPath_}` straight to the `AmmoParams` record the ammunition/ dump is
+    # keyed by. Coverage on that probe: 188/188 countermeasure launchers
+    # (BEHR_Flare 77, TALN_Chaff 74, JOKR_Flare 18, JOKR_Chaff 17, NOVA_Chaff
+    # 2), 195/196 ship guns (50 of which are NOT `<class>_AMMO` — bespoke
+    # turrets, PDCs, rocket pods, LowPoly/Idris variants), every tractor /
+    # towing / salvage beam. FPS weapons instead point `ammoContainerRecord` at
+    # a separate magazine entity whose container carries the same field —
+    # resolved as the second hop below (381/386; the 5 misses are binoculars).
+    # Never resolved: mining lasers (no container at all) and the one gun whose
+    # container has no round (`BEHR_JavelinBallisticCannon_S7_LowPoly`).
+    #
+    # `maxAmmoCount` on the same struct is the launcher's magazine — the other
+    # half of "how many decoys do I need" (48 flares / 5 chaff on a Nomad).
+    # Energy weapons carry a literal 0 there, salvage heads the int32 max.
+    _AMMO_COUNT_SENTINEL = 2**31 - 1
+
+    def _weapon_ammo_link(self, comps: List[Dict[str, Any]],
+                          wcp: Dict[str, Any]) -> Dict[str, Any]:
+        """``ammoClassName`` / ``ammoGuid`` / ``ammoCapacity`` for a weapon, or
+        ``{}`` when the DataCore carries no round for it. Read only, never
+        guessed from a name or a sibling: an absent link stays absent."""
+        acc = _find_component(comps, "SAmmoContainerComponentParams")
+        ref = _ammo_params_ref(acc)
+        if ref is None:
+            # FPS weapons: the container is a separate magazine entity.
+            acr = wcp.get("ammoContainerRecord")
+            gid = acr.get("_RecordId_") if isinstance(acr, dict) else None
+            mag = self.df.record_by_id(gid) if gid else None
+            if mag is not None:
+                try:
+                    mag_comps = _components_of(self.df.record_to_dict(mag, max_depth=6))
+                except Exception as exc:  # noqa: BLE001 — best-effort, never abort a weapon
+                    self.on_log("warn", f"ammo container resolve failed for {gid}: {exc}")
+                    mag_comps = []
+                acc = _find_component(mag_comps, "SAmmoContainerComponentParams")
+                ref = _ammo_params_ref(acc)
+        if ref is None:
+            return {}
+        out: Dict[str, Any] = {
+            "ammoClassName": _strip_type_prefix(ref["_RecordName_"]),
+            "ammoGuid": ref.get("_RecordId_"),
+        }
+        cap = _to_int((acc or {}).get("maxAmmoCount"))
+        if cap is not None and 0 < cap < self._AMMO_COUNT_SENTINEL:
+            out["ammoCapacity"] = cap
+        return out
+
     def _project_weapon(self, r, resolved, comps, attach, atype) -> Dict[str, Any]:
         base = self._base_entity(r, resolved, comps, attach)
         wcp = _find_component(comps, "SCItemWeaponComponentParams") or {}
+        weapon_params = self._weapon_params(wcp, resolved)
+        weapon_params.update(self._weapon_ammo_link(comps, wcp))
         base.update({
             "entityKind": "weapon",
             "weaponClass": "FPS" if atype in _FPS_WEAPON_TYPES else "Ship",
@@ -1671,7 +1747,7 @@ class CodexExtractor:
             "subType": attach.get("SubType") if attach else None,
             "size": _to_int(attach.get("Size")) if attach else None,
             "grade": _grade(attach.get("Grade")) if attach else None,
-            "weaponParams": self._weapon_params(wcp, resolved),
+            "weaponParams": weapon_params,
             "itemPorts": self._item_ports(comps),
         })
         # Weapons had no `stats` block at all: power draw, IR/EM signature,

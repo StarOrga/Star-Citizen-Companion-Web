@@ -1,6 +1,7 @@
 import {
   CONFIGURABLE_SHIP_SECTIONS,
   SHIP_MODULE_SECTION_ORDER,
+  TAIL_SHIP_SECTIONS,
   ShipModuleSection,
   classifyShipModule,
   groupByShipSection,
@@ -173,6 +174,15 @@ describe('SHIP_MODULE_SECTION_ORDER', () => {
     const order = [...SHIP_MODULE_SECTION_ORDER];
     expect(order.indexOf('countermeasures')).toBe(order.indexOf('lifeSupport') + 1);
     expect(order.indexOf('countermeasures')).toBe(order.indexOf('structure') - 1);
+  });
+
+  it('keeps only the airframe in the tail card below the paints', () => {
+    // Feedback #236 parked the countermeasures down there while no launcher
+    // had values; #237 (extractor schema 6) links every launcher to its round,
+    // so the block is back in the loadout card — "falls im Spiel irgendwo
+    // Werte dazu stehen, muss es da oben bleiben".
+    expect([...TAIL_SHIP_SECTIONS]).toEqual(['structure']);
+    expect(TAIL_SHIP_SECTIONS.has('countermeasures')).toBe(false);
   });
 
   it('marks the countermeasures and the airframe as non-configurable', () => {

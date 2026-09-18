@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.11] - 2026-09-18
+
+### Added
+
+- **Gegenmaßnahmen zeigen die Werte ihrer Munition — und stehen wieder oben
+  (Feedback #237).** Der Extract löst jetzt den Werfer → Munition-Link auf:
+  er lag nie in `ammoContainerRecord` (bei allen 188 Werfern leer), sondern
+  im `SAmmoContainerComponentParams`-Component des Werfers selbst
+  (`ammoParamsRecord` + `maxAmmoCount`). Das Payload trägt neu
+  `weaponParams.ammoClassName` / `ammoGuid` / `ammoCapacity`
+  (Schema-Version 6, Uploader 0.31.0); 188/188 Werfer, 195/196 Schiffsgeschütze
+  (50 davon ohne `<Klasse>_AMMO`-Konvention) und 390/395 FPS-Waffen sind
+  verknüpft. Die Schiffsseite bevorzugt den expliziten Link vor der
+  Namenskonvention, zeigt pro Werfer IR/EM/Querschnitt, Wolkenradius,
+  Standzeit und neu den Vorrat, und der Gegenmaßnahmen-Block steht wieder
+  über den Lackierungen. Werte erscheinen nach dem nächsten Upload mit
+  Uploader 0.31.0.
+
 ## [0.86.10] - 2026-09-18
 
 ### Fixed
