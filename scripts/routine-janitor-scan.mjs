@@ -24,7 +24,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const TASK_IDS = new Set(['nightly-admin-feedback', 'nightly-admin-feedback-day']);
+// The janitor's own scheduled runs are ticks too (one per firing) and are swept
+// by the next one; the current run is protected by the 3-minute "running" rule.
+export const TASK_IDS = new Set(['nightly-admin-feedback', 'nightly-admin-feedback-day', 'routine-janitor']);
 export const WORKING_MS = 180_000;
 export const RUNNING_MS = 3 * 60_000;
 export const IDLE_DELETE_MS = 60 * 60_000;
