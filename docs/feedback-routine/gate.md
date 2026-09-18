@@ -51,7 +51,10 @@ liveness. Before this, a run killed by an app quit (2026-09-17 19:41) held
 the lock for the full 3 h while two worktrees sat stranded. "Writing" means
 a real transcript record (user/assistant/system/progress); the app's
 untimestamped bookkeeping records (title, last prompt, mode) that land
-whenever a session is touched do not count (0.86.3). An interrupted run must
+whenever a session is touched do not count (0.86.3), nor does the synthetic
+"Continue from where you left off." / "No response requested." pair the
+app appends without a model turn when it finds a session after a restart
+(0.86.8). An interrupted run must
 resume on its own — prompt RESUME RULE, `reaper.md` "An interrupted run".
 
 **The devops workspace check is expected noise in a tick.** The orchestrator

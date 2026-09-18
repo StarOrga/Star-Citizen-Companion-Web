@@ -265,6 +265,13 @@ since 0.86.3 it judges a lock by the holder's last *real* transcript record
 (user/assistant/system/progress), because the app appends untimestamped
 bookkeeping records (title, last prompt, mode) whenever a session is merely
 touched, and those moved the file's mtime 17 minutes after the run had died.
+Since 0.86.8 it also ignores the app's synthetic resume pair — user
+"Continue from where you left off." (`isMeta`) + assistant "No response
+requested." (`model: "<synthetic>"`) — which the app appends without a
+model turn when it finds a session after a restart: on 2026-09-18 that pair
+landed at 15:36 in a run dead since 01:24 (PC off), read as "wrote 0 min
+ago", and held the lock until the operator released it. On that path the
+RESUME RULE never runs (no turn); the reaper is the recovery.
 
 ## Surfacing open review-holds (the reaper's mirror image) — see [`holds.md`](holds.md)
 

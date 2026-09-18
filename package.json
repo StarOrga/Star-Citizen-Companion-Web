@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.86.7",
+  "version": "0.86.8",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "verify:ship-live": "node scripts/verify-ship-live.mjs",
     "verify:routine-prompts": "node scripts/check-routine-prompts.mjs",
     "ship:mcp": "node scripts/ship-via-mcp.cjs",
-    "test:gate": "node --test scripts/routine-gate.liveness.test.mjs",
+    "test:gate": "node --test scripts/routine-gate.liveness.test.mjs scripts/routine-janitor-scan.test.mjs",
     "gate:mobile": "node scripts/mobile-gate.mjs",
     "gate:mobile:quick": "node scripts/mobile-gate.mjs --quick",
     "gate:mobile:auth": "node scripts/mobile-gate.mjs --auth",
