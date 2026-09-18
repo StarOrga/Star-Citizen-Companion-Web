@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.15] - 2026-09-18
+
+### Fixed
+
+- **Zweite Quelle des falschen „TESTS ROT“: nodes eigene grüne Zeile.**
+  `node --test` meldet `ℹ fail 0`; der devops-Hook liest das bare Wort „fail“
+  als Fehlschlag, wenn die Tool-Antwort keinen Exit-Code trägt. Der Wrapper
+  `scripts/run-gate-tests.mjs` (jetzt hinter `npm run test:gate`) schreibt
+  genau diese Zeile in `ℹ failures 0` um; echte Fehler (`fail 2`, Exit ≠ 0)
+  bleiben unverändert. Nachtrag in Jerry0022/dotclaude#409.
+
 ## [0.86.14] - 2026-09-18
 
 ### Changed

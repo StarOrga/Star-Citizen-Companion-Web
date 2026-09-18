@@ -207,3 +207,8 @@ below is canonical — external docs cite it.)
    upstream: Jerry0022/dotclaude#409). So: `npm run test:gate` / `npm test`
    alone in one call, then the rest in the next. A stale red flag clears with
    one green stand-alone run.
+   Second trap: node's own green summary `ℹ fail 0` matches the hook's
+   fail-regex when the tool response carries no exit code — `npm run
+   test:gate` therefore runs through `scripts/run-gate-tests.mjs`, which
+   rewrites that one line to `ℹ failures 0`; use the same wrapper for any new
+   `node --test` script.
