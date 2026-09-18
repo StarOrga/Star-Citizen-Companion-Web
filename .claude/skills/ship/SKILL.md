@@ -197,3 +197,13 @@ below is canonical — external docs cite it.)
    2026-07-09 I shipped 0.13.0 source-only and stopped — the user had to say
    "release it too". Both times a source bump was mistaken for a release. Source
    bump ≠ release; for uploader ships the release rides along by default.
+
+7. **Run the test runner as its OWN Bash call — never chained behind other
+   commands.** The plugin's V&V flags (`post.flow.completion`) classify a Bash
+   call as a test run by its command string and take a non-zero exit as a red
+   run. `python patch.py && npm run test:gate && git commit …` that dies in
+   `patch.py` is recorded as **TESTS ROT** although no test ran, and the next
+   completion card carries the stamp (2026-09-18, three cards in a row;
+   upstream: Jerry0022/dotclaude#409). So: `npm run test:gate` / `npm test`
+   alone in one call, then the rest in the next. A stale red flag clears with
+   one green stand-alone run.
