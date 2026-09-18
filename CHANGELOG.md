@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.14] - 2026-09-18
+
+### Changed
+
+- **Ship-Regel 7: Test-Runner immer als eigener Bash-Aufruf.** Das
+  devops-Plugin wertet einen verketteten Befehl, der vor dem Runner scheitert,
+  als roten Testlauf und stempelt die Abschluss-Karte mit „TESTS ROT“, obwohl
+  alle Tests grün waren (heute dreimal; Plugin-Issue Jerry0022/dotclaude#409).
+  Projektseitig: Runner allein aufrufen, Rest im nächsten Befehl.
+
 ## [0.86.13] - 2026-09-18
 
 ### Added
