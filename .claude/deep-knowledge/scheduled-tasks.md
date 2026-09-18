@@ -80,6 +80,18 @@ un-archived backlog is bounded at one day of ticks (72 with the current cron,
 The preference lives under `preferences` in `%APPDATA%/Claude/claude_desktop_config.json`;
 set it in the Settings UI, a file edit is only read at the next app start.
 
+**2026-09-18 probe: the consent card is gone.** A one-off scheduled task
+called `archive_session` on an idle routine tick from its own (bypass)
+session and got "Archived session …" back in 6 s, no click (app 2.1.274,
+tool description now says bypass mode does not ask). `delete_session` is
+still "unavailable in unattended sessions". So the archive half of the
+janitor runs as a third scheduled task, `routine-janitor` (cron
+`0 */4 * * *`, prompt snapshot `docs/routine/JANITOR.snapshot.md`,
+`scripts/routine-janitor-scan.mjs` as the only data source), the delete
+half stays interactive. Re-run the probe before putting an `archive_session`
+call back into the routine ticks themselves — a returning card would stall
+the routine, while a stalled janitor task stalls only itself.
+
 **Operator decision 2026-09-17: the setting stays on Never** — it is global and
 would archive every other session after the same delay. The routine's sessions
 are instead swept by `/routine-janitor` (`.claude/skills/routine-janitor/`):
@@ -109,9 +121,10 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
    dialog into a scheduled prompt; one such call idles the whole task. The
    suspended step stays documented in the prompt (STEP 0 and STEP 6) and
    `docs/feedback-routine/gate.md` so it can be switched back on in one edit.
-   The replacement is the `/routine-janitor` loop above (the app-level
-   inactive auto-archive was rejected as too global), plus the two crons
-   that fire only on cadence slots.
+   The replacement is the `routine-janitor` scheduled task every 4 h (the
+   app-level inactive auto-archive was rejected as too global), plus the two
+   crons that fire only on cadence slots; `/routine-janitor` interactively
+   for the delete card.
 2. **Renaming the task renames the title** — the hygiene step matches on the
    title, so add the old title to the match list when the task is renamed
    (the day task already carries "… (day)"; the Desktop app refuses two
