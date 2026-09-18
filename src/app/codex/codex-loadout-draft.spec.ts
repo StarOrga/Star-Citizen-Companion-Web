@@ -3,6 +3,7 @@ import {
   DraftMap,
   acceptedClassNames,
   beginHydration,
+  extendHydration,
   changedCount,
   decodeDraftParam,
   deleteDraftPaths,
@@ -167,6 +168,24 @@ describe('epoch-guarded hydration merge (R6)', () => {
 
     const acceptedNew = acceptedClassNames(state, ['CLASS_A'], epoch2);
     expect(acceptedNew).toEqual(['CLASS_A']);
+  });
+
+  it('a round learned mid-flight is tagged with its request epoch, not a new one', () => {
+    // Schema 6: the round's name comes off the entity payload, i.e. after the
+    // request started — extendHydration must not bump the counter, or the
+    // request's own class would look stale to itself.
+    const state = newHydrationEpoch();
+    const epoch = beginHydration(state, ['CNOU_Nomad_CML_Flare']);
+    extendHydration(state, ['BEHR_Flare'], epoch);
+    expect(state.counter).toBe(epoch);
+    expect(acceptedClassNames(state, ['CNOU_Nomad_CML_Flare', 'BEHR_Flare'], epoch)).toEqual([
+      'CNOU_Nomad_CML_Flare',
+      'BEHR_Flare',
+    ]);
+    // …and a later swap that needs the same round still wins over this one.
+    const later = beginHydration(state, ['BEHR_Flare']);
+    expect(acceptedClassNames(state, ['BEHR_Flare'], epoch)).toEqual([]);
+    expect(acceptedClassNames(state, ['BEHR_Flare'], later)).toEqual(['BEHR_Flare']);
   });
 
   it('merging never clobbers an unrelated class already resolved', () => {

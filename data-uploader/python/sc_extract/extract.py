@@ -83,7 +83,15 @@ class ExtractResult:
     # min/max force, volume cap, tether break time, movement band) read from
     # their `SWeaponActionFireTractorBeamParams` fire action — a struct the
     # fire-rate walk never selects because it carries no `fireRate`.
-    schema_version: int = 5
+    # v6 (feedback #237): every weapon that fires a round carries the link to
+    # it — `weaponParams.ammoClassName` (the `AmmoParams` class the
+    # ammunition/ dump is keyed by), `ammoGuid` and `ammoCapacity` (the
+    # magazine's `maxAmmoCount`) — read off the weapon entity's own
+    # `SAmmoContainerComponentParams.ammoParamsRecord` (or, for FPS weapons,
+    # off the magazine entity behind `ammoContainerRecord`). Countermeasure
+    # launchers and the ~50 ship guns whose round is not `<class>_AMMO` are
+    # resolvable for the first time; the web no longer has to guess by name.
+    schema_version: int = 6
     quality_score: float = 0.0
     entity_counts: Dict[str, int] = field(default_factory=dict)
     warnings: List[str] = field(default_factory=list)

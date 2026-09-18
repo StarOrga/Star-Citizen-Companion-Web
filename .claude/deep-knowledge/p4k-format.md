@@ -132,6 +132,38 @@ Consequences worth not re-deriving:
   LIVE 4.10.0 build was extracted with tool 0.25.3 at schema **2**, ~5 h before
   #523 merged — which is why the energy dock reports `reExtractPending`.
 
+## Weapon → round link (schema 6, verified 2026-09-18 against LIVE 4.10)
+
+`SCItemWeaponComponentParams.ammoContainerRecord` is **null on every ship
+weapon** — all ship guns, rocket pods, beams and all 188 countermeasure
+launchers — and there is no `<launcher>_AMMO` naming convention. Two prior
+readers waited on that field; it is the wrong one. The round a ship weapon
+fires sits on the weapon entity's **own** component:
+
+```
+EntityClassDefinition.<weapon>.Components[_Type_ == "SAmmoContainerComponentParams"]
+  .ammoParamsRecord  → { _RecordId_, _RecordName_: "AmmoParams.<class>", _RecordPath_ }
+  .maxAmmoCount      → magazine (48 flares / 5 chaff on a Nomad; a literal 0 on
+                        energy weapons, int32 max on salvage heads)
+```
+
+FPS weapons are the one family that does use `ammoContainerRecord`: it points
+at a separate magazine entity, whose own `SAmmoContainerComponentParams`
+carries the same fields (second hop, `_weapon_ammo_link`). Coverage on the
+probe: 188/188 launchers (only five rounds exist: BEHR_Flare, TALN_Chaff,
+JOKR_Flare, JOKR_Chaff, NOVA_Chaff), 195/196 ship guns + rocket pods — 50 of
+them with a round NOT named `<class>_AMMO` (bespoke turrets, PDCs, `RPOD_*`
+rocket pods, Idris/LowPoly variants) that the convention silently missed —
+390/395 FPS weapons (binoculars carry none), every tractor / towing / salvage
+beam (placeholder rounds: `VehicleBullets`, a rifle laser bolt — the web
+ignores the salvage head's). Never resolved: mining lasers (no container) and
+`BEHR_JavelinBallisticCannon_S7_LowPoly` (container without a round).
+
+Emitted as `weaponParams.ammoClassName` / `ammoGuid` / `ammoCapacity`;
+`tests/test_weapon_ammo_link.py` + `tests/fixtures/live_weapon_ammo_links.json`
+pin the live shapes. The web (`ammoClassNameFor`) prefers the explicit name
+and keeps the `<class>_AMMO` convention only for builds below schema 6.
+
 ## Ivo geometry chunks — hardpoint positions (reverse-engineered 2026-07-26)
 
 `scdatatools` 1.0.4 cannot parse SC 4.x Ivo *geometry* chunks, so

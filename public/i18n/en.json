@@ -1270,6 +1270,7 @@
       "armamentMissing": "{{count}} weapon mounts carry no stock weapon in this extract — the game keeps default weapon fits in a separate record that our P4K extractor does not resolve yet.",
       "missileCount": "Missiles",
       "missileSize": "Missile size",
+      "cmCapacity": "Rounds carried",
       "cmInfrared": "Infrared signature",
       "cmElectromagnetic": "EM signature",
       "cmCrossSection": "Cross section",

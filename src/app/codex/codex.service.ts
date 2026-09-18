@@ -835,11 +835,11 @@ export class CodexService {
   }
 
   /**
-   * Batch-fetch ammunition payloads by class name. Guns carry no resolved
-   * ammoContainerRecord in the extract, so their projectile stats (damage,
-   * speed, lifetime) are only reachable via CIG's `<weaponClass>_AMMO` naming
-   * convention — see `ammoClassNameFor`. Missing names simply don't come back;
-   * the caller renders no projectile stats for those.
+   * Batch-fetch ammunition payloads by class name — the `AmmoParams` class the
+   * weapon payload names in `weaponParams.ammoClassName` (extractor schema 6),
+   * or the `<weaponClass>_AMMO` convention on older builds; see
+   * `ammoClassNameFor`. Missing names simply don't come back; the caller
+   * renders no projectile stats for those.
    */
   async getAmmoPayloads(classNames: string[]): Promise<Map<string, unknown>> {
     const out = new Map<string, unknown>();
@@ -1028,7 +1028,7 @@ export class CodexService {
     const names = [...allClassNames];
     const payloads = await this.getEntityPayloads(names);
     const ammoNames = names
-      .map((cn) => ammoClassNameFor(cn))
+      .map((cn) => ammoClassNameFor(cn, payloads.get(cn)?.payload))
       .filter((cn): cn is string => !!cn);
     const ammo = await this.getAmmoPayloads(ammoNames);
 
@@ -1096,7 +1096,7 @@ export class CodexService {
         section: classifyShipModule(port, occupant) as ShipModuleSection,
         kind: hit.kind,
         payload: hit.payload,
-        ammoPayload: ammo.get(ammoClassNameFor(className) ?? ''),
+        ammoPayload: ammo.get(ammoClassNameFor(className, hit.payload) ?? ''),
         count: 1,
       });
     };

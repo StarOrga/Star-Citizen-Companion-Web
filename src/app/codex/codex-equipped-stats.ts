@@ -108,26 +108,58 @@ function push(
 }
 
 // ── ammunition join ──────────────────────────────────────────────────────────
-// The extract does NOT resolve a weapon's ammoContainerRecord (null on all 430
-// ship weapons that carry weaponParams), so the only link from a gun to its
-// projectile is CIG's own class-name convention: `<weaponClass>_AMMO`. That is
-// an EXACT name match, never a prefix or fuzzy search — a wrong projectile
-// would silently print wrong damage. Spot-checked against erkul.games:
+// Since extractor schema 6 (feedback #237) every weapon that fires a round
+// carries the link to it: `weaponParams.ammoClassName` is the `AmmoParams`
+// class the ammunition table is keyed by, read off the weapon entity's own
+// `SAmmoContainerComponentParams.ammoParamsRecord` (FPS weapons: off the
+// magazine entity behind `ammoContainerRecord`). That is what ties a
+// countermeasure launcher to its decoy / noise round (188 of 188 in 4.10) and
+// the ~50 ship guns whose round is not named after them (bespoke turrets,
+// PDCs, rocket pods, Idris / LowPoly variants).
+//
+// A build extracted below schema 6 carries no such field, so CIG's own naming
+// convention `<weaponClass>_AMMO` stays as the fallback. Either way it is an
+// EXACT name match, never a prefix or fuzzy search — a wrong projectile would
+// silently print wrong damage. Spot-checked against erkul.games:
 // KLWE_LaserRepeater_S3 → 43.65 dmg / 1480 m/s / 1924 m, all three exact.
-// Coverage: ~71% of subType=Gun weapons; mounts (turrets, racks) have no ammo
-// of their own and correctly resolve to nothing.
+// Mounts (turrets, racks) have no round of their own and correctly resolve to
+// nothing on both paths.
 
-/** The ammunition class name a weapon's projectile stats would live under. */
-export function ammoClassNameFor(weaponClassName: string | null | undefined): string | null {
+/** The `AmmoParams` class the extractor linked this weapon to (schema 6+), or null. */
+export function explicitAmmoClassName(payload: unknown): string | null {
+  const v = (payload as { weaponParams?: { ammoClassName?: unknown } } | null | undefined)
+    ?.weaponParams?.ammoClassName;
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+/**
+ * The ammunition class name a weapon's projectile stats live under: the
+ * extractor's explicit link when the payload carries one, else the
+ * `<weaponClass>_AMMO` convention.
+ */
+export function ammoClassNameFor(
+  weaponClassName: string | null | undefined,
+  payload?: unknown,
+): string | null {
+  const explicit = explicitAmmoClassName(payload);
+  if (explicit) return explicit;
   const cn = weaponClassName?.trim();
   return cn ? `${cn}_AMMO` : null;
 }
 
-/** Every ammo class name worth batch-fetching for a set of weapon classes. */
-export function ammoClassNamesFor(weaponClassNames: (string | null | undefined)[]): string[] {
+/**
+ * Every ammo class name worth batch-fetching for a set of weapon classes.
+ * `payloadOf` hands over the already-loaded entity payload of a class so its
+ * explicit link wins over the convention — without it only the convention
+ * names are fetched, exactly the pre-schema-6 behaviour.
+ */
+export function ammoClassNamesFor(
+  weaponClassNames: (string | null | undefined)[],
+  payloadOf?: (className: string) => unknown,
+): string[] {
   const out = new Set<string>();
   for (const cn of weaponClassNames) {
-    const ammo = ammoClassNameFor(cn);
+    const ammo = ammoClassNameFor(cn, cn && payloadOf ? payloadOf(cn) : undefined);
     if (ammo) out.add(ammo);
   }
   return [...out];
@@ -286,18 +318,24 @@ export function missileRackLoad(payload: unknown): MissileRackLoad | null {
  *
  * These are exactly the numbers the admin asked for ("1 Decoy hat einen
  * Hitzewert von X, damit der User sich ausrechnen kann, wie viele er braucht").
- * They live on the ROUND, and 4.9.0 does NOT link a launcher to the round it
- * fires — `ammoContainerRecord` is null on all 188 countermeasure launchers and
- * no `<launcher>_AMMO` record exists — so a Nomad hardpoint resolves nothing
- * today and this returns []. It is wired through the same `ammoPayload`
- * plumbing every gun uses, so the row fills itself in the moment the extractor
- * resolves that link. Nothing here is ever guessed from a sibling round.
+ * They live on the ROUND; the launcher reaches it through the explicit
+ * `weaponParams.ammoClassName` link the extractor carries since schema 6
+ * (feedback #237 — `ammoContainerRecord` is null on every launcher, the real
+ * link is the launcher's own `SAmmoContainerComponentParams.ammoParamsRecord`,
+ * 188 of 188 resolve). The launcher itself contributes the other half of the
+ * sum — how many rounds it carries (`weaponParams.ammoCapacity`, 48 flares /
+ * 5 chaff on a Nomad). A build extracted below schema 6 has neither, so the
+ * row stays empty rather than borrowing a sibling round: nothing here is
+ * ever guessed.
  */
-export function countermeasureStats(ammoPayload: unknown): EquippedStat[] {
+export function countermeasureStats(ammoPayload: unknown, launcherPayload?: unknown): EquippedStat[] {
   const raw = (ammoPayload as { raw?: Record<string, unknown> } | null | undefined)?.raw;
   const params = (raw?.['projectileParams'] as { typeParams?: Record<string, unknown> } | undefined)
     ?.typeParams;
   const out: EquippedStat[] = [];
+  const capacity = (launcherPayload as { weaponParams?: { ammoCapacity?: unknown } } | null | undefined)
+    ?.weaponParams?.ammoCapacity;
+  push(out, 'codex.equipped.cmCapacity', toFiniteNumber(capacity ?? null), 'int');
   if (params) {
     const at = (key: string): number | null => toFiniteNumber(params[key] ?? null);
     push(out, 'codex.equipped.cmInfrared', at('StartInfrared'), 'int');
@@ -442,8 +480,8 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
   const subType = (payload as { subType?: string | null } | null | undefined)?.subType ?? '';
 
   // A countermeasure launcher has no damage of its own — everything a pilot can
-  // act on sits on the round it throws.
-  if (subType === 'CountermeasureLauncher') return countermeasureStats(ammoPayload);
+  // act on sits on the round it throws, plus how many of them it carries.
+  if (subType === 'CountermeasureLauncher') return countermeasureStats(ammoPayload, payload);
 
   // A tractor beam shoots nothing: no alpha, no fire rate, no projectile. Its
   // reach and pull lead, then it pays for power like any other module.
@@ -468,6 +506,14 @@ function weaponStats(payload: unknown, ammoPayload: unknown): EquippedStat[] {
     push(out, 'codex.equipped.missileCount', rack.count, 'int');
     push(out, 'codex.equipped.missileSize', rack.size, 'size');
   }
+
+  // A salvage head is a beam too. The round the DataCore links to it
+  // (`klwe_rifle_energy_01_ammo_laser`, a rifle's laser bolt) is an engine
+  // placeholder, not something the head shoots — and since schema 6 that link
+  // is delivered, so it is dropped here or a Vulture would print a rifle's
+  // alpha under its salvage head.
+  const attachType = (payload as { attachType?: string | null } | null | undefined)?.attachType ?? '';
+  if (attachType === 'SalvageHead') ammoPayload = undefined;
 
   // Damage lives on the projectile for guns, and directly on weaponParams for
   // the handful of turrets/mounts that carry their own impactDamage.

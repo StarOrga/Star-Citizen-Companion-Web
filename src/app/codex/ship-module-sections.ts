@@ -77,23 +77,21 @@ export const SHIP_MODULE_SECTION_ORDER: readonly ShipModuleSection[] = [
 /**
  * Sections the ship PAGE renders in a second, TAIL block below the paint/skin
  * viewer instead of inside the main loadout card (feedback #236: "Zellen und
- * Feste Systeme nach unten unter Lackierungen packen" + "[Gegenmaßnahmen]
- * wenn [keine Werte existieren] unter Lackierungen packen").
+ * Feste Systeme nach unten unter Lackierungen packen").
  *
- * `structure` always sits here — it never was a decision (32659942). Whether
- * `countermeasures` joins it depends on a question the admin asked directly:
- * "gibt es da Werte dazu … damit man berechnen kann wie viele man braucht?"
- * As of 4.9.0 the answer is no — `countermeasureStats()` in
- * `codex-equipped-stats.ts` already reads the round's signature numbers
- * (infrared/EM/cross-section/radius/lifetime), but the extract does not link
- * a launcher to the round it fires (`ammoContainerRecord` is null on every
- * countermeasure launcher), so the block carries no numbers today. The day
- * the extractor resolves that link and a hardpoint actually shows figures,
- * `countermeasures` earns its old spot back above the paints block — this is
- * the one place to flip that back.
+ * `structure` sits here — it never was a decision (32659942). `countermeasures`
+ * spent one release here too (#236: "[Gegenmaßnahmen] wenn [keine Werte
+ * existieren] unter Lackierungen packen"), because the extract could not link
+ * a launcher to the round it fires. Since extractor schema 6 (feedback #237)
+ * it can — `weaponParams.ammoClassName` / `ammoCapacity` on every launcher —
+ * so `countermeasureStats()` in `codex-equipped-stats.ts` fills the block with
+ * the round's signature numbers (infrared / EM / cross-section / radius /
+ * lifetime) plus the rounds carried, and the block is back in its old spot
+ * above the paints. The admin's rule for that case: "Falls im Spiel irgendwo
+ * Werte dazu stehen, muss es da oben bleiben." A build uploaded before
+ * schema 6 shows the block in that same spot, just without the numbers.
  */
 export const TAIL_SHIP_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSection>([
-  'countermeasures',
   'structure',
 ]);
 
