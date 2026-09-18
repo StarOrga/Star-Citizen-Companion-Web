@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.18] - 2026-09-18
+
+### Changed
+
+- **Janitor: 2-h-Altersgrenze wieder aus — die Karte ist eine pro Lauf.**
+  Die zeitgemessene Probe (zwei Aufrufe nacheinander aus einer geplanten
+  Bypass-Session) widerlegte die Hypothese aus 0.86.16: ein 64 min alter
+  Tick zog die Consent-Karte (87 s bis zum Klick), ein 27 min alter lief
+  8 s später ohne Karte durch. Muster: pro geplanter Session genau eine
+  Karte beim ersten `archive_session`-Aufruf, unabhängig von Bypass-Modus
+  und Alter der Ziel-Session; der Klick deckt alle Aufrufe desselben
+  Batches und der restlichen Session ab; die Karte hat keine Merk-Option.
+  `--min-age-min` bleibt (Default 0), der Task-Prompt schickt alle
+  Archiv-Aufrufe in einem Batch (eine Karte pro Lauf), Skill, Snapshot und
+  Deep-Knowledge beschreiben das Muster; beide Probe-Tasks gelöscht.
+- **Vercel-Build seit #626 rot:** `docs/routine/RESTORE.md` nannte die SSH-Clone-URL
+  (SSH-Form `git@…`), die der E-Mail-Guard im Prebuild als Adresse wertet —
+  jetzt die HTTPS-URL.
+
 ## [0.86.17] - 2026-09-18
 
 ### Added

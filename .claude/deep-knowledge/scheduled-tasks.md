@@ -101,25 +101,25 @@ result after 3 min 47 s (then refused anyway: live work); 18:10 — seven
 calls at 18:10:27–32, all seven results at 18:13:39–43, i.e. after the
 operator clicked. Same mode, same tool, same app. The one visible
 difference: the probe's target was a 14-hour-old tick that had never been
-on screen; the janitor's targets were minutes to hours old. Working
-hypothesis: the card hangs on the *target* session's state (fresh /
-restored tab / recently focused), not on the caller's permission mode. Two
-consequences: (1) the scan script defers archive candidates quiet for
-< 2 h (`ARCHIVE_MIN_AGE_MS`), so a sweep archives only what the probe
-proved card-free and a fresh tick waits for a later sweep; (2) the probe
-task is rebuilt (`janitor-consent-probe-2`, one-shot 2026-09-18 23:52 local,
-just before the 00:09 janitor, when 2–3-hour-old ticks are still un-archived)
-to archive one old and one fresh idle tick individually with timing, so the
-next run pins the cause. A second lead from the task tool itself: "tool
-approvals granted during a run are stored on the task and auto-applied to
-future runs" — the cards the operator clicked in the 18:10 janitor run may
-have pre-approved `archive_session` for the `routine-janitor` task, in
-which case the 22:09 run is card-free regardless of target age. Compare
-both before drawing the conclusion. Re-run that probe before
-putting an `archive_session` call back into the routine ticks themselves —
-a returning card would stall the routine, while a stalled janitor task
-stalls only itself (and it does: a card left unclicked holds the janitor
-session "running" until the operator returns).
+on screen; the janitor's targets were minutes to hours old. The first
+hypothesis — the card hangs on the *target* session's state — went into
+0.86.16 as a 2-hour age gate and was refuted the same evening by a timed
+probe (`janitor-consent-probe-2`, scheduled bypass session, two calls one
+after the other): a 64-min-old idle tick drew the card (87 s until the
+click), a 27-min-old one archived 8 s later without it. **The settled
+pattern: one consent card per scheduled session, on the first
+`archive_session` call, regardless of bypass mode and target age; the
+operator's click releases every call issued in the same batch and every
+later call of that session. The card offers no "remember" option, so it
+cannot be pre-approved per task** (the task tool's "approvals are stored on
+the task" note does not cover it — the janitor's second run got the card
+again). The 6-second probe at 16:00 was a card the operator clicked at once.
+Consequences: the age gate is off (`--min-age-min` stays, default 0), the
+janitor prompt issues all archive calls in one parallel batch (one card per
+run), and a janitor run counts as running until that click — accepted, the
+cadence is 4 h. Never put an `archive_session` call back into the routine
+ticks themselves: every tick would cost a click and stall the routine while
+it waits. Both probe tasks were deleted on 2026-09-18.
 
 **Operator decision 2026-09-17: the setting stays on Never** — it is global and
 would archive every other session after the same delay. The routine's sessions

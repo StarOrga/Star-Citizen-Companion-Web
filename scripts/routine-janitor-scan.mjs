@@ -11,8 +11,8 @@
  * 2026-09-18 — so the records are the only complete source). Prints, as JSON:
  *
  *   archive: un-archived idle ticks + un-archived working runs beyond the 3
- *            newest (both tasks together) — only those quiet for 2 h or more
- *   deferred: archive candidates still younger than that (next sweep)
+ *            newest (both tasks together)
+ *   deferred: archive candidates younger than --min-age-min (empty by default)
  *   delete:  idle ticks (archived or not) whose last activity is > 60 min ago,
  *            oldest first, at most 25
  *   keep:    the working runs left un-archived
@@ -22,14 +22,15 @@
  * .claude/skills/routine-janitor/SKILL.md. Read-only: it never archives or
  * deletes — the interactive janitor does that with the session tools.
  *
- * The 2-hour age gate (`--min-age-min`, default 120, 0 = off): the scheduled
- * janitor runs in bypass mode and still got a consent card for every archive
- * call on 2026-09-18 (14:05 and 18:10 — the results came back only after the
- * operator's clicks, 3–4 min later), while the same call on a 14-hour-old
- * tick returned in 6 s without a card. The card seems to hang on the state of
- * the TARGET session (fresh ticks), not on the caller's mode; until the probe
- * (~/.claude/scheduled-tasks/janitor-consent-probe) settles it, fresh
- * candidates are deferred to a later sweep instead of stalling this one.
+ * The age gate (`--min-age-min`, default 0 = off) is a leftover of a refuted
+ * hypothesis: on 2026-09-18 the scheduled janitor (bypass mode) got a consent
+ * card for its archive calls and it looked as if only fresh targets drew it.
+ * A timed probe the same evening archived a 64-min-old tick WITH a card and a
+ * 27-min-old one 8 s later WITHOUT — the card is one per scheduled session,
+ * on the first archive_session call, and the operator's click covers the
+ * rest of that session (the card offers no "remember" option). Target age is
+ * irrelevant, so nothing is deferred by default; the flag stays for
+ * experiments. Details: .claude/deep-knowledge/scheduled-tasks.md.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,7 +44,7 @@ export const RUNNING_MS = 3 * 60_000;
 export const IDLE_DELETE_MS = 60 * 60_000;
 export const KEEP_WORKING = 3;
 export const DELETE_CAP = 25;
-export const ARCHIVE_MIN_AGE_MS = 120 * 60_000;
+export const ARCHIVE_MIN_AGE_MS = 0;
 
 export function sessionsRoot() {
   const appData = process.env.APPDATA || join(process.env.USERPROFILE || '', 'AppData', 'Roaming');
