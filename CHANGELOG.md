@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.10] - 2026-09-18
+
+### Fixed
+
+- **Janitor-Scan erkennt laufende Sessions am Transcript, nicht am
+  Session-Record.** `lastActivityAt` im Record der App hinkt Minuten hinterher:
+  der erste Janitor-Lauf (16:05) hielt den 16:02 gestarteten Arbeitslauf für
+  einen stillen Leerlauf-Tick, und der Archiv-Aufruf blockierte 4 Minuten, bis
+  die App ihn ablehnte („still has live work“). Der Scan nimmt jetzt das
+  Neuere aus Record und CLI-Transcript (eigene Datei + Subagents, wie die
+  Gate-Liveness).
+
 ## [0.86.9] - 2026-09-18
 
 ### Changed
