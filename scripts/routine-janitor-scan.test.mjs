@@ -33,7 +33,7 @@ test('classify: delete is capped at 25 per sweep, both tasks count together', ()
   assert.equal(c.delete[0].id, 'i29', 'oldest first');
 });
 
-test('classify: archive candidates quiet for less than 2 h are deferred, not archived (consent-card guard)', () => {
+test('classify: with --min-age-min, candidates quiet for less than that are deferred (off by default)', () => {
   const c = classify([
     rec('idle-fresh', 20, 0.5),   // quiet 19.5 min → deferred
     rec('idle-119', 120, 0.5),    // quiet 119.5 min → deferred
@@ -41,9 +41,15 @@ test('classify: archive candidates quiet for less than 2 h are deferred, not arc
     rec('w1', 30, 10), rec('w2', 120, 40), rec('w3', 300, 20),
     rec('w4-fresh-end', 400, 390), // 4th newest, but its last activity is 10 min ago → deferred
     rec('w5', 600, 90),            // 5th newest, quiet 8.5 h → archive
-  ], now);
+  ], now, 120 * MIN);
   assert.deepEqual(c.archive.map((r) => r.id), ['idle-old', 'w5']);
   assert.deepEqual(c.deferred.map((r) => r.id), ['idle-fresh', 'idle-119', 'w4-fresh-end']);
   assert.deepEqual(c.keep.map((r) => r.id), ['w1', 'w2', 'w3']);
   assert.deepEqual(c.delete.map((r) => r.id), ['idle-old', 'idle-119'], 'the delete list is untouched by the age gate');
+});
+
+test('classify: the age gate is off by default — a 20-minute-old idle tick is archived', () => {
+  const c = classify([rec('idle-fresh', 20, 0.5)], now);
+  assert.deepEqual(c.archive.map((r) => r.id), ['idle-fresh']);
+  assert.deepEqual(c.deferred, []);
 });
