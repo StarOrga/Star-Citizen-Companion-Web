@@ -1,6 +1,6 @@
 ---
 name: routine-janitor
-description: Sweep the feedback routine's finished Desktop sessions by policy — idle ticks DELETED after 1 h (one approval card per sweep), working runs archived beyond the 3 newest — from an INTERACTIVE session, where archive_session needs no consent card and delete_session gets one card per call. Run it as `/loop /routine-janitor` in a pinned session. Triggers on "/routine-janitor", "routine sessions aufräumen", "janitor".
+description: Sweep the feedback routine's finished Desktop sessions by policy — idle ticks DELETED after 1 h (one approval card per sweep), working runs archived beyond the 3 newest — from an INTERACTIVE session, where archive_session needs no consent card and delete_session gets one card per call. The archive half runs unattended as the Desktop scheduled task `routine-janitor` (every 4 h); type `/routine-janitor` interactively when the delete card should appear. Triggers on "/routine-janitor", "routine sessions aufräumen", "janitor".
 ---
 
 # Routine janitor
@@ -64,13 +64,18 @@ instantly (usage limit) is short and therefore idle.
 
 ## Running it
 
-- Pin one lean interactive session in the primary checkout and type
-  `/loop /routine-janitor` (dynamic mode — self-paced, 3600 s, no 7-day
-  expiry). A fixed `/loop 1h …` also works but expires after 7 days.
-- The loop lives as long as that session: after a Desktop restart, reopen the
-  session and start the loop again. Sessions the janitor missed are caught up
-  on the next sweep (idle backlog at 25 per sweep).
-- The delete card is the only click the operator ever makes; declining it
-  leaves the sessions archived, and they come back on the next card.
+- **Unattended (since 2026-09-18):** the Desktop scheduled task
+  `routine-janitor` (title "SCC Web Routine Janitor", cron `0 */4 * * *`,
+  prompt snapshot `docs/routine/JANITOR.snapshot.md`) runs the scan script
+  and the archive calls every 4 h. A probe on 2026-09-18 16:00 showed that
+  `archive_session` from a scheduled session in bypass mode returns in
+  seconds without a consent card (app 2.1.274) — the 2026-09-14 hang is
+  gone. `delete_session` stays unavailable unattended, so the task never
+  deletes; its own runs are ticks of the third task id and are swept by the
+  next run. No pinned session, no `/loop` needed any more.
+- **Interactive:** type `/routine-janitor` in any session of this project
+  when the delete card should appear (idle ticks > 1 h, ≤ 25 per card);
+  declining it leaves the sessions archived. Sessions a sweep missed are
+  caught up on the next one.
 - The app's own "Archive inactive sessions" setting is global and stays the
   operator's; the janitor never depends on it.

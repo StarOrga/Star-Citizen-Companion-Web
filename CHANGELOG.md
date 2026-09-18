@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.10] - 2026-09-18
+
+### Fixed
+
+- **Janitor-Scan erkennt laufende Sessions am Transcript, nicht am
+  Session-Record.** `lastActivityAt` im Record der App hinkt Minuten hinterher:
+  der erste Janitor-Lauf (16:05) hielt den 16:02 gestarteten Arbeitslauf für
+  einen stillen Leerlauf-Tick, und der Archiv-Aufruf blockierte 4 Minuten, bis
+  die App ihn ablehnte („still has live work“). Der Scan nimmt jetzt das
+  Neuere aus Record und CLI-Transcript (eigene Datei + Subagents, wie die
+  Gate-Liveness).
+
+## [0.86.9] - 2026-09-18
+
+### Changed
+
+- **Der Janitor läuft als dritter Scheduled Task, alle 4 h.** Eine Sonde um
+  16:00 zeigte: `archive_session` aus einer Scheduled-Session (bypass)
+  antwortet in 6 s ohne Consent-Karte — die Sperre vom 14.09. gilt in der
+  aktuellen App nicht mehr. Der Task `routine-janitor` (Prompt-Snapshot
+  `docs/routine/JANITOR.snapshot.md`) ruft `scripts/routine-janitor-scan.mjs`
+  auf und archiviert Leerlauf-Ticks sofort und Arbeitsläufe jenseits der 3
+  neuesten; seine eigenen Läufe räumt der nächste Lauf weg. Löschen bleibt
+  interaktiv (`/routine-janitor` zeigt die Karte), weil `delete_session`
+  unbeaufsichtigt nicht verfügbar ist. Kein gepinnter `/loop` mehr nötig.
+
 ## [0.86.8] - 2026-09-18
 
 ### Fixed

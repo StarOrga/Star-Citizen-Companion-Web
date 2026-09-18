@@ -82,7 +82,8 @@ ticks never fired. Until the Desktop app lets an unattended session archive
 without a click, the tick prints its report line and stops, and the operator
 sweeps the routine's sessions from an interactive session (`list_sessions` →
 `archive_session` per routine session — no dialog there): since 2026-09-17
-that is `/routine-janitor`, looped hourly in one pinned interactive session
+that is the `routine-janitor` scheduled task every 4 h (archive) plus
+`/routine-janitor` interactively (delete card) — formerly a loop in one pinned session
 (idle ticks archived at once and deleted after 1 h via one approval card per
 sweep, working runs archived beyond the 3 newest and never deleted; the app's
 global "Archive inactive sessions" setting stays the operator's), see
