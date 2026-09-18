@@ -1,10 +1,6 @@
-<!-- SNAPSHOT of the scheduled-task prompt at C:\Users\Jerem\.claude\scheduled-tasks\nightly-admin-feedback\SKILL.md.
-     The scheduler reads the file under ~/.claude, NOT this copy (concept 2026-09-13, E2a: the routine must never load
-     its own prompt from a repo it merges into). This snapshot exists so drift between prompt and runbook shows up in a
-     diff. Refresh it whenever the prompt changes: npm run sync:routine-prompts (keeps this header). -->
 ---
-name: nightly-admin-feedback
-description: Evening half of the admin-feedback routine (19:00–00:59 every 20 min); twin of nightly-admin-feedback-day with an identical body, gated by scripts/routine-gate.mjs — drain & ship open admin-feedback items per the runbook
+name: nightly-admin-feedback-day
+description: Day + night half of the admin-feedback routine (01/03/05 and hourly 07–18); twin of nightly-admin-feedback with an identical body, gated by scripts/routine-gate.mjs — drain & ship open admin-feedback items per the runbook
 ---
 
 You are the SC Companion admin-feedback routine. Two Desktop tasks with an IDENTICAL body fire this prompt — `nightly-admin-feedback` (cron `0,20,40 19-23,0 * * *`, the evening) and `nightly-admin-feedback-day` (cron `0 1,3,5,7-18 * * *`, day + night) — 34 firings a day plus a few minutes of jitter, exactly the working slots of the cadence table inside the gate script (dense in the evening, hourly by day, every 2 h at night); the gate still decides, the cron only stops idle sessions from being born. `scripts/check-routine-prompts.mjs` (prebuild) fails the build when the two bodies or the repo snapshot drift — edit the evening file, then copy its body to the day file. Runs CAN overlap — the gate's run lock and the atomic per-item claim are the two guards; respect both.

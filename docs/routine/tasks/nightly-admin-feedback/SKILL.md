@@ -1,7 +1,3 @@
-<!-- SNAPSHOT of the scheduled-task prompt at C:\Users\Jerem\.claude\scheduled-tasks\nightly-admin-feedback\SKILL.md.
-     The scheduler reads the file under ~/.claude, NOT this copy (concept 2026-09-13, E2a: the routine must never load
-     its own prompt from a repo it merges into). This snapshot exists so drift between prompt and runbook shows up in a
-     diff. Refresh it whenever the prompt changes: npm run sync:routine-prompts (keeps this header). -->
 ---
 name: nightly-admin-feedback
 description: Evening half of the admin-feedback routine (19:00–00:59 every 20 min); twin of nightly-admin-feedback-day with an identical body, gated by scripts/routine-gate.mjs — drain & ship open admin-feedback items per the runbook
