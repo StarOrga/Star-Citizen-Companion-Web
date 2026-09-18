@@ -33,6 +33,13 @@ that a cron job on a server would not.
   line. The app's session record (`%APPDATA%/Claude/claude-code-sessions`,
   `scheduledTaskId` + `cliSessionId`) would let the hook detect a scheduled
   session; that is a plugin change, not ours.
+- **The tasks are local only — the repo is the backup.** Prompts and
+  registrations are not synced anywhere; `docs/routine/tasks/<taskId>/SKILL.md`
+  holds byte copies of all three live prompts (`npm run sync:routine-prompts`,
+  checked in prebuild) and `docs/routine/RESTORE.md` lists the cron / jitter /
+  title table and the manual steps (plugin, PAT, gh, task creation) for a
+  fresh machine. Memory and the user-level CLAUDE.md are deliberately not
+  in the repo.
 - **Two files, one body — enforced.** `scripts/check-routine-prompts.mjs` runs
   in `prebuild` (every `npm run build`, so every ship and every routine
   worker) and fails when the two SKILL.md bodies differ or

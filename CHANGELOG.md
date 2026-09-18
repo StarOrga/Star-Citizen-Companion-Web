@@ -4,7 +4,7 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.86.17] - 2026-09-18
+## [0.86.18] - 2026-09-18
 
 ### Changed
 
@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--min-age-min` bleibt (Default 0), der Task-Prompt schickt alle
   Archiv-Aufrufe in einem Batch (eine Karte pro Lauf), Skill, Snapshot und
   Deep-Knowledge beschreiben das Muster; beide Probe-Tasks gelöscht.
+
+## [0.86.17] - 2026-09-18
+
+### Added
+
+- **Routine-Backup im Repo + Restore-Anleitung.** Die drei Scheduled-Task-
+  Prompts liegen jetzt 1:1 (inkl. Frontmatter) unter `docs/routine/tasks/`,
+  `npm run sync:routine-prompts` hält sie synchron (Abend-Body → Day-Datei,
+  Snapshots), `scripts/check-routine-prompts.mjs` prüft alle drei Kopien im
+  Prebuild. `docs/routine/RESTORE.md` beschreibt das Neuaufsetzen nach
+  Datenverlust: Tabelle mit Cron/Jitter/Titel, Plugin-Install, PAT über
+  `scripts/set-supabase-env.ps1`, Task-Registrierung, Verifikation. Die Tasks
+  selbst sind nur lokal — kein Cloud-Sync.
 
 ## [0.86.16] - 2026-09-18
 

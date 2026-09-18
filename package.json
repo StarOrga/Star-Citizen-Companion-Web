@@ -18,6 +18,7 @@
     "typecheck": "npx tsc --noEmit -p tsconfig.app.json",
     "verify:ship-live": "node scripts/verify-ship-live.mjs",
     "verify:routine-prompts": "node scripts/check-routine-prompts.mjs",
+    "sync:routine-prompts": "node scripts/sync-routine-prompts.mjs",
     "ship:mcp": "node scripts/ship-via-mcp.cjs",
     "test:gate": "node scripts/run-gate-tests.mjs scripts/routine-gate.liveness.test.mjs scripts/routine-janitor-scan.test.mjs .claude/hooks/pre.ask.unattended.test.mjs",
     "gate:mobile": "node scripts/mobile-gate.mjs",

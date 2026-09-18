@@ -1,6 +1,3 @@
-<!-- Snapshot of ~/.claude/scheduled-tasks/routine-janitor/SKILL.md (the live prompt of the
-     Desktop scheduled task "SCC Web Routine Janitor", cron 0 */4 * * *). Refreshed by
-     npm run sync:routine-prompts; checked by scripts/check-routine-prompts.mjs. -->
 ---
 name: routine-janitor
 description: Every 4 h — archive the feedback routine's finished Desktop sessions by policy (idle ticks at once, working runs beyond the 3 newest) using scripts/routine-janitor-scan.mjs; never deletes, never touches a running session. Costs the operator ONE consent click per run.
