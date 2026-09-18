@@ -19,5 +19,18 @@
   "env": {
     "FORCE_COLOR": "1",
     "NG_CLI_ANALYTICS": "false"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre.ask.unattended.mjs\""
+          }
+        ]
+      }
+    ]
   }
 }

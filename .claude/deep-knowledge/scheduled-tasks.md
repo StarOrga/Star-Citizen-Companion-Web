@@ -147,6 +147,16 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
    running session) goes through `scripts/ship-via-mcp.cjs`. Before quitting
    the app deliberately, look at the routine's heartbeat: `state=running` means
    a run is mid-flight.
+7. **A question to the user hangs a scheduled run — so the call is blocked.**
+   `.claude/hooks/pre.ask.unattended.mjs` (PreToolUse on `AskUserQuestion`,
+   wired in `.claude/settings.json`) looks the session up in the app's
+   session records and exits 2 when it carries a `scheduledTaskId`, telling
+   the model to park the item as `needs_input` in the feedback panel instead;
+   interactive sessions and unknown ids pass. History: 269 routine
+   transcripts, one `AskUserQuestion` (2026-07-26), none since the prompt
+   forbade it — the hook turns the rule into a guarantee. If a run still
+   hangs (a consent card, a stuck tool), the other task keeps firing and the
+   gate reaps the lock after 30 min of transcript silence.
 6. **An interrupted run does not resume by itself.** The app's "Continue
    from where you left off." after an interrupted tool call, and the
    `stopped` task-notifications of the run's workers, are prompts a routine
