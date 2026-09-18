@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.13] - 2026-09-18
+
+### Added
+
+- **Hook blockt Rückfragen in Scheduled-Sessions.**
+  `.claude/hooks/pre.ask.unattended.mjs` (PreToolUse auf `AskUserQuestion`,
+  verdrahtet in `.claude/settings.json`) erkennt über den Session-Record der
+  App, ob die Session ein Scheduled Task ist, und blockt den Aufruf mit dem
+  Hinweis, das Item stattdessen als `needs_input` im Feedback-Panel zu parken.
+  Interaktive Sessions sind nicht betroffen. Hintergrund: eine offene Frage
+  würde den Lauf und die nächsten Feuerungen des Tasks aufhängen; in 269
+  Routine-Transkripten gab es genau einen solchen Aufruf (26.07.), seit dem
+  Prompt-Verbot keinen — der Hook macht aus der Regel eine Garantie. Tests in
+  `npm run test:gate`.
+
 ## [0.86.12] - 2026-09-18
 
 ### Changed

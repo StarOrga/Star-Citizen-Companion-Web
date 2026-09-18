@@ -62,7 +62,9 @@ session starts in the primary checkout on `main` by design (gate, heartbeat,
 worktree creation) and never edits code — every edit happens in a worker's
 `scfb-*` worktree. The plugin's SessionStart hook cannot tell a scheduled
 session from an interactive one and prints its "On `main` in repo root … call
-AskUserQuestion" block into every tick; prompt STEP 0 (0.86.1) tells the tick
+AskUserQuestion" block into every tick (an actual `AskUserQuestion` call is
+blocked by `.claude/hooks/pre.ask.unattended.mjs` in scheduled sessions since
+0.86.13); prompt STEP 0 (0.86.1) tells the tick
 to neither ask nor bypass nor restate it — at most one report line,
 `Workspace check: orchestrator on main by design (workers in scfb-* worktrees)`.
 
