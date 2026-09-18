@@ -80,17 +80,39 @@ un-archived backlog is bounded at one day of ticks (72 with the current cron,
 The preference lives under `preferences` in `%APPDATA%/Claude/claude_desktop_config.json`;
 set it in the Settings UI, a file edit is only read at the next app start.
 
-**2026-09-18 probe: the consent card is gone.** A one-off scheduled task
-called `archive_session` on an idle routine tick from its own (bypass)
-session and got "Archived session …" back in 6 s, no click (app 2.1.274,
-tool description now says bypass mode does not ask). `delete_session` is
-still "unavailable in unattended sessions". So the archive half of the
-janitor runs as a third scheduled task, `routine-janitor` (cron
-`0 */4 * * *`, prompt snapshot `docs/routine/JANITOR.snapshot.md`,
-`scripts/routine-janitor-scan.mjs` as the only data source), the delete
-half stays interactive. Re-run the probe before putting an `archive_session`
-call back into the routine ticks themselves — a returning card would stall
-the routine, while a stalled janitor task stalls only itself.
+**2026-09-18 probe: a false all-clear.** A one-off scheduled task
+(`janitor-consent-probe`) called `archive_session` on an idle routine tick
+from its own (bypass) session and got "Archived session …" back in 6 s, no
+click (app 2.1.274, tool description says bypass mode does not ask). On that
+verdict the archive half of the janitor became a third scheduled task,
+`routine-janitor` (cron `0 */4 * * *`, prompt snapshot
+`docs/routine/JANITOR.snapshot.md`, `scripts/routine-janitor-scan.mjs` as
+the only data source); the delete half stays interactive
+(`delete_session` is "unavailable in unattended sessions"). **But the
+janitor's real runs the same day got the card back:** 14:05 — one call,
+result after 3 min 47 s (then refused anyway: live work); 18:10 — seven
+calls at 18:10:27–32, all seven results at 18:13:39–43, i.e. after the
+operator clicked. Same mode, same tool, same app. The one visible
+difference: the probe's target was a 14-hour-old tick that had never been
+on screen; the janitor's targets were minutes to hours old. Working
+hypothesis: the card hangs on the *target* session's state (fresh /
+restored tab / recently focused), not on the caller's permission mode. Two
+consequences: (1) the scan script defers archive candidates quiet for
+< 2 h (`ARCHIVE_MIN_AGE_MS`), so a sweep archives only what the probe
+proved card-free and a fresh tick waits for a later sweep; (2) the probe
+task is rebuilt (`janitor-consent-probe-2`, one-shot 2026-09-18 23:52 local,
+just before the 00:09 janitor, when 2–3-hour-old ticks are still un-archived)
+to archive one old and one fresh idle tick individually with timing, so the
+next run pins the cause. A second lead from the task tool itself: "tool
+approvals granted during a run are stored on the task and auto-applied to
+future runs" — the cards the operator clicked in the 18:10 janitor run may
+have pre-approved `archive_session` for the `routine-janitor` task, in
+which case the 22:09 run is card-free regardless of target age. Compare
+both before drawing the conclusion. Re-run that probe before
+putting an `archive_session` call back into the routine ticks themselves —
+a returning card would stall the routine, while a stalled janitor task
+stalls only itself (and it does: a card left unclicked holds the janitor
+session "running" until the operator returns).
 
 **Operator decision 2026-09-17: the setting stays on Never** — it is global and
 would archive every other session after the same delay. The routine's sessions

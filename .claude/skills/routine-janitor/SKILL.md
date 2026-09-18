@@ -37,7 +37,8 @@ instantly (usage limit) is short and therefore idle.
 2. **Scan.** `node scripts/routine-janitor-scan.mjs` (primary checkout) reads
    the app's session records under `%APPDATA%\Claude\claude-code-sessions`
    (`scheduledTaskId` ∈ {`nightly-admin-feedback`, `nightly-admin-feedback-day`})
-   and prints the classified lists as JSON: `archive`, `delete` (≤ 25, oldest
+   and prints the classified lists as JSON: `archive`, `deferred` (archive
+   candidates quiet for < 2 h — see the age gate below), `delete` (≤ 25, oldest
    first, `deletePending` = the rest), `keep`, `running`, `totals`. It is the
    only complete source: `list_task_runs` caps at 50 per task and lists
    nothing at all for the day task (2026-09-18), so a sweep built on it
@@ -67,12 +68,22 @@ instantly (usage limit) is short and therefore idle.
 - **Unattended (since 2026-09-18):** the Desktop scheduled task
   `routine-janitor` (title "SCC Web Routine Janitor", cron `0 */4 * * *`,
   prompt snapshot `docs/routine/JANITOR.snapshot.md`) runs the scan script
-  and the archive calls every 4 h. A probe on 2026-09-18 16:00 showed that
-  `archive_session` from a scheduled session in bypass mode returns in
-  seconds without a consent card (app 2.1.274) — the 2026-09-14 hang is
-  gone. `delete_session` stays unavailable unattended, so the task never
-  deletes; its own runs are ticks of the third task id and are swept by the
-  next run. No pinned session, no `/loop` needed any more.
+  and the archive calls every 4 h. `delete_session` stays unavailable
+  unattended, so the task never deletes; its own runs are ticks of the third
+  task id and are swept by the next run. No pinned session, no `/loop`
+  needed any more.
+- **Age gate (2 h, since 2026-09-18 evening).** The consent card is NOT gone
+  for the scheduled janitor: its 14:05 and 18:10 runs (bypass mode,
+  `bypassChosenInApp`) got a card per archive call and the tool results
+  arrived only after the operator's clicks, 3–4 min later. The 16:00 probe
+  that returned in 6 s without a card had archived a 14-hour-old, never
+  focused tick — so the card appears to depend on the state of the target
+  session (fresh ticks, possibly still restored as tabs), not on the
+  caller's mode. Until `janitor-consent-probe` (one old + one fresh tick,
+  timed individually) settles it, `classify()` defers every archive
+  candidate whose last activity is younger than 2 h (`ARCHIVE_MIN_AGE_MS`,
+  CLI `--min-age-min`, 0 = off). Interactive sweeps may pass
+  `--min-age-min 0`: from an interactive session the call needs no card.
 - **Interactive:** type `/routine-janitor` in any session of this project
   when the delete card should appear (idle ticks > 1 h, ≤ 25 per card);
   declining it leaves the sessions archived. Sessions a sweep missed are

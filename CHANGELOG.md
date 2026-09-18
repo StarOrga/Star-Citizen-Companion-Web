@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.16] - 2026-09-18
+
+### Fixed
+
+- **Janitor: die Consent-Karte ist nicht weg — 2-h-Altersgrenze für Archiv-Kandidaten.**
+  Die geplanten Janitor-Läufe (Bypass-Modus) bekamen am 18.09. um 14:05 und
+  18:10 pro `archive_session`-Aufruf eine Karte; die Ergebnisse kamen erst
+  nach den Klicks des Operators (3–4 min). Nur die 16:00-Probe auf einen
+  14 h alten, nie fokussierten Tick lief in 6 s ohne Karte durch — die
+  Karte hängt offenbar am Zustand der Ziel-Session, nicht am Modus der
+  aufrufenden. `routine-janitor-scan` stellt Kandidaten mit letzter
+  Aktivität < 2 h in eine neue `deferred`-Liste zurück
+  (`--min-age-min`, 0 = aus); Task-Prompt, Snapshot, Skill und
+  Deep-Knowledge korrigiert; Probe `janitor-consent-probe-2` (ein alter +
+  ein frischer Tick, einzeln gemessen) einmalig um 23:52 vor dem
+  00:09-Janitor.
+
 ## [0.86.15] - 2026-09-18
 
 ### Fixed
