@@ -143,7 +143,14 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
    signals and the recovery (re-read state per item, restart or hand back,
    `end-run`). The gate's liveness backstop reads the last real transcript
    record, not the file mtime, because the app touches the file with
-   bookkeeping records long after a run died.
+   bookkeeping records long after a run died. **And the RESUME RULE cannot
+   fire after a PC shutdown:** when the app finds the session again it
+   appends a synthetic pair — user "Continue from where you left off."
+   (`isMeta: true`) and assistant "No response requested." (`model:
+   "<synthetic>"`), same millisecond, no model turn (2026-09-18 15:36 for
+   a run dead since 01:24; the lock lived 17 h, #237 hung). The liveness
+   check ignores those two records since 0.86.8; the reaper is the only
+   recovery on that path, and it works once the lock is judged dead.
 5. **When the Desktop app restarts after a crash**, check `list_sessions` for
    routine sessions with `isArchived:false` before anything else; if there are
    more than one, sweep them first — it is the difference between a 30-second

@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.8] - 2026-09-18
+
+### Fixed
+
+- **Lock-Liveness ignoriert das synthetische „Continue“-Paar der App.** Findet
+  die Desktop-App nach einem Neustart eine Routine-Session wieder, hängt sie
+  ohne Modell-Turn ein Paar an — „Continue from where you left off.“
+  (`isMeta`) und „No response requested.“ (`model: <synthetic>`). Das galt
+  als Aktivität: der 22:07-Lauf war seit 01:24 tot (PC aus), wurde um 15:36
+  so „berührt“, hielt den Lock 17 h und ließ #237 als nacktes `in_progress`
+  hängen. Die RESUME RULE kann auf diesem Pfad nie greifen (kein Turn); der
+  Reaper ist die Erholung, sobald der Lock als tot gilt. Test ergänzt.
+- **Janitor-Scan aus den Session-Records.** `scripts/routine-janitor-scan.mjs`
+  klassifiziert die Routine-Sessions aus `%APPDATA%\Claude\claude-code-sessions`
+  (archive / delete ≤ 25 / keep / running) — `list_task_runs` listet für den
+  Day-Task gar nichts und kappt bei 50, der bisherige Sweep hat die
+  Day-Ticks nie gesehen. Skill-Schritte 1–4 auf das Skript umgestellt;
+  `npm run test:gate` deckt beide Skripte ab.
+
 ## [0.86.7] - 2026-09-18
 
 ### Changed

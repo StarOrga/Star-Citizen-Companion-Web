@@ -55,6 +55,16 @@ test('transcriptActivity: the last real record counts, not the app\'s bookkeepin
     // The app touched the file just now — the mtime is fresh, the run is not.
     const t = now / 1000; utimesSync(f, t, t);
     assert.equal(transcriptActivity(f), Date.parse(dead), 'newest user/assistant record wins over mtime');
+
+    // The app's synthetic resume pair (isMeta user + "<synthetic>" assistant) is not activity.
+    const fresh = new Date(now - 2 * MIN).toISOString();
+    writeFileSync(f, [
+      JSON.stringify({ type: 'user', timestamp: dead, message: {} }),
+      JSON.stringify({ type: 'user', timestamp: fresh, isMeta: true, message: { content: [{ type: 'text', text: 'Continue from where you left off.' }] } }),
+      JSON.stringify({ type: 'assistant', timestamp: fresh, message: { model: '<synthetic>', content: [{ type: 'text', text: 'No response requested.' }] } }),
+      '',
+    ].join('\n'));
+    assert.equal(transcriptActivity(f), Date.parse(dead), 'synthetic resume pair is ignored');
     assert.equal(newestActivity(dir, 'run'), Date.parse(dead));
     assert.ok(runIsDead({ startedAt: now - 120 * MIN, newest: newestActivity(dir, 'run'), now }), 'dead 40 min after its last real record');
 

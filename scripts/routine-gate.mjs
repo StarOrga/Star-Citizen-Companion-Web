@@ -248,6 +248,11 @@ export function transcriptActivity(file) {
       let rec;
       try { rec = JSON.parse(line); } catch { continue; }
       if (!ACTIVITY_RECORD_TYPES.has(rec?.type) || !rec.timestamp) continue;
+      // The Desktop app "resumes" a session it finds after a restart by appending
+      // a synthetic pair — user "Continue from where you left off." (isMeta) and
+      // assistant "No response requested." (model "<synthetic>") — without a model
+      // turn. 2026-09-18 15:36: that pair kept a run dead since 01:24 "alive".
+      if (rec.isMeta === true || rec.message?.model === '<synthetic>') continue;
       const t = Date.parse(rec.timestamp);
       if (Number.isFinite(t)) return t;
     }

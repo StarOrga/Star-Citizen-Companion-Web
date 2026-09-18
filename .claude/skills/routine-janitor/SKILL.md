@@ -33,17 +33,18 @@ instantly (usage limit) is short and therefore idle.
 ## Steps
 
 1. Load the tools if they are deferred: `ToolSearch
-   select:mcp__scheduled-tasks__list_task_runs,mcp__ccd_session_mgmt__archive_session,mcp__ccd_session_mgmt__delete_session`.
-2. **Scan.** `mcp__scheduled-tasks__list_task_runs` returns only the 50 newest
-   runs per task, which is enough for an hourly sweep. For a catch-up after
-   days off, scan the session records instead — every
-   `%APPDATA%\Claude\claude-code-sessions\**\*.json` with `scheduledTaskId` in
-   {`nightly-admin-feedback`, `nightly-admin-feedback-day`}; `createdAt`,
-   `lastActivityAt`, `isArchived` are in the record. Both sources give the same
-   fields: session id, started, last activity, archived.
-3. Drop runs with `status: "running"` (run list) — a record newer than
-   3 minutes counts as running too.
-4. Classify: `working` if `lastActivity − started ≥ 180 000 ms`, else `idle`.
+   select:mcp__ccd_session_mgmt__archive_session,mcp__ccd_session_mgmt__delete_session`.
+2. **Scan.** `node scripts/routine-janitor-scan.mjs` (primary checkout) reads
+   the app's session records under `%APPDATA%\Claude\claude-code-sessions`
+   (`scheduledTaskId` ∈ {`nightly-admin-feedback`, `nightly-admin-feedback-day`})
+   and prints the classified lists as JSON: `archive`, `delete` (≤ 25, oldest
+   first, `deletePending` = the rest), `keep`, `running`, `totals`. It is the
+   only complete source: `list_task_runs` caps at 50 per task and lists
+   nothing at all for the day task (2026-09-18), so a sweep built on it
+   never sees the day ticks.
+3. The script already drops records touched within 3 minutes (`running`).
+4. It classifies `working` if `lastActivity − created ≥ 180 000 ms`, else
+   `idle` (steps 5–6 below are what it computes; read them to know why).
 5. Candidates:
    - **archive**: every un-archived `idle` run; every un-archived `working` run
      except the 3 with the newest start (both tasks together);
