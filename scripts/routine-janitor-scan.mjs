@@ -3,7 +3,7 @@
  * routine-janitor-scan — classify the feedback routine's Desktop sessions for
  * the /routine-janitor sweep, from the app's own session records.
  *
- *   node scripts/routine-janitor-scan.mjs [--json] [--now <iso>]
+ *   node scripts/routine-janitor-scan.mjs [--json] [--now <iso>] [--min-age-min <n>]
  *
  * Reads every %APPDATA%\Claude\claude-code-sessions\**\*.json whose
  * `scheduledTaskId` is one of the two routine tasks (the Desktop "Runs" pane
@@ -11,7 +11,8 @@
  * 2026-09-18 — so the records are the only complete source). Prints, as JSON:
  *
  *   archive: un-archived idle ticks + un-archived working runs beyond the 3
- *            newest (both tasks together)
+ *            newest (both tasks together) — only those quiet for 2 h or more
+ *   deferred: archive candidates still younger than that (next sweep)
  *   delete:  idle ticks (archived or not) whose last activity is > 60 min ago,
  *            oldest first, at most 25
  *   keep:    the working runs left un-archived
@@ -20,6 +21,15 @@
  * Idle vs working = duration (lastActivityAt − createdAt) < 180 s. Policy in
  * .claude/skills/routine-janitor/SKILL.md. Read-only: it never archives or
  * deletes — the interactive janitor does that with the session tools.
+ *
+ * The 2-hour age gate (`--min-age-min`, default 120, 0 = off): the scheduled
+ * janitor runs in bypass mode and still got a consent card for every archive
+ * call on 2026-09-18 (14:05 and 18:10 — the results came back only after the
+ * operator's clicks, 3–4 min later), while the same call on a 14-hour-old
+ * tick returned in 6 s without a card. The card seems to hang on the state of
+ * the TARGET session (fresh ticks), not on the caller's mode; until the probe
+ * (~/.claude/scheduled-tasks/janitor-consent-probe) settles it, fresh
+ * candidates are deferred to a later sweep instead of stalling this one.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -33,6 +43,7 @@ export const RUNNING_MS = 3 * 60_000;
 export const IDLE_DELETE_MS = 60 * 60_000;
 export const KEEP_WORKING = 3;
 export const DELETE_CAP = 25;
+export const ARCHIVE_MIN_AGE_MS = 120 * 60_000;
 
 export function sessionsRoot() {
   const appData = process.env.APPDATA || join(process.env.USERPROFILE || '', 'AppData', 'Roaming');
@@ -73,7 +84,7 @@ export function loadRecords(root = sessionsRoot()) {
 }
 
 /** Pure classification — see the header. */
-export function classify(records, now = Date.now()) {
+export function classify(records, now = Date.now(), minAgeMs = ARCHIVE_MIN_AGE_MS) {
   const running = [];
   const idle = [];
   const working = [];
@@ -85,13 +96,16 @@ export function classify(records, now = Date.now()) {
   working.sort((a, b) => b.created - a.created);
   const keep = working.filter((r) => !r.archived).slice(0, KEEP_WORKING);
   const keepIds = new Set(keep.map((r) => r.id));
-  const archive = [
+  const candidates = [
     ...idle.filter((r) => !r.archived).map((r) => ({ ...r, why: 'idle tick' })),
     ...working.filter((r) => !r.archived && !keepIds.has(r.id)).map((r) => ({ ...r, why: 'older than the 3 newest working runs' })),
   ];
+  const archive = candidates.filter((r) => now - r.last >= minAgeMs);
+  const deferred = candidates.filter((r) => now - r.last < minAgeMs);
   const del = idle.filter((r) => now - r.last > IDLE_DELETE_MS).sort((a, b) => a.last - b.last);
   return {
     archive,
+    deferred,
     delete: del.slice(0, DELETE_CAP),
     deletePending: Math.max(0, del.length - DELETE_CAP),
     keep,
@@ -107,9 +121,12 @@ if (process.argv[1] && import.meta.url === new URL(`file:///${process.argv[1].re
   const args = process.argv.slice(2);
   const nowArg = args.indexOf('--now');
   const now = nowArg >= 0 ? Date.parse(args[nowArg + 1]) : Date.now();
-  const c = classify(loadRecords(), now);
+  const ageArg = args.indexOf('--min-age-min');
+  const minAgeMs = ageArg >= 0 ? Number(args[ageArg + 1]) * 60_000 : ARCHIVE_MIN_AGE_MS;
+  const c = classify(loadRecords(), now, minAgeMs);
   const out = {
     archive: c.archive.map(brief),
+    deferred: c.deferred.map(brief),
     delete: c.delete.map(brief),
     deletePending: c.deletePending,
     keep: c.keep.map(brief),
