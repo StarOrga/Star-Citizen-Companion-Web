@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.86.12] - 2026-09-18
+
+### Changed
+
+- **Routine-Runbook: vier Lehren aus dem Lauf vom 17.09. 22:07.** Vor jedem
+  `git worktree remove` erst `dir /AL` (eine `node_modules`-Junction wird
+  gelöst, egal wohin sie zeigt — der Lauf hat die Abhängigkeiten einer
+  Nachbar-Worktree ausgeräumt) und ein hängender `ng build`, der das
+  Verzeichnis als cwd hält, wird per PID beendet. Nach jedem `ship_release`
+  wird das Ring-Tag geprüft (#613 war gemergt, aber ungetaggt). Ein Thema,
+  dessen Fix gemergt ist und nur auf einen Upload mit dem neuen Extract
+  wartet, wird als `needs_input` mit Upload-Bitte geparkt, nicht neu gebaut
+  (#225, #233). Der Tick-Prompt beider Tasks trägt den Zeiger, Snapshot
+  aktualisiert.
+- **`/claude-learn`-Erweiterung:** Lehren für die Routine shippen sich selbst
+  (die Tasks lesen `origin/main`, ein offener PR ändert nichts) und Prompt-
+  Änderungen gehen immer an Abend-Task, Tag-Task und Snapshot zusammen.
+
 ## [0.86.11] - 2026-09-18
 
 ### Added

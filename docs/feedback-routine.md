@@ -226,6 +226,16 @@ bias is to **decide and ship**, and to park only when it genuinely must:
   readme.io API key).
 - **Suspected noise**: park `needs_input` with "looks like a duplicate/spam —
   delete it if you agree"; the admin owns the discard.
+- **Blocked on data, not on code**: a topic whose fix is already merged and
+  whose thread says "still nothing visible" is not a re-implementation — check
+  the active `codex_builds` row first (`schema_version`, `tool_version`,
+  `extracted_at`). When the merged change reads a field the active extract does
+  not carry yet, the only missing step is an upload with the newer Data
+  Uploader: park `needs_input` with the exact version to run, one sentence on
+  which value arrives with which schema, and a `[[Upload erledigt — bitte
+  prüfen|Weiter warten]]` line. Re-implementing it changes nothing on the site
+  and burns a wave (2026-09-17: #225 and #233 both waited on Uploader 0.30.0
+  while the active build was still 0.28.0 / schema 3).
 
 When torn between asking and defaulting, prefer the default and keep the change
 easy to revert. A reversible wrong guess costs one follow-up PR; an unnecessary
@@ -476,6 +486,15 @@ shared seam-file collisions (i18n keys, version bump) deterministically:
   that is the alpha ring tag (`alpha/v<version>`) a later `ship_promote` re-tags.
   A merge without it (#590, 2026-09-13) leaves `main` ahead of every ring and
   has to be tagged by hand — pass it every time.
+  **Verify the tag after every `ship_release`, whatever it returned**:
+  `git ls-remote --tags origin alpha/v<version>` — the call can merge and
+  then die before tagging (2026-09-17, #613: `spawnSync cmd.exe ETIMEDOUT`
+  with `checksTimeoutSec: 120`, PR merged, no tag; `success:false` was a
+  half-truth). Missing → tag the merge SHA by hand as an annotated tag whose
+  message is the ring JSON the tool writes, `{"channel":"alpha","version":"<version>"}`
+  (`git tag -a alpha/v<version> <merge-sha> -m '<json>' && git push origin
+  alpha/v<version>`); `ship_promote` reads that message. An error result is
+  *state unknown* — `gh pr view` first, then the tag, never a blind retry.
 
 Two hazards: **spawning sub-workers can reset a shared worktree to
 `origin/main` mid-flight**, so the orchestrator never edits code while workers
@@ -493,7 +512,26 @@ left, build the next wave of up to 3 disjoint-area items off the now-merged
 `origin/main`. Keep going until the queue is empty or a brake trips. Brakes are
 checked between waves only, never mid-item: under 20 % left in the 5-hour usage
 window, stop with `end-run --state paused --note paused-usage-limit`; an
-unreadable meter fails open. Each wave's worktrees are removed after its merge.
+unreadable meter fails open. Each wave's worktrees are removed after its merge
+— **two checks before every `git worktree remove`, per worktree, never as a
+batch afterthought**:
+
+1. `cmd //c "dir /AL <worktree>"` — a `node_modules` **junction** (any target:
+   the primary checkout *or* a sibling worktree; a worker may have created it
+   without being told) is unlinked first with `cmd //c "rmdir
+   <worktree>
+ode_modules"`. `git worktree remove --force` and `rm -rf`
+   follow the junction and gut the target's real dependencies — 2026-09-17
+   22:39 it emptied `mollywator-hat-redesign-3be393/node_modules` (167 entries,
+   `@angular` gone) and hung for 2 min doing it; recovery was an `npm ci` in
+   the victim. The symptom to recognise instantly: the remove **hangs**.
+2. `wmic process where "name='node.exe' or name='esbuild.exe'" get
+   ProcessId,CommandLine | grep <worktree>` — a worker's `ng build` that never
+   exited (the no-exit hang) keeps the directory as its cwd; the remove then
+   leaves an empty directory that `rm -rf` refuses with "Device or resource
+   busy" until the PID is killed (`taskkill //F //PID <pid>`). Workers are told
+   to kill the hung build by PID before returning; the orchestrator verifies.
+
 Details: [`gate.md`](feedback-routine/gate.md).
 
 ## STEP 6 — close the run
