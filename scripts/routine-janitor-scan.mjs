@@ -23,6 +23,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { newestActivity, transcriptDirFor } from './routine-gate.mjs';
 
 // The janitor's own scheduled runs are ticks too (one per firing) and are swept
 // by the next one; the current run is protected by the 3-minute "running" rule.
@@ -58,6 +59,14 @@ export function loadRecords(root = sessionsRoot()) {
     const created = Number(o.createdAt);
     let last = Number(o.lastActivityAt);
     if (!Number.isFinite(last)) { try { last = statSync(f).mtimeMs; } catch { last = created; } }
+    // The record's lastActivityAt lags minutes behind a live session (2026-09-18
+    // 16:05: a run that had taken the lock at 16:02 read as "idle, 3 min quiet"
+    // and the archive call blocked 4 min before the app refused it). The CLI
+    // transcript (own file + subagents) is written live — take the newer of the two.
+    if (typeof o.cliSessionId === 'string' && typeof o.cwd === 'string') {
+      const t = newestActivity(transcriptDirFor(o.cwd), o.cliSessionId);
+      if (t !== null && t > last) last = t;
+    }
     out.push({ id: o.sessionId, task: o.scheduledTaskId, created, last, archived: o.isArchived === true, title: o.title ?? '' });
   }
   return out;
