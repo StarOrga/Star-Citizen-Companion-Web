@@ -199,6 +199,26 @@ interface SkinUploadResult {
   empty?: boolean;
 }
 
+interface SilhouetteBuildRequest {
+  p4kPath: string;
+  outDir: string;
+  converterPath: string;
+  toolVersion: string;
+  build: { channel: string; patchVersion: string; buildNumber: string };
+  manifestPath?: string;
+  toleranceM?: number;
+}
+interface SilhouetteBuildResult {
+  written: number;
+  skipped: number;
+  cached: number;
+}
+interface SilhouetteBuildFinal {
+  ok: boolean;
+  result?: SilhouetteBuildResult;
+  error?: string;
+}
+
 export const api = {
   env: (): Promise<ToolEnv> => ipcRenderer.invoke('sc:env'),
   discover: (): Promise<DiscoveredChannel[]> => ipcRenderer.invoke('sc:discover'),
@@ -398,6 +418,20 @@ export const api = {
       const listener = (_e: unknown, payload: ExtractEvent): void => cb(payload);
       ipcRenderer.on('sc:skin:event', listener);
       return () => ipcRenderer.removeListener('sc:skin:event', listener);
+    },
+  },
+  silhouette: {
+    // No `ensureTools` here — the silhouette build reuses the SAME
+    // cgf-converter binary `sc.skin.ensureTools()` already downloaded (call
+    // that first; see `renderer/main.ts` `buildSilhouettes`).
+    start: (req: SilhouetteBuildRequest): Promise<SilhouetteBuildFinal> =>
+      ipcRenderer.invoke('sc:silhouette:start', req),
+    cancel: (jobId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sc:silhouette:cancel', jobId),
+    onEvent: (cb: (ev: ExtractEvent) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ExtractEvent): void => cb(payload);
+      ipcRenderer.on('sc:silhouette:event', listener);
+      return () => ipcRenderer.removeListener('sc:silhouette:event', listener);
     },
   },
 };

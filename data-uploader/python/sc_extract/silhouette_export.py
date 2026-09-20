@@ -209,6 +209,17 @@ class SilhouetteExporter:
     def _cache_path(self, mesh_hash: str) -> Path:
         return self.cfg.cache_dir / f"{mesh_hash}-{self.cfg.tool_version}.json"
 
+    def read_mesh_bytes(self, mesh_path: str) -> bytes:
+        """Public wrapper of `_read` — the P4K lookup a caller needs to check
+        `is_cached()` before paying for a conversion (see
+        `silhouette_build_app.py`'s per-entity "cached" event)."""
+        return self._read(mesh_path)
+
+    def is_cached(self, mesh_bytes: bytes) -> bool:
+        """Whether `mesh_bytes` already has a cached `silhouette` sub-object —
+        i.e. whether `silhouette_for_mesh` would skip cgf-converter entirely."""
+        return self._cache_path(hashlib.sha256(mesh_bytes).hexdigest()).exists()
+
     def triangles_for_mesh(self, mesh_path: str, mesh_id: str) -> Optional[List[Triangle]]:
         """Raw-convert one ``.cga``/``.cgf`` and return its world-space
         triangles, or None when the P4K entry/converter output is missing."""

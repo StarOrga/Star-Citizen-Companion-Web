@@ -206,14 +206,9 @@ consumer in this codebase and is a large native wheel — documented in
    `DEFAULT_SIMPLIFY_TOLERANCE_M=0.15`, `CHAIKIN_ITERATIONS=2`) actually
    produce a recognisable, SCC-styled outline on real geometry — they are
    reasoned defaults, not tuned against a real hull.
-2. **Electron UI trigger for the silhouette build itself** (the equivalent of
-   `skin-bridge.ts` that drives `ship_export.py`/`Hull3DExporter` from the
-   renderer with progress/IPC) was **not built** — out of literal scope (the
-   task's Electron/TS deliverable named only the `ingest-catalog` upload
-   phase, not the build trigger) and a real scope/budget cut. Today
-   `silhouette_build.py` is CLI-only. If the desktop app should run it as part
-   of the guided flow, that is follow-up work analogous to `skin-bridge.ts` +
-   the renderer step in `main.ts`.
+2. **DONE** — see "Nachtrag" below: the desktop app now runs the silhouette
+   build itself as part of the guided flow (main-process bridge + renderer
+   step), the same way it already runs the 3D-skin build.
 3. **Armor's mesh source**: the task said "find where their meshes are located
    — if items have no mesh path in the current extract, say so". Reusing the
    existing generic `_hull_path()` fallback (`_find_geometry_path`, already
@@ -223,3 +218,87 @@ consumer in this codebase and is a large native wheel — documented in
    8-level-deep generic walk does not reach would silently get no silhouette
    (never a placeholder, per the "nothing invented" rule) rather than an error
    surfaced anywhere. Worth spot-checking once Q1 is run.
+
+## Nachtrag (2026-09-20) — desktop app runs the silhouette build itself
+
+Follow-up scope: the user's literal words were "hauptsache der data uploader
+kann und macht das dann selbst" — the build must run inside the guided
+desktop flow, not only as a standalone CLI. Added on the same branch:
+
+- **`data-uploader/python/sc_extract/silhouette_build_app.py`** (new) — the
+  events-emitting sidecar the bridge below spawns, mirroring
+  `skin_export_app.py`'s `events.py` JSON-line contract (`phase`/`progress`/
+  `count`/`log`/`done`/`error`) instead of `silhouette_build.py`'s plain
+  `print()`. Reuses `silhouette_build.py`'s `_safe_filename` / `_ship_anchor_inputs`
+  helpers and `SilhouetteExporter` (`silhouette_export.py:182`) directly —
+  no logic duplicated, only the event plumbing is new. Emits `progress` per
+  entity (`current`/`total`/`detail: "<kind>/<class>"`), a `log("info", "...
+  cached")` line on every cache hit (via the two new public wrappers
+  `SilhouetteExporter.read_mesh_bytes()` / `.is_cached()`,
+  `silhouette_export.py:212-224`), `count(kind, n)` running totals, and `done`
+  with `{written, skipped, cached}`. `silhouette_build.py` (the plain CLI) is
+  unchanged and still works standalone.
+- **`data-uploader/src/lib/silhouette-bridge-args.ts`** (new) — pure argv
+  builder for the sidecar (no `electron`/`node:child_process` imports, so it
+  unit-tests without a running Electron process — see
+  `test/silhouette-bridge-args.spec.ts`, 6 cases).
+- **`data-uploader/src/main/silhouette-bridge.ts`** (new) — `startSilhouetteBuild()`,
+  a line-for-line structural mirror of `skin-bridge.ts`'s `startSkinExport()`
+  (`skin-bridge.ts:133-241`): same `resolvePythonPaths()` / `packagedPythonMissing`
+  resolution, same JSON-line stdout parsing into `PythonExtractEvent`, same
+  `killProcessTree` cancel path. Deliberately does **not** duplicate
+  `ensureConverter`/`converterPath` — it reuses the skin build's already-downloaded
+  cgf-converter binary (the renderer calls `window.sc.skin.ensureTools()`
+  before starting the silhouette build; see below), and needs no
+  `SC_GLTF_TRANSFORM_ARGV` (a silhouette reads geometry only, never runs the
+  glTF optimizer).
+- **`data-uploader/src/main/index.ts:1016-1069`** (new "Silhouette-build IPC"
+  block, inserted after the existing "Ship-skin IPC" section) —
+  `sc:silhouette:start` / `:cancel`, structurally identical to
+  `sc:skin:start`/`:cancel` (`index.ts:908-953`):
+  same `ActiveJob` bookkeeping, watchdog-stall reporting, pause-vs-crash
+  disambiguation, `throttle.registerJob`. `ActiveJob['kind']` extended
+  `'extract' | 'skin' | 'silhouette'`.
+- **`data-uploader/src/preload/index.ts`** — `SilhouetteBuildRequest` /
+  `SilhouetteBuildResult` / `SilhouetteBuildFinal` types + `sc.silhouette.{start,cancel,onEvent}`,
+  next to the existing `sc.skin` block. No `sc.silhouette.ensureTools` — it
+  reuses `sc.skin.ensureTools()`.
+- **`data-uploader/src/renderer/main.ts`** — new `buildSilhouettes()` function
+  (inserted just above `buildAndUploadSkins`, same file section), same visual
+  pattern as the skin build's own sub-steps: `progress?.update()` with
+  `phaseLabel`/`stageLabel`/`detail`/`counters`, no new UI concept, no new
+  macro stage in the 3-step `bundle → catalog → skins` stepper (`state.stages`,
+  `main.ts:18-19`, untouched). Called right after the bundle-upload status
+  line and **before** `promoteToCodex()` (`main.ts` ~2188-2210) — the ordering
+  the follow-up asked for: `codex_silhouettes` (`catalog-bridge.ts` step 8b)
+  reads `<output_dir>/silhouettes/rows/*.json`, so the build must have already
+  written those files by the time `promoteToCodex` runs. This is a real
+  ordering change from the skin build, which runs *after* `promoteToCodex`
+  (skins upload to their own bucket, not through a catalog phase, so their
+  ordering was never load-bearing the same way).
+- Tests: `data-uploader/test/silhouette-bridge-args.spec.ts` (6 new vitest
+  cases — argv shape, `--build-json` payload, optional
+  `--manifest`/`--tolerance-m`). No `silhouette-bridge.ts` test exists,
+  matching this codebase's existing convention: `skin-bridge.ts` and
+  `catalog-bridge.ts` (both `electron`/`node:child_process`-importing
+  orchestration modules) have no vitest specs of their own either — every
+  `main/*-bridge.ts` in this repo keeps its testable logic in a sibling `lib/`
+  module and leaves the spawn/IPC wiring itself covered only by the
+  type-checker + manual runs. `silhouette-bridge.ts` follows that same split.
+  A literal "skin-bridge tests" file does not exist to mirror; this Nachtrag
+  flags that in case the user meant something else by the reference.
+- `python -m sc_extract.silhouette_build_app --p4k nope.p4k --out <tmp> --converter
+  nope.exe --tool-version 0.1 --build-json '{}'` was run by hand against a
+  missing P4K/manifest to confirm the event contract: it emits a `log` +
+  `done {written:0,skipped:0,cached:0}` pair and exits 0 (no manifest = nothing
+  to build, never an error) — see the command's output in this session's
+  transcript.
+
+**Verification**: `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest data-uploader/python`
+— 356 passed, unchanged. `npm run typecheck` — clean. `npx vitest run` —
+307 passed, 1 failed
+(`test/upload-resume.spec.ts` "keeps the reduced batch size for the rest of
+the phase") on a 5000ms default test timeout; reproduced standalone at
+14-17s real time and PASSES at `--testTimeout 30000` — a pre-existing
+machine-speed flake in an unrelated test (`codex_ships` batch-splitting
+retry logic, untouched by this branch), not a regression from this change.
