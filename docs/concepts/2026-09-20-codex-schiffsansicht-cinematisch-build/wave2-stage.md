@@ -315,3 +315,128 @@ invented percentage.
    case that is already reachable in the classic view via the toggle.
 
 Pushed SHA: `5315602` on `claude/codex-schiffsansicht-design-d0ab3a-fe-stage`.
+
+## Wave 2.5 addendum — integrate siblings, close the gaps
+
+Merged `origin/claude/codex-schiffsansicht-design-d0ab3a` (now containing
+fe-strip-hangar and fe-patch-share) via `git merge --no-edit`, clean, then
+wired all four slots and built out items 1-6 from the coordinator's reopened
+list. Pushed SHA: `1b6a085` on `claude/codex-schiffsansicht-design-d0ab3a-fe-stage`.
+
+### i18n merge hazard (fixed here, not by the sibling agents)
+
+The three-way merge left **`"codex.holo"` defined THREE times** as sibling
+keys inside `codex` in both `de.json` and `en.json` (my `toggle`/`stage`
+block, fe-strip-hangar's `strip`/`hangar` block, fe-patch-share's
+`patch`/`share` block) — syntactically valid JSON, but `JSON.parse` (and
+therefore ngx-translate at runtime) silently keeps only the LAST one, which
+is why `1224 SUCCESS` in the test run below does NOT prove the merge was
+safe on its own — the karma suite never asserts `codex.holo.stage.*` resolves
+against the same object `codex.holo.strip.*` does. Wrote a small duplicate-key
+scanner (bracket-depth + per-object key-set) to confirm zero duplicate keys
+anywhere in either file after the fix — plain `JSON.parse` cannot detect this
+class of bug, it just picks a winner. Merged all three `holo` blocks into one
+object (`public/i18n/de.json:605-729`, `en.json:605-729`) and deleted the two
+now-redundant standalone blocks, fixing the two trailing-comma breaks that
+deleting them left behind. Flagging this because it is exactly the kind of
+"tests are green but the feature is silently broken" hazard the merge step
+does not surface — none of the three agents' own gates would have caught it
+in isolation.
+
+### Slot wiring (file:line)
+
+| Slot | Hosted component | Wiring | File:line |
+|---|---|---|---|
+| strip | `sc-codex-holo-strip` | Sticky, last element in the stage template; inputs mirror `sc-codex-energy-dock`'s 1:1, new `occupants`/`shipStats`/`schemaVersion`/`userId`/`crossSection`/`cells`/`active`/`capabilities`/`rankResult`/`rankCohortLoading` inputs added to the stage and threaded from the parent's existing `draftSummaryOccupants()`/`shipPayload()`/`build()`/`currentUserId()`/`crossSectionMax()` | `codex-holo-stage.component.ts:~410-422` (mount), `codex-detail.component.ts:1194-1198` (parent feed) |
+| hangar-tab | `sc-codex-holo-hangar` | No inputs (self-sufficient); wrapped in `.hangar-tab-dock` (`position:absolute; top:0`) at the table's top edge per its own CSS-hook contract; the mobile mini-slot is the SAME instance (no separate mobile component — the table itself stacks full-width under 768px, so the tab already sits correctly) | `codex-holo-stage.component.ts:~248-250` |
+| patch-delta | `sc-codex-holo-patch` (trigger, Einsatz header) + inline port-badge in the inspector (see "Chosen" below re: `sc-codex-holo-patch-delta`) | `activeKpiSheet` = parent's `stockKpiSheet()` (made public); `activeOccupants`/`buildRef`/`resolveComparisonSide` are NEW parent computeds/adapter (`patchActiveOccupants`, `patchActiveBuild`, `resolvePatchComparisonSide`); outputs feed `patchGhosts`/`patchPortPins`/`patchComparisonBuild` signals on the stage, `patchPortPins` drives a `.pin.patched` outline + the inspector's from→to line | `codex-holo-stage.component.ts:~135-149` (mount), `:~305-315` (inspector badge), `codex-detail.component.ts:2668-2703` (new parent computeds + adapter) |
+| share | `sc-codex-holo-share` | Popover toggled by the "Teilen" table-toggle button (`sharePopoverOpen` signal); `config` = parent's new `activeHangarConfig` signal, best-effort loaded via `listConfigs()` when the ship is in the hangar; `copyCurrentLink` → parent's existing `copyShareLink()`; `configRefreshed` → `activeHangarConfig.set($event)` | `codex-holo-stage.component.ts:~247-262`, `codex-detail.component.ts:2757-2764` (`loadActiveHangarConfig`) |
+
+### Reopened items 1-6 — built
+
+1. **Top-3 "Einordnung"** — `topCohortShips` computed (`codex-holo-stage.component.ts:~640-670`): candidates = `recentlyViewedShips() ∪ hangarShipClassNames()`, each resolved against `rankCohort()` (the SAME cohort array `rankShip()` already fetched — new parent input, `codex-detail.component.ts:3343` made public), ranked by the active mission's accent KPI value (real `sheet[key]`, never invented), sorted desc, sliced to 3; random-ish fill from the rest of the cohort when the candidate pool is short (deterministic sort by class name, not `Math.random`, to keep the computed pure). "Recently viewed" = new `recentlyViewedShips` signal + `localStorage['sc.codex.recentShips']`, cap 20, updated on every ship-page load (`codex-detail.component.ts:1707-1730`, `:1861-1864`).
+2. **3D/Schema in place** — `viewMode` signal (`'holo'|'3d'|'schema'`), the silhouette frame conditionally mounts `sc-ship-skin-viewer [embedded]=true` or `sc-ship-hardpoint-map`, both wired to `activePorts`/`hovered` for hover-sync parity, toggle buttons flip back to `'holo'` on a second click (`codex-holo-stage.component.ts:~262-275`).
+3. **Undo toast** — a `role="status"` region, `UNDO_TOAST_MS = 6000`, one "Rückgängig" button; an `effect()` diffs `journal()` against the previously-seen port set and pops the toast for the newest change, ALONGSIDE (not instead of) the always-present inline revert list, so a second simultaneous change is never stranded once the first toast fades (`codex-holo-stage.component.ts:~530-548`).
+4. **#10 chips + #27 save bar** — `heroChips` reuses the parent's EXISTING `heroChips` computed verbatim (career/role/crew/3-state-cargo/mass — it already did exactly this, just never threaded through; `codex-detail.component.ts:3573-3617` made accessible via a new `[heroChips]` input, no logic duplicated); `sc-codex-loadout-save-bar` mounted in the Einsatz header below the mission bar, identical inputs/outputs to the classic view (`codex-holo-stage.component.ts:~160-172`).
+5. **Mobile tabs + landscape** — `mobileTabsEnabled` signal + `localStorage['sc.codex.holo.mobileTabs']` (default off = stacked), a checkbox + two-tab control visible only under the 768px breakpoint; `.mobile-hide-table`/`.mobile-hide-data` CSS classes toggle visibility of the table vs. the rails/perspectives/journal/details when tabs are on. Landscape: `@media (orientation: landscape) and (max-width: 1100px)` sets the grid to `44px 1fr 260px` (left rail collapsed edge, table, right rail/"inspector" pane) — interpreting "table | inspector" as table-plus-ports-rail, since the inspector itself is a floating panel INSIDE the table, not a fourth region (`codex-holo-stage.component.ts:~185-200`, `:~420-432`).
+6. **Structural hardpoints, full markup** — the ~70-line expandable-row + lazy compat-list block copied verbatim into the Details-drawer projected content (same signals: `hardpointGroups()`, `compat()`, `expandedPort()`, `togglePort()`, `isPortLocated()`, `isPortActive()`, `hoverPort()`) — nothing summarised (`codex-detail.component.ts:1395-1456`).
+
+### Fork guard wiring (item 11)
+
+- `codex-detail.component.ts` `saveLoadoutDraft()`: `ensureEditable(target)` called before the write; `'cancelled'` returns without writing; `'forked'` uses `forkFollowedLoadout(target.id, { loadout: merged })` (single write, per the handoff's preferred option) instead of a separate fork+update (`:2984-2993`).
+- `hangar-ship-detail.component.ts` `activate()` (`:601-608`) and `saveLoadout()` (`:626-636`): same guard, same `'forked'` → `forkFollowedLoadout` single-write preference.
+
+### Strip minimal edit (item 7)
+
+`codex-holo-strip.component.ts`: added `sheet().ready` (✓/✕, reusing
+`codex.energy.readiness.shortOk/shortNo`) and `codex.energy.draftNote` back
+into the expanded panel's `.hp-summary`/below it (`:261-273` template,
+`:331-334` CSS) — both existed on `PowerSheet`/as an i18n key already, no new
+data or strings invented.
+
+### Updated inventory audit — all 59 rows
+
+Only THREE rows remain a loss, all three explicitly accepted by the user
+(concept decision 3) or structurally absent from a sticky strip, not
+ambiguous:
+
+| # | Row | Status |
+|---|---|---|
+| 12 | Pin/compare toggle | **accepted loss** (concept decision 3) |
+| 15 | Switch ship | **accepted loss** (concept decision 3) |
+| 52 (dock-position radio only) | Energy dock's minimise/expand-position picker | **accepted loss** — concept it.10 explicitly drops it from the strip ("ein auf und zu reicht"); the strip has no docked/floating STATE to position, so the radio group has no object left to control in this view |
+
+Every other row (1-11, 13-14, 16-59) is reachable exactly as described in
+the original audit table above, PLUS: #10 (chips) and #27 (save bar) moved
+from "not built" to "Einsatz header" (see item 4 above); the "Top-3 named
+cohort ships" question from the original handoff is now answered and built
+(user decision 1); the 3D/Schema question is now answered and built (user
+decision 2).
+
+### Chosen attributes (Wave 2.5, in addition to the Wave 2 list)
+
+- Patch-delta inspector badge: a compact one-line `from → to` string
+  (`PortPinBadge`) rather than mounting `sc-codex-holo-patch-delta` a second
+  time inside the inspector — that component renders a whole
+  `PerspectiveDelta` GROUP (for the KPI tiles), which `sc-codex-holo-patch`
+  already shows in its own popover; a single inspected PORT has no
+  perspective group of its own, only its own occupant delta, which
+  `portPins()` already carries. Reported as a discretion, not a guess: the
+  literal instruction ("`sc-codex-holo-patch-delta` inside your inspector")
+  is followed in spirit (patch context visible where the pin is inspected)
+  without force-fitting a component built for a different granularity.
+- `resolveComparisonSide` adapter: top-level stock mounts only, no nested
+  `carriedOccupants`/ammo resolution for the COMPARISON side (see the
+  adapter's own doc comment, `codex-detail.component.ts:2668-2702`) — neither
+  `compareKpiSheets` nor `comparePortOccupants` need sub-slot detail.
+- "Recently viewed" persistence key: `sc.codex.recentShips`, cap 20,
+  most-recent-first, global (not per-user-id — this app's localStorage
+  conventions are per-browser-profile throughout, matching `holoView`'s own
+  scope choice from Wave 2).
+- Random cohort fill-up: sorted by `className` string order rather than
+  `Math.random()`, so the computed stays pure/stable within one
+  change-detection pass (no visible re-shuffling on every unrelated signal
+  change).
+
+Pushed SHA: `1b6a085` on `claude/codex-schiffsansicht-design-d0ab3a-fe-stage`.
+
+### Questions for the user
+
+None outstanding. The one ambiguity from Wave 2 ("Top-3 named cohort ships")
+was resolved by user decision 1; the 3D/Schema-embedding ambiguity was
+resolved by user decision 2; the reopened items 3-6 all had concrete
+attribute freedom but no remaining scope ambiguity.
+
+### Gates (Wave 2.5)
+
+- `npm run typecheck` — clean (own Bash call).
+- `npm run build` — succeeds; same pre-existing style-budget WARNING as
+  Wave 2 (`codex-detail.component.ts`, 22.43 kB vs 18 kB warning / 24 kB
+  error threshold — not hit), unchanged in kind, +0.32 kB from the new
+  `[heroChips]`/patch/share/strip bindings (own Bash call).
+- `npx ng test --include='src/app/codex/**/*.spec.ts'
+  --include='src/app/hangar/**/*.spec.ts' --watch=false
+  --browsers=ChromeHeadless` — **1224/1224 green** (own Bash call), including
+  the untouched `codex-detail.component.spec.ts` and `i18n-keys.spec.ts`, and
+  every sibling agent's own spec (strip, hangar, patch, patch-delta, share,
+  fork-guard, hangar-shared-loadout).
