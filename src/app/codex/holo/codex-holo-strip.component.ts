@@ -229,7 +229,7 @@ let uidSeq = 0;
                     }
                   </div>
                   <div class="tipw">
-                    <button type="button" class="grp-btn" [attr.aria-pressed]="row.cut" (click)="toggleGroup(row.key)">
+                    <button type="button" class="grp-btn" [attr.aria-pressed]="row.cut" [attr.aria-label]="(row.cut ? 'codex.energy.toggleOn' : 'codex.energy.toggleOff') | translate: { group: row.labelKey | translate: row.labelParams }" (click)="toggleGroup(row.key)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ico" aria-hidden="true">
                         <path [attr.d]="iconPath(row.group)" />
                       </svg>
