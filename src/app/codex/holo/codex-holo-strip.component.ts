@@ -261,11 +261,17 @@ let uidSeq = 0;
           <div class="hp-summary">
             @if (sheet().available) {
               <span class="v">{{ sheet().budgetUsed }}&nbsp;/&nbsp;{{ sheet().budgetTotal }} {{ 'codex.energy.unit.segments' | translate }}</span>
+              <span class="ok" [class.no]="!sheet().ready" [attr.title]="(sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate">
+                {{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}
+              </span>
             } @else {
               <span class="gapv">—</span>
             }
             <span class="mode">{{ ('codex.energy.mode.' + mode()) | translate }}</span>
           </div>
+          @if (sheet().available) {
+            <p class="draft-note">{{ 'codex.energy.draftNote' | translate }}</p>
+          }
         </div>
       }
     </div>
@@ -359,6 +365,9 @@ let uidSeq = 0;
       .hp-cooling .t.over .fill { background: var(--sc-danger); }
       .hp-summary { display: flex; gap: 10px; align-items: center; font-variant-numeric: tabular-nums; color: var(--sc-fg-1); }
       .hp-summary .mode { text-transform: uppercase; letter-spacing: 0.1em; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .hp-summary .ok { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-success, #4caf50); }
+      .hp-summary .ok.no { color: var(--sc-danger, #ff5252); }
+      .draft-note { margin: 4px 0 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
 
       /* concept it.1 fb-ready count-up pulse — reduced away below. */
       .pulse { transition: color 0.4s ease; }

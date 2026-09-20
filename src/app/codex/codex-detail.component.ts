@@ -207,6 +207,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
+import { CodexHoloForkGuard } from './holo/codex-holo-fork-guard';
+import type { BuildRef, PortOccupantMap } from './codex-build-compare';
+import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 
 // Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
 interface PortCompat {
@@ -1168,6 +1171,30 @@ interface GearRecipe {
             [shipFactGroups]="shipFactGroups()"
             [reducedMotion]="prefersReducedMotion()"
             [seenThisSession]="holoSeenThisSession()"
+            [rankCohort]="rankCohort()"
+            [recentlyViewedShips]="recentlyViewedShips()"
+            [hangarShipClassNames]="hangarShipClassNames()"
+            [hardpointPortRefs]="hardpointPortRefs()"
+            [hardpointFrame]="hardpointFrame()"
+            [hardpointMarkers]="hardpointMarkers()"
+            [shipClassName]="shipClassName()"
+            [saveableCount]="saveableEntries().length"
+            [saving]="saving()"
+            [saveError]="saveError()"
+            [inHangar]="inHangar()"
+            [buildRef]="patchActiveBuild()"
+            [channel]="build()?.channel ?? 'LIVE'"
+            [activeKpiSheet]="stockKpiSheet()"
+            [activeOccupants]="patchActiveOccupants()"
+            [resolveComparisonSide]="resolvePatchComparisonSide"
+            [myConfig]="activeHangarConfig()"
+            [patchVersion]="build()?.patchVersion ?? ''"
+            [occupants]="draftSummaryOccupants()"
+            [shipStats]="shipPayload()?.stats ?? null"
+            [schemaVersion]="build()?.schemaVersion ?? null"
+            [userId]="currentUserId()"
+            [crossSection]="crossSectionMax()"
+            [heroChips]="heroChips()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="openSwapPicker($event)"
@@ -1175,6 +1202,11 @@ interface GearRecipe {
             (missionChange)="setMission($event)"
             (rankProfileChange)="rankProfile.set($event)"
             (rankScopeChange)="rankScope.set($event)"
+            (addToHangar)="addToHangar()"
+            (saveDraft)="saveLoadoutDraft()"
+            (discardDraft)="discardLoadoutDraft()"
+            (configRefreshed)="activeHangarConfig.set($event)"
+            (sheetChange)="powerSheet.set($event)"
             (copyShareLink)="copyShareLink()">
             <!-- Details drawer content — reused verbatim via content
                  projection, so the ship-link form, edition/skin pickers,
@@ -1362,6 +1394,66 @@ interface GearRecipe {
               <section class="sc-card block">
                 <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
                 <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
+                @if (!hasLoadoutSection() && hardpointFrame(); as frame) {
+                  <sc-ship-hardpoint-map
+                    [markers]="hardpointMarkers()"
+                    [frame]="frame"
+                    [activePorts]="activePorts()"
+                    (hovered)="setActivePorts($event)" />
+                }
+                @for (g of hardpointGroups(); track g.category) {
+                  <div class="hp-group">
+                    <h3 class="hp-cat">
+                      {{ ('codex.portCategory.' + g.category) | translate }}
+                      <span class="hp-ct">{{ g.ports.length }}</span>
+                    </h3>
+                    <ul class="hp-list">
+                      @for (port of g.ports; track port.portIndex) {
+                        <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex"
+                            [class.located]="isPortLocated(port)" [class.on]="isPortActive(port)"
+                            (mouseenter)="hoverPort(port)" (mouseleave)="setActivePorts(null)">
+                          <button type="button" class="hp-head" (click)="togglePort(port)" [disabled]="port.types.length === 0">
+                            <span class="hp-caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '·' }}</span>
+                            <span class="hp-name">{{ humanizePort(port.portName) }}</span>
+                            <span class="hp-meta">
+                              <span class="hp-size">{{ sizeRange(port.minSize, port.maxSize) }}</span>
+                              @for (t of port.types; track t) { <span class="chip">{{ humanizeType(t) }}</span> }
+                            </span>
+                          </button>
+                          @if (expandedPort() === port.portIndex) {
+                            <div class="compat">
+                              @if (compat(port.portIndex); as c) {
+                                @if (c.loading) {
+                                  <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
+                                } @else if (c.error) {
+                                  <span class="err-inline">{{ c.error }}</span>
+                                } @else if (c.items.length === 0) {
+                                  <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
+                                } @else {
+                                  <div class="compat-head">{{ 'codex.detail.compatCount' | translate: { count: c.items.length } }}</div>
+                                  <ul class="compat-list">
+                                    @for (it of c.items; track it.kind + it.classNameSlug) {
+                                      <li>
+                                        <a class="compat-link" [routerLink]="['/codex', it.kind, it.classNameSlug]">
+                                          {{ it.nameLocalized || it.classNameSlug }}
+                                        </a>
+                                        <span class="compat-meta">
+                                          @if (it.size != null) { <span class="chip">S{{ it.size }}</span> }
+                                          @if (it.grade) { <span class="chip">{{ it.grade }}</span> }
+                                          @if (it.manufacturerCode) { <span class="chip">{{ it.manufacturerCode }}</span> }
+                                        </span>
+                                      </li>
+                                    }
+                                  </ul>
+                                }
+                              }
+                            </div>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
               </section>
             }
             <section class="sc-card block raw-block">
@@ -1915,6 +2007,7 @@ interface GearRecipe {
 })
 export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
+  private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -1993,6 +2086,76 @@ export class CodexDetailComponent implements OnInit {
     if (this.holoView()) this.holoSeenShips.add(className);
   }
 
+  /** Wave 2.5 (item 8/slot: hangar-tab + top-3): this user's OTHER hangar
+   * ships, by slug — same format as `classNameSlug`/`recentlyViewedShips`
+   * (`inHangar` above already compares `s.shipClassName` to a slug 1:1). */
+  readonly hangarShipClassNames = computed(() => this.hangar.ships().map((s) => s.shipClassName));
+
+  /** Wave 2.5 (slot: patch-delta): the currently-shown build, as the
+   * `BuildRef` shape `sc-codex-holo-patch` wants. */
+  readonly patchActiveBuild = computed<BuildRef | null>(() => {
+    const b = this.build();
+    return b ? { id: b.id, patchVersion: b.patchVersion } : null;
+  });
+
+  /** Wave 2.5 (slot: patch-delta): STOCK port→className map (never the
+   * draft — see `stockKpiSheet`'s comment). */
+  readonly patchActiveOccupants = computed<PortOccupantMap>(() => {
+    const out: Record<string, string | null> = {};
+    for (const l of this.loadoutAll()) {
+      if (l.port) out[l.port] = l.className;
+    }
+    return out;
+  });
+
+  /** Wave 2.5 (slot: patch-delta) — the `resolveComparisonSide` adapter
+   * `sc-codex-holo-patch` needs (wave2-patch-share.md §A): a pure-enough
+   * function of an ARBITRARY `CodexDetail`, generalised from this page's own
+   * `kpiShipInput`/`summaryOccupants` shaping. Simplification (discretion,
+   * reported in wave2-stage.md): top-level stock mounts only — a swapped
+   * mount's OWN nested sub-slots (`carriedOccupants`) and per-round ammo
+   * payloads are not resolved for the comparison side, since neither the
+   * KPI headline figures nor the port-occupant Δ (`comparePortOccupants`,
+   * which only ever needs one className per TOP-LEVEL port) depend on them.
+   */
+  readonly resolvePatchComparisonSide = async (detail: CodexDetail): Promise<HoloPatchComparisonSide> => {
+    const payload = detail.payload as ShipPayload;
+    const entries = payload.defaultLoadout ?? [];
+    const classNames = [...new Set(entries.map((e) => e.entityClassName).filter((c): c is string => !!c))];
+    const payloads = await this.svc.getEntityPayloads(classNames);
+    const occupants: Record<string, string | null> = {};
+    const summary: SummaryOccupant[] = [];
+    for (const e of entries) {
+      if (!e.itemPortName) continue;
+      occupants[e.itemPortName] = e.entityClassName ?? null;
+      const hit = e.entityClassName ? payloads.get(e.entityClassName) : undefined;
+      const pl = hit?.payload ?? null;
+      const occ = {
+        entityKind: (pl as { entityKind?: string } | null)?.entityKind ?? hit?.kind ?? null,
+        componentKind: (pl as { kind?: string } | null)?.kind ?? null,
+        subType: (pl as { subType?: string } | null)?.subType ?? null,
+        attachType: (pl as { attachType?: string } | null)?.attachType ?? null,
+      };
+      const section = classifyShipModule(e.itemPortName, occ) as ShipModuleSection;
+      summary.push({ section, kind: hit?.kind ?? null, payload: pl, ammoPayload: undefined, count: 1, passive: false });
+    }
+    const kpiShipInput: KpiShipInput = { flight: payload.flight, stats: payload.stats ?? null };
+    return { kpiSheet: computeKpiSheet(summary, kpiShipInput), occupants };
+  };
+
+  /** Wave 2.5 (slot: share) — this ship's active hangar config, loaded
+   * best-effort so `sc-codex-holo-share` can offer a share link / follow
+   * hint. `null` when signed out, not in the hangar, or not yet loaded. */
+  readonly activeHangarConfig = signal<HangarShipConfig | null>(null);
+
+  private async loadActiveHangarConfig(classNameSlug: string): Promise<void> {
+    if (!this.auth.user()) return;
+    const ship = this.hangar.shipByClassName(classNameSlug);
+    if (!ship) return;
+    const configs = await this.hangar.listConfigs(ship.id);
+    this.activeHangarConfig.set(configs.find((c) => c.isActive) ?? configs[0] ?? null);
+  }
+
   toggleHoloView(): void {
     const next = !this.holoView();
     this.holoView.set(next);
@@ -2022,6 +2185,36 @@ export class CodexDetailComponent implements OnInit {
   readonly prefersReducedMotion = signal(
     typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)').matches : false,
   );
+
+  /**
+   * Wave 2.5 (user decision 1): "recently viewed" ship slugs, most-recent
+   * first, capped at 20 — the Holotable "Einordnung" top-3 candidate pool.
+   * A tiny, purely-local read history; never sent anywhere.
+   */
+  private static readonly RECENT_SHIPS_KEY = 'sc.codex.recentShips';
+  private static readonly RECENT_SHIPS_CAP = 20;
+  readonly recentlyViewedShips = signal<string[]>([]);
+
+  private loadRecentShips(): string[] {
+    try {
+      const raw = localStorage.getItem(CodexDetailComponent.RECENT_SHIPS_KEY);
+      const list = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(list) ? list.filter((v): v is string => typeof v === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private recordRecentShip(classNameSlug: string): void {
+    const existing = this.loadRecentShips().filter((s) => s !== classNameSlug);
+    const next = [classNameSlug, ...existing].slice(0, CodexDetailComponent.RECENT_SHIPS_CAP);
+    this.recentlyViewedShips.set(next);
+    try {
+      localStorage.setItem(CodexDetailComponent.RECENT_SHIPS_KEY, JSON.stringify(next));
+    } catch {
+      /* localStorage unavailable — the in-memory list still works this tab */
+    }
+  }
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -2253,6 +2446,10 @@ export class CodexDetailComponent implements OnInit {
         // that in the service).
         if (kind === 'ship') {
           void this.svc.silhouette?.('ship', d.classNameSlug)?.then((s) => this.shipSilhouette.set(s));
+          this.recentlyViewedShips.set(this.loadRecentShips());
+          this.recordRecentShip(d.classNameSlug);
+          this.activeHangarConfig.set(null);
+          void this.loadActiveHangarConfig(d.classNameSlug);
         }
       }
     } catch (err) {
@@ -2914,7 +3111,15 @@ export class CodexDetailComponent implements OnInit {
       }
       const touched = touchedTopPorts(this.draft(), this.joinablePorts());
       const merged = mergeSavedLoadout(target.loadout, this.saveableEntries(), touched);
-      const updated = await this.hangar.updateConfig(target.id, { loadout: merged });
+      // Wave 2.5 (fork guard, wave2-patch-share.md §D): a config the viewer
+      // only FOLLOWS may never be edited directly — offer the one-time fork
+      // before this write, abort silently on decline.
+      const guard = await this.forkGuard.ensureEditable(target);
+      if (guard === 'cancelled') return;
+      const updated =
+        guard === 'forked'
+          ? await this.hangar.forkFollowedLoadout(target.id, { loadout: merged })
+          : await this.hangar.updateConfig(target.id, { loadout: merged });
       if (!updated) {
         this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
         return;
@@ -3301,7 +3506,10 @@ export class CodexDetailComponent implements OnInit {
     return { flight: p.flight, stats: p.stats ?? null };
   });
 
-  private readonly stockKpiSheet = computed(() =>
+  /** Public since Wave 2.5: the patch-Δ trigger's `activeKpiSheet` input is
+   * this EXACT stock sheet, never the viewer's unsaved draft (patch-share
+   * handoff §A: "compares two PATCHES, not the draft against a patch"). */
+  readonly stockKpiSheet = computed(() =>
     computeKpiSheet(this.summaryOccupants(), this.kpiShipInput()),
   );
   private readonly currentKpiSheet = computed(() =>
@@ -3330,7 +3538,9 @@ export class CodexDetailComponent implements OnInit {
    * build (cached in `CodexService.getRankCohort`) and never blocking the
    * page: the card renders its loading skeleton, then its gap state if the
    * fetch failed, and only ever a real percentile once this lands. */
-  private readonly rankCohort = signal<RankShipInput[] | null>(null);
+  /** Public since Wave 2.5: the Holotable "Einordnung" top-3 (item 1) ranks
+   * candidate ships against this SAME cohort data — never a second fetch. */
+  readonly rankCohort = signal<RankShipInput[] | null>(null);
   readonly rankCohortLoading = signal(false);
 
   /** Holotable silhouette (Wave 2), current build only, ship kind only. */
