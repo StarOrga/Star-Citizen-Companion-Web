@@ -543,13 +543,13 @@ const UNDO_TOAST_MS = 6000;
       background: var(--sc-accent); border: 2px solid var(--sc-bg-0); cursor: pointer; padding: 0; }
     .pin.unresolved { background: transparent; border: 2px dashed var(--sc-fg-2); }
     .pin.active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sc-accent) 35%, transparent); }
-    .pin.patched { outline: 2px solid var(--sc-accent-hot); outline-offset: 1px; }
+    .pin.patched { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
     .inspector { position: absolute; bottom: 8px; inset-inline-end: 8px; width: min(260px, 90%); background: var(--sc-bg-0);
       border: 1px solid var(--sc-accent); border-radius: 8px; padding: 10px; z-index: 3; }
     .inspector-close { position: absolute; top: 4px; inset-inline-end: 6px; background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); }
     .inspector-port { margin: 0 0 8px; font-size: 12px; color: var(--sc-fg-0); }
-    .inspector-patch-delta { margin: 0 0 8px; font-size: 11px; color: var(--sc-accent-hot); }
+    .inspector-patch-delta { margin: 0 0 8px; font-size: 11px; color: var(--sc-accent); }
     .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }
     .inspector-actions { display: flex; gap: 8px; }
 
