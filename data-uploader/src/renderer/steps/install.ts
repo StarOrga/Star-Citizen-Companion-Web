@@ -33,6 +33,10 @@ async function autoScan(): Promise<void> {
   } catch {
     /* leave channels empty — the empty state below explains next steps */
   } finally {
+    // The bottom strip only renders while it has content — clear the
+    // "scanning…" status the moment the scan settles, or it sits there
+    // forever (the spinner already disappears; nothing else invalidates it).
+    setStatus('');
     state.scanning = false;
     state.scanned = true;
     paintChannels();

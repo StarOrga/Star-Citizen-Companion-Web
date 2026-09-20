@@ -46,7 +46,8 @@
       "watch": "Ich schaue zu",
       "unattended": "Unbeaufsichtigt"
     },
-    "moreSettings": "Mehr in den Einstellungen"
+    "moreSettings": "Mehr in den Einstellungen",
+    "whenDoneHint": "60-s-Countdown zum Abbrechen · gilt nur für diesen Lauf, wird nie gespeichert"
   },
   "category": {
     "ships": "Schiffe",
@@ -62,8 +63,8 @@
     "countingDown": "Fährt in {{secs}} s herunter — Esc zum Abbrechen."
   },
   "discover": {
-    "title": "Star-Citizen-Installations finden",
-    "subtitle": "Läuft automatisch beim Start: RSI-Launcher → Filesystem-Scan. Weitere Ordner kannst du unten manuell hinzufügen.",
+    "title": "Star Citizen gefunden",
+    "subtitle": "Automatisch gesucht: RSI-Launcher → Laufwerke. Eine Spielversion pro Lauf.",
     "scan": "Scan starten",
     "scanning": "Suche nach Installationen…",
     "manual": "Ordner manuell wählen",
@@ -73,8 +74,8 @@
     "next": "Weiter → Konfiguration"
   },
   "configure": {
-    "title": "Profil wählen",
-    "subtitle": "Live umschaltbar — du kannst während des Laufs wechseln.",
+    "title": "Umfang wählen",
+    "subtitle": "Tempo ist später jederzeit umschaltbar, der Umfang nicht.",
     "start": "Extraktion starten",
     "autoUpload": "Nach der Extraktion automatisch hochladen",
     "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).",
@@ -89,7 +90,7 @@
     }
   },
   "run": {
-    "title": "Extraktion läuft",
+    "title": "Auslesen — Spieldaten",
     "next": "Upload anbieten",
     "cancel": "Lauf abbrechen…",
     "logTitle": "Protokoll",
@@ -108,16 +109,16 @@
       "disarm": "Entwaffnen"
     },
     "phase": {
-      "discover": "Installation analysieren",
-      "plan": "Lauf planen",
-      "extract": "Spieldaten extrahieren",
-      "validate": "Ergebnis prüfen",
-      "bundle": "Bundle schnüren",
+      "discover": "Spiel lesen",
+      "plan": "Planen",
+      "extract": "Auslesen",
+      "validate": "Prüfen",
+      "bundle": "Bundle packen",
       "done": "Fertig"
     },
     "stage": {
       "open": "Data.p4k öffnen",
-      "datacore": "DataCore dekomprimieren",
+      "datacore": "Spieldaten entpacken",
       "localization": "Übersetzungen lesen",
       "reference": "Referenzdaten",
       "entities": "Entitäten katalogisieren",
@@ -254,7 +255,7 @@
       "shutdown": "PC herunterfahren"
     },
     "diagnostics": {
-      "hint": "Version, Plattform und Token-Fingerabdruck stehen unten in der Statusleiste."
+      "title": "Diagnose"
     },
     "updateChannel": {
       "label": "Update-Ring",

@@ -354,6 +354,7 @@ async function init(): Promise<void> {
     onEnter: () => {
       if (state.view === 'discover') InstallStep.primaryAction();
       else if (state.view === 'configure') SetupStep.primaryAction();
+      else if (state.view === 'run') ($('#btn-upload-now') as HTMLButtonElement | null)?.click();
       else if (state.view === 'done') DoneStep.primaryAction();
     },
     onSpace: () => toggleUploadPauseResume(),
@@ -409,17 +410,17 @@ async function init(): Promise<void> {
 /** Hand the tray its strings, resolved from the renderer's dictionary. */
 function pushTrayLabels(): void {
   window.sc.tray.setLabels({
-    open: t('tray.open', {}) || 'Fenster öffnen',
-    quit: t('tray.quit', {}) || 'Beenden',
-    pauseUpload: t('upload.job.pause', {}) || 'Pause',
-    resumeUpload: t('upload.job.resumeAction', {}) || 'Upload fortsetzen',
-    hiddenHint: t('tray.hiddenHint', {}) || 'Läuft im Tray weiter.',
-    idle: t('tray.idle', {}) || 'Bereit',
-    extract: t('tray.extract', {}) || 'Extraktion',
-    upload: t('tray.upload', {}) || 'Upload',
-    done: t('tray.done', {}) || 'fertig',
-    error: t('tray.error', {}) || 'fehlgeschlagen',
-    paused: t('upload.job.pauseShort', {}) || 'pausiert',
+    open: t('tray.open'),
+    quit: t('tray.quit'),
+    pauseUpload: t('upload.job.pause'),
+    resumeUpload: t('upload.job.resumeAction'),
+    hiddenHint: t('tray.hiddenHint'),
+    idle: t('tray.idle'),
+    extract: t('tray.extract'),
+    upload: t('tray.upload'),
+    done: t('tray.done'),
+    error: t('tray.error'),
+    paused: t('upload.job.pauseShort'),
   });
 }
 
@@ -436,7 +437,7 @@ async function maybeAutoRun(): Promise<void> {
   // already paid for, and re-running would duplicate the work.
   await refreshJobView();
   if (state.resumableJob?.resumable) {
-    setStatus(t('autorun.resumeFirst', {}) || 'Unterbrochener Upload gefunden — Auto-Lauf übersprungen.');
+    setStatus(t('autorun.resumeFirst'));
     state.view = 'auth-upload';
     render();
     return;
@@ -670,7 +671,7 @@ export async function connectNow(): Promise<void> {
       requireFreshLogin = false; // signed in this session
       await refreshConnection();
     } else {
-      conn.error = r.error ?? (t('session.connectFailed', {}) || 'Anmeldung fehlgeschlagen');
+      conn.error = r.error ?? (t('session.connectFailed'));
       paintConnection();
     }
   } finally {
@@ -731,19 +732,19 @@ function setConnBusy(busy: boolean): void {
 
 function relTime(unixSeconds: number): string {
   const deltaSec = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
-  if (deltaSec < 60) return t('sync.justNow', {}) || 'gerade eben';
+  if (deltaSec < 60) return t('sync.justNow');
   const mins = Math.floor(deltaSec / 60);
-  if (mins < 60) return t('sync.minutesAgo', { n: String(mins) }) || `vor ${mins} Min`;
+  if (mins < 60) return t('sync.minutesAgo', { n: String(mins) });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return t('sync.hoursAgo', { n: String(hours) }) || `vor ${hours} Std`;
+  if (hours < 24) return t('sync.hoursAgo', { n: String(hours) });
   const days = Math.floor(hours / 24);
-  return t('sync.daysAgo', { n: String(days) }) || `vor ${days} Tg`;
+  return t('sync.daysAgo', { n: String(days) });
 }
 
 function connErrorText(code: string): string {
-  if (code === 'reconnect') return t('session.expiredHint', {}) || 'Sitzung abgelaufen — bitte neu verbinden.';
-  if (code === 'not_connected') return t('session.offline', {}) || 'Nicht verbunden.';
-  if (code === 'sync_failed') return t('sync.failed', {}) || 'Sync fehlgeschlagen.';
+  if (code === 'reconnect') return t('session.expiredHint');
+  if (code === 'not_connected') return t('session.offline');
+  if (code === 'sync_failed') return t('sync.failed');
   return code;
 }
 
@@ -773,16 +774,16 @@ function paintConnection(): void {
   const snap = conn.snapshot;
 
   let pillCls = 'offline';
-  let pillText = t('session.offline', {}) || 'Nicht verbunden';
+  let pillText = t('session.offline');
   if (!conn.resolved) {
     pillCls = 'pending';
-    pillText = t('session.checking', {}) || 'Prüfe…';
+    pillText = t('session.checking');
   } else if (s?.connected) {
     pillCls = 'online';
-    pillText = t('session.connected', {}) || 'Verbunden';
+    pillText = t('session.connected');
   } else if (s?.needsReconnect) {
     pillCls = 'warn';
-    pillText = t('session.expired', {}) || 'Sitzung abgelaufen';
+    pillText = t('session.expired');
   }
 
   // Compact top-strip chip: dot + short identity + first server chip. Always
@@ -806,8 +807,8 @@ function paintConnection(): void {
     idBlock = `<span class="conn-email" title="${escapeHtml(s.email ?? '')}">${escapeHtml(s.email ?? '')}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
-      ? t('session.reconnect', {}) || 'Neu verbinden'
-      : t('session.connect', {}) || 'Mit Web verbinden';
+      ? t('session.reconnect')
+      : t('session.connect');
     idBlock = `<span class="conn-state">${pillText}</span>
         <button id="conn-connect" type="button" class="btn btn-primary btn-sm">${label}</button>`;
   } else {
@@ -827,12 +828,12 @@ function paintConnection(): void {
       serverBlock = `
         <span class="conn-div" aria-hidden="true"></span>
         <span class="conn-srv-ico" aria-hidden="true">${IC_CLOUD}</span>
-        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty', {}) || 'Noch keine Bundles auf dem Server.'}</span>`}</div>
-        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) }) || `aktualisiert ${relTime(snap.syncedAt)}`}</span>`;
+        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty')}</span>`}</div>
+        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) })}</span>`;
     } else {
       serverBlock = `
         <span class="conn-div" aria-hidden="true"></span>
-        <span class="conn-fresh">${t('sync.idle', {}) || 'Bereit zu synchronisieren.'}</span>`;
+        <span class="conn-fresh">${t('sync.idle')}</span>`;
     }
   }
 
@@ -841,21 +842,21 @@ function paintConnection(): void {
   let actions = '';
   if (s?.connected) {
     actions = `
-      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh', {}) || 'Aktualisieren'}" aria-label="${t('sync.refresh', {}) || 'Aktualisieren'}">${IC_REFRESH}</button>
-      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut', {}) || 'Abmelden'}" aria-label="${t('session.signOut', {}) || 'Abmelden'}">${IC_LOGOUT}</button>`;
+      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh')}" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
+      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut')}" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
   }
 
   // A running sync replaces the middle with a thin labelled progress bar.
   const syncBar = conn.syncing
     ? `<div class="conn-syncbar">
-        <div class="conn-syncbar-head"><span>${t('sync.syncing', {}) || 'Synchronisiere Server-Stand…'}</span><span class="conn-pct">${conn.syncPct}%</span></div>
+        <div class="conn-syncbar-head"><span>${t('sync.syncing')}</span><span class="conn-pct">${conn.syncPct}%</span></div>
         <div class="progress-bar"><span style="width:${conn.syncPct}%"></span></div>
       </div>`
     : '';
 
   const persistNote =
     s && !s.canPersist
-      ? `<div class="conn-persist-note">${t('session.noPersist', {}) || 'Hinweis: Kein OS-Schlüsselspeicher — Sitzung gilt nur bis zum Schließen.'}</div>`
+      ? `<div class="conn-persist-note">${t('session.noPersist')}</div>`
       : '';
   const errorRow = conn.error ? `<div class="conn-error">${escapeHtml(connErrorText(conn.error))}</div>` : '';
 
@@ -935,14 +936,12 @@ function onUpdateEvent(ev: UpdateEvent): void {
 export function renderDiscoverUpdateBanner(): string {
   const u = state.manualUpdate;
   if (!u) return '';
-  const msg =
-    t('update.manual', { version: u.latestVersion }) ||
-    `Neue Version v${u.latestVersion} verfügbar — Portable kann sich nicht selbst updaten, bitte manuell laden.`;
+  const msg = t('update.manual', { version: u.latestVersion });
   return `
     <div class="discover-update" id="discover-update">
       <span class="discover-update-text">${escapeHtml(msg)}</span>
-      <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload', {}) || 'Download-Seite öffnen'}</button>
-      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss', {}) || 'Schließen'}">✕</button>
+      <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload')}</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss')}">✕</button>
     </div>`;
 }
 
@@ -988,25 +987,22 @@ function paintUpdateBanner(ev: UpdateEvent): void {
       banner.classList.add('hidden');
       return;
     case 'available':
-      text.textContent =
-        (t('update.available', { version: ev.version }) || `Update verfügbar: v${ev.version} — wird im Hintergrund geladen…`);
+      text.textContent = t('update.available', { version: ev.version });
       banner.classList.remove('hidden');
       return;
     case 'progress':
-      text.textContent =
-        (t('update.progress', { pct: String(ev.pct) }) || `Update wird geladen: ${ev.pct}%`);
+      text.textContent = t('update.progress', { pct: String(ev.pct) });
       banner.classList.remove('hidden');
       return;
     case 'downloaded':
-      text.textContent =
-        (t('update.downloaded', { version: ev.version }) || `Update v${ev.version} bereit — bitte App neu starten.`);
-      action.textContent = t('update.install', {}) || 'Jetzt installieren';
+      text.textContent = t('update.downloaded', { version: ev.version });
+      action.textContent = t('update.install');
       action.style.display = 'inline-flex';
       action.onclick = () => void window.sc.update.install();
       banner.classList.remove('hidden');
       return;
     case 'error':
-      text.textContent = (t('update.error', { message: ev.message }) || `Update-Fehler: ${ev.message}`);
+      text.textContent = t('update.error', { message: ev.message });
       banner.classList.remove('hidden');
       banner.classList.add('update-banner-error');
       return;
@@ -1287,30 +1283,45 @@ function renderRun(): string {
         </div>
       </section>
       <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
-      <div class="btn-row view-footer">
+      <div class="btn-row view-footer" id="run-footer">
         <button id="btn-cancel-extract" class="btn btn-danger-ghost">${t('run.cancel')}</button>
-        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next')}</button>
       </div>
     </div>
   `;
 }
 
-// Flip the Run footer into a clear "bundle is ready — upload now" state once the
-// extraction succeeds, so the affordance reads as a positive call-to-action
-// rather than a button that silently un-disables.
+// Flip the Run footer into a clear "bundle is ready" state once the
+// extraction succeeds. When the plan asked for an automatic upload, that
+// transition already happens on its own (see `runRealExtract`) — this only
+// adds a CTA for the "extract only" case, requiring a session before it lets
+// the operator continue (connects first if none is live yet).
 function markBundleReady(): void {
-  const btn = $('#btn-to-upload') as HTMLButtonElement | null;
-  if (btn) {
-    btn.removeAttribute('disabled');
-    btn.classList.add('btn-ready');
-    btn.textContent = `✓ ${t('run.bundleReadyCta')}`;
-  }
   const note = $('#run-ready-note');
   if (note) {
     note.textContent = t('run.bundleReady');
     note.style.display = 'block';
   }
   markCategoriesComplete();
+  if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
+  const footer = $('#run-footer');
+  if (!footer || $('#btn-upload-now')) return;
+  const btn = document.createElement('button');
+  btn.id = 'btn-upload-now';
+  btn.type = 'button';
+  btn.className = 'btn btn-primary btn-ready';
+  btn.innerHTML = `✓ ${t('run.bundleReadyCta')} <kbd class="sc-kbd">Enter</kbd>`;
+  btn.addEventListener('click', () => void goToUploadNow());
+  footer.appendChild(btn);
+}
+
+/** "Jetzt hochladen" on a bundle-ready Extract card without auto-upload — needs a session first. */
+async function goToUploadNow(): Promise<void> {
+  if (!state.authToken) {
+    const token = await ensureUploadToken();
+    if (!token) return;
+  }
+  state.view = 'auth-upload';
+  render();
 }
 
 function wireRun(): void {
@@ -1336,10 +1347,6 @@ function wireRun(): void {
       state.view = 'configure';
       render();
     })();
-  });
-  $('#btn-to-upload')?.addEventListener('click', () => {
-    state.view = 'auth-upload';
-    render();
   });
 }
 
@@ -1499,9 +1506,9 @@ async function runRealExtract(): Promise<void> {
 // progress card so the upload flow reads as a sibling of the Run view.
 function uploadSteps(): ProgressStep[] {
   return [
-    { key: 'bundle', label: t('upload.steps.bundle', {}) || 'Bundle' },
-    { key: 'codex', label: t('upload.steps.codex', {}) || 'Codex' },
-    { key: 'skins', label: t('upload.steps.skins', {}) || '3D-Skins' },
+    { key: 'bundle', label: t('upload.steps.bundle') },
+    { key: 'codex', label: t('upload.steps.codex') },
+    { key: 'skins', label: t('upload.steps.skins') },
   ];
 }
 
@@ -1522,9 +1529,9 @@ const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 
 // Localized labels for the shared progress meta line (throughput / ETA / stall).
 function progressLabels(): Partial<ProgressLabels> {
   return {
-    still: t('progress.still', {}) || 'arbeitet noch',
-    eta: t('progress.eta', {}) || 'Rest',
-    perSec: t('progress.perSec', {}) || '/s',
+    still: t('progress.still'),
+    eta: t('progress.eta'),
+    perSec: t('progress.perSec'),
   };
 }
 
@@ -1697,9 +1704,7 @@ function paintJobNotice(): void {
     notice.style.display = 'block';
   } else if (!running && resumable && job?.resumeHint) {
     // Fallback for an older main process that predates the structured summary.
-    notice.textContent =
-      t('upload.job.resumeBanner', { hint: job.resumeHint }) ||
-      `Unterbrochener Upload gefunden (${job.resumeHint}) — fortsetzen?`;
+    notice.textContent = t('upload.job.resumeBanner', { hint: job.resumeHint });
     notice.style.display = 'block';
   } else {
     notice.style.display = 'none';
@@ -1784,10 +1789,10 @@ function confirmDiscard(opts: ConfirmOptions): Promise<boolean> {
 async function confirmLeave(risk: boolean, messageKey: string, fallbackMsg: string): Promise<boolean> {
   if (!risk) return true;
   return confirmDiscard({
-    title: t('confirm.leave.title', {}) || 'Fortschritt verwerfen?',
+    title: t('confirm.leave.title'),
     message: t(messageKey, {}) || fallbackMsg,
-    confirmLabel: t('confirm.leave.confirm', {}) || 'Verwerfen & zurück',
-    cancelLabel: t('confirm.leave.cancel', {}) || 'Weiter hier bleiben',
+    confirmLabel: t('confirm.leave.confirm'),
+    cancelLabel: t('confirm.leave.cancel'),
   });
 }
 
@@ -1845,14 +1850,14 @@ async function ensureResultForResume(): Promise<boolean> {
 async function doResumeUpload(): Promise<void> {
   if (!(await ensureResultForResume())) return;
   await window.sc.uploadJob.resume();
-  setAuthStatus(t('upload.job.resumed', {}) || 'Upload wird fortgesetzt…', 'ok');
+  setAuthStatus(t('upload.job.resumed'), 'ok');
   await doStartUpload();
 }
 
 async function doDiscardUpload(): Promise<void> {
   state.resumableJob = await window.sc.uploadJob.cancel();
   state.uploadPaused = false;
-  setAuthStatus(t('upload.job.cancelled', {}) || 'Upload verworfen — der Fortschritt wurde gelöscht.', 'warn');
+  setAuthStatus(t('upload.job.cancelled'), 'warn');
   paintJobNotice();
 }
 
@@ -1865,8 +1870,8 @@ function paintReconnectNotice(): void {
   const needsReconnect = conn.status ? !conn.status.connected : false;
   if (needsReconnect) {
     const msg = conn.status?.needsReconnect
-      ? t('upload.reconnectExpired', {}) || 'Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.'
-      : t('upload.reconnectOffline', {}) || 'Nicht mit dem Web verbunden — der Upload-Start meldet dich an.';
+      ? t('upload.reconnectExpired')
+      : t('upload.reconnectOffline');
     el.textContent = msg;
     el.style.display = 'block';
   } else {
@@ -1893,7 +1898,7 @@ async function doStartUpload(): Promise<void> {
   try {
     if (!state.authToken) {
       uploadProgress?.update({
-        phaseLabel: t('upload.signingIn', {}) || 'Im Browser anmelden…',
+        phaseLabel: t('upload.signingIn'),
         indeterminate: true,
         detail: '',
       });
@@ -1901,7 +1906,7 @@ async function doStartUpload(): Promise<void> {
       if (!token) {
         uploadProgress?.update({ indeterminate: false });
         uploadProgress?.stop();
-        setAuthStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
+        setAuthStatus(t('upload.signInFailed'), 'error');
         return;
       }
     }
@@ -1987,8 +1992,8 @@ async function doUploadAfterAuth(): Promise<void> {
   uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
   uploadProgress?.update({
     phaseLabel: resumingPastBundle
-      ? t('catalog.publishing', {}) || 'Codex wird veröffentlicht'
-      : t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
+      ? t('catalog.publishing')
+      : t('upload.bundleUploading'),
     indeterminate: true,
     detail: '',
   });
@@ -2014,7 +2019,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // already on the catalog stage and promoteToCodex owns the bar from here.
   if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
-    `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
+    `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
   );
   paintDiffSummary(r.diffSummary);
@@ -2041,7 +2046,7 @@ async function doUploadAfterAuth(): Promise<void> {
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('skins.buildFailed', {}) || '3D-Skins übersprungen (Bundle ist hochgeladen)'}: ${(err as Error).message}`,
+      `${t('skins.buildFailed')}: ${(err as Error).message}`,
       'warn',
     );
   }
@@ -2051,7 +2056,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // never clean up an out_dir a resume still needs.
   const jobAfterSkins = await window.sc.uploadJob.get();
   if (jobAfterSkins.state?.status === 'paused') {
-    setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    setAuthStatus(t('upload.job.paused'), 'warn');
     return;
   }
 
@@ -2089,8 +2094,8 @@ async function doUploadAfterAuth(): Promise<void> {
       // failed liveries, so that verdict stays on screen — as a warning.
       const skinsWarn = state.skinUploadStatus;
       setAuthStatus(
-        `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'} · ` +
-          (t('upload.cleaned', {}) || 'Extrahierte Dateien aufgeräumt (Upload bestätigt)') +
+        `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'} · ` +
+          (t('upload.cleaned')) +
           (skinsWarn ? ` · ${skinsWarn}` : ''),
         skinsWarn ? 'warn' : 'ok',
       );
@@ -2192,7 +2197,7 @@ async function promoteToCodex(
   progress?: ProgressController | null,
 ): Promise<'ok' | 'failed' | 'paused'> {
   if (!outDir || !state.authToken) return 'failed';
-  const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
+  const label = t('catalog.publishing');
   progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
     // phaseIndex/phaseTotal are additive fields (catalog-bridge.ts) — an
@@ -2205,8 +2210,7 @@ async function promoteToCodex(
         : undefined;
     const stageLbl =
       typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
-        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) }) ||
-          `Step ${ev.phaseIndex}/${ev.phaseTotal}`
+        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) })
         : undefined;
     progress?.update({
       phaseLabel: label,
@@ -2224,7 +2228,7 @@ async function promoteToCodex(
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
       setAuthStatus(
-        `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
+        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
         'ok',
       );
       return 'ok';
@@ -2408,10 +2412,10 @@ async function buildAndUploadSkins(
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
   const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;
-  const label = t('skins.building', {}) || '3D-Skins werden gebaut';
+  const label = t('skins.building');
 
   // 1. ensure cgf-converter (first-use download ~117 MB).
-  const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
+  const toolsLabel = t('skins.stepTools');
   progress?.update({ phaseLabel: toolsLabel, indeterminate: true, detail: '' });
   const unsubTools = window.sc.skin.onToolProgress((pct) =>
     progress?.update({ phaseLabel: toolsLabel, current: pct, total: 100, overallPct: pct, indeterminate: false }),
@@ -2425,7 +2429,7 @@ async function buildAndUploadSkins(
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('skins.toolsFailed', {}) || '3D-Tools nicht verfügbar — Skins übersprungen'}: ${tools.error ?? '—'}`,
+      `${t('skins.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
     return;
@@ -2439,7 +2443,7 @@ async function buildAndUploadSkins(
     phaseLabel: label,
     indeterminate: true,
     detail: '',
-    hint: t('skins.hintBuild', {}) || 'Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.',
+    hint: t('skins.hintBuild'),
   });
   const skinCounters: Record<string, number> = {};
   const unsub = window.sc.skin.onEvent((ev) => {
@@ -2447,9 +2451,7 @@ async function buildAndUploadSkins(
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
       progress?.update({
-        stageLabel:
-          t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
-          `Ship ${ev.current}/${ev.total}`,
+        stageLabel: t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }),
         current: ev.current,
         total: ev.total,
         overallPct: ev.pct,
@@ -2485,7 +2487,7 @@ async function buildAndUploadSkins(
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
-    setAuthStatus(t('skins.none', {}) || 'Keine baubaren 3D-Skins gefunden.', 'ok');
+    setAuthStatus(t('skins.none'), 'ok');
     return;
   }
 

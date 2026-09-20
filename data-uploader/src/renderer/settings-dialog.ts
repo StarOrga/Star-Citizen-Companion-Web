@@ -52,14 +52,15 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
           <span class="settings-row-label">${t('settings.updateChannel.label')}</span>
           <span class="settings-row-hint">${t('settings.updateChannel.hint')} — ${t('settings.adminOnly')}</span>
         </div>
-        <select id="set-ring" aria-label="${t('settings.updateChannel.label')}">
-          ${rings.map((c) => `<option value="${c}" ${c === s.updateChannel ? 'selected' : ''}>${t('settings.updateChannel.' + c)}</option>`).join('')}
-        </select>
+        <div class="segment-group" id="set-ring" role="radiogroup" aria-label="${t('settings.updateChannel.label')}">
+          ${rings.map((c) => `<button type="button" class="segment ${c === s.updateChannel ? 'active' : ''}" data-ring="${c}">${t('settings.updateChannel.' + c)}</button>`).join('')}
+        </div>
       </div>`
       : '';
 
-  const langOptions = LOCALES.map(
-    (l) => `<option value="${l}" ${l === getLocale() ? 'selected' : ''}>${l.toUpperCase()}</option>`,
+  const afterAutoRunOptions: PublicSettings['afterAutoRun'][] = ['keep', 'quit', 'shutdown'];
+  const langSegment = LOCALES.map(
+    (l) => `<button type="button" class="segment ${l === getLocale() ? 'active' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`,
   ).join('');
 
   overlay.innerHTML = `
@@ -75,15 +76,15 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
       </label>
 
       <div class="settings-group">
-        <label class="sc-toggle settings-row" title="${t('tray.autoStartHint')}">
+        <label class="sc-toggle" title="${t('tray.autoStartHint')}">
           <input type="checkbox" id="set-autostart" ${s.autoStart ? 'checked' : ''} />
           <span>${t('tray.autoStart')}</span>
         </label>
-        <label class="sc-toggle settings-row" title="${t('autorun.hint')}">
+        <label class="sc-toggle" title="${t('autorun.hint')}">
           <input type="checkbox" id="set-autorun" ${s.autoRunOnNewVersion ? 'checked' : ''} />
           <span>${t('autorun.toggle')}</span>
         </label>
-        <label class="sc-toggle settings-row" title="${t('tray.quitAfterAutoRunHint')}">
+        <label class="sc-toggle" title="${t('tray.quitAfterAutoRunHint')}">
           <input type="checkbox" id="set-quitafter" ${s.quitAfterAutoRun ? 'checked' : ''} />
           <span>${t('tray.quitAfterAutoRun')}</span>
         </label>
@@ -92,15 +93,13 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
             <span class="settings-row-label">${t('settings.afterAutoRun.label')}</span>
             <span class="settings-row-hint">${t('settings.afterAutoRun.hint')}</span>
           </div>
-          <select id="set-after-autorun" aria-label="${t('settings.afterAutoRun.label')}">
-            <option value="keep" ${s.afterAutoRun === 'keep' ? 'selected' : ''}>${t('settings.afterAutoRun.keep')}</option>
-            <option value="quit" ${s.afterAutoRun === 'quit' ? 'selected' : ''}>${t('settings.afterAutoRun.quit')}</option>
-            <option value="shutdown" ${s.afterAutoRun === 'shutdown' ? 'selected' : ''}>${t('settings.afterAutoRun.shutdown')}</option>
-          </select>
+          <div class="segment-group" id="set-after-autorun" role="radiogroup" aria-label="${t('settings.afterAutoRun.label')}">
+            ${afterAutoRunOptions.map((v) => `<button type="button" class="segment ${v === s.afterAutoRun ? 'active' : ''}" data-value="${v}">${t('settings.afterAutoRun.' + v)}</button>`).join('')}
+          </div>
         </div>
       </div>
 
-      <label class="sc-toggle settings-row" title="${t('tray.minimizeHint')}">
+      <label class="sc-toggle" title="${t('tray.minimizeHint')}">
         <input type="checkbox" id="set-minimize" ${s.minimizeToTray ? 'checked' : ''} />
         <span>${t('tray.minimize')}</span>
       </label>
@@ -109,17 +108,25 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
 
       <div class="settings-row">
         <div class="settings-row-main"><span class="settings-row-label">${t('settings.language')}</span></div>
-        <select id="set-lang" aria-label="${t('settings.language')}">${langOptions}</select>
+        <div class="segment-group" id="set-lang" role="radiogroup" aria-label="${t('settings.language')}">${langSegment}</div>
       </div>
 
-      <label class="sc-toggle settings-row" title="${t('telemetry.hint')}">
+      <label class="sc-toggle" title="${t('telemetry.hint')}">
         <input type="checkbox" id="set-telemetry" ${s.telemetryEnabled ? 'checked' : ''} />
         <span>${t('telemetry.toggle')}</span>
       </label>
 
-      <p class="settings-diag">${t('settings.diagnostics.hint')}</p>
+      <div class="settings-group">
+        <span class="settings-row-label">${t('settings.diagnostics.title')}</span>
+        <p class="settings-diag" id="set-diag">…</p>
+      </div>
     </div>
   `;
+
+  void window.sc.env().then((env) => {
+    const diag = overlay.querySelector('#set-diag');
+    if (diag) diag.textContent = `v${env.toolVersion} · ${env.platform} · ${env.releaseTokenFingerprint}`;
+  });
 
   const close = (): void => {
     document.removeEventListener('keydown', onKey, true);
@@ -159,21 +166,29 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
   overlay.querySelector('#set-quitafter')?.addEventListener('change', (e) => {
     void patch({ quitAfterAutoRun: (e.target as HTMLInputElement).checked });
   });
-  (overlay.querySelector('#set-after-autorun') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
-    void patch({ afterAutoRun: (e.target as HTMLSelectElement).value as PublicSettings['afterAutoRun'] });
+  overlay.querySelectorAll<HTMLButtonElement>('#set-after-autorun .segment').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      overlay.querySelectorAll('#set-after-autorun .segment').forEach((b) => b.classList.toggle('active', b === btn));
+      void patch({ afterAutoRun: btn.dataset['value'] as PublicSettings['afterAutoRun'] });
+    });
   });
   overlay.querySelector('#set-minimize')?.addEventListener('change', (e) => {
     void patch({ minimizeToTray: (e.target as HTMLInputElement).checked });
   });
-  (overlay.querySelector('#set-ring') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
-    void patch({ updateChannel: (e.target as HTMLSelectElement).value as PublicSettings['updateChannel'] });
+  overlay.querySelectorAll<HTMLButtonElement>('#set-ring .segment').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      overlay.querySelectorAll('#set-ring .segment').forEach((b) => b.classList.toggle('active', b === btn));
+      void patch({ updateChannel: btn.dataset['ring'] as PublicSettings['updateChannel'] });
+    });
   });
-  (overlay.querySelector('#set-lang') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
-    const loc = (e.target as HTMLSelectElement).value as LocaleId;
-    void setLocale(loc).then(() => {
-      void patch({ language: loc });
-      ctx.onLocaleChanged();
-      close();
+  overlay.querySelectorAll<HTMLButtonElement>('#set-lang .segment').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const loc = btn.dataset['lang'] as LocaleId;
+      void setLocale(loc).then(() => {
+        void patch({ language: loc });
+        ctx.onLocaleChanged();
+        close();
+      });
     });
   });
   overlay.querySelector('#set-telemetry')?.addEventListener('change', (e) => {

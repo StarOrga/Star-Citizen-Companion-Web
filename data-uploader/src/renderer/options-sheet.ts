@@ -55,7 +55,7 @@ export function openOptionsSheet(ctx: OptionsSheetCtx): void {
           <button type="button" class="segment ${unattended ? 'active' : ''}" data-mode="unattended">${t('sheet.mode.unattended')}</button>
         </div>
 
-        <label class="sc-toggle settings-row">
+        <label class="sc-toggle">
           <input type="checkbox" id="sheet-upload-after" ${uploadAfter ? 'checked' : ''} />
           <span>${t('configure.autoUpload')}</span>
         </label>
@@ -68,6 +68,7 @@ export function openOptionsSheet(ctx: OptionsSheetCtx): void {
             ).join('')}
           </div>
         </div>
+        <p class="settings-row-hint sheet-whendone-hint">${t('sheet.whenDoneHint')}</p>
 
         <div class="sc-sheet-footer">
           <button type="button" class="btn-link" id="sheet-open-settings">⚙ ${t('sheet.moreSettings')}</button>

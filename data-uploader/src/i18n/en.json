@@ -46,7 +46,8 @@
       "watch": "I'm watching",
       "unattended": "Unattended"
     },
-    "moreSettings": "More in Settings"
+    "moreSettings": "More in Settings",
+    "whenDoneHint": "60 s cancelable countdown · applies to this run only, never saved"
   },
   "category": {
     "ships": "Ships",
@@ -62,8 +63,8 @@
     "countingDown": "Shutting down in {{secs}}s — Esc to cancel."
   },
   "discover": {
-    "title": "Find Star Citizen installs",
-    "subtitle": "Runs automatically on launch: RSI launcher → filesystem scan. Add more folders by hand below.",
+    "title": "Star Citizen found",
+    "subtitle": "Searched automatically: RSI launcher → drives. One game version per run.",
     "scan": "Start scan",
     "scanning": "Searching for installs…",
     "manual": "Pick folder manually",
@@ -73,8 +74,8 @@
     "next": "Next → Configure"
   },
   "configure": {
-    "title": "Pick a profile",
-    "subtitle": "Switchable live — change it mid-run.",
+    "title": "Choose scope",
+    "subtitle": "Speed stays switchable any time later — scope doesn't.",
     "start": "Start extraction",
     "autoUpload": "Upload automatically after extraction",
     "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected).",
@@ -89,7 +90,7 @@
     }
   },
   "run": {
-    "title": "Extracting",
+    "title": "Extracting — game data",
     "next": "Continue to upload",
     "cancel": "Abort run…",
     "logTitle": "Log",
@@ -108,16 +109,16 @@
       "disarm": "Disarm"
     },
     "phase": {
-      "discover": "Analyzing installation",
-      "plan": "Planning run",
-      "extract": "Extracting game data",
-      "validate": "Validating result",
-      "bundle": "Packaging bundle",
+      "discover": "Read game",
+      "plan": "Plan",
+      "extract": "Extract",
+      "validate": "Check",
+      "bundle": "Pack bundle",
       "done": "Done"
     },
     "stage": {
       "open": "Opening Data.p4k",
-      "datacore": "Decompressing DataCore",
+      "datacore": "Unpack game data",
       "localization": "Reading translations",
       "reference": "Reference data",
       "entities": "Cataloguing entities",
@@ -254,7 +255,7 @@
       "shutdown": "Shut down PC"
     },
     "diagnostics": {
-      "hint": "Version, platform and token fingerprint are shown in the status bar below."
+      "title": "Diagnostics"
     },
     "updateChannel": {
       "label": "Update ring",

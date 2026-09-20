@@ -14,6 +14,28 @@ import { state, startRun, openAppSettingsDialog, armedChipHtml, wireArmedChip } 
 
 const EXTRACT_SCOPES: Array<'minimal' | 'standard' | 'maximum'> = ['minimal', 'standard', 'maximum'];
 
+// Scope (how much data to pull) is orthogonal to speed (live throttle
+// priority) — feeding the scope id straight into the performance-profile
+// estimate mixed the two up (minimal scope ≈ minimal speed's per-GB rate,
+// which is the SLOW profile) and inverted the ETAs. Instead: estimate at the
+// operator's current live speed profile, then scale by how much MORE or LESS
+// data each scope actually pulls.
+const SCOPE_ETA_FACTOR: Record<'minimal' | 'standard' | 'maximum', number> = {
+  minimal: 0.3,
+  standard: 1,
+  maximum: 3.5,
+};
+
+/** Mirrors `estimateForSize`'s own formatting (not exported from lib/performance.ts). */
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins === 0 ? `${hours} h` : `${hours} h ${mins} min`;
+}
+
 /** Installs the operator has already seen the options sheet for this session. */
 const seenInstalls = new Set<string>();
 
@@ -103,9 +125,14 @@ async function paintScopePills(): Promise<void> {
   if (!mount || !state.settings) return;
   const selectedSize = state.channels.filter((c) => c.selected).reduce((sum, c) => sum + c.sizeBytes, 0);
   const cur = state.settings.extractScope;
+  // Speed profile ETAs are per current live profile — the scope factor then
+  // scales that same baseline, so switching the live speed profile (throttle
+  // chip, mid-run) is reflected here too instead of a fixed guess.
+  const speedProfile = state.profile === 'auto' ? 'standard' : state.profile;
+  const baseSeconds = (await window.sc.estimate(speedProfile, selectedSize)).seconds;
   const entries = await Promise.all(
     EXTRACT_SCOPES.map(async (scope) => {
-      const eta = (await window.sc.estimate(scope, selectedSize)).formatted;
+      const eta = formatDuration(Math.max(1, Math.round(baseSeconds * SCOPE_ETA_FACTOR[scope])));
       const active = scope === cur ? 'active' : '';
       const recommended = scope === 'standard' ? `<span class="scope-recommended">${t('scope.recommended')}</span>` : '';
       return `
