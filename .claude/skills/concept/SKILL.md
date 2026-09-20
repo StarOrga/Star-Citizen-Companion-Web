@@ -44,6 +44,39 @@ Plugin defaults still apply; only the rules below override or add.
      via the switcher, click every `#screen-nav` entry, and after each click
      count screens with `getClientRects().length > 0` — exactly 1, never 0.
 
+3. **Concept from a worktree: state file + durable store live in the
+   WORKTREE, never in the primary checkout.** Concepts in this repo run from
+   `.claude/worktrees/<name>/` (the page is the branch's deliverable), and
+   `ss.concept.resume` reads `<process.cwd>/.claude/concept-active.json` —
+   the worktree. The plugin's bridge-server.md ("project root, NOT the
+   worktree") is written for single-checkout repos: written to the primary
+   root, the state file is ONE file shared by every worktree, and a second
+   concept session running in a sibling worktree overwrites / deletes it —
+   its cron tick reads "state file now owns port X" and cleans up, our own
+   waker then sees `STATE_GONE`, POSTs `/shutdown` and the page reads
+   "Claude nicht verbunden" until someone relaunches (2026-09-20: twice, on
+   the foreign tick's 15-min cadence, ~12 min + ~5 min outage, notes intact
+   only thanks to the draft mirror). Layout that works:
+   - `python concept-server.py <port> "<primary-root>" --html
+     ".claude/worktrees/<name>/docs/concepts/<file>.html" --store
+     "<worktree>/.claude/concepts/<file-basename>"` — server rooted in the
+     primary so the URL already open in the user's tab stays valid (the
+     ancestor-path serves), store where the resume hook expects it;
+   - `<worktree>/.claude/concept-active.json` with `html_path` **worktree-
+     relative** (`docs/concepts/<file>.html`) — tick and watchers resolve it
+     against the state file's grandparent, which is now the worktree;
+   - cron prompt + both `concept-watch.js` launches with the ABSOLUTE
+     worktree state path; the completion card gets `cwd: <worktree>`.
+   Relaunch order after any bridge death: server → state file → **pulser
+   immediately** (every gap > 90 s without a heartbeat is a visible
+   "nicht verbunden") → waker → `GET /recovery` + `GET /draft?slug=<html-
+   basename>` before touching anything. Before opening a new concept,
+   `ls ~/.claude/concept-bridges/` — a foreign entry means another session
+   is live; never write its state file. Upstream: Jerry0022/dotclaude#417 (state file per session cwd, as the resume
+   hook already assumes); the 1100px design-canvas cap is dotclaude#418 —
+   until it lands, lift it in the page CSS
+   (`html[data-template="design"] .concept-layout.design .concept-content { max-width: none; padding: 0 }`).
+
 ## Retired rules (absorbed upstream — do not re-add)
 
 The legacy `devops-concept` extension carried two more rules: "copy the
