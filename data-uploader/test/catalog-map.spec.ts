@@ -279,4 +279,9 @@ describe('mapSilhouettes', () => {
   it('skips a file missing kind/className entirely', () => {
     expect(mapSilhouettes([{ silhouette: { path: 'M 0 0 Z' } }], tag)).toEqual([]);
   });
+
+  it('skips a file with no bbox — never sends null into the not-null column', () => {
+    const noBbox = { ...shipFile, silhouette: { ...shipFile.silhouette, bbox: undefined } };
+    expect(mapSilhouettes([noBbox], tag)).toEqual([]);
+  });
 });

@@ -57,6 +57,17 @@ CHAIKIN_ITERATIONS = 2
 # A contour under this many points after tracing is not worth emitting (a
 # handful of stray pixels the morphology pass did not fully clean up).
 MIN_CONTOUR_POINTS = 8
+# A foreground blob under this many px^2 stays out of the emitted path — it is
+# denoise debris, not a wingtip/nacelle/arm the open() erosion pass severed
+# from the main hull. Blobs at or above this size are kept as their OWN
+# subpath (should-fix "components", wave1-redteam.md) instead of being
+# dropped just for not being the single biggest blob.
+MIN_COMPONENT_AREA_PX = 64
+# Adaptive Douglas-Peucker tolerance (should-fix "tolerance", wave1-redteam.md):
+# a flat 0.15 m floor is fine for a fighter but lets a capital ship's hull blow
+# through the SVG path length budget. tol_m = max(floor, % of span, px floor).
+TOLERANCE_SPAN_FRACTION = 0.003  # 0.3% of the hull's own longer span
+TOLERANCE_MIN_PX = 1.5
 
 
 # ── 1. project + rasterise ──────────────────────────────────────────────────
@@ -226,75 +237,155 @@ def _has_any_neighbor(mask: np.ndarray, p: Tuple[int, int]) -> bool:
     return False
 
 
+def _row_runs(row: np.ndarray) -> List[Tuple[int, int]]:
+    """``[(c0, c1_exclusive), ...]`` contiguous True runs of a 1D bool row,
+    found with one `np.diff` call instead of a per-pixel Python scan."""
+    if not row.any():
+        return []
+    padded = np.concatenate(([False], row, [False]))
+    edges = np.flatnonzero(padded[1:] != padded[:-1])
+    return [(int(edges[i]), int(edges[i + 1])) for i in range(0, len(edges), 2)]
+
+
 def _flood_label(mask: np.ndarray, value: bool) -> List[List[Tuple[int, int]]]:
     """4-connected components of cells equal to ``value``, in row-major
-    discovery order (deterministic — no set/dict iteration order dependence)."""
-    h, w = mask.shape
-    seen = np.zeros((h, w), dtype=bool)
-    comps: List[List[Tuple[int, int]]] = []
+    discovery order (deterministic — no set/dict iteration order dependence).
+
+    Vectorised (numpy-only, no scipy, see module docstring): each ROW is
+    reduced to a handful of contiguous runs via `np.diff` (one call per row,
+    not one Python step per pixel), and components are the union of runs that
+    touch a run in the row above (classic two-pass run-length labelling via
+    union-find over runs, not over individual pixels). A silhouette mask is
+    almost always a handful of runs per row, so this is O(rows + runs)
+    Python-level work instead of O(pixels) — the same result, dramatically
+    fewer interpreted steps for a 1024x1024 mask.
+    """
+    target = mask if value else ~mask
+    h, w = target.shape
+    runs: List[Tuple[int, int, int]] = []  # (row, c0, c1_exclusive)
+    row_run_idx: List[List[int]] = [[] for _ in range(h)]
     for r in range(h):
-        for c in range(w):
-            if seen[r, c] or mask[r, c] != value:
-                continue
-            stack = [(r, c)]
-            seen[r, c] = True
-            comp = []
-            while stack:
-                cr, cc = stack.pop()
-                comp.append((cr, cc))
-                for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    nr, nc = cr + dr, cc + dc
-                    if 0 <= nr < h and 0 <= nc < w and not seen[nr, nc] and mask[nr, nc] == value:
-                        seen[nr, nc] = True
-                        stack.append((nr, nc))
-            comps.append(comp)
+        for c0, c1 in _row_runs(target[r]):
+            row_run_idx[r].append(len(runs))
+            runs.append((r, c0, c1))
+    if not runs:
+        return []
+
+    parent = list(range(len(runs)))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[max(ra, rb)] = min(ra, rb)
+
+    for r in range(1, h):
+        if not row_run_idx[r] or not row_run_idx[r - 1]:
+            continue
+        for ci in row_run_idx[r]:
+            _, c0, c1 = runs[ci]
+            for pi in row_run_idx[r - 1]:
+                _, pc0, pc1 = runs[pi]
+                if pc0 < c1 and c0 < pc1:  # column ranges overlap -> 4-connected
+                    union(ci, pi)
+
+    groups: Dict[int, List[int]] = {}
+    for i in range(len(runs)):
+        groups.setdefault(find(i), []).append(i)
+
+    comps: List[List[Tuple[int, int]]] = []
+    for root in sorted(groups.keys()):
+        pts: List[Tuple[int, int]] = []
+        for i in groups[root]:
+            r, c0, c1 = runs[i]
+            pts.extend((r, c) for c in range(c0, c1))
+        comps.append(pts)
     return comps
 
 
-def trace_contours(mask: np.ndarray, min_hole_area_px: int = MIN_HOLE_AREA_PX) -> Dict[str, Any]:
-    """``{"outer": [...] | None, "holes": [[...], ...]}`` in pixel (row, col).
+def _component_holes(mask: np.ndarray, comp: Sequence[Tuple[int, int]],
+                      min_hole_area_px: int) -> List[List[Tuple[int, int]]]:
+    """Holes of ONE component, isolated to that component's own bounding box
+    so a different (also-kept) foreground component elsewhere in the mask can
+    never be mistaken for one of this component's holes (should-fix
+    "components", wave1-redteam.md — the old whole-image ``~biggest_mask``
+    complement broke exactly this way once more than one blob is kept)."""
+    rs = [p[0] for p in comp]
+    cs = [p[1] for p in comp]
+    r0, c0, r1, c1 = min(rs), min(cs), max(rs), max(cs)
+    comp_mask = np.zeros((r1 - r0 + 1, c1 - c0 + 1), dtype=bool)
+    for r, c in comp:
+        comp_mask[r - r0, c - c0] = True
+    sh, sw = comp_mask.shape
+    holes: List[List[Tuple[int, int]]] = []
+    for hole in _flood_label(~comp_mask, True):
+        if len(hole) < min_hole_area_px:
+            continue
+        touches_border = any(r in (0, sh - 1) or c in (0, sw - 1) for r, c in hole)
+        if touches_border:
+            continue
+        # Trace the hole from the FOREGROUND side (this component), so its
+        # winding follows the same convention as the outer contour's
+        # neighbour scan — `_trace_blob` walks whichever mask it is given.
+        hole_mask = np.zeros_like(comp_mask)
+        for r, c in hole:
+            hole_mask[r, c] = True
+        start_h = min(hole, key=lambda p: (p[0], p[1]))
+        ring = _trace_blob(hole_mask, start_h)
+        holes.append([(r + r0, c + c0) for r, c in ring])
+    return holes
 
-    The outer contour is the boundary of the largest foreground component (a
-    silhouette is one connected blob after denoising; a mesh that still yields
-    several disjoint blobs keeps only the biggest — the others are almost
-    always converter debris, not real hull parts). A "hole" is a background
-    component that (a) does not touch the mask border (so it is enclosed, not
-    the surrounding void) and (b) is at least ``min_hole_area_px`` — canopies,
+
+def trace_contours(mask: np.ndarray, min_hole_area_px: int = MIN_HOLE_AREA_PX,
+                    min_component_area_px: int = MIN_COMPONENT_AREA_PX) -> Dict[str, Any]:
+    """``{"outer", "holes", "components", "dropped_area"}`` in pixel (row, col).
+
+    ``components`` holds EVERY foreground blob at or above
+    ``min_component_area_px`` (should-fix "components": the open() denoise
+    pass can sever a nacelle/wingtip/arm from the main hull onto its own
+    blob — keeping only the single biggest blob silently drops it), largest
+    first. ``outer``/``holes`` stay as a backward-compatible view of the
+    FIRST (biggest) component only. ``dropped_area`` sums the pixel area of
+    blobs below the threshold (raster/converter debris).
+
+    A "hole" is a background component that (a) does not touch its owning
+    component's own bounding box border (so it is enclosed, not the
+    surrounding void) and (b) is at least ``min_hole_area_px`` — canopies,
     engine bells, intake grilles are real holes; single stray background
     pixels inside the hull are not.
     """
     fg_comps = _flood_label(mask, True)
     if not fg_comps:
-        return {"outer": None, "holes": []}
-    biggest = max(fg_comps, key=len)
-    biggest_mask = np.zeros_like(mask)
-    for r, c in biggest:
-        biggest_mask[r, c] = True
-    start = min(biggest, key=lambda p: (p[0], p[1]))
-    outer = _trace_blob(biggest_mask, start)
+        return {"outer": None, "holes": [], "components": [], "dropped_area": 0}
 
-    h, w = mask.shape
-    holes: List[List[Tuple[int, int]]] = []
-    for comp in _flood_label(~biggest_mask, True):
-        if len(comp) < min_hole_area_px:
-            continue
-        touches_border = any(r in (0, h - 1) or c in (0, w - 1) for r, c in comp)
-        if touches_border:
-            continue
-        # Trace the hole from the FOREGROUND side (the biggest blob), so its
-        # winding follows the same convention as the outer contour's
-        # neighbour scan — `_trace_blob` walks whichever mask it is given.
-        hole_mask = np.zeros_like(mask)
+    kept = [c for c in fg_comps if len(c) >= min_component_area_px]
+    dropped_area = sum(len(c) for c in fg_comps if len(c) < min_component_area_px)
+    if not kept:
+        kept = [max(fg_comps, key=len)]  # never emit nothing when there IS foreground
+        dropped_area = 0
+    kept.sort(key=len, reverse=True)
+
+    components: List[Dict[str, Any]] = []
+    for comp in kept:
+        comp_mask = np.zeros_like(mask)
         for r, c in comp:
-            hole_mask[r, c] = True
-        # Grow the hole mask by one ring of biggest-blob pixels so the tracer
-        # (which requires the start pixel's west neighbour to be background)
-        # runs on foreground-of-the-hole, i.e. trace the hole boundary as seen
-        # FROM inside the hole looking at the surrounding hull, then reverse
-        # the winding relative to the outer contour when emitting the path.
-        start_h = min(comp, key=lambda p: (p[0], p[1]))
-        holes.append(_trace_blob(hole_mask, start_h))
-    return {"outer": outer, "holes": holes}
+            comp_mask[r, c] = True
+        start = min(comp, key=lambda p: (p[0], p[1]))
+        outer = _trace_blob(comp_mask, start)
+        holes = _component_holes(mask, comp, min_hole_area_px)
+        components.append({"outer": outer, "holes": holes})
+
+    return {
+        "outer": components[0]["outer"],
+        "holes": components[0]["holes"],
+        "components": components,
+        "dropped_area": dropped_area,
+    }
 
 
 # ── 4. smooth + simplify ────────────────────────────────────────────────────
@@ -371,11 +462,18 @@ def _world_to_viewbox(p: Vec2, min_x: float, min_y: float, scale: float,
     return round(x, 2), round(y, 2)
 
 
-def _ring_to_path(ring: Sequence[Vec2]) -> str:
+def _ring_to_path(ring: Sequence[Vec2], *, reverse: bool = False) -> str:
+    """Should-fix "hole winding" (wave1-redteam.md): a hole ring is emitted
+    with ``reverse=True`` so its winding is the OPPOSITE of the outer/other
+    component rings — required for `fill-rule="nonzero"` to actually punch
+    the hole (the tracer's own winding convention is identical for outer and
+    hole rings, see `_component_holes`'s docstring, so without this the fill
+    rule renders a hole as solid)."""
     if not ring:
         return ""
-    cmds = [f"M {ring[0][0]} {ring[0][1]}"]
-    for x, y in ring[1:]:
+    pts = list(reversed(ring)) if reverse else list(ring)
+    cmds = [f"M {pts[0][0]} {pts[0][1]}"]
+    for x, y in pts[1:]:
         cmds.append(f"L {x} {y}")
     cmds.append("Z")
     return " ".join(cmds)
@@ -388,10 +486,18 @@ def build_silhouette(
     viewbox: int = VIEWBOX,
     tolerance_m: float = DEFAULT_SIMPLIFY_TOLERANCE_M,
     min_hole_area_px: int = MIN_HOLE_AREA_PX,
+    min_component_area_px: int = MIN_COMPONENT_AREA_PX,
     chaikin_iterations: int = CHAIKIN_ITERATIONS,
+    on_log: Optional[Any] = None,
 ) -> Optional[Dict[str, Any]]:
     """Triangles -> the contract's ``silhouette`` object, or None (no usable
-    geometry — e.g. an entity whose mesh has no surface, never invented)."""
+    geometry — e.g. an entity whose mesh has no surface, never invented).
+
+    ``on_log(level, msg)``, if given, gets one line with the point count
+    (should-fix "tolerance") and one with any dropped-component area
+    (should-fix "components") — both wave1-redteam.md. Purely diagnostic,
+    never affects the returned object.
+    """
     tris_2d = project_topdown(triangles)
     bounds = xy_bounds(tris_2d)
     if bounds is None:
@@ -402,24 +508,35 @@ def build_silhouette(
     mask = denoise_mask(mask, iterations=1)
     if not mask.any():
         return None
-    contours = trace_contours(mask, min_hole_area_px)
-    outer_px = contours["outer"]
-    if not outer_px or len(outer_px) < MIN_CONTOUR_POINTS:
+    contours = trace_contours(mask, min_hole_area_px, min_component_area_px)
+    components_px = [
+        comp for comp in contours["components"]
+        if comp["outer"] and len(comp["outer"]) >= MIN_CONTOUR_POINTS
+    ]
+    if not components_px:
         return None
+    if on_log and contours["dropped_area"]:
+        on_log("info", f"silhouette: dropped {contours['dropped_area']} px^2 of "
+                       f"sub-{min_component_area_px}px^2 debris across "
+                       f"{len(contours['components'])} kept component(s)")
 
     min_x, min_y, _max_x, _max_y = bounds
-    tol_px = max(tolerance_m * px_per_m, 0.0)
+    span_x_m0 = width / px_per_m
+    span_y_m0 = height / px_per_m
+    span_m = max(span_x_m0, span_y_m0)
+    # Adaptive DP tolerance (should-fix "tolerance"): the flat metric floor
+    # alone lets a capital ship's hull blow through the SVG path length
+    # budget; scale with the hull's own span and the raster's own pixel size,
+    # never going BELOW the metric floor.
+    tolerance_m = max(tolerance_m, TOLERANCE_SPAN_FRACTION * span_m, TOLERANCE_MIN_PX / px_per_m)
 
     def polygon(ring_px: Sequence[Tuple[int, int]]) -> List[Vec2]:
         world = [_to_world(p, min_x, min_y, px_per_m) for p in ring_px]
         smoothed = chaikin_smooth(world, chaikin_iterations)
         return simplify_closed(smoothed, tolerance_m)
 
-    outer_world = polygon(outer_px)
-    holes_world = [polygon(h) for h in contours["holes"] if len(h) >= MIN_CONTOUR_POINTS]
-
-    span_x_m = width / px_per_m
-    span_y_m = height / px_per_m
+    span_x_m = span_x_m0
+    span_y_m = span_y_m0
     scale = viewbox / max(span_x_m, span_y_m)
     box_w = span_x_m * scale
     box_h = span_y_m * scale
@@ -432,10 +549,22 @@ def build_silhouette(
             for p in ring
         ]
 
-    outer_vb = to_vb(outer_world)
-    holes_vb = [to_vb(h) for h in holes_world]
-    path = " ".join(x for x in [_ring_to_path(outer_vb), *[_ring_to_path(h) for h in holes_vb]] if x)
-    point_count = len(outer_vb) + sum(len(h) for h in holes_vb)
+    path_parts: List[str] = []
+    point_count = 0
+    for comp in components_px:
+        outer_vb = to_vb(polygon(comp["outer"]))
+        holes_vb = [to_vb(polygon(h)) for h in comp["holes"] if len(h) >= MIN_CONTOUR_POINTS]
+        path_parts.append(_ring_to_path(outer_vb))
+        point_count += len(outer_vb)
+        for hole_vb in holes_vb:
+            # Should-fix "hole winding": reversed relative to the outer ring
+            # so `fill-rule="nonzero"` actually renders the hole as a hole.
+            path_parts.append(_ring_to_path(hole_vb, reverse=True))
+            point_count += len(hole_vb)
+    path = " ".join(p for p in path_parts if p)
+    if on_log:
+        on_log("info", f"silhouette: {point_count} point(s), "
+                       f"{len(components_px)} component(s), tol={tolerance_m:.4f}m")
 
     return {
         "viewBox": f"0 0 {viewbox} {viewbox}",
@@ -447,7 +576,17 @@ def build_silhouette(
         },
         "scaleMPerUnit": round(1.0 / scale, 6),
         "pointCount": point_count,
-        "simplifyToleranceM": tolerance_m,
+        "simplifyToleranceM": round(tolerance_m, 6),
+        # Internal — NOT part of the wave-0 §C1 contract; popped by
+        # `build_entity_silhouette`/`silhouette_export.export_entity` before
+        # the row is written, so anchors can be projected through the SAME
+        # min/scale/offset transform as this path (should-fix "anchor space",
+        # blocker 2, wave1-redteam.md). Harmless if it ever reaches the
+        # uploader's `mapSilhouettes` — pinned-column mapping ignores it.
+        "_transform": {
+            "minX": min_x, "minY": min_y, "scale": scale,
+            "offsetX": offset_x, "offsetY": offset_y, "spanYM": span_y_m,
+        },
     }
 
 
@@ -457,19 +596,28 @@ def project_anchors(
     transforms: Dict[str, Dict[str, Any]],
     frame: Dict[str, Any],
     all_port_names: Sequence[Optional[str]] = (),
+    *,
+    transform: Optional[Dict[str, float]] = None,
 ) -> Tuple[List[Dict[str, Any]], List[str]]:
     """``(anchors[], unresolved[])`` — the contract's per-port pin list.
 
-    Same projection as the web 2D hull map (`hardpoint-map.ts` `projectHardpoint`):
-    ``x=(X-min)/span`` in %, ``y=1-(Y-min)/span`` in %, so the silhouette's pins
-    and the existing box-schematic map agree on where a port sits (user decision
-    5: the 2D map itself stays untouched, but the maths must not diverge).
-    ``depth`` is the same normalisation of the up axis (Z), 0 = keel, 1 = dorsal
-    — the website's z-order hint for overlapping pins. ``side`` is derived from
-    X against the frame's own centre (CryEngine +X = starboard).
+    Blocker 2 (wave1-redteam.md): ``x``/``y`` are pushed through the SAME
+    min/scale/offset ``transform`` `build_silhouette` used for the path (its
+    ``_transform`` — silhouette/mesh bounds, aspect-preserving, centred in
+    the viewBox), never the ``frame``'s (the ``.cga`` AABB's) own box — those
+    are two different boxes and mixing them puts a pin somewhere the
+    silhouette itself never reaches. Without a ``transform`` (no path was
+    built) NOTHING is projected — never a pin in a space nobody can verify.
+    ``depth``/``side``/``clamped`` keep using ``frame`` (unaffected by the
+    fix — they are not viewBox-space values): ``depth`` normalises the up
+    axis (Z), 0 = keel, 1 = dorsal, the website's z-order hint for
+    overlapping pins; ``side`` is derived from X against the frame's own
+    centre (CryEngine +X = starboard); ``clamped`` flags a hardpoint outside
+    the ship's own resolved AABB (a data-quality signal, independent of
+    where the mesh silhouette itself happens to be centred).
     """
     fmin, fmax = frame.get("min"), frame.get("max")
-    if not (_is_vec3(fmin) and _is_vec3(fmax)):
+    if not (_is_vec3(fmin) and _is_vec3(fmax)) or transform is None:
         return [], []
     span = [max(fmax[i] - fmin[i], 1e-6) for i in range(3)]
     mid_x = fmin[0] + span[0] / 2.0
@@ -480,8 +628,11 @@ def project_anchors(
         pos = t.get("position")
         if not _is_vec3(pos):
             continue
-        u = _clamp01((pos[0] - fmin[0]) / span[0])
-        v = _clamp01((pos[1] - fmin[1]) / span[1])
+        vb_x = (pos[0] - transform["minX"]) * transform["scale"] + transform["offsetX"]
+        vb_y = ((transform["spanYM"] - (pos[1] - transform["minY"]))
+                * transform["scale"] + transform["offsetY"])
+        x_pct = _clamp01(vb_x / VIEWBOX) * 100
+        y_pct = _clamp01(vb_y / VIEWBOX) * 100
         w = _clamp01((pos[2] - fmin[2]) / span[2])
         clamped = any(
             not (fmin[i] <= pos[i] <= fmax[i]) for i in range(3)
@@ -489,8 +640,8 @@ def project_anchors(
         side = "port" if pos[0] < mid_x else ("starboard" if pos[0] > mid_x else "center")
         anchors.append({
             "portId": port_name,
-            "x": round(u * 100, 1),
-            "y": round((1 - v) * 100, 1),
+            "x": round(x_pct, 1),
+            "y": round(y_pct, 1),
             "side": side,
             "depth": round(w, 3),
             "source": t.get("source"),
@@ -534,13 +685,18 @@ def build_entity_silhouette(
     hardpoint_transforms: Optional[Dict[str, Dict[str, Any]]] = None,
     all_port_names: Sequence[Optional[str]] = (),
     tolerance_m: float = DEFAULT_SIMPLIFY_TOLERANCE_M,
+    on_log: Optional[Any] = None,
 ) -> Optional[Dict[str, Any]]:
     """One row of the wave-0 §C1 contract, or None when the mesh has no
     usable top-down surface (never a placeholder — the website renders "ohne
     Geometrie" for a missing row)."""
-    silhouette = build_silhouette(triangles, tolerance_m=tolerance_m)
+    silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=on_log)
     if silhouette is None:
         return None
+    # Blocker 2: pop the internal path transform BEFORE the silhouette is
+    # stored on the row (not part of the §C1 contract) and feed it to
+    # `project_anchors` so anchors land in the SAME space as the path.
+    path_transform = silhouette.pop("_transform", None)
     row: Dict[str, Any] = {
         "schema": 1,
         "kind": kind,
@@ -559,6 +715,7 @@ def build_entity_silhouette(
     if kind == "ship":
         anchors, unresolved = project_anchors(
             hardpoint_transforms or {}, frame or {}, all_port_names,
+            transform=path_transform,
         )
         row["anchors"] = anchors
         row["unresolved"] = unresolved
