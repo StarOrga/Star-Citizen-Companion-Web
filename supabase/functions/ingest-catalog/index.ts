@@ -16,6 +16,12 @@
 //   POST { op: "clear_ingredients",build_id }                          -> { ok }
 //   POST { op: "strings",          build_id, rows: [...] }             -> { upserted }
 //   POST { op: "locale_strings",   build_id, rows: [...] }             -> { upserted }
+//   POST { op: "silhouettes",      build_id, rows: [...] }             -> { upserted }
+//        (rows: {kind, class_name, view_box, path, bbox, anchors, unresolved,
+//         meta, generated_at} — Holotable outline contract, see wave0-research
+//         §C1. Pinned column set like PORT_COLUMNS.)
+//   POST { op: "clear_silhouettes",build_id }                          -> { ok }
+//        (mirror of clear_ports)
 //   POST { op: "preview",          build_number, name, content_base64 } -> { path }
 //   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current }
 //
@@ -70,6 +76,24 @@ const PORT_COLUMNS = [
   'helper_name', 'position', 'rotation',
 ] as const;
 const PORT_TRANSFORM_COLUMNS = ['helper_name', 'position', 'rotation'] as const;
+
+// ── silhouettes (Holotable outline contract, wave0-research §C1) ──────────────
+// Same pinned-column discipline as PORT_COLUMNS: an uploader field that has no
+// matching DB column is dropped, not blindly forwarded.
+const SILHOUETTE_COLUMNS = [
+  'build_id', 'channel', 'patch_version', 'build_number',
+  'kind', 'class_name', 'view_box', 'path', 'bbox', 'anchors',
+  'unresolved', 'meta', 'generated_at',
+] as const;
+const SILHOUETTE_CONFLICT = 'channel,patch_version,build_number,kind,class_name';
+
+function sanitizeSilhouetteRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of SILHOUETTE_COLUMNS) {
+    if (row[key] !== undefined) out[key] = row[key];
+  }
+  return out;
+}
 
 function sanitizePortRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -271,6 +295,35 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { error } = await admin.from('codex_item_ports').delete().eq('build_id', buildId);
       if (error) throw error;
       return json({ ok: true });
+    }
+
+    if (op === 'silhouettes') {
+      const rows = body.rows as unknown[];
+      if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
+      const clean = (rows as Record<string, unknown>[]).map(sanitizeSilhouetteRow);
+      // Forward-compat degrade (mirrors `ports`): a project without the
+      // additive codex_silhouettes migration applied yet must not fail the
+      // whole catalog run — the caller's finalize still succeeds, just
+      // without Holotable art for this build.
+      const { error } = await admin.from('codex_silhouettes').upsert(clean, { onConflict: SILHOUETTE_CONFLICT });
+      if (!error) return json({ ok: true, upserted: clean.length });
+      const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
+      const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
+        (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
+      if (!missingTable) throw error;
+      return json({ ok: true, upserted: 0, degraded: 'no_silhouettes_table' });
+    }
+
+    if (op === 'clear_silhouettes') {
+      const buildId = String(body.build_id ?? '');
+      if (!buildId) return json({ error: 'invalid_body' }, 400);
+      const { error } = await admin.from('codex_silhouettes').delete().eq('build_id', buildId);
+      if (!error) return json({ ok: true });
+      const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
+      const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
+        (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
+      if (!missingTable) throw error;
+      return json({ ok: true, degraded: 'no_silhouettes_table' });
     }
 
     if (op === 'ingredients') {
