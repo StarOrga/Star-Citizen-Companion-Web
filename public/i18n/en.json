@@ -602,6 +602,44 @@
       "standard": "Standard",
       "count": "{{count}} options"
     },
+    "holo": {
+      "noGeometry": "No silhouette",
+      "pinUnresolved": "Position unknown",
+      "toggle": {
+        "group": "View",
+        "classic": "Classic",
+        "classicHint": "Classic view (key 1)",
+        "holo": "Holotable",
+        "holoHint": "Holotable view (key 2)"
+      },
+      "stage": {
+        "railToggle": "Collapse/expand rail",
+        "einordnung": "Standing",
+        "cohortLink": "View cohort",
+        "view3d": "3D",
+        "viewSchema": "Schema",
+        "viewShare": "Share",
+        "silhouetteAria": "Silhouette of {{name}}",
+        "noGeometryReason": "No silhouette has been generated for this ship yet.",
+        "inspector": "Inspector",
+        "ports": "Ports",
+        "detailShow": "Detail ▾",
+        "detailHide": "Detail ▴",
+        "density": "Compact",
+        "allValues": "All values ▾",
+        "allValuesHide": "All values ▴",
+        "journal": "Change journal",
+        "detailsShow": "Details ▾",
+        "detailsHide": "Details ▴",
+        "sound": "UI sounds",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Defensive",
+          "movement": "Movement",
+          "signature": "Signature & Cooling"
+        }
+      }
+    },
     "empty": {
       "title": "Nothing here yet",
       "filtered": "No entries match your search or filters.",

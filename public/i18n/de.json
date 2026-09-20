@@ -602,6 +602,44 @@
       "standard": "Standard",
       "count": "{{count}} Varianten"
     },
+    "holo": {
+      "noGeometry": "Keine Silhouette",
+      "pinUnresolved": "Position nicht bekannt",
+      "toggle": {
+        "group": "Ansicht",
+        "classic": "Klassisch",
+        "classicHint": "Klassische Ansicht (Taste 1)",
+        "holo": "Holotisch",
+        "holoHint": "Holotisch-Ansicht (Taste 2)"
+      },
+      "stage": {
+        "railToggle": "Leiste ein-/ausklappen",
+        "einordnung": "Einordnung",
+        "cohortLink": "Kohorte ansehen",
+        "view3d": "3D",
+        "viewSchema": "Schema",
+        "viewShare": "Teilen",
+        "silhouetteAria": "Silhouette von {{name}}",
+        "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
+        "inspector": "Inspektor",
+        "ports": "Ports",
+        "detailShow": "Detail ▾",
+        "detailHide": "Detail ▴",
+        "density": "Kompakt",
+        "allValues": "Alle Werte ▾",
+        "allValuesHide": "Alle Werte ▴",
+        "journal": "Änderungsprotokoll",
+        "detailsShow": "Details ▾",
+        "detailsHide": "Details ▴",
+        "sound": "UI-Töne",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Verteidigung",
+          "movement": "Bewegung",
+          "signature": "Signatur & Kühlung"
+        }
+      }
+    },
     "empty": {
       "title": "Noch nichts hier",
       "filtered": "Keine Einträge passen zu Suche oder Filtern.",
