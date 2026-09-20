@@ -16,6 +16,51 @@
       "uploadResumable": "Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du hier den Einstiegspunkt zum Fortsetzen."
     }
   },
+  "steprail": {
+    "install": "Installation",
+    "setup": "Einrichtung",
+    "extract": "Extraktion",
+    "upload": "Upload",
+    "done": "Fertig"
+  },
+  "install": {
+    "cmp": {
+      "unknown": "Server-Stand unbekannt — verbinden",
+      "same": "= Server hat {{version}} bereits",
+      "newer": "▲ neuer als Server ({{version}}) — lohnt sich"
+    },
+    "lastUploaded": "Zuletzt hochgeladen {{when}}",
+    "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
+    "extractOnly": "Weiter (nur extrahieren)"
+  },
+  "scope": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "recommended": "empfohlen"
+  },
+  "sheet": {
+    "title": "Laufoptionen",
+    "mode": {
+      "label": "Modus",
+      "watch": "Ich schaue zu",
+      "unattended": "Unbeaufsichtigt"
+    },
+    "moreSettings": "Mehr in den Einstellungen"
+  },
+  "category": {
+    "ships": "Schiffe",
+    "vehicles": "Fahrzeuge",
+    "components": "Komponenten",
+    "weapons": "Waffen",
+    "strings": "Texte"
+  },
+  "done": {
+    "title": "Alles hochgeladen",
+    "openWeb": "In der Web-App öffnen",
+    "newRun": "Neuen Lauf starten",
+    "countingDown": "Fährt in {{secs}} s herunter — Esc zum Abbrechen."
+  },
   "discover": {
     "title": "Star-Citizen-Installations finden",
     "subtitle": "Läuft automatisch beim Start: RSI-Launcher → Filesystem-Scan. Weitere Ordner kannst du unten manuell hinzufügen.",
@@ -46,6 +91,7 @@
   "run": {
     "title": "Extraktion läuft",
     "next": "Upload anbieten",
+    "cancel": "Lauf abbrechen…",
     "logTitle": "Protokoll",
     "copyLog": "Kopieren",
     "copied": "Kopiert ✓",
@@ -99,6 +145,8 @@
   },
   "upload": {
     "title": "Upload",
+    "codexTitle": "Einträge in den Codex",
+    "completeness": "Vollständigkeit {{pct}} %",
     "intro": "Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.",
     "start": "Upload starten",
     "bundle": "Bundle-Zusammenfassung",

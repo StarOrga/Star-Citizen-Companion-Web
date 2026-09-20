@@ -16,6 +16,51 @@
       "uploadResumable": "There's a resumable upload. Going back loses your entry point to continue it here."
     }
   },
+  "steprail": {
+    "install": "Install",
+    "setup": "Setup",
+    "extract": "Extract",
+    "upload": "Upload",
+    "done": "Done"
+  },
+  "install": {
+    "cmp": {
+      "unknown": "Server state unknown — connect",
+      "same": "= server already has {{version}}",
+      "newer": "▲ newer than server ({{version}}) — worth it"
+    },
+    "lastUploaded": "Last uploaded {{when}}",
+    "resumeGeneric": "Found an interrupted upload — resume it?",
+    "extractOnly": "Continue (extract only)"
+  },
+  "scope": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "recommended": "recommended"
+  },
+  "sheet": {
+    "title": "Run options",
+    "mode": {
+      "label": "Mode",
+      "watch": "I'm watching",
+      "unattended": "Unattended"
+    },
+    "moreSettings": "More in Settings"
+  },
+  "category": {
+    "ships": "Ships",
+    "vehicles": "Vehicles",
+    "components": "Components",
+    "weapons": "Weapons",
+    "strings": "Text"
+  },
+  "done": {
+    "title": "Everything uploaded",
+    "openWeb": "Open in the web app",
+    "newRun": "Start a new run",
+    "countingDown": "Shutting down in {{secs}}s — Esc to cancel."
+  },
   "discover": {
     "title": "Find Star Citizen installs",
     "subtitle": "Runs automatically on launch: RSI launcher → filesystem scan. Add more folders by hand below.",
@@ -46,6 +91,7 @@
   "run": {
     "title": "Extracting",
     "next": "Continue to upload",
+    "cancel": "Abort run…",
     "logTitle": "Log",
     "copyLog": "Copy",
     "copied": "Copied ✓",
@@ -99,6 +145,8 @@
   },
   "upload": {
     "title": "Upload",
+    "codexTitle": "Entries into the Codex",
+    "completeness": "Completeness {{pct}}%",
     "intro": "Starting the upload opens your browser for sign-in. After a successful login, the bundle is uploaded automatically.",
     "start": "Start upload",
     "bundle": "Bundle summary",

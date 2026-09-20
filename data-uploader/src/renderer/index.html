@@ -12,8 +12,14 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
+    <!-- One-screen shell: a 44px top strip (mini brand+version · step rail ·
+         connection chip · settings gear) sits above the update banner, the
+         centered stage (max 820px, see --sc-content-max-width), and an
+         optional bottom strip (snackbar / status) that only takes space when
+         it has content. All content is painted by renderer/main.ts + the
+         shell/ and steps/ modules — this file is just the static scaffold. -->
+    <header id="top-strip" class="top-strip">
+      <div class="top-strip-brand">
         <!-- BRAND-MARK:BEGIN -->
         <svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="440" height="440">
         <defs>
@@ -148,7 +154,7 @@
         <!-- ===== PRODUCT BADGE: Data Uploader (laid over the untouched master) ===== -->
         <g>
         <defs>
-    
+
         <radialGradient id="uploader-mark-uploader-badge-halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#7dd5f0" stop-opacity=".5"/><stop offset="35%" stop-color="#52c1e6" stop-opacity=".2"/><stop offset="70%" stop-color="#52c1e6" stop-opacity=".08"/><stop offset="100%" stop-color="#52c1e6" stop-opacity="0"/></radialGradient>
         <radialGradient id="uploader-mark-uploader-badge-plate" cx="50%" cy="40%" r="62%"><stop offset="0%" stop-color="#1a3d54" stop-opacity=".92"/><stop offset="100%" stop-color="#0d2635" stop-opacity=".9"/></radialGradient>
         <radialGradient id="uploader-mark-uploader-badge-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a0dcf0" stop-opacity=".82"/><stop offset="55%" stop-color="#7dd5f0" stop-opacity=".3"/><stop offset="100%" stop-color="#7dd5f0" stop-opacity="0"/></radialGradient>
@@ -156,11 +162,11 @@
         <linearGradient id="uploader-mark-uploader-badge-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="#a0dcf0"/></linearGradient>
         </defs>
         <circle cx="150" cy="150" r="84" fill="url(#uploader-mark-uploader-badge-halo)"/>
-  
+
         <circle cx="150" cy="150" r="64" fill="url(#uploader-mark-uploader-badge-plate)"/>
         <circle cx="150" cy="150" r="55.04" fill="url(#uploader-mark-uploader-badge-core)"/>
         <circle cx="150" cy="150" r="64" fill="none" stroke="#52c1e6" stroke-width="6" stroke-opacity=".9"/>
-  
+
         <path d="M137,192 L150,184 L163,192"
         fill="none" stroke="#7dd5f0" stroke-width="3.5" stroke-linecap="round" stroke-opacity=".5"/>
         <path d="M141.42,202 L150,196.4 L158.58,202"
@@ -171,13 +177,13 @@
         </g>
         </svg>
       <!-- BRAND-MARK:END -->
-        <div class="brand-text">
-          <strong>Star Citizen Companion</strong>
-          <span class="sub" id="version-tag">v—</span>
-        </div>
+        <span class="top-strip-version" id="version-tag">v—</span>
       </div>
-      <div class="topbar-spacer"></div>
-      <button id="btn-settings-gear" type="button" class="sc-icon-btn" title="" aria-label="">⚙</button>
+      <nav id="step-rail" class="step-rail" aria-label="Fortschritt"></nav>
+      <div class="top-strip-right">
+        <div id="connection-chip" class="connection-chip"></div>
+        <button id="btn-settings-gear" type="button" class="sc-icon-btn" title="" aria-label="">⚙</button>
+      </div>
     </header>
 
     <div id="update-banner" class="update-banner hidden" role="status" aria-live="polite">
@@ -185,17 +191,17 @@
       <button id="update-banner-action" type="button" class="btn btn-primary"></button>
     </div>
 
-    <!-- Web-connection tile: persistent across views, painted by renderer/main.ts.
-         Shows session state (one-time login that persists) + server-catalog sync. -->
-    <section id="connection-tile" class="conn-tile" aria-live="polite"></section>
+    <button id="chevron-prev" type="button" class="chevron chevron-prev" hidden aria-label="">‹</button>
+    <button id="chevron-next" type="button" class="chevron chevron-next" hidden aria-label="">›</button>
 
-    <main id="app">
-      <!-- view content rendered by renderer/main.ts -->
+    <main id="stage" class="stage">
+      <div id="app" class="stage-inner">
+        <!-- active step content, rendered by renderer/main.ts + steps/*.ts -->
+      </div>
     </main>
 
-    <footer class="statusbar">
-      <span id="status-line">…</span>
-      <span class="env" id="env-line">—</span>
+    <footer id="bottom-strip" class="bottom-strip" hidden>
+      <span id="status-line"></span>
     </footer>
 
     <script type="module" src="./main.ts"></script>

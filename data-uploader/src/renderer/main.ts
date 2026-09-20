@@ -11,6 +11,20 @@ import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
+import { $, escapeHtml } from './dom.js';
+import { paintStepRail, type StepKey } from './shell/step-rail.js';
+import { setStatus as setBottomStatus, showSnackbar } from './shell/bottom-strip.js';
+import { wireChevrons, paintChevrons } from './shell/chevrons.js';
+import { toggleConnectionPopover, isConnectionPopoverOpen, closeConnectionPopover } from './connection-popover.js';
+import { installKeymap } from './keymap.js';
+import { closeOptionsSheetIfOpen } from './options-sheet.js';
+import { closeLogDrawer } from './log-drawer.js';
+import * as InstallStep from './steps/install.js';
+import * as SetupStep from './steps/setup.js';
+import * as DoneStep from './steps/done.js';
+import { throttleChipHtml, wireThrottleChip } from './throttle-chip.js';
+import { resetLog, appendLog as drawerAppendLog, wireLogDrawer } from './log-drawer.js';
+import { updateCategoryBars, categoryBarsHtml, resetCategoryBars, markCategoriesComplete } from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -88,11 +102,11 @@ import {
 interface ToolEnv {
   toolVersion: string;
   apiBase: string;
+  webBase: string;
   releaseTokenFingerprint: string;
   platform: string;
+  startedHidden: boolean;
 }
-
-const $ = (sel: string): HTMLElement | null => document.querySelector(sel);
 
 // Funnel renderer-side failures into the same main.log + crash telemetry as the
 // main process. Installed synchronously at module load — before init() runs —
@@ -119,18 +133,33 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload';
+// Internal view names kept from the original 4-view routing (discover →
+// configure → run → auth-upload) — the one-screen shell maps each onto a
+// step-rail node (see `viewToStep` below) without renaming the state field
+// everywhere it's referenced. 'done' is new: the post-upload summary/countdown.
+type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload' | 'done';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
+
+function viewToStep(v: ViewName): StepKey {
+  switch (v) {
+    case 'discover':
+      return 'install';
+    case 'configure':
+      return 'setup';
+    case 'run':
+      return 'extract';
+    case 'auth-upload':
+      return 'upload';
+    case 'done':
+      return 'done';
+  }
+}
 
 interface SkinShipResult {
   ship_id: string;
   export_dir: string;
   skins: { skin_id: string; name: string; has_model: boolean; has_icon: boolean }[];
 }
-
-// Plain-text mirror of the run-view log stream, so the "copy" button can hand
-// the whole transcript to the clipboard regardless of per-line DOM coloring.
-let extractLogText = '';
 
 interface ExtractResultPayload {
   channel: string;
@@ -163,7 +192,7 @@ const COUNTER_ORDER = [
   'records_total',
 ] as const;
 
-function orderedCounts(counts: Record<string, number>): [string, number][] {
+export function orderedCounts(counts: Record<string, number>): [string, number][] {
   const rank = (k: string): number => {
     const i = (COUNTER_ORDER as readonly string[]).indexOf(k);
     return i === -1 ? COUNTER_ORDER.length : i;
@@ -188,7 +217,7 @@ function fmtElapsed(ms: number): string {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-const state = {
+export const state = {
   view: 'discover' as ViewName,
   // Auto-scan runs once on app start; returning to the Discover view keeps the
   // prior results (and any manually-added folders) instead of re-scanning.
@@ -289,9 +318,45 @@ async function init(): Promise<void> {
   // auto-run that started before this window existed), and follow every later
   // switch — including ones made from another view or another window.
   await refreshProfileFromMain();
-  window.sc.perf.onChanged((v: ThrottleViewLike) => {
-    adoptThrottle(v);
-    void repaintProfilePickers();
+  window.sc.perf.onChanged((v: ThrottleViewLike) => adoptThrottle(v));
+
+  // Connection chip (top strip) → popover with today's connection-tile content.
+  $('#connection-chip')?.addEventListener('click', () => toggleConnectionPopover(paintConnection));
+
+  wireChevrons({
+    goPrev: () => {
+      if (state.view === 'configure') {
+        state.view = 'discover';
+        render();
+      }
+    },
+    goNext: () => {
+      if (state.view === 'discover') goToSetup();
+    },
+  });
+
+  installKeymap({
+    isTextInputFocused: () => {
+      const el = document.activeElement;
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
+    },
+    escHandlers: [
+      closeOptionsSheetIfOpen,
+      closeSettingsDialogIfOpen,
+      () => {
+        if (!isConnectionPopoverOpen()) return false;
+        closeConnectionPopover();
+        return true;
+      },
+      closeLogDrawer,
+      () => (state.view === 'done' ? DoneStep.cancelCountdown() : false),
+    ],
+    onEnter: () => {
+      if (state.view === 'discover') InstallStep.primaryAction();
+      else if (state.view === 'configure') SetupStep.primaryAction();
+      else if (state.view === 'done') DoneStep.primaryAction();
+    },
+    onSpace: () => toggleUploadPauseResume(),
   });
 
   // Role decides whether the Configure view shows the update-channel picker.
@@ -410,16 +475,7 @@ async function maybeAutoRun(): Promise<void> {
     },
   ];
   state.scanned = true;
-  // The unattended plan always rolls the extraction straight into the upload
-  // (when signed in) — see `buildRunPlan`.
-  if (state.settings) {
-    state.runPlan = buildRunPlan({
-      unattended: true,
-      channel: decision.channel.channel,
-      settings: state.settings,
-      signedIn: Boolean(state.authToken),
-    });
-  }
+  if (!state.settings) return;
   setStatus(
     t('autorun.starting', {
       channel: decision.channel.channel,
@@ -427,15 +483,22 @@ async function maybeAutoRun(): Promise<void> {
       server: decision.serverVersion ?? '—',
     }),
   );
-  // Entering the Run view IS the trigger: `render()` → `wireRun()` →
-  // `runRealExtract()`, and `state.runPlan.uploadAfter` carries it into the upload.
-  state.view = 'run';
-  render();
+  // The unattended plan always rolls the extraction straight into the upload
+  // (when signed in) — see `buildRunPlan`. `startRun` is the single entry
+  // point into a run for both this (unattended) and the manual Setup path.
+  await startRun(
+    buildRunPlan({
+      unattended: true,
+      channel: decision.channel.channel,
+      settings: state.settings,
+      signedIn: Boolean(state.authToken),
+    }),
+  );
 }
 
 // ============= Web-connection tile (persistent across all views) =============
 
-interface ConnChannelState {
+export interface ConnChannelState {
   channel: string;
   patchVersion: string;
   buildNumber: string;
@@ -594,7 +657,7 @@ async function revalidateSession(force = false): Promise<void> {
   if (was && !next.connected && state.view === 'auth-upload') paintReconnectNotice();
 }
 
-async function connectNow(): Promise<void> {
+export async function connectNow(): Promise<void> {
   conn.error = null;
   setConnBusy(true);
   try {
@@ -674,12 +737,6 @@ function relTime(unixSeconds: number): string {
   return t('sync.daysAgo', { n: String(days) }) || `vor ${days} Tg`;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) =>
-    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;',
-  );
-}
-
 function connErrorText(code: string): string {
   if (code === 'reconnect') return t('session.expiredHint', {}) || 'Sitzung abgelaufen — bitte neu verbinden.';
   if (code === 'not_connected') return t('session.offline', {}) || 'Nicht verbunden.';
@@ -709,8 +766,6 @@ const IC_RING =
  * here so it is reachable on every screen (role-gated: admin→3, collab→2 rings).
  */
 function paintConnection(): void {
-  const mount = $('#connection-tile');
-  if (!mount) return;
   const s = conn.status;
   const snap = conn.snapshot;
 
@@ -726,6 +781,21 @@ function paintConnection(): void {
     pillCls = 'warn';
     pillText = t('session.expired', {}) || 'Sitzung abgelaufen';
   }
+
+  // Compact top-strip chip: dot + short identity + first server chip. Always
+  // painted, independent of whether the detail popover is open.
+  const chip = $('#connection-chip');
+  if (chip) {
+    const who = s?.connected ? escapeHtml(s.email ?? '') : pillText;
+    const serverBit = snap?.channels[0]
+      ? ` · ${escapeHtml(snap.channels[0].channel.toUpperCase())} v${escapeHtml(snap.channels[0].patchVersion)}`
+      : '';
+    chip.innerHTML = `<span class="conn-dot conn-dot--${pillCls}"></span> ${who}${serverBit}`;
+  }
+
+  // Detail body only exists while the popover is open (see connection-popover.ts).
+  const mount = document.getElementById('connection-popover-body');
+  if (!mount) return;
 
   // Left cluster: email when signed in, otherwise a short state + connect CTA.
   let idBlock: string;
@@ -859,7 +929,7 @@ function onUpdateEvent(ev: UpdateEvent): void {
 // Markup for the dismissible "new version available" banner on the Discover
 // screen. Caller decides whether to render it (state.manualUpdate set + not
 // dismissed).
-function renderDiscoverUpdateBanner(): string {
+export function renderDiscoverUpdateBanner(): string {
   const u = state.manualUpdate;
   if (!u) return '';
   const msg =
@@ -873,7 +943,7 @@ function renderDiscoverUpdateBanner(): string {
     </div>`;
 }
 
-function wireDiscoverUpdateBanner(): void {
+export function wireDiscoverUpdateBanner(): void {
   $('#du-download')?.addEventListener('click', () => void window.open(DOWNLOAD_PAGE_URL));
   $('#du-dismiss')?.addEventListener('click', () => {
     state.manualUpdateDismissed = true;
@@ -966,9 +1036,13 @@ function paintEnv(env: ToolEnv): void {
   if (env_line) env_line.textContent = `${env.platform} · ${env.releaseTokenFingerprint}`;
 }
 
-function setStatus(msg: string): void {
-  const el = $('#status-line');
-  if (el) el.textContent = msg;
+export function setStatus(msg: string): void {
+  setBottomStatus(msg);
+}
+
+/** True once a run (extract or upload) is live — gates the chevrons + Back. */
+function runIsLive(): boolean {
+  return state.view === 'run' || state.view === 'auth-upload' || state.view === 'done';
 }
 
 function render(): void {
@@ -978,14 +1052,20 @@ function render(): void {
   // session (both throttled), so a stale login is caught before the user acts.
   maybeAutoCheckUpdate();
   void revalidateSession();
+
+  const step = viewToStep(state.view);
+  paintStepRail({ current: step, activePct: lastOverallPct });
+  paintChevrons(step, runIsLive());
+  paintConnection();
+
   switch (state.view) {
     case 'discover':
-      app.innerHTML = renderDiscover();
-      wireDiscover();
+      app.innerHTML = InstallStep.renderInstall();
+      InstallStep.wireInstall();
       break;
     case 'configure':
-      app.innerHTML = renderConfigure();
-      wireConfigure();
+      app.innerHTML = SetupStep.renderSetup();
+      SetupStep.wireSetup();
       break;
     case 'run':
       app.innerHTML = renderRun();
@@ -995,146 +1075,70 @@ function render(): void {
       app.innerHTML = renderAuthUpload();
       wireAuthUpload();
       break;
+    case 'done':
+      app.innerHTML = DoneStep.renderDone();
+      DoneStep.wireDone();
+      break;
   }
 }
 
-// ============= View: Discover =============
+/** Overall extract/upload percentage, mirrored for the step-rail's fill segment. */
+let lastOverallPct = 0;
 
-function renderDiscover(): string {
-  const updateBanner =
-    state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
-  return `
-    <div class="view">
-      ${updateBanner}
-      <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
-      <p class="view-intro">${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
-      <div id="channels-mount" class="view-body"></div>
-      <div class="btn-row view-footer" id="discover-next" style="display:none;">
-        <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
-      </div>
-    </div>
-  `;
+/**
+ * The ONLY entry point into a run — called by the Setup step's Start button
+ * AND by `maybeAutoRun`. Never a side effect of rendering: `render()` just
+ * mounts the Extract card; the actual sidecar spawn happens right after, once
+ * the DOM it paints into exists.
+ */
+export async function startRun(plan: RunPlan): Promise<void> {
+  state.runPlan = plan;
+  state.whenDone = plan.whenDone;
+  state.view = 'run';
+  render();
+  await runRealExtract();
 }
 
-function wireDiscover(): void {
-  wireDiscoverUpdateBanner();
-  $('#btn-to-configure')?.addEventListener('click', () => {
-    state.view = 'configure';
-    render();
-  });
-
-  // No "start scan" button: the scan kicks off automatically the first time the
-  // Discover view mounts (i.e. on app start). Coming back to this view keeps the
-  // earlier results — including any folders the operator added by hand.
-  if (!state.scanned && !state.scanning) {
-    void autoScan();
-  } else {
-    paintChannels();
-  }
+/** Done step's "Neuen Lauf starten" — back to Install with run state reset. */
+export function resetForNewRun(): void {
+  state.lastResult = null;
+  state.extractDone = false;
+  state.skinResult = null;
+  state.skinUploadStatus = null;
+  state.runPlan = null;
+  state.whenDone = 'nothing';
+  state.view = 'discover';
+  render();
 }
 
-async function autoScan(): Promise<void> {
-  state.scanning = true;
-  paintChannels(); // shows the loading animation in the lower part
-  setStatus('discovering…');
-  try {
-    const found = await window.sc.discover();
-    // Single-select: with exactly one install found it is preselected (the run
-    // uses it); with more than one the operator must pick.
-    state.channels = found.map((c, i) => ({ ...c, selected: found.length === 1 && i === 0 }));
-    setStatus(`found ${found.length} channel(s)`);
-  } catch {
-    setStatus('scan failed');
-  } finally {
-    state.scanning = false;
-    state.scanned = true;
-    paintChannels();
-  }
+// ============= Install/Setup step helpers (used by steps/install.ts + steps/setup.ts) =============
+
+/** Navigate to the Setup step — the Install step's primary/secondary CTA. */
+export function goToSetup(): void {
+  state.view = 'configure';
+  render();
 }
 
-// Big "add a folder" button under the version list — lets the operator pull in
-// installs the auto-scan missed (custom drive, moved library, PTU on another disk).
-async function addManualFolder(): Promise<void> {
-  const folder = await window.sc.pickFolder();
-  if (!folder) return;
-  const ch = await window.sc.discoverManual(folder);
-  if (!ch) {
-    setStatus('no Data.p4k in selected folder');
-    return;
-  }
-  if (state.channels.some((c) => c.dataP4kPath === ch.dataP4kPath)) return;
-  // Single-select: a manually added folder becomes the pick.
-  state.channels.forEach((c) => (c.selected = false));
-  state.channels.push({ ...ch, selected: true });
-  paintChannels();
+export function isConnected(): boolean {
+  return Boolean(conn.status?.connected);
 }
 
-function paintChannels(): void {
-  const mount = $('#channels-mount');
-  const nextRow = $('#discover-next');
-  if (!mount) return;
+export function connSnapshotFor(channel: string): ConnChannelState | null {
+  const tag = channel.toLowerCase();
+  return conn.snapshot?.channels.find((c) => c.channel.toLowerCase() === tag) ?? null;
+}
 
-  // While the auto-scan runs, show a small spinner in the lower part instead of
-  // an empty page — no buttons, no "next" row yet.
-  if (state.scanning) {
-    mount.innerHTML = `
-      <div class="scan-loading">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>${t('discover.scanning', {}) || 'Suche nach Installationen…'}</span>
-      </div>`;
-    if (nextRow) nextRow.style.display = 'none';
-    return;
-  }
-
-  const hasChannels = state.channels.length > 0;
-  // Single-select (radio semantics): exactly one install card is ever picked —
-  // it is the one the run uses, so "choosing" two would be a lie the old
-  // multi-checkbox UI let the operator tell themselves.
-  const cards = state.channels
-    .map(
-      (c, i) => `
-      <label class="channel-card ${c.selected ? 'selected' : ''}" data-card="${i}">
-        <div class="channel-card-top">
-          <span class="channel-pill ${c.channel}">${c.channel}</span>
-          <input type="radio" name="install-pick" data-idx="${i}" ${c.selected ? 'checked' : ''} />
-        </div>
-        <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
-        <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
-      </label>
-    `,
-    )
-    .join('');
-
-  const empty = hasChannels ? '' : `<p class="discover-empty">${t('discover.none')}</p>`;
-
-  mount.innerHTML = `
-    <div class="channel-track">
-      ${cards}
-      ${empty}
-      <button id="btn-manual" type="button" class="channel-add-card">＋ ${t('discover.addManual')}</button>
-    </div>
-  `;
-
-  mount.querySelectorAll('input[type=radio]').forEach((el) => {
-    el.addEventListener('change', (e) => {
-      const idx = Number((e.target as HTMLInputElement).dataset['idx']);
-      if (!Number.isInteger(idx)) return;
-      state.channels.forEach((c, i) => (c.selected = i === idx));
-      mount
-        .querySelectorAll('.channel-card')
-        .forEach((el2, i) => el2.classList.toggle('selected', i === idx));
-    });
-  });
-  $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
-
-  if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
+/** The Install step's "Fortsetzen" resumable-job action — jumps into Upload. */
+export async function jumpToResumeUpload(): Promise<void> {
+  state.view = 'auth-upload';
+  render();
+  if (await ensureResultForResume()) void doResumeUpload();
 }
 
 // ============= View: Configure =============
 
 /** Channels the current role may pick (highest first). Empty = no picker. */
-function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
+export function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
   switch (state.role) {
     case 'admin':
       return ['alpha', 'beta', 'stable'];
@@ -1148,38 +1152,8 @@ function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
 // The update-channel picker moved out of Configure into the always-visible
 // connection bar (see paintConnection). `allowedChannels()` above is shared.
 
-const WHEN_DONE_OPTIONS: WhenDone[] = ['nothing', 'quit', 'shutdown'];
-
-function whenDoneSegmentHtml(): string {
-  const opts = WHEN_DONE_OPTIONS.map(
-    (v) =>
-      `<button type="button" class="segment${v === state.whenDone ? ' active' : ''}" data-whendone="${v}">${t('run.whenDone.' + v)}</button>`,
-  ).join('');
-  return `
-    <div class="settings-row">
-      <div class="settings-row-main">
-        <span class="settings-row-label">${t('run.whenDone.label')}</span>
-      </div>
-      <div class="segment-group" id="whendone-segment" role="radiogroup" aria-label="${t('run.whenDone.label')}">${opts}</div>
-    </div>`;
-}
-
-function wireWhenDoneSegment(onChange?: () => void): void {
-  $('#whendone-segment')
-    ?.querySelectorAll<HTMLButtonElement>('.segment')
-    .forEach((btn) => {
-      btn.addEventListener('click', () => {
-        state.whenDone = btn.dataset['whendone'] as WhenDone;
-        $('#whendone-segment')
-          ?.querySelectorAll('.segment')
-          .forEach((b) => b.classList.toggle('active', b === btn));
-        onChange?.();
-      });
-    });
-}
-
-/** Small "armed" chip shown on Run/Upload while a when-done choice is live. */
-function armedChipHtml(): string {
+/** Small "armed" chip shown on Setup/Run/Upload while a when-done choice is live. */
+export function armedChipHtml(): string {
   const wd = state.runPlan?.whenDone ?? state.whenDone;
   if (wd === 'nothing') return '';
   return `
@@ -1189,7 +1163,7 @@ function armedChipHtml(): string {
     </span>`;
 }
 
-function wireArmedChip(): void {
+export function wireArmedChip(): void {
   $('#armed-chip-disarm')?.addEventListener('click', () => {
     state.whenDone = 'nothing';
     if (state.runPlan) state.runPlan = { ...state.runPlan, whenDone: 'nothing' };
@@ -1197,57 +1171,8 @@ function wireArmedChip(): void {
   });
 }
 
-function renderConfigure(): string {
-  return `
-    <div class="view">
-      <h1>${t('configure.title')}</h1>
-      <p class="view-intro">${t('configure.subtitle')}</p>
-      <div class="profiles view-body" id="profiles-mount"></div>
-      <p class="throttle-status" id="profiles-mount-status" style="display:none;"></p>
-      <label class="auto-upload-toggle" title="${t('configure.autoUploadHint')}">
-        <input type="checkbox" id="chk-auto-upload" ${state.settings?.uploadAfterExtract ? 'checked' : ''} />
-        <span>${t('configure.autoUpload')}</span>
-      </label>
-      ${whenDoneSegmentHtml()}
-      <div class="btn-row view-footer">
-        <button id="btn-back-discover" class="btn">← ${t('common.back')}</button>
-        <button id="btn-open-settings" class="btn" title="${t('settings.title')} (Ctrl+,)">⚙ ${t('settings.title')}</button>
-        <button id="btn-start-run" class="btn btn-primary">${t('configure.start')}</button>
-      </div>
-    </div>
-  `;
-}
-
-function wireConfigure(): void {
-  void renderProfiles();
-  ($('#chk-auto-upload') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    void window.sc.settings.patch({ uploadAfterExtract: (e.target as HTMLInputElement).checked }).then((s) => {
-      state.settings = s;
-    });
-  });
-  wireWhenDoneSegment();
-  $('#btn-open-settings')?.addEventListener('click', () => openAppSettingsDialog());
-  $('#btn-back-discover')?.addEventListener('click', () => {
-    state.view = 'discover';
-    render();
-  });
-  $('#btn-start-run')?.addEventListener('click', () => {
-    const channel = state.channels.find((c) => c.selected);
-    if (channel && state.settings) {
-      state.runPlan = buildRunPlan({
-        channel: channel.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW',
-        settings: state.settings,
-        signedIn: Boolean(state.authToken),
-        whenDone: state.whenDone,
-      });
-    }
-    state.view = 'run';
-    render();
-  });
-}
-
 /** Wraps `openSettingsDialog` with the renderer's live context. */
-function openAppSettingsDialog(): void {
+export function openAppSettingsDialog(): void {
   openSettingsDialog({
     getSettings: () => state.settings,
     patch: (partial) => window.sc.settings.patch(partial),
@@ -1265,10 +1190,6 @@ function openAppSettingsDialog(): void {
   });
 }
 
-async function renderProfiles(): Promise<void> {
-  await paintProfilePicker('#profiles-mount', { compact: false });
-}
-
 // ============= Live performance switch =============
 //
 // The profile is deliberately NOT a start-time snapshot: the operator's case is
@@ -1278,86 +1199,24 @@ async function renderProfiles(): Promise<void> {
 // views (compact), all writing through `applyProfile`, and main pushes the new
 // profile into the running sidecar.
 
-/** The single write path for the profile — main is the source of truth. */
-async function applyProfile(next: LiveProfile, statusSel?: string): Promise<void> {
+/**
+ * The single write path for the profile — main is the source of truth.
+ * Returns a human status message (applied / armed / unsupported) for the
+ * caller (the throttle chip) to route to the bottom-strip snackbar — never
+ * paints a DOM status line itself, unlike the old per-view pickers.
+ */
+export async function applyProfile(next: LiveProfile): Promise<{ message: string } | null> {
   let result: ThrottleViewLike;
   try {
     result = await window.sc.perf.set(next);
   } catch {
     // A failed switch must not leave the UI showing a mode that is not in
-    // effect — re-read main's truth and repaint from that.
+    // effect — re-read main's truth.
     await refreshProfileFromMain();
-    return;
+    return null;
   }
   adoptThrottle(result);
-  await repaintProfilePickers();
-  if (statusSel) paintThrottleStatus(statusSel, result);
-}
-
-function adoptThrottle(v: ThrottleViewLike): void {
-  state.profile = v.profile;
-  state.throttleSupported = v.supported;
-}
-
-async function refreshProfileFromMain(): Promise<void> {
-  try {
-    adoptThrottle(await window.sc.perf.get());
-  } catch {
-    /* keep the last known mirror — the picker still works, it just may lag */
-  }
-  await repaintProfilePickers();
-}
-
-/** Repaint every picker currently in the DOM (only one view is mounted at a time). */
-async function repaintProfilePickers(): Promise<void> {
-  await paintProfilePicker('#profiles-mount', { compact: false });
-  await paintProfilePicker('#run-throttle-mount', { compact: true });
-  await paintProfilePicker('#upload-throttle-mount', { compact: true });
-}
-
-async function paintProfilePicker(sel: string, opts: { compact: boolean }): Promise<void> {
-  const mount = $(sel);
-  if (!mount) return;
-  const { profiles } = await window.sc.profiles();
-  const selectedSize = state.channels
-    .filter((c) => c.selected)
-    .reduce((sum, c) => sum + c.sizeBytes, 0);
-  const lang = getLocale();
-  const statusSel = `${sel}-status`;
-  const entries = await Promise.all(
-    (Object.values(profiles) as ProfileDefLike[]).map(async (p) => {
-      const label = (p.label as Record<string, string>)[lang] ?? p.label.en;
-      const desc = (p.description as Record<string, string>)[lang] ?? p.description.en;
-      const active = p.id === state.profile ? 'active' : '';
-      // The ETA is a start-time estimate for a whole run — showing it next to a
-      // job that is already half done would be a lie, so the compact (mid-run)
-      // pills drop it instead of restating it.
-      const eta = opts.compact
-        ? ''
-        : `<span class="eta">~ ${(await window.sc.estimate(p.id as LiveProfile, selectedSize)).formatted}</span>`;
-      return `
-        <div class="profile-pill ${opts.compact ? 'compact' : ''} ${active}" data-profile="${p.id}" tabindex="0" role="button" aria-pressed="${active ? 'true' : 'false'}">
-          <span class="name">${label}</span>
-          ${opts.compact ? '' : `<span class="desc">${desc}</span>`}
-          ${eta}
-        </div>`;
-    }),
-  );
-  mount.innerHTML = entries.join('');
-  mount.querySelectorAll('.profile-pill').forEach((el) => {
-    const select = (): void => {
-      const id = (el as HTMLElement).dataset['profile'] as LiveProfile | undefined;
-      if (id) void applyProfile(id, statusSel);
-    };
-    el.addEventListener('click', select);
-    el.addEventListener('keydown', (e) => {
-      const ke = e as KeyboardEvent;
-      if (ke.key === 'Enter' || ke.key === ' ') {
-        if (ke.key === ' ') ke.preventDefault();
-        select();
-      }
-    });
-  });
+  return { message: throttleStatusMessage(result) };
 }
 
 /**
@@ -1367,66 +1226,54 @@ async function paintProfilePicker(sel: string, opts: { compact: boolean }): Prom
  * them into one cheerful "saved" would be the failure mode where they trust a
  * throttle that never happened and go play anyway.
  */
-function paintThrottleStatus(sel: string, v: ThrottleViewLike): void {
-  const el = $(sel);
-  if (!el) return;
-  let msg: string;
-  if (!v.supported) {
-    msg = t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.';
-  } else if ((v.applied ?? 0) > 0) {
-    msg = t('configure.speed.applied', {}) || 'Modus geändert — wirkt ab der nächsten Datei.';
-  } else if (v.liveJobs > 0) {
-    msg = t('configure.speed.appliedPartly', {}) || 'Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Log).';
-  } else {
-    msg = t('configure.speed.armed', {}) || 'Modus gesetzt — er gilt, sobald ein Lauf startet.';
-  }
-  el.textContent = msg;
-  el.style.display = 'block';
+export function throttleStatusMessage(v: ThrottleViewLike): string {
+  if (!v.supported) return t('configure.speed.unsupported');
+  if ((v.applied ?? 0) > 0) return t('configure.speed.applied');
+  if (v.liveJobs > 0) return t('configure.speed.appliedPartly');
+  return t('configure.speed.armed');
 }
 
-/** The compact mid-run switch, mounted on the Run and Upload views. */
-function throttleBarHtml(id: string): string {
-  return `
-    <div class="throttle-bar" id="${id}">
-      <div class="throttle-head">
-        <span class="throttle-title">${t('configure.speed.title', {}) || 'Geschwindigkeit'}</span>
-        <span class="throttle-hint">${t('configure.speed.hint', {}) || 'Jederzeit umschaltbar — auch mitten im Lauf.'}</span>
-      </div>
-      <div class="profiles compact" id="${id}-mount"></div>
-      <p class="throttle-status" id="${id}-mount-status" style="display:none;"></p>
-      <p class="throttle-note">${t('configure.speed.scopePinned', {}) || 'Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich.'}</p>
-      ${
-        state.throttleSupported
-          ? ''
-          : `<p class="throttle-note warn">${t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.'}</p>`
-      }
-    </div>
-  `;
+function adoptThrottle(v: ThrottleViewLike): void {
+  state.profile = v.profile;
+  state.throttleSupported = v.supported;
+}
+
+export async function refreshProfileFromMain(): Promise<void> {
+  try {
+    adoptThrottle(await window.sc.perf.get());
+  } catch {
+    /* keep the last known mirror — the chip still works, it just may lag */
+  }
 }
 
 // ============= View: Run (Phase 1 stub UI) =============
 
 function renderRun(): string {
   return `
-    <div class="view">
-      <h1>${t('run.title')} ${armedChipHtml()}</h1>
-      ${throttleBarHtml('run-throttle')}
-      <div class="run-grid view-body">
-        <section class="card run-main">
-          ${progressCardHtml('run-progress', runSteps())}
-        </section>
-        <section class="card run-log">
-          <div class="log-header">
-            <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
-            <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+    <div class="view step-run">
+      <section class="card run-card">
+        <div class="run-card-head">
+          <h1>${t('run.title')} ${armedChipHtml()}</h1>
+          ${throttleChipHtml(state.profile === 'auto' ? 'standard' : state.profile)}
+        </div>
+        ${progressCardHtml('run-progress', runSteps())}
+        ${categoryBarsHtml()}
+        <div class="log-line-row">
+          <div class="log-lastline" id="log-lastline"></div>
+          <button type="button" id="log-drawer-toggle" class="btn-link" title="${t('run.logTitle')} (Ctrl+L)">${t('run.logTitle')} <kbd class="sc-kbd">Ctrl+L</kbd></button>
+        </div>
+        <div class="log-drawer" id="log-drawer" hidden>
+          <div class="log-drawer-head">
+            <span class="log-title">${t('run.logTitle')}</span>
+            <button id="log-drawer-copy" type="button" class="btn btn-copy">${t('run.copyLog')}</button>
           </div>
-          <div class="log-stream" id="log"></div>
-        </section>
-      </div>
+          <div class="log-stream" id="log-drawer-body"></div>
+        </div>
+      </section>
       <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
       <div class="btn-row view-footer">
-        <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
+        <button id="btn-cancel-extract" class="btn btn-danger-ghost">${t('run.cancel')}</button>
+        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next')}</button>
       </div>
     </div>
   `;
@@ -1440,34 +1287,34 @@ function markBundleReady(): void {
   if (btn) {
     btn.removeAttribute('disabled');
     btn.classList.add('btn-ready');
-    btn.textContent = `✓ ${t('run.bundleReadyCta', {}) || 'Bundle fertig — jetzt hochladen'}`;
+    btn.textContent = `✓ ${t('run.bundleReadyCta')}`;
   }
   const note = $('#run-ready-note');
   if (note) {
-    note.textContent = t('run.bundleReady', {}) || 'Extraktion abgeschlossen — das Bundle ist bereit zum Upload.';
+    note.textContent = t('run.bundleReady');
     note.style.display = 'block';
   }
+  markCategoriesComplete();
 }
 
 function wireRun(): void {
-  // Mounted BEFORE the extraction kicks off, and never disabled while it runs —
-  // being able to throttle down mid-run is the entire point of this control.
-  void paintProfilePicker('#run-throttle-mount', { compact: true });
   wireArmedChip();
-  $('#btn-back-configure')?.addEventListener('click', () => {
+  wireLogDrawer();
+  wireThrottleChip({
+    getProfile: () => state.profile,
+    getLocale: () => getLocale(),
+    applyProfile: (next) => applyProfile(next),
+    onMessage: (msg) => showSnackbar(msg),
+  });
+  $('#btn-cancel-extract')?.addEventListener('click', () => {
     void (async () => {
-      const ok = await confirmLeave(
-        extractRunning,
-        'confirm.leave.extract',
-        'Die Extraktion läuft noch. Gehst du zurück, wird sie abgebrochen und der Fortschritt geht verloren.',
-      );
+      const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
       if (!ok) return;
-      // Actually abort the sidecar so it isn't orphaned running in the background.
       if (currentExtractJobId) {
         try {
           await window.sc.extract.cancel(currentExtractJobId);
         } catch {
-          /* best-effort — navigate away regardless */
+          /* best-effort */
         }
       }
       state.view = 'configure';
@@ -1478,57 +1325,26 @@ function wireRun(): void {
     state.view = 'auth-upload';
     render();
   });
-  $('#btn-copy-log')?.addEventListener('click', () => void copyLog());
-  void runRealExtract();
-}
-
-async function copyLog(): Promise<void> {
-  const btn = $('#btn-copy-log') as HTMLButtonElement | null;
-  if (!btn) return;
-  const reset = (): void => {
-    btn.classList.remove('copied', 'copy-failed');
-    btn.textContent = t('run.copyLog', {}) || 'Kopieren';
-  };
-  try {
-    await window.sc.clipboard.writeText(extractLogText);
-    btn.classList.remove('copy-failed');
-    btn.classList.add('copied');
-    btn.textContent = t('run.copied', {}) || 'Kopiert ✓';
-  } catch {
-    btn.classList.remove('copied');
-    btn.classList.add('copy-failed');
-    btn.textContent = t('run.copyFailed', {}) || 'Fehlgeschlagen';
-  }
-  setTimeout(reset, 1600);
 }
 
 async function runRealExtract(): Promise<void> {
-  const logEl = $('#log');
   const progress = mountProgress('run-progress', {
     counterLabel,
     steps: runSteps(),
     labels: progressLabels(),
     stepLabel: stepCounterLabel,
   });
-  const appendLog = (msg: string, level: LogLevel = 'info') => {
-    const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
-    const text = prefix + msg;
-    extractLogText += text + '\n';
-    if (!logEl) return;
-    const line = document.createElement('div');
-    line.className = 'log-line log-' + level;
-    line.textContent = text;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  };
+  const appendLog = (msg: string, level: LogLevel = 'info') => drawerAppendLog(msg, level);
   const countMap: Record<string, number> = {};
 
   progress.start();
-  extractLogText = '';
+  resetLog();
+  resetCategoryBars();
+  lastOverallPct = 0;
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
-    appendLog('Kein Channel ausgewählt — zurück zur Discover-Seite.', 'error');
+    appendLog('Kein Channel ausgewählt — zurück zum Setup.', 'error');
     return;
   }
 
@@ -1540,13 +1356,15 @@ async function runRealExtract(): Promise<void> {
   appendLog(`output → ${outDir}`);
 
   const unsubscribe = window.sc.extract.onEvent((ev) => {
-    currentExtractJobId = ev.jobId; // stable for the run; lets "back" abort it
+    currentExtractJobId = ev.jobId; // stable for the run; lets "abort" cancel it
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
         const si = RUN_STEP_INDEX[ev.phase ?? ''];
         if (si !== undefined) progress.setStep(si);
         progress.update({ phaseLabel: label, overallPct: ev.pct });
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
+        if (ev.phase === 'validate' || ev.phase === 'bundle') markCategoriesComplete();
         appendLog(`▶ ${label}`);
         return;
       }
@@ -1555,9 +1373,9 @@ async function runRealExtract(): Promise<void> {
         // rather than looking hung (they emit pct but no current/total).
         const hint =
           ev.stage === 'open'
-            ? t('run.hint.open', {}) || 'Öffne das große Archiv — das dauert einen Moment.'
+            ? t('run.hint.open')
             : ev.stage === 'datacore'
-              ? t('run.hint.datacore', {}) || 'DataCore wird dekomprimiert — kann etwas dauern.'
+              ? t('run.hint.datacore')
               : '';
         progress.update({
           overallPct: ev.pct,
@@ -1567,11 +1385,12 @@ async function runRealExtract(): Promise<void> {
           detail: ev.detail,
           hint,
         });
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       }
       case 'file':
         progress.update({ overallPct: ev.pct });
-        if (ev.fileName) appendLog(`  · ${ev.fileName}`);
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       case 'count':
         if (ev.counter) {
@@ -1579,6 +1398,7 @@ async function runRealExtract(): Promise<void> {
           const ordered: Record<string, number> = {};
           for (const [k, v] of orderedCounts(countMap)) ordered[k] = v;
           progress.update({ counters: ordered });
+          updateCategoryBars(countMap);
         }
         return;
       case 'log':
@@ -1590,6 +1410,8 @@ async function runRealExtract(): Promise<void> {
       case 'done':
         progress.setStep(5); // past the last phase → all step chips 'done'
         progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
+        lastOverallPct = 100;
+        markCategoriesComplete();
         return;
       case 'error':
         progress.update({ indeterminate: false });
@@ -1607,9 +1429,9 @@ async function runRealExtract(): Promise<void> {
       patchVersion: channel.version ?? 'unknown',
       buildNumber: '', // unknown from disk; server will treat empty as missing
       scope: {
-        hdIcons: state.profile !== 'minimal',
-        renderPngs: state.profile === 'maximum',
-        componentTree: state.profile !== 'minimal',
+        hdIcons: state.runPlan?.scope !== 'minimal',
+        renderPngs: state.runPlan?.scope === 'maximum',
+        componentTree: state.runPlan?.scope !== 'minimal',
       },
       toolVersion: (await window.sc.env()).toolVersion,
     });
@@ -1705,44 +1527,40 @@ function renderAuthUpload(): string {
         .join('')
     : '<li><em>no extraction yet</em></li>';
   return `
-    <div class="view">
-      <h1>${t('upload.title')} ${armedChipHtml()}</h1>
-      ${throttleBarHtml('upload-throttle')}
-      <div class="upload-grid view-body">
-        <section class="card upload-actions">
-          <p>${t('upload.intro')}</p>
-          <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
-          <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
-          <div class="btn-row">
-            <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-            <button id="btn-pause-upload" class="btn" style="display:none;">${t('upload.job.pause')}</button>
-            <button id="btn-resume-upload" class="btn btn-primary" style="display:none;">${t('upload.job.resumeAction')}</button>
-            <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard')}</button>
-          </div>
-          ${progressCardHtml('upload-progress', uploadSteps())}
-          <div id="shutdown-notice" class="shutdown-notice" style="display:none;"></div>
-          <div id="auth-status" class="upload-status" hidden></div>
-          <div id="upload-result" style="margin-top: 14px;"></div>
-        </section>
-        <section class="card upload-summary">
-          <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
-          ${hasResult
-            ? `
-            <ul class="bundle-meta">
-              <li><strong>channel:</strong> ${result!.channel}</li>
-              <li><strong>patch:</strong> ${result!.patch_version}</li>
-              <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-              <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-            </ul>
-            <h3 style="margin-top: 10px;">Entity counts</h3>
-            <ul class="entity-strip">${counts}</ul>
-          `
-            : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
-        </section>
-      </div>
-      <div class="btn-row view-footer">
-        <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      </div>
+    <div class="view step-upload">
+      <section class="card upload-card">
+        <div class="upload-card-head">
+          <h1>⇡ ${t('upload.title')} — ${t('upload.codexTitle')} ${armedChipHtml()}</h1>
+          <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
+          <span class="upload-throughput" id="upload-throughput"></span>
+        </div>
+        <p>${t('upload.intro')}</p>
+        <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
+        <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
+        <div class="btn-row">
+          <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
+          <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard')}</button>
+        </div>
+        ${progressCardHtml('upload-progress', uploadSteps())}
+        <div id="auth-status" class="upload-status" hidden></div>
+        <div id="upload-result" style="margin-top: 14px;"></div>
+      </section>
+      <details class="upload-bundle-details">
+        <summary>${t('upload.bundle')}</summary>
+        ${hasResult
+          ? `
+          <ul class="bundle-meta">
+            <li><strong>channel:</strong> ${result!.channel}</li>
+            <li><strong>patch:</strong> ${result!.patch_version}</li>
+            <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
+            <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
+          </ul>
+          <ul class="entity-strip">${counts}</ul>
+        `
+          : '<p class="warn">No extraction result yet.</p>'}
+      </details>
+      <button type="button" id="btn-pause-upload" class="fab" style="display:none;" title="${t('upload.job.pause')} (Space)" aria-label="${t('upload.job.pause')}">⏸</button>
+      <button type="button" id="btn-resume-upload" class="fab fab-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)" aria-label="${t('upload.job.resumeAction')}">▶</button>
     </div>
   `;
 }
@@ -1753,39 +1571,12 @@ function renderAuthUpload(): string {
 let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
-  void paintProfilePicker('#upload-throttle-mount', { compact: true });
   wireArmedChip();
   uploadProgress = mountProgress('upload-progress', {
     counterLabel,
     steps: uploadSteps(),
     labels: progressLabels(),
     stepLabel: stepCounterLabel,
-  });
-  $('#btn-back-run')?.addEventListener('click', () => {
-    void (async () => {
-      // An in-flight upload, or a resumable job on disk, is real progress the
-      // back navigation would walk away from — confirm before leaving.
-      const risk = uploadRunning || !!state.resumableJob?.resumable;
-      const ok = await confirmLeave(
-        risk,
-        uploadRunning ? 'confirm.leave.upload' : 'confirm.leave.uploadResumable',
-        uploadRunning
-          ? 'Der Upload läuft noch. Gehst du zurück, wird er unterbrochen.'
-          : 'Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du den Einstiegspunkt hier.',
-      );
-      if (!ok) return;
-      // Cleanly pause an in-flight upload so it unwinds at the next checkpoint
-      // and stays resumable — matches the "you can continue later" wording.
-      if (uploadRunning) {
-        try {
-          await window.sc.uploadJob.pause();
-        } catch {
-          /* best-effort — navigate away regardless */
-        }
-      }
-      state.view = 'run';
-      render();
-    })();
   });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
@@ -1798,6 +1589,13 @@ function wireAuthUpload(): void {
   // Surface an upload the last session left unfinished (paused, or killed
   // mid-run) so the operator can continue it instead of starting over.
   void refreshJobView();
+}
+
+/** Space shortcut while the Upload step is mounted — pause/resume, no-op otherwise. */
+export function toggleUploadPauseResume(): void {
+  if (state.view !== 'auth-upload') return;
+  if (uploadRunning) void doPauseUpload();
+  else if (state.resumableJob?.resumable) void doResumeUpload();
 }
 
 // ============= Durable upload job (pause / resume / kill-recovery) =============
@@ -2283,8 +2081,10 @@ async function doUploadAfterAuth(): Promise<void> {
     }
   }
 
-  // Every stage confirmed and cleaned up — this is the only place we reach on a
-  // fully-successful upload, so it is where an opted-in shutdown belongs.
+  // Every stage confirmed and cleaned up — hand off to the Done step, which
+  // owns the summary and (when armed) the shutdown/quit countdown.
+  state.view = 'done';
+  render();
   await maybeShutdownAfterUpload();
   await maybeQuitAfterUpload();
 }
@@ -2538,10 +2338,10 @@ function clearUploadFeedback(): void {
 // `state.runPlan.whenDone` by `buildRunPlan`. The OS gets a 60 s countdown
 // (cancelable via the button we paint here or the native dialog), so an
 // accidental tick or a "wait, one more thing" is always recoverable.
-const SHUTDOWN_DELAY_SECS = 60;
-async function maybeShutdownAfterUpload(): Promise<void> {
+export const SHUTDOWN_DELAY_SECS = 60;
+export async function maybeShutdownAfterUpload(): Promise<void> {
   if (state.runPlan?.whenDone !== 'shutdown') return;
-  const notice = $('#shutdown-notice');
+  const notice = $('#done-shutdown-notice');
   const res = await window.sc.system.shutdown(SHUTDOWN_DELAY_SECS);
   if (!notice) return;
   if (!res.ok) {
