@@ -434,3 +434,82 @@ export function mapKeybinds(data: KeybindData, buildId: string, nat: Nat): Keybi
   }
   return rows;
 }
+
+// ── silhouettes (Codex Holotable + tile-view art) ───────────────────────────
+//
+// One row per `silhouettes/rows/<kind>__<class>.json` the uploader's Python
+// silhouette build writes (`sc_extract/silhouette_build.py`), which is the
+// wave-0 §C1 contract object: `{schema, kind, className, build, generatedAt,
+// toolVersion, source, silhouette:{viewBox,noseUp,path,bbox,scaleMPerUnit,
+// pointCount,simplifyToleranceM}, anchors?, unresolved?}`. Pinned columns
+// mirror the ones `codex_item_ports` already pins (build identity + the
+// fields the website queries directly); everything else that is audit trail
+// rather than query surface (`source`, `toolVersion`, `schema`, the
+// silhouette's own scale/point-count/tolerance) folds into `meta`.
+
+export interface SilhouetteRow {
+  build_id: string;
+  channel: string;
+  patch_version: string;
+  build_number: string;
+  kind: string;
+  class_name: string;
+  view_box: string;
+  path: string;
+  bbox: { x: number; y: number; w: number; h: number } | null;
+  anchors: unknown[];
+  unresolved: string[];
+  meta: Record<string, unknown>;
+  generated_at: string | null;
+}
+
+/** The contract object one `silhouettes/rows/*.json` file holds. */
+export interface SilhouetteFile {
+  schema?: number;
+  kind?: string;
+  className?: string;
+  generatedAt?: string;
+  toolVersion?: string;
+  source?: unknown;
+  silhouette?: {
+    viewBox?: string;
+    noseUp?: boolean;
+    path?: string;
+    bbox?: { x: number; y: number; w: number; h: number };
+    scaleMPerUnit?: number;
+    pointCount?: number;
+    simplifyToleranceM?: number;
+  };
+  anchors?: unknown[];
+  unresolved?: string[];
+}
+
+/** Map the uploader's silhouette JSON files onto `codex_silhouettes` rows. */
+export function mapSilhouettes(list: Record<string, unknown>[], tag: Tag): SilhouetteRow[] {
+  const out: SilhouetteRow[] = [];
+  for (const raw of list) {
+    const f = raw as SilhouetteFile;
+    if (!f.kind || !f.className || !f.silhouette?.path) continue; // no usable geometry, no row
+    const row = tag({
+      kind: f.kind,
+      class_name: f.className,
+      view_box: f.silhouette.viewBox ?? '0 0 1000 1000',
+      path: f.silhouette.path,
+      bbox: f.silhouette.bbox ?? null,
+      anchors: Array.isArray(f.anchors) ? f.anchors : [],
+      unresolved: Array.isArray(f.unresolved) ? (f.unresolved as string[]) : [],
+      meta: {
+        schema: f.schema ?? 1,
+        toolVersion: f.toolVersion ?? null,
+        source: f.source ?? null,
+        noseUp: f.silhouette.noseUp ?? true,
+        scaleMPerUnit: f.silhouette.scaleMPerUnit ?? null,
+        pointCount: f.silhouette.pointCount ?? null,
+        simplifyToleranceM: f.silhouette.simplifyToleranceM ?? null,
+      },
+      generated_at: f.generatedAt ?? null,
+    }) as unknown as SilhouetteRow;
+    out.push(row);
+  }
+  return out;
+}

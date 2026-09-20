@@ -391,6 +391,12 @@ class CodexExtractor:
         # Refs with a hull but no resolvable material — the over-approximation
         # that used to enter the manifest and export nothing (#512).
         self._skin_build_rejected: int = 0
+        # Entities with a resolvable mesh, for the sibling silhouette build
+        # step (`silhouette_export.py`) — same "manifest drives the follow-on
+        # build" pattern as `_skin_build_refs`, but for ships AND weapons /
+        # components / armor items (every catalog entity with a mesh), since
+        # the silhouette also becomes those kinds' tile-view image.
+        self._silhouette_candidates: List[Dict[str, str]] = []
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
@@ -403,6 +409,7 @@ class CodexExtractor:
         self.extract_blueprints()     # crafting blueprints (CraftingBlueprintRecord)
         self.extract_entities()       # ships / weapons / components / items
         self._write_skin_build_manifest()
+        self._write_silhouette_manifest()
         if self._assets:
             self.on_log("info", f"preview images: {self._assets.converted} converted, "
                                 f"{self._assets.misses} missing")
@@ -975,17 +982,20 @@ class CodexExtractor:
                 ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_ship += 1
+                self._note_silhouette_candidate("ship", obj["className"], comps)
             elif atype in _SHIP_WEAPON_TYPES or atype in _FPS_WEAPON_TYPES or \
                     _find_component(comps, "SCItemWeaponComponentParams"):
                 obj = self._project_weapon(r, resolved, comps, attach, atype)
                 wpn_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_wpn += 1
+                self._note_silhouette_candidate("weapon", obj["className"], comps)
             elif atype in _COMPONENT_KIND:
                 obj = self._project_component(r, resolved, comps, attach, atype)
                 comp_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_comp += 1
+                self._note_silhouette_candidate("component", obj["className"], comps)
             elif attach is not None:
                 # any other attachable item — generic item projection. Personal
                 # armor/clothing pieces additionally carry a generic stat block
@@ -994,6 +1004,12 @@ class CodexExtractor:
                 item_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_item += 1
+                # Only ARMOR items get a silhouette (the tile-view use case the
+                # user asked for) — not every consumable/tool item.
+                is_armor = (atype in _ARMOR_TYPES
+                            or _find_component(comps, "SCItemVehicleArmorParams") is not None)
+                if is_armor:
+                    self._note_silhouette_candidate("armor", obj["className"], comps)
             # entities with no AttachDef (rooms, AI templates, etc.) are still
             # captured by dump_all_records().
 
@@ -1206,6 +1222,33 @@ class CodexExtractor:
             self.on_log("info", f"skin build manifest: {self._skin_build_rejected} "
                                 f"ref(s) skipped — hull but no resolvable material "
                                 f"(wrecks, debris, non-liveried entities)")
+
+    def _note_silhouette_candidate(self, kind: str, class_name: str, comps) -> None:
+        """Record an entity with a resolvable mesh for the sibling silhouette
+        build step (`silhouette_export.py`) — mirrors `_write_skin_build_manifest`
+        for the 3D-hull build. An entity without a mesh path is simply not
+        listed; the build step never invents a silhouette for one that has no
+        geometry to trace."""
+        mesh = self._hull_path(comps)
+        if mesh:
+            self._silhouette_candidates.append(
+                {"kind": kind, "class_name": class_name, "mesh": mesh})
+
+    def _write_silhouette_manifest(self) -> None:
+        """Drop silhouettes/_build_manifest.json listing every ship / weapon /
+        component / armor item with a resolvable mesh. The follow-on silhouette
+        build (`silhouette_export.py`, driven the same way the skin glb build
+        is) reads this instead of re-walking every entity."""
+        d = self.out / "silhouettes"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "_build_manifest.json").write_text(
+            json.dumps({"entities": self._silhouette_candidates}, ensure_ascii=False, indent=2),
+            encoding="utf-8")
+        by_kind: Dict[str, int] = {}
+        for e in self._silhouette_candidates:
+            by_kind[e["kind"]] = by_kind.get(e["kind"], 0) + 1
+        self.on_log("info", f"silhouette build manifest: {len(self._silhouette_candidates)} "
+                            f"entit(y/ies) with a mesh ({by_kind})")
 
     # ── typed projections ──────────────────────────────────────────────────────
     # Leaf field names that carry a localization @-key for name/description.

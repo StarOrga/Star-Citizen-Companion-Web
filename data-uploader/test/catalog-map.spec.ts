@@ -12,6 +12,7 @@ import {
   mapShips,
   mapManufacturers,
   mapKeybinds,
+  mapSilhouettes,
   type Nat,
   type StringRow,
   type PortRow,
@@ -213,5 +214,69 @@ describe('mapKeybinds', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].action_name).toBe('ok');
     expect(rows[0].category_label_key).toBeNull();
+  });
+});
+
+describe('mapSilhouettes', () => {
+  const shipFile = {
+    schema: 1,
+    kind: 'ship',
+    className: 'AEGS_Gladius',
+    generatedAt: '2026-09-20T00:00:00Z',
+    toolVersion: '0.31.0',
+    source: { hullCga: 'Data/x.cga', method: 'cgf-converter-topdown-raster-trace' },
+    silhouette: {
+      viewBox: '0 0 1000 1000',
+      noseUp: true,
+      path: 'M 0 0 L 1 1 Z',
+      bbox: { x: 1, y: 2, w: 3, h: 4 },
+      scaleMPerUnit: 0.01,
+      pointCount: 3,
+      simplifyToleranceM: 0.15,
+    },
+    anchors: [{ portId: 'hardpoint_gun_left', x: 25, y: 50, side: 'port', depth: 0.5, source: 'helper', helper: 'h', clamped: false }],
+    unresolved: ['hardpoint_shield_generator_2'],
+  };
+
+  it('produces a build-tagged codex_silhouettes row with the pinned columns', () => {
+    const rows = mapSilhouettes([shipFile], tag);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      build_id: BUILD,
+      channel: 'LIVE',
+      patch_version: '4.8.0',
+      build_number: 'desktop',
+      kind: 'ship',
+      class_name: 'AEGS_Gladius',
+      view_box: '0 0 1000 1000',
+      path: 'M 0 0 L 1 1 Z',
+      bbox: { x: 1, y: 2, w: 3, h: 4 },
+      generated_at: '2026-09-20T00:00:00Z',
+    });
+    expect(rows[0].anchors).toEqual(shipFile.anchors);
+    expect(rows[0].unresolved).toEqual(['hardpoint_shield_generator_2']);
+    expect(rows[0].meta).toMatchObject({
+      toolVersion: '0.31.0',
+      scaleMPerUnit: 0.01,
+      pointCount: 3,
+      simplifyToleranceM: 0.15,
+      noseUp: true,
+    });
+  });
+
+  it('defaults anchors/unresolved to empty arrays for non-ship kinds', () => {
+    const weaponFile = { ...shipFile, kind: 'weapon', className: 'TEST_Gun', anchors: undefined, unresolved: undefined };
+    const rows = mapSilhouettes([weaponFile], tag);
+    expect(rows[0].anchors).toEqual([]);
+    expect(rows[0].unresolved).toEqual([]);
+  });
+
+  it('skips a file with no usable geometry (no path) — never a placeholder row', () => {
+    const empty = { kind: 'weapon', className: 'TEST_Empty', silhouette: undefined };
+    expect(mapSilhouettes([empty], tag)).toEqual([]);
+  });
+
+  it('skips a file missing kind/className entirely', () => {
+    expect(mapSilhouettes([{ silhouette: { path: 'M 0 0 Z' } }], tag)).toEqual([]);
   });
 });
