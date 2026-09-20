@@ -22,19 +22,19 @@ below is a manual step. Order matters.
 ## Steps
 
 1. **Clone + deps.** `git clone https://github.com/StarOrga/Star-Citizen-Companion-Web.git C:\Users\<you>\IdeaProjects\Star-Citizen-Companion-Web && npm ci`. The path matters: the task prompts name the primary checkout `C:\Users\Jerem\IdeaProjects\Star-Citizen-Companion-Web` — with another user name, edit that path in all three prompts (and re-sync).
-2. **Claude Desktop** with the Code tab; open the checkout as a project (this trusts the folder — scheduled runs refuse an untrusted folder). Settings → Claude Code: permission mode **bypass** for this project (the routine expects it), worktree location "inside the project" (`<repo>/.claude/worktrees`).
+2. **Claude Desktop** with the Code tab; open the checkout as a project (this trusts the folder — scheduled runs refuse an untrusted folder). Settings → Claude Code: permission mode **bypass** for this project (the routine expects it), worktree location "inside the project" (`<repo>/.claude/worktrees`), and Settings → Local sessions → **"Archive inactive sessions" = 1 day** — that is what archives the routine's finished tick sessions (one Desktop session per tick; the `routine-janitor` task is disabled since 2026-09-20 because every scheduled `archive_session` call draws a consent card).
 3. **devops plugin.** `claude plugin marketplace add https://github.com/Jerry0022/dotclaude.git` then `claude plugin install devops@dotclaude` (user scope; `local-llm@dotclaude` optional). The plugin provides the `ship_release` MCP the routine merges with; `scripts/ship-via-mcp.cjs` needs only its cache dir.
 4. **Auth.** `gh auth login` (the account that can open PRs on StarOrga and publish to `Star-Citizen-Companion-Binaries`), `supabase login` (creates the Credential Manager entry), then `powershell -ExecutionPolicy Bypass -File scripts/set-supabase-env.ps1` and **restart the Desktop app**. Verify: `node scripts/routine-gate.mjs check --dry-run` prints a JSON verdict (needs the PAT) and the Supabase MCP connects in a project session.
 5. **Register the three tasks.** Write the prompts first: `node scripts/sync-routine-prompts.mjs --to-live` (creates `~/.claude/scheduled-tasks/<taskId>/SKILL.md` from the repo copies). Then, in a Claude session of this project, ask for the three tasks to be created with **exactly** these parameters (tool `mcp__scheduled-tasks__create_scheduled_task` — it overwrites the SKILL.md with the prompt you pass, so pass the file's body verbatim, or create the task and then run `--to-live` again):
 
-   | taskId | title | cron (local time) | jitter | notify |
-   |---|---|---|---|---|
-   | `nightly-admin-feedback` | `SCC Web Auto-Feedback Developpment` | `0,20,40 19-23,0 * * *` | 421 s | off |
-   | `nightly-admin-feedback-day` | `SCC Web Auto-Feedback Developpment (day)` | `0 1,3,5,7-18 * * *` | 107 s | off |
-   | `routine-janitor` | `SCC Web Routine Janitor` | `0 */4 * * *` | 0 | off |
+   | taskId | title | cron (local time) | jitter | notify | note |
+   |---|---|---|---|---|---|
+   | `nightly-admin-feedback` | `SCC Web Auto-Feedback Developpment` | `0,20,40 19-23,0 * * *` | 421 s | off | |
+   | `nightly-admin-feedback-day` | `SCC Web Auto-Feedback Developpment (day)` | `0 1,3,5,7-18 * * *` | 107 s | off | |
+   | `routine-janitor` | `SCC Web Routine Janitor` | `0 */4 * * *` | 0 | off | (create it, then **disable** it — kept for the day the auto-archive setting goes back to Never) |
 
    The descriptions are the `description:` lines of the three SKILL.md files. Jitter is set by the app on creation (cannot be chosen); the values above are what the current tasks have and only matter for the cadence explanation in `.claude/deep-knowledge/scheduled-tasks.md`. Titles must differ (the app refuses duplicates).
-6. **Verify.** `npm run verify:routine-prompts` → OK (live files = repo copies, bodies identical). Click "Run now" on the janitor task once: its report line must show archive calls on sessions quiet for ≥ 2 h going through without a consent card (fresh ones are deferred by design, #624). Wait for the next feedback tick: the report must be one gate line plus the workspace-check line, and `public.routine_heartbeat` must move.
+6. **Verify.** `npm run verify:routine-prompts` → OK (live files = repo copies, bodies identical). Wait for the next feedback tick: the report must be one gate line plus the workspace-check line, and `public.routine_heartbeat` must move.
 7. **Optional, recommended:** restore the memory directory from wherever you keep it (it is not in git); without it Claude starts this project without its accumulated hazards list — the repo's `.claude/deep-knowledge/` carries the routine-critical part.
 
 ## Keeping the backup fresh
