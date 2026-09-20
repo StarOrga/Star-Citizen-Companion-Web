@@ -1455,6 +1455,38 @@
         "noCargo": "No cargo grid"
       }
     },
+    "holo": {
+      "strip": {
+        "einsatz": "Mission",
+        "shipCount": "{{n}} ships",
+        "offensive": "Offensive",
+        "defensive": "Defensive",
+        "movement": "Movement",
+        "signature": "Signature & Cooling",
+        "signatureRank": "{{n}} of 5 class ranks",
+        "cooling": "Cooling load",
+        "coolingValue": "{{used}} / {{total}}",
+        "stealthPreset": "Stealth",
+        "expand": "Expand strip",
+        "collapse": "Collapse strip"
+      },
+      "hangar": {
+        "tab": "Hangar",
+        "signInHint": "Sign in to see your hangar.",
+        "search": "Search hangar",
+        "hall": "Hangar hall",
+        "hallTitle": "Hangar hall",
+        "close": "Close",
+        "noGeometry": "No silhouette available",
+        "savedToday": "saved today",
+        "savedYesterday": "saved yesterday",
+        "savedOn": "saved on {{date}}",
+        "managedBy": "managed by {{owner}}",
+        "variants": "{{n}} variants",
+        "unassigned": "No role",
+        "empty": "No ships in your hangar yet."
+      }
+    },
     "kpi": {
       "bandLabel": "Key figures",
       "alpha": "Alpha damage",
