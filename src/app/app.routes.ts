@@ -86,6 +86,19 @@ export const routes: Routes = [
           import('./social/shared-loadout.component').then((m) => m.SharedLoadoutComponent),
       },
       {
+        // A hangar loadout shared via the Holotable "Teilen" popover (concept
+        // hg6-*, wave 1.5 user decision 3: peek without login, adopt with
+        // login). Same public-by-design reasoning as `shared/loadout/:token`
+        // above — the token in the URL is the entire authorization,
+        // `peek_shared_loadout()` is the only thing `anon` can reach here.
+        // Deliberately NOT under `hangar/...` despite the path segment: those
+        // routes sit behind the gated shell's `canActivateChild`, which would
+        // bounce a signed-out recipient before this page ever renders.
+        path: 'hangar/shared/:token',
+        loadComponent: () =>
+          import('./hangar/hangar-shared-loadout.component').then((m) => m.HangarSharedLoadoutComponent),
+      },
+      {
         // Where `approvedGuard` sends a session whose approval it could not
         // read (see that guard + AccessUnavailableComponent). It MUST stay
         // on this ungated layout: gated, it would be bounced by the very
