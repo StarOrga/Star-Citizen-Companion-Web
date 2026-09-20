@@ -13,18 +13,22 @@ import {
   ConfigLoadoutEntry,
   HangarRoleLoadout,
   HangarRoleLoadoutRow,
+  HangarShareLink,
   HangarShip,
   HangarShipConfig,
   HangarShipConfigRow,
   HangarShipRow,
   HangarShipStatus,
+  PeekedSharedLoadout,
   RoleLoadoutItem,
   RoleLoadoutRole,
   ShipConfigRole,
   mapConceptShip,
   mapHangarRoleLoadout,
+  mapHangarShareLink,
   mapHangarShip,
   mapHangarShipConfig,
+  mapPeekedSharedLoadout,
 } from './hangar.types';
 
 /** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
@@ -666,5 +670,193 @@ export class HangarService {
     }
     this.roleLoadouts.set(this.roleLoadouts().filter((l) => l.id !== id));
     return true;
+  }
+
+  // ── loadout sharing (migration 20260920160000, concept it.2/it.3/it.6) ────
+  // "Follow" copy model: a recipient's config starts out live-following the
+  // owner's; the first edit forks it, irreversibly (s3-follow/s3-fork rules).
+
+  /**
+   * Share a config's CURRENT loadout as a token. `channel`/`patchVersion`
+   * come from the caller (CodexService.build()) — this service never reads
+   * codex_* directly (contract note in hangar.types.ts).
+   */
+  async createShareLink(
+    config: HangarShipConfig,
+    shipClassName: string,
+    channel: string,
+    patchVersion: string,
+    expiresAt: string | null = null,
+  ): Promise<HangarShareLink | null> {
+    const userId = this.userId;
+    if (!userId) return null;
+    const { data, error } = await this.sb.client
+      .from('hangar_share_links')
+      .insert({
+        created_by: userId,
+        ship_class_name: shipClassName,
+        channel,
+        patch_version: patchVersion,
+        loadout: config.loadout as unknown as never[],
+        config_name: config.name,
+        role: config.role,
+        source_config_id: config.id,
+        expires_at: expiresAt,
+      })
+      .select('*')
+      .single();
+    if (error) {
+      this.error.set(error.message);
+      return null;
+    }
+    return mapHangarShareLink(data as Record<string, unknown>);
+  }
+
+  /**
+   * Revoke a share link the caller owns (self-only RLS enforces ownership).
+   * wave 1.5 (user decision 1): revoke = stop new adoptions only, never a
+   * DELETE — existing followers keep following via `source_config_id` until
+   * the owner deletes the source config. `hangar_share_links_revoke_guard`
+   * (migration) only accepts a null->timestamp write to this one column.
+   */
+  async revokeShareLink(id: string): Promise<boolean> {
+    const { error } = await this.sb.client
+      .from('hangar_share_links')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) {
+      this.error.set(error.message);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Turn a share token into a following config in the CALLER's hangar (adds
+   * the ship to their hangar if it is not already there, or returns the
+   * existing follow on a re-adopt). Runs through the `adopt_shared_loadout`
+   * SECURITY DEFINER RPC — the recipient never reads `hangar_share_links` or
+   * the owner's `hangar_ship_configs` row directly. The RPC also resolves
+   * the owner's display name (`profiles` is self-read only) and the share's
+   * channel/patch context, merged onto the returned config (wave 1.5
+   * blocker 4 / should-fix E).
+   */
+  async adoptSharedLoadout(token: string): Promise<HangarShipConfig | null> {
+    const { data, error } = await this.sb.client.rpc('adopt_shared_loadout', { p_token: token });
+    if (error || !data) {
+      this.error.set(error?.message ?? 'adopt_failed');
+      return null;
+    }
+    const result = data as {
+      configId: string | null;
+      ownerName: string | null;
+      ownerUserId: string | null;
+      ownerUpdatedAt: string | null;
+      channel: string | null;
+      patchVersion: string | null;
+    };
+    if (!result.configId) {
+      this.error.set('adopt_failed');
+      return null;
+    }
+    const { data: row, error: readErr } = await this.sb.client
+      .from('hangar_ship_configs')
+      .select('*')
+      .eq('id', result.configId)
+      .maybeSingle();
+    if (readErr || !row) {
+      this.error.set(readErr?.message ?? 'adopt_failed');
+      return null;
+    }
+    const config = mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+    return {
+      ...config,
+      ownerName: result.ownerName,
+      ownerUpdatedAt: result.ownerUpdatedAt,
+      sharedChannel: result.channel ?? config.sharedChannel,
+      sharedPatchVersion: result.patchVersion ?? config.sharedPatchVersion,
+    };
+  }
+
+  /**
+   * Pull the owner's CURRENT loadout into a still-following config, via the
+   * `hangar_follow_snapshot` RPC. The RPC performs the follower's own
+   * sync-write itself (through the trusted internal-write path, so the
+   * migration's share-guard trigger does not mistake this pull for the
+   * recipient's own edit and auto-fork it — see the migration comment).
+   * Returns `null` — and leaves the config untouched — once the copy has
+   * forked, the owner's config is gone, or the owner is suspended; the
+   * caller then simply keeps showing what it already has. The follow-up
+   * read still carries `.eq('follows_owner', true)` as a belt-and-braces
+   * guard against a concurrent fork racing this call.
+   */
+  async refreshFollowedLoadout(configId: string): Promise<HangarShipConfig | null> {
+    const { data, error } = await this.sb.client.rpc('hangar_follow_snapshot', {
+      p_config_id: configId,
+    });
+    if (error || !data) return null;
+    const snapshot = data as {
+      ownerName: string | null;
+      ownerUserId: string | null;
+      ownerUpdatedAt: string | null;
+      channel: string | null;
+      patchVersion: string | null;
+    };
+    const { data: row, error: readErr } = await this.sb.client
+      .from('hangar_ship_configs')
+      .select('*')
+      .eq('id', configId)
+      .eq('follows_owner', true)
+      .maybeSingle();
+    if (readErr || !row) return null;
+    const config = mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+    return {
+      ...config,
+      ownerName: snapshot.ownerName,
+      ownerUpdatedAt: snapshot.ownerUpdatedAt,
+      sharedChannel: snapshot.channel ?? config.sharedChannel,
+      sharedPatchVersion: snapshot.patchVersion ?? config.sharedPatchVersion,
+    };
+  }
+
+  /**
+   * Read-only preview of a shared loadout via its token, for a recipient who
+   * is not signed in — wave 1.5 user decision 3. Adopting into the hangar
+   * (persisting a following config) still requires {@link adoptSharedLoadout}
+   * and therefore a session.
+   */
+  async peekSharedLoadout(token: string): Promise<PeekedSharedLoadout | null> {
+    const { data, error } = await this.sb.client
+      .rpc('peek_shared_loadout', { p_token: token })
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapPeekedSharedLoadout(data as Record<string, unknown>);
+  }
+
+  /**
+   * The recipient's first own edit to a followed config: flips
+   * `follows_owner` off (irreversibly — s3-fork) and stamps `forked_at`.
+   * `patch` carries the actual edit (name/role/loadout) in the SAME write so
+   * the fork and the edit that triggered it land in one row version.
+   */
+  async forkFollowedLoadout(
+    id: string,
+    patch: Partial<{ name: string; role: ShipConfigRole; loadout: ConfigLoadoutEntry[] }>,
+  ): Promise<HangarShipConfig | null> {
+    const update: Record<string, unknown> = { follows_owner: false, forked_at: new Date().toISOString() };
+    if (patch.name !== undefined) update['name'] = patch.name;
+    if (patch.role !== undefined) update['role'] = patch.role;
+    if (patch.loadout !== undefined) update['loadout'] = patch.loadout;
+    const { data, error } = await this.sb.client
+      .from('hangar_ship_configs')
+      .update(update)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) {
+      this.error.set(error.message);
+      return null;
+    }
+    return mapHangarShipConfig(data as HangarShipConfigRow & Record<string, unknown>);
   }
 }

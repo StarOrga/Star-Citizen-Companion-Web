@@ -4,6 +4,62 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.0] - 2026-09-21
+
+### Added
+
+- **Codex-Schiffsseite: Holotable — eine zweite, umschaltbare Ansicht.** Oben
+  rechts schaltet ein Umschalter zwischen der klassischen Seite (unverändert)
+  und der Holotable-Bühne (`?view=holo`, pro Nutzer gemerkt). Drei gleiche
+  Panels 300 | Tisch | 300: links die **Einordnung** (Top-3 aus zuletzt
+  angesehen ∪ Hangar, Wasserzeichen des Einsatzes, Radar mit der Schwäche als
+  roter Achse, Kohorte als Link, Stärken/Schwächen), in der Mitte der **Tisch**
+  mit der Silhouette des Schiffs, Pins je Port (Hover = Kurzwerte, Klick =
+  Inspector mit Δ vs. Werk und Tausch-Liste), 3D / Schema / Teilen als
+  Text-Toggles, rechts die **Ports** ruhig ohne Boxen mit „Detail ▾" je Gruppe.
+  Die **Einsatz-Leiste** ist die Tisch-Kopfzeile mit einer Kennzahl je Einsatz,
+  darunter vier feste **Perspektiven** (Offensive · Verteidigung · Bewegung ·
+  Signatur & Kühlung) mit Perzentil-Gauge, Bedeutungssatz, drei Unterwerten
+  und „Alle Werte" (der komplette bisherige Analyse-Inhalt). Änderungen landen
+  in einem Journal mit Undo als Toast. Ankunft ohne Klick: Hero als Ladebild,
+  ≈1,6 s Transformation, Count-Up vom zuletzt angesehenen Schiff; Reduced-Motion
+  = Schnitt; Sounds opt-in. Alles, was die klassische Seite kann, ist auch hier
+  erreichbar (Details-Drawer) — bewusst weggelassen nur Vergleichen und
+  „Schiff wechseln". Mobile: gestapelt, „Tisch | Daten"-Tabs als Einstellung,
+  Querformat Tisch | Inspector. Konzept:
+  `docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch.html`.
+- **Sticky Leiste unter dem Tisch.** Einsatz → drei Mini-Perspektiven → Gelenk →
+  Signatur & Kühlung (IR/EM/Querschnitt in km, Klassen-Rang-Pips, Kühllast) →
+  Auf/Zu. Aufgeklappt: SCM/NAV, „Schleichen" als Preset, Pip-Stacks, Kühl-Gauge,
+  Energie-Summary, Readiness — das gesamte Energie-Dock von heute, nur an
+  einem Ort (die Dock-Positionswahl entfällt in dieser Ansicht).
+- **Hangar-Reiter auf dem Tisch.** Goldener Reiter, Overlay fest 236 px ohne
+  Scrollbalken, Suche immer da, ab 8 Schiffen nach Einsatz gruppiert,
+  Loadout-Varianten nur mit „heute / gestern / Datum" oder „verwaltet von …",
+  Hangar-Halle als Vollbild.
+- **Loadouts teilen und folgen.** Ein Hangar-Teilen-Link trägt Schiff, Loadout
+  und Patch; wer ihn übernimmt, folgt dem Eigentümer, bis er selbst etwas
+  ändert — dann fragt die App einmal („Eigentümer werden?") und trennt das
+  Loadout endgültig ab (serverseitig unumkehrbar). „Teilen beenden" stoppt nur
+  neue Übernahmen. Neue Seite `/hangar/shared/<token>`: ohne Login ansehen, mit
+  Login übernehmen. Der bisherige `?loadout=`-Link bleibt.
+- **Patch-Wahl mit Δ-Ansicht.** Zweiten Build wählen → Ghost-Werte und
+  Delta-Chips im KPI-Band, Pin-Badges je Port, Δ-Tabelle nach Perspektiven;
+  Schema/Extract-Details nur für Admin/Collaborator.
+- **Data Uploader 0.34.0: Silhouetten.** Neuer Schritt im geführten Ablauf: aus
+  den rohen Rumpf-Modellen (`.cga/.cgam` via cgf-converter) entsteht je Schiff,
+  Waffe, Komponente und Rüstungsteil eine normalisierte Draufsicht plus Anker
+  je Port, konsolidiert und als `codex_silhouettes` hochgeladen — die Website
+  rendert nur. Neue Migrationen `codex_silhouettes` und
+  `hangar_loadout_sharing`; `ingest-catalog` mit den Ops `silhouettes` /
+  `clear_silhouettes`.
+
+### Notes
+
+- Die Silhouetten-Pipeline ist gegen synthetische Fixtures getestet, noch nicht
+  gegen ein LIVE-`Data.p4k` — der erste echte Lauf zeigt die Qualität; bis
+  dahin zeigt der Tisch den neutralen Placeholder.
+
 ## [0.88.0] - 2026-09-20
 
 ### Changed

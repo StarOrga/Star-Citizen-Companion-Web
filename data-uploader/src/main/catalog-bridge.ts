@@ -36,6 +36,7 @@ import {
   mapAmmunition,
   mapBlueprints,
   mapKeybinds,
+  mapSilhouettes,
   type Nat,
   type StringRow,
   type PortRow,
@@ -540,6 +541,25 @@ export async function uploadCatalog(
         CHUNK,
         (slice) => post('ports', { build_id: buildId, rows: slice }),
         { onFirstChunk: () => post('clear_ports', { build_id: buildId }).then(() => undefined) },
+      );
+    }
+
+    // 8b. silhouettes (ships + weapons/components/armor tile art) ----------
+    // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
+    // this build's existing rows before the first chunk (never on a mid-phase
+    // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
+    // upserts. Missing directory (an out_dir from before this phase existed,
+    // or a run where the silhouette build step did not execute) just sends
+    // nothing — never invents rows for entities without geometry.
+    {
+      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
+      const rows = mapSilhouettes(list, tag);
+      counts.silhouettes = await sendChunks(
+        'codex_silhouettes',
+        rows,
+        CHUNK,
+        (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
       );
     }
 

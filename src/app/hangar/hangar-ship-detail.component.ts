@@ -28,6 +28,7 @@ import type { CodexItemPort, ShipPayload } from '../codex/codex.types';
 import { ShipSkinViewerComponent } from '../codex/ship-skin-viewer.component';
 import { HangarItemPickerComponent, PickedItem } from './hangar-item-picker.component';
 import { HangarService } from './hangar.service';
+import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
 import {
   ConfigLoadoutEntry,
   HangarShip,
@@ -443,6 +444,7 @@ export class HangarShipDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);
+  private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly codex = inject(CodexService);
 
   readonly roles = SHIP_CONFIG_ROLES;
@@ -598,6 +600,10 @@ export class HangarShipDetailComponent implements OnInit {
   async activate(cfg: HangarShipConfig): Promise<void> {
     const ship = this.ship();
     if (!ship) return;
+    // Wave 2.5 (fork guard, wave2-patch-share.md §D): activating a followed
+    // config is still an edit of THIS user's row (isActive flips) — offer
+    // the one-time fork first, abort on decline.
+    if ((await this.forkGuard.ensureEditable(cfg)) === 'cancelled') return;
     if (await this.hangar.activateConfig(cfg.id, ship.id)) {
       this.configs.set(
         this.configs().map((c) => ({ ...c, isActive: c.id === cfg.id })),
@@ -623,7 +629,12 @@ export class HangarShipDetailComponent implements OnInit {
     const cfg = this.selectedConfig();
     if (!cfg) return;
     const loadout = [...this.draft().values()];
-    const updated = await this.hangar.updateConfig(cfg.id, { loadout });
+    const guard = await this.forkGuard.ensureEditable(cfg);
+    if (guard === 'cancelled') return;
+    const updated =
+      guard === 'forked'
+        ? await this.hangar.forkFollowedLoadout(cfg.id, { loadout })
+        : await this.hangar.updateConfig(cfg.id, { loadout });
     if (updated) {
       this.configs.set(this.configs().map((c) => (c.id === updated.id ? updated : c)));
       this.dirty.set(false);

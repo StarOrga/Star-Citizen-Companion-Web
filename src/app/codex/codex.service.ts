@@ -33,6 +33,7 @@ import { classifyShipModule, ShipModuleSection } from './ship-module-sections';
 import { carriedByPort, stockLoadoutClassNames } from './stock-loadout';
 import { computeKpiSheet, KpiShipInput } from './codex-loadout-stats';
 import { SummaryOccupant } from './ship-summary-panels';
+import { HoloSilhouette, parseHoloSilhouette, SilhouetteKind } from './holo-silhouette';
 import {
   cohortCacheKey,
   readCohortCache,
@@ -689,25 +690,43 @@ export class CodexService {
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
     const build = await this.loadCurrentBuild();
     if (!build) return null;
+    return this.fetchDetailForBuild(kind, classNameSlug, build.id);
+  }
 
+  /**
+   * Same shape as {@link getDetail}, but for an ARBITRARY build id instead of
+   * the reader's currently-selected one — the patch-Δ view's second read side
+   * (concept decision 4). Callers diff the two results with
+   * `codex-build-compare.ts`. Ship-only: the Holotable patch selector never
+   * needs non-ship kinds build-scoped.
+   */
+  async shipDetailForBuild(className: string, buildId: string): Promise<CodexDetail | null> {
+    return this.fetchDetailForBuild('ship', className, buildId);
+  }
+
+  private async fetchDetailForBuild(
+    kind: CodexKind,
+    classNameSlug: string,
+    buildId: string,
+  ): Promise<CodexDetail | null> {
     const table = CODEX_ENTITY_TABLES[kind];
     const [rowRes, portsRes, stringsRes] = await Promise.all([
       this.sb.client
         .from(table)
         .select('*')
-        .eq('build_id', build.id)
+        .eq('build_id', buildId)
         .eq('class_name', classNameSlug)
         .maybeSingle(),
       this.sb.client
         .from('codex_item_ports')
         .select('*')
-        .eq('build_id', build.id)
+        .eq('build_id', buildId)
         .eq('parent_class_name', classNameSlug)
         .order('port_index', { ascending: true }),
       this.sb.client
         .from('codex_entity_strings')
         .select('entity_class_name, entity_kind, lang, field, value, loc_key')
-        .eq('build_id', build.id)
+        .eq('build_id', buildId)
         .eq('entity_class_name', classNameSlug),
     ]);
 
@@ -725,6 +744,120 @@ export class CodexService {
         mapString(s as Record<string, unknown>),
       ),
     };
+  }
+
+  /**
+   * Every build the reader can pick from the patch selector, newest first
+   * (concept decision 4). Defaults to the LIVE channel — same source
+   * {@link recentLiveBuilds} reads, just with the selector's larger limit
+   * instead of the diff's fixed 2.
+   */
+  async buildsForChannel(channel = 'LIVE', limit = 30): Promise<CodexBuild[]> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_builds')
+        .select(
+          'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+        )
+        .eq('channel', channel)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error || !data) return [];
+      return (data as Record<string, unknown>[]).map(mapBuild);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Memoized {@link silhouette} reads, invalidated by a change of build. */
+  private silhouetteCache = new Map<string, HoloSilhouette | null>();
+
+  /**
+   * The Holotable outline + hardpoint anchors for one entity in the CURRENT
+   * build (wave0-research §C1/§C2). Returns `null` when no row exists OR the
+   * row fails {@link parseHoloSilhouette}'s validation — both cases render the
+   * same §C3 neutral placeholder, never a guessed shape.
+   */
+  async silhouette(kind: SilhouetteKind, className: string): Promise<HoloSilhouette | null> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return null;
+    const cacheKey = `${build.id}:${kind}:${className}`;
+    if (this.silhouetteCache.has(cacheKey)) return this.silhouetteCache.get(cacheKey)!;
+    const { data, error } = await this.sb.client
+      .from('codex_silhouettes')
+      .select(
+        'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
+      )
+      .eq('build_id', build.id)
+      .eq('kind', kind)
+      .eq('class_name', className)
+      .maybeSingle();
+    // wave 1.5 fix (redteam should-fix): a transport ERROR is not the same
+    // fact as "no row exists" — memoizing null on error would permanently
+    // hide a silhouette that is really just one flaky request away, for the
+    // rest of this build's session. Only a genuine empty/invalid result gets
+    // cached; an error is retried on the next call.
+    if (error) return null;
+    const parsed = data ? parseHoloSilhouette(data as Record<string, unknown>) : null;
+    this.silhouetteCache.set(cacheKey, parsed);
+    return parsed;
+  }
+
+  /**
+   * Batch read of {@link silhouette} for the tile view (wave 1.5 should-fix:
+   * uploader emits `kind='armor'` for entities that land in `codex_items`,
+   * web `kind='item'` — this is the batch companion the tile view needs,
+   * `.in('class_name', …)` chunked at 200 like every other batch read in this
+   * service, and memoized per `${build}:${kind}:${className}` entry so a
+   * later single {@link silhouette} call for the same entity is a cache hit).
+   * Skips `classNames` already in {@link silhouetteCache} for the current
+   * build. Missing/invalid rows are simply absent from the returned map —
+   * same §C3 neutral-placeholder contract as a single miss.
+   */
+  async silhouettes(kind: SilhouetteKind, classNames: string[]): Promise<Map<string, HoloSilhouette>> {
+    const result = new Map<string, HoloSilhouette>();
+    const build = await this.loadCurrentBuild();
+    if (!build || classNames.length === 0) return result;
+
+    const unique = Array.from(new Set(classNames));
+    const toFetch: string[] = [];
+    for (const className of unique) {
+      const cacheKey = `${build.id}:${kind}:${className}`;
+      if (this.silhouetteCache.has(cacheKey)) {
+        const cached = this.silhouetteCache.get(cacheKey);
+        if (cached) result.set(className, cached);
+      } else {
+        toFetch.push(className);
+      }
+    }
+    if (toFetch.length === 0) return result;
+
+    const CHUNK = 200;
+    for (let i = 0; i < toFetch.length; i += CHUNK) {
+      const chunk = toFetch.slice(i, i + CHUNK);
+      const { data, error } = await this.sb.client
+        .from('codex_silhouettes')
+        .select(
+          'kind, class_name, channel, patch_version, build_number, view_box, path, bbox, anchors, unresolved, meta, generated_at',
+        )
+        .eq('build_id', build.id)
+        .eq('kind', kind)
+        .in('class_name', chunk);
+      if (error) continue; // transport error: leave this chunk's entries unmemoized, retryable later
+
+      const seen = new Set<string>();
+      for (const row of (data ?? []) as Record<string, unknown>[]) {
+        const className = row['class_name'] as string;
+        seen.add(className);
+        const parsed = parseHoloSilhouette(row);
+        this.silhouetteCache.set(`${build.id}:${kind}:${className}`, parsed);
+        if (parsed) result.set(className, parsed);
+      }
+      for (const className of chunk) {
+        if (!seen.has(className)) this.silhouetteCache.set(`${build.id}:${kind}:${className}`, null);
+      }
+    }
+    return result;
   }
 
   /**

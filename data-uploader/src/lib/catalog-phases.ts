@@ -26,6 +26,7 @@ export const CATALOG_PHASE_ORDER = [
   'codex_blueprint_ingredients',
   'codex_entity_strings',
   'codex_item_ports',
+  'codex_silhouettes',
   'codex_locale_strings',
   'codex_previews',
   'codex_keybinds',

@@ -602,6 +602,132 @@
       "standard": "Standard",
       "count": "{{count}} Varianten"
     },
+    "holo": {
+      "noGeometry": "Keine Silhouette",
+      "pinUnresolved": "Position nicht bekannt",
+      "toggle": {
+        "group": "Ansicht",
+        "classic": "Klassisch",
+        "classicHint": "Klassische Ansicht (Taste 1)",
+        "holo": "Holotisch",
+        "holoHint": "Holotisch-Ansicht (Taste 2)"
+      },
+      "stage": {
+        "railToggle": "Leiste ein-/ausklappen",
+        "einordnung": "Einordnung",
+        "cohortLink": "Kohorte ansehen",
+        "view3d": "3D",
+        "viewSchema": "Schema",
+        "viewShare": "Teilen",
+        "silhouetteAria": "Silhouette von {{name}}",
+        "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
+        "inspector": "Inspektor",
+        "ports": "Ports",
+        "detailShow": "Detail ▾",
+        "detailHide": "Detail ▴",
+        "density": "Kompakt",
+        "allValues": "Alle Werte ▾",
+        "allValuesHide": "Alle Werte ▴",
+        "journal": "Änderungsprotokoll",
+        "journalChanged": "Geändert: {{label}}",
+        "undo": "Rückgängig",
+        "detailsShow": "Details ▾",
+        "detailsHide": "Details ▴",
+        "sound": "UI-Töne",
+        "mobileTabsSetting": "Tisch/Daten-Tabs (Mobil)",
+        "tabTable": "Tisch",
+        "tabData": "Daten",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Verteidigung",
+          "movement": "Bewegung",
+          "signature": "Signatur & Kühlung"
+        }
+      },
+      "strip": {
+        "einsatz": "Einsatz",
+        "shipCount": "{{n}} Schiffe",
+        "offensive": "Offensive",
+        "defensive": "Verteidigung",
+        "movement": "Bewegung",
+        "signature": "Signatur & Kühlung",
+        "signatureRank": "{{n}} von 5 Klassen-Rängen",
+        "cooling": "Kühllast",
+        "coolingValue": "{{used}} / {{total}}",
+        "stealthPreset": "Schleichen",
+        "expand": "Leiste ausklappen",
+        "collapse": "Leiste einklappen"
+      },
+      "hangar": {
+        "tab": "Hangar",
+        "signInHint": "Anmelden, um deinen Hangar zu sehen.",
+        "search": "Hangar durchsuchen",
+        "hall": "Hangar-Halle",
+        "hallTitle": "Hangar-Halle",
+        "close": "Schließen",
+        "noGeometry": "Keine Silhouette verfügbar",
+        "savedToday": "gespeichert heute",
+        "savedYesterday": "gespeichert gestern",
+        "savedOn": "gespeichert am {{date}}",
+        "managedBy": "verwaltet von {{owner}}",
+        "variants": "{{n}} Varianten",
+        "unassigned": "Ohne Rolle",
+        "empty": "Noch keine Schiffe im Hangar."
+      },
+      "patch": {
+        "trigger": {
+          "idle": "Patch vergleichen",
+          "comparing": "Vergleich mit {{patch}}",
+          "hotkeyHint": "Mit einem anderen Patch vergleichen (P)"
+        },
+        "popTitle": "Patch wählen",
+        "loading": "Wird geladen …",
+        "empty": "Keine weiteren Patches verfügbar.",
+        "notFinalised": "Nicht abgeschlossen",
+        "clear": "Vergleich beenden",
+        "comparing": "Vergleich wird geladen …",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Verteidigung",
+          "movement": "Bewegung",
+          "signature": "Signatur & Kühlung"
+        },
+        "delta": {
+          "noChange": "Keine Änderungen in dieser Kategorie.",
+          "kpi": "Wert",
+          "from": "Vorher",
+          "to": "Nachher",
+          "change": "Änderung"
+        },
+        "adminOnly": "Nur Admin/Collaborator",
+        "schema": {
+          "version": "Schema-Version",
+          "extractedAt": "Extrahiert am",
+          "entityCount": "Datensätze",
+          "reExtractPending": "Re-Extract ausstehend",
+          "reExtractPendingYes": "Ja"
+        },
+        "forkGuard": {
+          "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
+        }
+      },
+      "share": {
+        "copyLink": "Link kopieren",
+        "copyLinkHotkeyHint": "Aktuelle Seite als Link kopieren (L)",
+        "followedBy": "verwaltet von {{owner}}",
+        "followedSince": "Stand {{date}}",
+        "refresh": "Aktualisieren",
+        "refreshing": "Wird aktualisiert …",
+        "createLink": "Freigabe-Link erzeugen",
+        "creating": "Wird erzeugt …",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "revoke": "Teilen beenden",
+        "revokeNote": "Bereits folgende Empfänger:innen bleiben verbunden, bis die Konfiguration gelöscht wird.",
+        "revoked": "Teilen beendet.",
+        "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+      }
+    },
     "empty": {
       "title": "Noch nichts hier",
       "filtered": "Keine Einträge passen zu Suche oder Filtern.",
@@ -2927,6 +3053,22 @@
       "medgun": "Medgun",
       "medpen": "MedPen",
       "repair-attachment": "Reparatur-Aufsatz"
+    },
+    "shared": {
+      "eyebrow": "Geteiltes Loadout",
+      "loading": "Wird geladen …",
+      "by": "von {{name}}",
+      "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
+      "adopt": "Übernehmen",
+      "adopting": "Wird übernommen …",
+      "adoptHint": "In den eigenen Hangar übernehmen",
+      "adoptError": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
+      "loginToAdopt": "Anmelden zum Übernehmen",
+      "aboutCta": "Was ist SC Companion?",
+      "unavailable": {
+        "title": "Dieses Loadout ist nicht verfügbar",
+        "body": "Der Link ist ungültig, abgelaufen oder wurde deaktiviert."
+      }
     }
   },
   "quickSearch": {

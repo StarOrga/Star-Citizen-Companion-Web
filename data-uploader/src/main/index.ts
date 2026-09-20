@@ -51,6 +51,11 @@ import {
   type SkinExportFinal,
 } from './skin-bridge.js';
 import { uploadSkins, type SkinUploadResult } from './skin-ingest.js';
+import {
+  startSilhouetteBuild,
+  type SilhouetteBuildRequest,
+  type SilhouetteBuildFinal,
+} from './silhouette-bridge.js';
 import { tallySkinUpload } from '../lib/skin-upload-summary.js';
 import { uploadCatalog, type CatalogUploadResult } from './catalog-bridge.js';
 import {
@@ -681,7 +686,7 @@ ipcMain.handle('sc:update:install', () => {
 
 interface ActiveJob {
   /** Extraction aborts are telemetried; skin exports are not. */
-  kind: 'extract' | 'skin';
+  kind: 'extract' | 'skin' | 'silhouette';
   cancel: () => void;
   /**
    * Set the moment an abort is *requested* (operator cancel / app quit). Two
@@ -1033,6 +1038,61 @@ ipcMain.handle(
     }
   },
 );
+
+// ============= Silhouette-build IPC =============
+//
+// Builds the Codex Holotable + tile-view outline for every ship/weapon/
+// component/armor item the extract's silhouette manifest names. Reuses the
+// SAME cgf-converter binary `sc:skin:ensureTools` already downloaded — the
+// renderer calls that first (see `renderer/main.ts` `buildSilhouettes`), so
+// this handler never triggers its own download.
+
+ipcMain.handle(
+  'sc:silhouette:start',
+  async (event, req: SilhouetteBuildRequest): Promise<SilhouetteBuildFinal> => {
+    const jobId = `silhouette-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const watchdog = createWatchdog({
+      timeoutMs: JOB_STALL_MS,
+      onTimeout: (idle) => reportJobStall('silhouette', idle, jobId),
+    });
+    const job = newActiveJob('silhouette', req.outDir);
+    const handle = startSilhouetteBuild(req, (ev) => {
+      watchdog.pet();
+      collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
+      event.sender.send('sc:silhouette:event', { jobId, ...ev });
+    });
+    job.cancel = handle.cancel;
+    activeJobs.set(jobId, job);
+    throttle.registerJob(jobId, handle.pid);
+    watchdog.start();
+    try {
+      const final = await handle.promise;
+      // Same pause/cancel-vs-crash disambiguation as `sc:skin:start` — a
+      // deliberate stop must not paint as a red "build failed".
+      if (!final.ok && final.error === 'cancelled') {
+        const signal = uploadJob.view().signal;
+        if (signal !== 'running') return { ok: false, error: signal };
+      }
+      reportJobLog('silhouette', jobId, job, final);
+      return final;
+    } catch (err) {
+      void reportError('silhouette-failed', err, { jobId });
+      reportJobLog('silhouette', jobId, job, { ok: false });
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      watchdog.stop();
+      activeJobs.delete(jobId);
+      throttle.unregisterJob(jobId);
+    }
+  },
+);
+
+ipcMain.handle('sc:silhouette:cancel', (_e, jobId: string) => {
+  const job = activeJobs.get(jobId);
+  if (!job) return { ok: false, error: 'unknown_job' };
+  job.cancel();
+  return { ok: true };
+});
 
 // ============= Catalog-promotion IPC =============
 

@@ -1,7 +1,105 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.86.18",
+  "current": "0.89.0",
   "releases": [
+    {
+      "version": "0.89.0",
+      "date": "2026-09-21",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex-Schiffsseite: Holotable — eine zweite, umschaltbare Ansicht.",
+              "text": "Oben rechts schaltet ein Umschalter zwischen der klassischen Seite (unverändert) und der Holotable-Bühne (?view=holo, pro Nutzer gemerkt). Drei gleiche Panels 300 | Tisch | 300: links die Einordnung (Top-3 aus zuletzt angesehen ∪ Hangar, Wasserzeichen des Einsatzes, Radar mit der Schwäche als roter Achse, Kohorte als Link, Stärken/Schwächen), in der Mitte der Tisch mit der Silhouette des Schiffs, Pins je Port (Hover = Kurzwerte, Klick = Inspector mit Δ vs. Werk und Tausch-Liste), 3D / Schema / Teilen als Text-Toggles, rechts die Ports ruhig ohne Boxen mit „Detail ▾\" je Gruppe. Die Einsatz-Leiste ist die Tisch-Kopfzeile mit einer Kennzahl je Einsatz, darunter vier feste Perspektiven (Offensive · Verteidigung · Bewegung · Signatur & Kühlung) mit Perzentil-Gauge, Bedeutungssatz, drei Unterwerten und „Alle Werte\" (der komplette bisherige Analyse-Inhalt). Änderungen landen in einem Journal mit Undo als Toast. Ankunft ohne Klick: Hero als Ladebild, ≈1,6 s Transformation, Count-Up vom zuletzt angesehenen Schiff; Reduced-Motion = Schnitt; Sounds opt-in. Alles, was die klassische Seite kann, ist auch hier erreichbar (Details-Drawer) — bewusst weggelassen nur Vergleichen und „Schiff wechseln\". Mobile: gestapelt, „Tisch | Daten\"-Tabs als Einstellung, Querformat Tisch | Inspector. Konzept: docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch.html."
+            },
+            {
+              "title": "Sticky Leiste unter dem Tisch.",
+              "text": "Einsatz → drei Mini-Perspektiven → Gelenk → Signatur & Kühlung (IR/EM/Querschnitt in km, Klassen-Rang-Pips, Kühllast) → Auf/Zu. Aufgeklappt: SCM/NAV, „Schleichen\" als Preset, Pip-Stacks, Kühl-Gauge, Energie-Summary, Readiness — das gesamte Energie-Dock von heute, nur an einem Ort (die Dock-Positionswahl entfällt in dieser Ansicht)."
+            },
+            {
+              "title": "Hangar-Reiter auf dem Tisch.",
+              "text": "Goldener Reiter, Overlay fest 236 px ohne Scrollbalken, Suche immer da, ab 8 Schiffen nach Einsatz gruppiert, Loadout-Varianten nur mit „heute / gestern / Datum\" oder „verwaltet von …\", Hangar-Halle als Vollbild."
+            },
+            {
+              "title": "Loadouts teilen und folgen.",
+              "text": "Ein Hangar-Teilen-Link trägt Schiff, Loadout und Patch; wer ihn übernimmt, folgt dem Eigentümer, bis er selbst etwas ändert — dann fragt die App einmal („Eigentümer werden?\") und trennt das Loadout endgültig ab (serverseitig unumkehrbar). „Teilen beenden\" stoppt nur neue Übernahmen. Neue Seite /hangar/shared/<token>: ohne Login ansehen, mit Login übernehmen. Der bisherige ?loadout=-Link bleibt."
+            },
+            {
+              "title": "Patch-Wahl mit Δ-Ansicht.",
+              "text": "Zweiten Build wählen → Ghost-Werte und Delta-Chips im KPI-Band, Pin-Badges je Port, Δ-Tabelle nach Perspektiven; Schema/Extract-Details nur für Admin/Collaborator."
+            },
+            {
+              "title": "Data Uploader 0.34.0: Silhouetten.",
+              "text": "Neuer Schritt im geführten Ablauf: aus den rohen Rumpf-Modellen (.cga/.cgam via cgf-converter) entsteht je Schiff, Waffe, Komponente und Rüstungsteil eine normalisierte Draufsicht plus Anker je Port, konsolidiert und als codex_silhouettes hochgeladen — die Website rendert nur. Neue Migrationen codex_silhouettes und hangar_loadout_sharing; ingest-catalog mit den Ops silhouettes / clear_silhouettes."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Die Silhouetten-Pipeline ist gegen synthetische Fixtures getestet, noch nicht gegen ein LIVE-Data.p4k — der erste echte Lauf zeigt die Qualität; bis dahin zeigt der Tisch den neutralen Placeholder."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.88.0",
+      "date": "2026-09-20",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader ist jetzt ein Bildschirm — geführt statt vier Ansichten.",
+              "text": "Kopfstreifen mit Schritt-Schiene (Installation → Einrichtung → Extraktion → Upload → Fertig), Verbindungs-Chip mit Popover und ⚙-Dialog; Chevrons und ←/→ nur vor dem Start, während eines Laufs gibt es kein „Zurück\" mehr, nur „Lauf abbrechen…\" mit Rückfrage. Die Startrampe zeigt den Abgleich lokal ↔ Server („neuer als Server — lohnt sich\" / „Server hat … bereits\") und ist Einzelauswahl (bisher waren alle Installationen vorgewählt, verarbeitet wurde nur die erste). Extraktion und Upload laufen durch; die Progress-Karte trägt fünf Kategorie-Balken (Schiffe, Fahrzeuge, Komponenten, Waffen, Texte) mit Datenpunkt-Tick, das Protokoll ist eine Lade (Ctrl+L), Tempo ein Chip; der Upload zeigt Ziel, MB/s und die Schritte „Bundle · Einträge in den Codex · 3D-Skins\". Eigener Fertig-Screen mit Countdown. Wortschatz vereinheitlicht (Spielversion, Umfang, Tempo, Einträge, Vollständigkeit). Fünf Shortcuts: Enter, Space, Esc, Ctrl+, und Ctrl+L. Uploader-Version 0.33.0. Konzept: docs/concepts/2026-09-20-data-uploader-one-screen.html."
+            },
+            {
+              "title": "„PC herunterfahren\" wird vor dem Start gewählt und nie gespeichert.",
+              "text": "Die Laufoptionen (Upload danach — Standard AN, gemerkt — und „Wenn fertig\": nichts / Programm beenden / PC herunterfahren) stehen als Sheet auf „Einrichtung\"; ein scharfer Chip zeigt die Wahl während des Laufs und lässt sich abwählen. Ein gespeichertes shutdownAfterUpload aus älteren Versionen wird beim Laden verworfen (Settings-Schema 2) — bisher konnte ein einmal gesetzter Haken auch einen späteren Autostart-Lauf mit Herunterfahren beenden. Alles Dauerhafte (Unbeaufsichtigt-Hauptschalter mit Autostart / Auto-Lauf / Beenden-wenn-nichts-zu-tun, „Nach einem automatischen Lauf\", Tray, Update-Ring, Sprache, Fehlerberichte) liegt im ⚙-Dialog. Der Lauf startet über ein explizites startRun(plan) aus buildRunPlan() (getestet, +16 Tests) — auch der Auto-Lauf, nicht mehr als Nebenwirkung des Renderns."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.87.1",
+      "date": "2026-09-20",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Routine-Aufräumen ohne Klick.",
+              "text": "Der Scheduled Task routine-janitor (alle 4 h) zog bei jedem Lauf eine Zustimmungs-Karte für archive_session — sechs Klicks am Tag. Er ist jetzt deaktiviert (nicht gelöscht); das Archivieren der Routine-Sessions übernimmt die App-Einstellung „Archive inactive sessions\" = 1 Tag, die ohne Karte arbeitet. Löschen alter Idle-Ticks bleibt /routine-janitor aus einer interaktiven Session. Doku: .claude/deep-knowledge/scheduled-tasks.md, docs/routine/RESTORE.md, docs/feedback-routine/gate.md, Skill routine-janitor."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.87.0",
+      "date": "2026-09-20",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Uploader-Log-Warnungen erreichen die Telemetrie — und werden per Klick zum Feedback-Thema.",
+              "text": "Der Data Uploader sammelt die [warn]-/[err]-Zeilen, die ein Lauf (P4K-Extraktion, Skin-Export) ins Run-View-Log schreibt, und meldet sie einmal am Ende als signiertes Telemetrie-Event job-diagnostics (Transkript, Zähler, Phase/Fortschritt/Dauer, Spiel-Channel + Patch; das Home-Verzeichnis des Operators wird maskiert, ein sauberer Lauf sendet nichts). get_telemetry_stats nimmt den Bucket wie extract-aborted aus allen Absturz-Aggregaten heraus und liefert einen diagnostics-Block mit Transkript (Migration 20260920120000, bereits angewendet). Der Telemetrie-Tab zeigt die Läufe in der neuen Karte „Warnungen & Fehler aus Uploader-Logs“ — nach Ausgang, aufklappbar mit Protokoll — und „Als Thema melden“ öffnet das Feedback-Panel mit aufgeklapptem Neues-Thema-Composer: Prompt an die Routine mit Log-Auszug, Bereich „Desktop“ (gepinnt), das vollständige Log als .log-Anhang. Nichts wird gesendet, alles bleibt änderbar; ein vorhandener Entwurf bleibt unter dem Vorschlag erhalten. Neu dafür: FeedbackComposerSeedService (One-Shot-Seed pro Draft-Scope + Öffnen-Anfrage an FAB und Board) und ein pinned-Model am Bereichs-Picker, damit die Route den gesetzten Bereich nicht überschreibt. Data Uploader 0.32.0."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.86.18",
       "date": "2026-09-18",
@@ -13,6 +111,10 @@
             {
               "title": "Janitor: 2-h-Altersgrenze wieder aus — die Karte ist eine pro Lauf.",
               "text": "Die zeitgemessene Probe (zwei Aufrufe nacheinander aus einer geplanten Bypass-Session) widerlegte die Hypothese aus 0.86.16: ein 64 min alter Tick zog die Consent-Karte (87 s bis zum Klick), ein 27 min alter lief 8 s später ohne Karte durch. Muster: pro geplanter Session genau eine Karte beim ersten archive_session-Aufruf, unabhängig von Bypass-Modus und Alter der Ziel-Session; der Klick deckt alle Aufrufe desselben Batches und der restlichen Session ab; die Karte hat keine Merk-Option. --min-age-min bleibt (Default 0), der Task-Prompt schickt alle Archiv-Aufrufe in einem Batch (eine Karte pro Lauf), Skill, Snapshot und Deep-Knowledge beschreiben das Muster; beide Probe-Tasks gelöscht."
+            },
+            {
+              "title": "Vercel-Build seit #626 rot:",
+              "text": "docs/routine/RESTORE.md nannte die SSH-Clone-URL (SSH-Form git@…), die der E-Mail-Guard im Prebuild als Adresse wertet — jetzt die HTTPS-URL."
             }
           ]
         }

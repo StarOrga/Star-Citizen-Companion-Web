@@ -602,6 +602,132 @@
       "standard": "Standard",
       "count": "{{count}} options"
     },
+    "holo": {
+      "noGeometry": "No silhouette",
+      "pinUnresolved": "Position unknown",
+      "toggle": {
+        "group": "View",
+        "classic": "Classic",
+        "classicHint": "Classic view (key 1)",
+        "holo": "Holotable",
+        "holoHint": "Holotable view (key 2)"
+      },
+      "stage": {
+        "railToggle": "Collapse/expand rail",
+        "einordnung": "Standing",
+        "cohortLink": "View cohort",
+        "view3d": "3D",
+        "viewSchema": "Schema",
+        "viewShare": "Share",
+        "silhouetteAria": "Silhouette of {{name}}",
+        "noGeometryReason": "No silhouette has been generated for this ship yet.",
+        "inspector": "Inspector",
+        "ports": "Ports",
+        "detailShow": "Detail ▾",
+        "detailHide": "Detail ▴",
+        "density": "Compact",
+        "allValues": "All values ▾",
+        "allValuesHide": "All values ▴",
+        "journal": "Change journal",
+        "journalChanged": "Changed: {{label}}",
+        "undo": "Undo",
+        "detailsShow": "Details ▾",
+        "detailsHide": "Details ▴",
+        "sound": "UI sounds",
+        "mobileTabsSetting": "Table/Data tabs (mobile)",
+        "tabTable": "Table",
+        "tabData": "Data",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Defensive",
+          "movement": "Movement",
+          "signature": "Signature & Cooling"
+        }
+      },
+      "strip": {
+        "einsatz": "Mission",
+        "shipCount": "{{n}} ships",
+        "offensive": "Offensive",
+        "defensive": "Defensive",
+        "movement": "Movement",
+        "signature": "Signature & Cooling",
+        "signatureRank": "{{n}} of 5 class ranks",
+        "cooling": "Cooling load",
+        "coolingValue": "{{used}} / {{total}}",
+        "stealthPreset": "Stealth",
+        "expand": "Expand strip",
+        "collapse": "Collapse strip"
+      },
+      "hangar": {
+        "tab": "Hangar",
+        "signInHint": "Sign in to see your hangar.",
+        "search": "Search hangar",
+        "hall": "Hangar hall",
+        "hallTitle": "Hangar hall",
+        "close": "Close",
+        "noGeometry": "No silhouette available",
+        "savedToday": "saved today",
+        "savedYesterday": "saved yesterday",
+        "savedOn": "saved on {{date}}",
+        "managedBy": "managed by {{owner}}",
+        "variants": "{{n}} variants",
+        "unassigned": "No role",
+        "empty": "No ships in your hangar yet."
+      },
+      "patch": {
+        "trigger": {
+          "idle": "Compare patch",
+          "comparing": "Comparing with {{patch}}",
+          "hotkeyHint": "Compare with another patch (P)"
+        },
+        "popTitle": "Choose a patch",
+        "loading": "Loading …",
+        "empty": "No further patches available.",
+        "notFinalised": "Not finalised",
+        "clear": "Stop comparing",
+        "comparing": "Loading comparison …",
+        "perspective": {
+          "offensive": "Offensive",
+          "defensive": "Defensive",
+          "movement": "Movement",
+          "signature": "Signature & cooling"
+        },
+        "delta": {
+          "noChange": "No changes in this category.",
+          "kpi": "Stat",
+          "from": "Before",
+          "to": "After",
+          "change": "Change"
+        },
+        "adminOnly": "Admin/collaborator only",
+        "schema": {
+          "version": "Schema version",
+          "extractedAt": "Extracted at",
+          "entityCount": "Record count",
+          "reExtractPending": "Re-extract pending",
+          "reExtractPendingYes": "Yes"
+        },
+        "forkGuard": {
+          "question": "Become the owner? This splits the loadout from the original — cannot be undone."
+        }
+      },
+      "share": {
+        "copyLink": "Copy link",
+        "copyLinkHotkeyHint": "Copy the current page as a link (L)",
+        "followedBy": "managed by {{owner}}",
+        "followedSince": "as of {{date}}",
+        "refresh": "Refresh",
+        "refreshing": "Refreshing …",
+        "createLink": "Create share link",
+        "creating": "Creating …",
+        "copy": "Copy",
+        "copied": "Copied",
+        "revoke": "Stop sharing",
+        "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
+        "revoked": "Sharing stopped.",
+        "errorGeneric": "That didn't work. Please try again."
+      }
+    },
     "empty": {
       "title": "Nothing here yet",
       "filtered": "No entries match your search or filters.",
@@ -2927,6 +3053,22 @@
       "medgun": "Medgun",
       "medpen": "MedPen",
       "repair-attachment": "Repair attachment"
+    },
+    "shared": {
+      "eyebrow": "Shared loadout",
+      "loading": "Loading …",
+      "by": "by {{name}}",
+      "emptyLoadout": "Nothing is set in this loadout yet.",
+      "adopt": "Adopt",
+      "adopting": "Adopting …",
+      "adoptHint": "Add to your own hangar",
+      "adoptError": "That didn't work. Please try again.",
+      "loginToAdopt": "Sign in to adopt",
+      "aboutCta": "What is SC Companion?",
+      "unavailable": {
+        "title": "This loadout is not available",
+        "body": "The link is invalid, expired, or was revoked."
+      }
     }
   },
   "quickSearch": {

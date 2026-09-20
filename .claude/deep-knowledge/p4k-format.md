@@ -194,6 +194,25 @@ Opening `Data.p4k` costs ~24 s and reading/decompressing `Data/Game2.dcb`
 (330 MB) another ~2 min; cache the raw `.dcb` bytes to disk when iterating on
 extraction logic instead of re-reading the archive.
 
+## Top-down silhouettes from the hull mesh (2026-09-20, Holotable ship view)
+
+`data-uploader/python/sc_extract/silhouette_export.py` + `silhouette.py` turn
+the raw hull (`.cga` + its `.cgam` geometry) of every ship, weapon, component
+and armour entity listed in the extract manifest into one normalised outline:
+cgf-converter → glTF (**Y-up** — rotate `(x, y, z) → (x, −z, y)` to get back to
+Cry `+X` starboard / `+Y` nose / `+Z` up before projecting, otherwise you get a
+front cross-section), drop Z, rasterise at 1024 px, keep every component
+≥ 64 px² as its own subpath (nacelles on thin struts), reverse the winding of
+holes, Chaikin ×2, Douglas-Peucker with tolerance
+`max(0.15 m, 0.3 % of span, 1.5 px)` (an absolute 0.15 m blew the 200k-char
+path cap on capital ships), then centre into a 1000-unit viewBox. Hardpoint
+anchors go through the **same** min/scale/offset as the path (% of the
+viewBox — the `hardpointFrame` AABB from `geometry.py` is a different box).
+Cache key = sha of `.cga` + `.cgam` + the tuning constants. Output contract:
+`docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/wave0-research.md`
+§C1; landing table `codex_silhouettes` (see `supabase.md`). **Not yet run
+against a LIVE archive** as of the ship — the first real run is a hand-off.
+
 ## References
 
 - CryEngine PAK overview: <https://wiki.starcitizenbase.com/wiki/Data.p4k>
