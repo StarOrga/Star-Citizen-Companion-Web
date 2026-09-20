@@ -10453,7 +10453,7 @@ html[data-template="design"] .concept-layout.design .concept-content { max-width
 {"general":"zweiteres Weg B! Jetzt wieder zurück zu der zusammenfassungs sticky header...","designs":{},"screens":{},"views":{}}
 </script>
 </section>
-<section id="iter-10" data-iteration="10" data-iteration-template="design" data-active>
+<section id="iter-10" data-iteration="10" data-iteration-template="design" hidden>
   <header class="iteration-intro">
     <h2>Runde 10 · Leiste nach Weg B</h2>
     <p>Dein Kommentar „zweiteres, Weg B“ zählt (die Radios standen noch auf A): vier Perspektiven, die vierte „Signatur & Kühlung“; die Leiste spiegelt das mit Kühllast in der Signatur-Kachel und Energie als einzigem Einstell-Segment rechts. Der Bauplan im Chat wartet weiter auf dein „ja“.</p>
@@ -10547,12 +10547,12 @@ html[data-template="design"] .concept-layout.design .concept-content { max-width
   <p>Spiegelt die vier Analyse-Kacheln 1:1, Energie als einziges Einstell-Segment rechts.</p>
   <div class="pc"><ul class="p"><li><span>Ein Instrument, eine Sprache mit der Analyse</span></li></ul><ul class="m"></ul></div>
   <div class="eval-group">
-    <label class="eval-option"><input type="radio" name="eval-f10-strip" value="discard"><span class="eval-label">Verwerfen</span></label>
-    <label class="eval-option"><input type="radio" name="eval-f10-strip" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+    <label class="eval-option"><input type="radio" name="eval-f10-strip" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+    <label class="eval-option"><input type="radio" name="eval-f10-strip" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
   </div>
   <div class="field-row decision-comment-row">
     <label for="f10-strip-note">Notiz / Override (optional)</label>
-    <textarea id="f10-strip-note" data-comment="f10-strip-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“ …" rows="2"></textarea>
+    <textarea id="f10-strip-note" data-comment="f10-strip-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“ …" rows="2" readonly></textarea>
   </div>
 </div>
     
@@ -10561,16 +10561,112 @@ html[data-template="design"] .concept-layout.design .concept-content { max-width
   <p>Keine weitere Konzeptrunde; der Bau nimmt Runde 10 als Leisten-Spezifikation. Der Bauplan im Chat wartet auf dein „ja“.</p>
   <div class="pc"><ul class="p"><li><span>Bauplan kann starten</span></li></ul><ul class="m"></ul></div>
   <div class="eval-group">
-    <label class="eval-option"><input type="radio" name="eval-f10-ship" value="discard"><span class="eval-label">Verwerfen</span></label>
-    <label class="eval-option"><input type="radio" name="eval-f10-ship" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+    <label class="eval-option"><input type="radio" name="eval-f10-ship" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+    <label class="eval-option"><input type="radio" name="eval-f10-ship" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
   </div>
   <div class="field-row decision-comment-row">
     <label for="f10-ship-note">Notiz / Override (optional)</label>
-    <textarea id="f10-ship-note" data-comment="f10-ship-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“ …" rows="2"></textarea>
+    <textarea id="f10-ship-note" data-comment="f10-ship-note" data-attachable placeholder="z.B. „nur für X“, „mit Variante Y“ …" rows="2" readonly></textarea>
   </div>
 </div>
   </div>
 </section>
+<script type="application/json" data-frozen-feedback>
+{"general":"Ja final, aber mach bittee in der leiste  das \"Sichtbar als raus\" und den energieabschnitt kannst du rauslassen bzw. im aufgeklappten rechts daneben einbauen. In der nicht aufgeklappten leiste reicht ein auf und zu.","designs":{},"screens":{},"views":{}}
+</script>
+</section>
+<section id="iter-11" data-iteration="11" data-iteration-template="free" data-final-report data-active>
+<div class="iteration-intro">
+    <h2>Abschlussbericht</h2>
+    <p>Design B „Holotable“ (Runden 1–10) ist als zweite, umschaltbare Ansicht der Codex-Schiffsseite gebaut — Website und Data Uploader zusammen, in vier Wellen mit Redteam-Gate und QA. Alles liegt auf dem Branch <code>claude/codex-schiffsansicht-design-d0ab3a</code> (HEAD <code>ed2a9ba</code>, gepusht). Nichts ist gemergt oder deployt — der Ship ist deine Entscheidung im Close-out unten.</p>
+  </div>
+
+  <section id="summary" data-nav-label="Zusammenfassung">
+    <h3>Zusammenfassung</h3>
+    <p><strong>Website.</strong> <code>/codex/ship/:className</code> hat einen Umschalter klassisch ↔ Holotable (pro Nutzer gemerkt, <code>?view=holo</code> in der URL gewinnt); die klassische Ansicht ist byte-identisch geblieben (ihre Spec läuft unverändert). Die Holotable-Bühne: drei gleiche Panels 300 | Tisch | 300 mit gleicher Kopfzeile, einklappbar; Einsatz-Leiste als Tisch-Kopf mit Kennzahl je Einsatz und Save-Bar darunter; Einordnung mit Top-3 (beste Schiffe aus zuletzt angesehen ∪ Hangar, sonst Kohorte), Wasserzeichen, Radar mit der Schwäche als roter Achsen-Stroke, Kohorte als Textlink, Stärken/Schwächen; Tisch mit Silhouette aus <code>codex_silhouettes</code> (Pins an Anker-% je Port, gestrichelter Ring ohne Anker, neutraler Placeholder ohne Silhouette), Hover-Kurzwerte, Klick → Inspector mit Δ vs. Werk, Tausch-Liste und Patch-Badge; 3D / Schema / Teilen als Text-Toggles oben rechts, 3D und Schema ersetzen die Silhouette an Ort und Stelle; Ports ruhig ohne Boxen mit „Detail ▾“ je Gruppe (volle Zeilen der heutigen Layout-Komponente); vier Perspektiven Offensive · Verteidigung · Bewegung · Signatur &amp; Kühlung mit Perzentil-Gauge, Bedeutungssatz, drei Unterwerten, „Alle Werte“ = der komplette Analyse-Inhalt von heute; Auswahl in der Liste pulst Pin + Kennzahl + Kachel; Änderungs-Journal mit Undo als Toast; Ankunft ohne Klick (Hero = Ladebild, ≈1,6 s Transformation, Reduced-Motion = Schnitt, Wiederholung = Schnitt, Count-Up vom zuletzt angesehenen Schiff); Sounds opt-in per WebAudio; Details-Drawer für Crumb/Data-Pill/Provenance, Edition/Skin, Add-to-Hangar, RSI-Link, Ship-Link-Form (Admin-Zeile in accent-hot mit Beschriftung), feste Systeme, Beschreibung, strukturelle Hardpoints, Crafting, Spec/Raw.</p>
+    <p><strong>Leiste (Runde 10 final).</strong> Sticky unten: Einsatz → drei Mini-Perspektiven → Gelenk-Ring ohne Label → Signatur &amp; Kühlung (IR/EM/Querschnitt in km mit 1 Nachkommastelle, Klassen-Rang-Pips, Tooltip in m, Kühllast) → nur Auf/Zu. Aufgeklappt: SCM/NAV + „Schleichen“ als Preset, Pip-Stacks (Pfeiltasten, Tooltips, Esc), Kühl-Gauge, Energie-Summary (Reaktor n/n, Modus), Readiness ✓/✕ und Draft-Hinweis. Mobile = sticky Kennzahl-Zeile, Aufklappen als Bottom-Sheet.</p>
+    <p><strong>Hangar.</strong> Goldener Reiter (accent, nicht accent-hot) auf der Tisch-Oberkante; Overlay fest 236 px ohne Scrollbalken, Suche immer da, Holo-Kacheln mit Silhouette als echte Links, ab 8 Schiffen gruppiert nach Einsatz, Loadout-Varianten nur „heute/gestern/Datum“ oder „verwaltet von …“, Hangar-Halle als Vollbild. Geteilte Loadouts folgen dem Eigentümer; die erste eigene Änderung stellt einmal die Eigentümer-Frage und forkt (Fork-Guard in Codex-Save-Bar und Hangar-Edit verdrahtet, serverseitig per Trigger unumkehrbar). Teilen-Popover: heutiger <code>?loadout=</code>-Link zuerst, dazu Hangar-Share-Link (Schiff+Loadout+Patch) mit „Teilen beenden“ (stoppt nur neue Übernahmen). Neue Route <code>/hangar/shared/:token</code>: ohne Login ansehen, mit Login übernehmen (Schiff als <em>owned</em>).</p>
+    <p><strong>Patch-Wahl mit Δ.</strong> Build-Auswahl (unfertige Builds markiert, nicht gefiltert), Δ aktiv → gewählt als Ghost-Werte/Delta-Chips im KPI-Band, Pin-Badges je Port (nur im alten Build vorhandene Ports = unresolved), Δ-Tabelle nach Perspektiven im Patch-Popover, Port-Δ im Inspector; Schema/Extract-Zeile nur für Admin/Collaborator in accent-hot mit Beschriftung. Mobile: gestapelt als Standard, „Tisch | Daten“-Tabs als Einstellung, Querformat Tisch | Inspector, Tablet mit eingeklappten Rails.</p>
+    <p><strong>Data Uploader.</strong> Neue Katalog-Phase <code>codex_silhouettes</code>: aus den rohen <code>.cga/.cgam</code>-Rümpfen (über cgf-converter → glTF, Y-up nach Cry-Achsen gedreht) entsteht je Schiff, Waffe, Komponente und Rüstungsteil eine normalisierte Top-Down-Silhouette (Raster → Denoise → alle Komponenten ≥ 64 px² als Subpaths, Löcher mit umgekehrtem Winding → Chaikin → adaptive Douglas-Peucker-Toleranz max(0,15 m · 0,3 % Spannweite · 1,5 px)) im 1000er-viewBox plus Anker in % je Port aus derselben Transformation, dazu die Liste nicht auflösbarer Ports. Cache über .cga+.cgam+Konstanten, vektorisiertes Labelling mit Timing-Log, SCC-Styling-Metadaten. Der geführte Ablauf der Desktop-App führt den Schritt selbst aus (Electron-Bridge + Renderer-Schritt vor dem Codex-Promote) und lädt nur die aufbereiteten Rows über <code>ingest-catalog</code> (Ops <code>silhouettes</code> / <code>clear_silhouettes</code>, degradiert sauber, wenn die Tabelle noch fehlt). Die Website rendert nur; Anker werden nie clientseitig projiziert.</p>
+    <p><strong>Datenbank.</strong> Zwei additive Migrationen: <code>20260920150000_codex_silhouettes</code> (build-scoped, Viewer+anon lesen, nur service-role schreibt) und <code>20260920160000_hangar_loadout_sharing</code> (Follow-Spalten, <code>hangar_share_links</code> mit <code>revoked_at</code>, Trigger <code>hangar_ship_configs_share_guard</code>: follows_owner nur true→false, Quelle/Owner immutable, Auto-Fork bei Edit, GUC <code>hangar.internal_write</code>; RPCs <code>adopt_shared_loadout</code>, <code>hangar_follow_snapshot</code>, <code>peek_shared_loadout</code> mit Owner-Name/Stand/Channel/Patch, <code>social_actor()</code>/<code>is_suspended()</code>, Unique je Follower, kein Self-Adopt). Beide sind <strong>noch nicht gepusht</strong> — sie gehen mit dem Ship.</p>
+    <p><strong>Nichts verloren.</strong> Alle 59 Inventarzeilen der heutigen Seite (Wave-0-Inventar) wurden von QA einzeln gegen den Code geprüft: keine undokumentierten Verluste. Bewusst weg, nur in der Holotable-Ansicht: <em>Vergleichen/Pin</em> (#12/#53) und <em>Schiff wechseln</em> (#15) — von dir in Wave 0 akzeptiert — sowie die <em>Dock-Positionswahl</em> des Energie-Docks (#52, Teil), die in einer sticky Leiste kein Objekt mehr hat (meine Wertung, nicht von dir bestätigt — Einspruch = ein Satz). Die klassische Ansicht hat weiterhin alles.</p>
+    <p><strong>Nicht umgesetzt, weil …</strong> (Shortfalls, keine Folgepunkte): <em>kein Live-Lauf gegen Data.p4k + cgf-converter</em> in dieser Session — die Silhouetten-Qualität (Projektionsachse, Ankerlage, Komponentenschwelle 64 px², Laufzeit des Labellings über tausende Entities) ist nur per synthetischen Fixtures belegt; <em>Holotable-Route im Browser nicht gesehen</em>, weil sie auth-gated ist und keine Test-Zugangsdaten gesetzt sind (SC_GATE_EMAIL/PASSWORD) — Specs, Build und Mobile-Gate der öffentlichen Routen sind grün.</p>
+  </section>
+
+  <section id="changed-files" data-nav-label="Geänderte Dateien">
+    <h3>Geänderte Dateien</h3>
+    <p>Website (<code>src/app</code>):</p>
+    <ul>
+      <li><code>codex/codex-detail.component.ts</code> — Umschalter, Holotable-Zweig, neue Parent-Computeds/Adapter für Patch-Δ, Fork-Guard im Speichern; klassischer Zweig unverändert</li>
+      <li><code>codex/holo/codex-holo-stage.component.ts</code> (+ spec) — die Bühne: Panels, Einsatz-Leiste, Einordnung, Silhouette + Pins, Inspector, Ports, Perspektiven, Journal/Toast, Ankunft, Mobile, Details-Drawer, Slot-Hosting</li>
+      <li><code>codex/holo/codex-holo-strip.component.ts</code> (+ spec) — sticky Leiste nach <code>strip_final</code></li>
+      <li><code>codex/holo/codex-holo-hangar.component.ts</code> (+ spec) — Hangar-Reiter, Overlay 236 px, Halle</li>
+      <li><code>codex/holo/codex-holo-patch.component.ts</code>, <code>codex-holo-patch-delta.component.ts</code> (+ specs) — Patch-Wahl, Ghosts/Chips/Badges, Δ-Tabelle</li>
+      <li><code>codex/holo/codex-holo-share.component.ts</code> (+ spec) — Teilen-Popover</li>
+      <li><code>codex/holo/codex-holo-fork-guard.ts</code> (+ spec) — Eigentümer-Frage + Fork</li>
+      <li><code>codex/holo-silhouette.ts</code>, <code>codex/codex-build-compare.ts</code> (+ specs) — Silhouetten-Parser (Vertrag §C1), Build-Δ-Mathematik (nutzt <code>computeKpiDelta</code>)</li>
+      <li><code>codex/codex.service.ts</code> — <code>silhouette()</code>, <code>silhouettes()</code> (Batch), <code>shipDetailForBuild()</code>, <code>buildsForChannel()</code></li>
+      <li><code>codex/codex-rank-card.component.ts</code> — schwächste Achse als danger-Stroke</li>
+      <li><code>codex/codex-detail-holo-toggle.spec.ts</code> — Persistenz, URL gewinnt</li>
+      <li><code>hangar/hangar.service.ts</code>, <code>hangar.types.ts</code> — Share-Flow (create/revoke/adopt/peek/refresh/fork), Varianten-Hinweis</li>
+      <li><code>hangar/hangar-shared-loadout.component.ts</code> (+ spec), <code>app.routes.ts</code> — Landing <code>/hangar/shared/:token</code></li>
+      <li><code>hangar/hangar-ship-detail.component.ts</code> — Fork-Guard in Aktivieren/Speichern</li>
+      <li><code>public/i18n/de.json</code>, <code>en.json</code> — <code>codex.holo.*</code>, <code>hangar.shared.*</code> (107 Keys, ein Block je Sprache — drei parallele Agents hatten je einen eigenen Block angelegt, JSON.parse behält still nur den letzten; beim Integrieren gefunden und dedupliziert)</li>
+    </ul>
+    <p>Supabase:</p>
+    <ul>
+      <li><code>supabase/migrations/20260920150000_codex_silhouettes.sql</code>, <code>20260920160000_hangar_loadout_sharing.sql</code> — siehe Zusammenfassung; beide additiv, Drops keine</li>
+      <li><code>supabase/functions/ingest-catalog/index.ts</code> — Ops <code>silhouettes</code> / <code>clear_silhouettes</code> mit Forward-Compat-Degrade</li>
+    </ul>
+    <p>Data Uploader (<code>data-uploader/</code>):</p>
+    <ul>
+      <li><code>python/sc_extract/silhouette.py</code>, <code>silhouette_export.py</code>, <code>silhouette_build.py</code>, <code>silhouette_build_app.py</code> (+ tests) — Extraktion, Export, CLI, Events-Sidecar für die App</li>
+      <li><code>python/sc_extract/dataforge_extract.py</code> — Mesh-Manifest je Entity, kind=item für Rüstung</li>
+      <li><code>src/lib/catalog-phases.ts</code>, <code>catalog-map.ts</code>, <code>src/main/catalog-bridge.ts</code> — Phase <code>codex_silhouettes</code>, Row-Mapping (bbox-lose Rows übersprungen), Upload-Chunks</li>
+      <li><code>src/main/silhouette-bridge.ts</code>, <code>src/lib/silhouette-bridge-args.ts</code>, <code>src/main/index.ts</code>, <code>src/preload/index.ts</code>, <code>src/renderer/main.ts</code> (+ tests) — Electron-Trigger, IPC, Renderer-Schritt vor dem Promote</li>
+    </ul>
+    <p>Bau-Protokoll: <code>docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/</code> — <code>wave0-research.md</code> (Inventar, Pipeline-Fakten, Vertrag), <code>wave1-core-web.md</code>, <code>wave1-core-uploader.md</code>, <code>wave1-redteam.md</code> (Gate FAIL → Wave 1.5), <code>wave2-stage.md</code>, <code>wave2-strip-hangar.md</code>, <code>wave2-patch-share.md</code>, <code>wave3-qa.md</code>.</p>
+  </section>
+
+  <section id="tests" data-nav-label="Tests &amp; Verifikation">
+    <h3>Tests &amp; Verifikation</h3>
+    <ul>
+      <li><strong>Redteam-Gate nach Wave 1</strong> (devops:redteam): GATE FAIL mit 4 Blockern — Projektionsachse (glTF Y-up → Frontansicht), Anker im Hardpoint-Frame statt im viewBox, <code>hangar_follow_snapshot</code> vertraute clientbeschreibbaren Spalten (Fork umkehrbar, fremde Configs lesbar), Owner-Name nicht auflösbar — plus 13 Should-fix. Alle in Wave 1.5 behoben, drei Entscheidungen von dir eingeholt (Widerruf stoppt nur neue Übernahmen · übernommenes Schiff = owned · Ansehen ohne Login).</li>
+      <li><strong>Wave 3 QA</strong> (devops:qa, HEAD 217a8cb): <code>npm run typecheck</code> grün · <code>npm run build</code> exit 0 (bekannte CSS-Budget-Warnung auf codex-detail, nicht neu) · <code>npm test</code> 2827/2827 · Uploader pytest 362, vitest 325/325, tsc clean · Mobile-Gate GRÜN, 0 Befunde, 9 auth-gated Routen UNCHECKED · i18n: beide Dateien parsen, 0 doppelte Keys, 107/107 Keys aufgelöst · CLAUDE.md-Regeln: keine Nicht-Anker-Navigation, keine hartcodierten Strings; 1 Befund (accent-hot auf viewer-erreichbaren Patch-Δ-Regeln) → in <code>ed2a9ba</code> auf accent umgestellt, Stage-Spec 5/5 grün.</li>
+      <li><strong>Browser</strong> (Playwright, hier): <code>/hangar/shared/&lt;token&gt;</code> rendert den Fallback („nicht verfügbar“) mit Zurück- und Über-Link; einziger Konsolenfehler = erwarteter 404 auf <code>rpc/peek_shared_loadout</code> (Migration noch nicht gepusht). Holotable-Route: auth-gated, nicht gesehen (siehe Shortfalls).</li>
+      <li><strong>Agent-Gates je Welle</strong>: core-web ng test codex+hangar 1190/1190; core-uploader pytest 356/vitest 302 → nach Electron-Trigger 356/307; fix-web 1190/1190; fix-uploader pytest 362/vitest 325; fe-stage 1144/1144 → Wave 2.5 1224/1224; fe-strip-hangar 1144/1144; fe-patch-share 1206/1206 (Build dort unter 60 parallelen node-Prozessen nach 18 min abgebrochen — isoliert in Wave 3 grün).</li>
+      <li><strong>Übersprungen</strong>: Live-Lauf gegen Data.p4k + cgf-converter (nicht verfügbar in der Session); <code>db:push</code> und <code>functions:deploy</code> (erst beim Ship); Browser-Prüfung der Holotable-Route (keine Test-Zugangsdaten).</li>
+    </ul>
+  </section>
+
+  <section id="open-questions" data-nav-label="Offene Fragen &amp; TODOs" data-open-questions>
+    <h3>Offene Fragen &amp; TODOs</h3>
+    <ul class="open-questions-list">
+      <li>
+        <label>
+          <input type="checkbox"
+                 name="oq-ng-build-local-hang"
+                 data-issue-title="[BUG] ng build hangs after completion in local worktrees under agent load"
+                 data-issue-type="bug"
+                 data-issue-body="Observed during the Holotable build (2026-09-20): `npm run build` printed the complete Angular build output and regenerated dist/sc-companion/browser, then never exited — twice in agent worktrees (once with ~60 parallel node.exe processes, once in isolation the fe-strip-hangar agent confirmed dist timestamps and killed it). scripts/vercel-build.sh claims the no-exit hang is Vercel-only (#410); this shows the same class locally. Reproduce: run `npm run build` in a fresh worktree with `npm ci`, watch for the process staying alive after `Application bundle generation complete`. Possible fix: reuse the exit guard from scripts/vercel-build.sh for the local `build` script, or find the handle that keeps the event loop alive."
+                 data-issue-role="infra"
+                 data-issue-module="build"
+                 data-oq-origin="found"
+                 checked>
+          <span class="oq-label">ng build hängt lokal nach vollständigem Output — unterwegs gefunden, nicht Teil dieses Konzepts</span>
+        </label>
+      </li>
+    </ul>
+  </section>
+
+  <section id="handoffs" data-nav-label="Danach von Hand" data-handoffs>
+    <h3>Danach von Hand</h3>
+    <ol>
+      <li>Nach dem Ship prüfen, dass die CI beide Migrationen und <code>ingest-catalog</code> deployt hat (<code>gh run list</code>); danach antwortet <code>rpc/peek_shared_loadout</code> nicht mehr 404.</li>
+      <li>Data Uploader einmal gegen die LIVE-<code>Data.p4k</code> laufen lassen (Schritt „Silhouetten“ im geführten Ablauf, cgf-converter muss erreichbar sein) und im Log die Kennzahlen lesen: Punkte je Entity, verworfene Fläche, Sekunden je Entity. Danach 3–4 Schiffe in der Holotable öffnen — Nase oben? Pins auf den Ports? Großschiff (Idris/890J) ohne Placeholder? Falls die Laufzeit über tausende Waffen/Komponenten inakzeptabel ist: <code>MIN_COMPONENT_AREA_PX</code> und die Kind-Auswahl in <code>silhouette_build.py</code> sind die Stellschrauben.</li>
+      <li>Holotable einmal eingeloggt auf dem Handy und im Querformat ansehen (Mobile-Gate hat die auth-gated Routen nicht gesehen); für künftige Gates <code>SC_GATE_EMAIL</code>/<code>SC_GATE_PASSWORD</code> setzen.</li>
+    </ol>
+  </section>
 </section>
 </main>
     </div>
@@ -10764,7 +10860,8 @@ html[data-template="design"] .concept-layout.design .concept-content { max-width
 <button class="iteration-tab" role="tab" data-iteration="7" aria-selected="false">Iteration 7</button>
 <button class="iteration-tab" role="tab" data-iteration="8" aria-selected="false">Iteration 8</button>
 <button class="iteration-tab" role="tab" data-iteration="9" aria-selected="false">Iteration 9</button>
-<button class="iteration-tab" role="tab" data-iteration="10" aria-selected="true">Iteration 10</button>
+<button class="iteration-tab" role="tab" data-iteration="10" aria-selected="false">Iteration 10</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="11" aria-selected="true" aria-controls="iter-11">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC
