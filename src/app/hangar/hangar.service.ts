@@ -13,6 +13,7 @@ import {
   ConfigLoadoutEntry,
   HangarRoleLoadout,
   HangarRoleLoadoutRow,
+  HangarShareLink,
   HangarShip,
   HangarShipConfig,
   HangarShipConfigRow,
@@ -23,6 +24,7 @@ import {
   ShipConfigRole,
   mapConceptShip,
   mapHangarRoleLoadout,
+  mapHangarShareLink,
   mapHangarShip,
   mapHangarShipConfig,
 } from './hangar.types';
@@ -666,5 +668,129 @@ export class HangarService {
     }
     this.roleLoadouts.set(this.roleLoadouts().filter((l) => l.id !== id));
     return true;
+  }
+
+  // ── loadout sharing (migration 20260920160000, concept it.2/it.3/it.6) ────
+  // "Follow" copy model: a recipient's config starts out live-following the
+  // owner's; the first edit forks it, irreversibly (s3-follow/s3-fork rules).
+
+  /**
+   * Share a config's CURRENT loadout as a token. `channel`/`patchVersion`
+   * come from the caller (CodexService.build()) — this service never reads
+   * codex_* directly (contract note in hangar.types.ts).
+   */
+  async createShareLink(
+    config: HangarShipConfig,
+    shipClassName: string,
+    channel: string,
+    patchVersion: string,
+    expiresAt: string | null = null,
+  ): Promise<HangarShareLink | null> {
+    const userId = this.userId;
+    if (!userId) return null;
+    const { data, error } = await this.sb.client
+      .from('hangar_share_links')
+      .insert({
+        created_by: userId,
+        ship_class_name: shipClassName,
+        channel,
+        patch_version: patchVersion,
+        loadout: config.loadout as unknown as never[],
+        config_name: config.name,
+        role: config.role,
+        source_config_id: config.id,
+        expires_at: expiresAt,
+      })
+      .select('*')
+      .single();
+    if (error) {
+      this.error.set(error.message);
+      return null;
+    }
+    return mapHangarShareLink(data as Record<string, unknown>);
+  }
+
+  /** Revoke a share link the caller owns (self-only RLS enforces ownership). */
+  async revokeShareLink(id: string): Promise<boolean> {
+    const { error } = await this.sb.client.from('hangar_share_links').delete().eq('id', id);
+    if (error) {
+      this.error.set(error.message);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Turn a share token into a following config in the CALLER's hangar (adds
+   * the ship to their hangar if it is not already there). Runs through the
+   * `adopt_shared_loadout` SECURITY DEFINER RPC — the recipient never reads
+   * `hangar_share_links` or the owner's `hangar_ship_configs` row directly.
+   */
+  async adoptSharedLoadout(token: string): Promise<HangarShipConfig | null> {
+    const { data, error } = await this.sb.client.rpc('adopt_shared_loadout', { p_token: token });
+    if (error || !data) {
+      this.error.set(error?.message ?? 'adopt_failed');
+      return null;
+    }
+    const { data: row, error: readErr } = await this.sb.client
+      .from('hangar_ship_configs')
+      .select('*')
+      .eq('id', data as string)
+      .maybeSingle();
+    if (readErr || !row) {
+      this.error.set(readErr?.message ?? 'adopt_failed');
+      return null;
+    }
+    return mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+  }
+
+  /**
+   * Pull the owner's CURRENT loadout into a still-following config, via the
+   * `hangar_follow_snapshot` RPC (the follower has no direct read access to
+   * the owner's row). Returns `null` — and leaves the config untouched —
+   * once the copy has forked or the owner's config is gone; the caller then
+   * simply keeps showing what it already has.
+   */
+  async refreshFollowedLoadout(configId: string): Promise<HangarShipConfig | null> {
+    const { data, error } = await this.sb.client.rpc('hangar_follow_snapshot', {
+      p_config_id: configId,
+    });
+    if (error || !data) return null;
+    const snapshot = data as { loadout: ConfigLoadoutEntry[]; name: string; role: ShipConfigRole };
+    const { data: row, error: updateErr } = await this.sb.client
+      .from('hangar_ship_configs')
+      .update({ loadout: snapshot.loadout as unknown as never[], name: snapshot.name, role: snapshot.role })
+      .eq('id', configId)
+      .select('*')
+      .single();
+    if (updateErr || !row) return null;
+    return mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+  }
+
+  /**
+   * The recipient's first own edit to a followed config: flips
+   * `follows_owner` off (irreversibly — s3-fork) and stamps `forked_at`.
+   * `patch` carries the actual edit (name/role/loadout) in the SAME write so
+   * the fork and the edit that triggered it land in one row version.
+   */
+  async forkFollowedLoadout(
+    id: string,
+    patch: Partial<{ name: string; role: ShipConfigRole; loadout: ConfigLoadoutEntry[] }>,
+  ): Promise<HangarShipConfig | null> {
+    const update: Record<string, unknown> = { follows_owner: false, forked_at: new Date().toISOString() };
+    if (patch.name !== undefined) update['name'] = patch.name;
+    if (patch.role !== undefined) update['role'] = patch.role;
+    if (patch.loadout !== undefined) update['loadout'] = patch.loadout;
+    const { data, error } = await this.sb.client
+      .from('hangar_ship_configs')
+      .update(update)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) {
+      this.error.set(error.message);
+      return null;
+    }
+    return mapHangarShipConfig(data as HangarShipConfigRow & Record<string, unknown>);
   }
 }
