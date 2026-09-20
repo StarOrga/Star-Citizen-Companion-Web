@@ -63,6 +63,9 @@ import {
             @if (shipPolygonPoints(); as shipPts) {
               <polygon class="ship" [attr.points]="shipPts" />
             }
+            @if (weakestAxisVertex(); as wv) {
+              <circle class="weak-axis" [attr.cx]="wv.x" [attr.cy]="wv.y" r="4" />
+            }
             @for (cap of axisCaptions(); track cap.key) {
               <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'">{{ (cap.gap ? cap.labelKey! : cap.labelKey) | translate }}</text>
             }
@@ -233,6 +236,11 @@ import {
     .radar text { font-size: 6px; fill: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.04em; }
     .radar .median { fill: none; stroke: var(--sc-fg-2); stroke-width: 1; stroke-dasharray: 3 3; }
     .radar .ship { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke: var(--sc-accent); stroke-width: 1.5; }
+    /* Weakest ranked axis (Holotable "Einordnung" ask): a stroke-only ring,
+       no fill, no coloured text — CLAUDE.md reserves --sc-danger for errors/
+       destructive actions, so this is a deliberate one-off "warning-class
+       highlight" on the vertex itself, not a navigation or status colour. */
+    .radar .weak-axis { fill: none; stroke: var(--sc-danger); stroke-width: 2; }
     .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend .ship { color: var(--sc-accent); }
@@ -312,6 +320,27 @@ export class CodexRankCardComponent {
       .filter((v): v is { percentile: number; i: number } => v.percentile != null);
     if (known.length < 3) return '';
     return known.map((v) => this.vertexAt(v.percentile, v.i, n)).join(' ');
+  });
+
+  /**
+   * Vertex of the single weakest ranked axis (lowest percentile), for the
+   * Holotable "Einordnung" panel's danger-stroke marker. Ties keep the first
+   * axis in profile order. `null` when nothing is ranked yet.
+   */
+  readonly weakestAxisVertex = computed<{ x: number; y: number } | null>(() => {
+    const r = this.result();
+    if (!r) return null;
+    const n = r.axes.length;
+    let best: { percentile: number; i: number } | null = null;
+    for (let i = 0; i < r.axes.length; i++) {
+      const pct = r.axes[i].percentile;
+      if (pct == null) continue;
+      if (best === null || pct < best.percentile) best = { percentile: pct, i };
+    }
+    if (best === null) return null;
+    const chosen: { percentile: number; i: number } = best;
+    const [x, y] = this.vertexAt(chosen.percentile, chosen.i, n).split(',').map(Number);
+    return { x, y };
   });
 
   /** How many axes the ship's line actually rests on (specs + a11y text). */
