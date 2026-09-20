@@ -34,6 +34,59 @@ def _rect_hull(half_width: float, length: float) -> list:
     ]
 
 
+def _noisy_rect_hull(x_span: float, y_span: float, *,
+                      tooth_period: float = 1.0, tooth_depth: float = 2.0) -> list:
+    """A rectangle with a jagged (alternating in/out) top edge — high-frequency
+    boundary noise, the way a capital ship's raster trace looks before
+    simplification, big enough to matter at the ship's own scale but far
+    below the (adaptive) DP tolerance."""
+    n = max(2, int(x_span / tooth_period))
+    xs = [i * x_span / n for i in range(n + 1)]
+    tris = []
+    prev_x, prev_y = xs[0], y_span
+    for i in range(1, len(xs)):
+        x = xs[i]
+        y_top = y_span + (tooth_depth if i % 2 else 0.0)
+        bl, br = (prev_x, 0.0, 0.0), (x, 0.0, 0.0)
+        tl, tr = (prev_x, prev_y, 0.0), (x, y_top, 0.0)
+        tris.append((bl, br, tr))
+        tris.append((bl, tr, tl))
+        prev_x, prev_y = x, y_top
+    return tris
+
+
+def _annulus_hull(outer: float, inner: float) -> list:
+    """A square picture-frame (outer square minus a smaller concentric square)
+    — one connected blob with one hole, for winding-direction tests."""
+    o, i = outer, inner
+    oa, ob, oc, od = (0.0, 0.0, 0.0), (o, 0.0, 0.0), (o, o, 0.0), (0.0, o, 0.0)
+    m = (o - i) / 2.0
+    ia, ib, ic, id_ = (m, m, 0.0), (m + i, m, 0.0), (m + i, m + i, 0.0), (m, m + i, 0.0)
+    return [
+        (oa, ob, ib), (oa, ib, ia),  # bottom trapezoid
+        (ob, oc, ic), (ob, ic, ib),  # right
+        (oc, od, id_), (oc, id_, ic),  # top
+        (od, oa, ia), (od, ia, id_),  # left
+    ]
+
+
+def _two_component_hull() -> list:
+    """A main hull plus a small SEPARATE blob (a "nacelle" the open() denoise
+    pass would sever) well clear of it — two disjoint foreground components,
+    both above `MIN_COMPONENT_AREA_PX`."""
+    main = _rect_hull(2.0, 10.0)
+    nacelle_a, nacelle_b, nacelle_c = (7.0, 0.0, 0.0), (9.0, 0.0, 0.0), (8.0, 2.0, 0.0)
+    return main + [(nacelle_a, nacelle_b, nacelle_c)]
+
+
+def _signed_area(ring: list) -> float:
+    """Shoelace formula, ``ring`` closed (first point == last)."""
+    total = 0.0
+    for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+        total += x0 * y1 - x1 * y0
+    return total / 2.0
+
+
 class TestProjectAndRasterize:
     def test_project_topdown_drops_z(self) -> None:
         tris = [((1.0, 2.0, 99.0), (3.0, 4.0, -5.0), (5.0, 6.0, 0.0))]
@@ -149,28 +202,101 @@ class TestBuildSilhouette:
         assert a == b
 
 
-class TestAnchors:
-    FRAME = {"min": [-2.0, 0.0, 0.0], "max": [2.0, 10.0, 2.0], "source": "bbox"}
+class TestToleranceBudget:
+    def test_noisy_capital_ship_path_stays_under_budget(self) -> None:
+        """Should-fix "tolerance" (wave1-redteam.md): a flat 0.15 m DP
+        tolerance is fine for a fighter but lets a capital-scale, noisy hull
+        blow through the SVG path length budget — the tolerance must scale
+        with the hull's own span (0.3%) and the raster's own pixel size."""
+        sil = build_silhouette(_noisy_rect_hull(400.0, 120.0))
+        assert sil is not None
+        assert len(sil["path"]) < 60_000
+        assert sil["simplifyToleranceM"] > 0.15  # adaptive tolerance kicked in
 
-    def test_anchor_projection_matches_hardpoint_map_convention(self) -> None:
+
+class TestComponents:
+    def test_two_disjoint_blobs_both_become_subpaths(self) -> None:
+        """Should-fix "components" (wave1-redteam.md): a blob the open()
+        denoise pass severs from the main hull (a nacelle/wingtip/arm) must
+        stay in the path as its own subpath, not be dropped for not being
+        the single biggest blob."""
+        sil = build_silhouette(_two_component_hull())
+        assert sil is not None
+        assert sil["path"].count("M ") == 2
+
+
+class TestHoleWinding:
+    def test_hole_subpath_winds_opposite_the_outer_subpath(self) -> None:
+        """Should-fix "hole winding" (wave1-redteam.md): a hole ring must be
+        emitted with the OPPOSITE winding of the outer ring so
+        `fill-rule="nonzero"` actually punches the hole."""
+        import re
+
+        sil = build_silhouette(_annulus_hull(10.0, 4.0))
+        assert sil is not None
+        subpaths = re.findall(r"M.*?Z", sil["path"])
+        assert len(subpaths) == 2  # outer + one hole
+
+        def ring_of(block: str) -> list:
+            return [tuple(map(float, m.split()))
+                    for m in re.findall(r"-?\d+\.?\d* -?\d+\.?\d*", block)]
+
+        outer_area = _signed_area(ring_of(subpaths[0]))
+        hole_area = _signed_area(ring_of(subpaths[1]))
+        assert outer_area != 0.0 and hole_area != 0.0
+        assert (outer_area > 0) != (hole_area > 0)  # opposite sign
+
+
+class TestAnchors:
+    # This hull's own XY bounds happen to equal FRAME's X/Y bounds, so the
+    # blocker-2 path transform below is exactly what `build_silhouette`
+    # computes for it (not a hand-typed identity transform, real rounding
+    # included) — the same fixture the anchors below are checked against.
+    FRAME = {"min": [-2.0, 0.0, 0.0], "max": [2.0, 10.0, 2.0], "source": "bbox"}
+    TRANSFORM = build_silhouette(_rect_hull(2.0, 10.0))["_transform"]
+
+    def test_anchor_projection_matches_the_silhouette_path_transform(self) -> None:
+        """Blocker 2 (wave1-redteam.md): x/y go through the SAME min/scale/
+        offset transform as the path (mesh bounds, centred in the viewBox),
+        not the frame's own raw percentage — so a mesh narrower than it is
+        long (this hull: 4 m wide, 10 m long) lands OFF the 0%/100% edge on
+        the narrow axis once the viewBox centres it."""
         transforms = {
             "hardpoint_gun_left": {
                 "position": [-2.0, 0.0, 0.0], "rotation": None,
                 "helper": "hardpoint_gun_left", "source": "helper",
             },
         }
-        anchors, unresolved = project_anchors(transforms, self.FRAME, ["hardpoint_gun_left"])
+        anchors, unresolved = project_anchors(
+            transforms, self.FRAME, ["hardpoint_gun_left"], transform=self.TRANSFORM,
+        )
         assert len(anchors) == 1
         a = anchors[0]
-        # x=(X-min)/span -> 0%; y=1-(Y-min)/span -> 100% (tail, Y=min)
-        assert a["x"] == 0.0
-        assert a["y"] == 100.0
-        assert a["side"] == "port"  # X < mid (-2 < 0)
-        assert a["clamped"] is False
+        assert a["x"] == 30.0  # centred: (X-min)*scale+offsetX, not a raw 0%
+        assert a["y"] == 100.0  # tail, Y=min, unaffected by X-axis centring
+        assert a["side"] == "port"  # side still derives from the FRAME's mid X
+        assert a["clamped"] is False  # still checked against the FRAME's own AABB
+
+    def test_centred_hardpoint_lands_at_viewbox_centre(self) -> None:
+        """The should-fix pytest: a hardpoint at the exact centre of the hull
+        that produced the path must land at (50, 50) regardless of the
+        viewBox centring offset — proving anchors and path share one frame."""
+        transforms = {
+            "hardpoint_core": {
+                "position": [0.0, 5.0, 0.0], "rotation": None,
+                "helper": "hardpoint_core", "source": "helper",
+            },
+        }
+        anchors, _ = project_anchors(
+            transforms, self.FRAME, ["hardpoint_core"], transform=self.TRANSFORM,
+        )
+        assert len(anchors) == 1
+        assert abs(anchors[0]["x"] - 50.0) <= 0.5
+        assert abs(anchors[0]["y"] - 50.0) <= 0.5
 
     def test_missing_helper_is_unresolved(self) -> None:
         anchors, unresolved = project_anchors(
-            {}, self.FRAME, ["hardpoint_shield_generator_2"],
+            {}, self.FRAME, ["hardpoint_shield_generator_2"], transform=self.TRANSFORM,
         )
         assert anchors == []
         assert unresolved == ["hardpoint_shield_generator_2"]
@@ -182,13 +308,24 @@ class TestAnchors:
                 "helper": "hardpoint_wingtip", "source": "helper",
             },
         }
-        anchors, _ = project_anchors(transforms, self.FRAME, [])
+        anchors, _ = project_anchors(transforms, self.FRAME, [], transform=self.TRANSFORM)
         assert anchors[0]["clamped"] is True
 
     def test_missing_frame_yields_no_anchors(self) -> None:
-        anchors, unresolved = project_anchors({"a": {"position": [0, 0, 0]}}, {}, ["a"])
+        anchors, unresolved = project_anchors(
+            {"a": {"position": [0, 0, 0]}}, {}, ["a"], transform=self.TRANSFORM,
+        )
         assert anchors == []
         assert unresolved == []  # no frame -> nothing resolved, nothing to report either
+
+    def test_missing_transform_yields_no_anchors(self) -> None:
+        """No path was built (e.g. mesh had no usable surface) -> never a pin
+        in a space nobody can verify against."""
+        anchors, unresolved = project_anchors(
+            {"a": {"position": [0.0, 0.0, 0.0]}}, self.FRAME, ["a"], transform=None,
+        )
+        assert anchors == []
+        assert unresolved == []
 
 
 class TestEntitySilhouette:

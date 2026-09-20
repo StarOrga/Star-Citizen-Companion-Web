@@ -1005,11 +1005,14 @@ class CodexExtractor:
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_item += 1
                 # Only ARMOR items get a silhouette (the tile-view use case the
-                # user asked for) — not every consumable/tool item.
+                # user asked for) — not every consumable/tool item. Should-fix
+                # "kind" (wave1-redteam.md): these land in `items/`/`codex_items`
+                # on the website (web kind `item`), so the silhouette kind is
+                # `item`, not `armor` — the DB enum's `armor` value stays unused.
                 is_armor = (atype in _ARMOR_TYPES
                             or _find_component(comps, "SCItemVehicleArmorParams") is not None)
                 if is_armor:
-                    self._note_silhouette_candidate("armor", obj["className"], comps)
+                    self._note_silhouette_candidate("item", obj["className"], comps)
             # entities with no AttachDef (rooms, AI templates, etc.) are still
             # captured by dump_all_records().
 

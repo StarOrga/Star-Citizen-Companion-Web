@@ -24,10 +24,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-
-def _safe_filename(name: str) -> str:
-    import re
-    return re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_") or "unnamed"
+# Note I (wave1-redteam.md): reuse the ONE `_safe_filename` `dataforge_extract.py`
+# already writes ships/weapons/components/items with — a second, differently
+# behaved implementation here meant a class name with a `.` in it (or any
+# other char outside dataforge_extract's own keep-set) resolved to a
+# DIFFERENT filename than the one the entity's own JSON was written under,
+# so `_ship_anchor_inputs` silently read back no anchors/unresolved for it.
+from .dataforge_extract import _safe_filename
 
 
 def _ship_anchor_inputs(out_dir: Path, class_name: str) -> Dict[str, Any]:

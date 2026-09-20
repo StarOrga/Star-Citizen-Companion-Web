@@ -97,7 +97,8 @@ def main() -> int:
                 anchor_in = (_ship_anchor_inputs(args.out, class_name)
                             if kind == "ship" else {"frame": None, "transforms": {}, "port_names": ()})
                 try:
-                    cache_hit = exporter.is_cached(exporter.read_mesh_bytes(mesh))
+                    cache_hit = exporter.is_cached(
+                        mesh, exporter.read_mesh_bytes(mesh), args.tolerance_m)
                     row = exporter.export_entity(
                         kind=kind, class_name=class_name, mesh_path=mesh, mesh_id=mesh_id,
                         build=build, generated_at=generated_at, tolerance_m=args.tolerance_m,

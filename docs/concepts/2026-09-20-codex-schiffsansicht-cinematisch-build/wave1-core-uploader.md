@@ -87,8 +87,8 @@ example (Data.p4k / cgf-converter are not available in this worktree — see
     "simplifyToleranceM": 0.15
   },
   "anchors": [
-    { "portId": "hardpoint_gun_left", "x": 0.0, "y": 50.0, "side": "port", "depth": 0.2, "source": "helper", "helper": "hardpoint_gun_left", "clamped": false },
-    { "portId": "hardpoint_gun_right", "x": 100.0, "y": 50.0, "side": "starboard", "depth": 0.2, "source": "helper", "helper": "hardpoint_gun_right", "clamped": false }
+    { "portId": "hardpoint_gun_left", "x": 30.0, "y": 50.0, "side": "port", "depth": 0.2, "source": "helper", "helper": "hardpoint_gun_left", "clamped": false },
+    { "portId": "hardpoint_gun_right", "x": 70.0, "y": 50.0, "side": "starboard", "depth": 0.2, "source": "helper", "helper": "hardpoint_gun_right", "clamped": false }
   ],
   "unresolved": ["hardpoint_shield_generator_2"]
 }
@@ -302,3 +302,149 @@ the phase") on a 5000ms default test timeout; reproduced standalone at
 14-17s real time and PASSES at `--testTimeout 30000` — a pre-existing
 machine-speed flake in an unrelated test (`codex_ships` batch-splitting
 retry logic, untouched by this branch), not a regression from this change.
+
+## Wave 1.5 uploader (2026-09-20) — core-fix red-team gate items A–I
+
+Branch `claude/codex-schiffsansicht-design-d0ab3a-fix-uploader`, off
+`claude/codex-schiffsansicht-design-d0ab3a` at `a3c3c3d`. Owns every
+`data-uploader/**` item wave1-redteam.md marked **core-fix**.
+
+- **A — projection axis** (blocker 1). `data-uploader/python/sc_extract/silhouette_export.py:121`
+  `_gltf_to_cry()` converts every glb-space triangle vertex glTF Y-up
+  `(x, y, z)` → CryEngine `(x, -z, y)` (`silhouette_export.py:184-186`, inside
+  `world_triangles_from_glb`) — the exact inverse of the Cry→glTF mapping
+  `src/app/codex/glb-hardpoints.ts:16` documents, so `silhouette.py`'s
+  pipeline (written and tested in Cry axes throughout) now actually receives
+  Cry-space triangles instead of a front cross-section. Pytest:
+  `data-uploader/python/tests/test_silhouette_export.py` `TestBlocker1ProjectionAxis::test_yup_hull_produces_a_taller_than_wide_nose_up_silhouette`
+  — a Y-up fixture longer along glTF -Z than X asserts the resulting
+  silhouette is taller than wide with the nose (glTF -Z end) at the viewBox
+  top. The 5 pre-existing `TestWorldTriangles` cases pinned raw glTF-space
+  output; updated to the now-converted Cry-space values (an intentional
+  behaviour change, not a regression) — `test_silhouette_export.py:34-93`.
+- **B — anchor space** (blocker 2). `data-uploader/python/sc_extract/silhouette.py:531-590`
+  `build_silhouette` now returns an internal `_transform` (mesh bounds +
+  the SAME scale/offset the path was centred with, `silhouette.py:586-589`),
+  popped by `build_entity_silhouette` (`:699`) and
+  `silhouette_export.SilhouetteExporter.export_entity` (`silhouette_export.py:321`
+  — survives a cache hit too, since `_transform` travels inside the cached
+  JSON blob) and fed into `project_anchors(..., transform=...)`
+  (`silhouette.py:595-654`), which now derives `x`/`y` from that transform
+  instead of the `frame`'s own raw percentage; `side`/`depth`/`clamped` are
+  unaffected (not viewBox-space values) and keep using `frame`. No
+  `transform` (no path was built) → no anchors, never a guessed position.
+  Pytest: `test_silhouette.py::TestAnchors::test_centred_hardpoint_lands_at_viewbox_centre`
+  (rectangle hull, hardpoint at its centre → (50, 50) ±0.5) plus
+  `test_anchor_projection_matches_the_silhouette_path_transform` and
+  `test_missing_transform_yields_no_anchors`, all updated/added in
+  `test_silhouette.py:152-221`. Handoff example regenerated from the fixed
+  code (`build_entity_silhouette` run against the doc's own fixture, see
+  above): `hardpoint_gun_left` `x` 0.0 → 30.0, `hardpoint_gun_right` `x`
+  100.0 → 70.0 (`wave1-core-uploader.md:90-91`) — `y`/`depth`/`side`/`bbox`
+  were already correct (the mesh's Y bounds equal the frame's, so the
+  centring offset on that axis is zero).
+- **C — tolerance** (should-fix). `silhouette.py:61-70` (`TOLERANCE_SPAN_FRACTION
+  = 0.003`, `TOLERANCE_MIN_PX = 1.5`, alongside the existing 0.15 m floor)
+  and `silhouette.py:519-531` (adaptive `tolerance_m = max(floor, 0.3% of
+  span, 1.5 px)`, computed once per entity and used for both the DP
+  simplify and the emitted `simplifyToleranceM`). Point-count log via the
+  new `on_log` param (`silhouette.py:568-570`). Pytest:
+  `test_silhouette.py::TestToleranceBudget::test_noisy_capital_ship_path_stays_under_budget`
+  — a 400 m × 120 m jagged rectangle asserts the emitted path stays under
+  60 000 chars and `simplifyToleranceM > 0.15` (adaptive kicked in); the
+  existing small-ship test still asserts exactly `0.15` (`test_silhouette.py:184`)
+  since the floor dominates at fighter scale.
+- **D — components** (should-fix). `silhouette.py:65` `MIN_COMPONENT_AREA_PX
+  = 64` (px², chosen constant — reported here; a blob at or above this size
+  is a real severed part, not raster/converter speck debris; below it and
+  there IS a bigger component, it is dropped and its area logged). New
+  `_component_holes()` (`silhouette.py:311-341`) isolates each kept
+  component's holes to its OWN bounding box, so a second kept component
+  elsewhere in the mask can never be mistaken for a hole of the first (the
+  old `~biggest_mask` whole-image complement broke exactly this way once
+  more than one blob is kept). `trace_contours()` (`:344-388`) returns
+  `components[]` (every kept blob, largest first) plus a backward-compatible
+  `outer`/`holes` view of the first one; `build_silhouette` (`:519-565`)
+  emits one outer+holes subpath per kept component. Pytest:
+  `test_silhouette.py::TestComponents::test_two_disjoint_blobs_both_become_subpaths`.
+- **E — hole winding** (should-fix). `_ring_to_path(ring, reverse=False)`
+  (`silhouette.py:465-478`) reverses point order when `reverse=True`;
+  `build_silhouette` emits every hole ring with `reverse=True`
+  (`silhouette.py:562`) so its winding is the opposite of the outer ring —
+  `fill-rule="nonzero"` now actually punches the hole (wave2-frontend still
+  sets `fill-rule="evenodd"` as belt-and-braces per the red-team note).
+  Pytest: `test_silhouette.py::TestHoleWinding::test_hole_subpath_winds_opposite_the_outer_subpath`
+  — a square picture-frame fixture, shoelace area of the outer subpath vs.
+  the hole subpath have opposite signs.
+- **F — cache key** (should-fix). `silhouette_export.py:231-249`
+  `SilhouetteExporter._content_hash()` hashes the `.cga` bytes + the sibling
+  `.cgam` bytes (if present, same optional-read pattern `triangles_for_mesh`
+  already uses) + the tuning constants (`MASK_SIZE`, `VIEWBOX`,
+  `MIN_HOLE_AREA_PX`, `CHAIKIN_ITERATIONS`, the effective `tolerance_m`).
+  `is_cached()` (`:256-260`) and `silhouette_for_mesh()` (`:302-329`) both
+  use it; `silhouette_build_app.py`'s `is_cached()` call site updated to the
+  new 3-arg signature (`silhouette_build_app.py:100-101`).
+- **G — runtime** (should-fix). `_flood_label` (`silhouette.py:250-308`)
+  reworked from a per-pixel Python BFS to run-length labelling: each row's
+  contiguous foreground runs are found with one `np.diff` call
+  (`_row_runs`, `:240-247`), then a union-find merges runs that overlap a
+  run in the row above — O(rows + runs) Python-level work instead of
+  O(pixels) for a typical silhouette mask (a handful of runs per row).
+  Existing `trace_contours`/`build_silhouette` behaviour is unchanged (all
+  356 pre-existing assertions plus the new ones pass unmodified). Per-entity
+  wall time logged in `silhouette_export.py:317-324`
+  (`silhouette_for_mesh`, wraps `triangles_for_mesh` + `build_silhouette`).
+  Runtime itself still **not measured against real geometry** — no P4K/
+  cgf-converter in this worktree, same as Wave 1 (see "Questions for the
+  user" below).
+- **H — kind** (should-fix). `data-uploader/python/sc_extract/dataforge_extract.py:1009-1015`
+  — armor items now call `self._note_silhouette_candidate("item", ...)`
+  instead of `"armor"` (the DB enum's `armor` value stays unused, matching
+  the web `item` kind these entities land under in `codex_items`). No
+  existing test pinned the old `"armor"` string.
+- **I — notes**. `data-uploader/python/sc_extract/silhouette_build.py:28-33`
+  now `from .dataforge_extract import _safe_filename` instead of a second,
+  differently-behaved regex implementation (the old one collapsed `.` to
+  `_` and had no 180-char cap, `dataforge_extract.py`'s keeps `.`/`_`/`-`
+  and caps at 180 — a class name with a `.` resolved to a filename
+  `_ship_anchor_inputs` could never find, so anchors/unresolved silently
+  came back empty for it). `data-uploader/src/lib/catalog-map.ts:492-500`
+  `mapSilhouettes` now skips a row missing `silhouette.bbox` (a
+  `not null` column) instead of sending `bbox: null`; new vitest case
+  `data-uploader/test/catalog-map.spec.ts` "skips a file with no bbox".
+
+### Gates run
+
+- `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest data-uploader/python` — **362
+  passed** (`test_silhouette.py` 23 → 28 cases, `test_silhouette_export.py`
+  6 → 7 cases plus 5 updated for the blocker-1 axis conversion, everything
+  else untouched and green), own Bash call.
+- `npx tsc --noEmit -p tsconfig.json` in `data-uploader/` — clean, own Bash
+  call. `npm ci` was required first (no `node_modules` in this worktree).
+- `npx vitest run` in `data-uploader/` — **325 passed** (1 new
+  `mapSilhouettes` case), own Bash call. The known
+  `test/upload-resume.spec.ts` machine-speed flake did **not** reproduce this
+  run.
+
+### Questions for the user
+
+1. **Runtime still unproven against real geometry** (should-fix G). This
+   worktree has neither the live `Data.p4k` nor a fetched `cgf-converter`
+   binary, same constraint Wave 1 hit — the vectorised `_flood_label` and
+   the per-entity timing log are correct by construction (356+ pre-existing
+   assertions plus the new coverage above all pass) but nobody has run
+   `silhouette_build.py`/`silhouette_build_app.py` against a real multi-
+   thousand-triangle hull to confirm the ACTUAL wall-clock win. Someone with
+   the live archive + fetched tools should time one capital-ship silhouette
+   build before/after this branch.
+2. **`MIN_COMPONENT_AREA_PX = 64`** (should-fix D) is a reasoned default (a
+   64 px² blob at `MASK_SIZE=1024` is ~0.006% of the frame — deliberately
+   the same order of magnitude as the existing `MIN_HOLE_AREA_PX = 24`
+   floor, just for foreground instead of holes) but, like Wave 1's own
+   raster/trace constants, not tuned against a real ship's converter-debris
+   blob sizes. Worth spot-checking alongside Q1 once a real extract is
+   available — a wingtip/nacelle genuinely severed by the `open()` denoise
+   pass should clear this floor; converter debris should not.
+
+Verification for A–I above: pushed as `8400d00fce03c9a625c3c8ed62c5b7467116e226`
+on `claude/codex-schiffsansicht-design-d0ab3a-fix-uploader`.

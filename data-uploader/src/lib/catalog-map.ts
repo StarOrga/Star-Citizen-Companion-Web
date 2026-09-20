@@ -489,13 +489,17 @@ export function mapSilhouettes(list: Record<string, unknown>[], tag: Tag): Silho
   const out: SilhouetteRow[] = [];
   for (const raw of list) {
     const f = raw as SilhouetteFile;
-    if (!f.kind || !f.className || !f.silhouette?.path) continue; // no usable geometry, no row
+    // Note (wave1-redteam.md): `bbox` is a `not null` column on
+    // `codex_silhouettes` — a row with no usable geometry has no `path`
+    // either (skipped above), but guard `bbox` on its own too rather than
+    // ever sending `null` into a not-null column.
+    if (!f.kind || !f.className || !f.silhouette?.path || !f.silhouette?.bbox) continue;
     const row = tag({
       kind: f.kind,
       class_name: f.className,
       view_box: f.silhouette.viewBox ?? '0 0 1000 1000',
       path: f.silhouette.path,
-      bbox: f.silhouette.bbox ?? null,
+      bbox: f.silhouette.bbox,
       anchors: Array.isArray(f.anchors) ? f.anchors : [],
       unresolved: Array.isArray(f.unresolved) ? (f.unresolved as string[]) : [],
       meta: {

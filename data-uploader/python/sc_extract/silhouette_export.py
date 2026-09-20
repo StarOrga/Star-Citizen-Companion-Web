@@ -28,6 +28,7 @@ import json
 import shutil
 import struct
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -117,8 +118,22 @@ def _apply(m: List[float], p: Tuple[float, float, float]) -> Tuple[float, float,
     )
 
 
+def _gltf_to_cry(p: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    """glTF Y-up ``(x, y, z)`` -> CryEngine ``(x, -z, y)`` — blocker 1
+    (wave1-redteam.md): cgf-converter emits Y-up glTF, but `silhouette.py`'s
+    whole pipeline (top-down projection, anchors) is documented and written
+    in CryEngine axes (+X right, +Y nose, +Z up). This is the exact inverse
+    of the mapping `src/app/codex/glb-hardpoints.ts` documents for the other
+    direction (Cry -> glTF reads as ``(X, Z, -Y)``): given glTF ``(x, y, z)``,
+    Cry ``x = x``, ``y = -z`` (nose), ``z = y`` (up)."""
+    x, y, z = p
+    return (x, -z, y)
+
+
 def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
-    """Every triangle of every mesh-carrying node, in WORLD (model) space.
+    """Every triangle of every mesh-carrying node, in WORLD (model) space,
+    converted to CryEngine axes (+X right, +Y nose, +Z up) — see
+    `_gltf_to_cry`.
 
     Walks the node hierarchy from the active scene's roots (same as
     `glb_materials._global_matrices`, re-derived here rather than importing a
@@ -165,7 +180,11 @@ def world_triangles_from_glb(gltf: dict, binary: bytes) -> List[Triangle]:
                 a, b, c = indices[i], indices[i + 1], indices[i + 2]
                 if a >= len(positions) or b >= len(positions) or c >= len(positions):
                     continue
-                triangles.append((positions[a], positions[b], positions[c]))
+                triangles.append((
+                    _gltf_to_cry(positions[a]),
+                    _gltf_to_cry(positions[b]),
+                    _gltf_to_cry(positions[c]),
+                ))
     return triangles
 
 
@@ -209,16 +228,36 @@ class SilhouetteExporter:
     def _cache_path(self, mesh_hash: str) -> Path:
         return self.cfg.cache_dir / f"{mesh_hash}-{self.cfg.tool_version}.json"
 
+    def _content_hash(self, mesh_path: str, mesh_bytes: bytes, tolerance_m: float) -> str:
+        """Should-fix "cache key" (wave1-redteam.md): the old key hashed the
+        ``.cga`` bytes only — a ``.cgam`` (the streamable geometry payload a
+        ``.cga`` often defers to) or a tuning-constant change (mask size,
+        hole-area floor, chaikin iterations, DP tolerance) silently served a
+        STALE cached silhouette. Fold both in."""
+        from .silhouette import CHAIKIN_ITERATIONS, MASK_SIZE, MIN_HOLE_AREA_PX, VIEWBOX
+
+        h = hashlib.sha256()
+        h.update(mesh_bytes)
+        cgam = mesh_path[:-4] + ".cgam"
+        try:
+            h.update(self._read(cgam))
+        except FileNotFoundError:
+            pass
+        tuning = f"{MASK_SIZE}|{VIEWBOX}|{MIN_HOLE_AREA_PX}|{CHAIKIN_ITERATIONS}|{tolerance_m}"
+        h.update(tuning.encode("utf-8"))
+        return h.hexdigest()
+
     def read_mesh_bytes(self, mesh_path: str) -> bytes:
         """Public wrapper of `_read` — the P4K lookup a caller needs to check
         `is_cached()` before paying for a conversion (see
         `silhouette_build_app.py`'s per-entity "cached" event)."""
         return self._read(mesh_path)
 
-    def is_cached(self, mesh_bytes: bytes) -> bool:
-        """Whether `mesh_bytes` already has a cached `silhouette` sub-object —
-        i.e. whether `silhouette_for_mesh` would skip cgf-converter entirely."""
-        return self._cache_path(hashlib.sha256(mesh_bytes).hexdigest()).exists()
+    def is_cached(self, mesh_path: str, mesh_bytes: bytes, tolerance_m: float) -> bool:
+        """Whether this mesh (+ its ``.cgam`` + the current tuning constants)
+        already has a cached `silhouette` sub-object — i.e. whether
+        `silhouette_for_mesh` would skip cgf-converter entirely."""
+        return self._cache_path(self._content_hash(mesh_path, mesh_bytes, tolerance_m)).exists()
 
     def triangles_for_mesh(self, mesh_path: str, mesh_id: str) -> Optional[List[Triangle]]:
         """Raw-convert one ``.cga``/``.cgf`` and return its world-space
@@ -262,20 +301,27 @@ class SilhouetteExporter:
 
     def silhouette_for_mesh(self, mesh_path: str, mesh_id: str, mesh_bytes: bytes,
                             tolerance_m: float) -> Optional[Dict[str, Any]]:
-        """The ``silhouette`` sub-object for one mesh, cached by content hash."""
+        """The ``silhouette`` sub-object for one mesh, cached by content hash
+        (``.cga`` + ``.cgam`` bytes + tuning constants, see `_content_hash`)."""
         from .silhouette import build_silhouette
 
-        mesh_hash = hashlib.sha256(mesh_bytes).hexdigest()
-        cache_file = self._cache_path(mesh_hash)
+        cache_file = self._cache_path(self._content_hash(mesh_path, mesh_bytes, tolerance_m))
         if cache_file.exists():
             try:
                 return json.loads(cache_file.read_text(encoding="utf-8"))
             except Exception:  # noqa: BLE001 — corrupt cache entry, rebuild
                 pass
+        # Should-fix "runtime" (wave1-redteam.md): one line per entity with
+        # the wall-clock cost of the expensive part (cgf-converter subprocess
+        # + rasterise/trace/simplify), so a real run's timing is provable.
+        t0 = time.monotonic()
         triangles = self.triangles_for_mesh(mesh_path, mesh_id)
         if not triangles:
             return None
-        silhouette = build_silhouette(triangles, tolerance_m=tolerance_m)
+        silhouette = build_silhouette(triangles, tolerance_m=tolerance_m, on_log=self.cfg.on_log)
+        elapsed = time.monotonic() - t0
+        self.cfg.on_log("info", f"silhouette {mesh_id}: {elapsed:.2f}s "
+                                f"({len(triangles)} triangle(s))")
         if silhouette is not None:
             try:
                 cache_file.write_text(json.dumps(silhouette, ensure_ascii=False), encoding="utf-8")
@@ -300,6 +346,12 @@ class SilhouetteExporter:
         silhouette = self.silhouette_for_mesh(mesh_path, mesh_id, mesh_bytes, tolerance_m)
         if silhouette is None:
             return None
+        # Blocker 2 (wave1-redteam.md): the path's own min/scale/offset
+        # transform travels INSIDE the cached silhouette blob (`_transform`,
+        # see `build_silhouette`) so it survives a cache hit too — pop it
+        # here (never part of the §C1 contract row) and feed it to
+        # `project_anchors` so anchors land in the SAME space as the path.
+        path_transform = silhouette.pop("_transform", None)
         # The silhouette geometry is already resolved (fresh or from the mesh
         # cache) — assemble the row directly rather than re-deriving it from
         # triangles through `build_entity_silhouette` a second time.
@@ -317,6 +369,7 @@ class SilhouetteExporter:
             from .silhouette import project_anchors
             anchors, unresolved = project_anchors(
                 hardpoint_transforms or {}, frame or {}, all_port_names,
+                transform=path_transform,
             )
             row["anchors"] = anchors
             row["unresolved"] = unresolved
