@@ -12,7 +12,7 @@ import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
 import { $, escapeHtml } from './dom.js';
-import { paintStepRail, type StepKey } from './shell/step-rail.js';
+import { paintStepRail, STEP_ORDER, type StepKey } from './shell/step-rail.js';
 import { setStatus as setBottomStatus, showSnackbar } from './shell/bottom-strip.js';
 import { wireChevrons, paintChevrons } from './shell/chevrons.js';
 import { toggleConnectionPopover, isConnectionPopoverOpen, closeConnectionPopover } from './connection-popover.js';
@@ -23,7 +23,7 @@ import * as InstallStep from './steps/install.js';
 import * as SetupStep from './steps/setup.js';
 import * as DoneStep from './steps/done.js';
 import { throttleChipHtml, wireThrottleChip } from './throttle-chip.js';
-import { resetLog, appendLog as drawerAppendLog, wireLogDrawer } from './log-drawer.js';
+import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import { updateCategoryBars, categoryBarsHtml, resetCategoryBars, markCategoriesComplete } from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
@@ -357,6 +357,9 @@ async function init(): Promise<void> {
       else if (state.view === 'done') DoneStep.primaryAction();
     },
     onSpace: () => toggleUploadPauseResume(),
+    onToggleLog: () => {
+      if (state.view === 'run') toggleLogDrawer();
+    },
   });
 
   // Role decides whether the Configure view shows the update-channel picker.
@@ -1058,6 +1061,17 @@ function render(): void {
   paintChevrons(step, runIsLive());
   paintConnection();
 
+  // Direction-aware slide: `.step-enter` is re-applied (remove → reflow →
+  // add) on every render so the 200 ms entrance animation restarts, sliding
+  // "back" when the new step is earlier in STEP_ORDER.
+  const stepIdx = STEP_ORDER.indexOf(step);
+  const goingBack = stepIdx < lastStepIdx;
+  lastStepIdx = stepIdx;
+  app.classList.remove('step-enter', 'dir-back');
+  void app.offsetWidth; // restart the animation
+  app.classList.add('step-enter');
+  if (goingBack) app.classList.add('dir-back');
+
   switch (state.view) {
     case 'discover':
       app.innerHTML = InstallStep.renderInstall();
@@ -1084,6 +1098,8 @@ function render(): void {
 
 /** Overall extract/upload percentage, mirrored for the step-rail's fill segment. */
 let lastOverallPct = 0;
+/** Previous step index — drives the slide direction (forward vs. back). */
+let lastStepIdx = 0;
 
 /**
  * The ONLY entry point into a run — called by the Setup step's Start button

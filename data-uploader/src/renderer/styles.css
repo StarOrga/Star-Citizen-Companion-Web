@@ -19,6 +19,15 @@
   --sc-glow: var(--shadow-glow);
   --sc-font-display: var(--font-heading-category);
   --sc-font-body: var(--font-body-text);
+
+  /* Elevation + layout tokens (Phase 3 polish). */
+  --sc-elevation-1: 0 4px 14px rgba(0, 0, 0, 0.32);
+  --sc-elevation-2: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --sc-content-max-width: 820px;
+
+  /* Transition tokens: 200ms step slides, 150ms sheet/popover/snackbar. */
+  --sc-transition-step: 200ms;
+  --sc-transition-overlay: 150ms;
 }
 
 * { box-sizing: border-box; }
@@ -1377,7 +1386,49 @@ kbd.sc-kbd {
   width: fit-content;
 }
 
+/* ------- direction-aware step slide (200ms) -------
+   `.step-enter` is added fresh (remove → reflow → add) on every render() so
+   the animation restarts even though `.stage-inner` itself never leaves. */
+.step-enter { animation: sc-step-in var(--sc-transition-step) ease; }
+.step-enter.dir-back { animation-name: sc-step-in-back; }
+@keyframes sc-step-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sc-step-in-back {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ------- sheet / popover / snackbar entrance (150ms) ------- */
+.sc-modal-overlay { animation-duration: var(--sc-transition-overlay); }
+.sc-modal { animation-duration: var(--sc-transition-overlay); box-shadow: var(--sc-elevation-2), 0 12px 40px rgba(0, 0, 0, 0.5); }
+.sc-popover { animation: sc-popover-in var(--sc-transition-overlay) ease; }
+@keyframes sc-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.snackbar { animation: sc-popover-in var(--sc-transition-overlay) ease; }
+
+/* ------- outlined chip — the one style every pill/chip/badge in the app
+   uses (armed chip, upload target chip, conn chips, scope-recommended). ------- */
+.chip-outline,
+.upload-target-chip,
+.conn-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--sc-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.upload-target-chip { border-color: var(--sc-accent); }
+
+/* ------- icon-only controls: >= 44px hit target ------- */
+.sc-icon-btn { min-width: 44px; min-height: 44px; }
+.conn-icon-btn { width: 44px; height: 44px; }
+
 @media (prefers-reduced-motion: reduce) {
+  .step-enter, .sc-popover, .snackbar { animation: none; }
   .category-bar-fill.flash::after { animation: none; opacity: 0; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

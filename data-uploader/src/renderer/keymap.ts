@@ -17,6 +17,8 @@ export interface KeymapCtx {
   onEnter: () => void;
   /** Pause/resume the active upload. No-op when nothing is uploading. */
   onSpace: () => void;
+  /** Ctrl+L — toggle the log drawer. No-op when the Extract step isn't mounted. */
+  onToggleLog: () => void;
   /** Ordered Esc handlers — first one that returns true "wins" and stops there. */
   escHandlers: Array<() => boolean>;
   /** True while focus is inside a text-like input, so Enter/Space don't hijack typing. */
@@ -36,6 +38,11 @@ export function installKeymap(ctx: KeymapCtx): void {
           return;
         }
       }
+      return;
+    }
+    if ((e.key === 'l' || e.key === 'L') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      ctx.onToggleLog();
       return;
     }
     if (ctx.isTextInputFocused()) return;
