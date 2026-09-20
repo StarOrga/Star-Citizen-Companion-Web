@@ -198,5 +198,73 @@
       },
       "screens": {}
     }
+  },
+  {
+    "iteration": 3,
+    "submitted_at": "2026-09-20T15:29:10.438Z",
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "w-scheme",
+        "label": "Wortschatz wie in der Tabelle",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "w-generic",
+        "label": "Ganz ohne Fachwörter",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "q-login-keep",
+        "label": "Neuanmeldung bei jedem Vordergrund-Start bleibt",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "q-login-drop",
+        "label": "Gespeicherte Sitzung reicht auch im Vordergrund",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "q-chev-prestart",
+        "label": "Chevrons nur vor dem Start",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "q-chev-none",
+        "label": "Keine Chevrons",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-p1",
+        "label": "Nur Phase 1",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-p12",
+        "label": "Phase 1 + 2 (zwei PRs)",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-all",
+        "label": "Alle drei Phasen",
+        "state": "include",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": "Bitte jetzt polsihen",
+      "designs": {
+        "a3-rail": "beim hochladen die info wie viele mb/s gern irgendwo rechts oben eher hin. Zudem wiederholt / geschrieben ist für mich eher was für die protokollzeiel ggf. und batch halbiert keine ahnung wofür ich das wissen muss. \nbei buzndle ist mir hier noch nicht kalar, das wurde doch zuvor geschnürt, warum muss ich das hier nochmal sehen..."
+      },
+      "screens": {}
+    }
   }
 ]

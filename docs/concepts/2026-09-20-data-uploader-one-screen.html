@@ -2991,62 +2991,62 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
 
 <script type="application/json" data-frozen-feedback>{"general":"Lass uns auf A aufbauen\nGenberell die analyse zu bundle etc. ist für mich nichts halbes nichts ganzes ggü. den anderen elementen .","designs":{"a2-rail":"ich denke upload katalog ist unverständliche wört.  vor allem im gegensatz zu bundle..."},"screens":{}}</script>
       </section>
-      <section data-iteration="3" data-iteration-template="design" id="iter-3" data-active>
+      <section data-iteration="3" data-iteration-template="design" id="iter-3" hidden>
         <header class="iteration-intro">
           <h2>Iteration 3 · Wortschatz komplett, Upload verständlich, Abschluss-Fragen</h2>
           <p>Bundle bleibt, Balken nebeneinander, Tick roh. Die Begriffs-Frage war halb — hier ist sie ganz: ein Wortschatz für das gesamte UI, und die Upload-Schritte erklären sich selbst. Dazu die drei Fragen, die vor dem Implementieren offen sind.</p>
         </header>
 
 <style>
-[data-iteration="3"] .wrap { width: 100%; max-width: 1220px; margin: 0 auto; }
-[data-iteration="3"] .cap { font-size: .86rem; line-height: 1.55; color: var(--text-secondary); margin: 0 0 .8rem; max-width: 100ch; }
-[data-iteration="3"] .cap b { color: var(--text-primary); }
-[data-iteration="3"] .cap .fb { display: inline-block; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--status-success); border: 1px solid rgba(95,214,152,.4); border-radius: 999px; padding: .05rem .5rem; margin-left: .35rem; }
-[data-template="design"] [data-iteration="3"] section[data-screen] { align-items: safe center; }
-[data-iteration="3"] .pc.up { border-color: rgba(125,213,240,.45); background: linear-gradient(180deg, rgba(82,193,230,.06), transparent 40%), var(--surface-panel); }
-[data-iteration="3"] .pc.up .head .ph::before { content: "⇡ "; color: var(--accent-strong); }
-[data-iteration="3"] .target { display: inline-flex; align-items: center; gap: .4rem; font-size: .7rem; color: var(--text-secondary); border: 1px dashed var(--border-default); border-radius: 999px; padding: .15rem .6rem; }
-[data-iteration="3"] .ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-top: .8rem; }
-[data-iteration="3"] .up1 { border: 1px solid var(--border-subtle); border-radius: 6px; padding: .55rem .7rem; background: var(--surface-canvas); }
-[data-iteration="3"] .up1 .n { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-primary); }
-[data-iteration="3"] .up1 .n b { font-family: var(--font-mono); font-weight: 500; }
-[data-iteration="3"] .up1 .x { font-size: .62rem; color: var(--text-tertiary); margin-top: .1rem; }
-[data-iteration="3"] .up1 .ub { height: 6px; border-radius: 3px; background: var(--surface-canvas-alt); margin-top: .4rem; overflow: hidden; }
-[data-iteration="3"] .up1 .ub i { display: block; height: 100%; width: var(--p); background: repeating-linear-gradient(90deg, var(--accent-strong) 0 8px, var(--accent-primary) 8px 16px); border-radius: 3px; }
-[data-iteration="3"] .up1.done .ub i { background: var(--status-success); }
-[data-iteration="3"] .up1.wait .ub i { background: var(--border-default); }
-[data-iteration="3"] .up1 .s { font-size: .6rem; color: var(--text-tertiary); margin-top: .25rem; font-family: var(--font-mono); }
-[data-iteration="3"] .up1.done .s { color: var(--status-success); }
-[data-iteration="3"] .upmeta { display: flex; gap: .4rem; margin-top: .7rem; flex-wrap: wrap; }
-[data-iteration="3"] .upmeta span { font-size: .66rem; padding: .15rem .55rem; border-radius: 999px; border: 1px solid var(--border-subtle); color: var(--text-secondary); }
-[data-iteration="3"] .upmeta span b { font-family: var(--font-mono); font-weight: 500; color: var(--accent-strong); }
-[data-iteration="3"] .upmeta span.w b { color: var(--accent-warning); }
-[data-iteration="3"] .logline { display: flex; align-items: center; gap: .5rem; font-size: .64rem; color: var(--text-tertiary); margin-top: .7rem; padding-top: .5rem; border-top: 1px dashed var(--border-subtle); }
-[data-iteration="3"] .logline .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; opacity: .75; }
-[data-iteration="3"] .doc { width: 100%; max-width: 1100px; margin: 0 auto; }
-[data-iteration="3"] .doc h3 { font-family: var(--font-display); font-size: 1rem; letter-spacing: .06em; margin: 0 0 .4rem; }
-[data-iteration="3"] .doc h4 { font-family: var(--font-display); font-size: .8rem; letter-spacing: .06em; margin: 1.2rem 0 .4rem; }
-[data-iteration="3"] .doc p { font-size: .86rem; line-height: 1.55; color: var(--text-secondary); max-width: 100ch; }
-[data-iteration="3"] .doc p b { color: var(--text-primary); }
-[data-iteration="3"] .doc table { width: 100%; border-collapse: collapse; font-size: .8rem; margin: .5rem 0 1rem; }
-[data-iteration="3"] .doc th, [data-iteration="3"] .doc td { text-align: left; vertical-align: top; padding: .42rem .6rem; border-bottom: 1px solid var(--border-subtle); }
-[data-iteration="3"] .doc th { font-family: var(--font-display); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-tertiary); }
-[data-iteration="3"] .doc td.old { color: var(--text-tertiary); text-decoration: line-through; text-decoration-color: rgba(255,130,130,.5); }
-[data-iteration="3"] .doc td.new { color: var(--text-primary); font-weight: 600; }
-[data-iteration="3"] .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
-[data-iteration="3"] .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
-[data-iteration="3"] .variant-evaluation { border: 1px solid var(--border-subtle); border-radius: 8px; padding: .8rem 1rem; background: var(--surface-panel); margin-bottom: .8rem; }
-[data-iteration="3"] .variant-evaluation h5 { font-family: var(--font-body); font-size: .9rem; margin: 0 0 .3rem; }
-[data-iteration="3"] .variant-evaluation p { font-size: .8rem; margin: 0 0 .5rem; }
-[data-iteration="3"] .variant-evaluation .eval-group { display: flex; gap: .4rem; margin: .4rem 0; }
-[data-iteration="3"] .variant-evaluation .eval-option { display: inline-flex; align-items: center; gap: .3rem; font-size: .74rem; padding: .2rem .6rem; border: 1px solid var(--border-subtle); border-radius: 999px; cursor: pointer; }
-[data-iteration="3"] .variant-evaluation .eval-option:has(input:checked) { border-color: var(--accent-primary); background: rgba(82,193,230,.1); }
-[data-iteration="3"] .variant-evaluation .eval-option:has(input[value="discard"]:checked) { border-color: var(--accent-danger-light); background: rgba(255,130,130,.08); }
-[data-iteration="3"] .variant-evaluation .decision-comment-row label { display: block; font-size: .66rem; color: var(--text-tertiary); margin-bottom: .2rem; }
-[data-iteration="3"] .variant-evaluation textarea { width: 100%; min-height: 48px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 4px; padding: .4rem .5rem; font: inherit; font-size: .78rem; resize: vertical; }
-[data-iteration="3"] .note-row textarea { width: 100%; min-height: 110px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 4px; padding: .5rem .6rem; font: inherit; font-size: .82rem; }
-[data-iteration="3"] .qs { border-left: 3px solid var(--accent-warning); background: rgba(240,194,123,.06); padding: .7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0; font-size: .84rem; }
-[data-iteration="3"] .rec { display: inline-block; font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; color: var(--status-success); border: 1px solid rgba(95,214,152,.4); border-radius: 999px; padding: 0 .45rem; margin-left: .4rem; vertical-align: middle; }
+[data-iteration] .wrap { width: 100%; max-width: 1220px; margin: 0 auto; }
+[data-iteration] .cap { font-size: .86rem; line-height: 1.55; color: var(--text-secondary); margin: 0 0 .8rem; max-width: 100ch; }
+[data-iteration] .cap b { color: var(--text-primary); }
+[data-iteration] .cap .fb { display: inline-block; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--status-success); border: 1px solid rgba(95,214,152,.4); border-radius: 999px; padding: .05rem .5rem; margin-left: .35rem; }
+[data-template="design"] [data-iteration] section[data-screen] { align-items: safe center; }
+[data-iteration] .pc.up { border-color: rgba(125,213,240,.45); background: linear-gradient(180deg, rgba(82,193,230,.06), transparent 40%), var(--surface-panel); }
+[data-iteration] .pc.up .head .ph::before { content: "⇡ "; color: var(--accent-strong); }
+[data-iteration] .target { display: inline-flex; align-items: center; gap: .4rem; font-size: .7rem; color: var(--text-secondary); border: 1px dashed var(--border-default); border-radius: 999px; padding: .15rem .6rem; }
+[data-iteration] .ups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-top: .8rem; }
+[data-iteration] .up1 { border: 1px solid var(--border-subtle); border-radius: 6px; padding: .55rem .7rem; background: var(--surface-canvas); }
+[data-iteration] .up1 .n { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-primary); }
+[data-iteration] .up1 .n b { font-family: var(--font-mono); font-weight: 500; }
+[data-iteration] .up1 .x { font-size: .62rem; color: var(--text-tertiary); margin-top: .1rem; }
+[data-iteration] .up1 .ub { height: 6px; border-radius: 3px; background: var(--surface-canvas-alt); margin-top: .4rem; overflow: hidden; }
+[data-iteration] .up1 .ub i { display: block; height: 100%; width: var(--p); background: repeating-linear-gradient(90deg, var(--accent-strong) 0 8px, var(--accent-primary) 8px 16px); border-radius: 3px; }
+[data-iteration] .up1.done .ub i { background: var(--status-success); }
+[data-iteration] .up1.wait .ub i { background: var(--border-default); }
+[data-iteration] .up1 .s { font-size: .6rem; color: var(--text-tertiary); margin-top: .25rem; font-family: var(--font-mono); }
+[data-iteration] .up1.done .s { color: var(--status-success); }
+[data-iteration] .upmeta { display: flex; gap: .4rem; margin-top: .7rem; flex-wrap: wrap; }
+[data-iteration] .upmeta span { font-size: .66rem; padding: .15rem .55rem; border-radius: 999px; border: 1px solid var(--border-subtle); color: var(--text-secondary); }
+[data-iteration] .upmeta span b { font-family: var(--font-mono); font-weight: 500; color: var(--accent-strong); }
+[data-iteration] .upmeta span.w b { color: var(--accent-warning); }
+[data-iteration] .logline { display: flex; align-items: center; gap: .5rem; font-size: .64rem; color: var(--text-tertiary); margin-top: .7rem; padding-top: .5rem; border-top: 1px dashed var(--border-subtle); }
+[data-iteration] .logline .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; opacity: .75; }
+[data-iteration] .doc { width: 100%; max-width: 1100px; margin: 0 auto; }
+[data-iteration] .doc h3 { font-family: var(--font-display); font-size: 1rem; letter-spacing: .06em; margin: 0 0 .4rem; }
+[data-iteration] .doc h4 { font-family: var(--font-display); font-size: .8rem; letter-spacing: .06em; margin: 1.2rem 0 .4rem; }
+[data-iteration] .doc p { font-size: .86rem; line-height: 1.55; color: var(--text-secondary); max-width: 100ch; }
+[data-iteration] .doc p b { color: var(--text-primary); }
+[data-iteration] .doc table { width: 100%; border-collapse: collapse; font-size: .8rem; margin: .5rem 0 1rem; }
+[data-iteration] .doc th, [data-iteration] .doc td { text-align: left; vertical-align: top; padding: .42rem .6rem; border-bottom: 1px solid var(--border-subtle); }
+[data-iteration] .doc th { font-family: var(--font-display); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-tertiary); }
+[data-iteration] .doc td.old { color: var(--text-tertiary); text-decoration: line-through; text-decoration-color: rgba(255,130,130,.5); }
+[data-iteration] .doc td.new { color: var(--text-primary); font-weight: 600; }
+[data-iteration] .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+[data-iteration] .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+[data-iteration] .variant-evaluation { border: 1px solid var(--border-subtle); border-radius: 8px; padding: .8rem 1rem; background: var(--surface-panel); margin-bottom: .8rem; }
+[data-iteration] .variant-evaluation h5 { font-family: var(--font-body); font-size: .9rem; margin: 0 0 .3rem; }
+[data-iteration] .variant-evaluation p { font-size: .8rem; margin: 0 0 .5rem; }
+[data-iteration] .variant-evaluation .eval-group { display: flex; gap: .4rem; margin: .4rem 0; }
+[data-iteration] .variant-evaluation .eval-option { display: inline-flex; align-items: center; gap: .3rem; font-size: .74rem; padding: .2rem .6rem; border: 1px solid var(--border-subtle); border-radius: 999px; cursor: pointer; }
+[data-iteration] .variant-evaluation .eval-option:has(input:checked) { border-color: var(--accent-primary); background: rgba(82,193,230,.1); }
+[data-iteration] .variant-evaluation .eval-option:has(input[value="discard"]:checked) { border-color: var(--accent-danger-light); background: rgba(255,130,130,.08); }
+[data-iteration] .variant-evaluation .decision-comment-row label { display: block; font-size: .66rem; color: var(--text-tertiary); margin-bottom: .2rem; }
+[data-iteration] .variant-evaluation textarea { width: 100%; min-height: 48px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 4px; padding: .4rem .5rem; font: inherit; font-size: .78rem; resize: vertical; }
+[data-iteration] .note-row textarea { width: 100%; min-height: 110px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 4px; padding: .5rem .6rem; font: inherit; font-size: .82rem; }
+[data-iteration] .qs { border-left: 3px solid var(--accent-warning); background: rgba(240,194,123,.06); padding: .7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0; font-size: .84rem; }
+[data-iteration] .rec { display: inline-block; font-size: .58rem; letter-spacing: .08em; text-transform: uppercase; color: var(--status-success); border: 1px solid rgba(95,214,152,.4); border-radius: 999px; padding: 0 .45rem; margin-left: .4rem; vertical-align: middle; }
 </style>
 
 <!-- ═══════════════════════════ Ⓐ″ Upload, verständlich ═══════════════════════════ -->
@@ -3169,13 +3169,13 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
       <div class="grid2">
         <div class="variant-evaluation" data-decision="w-scheme" data-label="Wortschatz wie in der Tabelle">
           <h5>Wortschatz wie in der Tabelle <span class="rec">Empfehlung</span></h5><p>Zwei Fachwörter bleiben (Bundle, Codex), weil sie auf der Website und im Tool schon existieren — aber nie ohne Erklärzeile daneben. Alles andere wird zu dem, was es tut.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-w-scheme" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-w-scheme" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="w-scheme-note">Notiz — einzelne Zeilen anders?</label><textarea id="w-scheme-note" data-comment="w-scheme-note" data-attachable placeholder="z. B. „Codex-Schritt lieber ‚Datenbank füllen‘“"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-w-scheme" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-w-scheme" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="w-scheme-note">Notiz — einzelne Zeilen anders?</label><textarea readonly disabled id="w-scheme-note" data-comment="w-scheme-note" data-attachable placeholder="z. B. „Codex-Schritt lieber ‚Datenbank füllen‘“"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="w-generic" data-label="Ganz ohne Fachwörter">
           <h5>Ganz ohne Fachwörter</h5><p>Bundle → „Archiv“, Codex → „Datenbank der Web-App“. Kein Begriff, den man kennen muss — aber das Tool nennt Dinge anders als die Website, auf der sie danach auftauchen.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-w-generic" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-w-generic" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="w-generic-note">Notiz</label><textarea id="w-generic-note" data-comment="w-generic-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-w-generic" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-w-generic" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="w-generic-note">Notiz</label><textarea readonly disabled id="w-generic-note" data-comment="w-generic-note" data-attachable placeholder="…"></textarea></div>
         </div>
       </div>
 
@@ -3184,23 +3184,23 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
       <div class="grid2">
         <div class="variant-evaluation" data-decision="q-login-keep" data-label="Neuanmeldung bei jedem Vordergrund-Start bleibt">
           <h5>Neuanmeldung bleibt <span class="rec">Empfehlung</span></h5><p>Bestehende Regel (<code>requireFreshLogin</code>): jeder Start mit Fenster verlangt einen frischen Browser-Login. Sicher, aber der erste Blocker jeder Runde. In Ⓐ″ wird daraus ein sichtbarer Schritt <em>vor</em> der Startrampe: „Verbinden“ mit einem Knopf, statt einer Überraschung beim Upload.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-login-keep" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-login-keep" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q-login-keep-note">Notiz</label><textarea id="q-login-keep-note" data-comment="q-login-keep-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-login-keep" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-login-keep" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q-login-keep-note">Notiz</label><textarea readonly disabled id="q-login-keep-note" data-comment="q-login-keep-note" data-attachable placeholder="…"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q-login-drop" data-label="Gespeicherte Sitzung reicht auch im Vordergrund">
           <h5>Gespeicherte Sitzung reicht</h5><p>Wie beim versteckten Autostart: die im OS-Schlüsselspeicher liegende Sitzung wird nur noch <em>validiert</em>, nicht neu erzwungen. Login nur, wenn sie abgelaufen ist. Eine Zeile in <code>main.ts</code> — und eine Sicherheitsentscheidung.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-login-drop" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-login-drop" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q-login-drop-note">Notiz</label><textarea id="q-login-drop-note" data-comment="q-login-drop-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-login-drop" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-login-drop" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q-login-drop-note">Notiz</label><textarea readonly disabled id="q-login-drop-note" data-comment="q-login-drop-note" data-attachable placeholder="…"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q-chev-prestart" data-label="Chevrons nur vor dem Start">
           <h5>Chevrons nur vor dem Start <span class="rec">Empfehlung</span></h5><p>Install ↔ Setup per Pfeil und <span class="kbd">←</span>/<span class="kbd">→</span>; ab „Extraktion starten“ sind sie ausgegraut, weil rückwärts dann Abbrechen hieße.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-chev-prestart" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-chev-prestart" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q-chev-prestart-note">Notiz</label><textarea id="q-chev-prestart-note" data-comment="q-chev-prestart-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-chev-prestart" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-chev-prestart" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q-chev-prestart-note">Notiz</label><textarea readonly disabled id="q-chev-prestart-note" data-comment="q-chev-prestart-note" data-attachable placeholder="…"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="q-chev-none" data-label="Keine Chevrons">
           <h5>Keine Chevrons</h5><p>Nur die Schiene als Standort und ein Primär-Knopf; „Zurück zu Install“ ist ein Klick auf den erledigten Schienen-Knoten.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-chev-none" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-chev-none" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="q-chev-none-note">Notiz</label><textarea id="q-chev-none-note" data-comment="q-chev-none-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-q-chev-none" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-q-chev-none" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="q-chev-none-note">Notiz</label><textarea readonly disabled id="q-chev-none-note" data-comment="q-chev-none-note" data-attachable placeholder="…"></textarea></div>
         </div>
       </div>
 
@@ -3209,27 +3209,105 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
       <div class="grid3">
         <div class="variant-evaluation" data-decision="s-p1" data-label="Nur Phase 1">
           <h5>Nur Phase 1 — Quick Win</h5><p>Ein PR: „Wenn fertig“ pro Lauf auf Configure (nicht persistiert, Schema-Bump), scharfer Chip, Danach-hochladen AN + gemerkt, ⚙ Einstellungen mit „Unbeaufsichtigt“, Einzelauswahl, Wortschatz. Bestehende vier Views bleiben. <b>~1 Tag.</b></p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-p1" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-p1" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="s-p1-note">Notiz</label><textarea id="s-p1-note" data-comment="s-p1-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-p1" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-p1" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="s-p1-note">Notiz</label><textarea readonly disabled id="s-p1-note" data-comment="s-p1-note" data-attachable placeholder="…"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="s-p12" data-label="Phase 1 + 2 (zwei PRs)">
           <h5>Phase 1 + 2 — zwei PRs nacheinander <span class="rec">Empfehlung</span></h5><p>PR 1 wie links, sofort mergebar. PR 2 danach: Ⓐ″ komplett — Schiene, Startrampe mit Abgleich, Sheet, <code>startRun()</code> mit Test, durchgehender Extract → Upload, Kategorie-Balken + Tick, Done-Screen, Protokoll-Lade, Verbindungs-Chip. <b>~6–8 Tage</b>, Phase 3 als Issue.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-p12" value="discard"><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-p12" value="include" checked><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="s-p12-note">Notiz</label><textarea id="s-p12-note" data-comment="s-p12-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-p12" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-p12" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="s-p12-note">Notiz</label><textarea readonly disabled id="s-p12-note" data-comment="s-p12-note" data-attachable placeholder="…"></textarea></div>
         </div>
         <div class="variant-evaluation" data-decision="s-all" data-label="Alle drei Phasen">
           <h5>Alle drei Phasen</h5><p>Wie Mitte, plus Phase 3 (Übergänge, Snackbar, Elevation, fünf Shortcuts) im dritten PR — ohne den vom PO empfohlenen Patch-Zyklus dazwischen.</p>
-          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-all" value="discard" checked><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-all" value="include"><span class="eval-label">Miteinbeziehen</span></label></div>
-          <div class="field-row decision-comment-row"><label for="s-all-note">Notiz</label><textarea id="s-all-note" data-comment="s-all-note" data-attachable placeholder="…"></textarea></div>
+          <div class="eval-group"><label class="eval-option"><input type="radio" name="eval-s-all" value="discard" disabled><span class="eval-label">Verwerfen</span></label><label class="eval-option"><input type="radio" name="eval-s-all" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label></div>
+          <div class="field-row decision-comment-row"><label for="s-all-note">Notiz</label><textarea readonly disabled id="s-all-note" data-comment="s-all-note" data-attachable placeholder="…"></textarea></div>
         </div>
       </div>
 
       <div class="qs"><strong>Nächster Schritt.</strong> Wenn Ⓐ″ und der Wortschatz passen: im ☰-Panel den Pfeil neben „Zur nächsten Iteration“ öffnen und <em>Mit Feedback implementieren</em> wählen — ich baue dann die gewählte Option auf diesem Branch. Wenn noch etwas an den Screens hakt: „Zur nächsten Iteration“ wie bisher.</div>
-      <div class="note-row"><label for="g-freitext" class="dim" style="font-size:.72rem">Freitext</label><textarea id="g-freitext" data-comment="g-freitext" data-attachable placeholder="…"></textarea></div>
+      <div class="note-row"><label for="g-freitext" class="dim" style="font-size:.72rem">Freitext</label><textarea readonly disabled id="g-freitext" data-comment="g-freitext" data-attachable placeholder="…"></textarea></div>
     </div>
   </section>
 </section>
 
+<script type="application/json" data-frozen-feedback>{"general":"Bitte jetzt polsihen","designs":{"a3-rail":"beim hochladen die info wie viele mb/s gern irgendwo rechts oben eher hin. Zudem wiederholt / geschrieben ist für mich eher was für die protokollzeiel ggf. und batch halbiert keine ahnung wofür ich das wissen muss. \nbei buzndle ist mir hier noch nicht kalar, das wurde doch zuvor geschnürt, warum muss ich das hier nochmal sehen..."},"screens":{}}</script>
+      </section>
+      <section data-iteration="4" data-iteration-template="free" id="iter-4" data-final-report data-active>
+        <header class="iteration-intro">
+          <h2>Abschlussbericht · Data Uploader — One-Screen Guided Run</h2>
+          <p>Ⓐ″ ist gebaut: alle drei Phasen, auf dem Branch <code>claude/data-uploader-ux-redesign-6b0e27</code> (gepusht, nicht gemergt). Fünf Commits, im echten Electron gesehen. Unten die Close-out-Optionen: Issue für den einen gefundenen Punkt, Ship, Ablage der Concept-Dateien.</p>
+        </header>
+<style>
+[data-iteration="4"] .iteration-intro { display: block; margin-bottom: 1rem; }
+[data-iteration="4"] .lead { font-size: .95rem; line-height: 1.6; }
+[data-iteration="4"] table { width: 100%; border-collapse: collapse; font-size: .84rem; margin: .5rem 0 1rem; }
+[data-iteration="4"] th, [data-iteration="4"] td { text-align: left; vertical-align: top; padding: .4rem .6rem; border-bottom: 1px solid var(--border-subtle); }
+[data-iteration="4"] th { font-family: var(--font-display); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-tertiary); }
+[data-iteration="4"] code { font-size: .85em; }
+[data-iteration="4"] .short { border-left: 3px solid var(--accent-warning); background: rgba(240,194,123,.06); padding: .6rem .9rem; border-radius: 0 6px 6px 0; margin: .6rem 0; font-size: .86rem; }
+[data-iteration="4"] ul { margin: .3rem 0 .6rem 1.2rem; padding: 0; }
+[data-iteration="4"] li { margin: .2rem 0; }
+</style>
+
+        <section id="summary" data-nav-label="Zusammenfassung">
+          <h3>Zusammenfassung</h3>
+          <p class="lead">Der Uploader ist jetzt ein Bildschirm: Kopfstreifen mit Schritt-Schiene (Installation · Einrichtung · Extraktion · Upload · Fertig), Verbindungs-Chip mit Popover, ⚙-Dialog für alles Dauerhafte, Chevrons nur vor dem Start. Die Startrampe zeigt den Abgleich lokal ↔ Server und ist Einzelauswahl. „Wenn fertig: Nichts / Programm beenden / PC herunterfahren“ steht <em>vor</em> dem Start im Options-Sheet, gilt nur für den Lauf und wird nie gespeichert — ein gespeichertes <code>shutdownAfterUpload</code> wird beim Update per Schema-Bump verworfen. „Danach hochladen“ ist Standard AN und gemerkt; Extraktion und Upload laufen durch, ohne „Upload anbieten“. Ein explizites <code>startRun(plan)</code> ist der einzige Einstieg — Start-Knopf und Auto-Lauf nutzen denselben, getesteten <code>buildRunPlan()</code>. Die Progress-Karte trägt fünf Kategorie-Balken mit Datenpunkt-Tick, das Protokoll ist eine Lade (<kbd>Ctrl+L</kbd>), Tempo ein Chip, der Upload sieht nach Upload aus (⇡, Ziel-Chip, MB/s, Bundle als Vorab-Zeile). Wortschatz aus Ⓖ in DE + EN. Politur: 200-ms-Übergänge, Elevation-Tokens, umrandete Chips, fünf Shortcuts mit <kbd>kbd</kbd>-Badges.</p>
+          <p><strong>Commits</strong> (alle auf dem Branch, HEAD <code>ec55e82</code>): <code>15edf9e</code> Settings v2 + run-plan · <code>85ed01a</code> Settings-Taxonomie (Phase 1) · <code>2c2564c</code> One-Screen-Flow (Phase 2) · <code>13032d4</code> Politur (Phase 3) · <code>ec55e82</code> Nachbesserungen aus der Live-Prüfung.</p>
+          <div class="short"><strong>Nicht wie im Mock umgesetzt, weil …</strong>
+            <ul>
+              <li><b>Kategorie-Balken ohne „x von y“</b> — der Python-Sidecar meldet keine Gesamtzahl je Kategorie, nur laufende Zähler. Die Balken zählen hoch (gestreift, mit Tick) und werden grün, sobald die Auslese-Phase vorbei ist. Eine echte Vollständigkeits-Anzeige je Kategorie braucht ein <code>count</code>-Event mit <code>total</code> aus <code>extract.py</code> (Extractor-Arbeit, nicht Teil dieses Auftrags).</li>
+              <li><b>Sheet öffnet „beim ersten Lauf“ nur je Sitzung</b> — der Merker liegt im Renderer-Speicher, nicht in den Settings; nach einem Neustart öffnet es einmal wieder. Bewusst so gelassen, weil ein weiteres persistiertes Flag der Taxonomie widersprochen hätte.</li>
+              <li><b>Verwerfen im Upload</b> ist ein Inline-Knopf statt eines ⋯-Überlaufs.</li>
+              <li><b>Extract/Upload-Engine</b> blieb physisch in <code>main.ts</code> (1.166 Zeilen Diff), statt nach <code>steps/run.ts</code> zu wandern — zu riskant für einen Umzug ohne Laufzeit-Test der Job-Persistenz.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="files" data-nav-label="Geänderte Dateien">
+          <h3>Geänderte Dateien (25, +2.784 / −755)</h3>
+          <table>
+            <thead><tr><th>Datei</th><th>Warum</th></tr></thead>
+            <tbody>
+              <tr><td><code>src/lib/settings-store.ts</code> · <code>test/settings-store.spec.ts</code></td><td>Schema 2: <code>afterAutoRun</code>, <code>uploadAfterExtract</code>, <code>extractScope</code>, <code>language</code>; <code>shutdownAfterUpload</code> entfernt, v1-Envelope migriert ohne den Key</td></tr>
+              <tr><td><code>src/lib/run-plan.ts</code> · <code>test/run-plan.spec.ts</code> (neu)</td><td>reiner Lauf-Plan für manuelle und unbeaufsichtigte Läufe, 9 Tests</td></tr>
+              <tr><td><code>src/main/index.ts</code> · <code>src/preload/index.ts</code></td><td>Settings-Whitelist + Typen für die neuen Keys</td></tr>
+              <tr><td><code>src/renderer/index.html</code> · <code>styles.css</code></td><td>neue Shell (Kopfstreifen, Bühne, Bodenleiste), ~420 Zeilen Stil: Schiene, Karten, Chips, Sheet, Dialog, Done, Tokens, Übergänge</td></tr>
+              <tr><td><code>src/renderer/main.ts</code></td><td>State + IPC + <code>startRun</code>; Extract/Upload-Engine, Kategorie-Balken, Done-Übergang, Countdown; alte Views/Fallbacks raus</td></tr>
+              <tr><td><code>shell/step-rail.ts</code> · <code>shell/chevrons.ts</code> · <code>shell/bottom-strip.ts</code></td><td>Schiene mit Fortschritts-Segment, Chevrons (nur vor Start), Snackbar/Status-Leiste nur mit Inhalt</td></tr>
+              <tr><td><code>steps/install.ts</code> · <code>steps/setup.ts</code> · <code>steps/done.ts</code> · <code>steps/category-bars.ts</code></td><td>Startrampe mit Abgleich + Einzelauswahl, Umfang-Pills mit ETA, Done-Screen mit Countdown, fünf Balken mit Tick</td></tr>
+              <tr><td><code>options-sheet.ts</code> · <code>settings-dialog.ts</code> · <code>connection-popover.ts</code> · <code>throttle-chip.ts</code> · <code>log-drawer.ts</code> · <code>keymap.ts</code> · <code>dom.ts</code></td><td>Sheet (nur diese Runde), ⚙-Dialog mit „Unbeaufsichtigt“-Hauptschalter, Verbindungs-Popover, Tempo-Chip, Protokoll-Lade, fünf Shortcuts</td></tr>
+              <tr><td><code>src/i18n/de.json</code> · <code>en.json</code></td><td>~90 neue Keys (Wortschatz Ⓖ), <code>upload.shutdownAfter*</code> entfernt</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="verification" data-nav-label="Tests / Verifikation">
+          <h3>Tests / Verifikation</h3>
+          <ul>
+            <li><code>npm run typecheck</code> — sauber (nach jedem Commit).</li>
+            <li><code>vitest</code> — 28 Dateien, <b>314 Tests grün</b> (298 vorher; +16 für Settings v2 und run-plan).</li>
+            <li><code>electron-vite build</code> — grün, Renderer 154 kB.</li>
+            <li><b>Echtes Electron</b> (Dev-Modus, Screenshots über CDP): Startrampe mit Schiene/Chip/Chevron, Einrichtung mit Umfang-Pills (ETA 27 min / 1 h 30 / 5 h 16) und automatisch geöffnetem Sheet, ⚙-Dialog per <kbd>Ctrl+,</kbd>, ein echter Extraktions-Start mit Phasen-Chips, fünf Balken, Tempo-Chip, Protokoll-Zeile — und sauberer Abbruch mit Rückfrage. Nach dem Fix-Commit erneut: Inhalt zentriert, Wortschatz sichtbar, Status-Leiste leer.</li>
+            <li>Nicht getestet: Upload und Done im Echtbetrieb (braucht Anmeldung + kompletten Lauf gegen den Server) und der unbeaufsichtigte Autostart-Weg auf einem gepackten Build — beides steht unter „Danach von Hand“.</li>
+          </ul>
+        </section>
+
+        <section id="handoffs" data-nav-label="Danach von Hand">
+          <h3>Danach von Hand</h3>
+          <ol>
+            <li>Nach dem Merge einen kompletten Lauf mit Anmeldung fahren (Extract → Upload → Done) und die „Wenn fertig: Programm beenden“-Variante einmal durchspielen; „PC herunterfahren“ nur, wenn du es wirklich willst — der 60-s-Countdown mit <kbd>Esc</kbd> ist an.</li>
+            <li>Uploader-Release taggen (<code>data-uploader-v0.33.0</code>, Bump in <code>data-uploader/package.json</code>, nicht im Web-Root) — siehe <code>.claude/deep-knowledge/data-uploader-release.md</code>: Build-Job, Public-Mirror als Voll-Release, <code>desktop_releases</code>-Zeile + Alpha-Ring.</li>
+            <li>Auf dem gepackten Build den Autostart-Weg prüfen (<code>--hidden</code>, neue Version vorhanden → Lauf → „Nach einem automatischen Lauf: App schließen“).</li>
+          </ol>
+        </section>
+
+        <section id="open-questions" data-nav-label="Offene Punkte" data-open-questions>
+          <h3>Offene Punkte</h3>
+          <p>Ein Punkt, gefunden am Rand — nicht Teil des Auftrags. Häkchen = Issue anlegen.</p>
+          <ul class="open-questions-list">
+            <li><label><input type="checkbox" name="oq-dev-single-instance" value="1" checked data-oq-origin="found" data-issue-type="chore" data-issue-title="Uploader: npm run dev beendet sich still, wenn die installierte App läuft (Single-Instance-Lock)" data-issue-body="`npm run dev` im data-uploader startet Electron und beendet sich sofort wieder (`[app] will-quit` direkt nach `[app] starting`), sobald die installierte App im Tray läuft: `app.requestSingleInstanceLock()` teilt sich den Lock über denselben userData-Pfad. Für die Entwicklung sollte der Dev-Start einen eigenen userData-Pfad (z. B. `app.setPath('userData', …-dev)` unter `!app.isPackaged`) und damit einen eigenen Lock bekommen, damit Dev-App und installierte App nebeneinander laufen. Gefunden bei der Live-Prüfung des One-Screen-Umbaus (Concept 2026-09-20-data-uploader-one-screen)."><span class="oq-label">Dev-Start des Uploaders bricht still ab, wenn die installierte App läuft — eigener userData-Pfad/Lock für <code>npm run dev</code></span></label></li>
+          </ul>
+        </section>
       </section>
 
       </main>
@@ -3258,7 +3336,8 @@ textarea[data-attachable].attach-dragover { outline:2px dashed var(--accent-prim
     <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
       <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false" aria-controls="iter-1">Iteration 1</button>
       <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false" aria-controls="iter-2">Iteration 2</button>
-      <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true" aria-controls="iter-3">Iteration 3</button>
+      <button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false" aria-controls="iter-3">Iteration 3</button>
+      <button class="iteration-tab" role="tab" data-iteration="4" aria-selected="true" aria-controls="iter-4" data-final-report>Abschlussbericht</button>
     </nav>
     <nav class="screen-nav" id="screen-nav" aria-label="Screens">
       <!-- auto-populated (design iterations) -->
