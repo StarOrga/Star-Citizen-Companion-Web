@@ -83,12 +83,12 @@ it waits the session counts as running and the scheduler skips the task: the
 ticks never fired. Until the Desktop app lets an unattended session archive
 without a click, the tick prints its report line and stops, and the operator
 sweeps the routine's sessions from an interactive session (`list_sessions` →
-`archive_session` per routine session — no dialog there): since 2026-09-17
-that is the `routine-janitor` scheduled task every 4 h (archive) plus
-`/routine-janitor` interactively (delete card) — formerly a loop in one pinned session
-(idle ticks archived at once and deleted after 1 h via one approval card per
-sweep, working runs archived beyond the 3 newest and never deleted; the app's
-global "Archive inactive sessions" setting stays the operator's), see
+`archive_session` per routine session — no dialog there): since 2026-09-20
+the app's own "Archive inactive sessions" = 1 day does the archiving without
+a card (the `routine-janitor` scheduled task that swept every 4 h from
+2026-09-18 is disabled — every run cost a consent click), plus
+`/routine-janitor` interactively for the delete card (idle ticks deleted
+after 1 h, ≤ 25 per card; working runs never deleted), see
 `.claude/deep-knowledge/scheduled-tasks.md`. Working runs behave the same at
 the end of STEP 6. On `work` the tick takes the run lock
 (`node scripts/routine-gate.mjs start-run --note work:<n>`; `acquired:false`

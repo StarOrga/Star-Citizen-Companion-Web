@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.1] - 2026-09-20
+
+### Changed
+
+- **Routine-Aufräumen ohne Klick.** Der Scheduled Task `routine-janitor`
+  (alle 4 h) zog bei jedem Lauf eine Zustimmungs-Karte für `archive_session`
+  — sechs Klicks am Tag. Er ist jetzt deaktiviert (nicht gelöscht); das
+  Archivieren der Routine-Sessions übernimmt die App-Einstellung „Archive
+  inactive sessions" = 1 Tag, die ohne Karte arbeitet. Löschen alter Idle-Ticks
+  bleibt `/routine-janitor` aus einer interaktiven Session.
+  Doku: `.claude/deep-knowledge/scheduled-tasks.md`, `docs/routine/RESTORE.md`,
+  `docs/feedback-routine/gate.md`, Skill `routine-janitor`.
+
 ## [0.87.0] - 2026-09-20
 
 ### Added

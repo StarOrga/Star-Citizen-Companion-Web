@@ -138,6 +138,20 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
 `%APPDATA%\Claude\claude-code-sessions` by `scheduledTaskId` instead
 (2026-09-17: 835 routine records, 512 idle, deleted in cards of 25).
 
+**Operator decision 2026-09-20: reversed — the setting is on 1 day, the
+janitor task is off.** Six consent cards a day (one per scheduled janitor run)
+were the bigger nuisance than a global one-day auto-archive. "Archive inactive
+sessions" now stands at 1 day (set through the app's settings tool, so it is
+already active — no restart needed); the app archives every routine tick a
+day after its last activity without a card, and the operator's own sessions
+too (only hidden, unarchivable at any time; running, pinned, on-screen and
+dirty-worktree sessions are held back). The `routine-janitor` task is
+**disabled, not deleted**: prompt, repo copy and `scripts/routine-janitor-scan.mjs`
+stay, `verify:routine-prompts` keeps checking the copy, and the Routines pane
+re-enables it in one click should the setting ever go back to Never. Deleting
+idle ticks (they still show in the "Ausführungen" pane) stays a manual
+`/routine-janitor` from an interactive session.
+
 ## Rules
 
 1. **Every tick should end by cleaning up** — idle ticks and working runs
@@ -150,10 +164,11 @@ session and is restarted after a Desktop restart. `list_task_runs` returns
    dialog into a scheduled prompt; one such call idles the whole task. The
    suspended step stays documented in the prompt (STEP 0 and STEP 6) and
    `docs/feedback-routine/gate.md` so it can be switched back on in one edit.
-   The replacement is the `routine-janitor` scheduled task every 4 h (the
-   app-level inactive auto-archive was rejected as too global), plus the two
-   crons that fire only on cadence slots; `/routine-janitor` interactively
-   for the delete card.
+   The replacement since 2026-09-20 is the app's own "Archive inactive
+   sessions" = 1 day (see above; the `routine-janitor` task that swept every
+   4 h from 2026-09-18 to 2026-09-20 is disabled because each run cost a
+   consent click), plus the two crons that fire only on cadence slots;
+   `/routine-janitor` interactively for the delete card.
 2. **Renaming the task renames the title** — the hygiene step matches on the
    title, so add the old title to the match list when the task is renamed
    (the day task already carries "… (day)"; the Desktop app refuses two

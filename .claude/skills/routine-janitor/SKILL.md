@@ -65,13 +65,15 @@ instantly (usage limit) is short and therefore idle.
 
 ## Running it
 
-- **Unattended (since 2026-09-18):** the Desktop scheduled task
-  `routine-janitor` (title "SCC Web Routine Janitor", cron `0 */4 * * *`,
-  prompt snapshot `docs/routine/JANITOR.snapshot.md`) runs the scan script
-  and the archive calls every 4 h. `delete_session` stays unavailable
-  unattended, so the task never deletes; its own runs are ticks of the third
-  task id and are swept by the next run. No pinned session, no `/loop`
-  needed any more.
+- **Unattended (2026-09-18 → 2026-09-20, now DISABLED):** the Desktop
+  scheduled task `routine-janitor` (title "SCC Web Routine Janitor", cron
+  `0 */4 * * *`, prompt snapshot `docs/routine/JANITOR.snapshot.md`) ran the
+  scan script and the archive calls every 4 h — and drew one consent card
+  per run (next bullet). Since 2026-09-20 the operator runs the app's own
+  "Archive inactive sessions" = 1 day instead, which archives every routine
+  tick a day after its last activity without a card; the task stays
+  registered but disabled (Routines pane → enable, if the setting ever goes
+  back to Never). `delete_session` stays unavailable unattended either way.
 - **One consent click per scheduled run (settled 2026-09-18 evening).** The
   consent card is NOT gone for the scheduled janitor: in bypass mode the
   FIRST `archive_session` call of a scheduled session shows the operator a
@@ -87,5 +89,8 @@ instantly (usage limit) is short and therefore idle.
   when the delete card should appear (idle ticks > 1 h, ≤ 25 per card);
   declining it leaves the sessions archived. Sessions a sweep missed are
   caught up on the next one.
-- The app's own "Archive inactive sessions" setting is global and stays the
-  operator's; the janitor never depends on it.
+- The app's own "Archive inactive sessions" setting is global (it hides the
+  operator's own idle sessions after the same delay — unarchivable at any
+  time; running, pinned, on-screen and dirty-worktree sessions are held back)
+  and stays the operator's: 1 day since 2026-09-20. The interactive sweep
+  never depends on it.
