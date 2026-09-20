@@ -103,9 +103,9 @@ describe('parseHoloSilhouette', () => {
     expect(parseHoloSilhouette(validRow({ class_name: '' }))).toBeNull();
   });
 
-  it('falls back to kind "ship" for an unknown kind value', () => {
+  it('rejects a row with an unknown kind value instead of guessing "ship"', () => {
     const result = parseHoloSilhouette(validRow({ kind: 'nonsense' }));
-    expect(result?.kind).toBe('ship');
+    expect(result).toBeNull();
   });
 
   it('drops an anchor with an out-of-range percentage instead of clamping it', () => {

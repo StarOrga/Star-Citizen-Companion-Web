@@ -150,8 +150,13 @@ export function parseHoloSilhouette(row: Record<string, unknown> | null | undefi
   const bbox = parseBbox(row['bbox']);
   if (!bbox) return null;
 
+  // wave 1.5 fix (redteam note): an unknown kind is a row this parser does
+  // not understand, not a ship — mapping it to 'ship' would render a random
+  // entity's outline as if it were the hull. Treat it exactly like every
+  // other invalid row: null, same §C3 neutral placeholder.
   const kindRaw = row['kind'];
-  const kind: SilhouetteKind = isSilhouetteKind(kindRaw) ? kindRaw : 'ship';
+  if (!isSilhouetteKind(kindRaw)) return null;
+  const kind: SilhouetteKind = kindRaw;
 
   const classNameSlug = asString(row['class_name']) ?? '';
   if (!classNameSlug) return null;

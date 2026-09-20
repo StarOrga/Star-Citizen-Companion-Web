@@ -19,6 +19,7 @@ import {
   HangarShipConfigRow,
   HangarShipRow,
   HangarShipStatus,
+  PeekedSharedLoadout,
   RoleLoadoutItem,
   RoleLoadoutRole,
   ShipConfigRole,
@@ -27,6 +28,7 @@ import {
   mapHangarShareLink,
   mapHangarShip,
   mapHangarShipConfig,
+  mapPeekedSharedLoadout,
 } from './hangar.types';
 
 /** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
@@ -710,9 +712,18 @@ export class HangarService {
     return mapHangarShareLink(data as Record<string, unknown>);
   }
 
-  /** Revoke a share link the caller owns (self-only RLS enforces ownership). */
+  /**
+   * Revoke a share link the caller owns (self-only RLS enforces ownership).
+   * wave 1.5 (user decision 1): revoke = stop new adoptions only, never a
+   * DELETE — existing followers keep following via `source_config_id` until
+   * the owner deletes the source config. `hangar_share_links_revoke_guard`
+   * (migration) only accepts a null->timestamp write to this one column.
+   */
   async revokeShareLink(id: string): Promise<boolean> {
-    const { error } = await this.sb.client.from('hangar_share_links').delete().eq('id', id);
+    const { error } = await this.sb.client
+      .from('hangar_share_links')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', id);
     if (error) {
       this.error.set(error.message);
       return false;
@@ -722,9 +733,13 @@ export class HangarService {
 
   /**
    * Turn a share token into a following config in the CALLER's hangar (adds
-   * the ship to their hangar if it is not already there). Runs through the
-   * `adopt_shared_loadout` SECURITY DEFINER RPC — the recipient never reads
-   * `hangar_share_links` or the owner's `hangar_ship_configs` row directly.
+   * the ship to their hangar if it is not already there, or returns the
+   * existing follow on a re-adopt). Runs through the `adopt_shared_loadout`
+   * SECURITY DEFINER RPC — the recipient never reads `hangar_share_links` or
+   * the owner's `hangar_ship_configs` row directly. The RPC also resolves
+   * the owner's display name (`profiles` is self-read only) and the share's
+   * channel/patch context, merged onto the returned config (wave 1.5
+   * blocker 4 / should-fix E).
    */
   async adoptSharedLoadout(token: string): Promise<HangarShipConfig | null> {
     const { data, error } = await this.sb.client.rpc('adopt_shared_loadout', { p_token: token });
@@ -732,39 +747,90 @@ export class HangarService {
       this.error.set(error?.message ?? 'adopt_failed');
       return null;
     }
+    const result = data as {
+      configId: string | null;
+      ownerName: string | null;
+      ownerUserId: string | null;
+      ownerUpdatedAt: string | null;
+      channel: string | null;
+      patchVersion: string | null;
+    };
+    if (!result.configId) {
+      this.error.set('adopt_failed');
+      return null;
+    }
     const { data: row, error: readErr } = await this.sb.client
       .from('hangar_ship_configs')
       .select('*')
-      .eq('id', data as string)
+      .eq('id', result.configId)
       .maybeSingle();
     if (readErr || !row) {
       this.error.set(readErr?.message ?? 'adopt_failed');
       return null;
     }
-    return mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+    const config = mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+    return {
+      ...config,
+      ownerName: result.ownerName,
+      ownerUpdatedAt: result.ownerUpdatedAt,
+      sharedChannel: result.channel ?? config.sharedChannel,
+      sharedPatchVersion: result.patchVersion ?? config.sharedPatchVersion,
+    };
   }
 
   /**
    * Pull the owner's CURRENT loadout into a still-following config, via the
-   * `hangar_follow_snapshot` RPC (the follower has no direct read access to
-   * the owner's row). Returns `null` — and leaves the config untouched —
-   * once the copy has forked or the owner's config is gone; the caller then
-   * simply keeps showing what it already has.
+   * `hangar_follow_snapshot` RPC. The RPC performs the follower's own
+   * sync-write itself (through the trusted internal-write path, so the
+   * migration's share-guard trigger does not mistake this pull for the
+   * recipient's own edit and auto-fork it — see the migration comment).
+   * Returns `null` — and leaves the config untouched — once the copy has
+   * forked, the owner's config is gone, or the owner is suspended; the
+   * caller then simply keeps showing what it already has. The follow-up
+   * read still carries `.eq('follows_owner', true)` as a belt-and-braces
+   * guard against a concurrent fork racing this call.
    */
   async refreshFollowedLoadout(configId: string): Promise<HangarShipConfig | null> {
     const { data, error } = await this.sb.client.rpc('hangar_follow_snapshot', {
       p_config_id: configId,
     });
     if (error || !data) return null;
-    const snapshot = data as { loadout: ConfigLoadoutEntry[]; name: string; role: ShipConfigRole };
-    const { data: row, error: updateErr } = await this.sb.client
+    const snapshot = data as {
+      ownerName: string | null;
+      ownerUserId: string | null;
+      ownerUpdatedAt: string | null;
+      channel: string | null;
+      patchVersion: string | null;
+    };
+    const { data: row, error: readErr } = await this.sb.client
       .from('hangar_ship_configs')
-      .update({ loadout: snapshot.loadout as unknown as never[], name: snapshot.name, role: snapshot.role })
-      .eq('id', configId)
       .select('*')
-      .single();
-    if (updateErr || !row) return null;
-    return mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+      .eq('id', configId)
+      .eq('follows_owner', true)
+      .maybeSingle();
+    if (readErr || !row) return null;
+    const config = mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
+    return {
+      ...config,
+      ownerName: snapshot.ownerName,
+      ownerUpdatedAt: snapshot.ownerUpdatedAt,
+      sharedChannel: snapshot.channel ?? config.sharedChannel,
+      sharedPatchVersion: snapshot.patchVersion ?? config.sharedPatchVersion,
+    };
+  }
+
+  /**
+   * Read-only preview of a shared loadout via its token, for a recipient who
+   * is not signed in — wave 1.5 user decision 3. Adopting into the hangar
+   * (persisting a following config) still requires {@link adoptSharedLoadout}
+   * and therefore a session.
+   */
+  async peekSharedLoadout(token: string): Promise<PeekedSharedLoadout | null> {
+    const { data, error } = await this.sb.client
+      .rpc('peek_shared_loadout', { p_token: token })
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapPeekedSharedLoadout(data as Record<string, unknown>);
   }
 
   /**

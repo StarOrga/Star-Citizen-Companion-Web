@@ -109,6 +109,19 @@ export interface HangarShipConfig {
   ownerUserId: string | null;
   /** When the follow link broke (recipient's first edit). Null while following. */
   forkedAt: string | null;
+  // ── wave 1.5 (redteam blocker 4 / should-fix G) — populated only by
+  // adoptSharedLoadout()/refreshFollowedLoadout(), never by a plain row read
+  // (mapHangarShipConfig defaults all four to null; `profiles` has no
+  // general read path so these come back through the SECURITY DEFINER RPCs
+  // instead). ──────────────────────────────────────────────────────────────
+  /** Resolved display name of `ownerUserId`, from the adopt/refresh RPC. */
+  ownerName: string | null;
+  /** The OWNER config's `updated_at` at adopt/refresh time — loadoutVariantHint uses this, never the follower row's own updatedAt (every pull bumps that). */
+  ownerUpdatedAt: string | null;
+  /** The patch channel this row was shared/adopted at (fixed at adopt time). */
+  sharedChannel: string | null;
+  /** The patch version this row was shared/adopted at (fixed at adopt time). */
+  sharedPatchVersion: string | null;
 }
 
 /**
@@ -128,7 +141,24 @@ export interface HangarShareLink {
   role: ShipConfigRole | null;
   sourceConfigId: string | null;
   expiresAt: string | null;
+  /** wave 1.5 (user decision 1): revoke = stop new adoptions only, never a DELETE. */
+  revokedAt: string | null;
   createdAt: string;
+}
+
+/**
+ * Read-only preview of a shared loadout via its token, for an anonymous (not
+ * signed-in) recipient — {@link HangarService.peekSharedLoadout}, wave 1.5
+ * user decision 3. Adopting into the hangar still requires sign-in.
+ */
+export interface PeekedSharedLoadout {
+  shipClassName: string;
+  loadout: ConfigLoadoutEntry[];
+  name: string;
+  role: ShipConfigRole | null;
+  channel: string;
+  patchVersion: string;
+  ownerName: string | null;
 }
 
 /**
@@ -146,7 +176,16 @@ export interface LoadoutVariantHint {
 
 export function loadoutVariantHint(config: HangarShipConfig): LoadoutVariantHint {
   if (config.followsOwner && config.ownerUserId) {
-    return { kind: 'managedByOwner', updatedAt: config.updatedAt, ownerUserId: config.ownerUserId };
+    // wave 1.5 (redteam note): every pull bumps the follower row's OWN
+    // updatedAt, so that column can never drive "verwaltet von <owner>"'s
+    // timestamp — use the owner config's updatedAt from the adopt/refresh
+    // RPC. Falls back to the follower row's own updatedAt only when the RPC
+    // has not populated it yet (e.g. between adopt and the first refresh).
+    return {
+      kind: 'managedByOwner',
+      updatedAt: config.ownerUpdatedAt ?? config.updatedAt,
+      ownerUserId: config.ownerUserId,
+    };
   }
   return { kind: 'savedAt', updatedAt: config.updatedAt, ownerUserId: null };
 }
@@ -194,6 +233,12 @@ export function mapHangarShipConfig(r: HangarShipConfigRow & Record<string, unkn
     followsOwner: (r['follows_owner'] as boolean) ?? false,
     ownerUserId: (r['owner_user_id'] as string | null) ?? null,
     forkedAt: (r['forked_at'] as string | null) ?? null,
+    // A plain table row never carries these — only the adopt/refresh RPC
+    // responses do. Callers that have a fresher value merge it on top.
+    ownerName: null,
+    ownerUpdatedAt: null,
+    sharedChannel: (r['shared_channel'] as string | null) ?? null,
+    sharedPatchVersion: (r['shared_patch_version'] as string | null) ?? null,
   };
 }
 
@@ -209,7 +254,20 @@ export function mapHangarShareLink(r: Record<string, unknown>): HangarShareLink 
     role: (r['role'] as ShipConfigRole | null) ?? null,
     sourceConfigId: (r['source_config_id'] as string | null) ?? null,
     expiresAt: (r['expires_at'] as string | null) ?? null,
+    revokedAt: (r['revoked_at'] as string | null) ?? null,
     createdAt: (r['created_at'] as string) ?? '',
+  };
+}
+
+export function mapPeekedSharedLoadout(r: Record<string, unknown>): PeekedSharedLoadout {
+  return {
+    shipClassName: (r['ship_class_name'] as string) ?? '',
+    loadout: Array.isArray(r['loadout']) ? (r['loadout'] as unknown as ConfigLoadoutEntry[]) : [],
+    name: (r['name'] as string) ?? '',
+    role: (r['role'] as ShipConfigRole | null) ?? null,
+    channel: (r['channel'] as string) ?? '',
+    patchVersion: (r['patch_version'] as string) ?? '',
+    ownerName: (r['owner_name'] as string | null) ?? null,
   };
 }
 
