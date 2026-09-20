@@ -173,5 +173,5 @@ placement) is listed under "Not built" rather than guessed.
 
 ## Pushed SHA
 
-See branch `claude/codex-schiffsansicht-design-d0ab3a-fe-strip-hangar` —
-pushed after this doc in the same logical step (see the accompanying commit).
+`bb43553` on branch `claude/codex-schiffsansicht-design-d0ab3a-fe-strip-hangar`
+(off `claude/codex-schiffsansicht-design-d0ab3a` @ `867ed0a`).
