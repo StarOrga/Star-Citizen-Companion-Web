@@ -242,9 +242,12 @@ function publicSettings(): {
   minimizeToTray: boolean;
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
-  shutdownAfterUpload: boolean;
   quitAfterAutoRun: boolean;
+  afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  uploadAfterExtract: boolean;
+  extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
+  language?: string;
 } {
   const s = getSettings();
   // Never expose the raw installId to the renderer — it is an internal, opaque
@@ -253,10 +256,13 @@ function publicSettings(): {
     telemetryEnabled: s.telemetryEnabled,
     minimizeToTray: s.minimizeToTray,
     autoStart: s.autoStart,
-    shutdownAfterUpload: s.shutdownAfterUpload,
     autoRunOnNewVersion: s.autoRunOnNewVersion,
     quitAfterAutoRun: s.quitAfterAutoRun,
+    afterAutoRun: s.afterAutoRun,
+    uploadAfterExtract: s.uploadAfterExtract,
+    extractScope: s.extractScope,
     updateChannel: s.updateChannel,
+    ...(s.language !== undefined ? { language: s.language } : {}),
   };
 }
 
@@ -275,9 +281,12 @@ ipcMain.handle(
       minimizeToTray?: boolean;
       autoStart?: boolean;
       autoRunOnNewVersion?: boolean;
-      shutdownAfterUpload?: boolean;
       quitAfterAutoRun?: boolean;
+      afterAutoRun?: 'keep' | 'quit' | 'shutdown';
+      uploadAfterExtract?: boolean;
+      extractScope?: 'minimal' | 'standard' | 'maximum';
       updateChannel?: 'alpha' | 'beta' | 'stable';
+      language?: string;
     },
   ) => {
     // Whitelist: the renderer must not be able to write arbitrary keys (e.g.
@@ -288,11 +297,25 @@ ipcMain.handle(
     if (typeof partial?.autoRunOnNewVersion === 'boolean') {
       clean.autoRunOnNewVersion = partial.autoRunOnNewVersion;
     }
-    if (typeof partial?.shutdownAfterUpload === 'boolean') {
-      clean.shutdownAfterUpload = partial.shutdownAfterUpload;
-    }
     if (typeof partial?.quitAfterAutoRun === 'boolean') {
       clean.quitAfterAutoRun = partial.quitAfterAutoRun;
+    }
+    if (
+      partial?.afterAutoRun === 'keep' ||
+      partial?.afterAutoRun === 'quit' ||
+      partial?.afterAutoRun === 'shutdown'
+    ) {
+      clean.afterAutoRun = partial.afterAutoRun;
+    }
+    if (typeof partial?.uploadAfterExtract === 'boolean') {
+      clean.uploadAfterExtract = partial.uploadAfterExtract;
+    }
+    if (
+      partial?.extractScope === 'minimal' ||
+      partial?.extractScope === 'standard' ||
+      partial?.extractScope === 'maximum'
+    ) {
+      clean.extractScope = partial.extractScope;
     }
     if (
       partial?.updateChannel === 'alpha' ||
@@ -300,6 +323,9 @@ ipcMain.handle(
       partial?.updateChannel === 'stable'
     ) {
       clean.updateChannel = partial.updateChannel;
+    }
+    if (typeof partial?.language === 'string' && partial.language.length > 0) {
+      clean.language = partial.language;
     }
     patchSettings(clean);
     // Re-point the auto-updater when the ring changed (re-checks the new feed).
