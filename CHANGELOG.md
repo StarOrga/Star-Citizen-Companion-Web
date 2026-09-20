@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.1] - 2026-09-21
+
+### Fixed
+
+- **Data Uploader 0.34.1 — CI-Sidecar-Tests installieren numpy.** Der
+  Tag-Build `data-uploader-v0.34.0` scheiterte im Job `python-sidecar-test`
+  (`ModuleNotFoundError: numpy` in den neuen Silhouetten-Tests); der Job
+  installiert jetzt `numpy==1.21.6` neben pytest. Keine Änderung an der App —
+  der Uploader wird als 0.34.1 neu gebaut.
+
 ## [0.89.0] - 2026-09-21
 
 ### Added
