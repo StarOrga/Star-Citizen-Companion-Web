@@ -68,16 +68,6 @@ describe('SettingsStore', () => {
     expect(second.installId).toBe(first.installId);
   });
 
-  it('defaults shutdownAfterUpload OFF and persists a deliberate opt-in', () => {
-    const io = fakeIO();
-    const store = new SettingsStore(io, seqIds());
-    expect(store.load().shutdownAfterUpload).toBe(false);
-    store.patch({ shutdownAfterUpload: true });
-    // Survives a reload from the same backing store.
-    const reloaded = new SettingsStore(io, seqIds());
-    expect(reloaded.load().shutdownAfterUpload).toBe(true);
-  });
-
   it('defaults quitAfterAutoRun ON and persists a deliberate opt-out', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());
@@ -97,5 +87,101 @@ describe('SettingsStore', () => {
     // Survives a reload from the same backing store.
     const reloaded = new SettingsStore(io, seqIds());
     expect(reloaded.load().updateChannel).toBe('beta');
+  });
+
+  it('defaults afterAutoRun to quit and persists another choice', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().afterAutoRun).toBe('quit');
+    store.patch({ afterAutoRun: 'shutdown' });
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().afterAutoRun).toBe('shutdown');
+  });
+
+  it('rejects an unknown afterAutoRun value and falls back to the default', () => {
+    const io = fakeIO();
+    io.data = JSON.stringify({
+      v: 2,
+      settings: { installId: 'x', afterAutoRun: 'nonsense' },
+    });
+    const s = new SettingsStore(io, seqIds()).load();
+    expect(s.afterAutoRun).toBe('quit');
+  });
+
+  it('defaults uploadAfterExtract ON and persists a deliberate opt-out', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().uploadAfterExtract).toBe(true);
+    store.patch({ uploadAfterExtract: false });
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().uploadAfterExtract).toBe(false);
+  });
+
+  it('defaults extractScope to standard and round-trips a patch', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().extractScope).toBe('standard');
+    store.patch({ extractScope: 'maximum' });
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().extractScope).toBe('maximum');
+  });
+
+  it('rejects an unknown extractScope value and falls back to the default', () => {
+    const io = fakeIO();
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', extractScope: 'ludicrous' } });
+    const s = new SettingsStore(io, seqIds()).load();
+    expect(s.extractScope).toBe('standard');
+  });
+
+  it('leaves language unset by default and round-trips a patch', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().language).toBeUndefined();
+    store.patch({ language: 'de' });
+    const reloaded = new SettingsStore(io, seqIds());
+    expect(reloaded.load().language).toBe('de');
+  });
+
+  it('drops a v1 shutdownAfterUpload flag silently and never lets it influence afterAutoRun', () => {
+    const io = fakeIO();
+    // A real v1 envelope: no afterAutoRun/uploadAfterExtract/extractScope yet,
+    // but it does carry the removed shutdownAfterUpload flag turned ON.
+    io.data = JSON.stringify({
+      v: 1,
+      settings: {
+        telemetryEnabled: false,
+        installId: 'legacy-id',
+        minimizeToTray: true,
+        autoStart: false,
+        autoRunOnNewVersion: false,
+        shutdownAfterUpload: true,
+        quitAfterAutoRun: true,
+        updateChannel: 'stable',
+      },
+    });
+    const s = new SettingsStore(io, seqIds()).load();
+    expect((s as unknown as { shutdownAfterUpload?: boolean }).shutdownAfterUpload).toBeUndefined();
+    // The removed flag must never be migrated into the new setting.
+    expect(s.afterAutoRun).toBe('quit');
+    // New v2-only fields fall back to their defaults.
+    expect(s.uploadAfterExtract).toBe(true);
+    expect(s.extractScope).toBe('standard');
+    // Other v1 fields are still carried over.
+    expect(s.installId).toBe('legacy-id');
+    expect(s.telemetryEnabled).toBe(false);
+  });
+
+  it('upgrades a loaded v1 envelope to v2 on the next persist', () => {
+    const io = fakeIO();
+    io.data = JSON.stringify({
+      v: 1,
+      settings: { installId: 'legacy-id', shutdownAfterUpload: true },
+    });
+    const store = new SettingsStore(io, seqIds());
+    store.load();
+    store.patch({ minimizeToTray: false });
+    const persisted = JSON.parse(io.data as string) as { v: number; settings: Record<string, unknown> };
+    expect(persisted.v).toBe(2);
+    expect(persisted.settings.shutdownAfterUpload).toBeUndefined();
   });
 });

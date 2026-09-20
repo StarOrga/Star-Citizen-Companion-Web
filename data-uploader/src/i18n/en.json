@@ -16,9 +16,55 @@
       "uploadResumable": "There's a resumable upload. Going back loses your entry point to continue it here."
     }
   },
+  "steprail": {
+    "install": "Install",
+    "setup": "Setup",
+    "extract": "Extract",
+    "upload": "Upload",
+    "done": "Done"
+  },
+  "install": {
+    "cmp": {
+      "unknown": "Server state unknown — connect",
+      "same": "= server already has {{version}}",
+      "newer": "▲ newer than server ({{version}}) — worth it"
+    },
+    "lastUploaded": "Last uploaded {{when}}",
+    "resumeGeneric": "Found an interrupted upload — resume it?",
+    "extractOnly": "Continue (extract only)"
+  },
+  "scope": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "recommended": "recommended"
+  },
+  "sheet": {
+    "title": "Run options",
+    "mode": {
+      "label": "Mode",
+      "watch": "I'm watching",
+      "unattended": "Unattended"
+    },
+    "moreSettings": "More in Settings",
+    "whenDoneHint": "60 s cancelable countdown · applies to this run only, never saved"
+  },
+  "category": {
+    "ships": "Ships",
+    "vehicles": "Vehicles",
+    "components": "Components",
+    "weapons": "Weapons",
+    "strings": "Text"
+  },
+  "done": {
+    "title": "Everything uploaded",
+    "openWeb": "Open in the web app",
+    "newRun": "Start a new run",
+    "countingDown": "Shutting down in {{secs}}s — Esc to cancel."
+  },
   "discover": {
-    "title": "Find Star Citizen installs",
-    "subtitle": "Runs automatically on launch: RSI launcher → filesystem scan. Add more folders by hand below.",
+    "title": "Star Citizen found",
+    "subtitle": "Searched automatically: RSI launcher → drives. One game version per run.",
     "scan": "Start scan",
     "scanning": "Searching for installs…",
     "manual": "Pick folder manually",
@@ -28,8 +74,8 @@
     "next": "Next → Configure"
   },
   "configure": {
-    "title": "Pick a profile",
-    "subtitle": "Switchable live — change it mid-run.",
+    "title": "Choose scope",
+    "subtitle": "Speed stays switchable any time later — scope doesn't.",
     "start": "Start extraction",
     "autoUpload": "Upload automatically after extraction",
     "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected).",
@@ -44,8 +90,9 @@
     }
   },
   "run": {
-    "title": "Extracting",
+    "title": "Extracting — game data",
     "next": "Continue to upload",
+    "cancel": "Abort run…",
     "logTitle": "Log",
     "copyLog": "Copy",
     "copied": "Copied ✓",
@@ -54,17 +101,24 @@
     "bundleReady": "Extraction complete — the bundle is ready to upload.",
     "bundleReadyCta": "Bundle ready — upload now",
     "autoUploading": "Auto-upload on — switching to upload…",
+    "whenDone": {
+      "label": "When done",
+      "nothing": "Nothing",
+      "quit": "Quit app",
+      "shutdown": "Shut down PC",
+      "disarm": "Disarm"
+    },
     "phase": {
-      "discover": "Analyzing installation",
-      "plan": "Planning run",
-      "extract": "Extracting game data",
-      "validate": "Validating result",
-      "bundle": "Packaging bundle",
+      "discover": "Read game",
+      "plan": "Plan",
+      "extract": "Extract",
+      "validate": "Check",
+      "bundle": "Pack bundle",
       "done": "Done"
     },
     "stage": {
       "open": "Opening Data.p4k",
-      "datacore": "Decompressing DataCore",
+      "datacore": "Unpack game data",
       "localization": "Reading translations",
       "reference": "Reference data",
       "entities": "Cataloguing entities",
@@ -92,6 +146,8 @@
   },
   "upload": {
     "title": "Upload",
+    "codexTitle": "Entries into the Codex",
+    "completeness": "Completeness {{pct}}%",
     "intro": "Starting the upload opens your browser for sign-in. After a successful login, the bundle is uploaded automatically.",
     "start": "Start upload",
     "bundle": "Bundle summary",
@@ -105,8 +161,6 @@
     "bundleUploading": "Uploading bundle metadata…",
     "reconnectExpired": "Your session has expired — you'll be asked to sign in again when the upload starts.",
     "reconnectOffline": "Not connected to the web — starting the upload will sign you in.",
-    "shutdownAfter": "Shut down PC after upload",
-    "shutdownAfterHint": "Shuts the PC down after a successful upload — with a 60-second countdown you can cancel.",
     "shutdownScheduled": "Upload done — the PC shuts down in {{secs}} s.",
     "shutdownCancel": "Cancel",
     "shutdownCancelled": "Shutdown cancelled.",
@@ -186,8 +240,25 @@
     "daysAgo": "{{n}} d ago"
   },
   "settings": {
+    "title": "Settings",
+    "adminOnly": "admin/collaborator only",
+    "language": "Language",
+    "unattended": {
+      "label": "Unattended",
+      "hint": "Starts with Windows and runs the whole pipeline automatically on a new data.p4k version — with nobody watching."
+    },
+    "afterAutoRun": {
+      "label": "After an automatic run",
+      "hint": "What happens once an unattended run has uploaded successfully.",
+      "keep": "Keep running",
+      "quit": "Quit app",
+      "shutdown": "Shut down PC"
+    },
+    "diagnostics": {
+      "title": "Diagnostics"
+    },
     "updateChannel": {
-      "label": "Update channel",
+      "label": "Update ring",
       "hint": "Which release ring auto-updates follow.",
       "alpha": "Alpha",
       "beta": "Beta",

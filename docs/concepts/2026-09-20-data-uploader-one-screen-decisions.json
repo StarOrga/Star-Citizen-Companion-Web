@@ -1,0 +1,270 @@
+[
+  {
+    "iteration": 1,
+    "submitted_at": "2026-09-20T14:14:29.972Z",
+    "action": "iterate",
+    "decisions": [
+      {
+        "id": "f-shutdown",
+        "label": "Herunterfahren nur auf dem letzten Screen",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-settings-mix",
+        "label": "Fünf Kästchen ohne Gruppierung",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-throttle-3x",
+        "label": "Tempo-Leiste dreimal",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-conn-tile",
+        "label": "Verbindungs-Vollbalken überall",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-frames",
+        "label": "Vier gleiche Seitenrahmen",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-multiselect",
+        "label": "Mehrfachauswahl, die eine Einzelauswahl ist",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-diff-hidden",
+        "label": "Der Abgleich lokal ↔ Server wird nie gezeigt",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-back-destructive",
+        "label": "Zurück killt den Sidecar",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-auth-surprise",
+        "label": "Browser-Login mitten im Upload",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-jargon",
+        "label": "Jargon für Spieler",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "f-keep",
+        "label": "Was bleibt, wie es ist",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "p1",
+        "label": "Phase 1 · Quick Win",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "p2",
+        "label": "Phase 2 · One-Screen-Flow",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "p3",
+        "label": "Phase 3 · Politur",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-onescreen",
+        "label": "One-Screen-Gefühl",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-sheet",
+        "label": "Options-Sheet vor dem Start",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-arrows",
+        "label": "Schwebende Karussell-Pfeile",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-material",
+        "label": "Material Design",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-shortcuts",
+        "label": "Shortcuts & Defaults",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "i-lighter",
+        "label": "Leichtgewichtiger",
+        "state": "include",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": "Lass uns auf A aufbauen",
+      "designs": {
+        "a-rail": "das einzige verwirrende ist das diese runde ja auch für app verhalten über die runde hinaus gespeichert wird... +\n\nkeine ahnung was paket heißen soll. \n\nIch finde die schiffe, fahrzeuge etc. sollten auch kombiniert weren mit dem status balken, vllt.  5 status balken anebeneinander mit inline wie viel von wie viel extrahiert. Ich brauche auch nur die anzahlen, nicht 216900 auch wenn das vllt. die anzahl an datenpunkten extrahiert beschreibt. Da würde ich eher das benutzen um den balken wie elektronisch enlighten in pro 1 punkt von den 216900 - dann sieht man das gerade ein Datenpunkt fertig gewordne ist und was passiert uach wenn das ziemlich ratz fatz ist, doer?\nDie generellle zahl 62% fertig ist natürlich insgesamt über die verschiedenen katgegorien generell wichtig.\n\nUpload soltle klarer anders in der mitte ( upload balken + hochgeladen wiederholt etc.) sein. \nprotokoll und darüber ist ok für die gleichehite, dabei protokoll vlllt. etwas dezenter generell."
+      },
+      "screens": {}
+    },
+    "approvals": {
+      "approve-shutdown-not-persisted": true,
+      "approve-upload-default-on": true,
+      "approve-single-select": true,
+      "approve-remove-back": true,
+      "approve-drop-summary-card": true,
+      "approve-throttle-once": true,
+      "approve-ring-to-settings": true,
+      "approve-log-drawer": true
+    }
+  },
+  {
+    "iteration": 2,
+    "submitted_at": "2026-09-20T14:20:53.263Z",
+    "action": "iterate",
+    "decisions": [
+      {
+        "id": "n-bundle",
+        "label": "Bundle (bleibt)",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "n-datenpaket",
+        "label": "Datenpaket",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "n-export",
+        "label": "Export",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "c-side",
+        "label": "Balken nebeneinander (wie Ⓐ′3)",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "c-stack",
+        "label": "Balken untereinander",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "t-raw",
+        "label": "Tick roh (jeder Datenpunkt)",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "t-smooth",
+        "label": "Tick geglättet (Puls je ~50 ms)",
+        "state": "discard",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": "Lass uns auf A aufbauen\nGenberell die analyse zu bundle etc. ist für mich nichts halbes nichts ganzes ggü. den anderen elementen .",
+      "designs": {
+        "a2-rail": "ich denke upload katalog ist unverständliche wört.  vor allem im gegensatz zu bundle..."
+      },
+      "screens": {}
+    }
+  },
+  {
+    "iteration": 3,
+    "submitted_at": "2026-09-20T15:29:10.438Z",
+    "action": "implement",
+    "decisions": [
+      {
+        "id": "w-scheme",
+        "label": "Wortschatz wie in der Tabelle",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "w-generic",
+        "label": "Ganz ohne Fachwörter",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "q-login-keep",
+        "label": "Neuanmeldung bei jedem Vordergrund-Start bleibt",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "q-login-drop",
+        "label": "Gespeicherte Sitzung reicht auch im Vordergrund",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "q-chev-prestart",
+        "label": "Chevrons nur vor dem Start",
+        "state": "include",
+        "note": ""
+      },
+      {
+        "id": "q-chev-none",
+        "label": "Keine Chevrons",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-p1",
+        "label": "Nur Phase 1",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-p12",
+        "label": "Phase 1 + 2 (zwei PRs)",
+        "state": "discard",
+        "note": ""
+      },
+      {
+        "id": "s-all",
+        "label": "Alle drei Phasen",
+        "state": "include",
+        "note": ""
+      }
+    ],
+    "comments": {
+      "general": "Bitte jetzt polsihen",
+      "designs": {
+        "a3-rail": "beim hochladen die info wie viele mb/s gern irgendwo rechts oben eher hin. Zudem wiederholt / geschrieben ist für mich eher was für die protokollzeiel ggf. und batch halbiert keine ahnung wofür ich das wissen muss. \nbei buzndle ist mir hier noch nicht kalar, das wurde doch zuvor geschnürt, warum muss ich das hier nochmal sehen..."
+      },
+      "screens": {}
+    }
+  }
+]

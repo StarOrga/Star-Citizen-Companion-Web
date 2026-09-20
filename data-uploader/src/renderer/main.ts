@@ -6,9 +6,25 @@
  * Lit or Preact if the UI grows.
  */
 
-import { load as loadI18n, setLocale, getLocale, t, type LocaleId } from '../lib/i18n.js';
+import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
 import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
+import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
+import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
+import { $, escapeHtml } from './dom.js';
+import { paintStepRail, STEP_ORDER, type StepKey } from './shell/step-rail.js';
+import { setStatus as setBottomStatus, showSnackbar } from './shell/bottom-strip.js';
+import { wireChevrons, paintChevrons } from './shell/chevrons.js';
+import { toggleConnectionPopover, isConnectionPopoverOpen, closeConnectionPopover } from './connection-popover.js';
+import { installKeymap } from './keymap.js';
+import { closeOptionsSheetIfOpen } from './options-sheet.js';
+import { closeLogDrawer } from './log-drawer.js';
+import * as InstallStep from './steps/install.js';
+import * as SetupStep from './steps/setup.js';
+import * as DoneStep from './steps/done.js';
+import { throttleChipHtml, wireThrottleChip } from './throttle-chip.js';
+import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
+import { updateCategoryBars, categoryBarsHtml, resetCategoryBars, markCategoriesComplete } from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -59,14 +75,21 @@ interface ThrottleViewLike {
   applied?: number;
 }
 
-interface PublicSettings {
+export interface PublicSettings {
   telemetryEnabled: boolean;
   minimizeToTray: boolean;
   autoStart: boolean;
   autoRunOnNewVersion: boolean;
-  shutdownAfterUpload: boolean;
   quitAfterAutoRun: boolean;
+  /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
+  afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  /** Start the upload step automatically once extraction finishes. Default true. */
+  uploadAfterExtract: boolean;
+  /** How much of the game data an extraction run pulls. Default 'standard'. */
+  extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
+  /** Persisted UI locale; undefined = renderer's own detection/fallback. */
+  language?: string;
 }
 import {
   progressCardHtml,
@@ -79,11 +102,11 @@ import {
 interface ToolEnv {
   toolVersion: string;
   apiBase: string;
+  webBase: string;
   releaseTokenFingerprint: string;
   platform: string;
+  startedHidden: boolean;
 }
-
-const $ = (sel: string): HTMLElement | null => document.querySelector(sel);
 
 // Funnel renderer-side failures into the same main.log + crash telemetry as the
 // main process. Installed synchronously at module load — before init() runs —
@@ -110,18 +133,33 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload';
+// Internal view names kept from the original 4-view routing (discover →
+// configure → run → auth-upload) — the one-screen shell maps each onto a
+// step-rail node (see `viewToStep` below) without renaming the state field
+// everywhere it's referenced. 'done' is new: the post-upload summary/countdown.
+type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload' | 'done';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
+
+function viewToStep(v: ViewName): StepKey {
+  switch (v) {
+    case 'discover':
+      return 'install';
+    case 'configure':
+      return 'setup';
+    case 'run':
+      return 'extract';
+    case 'auth-upload':
+      return 'upload';
+    case 'done':
+      return 'done';
+  }
+}
 
 interface SkinShipResult {
   ship_id: string;
   export_dir: string;
   skins: { skin_id: string; name: string; has_model: boolean; has_icon: boolean }[];
 }
-
-// Plain-text mirror of the run-view log stream, so the "copy" button can hand
-// the whole transcript to the clipboard regardless of per-line DOM coloring.
-let extractLogText = '';
 
 interface ExtractResultPayload {
   channel: string;
@@ -154,7 +192,7 @@ const COUNTER_ORDER = [
   'records_total',
 ] as const;
 
-function orderedCounts(counts: Record<string, number>): [string, number][] {
+export function orderedCounts(counts: Record<string, number>): [string, number][] {
   const rank = (k: string): number => {
     const i = (COUNTER_ORDER as readonly string[]).indexOf(k);
     return i === -1 ? COUNTER_ORDER.length : i;
@@ -179,7 +217,7 @@ function fmtElapsed(ms: number): string {
   return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
 
-const state = {
+export const state = {
   view: 'discover' as ViewName,
   // Auto-scan runs once on app start; returning to the Discover view keeps the
   // prior results (and any manually-added folders) instead of re-scanning.
@@ -200,9 +238,13 @@ const state = {
   profile: 'standard' as LiveProfile,
   /** False on a platform with no live priority control — the UI must not imply one. */
   throttleSupported: true,
-  // When set on the Configure screen, a successful extraction flows straight
-  // into the upload (no manual "Upload anbieten" click) — for unattended runs.
-  autoUpload: false,
+  // Per-run "when done" pick (nothing / quit / shutdown) — renderer memory
+  // only, never persisted. Reset to 'nothing' at the start of every run.
+  whenDone: 'nothing' as WhenDone,
+  // The plan the currently active (or last) run was started from — built by
+  // `buildRunPlan()` at the single `startRun()` entry point. Drives
+  // `maybeShutdownAfterUpload` / `maybeQuitAfterUpload` and the armed chip.
+  runPlan: null as RunPlan | null,
   lastResult: null as ExtractResultPayload | null,
   // Flips true the moment the extract finishes OK — drives the clear
   // "Bundle fertig, du kannst hochladen" affordance on the Run screen.
@@ -243,18 +285,23 @@ async function init(): Promise<void> {
   requireFreshLogin = !env.startedHidden;
   startedHidden = env.startedHidden;
 
-  const select = $('#lang-select') as HTMLSelectElement | null;
-  if (select) {
-    select.value = getLocale();
-    select.addEventListener('change', async () => {
-      await setLocale(select.value as LocaleId);
-      render();
-      paintConnection();
-      // The tray lives in main and has no dictionary — re-push on every locale
-      // change or its menu would stay stuck in the boot language.
-      pushTrayLabels();
-    });
+  // Language now lives in the ⚙ Settings dialog (settings-dialog.ts), which
+  // calls `setLocale` + repaints directly — no topbar select to wire here.
+  const gear = $('#btn-settings-gear') as HTMLButtonElement | null;
+  if (gear) {
+    const label = `${t('settings.title')} (Ctrl+,)`;
+    gear.title = label;
+    gear.setAttribute('aria-label', label);
+    gear.addEventListener('click', () => openAppSettingsDialog());
   }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === ',' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      openAppSettingsDialog();
+      return;
+    }
+    if (e.key === 'Escape') closeSettingsDialogIfOpen();
+  });
 
   // The tray is built before the renderer exists, so it starts on English
   // defaults; hand it the real strings as soon as i18n is up.
@@ -271,9 +318,49 @@ async function init(): Promise<void> {
   // auto-run that started before this window existed), and follow every later
   // switch — including ones made from another view or another window.
   await refreshProfileFromMain();
-  window.sc.perf.onChanged((v: ThrottleViewLike) => {
-    adoptThrottle(v);
-    void repaintProfilePickers();
+  window.sc.perf.onChanged((v: ThrottleViewLike) => adoptThrottle(v));
+
+  // Connection chip (top strip) → popover with today's connection-tile content.
+  $('#connection-chip')?.addEventListener('click', () => toggleConnectionPopover(paintConnection));
+
+  wireChevrons({
+    goPrev: () => {
+      if (state.view === 'configure') {
+        state.view = 'discover';
+        render();
+      }
+    },
+    goNext: () => {
+      if (state.view === 'discover') goToSetup();
+    },
+  });
+
+  installKeymap({
+    isTextInputFocused: () => {
+      const el = document.activeElement;
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
+    },
+    escHandlers: [
+      closeOptionsSheetIfOpen,
+      closeSettingsDialogIfOpen,
+      () => {
+        if (!isConnectionPopoverOpen()) return false;
+        closeConnectionPopover();
+        return true;
+      },
+      closeLogDrawer,
+      () => (state.view === 'done' ? DoneStep.cancelCountdown() : false),
+    ],
+    onEnter: () => {
+      if (state.view === 'discover') InstallStep.primaryAction();
+      else if (state.view === 'configure') SetupStep.primaryAction();
+      else if (state.view === 'run') ($('#btn-upload-now') as HTMLButtonElement | null)?.click();
+      else if (state.view === 'done') DoneStep.primaryAction();
+    },
+    onSpace: () => toggleUploadPauseResume(),
+    onToggleLog: () => {
+      if (state.view === 'run') toggleLogDrawer();
+    },
   });
 
   // Role decides whether the Configure view shows the update-channel picker.
@@ -295,8 +382,6 @@ async function init(): Promise<void> {
       if (ok) void doStartUpload();
     });
   });
-
-  void initTelemetryToggle();
 
   // Auto-update banner — subscribe + paint last known status (no-op on dev).
   window.sc.update.onEvent(onUpdateEvent);
@@ -325,17 +410,17 @@ async function init(): Promise<void> {
 /** Hand the tray its strings, resolved from the renderer's dictionary. */
 function pushTrayLabels(): void {
   window.sc.tray.setLabels({
-    open: t('tray.open', {}) || 'Fenster öffnen',
-    quit: t('tray.quit', {}) || 'Beenden',
-    pauseUpload: t('upload.job.pause', {}) || 'Pause',
-    resumeUpload: t('upload.job.resumeAction', {}) || 'Upload fortsetzen',
-    hiddenHint: t('tray.hiddenHint', {}) || 'Läuft im Tray weiter.',
-    idle: t('tray.idle', {}) || 'Bereit',
-    extract: t('tray.extract', {}) || 'Extraktion',
-    upload: t('tray.upload', {}) || 'Upload',
-    done: t('tray.done', {}) || 'fertig',
-    error: t('tray.error', {}) || 'fehlgeschlagen',
-    paused: t('upload.job.pauseShort', {}) || 'pausiert',
+    open: t('tray.open'),
+    quit: t('tray.quit'),
+    pauseUpload: t('upload.job.pause'),
+    resumeUpload: t('upload.job.resumeAction'),
+    hiddenHint: t('tray.hiddenHint'),
+    idle: t('tray.idle'),
+    extract: t('tray.extract'),
+    upload: t('tray.upload'),
+    done: t('tray.done'),
+    error: t('tray.error'),
+    paused: t('upload.job.pauseShort'),
   });
 }
 
@@ -343,7 +428,7 @@ function pushTrayLabels(): void {
  * Ask main whether the local data.p4k is newer than what the server holds and,
  * if so, drive the whole pipeline: select the channel → extract → upload.
  *
- * Deliberately reuses the existing manual path (`autoUpload` + `startRun`)
+ * Deliberately reuses the existing manual path (`buildRunPlan` + the Run view)
  * rather than a parallel "unattended" pipeline — one code path means the
  * automated run cannot silently diverge from the one that gets exercised daily.
  */
@@ -352,7 +437,7 @@ async function maybeAutoRun(): Promise<void> {
   // already paid for, and re-running would duplicate the work.
   await refreshJobView();
   if (state.resumableJob?.resumable) {
-    setStatus(t('autorun.resumeFirst', {}) || 'Unterbrochener Upload gefunden — Auto-Lauf übersprungen.');
+    setStatus(t('autorun.resumeFirst'));
     state.view = 'auth-upload';
     render();
     return;
@@ -394,24 +479,30 @@ async function maybeAutoRun(): Promise<void> {
     },
   ];
   state.scanned = true;
-  state.autoUpload = true; // extraction rolls straight into the upload
+  if (!state.settings) return;
   setStatus(
     t('autorun.starting', {
       channel: decision.channel.channel,
       local: decision.localVersion ?? '?',
       server: decision.serverVersion ?? '—',
-    }) ||
-      `Neue Version erkannt (${decision.channel.channel}: ${decision.localVersion} vs. ${decision.serverVersion ?? '—'}) — starte automatisch.`,
+    }),
   );
-  // Entering the Run view IS the trigger: `render()` → `wireRun()` →
-  // `runRealExtract()`, and `state.autoUpload` carries it into the upload.
-  state.view = 'run';
-  render();
+  // The unattended plan always rolls the extraction straight into the upload
+  // (when signed in) — see `buildRunPlan`. `startRun` is the single entry
+  // point into a run for both this (unattended) and the manual Setup path.
+  await startRun(
+    buildRunPlan({
+      unattended: true,
+      channel: decision.channel.channel,
+      settings: state.settings,
+      signedIn: Boolean(state.authToken),
+    }),
+  );
 }
 
 // ============= Web-connection tile (persistent across all views) =============
 
-interface ConnChannelState {
+export interface ConnChannelState {
   channel: string;
   patchVersion: string;
   buildNumber: string;
@@ -570,7 +661,7 @@ async function revalidateSession(force = false): Promise<void> {
   if (was && !next.connected && state.view === 'auth-upload') paintReconnectNotice();
 }
 
-async function connectNow(): Promise<void> {
+export async function connectNow(): Promise<void> {
   conn.error = null;
   setConnBusy(true);
   try {
@@ -580,7 +671,7 @@ async function connectNow(): Promise<void> {
       requireFreshLogin = false; // signed in this session
       await refreshConnection();
     } else {
-      conn.error = r.error ?? (t('session.connectFailed', {}) || 'Anmeldung fehlgeschlagen');
+      conn.error = r.error ?? (t('session.connectFailed'));
       paintConnection();
     }
   } finally {
@@ -641,25 +732,19 @@ function setConnBusy(busy: boolean): void {
 
 function relTime(unixSeconds: number): string {
   const deltaSec = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
-  if (deltaSec < 60) return t('sync.justNow', {}) || 'gerade eben';
+  if (deltaSec < 60) return t('sync.justNow');
   const mins = Math.floor(deltaSec / 60);
-  if (mins < 60) return t('sync.minutesAgo', { n: String(mins) }) || `vor ${mins} Min`;
+  if (mins < 60) return t('sync.minutesAgo', { n: String(mins) });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return t('sync.hoursAgo', { n: String(hours) }) || `vor ${hours} Std`;
+  if (hours < 24) return t('sync.hoursAgo', { n: String(hours) });
   const days = Math.floor(hours / 24);
-  return t('sync.daysAgo', { n: String(days) }) || `vor ${days} Tg`;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) =>
-    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;',
-  );
+  return t('sync.daysAgo', { n: String(days) });
 }
 
 function connErrorText(code: string): string {
-  if (code === 'reconnect') return t('session.expiredHint', {}) || 'Sitzung abgelaufen — bitte neu verbinden.';
-  if (code === 'not_connected') return t('session.offline', {}) || 'Nicht verbunden.';
-  if (code === 'sync_failed') return t('sync.failed', {}) || 'Sync fehlgeschlagen.';
+  if (code === 'reconnect') return t('session.expiredHint');
+  if (code === 'not_connected') return t('session.offline');
+  if (code === 'sync_failed') return t('sync.failed');
   return code;
 }
 
@@ -685,23 +770,36 @@ const IC_RING =
  * here so it is reachable on every screen (role-gated: admin→3, collab→2 rings).
  */
 function paintConnection(): void {
-  const mount = $('#connection-tile');
-  if (!mount) return;
   const s = conn.status;
   const snap = conn.snapshot;
 
   let pillCls = 'offline';
-  let pillText = t('session.offline', {}) || 'Nicht verbunden';
+  let pillText = t('session.offline');
   if (!conn.resolved) {
     pillCls = 'pending';
-    pillText = t('session.checking', {}) || 'Prüfe…';
+    pillText = t('session.checking');
   } else if (s?.connected) {
     pillCls = 'online';
-    pillText = t('session.connected', {}) || 'Verbunden';
+    pillText = t('session.connected');
   } else if (s?.needsReconnect) {
     pillCls = 'warn';
-    pillText = t('session.expired', {}) || 'Sitzung abgelaufen';
+    pillText = t('session.expired');
   }
+
+  // Compact top-strip chip: dot + short identity + first server chip. Always
+  // painted, independent of whether the detail popover is open.
+  const chip = $('#connection-chip');
+  if (chip) {
+    const who = s?.connected ? escapeHtml(s.email ?? '') : pillText;
+    const serverBit = snap?.channels[0]
+      ? ` · ${escapeHtml(snap.channels[0].channel.toUpperCase())} v${escapeHtml(snap.channels[0].patchVersion)}`
+      : '';
+    chip.innerHTML = `<span class="conn-dot conn-dot--${pillCls}"></span> ${who}${serverBit}`;
+  }
+
+  // Detail body only exists while the popover is open (see connection-popover.ts).
+  const mount = document.getElementById('connection-popover-body');
+  if (!mount) return;
 
   // Left cluster: email when signed in, otherwise a short state + connect CTA.
   let idBlock: string;
@@ -709,8 +807,8 @@ function paintConnection(): void {
     idBlock = `<span class="conn-email" title="${escapeHtml(s.email ?? '')}">${escapeHtml(s.email ?? '')}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
-      ? t('session.reconnect', {}) || 'Neu verbinden'
-      : t('session.connect', {}) || 'Mit Web verbinden';
+      ? t('session.reconnect')
+      : t('session.connect');
     idBlock = `<span class="conn-state">${pillText}</span>
         <button id="conn-connect" type="button" class="btn btn-primary btn-sm">${label}</button>`;
   } else {
@@ -730,49 +828,35 @@ function paintConnection(): void {
       serverBlock = `
         <span class="conn-div" aria-hidden="true"></span>
         <span class="conn-srv-ico" aria-hidden="true">${IC_CLOUD}</span>
-        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty', {}) || 'Noch keine Bundles auf dem Server.'}</span>`}</div>
-        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) }) || `aktualisiert ${relTime(snap.syncedAt)}`}</span>`;
+        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty')}</span>`}</div>
+        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) })}</span>`;
     } else {
       serverBlock = `
         <span class="conn-div" aria-hidden="true"></span>
-        <span class="conn-fresh">${t('sync.idle', {}) || 'Bereit zu synchronisieren.'}</span>`;
+        <span class="conn-fresh">${t('sync.idle')}</span>`;
     }
   }
 
-  // Right cluster: ring picker (role-gated) + refresh + sign-out icon buttons.
+  // Right cluster: refresh + sign-out icon buttons. The update-ring picker
+  // moved into the ⚙ Settings dialog (role-gated there, --sc-accent-hot).
   let actions = '';
   if (s?.connected) {
-    const rings = allowedChannels();
-    let ring = '';
-    if (rings.length >= 2) {
-      const cur = state.settings?.updateChannel ?? 'stable';
-      const opts = rings
-        .map(
-          (c) =>
-            `<option value="${c}" ${c === cur ? 'selected' : ''}>${t('settings.updateChannel.' + c, {}) || c}</option>`,
-        )
-        .join('');
-      ring = `<span class="conn-ring" title="${t('settings.updateChannel.hint', {}) || 'Welchem Release-Ring automatische Updates folgen.'}">
-          <span class="conn-ring-ico" aria-hidden="true">${IC_RING}</span>
-          <select id="conn-ring" aria-label="${t('settings.updateChannel.label', {}) || 'Update-Channel'}">${opts}</select>
-        </span>`;
-    }
-    actions = `${ring}
-      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh', {}) || 'Aktualisieren'}" aria-label="${t('sync.refresh', {}) || 'Aktualisieren'}">${IC_REFRESH}</button>
-      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut', {}) || 'Abmelden'}" aria-label="${t('session.signOut', {}) || 'Abmelden'}">${IC_LOGOUT}</button>`;
+    actions = `
+      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh')}" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
+      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut')}" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
   }
 
   // A running sync replaces the middle with a thin labelled progress bar.
   const syncBar = conn.syncing
     ? `<div class="conn-syncbar">
-        <div class="conn-syncbar-head"><span>${t('sync.syncing', {}) || 'Synchronisiere Server-Stand…'}</span><span class="conn-pct">${conn.syncPct}%</span></div>
+        <div class="conn-syncbar-head"><span>${t('sync.syncing')}</span><span class="conn-pct">${conn.syncPct}%</span></div>
         <div class="progress-bar"><span style="width:${conn.syncPct}%"></span></div>
       </div>`
     : '';
 
   const persistNote =
     s && !s.canPersist
-      ? `<div class="conn-persist-note">${t('session.noPersist', {}) || 'Hinweis: Kein OS-Schlüsselspeicher — Sitzung gilt nur bis zum Schließen.'}</div>`
+      ? `<div class="conn-persist-note">${t('session.noPersist')}</div>`
       : '';
   const errorRow = conn.error ? `<div class="conn-error">${escapeHtml(connErrorText(conn.error))}</div>` : '';
 
@@ -794,12 +878,6 @@ function paintConnection(): void {
   $('#conn-connect')?.addEventListener('click', () => void connectNow());
   $('#conn-signout')?.addEventListener('click', () => void signOutNow());
   $('#conn-sync')?.addEventListener('click', () => void autoSync());
-  ($('#conn-ring') as HTMLSelectElement | null)?.addEventListener('change', (e) => {
-    const value = (e.target as HTMLSelectElement).value as 'alpha' | 'beta' | 'stable';
-    void window.sc.settings.patch({ updateChannel: value }).then((st) => {
-      state.settings = st;
-    });
-  });
 }
 
 type UpdateEvent =
@@ -855,21 +933,19 @@ function onUpdateEvent(ev: UpdateEvent): void {
 // Markup for the dismissible "new version available" banner on the Discover
 // screen. Caller decides whether to render it (state.manualUpdate set + not
 // dismissed).
-function renderDiscoverUpdateBanner(): string {
+export function renderDiscoverUpdateBanner(): string {
   const u = state.manualUpdate;
   if (!u) return '';
-  const msg =
-    t('update.manual', { version: u.latestVersion }) ||
-    `Neue Version v${u.latestVersion} verfügbar — Portable kann sich nicht selbst updaten, bitte manuell laden.`;
+  const msg = t('update.manual', { version: u.latestVersion });
   return `
     <div class="discover-update" id="discover-update">
       <span class="discover-update-text">${escapeHtml(msg)}</span>
-      <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload', {}) || 'Download-Seite öffnen'}</button>
-      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss', {}) || 'Schließen'}">✕</button>
+      <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload')}</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss')}">✕</button>
     </div>`;
 }
 
-function wireDiscoverUpdateBanner(): void {
+export function wireDiscoverUpdateBanner(): void {
   $('#du-download')?.addEventListener('click', () => void window.open(DOWNLOAD_PAGE_URL));
   $('#du-dismiss')?.addEventListener('click', () => {
     state.manualUpdateDismissed = true;
@@ -911,25 +987,22 @@ function paintUpdateBanner(ev: UpdateEvent): void {
       banner.classList.add('hidden');
       return;
     case 'available':
-      text.textContent =
-        (t('update.available', { version: ev.version }) || `Update verfügbar: v${ev.version} — wird im Hintergrund geladen…`);
+      text.textContent = t('update.available', { version: ev.version });
       banner.classList.remove('hidden');
       return;
     case 'progress':
-      text.textContent =
-        (t('update.progress', { pct: String(ev.pct) }) || `Update wird geladen: ${ev.pct}%`);
+      text.textContent = t('update.progress', { pct: String(ev.pct) });
       banner.classList.remove('hidden');
       return;
     case 'downloaded':
-      text.textContent =
-        (t('update.downloaded', { version: ev.version }) || `Update v${ev.version} bereit — bitte App neu starten.`);
-      action.textContent = t('update.install', {}) || 'Jetzt installieren';
+      text.textContent = t('update.downloaded', { version: ev.version });
+      action.textContent = t('update.install');
       action.style.display = 'inline-flex';
       action.onclick = () => void window.sc.update.install();
       banner.classList.remove('hidden');
       return;
     case 'error':
-      text.textContent = (t('update.error', { message: ev.message }) || `Update-Fehler: ${ev.message}`);
+      text.textContent = t('update.error', { message: ev.message });
       banner.classList.remove('hidden');
       banner.classList.add('update-banner-error');
       return;
@@ -955,26 +1028,6 @@ function applyBranding(): void {
   link.href = href;
 }
 
-// Telemetry opt-out toggle in the status bar. Crash reporting is ON by default;
-// unchecking it disables all telemetry sends (persisted in the main process).
-async function initTelemetryToggle(): Promise<void> {
-  const box = $('#telemetry-checkbox') as HTMLInputElement | null;
-  const label = $('#telemetry-label');
-  const wrap = $('#telemetry-toggle');
-  if (!box) return;
-  if (label) label.textContent = t('telemetry.toggle', {}) || 'Fehlerberichte senden';
-  if (wrap) wrap.title = t('telemetry.hint', {}) || 'Sendet anonyme Absturzberichte, um Fehler zu beheben.';
-  try {
-    const { telemetryEnabled } = await window.sc.settings.get();
-    box.checked = telemetryEnabled;
-  } catch {
-    box.checked = true;
-  }
-  box.addEventListener('change', () => {
-    void window.sc.settings.setTelemetry(box.checked);
-  });
-}
-
 function paintEnv(env: ToolEnv): void {
   const vtag = $('#version-tag');
   if (vtag) vtag.textContent = `v${env.toolVersion}`;
@@ -982,9 +1035,13 @@ function paintEnv(env: ToolEnv): void {
   if (env_line) env_line.textContent = `${env.platform} · ${env.releaseTokenFingerprint}`;
 }
 
-function setStatus(msg: string): void {
-  const el = $('#status-line');
-  if (el) el.textContent = msg;
+export function setStatus(msg: string): void {
+  setBottomStatus(msg);
+}
+
+/** True once a run (extract or upload) is live — gates the chevrons + Back. */
+function runIsLive(): boolean {
+  return state.view === 'run' || state.view === 'auth-upload' || state.view === 'done';
 }
 
 function render(): void {
@@ -994,14 +1051,31 @@ function render(): void {
   // session (both throttled), so a stale login is caught before the user acts.
   maybeAutoCheckUpdate();
   void revalidateSession();
+
+  const step = viewToStep(state.view);
+  paintStepRail({ current: step, activePct: lastOverallPct });
+  paintChevrons(step, runIsLive());
+  paintConnection();
+
+  // Direction-aware slide: `.step-enter` is re-applied (remove → reflow →
+  // add) on every render so the 200 ms entrance animation restarts, sliding
+  // "back" when the new step is earlier in STEP_ORDER.
+  const stepIdx = STEP_ORDER.indexOf(step);
+  const goingBack = stepIdx < lastStepIdx;
+  lastStepIdx = stepIdx;
+  app.classList.remove('step-enter', 'dir-back');
+  void app.offsetWidth; // restart the animation
+  app.classList.add('step-enter');
+  if (goingBack) app.classList.add('dir-back');
+
   switch (state.view) {
     case 'discover':
-      app.innerHTML = renderDiscover();
-      wireDiscover();
+      app.innerHTML = InstallStep.renderInstall();
+      InstallStep.wireInstall();
       break;
     case 'configure':
-      app.innerHTML = renderConfigure();
-      wireConfigure();
+      app.innerHTML = SetupStep.renderSetup();
+      SetupStep.wireSetup();
       break;
     case 'run':
       app.innerHTML = renderRun();
@@ -1011,144 +1085,72 @@ function render(): void {
       app.innerHTML = renderAuthUpload();
       wireAuthUpload();
       break;
+    case 'done':
+      app.innerHTML = DoneStep.renderDone();
+      DoneStep.wireDone();
+      break;
   }
 }
 
-// ============= View: Discover =============
+/** Overall extract/upload percentage, mirrored for the step-rail's fill segment. */
+let lastOverallPct = 0;
+/** Previous step index — drives the slide direction (forward vs. back). */
+let lastStepIdx = 0;
 
-function renderDiscover(): string {
-  const updateBanner =
-    state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
-  return `
-    <div class="view">
-      ${updateBanner}
-      <h1>${t('discover.title', {}) || 'Star-Citizen-Installations finden'}</h1>
-      <p class="view-intro">${t('discover.subtitle', {}) || 'Cascade läuft automatisch: RSI-Launcher → Filesystem-Scan → optional manuell.'}</p>
-      <div id="channels-mount" class="view-body"></div>
-      <div class="btn-row view-footer" id="discover-next" style="display:none;">
-        <button id="btn-to-configure" class="btn btn-primary">${t('discover.next', {}) || 'Weiter → Konfiguration'}</button>
-      </div>
-    </div>
-  `;
+/**
+ * The ONLY entry point into a run — called by the Setup step's Start button
+ * AND by `maybeAutoRun`. Never a side effect of rendering: `render()` just
+ * mounts the Extract card; the actual sidecar spawn happens right after, once
+ * the DOM it paints into exists.
+ */
+export async function startRun(plan: RunPlan): Promise<void> {
+  state.runPlan = plan;
+  state.whenDone = plan.whenDone;
+  state.view = 'run';
+  render();
+  await runRealExtract();
 }
 
-function wireDiscover(): void {
-  wireDiscoverUpdateBanner();
-  $('#btn-to-configure')?.addEventListener('click', () => {
-    state.view = 'configure';
-    render();
-  });
-
-  // No "start scan" button: the scan kicks off automatically the first time the
-  // Discover view mounts (i.e. on app start). Coming back to this view keeps the
-  // earlier results — including any folders the operator added by hand.
-  if (!state.scanned && !state.scanning) {
-    void autoScan();
-  } else {
-    paintChannels();
-  }
+/** Done step's "Neuen Lauf starten" — back to Install with run state reset. */
+export function resetForNewRun(): void {
+  state.lastResult = null;
+  state.extractDone = false;
+  state.skinResult = null;
+  state.skinUploadStatus = null;
+  state.runPlan = null;
+  state.whenDone = 'nothing';
+  state.view = 'discover';
+  render();
 }
 
-async function autoScan(): Promise<void> {
-  state.scanning = true;
-  paintChannels(); // shows the loading animation in the lower part
-  setStatus('discovering…');
-  try {
-    const found = await window.sc.discover();
-    state.channels = found.map((c) => ({ ...c, selected: true }));
-    setStatus(`found ${found.length} channel(s)`);
-  } catch {
-    setStatus('scan failed');
-  } finally {
-    state.scanning = false;
-    state.scanned = true;
-    paintChannels();
-  }
+// ============= Install/Setup step helpers (used by steps/install.ts + steps/setup.ts) =============
+
+/** Navigate to the Setup step — the Install step's primary/secondary CTA. */
+export function goToSetup(): void {
+  state.view = 'configure';
+  render();
 }
 
-// Big "add a folder" button under the version list — lets the operator pull in
-// installs the auto-scan missed (custom drive, moved library, PTU on another disk).
-async function addManualFolder(): Promise<void> {
-  const folder = await window.sc.pickFolder();
-  if (!folder) return;
-  const ch = await window.sc.discoverManual(folder);
-  if (!ch) {
-    setStatus('no Data.p4k in selected folder');
-    return;
-  }
-  if (state.channels.some((c) => c.dataP4kPath === ch.dataP4kPath)) return;
-  state.channels.push({ ...ch, selected: true });
-  paintChannels();
+export function isConnected(): boolean {
+  return Boolean(conn.status?.connected);
 }
 
-function paintChannels(): void {
-  const mount = $('#channels-mount');
-  const nextRow = $('#discover-next');
-  if (!mount) return;
+export function connSnapshotFor(channel: string): ConnChannelState | null {
+  const tag = channel.toLowerCase();
+  return conn.snapshot?.channels.find((c) => c.channel.toLowerCase() === tag) ?? null;
+}
 
-  // While the auto-scan runs, show a small spinner in the lower part instead of
-  // an empty page — no buttons, no "next" row yet.
-  if (state.scanning) {
-    mount.innerHTML = `
-      <div class="scan-loading">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>${t('discover.scanning', {}) || 'Suche nach Installationen…'}</span>
-      </div>`;
-    if (nextRow) nextRow.style.display = 'none';
-    return;
-  }
-
-  const hasChannels = state.channels.length > 0;
-  // Found installs render as a horizontal card track; the manual-add tile rides
-  // at the end of the same track so "add by hand" is always reachable.
-  const cards = state.channels
-    .map(
-      (c, i) => `
-      <label class="channel-card ${c.selected ? 'selected' : ''}" data-card="${i}">
-        <div class="channel-card-top">
-          <span class="channel-pill ${c.channel}">${c.channel}</span>
-          <input type="checkbox" data-idx="${i}" ${c.selected ? 'checked' : ''} />
-        </div>
-        <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
-        <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
-      </label>
-    `,
-    )
-    .join('');
-
-  const empty = hasChannels
-    ? ''
-    : `<p class="discover-empty">${t('discover.none', {}) || 'Keine Installation automatisch gefunden — füge rechts einen Ordner manuell hinzu.'}</p>`;
-
-  mount.innerHTML = `
-    <div class="channel-track">
-      ${cards}
-      ${empty}
-      <button id="btn-manual" type="button" class="channel-add-card">＋ ${t('discover.addManual', {}) || 'Ordner manuell hinzufügen'}</button>
-    </div>
-  `;
-
-  mount.querySelectorAll('input[type=checkbox]').forEach((el) => {
-    el.addEventListener('change', (e) => {
-      const idx = Number((e.target as HTMLInputElement).dataset['idx']);
-      if (!Number.isInteger(idx)) return;
-      const ch = state.channels[idx];
-      if (ch) {
-        ch.selected = (e.target as HTMLInputElement).checked;
-        mount.querySelector(`.channel-card[data-card="${idx}"]`)?.classList.toggle('selected', ch.selected);
-      }
-    });
-  });
-  $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
-
-  if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
+/** The Install step's "Fortsetzen" resumable-job action — jumps into Upload. */
+export async function jumpToResumeUpload(): Promise<void> {
+  state.view = 'auth-upload';
+  render();
+  if (await ensureResultForResume()) void doResumeUpload();
 }
 
 // ============= View: Configure =============
 
 /** Channels the current role may pick (highest first). Empty = no picker. */
-function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
+export function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
   switch (state.role) {
     case 'admin':
       return ['alpha', 'beta', 'stable'];
@@ -1162,83 +1164,42 @@ function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
 // The update-channel picker moved out of Configure into the always-visible
 // connection bar (see paintConnection). `allowedChannels()` above is shared.
 
-function renderConfigure(): string {
+/** Small "armed" chip shown on Setup/Run/Upload while a when-done choice is live. */
+export function armedChipHtml(): string {
+  const wd = state.runPlan?.whenDone ?? state.whenDone;
+  if (wd === 'nothing') return '';
   return `
-    <div class="view">
-      <h1>${t('configure.title', {}) || 'Profil wählen'}</h1>
-      <p class="view-intro">${t('configure.subtitle', {}) || 'Live umschaltbar — du kannst während des Laufs wechseln.'}</p>
-      <div class="profiles view-body" id="profiles-mount"></div>
-      <p class="throttle-status" id="profiles-mount-status" style="display:none;"></p>
-      <label class="auto-upload-toggle" title="${t('configure.autoUploadHint', {}) || 'Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).'}">
-        <input type="checkbox" id="chk-auto-upload" ${state.autoUpload ? 'checked' : ''} />
-        <span>${t('configure.autoUpload', {}) || 'Nach der Extraktion automatisch hochladen'}</span>
-      </label>
-      <label class="auto-upload-toggle" title="${t('tray.minimizeHint', {}) || 'Das X schließt das Fenster in den Tray, statt das Programm zu beenden.'}">
-        <input type="checkbox" id="chk-minimize-tray" ${state.settings?.minimizeToTray ? 'checked' : ''} />
-        <span>${t('tray.minimize', {}) || 'Beim Schließen in den Tray minimieren'}</span>
-      </label>
-      <label class="auto-upload-toggle" title="${t('tray.autoStartHint', {}) || 'Startet das Programm mit Windows — direkt im Tray, ohne Fenster.'}">
-        <input type="checkbox" id="chk-autostart" ${state.settings?.autoStart ? 'checked' : ''} />
-        <span>${t('tray.autoStart', {}) || 'Mit Windows starten'}</span>
-      </label>
-      <label class="auto-upload-toggle sub" title="${t('tray.quitAfterAutoRunHint', {}) || 'Gilt nur für den Start mit Windows: ist der aktuelle Patch schon vollständig hochgeladen, beendet sich das Programm sofort wieder — und nach einem Upload, sobald der fertig ist.'}">
-        <input
-          type="checkbox"
-          id="chk-quit-after-autorun"
-          ${state.settings?.quitAfterAutoRun ? 'checked' : ''}
-          ${state.settings?.autoStart ? '' : 'disabled'}
-        />
-        <span>${t('tray.quitAfterAutoRun', {}) || 'Danach automatisch beenden, wenn nichts zu tun ist'}</span>
-      </label>
-      <label class="auto-upload-toggle" title="${t('autorun.hint', {}) || 'Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.'}">
-        <input type="checkbox" id="chk-autorun" ${state.settings?.autoRunOnNewVersion ? 'checked' : ''} />
-        <span>${t('autorun.toggle', {}) || 'Bei neuer data.p4k-Version automatisch komplett durchlaufen'}</span>
-      </label>
-      <div class="btn-row view-footer">
-        <button id="btn-back-discover" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-        <button id="btn-start-run" class="btn btn-primary">${t('configure.start', {}) || 'Extraktion starten'}</button>
-      </div>
-    </div>
-  `;
+    <span class="armed-chip" id="armed-chip" title="${t('run.whenDone.' + wd)}">
+      ⏻ ${t('run.whenDone.' + wd)}
+      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" title="${t('run.whenDone.disarm')}">✕</button>
+    </span>`;
 }
 
-function wireConfigure(): void {
-  void renderProfiles();
-  ($('#chk-auto-upload') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    state.autoUpload = (e.target as HTMLInputElement).checked;
-  });
-  // The three persisted preferences below live in main (tray behaviour and the
-  // OS login item are main-process concerns), so each write goes through IPC and
-  // we re-cache whatever main reports back as the truth.
-  const persist = async (partial: Record<string, boolean>): Promise<void> => {
-    state.settings = await window.sc.settings.patch(partial);
-  };
-  ($('#chk-minimize-tray') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    void persist({ minimizeToTray: (e.target as HTMLInputElement).checked });
-  });
-  ($('#chk-autostart') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    // Re-render: the "quit when done" box below only applies to an autostart, so
-    // it follows this one in and out of being usable.
-    void persist({ autoStart: (e.target as HTMLInputElement).checked }).then(() => render());
-  });
-  ($('#chk-quit-after-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    void persist({ quitAfterAutoRun: (e.target as HTMLInputElement).checked });
-  });
-  ($('#chk-autorun') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    void persist({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
-  });
-  $('#btn-back-discover')?.addEventListener('click', () => {
-    state.view = 'discover';
-    render();
-  });
-  $('#btn-start-run')?.addEventListener('click', () => {
-    state.view = 'run';
-    render();
+export function wireArmedChip(): void {
+  $('#armed-chip-disarm')?.addEventListener('click', () => {
+    state.whenDone = 'nothing';
+    if (state.runPlan) state.runPlan = { ...state.runPlan, whenDone: 'nothing' };
+    $('#armed-chip')?.remove();
   });
 }
 
-async function renderProfiles(): Promise<void> {
-  await paintProfilePicker('#profiles-mount', { compact: false });
+/** Wraps `openSettingsDialog` with the renderer's live context. */
+export function openAppSettingsDialog(): void {
+  openSettingsDialog({
+    getSettings: () => state.settings,
+    patch: (partial) => window.sc.settings.patch(partial),
+    setTelemetry: (enabled) => window.sc.settings.setTelemetry(enabled),
+    getRole: () => state.role,
+    allowedChannels,
+    onSettingsChanged: (next) => {
+      state.settings = next;
+    },
+    onLocaleChanged: () => {
+      render();
+      paintConnection();
+      pushTrayLabels();
+    },
+  });
 }
 
 // ============= Live performance switch =============
@@ -1250,86 +1211,24 @@ async function renderProfiles(): Promise<void> {
 // views (compact), all writing through `applyProfile`, and main pushes the new
 // profile into the running sidecar.
 
-/** The single write path for the profile — main is the source of truth. */
-async function applyProfile(next: LiveProfile, statusSel?: string): Promise<void> {
+/**
+ * The single write path for the profile — main is the source of truth.
+ * Returns a human status message (applied / armed / unsupported) for the
+ * caller (the throttle chip) to route to the bottom-strip snackbar — never
+ * paints a DOM status line itself, unlike the old per-view pickers.
+ */
+export async function applyProfile(next: LiveProfile): Promise<{ message: string } | null> {
   let result: ThrottleViewLike;
   try {
     result = await window.sc.perf.set(next);
   } catch {
     // A failed switch must not leave the UI showing a mode that is not in
-    // effect — re-read main's truth and repaint from that.
+    // effect — re-read main's truth.
     await refreshProfileFromMain();
-    return;
+    return null;
   }
   adoptThrottle(result);
-  await repaintProfilePickers();
-  if (statusSel) paintThrottleStatus(statusSel, result);
-}
-
-function adoptThrottle(v: ThrottleViewLike): void {
-  state.profile = v.profile;
-  state.throttleSupported = v.supported;
-}
-
-async function refreshProfileFromMain(): Promise<void> {
-  try {
-    adoptThrottle(await window.sc.perf.get());
-  } catch {
-    /* keep the last known mirror — the picker still works, it just may lag */
-  }
-  await repaintProfilePickers();
-}
-
-/** Repaint every picker currently in the DOM (only one view is mounted at a time). */
-async function repaintProfilePickers(): Promise<void> {
-  await paintProfilePicker('#profiles-mount', { compact: false });
-  await paintProfilePicker('#run-throttle-mount', { compact: true });
-  await paintProfilePicker('#upload-throttle-mount', { compact: true });
-}
-
-async function paintProfilePicker(sel: string, opts: { compact: boolean }): Promise<void> {
-  const mount = $(sel);
-  if (!mount) return;
-  const { profiles } = await window.sc.profiles();
-  const selectedSize = state.channels
-    .filter((c) => c.selected)
-    .reduce((sum, c) => sum + c.sizeBytes, 0);
-  const lang = getLocale();
-  const statusSel = `${sel}-status`;
-  const entries = await Promise.all(
-    (Object.values(profiles) as ProfileDefLike[]).map(async (p) => {
-      const label = (p.label as Record<string, string>)[lang] ?? p.label.en;
-      const desc = (p.description as Record<string, string>)[lang] ?? p.description.en;
-      const active = p.id === state.profile ? 'active' : '';
-      // The ETA is a start-time estimate for a whole run — showing it next to a
-      // job that is already half done would be a lie, so the compact (mid-run)
-      // pills drop it instead of restating it.
-      const eta = opts.compact
-        ? ''
-        : `<span class="eta">~ ${(await window.sc.estimate(p.id as LiveProfile, selectedSize)).formatted}</span>`;
-      return `
-        <div class="profile-pill ${opts.compact ? 'compact' : ''} ${active}" data-profile="${p.id}" tabindex="0" role="button" aria-pressed="${active ? 'true' : 'false'}">
-          <span class="name">${label}</span>
-          ${opts.compact ? '' : `<span class="desc">${desc}</span>`}
-          ${eta}
-        </div>`;
-    }),
-  );
-  mount.innerHTML = entries.join('');
-  mount.querySelectorAll('.profile-pill').forEach((el) => {
-    const select = (): void => {
-      const id = (el as HTMLElement).dataset['profile'] as LiveProfile | undefined;
-      if (id) void applyProfile(id, statusSel);
-    };
-    el.addEventListener('click', select);
-    el.addEventListener('keydown', (e) => {
-      const ke = e as KeyboardEvent;
-      if (ke.key === 'Enter' || ke.key === ' ') {
-        if (ke.key === ' ') ke.preventDefault();
-        select();
-      }
-    });
-  });
+  return { message: throttleStatusMessage(result) };
 }
 
 /**
@@ -1339,167 +1238,136 @@ async function paintProfilePicker(sel: string, opts: { compact: boolean }): Prom
  * them into one cheerful "saved" would be the failure mode where they trust a
  * throttle that never happened and go play anyway.
  */
-function paintThrottleStatus(sel: string, v: ThrottleViewLike): void {
-  const el = $(sel);
-  if (!el) return;
-  let msg: string;
-  if (!v.supported) {
-    msg = t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.';
-  } else if ((v.applied ?? 0) > 0) {
-    msg = t('configure.speed.applied', {}) || 'Modus geändert — wirkt ab der nächsten Datei.';
-  } else if (v.liveJobs > 0) {
-    msg = t('configure.speed.appliedPartly', {}) || 'Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Log).';
-  } else {
-    msg = t('configure.speed.armed', {}) || 'Modus gesetzt — er gilt, sobald ein Lauf startet.';
-  }
-  el.textContent = msg;
-  el.style.display = 'block';
+export function throttleStatusMessage(v: ThrottleViewLike): string {
+  if (!v.supported) return t('configure.speed.unsupported');
+  if ((v.applied ?? 0) > 0) return t('configure.speed.applied');
+  if (v.liveJobs > 0) return t('configure.speed.appliedPartly');
+  return t('configure.speed.armed');
 }
 
-/** The compact mid-run switch, mounted on the Run and Upload views. */
-function throttleBarHtml(id: string): string {
-  return `
-    <div class="throttle-bar" id="${id}">
-      <div class="throttle-head">
-        <span class="throttle-title">${t('configure.speed.title', {}) || 'Geschwindigkeit'}</span>
-        <span class="throttle-hint">${t('configure.speed.hint', {}) || 'Jederzeit umschaltbar — auch mitten im Lauf.'}</span>
-      </div>
-      <div class="profiles compact" id="${id}-mount"></div>
-      <p class="throttle-status" id="${id}-mount-status" style="display:none;"></p>
-      <p class="throttle-note">${t('configure.speed.scopePinned', {}) || 'Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich.'}</p>
-      ${
-        state.throttleSupported
-          ? ''
-          : `<p class="throttle-note warn">${t('configure.speed.unsupported', {}) || 'Auf dieser Plattform lässt sich die Priorität nicht live ändern.'}</p>`
-      }
-    </div>
-  `;
+function adoptThrottle(v: ThrottleViewLike): void {
+  state.profile = v.profile;
+  state.throttleSupported = v.supported;
+}
+
+export async function refreshProfileFromMain(): Promise<void> {
+  try {
+    adoptThrottle(await window.sc.perf.get());
+  } catch {
+    /* keep the last known mirror — the chip still works, it just may lag */
+  }
 }
 
 // ============= View: Run (Phase 1 stub UI) =============
 
 function renderRun(): string {
   return `
-    <div class="view">
-      <h1>${t('run.title', {}) || 'Extraktion läuft'}</h1>
-      ${throttleBarHtml('run-throttle')}
-      <div class="run-grid view-body">
-        <section class="card run-main">
-          ${progressCardHtml('run-progress', runSteps())}
-        </section>
-        <section class="card run-log">
-          <div class="log-header">
-            <span class="log-title">${t('run.logTitle', {}) || 'Protokoll'}</span>
-            <button id="btn-copy-log" type="button" class="btn btn-copy">${t('run.copyLog', {}) || 'Kopieren'}</button>
+    <div class="view step-run">
+      <section class="card run-card">
+        <div class="run-card-head">
+          <h1>${t('run.title')} ${armedChipHtml()}</h1>
+          ${throttleChipHtml(state.profile === 'auto' ? 'standard' : state.profile)}
+        </div>
+        ${progressCardHtml('run-progress', runSteps())}
+        ${categoryBarsHtml()}
+        <div class="log-line-row">
+          <div class="log-lastline" id="log-lastline"></div>
+          <button type="button" id="log-drawer-toggle" class="btn-link" title="${t('run.logTitle')} (Ctrl+L)">${t('run.logTitle')} <kbd class="sc-kbd">Ctrl+L</kbd></button>
+        </div>
+        <div class="log-drawer" id="log-drawer" hidden>
+          <div class="log-drawer-head">
+            <span class="log-title">${t('run.logTitle')}</span>
+            <button id="log-drawer-copy" type="button" class="btn btn-copy">${t('run.copyLog')}</button>
           </div>
-          <div class="log-stream" id="log"></div>
-        </section>
-      </div>
+          <div class="log-stream" id="log-drawer-body"></div>
+        </div>
+      </section>
       <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
-      <div class="btn-row view-footer">
-        <button id="btn-back-configure" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-        <button id="btn-to-upload" class="btn btn-primary" disabled>${t('run.next', {}) || 'Upload anbieten'}</button>
+      <div class="btn-row view-footer" id="run-footer">
+        <button id="btn-cancel-extract" class="btn btn-danger-ghost">${t('run.cancel')}</button>
       </div>
     </div>
   `;
 }
 
-// Flip the Run footer into a clear "bundle is ready — upload now" state once the
-// extraction succeeds, so the affordance reads as a positive call-to-action
-// rather than a button that silently un-disables.
+// Flip the Run footer into a clear "bundle is ready" state once the
+// extraction succeeds. When the plan asked for an automatic upload, that
+// transition already happens on its own (see `runRealExtract`) — this only
+// adds a CTA for the "extract only" case, requiring a session before it lets
+// the operator continue (connects first if none is live yet).
 function markBundleReady(): void {
-  const btn = $('#btn-to-upload') as HTMLButtonElement | null;
-  if (btn) {
-    btn.removeAttribute('disabled');
-    btn.classList.add('btn-ready');
-    btn.textContent = `✓ ${t('run.bundleReadyCta', {}) || 'Bundle fertig — jetzt hochladen'}`;
-  }
   const note = $('#run-ready-note');
   if (note) {
-    note.textContent = t('run.bundleReady', {}) || 'Extraktion abgeschlossen — das Bundle ist bereit zum Upload.';
+    note.textContent = t('run.bundleReady');
     note.style.display = 'block';
   }
+  markCategoriesComplete();
+  if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
+  const footer = $('#run-footer');
+  if (!footer || $('#btn-upload-now')) return;
+  const btn = document.createElement('button');
+  btn.id = 'btn-upload-now';
+  btn.type = 'button';
+  btn.className = 'btn btn-primary btn-ready';
+  btn.innerHTML = `✓ ${t('run.bundleReadyCta')} <kbd class="sc-kbd">Enter</kbd>`;
+  btn.addEventListener('click', () => void goToUploadNow());
+  footer.appendChild(btn);
+}
+
+/** "Jetzt hochladen" on a bundle-ready Extract card without auto-upload — needs a session first. */
+async function goToUploadNow(): Promise<void> {
+  if (!state.authToken) {
+    const token = await ensureUploadToken();
+    if (!token) return;
+  }
+  state.view = 'auth-upload';
+  render();
 }
 
 function wireRun(): void {
-  // Mounted BEFORE the extraction kicks off, and never disabled while it runs —
-  // being able to throttle down mid-run is the entire point of this control.
-  void paintProfilePicker('#run-throttle-mount', { compact: true });
-  $('#btn-back-configure')?.addEventListener('click', () => {
+  wireArmedChip();
+  wireLogDrawer();
+  wireThrottleChip({
+    getProfile: () => state.profile,
+    getLocale: () => getLocale(),
+    applyProfile: (next) => applyProfile(next),
+    onMessage: (msg) => showSnackbar(msg),
+  });
+  $('#btn-cancel-extract')?.addEventListener('click', () => {
     void (async () => {
-      const ok = await confirmLeave(
-        extractRunning,
-        'confirm.leave.extract',
-        'Die Extraktion läuft noch. Gehst du zurück, wird sie abgebrochen und der Fortschritt geht verloren.',
-      );
+      const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
       if (!ok) return;
-      // Actually abort the sidecar so it isn't orphaned running in the background.
       if (currentExtractJobId) {
         try {
           await window.sc.extract.cancel(currentExtractJobId);
         } catch {
-          /* best-effort — navigate away regardless */
+          /* best-effort */
         }
       }
       state.view = 'configure';
       render();
     })();
   });
-  $('#btn-to-upload')?.addEventListener('click', () => {
-    state.view = 'auth-upload';
-    render();
-  });
-  $('#btn-copy-log')?.addEventListener('click', () => void copyLog());
-  void runRealExtract();
-}
-
-async function copyLog(): Promise<void> {
-  const btn = $('#btn-copy-log') as HTMLButtonElement | null;
-  if (!btn) return;
-  const reset = (): void => {
-    btn.classList.remove('copied', 'copy-failed');
-    btn.textContent = t('run.copyLog', {}) || 'Kopieren';
-  };
-  try {
-    await window.sc.clipboard.writeText(extractLogText);
-    btn.classList.remove('copy-failed');
-    btn.classList.add('copied');
-    btn.textContent = t('run.copied', {}) || 'Kopiert ✓';
-  } catch {
-    btn.classList.remove('copied');
-    btn.classList.add('copy-failed');
-    btn.textContent = t('run.copyFailed', {}) || 'Fehlgeschlagen';
-  }
-  setTimeout(reset, 1600);
 }
 
 async function runRealExtract(): Promise<void> {
-  const logEl = $('#log');
   const progress = mountProgress('run-progress', {
     counterLabel,
     steps: runSteps(),
     labels: progressLabels(),
     stepLabel: stepCounterLabel,
   });
-  const appendLog = (msg: string, level: LogLevel = 'info') => {
-    const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
-    const text = prefix + msg;
-    extractLogText += text + '\n';
-    if (!logEl) return;
-    const line = document.createElement('div');
-    line.className = 'log-line log-' + level;
-    line.textContent = text;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  };
+  const appendLog = (msg: string, level: LogLevel = 'info') => drawerAppendLog(msg, level);
   const countMap: Record<string, number> = {};
 
   progress.start();
-  extractLogText = '';
+  resetLog();
+  resetCategoryBars();
+  lastOverallPct = 0;
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
-    appendLog('Kein Channel ausgewählt — zurück zur Discover-Seite.', 'error');
+    appendLog('Kein Channel ausgewählt — zurück zum Setup.', 'error');
     return;
   }
 
@@ -1511,13 +1379,15 @@ async function runRealExtract(): Promise<void> {
   appendLog(`output → ${outDir}`);
 
   const unsubscribe = window.sc.extract.onEvent((ev) => {
-    currentExtractJobId = ev.jobId; // stable for the run; lets "back" abort it
+    currentExtractJobId = ev.jobId; // stable for the run; lets "abort" cancel it
     switch (ev.type) {
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
         const si = RUN_STEP_INDEX[ev.phase ?? ''];
         if (si !== undefined) progress.setStep(si);
         progress.update({ phaseLabel: label, overallPct: ev.pct });
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
+        if (ev.phase === 'validate' || ev.phase === 'bundle') markCategoriesComplete();
         appendLog(`▶ ${label}`);
         return;
       }
@@ -1526,9 +1396,9 @@ async function runRealExtract(): Promise<void> {
         // rather than looking hung (they emit pct but no current/total).
         const hint =
           ev.stage === 'open'
-            ? t('run.hint.open', {}) || 'Öffne das große Archiv — das dauert einen Moment.'
+            ? t('run.hint.open')
             : ev.stage === 'datacore'
-              ? t('run.hint.datacore', {}) || 'DataCore wird dekomprimiert — kann etwas dauern.'
+              ? t('run.hint.datacore')
               : '';
         progress.update({
           overallPct: ev.pct,
@@ -1538,11 +1408,12 @@ async function runRealExtract(): Promise<void> {
           detail: ev.detail,
           hint,
         });
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       }
       case 'file':
         progress.update({ overallPct: ev.pct });
-        if (ev.fileName) appendLog(`  · ${ev.fileName}`);
+        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       case 'count':
         if (ev.counter) {
@@ -1550,6 +1421,7 @@ async function runRealExtract(): Promise<void> {
           const ordered: Record<string, number> = {};
           for (const [k, v] of orderedCounts(countMap)) ordered[k] = v;
           progress.update({ counters: ordered });
+          updateCategoryBars(countMap);
         }
         return;
       case 'log':
@@ -1561,6 +1433,8 @@ async function runRealExtract(): Promise<void> {
       case 'done':
         progress.setStep(5); // past the last phase → all step chips 'done'
         progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
+        lastOverallPct = 100;
+        markCategoriesComplete();
         return;
       case 'error':
         progress.update({ indeterminate: false });
@@ -1578,9 +1452,9 @@ async function runRealExtract(): Promise<void> {
       patchVersion: channel.version ?? 'unknown',
       buildNumber: '', // unknown from disk; server will treat empty as missing
       scope: {
-        hdIcons: state.profile !== 'minimal',
-        renderPngs: state.profile === 'maximum',
-        componentTree: state.profile !== 'minimal',
+        hdIcons: state.runPlan?.scope !== 'minimal',
+        renderPngs: state.runPlan?.scope === 'maximum',
+        componentTree: state.runPlan?.scope !== 'minimal',
       },
       toolVersion: (await window.sc.env()).toolVersion,
     });
@@ -1605,10 +1479,10 @@ async function runRealExtract(): Promise<void> {
         'success',
       );
       markBundleReady();
-      // Auto-upload only when the operator opted in AND a session is already
-      // live — never trigger an interactive browser login unattended.
-      if (state.autoUpload && state.authToken) {
-        appendLog(t('run.autoUploading', {}) || 'Auto-Upload aktiv — wechsle zum Upload…', 'info');
+      // Auto-upload only when the run plan asked for it AND a session is
+      // already live — never trigger an interactive browser login unattended.
+      if (state.runPlan?.uploadAfter && state.authToken) {
+        appendLog(t('run.autoUploading'), 'info');
         state.view = 'auth-upload';
         render();
         void doStartUpload();
@@ -1632,9 +1506,9 @@ async function runRealExtract(): Promise<void> {
 // progress card so the upload flow reads as a sibling of the Run view.
 function uploadSteps(): ProgressStep[] {
   return [
-    { key: 'bundle', label: t('upload.steps.bundle', {}) || 'Bundle' },
-    { key: 'codex', label: t('upload.steps.codex', {}) || 'Codex' },
-    { key: 'skins', label: t('upload.steps.skins', {}) || '3D-Skins' },
+    { key: 'bundle', label: t('upload.steps.bundle') },
+    { key: 'codex', label: t('upload.steps.codex') },
+    { key: 'skins', label: t('upload.steps.skins') },
   ];
 }
 
@@ -1655,9 +1529,9 @@ const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 
 // Localized labels for the shared progress meta line (throughput / ETA / stall).
 function progressLabels(): Partial<ProgressLabels> {
   return {
-    still: t('progress.still', {}) || 'arbeitet noch',
-    eta: t('progress.eta', {}) || 'Rest',
-    perSec: t('progress.perSec', {}) || '/s',
+    still: t('progress.still'),
+    eta: t('progress.eta'),
+    perSec: t('progress.perSec'),
   };
 }
 
@@ -1676,48 +1550,40 @@ function renderAuthUpload(): string {
         .join('')
     : '<li><em>no extraction yet</em></li>';
   return `
-    <div class="view">
-      <h1>${t('upload.title', {}) || 'Upload'}</h1>
-      ${throttleBarHtml('upload-throttle')}
-      <div class="upload-grid view-body">
-        <section class="card upload-actions">
-          <p>${t('upload.intro', {}) || 'Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.'}</p>
-          <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
-          <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
-          <div class="btn-row">
-            <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start', {}) || 'Upload starten'}</button>
-            <button id="btn-pause-upload" class="btn" style="display:none;">${t('upload.job.pause', {}) || 'Pause'}</button>
-            <button id="btn-resume-upload" class="btn btn-primary" style="display:none;">${t('upload.job.resumeAction', {}) || 'Upload fortsetzen'}</button>
-            <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard', {}) || 'Verwerfen'}</button>
-          </div>
-          <label class="sc-toggle" title="${t('upload.shutdownAfterHint', {}) || 'Fährt den PC nach erfolgreichem Upload herunter — mit 60-Sekunden-Countdown zum Abbrechen.'}">
-            <input type="checkbox" id="chk-shutdown-after" ${state.settings?.shutdownAfterUpload ? 'checked' : ''} />
-            <span>${t('upload.shutdownAfter', {}) || 'PC nach Upload herunterfahren'}</span>
-          </label>
-          ${progressCardHtml('upload-progress', uploadSteps())}
-          <div id="shutdown-notice" class="shutdown-notice" style="display:none;"></div>
-          <div id="auth-status" class="upload-status" hidden></div>
-          <div id="upload-result" style="margin-top: 14px;"></div>
-        </section>
-        <section class="card upload-summary">
-          <h2>${t('upload.bundle', {}) || 'Bundle-Zusammenfassung'}</h2>
-          ${hasResult
-            ? `
-            <ul class="bundle-meta">
-              <li><strong>channel:</strong> ${result!.channel}</li>
-              <li><strong>patch:</strong> ${result!.patch_version}</li>
-              <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-              <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-            </ul>
-            <h3 style="margin-top: 10px;">Entity counts</h3>
-            <ul class="entity-strip">${counts}</ul>
-          `
-            : '<p class="warn">No extraction result — go back and run the extractor first.</p>'}
-        </section>
-      </div>
-      <div class="btn-row view-footer">
-        <button id="btn-back-run" class="btn">← ${t('common.back', {}) || 'Zurück'}</button>
-      </div>
+    <div class="view step-upload">
+      <section class="card upload-card">
+        <div class="upload-card-head">
+          <h1>⇡ ${t('upload.title')} — ${t('upload.codexTitle')} ${armedChipHtml()}</h1>
+          <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
+          <span class="upload-throughput" id="upload-throughput"></span>
+        </div>
+        <p>${t('upload.intro')}</p>
+        <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
+        <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
+        <div class="btn-row">
+          <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
+          <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard')}</button>
+        </div>
+        ${progressCardHtml('upload-progress', uploadSteps())}
+        <div id="auth-status" class="upload-status" hidden></div>
+        <div id="upload-result" style="margin-top: 14px;"></div>
+      </section>
+      <details class="upload-bundle-details">
+        <summary>${t('upload.bundle')}</summary>
+        ${hasResult
+          ? `
+          <ul class="bundle-meta">
+            <li><strong>channel:</strong> ${result!.channel}</li>
+            <li><strong>patch:</strong> ${result!.patch_version}</li>
+            <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
+            <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
+          </ul>
+          <ul class="entity-strip">${counts}</ul>
+        `
+          : '<p class="warn">No extraction result yet.</p>'}
+      </details>
+      <button type="button" id="btn-pause-upload" class="fab" style="display:none;" title="${t('upload.job.pause')} (Space)" aria-label="${t('upload.job.pause')}">⏸</button>
+      <button type="button" id="btn-resume-upload" class="fab fab-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)" aria-label="${t('upload.job.resumeAction')}">▶</button>
     </div>
   `;
 }
@@ -1728,49 +1594,17 @@ function renderAuthUpload(): string {
 let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
-  void paintProfilePicker('#upload-throttle-mount', { compact: true });
+  wireArmedChip();
   uploadProgress = mountProgress('upload-progress', {
     counterLabel,
     steps: uploadSteps(),
     labels: progressLabels(),
     stepLabel: stepCounterLabel,
   });
-  $('#btn-back-run')?.addEventListener('click', () => {
-    void (async () => {
-      // An in-flight upload, or a resumable job on disk, is real progress the
-      // back navigation would walk away from — confirm before leaving.
-      const risk = uploadRunning || !!state.resumableJob?.resumable;
-      const ok = await confirmLeave(
-        risk,
-        uploadRunning ? 'confirm.leave.upload' : 'confirm.leave.uploadResumable',
-        uploadRunning
-          ? 'Der Upload läuft noch. Gehst du zurück, wird er unterbrochen.'
-          : 'Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du den Einstiegspunkt hier.',
-      );
-      if (!ok) return;
-      // Cleanly pause an in-flight upload so it unwinds at the next checkpoint
-      // and stays resumable — matches the "you can continue later" wording.
-      if (uploadRunning) {
-        try {
-          await window.sc.uploadJob.pause();
-        } catch {
-          /* best-effort — navigate away regardless */
-        }
-      }
-      state.view = 'run';
-      render();
-    })();
-  });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
   $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
-  ($('#chk-shutdown-after') as HTMLInputElement | null)?.addEventListener('change', (e) => {
-    const checked = (e.target as HTMLInputElement).checked;
-    void window.sc.settings.patch({ shutdownAfterUpload: checked }).then((s) => {
-      state.settings = s;
-    });
-  });
   // Force a fresh session check on entry so a "re-authorise needed" hint shows
   // up-front here, not only after the upload attempt fails.
   paintReconnectNotice();
@@ -1778,6 +1612,13 @@ function wireAuthUpload(): void {
   // Surface an upload the last session left unfinished (paused, or killed
   // mid-run) so the operator can continue it instead of starting over.
   void refreshJobView();
+}
+
+/** Space shortcut while the Upload step is mounted — pause/resume, no-op otherwise. */
+export function toggleUploadPauseResume(): void {
+  if (state.view !== 'auth-upload') return;
+  if (uploadRunning) void doPauseUpload();
+  else if (state.resumableJob?.resumable) void doResumeUpload();
 }
 
 // ============= Durable upload job (pause / resume / kill-recovery) =============
@@ -1863,9 +1704,7 @@ function paintJobNotice(): void {
     notice.style.display = 'block';
   } else if (!running && resumable && job?.resumeHint) {
     // Fallback for an older main process that predates the structured summary.
-    notice.textContent =
-      t('upload.job.resumeBanner', { hint: job.resumeHint }) ||
-      `Unterbrochener Upload gefunden (${job.resumeHint}) — fortsetzen?`;
+    notice.textContent = t('upload.job.resumeBanner', { hint: job.resumeHint });
     notice.style.display = 'block';
   } else {
     notice.style.display = 'none';
@@ -1950,10 +1789,10 @@ function confirmDiscard(opts: ConfirmOptions): Promise<boolean> {
 async function confirmLeave(risk: boolean, messageKey: string, fallbackMsg: string): Promise<boolean> {
   if (!risk) return true;
   return confirmDiscard({
-    title: t('confirm.leave.title', {}) || 'Fortschritt verwerfen?',
+    title: t('confirm.leave.title'),
     message: t(messageKey, {}) || fallbackMsg,
-    confirmLabel: t('confirm.leave.confirm', {}) || 'Verwerfen & zurück',
-    cancelLabel: t('confirm.leave.cancel', {}) || 'Weiter hier bleiben',
+    confirmLabel: t('confirm.leave.confirm'),
+    cancelLabel: t('confirm.leave.cancel'),
   });
 }
 
@@ -2011,14 +1850,14 @@ async function ensureResultForResume(): Promise<boolean> {
 async function doResumeUpload(): Promise<void> {
   if (!(await ensureResultForResume())) return;
   await window.sc.uploadJob.resume();
-  setAuthStatus(t('upload.job.resumed', {}) || 'Upload wird fortgesetzt…', 'ok');
+  setAuthStatus(t('upload.job.resumed'), 'ok');
   await doStartUpload();
 }
 
 async function doDiscardUpload(): Promise<void> {
   state.resumableJob = await window.sc.uploadJob.cancel();
   state.uploadPaused = false;
-  setAuthStatus(t('upload.job.cancelled', {}) || 'Upload verworfen — der Fortschritt wurde gelöscht.', 'warn');
+  setAuthStatus(t('upload.job.cancelled'), 'warn');
   paintJobNotice();
 }
 
@@ -2031,8 +1870,8 @@ function paintReconnectNotice(): void {
   const needsReconnect = conn.status ? !conn.status.connected : false;
   if (needsReconnect) {
     const msg = conn.status?.needsReconnect
-      ? t('upload.reconnectExpired', {}) || 'Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.'
-      : t('upload.reconnectOffline', {}) || 'Nicht mit dem Web verbunden — der Upload-Start meldet dich an.';
+      ? t('upload.reconnectExpired')
+      : t('upload.reconnectOffline');
     el.textContent = msg;
     el.style.display = 'block';
   } else {
@@ -2059,7 +1898,7 @@ async function doStartUpload(): Promise<void> {
   try {
     if (!state.authToken) {
       uploadProgress?.update({
-        phaseLabel: t('upload.signingIn', {}) || 'Im Browser anmelden…',
+        phaseLabel: t('upload.signingIn'),
         indeterminate: true,
         detail: '',
       });
@@ -2067,7 +1906,7 @@ async function doStartUpload(): Promise<void> {
       if (!token) {
         uploadProgress?.update({ indeterminate: false });
         uploadProgress?.stop();
-        setAuthStatus(t('upload.signInFailed', {}) || 'Anmeldung fehlgeschlagen', 'error');
+        setAuthStatus(t('upload.signInFailed'), 'error');
         return;
       }
     }
@@ -2153,8 +1992,8 @@ async function doUploadAfterAuth(): Promise<void> {
   uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
   uploadProgress?.update({
     phaseLabel: resumingPastBundle
-      ? t('catalog.publishing', {}) || 'Codex wird veröffentlicht'
-      : t('upload.bundleUploading', {}) || 'Bundle-Metadaten werden hochgeladen…',
+      ? t('catalog.publishing')
+      : t('upload.bundleUploading'),
     indeterminate: true,
     detail: '',
   });
@@ -2180,7 +2019,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // already on the catalog stage and promoteToCodex owns the bar from here.
   if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
-    `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'}`,
+    `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
   );
   paintDiffSummary(r.diffSummary);
@@ -2207,7 +2046,7 @@ async function doUploadAfterAuth(): Promise<void> {
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('skins.buildFailed', {}) || '3D-Skins übersprungen (Bundle ist hochgeladen)'}: ${(err as Error).message}`,
+      `${t('skins.buildFailed')}: ${(err as Error).message}`,
       'warn',
     );
   }
@@ -2217,7 +2056,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // never clean up an out_dir a resume still needs.
   const jobAfterSkins = await window.sc.uploadJob.get();
   if (jobAfterSkins.state?.status === 'paused') {
-    setAuthStatus(t('upload.job.paused', {}) || 'Upload pausiert — der Fortschritt ist gespeichert.', 'warn');
+    setAuthStatus(t('upload.job.paused'), 'warn');
     return;
   }
 
@@ -2255,16 +2094,18 @@ async function doUploadAfterAuth(): Promise<void> {
       // failed liveries, so that verdict stays on screen — as a warning.
       const skinsWarn = state.skinUploadStatus;
       setAuthStatus(
-        `${t('upload.uploadOk', {}) || 'Upload OK'} · bundle_id ${r.bundleId ?? '—'} · ` +
-          (t('upload.cleaned', {}) || 'Extrahierte Dateien aufgeräumt (Upload bestätigt)') +
+        `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'} · ` +
+          (t('upload.cleaned')) +
           (skinsWarn ? ` · ${skinsWarn}` : ''),
         skinsWarn ? 'warn' : 'ok',
       );
     }
   }
 
-  // Every stage confirmed and cleaned up — this is the only place we reach on a
-  // fully-successful upload, so it is where an opted-in shutdown belongs.
+  // Every stage confirmed and cleaned up — hand off to the Done step, which
+  // owns the summary and (when armed) the shutdown/quit countdown.
+  state.view = 'done';
+  render();
   await maybeShutdownAfterUpload();
   await maybeQuitAfterUpload();
 }
@@ -2277,9 +2118,9 @@ async function doUploadAfterAuth(): Promise<void> {
  * cancel button, and quitting the app would take the cancel button with it.
  */
 async function maybeQuitAfterUpload(): Promise<void> {
-  if (!startedHidden) return;
-  if (!state.settings?.quitAfterAutoRun) return;
-  if (state.settings?.shutdownAfterUpload) return;
+  // Reads the per-run choice for a manual run and `settings.afterAutoRun`
+  // (mapped by `buildRunPlan`) for an unattended one — one field, one path.
+  if (state.runPlan?.whenDone !== 'quit') return;
   await window.sc.system.quit();
 }
 
@@ -2356,7 +2197,7 @@ async function promoteToCodex(
   progress?: ProgressController | null,
 ): Promise<'ok' | 'failed' | 'paused'> {
   if (!outDir || !state.authToken) return 'failed';
-  const label = t('catalog.publishing', {}) || 'Codex wird veröffentlicht';
+  const label = t('catalog.publishing');
   progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
     // phaseIndex/phaseTotal are additive fields (catalog-bridge.ts) — an
@@ -2369,8 +2210,7 @@ async function promoteToCodex(
         : undefined;
     const stageLbl =
       typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
-        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) }) ||
-          `Step ${ev.phaseIndex}/${ev.phaseTotal}`
+        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) })
         : undefined;
     progress?.update({
       phaseLabel: label,
@@ -2388,7 +2228,7 @@ async function promoteToCodex(
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
       setAuthStatus(
-        `${t('catalog.published', {}) || 'Codex aktualisiert'} · ${ships} ${t('catalog.ships', {}) || 'Schiffe'}`,
+        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
         'ok',
       );
       return 'ok';
@@ -2514,35 +2354,31 @@ function clearUploadFeedback(): void {
 }
 
 // After a fully-confirmed upload, honour the operator's "shut down when done"
-// opt-in. The OS gets a 60 s countdown (cancelable via the button we paint here
-// or the native dialog), so an accidental tick or a "wait, one more thing" is
-// always recoverable. No-op when the box is off or the platform refuses.
-const SHUTDOWN_DELAY_SECS = 60;
-async function maybeShutdownAfterUpload(): Promise<void> {
-  if (!state.settings?.shutdownAfterUpload) return;
-  const notice = $('#shutdown-notice');
+// per-run choice (manual) / `afterAutoRun` (unattended), both folded into
+// `state.runPlan.whenDone` by `buildRunPlan`. The OS gets a 60 s countdown
+// (cancelable via the button we paint here or the native dialog), so an
+// accidental tick or a "wait, one more thing" is always recoverable.
+export const SHUTDOWN_DELAY_SECS = 60;
+export async function maybeShutdownAfterUpload(): Promise<void> {
+  if (state.runPlan?.whenDone !== 'shutdown') return;
+  const notice = $('#done-shutdown-notice');
   const res = await window.sc.system.shutdown(SHUTDOWN_DELAY_SECS);
   if (!notice) return;
   if (!res.ok) {
-    notice.textContent =
-      (t('upload.shutdownFailed', {}) || 'Herunterfahren konnte nicht geplant werden') +
-      (res.error ? `: ${res.error}` : '');
+    notice.textContent = t('upload.shutdownFailed') + (res.error ? `: ${res.error}` : '');
     notice.style.display = 'block';
     return;
   }
   notice.innerHTML = `
-    <span>${
-      t('upload.shutdownScheduled', { secs: String(SHUTDOWN_DELAY_SECS) }) ||
-      `Upload fertig — PC wird in ${SHUTDOWN_DELAY_SECS} s heruntergefahren.`
-    }</span>
-    <button id="btn-abort-shutdown" class="btn">${t('upload.shutdownCancel', {}) || 'Abbrechen'}</button>
+    <span>${t('upload.shutdownScheduled', { secs: String(SHUTDOWN_DELAY_SECS) })}</span>
+    <button id="btn-abort-shutdown" class="btn">${t('upload.shutdownCancel')}</button>
   `;
   notice.style.display = 'flex';
   $('#btn-abort-shutdown')?.addEventListener('click', () => {
     void window.sc.system.abortShutdown().then((r) => {
       notice.textContent = r.ok
-        ? t('upload.shutdownCancelled', {}) || 'Herunterfahren abgebrochen.'
-        : t('upload.shutdownAbortFailed', {}) || 'Abbruch fehlgeschlagen — bitte manuell abbrechen.';
+        ? t('upload.shutdownCancelled')
+        : t('upload.shutdownAbortFailed');
       notice.style.display = 'block';
     });
   });
@@ -2576,10 +2412,10 @@ async function buildAndUploadSkins(
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
   const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;
-  const label = t('skins.building', {}) || '3D-Skins werden gebaut';
+  const label = t('skins.building');
 
   // 1. ensure cgf-converter (first-use download ~117 MB).
-  const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
+  const toolsLabel = t('skins.stepTools');
   progress?.update({ phaseLabel: toolsLabel, indeterminate: true, detail: '' });
   const unsubTools = window.sc.skin.onToolProgress((pct) =>
     progress?.update({ phaseLabel: toolsLabel, current: pct, total: 100, overallPct: pct, indeterminate: false }),
@@ -2593,7 +2429,7 @@ async function buildAndUploadSkins(
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('skins.toolsFailed', {}) || '3D-Tools nicht verfügbar — Skins übersprungen'}: ${tools.error ?? '—'}`,
+      `${t('skins.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
     return;
@@ -2607,7 +2443,7 @@ async function buildAndUploadSkins(
     phaseLabel: label,
     indeterminate: true,
     detail: '',
-    hint: t('skins.hintBuild', {}) || 'Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.',
+    hint: t('skins.hintBuild'),
   });
   const skinCounters: Record<string, number> = {};
   const unsub = window.sc.skin.onEvent((ev) => {
@@ -2615,9 +2451,7 @@ async function buildAndUploadSkins(
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
       progress?.update({
-        stageLabel:
-          t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
-          `Ship ${ev.current}/${ev.total}`,
+        stageLabel: t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }),
         current: ev.current,
         total: ev.total,
         overallPct: ev.pct,
@@ -2653,7 +2487,7 @@ async function buildAndUploadSkins(
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
-    setAuthStatus(t('skins.none', {}) || 'Keine baubaren 3D-Skins gefunden.', 'ok');
+    setAuthStatus(t('skins.none'), 'ok');
     return;
   }
 
