@@ -82,6 +82,27 @@ describe('FeedbackAreaPickerComponent', () => {
     expect(cmp.area()).toBe('settings');
   });
 
+  it('keeps a value that was pinned from outside, exactly like a clicked chip', async () => {
+    await setup();
+    // What the composer does for a seeded topic ("this is about the uploader")
+    // while sitting on /admin/telemetry: without the pin the row would flip
+    // straight back to Admin.
+    cmp.area.set('desktop');
+    cmp.pinned.set(true);
+    fixture.detectChanges();
+    expect(cmp.area()).toBe('desktop');
+
+    areas.current.set('admin');
+    fixture.detectChanges();
+    expect(cmp.area()).toBe('desktop');
+
+    // …and the clear after a send drops the pin along with the value.
+    cmp.area.set(null);
+    fixture.detectChanges();
+    expect(cmp.pinned()).toBe(false);
+    expect(cmp.area()).toBe('admin');
+  });
+
   it('offers exactly the areas the service allows', async () => {
     areas = new FakeAreaService();
     areas.options.set(FEEDBACK_AREAS.filter((a) => a !== 'admin'));

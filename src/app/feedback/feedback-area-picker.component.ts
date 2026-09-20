@@ -4,7 +4,6 @@ import {
   effect,
   inject,
   model,
-  signal,
   untracked,
 } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
@@ -27,8 +26,11 @@ import { FeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
  *   chosen. The feedback panels stay mounted across navigations, so someone can
  *   open the FAB on /news, browse to /codex and start typing there — the tag has
  *   to be Codex, not News.
- * - Once they click a chip, the router stops overriding it (`touched`). Anything
- *   else would silently undo a deliberate choice on the next navigation.
+ * - Once they click a chip, the router stops overriding it (`pinned`). Anything
+ *   else would silently undo a deliberate choice on the next navigation. The
+ *   composer can pin from outside too: a page that seeds a topic ("this is
+ *   about the Data Uploader") sets the area AND pins it, otherwise the row
+ *   would flip back to wherever the composer happens to be mounted.
  *
  * The component is a plain `model()` on the area value, so the composer owns the
  * state and clearing it to `null` after a successful send re-arms the
@@ -103,22 +105,27 @@ export class FeedbackAreaPickerComponent {
   /** The tag that travels with the topic. `null` = "not decided yet, follow the route". */
   readonly area = model<FeedbackArea | null>(null);
 
-  /** The sender clicked a chip — the router may no longer overrule the value. */
-  private readonly touched = signal(false);
+  /**
+   * The value was chosen deliberately (a chip click, or a seed from outside)
+   * — the router may no longer overrule it. Two-way so the composer can set it
+   * alongside a seeded area; cleared here whenever the area resets to null.
+   */
+  readonly pinned = model(false);
 
   constructor() {
     effect(() => {
       const detected = this.areas.current();
       const current = this.area();
+      const pinned = this.pinned();
       untracked(() => {
         // Reset to null (a fresh composer, or the clear after a send) re-arms
         // the detection instead of leaving the row blank.
         if (current === null) {
-          this.touched.set(false);
+          this.pinned.set(false);
           this.area.set(detected);
           return;
         }
-        if (!this.touched() && current !== detected) this.area.set(detected);
+        if (!pinned && current !== detected) this.area.set(detected);
       });
     });
   }
@@ -128,7 +135,7 @@ export class FeedbackAreaPickerComponent {
   }
 
   pick(area: FeedbackArea): void {
-    this.touched.set(true);
+    this.pinned.set(true);
     this.area.set(area);
   }
 }

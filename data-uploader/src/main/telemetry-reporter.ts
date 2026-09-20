@@ -24,6 +24,11 @@ import {
   type TelemetryMeta,
 } from '../lib/telemetry.js';
 import {
+  buildJobDiagnostics,
+  type JobDiagnostics,
+  type JobDiagnosticsContext,
+} from '../lib/job-diagnostics.js';
+import {
   API_BASE,
   TELEMETRY_HMAC_KEY,
   TELEMETRY_CHANNEL,
@@ -130,6 +135,22 @@ export async function reportExtractAbort(
   ctx: ExtractAbortContext,
 ): Promise<boolean> {
   return reportCrash(buildExtractAbort(reason, ctx));
+}
+
+/**
+ * Report the warnings + errors a finished native job wrote into its log
+ * stream — one row per job, none for a clean run. This is the "the run view
+ * showed twelve [warn] lines and nobody but the operator ever saw them" gap:
+ * the admin telemetry page lists these rows and can turn one into a feedback
+ * topic with the transcript attached. Best-effort like every reporter here.
+ */
+export async function reportJobDiagnostics(
+  diag: JobDiagnostics,
+  ctx: JobDiagnosticsContext,
+): Promise<boolean> {
+  const crash = buildJobDiagnostics(diag, ctx);
+  if (!crash) return false;
+  return reportCrash(crash);
 }
 
 /** Guard against reporting during app shutdown when the network is torn down. */

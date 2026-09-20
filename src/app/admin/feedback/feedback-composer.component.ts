@@ -14,6 +14,7 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
+import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-seed.service';
 import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
 import { CharCounterComponent } from '../../feedback/char-counter.component';
 import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
@@ -192,7 +193,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
            on, one click to correct (admin feedback 835fec58). Only on a
            new-topic box: a reply belongs to the topic's area by definition. -->
       @if (areaPicker()) {
-        <sc-feedback-area-picker [(area)]="area" />
+        <sc-feedback-area-picker [(area)]="area" [(pinned)]="areaPinned" />
       }
 
       <!-- The picker's file input. It has no row of its own any more (admin
@@ -560,6 +561,7 @@ export class FeedbackComposerComponent implements OnDestroy {
   /** Public so the template can bind the capture tile's busy state. */
   readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
+  private readonly seeds = inject(FeedbackComposerSeedService);
 
   /** i18n key for the textarea placeholder / aria-label. */
   readonly placeholder = input('');
@@ -659,6 +661,12 @@ export class FeedbackComposerComponent implements OnDestroy {
    */
   readonly area = signal<FeedbackArea | null>(null);
   /**
+   * Whether `area` was chosen on purpose (chip click, or a seed) and must not
+   * follow the router any more. Owned by the picker's model; set here only when
+   * a seed brings its own area along.
+   */
+  readonly areaPinned = signal(false);
+  /**
    * State of that checkbox. Deliberately NOT part of the persisted draft — like
    * `area` it describes the topic being sent, and a restored draft carrying a
    * days-old "complex" the writer no longer sees ticked would be worse than
@@ -757,6 +765,14 @@ export class FeedbackComposerComponent implements OnDestroy {
       this.activeScope = scope;
       untracked(() => this.switchScope(previous, scope));
     });
+    // A page parked a pre-filled topic for this composer's scope (see
+    // `FeedbackComposerSeedService`) — either before this box was mounted or
+    // while it was already on screen. Both look the same from here.
+    effect(() => {
+      const scope = this.draftScope();
+      if (!scope || !this.seeds.pendingScopes().has(scope)) return;
+      untracked(() => void this.applySeed(scope));
+    });
   }
 
   ngOnDestroy(): void {
@@ -834,6 +850,51 @@ export class FeedbackComposerComponent implements OnDestroy {
     this.draftRestored.set(false);
     this.errorMsg.set(null);
     if (next) void this.restoreDraft(next);
+  }
+
+  /**
+   * Fold a seed into the box. The seed goes FIRST and whatever the box (or
+   * the stored draft) already held is kept below it — a page must never cost
+   * the writer a half-typed topic. Files are attached through the normal
+   * picker path, so they are re-encoded / uploaded / persisted exactly like a
+   * file chosen from disk, and the draft store ends up holding all of it.
+   */
+  private async applySeed(scope: string): Promise<void> {
+    const seed = this.seeds.take(scope);
+    if (!seed) return;
+    await this.drafts.ready();
+    if (this.activeScope !== scope) {
+      // Scope moved on while the store was loading; the seed is for the box
+      // that has this scope now, so put it back for that one.
+      this.seeds.plant(scope, seed);
+      return;
+    }
+    const stored = this.drafts.entry(scope);
+    const existingBody = this.draft().trim() ? this.draft() : (stored?.body ?? '');
+    const existingImages: PendingImage[] =
+      this.attachments().length > 0
+        ? this.attachments()
+        : (stored?.images ?? []).map((img) => ({
+            id: img.id,
+            name: img.name,
+            dataUrl: '',
+            url: img.url,
+            mime: img.mime,
+          }));
+    const merged = existingBody.trim()
+      ? `${seed.body.trimEnd()}\n\n${existingBody.trimStart()}`
+      : seed.body;
+    this.draft.set(clampFeedbackText(merged));
+    this.attachments.set(existingImages);
+    this.draftRestored.set(false);
+    if (seed.area !== undefined) {
+      this.area.set(seed.area);
+      this.areaPinned.set(seed.area !== null);
+    }
+    if (seed.complex !== undefined) this.complex.set(seed.complex);
+    this.saveDraft();
+    if (seed.files?.length) await this.addFiles(seed.files);
+    this.ta()?.nativeElement.focus();
   }
 
   private async restoreDraft(scope: string): Promise<void> {

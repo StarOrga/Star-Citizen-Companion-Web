@@ -6,9 +6,11 @@ import {
   HostListener,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -85,6 +87,7 @@ import {
 } from '../../feedback/feedback-area.types';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { PanelNavigationService } from '../../feedback/panel-navigation.service';
+import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-seed.service';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { ScDateRelativePipe } from '../../core/locale/sc-relative-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
@@ -1354,6 +1357,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly panelNav = inject(PanelNavigationService);
+  private readonly seeds = inject(FeedbackComposerSeedService);
   private readonly celebration = inject(CelebrationService);
   private readonly motion = inject(FeedbackMotionService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -2227,6 +2231,19 @@ export class AdminFeedbackComponent implements OnInit {
   /** Docked panel: the new-topic composer is collapsed to a bar by default. */
   readonly composerOpen = signal(false);
   openComposer(): void { this.composerOpen.set(true); }
+  /**
+   * A page seeded the new-topic box and asked for it (see
+   * `FeedbackComposerSeedService`): unfold the docked composer so the seeded
+   * draft is on screen. The full board's composer is always mounted, so the
+   * request is a no-op there and the seed is taken on its own.
+   */
+  private seenOpenRequests = 0;
+  private readonly seedOpen = effect(() => {
+    const n = this.seeds.openRequests();
+    if (n === this.seenOpenRequests) return;
+    this.seenOpenRequests = n;
+    if (untracked(() => this.embedded())) this.composerOpen.set(true);
+  });
   closeComposer(): void { this.composerOpen.set(false); }
 
   readonly createComposerBound = async (payload: ComposerPayload): Promise<boolean> => {

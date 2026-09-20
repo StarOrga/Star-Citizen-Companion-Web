@@ -5,6 +5,9 @@ import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService, DraftEntry } from '../../feedback/feedback-draft.service';
 import { DraftImageRef } from '../../feedback/feedback-draft.types';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
+import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-seed.service';
+import { FeedbackAreaService } from '../../feedback/feedback-area.service';
+import { FEEDBACK_AREAS } from '../../feedback/feedback-area.types';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { FEEDBACK_MAX_CHARS } from '../../feedback/feedback-limits';
 
@@ -1201,5 +1204,107 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
     type('a thread reply');
     await fixture.componentInstance.submit();
     expect(sent[0].complex).toBeUndefined();
+  });
+});
+
+/**
+ * A page hands the box a pre-filled topic (`FeedbackComposerSeedService`):
+ * the telemetry page's "report as topic". The seed is a starting point the
+ * admin edits and sends — it must land in the box, take the area with it,
+ * attach its files through the normal path, and never cost a draft.
+ */
+describe('FeedbackComposerComponent - seeded from a page', () => {
+  let fixture: ComponentFixture<FeedbackComposerComponent>;
+  let cmp: FeedbackComposerComponent;
+  let seeds: FeedbackComposerSeedService;
+
+  async function mount(
+    scope: string | null = 'admin:new',
+    beforeCreate: (s: FeedbackComposerSeedService) => void = () => {},
+  ) {
+    drafts = new FakeDraftStore();
+    await TestBed.configureTestingModule({
+      imports: [FeedbackComposerComponent],
+      providers: [
+        provideTranslateService({ fallbackLang: 'en' }),
+        { provide: FeedbackDraftService, useValue: drafts },
+        // The box sits on /admin/telemetry: the router says "admin", the seed
+        // says "desktop", and the seed has to win.
+        { provide: FeedbackAreaService, useValue: { current: signal('admin'), options: signal(FEEDBACK_AREAS) } },
+      ],
+    }).compileComponents();
+    seeds = TestBed.inject(FeedbackComposerSeedService);
+    beforeCreate(seeds);
+
+    fixture = TestBed.createComponent(FeedbackComposerComponent);
+    fixture.componentRef.setInput('draftScope', scope);
+    fixture.componentRef.setInput('allowFiles', true);
+    fixture.componentRef.setInput('areaPicker', true);
+    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    cmp = fixture.componentInstance;
+  }
+
+  async function settle(check: () => boolean, label: string): Promise<void> {
+    const started = Date.now();
+    while (!check()) {
+      if (Date.now() - started > 3000) throw new Error(`timed out waiting for ${label}`);
+      await new Promise((r) => setTimeout(r, 10));
+      fixture.detectChanges();
+    }
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('takes a seed planted BEFORE it mounted: text, area, file', async () => {
+    await mount('admin:new', (s) =>
+      s.plant('admin:new', {
+        body: 'Uploader logged 2 warnings',
+        area: 'desktop',
+        files: [new File(['+00:01 [warn] x'], 'run.log', { type: 'text/plain' })],
+      }),
+    );
+    await settle(() => cmp.attachments().length === 1, 'the seeded file');
+
+    expect(cmp.draft()).toBe('Uploader logged 2 warnings');
+    expect(cmp.area()).toBe('desktop');
+    // Pinned: the picker's route detection (this box sits on /admin/…) must
+    // not flip the tag back.
+    expect(cmp.areaPinned()).toBeTrue();
+    expect(cmp.attachments()[0].name).toBe('run.log');
+    expect(cmp.attachments()[0].mime).toBe('text/plain');
+    // Persisted like anything typed: the file went to the bucket and the
+    // draft was staged with it.
+    expect(drafts.staged.at(-1)?.body).toBe('Uploader logged 2 warnings');
+    expect(drafts.staged.at(-1)?.images.map((i) => i.name)).toEqual(['run.log']);
+    // One-shot — nothing left for a second composer with the same scope.
+    expect(seeds.pendingScopes().has('admin:new')).toBeFalse();
+  });
+
+  it('takes a seed planted while it is already on screen', async () => {
+    await mount();
+    seeds.plant('admin:new', { body: 'late seed', area: 'desktop' });
+    await settle(() => cmp.draft() === 'late seed', 'the late seed');
+    expect(cmp.area()).toBe('desktop');
+  });
+
+  it('keeps what the box already held below the seed', async () => {
+    await mount();
+    drafts.seed('admin:new', { body: 'half-typed thought' });
+    cmp.draft.set('half-typed thought');
+    seeds.plant('admin:new', { body: 'Seeded prompt' });
+    await settle(() => cmp.draft().startsWith('Seeded prompt'), 'the merge');
+    expect(cmp.draft()).toBe('Seeded prompt\n\nhalf-typed thought');
+  });
+
+  it('ignores a seed for a different scope', async () => {
+    await mount('admin:thread:11111111-1111-4111-8111-111111111111');
+    seeds.plant('admin:new', { body: 'not for you' });
+    await new Promise((r) => setTimeout(r, 30));
+    fixture.detectChanges();
+    expect(cmp.draft()).toBe('');
+    expect(seeds.pendingScopes().has('admin:new')).toBeTrue();
   });
 });
