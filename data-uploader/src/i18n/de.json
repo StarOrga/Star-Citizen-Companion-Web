@@ -16,9 +16,55 @@
       "uploadResumable": "Es gibt einen fortsetzbaren Upload. Gehst du zurück, verlierst du hier den Einstiegspunkt zum Fortsetzen."
     }
   },
+  "steprail": {
+    "install": "Installation",
+    "setup": "Einrichtung",
+    "extract": "Extraktion",
+    "upload": "Upload",
+    "done": "Fertig"
+  },
+  "install": {
+    "cmp": {
+      "unknown": "Server-Stand unbekannt — verbinden",
+      "same": "= Server hat {{version}} bereits",
+      "newer": "▲ neuer als Server ({{version}}) — lohnt sich"
+    },
+    "lastUploaded": "Zuletzt hochgeladen {{when}}",
+    "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
+    "extractOnly": "Weiter (nur extrahieren)"
+  },
+  "scope": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "recommended": "empfohlen"
+  },
+  "sheet": {
+    "title": "Laufoptionen",
+    "mode": {
+      "label": "Modus",
+      "watch": "Ich schaue zu",
+      "unattended": "Unbeaufsichtigt"
+    },
+    "moreSettings": "Mehr in den Einstellungen",
+    "whenDoneHint": "60-s-Countdown zum Abbrechen · gilt nur für diesen Lauf, wird nie gespeichert"
+  },
+  "category": {
+    "ships": "Schiffe",
+    "vehicles": "Fahrzeuge",
+    "components": "Komponenten",
+    "weapons": "Waffen",
+    "strings": "Texte"
+  },
+  "done": {
+    "title": "Alles hochgeladen",
+    "openWeb": "In der Web-App öffnen",
+    "newRun": "Neuen Lauf starten",
+    "countingDown": "Fährt in {{secs}} s herunter — Esc zum Abbrechen."
+  },
   "discover": {
-    "title": "Star-Citizen-Installations finden",
-    "subtitle": "Läuft automatisch beim Start: RSI-Launcher → Filesystem-Scan. Weitere Ordner kannst du unten manuell hinzufügen.",
+    "title": "Star Citizen gefunden",
+    "subtitle": "Automatisch gesucht: RSI-Launcher → Laufwerke. Eine Spielversion pro Lauf.",
     "scan": "Scan starten",
     "scanning": "Suche nach Installationen…",
     "manual": "Ordner manuell wählen",
@@ -28,8 +74,8 @@
     "next": "Weiter → Konfiguration"
   },
   "configure": {
-    "title": "Profil wählen",
-    "subtitle": "Live umschaltbar — du kannst während des Laufs wechseln.",
+    "title": "Umfang wählen",
+    "subtitle": "Tempo ist später jederzeit umschaltbar, der Umfang nicht.",
     "start": "Extraktion starten",
     "autoUpload": "Nach der Extraktion automatisch hochladen",
     "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).",
@@ -44,8 +90,9 @@
     }
   },
   "run": {
-    "title": "Extraktion läuft",
+    "title": "Auslesen — Spieldaten",
     "next": "Upload anbieten",
+    "cancel": "Lauf abbrechen…",
     "logTitle": "Protokoll",
     "copyLog": "Kopieren",
     "copied": "Kopiert ✓",
@@ -54,17 +101,24 @@
     "bundleReady": "Extraktion abgeschlossen — das Bundle ist bereit zum Upload.",
     "bundleReadyCta": "Bundle fertig — jetzt hochladen",
     "autoUploading": "Auto-Upload aktiv — wechsle zum Upload…",
+    "whenDone": {
+      "label": "Wenn fertig",
+      "nothing": "Nichts",
+      "quit": "Programm beenden",
+      "shutdown": "PC herunterfahren",
+      "disarm": "Entwaffnen"
+    },
     "phase": {
-      "discover": "Installation analysieren",
-      "plan": "Lauf planen",
-      "extract": "Spieldaten extrahieren",
-      "validate": "Ergebnis prüfen",
-      "bundle": "Bundle schnüren",
+      "discover": "Spiel lesen",
+      "plan": "Planen",
+      "extract": "Auslesen",
+      "validate": "Prüfen",
+      "bundle": "Bundle packen",
       "done": "Fertig"
     },
     "stage": {
       "open": "Data.p4k öffnen",
-      "datacore": "DataCore dekomprimieren",
+      "datacore": "Spieldaten entpacken",
       "localization": "Übersetzungen lesen",
       "reference": "Referenzdaten",
       "entities": "Entitäten katalogisieren",
@@ -92,6 +146,8 @@
   },
   "upload": {
     "title": "Upload",
+    "codexTitle": "Einträge in den Codex",
+    "completeness": "Vollständigkeit {{pct}} %",
     "intro": "Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.",
     "start": "Upload starten",
     "bundle": "Bundle-Zusammenfassung",
@@ -105,8 +161,6 @@
     "bundleUploading": "Bundle-Metadaten werden hochgeladen…",
     "reconnectExpired": "Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.",
     "reconnectOffline": "Nicht mit dem Web verbunden — der Upload-Start meldet dich an.",
-    "shutdownAfter": "PC nach Upload herunterfahren",
-    "shutdownAfterHint": "Fährt den PC nach erfolgreichem Upload herunter — mit 60-Sekunden-Countdown zum Abbrechen.",
     "shutdownScheduled": "Upload fertig — PC wird in {{secs}} s heruntergefahren.",
     "shutdownCancel": "Abbrechen",
     "shutdownCancelled": "Herunterfahren abgebrochen.",
@@ -186,8 +240,25 @@
     "daysAgo": "vor {{n}} Tg"
   },
   "settings": {
+    "title": "Einstellungen",
+    "adminOnly": "nur Admin/Collaborator",
+    "language": "Sprache",
+    "unattended": {
+      "label": "Unbeaufsichtigt",
+      "hint": "Startet mit Windows und läuft bei einer neuen data.p4k-Version automatisch komplett durch — ohne dass jemand zusieht."
+    },
+    "afterAutoRun": {
+      "label": "Nach einem automatischen Lauf",
+      "hint": "Was passiert, nachdem ein unbeaufsichtigter Lauf erfolgreich hochgeladen hat.",
+      "keep": "Weiterlaufen",
+      "quit": "Programm beenden",
+      "shutdown": "PC herunterfahren"
+    },
+    "diagnostics": {
+      "title": "Diagnose"
+    },
     "updateChannel": {
-      "label": "Update-Channel",
+      "label": "Update-Ring",
       "hint": "Welchem Release-Ring automatische Updates folgen.",
       "alpha": "Alpha",
       "beta": "Beta",

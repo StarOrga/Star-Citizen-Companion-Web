@@ -6,7 +6,11 @@ Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
 
 ## Status
 
-**Phase 1 (Foundation) — implementiert.**
+**Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run:
+Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig, Laufoptionen
+(Upload danach, "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
+nie gespeichert) vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
+Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
 FS-Scan → Manual), 4 Performance-Profilen, OAuth-Loopback + Release-Token-Header,
 i18n (DE/EN + Stubs für ES/FR/PT/RU/ZH).
@@ -43,9 +47,15 @@ src/
 │   └── index.ts  # Fenster + IPC-Handler + OAuth-Server
 ├── preload/      # Sichere IPC-Bridge zum Renderer
 │   └── index.ts
-├── renderer/     # Browser-UI (SCC-Brand-Theme)
-│   ├── index.html
-│   ├── main.ts
+├── renderer/     # Browser-UI (SCC-Brand-Theme) — ein Bildschirm, geführter Lauf
+│   ├── index.html         # Shell: Kopfstreifen (Schiene, Verbindungs-Chip, ⚙), Bühne, Bodenleiste
+│   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
+│   ├── steps/             # install (Startrampe), setup (Umfang + Sheet), done, category-bars
+│   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
+│   ├── options-sheet.ts   # nur "diese Runde": Upload danach, Wenn fertig (nie gespeichert)
+│   ├── settings-dialog.ts # alles Dauerhafte: Unbeaufsichtigt, Tray, Ring, Sprache, Telemetrie
+│   ├── connection-popover.ts · throttle-chip.ts · log-drawer.ts · keymap.ts
+│   ├── progress.ts        # Progress-Karte (unverändert)
 │   └── styles.css
 ├── lib/          # Domain-Logic (im Main-Prozess geladen)
 │   ├── discovery.ts       # 3-Stufen-Cascade
@@ -89,8 +99,10 @@ weder abgebrochen noch neu gestartet.
   Component-Tree): der entscheidet, *welche* Dateien der Sidecar abarbeitet, und
   seine Planung läuft schon. Scope bleibt für den Lauf fest; die UI sagt das.
 
-Das Umschalt-UI hängt auf Configure (groß, mit ETA) sowie auf der Run- und der
-Upload-View (kompakt) — überall derselbe Schreibpfad.
+Das Umschalt-UI ist ein Tempo-Chip unter der Progress-Karte (Popover mit dem
+kompakten Picker) — ein Mount, derselbe Schreibpfad. Der *Umfang* (minimal /
+standard / maximum, `settings.extractScope`) ist davon getrennt und wird auf
+"Einrichtung" gewählt.
 
 ## Pause, Fortsetzen & Fehlertoleranz
 

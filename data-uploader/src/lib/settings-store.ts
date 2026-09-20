@@ -25,12 +25,6 @@ export interface Settings {
    */
   autoRunOnNewVersion: boolean;
   /**
-   * Shut the PC down after a fully-confirmed upload. Default OFF — a destructive,
-   * unattended action the operator must deliberately opt into. Honoured with a
-   * short cancelable countdown so an accidental tick is recoverable.
-   */
-  shutdownAfterUpload: boolean;
-  /**
    * After an UNATTENDED launch (the `--hidden` autostart login item), close the
    * program again once there is nothing left for it to do: immediately when the
    * auto-run decided the server already holds this build, and right after a
@@ -40,11 +34,32 @@ export interface Settings {
    */
   quitAfterAutoRun: boolean;
   /**
+   * What happens after an UNATTENDED run that uploaded successfully. Replaces
+   * the old boolean `shutdownAfterUpload` (removed in schema v2) — a foreground
+   * run's "when done" choice lives only in renderer memory and is never
+   * persisted here. Default 'quit'.
+   */
+  afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  /**
+   * Start the upload step automatically once extraction finishes. Default ON;
+   * per-run it can still be turned off for a manual "extract only" pass.
+   */
+  uploadAfterExtract: boolean;
+  /**
+   * How much of the game data an extraction run pulls. Default 'standard'.
+   */
+  extractScope: 'minimal' | 'standard' | 'maximum';
+  /**
    * Auto-update ring the operator opted into (role-gated in the UI). Default
    * 'stable'; only admins/collaborators ever see the picker to change it. The
    * renderer maps it onto electron-updater's channel via the main process.
    */
   updateChannel: 'alpha' | 'beta' | 'stable';
+  /**
+   * Persisted UI locale, set only when the renderer explicitly asks for it via
+   * `patch()`. Undefined means "use the renderer's own detection/fallback".
+   */
+  language?: string;
 }
 
 /** Injectable text persistence (file-backed in production). */
@@ -53,11 +68,20 @@ export interface TextIO {
   write(text: string): void;
 }
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+
+/**
+ * Envelope versions this store can still read. v1 predates `afterAutoRun` /
+ * `uploadAfterExtract` / `extractScope` and carried a `shutdownAfterUpload`
+ * boolean instead — that key is dropped silently on load (never migrated into
+ * `afterAutoRun`) and every new field falls back to its default. Any other
+ * version is treated as unreadable and resets to defaults entirely.
+ */
+const READABLE_VERSIONS = new Set([1, SCHEMA_VERSION]);
 
 interface Envelope {
   v: number;
-  settings: Settings;
+  settings: Partial<Settings> & { shutdownAfterUpload?: boolean };
 }
 
 export class SettingsStore {
@@ -84,16 +108,31 @@ export class SettingsStore {
       autoStart: typeof parsed?.autoStart === 'boolean' ? parsed.autoStart : false,
       autoRunOnNewVersion:
         typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
-      shutdownAfterUpload:
-        typeof parsed?.shutdownAfterUpload === 'boolean' ? parsed.shutdownAfterUpload : false,
-      // Default ON (unlike the two above): this one only ever ENDS a process
+      // Default ON (unlike the row above): this one only ever ENDS a process
       // nobody is looking at, so the safe direction is to do it.
       quitAfterAutoRun:
         typeof parsed?.quitAfterAutoRun === 'boolean' ? parsed.quitAfterAutoRun : true,
+      afterAutoRun:
+        parsed?.afterAutoRun === 'keep' ||
+        parsed?.afterAutoRun === 'quit' ||
+        parsed?.afterAutoRun === 'shutdown'
+          ? parsed.afterAutoRun
+          : 'quit',
+      uploadAfterExtract:
+        typeof parsed?.uploadAfterExtract === 'boolean' ? parsed.uploadAfterExtract : true,
+      extractScope:
+        parsed?.extractScope === 'minimal' ||
+        parsed?.extractScope === 'standard' ||
+        parsed?.extractScope === 'maximum'
+          ? parsed.extractScope
+          : 'standard',
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
           ? parsed.updateChannel
           : 'stable',
+      ...(typeof parsed?.language === 'string' && parsed.language.length > 0
+        ? { language: parsed.language }
+        : {}),
     };
     this.cache = settings;
     // Persist immediately so the freshly-minted installId is stable next launch.
@@ -120,12 +159,17 @@ export class SettingsStore {
     return next;
   }
 
-  private readEnvelope(): Partial<Settings> | null {
+  private readEnvelope(): Envelope['settings'] | null {
     const raw = this.io.read();
     if (!raw) return null;
     try {
       const env = JSON.parse(raw) as Partial<Envelope>;
-      if (env.v !== SCHEMA_VERSION || !env.settings) return null;
+      if (typeof env.v !== 'number' || !READABLE_VERSIONS.has(env.v) || !env.settings) {
+        return null;
+      }
+      // `shutdownAfterUpload` (v1 only) is never read into the typed Settings
+      // shape below — dropping it here is enough to keep it from surviving a
+      // load or influencing `afterAutoRun`.
       return env.settings;
     } catch {
       return null;

@@ -12,8 +12,14 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
+    <!-- One-screen shell: a 44px top strip (mini brand+version · step rail ·
+         connection chip · settings gear) sits above the update banner, the
+         centered stage (max 820px, see --sc-content-max-width), and an
+         optional bottom strip (snackbar / status) that only takes space when
+         it has content. All content is painted by renderer/main.ts + the
+         shell/ and steps/ modules — this file is just the static scaffold. -->
+    <header id="top-strip" class="top-strip">
+      <div class="top-strip-brand">
         <!-- BRAND-MARK:BEGIN -->
         <svg class="logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="440" height="440">
         <defs>
@@ -171,21 +177,13 @@
         </g>
         </svg>
       <!-- BRAND-MARK:END -->
-        <div class="brand-text">
-          <strong>Star Citizen Companion</strong>
-          <span class="sub" id="version-tag">v—</span>
-        </div>
+        <span class="top-strip-version" id="version-tag">v—</span>
       </div>
-      <div class="topbar-spacer"></div>
-      <select id="lang-select" aria-label="Sprache">
-        <option value="de">DE</option>
-        <option value="en">EN</option>
-        <option value="fr">FR</option>
-        <option value="es">ES</option>
-        <option value="pt">PT</option>
-        <option value="ru">RU</option>
-        <option value="zh">ZH</option>
-      </select>
+      <nav id="step-rail" class="step-rail" aria-label="Fortschritt"></nav>
+      <div class="top-strip-right">
+        <div id="connection-chip" class="connection-chip"></div>
+        <button id="btn-settings-gear" type="button" class="sc-icon-btn" title="" aria-label="">⚙</button>
+      </div>
     </header>
 
     <div id="update-banner" class="update-banner hidden" role="status" aria-live="polite">
@@ -193,21 +191,17 @@
       <button id="update-banner-action" type="button" class="btn btn-primary"></button>
     </div>
 
-    <!-- Web-connection tile: persistent across views, painted by renderer/main.ts.
-         Shows session state (one-time login that persists) + server-catalog sync. -->
-    <section id="connection-tile" class="conn-tile" aria-live="polite"></section>
+    <button id="chevron-prev" type="button" class="chevron chevron-prev" hidden aria-label="">‹</button>
+    <button id="chevron-next" type="button" class="chevron chevron-next" hidden aria-label="">›</button>
 
-    <main id="app">
-      <!-- view content rendered by renderer/main.ts -->
+    <main id="stage" class="stage">
+      <div id="app" class="stage-inner">
+        <!-- active step content, rendered by renderer/main.ts + steps/*.ts -->
+      </div>
     </main>
 
-    <footer class="statusbar">
-      <span id="status-line">…</span>
-      <label class="telemetry-toggle" id="telemetry-toggle" title="">
-        <input type="checkbox" id="telemetry-checkbox" />
-        <span id="telemetry-label"></span>
-      </label>
-      <span class="env" id="env-line">—</span>
+    <footer id="bottom-strip" class="bottom-strip" hidden>
+      <span id="status-line"></span>
     </footer>
 
     <script type="module" src="./main.ts"></script>

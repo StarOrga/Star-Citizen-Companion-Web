@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.88.0] - 2026-09-20
+
+### Changed
+
+- **Data Uploader ist jetzt ein Bildschirm — geführt statt vier Ansichten.**
+  Kopfstreifen mit Schritt-Schiene (Installation → Einrichtung → Extraktion →
+  Upload → Fertig), Verbindungs-Chip mit Popover und ⚙-Dialog; Chevrons und
+  ←/→ nur vor dem Start, während eines Laufs gibt es kein „Zurück" mehr, nur
+  „Lauf abbrechen…" mit Rückfrage. Die Startrampe zeigt den Abgleich lokal ↔
+  Server („neuer als Server — lohnt sich" / „Server hat … bereits") und ist
+  Einzelauswahl (bisher waren alle Installationen vorgewählt, verarbeitet wurde
+  nur die erste). Extraktion und Upload laufen durch; die Progress-Karte trägt
+  fünf Kategorie-Balken (Schiffe, Fahrzeuge, Komponenten, Waffen, Texte) mit
+  Datenpunkt-Tick, das Protokoll ist eine Lade (Ctrl+L), Tempo ein Chip; der
+  Upload zeigt Ziel, MB/s und die Schritte „Bundle · Einträge in den Codex ·
+  3D-Skins". Eigener Fertig-Screen mit Countdown. Wortschatz vereinheitlicht
+  (Spielversion, Umfang, Tempo, Einträge, Vollständigkeit). Fünf Shortcuts:
+  Enter, Space, Esc, Ctrl+, und Ctrl+L. Uploader-Version 0.33.0.
+  Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html`.
+- **„PC herunterfahren" wird vor dem Start gewählt und nie gespeichert.** Die
+  Laufoptionen (Upload danach — Standard AN, gemerkt — und „Wenn fertig":
+  nichts / Programm beenden / PC herunterfahren) stehen als Sheet auf
+  „Einrichtung"; ein scharfer Chip zeigt die Wahl während des Laufs und lässt
+  sich abwählen. Ein gespeichertes `shutdownAfterUpload` aus älteren
+  Versionen wird beim Laden verworfen (Settings-Schema 2) — bisher konnte ein
+  einmal gesetzter Haken auch einen späteren Autostart-Lauf mit
+  Herunterfahren beenden. Alles Dauerhafte (Unbeaufsichtigt-Hauptschalter mit
+  Autostart / Auto-Lauf / Beenden-wenn-nichts-zu-tun, „Nach einem
+  automatischen Lauf", Tray, Update-Ring, Sprache, Fehlerberichte) liegt im
+  ⚙-Dialog. Der Lauf startet über ein explizites `startRun(plan)` aus
+  `buildRunPlan()` (getestet, +16 Tests) — auch der Auto-Lauf, nicht mehr als
+  Nebenwirkung des Renderns.
+
 ## [0.87.1] - 2026-09-20
 
 ### Changed
