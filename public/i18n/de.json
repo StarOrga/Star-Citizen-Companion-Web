@@ -3025,6 +3025,33 @@
       "beta": "Beta",
       "alpha": "Alpha",
       "dev": "Dev"
+    },
+    "diagnostics": {
+      "title": "Warnungen & Fehler aus Uploader-Logs",
+      "hint": "Läufe des Data Uploaders, die [warn]- oder [err]-Zeilen ins Log geschrieben haben – auch wenn sie sauber durchgelaufen sind. Eine Zeile aufklappen zeigt das Protokoll; „Als Thema melden“ öffnet das Feedback-Panel mit vorausgefülltem Thema und dem Log als Anhang. Gesendet wird erst, wenn du auf Senden drückst.",
+      "byOutcome": "Nach Ausgang",
+      "recent": "Letzte Läufe",
+      "warningsShort": "Warn.",
+      "errorsShort": "Fehler",
+      "reported": "Als Thema übergeben",
+      "noLines": "Kein Protokoll übermittelt.",
+      "report": "Als Thema melden",
+      "reportHint": "Öffnet ein neues Feedback-Thema, vorausgefüllt und mit dem Log als Anhang – änderbar, noch nicht gesendet.",
+      "outcome": {
+        "ok": "Durchgelaufen",
+        "failed": "Fehlgeschlagen",
+        "cancelled": "Vom Nutzer abgebrochen",
+        "quit": "App beendet"
+      },
+      "kind": {
+        "extract": "Extraktion",
+        "skin": "Skin-Export"
+      },
+      "topic": {
+        "head": "Data Uploader {{version}} ({{ring}}) hat beim Lauf „{{kind}}“ ({{outcome}}) {{warnings}} Warnung(en) und {{errors}} Fehler protokolliert – Spiel {{game}}, OS {{os}}, Telemetrie-Event #{{id}}.",
+        "ask": "Bitte das angehängte Log analysieren: Ursache der Warnungen/Fehler finden, einschätzen ob dadurch Daten fehlen oder falsch extrahiert wurden, und einen Fix im Data Uploader (data-uploader/) bzw. im Python-Sidecar (data-uploader/python/sc_extract) umsetzen. Falls die Meldung harmlos ist: Log-Level senken oder die Ursache still abfangen, damit sie nicht wieder als Warnung auftaucht.",
+        "excerpt": "Auszug aus dem Log:"
+      }
     }
   },
   "adminFeedback": {

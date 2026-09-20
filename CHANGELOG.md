@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.87.0] - 2026-09-20
+
+### Added
+
+- **Uploader-Log-Warnungen erreichen die Telemetrie — und werden per Klick zum
+  Feedback-Thema.** Der Data Uploader sammelt die `[warn]`-/`[err]`-Zeilen, die
+  ein Lauf (P4K-Extraktion, Skin-Export) ins Run-View-Log schreibt, und meldet
+  sie einmal am Ende als signiertes Telemetrie-Event `job-diagnostics`
+  (Transkript, Zähler, Phase/Fortschritt/Dauer, Spiel-Channel + Patch; das
+  Home-Verzeichnis des Operators wird maskiert, ein sauberer Lauf sendet
+  nichts). `get_telemetry_stats` nimmt den Bucket wie `extract-aborted` aus
+  allen Absturz-Aggregaten heraus und liefert einen `diagnostics`-Block mit
+  Transkript (Migration `20260920120000`, bereits angewendet). Der
+  Telemetrie-Tab zeigt die Läufe in der neuen Karte „Warnungen & Fehler aus
+  Uploader-Logs“ — nach Ausgang, aufklappbar mit Protokoll — und
+  „Als Thema melden“ öffnet das Feedback-Panel mit aufgeklapptem
+  Neues-Thema-Composer: Prompt an die Routine mit Log-Auszug, Bereich
+  „Desktop“ (gepinnt), das vollständige Log als `.log`-Anhang. Nichts wird
+  gesendet, alles bleibt änderbar; ein vorhandener Entwurf bleibt unter dem
+  Vorschlag erhalten. Neu dafür: `FeedbackComposerSeedService` (One-Shot-Seed
+  pro Draft-Scope + Öffnen-Anfrage an FAB und Board) und ein `pinned`-Model am
+  Bereichs-Picker, damit die Route den gesetzten Bereich nicht überschreibt.
+  Data Uploader 0.32.0.
+
 ## [0.86.18] - 2026-09-18
 
 ### Changed

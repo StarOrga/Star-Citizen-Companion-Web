@@ -12,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
+import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { RoutineStatusDirective } from '../admin/feedback/routine-status.directive';
 
@@ -321,6 +322,7 @@ export class FeedbackFabComponent {
   readonly roles = inject(RoleService);
   private readonly fabPrefs = inject(FeedbackFabPrefsService);
   private readonly panelNav = inject(PanelNavigationService);
+  private readonly seeds = inject(FeedbackComposerSeedService);
 
   /**
    * Admin, and the launcher not switched off in Settings → Feedback. Hiding it
@@ -337,6 +339,18 @@ export class FeedbackFabComponent {
       if (n === seen) return;
       seen = n;
       if (this.isPhoneSheet() && untracked(() => this.isOpen())) this.minimize();
+    });
+    // A page seeded a topic and wants the panel on screen (the telemetry
+    // page's "report as topic"). Mount if needed, un-minimize either way; the
+    // embedded board unfolds its composer on the same request.
+    let opens = this.seeds.openRequests();
+    effect(() => {
+      const n = this.seeds.openRequests();
+      if (n === opens) return;
+      opens = n;
+      if (!untracked(() => this.visible())) return;
+      this.mounted.set(true);
+      this.minimized.set(false);
     });
   }
 

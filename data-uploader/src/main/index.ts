@@ -7,7 +7,8 @@ import { cpus } from 'node:os';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
-import { reportCrash, reportError, reportExtractAbort } from './telemetry-reporter.js';
+import { reportCrash, reportError, reportExtractAbort, reportJobDiagnostics } from './telemetry-reporter.js';
+import { collectDiagnostic, newJobDiagnostics, type JobDiagnostics, type JobOutcome } from '../lib/job-diagnostics.js';
 import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
 import {
@@ -668,6 +669,12 @@ interface ActiveJob {
   lastPct: number | null;
   /** Where this job writes. The extract purge must never delete it. */
   outDir: string | null;
+  /**
+   * Every [warn] / [err] line the sidecar streamed, reported once at the end
+   * (lib/job-diagnostics). The operator sees them in the run view; without
+   * this the dashboard never did.
+   */
+  diagnostics: JobDiagnostics;
 }
 const activeJobs = new Map<string, ActiveJob>();
 
@@ -680,7 +687,35 @@ function newActiveJob(kind: ActiveJob['kind'], outDir: string | null = null): Ac
     lastPhase: null,
     lastPct: null,
     outDir,
+    diagnostics: newJobDiagnostics(),
   };
+}
+
+/**
+ * Send the job's collected log diagnostics. Called from the same places as
+ * the abort/outcome reports so a run that both aborted AND warned yields two
+ * rows that name the same jobId — the abort says it stopped, this says what
+ * it complained about on the way.
+ */
+function reportJobLog(
+  kind: string,
+  jobId: string,
+  job: ActiveJob,
+  final: { ok: boolean; error?: string | null },
+  extra: { channel?: string | null; patchVersion?: string | null } = {},
+): void {
+  const outcome: JobOutcome = job.abortReason
+    ? job.abortReason === 'error' ? 'failed' : job.abortReason
+    : final.ok ? 'ok' : 'failed';
+  void reportJobDiagnostics(job.diagnostics, {
+    kind,
+    jobId,
+    outcome,
+    phase: job.lastPhase,
+    pct: job.lastPct,
+    elapsedMs: Date.now() - job.startedAt,
+    ...extra,
+  });
 }
 
 /** Output dirs of every job running right now — the purge's keep-list. */
@@ -811,6 +846,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   const job = newActiveJob('extract', req.outDir);
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
     watchdog.pet(); // every event is a sign of life — reset the stall timer
+    collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
     // Mirror into main's hub so the tray shows extraction progress even while
     // the window is hidden.
     const e = ev as { phase?: string; pct?: number };
@@ -836,11 +872,13 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     // (never throws) for a dead sidecar, a non-zero exit, or a missing 'done'
     // event, so those failures used to reach telemetry not at all.
     reportExtractOutcome(jobId, job, final);
+    reportJobLog('extract', jobId, job, final, { channel: req.channel, patchVersion: req.patchVersion });
     return final;
   } catch (err) {
     hub.finish('extract', 'error');
     const message = err instanceof Error ? err.message : String(err);
     reportExtractOutcome(jobId, job, { ok: false, error: message });
+    reportJobLog('extract', jobId, job, { ok: false, error: message }, { channel: req.channel, patchVersion: req.patchVersion });
     return { ok: false, error: message };
   } finally {
     watchdog.stop();
@@ -876,6 +914,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   const job = newActiveJob('skin', req.outDir);
   const handle = startSkinExport(req, (ev) => {
     watchdog.pet();
+    collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
     event.sender.send('sc:skin:event', { jobId, ...ev });
   });
   job.cancel = handle.cancel;
@@ -893,9 +932,11 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
       const signal = uploadJob.view().signal;
       if (signal !== 'running') return { ok: false, error: signal };
     }
+    reportJobLog('skin', jobId, job, final);
     return final;
   } catch (err) {
     void reportError('skin-failed', err, { jobId });
+    reportJobLog('skin', jobId, job, { ok: false });
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     watchdog.stop();

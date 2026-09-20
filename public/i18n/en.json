@@ -3025,6 +3025,33 @@
       "beta": "Beta",
       "alpha": "Alpha",
       "dev": "Dev"
+    },
+    "diagnostics": {
+      "title": "Warnings & errors from uploader logs",
+      "hint": "Data Uploader runs that wrote [warn] or [err] lines to their log – including runs that otherwise finished fine. Unfold a row for the transcript; “Report as topic” opens the feedback panel with a pre-filled topic and the log attached. Nothing is sent until you press send.",
+      "byOutcome": "By outcome",
+      "recent": "Recent runs",
+      "warningsShort": "warn.",
+      "errorsShort": "errors",
+      "reported": "Handed to composer",
+      "noLines": "No transcript was sent.",
+      "report": "Report as topic",
+      "reportHint": "Opens a new feedback topic, pre-filled and with the log attached – editable, not sent yet.",
+      "outcome": {
+        "ok": "Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled by user",
+        "quit": "App quit"
+      },
+      "kind": {
+        "extract": "Extraction",
+        "skin": "Skin export"
+      },
+      "topic": {
+        "head": "Data Uploader {{version}} ({{ring}}) logged {{warnings}} warning(s) and {{errors}} error(s) during {{kind}} ({{outcome}}) – game {{game}}, OS {{os}}, telemetry event #{{id}}.",
+        "ask": "Please analyse the attached log: find the cause of the warnings/errors, judge whether data is missing or extracted wrongly because of them, and implement a fix in the Data Uploader (data-uploader/) or the Python sidecar (data-uploader/python/sc_extract). If the message is harmless, lower the log level or handle the cause quietly so it stops surfacing as a warning.",
+        "excerpt": "Log excerpt:"
+      }
     }
   },
   "adminFeedback": {

@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import { draftScopes } from '../feedback/feedback-draft.types';
+import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
+import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
+import { buildDiagnosticTopic, diagnosticLogFile, type DiagnosticRow } from './telemetry-diagnostics';
 import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -40,6 +45,9 @@ interface RecentAbort {
   at: number;
 }
 interface ExtractAborts { total: number; byReason: AbortReasonRow[]; recent: RecentAbort[]; }
+/** Uploader runs that logged warnings/errors, by how the run ended. */
+interface OutcomeRow { outcome: string; count: number; }
+interface Diagnostics { total: number; byOutcome: OutcomeRow[]; recent: DiagnosticRow[]; }
 interface TelemetryStats {
   generatedAt: number;
   windowDays: number;
@@ -47,7 +55,10 @@ interface TelemetryStats {
   product?: string;
   /** Per-product roll-up — always the full window, never narrowed by the filter. */
   products?: ProductRow[];
-  totals: { crashes: number; usage: number; installs: number; sessions: number; extractAborts?: number };
+  totals: {
+    crashes: number; usage: number; installs: number; sessions: number;
+    extractAborts?: number; diagnostics?: number;
+  };
   byVersion: VersionRow[];
   /** Release-ring split. Absent until the starscape-product migration is deployed. */
   byChannel?: ChannelRow[];
@@ -58,10 +69,17 @@ interface TelemetryStats {
   recentCrashes: RecentCrash[];
   /** Absent until the telemetry_extract_aborts migration is deployed. */
   extractAborts?: ExtractAborts;
+  /** Absent until the telemetry_job_diagnostics migration is deployed. */
+  diagnostics?: Diagnostics;
 }
 
 /** Abort reasons the uploader can send — anything else renders verbatim. */
 const KNOWN_ABORT_REASONS = ['cancelled', 'quit', 'error'];
+
+/** Run outcomes the uploader can send — anything else renders verbatim. */
+const KNOWN_OUTCOMES = ['ok', 'failed', 'cancelled', 'quit'];
+/** Job kinds the uploader can send — anything else renders verbatim. */
+const KNOWN_KINDS = ['extract', 'skin'];
 
 /** Release rings we ship a label for; anything else renders verbatim. */
 const KNOWN_CHANNELS = ['stable', 'beta', 'alpha', 'dev'];
@@ -279,6 +297,90 @@ const WINDOWS = [7, 30, 90] as const;
           </div>
         }
 
+        <!-- ── Runs that finished with [warn]/[err] lines in their log. Each
+             row unfolds to the transcript and can be filed as a feedback topic
+             with the log attached — the composer opens pre-filled, nothing is
+             sent until the admin presses send. ── -->
+        @if (diagnostics(); as d) {
+          <div class="sc-card">
+            <h2>
+              {{ 'telemetry.diagnostics.title' | translate }}
+              <span class="count-badge">{{ d.total | number }}</span>
+            </h2>
+            <p class="hint">{{ 'telemetry.diagnostics.hint' | translate }}</p>
+            @if (d.total) {
+              <h2 class="sub">{{ 'telemetry.diagnostics.byOutcome' | translate }}</h2>
+              @for (o of d.byOutcome; track o.outcome) {
+                <div class="bar-row">
+                  <span class="bar-label">
+                    @if (outcomeLabelKey(o.outcome); as key) {
+                      {{ key | translate }}
+                    } @else {
+                      <span class="mono">{{ o.outcome }}</span>
+                    }
+                  </span>
+                  <span class="bar"><span class="bar-fill warn" [style.width.%]="sharePct(o.count, maxOutcome())"></span></span>
+                  <span class="bar-num">{{ o.count | number }}</span>
+                </div>
+              }
+              <h2 class="sub">{{ 'telemetry.diagnostics.recent' | translate }}</h2>
+              <ul class="diag-list">
+                @for (r of d.recent; track r.id) {
+                  <li class="diag" [class.reported]="reported().has(r.id)">
+                    <details>
+                      <summary class="diag-head">
+                        <span class="diag-when mono">{{ r.at | scDate: 'datetime' }}</span>
+                        <span class="diag-run">
+                          @if (showCrashProduct() && productLabel(r.product); as key) {
+                            {{ key | translate }} ·
+                          }
+                          <span class="mono">{{ r.version }}</span>
+                          ·
+                          @if (kindLabelKey(r.kind); as key) {
+                            {{ key | translate }}
+                          } @else {
+                            <span class="mono">{{ r.kind }}</span>
+                          }
+                          @if (r.gameChannel || r.patchVersion) {
+                            <span class="hint">({{ r.gameChannel ?? '' }} {{ r.patchVersion ?? '' }})</span>
+                          }
+                        </span>
+                        <span class="chip" [class.warn]="r.outcome !== 'ok'">
+                          @if (outcomeLabelKey(r.outcome); as key) {
+                            {{ key | translate }}
+                          } @else {
+                            <span class="mono">{{ r.outcome }}</span>
+                          }
+                        </span>
+                        @if (r.warnings) {
+                          <span class="chip warn">{{ r.warnings | number }} {{ 'telemetry.diagnostics.warningsShort' | translate }}</span>
+                        }
+                        @if (r.errors) {
+                          <span class="chip err">{{ r.errors | number }} {{ 'telemetry.diagnostics.errorsShort' | translate }}</span>
+                        }
+                        @if (reported().has(r.id)) {
+                          <span class="chip ok">{{ 'telemetry.diagnostics.reported' | translate }}</span>
+                        }
+                      </summary>
+                      <div class="diag-body">
+                        <pre class="diag-lines">{{ r.lines || ('telemetry.diagnostics.noLines' | translate) }}</pre>
+                        <div class="diag-actions">
+                          <button type="button" class="sc-btn" (click)="reportDiagnostic(r)">
+                            {{ 'telemetry.diagnostics.report' | translate }}
+                          </button>
+                          <span class="hint">{{ 'telemetry.diagnostics.reportHint' | translate }}</span>
+                        </div>
+                      </div>
+                    </details>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="hint">{{ 'telemetry.empty' | translate }}</p>
+            }
+          </div>
+        }
+
         <div class="sc-card">
           <h2>{{ 'telemetry.recent' | translate }}</h2>
           @if (s.recentCrashes.length) {
@@ -385,6 +487,27 @@ const WINDOWS = [7, 30, 90] as const;
     .mono { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
     .gen { text-align: right; margin-top: 0.5rem; }
 
+    /* ---- Log diagnostics ---- */
+    .diag-list { list-style: none; margin: 0; padding: 0; }
+    .diag { border-bottom: 1px solid rgba(255,255,255,.07); }
+    .diag:last-child { border-bottom: 0; }
+    .diag-head {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem;
+      padding: 8px 4px; cursor: pointer; font-size: 0.82rem; min-height: 44px;
+    }
+    .diag-head::marker, .diag-head::-webkit-details-marker { color: var(--sc-text-dim, #8b97a8); }
+    .diag-run { flex: 1 1 200px; }
+    .diag.reported .diag-head { opacity: .78; }
+    .chip.err { background: rgba(248,81,73,.16); color: #f85149; }
+    .diag-body { padding: 0 4px 10px; }
+    .diag-lines {
+      margin: 0 0 0.6rem; padding: 0.6rem 0.75rem; max-height: 320px; overflow: auto;
+      background: rgba(0,0,0,.28); border-radius: 8px;
+      font-family: ui-monospace, monospace; font-size: max(0.74rem, var(--sc-fs-floor));
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .diag-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
+
     @media (max-width: 760px) { .totals { grid-template-columns: repeat(2,1fr); } .cols { grid-template-columns: 1fr; } }
     @media (max-width: 560px) {
       .page { padding: 0; }
@@ -408,6 +531,10 @@ const WINDOWS = [7, 30, 90] as const;
 export class TelemetryStatsComponent {
   private readonly supabase = inject(SupabaseClientProvider);
   private readonly route = inject(ActivatedRoute);
+  private readonly translate = inject(TranslateService);
+  private readonly seeds = inject(FeedbackComposerSeedService);
+  private readonly fabPrefs = inject(FeedbackFabPrefsService);
+  private readonly router = inject(Router);
 
   readonly windows = WINDOWS;
   /**
@@ -485,6 +612,25 @@ export class TelemetryStatsComponent {
   readonly maxAbortReason = computed(() =>
     Math.max(1, ...(this.aborts()?.byReason ?? []).map((r) => r.count)));
 
+  /**
+   * Log diagnostics — same visibility rule as the aborts: only the uploader
+   * sends them, and the block is absent on a backend without its migration.
+   */
+  readonly diagnostics = computed<Diagnostics | null>(() => {
+    const s = this.stats();
+    if (!s?.diagnostics) return null;
+    const p = this.product();
+    if (p !== ALL_PRODUCTS && p !== 'data-uploader') return null;
+    return s.diagnostics;
+  });
+  readonly maxOutcome = computed(() =>
+    Math.max(1, ...(this.diagnostics()?.byOutcome ?? []).map((o) => o.count)));
+  /**
+   * Rows already handed to the composer in this session — the button stays
+   * (a second topic is legitimate) but the row says it has been filed once.
+   */
+  readonly reported = signal<ReadonlySet<number>>(new Set());
+
   constructor() {
     // Reload whenever the URL selection changes — including the first render.
     effect(() => {
@@ -512,8 +658,40 @@ export class TelemetryStatsComponent {
     return KNOWN_ABORT_REASONS.includes(reason) ? `telemetry.aborts.reason.${reason}` : null;
   }
 
+  /** i18n key for a known run outcome, or null to render the raw value. */
+  outcomeLabelKey(outcome: string): string | null {
+    return KNOWN_OUTCOMES.includes(outcome) ? `telemetry.diagnostics.outcome.${outcome}` : null;
+  }
+
+  /** i18n key for a known job kind, or null to render the raw value. */
+  kindLabelKey(kind: string): string | null {
+    return KNOWN_KINDS.includes(kind) ? `telemetry.diagnostics.kind.${kind}` : null;
+  }
+
   sharePct(value: number, max: number): number {
     return sharePct(value, max);
+  }
+
+  /**
+   * "Als Thema melden": seed the admin new-topic composer with a prompt for
+   * the routine, the area tag, and the transcript as a `.log` attachment, then
+   * open the feedback panel. Nothing is sent here — the composer shows it all,
+   * editable, and the admin presses send (or not).
+   */
+  reportDiagnostic(row: DiagnosticRow): void {
+    const body = buildDiagnosticTopic(row, (key, params) => this.translate.instant(key, params));
+    this.seeds.plant(draftScopes.adminNew, {
+      body,
+      area: 'desktop',
+      complex: false,
+      files: [diagnosticLogFile(row)],
+    });
+    // The docked panel is the normal home of the composer. An admin who
+    // switched the launcher off in Settings has no panel to open, so the full
+    // board takes the seed instead — its composer is always mounted.
+    if (this.fabPrefs.show()) this.seeds.requestOpen();
+    else void this.router.navigateByUrl('/admin/feedback');
+    this.reported.update((set) => new Set([...set, row.id]));
   }
 
   async load(days: number, product: string): Promise<void> {
