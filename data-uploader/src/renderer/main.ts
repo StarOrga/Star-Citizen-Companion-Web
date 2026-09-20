@@ -2185,6 +2185,21 @@ async function doUploadAfterAuth(): Promise<void> {
   );
   paintDiffSummary(r.diffSummary);
 
+  // Build silhouettes (Codex Holotable + tile-view outlines) BEFORE the codex
+  // promotion below: `promoteToCodex` -> `catalog-bridge.ts`'s `codex_silhouettes`
+  // phase reads `<output_dir>/silhouettes/rows/*.json`, so this must have
+  // already run or that phase simply sends nothing this run. Non-fatal, same
+  // as the 3D-skin build: a failure here never blocks the bundle/codex upload.
+  try {
+    await buildSilhouettes(result, uploadProgress);
+  } catch (err) {
+    uploadProgress?.update({ indeterminate: false });
+    setAuthStatus(
+      `${t('silhouettes.buildFailed', {}) || 'Silhouetten übersprungen'}: ${(err as Error).message}`,
+      'warn',
+    );
+  }
+
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
@@ -2546,6 +2561,110 @@ async function maybeShutdownAfterUpload(): Promise<void> {
       notice.style.display = 'block';
     });
   });
+}
+
+// ============= Silhouettes (built locally, BEFORE the codex catalog phase) ===
+
+// Build the top-down outline (Codex Holotable + generic tile-view art) for
+// every ship/weapon/component/armor item the extract's silhouette manifest
+// named. Reuses the SAME cgf-converter binary the 3D-skin build downloads
+// (`ensureTools()` is idempotent — a no-op once the binary is on disk, so
+// calling it again here never re-downloads it). Entirely non-fatal: a failure
+// here only means the Codex falls back to "ohne Geometrie" for this run.
+async function buildSilhouettes(
+  result: ExtractResultPayload,
+  progress?: ProgressController | null,
+): Promise<void> {
+  const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
+  if (!ch) return;
+
+  const manifest = `${result.output_dir}/silhouettes/_build_manifest.json`;
+  const label = t('silhouettes.building', {}) || 'Silhouetten werden gebaut';
+
+  // 1. ensure cgf-converter (shared with the skin build — see module docstring).
+  const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
+  progress?.update({ phaseLabel: toolsLabel, indeterminate: true, detail: '' });
+  const unsubTools = window.sc.skin.onToolProgress((pct) =>
+    progress?.update({ phaseLabel: toolsLabel, current: pct, total: 100, overallPct: pct, indeterminate: false }),
+  );
+  const tools = await window.sc.skin.ensureTools();
+  unsubTools();
+  if (await pauseRequested()) return;
+  if (!tools.ok) {
+    progress?.update({ indeterminate: false });
+    setAuthStatus(
+      `${t('silhouettes.toolsFailed', {}) || 'Build-Tools nicht verfügbar — Silhouetten übersprungen'}: ${tools.error ?? '—'}`,
+      'warn',
+    );
+    return;
+  }
+
+  // 2. build silhouettes (streams; per-entity progress + cache-hit/error logs
+  // from silhouette_build_app.py, same events.py shape the skin build uses).
+  progress?.update({
+    phaseLabel: label,
+    indeterminate: true,
+    detail: '',
+    hint: t('silhouettes.hint', {}) ||
+      'Erst-Build wandelt jede Hülle/jedes Bauteil einzeln um — kann etwas dauern.',
+  });
+  const silhouetteCounters: Record<string, number> = {};
+  const unsub = window.sc.silhouette.onEvent((ev) => {
+    if (ev.type === 'phase' && ev.phase) {
+      progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
+    } else if (ev.type === 'progress') {
+      progress?.update({
+        stageLabel:
+          t('silhouettes.entityProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
+          `Entity ${ev.current}/${ev.total}`,
+        current: ev.current,
+        total: ev.total,
+        overallPct: ev.pct,
+        detail: ev.detail,
+      });
+    } else if (ev.type === 'count' && ev.counter) {
+      silhouetteCounters[ev.counter.key] = ev.counter.value;
+      progress?.update({ counters: silhouetteCounters });
+    } else if (ev.type === 'log' && ev.level === 'error') {
+      progress?.update({ detail: ev.message ?? '' });
+    }
+  });
+  const built = await window.sc.silhouette
+    .start({
+      p4kPath: ch.dataP4kPath,
+      outDir: result.output_dir,
+      converterPath: tools.path ?? '',
+      toolVersion: result.tool_version,
+      build: {
+        channel: result.channel,
+        patchVersion: result.patch_version,
+        buildNumber: result.build_number,
+      },
+      manifestPath: manifest,
+    })
+    .finally(unsub);
+  progress?.update({ indeterminate: false });
+  // `paused` / `cancelled` come back when the operator stopped the build —
+  // control flow, not a failure (same as the skin build's own pause path).
+  if (!built.ok && (built.error === 'paused' || built.error === 'cancelled')) {
+    progress?.stop();
+    return;
+  }
+  if (!built.ok) {
+    setAuthStatus(
+      tOr('silhouettes.buildFailed', 'Silhouetten-Build fehlgeschlagen (Bundle ist hochgeladen)'),
+      'warn',
+      { detail: built.error ?? undefined },
+    );
+    return;
+  }
+  const { written = 0, skipped = 0, cached = 0 } = built.result ?? {};
+  setAuthStatus(
+    tOr('silhouettes.done', `${written} Silhouetten erzeugt (${cached} zwischengespeichert, ${skipped} ohne Geometrie)`, {
+      written: String(written), cached: String(cached), skipped: String(skipped),
+    }),
+    'ok',
+  );
 }
 
 // ============= 3D liveries (built + uploaded inside the normal upload) =======
