@@ -446,4 +446,5 @@ Branch `claude/codex-schiffsansicht-design-d0ab3a-fix-uploader`, off
    available — a wingtip/nacelle genuinely severed by the `open()` denoise
    pass should clear this floor; converter debris should not.
 
-Verification for A–I above: SHA `<filled in after push, see commit log>`.
+Verification for A–I above: pushed as `8400d00fce03c9a625c3c8ed62c5b7467116e226`
+on `claude/codex-schiffsansicht-design-d0ab3a-fix-uploader`.
