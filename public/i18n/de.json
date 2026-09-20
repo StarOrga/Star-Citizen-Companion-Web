@@ -1417,6 +1417,38 @@
         "noCargo": "Kein Frachtgitter"
       }
     },
+    "holo": {
+      "strip": {
+        "einsatz": "Einsatz",
+        "shipCount": "{{n}} Schiffe",
+        "offensive": "Offensive",
+        "defensive": "Verteidigung",
+        "movement": "Bewegung",
+        "signature": "Signatur & Kühlung",
+        "signatureRank": "{{n}} von 5 Klassen-Rängen",
+        "cooling": "Kühllast",
+        "coolingValue": "{{used}} / {{total}}",
+        "stealthPreset": "Schleichen",
+        "expand": "Leiste ausklappen",
+        "collapse": "Leiste einklappen"
+      },
+      "hangar": {
+        "tab": "Hangar",
+        "signInHint": "Anmelden, um deinen Hangar zu sehen.",
+        "search": "Hangar durchsuchen",
+        "hall": "Hangar-Halle",
+        "hallTitle": "Hangar-Halle",
+        "close": "Schließen",
+        "noGeometry": "Keine Silhouette verfügbar",
+        "savedToday": "gespeichert heute",
+        "savedYesterday": "gespeichert gestern",
+        "savedOn": "gespeichert am {{date}}",
+        "managedBy": "verwaltet von {{owner}}",
+        "variants": "{{n}} Varianten",
+        "unassigned": "Ohne Rolle",
+        "empty": "Noch keine Schiffe im Hangar."
+      }
+    },
     "kpi": {
       "bandLabel": "Kennzahlen",
       "alpha": "Alpha-Schaden",
