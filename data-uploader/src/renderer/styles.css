@@ -1022,6 +1022,115 @@ h3 { font-size: 0.9rem; }
   to { opacity: 1; transform: none; }
 }
 
+/* ------- generic icon button (topbar gear, dialog close, …) ------- */
+.sc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  background: transparent;
+  color: var(--sc-fg-1);
+  border: 1px solid var(--sc-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.sc-icon-btn:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+
+/* ------- Settings dialog (⚙, Ctrl+,) + options sheet share this shell ------- */
+.sc-sheet-overlay { align-items: center; }
+.sc-settings-dialog { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.sc-settings-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sc-settings-head .sc-modal-title { margin: 0; }
+.settings-master { font-weight: 600; }
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--sc-border);
+  border-radius: 8px;
+  background: var(--sc-bg-2);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+.settings-row--hot { border: 1px solid var(--sc-accent-hot); border-radius: 6px; padding: 8px 10px; background: rgba(var(--accent-hot-rgb), 0.06); }
+.settings-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.settings-row-label { font-size: 0.84rem; }
+.settings-row-hint { font-size: 0.72rem; color: var(--sc-fg-2); }
+.settings-row select {
+  background: var(--sc-bg-1);
+  color: var(--sc-fg-0);
+  border: 1px solid var(--sc-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 0.78rem;
+}
+.settings-diag { font-size: 0.72rem; color: var(--sc-fg-2); margin: 0; }
+
+/* ------- segmented control (Wenn fertig / Ich schaue zu · Unbeaufsichtigt) ------- */
+.segment-group { display: inline-flex; border: 1px solid var(--sc-border); border-radius: 6px; overflow: hidden; }
+.segment {
+  background: transparent;
+  color: var(--sc-fg-1);
+  border: none;
+  border-right: 1px solid var(--sc-border);
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.segment:last-child { border-right: none; }
+.segment:hover { color: var(--sc-fg-0); background: rgba(var(--accent-primary-rgb), 0.08); }
+.segment.active { background: var(--sc-accent); color: var(--sc-bg-0); }
+
+/* ------- "armed" when-done chip (Run/Upload headers) ------- */
+.armed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-family: var(--sc-font-body);
+  font-weight: 500;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 999px;
+  background: rgba(var(--accent-warning-rgb), 0.14);
+  color: var(--sc-warning);
+  border: 1px solid var(--sc-warning);
+}
+.armed-chip button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  font-size: 0.9em;
+}
+.armed-chip button:hover { color: var(--sc-danger); }
+
+/* ------- kbd shortcut badge ------- */
+kbd.sc-kbd {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--sc-border);
+  background: var(--sc-bg-1);
+  color: var(--sc-fg-2);
+  margin-left: 6px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

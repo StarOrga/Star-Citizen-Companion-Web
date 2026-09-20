@@ -54,6 +54,13 @@
     "bundleReady": "Extraction complete — the bundle is ready to upload.",
     "bundleReadyCta": "Bundle ready — upload now",
     "autoUploading": "Auto-upload on — switching to upload…",
+    "whenDone": {
+      "label": "When done",
+      "nothing": "Nothing",
+      "quit": "Quit app",
+      "shutdown": "Shut down PC",
+      "disarm": "Disarm"
+    },
     "phase": {
       "discover": "Analyzing installation",
       "plan": "Planning run",
@@ -105,8 +112,6 @@
     "bundleUploading": "Uploading bundle metadata…",
     "reconnectExpired": "Your session has expired — you'll be asked to sign in again when the upload starts.",
     "reconnectOffline": "Not connected to the web — starting the upload will sign you in.",
-    "shutdownAfter": "Shut down PC after upload",
-    "shutdownAfterHint": "Shuts the PC down after a successful upload — with a 60-second countdown you can cancel.",
     "shutdownScheduled": "Upload done — the PC shuts down in {{secs}} s.",
     "shutdownCancel": "Cancel",
     "shutdownCancelled": "Shutdown cancelled.",
@@ -186,8 +191,25 @@
     "daysAgo": "{{n}} d ago"
   },
   "settings": {
+    "title": "Settings",
+    "adminOnly": "admin/collaborator only",
+    "language": "Language",
+    "unattended": {
+      "label": "Unattended",
+      "hint": "Starts with Windows and runs the whole pipeline automatically on a new data.p4k version — with nobody watching."
+    },
+    "afterAutoRun": {
+      "label": "After an automatic run",
+      "hint": "What happens once an unattended run has uploaded successfully.",
+      "keep": "Keep running",
+      "quit": "Quit app",
+      "shutdown": "Shut down PC"
+    },
+    "diagnostics": {
+      "hint": "Version, platform and token fingerprint are shown in the status bar below."
+    },
     "updateChannel": {
-      "label": "Update channel",
+      "label": "Update ring",
       "hint": "Which release ring auto-updates follow.",
       "alpha": "Alpha",
       "beta": "Beta",

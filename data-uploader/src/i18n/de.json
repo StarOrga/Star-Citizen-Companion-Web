@@ -54,6 +54,13 @@
     "bundleReady": "Extraktion abgeschlossen — das Bundle ist bereit zum Upload.",
     "bundleReadyCta": "Bundle fertig — jetzt hochladen",
     "autoUploading": "Auto-Upload aktiv — wechsle zum Upload…",
+    "whenDone": {
+      "label": "Wenn fertig",
+      "nothing": "Nichts",
+      "quit": "Programm beenden",
+      "shutdown": "PC herunterfahren",
+      "disarm": "Entwaffnen"
+    },
     "phase": {
       "discover": "Installation analysieren",
       "plan": "Lauf planen",
@@ -105,8 +112,6 @@
     "bundleUploading": "Bundle-Metadaten werden hochgeladen…",
     "reconnectExpired": "Deine Sitzung ist abgelaufen — melde dich beim Upload-Start neu an.",
     "reconnectOffline": "Nicht mit dem Web verbunden — der Upload-Start meldet dich an.",
-    "shutdownAfter": "PC nach Upload herunterfahren",
-    "shutdownAfterHint": "Fährt den PC nach erfolgreichem Upload herunter — mit 60-Sekunden-Countdown zum Abbrechen.",
     "shutdownScheduled": "Upload fertig — PC wird in {{secs}} s heruntergefahren.",
     "shutdownCancel": "Abbrechen",
     "shutdownCancelled": "Herunterfahren abgebrochen.",
@@ -186,8 +191,25 @@
     "daysAgo": "vor {{n}} Tg"
   },
   "settings": {
+    "title": "Einstellungen",
+    "adminOnly": "nur Admin/Collaborator",
+    "language": "Sprache",
+    "unattended": {
+      "label": "Unbeaufsichtigt",
+      "hint": "Startet mit Windows und läuft bei einer neuen data.p4k-Version automatisch komplett durch — ohne dass jemand zusieht."
+    },
+    "afterAutoRun": {
+      "label": "Nach einem automatischen Lauf",
+      "hint": "Was passiert, nachdem ein unbeaufsichtigter Lauf erfolgreich hochgeladen hat.",
+      "keep": "Weiterlaufen",
+      "quit": "Programm beenden",
+      "shutdown": "PC herunterfahren"
+    },
+    "diagnostics": {
+      "hint": "Version, Plattform und Token-Fingerabdruck stehen unten in der Statusleiste."
+    },
     "updateChannel": {
-      "label": "Update-Channel",
+      "label": "Update-Ring",
       "hint": "Welchem Release-Ring automatische Updates folgen.",
       "alpha": "Alpha",
       "beta": "Beta",
