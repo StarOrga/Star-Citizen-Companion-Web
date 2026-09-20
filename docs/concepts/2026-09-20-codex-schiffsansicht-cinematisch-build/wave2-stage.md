@@ -314,5 +314,4 @@ invented percentage.
    never renders felt like scope creep beyond "present, not hidden" for a
    case that is already reachable in the classic view via the toggle.
 
-Pushed SHA: (see `git log -1` on
-`claude/codex-schiffsansicht-design-d0ab3a-fe-stage` after the push below).
+Pushed SHA: `5315602` on `claude/codex-schiffsansicht-design-d0ab3a-fe-stage`.
