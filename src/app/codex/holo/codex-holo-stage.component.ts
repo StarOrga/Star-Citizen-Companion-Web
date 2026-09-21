@@ -832,7 +832,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .shipwrap.dense .pin:is(.sel, .active, :hover, :focus-visible) .pin-label { display: inline; }
   .pin-key { position: relative; z-index: 2; list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
   .pk { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 2px; border: 1px solid var(--l1); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
-  color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(9.5px, var(--f)); min-height: var(--sc-tap-min, 24px); max-width: 100%; }
+  color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(9.5px, var(--f)); min-height: var(--sc-tap-min, 24px); max-width: 100%; transition: border-color 160ms ease, color 160ms ease; }
+  .pk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .pk i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--m); font-style: normal; font-size: 9px; display: grid; place-items: center; flex: none; }
   .pk.gold i { border-color: var(--holo-gold); color: var(--holo-gold); }
   .pk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -850,7 +851,11 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   @keyframes holo-reveal { 0% { opacity: 0; } 45% { opacity: 0; } 100% { opacity: 1; } }
   @keyframes holo-scan { 0% { background-position: 0 -20%; } 100% { background-position: 0 120%; } }
   .reduced-motion .hero-art { display: none; }
-  .pin { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0; margin: -10px 0 0 -10px; background: none; border: none; cursor: pointer; z-index: 2; color: var(--sc-fg-1); }
+  /* The pin keeps its 20px box so the dot stays ON its anchor even under the
+     global 48px touch minimum; the hit area comes from the dot's halo. */
+  .pin { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0; margin: -10px 0 0 -10px; background: none; border: none; cursor: pointer; z-index: 2; color: var(--sc-fg-1); min-width: 0; min-height: 0; }
+  .pin i { position: relative; }
+  .pin i::after { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
   .pin.rev { flex-direction: row-reverse; transform: translateX(calc(-100% + 20px)); }
   /* Top / bottom ring pins stack their label vertically so neighbours on the
      ring never run into each other horizontally (wave 5 A2.4). */
@@ -872,7 +877,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .pin.patched i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .pin:focus-visible { outline: none; }
   .pin:focus-visible i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-  .legend { position: relative; z-index: 2; padding: 8px 14px 0; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: max(8.5px, var(--f));
+  .legend { position: relative; z-index: 2; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: max(8.5px, var(--f));
  letter-spacing: 0.1em; color: var(--sc-fg-2); }
   .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
   .legend i.g { border-color: var(--holo-gold); }
@@ -971,9 +976,10 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-table > .pb, .silhouette-frame, .mode-viewer { min-height: 360px; }
   .silhouette-frame { --pin-inset: 36px; }
   /* Phone: dock and tools share the first line, the ship name gets its own. */
-  .table-head { flex-wrap: wrap; gap: 6px 8px; padding: 6px 8px 0; }
+  .table-head { flex-wrap: wrap; gap: 6px; padding: 6px 6px 0; }
   .table-head .hangar-dock { order: 1; }
-  .table-head .tools5 { order: 2; margin-inline-start: auto; gap: 10px; }
+  .table-head .tools5 { order: 2; margin-inline-start: auto; gap: 6px; }
+  .tt { letter-spacing: 0.1em; padding: 4px 0; }
   .table-head .table-eyebrow { order: 3; flex-basis: 100%; }
   .pin-label { display: none; }
   .pin.sel .pin-label, .pin.active .pin-label { display: inline; }

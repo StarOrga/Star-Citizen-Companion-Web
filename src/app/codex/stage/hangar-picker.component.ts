@@ -124,6 +124,10 @@ const COLLAPSE_DELAY_MS = 150;
         align-items: center;
         gap: 7px;
         height: 30px;
+        /* all:unset drops the global touch minimum — restore it (48px on
+           coarse pointers, 0 on desktop, see styles.scss). */
+        min-height: var(--sc-tap-min, 0px);
+        min-width: var(--sc-tap-min, 0px);
         padding: 0 12px;
         border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, transparent);
         border-radius: 3px;

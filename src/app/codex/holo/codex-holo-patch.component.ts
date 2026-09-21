@@ -224,7 +224,8 @@ export interface HoloPatchComparisonSide {
     .delta-state { margin: 0; white-space: nowrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .delta-reopen { min-height: 40px; padding: 4px 10px; border-radius: 6px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: var(--sc-bg-1); color: var(--sc-accent);
-      font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; }
+      font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; transition: border-color 0.16s ease, color 0.16s ease; }
+    .delta-reopen:hover, .delta-reopen:focus-visible { border-color: var(--sc-accent); outline: none; color: var(--sc-fg-0); }
     .delta-panel {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
       width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 640px); overflow: auto;
