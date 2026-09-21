@@ -684,13 +684,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   styles: [
 `
   :host { display: block; }
-  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .holo-stage {
   --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
   --l1: var(--sc-border); --l2: var(--border-default, color-mix(in srgb, var(--sc-accent) 30%, transparent));
   --glass: color-mix(in srgb, var(--sc-bg-1) 55%, transparent); --ink: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
   --holo-gold: var(--accent-gold, #c8a84b); --holo-gold-rgb: var(--accent-gold-rgb, 200, 168, 75);
-  --a4: color-mix(in srgb, var(--sc-accent) 4%, transparent); --a5: color-mix(in srgb, var(--sc-accent) 5%, transparent); --a7: color-mix(in srgb, var(--sc-accent) 7%, transparent); --a8: color-mix(in srgb, var(--sc-accent) 8%, transparent); --a10: color-mix(in srgb, var(--sc-accent) 10%, transparent); --a12: color-mix(in srgb, var(--sc-accent) 12%, transparent); --a14: color-mix(in srgb, var(--sc-accent) 14%, transparent); --a22: color-mix(in srgb, var(--sc-accent) 22%, transparent); --a28: color-mix(in srgb, var(--sc-accent) 28%, transparent); --a30: color-mix(in srgb, var(--sc-accent) 30%, transparent); --a40: color-mix(in srgb, var(--sc-accent) 40%, transparent); --a50: color-mix(in srgb, var(--sc-accent) 50%, transparent); --a55: color-mix(in srgb, var(--sc-accent) 55%, transparent); --a80: color-mix(in srgb, var(--sc-accent) 80%, transparent);
+  --a4: color-mix(in srgb, var(--sc-accent) 4%, transparent); --a5: color-mix(in srgb, var(--sc-accent) 5%, transparent); --a7: color-mix(in srgb, var(--sc-accent) 7%, transparent); --a10: color-mix(in srgb, var(--sc-accent) 10%, transparent); --a12: color-mix(in srgb, var(--sc-accent) 12%, transparent); --a14: color-mix(in srgb, var(--sc-accent) 14%, transparent); --a22: color-mix(in srgb, var(--sc-accent) 22%, transparent); --a28: color-mix(in srgb, var(--sc-accent) 28%, transparent); --a40: color-mix(in srgb, var(--sc-accent) 40%, transparent); --a50: color-mix(in srgb, var(--sc-accent) 50%, transparent); --a55: color-mix(in srgb, var(--sc-accent) 55%, transparent); --a80: color-mix(in srgb, var(--sc-accent) 80%, transparent);
   --p-offensive: var(--sc-accent); --p-defensive: var(--cat-game, #c07888); --p-movement: var(--sc-success); --p-signature: var(--holo-gold);
   display: flex; flex-direction: column; gap: 10px; padding-bottom: 96px;
   }
@@ -723,10 +722,11 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
  font-size: max(10px, var(--f)); letter-spacing: 0.14em; }
   .mobile-tabs button[aria-selected="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
   .mobile-only { display: none; }
-  .holo-body { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 10px; align-items: stretch;
+  .holo-body { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail); gap: 10px; align-items: stretch;
   padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: 4px; }
-  .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 300px; }
-  .right-collapsed .holo-body { grid-template-columns: 300px minmax(0, 1fr) 44px; }
+  .holo-stage { --rail: 300px; }
+  .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) var(--rail); }
+  .right-collapsed .holo-body { grid-template-columns: var(--rail) minmax(0, 1fr) 44px; }
   .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .holo-panel { border: 1px solid var(--l2); border-radius: 4px; background: var(--glass);
   display: grid; grid-template-rows: auto 1fr; min-height: 520px; min-width: 0; position: relative; }
@@ -829,7 +829,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* Dense tables (many pins) keep the labels off the canvas — the numbered
      key below carries them; hover / selection still shows the pin's own. */
   .shipwrap.dense .pin-label { display: none; }
-  .shipwrap.dense .pin.sel .pin-label, .shipwrap.dense .pin.active .pin-label, .shipwrap.dense .pin:hover .pin-label, .shipwrap.dense .pin:focus-visible .pin-label { display: inline; }
+  .shipwrap.dense .pin:is(.sel, .active, :hover, :focus-visible) .pin-label { display: inline; }
   .pin-key { position: relative; z-index: 2; list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
   .pk { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 2px; border: 1px solid var(--l1); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
   color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(9.5px, var(--f)); min-height: var(--sc-tap-min, 24px); max-width: 100%; }
@@ -864,8 +864,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
  background: color-mix(in srgb, var(--sc-bg-0) 85%, transparent); padding: 2px 6px; border: 1px solid var(--l1); border-radius: 2px; white-space: nowrap; }
   .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none; }
   .pin.gold i { border-color: var(--holo-gold); color: var(--holo-gold); box-shadow: 0 0 0 4px rgba(var(--holo-gold-rgb), 0.1), 0 0 10px rgba(var(--holo-gold-rgb), 0.4); }
-  .pin.active i, .pin:hover i { box-shadow: 0 0 0 6px var(--a22), 0 0 18px var(--a80); }
-  .pin.active .pin-label, .pin:hover .pin-label { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+  .pin:is(.active, :hover) i { box-shadow: 0 0 0 6px var(--a22), 0 0 18px var(--a80); }
+  .pin:is(.active, :hover) .pin-label { border-color: var(--sc-accent); color: var(--sc-fg-0); }
   .pin.sel i { background: var(--sc-accent); color: var(--sc-bg-0); }
   .pin.sel .pin-label { color: var(--sc-accent); border-color: var(--sc-accent); }
   .pin.unresolved i { border-style: dashed; background: transparent; color: var(--sc-fg-2); border-color: var(--sc-fg-2); box-shadow: none; }
@@ -912,7 +912,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 14px; align-items: start; padding: 0 10px; }
   .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-  .sh .ctx { font-family: var(--m); font-size: max(10px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-1); }
   .holo-details { padding: 0 10px; }
   .holo-details .sh { margin-bottom: 0; }
   .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
@@ -930,15 +929,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
   @media (max-width: 1180px) {
-  .holo-body { grid-template-columns: 260px minmax(0, 1fr) 260px; }
-  .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 260px; }
-  .right-collapsed .holo-body { grid-template-columns: 260px minmax(0, 1fr) 44px; }
-  .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .holo-stage { --rail: 260px; }
+  .holo-body { grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail); }
   .holo-below { grid-template-columns: 1fr; }
   }
   @media (max-width: 1000px) {
   .holo-topbar { grid-template-columns: 1fr auto; }
-  .ht-eyebrow { display: none; }
   .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .holo-left.collapsed { order: 0; }
   .holo-table { order: 1; }
@@ -987,8 +983,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-body.mobile-hide-data .mobile-data { display: none; }
   .mobile-hide-table ~ .mobile-data, .mobile-hide-data ~ .mobile-table { display: none; }
   .undo-toast { bottom: 84px; width: calc(100% - 32px); justify-content: space-between; }
-  }
-  @media (prefers-reduced-motion: reduce) {
   }
 
   `],
