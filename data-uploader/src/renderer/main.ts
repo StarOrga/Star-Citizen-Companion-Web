@@ -6,13 +6,16 @@
  * Lit or Preact if the UI grows.
  */
 
+// Shared design tokens are imported here (not via @import in styles.css) so the
+// build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
+import '@starorga/star-ui/lib/design-tokens.css';
 import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
 import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
 import { $, escapeHtml } from './dom.js';
-import { paintStepRail, STEP_ORDER, type StepKey } from './shell/step-rail.js';
+import { paintStepRail, setStepRailFill, STEP_ORDER, type StepKey } from './shell/step-rail.js';
 import { setStatus as setBottomStatus, showSnackbar } from './shell/bottom-strip.js';
 import { wireChevrons, paintChevrons } from './shell/chevrons.js';
 import { toggleConnectionPopover, isConnectionPopoverOpen, closeConnectionPopover } from './connection-popover.js';
@@ -22,7 +25,7 @@ import { closeLogDrawer } from './log-drawer.js';
 import * as InstallStep from './steps/install.js';
 import * as SetupStep from './steps/setup.js';
 import * as DoneStep from './steps/done.js';
-import { throttleChipHtml, wireThrottleChip } from './throttle-chip.js';
+import { throttleChipHtml, wireThrottleChip, toggleThrottlePopover } from './throttle-chip.js';
 import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import { updateCategoryBars, categoryBarsHtml, resetCategoryBars, markCategoriesComplete } from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
@@ -303,6 +306,14 @@ async function init(): Promise<void> {
     if (e.key === 'Escape') closeSettingsDialogIfOpen();
   });
 
+  // Edge chevrons: label them (icon-only controls) — ←/→ are their hotkeys.
+  for (const [id, key, hk] of [['#chevron-prev', 'common.back', '←'], ['#chevron-next', 'common.next', '→']] as const) {
+    const el = $(id);
+    if (!el) continue;
+    el.title = `${t(key)} (${hk})`;
+    el.setAttribute('aria-label', t(key));
+  }
+
   // The tray is built before the renderer exists, so it starts on English
   // defaults; hand it the real strings as soon as i18n is up.
   pushTrayLabels();
@@ -350,7 +361,19 @@ async function init(): Promise<void> {
       },
       closeLogDrawer,
       () => (state.view === 'done' ? DoneStep.cancelCountdown() : false),
+      // Esc on the Extract card = the red "Lauf abbrechen…" (its confirm dialog
+      // guards the destructive part); after the bundle is ready it is "Zurück".
+      () => {
+        if (state.view !== 'run') return false;
+        const btn = $('#btn-cancel-extract') as HTMLButtonElement | null;
+        if (!btn) return false;
+        btn.click();
+        return true;
+      },
     ],
+    onTempo: () => {
+      if (state.view === 'run' || state.view === 'auth-upload') toggleThrottlePopover();
+    },
     onEnter: () => {
       if (state.view === 'discover') InstallStep.primaryAction();
       else if (state.view === 'configure') SetupStep.primaryAction();
@@ -941,7 +964,7 @@ export function renderDiscoverUpdateBanner(): string {
     <div class="discover-update" id="discover-update">
       <span class="discover-update-text">${escapeHtml(msg)}</span>
       <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload')}</button>
-      <button id="du-dismiss" type="button" class="discover-update-close" aria-label="${t('common.dismiss')}">✕</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" title="${t('common.dismiss')}" aria-label="${t('common.dismiss')}">✕</button>
     </div>`;
 }
 
@@ -1094,6 +1117,11 @@ function render(): void {
 
 /** Overall extract/upload percentage, mirrored for the step-rail's fill segment. */
 let lastOverallPct = 0;
+/** Every overall-percentage update also moves the rail's fill segment live. */
+function noteOverallPct(pct: number): void {
+  lastOverallPct = pct;
+  setStepRailFill(pct);
+}
 /** Previous step index — drives the slide direction (forward vs. back). */
 let lastStepIdx = 0;
 
@@ -1120,6 +1148,7 @@ export function resetForNewRun(): void {
   state.runPlan = null;
   state.whenDone = 'nothing';
   state.view = 'discover';
+  noteOverallPct(0);
   render();
 }
 
@@ -1127,6 +1156,12 @@ export function resetForNewRun(): void {
 
 /** Navigate to the Setup step — the Install step's primary/secondary CTA. */
 export function goToSetup(): void {
+  // Setup runs against exactly one install — with none picked, Start would be
+  // a silent no-op, so say so here instead.
+  if (!state.channels.some((c) => c.selected)) {
+    showSnackbar(t('discover.pickOne'), 'warn');
+    return;
+  }
   state.view = 'configure';
   render();
 }
@@ -1284,7 +1319,7 @@ function renderRun(): string {
       </section>
       <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
       <div class="btn-row view-footer" id="run-footer">
-        <button id="btn-cancel-extract" class="btn btn-danger-ghost">${t('run.cancel')}</button>
+        <button id="btn-cancel-extract" class="btn btn-danger-ghost" title="${t('run.cancel')} (Esc)">${t('run.cancel')} <kbd class="sc-kbd">Esc</kbd></button>
       </div>
     </div>
   `;
@@ -1302,6 +1337,14 @@ function markBundleReady(): void {
     note.style.display = 'block';
   }
   markCategoriesComplete();
+  // Nothing left to abort: the red "cancel" becomes a plain "back" so the
+  // finished card no longer offers a destructive action next to its CTA.
+  const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
+  if (cancel) {
+    cancel.innerHTML = `${escapeHtml(t('common.back'))} <kbd class="sc-kbd">Esc</kbd>`;
+    cancel.title = `${t('common.back')} (Esc)`;
+    cancel.classList.remove('btn-danger-ghost');
+  }
   if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
   const footer = $('#run-footer');
   if (!footer || $('#btn-upload-now')) return;
@@ -1355,15 +1398,18 @@ async function runRealExtract(): Promise<void> {
     counterLabel,
     steps: runSteps(),
     labels: progressLabels(),
-    stepLabel: stepCounterLabel,
+    onOverallPct: noteOverallPct,
   });
   const appendLog = (msg: string, level: LogLevel = 'info') => drawerAppendLog(msg, level);
   const countMap: Record<string, number> = {};
+  // Planned totals per counter ("x von y") — announced by the sidecar's
+  // classification pre-pass / the final value of one-shot counters.
+  const expectedMap: Record<string, number> = {};
 
   progress.start();
   resetLog();
   resetCategoryBars();
-  lastOverallPct = 0;
+  noteOverallPct(0);
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
@@ -1386,7 +1432,6 @@ async function runRealExtract(): Promise<void> {
         const si = RUN_STEP_INDEX[ev.phase ?? ''];
         if (si !== undefined) progress.setStep(si);
         progress.update({ phaseLabel: label, overallPct: ev.pct });
-        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         if (ev.phase === 'validate' || ev.phase === 'bundle') markCategoriesComplete();
         appendLog(`▶ ${label}`);
         return;
@@ -1408,20 +1453,18 @@ async function runRealExtract(): Promise<void> {
           detail: ev.detail,
           hint,
         });
-        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       }
       case 'file':
         progress.update({ overallPct: ev.pct });
-        if (typeof ev.pct === 'number') lastOverallPct = ev.pct;
         return;
       case 'count':
+        // The category bars are the Extract card's only count display — the
+        // generic counter tiles repeated the same numbers a second time.
         if (ev.counter) {
-          countMap[ev.counter.key] = ev.counter.value;
-          const ordered: Record<string, number> = {};
-          for (const [k, v] of orderedCounts(countMap)) ordered[k] = v;
-          progress.update({ counters: ordered });
-          updateCategoryBars(countMap);
+          countMap[ev.counter.key] = Math.max(countMap[ev.counter.key] ?? 0, ev.counter.value);
+          if (typeof ev.counter.expected === 'number') expectedMap[ev.counter.key] = ev.counter.expected;
+          updateCategoryBars(countMap, expectedMap);
         }
         return;
       case 'log':
@@ -1433,7 +1476,6 @@ async function runRealExtract(): Promise<void> {
       case 'done':
         progress.setStep(5); // past the last phase → all step chips 'done'
         progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
-        lastOverallPct = 100;
         markCategoriesComplete();
         return;
       case 'error':
@@ -1562,7 +1604,9 @@ function renderAuthUpload(): string {
         <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
         <div class="btn-row">
           <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-          <button id="btn-discard-upload" class="btn" style="display:none;">${t('upload.job.discard')}</button>
+          <button type="button" id="btn-resume-upload" class="btn btn-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
+          <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
+          <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
         </div>
         ${progressCardHtml('upload-progress', uploadSteps())}
         <div id="auth-status" class="upload-status" hidden></div>
@@ -1582,8 +1626,6 @@ function renderAuthUpload(): string {
         `
           : '<p class="warn">No extraction result yet.</p>'}
       </details>
-      <button type="button" id="btn-pause-upload" class="fab" style="display:none;" title="${t('upload.job.pause')} (Space)" aria-label="${t('upload.job.pause')}">⏸</button>
-      <button type="button" id="btn-resume-upload" class="fab fab-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)" aria-label="${t('upload.job.resumeAction')}">▶</button>
     </div>
   `;
 }
@@ -1595,11 +1637,14 @@ let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
   wireArmedChip();
+  // Fresh view, fresh rail: the extract's 100 % must not sit on the Upload
+  // node's segment while the bundle POST is still indeterminate.
+  noteOverallPct(0);
   uploadProgress = mountProgress('upload-progress', {
     counterLabel,
     steps: uploadSteps(),
     labels: progressLabels(),
-    stepLabel: stepCounterLabel,
+    onOverallPct: noteOverallPct,
   });
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
@@ -1691,7 +1736,7 @@ function paintJobNotice(): void {
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
-    pauseBtn.textContent = tOr('upload.job.pause', 'Pause');
+    pauseBtn.innerHTML = `⏸ ${escapeHtml(tOr('upload.job.pause', 'Pause'))} <kbd class="sc-kbd">Space</kbd>`;
   }
   resumeBtn.style.display = !running && resumable ? '' : 'none';
   discardBtn.style.display = !running && resumable ? '' : 'none';

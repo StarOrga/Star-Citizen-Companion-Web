@@ -22,7 +22,12 @@ export interface ThrottleChipCtx {
 
 export function throttleChipHtml(profile: LiveProfile): string {
   const label = profile.charAt(0).toUpperCase() + profile.slice(1);
-  return `<button type="button" id="throttle-chip" class="throttle-chip">⚡ ${label} ▾</button>`;
+  return `<button type="button" id="throttle-chip" class="throttle-chip" title="Tempo (T)">⚡ ${label} ▾ <kbd class="sc-kbd">T</kbd></button>`;
+}
+
+/** Hotkey entry point (T): same as clicking the chip; no-op when no chip is mounted. */
+export function toggleThrottlePopover(): void {
+  (document.getElementById('throttle-chip') as HTMLButtonElement | null)?.click();
 }
 
 export function wireThrottleChip(ctx: ThrottleChipCtx): void {

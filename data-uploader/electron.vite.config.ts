@@ -1,6 +1,25 @@
 import { defineConfig } from 'electron-vite';
 import { resolve } from 'node:path';
 
+// The shared design-tokens sheet opens with `@import url("https://fonts.googleapis.com/…")`.
+// The renderer's CSP (`style-src 'self'`) blocks that fetch, so Inter/Orbitron
+// never arrived and every display face fell back to the system sans. The three
+// faces are self-hosted in src/renderer/fonts (see styles.css); this strips the
+// dead remote import so it neither errors in the console nor races the local
+// @font-face rules. Runs as `pre` so it sees the raw file before vite:css.
+const stripRemoteFontImport = {
+  name: 'sc-strip-remote-font-import',
+  enforce: 'pre' as const,
+  transform(code: string, id: string): string | null {
+    if (!id.includes('design-tokens.css')) return null;
+    const out = code.replace(/@import\s+url\(\s*["']?https:\/\/fonts\.googleapis\.com[^)]*\)[^;]*;?\s*/g, '');
+    if (out.includes('fonts.googleapis.com')) {
+      throw new Error('[sc-strip-remote-font-import] a remote Google-Fonts reference survived in ' + id);
+    }
+    return out;
+  },
+};
+
 export default defineConfig({
   main: {
     build: {
@@ -79,6 +98,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    plugins: [stripRemoteFontImport],
     build: {
       outDir: resolve(__dirname, 'out/renderer'),
       emptyOutDir: true,

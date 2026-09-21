@@ -301,6 +301,7 @@ def _real_extract(cfg: ExtractConfig) -> ExtractResult:
     extractor = CodexExtractor(
         df, localizer, cfg.out_dir, source,
         on_count=events.count,
+        on_expected=events.expected,
         on_log=events.log,
         on_progress=events.progress,
         dump_generic=cfg.dump_generic,

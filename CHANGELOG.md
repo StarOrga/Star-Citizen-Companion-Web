@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.3] - 2026-09-21
+
+### Changed
+
+- **Data Uploader 0.35.0 — ehrliche Kategorie-Balken mit echtem „x / y“.** Der
+  Python-Sidecar klassifiziert alle Katalog-Entitäten in einem flachen Vorlauf
+  (`plan_entity_totals`, Tiefe 4, derselbe `_classify_entity` wie die
+  Projektionsschleife) und meldet je Zähler ein Soll (`expected` auf dem
+  `count`-Event). Die fünf Balken (Schiffe · Komponenten · Waffen ·
+  Gegenstände · Texte — „Fahrzeuge“ war immer 0) zeigen damit echten
+  Fortschritt; ohne Soll laufen sie als Streifen, fertig werden sie grün, eine
+  leere Kategorie endet als „—“. Die alten festen Füllungen (30 % / 60 %) sind
+  weg.
+- **Extract-Karte kompakter.** „Schritt n/m“ entfernt, die Phasenzeile nur
+  noch, wenn sie mehr sagt als der aktive Chip, die doppelten Zähler-Kacheln
+  raus; Esc = Lauf abbrechen (nach Fertigstellung „Zurück“), T = Tempo-Chip,
+  die Randpfeile bleiben sichtbar und sind im Lauf ausgegraut statt versteckt.
+  Pause/Fortsetzen/Verwerfen stehen als Buttons in der Upload-Karte (kein
+  schwebender Kreis mehr).
+- **Uploader-Shell: Fonts, Flächen, Kontraste, Bühne.** Orbitron/Inter/Share
+  Tech Mono werden mitgeliefert — der Google-Fonts-`@import` der geteilten
+  Tokens war von der Renderer-CSP blockiert, die Display-Schrift kam in der
+  echten App nie an (der Build strippt den Import und bricht ab, wenn ein Rest
+  bleibt). Neue Flächen-/Rahmen-Tokens, 15-px-Root mit Typo-Skala, gedimmter
+  Text auf ≥ 6:1 (Canvas), Karten und Tracks sichtbar, die Bühne füllt ihre
+  Höhe (Install/Setup/Fertig zentriert, Extract/Upload oben verankert),
+  gestaffelte Aufbau-Animation je Ansicht, Verbindungs-Chip als Button (lag
+  im Drag-Bereich), „Weiter“ erst mit gewählter Installation, ~220 Zeilen
+  totes CSS entfernt. Red-Team-Review (R1–R10) eingearbeitet.
+
 ## [0.89.2] - 2026-09-21
 
 ### Fixed

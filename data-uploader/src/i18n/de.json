@@ -51,9 +51,9 @@
   },
   "category": {
     "ships": "Schiffe",
-    "vehicles": "Fahrzeuge",
     "components": "Komponenten",
     "weapons": "Waffen",
+    "items": "Gegenstände",
     "strings": "Texte"
   },
   "done": {
@@ -63,6 +63,7 @@
     "countingDown": "Fährt in {{secs}} s herunter — Esc zum Abbrechen."
   },
   "discover": {
+    "pickOne": "Bitte zuerst eine Installation auswählen.",
     "title": "Star Citizen gefunden",
     "subtitle": "Automatisch gesucht: RSI-Launcher → Laufwerke. Eine Spielversion pro Lauf.",
     "scan": "Scan starten",
@@ -93,6 +94,7 @@
     "title": "Auslesen — Spieldaten",
     "next": "Upload anbieten",
     "cancel": "Lauf abbrechen…",
+    "tempo": "Tempo",
     "logTitle": "Protokoll",
     "copyLog": "Kopieren",
     "copied": "Kopiert ✓",
@@ -118,6 +120,7 @@
     },
     "stage": {
       "open": "Data.p4k öffnen",
+      "classify": "Katalog planen",
       "datacore": "Spieldaten entpacken",
       "localization": "Übersetzungen lesen",
       "reference": "Referenzdaten",

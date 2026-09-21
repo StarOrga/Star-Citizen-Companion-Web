@@ -53,14 +53,14 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
           <span class="settings-row-hint">${t('settings.updateChannel.hint')} — ${t('settings.adminOnly')}</span>
         </div>
         <div class="segment-group" id="set-ring" role="radiogroup" aria-label="${t('settings.updateChannel.label')}">
-          ${rings.map((c) => `<button type="button" class="segment ${c === s.updateChannel ? 'active' : ''}" data-ring="${c}">${t('settings.updateChannel.' + c)}</button>`).join('')}
+          ${rings.map((c) => `<button type="button" class="segment ${c === s.updateChannel ? 'active' : ''}" role="radio" aria-checked="${c === s.updateChannel ? 'true' : 'false'}" data-ring="${c}">${t('settings.updateChannel.' + c)}</button>`).join('')}
         </div>
       </div>`
       : '';
 
   const afterAutoRunOptions: PublicSettings['afterAutoRun'][] = ['keep', 'quit', 'shutdown'];
   const langSegment = LOCALES.map(
-    (l) => `<button type="button" class="segment ${l === getLocale() ? 'active' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`,
+    (l) => `<button type="button" class="segment ${l === getLocale() ? 'active' : ''}" role="radio" aria-checked="${l === getLocale() ? 'true' : 'false'}" data-lang="${l}">${l.toUpperCase()}</button>`,
   ).join('');
 
   overlay.innerHTML = `
@@ -94,7 +94,7 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
             <span class="settings-row-hint">${t('settings.afterAutoRun.hint')}</span>
           </div>
           <div class="segment-group" id="set-after-autorun" role="radiogroup" aria-label="${t('settings.afterAutoRun.label')}">
-            ${afterAutoRunOptions.map((v) => `<button type="button" class="segment ${v === s.afterAutoRun ? 'active' : ''}" data-value="${v}">${t('settings.afterAutoRun.' + v)}</button>`).join('')}
+            ${afterAutoRunOptions.map((v) => `<button type="button" class="segment ${v === s.afterAutoRun ? 'active' : ''}" role="radio" aria-checked="${v === s.afterAutoRun ? 'true' : 'false'}" data-value="${v}">${t('settings.afterAutoRun.' + v)}</button>`).join('')}
           </div>
         </div>
       </div>
@@ -168,7 +168,10 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
   });
   overlay.querySelectorAll<HTMLButtonElement>('#set-after-autorun .segment').forEach((btn) => {
     btn.addEventListener('click', () => {
-      overlay.querySelectorAll('#set-after-autorun .segment').forEach((b) => b.classList.toggle('active', b === btn));
+      overlay.querySelectorAll('#set-after-autorun .segment').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-checked', String(b === btn));
+      });
       void patch({ afterAutoRun: btn.dataset['value'] as PublicSettings['afterAutoRun'] });
     });
   });
@@ -177,7 +180,10 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
   });
   overlay.querySelectorAll<HTMLButtonElement>('#set-ring .segment').forEach((btn) => {
     btn.addEventListener('click', () => {
-      overlay.querySelectorAll('#set-ring .segment').forEach((b) => b.classList.toggle('active', b === btn));
+      overlay.querySelectorAll('#set-ring .segment').forEach((b) => {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-checked', String(b === btn));
+      });
       void patch({ updateChannel: btn.dataset['ring'] as PublicSettings['updateChannel'] });
     });
   });

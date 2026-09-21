@@ -150,7 +150,7 @@ interface ExtractEvent {
   fileName?: string;
   bytesProcessed?: number;
   bytesTotal?: number;
-  counter?: { key: string; value: number };
+  counter?: { key: string; value: number; expected?: number };
   level?: 'info' | 'warn' | 'error';
   message?: string;
   result?: ExtractResultPayload;

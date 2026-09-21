@@ -51,8 +51,8 @@ export function openOptionsSheet(ctx: OptionsSheetCtx): void {
         <h2 class="sc-modal-title" id="sheet-title">${t('sheet.title')}</h2>
 
         <div class="segment-group sheet-mode" role="radiogroup" aria-label="${t('sheet.mode.label')}">
-          <button type="button" class="segment ${!unattended ? 'active' : ''}" data-mode="watch">${t('sheet.mode.watch')}</button>
-          <button type="button" class="segment ${unattended ? 'active' : ''}" data-mode="unattended">${t('sheet.mode.unattended')}</button>
+          <button type="button" class="segment ${!unattended ? 'active' : ''}" role="radio" aria-checked="${!unattended ? 'true' : 'false'}" data-mode="watch">${t('sheet.mode.watch')}</button>
+          <button type="button" class="segment ${unattended ? 'active' : ''}" role="radio" aria-checked="${unattended ? 'true' : 'false'}" data-mode="unattended">${t('sheet.mode.unattended')}</button>
         </div>
 
         <label class="sc-toggle">
@@ -64,7 +64,7 @@ export function openOptionsSheet(ctx: OptionsSheetCtx): void {
           <div class="settings-row-main"><span class="settings-row-label">${t('run.whenDone.label')}</span></div>
           <div class="segment-group" id="sheet-whendone" role="radiogroup" aria-label="${t('run.whenDone.label')}">
             ${WHEN_DONE.map(
-              (v) => `<button type="button" class="segment ${v === whenDone ? 'active' : ''}" data-whendone="${v}">${t('run.whenDone.' + v)}</button>`,
+              (v) => `<button type="button" class="segment ${v === whenDone ? 'active' : ''}" role="radio" aria-checked="${v === whenDone ? 'true' : 'false'}" data-whendone="${v}">${t('run.whenDone.' + v)}</button>`,
             ).join('')}
           </div>
         </div>
