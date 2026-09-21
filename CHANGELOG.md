@@ -4,6 +4,39 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.91.0] - 2026-09-21
+
+### Added
+
+- **Codex-Landing: Split-Bühne mit Spot-Render.** `/codex` öffnet mit einer
+  festen Bühne (Schiff ⅔ links, Person ⅓ rechts, 400 px; Phone gestapelt).
+  Das RSI-Render (`slideshow_wide`, Fallback `wallpaper_1920x1080` →
+  `background_blur` → `slideshow` → `store_large`) wird im Browser gesampelt
+  (128×72-Canvas: Eckmedian → Bühnenfeld, Hüllbox, Textzonen-Luma), auf die
+  Bühne gefittet und mit einer inhaltsfolgenden Ellipse maskiert — kein Scrim,
+  kein Ghost, keine Hülle; ohne CORS fällt die Bühne auf ein zentriertes
+  `contain` zurück. Text unten links (Hersteller · Rolle · Name), Archiv-Zeile
+  als leise Fußzeile, das ganze Schiffsbild ist der Link zur Schiffsseite.
+- **Hangar-Knopf im Bild.** Oben links in der Bühne: „⌂ Hangar“ (Schiff) bzw.
+  „⛨ Sets“ (Person). Nach 300 ms Hover (Fokus/Tap sofort) fahren die drei
+  zuletzt gewählten Schiffe/Sets aus, Klick auf einen Namen wechselt das Motiv,
+  Klick auf den Knopf öffnet den Hangar; Esc / Verlassen fährt ein, Pfeiltasten
+  laufen die Kette. Derselbe Knopf sitzt oben links im Hero der
+  Schiffs-Einzelseite (klassisch + Holo) und ersetzt dort den Hangar-Tab-Dock —
+  der Rest der Seite bleibt unverändert.
+- **Set-Seite `/codex/set/:id`.** Person-Spot-Hero mit Sets-Knopf, darunter
+  das Board-Panel mit sechs Slots, Rüstungsklasse, Readiness und Set-Wechsel;
+  der Person-Textblock der Landing verlinkt dorthin.
+
+### Changed
+
+- Der ⌂-Hangar-Tab in der Codex-Suchleiste ist weg; der AN-BORD ⇄ IM-HANGAR-
+  Umschalter der Landing ist durch die Bühne ersetzt. Der Hangar merkt sich
+  die drei zuletzt gewählten Schiffe und Sets (localStorage).
+- Konzeptseite der Codex-Landing (18 Runden) samt Entscheidungs-Ledger unter
+  `docs/concepts/`; Concept-Skill-Regel 4 (LF-only Splices, Engine-Invarianten
+  prüfen — dotclaude#430).
+
 ## [0.90.1] - 2026-09-21
 
 ### Fixed

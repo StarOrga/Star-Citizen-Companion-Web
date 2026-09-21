@@ -1,0 +1,554 @@
+{
+  "concept": "2026-09-20-codex-landing-redesign",
+  "iterations": [
+    {
+      "iteration": 1,
+      "generated_at": "2026-09-20T12:00:00",
+      "mode": "mixed",
+      "sources": [
+        "devops:designer",
+        "devops:gamer",
+        "devops:po",
+        "devops:frontend (tune-polish static)"
+      ],
+      "designs": [
+        "d0 Ist-Zustand",
+        "d1 A · Viewport-Fill",
+        "d2 B · Zwei Tafeln",
+        "d3 C · Hero-Bühne"
+      ],
+      "views": [
+        "v-diagnose (12)",
+        "v-strategie (7)",
+        "v-quickwins (10)",
+        "v-usecases (7)",
+        "v-polish (7)"
+      ],
+      "submitted": {
+        "version": 1,
+        "action": "iterate",
+        "at": "2026-09-20T11:34:22Z",
+        "discarded": [
+          "s04",
+          "u07",
+          "p07"
+        ],
+        "included": 40,
+        "comments": {
+          "general": "Vllt müssen wir zu fuß neudenken. Am ende haben wir ja auch bei der schiff auswahl dann einen sub screen wo man dann ports setzen kann analysen sieht zu dem schiff. Die loadouts auszuwählen wären ok, aber dann springt man damit direkt in die schiffs sub page rein. Vllt. brauchen wir das gleiche für zu fuß, sprich ich kann dort vllt. nur grob sehen + loadouts (analog zu schiffsüberischt auf dieser landing page) und das was ich jetzt alles sehen und konfigurieren kann ist auf der subseite.",
+          "designs": {
+            "d1": "irgendwie wirkt im hangar klein und nicht sehr präsent. \nDer schiebe mehcanismus wirkt abgekoppelt von den bildern und inhatlen... \nbei ddem schiff brauchen wir nicht mehr als name, hersteller und rolle. Die quantum schilde oder wie seie im vergleich stehen, sind alle unnötöig",
+            "d3": "Das finde ich irgendwie viel besser! \nWobei der wechsel von hangar zu zu fuß nicht ideal ist. Vllt. ein schiff / Menschen toggle icon? Hmmmm\nLass uns auf basis diesem C hier weitermachen."
+          },
+          "screens": {},
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "generated_at": "2026-09-20T13:30:00",
+      "mode": "mixed",
+      "basis": "C",
+      "designs": [
+        "c1 Eine Bühne + Toggle",
+        "c2 Zwei Bühnen gestapelt",
+        "c3 Split-Bühne"
+      ],
+      "views": [
+        "v2-scope (7)",
+        "v2-ship (5)",
+        "v2-sub (3)"
+      ],
+      "submitted": {
+        "version": 2,
+        "action": "iterate",
+        "at": "2026-09-20T12:15:00Z",
+        "discarded": [
+          "z04",
+          "z05",
+          "z06",
+          "t02",
+          "t03"
+        ],
+        "included": 10,
+        "comments": {
+          "general": "",
+          "designs": {
+            "c3": "Das finde ich können wir als basis nehmen, allerdings braucht es die in den kacheln rechts oben +140 HP etc. nicht, irrelevant. \nDIe klick info bräuchte es nicht. \nDie größte schwäche hier finde ich dass die unteren part mit meine schiffe etc. nicht zusammenhängend wirkt mit dem darüber..."
+          },
+          "screens": {},
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 3,
+      "generated_at": "2026-09-20T14:15:00",
+      "mode": "mixed",
+      "basis": "C3 Split",
+      "designs": [
+        "e1 D1 Kacheln in der Bühne",
+        "e2 D2 Ein Rahmen pro Spalte",
+        "e3 D3 Filmstreifen"
+      ],
+      "views": [
+        "v3-behaviour (4)"
+      ],
+      "submitted": {
+        "version": 3,
+        "action": "iterate",
+        "at": "2026-09-20T15:27:00Z",
+        "discarded": [],
+        "included": 4,
+        "comments": {
+          "general": "Dioe fußzeiel ist mir noch nicht soooo pralle...",
+          "designs": {
+            "e3": "Das finde ich eigentlich am besten aber gern die kacheln auf der rechten seite statt der linken und wenn sie zu viel sind dann gern erstmal einsatzzwecke auswählbar, dann die schiffe. generell maximal top 3 z. B. zuletzt ausgewählte.\nAbseits dessen implementieren wir ja gerade für die detailsseiten der schiffe eine darstellung wie man in den hangar kommt, das könnten wir doch hierrauf übertragen. Also hangar button in der suchelieste und dann overlap hmmm"
+          },
+          "screens": {},
+          "views": {}
+        },
+        "notes": {
+          "k03": "achja stimmt, vllt. eleiminiert das schon meinen concern"
+        }
+      }
+    },
+    {
+      "iteration": 4,
+      "generated_at": "2026-09-20T15:35:00",
+      "mode": "mixed",
+      "basis": "D3 Filmstreifen (rechts, Top 3, Einsatzzweck-Vorwahl) + Hangar-Reiter/Overlay von der Schiffsseite",
+      "designs": [
+        "f1 E1 Archiv-Kachelband",
+        "f2 E2 Archiv in der Suche",
+        "f3 E3 Archiv als Bühnen-Fuß"
+      ],
+      "views": [
+        "v4-hangar (6)"
+      ],
+      "submitted": {
+        "version": 4,
+        "action": "iterate",
+        "at": "2026-09-20T15:38:00Z",
+        "discarded": [],
+        "included": 6,
+        "comments": {
+          "general": "Häufig ist es der fall das die bilder der raumschiffe nicht immer das gleiche format haben bzw. nicht das was wir hier brauchen im viewport, kannst du schauen wie man herauszoomen kann, dabei meine ich es gibt doch so ein verfahren in dem man das bild zu sienen kanten spiegel t und dann blurred oder so. Das wäre poerfekt und zumindest die bereiche wo die texte stehen und rechts die kacheln sehr sinnvoll..",
+          "designs": {
+            "f3": "ja das nehmenw wir!"
+          },
+          "screens": {},
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 5,
+      "generated_at": "2026-09-20T15:50:00",
+      "mode": "mixed",
+      "basis": "E3 final (Archiv als Bühnen-Fuß) + Reflect-Padding-Blur für Bildformate",
+      "designs": [
+        "g1 E3 final · Spiegel-Blur"
+      ],
+      "views": [
+        "v5-fill (5)"
+      ],
+      "submitted": {
+        "version": 5,
+        "action": "iterate",
+        "at": "2026-09-20T15:46:00Z",
+        "discarded": [
+          "b02",
+          "b03"
+        ],
+        "included": 3,
+        "comments": {
+          "general": "",
+          "designs": {},
+          "screens": {
+            "g1-s2": "zu stark blurred und das orignal bild nicht gut eingebunden... hmmm, gefällt mir noch gar nicht, varianten davon bitte"
+          },
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 6,
+      "generated_at": "2026-09-20T15:55:00",
+      "mode": "mixed",
+      "basis": "E3 final — Spiegel-Blur-Varianten",
+      "designs": [
+        "h1 V1 Leichter Spiegel",
+        "h2 V2 Sanfter Übergang",
+        "h3 V3 Leichter Crop + Vignette",
+        "h0 Referenz Runde 5"
+      ],
+      "views": [
+        "v6-fill (5)"
+      ],
+      "submitted": {
+        "version": 6,
+        "action": "iterate",
+        "at": "2026-09-20T15:56:00Z",
+        "discarded": [],
+        "included": 5,
+        "comments": {
+          "general": "",
+          "designs": {
+            "h1": "Das ist schon das beste, aber ich finde es immer noch extrem schwwierig das raumschiff ist viel zu gezoomed, oder könnten wir eine andere technik  machen, man nimmt das bild und lässt dann darum die farben weiter spielen blurred, wie bei hintergrundbeleuchtung für einenneuen tv? das wäre doch ein ähnlicher effekt. vllt. besser\n\nBtw. lass uns baupläne hier raus nehmen, dass machen wir im archiv detail view."
+          },
+          "screens": {},
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 7,
+      "generated_at": "2026-09-20T16:05:00",
+      "mode": "mixed",
+      "basis": "E3 final — Ambilight statt Spiegel; Baupläne raus aus dem Archiv-Fuß",
+      "designs": [
+        "i1 A1 Ambilight volle Höhe",
+        "i2 A2 Ambilight mit Luft",
+        "i3 A3 Ambilight + Halo"
+      ],
+      "views": [
+        "v7-amb (5)"
+      ],
+      "submitted": {
+        "version": 7,
+        "action": "iterate",
+        "at": "2026-09-20T16:20:00Z",
+        "discarded": [],
+        "included": 5,
+        "comments": {
+          "general": "",
+          "designs": {
+            "i1": "noch am besten, aber noch nicht überzeugt :/  ist irgendwie doof. nutze devops agents und arbeite diese wie inszeniere ich das bild am besten wobei es ggf. nicht passt und das schiff leider sehr groß auf dem bild ist und wir nicht viel freifläche darum....  das viel besser aus, gern auch mit fable extra hoch agent spawn. \nWichtig ist aber es ist kein statisches bild sondern kommt von sc quellen wie ehute auch, also ki bearbeitung von dem bild hilft uns nix weil wir keine ki auf dem webserver oder data uploader haben wollen."
+          },
+          "screens": {},
+          "views": {}
+        }
+      }
+    },
+    {
+      "iteration": 8,
+      "generated_at": "2026-09-20T16:45:00",
+      "mode": "mixed",
+      "basis": "Designer (Fable) + Research: Bühne statt Füllung",
+      "designs": [
+        "j0 K0 Eckfarben-Bühne",
+        "j1 K2 Vitrine",
+        "j2 K1 Plakat",
+        "j3 K4 Doppelbild"
+      ],
+      "views": [
+        "v8-rules (7)",
+        "v8-research (5)"
+      ],
+      "submitted": {
+        "version": 8,
+        "action": "iterate",
+        "at": "2026-09-20T16:47:00Z",
+        "discarded": [],
+        "included": 7,
+        "comments": {
+          "general": "",
+          "designs": {
+            "j3": "das ist doch eine gute idee, bitte ausfeilen. Rechts die kacheln wirken noch sehr detached und zu sehr im fokus. Unten die leitste mit dem archiv noch unstimmig."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "submitted against the first round-8 variant (before K0 + research view were appended)"
+      }
+    },
+    {
+      "iteration": 9,
+      "generated_at": "2026-09-20T16:58:00",
+      "mode": "mixed",
+      "basis": "K4 Doppelbild ausgefeilt auf Eckfarben-Bühne",
+      "designs": [
+        "l1 Chips im Bild",
+        "l2 Alles im Textblock",
+        "l3 Spalte gedimmt"
+      ],
+      "views": [
+        "v9-fine (8)"
+      ],
+      "submitted": {
+        "version": 9,
+        "action": "iterate",
+        "at": "2026-09-21T15:46:00Z",
+        "discarded": [],
+        "included": 8,
+        "comments": {
+          "general": "",
+          "designs": {
+            "l1": "Finde ich schon gut, aber die Leiste und Anordnung der Mini-Kacheln geht gar nicht. Also Name, Hersteller, alles super, Archiv etwas zu prominent mit den blauen Zahlen. Aber es ist nicht schön auf das Bild gebracht!"
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "submission delayed by two session restarts (bridge died, state file pruned as stale — dotclaude#426); L1 direction confirmed, chip strip rejected"
+      }
+    },
+    {
+      "iteration": 10,
+      "generated_at": "2026-09-21T17:50:00",
+      "mode": "mixed",
+      "basis": "L1 direction without the chip strip: hangar top-3 anchored to a stage edge, archive numbers muted",
+      "designs": [
+        "m1 Reiter oben",
+        "m2 Namensliste",
+        "m3 Kartenstapel"
+      ],
+      "views": [
+        "v10-pick (6)"
+      ],
+      "submitted": {
+        "version": 10,
+        "action": "iterate",
+        "at": "2026-09-21T15:58:00Z",
+        "discarded": [],
+        "included": 6,
+        "comments": {
+          "general": "Und wie sieht es aus mit aufgeklapptem Hangar? Und was passiert auf dem +1 Hangar? Top 3 bzw. zuletzt gesehen falls verfügbar finde ich gut, aber +1 Hangar macht glaube ich keinen Sinn, wenn ich doch direkt den Hangar darüber aufrufen kann.",
+          "designs": {
+            "m1": "Das finde ich super, so machen! Und bzgl. Bild in Bild geht da noch mehr Optimierung, die wirken gegenseitig sehr abgehakt, kein weicher Übergang, farblich Kontrast sehr unterschiedlich? Der Background von den Namen des Schiffs etc. ist auch noch nicht perfekt. Archiv sieht gut aus, aber Schiffe, Komponenten etc. sollten die gleiche Farbe bekommen."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "M1 chosen; G6 (+1 tab) included but the general comment rejects it → revised as H1"
+      }
+    },
+    {
+      "iteration": 11,
+      "generated_at": "2026-09-21T18:05:00",
+      "mode": "mixed",
+      "basis": "M1 refined: feathered 32-px edge, stage tinted from the render, scrim in stage colour, archive one colour, no +1 tab, open-hangar screen",
+      "designs": [
+        "n1 Weiche Kante (3 screens incl. Hangar aufgeklappt)",
+        "n2 Ohne Passepartout"
+      ],
+      "views": [
+        "v11-pip (6)"
+      ],
+      "submitted": {
+        "version": 11,
+        "action": "iterate",
+        "at": "2026-09-21T16:20:00Z",
+        "discarded": [],
+        "included": 6,
+        "comments": {
+          "general": "",
+          "designs": {
+            "n1": "Super, wobei mich der schwarze Hintergrund viel zu groß etc. hinter den Texten links unten im Bild nervt! Gern Ränder auch oben und unten noch weicher und gern den Background weniger abgedunkelt."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "N1 chosen"
+      }
+    },
+    {
+      "iteration": 12,
+      "generated_at": "2026-09-21T18:30:00",
+      "mode": "mixed",
+      "basis": "N1 without the dark text scrim: 64-px top/bottom feather, stage lifted 55% toward the panel colour, text-shadow legibility",
+      "designs": [
+        "o1 Kein Scrim",
+        "o2 Minimal-Scrim (adaptive ellipse)",
+        "o3 Textzone auf Bühne (R2 shift)"
+      ],
+      "views": [
+        "v12-light (5)"
+      ],
+      "submitted": {
+        "version": 12,
+        "action": "iterate",
+        "at": "2026-09-21T16:35:00Z",
+        "discarded": [],
+        "included": 5,
+        "comments": {
+          "general": "",
+          "designs": {
+            "o2": "O1 und O2 machen für mich keinen Unterschied. Btw, warum Archiv und die Links dazu in anderer Font-Farbe? Die dürfen gern cool aussehen, aber nicht auffällig, zweiter Blick. Den Hintergrund vom Schiff finde ich immer noch nicht super, erkennt man kaum, fügt sich nicht mit dem Hauptbild farblich und im Übergang gut ein…, oben und unten auch nicht die harte Linie des Bildes…"
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "O1≡O2 for the user; stage colour/edge still not integrated → round 13 makes the stage from the picture itself"
+      }
+    },
+    {
+      "iteration": 13,
+      "generated_at": "2026-09-21T18:45:00",
+      "mode": "mixed",
+      "basis": "stage from the render itself: blurred hull (P1), hull + vignette (P2), edge-colour gradients without blur (P3); archive line in eyebrow typography, one tone",
+      "designs": [
+        "p1 Bildhülle",
+        "p2 Hülle + Vignette",
+        "p3 Randfarben-Verlauf"
+      ],
+      "views": [
+        "v13-hull (6)"
+      ],
+      "submitted": {
+        "version": 13,
+        "action": "iterate",
+        "at": "2026-09-21T16:40:00Z",
+        "discarded": [
+          "j03"
+        ],
+        "included": 5,
+        "comments": {
+          "general": "",
+          "designs": {
+            "p1": "bitte gehe da nochmal mit devops agents ran, das gefällt mir noch nicht... also der Hintergrund vs Bild! Und auch, dass Schiff vs FPS ähnlich aufgebaut sind oder komplementär"
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "J1/J2/J4/J5/J6 accepted, J3 (vignette) discarded; user asks for devops agents on background-vs-image and ship-vs-person construction → designer (fable) + research spawned for round 14"
+      }
+    },
+    {
+      "iteration": 14,
+      "generated_at": "2026-09-21T19:20:00",
+      "mode": "mixed",
+      "basis": "designer (fable) + research: no transition surface — the render is the stage (cover with bbox anchor on wallpaper_1920x1080 / slideshow_wide), spot fallback (bbox-fit + content-following mask), edge-clamp and exhibit alternatives; person stage same construction (shared field, key light, halo rule)",
+      "designs": [
+        "q1 Vollbild",
+        "q2 Spot",
+        "q3 Kantenstreckung",
+        "q4 Exponat"
+      ],
+      "views": [
+        "v14-stage (9)"
+      ],
+      "agents": [
+        "devops:designer → designer-r14.md",
+        "devops:research → research-r14.md"
+      ],
+      "submitted": {
+        "version": 14,
+        "action": "iterate",
+        "at": "2026-09-21T17:05:00Z",
+        "discarded": [
+          "k08",
+          "k09"
+        ],
+        "included": 7,
+        "comments": {
+          "general": "",
+          "designs": {
+            "q2": "Das finde ich im Prinzip perfekt! Dabei nur die Auswahl oben noch nicht gut integriert, auch ggü. Hangar. Vllt. eher mittig oben. Zudem bitte den Übergang zwischen Schiff vs FPS noch schärfen."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "Q2 Spot chosen ('im Prinzip perfekt'); K1–K7 accepted, K8 (edge clamp) and K9 (exhibit) discarded"
+      }
+    },
+    {
+      "iteration": 15,
+      "generated_at": "2026-09-21T19:45:00",
+      "mode": "mixed",
+      "basis": "Q2 Spot as the stage; picker placement (centre / under the hangar tab with connector / inline in the search bar) × seam (hairline + darker person field / diagonal cut / 8-px gap)",
+      "designs": [
+        "r1 Mittig + Haarlinie",
+        "r2 Unter Hangar + Schräg",
+        "r3 In der Suchleiste + Fuge"
+      ],
+      "views": [
+        "v15-tabs (6)"
+      ],
+      "submitted": {
+        "version": 15,
+        "action": "iterate",
+        "at": "2026-09-21T17:30:00Z",
+        "discarded": [
+          "l03",
+          "l05"
+        ],
+        "included": 4,
+        "comments": {
+          "general": "",
+          "designs": {
+            "r3": "Kann der Übergang zwischen links und rechts nicht eher wie R1 sein, aber mit jeweiligen Fugen, die verschwimmen? Wie wäre es, wenn wir den ganzen Hangar-Button links oben in die jeweiligen Bilder rein machen und wenn man drüber hovert sind die Top 3 direkt da nach rechts ausgefahren; wenn man klickt kommt man in die volle Hangar-Ansicht bzw. gleiches bei FPS."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "L1/L2/L4/L6 accepted, L3/L5 discarded; user proposes the in-picture hangar button with hover fly-out (supersedes L2) and soft dissolving seams"
+      }
+    },
+    {
+      "iteration": 16,
+      "generated_at": "2026-09-21T20:05:00",
+      "mode": "mixed",
+      "basis": "user's proposal: hangar button top-left inside each picture, top 3 fly out on hover, click opens the full hangar; toolbar ⌂ tab removed; seam = 48-px dissolve (S1) or dissolve + hairline (S2)",
+      "designs": [
+        "s1 Knopf im Bild + weiche Fuge (3 screens)",
+        "s2 Knopf im Bild + Fuge & Haarlinie"
+      ],
+      "views": [
+        "v16-hangar (6)"
+      ],
+      "submitted": {
+        "version": 16,
+        "action": "iterate",
+        "at": "2026-09-21T17:45:00Z",
+        "discarded": [],
+        "included": 6,
+        "comments": {
+          "general": "",
+          "designs": {
+            "s1": "So machen wir es, aber gleich das mit dem Hangar auf der Schiffs-Einzelseite an(passen), weil dort soll das genauso laufen und aussehen bzgl. dem Punkt! Außerdem 4 · 3 braucht es als Infos nicht, einfach nur Hangar, gleiches auch bei Set, keine Zahlen dort. Alle braucht es auch nicht, weil man ja auf Hangar klicken kann. Btw, erst nach kurzer Zeit Hovern soll die Top 3 aufploppen."
+          },
+          "screens": {},
+          "views": {}
+        },
+        "note": "S1 chosen; M1–M6 accepted; corrections: no counts, no 'Alle', hover delay, same mechanic on the ship detail page"
+      }
+    },
+    {
+      "iteration": 17,
+      "generated_at": "2026-09-21T20:25:00",
+      "mode": "mixed",
+      "basis": "final form of S1 (no counts, no 'Alle', 300-ms hover delay) + the same hangar button on the ship detail page hero; N6 lists the implement scope",
+      "designs": [
+        "t1 Finale Form (Ruhe · Hover · Schiffs-Einzelseite)"
+      ],
+      "views": [
+        "v17-final (6)"
+      ],
+      "submitted": {
+        "version": 17,
+        "action": "implement",
+        "at": "2026-09-21T18:00:00Z",
+        "discarded": [],
+        "included": 6,
+        "comments": {
+          "general": "",
+          "designs": {},
+          "screens": {
+            "t1-s3": "Ok, aber nur die Hangar-Geschichte auf der Schiffs-Einzelseite ändern! Den Rest so wie es ist klassisch/holotisch so lassen"
+          },
+          "views": {}
+        },
+        "note": "implement: reality check skip (fetch) → manual: baseline 6d650c0 → main 2e8d7f5 (#634 Holotable), no force; agents core + frontend(landing) parallel, then frontend(ship detail + set page); sampler recalibrated; build ok, npm test 2860 SUCCESS; shortfalls: H1 pin-star, Q4/Q6/Q10 moot"
+      }
+    },
+    {
+      "iteration": 18,
+      "generated_at": "2026-09-21T21:10:00",
+      "mode": "final-report",
+      "basis": "Abschlussbericht after implement round 17; close-out sheet pending (finalize)",
+      "submitted": null
+    }
+  ]
+}

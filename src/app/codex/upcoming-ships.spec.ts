@@ -6,6 +6,8 @@ import {
   normalizeShipName,
   searchUpcoming,
   snapshotOf,
+  stageArtCandidates,
+  stageArtOrder,
   thumbnailCandidates,
 } from './upcoming-ships.service';
 
@@ -186,6 +188,48 @@ describe('upcoming ships — hero artwork order', () => {
 
   it('survives an empty list', () => {
     expect(heroArtOrder([])).toEqual([]);
+  });
+});
+
+/**
+ * The split-stage hero (codex landing redesign, `research-r14.md`): `store_large`
+ * is a centre crop that clips the ship, so the stage prefers the uncropped
+ * derivatives of the SAME render, derived from whichever one url the feed gave.
+ */
+describe('upcoming ships — stage artwork order', () => {
+  const AVENGER = ['https://media.robertsspaceindustries.com/x1y2z3/store_large.jpg'];
+
+  it('derives the full uncropped chain from one known media-CDN url', () => {
+    expect(stageArtCandidates(AVENGER)).toEqual([
+      'https://media.robertsspaceindustries.com/x1y2z3/slideshow_wide.jpg',
+      'https://media.robertsspaceindustries.com/x1y2z3/wallpaper_1920x1080.jpg',
+      'https://media.robertsspaceindustries.com/x1y2z3/background_blur.jpg',
+      'https://media.robertsspaceindustries.com/x1y2z3/slideshow.jpg',
+      'https://media.robertsspaceindustries.com/x1y2z3/store_large.jpg',
+    ]);
+  });
+
+  it('shapes the chain as { src, fallbacks } for an <img> onerror walk', () => {
+    expect(stageArtOrder(AVENGER)).toEqual({
+      src: 'https://media.robertsspaceindustries.com/x1y2z3/slideshow_wide.jpg',
+      fallbacks: [
+        'https://media.robertsspaceindustries.com/x1y2z3/wallpaper_1920x1080.jpg',
+        'https://media.robertsspaceindustries.com/x1y2z3/background_blur.jpg',
+        'https://media.robertsspaceindustries.com/x1y2z3/slideshow.jpg',
+        'https://media.robertsspaceindustries.com/x1y2z3/store_large.jpg',
+      ],
+    });
+  });
+
+  it('falls back to the given candidates for a non-rewritable url (signed proxy)', () => {
+    const signed = ['https://robertsspaceindustries.com/i/abcdef/foo.jpg'];
+    expect(stageArtCandidates(signed)).toEqual(signed);
+    expect(stageArtOrder(signed)).toEqual({ src: signed[0], fallbacks: [] });
+  });
+
+  it('survives an empty list', () => {
+    expect(stageArtCandidates([])).toEqual([]);
+    expect(stageArtOrder([])).toEqual({ src: '', fallbacks: [] });
   });
 });
 

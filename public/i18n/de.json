@@ -1730,6 +1730,21 @@
         "max": "≤ {{max}}",
         "values": "{{values}}"
       }
+    },
+    "stage": {
+      "equipped": "{{filled}} / {{total}} ausgerüstet"
+    },
+    "hangarPicker": {
+      "hangar": "Hangar",
+      "sets": "Sets",
+      "chain": "Zuletzt gewählt",
+      "switchTo": "Zu {{name}} wechseln"
+    },
+    "set": {
+      "back": "← Zurück zum Codex",
+      "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
+      "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
+      "noSets": "Noch kein Set kommissioniert."
     }
   },
   "blueprint": {

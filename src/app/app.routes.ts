@@ -227,6 +227,15 @@ export const routes: Routes = [
           import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
       },
       {
+        // The set page (T1, round 2/17): "Zu Fuß" equivalent of the ship
+        // detail page — the codex is the on-foot loadout editor, not just an
+        // overview. Static segment placed BEFORE codex/:kind/:className so
+        // "set" is never consumed by the :kind wildcard.
+        path: 'codex/set/:id',
+        loadComponent: () =>
+          import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
+      },
+      {
         path: 'codex/:kind/:className',
         loadComponent: () =>
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),

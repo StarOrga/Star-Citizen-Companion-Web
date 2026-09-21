@@ -70,6 +70,12 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
  *
  * The parent still owns the `<article class="zone board">` frame — its `.zone`
  * rules and the `--tint` custom property live there and inherit into here.
+ *
+ * SUPERSEDED on the landing (concept 2026-09-20, round 14-17): the landing
+ * now shows the person as the "Spot" stage (`stage/codex-stage.component.ts`
+ * + `codex-board-figure.component.ts`, no paperdoll) and no longer imports
+ * this component. Kept, untouched, for the future `/codex/set/:id` page
+ * (round 2 decision T1) — the six-slot detail view still belongs there.
  */
 @Component({
   selector: 'sc-codex-board-panel',
@@ -230,7 +236,13 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         position: relative;
         z-index: 1;
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        /* Q7 (codex landing redesign round 1): capped rather than 1fr, so the
+           slot columns track the figure instead of stretching to the panel's
+           full width once it is wide. This panel is currently unused by the
+           landing (superseded by the Spot stage) but kept for the future
+           /codex/set/:id page (T1), where the fix still applies. */
+        grid-template-columns: minmax(0, 200px) auto minmax(0, 200px);
+        justify-content: center;
         gap: 8px;
         align-items: center;
         margin-top: 6px;

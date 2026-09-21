@@ -36,6 +36,7 @@ import {
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig } from '../hangar/hangar.types';
+import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import {
   computeLoadoutStats,
@@ -287,7 +288,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, HangarPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -375,6 +376,16 @@ interface GearRecipe {
               }
             </div>
 
+            <!-- HangarPicker (round 16-17, N4): the same "⌂ Hangar" control
+                 and fly-out chain as the Codex landing's ship stage, top-left
+                 in the hero picture. Only the hangar mechanic changes here —
+                 everything else on the classic hero stays as it was. -->
+            <sc-hangar-picker
+              class="stage-hangar-picker"
+              kind="ship"
+              [items]="shipPickerItems()"
+              (pick)="onShipPickerPick($event)"
+              (open)="onHangarPickerOpen()" />
 
             <!-- 2D ⇄ 3D on the card itself. A toggle, not a navigation, so a
                  real button: deliberately quiet and half-transparent, and it
@@ -1196,6 +1207,9 @@ interface GearRecipe {
             [userId]="currentUserId()"
             [crossSection]="crossSectionMax()"
             [heroChips]="heroChips()"
+            [hangarPickerItems]="shipPickerItems()"
+            (hangarPick)="onShipPickerPick($event)"
+            (hangarOpen)="onHangarPickerOpen()"
             [allKpiCells]="allKpiCells()"
             [heroArt]="heroArt()"
             (hovered)="setActivePorts($event)"
@@ -1633,6 +1647,11 @@ interface GearRecipe {
       --sc-icon-max: 132px; }
     /* The live model is the one piece of stage art you may grab. */
     .hero.stage .stage-art.live { pointer-events: auto; }
+    /* The HangarPicker's own host is a plain block box; its child positions
+       itself absolutely (top:12/left:16 — see hangar-picker.component.ts).
+       Anchoring the host itself out of the grid flow keeps it from claiming
+       a third grid row (round 16-17, N4). */
+    .hero.stage .stage-hangar-picker { position: absolute; top: 0; left: 0; z-index: 5; }
     .hero.stage .stage-art sc-ship-skin-viewer { display: block; width: 100%; height: 100%; }
     /* Readability floor for whatever the render happens to be. */
     /* The art is the card; everything readable sits in the band at its foot,
@@ -2800,6 +2819,35 @@ export class CodexDetailComponent implements OnInit {
     const raw = d.row?.['class_name'];
     return typeof raw === 'string' && raw ? raw : d.classNameSlug;
   });
+
+  /**
+   * HangarPicker chain for the ship hero (round 16-17, N4) — same source and
+   * shape as the Codex landing's ship stage: `HangarService.recentShips()`
+   * (top 3, persisted, falls back to the first 3 owned hulls). `HangarShip`
+   * carries its class name in the same slug form the route param and
+   * `classNameSlug` already use, so a pick needs no extra lookup.
+   */
+  readonly shipPickerItems = computed<HangarPickerItem[]>(() => {
+    const current = this.detail()?.classNameSlug ?? null;
+    return this.hangar.recentShips().map((s) => ({
+      id: s.shipClassName,
+      label: s.customName ?? humanizeClassName(s.shipClassName),
+      active: s.shipClassName === current,
+    }));
+  });
+
+  /** HangarPicker `pick` (N4/M6): switch to the picked hull and record it as recently chosen. */
+  onShipPickerPick(classNameSlug: string): void {
+    this.hangar.markShipPicked(classNameSlug);
+    void this.router.navigate(['/codex', 'ship', classNameSlug]);
+  }
+
+  /** HangarPicker `open` — neither the classic hero nor the Holotable dock has
+   * an overlay yet (same gap as the Codex landing, M3/M4 out of this scope);
+   * both open the hangar page. */
+  onHangarPickerOpen(): void {
+    void this.router.navigateByUrl('/hangar');
+  }
 
   private readonly dimensions = computed<Dimensions | null>(() => {
     const d = this.detail();

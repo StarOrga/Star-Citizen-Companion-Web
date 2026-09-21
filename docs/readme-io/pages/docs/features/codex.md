@@ -27,8 +27,13 @@ the page returns you to the live patch.
 
 - **Scanner** — one search box that matches display names *and* class names,
   so both `Gladius` and `AEGS_*` work.
-- **Featured hero** — your flagship if you have one, otherwise a highlighted
-  ship, stamped with the patch and build it came from.
+- **Stage** — a split stage: your flagship (or a highlighted ship) on the
+  left, your active loadout set on the right. The RSI render is fitted into
+  the stage in the browser; the whole picture links to the ship page, the set
+  block to its set page. The **⌂ Hangar** / **⛨ Sets** button in the top-left
+  corner of each half unfolds the three ships or sets you picked last (hover a
+  moment, or focus/tap) — click a name to swap the stage, click the button to
+  open the hangar.
 - **Lanes** — *Your Hangar*, *Fresh this patch* and *Explore by manufacturer*.
   Every lane is built from the ingested build; there is no hand-picked
   "featured ships" list anywhere in the app.
@@ -96,7 +101,9 @@ The card at the top of a ship page is a stage: the render fills it, the name
 sits on it, and a small half-transparent **3D / 2D** switch in its corner swaps
 the picture for the interactive model and back. Everything that is not "which
 ship am I looking at?" — the edition, the livery, the port overview, the link
-out to RSI — sits in one flat tool row directly underneath.
+out to RSI — sits in one flat tool row directly underneath. The same
+**⌂ Hangar** button as on the landing stage sits in the top-left corner of the
+render and unfolds your last three ships.
 
 Below that, the loadout reads as **four blocks**: *Weapons*, *Missiles*,
 *Shields* and *Propulsion & systems*. The last one holds the power plant, the

@@ -40,7 +40,7 @@ import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { FallbackImageComponent } from '../fallback-image.component';
 import { CodexHoloStripComponent } from './codex-holo-strip.component';
-import { CodexHoloHangarComponent } from './codex-holo-hangar.component';
+import { HangarPickerComponent, HangarPickerItem } from '../stage/hangar-picker.component';
 import {
   CodexHoloPatchComponent,
   HoloPatchComparisonSide,
@@ -168,7 +168,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
     ShipSkinViewerComponent,
     FallbackImageComponent,
     CodexHoloStripComponent,
-    CodexHoloHangarComponent,
+    HangarPickerComponent,
     CodexHoloPatchComponent,
     CodexHoloShareComponent,
   ],
@@ -266,11 +266,17 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
         <!-- ── Table: Einsatz header, rings, silhouette, pins, legend ── -->
         <section class="holo-panel holo-table mobile-table">
-          <!-- slot: hangar-tab — the golden tab hangs above the panel's top
-               edge (centred over the table, concept hv6-s1); its overlay drops
-               over the Einsatz bar and the table at the table's full width. -->
+          <!-- slot: hangar-tab (round 16-17, N4): the same HangarPicker as the
+               Codex landing and the classic hero, top-left inside the table —
+               one component, one behaviour, the same "top 3 recently chosen"
+               source. Replaces the golden sc-codex-holo-hangar tab+overlay
+               (kept in the tree, unused, per the round-17 decision text). -->
           <div class="hangar-dock">
-            <sc-codex-holo-hangar />
+            <sc-hangar-picker
+              kind="ship"
+              [items]="hangarPickerItems()"
+              (pick)="hangarPick.emit($event)"
+              (open)="hangarOpen.emit()" />
           </div>
           <div class="ph role">
             <div class="rolebar" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
@@ -684,8 +690,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   repeating-radial-gradient(circle at 50% 52%, transparent 0 58px, var(--a7) 59px 60px),
   linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,
   linear-gradient(90deg, var(--a5) 1px, transparent 1px) 0 0 / 40px 100%; }
-  .hangar-dock { position: absolute; top: 0; inset-inline: 0; z-index: 6; display: flex; justify-content: center; pointer-events: none;
-  transform: translateY(calc(-100% + 1px)); }
+  .hangar-dock { position: absolute; top: 10px; left: 12px; z-index: 6; display: flex; justify-content: flex-start; pointer-events: none; }
   .hangar-dock > * { pointer-events: auto; }
   .tools5 { position: absolute; top: 10px; right: 12px; display: flex; gap: 12px; align-items: center; z-index: 5; opacity: 0.45; transition: opacity 160ms ease; }
   .holo-table:hover .tools5, .holo-table:focus-within .tools5, .tools5:has(.on) { opacity: 1; }
@@ -843,7 +848,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   }
   @media (prefers-reduced-motion: reduce) {
   }
-  
+
   `],
 })
 export class CodexHoloStageComponent {
@@ -917,6 +922,9 @@ export class CodexHoloStageComponent {
   // ── Share popover (slot: share) ─────────────────────────────────────
   readonly myConfig = input<HangarShipConfig | null>(null);
 
+  // ── HangarPicker (slot: hangar-tab, N4) ─────────────────────────────
+  readonly hangarPickerItems = input<readonly HangarPickerItem[]>([]);
+
   // ── Strip (slot: strip) — mirrors sc-codex-energy-dock's own inputs ──
   readonly occupants = input<readonly SummaryOccupant[]>([]);
   readonly shipStats = input<Record<string, Record<string, string | number | boolean | null>> | null>(null);
@@ -942,6 +950,10 @@ export class CodexHoloStageComponent {
   readonly discardDraft = output<void>();
   readonly configRefreshed = output<HangarShipConfig>();
   readonly sheetChange = output<PowerSheet>();
+  /** HangarPicker outputs (slot: hangar-tab, N4) — the parent owns the
+   * subject switch (navigate + `markShipPicked`) and the hangar-open route. */
+  readonly hangarPick = output<string>();
+  readonly hangarOpen = output<void>();
 
   // ── Local, purely-presentational view state ───────────────────────
   /** Tablet (concept mo5-rails): both rails start as 44px edges so the table

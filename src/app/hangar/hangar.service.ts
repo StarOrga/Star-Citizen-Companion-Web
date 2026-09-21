@@ -35,6 +35,17 @@ import {
 const CONCEPT_NAME_MAX = 80;
 
 /**
+ * "Recently chosen" facility (codex landing redesign, HangarPicker fly-out —
+ * `implement-brief.md` §17): the top 3 ships/sets the user picked, most recent
+ * first. Local-only preference data, same class of storage as `flagshipKey`
+ * below (no `ConsentService` gate — this mirrors the existing flagship cache,
+ * not the `preferencesAllowed()`-gated favorites in `upcoming-ships.service.ts`).
+ */
+const RECENT_MAX = 3;
+const RECENT_SHIPS_KEY = 'sc-companion.hangar.recentShipClassNames';
+const RECENT_SETS_KEY = 'sc-companion.hangar.recentSetIds';
+
+/**
  * CRUD + signal store for the personal hangar (hangar_ships,
  * hangar_ship_configs, hangar_role_loadouts — all RLS self-only).
  * Catalog lookups stay in CodexService; this service never touches codex_*.
@@ -67,8 +78,79 @@ export class HangarService {
   // source for pins made before the column existed.
   readonly flagshipClassName = signal<string | null>(null);
 
+  // "Recently chosen" — ordered ids, most recent first, persisted below.
+  private readonly recentShipClassNames = signal<string[]>(
+    this.readRecentIds(RECENT_SHIPS_KEY),
+  );
+  private readonly recentSetIds = signal<string[]>(this.readRecentIds(RECENT_SETS_KEY));
+
   constructor() {
     this.flagshipClassName.set(this.readFlagship());
+  }
+
+  /**
+   * Top 3 recently picked ships, most recent first. Falls back to the first 3
+   * hangar ships (in `ships()` order) when nothing was picked yet, so the
+   * HangarPicker fly-out is never empty for a first-time visitor with ships
+   * already in the hangar.
+   */
+  readonly recentShips = computed<HangarShip[]>(() => {
+    const byClass = new Map(this.ships().map((s) => [s.shipClassName, s]));
+    const picked = this.recentShipClassNames()
+      .map((className) => byClass.get(className))
+      .filter((s): s is HangarShip => !!s)
+      .slice(0, RECENT_MAX);
+    return picked.length > 0 ? picked : this.ships().slice(0, RECENT_MAX);
+  });
+
+  /** Same as {@link recentShips}, for role loadouts ("sets"). */
+  readonly recentSets = computed<HangarRoleLoadout[]>(() => {
+    const byId = new Map(this.roleLoadouts().map((l) => [l.id, l]));
+    const picked = this.recentSetIds()
+      .map((id) => byId.get(id))
+      .filter((l): l is HangarRoleLoadout => !!l)
+      .slice(0, RECENT_MAX);
+    return picked.length > 0 ? picked : this.roleLoadouts().slice(0, RECENT_MAX);
+  });
+
+  /** Record a ship pick, moving it to the front of the recent list (dedup). */
+  markShipPicked(shipClassName: string): void {
+    if (!shipClassName) return;
+    const next = [shipClassName, ...this.recentShipClassNames().filter((c) => c !== shipClassName)].slice(
+      0,
+      RECENT_MAX,
+    );
+    this.recentShipClassNames.set(next);
+    this.writeRecentIds(RECENT_SHIPS_KEY, next);
+  }
+
+  /** Record a set (role loadout) pick, moving it to the front of the recent list (dedup). */
+  markSetPicked(setId: string): void {
+    if (!setId) return;
+    const next = [setId, ...this.recentSetIds().filter((id) => id !== setId)].slice(0, RECENT_MAX);
+    this.recentSetIds.set(next);
+    this.writeRecentIds(RECENT_SETS_KEY, next);
+  }
+
+  private readRecentIds(key: string): string[] {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string').slice(0, RECENT_MAX) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeRecentIds(key: string, ids: string[]): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(key, JSON.stringify(ids));
+    } catch {
+      // quota / private mode — the in-memory signal still drives this session.
+    }
   }
 
   readonly pinnedShips = computed(() =>
