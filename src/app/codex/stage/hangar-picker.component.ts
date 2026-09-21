@@ -8,7 +8,10 @@ import {
   signal,
   viewChildren,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+
+import { isPlainLeftClick } from '../../core/modified-click.util';
 
 /** One entry in the fly-out chain — a ship or a set, whichever the stage picks from. */
 export interface HangarPickerItem {
@@ -41,24 +44,25 @@ const COLLAPSE_DELAY_MS = 150;
 @Component({
   selector: 'sc-hangar-picker',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [RouterLink, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       class="picker"
       [class.amber]="kind() === 'set'"
       [class.open]="expanded()"
+      [class.docked]="docked()"
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()"
       (keydown.escape)="onEscape()"
     >
-      <button
-        type="button"
+      <a
+        routerLink="/hangar"
         class="picker-btn"
         [attr.aria-expanded]="expanded()"
         [attr.aria-label]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
         [attr.title]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
-        (click)="onButtonClick()"
+        (click)="onButtonClick($event)"
         (focus)="onFocus()"
         (keydown.arrowright)="onArrowFromButton($event)"
       >
@@ -67,23 +71,24 @@ const COLLAPSE_DELAY_MS = 150;
           (kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate
         }}</span>
         <span class="picker-btn__arrow" aria-hidden="true">▸</span>
-      </button>
+      </a>
 
       @if (items().length) {
         <div class="picker-chain" role="group" [attr.aria-label]="'codex.hangarPicker.chain' | translate">
           @for (it of items(); track it.id; let i = $index) {
-            <button
+            <a
               #chainBtn
-              type="button"
               class="picker-chain__item"
               [class.on]="it.active"
+              [routerLink]="chainRoute(it.id)"
+              [queryParams]="linkQueryParams()"
               [tabindex]="expanded() ? 0 : -1"
               [attr.aria-label]="'codex.hangarPicker.switchTo' | translate: { name: it.label }"
-              (click)="onPick(it.id)"
+              (click)="onChainClick($event, it.id)"
               (keydown.arrowright)="onArrowInChain(i, 1, $event)"
               (keydown.arrowleft)="onArrowInChain(i, -1, $event)"
               (keydown.escape)="onEscapeFromChain($event)"
-            >{{ it.label }}</button>
+            >{{ it.label }}</a>
           }
         </div>
       }
@@ -100,6 +105,16 @@ const COLLAPSE_DELAY_MS = 150;
         display: flex;
         align-items: stretch;
         height: 30px;
+      }
+      /* Holotable dock (docked=true): the wrapper (.hangar-dock) already
+         positions this control — rendering it absolute again on top of that
+         wrapper doubles the offset (wave5 red-team). Normal flow, wrapper owns
+         placement. The classic hero / Codex landing never set docked, so
+         their pixel-identical absolute layout is untouched. */
+      .picker.docked {
+        position: static;
+        top: auto;
+        left: auto;
       }
       .picker-btn {
         all: unset;
@@ -169,13 +184,21 @@ export class HangarPickerComponent {
   readonly kind = input.required<'ship' | 'set'>();
   /** Top 3, most-recently-chosen first; `active` marks the one the stage currently shows. */
   readonly items = input<readonly HangarPickerItem[]>([]);
+  /** True when a wrapper (the Holotable's `.hangar-dock`) already positions this
+   * control — renders in normal flow instead of the classic hero's own
+   * `position: absolute` so the two placements don't stack (wave5 red-team). */
+  readonly docked = input(false);
+  /** Extra query params carried onto the chain/`open` anchors' `href` (e.g. a
+   * `pw=` power draft) — purely cosmetic for the link target, `pick`/`open`
+   * still drive the actual switch on a plain click. */
+  readonly linkQueryParams = input<Record<string, string> | null>(null);
 
   /** Switch the stage's subject to this item. */
   readonly pick = output<string>();
   /** Open the full hangar (overlay if one exists, else `/hangar`) — the caller decides. */
   readonly open = output<void>();
 
-  private readonly chainButtons = viewChildren<ElementRef<HTMLButtonElement>>('chainBtn');
+  private readonly chainButtons = viewChildren<ElementRef<HTMLAnchorElement>>('chainBtn');
 
   readonly expanded = signal(false);
   private hoverTimer: ReturnType<typeof setTimeout> | null = null;
@@ -189,13 +212,22 @@ export class HangarPickerComponent {
    * falls through to `open`. A mouse click after a hover has already
    * expanded the chain behaves the same way: it opens the hangar.
    */
-  onButtonClick(): void {
+  onButtonClick(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return; // modified click: let the anchor open `/hangar` itself
+    ev.preventDefault();
     if (this.hasItems() && !this.expanded()) {
       this.clearTimers();
       this.expanded.set(true);
       return;
     }
     this.open.emit();
+  }
+
+  /** Route for one chain item's `href` — ships resolve to the ship detail
+   * page, sets to the set detail page (the two routes this picker's `kind`
+   * covers today). */
+  chainRoute(id: string): readonly [string, string, string] {
+    return this.kind() === 'ship' ? ['/codex', 'ship', id] : ['/codex', 'set', id];
   }
 
   onFocus(): void {
@@ -239,6 +271,16 @@ export class HangarPickerComponent {
     const buttons = this.chainButtons();
     const next = buttons[index + dir];
     next?.nativeElement.focus();
+  }
+
+  /** Plain left click on a chain item: stay in the app, same as before
+   * (host does `markXPicked` + navigate/swap). Any modified click (middle,
+   * Ctrl/⌘, Shift) falls through to the anchor's own `href` (CLAUDE.md
+   * navigation rule). */
+  onChainClick(ev: MouseEvent, id: string): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.onPick(id);
   }
 
   onPick(id: string): void {

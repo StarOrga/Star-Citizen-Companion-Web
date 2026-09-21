@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { HangarPickerComponent, HangarPickerItem } from './hangar-picker.component';
 
@@ -12,7 +13,7 @@ describe('HangarPickerComponent', () => {
   async function setup(items: HangarPickerItem[] = ITEMS): Promise<ComponentFixture<HangarPickerComponent>> {
     await TestBed.configureTestingModule({
       imports: [HangarPickerComponent],
-      providers: [provideTranslateService({ fallbackLang: 'en' })],
+      providers: [provideRouter([]), provideTranslateService({ fallbackLang: 'en' })],
     }).compileComponents();
     const fixture = TestBed.createComponent(HangarPickerComponent);
     fixture.componentRef.setInput('kind', 'ship');
@@ -44,7 +45,7 @@ describe('HangarPickerComponent', () => {
   it('expands immediately on focus, no wait', async () => {
     const fixture = await setup();
     const el: HTMLElement = fixture.nativeElement;
-    const btn = el.querySelector<HTMLButtonElement>('.picker-btn')!;
+    const btn = el.querySelector<HTMLAnchorElement>('.picker-btn')!;
     btn.dispatchEvent(new Event('focus'));
     fixture.detectChanges();
     expect(fixture.componentInstance.expanded()).toBeTrue();
@@ -88,7 +89,7 @@ describe('HangarPickerComponent', () => {
     fixture.componentInstance.pick.subscribe((id) => picked.push(id));
 
     const el: HTMLElement = fixture.nativeElement;
-    const items = el.querySelectorAll<HTMLButtonElement>('.picker-chain__item');
+    const items = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item');
     expect(items.length).toBe(3);
     items[1].click();
     expect(picked).toEqual(['b']);
@@ -102,7 +103,7 @@ describe('HangarPickerComponent', () => {
     fixture.componentInstance.open.subscribe(() => opened++);
 
     const el: HTMLElement = fixture.nativeElement;
-    el.querySelector<HTMLButtonElement>('.picker-btn')!.click();
+    el.querySelector<HTMLAnchorElement>('.picker-btn')!.click();
     expect(opened).toBe(1);
   });
 
@@ -112,7 +113,7 @@ describe('HangarPickerComponent', () => {
     fixture.componentInstance.open.subscribe(() => opened++);
 
     const el: HTMLElement = fixture.nativeElement;
-    el.querySelector<HTMLButtonElement>('.picker-btn')!.click();
+    el.querySelector<HTMLAnchorElement>('.picker-btn')!.click();
     fixture.detectChanges();
     expect(fixture.componentInstance.expanded()).toBeTrue();
     expect(opened).toBe(0);
@@ -123,9 +124,48 @@ describe('HangarPickerComponent', () => {
     let opened = 0;
     fixture.componentInstance.open.subscribe(() => opened++);
     const el: HTMLElement = fixture.nativeElement;
-    el.querySelector<HTMLButtonElement>('.picker-btn')!.click();
+    el.querySelector<HTMLAnchorElement>('.picker-btn')!.click();
     expect(opened).toBe(1);
     expect(el.querySelector('.picker-chain')).toBeNull();
+  });
+
+  it('renders chain items and the button as real anchors with a navigable href', async () => {
+    const fixture = await setup();
+    fixture.componentInstance.expanded.set(true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+
+    const btn = el.querySelector<HTMLAnchorElement>('.picker-btn')!;
+    expect(btn.getAttribute('href')).toContain('/hangar');
+
+    const items = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item');
+    expect(items[1].getAttribute('href')).toContain('/codex/ship/b');
+  });
+
+  it('a ctrl+click on a chain item does not emit `pick` — it falls through to the anchor', async () => {
+    const fixture = await setup();
+    fixture.componentInstance.expanded.set(true);
+    fixture.detectChanges();
+    const picked: string[] = [];
+    fixture.componentInstance.pick.subscribe((id) => picked.push(id));
+
+    const el: HTMLElement = fixture.nativeElement;
+    const item = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item')[1];
+    item.dispatchEvent(new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }));
+    expect(picked).toEqual([]);
+  });
+
+  it('a ctrl+click on the button does not expand/open — it falls through to the anchor', async () => {
+    const fixture = await setup();
+    let opened = 0;
+    fixture.componentInstance.open.subscribe(() => opened++);
+    const el: HTMLElement = fixture.nativeElement;
+    el.querySelector<HTMLAnchorElement>('.picker-btn')!.dispatchEvent(
+      new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+    expect(fixture.componentInstance.expanded()).toBeFalse();
+    expect(opened).toBe(0);
   });
 
   it('marks the active item and uses the amber styling hook for kind="set"', async () => {
@@ -136,5 +176,25 @@ describe('HangarPickerComponent', () => {
     expect(el.querySelector('.picker.amber')).not.toBeNull();
     const on = el.querySelector('.picker-chain__item.on');
     expect(on?.textContent?.trim()).toBe('Avenger Stalker');
+  });
+
+  it('kind="set" routes chain items to /codex/set/:id', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('kind', 'set');
+    fixture.componentInstance.expanded.set(true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const items = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item');
+    expect(items[1].getAttribute('href')).toContain('/codex/set/b');
+  });
+
+  it('docked=true drops the absolute positioning so a wrapper alone places it', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('docked', true);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const picker = el.querySelector<HTMLElement>('.picker')!;
+    expect(picker.classList.contains('docked')).toBeTrue();
+    expect(getComputedStyle(picker).position).toBe('static');
   });
 });

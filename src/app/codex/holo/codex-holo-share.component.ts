@@ -2,7 +2,7 @@
 // model). Standalone content component — the host (codex-detail, Wave 2.5)
 // hosts it inside its own popover shell and wires `copyCurrentLink` to its
 // EXISTING `copyShareLink()` (inventory #14, unchanged).
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { HangarService } from '../../hangar/hangar.service';
@@ -15,14 +15,35 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-share">
-      <!-- (1) today's link — unchanged, host owns the actual copy. -->
-      <button type="button" class="share-row link-copy" (click)="copyCurrentLink.emit()"
-              [attr.title]="'codex.holo.share.copyLinkHotkeyHint' | translate">
-        {{ 'codex.holo.share.copyLink' | translate }}
+      <!-- (1) today's link — unchanged, host owns the actual copy; the host's
+           toast state comes back in as linkCopied so the button itself
+           confirms (wave 5 A1.1). -->
+      <button type="button" class="share-row link-copy" [class.done]="linkCopied()" (click)="copyCurrentLink.emit()"
+              [attr.aria-live]="'polite'">
+        {{ (linkCopied() ? 'codex.holo.share.copied' : 'codex.holo.share.copyLink') | translate }}
       </button>
+      <p class="hint-text link-hint">{{ 'codex.holo.share.copyLinkHint' | translate }}</p>
+      @if (unsavedChanges() > 0) {
+        <p class="hint-text unsaved">{{ 'codex.holo.share.unsavedHint' | translate: { n: unsavedChanges() } }}</p>
+      }
 
       <!-- (3) followed-config hint, shown ABOVE the hangar-share block so the
            "who manages this" fact reads before "manage your own share". -->
+      <!-- Hangar share — every state says what it needs instead of hiding
+           (wave 5 A1.3): signed out → sign in; not in the hangar → add it;
+           in the hangar with a config → the link controls. -->
+      @if (!config()) {
+        @if (!signedIn()) {
+          <p class="hint-text state">{{ 'codex.holo.share.signInHint' | translate }}</p>
+        } @else if (!inHangar()) {
+          <div class="hangar-share">
+            <p class="hint-text state">{{ 'codex.holo.share.notInHangarHint' | translate }}</p>
+            <button type="button" (click)="addToHangar.emit()">{{ 'quickSearch.addToHangar' | translate }}</button>
+          </div>
+        } @else {
+          <p class="hint-text state">{{ 'codex.holo.share.noConfigHint' | translate }}</p>
+        }
+      }
       @if (config(); as c) {
         @if (c.followsOwner) {
           <div class="follow-hint">
@@ -82,6 +103,9 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
 
     .follow-hint { padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .hint-text { margin: 0 0 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .link-hint, .state, .unsaved { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.35; }
+    .unsaved { color: var(--sc-warning, #e0b040); }
+    .share-row.done { border-color: var(--sc-success, #5fbf7a); color: var(--sc-success, #5fbf7a); }
     .dot { margin: 0 4px; }
     .refresh { min-height: 40px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--sc-accent);
       background: transparent; color: var(--sc-accent); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
@@ -109,11 +133,19 @@ export class CodexHoloShareComponent {
   readonly shipClassName = input.required<string>();
   readonly channel = input.required<string>();
   readonly patchVersion = input.required<string>();
+  /** Host toast state for "Link kopieren" — the button confirms in place. */
+  readonly linkCopied = input(false);
+  readonly signedIn = input(false);
+  readonly inHangar = input(false);
+  /** Draft hardpoint changes not yet saved — a hangar link never carries them. */
+  readonly unsavedChanges = input(0);
 
   /** Today's `?loadout=` share (inventory #14) — the host performs the actual clipboard write. */
   readonly copyCurrentLink = output<void>();
   /** Fires after a successful {@link HangarService.refreshFollowedLoadout} pull, so the host can refresh its own copy of the config. */
   readonly configRefreshed = output<HangarShipConfig>();
+  /** "Zum Hangar hinzufügen" from inside the popover — the host owns the write. */
+  readonly addToHangar = output<void>();
 
   private readonly hangar = inject(HangarService);
 
@@ -122,6 +154,21 @@ export class CodexHoloShareComponent {
   readonly refreshing = signal(false);
   readonly copied = signal(false);
   readonly error = signal<string | null>(null);
+
+  constructor() {
+    // A link belongs to ONE ship's config: the stage reuses this popover
+    // across hull switches, so a token minted for ship A must never be shown
+    // (or copied) under ship B (wave 5 B0.1).
+    effect(() => {
+      this.shipClassName();
+      this.config();
+      untracked(() => {
+        this.link.set(null);
+        this.error.set(null);
+        this.copied.set(false);
+      });
+    });
+  }
 
   readonly hint = computed(() => {
     const c = this.config();

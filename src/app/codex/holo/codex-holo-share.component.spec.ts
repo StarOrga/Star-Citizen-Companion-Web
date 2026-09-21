@@ -87,3 +87,68 @@ describe('CodexHoloShareComponent', () => {
     expect(fixture.nativeElement.querySelector('.actions button.danger')).toBeTruthy();
   });
 });
+
+describe('CodexHoloShareComponent — wave 5 states', () => {
+  let fixture: ComponentFixture<CodexHoloShareComponent>;
+
+  function setup(): void {
+    TestBed.configureTestingModule({
+      imports: [CodexHoloShareComponent],
+      providers: [
+        provideTranslateService({}),
+        { provide: HangarService, useValue: { createShareLink: async () => null, revokeShareLink: async () => true, refreshFollowedLoadout: async () => null } },
+      ],
+    });
+    fixture = TestBed.createComponent(CodexHoloShareComponent);
+    fixture.componentRef.setInput('shipClassName', 'AEGS_Gladius');
+    fixture.componentRef.setInput('channel', 'LIVE');
+    fixture.componentRef.setInput('patchVersion', '4.10');
+  }
+
+  it('confirms the copy on the button itself when the host reports linkCopied', () => {
+    setup();
+    fixture.detectChanges();
+    const btn = (fixture.nativeElement as HTMLElement).querySelector('button.link-copy')!;
+    expect(btn.textContent).toContain('codex.holo.share.copyLink');
+    fixture.componentRef.setInput('linkCopied', true);
+    fixture.detectChanges();
+    expect(btn.textContent).toContain('codex.holo.share.copied');
+    expect(btn.classList.contains('done')).toBe(true);
+  });
+
+  it('signed out: explains why there is no hangar link instead of hiding it', () => {
+    setup();
+    fixture.componentRef.setInput('signedIn', false);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.holo.share.signInHint');
+  });
+
+  it('signed in but not in the hangar: offers "add to hangar" and emits it', () => {
+    setup();
+    fixture.componentRef.setInput('signedIn', true);
+    fixture.componentRef.setInput('inHangar', false);
+    fixture.detectChanges();
+    let emitted = 0;
+    fixture.componentInstance.addToHangar.subscribe(() => emitted++);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('codex.holo.share.notInHangarHint');
+    (el.querySelector('.hangar-share button') as HTMLButtonElement).click();
+    expect(emitted).toBe(1);
+  });
+
+  it('warns that unsaved draft changes are not part of a hangar link', () => {
+    setup();
+    fixture.componentRef.setInput('unsavedChanges', 2);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.unsaved')!.textContent).toContain('codex.holo.share.unsavedHint');
+  });
+
+  it('forgets a minted link when the ship changes — a token never shows under another hull', () => {
+    setup();
+    fixture.detectChanges();
+    fixture.componentInstance.link.set({ id: 'l1', token: 'tok', configId: 'cfg-1', createdAt: '2026-01-01', revokedAt: null } as never);
+    fixture.componentRef.setInput('shipClassName', 'DRAK_Cutlass_Black');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.link()).toBeNull();
+  });
+});

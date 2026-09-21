@@ -4,7 +4,7 @@
 // assertions instead, reusing the same Nomad fixture/stub shape.
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { CodexDetailComponent } from './codex-detail.component';
@@ -199,6 +199,31 @@ describe('CodexDetailComponent — Holotable view toggle (Wave 2, item A)', () =
 
     expect(component.holoView()).toBe(true);
     expect(localStorage.getItem(STORAGE_KEY)).toBe('holo');
+  });
+
+  it('a stored holo preference is mirrored into the url so a copied link lands in holo too (wave 5 A1.2)', async () => {
+    localStorage.setItem(STORAGE_KEY, 'holo');
+    const fixture = await setup();
+    const router = TestBed.inject(Router);
+    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    fixture.componentInstance['initHoloView']('cnou_nomad');
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { view: 'holo' }, replaceUrl: true }));
+  });
+
+  it('a hangar-dock pick stays on the Holotable (carries ?view=holo)', async () => {
+    const fixture = await setup({ view: 'holo' });
+    const router = TestBed.inject(Router);
+    const navigate = spyOn(router, 'navigate').and.resolveTo(true);
+    fixture.componentInstance.onShipPickerPick('aegs_gladius');
+    expect(navigate).toHaveBeenCalledWith(['/codex', 'ship', 'aegs_gladius'], { queryParams: { view: 'holo' } });
+  });
+
+  it('a hull counts as "seen" only once the stage reported its arrival (wave 5 A3.1)', async () => {
+    const fixture = await setup({ view: 'holo' });
+    const c = fixture.componentInstance;
+    expect(c.holoSeenThisSession()).toBe(false);
+    c.onHoloArrived(c.detail()!.classNameSlug);
+    expect(c.holoSeenThisSession()).toBe(true);
   });
 
   it('a stored classic preference is overridden by `?view=holo` in the URL', async () => {

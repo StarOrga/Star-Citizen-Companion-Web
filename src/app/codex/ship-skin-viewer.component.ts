@@ -281,6 +281,20 @@ const GLB_HEAD_BYTES = 1_048_576;
         margin: 0;
         padding: 0;
       }
+      /* Embedded hides the second (thumbnail-rail) column's content, but the
+         host still kept its 1.4fr/1fr grid, so the model-viewer only got
+         1.4/2.4 of the card's width (measured ~340px inside a 582px frame —
+         wave5 red-team). One column when embedded. */
+      .skins.embedded .skins-body {
+        grid-template-columns: 1fr;
+      }
+      /* The classic hero card (.stage-art in codex-detail.component.ts)
+         already paints a background behind this viewer (.hero.stage has
+         background: var(--sc-bg-1)) — the stage's own radial gradient here
+         would otherwise double-paint and clip the card's art. */
+      .skins.embedded .stage {
+        background: transparent;
+      }
       .skins-head {
         display: flex;
         align-items: baseline;
