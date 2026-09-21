@@ -4,6 +4,46 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.92.0] - 2026-09-22
+
+### Fixed
+
+- **Holotisch: Link teilen.** „Link kopieren“ bestätigt jetzt auf dem Knopf
+  („Kopiert“), das Popover schließt per Esc und Klick daneben. Die kopierte
+  Adresse trägt, was der Tisch zeigt: die gespeicherte Holo-Voreinstellung wird
+  in `?view=holo` gespiegelt, ein aus dem Browser-Speicher wiederhergestellter
+  Entwurf in `?loadout=`, ein Schiffswechsel über den Hangar-Knopf bleibt im
+  Holo. Der Hangar-Link wartet auf die Hangar-Liste (Deep-Link-Race), nimmt nach
+  dem Speichern die frische Konfiguration und erklärt jeden Zustand
+  (anmelden / zum Hangar / erst speichern / ungespeicherte Änderungen).
+- **Holotisch: Überlappungen.** Hangar-Knopf, Schiffsname und Ansichts-Schalter
+  stehen in einer Kopfzeile, die Legende darunter — nichts liegt mehr über den
+  Pins. Die Pin-Fläche richtet sich nach dem Rahmen; ab neun Pins wandern die
+  Beschriftungen in eine nummerierte Legende unter dem Tisch (Hover/Klick wie
+  am Pin), obere und untere Ring-Pins stapeln ihr Label, der Ring schmiegt sich
+  an die Silhouette und weitet sich bei 40+ Ports. Patch-Δ-Tabellen liegen in
+  einem verankerten Panel statt in der Kopfleiste. Phone: die Tisch-Spalte war
+  2 px breit (`:has()`-Regeln überstimmten die Phone-Regel).
+- **Holotisch: Standard-Silhouette.** Ohne nachgezeichnete Silhouette zeigt der
+  Tisch das Top-Down-Icon des Spiels (getönt, Nase oben), sonst das RSI-Render
+  als Holo-Geist, zuletzt eine generische Hülle — nie zwei leere Ringe. Die
+  Ankunftsanimation spielt wieder (ein Schiff galt schon vor dem Mount als
+  „gesehen“). „3D“ nur mit Modell, „Schema“ ausgegraut mit Grund, leere
+  Schiffe sagen es, der Inspector-Hinweis nennt maximal 10 Ziffern-Hotkeys.
+- **Holotisch: Zustand pro Schiff.** Inspector, Teilen-Popover, Ansicht,
+  Patch-Overlays und Energie-Leiste setzen sich beim Schiffswechsel zurück;
+  ein Roh-Port ohne Ausrüstungs-Slot bietet keinen toten Tausch-Knopf; ein
+  AudioContext statt einer pro Klick; Ziffern-Hotkeys ruhen in Dialogen;
+  Touch-Ziele 48 px (Pins über einen Halo, Hangar-Knopf), Fokus folgt dem
+  Δ-Panel.
+
+### Notes
+
+- Datenbefund 2026-09-22: 0 von 332 Schiffs-Silhouetten im LIVE-Build tragen
+  `anchors` — jeder Pin sitzt auf dem Ring-Fallback (#643). Sechs
+  Folge-Issues #642–#647 (`needs-review`) aus dem Red-Team-Bericht
+  `docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/wave5-redteam-holodeck.md`.
+
 ## [0.91.0] - 2026-09-21
 
 ### Added
