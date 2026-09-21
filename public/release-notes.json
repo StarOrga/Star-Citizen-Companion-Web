@@ -1,7 +1,45 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.89.3",
+  "current": "0.90.0",
   "releases": [
+    {
+      "version": "0.90.0",
+      "date": "2026-09-21",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex-Landing: Split-Bühne mit Spot-Render.",
+              "text": "/codex öffnet mit einer festen Bühne (Schiff ⅔ links, Person ⅓ rechts, 400 px; Phone gestapelt). Das RSI-Render (slideshow_wide, Fallback wallpaper_1920x1080 → background_blur → slideshow → store_large) wird im Browser gesampelt (128×72-Canvas: Eckmedian → Bühnenfeld, Hüllbox, Textzonen-Luma), auf die Bühne gefittet und mit einer inhaltsfolgenden Ellipse maskiert — kein Scrim, kein Ghost, keine Hülle; ohne CORS fällt die Bühne auf ein zentriertes contain zurück. Text unten links (Hersteller · Rolle · Name), Archiv-Zeile als leise Fußzeile, das ganze Schiffsbild ist der Link zur Schiffsseite."
+            },
+            {
+              "title": "Hangar-Knopf im Bild.",
+              "text": "Oben links in der Bühne: „⌂ Hangar“ (Schiff) bzw. „⛨ Sets“ (Person). Nach 300 ms Hover (Fokus/Tap sofort) fahren die drei zuletzt gewählten Schiffe/Sets aus, Klick auf einen Namen wechselt das Motiv, Klick auf den Knopf öffnet den Hangar; Esc / Verlassen fährt ein, Pfeiltasten laufen die Kette. Derselbe Knopf sitzt oben links im Hero der Schiffs-Einzelseite (klassisch + Holo) und ersetzt dort den Hangar-Tab-Dock — der Rest der Seite bleibt unverändert."
+            },
+            {
+              "title": "Set-Seite /codex/set/:id.",
+              "text": "Person-Spot-Hero mit Sets-Knopf, darunter das Board-Panel mit sechs Slots, Rüstungsklasse, Readiness und Set-Wechsel; der Person-Textblock der Landing verlinkt dorthin."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Der ⌂-Hangar-Tab in der Codex-Suchleiste ist weg; der AN-BORD ⇄ IM-HANGAR- Umschalter der Landing ist durch die Bühne ersetzt. Der Hangar merkt sich die drei zuletzt gewählten Schiffe und Sets (localStorage)."
+            },
+            {
+              "title": "",
+              "text": "Konzeptseite der Codex-Landing (18 Runden) samt Entscheidungs-Ledger unter docs/concepts/; Concept-Skill-Regel 4 (LF-only Splices, Engine-Invarianten prüfen — dotclaude#430)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.89.3",
       "date": "2026-09-21",
