@@ -304,6 +304,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
   standalone: true,
   imports: [TranslateModule, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.calm]': 'calm()' },
   template: `
     <div class="layout">
       @for (grp of renderGroups(); track grp.group) {
@@ -386,6 +387,12 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                 {{ (sec.split ? 'codex.moduleSection.groupRows' : 'codex.moduleSection.splitRows') | translate }}
               </button>
             }
+            @if (calm() && sec.open) {
+              <button type="button" class="sec-btn detail-btn" (click)="$event.stopPropagation(); toggleDetail(sec.section)"
+                      [attr.aria-expanded]="isDetailOpen(sec.section)">
+                {{ (isDetailOpen(sec.section) ? 'codex.holo.stage.detailHide' : 'codex.holo.stage.detailShow') | translate }}
+              </button>
+            }
             <span class="caret" [class.open]="sec.open">
               <span aria-hidden="true">{{ (sec.open ? '▴' : '▾') }}</span>
               {{ (sec.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}
@@ -417,7 +424,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
           @for (n of sec.notes; track n.key) {
             <p class="sec-note">{{ n.key | translate: n.params }}</p>
           }
-          <ul class="sec-rows" [class.dense]="!sec.configurable">
+          <ul class="sec-rows" [class.dense]="!sec.configurable" [class.no-detail]="calm() && !isDetailOpen(sec.section)">
             @for (row of sec.rows; track rowKey(row)) {
               <li class="slot" [class.empty]="!row.slot.className"
                   [class.inactive]="row.slot.roleKey === 'codex.module.badge.passive'"
@@ -972,11 +979,68 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       .kids { margin-left: 4px; padding-left: 10px; }
       .kid::before { left: -10px; }
     }
+
+    /* ── Holotable "calm" variant (concept round 5, hv5-s3): keine Boxen, keine
+       Rahmen — Gruppenlinien, gedämpfte Namen, Werte im Mono ohne Glow. Only
+       the hovered/located row lights up. Every control stays (split, caret,
+       ⓘ, ⇄, revert); the per-row stats fold behind the group's "Detail ▾". ── */
+    :host(.calm) .layout { gap: 8px; }
+    :host(.calm) .mod-sec, :host(.calm) .mod-sub { background: transparent; border: 0; border-radius: 0; padding: 0 0 6px; }
+    :host(.calm) .mod-sec:not(.fixed) { border-top: 0; }
+    :host(.calm) .mod-sec.fixed { opacity: 1; }
+    :host(.calm) .sub-stack { gap: 4px; }
+    :host(.calm) .sec-head { margin: 0 0 4px; padding: 6px 0; font-family: var(--sc-font-display); font-weight: 400;
+      font-size: max(9px, var(--sc-fs-floor)); letter-spacing: 0.16em; color: var(--sc-fg-1); gap: 10px; }
+    :host(.calm) .sec-head::after { content: ''; order: 1; flex: 1 1 24px; height: 1px; background: var(--sc-border); }
+    :host(.calm) .sec-head > .sec-glyph { display: none; }
+    :host(.calm) .sec-head > .sec-ct, :host(.calm) .sec-head > .sec-tag, :host(.calm) .sec-head > .sec-btn, :host(.calm) .sec-head > .caret { order: 2; }
+    :host(.calm) .sec-head > .fold-preview { order: 3; }
+    :host(.calm) .mod-sec[open] > .sec-head, :host(.calm) .mod-sub[open] > .sub-head { margin-inline: 0; padding: 6px 0; border-bottom: 0; }
+    :host(.calm) .sec-ct { background: transparent; color: var(--sc-fg-2); font-family: var(--font-monospace, monospace); letter-spacing: 0; padding: 0; }
+    :host(.calm) .sec-btn { min-height: 26px; padding: 1px 7px; border-radius: 2px; font-family: var(--sc-font-display); letter-spacing: 0.1em; }
+    :host(.calm) .detail-btn { margin-left: 0; color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    :host(.calm) .caret { margin-left: 0; font-family: var(--sc-font-body); }
+    :host(.calm) .sec-rows, :host(.calm) .sec-rows.dense { display: flex; flex-direction: column; gap: 0; }
+    :host(.calm) .slot { border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
+    :host(.calm) .slot:last-child { border-bottom: 0; }
+    :host(.calm) .slot-btn, :host(.calm) .kid-btn { background: transparent; border: 0; border-radius: 0; padding: 7px 8px; }
+    :host(.calm) .slot.empty > .duo > .main > .slot-btn, :host(.calm) .kid.empty .kid-btn { border: 0; }
+    :host(.calm) button.slot-btn:hover, :host(.calm) button.kid-btn:hover { background: color-mix(in srgb, var(--sc-accent) 6%, transparent); border: 0; }
+    :host(.calm) .slot.located .slot-btn { border-left: 2px solid transparent; }
+    :host(.calm) .slot.located.on .slot-btn { border-left-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+    :host(.calm) .slot-item { color: var(--sc-fg-0); font-weight: 500; }
+    :host(.calm) .slot.on .slot-item { color: var(--sc-accent); }
+    :host(.calm) .fig .n { font-family: var(--font-monospace, monospace); font-size: 14px; color: var(--sc-accent); }
+    :host(.calm) .fig .u, :host(.calm) .fig .fig-l { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); }
+    :host(.calm) .size-tag { font-family: var(--font-monospace, monospace); color: var(--sc-fg-2); }
+    :host(.calm) .slot-swap, :host(.calm) .slot-swap-action, :host(.calm) .slot-revert { background: transparent; border-color: transparent; opacity: 0.55; }
+    :host(.calm) .slot:hover .slot-swap, :host(.calm) .slot:hover .slot-swap-action, :host(.calm) .slot:hover .slot-revert,
+    :host(.calm) .slot:focus-within .slot-swap, :host(.calm) .slot:focus-within .slot-swap-action { opacity: 1; border-color: var(--sc-border); }
+    :host(.calm) .slot:has(.tag.draft) { border-inline-start: 2px solid var(--sc-warn); }
+    :host(.calm) .sec-rows.no-detail .slot-stats { display: none; }
+    :host(.calm) .slot-stats { border-top: 0; padding-top: 2px; gap: 2px 18px; }
+    :host(.calm) .slot-stats dd { font-family: var(--font-monospace, monospace); color: var(--sc-fg-0); }
+    :host(.calm) .kids { border-left-color: color-mix(in srgb, var(--sc-accent) 30%, transparent); }
+    :host(.calm) .sec-note { font-size: max(0.66rem, var(--sc-fs-floor)); }
   `],
 })
 export class CodexHardpointLayoutComponent {
   /** Loadout slots grouped into ship-module sections (display order applied here). */
   readonly sections = input.required<LayoutSection[]>();
+  /** Holotable "calm" variant — see the `:host(.calm)` rules. The per-row
+   * stats hide behind a per-group "Detail ▾" (concept round 5: per box, not
+   * a global density switch); everything else keeps working as in classic. */
+  readonly calm = input(false);
+  private readonly detailOpenSections = signal<ReadonlySet<ShipModuleSection>>(new Set());
+
+  isDetailOpen(section: ShipModuleSection): boolean {
+    return this.detailOpenSections().has(section);
+  }
+  toggleDetail(section: ShipModuleSection): void {
+    const next = new Set(this.detailOpenSections());
+    next.has(section) ? next.delete(section) : next.add(section);
+    this.detailOpenSections.set(next);
+  }
   /**
    * A configurable module was clicked — the parent opens the swap picker. Emits
    * the row plus, for a sub-slot click, which child was picked (so the gun

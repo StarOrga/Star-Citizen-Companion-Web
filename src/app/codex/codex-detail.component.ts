@@ -124,7 +124,7 @@ import {
 } from './codex-loadout-stats';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
-import { buildKpiStrip, KpiStripCell } from './codex-kpi-sets';
+import { buildKpiStrip, buildKpiStripForKeys, KpiStripCell } from './codex-kpi-sets';
 import { isPassiveShield } from './codex-power';
 import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
@@ -208,6 +208,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
 import { CodexHoloForkGuard } from './holo/codex-holo-fork-guard';
+import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 
@@ -1195,6 +1196,8 @@ interface GearRecipe {
             [userId]="currentUserId()"
             [crossSection]="crossSectionMax()"
             [heroChips]="heroChips()"
+            [allKpiCells]="allKpiCells()"
+            [heroArt]="heroArt()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="openSwapPicker($event)"
@@ -1496,7 +1499,7 @@ interface GearRecipe {
              so wherever it sits it keeps that much space in the flow —
              placed early that space is a hole between the mission bar
              and the columns; placed last there is nothing to hollow. -->
-        @if (kind() === 'ship') {
+        @if (kind() === 'ship' && !holoView()) {
             <sc-codex-energy-dock
               [occupants]="draftSummaryOccupants()"
               [shipStats]="shipPayload()?.stats ?? null"
@@ -3525,6 +3528,14 @@ export class CodexDetailComponent implements OnInit {
   readonly kpiCells = computed<KpiStripCell[]>(() => {
     if (this.kind() !== 'ship') return [];
     return buildKpiStrip(this.activeMission(), this.stockKpiSheet(), this.currentKpiSheet(), this.powerSheet());
+  });
+
+  /** Every sheet key as a strip cell (Holotable perspectives + strip): the
+   * same stock-vs-draft delta and dock effects as the six-cell band, so a
+   * tile never shows a number the band would not. */
+  readonly allKpiCells = computed<KpiStripCell[]>(() => {
+    if (this.kind() !== 'ship') return [];
+    return buildKpiStripForKeys(ALL_KPI_KEYS, this.stockKpiSheet(), this.currentKpiSheet(), this.powerSheet());
   });
 
   // ── Einordnung (MASTER §3) ───────────────────────────────────────────────

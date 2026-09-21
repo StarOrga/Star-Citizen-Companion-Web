@@ -1,37 +1,36 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CodexDetail } from '../codex.service';
-import { CodexItemPort, ShipPayload } from '../codex.types';
+import { CodexItemPort } from '../codex.types';
 import type { StageCountChip } from '../codex-detail.component';
 import { HoloSilhouette, SilhouetteAnchor } from '../holo-silhouette';
-import { MissionId } from '../codex-mission';
+import { MISSIONS, MissionId, missionById, missionDisabledReasonKey } from '../codex-mission';
 import type { ShipCapabilities } from '../codex-mission';
 import { KpiStripCell } from '../codex-kpi-sets';
-import { CodexKpiBandComponent } from '../codex-kpi-band.component';
-import { CodexMissionBarComponent } from '../codex-mission-bar.component';
+import { formatEquippedStat, formatEquippedStatNumber } from '../codex-equipped-stats';
+import type { EquippedStat } from '../codex-equipped-stats';
 import { CodexRankCardComponent } from '../codex-rank-card.component';
 import { RankProfileId, RankResult, RankScope, RankShipInput } from '../codex-rank';
 import {
   CodexHardpointLayoutComponent,
+  LayoutChild,
   LayoutSection,
+  LayoutSlot,
   LayoutTarget,
 } from '../codex-hardpoint-layout.component';
-import { ShipModuleSection } from '../ship-module-sections';
-import {
-  CodexDefensivePanelComponent,
-  CodexOffensivePanelComponent,
-  CodexShipPanelComponent,
-  ShipFactGroup,
-} from '../codex-analysis-panels.component';
+import { SHIP_MODULE_SECTION_ORDER, ShipModuleSection } from '../ship-module-sections';
+import { ShipFactGroup } from '../codex-analysis-panels.component';
 import { KpiSheet, OffensivePanel, DefensivePanel } from '../codex-loadout-stats';
 import { BuildRef, PERSPECTIVE_KPIS, PERSPECTIVES, Perspective, PortOccupantMap } from '../codex-build-compare';
 import { humanizeClassName } from '../codex-format';
@@ -39,6 +38,7 @@ import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.componen
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import { FallbackImageComponent } from '../fallback-image.component';
 import { CodexHoloStripComponent } from './codex-holo-strip.component';
 import { CodexHoloHangarComponent } from './codex-holo-hangar.component';
 import {
@@ -48,6 +48,7 @@ import {
   PortPinBadge,
 } from './codex-holo-patch.component';
 import { CodexHoloShareComponent } from './codex-holo-share.component';
+import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
@@ -66,20 +67,44 @@ interface JournalEntry {
 /** One pin on the silhouette: an anchored port, an unresolved one (dashed
  * fallback ring), or — per the wave1-redteam note — a port that is neither
  * (same dashed treatment; "pins derived from detail.ports, not from
- * anchors ∪ unresolved"). */
+ * anchors ∪ unresolved"). Numbered in ports-list order so the legend, the
+ * inspector counter and the digit hotkeys all mean the same pin. */
 interface StagePin {
   portName: string;
+  index: number;
   x: number;
   y: number;
   resolved: boolean;
+  /** What sits in the port (occupant name, else the humanized port label). */
+  label: string;
+  /** Short value shown on hover ("Hover = Kurzwerte"): the row's first stat. */
+  short: string | null;
+  /** Missile racks pin gold (concept legend), everything else accent. */
+  tone: 'accent' | 'gold';
+  slot: LayoutSlot | null;
 }
 
-/** One "Alle Werte" perspective tile. */
+/** One perspective tile (concept round 10 "Weg B": four tiles). */
 interface PerspectiveTile {
   id: Perspective;
   titleKey: string;
-  gaugePct: number | null;
-  cells: readonly KpiStripCell[];
+  /** Mean percentile of the ranked axes inside this perspective, null = gap. */
+  pct: number | null;
+  /** The headline cell ("2.359 DAUER-DPS") — the first key with a value. */
+  lead: KpiStripCell | null;
+  /** Up to three further cells rendered as mini tiles. */
+  subs: readonly KpiStripCell[];
+  /** The one-line reading ("Über dem Median …"), already translated. */
+  say: string;
+}
+
+/** One segment of the Einsatz bar (the table's header): every mission with
+ * its lead KPI, so the bar says what each Einsatz is about before you pick it. */
+interface MissionSegment {
+  id: MissionId;
+  labelKey: string;
+  sub: string;
+  disabledKey: string | null;
 }
 
 /** One "Einordnung" top-3 row (user decision 1). */
@@ -92,16 +117,42 @@ interface TopCohortShip {
 const SOUND_PREF_KEY = 'sc.codex.holo.sound';
 const MOBILE_TABS_PREF_KEY = 'sc.codex.holo.mobileTabs';
 const UNDO_TOAST_MS = 6000;
+/** ≈1.6 s hero → table transformation (concept: "keine 5 Sekunden"). */
+const ARRIVAL_MS = 1600;
+
+/** The headline key per perspective, in preference order (first with a value wins). */
+const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'][]>> = {
+  offensive: ['sustainedDps', 'burstDps', 'alpha', 'missiles'],
+  defensive: ['shieldHp', 'hullHp', 'effectiveHp', 'shieldRegen', 'armorHp'],
+  movement: ['boost', 'scm', 'maxSpeed', 'agility', 'quantumRange', 'mass', 'cargo'],
+  signature: ['ir', 'emMax', 'crossSection', 'emIdle'],
+};
+
+/** Which rank profile the "Einordnung" follows for each Einsatz (concept
+ * round 4: the left panel shows the profile, it never offers a second
+ * selector). Missions without a profile of their own map to the nearest. */
+const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
+  all: 'combat',
+  combat: 'combat',
+  transport: 'transport',
+  travel: 'transport',
+  stealth: 'defence',
+  mining: 'transport',
+  salvage: 'transport',
+};
 
 /**
- * The Holotable stage (Wave 2 · frontend). Purely presentational: every
- * value comes in as an input from `codex-detail.component.ts`, which keeps
- * owning the modals, swap picker, weapon detail, compare tray, energy dock,
- * draft persistence and hover-sync `activePorts` for BOTH views (item A).
+ * The Holotable stage (concept 2026-09-20, rounds 1–10). Purely
+ * presentational: every value comes in as an input from
+ * `codex-detail.component.ts`, which keeps owning the modals, swap picker,
+ * weapon detail, compare tray, draft persistence and hover-sync
+ * `activePorts` for BOTH views.
  *
- * Wave 2.5: hosts the Wave-2.5 sibling components (strip, hangar tab, patch
- * chooser, share popover) at their slot locations — see wave2-stage.md for
- * the exact wiring per slot.
+ * Layout (hv6-s1 / hv6-s4 / hv10-s1): top bar = search | hangar tab docked
+ * on the table | patch chooser; three panels in one frame = Einordnung |
+ * Tisch (Einsatz bar as its header, rings, numbered pins, legend) |
+ * Inspector (+ "Zuletzt geändert" journal with the save bar); below =
+ * calm ports list | four perspective tiles; details drawer; sticky strip.
  */
 @Component({
   selector: 'sc-codex-holo-stage',
@@ -109,16 +160,13 @@ const UNDO_TOAST_MS = 6000;
   imports: [
     TranslateModule,
     RouterLink,
-    CodexKpiBandComponent,
-    CodexMissionBarComponent,
     CodexRankCardComponent,
     CodexHardpointLayoutComponent,
-    CodexOffensivePanelComponent,
-    CodexDefensivePanelComponent,
-    CodexShipPanelComponent,
+    CodexHoloPerspectivesComponent,
     CodexLoadoutSaveBarComponent,
     ShipHardpointMapComponent,
     ShipSkinViewerComponent,
+    FallbackImageComponent,
     CodexHoloStripComponent,
     CodexHoloHangarComponent,
     CodexHoloPatchComponent,
@@ -126,14 +174,24 @@ const UNDO_TOAST_MS = 6000;
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()">
-      <!-- ── Einsatz bar = table header (no second profile selector) ── -->
-      <header class="holo-einsatz">
-        <div class="holo-eyebrow-row">
-          <p class="holo-eyebrow">
-            @if (manufacturerName(); as mfr) { {{ mfr }} · }{{ displayName() }}
-          </p>
-          <!-- slot: patch-delta trigger (data-pill position) -->
+    <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()"
+             [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()">
+
+      <!-- ── Top bar: search | (hangar tab docks on the table) | patch ── -->
+      <div class="holo-topbar">
+        <form class="ht-search" role="search" (submit)="submitSearch($event)">
+          <svg class="ht-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
+          </svg>
+          <input class="ht-input" type="search" name="q"
+                 [attr.aria-label]="'codex.holo.stage.searchLabel' | translate"
+                 [placeholder]="'codex.holo.stage.searchPlaceholder' | translate" />
+          <kbd>↵</kbd>
+        </form>
+        <div class="ht-mid" aria-hidden="true"></div>
+        <div class="ht-right">
+          <!-- slot: patch-delta trigger -->
           @if (buildRef(); as ab) {
             <sc-codex-holo-patch
               [className]="detail().classNameSlug"
@@ -147,285 +205,339 @@ const UNDO_TOAST_MS = 6000;
               (comparisonBuild)="patchComparisonBuild.set($event)" />
           }
         </div>
-        @if (heroChips().length > 0) {
-          <ul class="holo-chips hero-chips">
-            @for (c of heroChips(); track c.key) {
-              <li class="chip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
-            }
-          </ul>
-        }
-        @if (stageCounts().length > 0) {
-          <ul class="holo-chips">
-            @for (s of stageCounts(); track s.group) {
-              <li class="chip">
-                {{ s.labelKey | translate: { n: s.count } }}
-                @if (s.detailKey) { <span class="chip-detail">{{ s.detailKey | translate: { n: s.detailCount } }}</span> }
-              </li>
-            }
-          </ul>
-        }
-        <sc-codex-kpi-band [cells]="kpiCells()" />
-        <div class="einsatz-row">
-          <sc-codex-mission-bar
-            [active]="activeMissionId()"
-            [capabilities]="shipCapabilities()"
-            [changed]="draftChangedCount()"
-            (missionChange)="missionChange.emit($event)" />
-          <sc-codex-loadout-save-bar
-            class="draft-controls"
-            [changed]="draftChangedCount()"
-            [saveable]="saveableCount()"
-            [saving]="saving()"
-            [error]="saveError()"
-            [inHangar]="inHangar()"
-            (save)="saveDraft.emit()"
-            (discard)="discardDraft.emit()"
-            (addAndSave)="saveDraft.emit()" />
-        </div>
-      </header>
-
-      <!-- Mobile "Tisch | Daten" tab setting (user decision 5, default = stacked) -->
-      <div class="mobile-tabs-setting">
-        <label>
-          <input type="checkbox" [checked]="mobileTabsEnabled()" (change)="toggleMobileTabs()" />
-          {{ 'codex.holo.stage.mobileTabsSetting' | translate }}
-        </label>
-        @if (mobileTabsEnabled()) {
-          <div class="mobile-tabs" role="tablist">
-            <button type="button" role="tab" [attr.aria-selected]="mobileTab() === 'table'" (click)="mobileTab.set('table')">{{ 'codex.holo.stage.tabTable' | translate }}</button>
-            <button type="button" role="tab" [attr.aria-selected]="mobileTab() === 'data'" (click)="mobileTab.set('data')">{{ 'codex.holo.stage.tabData' | translate }}</button>
-          </div>
-        }
       </div>
 
+      <!-- Mobile "Tisch | Daten" tab control (user decision 5, default = stacked) -->
+      @if (mobileTabsEnabled()) {
+        <div class="mobile-tabs" role="tablist">
+          <button type="button" role="tab" [attr.aria-selected]="mobileTab() === 'table'" (click)="mobileTab.set('table')">{{ 'codex.holo.stage.tabTable' | translate }}</button>
+          <button type="button" role="tab" [attr.aria-selected]="mobileTab() === 'data'" (click)="mobileTab.set('data')">{{ 'codex.holo.stage.tabData' | translate }}</button>
+        </div>
+      }
+
       <div class="holo-body" [class.mobile-hide-table]="mobileTabsEnabled() && mobileTab() !== 'table'" [class.mobile-hide-data]="mobileTabsEnabled() && mobileTab() !== 'data'">
-        <!-- ── Left rail: Einordnung ─────────────────────────────── -->
-        <aside class="holo-rail holo-left mobile-data" [class.collapsed]="leftCollapsed()">
-          <button type="button" class="rail-collapse" (click)="leftCollapsed.set(!leftCollapsed())"
-                  [attr.aria-expanded]="!leftCollapsed()"
-                  [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
-                  [title]="'codex.holo.stage.railToggle' | translate">◂</button>
-          <div class="rail-body">
-            <h2 class="rail-head">{{ 'codex.holo.stage.einordnung' | translate }}</h2>
-            @if (rankResult(); as r) {
-              <p class="watermark">{{ ('codex.mission.' + activeMissionId()) | translate }}</p>
-            }
-            @if (topCohortShips().length > 0) {
-              <ol class="top3">
-                @for (s of topCohortShips(); track s.className) {
-                  <li><a [routerLink]="['/codex', 'ship', s.className]">{{ s.displayName }}</a></li>
-                }
-              </ol>
-            }
-            <sc-codex-rank-card
-              [shipName]="displayName()"
-              [sizeClass]="null"
-              [result]="rankResult()"
-              [loading]="rankLoading()"
-              [profile]="rankProfile()"
-              [scope]="rankScope()"
-              [disabledReasons]="rankDisabledReasons()"
-              (profileChange)="rankProfileChange.emit($event)"
-              (scopeChange)="rankScopeChange.emit($event)" />
-            <a class="cohort-link" routerLink="/codex" [queryParams]="{ kind: 'ship' }">
-              {{ 'codex.holo.stage.cohortLink' | translate }}
-            </a>
+        <!-- ── Left panel: Einordnung ─────────────────────────────── -->
+        <aside class="holo-panel holo-left mobile-data" [class.collapsed]="leftCollapsed()">
+          <div class="ph">
+            <span class="ph-glyph" aria-hidden="true">◈</span>
+            <span class="ph-title">{{ 'codex.holo.stage.einordnung' | translate }}</span>
+            @if (rankResult(); as r) { <span class="n">{{ r.cohortSize }}</span> }
+            <span class="sp"></span>
+            <button type="button" class="ic" (click)="leftCollapsed.set(!leftCollapsed())"
+                    [attr.aria-expanded]="!leftCollapsed()"
+                    [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
+                    [title]="'codex.holo.stage.railToggle' | translate">{{ leftCollapsed() ? '⟩' : '⟨' }}</button>
           </div>
+          @if (leftCollapsed()) {
+            <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.einordnung' | translate }}</span></div>
+          } @else {
+            <div class="pb frame">
+              <div class="wm" aria-hidden="true">{{ ('codex.mission.' + activeMissionId()) | translate }}</div>
+              <div class="statics">
+                <div><span class="k">{{ 'codex.holo.stage.staticCrew' | translate }}</span><span class="v">{{ staticChip('crew') }}</span></div>
+                <div><span class="k">{{ 'codex.holo.stage.staticMass' | translate }}</span><span class="v">{{ staticChip('mass') }}</span></div>
+                <div><span class="k">{{ 'codex.holo.stage.staticCargo' | translate }}</span><span class="v" [class.long]="staticChip('cargo').length > 7">{{ staticChip('cargo') }}</span></div>
+              </div>
+              <sc-codex-rank-card
+                [holo]="true"
+                [shipName]="displayName()"
+                [sizeClass]="null"
+                [result]="rankResult()"
+                [loading]="rankLoading()"
+                [profile]="rankProfile()"
+                [scope]="rankScope()"
+                [disabledReasons]="rankDisabledReasons()"
+                (profileChange)="rankProfileChange.emit($event)"
+                (scopeChange)="rankScopeChange.emit($event)" />
+              @if (topCohortShips().length > 0) {
+                <div class="sub"><span>{{ 'codex.holo.stage.top3' | translate }}</span><i></i></div>
+                <ol class="top3">
+                  @for (s of topCohortShips(); track s.className) {
+                    <li><a [routerLink]="['/codex', 'ship', s.className]">{{ s.displayName }}</a></li>
+                  }
+                </ol>
+              }
+              <a class="cohort-link" routerLink="/codex/index" [queryParams]="{ kind: 'ship' }">
+                {{ 'codex.holo.stage.cohortLink' | translate }} ›
+              </a>
+            </div>
+          }
         </aside>
 
-        <!-- ── Table: silhouette + pins + inspector ─────────────────── -->
-        <section class="holo-table mobile-table">
-          <div class="table-toggles">
-            <button type="button" class="tbl-toggle" [class.active]="viewMode() === '3d'" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}</button>
-            <button type="button" class="tbl-toggle" [class.active]="viewMode() === 'schema'" (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}</button>
-            <div class="share-wrap">
-              <button type="button" class="tbl-toggle" [attr.aria-expanded]="sharePopoverOpen()" (click)="sharePopoverOpen.set(!sharePopoverOpen())">{{ 'codex.holo.stage.viewShare' | translate }}</button>
-              @if (sharePopoverOpen()) {
-                <!-- slot: share -->
-                <sc-codex-holo-share
-                  class="share-popover"
-                  [config]="myConfig()"
-                  [shipClassName]="detail().classNameSlug"
-                  [channel]="channel()"
-                  [patchVersion]="patchVersion()"
-                  (copyCurrentLink)="copyShareLink.emit()"
-                  (configRefreshed)="configRefreshed.emit($event)" />
+        <!-- ── Table: Einsatz header, rings, silhouette, pins, legend ── -->
+        <section class="holo-panel holo-table mobile-table">
+          <!-- slot: hangar-tab — the golden tab hangs above the panel's top
+               edge (centred over the table, concept hv6-s1); its overlay drops
+               over the Einsatz bar and the table at the table's full width. -->
+          <div class="hangar-dock">
+            <sc-codex-holo-hangar />
+          </div>
+          <div class="ph role">
+            <div class="rolebar" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
+              <span class="lab">{{ 'codex.mission.label' | translate }}</span>
+              @for (m of missionSegments(); track m.id) {
+                <button type="button" class="r" role="radio"
+                        [class.on]="m.id === activeMissionId()"
+                        [class.dim]="!!m.disabledKey"
+                        [disabled]="!!m.disabledKey"
+                        [attr.aria-checked]="m.id === activeMissionId()"
+                        [attr.title]="m.disabledKey ? (m.disabledKey | translate) : null"
+                        (click)="missionChange.emit(m.id)">
+                  <span class="r-l">{{ m.labelKey | translate }}</span>
+                  <small>{{ m.sub }}</small>
+                </button>
               }
             </div>
           </div>
+          <div class="pb">
+            <div class="rings" aria-hidden="true"></div>
 
-          <!-- slot: hangar-tab -->
-          <div class="hangar-tab-dock">
-            <sc-codex-holo-hangar />
-          </div>
+            <p class="table-eyebrow">
+              @if (manufacturerName(); as mfr) { <span>{{ mfr }}</span> · }<b>{{ displayName() }}</b>
+              @if (!silhouette() && viewMode() === 'holo') {
+                <span class="no-geometry-badge" [title]="'codex.holo.stage.noGeometryReason' | translate">&nbsp;· {{ 'codex.holo.noGeometry' | translate }}</span>
+              }
+            </p>
 
-          <div class="silhouette-frame">
-            @if (viewMode() === '3d') {
-              <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
-                [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
-                (hovered)="hovered.emit($event)" />
-            } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
-              <sc-ship-hardpoint-map class="mode-viewer" [markers]="[...hardpointMarkers()]" [frame]="frame"
-                [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
-            } @else {
-              @if (silhouette(); as s) {
-                <svg class="silhouette" [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" role="img"
-                     [attr.aria-label]="'codex.holo.stage.silhouetteAria' | translate: { name: displayName() }">
-                  <path class="hull" [attr.d]="s.path" fill-rule="evenodd" />
-                </svg>
+            <div class="tools5">
+              <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}</button>
+              <button type="button" class="tt" [class.on]="viewMode() === 'schema'" [attr.aria-pressed]="viewMode() === 'schema'" (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}</button>
+              <span class="share-wrap">
+                <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" (click)="sharePopoverOpen.set(!sharePopoverOpen())">↗ {{ 'codex.holo.stage.viewShare' | translate }}</button>
+                @if (sharePopoverOpen()) {
+                  <!-- slot: share -->
+                  <sc-codex-holo-share
+                    class="share-popover"
+                    [config]="myConfig()"
+                    [shipClassName]="detail().classNameSlug"
+                    [channel]="channel()"
+                    [patchVersion]="patchVersion()"
+                    (copyCurrentLink)="copyShareLink.emit()"
+                    (configRefreshed)="configRefreshed.emit($event)" />
+                }
+              </span>
+            </div>
+
+            <div class="silhouette-frame" [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
+              <!-- Arrival (concept hv3-s1): the hero art is the loading image
+                   and transforms into the table — no click, ≈1.6 s, a cut on
+                   reduced motion or a repeat visit. -->
+              @if (!arrived() && heroArt().length > 0) {
+                <sc-fallback-image class="hero-art" [candidates]="heroArt()" [alt]="displayName()" [eager]="true" />
+              }
+              @if (viewMode() === '3d') {
+                <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
+                  [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
+                  (hovered)="hovered.emit($event)" />
+              } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
+                <sc-ship-hardpoint-map class="mode-viewer" [markers]="[...hardpointMarkers()]" [frame]="frame"
+                  [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
               } @else {
-                <div class="silhouette-placeholder" role="img" [attr.aria-label]="'codex.holo.noGeometry' | translate">
-                  <span class="ring"></span>
+                <div class="shipwrap" [class.no-geometry]="!silhouette()">
+                  @if (silhouette(); as s) {
+                    <svg class="silhouette" [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" role="img"
+                         [attr.aria-label]="'codex.holo.stage.silhouetteAria' | translate: { name: displayName() }">
+                      <path class="glow" [attr.d]="s.path" fill-rule="evenodd" />
+                      <path class="hull" [attr.d]="s.path" fill-rule="evenodd" />
+                    </svg>
+                  } @else {
+                    <div class="silhouette-placeholder" role="img" [attr.aria-label]="'codex.holo.noGeometry' | translate">
+                      <span class="ring"></span>
+                      <span class="ring inner"></span>
+                    </div>
+                  }
+                  @for (pin of pins(); track pin.portName) {
+                    <button
+                      type="button"
+                      class="pin"
+                      [class.unresolved]="!pin.resolved"
+                      [class.gold]="pin.tone === 'gold'"
+                      [class.active]="activePorts().includes(pin.portName)"
+                      [class.sel]="inspectedPort() === pin.portName"
+                      [class.patched]="!!patchPortPins()?.[pin.portName]"
+                      [class.rev]="pin.x > 55"
+                      [style.left.%]="pin.x"
+                      [style.top.%]="pin.y"
+                      [attr.aria-pressed]="inspectedPort() === pin.portName"
+                      [attr.title]="pin.resolved ? pin.label : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
+                      (mouseenter)="hovered.emit([pin.portName])"
+                      (mouseleave)="hovered.emit(null)"
+                      (focus)="hovered.emit([pin.portName])"
+                      (blur)="hovered.emit(null)"
+                      (click)="inspectPin(pin.portName)">
+                      <i aria-hidden="true">{{ pin.index }}</i>
+                      <span class="pin-label">
+                        {{ pin.label }}
+                        @if (pin.short && (activePorts().includes(pin.portName) || inspectedPort() === pin.portName)) {
+                          <em>· {{ pin.short }}</em>
+                        }
+                      </span>
+                    </button>
+                  }
                 </div>
-                <p class="no-geometry-badge" [title]="'codex.holo.stage.noGeometryReason' | translate">
-                  {{ 'codex.holo.noGeometry' | translate }}
-                </p>
               }
-              @for (pin of pins(); track pin.portName) {
-                <button
-                  type="button"
-                  class="pin"
-                  [class.unresolved]="!pin.resolved"
-                  [class.active]="activePorts().includes(pin.portName)"
-                  [class.patched]="!!patchPortPins()?.[pin.portName]"
-                  [style.left.%]="pin.x"
-                  [style.top.%]="pin.y"
-                  [attr.aria-pressed]="inspectedPort() === pin.portName"
-                  [attr.title]="pin.resolved ? pin.portName : ('codex.holo.pinUnresolved' | translate)"
-                  (mouseenter)="hovered.emit([pin.portName])"
-                  (mouseleave)="hovered.emit(null)"
-                  (click)="inspectPin(pin.portName)">
-                  <span class="sr-only">{{ pin.portName }}</span>
-                </button>
-              }
-            }
-          </div>
+            </div>
 
-          @if (inspectorTarget(); as it) {
-            <div class="inspector" role="dialog" [attr.aria-label]="'codex.holo.stage.inspector' | translate">
-              <button type="button" class="inspector-close" (click)="inspectedPort.set(null)"
-                      [attr.aria-label]="'codex.swap.close' | translate">✕</button>
-              <p class="inspector-port">{{ it.slot.port }}</p>
-              @if (inspectedPort() && patchPortPins()?.[inspectedPort()!]; as pin) {
-                <!-- slot: patch-delta (compact port-level badge — the full
-                     sc-codex-holo-patch-delta renders KPI perspective groups
-                     inside sc-codex-holo-patch's own popover already; this is
-                     the per-PORT occupant delta for the pin under inspection) -->
-                <p class="inspector-patch-delta" [class.unresolved]="pin.unresolved">
-                  {{ pin.fromClassName ?? '—' }} → {{ pin.unresolved ? ('codex.holo.pinUnresolved' | translate) : (pin.toClassName ?? '—') }}
-                </p>
+            <div class="legend" aria-hidden="true">
+              <span><i></i>{{ 'codex.holo.stage.legendConfigurable' | translate }}</span>
+              <span><i class="g"></i>{{ 'codex.holo.stage.legendMissiles' | translate }}</span>
+              <span>{{ 'codex.holo.stage.legendHint' | translate }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Right panel: Inspector + "Zuletzt geändert" ──────────── -->
+        <aside class="holo-panel holo-right mobile-data" [class.collapsed]="rightCollapsed()">
+          <div class="ph">
+            <span class="ph-glyph" aria-hidden="true">ⓘ</span>
+            <span class="ph-title">{{ 'codex.holo.stage.inspector' | translate }}</span>
+            <span class="n">{{ inspectedIndex() }} / {{ pins().length }}</span>
+            <span class="sp"></span>
+            <button type="button" class="ic" (click)="rightCollapsed.set(!rightCollapsed())"
+                    [attr.aria-expanded]="!rightCollapsed()"
+                    [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
+                    [title]="'codex.holo.stage.railToggle' | translate">{{ rightCollapsed() ? '⟨' : '⟩' }}</button>
+          </div>
+          @if (rightCollapsed()) {
+            <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.inspector' | translate }}</span></div>
+          } @else {
+            <div class="pb">
+              @if (inspectorTarget(); as it) {
+                <div class="inspector" role="region" [attr.aria-label]="'codex.holo.stage.inspector' | translate">
+                  <div class="insp-head">
+                    @if (sizeBadge(it.slot); as b) { <span class="size-tag">{{ b }}</span> }
+                    <div class="insp-ident">
+                      <b>{{ it.slot.name ?? ((it.slot.emptyLabelKey ?? 'codex.holo.stage.emptyBay') | translate) }}</b>
+                      <small>{{ inspectorMeta(it.slot) }}</small>
+                    </div>
+                    <button type="button" class="inspector-close" (click)="inspectedPort.set(null)"
+                            [attr.aria-label]="'codex.swap.close' | translate">✕</button>
+                  </div>
+                  @if (inspectedPort() && patchPortPins()?.[inspectedPort()!]; as pin) {
+                    <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->
+                    <p class="inspector-patch-delta" [class.unresolved]="pin.unresolved">
+                      {{ pin.fromClassName ?? '—' }} → {{ pin.unresolved ? ('codex.holo.pinUnresolved' | translate) : (pin.toClassName ?? '—') }}
+                    </p>
+                  }
+                  @if (inspectorStats(it.slot).length > 0) {
+                    <dl class="insp-stats">
+                      @for (st of inspectorStats(it.slot); track st.labelKey) {
+                        <div><dt>{{ st.labelKey | translate }}</dt><dd>{{ fmtStat(st) }}</dd></div>
+                      }
+                    </dl>
+                  }
+                  @if (it.slot.draftState; as ds) {
+                    <p class="insp-draft">
+                      <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">{{ ('codex.loadout.draftState.' + ds) | translate }}</span>
+                      @if (it.slot.draftPaths?.length) {
+                        <button type="button" class="lnk" (click)="reverted.emit(it.slot.draftPaths!)">{{ 'codex.loadout.revert' | translate }}</button>
+                      }
+                    </p>
+                  }
+                  <div class="insp-actions">
+                    <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
+                    <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
+                  </div>
+                  <!-- What the mount carries (the gun in the gimbal, the
+                       missiles in the rack) — the thing that actually shoots. -->
+                  @for (kid of it.slot.children ?? []; track kid.port) {
+                    <div class="insp-kid" [class.empty]="!kid.className">
+                      <div class="insp-head">
+                        @if (kid.size != null) { <span class="size-tag">{{ kid.count > 1 ? kid.count + '×' : '' }}S{{ kid.size }}</span> }
+                        <div class="insp-ident">
+                          <b>{{ kid.name ?? '—' }}</b>
+                          <small>{{ kidMeta(kid) }}</small>
+                        </div>
+                      </div>
+                      @if (kid.stats?.length) {
+                        <dl class="insp-stats">
+                          @for (st of kid.stats!.slice(0, 4); track st.labelKey) {
+                            <div><dt>{{ st.labelKey | translate }}</dt><dd>{{ fmtStat(st) }}</dd></div>
+                          }
+                        </dl>
+                      }
+                      <div class="insp-actions">
+                        @if (kid.className || kid.rawTypes.length > 0) {
+                          <button type="button" class="btn quiet" (click)="swapRequested.emit(childTarget(it, kid))">⇄ {{ 'codex.swap.open' | translate }}</button>
+                        }
+                        @if (kid.className) {
+                          <button type="button" class="btn quiet" (click)="inspected.emit(childTarget(it, kid))">{{ 'codex.inspect.openStats' | translate }}</button>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="empty">
+                  <b>{{ 'codex.holo.stage.inspectorEmptyTitle' | translate }}</b>
+                  {{ 'codex.holo.stage.inspectorEmptyBody' | translate: { n: pins().length } }}
+                </div>
               }
-              <div class="inspector-actions">
-                <button type="button" class="btn" (click)="swapRequested.emit(it)">
-                  {{ 'codex.swap.open' | translate }}
-                </button>
-                <button type="button" class="btn quiet" (click)="inspected.emit(it)">
-                  {{ 'codex.inspect.openStats' | translate }}
-                </button>
+
+              <div class="card flat">
+                <div class="h2"><span>{{ 'codex.holo.stage.journal' | translate }}</span><span class="rule"></span></div>
+                @if (journal().length === 0) {
+                  <p class="mut">{{ 'codex.holo.stage.journalEmpty' | translate }}</p>
+                } @else {
+                  <ul class="journal">
+                    @for (e of journal(); track e.port) {
+                      <li>
+                        <span class="j-label">{{ e.label }}</span>
+                        <span class="j-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
+                        <button type="button" class="lnk" (click)="reverted.emit(e.paths)">{{ 'codex.holo.stage.undo' | translate }}</button>
+                      </li>
+                    }
+                  </ul>
+                  <sc-codex-loadout-save-bar
+                    class="draft-controls"
+                    [changed]="draftChangedCount()"
+                    [saveable]="saveableCount()"
+                    [saving]="saving()"
+                    [error]="saveError()"
+                    [inHangar]="inHangar()"
+                    (save)="saveDraft.emit()"
+                    (discard)="discardDraft.emit()"
+                    (addAndSave)="saveDraft.emit()" />
+                  <button type="button" class="lnk" (click)="reverted.emit(journalAllPaths())">
+                    {{ 'codex.detail.actionFactoryLoadout' | translate }}
+                  </button>
+                }
               </div>
             </div>
           }
-        </section>
-
-        <!-- ── Right rail: Ports (calm list, no boxes) ──────────────── -->
-        <aside class="holo-rail holo-right mobile-data" [class.collapsed]="rightCollapsed()">
-          <button type="button" class="rail-collapse" (click)="rightCollapsed.set(!rightCollapsed())"
-                  [attr.aria-expanded]="!rightCollapsed()"
-                  [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
-                  [title]="'codex.holo.stage.railToggle' | translate">▸</button>
-          <div class="rail-body">
-            <h2 class="rail-head">{{ 'codex.holo.stage.ports' | translate }}</h2>
-            @for (group of allSections(); track group.section) {
-              <div class="port-group">
-                <button type="button" class="port-group-head" (click)="toggleGroupOpen(group.section)"
-                        [attr.aria-expanded]="isGroupOpen(group.section)">
-                  <span>{{ shipModuleGroupLabelKeyFor(group.section) | translate }}</span>
-                  <span class="detail-toggle">{{ (isGroupOpen(group.section) ? 'codex.holo.stage.detailHide' : 'codex.holo.stage.detailShow') | translate }}</span>
-                </button>
-                @if (isGroupOpen(group.section)) {
-                  <div class="port-group-body">
-                    <label class="density-toggle">
-                      <input type="checkbox" [checked]="isGroupDense(group.section)"
-                             (change)="toggleGroupDense(group.section)" />
-                      {{ 'codex.holo.stage.density' | translate }}
-                    </label>
-                    <sc-codex-hardpoint-layout
-                      [sections]="[group]"
-                      [locatablePorts]="locatablePorts()"
-                      [activePorts]="activePorts()"
-                      (reverted)="reverted.emit($event)"
-                      (hovered)="hovered.emit($event)"
-                      (inspected)="inspected.emit($event)"
-                      (swapRequested)="swapRequested.emit($event)" />
-                  </div>
-                }
-              </div>
-            }
-          </div>
         </aside>
       </div>
 
-      <!-- ── Perspectives ──────────────────────────────────────────── -->
-      <section class="holo-perspectives mobile-data">
-        @for (tile of perspectiveTiles(); track tile.id) {
-          <article class="perspective-tile">
-            <h3>{{ tile.titleKey | translate }}</h3>
-            @if (tile.gaugePct != null) {
-              <div class="gauge" role="img" [attr.aria-label]="tile.gaugePct + '%'">
-                <span class="gauge-fill" [style.width.%]="tile.gaugePct"></span>
-              </div>
-            } @else {
-              <p class="gauge-gap">{{ 'codex.kpi.gap' | translate }}</p>
-            }
-            <ul class="tile-values">
-              @for (c of tile.cells.slice(0, 3); track c.key) {
-                <li>
-                  <span class="tv-label">{{ c.labelKey | translate }}</span>
-                  <span class="tv-value">{{ c.value != null ? c.value : '—' }}</span>
-                </li>
-              }
-            </ul>
-            <button type="button" class="tile-expand" (click)="toggleTileOpen(tile.id)"
-                    [attr.aria-expanded]="isTileOpen(tile.id)">
-              {{ (isTileOpen(tile.id) ? 'codex.holo.stage.allValuesHide' : 'codex.holo.stage.allValues') | translate }}
-            </button>
-            @if (isTileOpen(tile.id)) {
-              <div class="tile-full">
-                @if (tile.id === 'offensive') {
-                  <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="false" />
-                } @else if (tile.id === 'defensive') {
-                  <sc-codex-defensive-panel [panel]="defensivePanel()" />
-                } @else {
-                  <sc-codex-ship-panel [groups]="shipFactGroups()" [startCollapsed]="false" />
-                }
-              </div>
-            }
-          </article>
-        }
-      </section>
-
-      <!-- ── Change journal ────────────────────────────────────────── -->
-      @if (journal().length > 0) {
-        <section class="holo-journal mobile-data">
-          <h3>{{ 'codex.holo.stage.journal' | translate }}</h3>
-          <ul>
-            @for (e of journal(); track e.port) {
-              <li>
-                <span>{{ e.label }}</span>
-                <span class="journal-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
-                <button type="button" class="btn quiet" (click)="reverted.emit(e.paths)">
-                  {{ 'codex.loadout.revert' | translate }}
-                </button>
-              </li>
-            }
-          </ul>
-          <button type="button" class="btn quiet" (click)="reverted.emit(journalAllPaths())">
-            {{ 'codex.detail.actionFactoryLoadout' | translate }}
-          </button>
+      <!-- ── Below: calm ports list | four perspectives ─────────────── -->
+      <div class="holo-below mobile-data">
+        <section class="below-ports">
+          <div class="sh">
+            <span class="t">{{ 'codex.holo.stage.allPorts' | translate: { n: pins().length } }}</span>
+            <span class="rule"></span>
+          </div>
+          <sc-codex-hardpoint-layout
+            [calm]="true"
+            [sections]="allSectionsMutable()"
+            [locatablePorts]="locatablePorts()"
+            [activePorts]="activePorts()"
+            (reverted)="reverted.emit($event)"
+            (hovered)="hovered.emit($event)"
+            (inspected)="inspected.emit($event)"
+            (swapRequested)="swapRequested.emit($event)" />
         </section>
-      }
 
-      <!-- Undo toast (item 3) -->
+        <sc-codex-holo-perspectives
+          class="below-persp"
+          [tiles]="perspectiveViews()"
+          [missionLabelKey]="'codex.mission.' + activeMissionId()"
+          [cohortSize]="rankResult()?.cohortSize ?? null"
+          [pulse]="pulseTile()"
+          [offensivePanel]="offensivePanel()"
+          [defensivePanel]="defensivePanel()"
+          [shipFactGroups]="shipFactGroups()" />
+      </div>
+
+      <!-- Undo toast (concept fb-journal: "Undo gern einfach als toast") -->
       @if (undoToast(); as toast) {
         <div class="undo-toast" role="status">
           <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: toast.label } }}</span>
@@ -435,23 +547,29 @@ const UNDO_TOAST_MS = 6000;
 
       <!-- ── Details drawer (everything with no other home) ──────────── -->
       <section class="holo-details mobile-data">
-        <button type="button" class="details-toggle" (click)="detailsOpen.set(!detailsOpen())"
-                [attr.aria-expanded]="detailsOpen()">
-          {{ (detailsOpen() ? 'codex.holo.stage.detailsHide' : 'codex.holo.stage.detailsShow') | translate }}
-        </button>
+        <div class="sh">
+          <button type="button" class="details-toggle" (click)="detailsOpen.set(!detailsOpen())"
+                  [attr.aria-expanded]="detailsOpen()">
+            {{ (detailsOpen() ? 'codex.holo.stage.detailsHide' : 'codex.holo.stage.detailsShow') | translate }}
+          </button>
+          <span class="rule"></span>
+          <label class="switch">
+            <input type="checkbox" [checked]="soundOn()" (change)="toggleSound()" />
+            <span class="track" aria-hidden="true"></span>
+            {{ 'codex.holo.stage.sound' | translate }}
+          </label>
+          <label class="switch mobile-only">
+            <input type="checkbox" [checked]="mobileTabsEnabled()" (change)="toggleMobileTabs()" />
+            <span class="track" aria-hidden="true"></span>
+            {{ 'codex.holo.stage.mobileTabsSetting' | translate }}
+          </label>
+        </div>
         @if (detailsOpen()) {
           <div class="details-body">
             <ng-content></ng-content>
           </div>
         }
       </section>
-
-      <p class="sound-setting">
-        <label>
-          <input type="checkbox" [checked]="soundOn()" (change)="toggleSound()" />
-          {{ 'codex.holo.stage.sound' | translate }}
-        </label>
-      </p>
 
       <!-- slot: strip — sticky bottom (mobile: sticky KPI row via its own CSS) -->
       <sc-codex-holo-strip
@@ -461,7 +579,7 @@ const UNDO_TOAST_MS = 6000;
         [schemaVersion]="schemaVersion()"
         [userId]="userId()"
         [crossSection]="crossSection()"
-        [cells]="kpiCells()"
+        [cells]="allKpiCells()"
         [active]="activeMissionId()"
         [capabilities]="shipCapabilities()"
         [rankResult]="rankResult()"
@@ -469,135 +587,276 @@ const UNDO_TOAST_MS = 6000;
         (sheetChange)="sheetChange.emit($event)" />
     </section>
   `,
-  styles: [`
-    :host { display: block; }
-    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .holo-stage { display: flex; flex-direction: column; gap: var(--sc-gap-1, 16px); padding-bottom: 90px; }
-    .holo-einsatz { display: flex; flex-direction: column; gap: 8px; }
-    .holo-eyebrow-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .holo-eyebrow { margin: 0; font-size: 12px; color: var(--sc-fg-1); }
-    .einsatz-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-    .holo-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .holo-chips .chip { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
-    .holo-chips .chip.accent { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .holo-chips .chip.ghost { opacity: 0.6; }
-    .holo-chips .chip.gap { font-style: italic; color: var(--sc-fg-2); }
-    .chip-detail { color: var(--sc-fg-2); margin-inline-start: 4px; }
-    .top3 { margin: 0 0 8px; padding: 0 0 0 16px; font-size: 11px; color: var(--sc-fg-1); }
-    .top3 a { color: var(--sc-accent); }
-
-    .mobile-tabs-setting { display: none; font-size: 11px; color: var(--sc-fg-2); }
-    .mobile-tabs { display: flex; gap: 6px; margin-top: 6px; }
-    .mobile-tabs button { min-height: var(--sc-tap-min, 32px); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--sc-border); background: var(--sc-bg-2); color: var(--sc-fg-1); cursor: pointer; }
-    .mobile-tabs button[aria-selected="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
-    @media (max-width: 768px) { .mobile-tabs-setting { display: block; } }
-
-    .holo-body { display: grid; grid-template-columns: 300px 1fr 300px; gap: var(--sc-gap-1, 16px); align-items: start; }
-    @media (max-width: 1100px) {
-      .holo-body { grid-template-columns: 44px 1fr 44px; }
-      .holo-rail:not(.collapsed) { grid-column: 1 / -1; order: 3; }
-    }
-    @media (max-width: 768px) {
-      .holo-body { grid-template-columns: 1fr; }
-      .holo-rail { order: initial; }
-      .holo-body.mobile-hide-table .mobile-table { display: none; }
-      .holo-body.mobile-hide-data .mobile-data { display: none; }
-      .mobile-hide-table ~ .mobile-data, .mobile-hide-data ~ .mobile-table { display: none; }
-    }
-    /* Landscape phone/small tablet (user decision 5): table | right rail
-       side by side, left rail (Einordnung) collapses to its 44px edge so
-       the pair fits without a third column fighting for width. */
-    @media (orientation: landscape) and (max-width: 1100px) {
-      .holo-body { grid-template-columns: 44px 1fr 260px; }
-    }
-
-    .holo-rail { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; padding: var(--sc-pad-2, 12px); position: relative; }
-    .holo-rail.collapsed .rail-body { display: none; }
-    .rail-collapse { position: absolute; top: 8px; inset-inline-end: 8px; background: none; border: 1px solid var(--sc-border);
-      border-radius: 4px; color: var(--sc-fg-1); min-height: var(--sc-tap-min, 32px); min-width: 32px; cursor: pointer; }
-    .rail-head { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-accent); }
-    .watermark { margin: 0 0 8px; font-size: 11px; color: var(--sc-fg-2); font-style: italic; }
-    .cohort-link { display: inline-block; margin-top: 8px; color: var(--sc-accent); font-size: 12px; }
-
-    .holo-table { position: relative; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; padding: var(--sc-pad-2, 12px); min-height: 360px; }
-    .table-toggles { position: absolute; top: 8px; inset-inline-end: 8px; display: flex; gap: 6px; opacity: 0; transition: opacity 160ms ease; z-index: 4; }
-    .holo-table:hover .table-toggles, .holo-table:focus-within .table-toggles { opacity: 1; }
-    .tbl-toggle { min-height: var(--sc-tap-min, 32px); padding: 4px 8px; background: var(--sc-bg-2); border: 1px solid var(--sc-border);
-      border-radius: 6px; color: var(--sc-fg-1); cursor: pointer; font-size: 11px; }
-    .tbl-toggle.active { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .share-wrap { position: relative; }
-    .share-popover { position: absolute; top: 100%; inset-inline-end: 0; z-index: 5; margin-top: 6px; }
-    .hangar-tab-dock { position: absolute; top: 0; inset-inline-start: 0; z-index: 3; }
-
-    .silhouette-frame { position: relative; width: 100%; min-height: 320px; display: flex; align-items: center; justify-content: center; }
-    .silhouette, .mode-viewer { width: 100%; height: 320px; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--sc-accent) 45%, transparent)); }
-    .silhouette .hull { fill: color-mix(in srgb, var(--sc-accent) 12%, transparent); stroke: var(--sc-accent); stroke-width: 2; }
-    .arrived .silhouette .hull { animation: holo-reveal 1.6s ease-out; }
-    @keyframes holo-reveal { from { opacity: 0; } to { opacity: 1; } }
-    .reduced-motion .silhouette .hull { animation: none; }
-    .silhouette-placeholder { width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
-    .silhouette-placeholder .ring { width: 180px; height: 180px; border: 2px dashed var(--sc-border); border-radius: 50%; }
-    .no-geometry-badge { position: absolute; bottom: 8px; inset-inline-start: 8px; margin: 0; font-size: 10px; color: var(--sc-fg-2); }
-
-    .pin { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
-      background: var(--sc-accent); border: 2px solid var(--sc-bg-0); cursor: pointer; padding: 0; }
-    .pin.unresolved { background: transparent; border: 2px dashed var(--sc-fg-2); }
-    .pin.active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sc-accent) 35%, transparent); }
-    .pin.patched { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-
-    .inspector { position: absolute; bottom: 8px; inset-inline-end: 8px; width: min(260px, 90%); background: var(--sc-bg-0);
-      border: 1px solid var(--sc-accent); border-radius: 8px; padding: 10px; z-index: 3; }
-    .inspector-close { position: absolute; top: 4px; inset-inline-end: 6px; background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); }
-    .inspector-port { margin: 0 0 8px; font-size: 12px; color: var(--sc-fg-0); }
-    .inspector-patch-delta { margin: 0 0 8px; font-size: 11px; color: var(--sc-accent); }
-    .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }
-    .inspector-actions { display: flex; gap: 8px; }
-
-    .port-group { border-top: 1px solid var(--sc-border); padding: 8px 0; }
-    .port-group:first-child { border-top: none; }
-    .port-group-head { display: flex; justify-content: space-between; width: 100%; background: none; border: none;
-      color: var(--sc-fg-0); cursor: pointer; font: inherit; font-size: 12px; padding: 4px 0; min-height: var(--sc-tap-min, 32px); }
-    .detail-toggle { color: var(--sc-accent); font-size: 11px; }
-    .density-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--sc-fg-2); margin-bottom: 6px; }
-
-    .holo-perspectives { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sc-gap-2, 10px); }
-    @media (max-width: 768px) { .holo-perspectives { grid-template-columns: 1fr 1fr; } }
-    .perspective-tile { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; padding: var(--sc-pad-3, 10px); }
-    .perspective-tile h3 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-accent); }
-    .gauge { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); overflow: hidden; }
-    .gauge-fill { display: block; height: 100%; background: var(--sc-accent); }
-    .gauge-gap { margin: 0; font-size: 10px; color: var(--sc-fg-2); font-style: italic; }
-    .tile-values { list-style: none; margin: 6px 0; padding: 0; font-size: 11px; color: var(--sc-fg-1); }
-    .tile-values li { display: flex; justify-content: space-between; }
-    .tile-expand { background: none; border: none; color: var(--sc-accent); font-size: 11px; cursor: pointer; padding: 0; min-height: var(--sc-tap-min, 24px); }
-
-    .holo-journal { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; padding: var(--sc-pad-2, 12px); }
-    .holo-journal ul { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-    .holo-journal li { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-    .journal-state { color: var(--sc-fg-2); font-size: 10px; }
-
-    .undo-toast { position: fixed; bottom: 96px; inset-inline-start: 50%; transform: translateX(-50%); z-index: 20;
-      display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
-      border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
-
-    .holo-details { border-top: 1px solid var(--sc-border); padding-top: 8px; }
-    .details-toggle { background: none; border: 1px solid var(--sc-border); border-radius: 6px; color: var(--sc-fg-1);
-      cursor: pointer; padding: 6px 10px; min-height: var(--sc-tap-min, 32px); font-size: 12px; }
-    .details-body { margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
-
-    .sound-setting { margin: 0; font-size: 11px; color: var(--sc-fg-2); }
-    .btn { min-height: var(--sc-tap-min, 32px); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--sc-border);
-      background: var(--sc-bg-2); color: var(--sc-fg-0); cursor: pointer; font: inherit; }
-    .btn.quiet { background: none; }
+  styles: [
+`
+  :host { display: block; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .holo-stage {
+  --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
+  --l1: var(--sc-border); --l2: var(--border-default, color-mix(in srgb, var(--sc-accent) 30%, transparent));
+  --glass: color-mix(in srgb, var(--sc-bg-1) 55%, transparent); --ink: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
+  --holo-gold: var(--accent-gold, #c8a84b); --holo-gold-rgb: var(--accent-gold-rgb, 200, 168, 75);
+  --a4: color-mix(in srgb, var(--sc-accent) 4%, transparent); --a5: color-mix(in srgb, var(--sc-accent) 5%, transparent); --a7: color-mix(in srgb, var(--sc-accent) 7%, transparent); --a8: color-mix(in srgb, var(--sc-accent) 8%, transparent); --a10: color-mix(in srgb, var(--sc-accent) 10%, transparent); --a12: color-mix(in srgb, var(--sc-accent) 12%, transparent); --a14: color-mix(in srgb, var(--sc-accent) 14%, transparent); --a22: color-mix(in srgb, var(--sc-accent) 22%, transparent); --a28: color-mix(in srgb, var(--sc-accent) 28%, transparent); --a30: color-mix(in srgb, var(--sc-accent) 30%, transparent); --a40: color-mix(in srgb, var(--sc-accent) 40%, transparent); --a50: color-mix(in srgb, var(--sc-accent) 50%, transparent); --a55: color-mix(in srgb, var(--sc-accent) 55%, transparent); --a80: color-mix(in srgb, var(--sc-accent) 80%, transparent);
+  --p-offensive: var(--sc-accent); --p-defensive: var(--cat-game, #c07888); --p-movement: var(--sc-success); --p-signature: var(--holo-gold);
+  display: flex; flex-direction: column; gap: 10px; padding-bottom: 96px;
+  }
+  .btn, .table-eyebrow, .mobile-tabs button, .holo-panel > .ph, .rail-min .vi, .wm, .statics .k, .sub, .rolebar .r, .tt, .pin-label, .legend, .empty b, .insp-stats dt, .h2, .sh, .details-toggle, .switch { font-family: var(--d); text-transform: uppercase; }
+  .n { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-fg-1); background: var(--sc-bg-2); padding: 0 6px; border-radius: 2px; letter-spacing: 0; }
+  .sp { flex: 1; }
+  .rule { flex: 1; height: 1px; background: var(--l1); }
+  .lnk { background: none; border: none; padding: 0; color: var(--sc-accent); cursor: pointer; font: inherit; font-size: max(11px, var(--f)); min-height: var(--sc-tap-min, 24px); }
+  .btn { min-height: var(--sc-tap-min, 32px); padding: 5px 12px; border-radius: 3px; border: 1px solid var(--l2);
+ background: var(--a10); color: var(--sc-fg-0); cursor: pointer; font: inherit;
+ font-size: max(11px, var(--f)); letter-spacing: 0.08em; }
+  .btn.quiet { background: none; border-color: var(--l1); color: var(--sc-fg-1); }
+  .btn:hover, .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); }
+  .holo-topbar { display: grid; grid-template-columns: minmax(220px, 380px) 1fr auto; align-items: center; gap: 12px; }
+  .ht-search { display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--l2); border-radius: 3px;
+  background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-2); min-height: var(--sc-tap-min, 34px); }
+  .ht-icon { width: 15px; height: 15px; flex: none; }
+  .ht-input { flex: 1; min-width: 0; background: none; border: none; color: var(--sc-fg-0); font: inherit; font-size: max(12px, var(--f)); padding: 7px 0; outline: none; }
+  .ht-input::placeholder { color: var(--sc-fg-2); }
+  .ht-search:focus-within { border-color: var(--sc-accent); }
+  .ht-search kbd { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); padding: 0 5px; border-radius: 2px; }
+  .ht-mid { min-height: 34px; }
+  .table-eyebrow { position: absolute; top: 12px; left: 14px; margin: 0; z-index: 2; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2);
+ letter-spacing: 0.14em; }
+  .table-eyebrow b { font-weight: 400; color: var(--sc-fg-0); }
+  .ht-right { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+  .mobile-tabs { display: none; gap: 6px; }
+  .mobile-tabs button { flex: 1; min-height: var(--sc-tap-min, 32px); padding: 6px 10px; border-radius: 3px; border: 1px solid var(--l2); background: var(--glass); color: var(--sc-fg-1); cursor: pointer;
+ font-size: max(10px, var(--f)); letter-spacing: 0.14em; }
+  .mobile-tabs button[aria-selected="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
+  .mobile-only { display: none; }
+  .holo-body { display: grid; grid-template-columns: 300px minmax(0, 1fr) 300px; gap: 10px; align-items: stretch;
+  padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: 4px; }
+  .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 300px; }
+  .right-collapsed .holo-body { grid-template-columns: 300px minmax(0, 1fr) 44px; }
+  .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .holo-panel { border: 1px solid var(--l2); border-radius: 4px; background: var(--glass);
+  display: grid; grid-template-rows: auto 1fr; min-height: 520px; min-width: 0; position: relative; }
+  .holo-panel > .ph { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--l2);
+ background: var(--ink); font-size: max(9.5px, var(--f));
+ letter-spacing: 0.16em; color: var(--sc-accent); min-height: 38px; }
+  .ph-glyph { font-size: 11px; }
+  .ph .ic { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; font: inherit; font-size: 13px; letter-spacing: 0;
+  min-width: var(--sc-tap-min, 24px); min-height: var(--sc-tap-min, 24px); padding: 0; }
+  .ph .ic:hover { color: var(--sc-accent); }
+  .holo-panel > .pb { padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .holo-panel > .pb.rail-min { padding: 10px 4px; justify-items: center; }
+  .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2); }
+  .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .n, .holo-panel.collapsed > .ph .ph-glyph { display: none; }
+  .holo-panel.collapsed > .ph { padding: 7px 4px; justify-content: center; }
+  .frame { position: relative; }
+  .wm { position: absolute; left: 0; right: 0; top: 46%; text-align: center; font-size: 30px;
+ letter-spacing: 0.3em; color: var(--a8); pointer-events: none; z-index: 0; }
+  .frame > * { position: relative; z-index: 1; }
+  .statics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .statics div { display: grid; gap: 2px; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; min-width: 0; }
+  .statics .k { font-size: max(8px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
+  .statics .v { font-family: var(--m); font-size: 15px; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .statics .v.long { font-family: var(--sc-font-body); font-size: max(10.5px, var(--f)); white-space: normal; color: var(--sc-fg-1); line-height: 1.2; }
+  .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
+  .sub i { flex: 1; height: 1px; background: var(--l1); }
+  .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(11.5px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
+  .top3 a { color: var(--sc-fg-0); text-decoration: none; }
+  .top3 a:hover { color: var(--sc-accent); }
+  .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; }
+  .cohort-link:hover { color: var(--sc-accent); }
+  .holo-table > .ph.role { padding: 0; gap: 0; background: var(--ink); overflow-x: auto; }
+  .rolebar { display: flex; width: 100%; min-width: max-content; }
+  .rolebar .lab { display: grid; place-items: center; padding: 0 14px; font-size: max(8.5px, var(--f)); letter-spacing: 0.2em; color: var(--sc-fg-2); border-right: 1px solid var(--l1); }
+  .rolebar .r { flex: 1; padding: 8px 8px 6px; text-align: center; font-size: max(10.5px, var(--f));
+ letter-spacing: 0.16em; color: var(--sc-fg-1); border: none; border-right: 1px solid var(--l1); border-bottom: 2px solid transparent;
+ background: none; cursor: pointer; display: grid; gap: 2px; min-height: var(--sc-tap-min, 44px); min-width: 92px; }
+  .rolebar .r small { font-family: var(--m); font-size: max(9px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-2); }
+  .rolebar .r.on { color: var(--sc-accent); border-bottom-color: var(--sc-accent);
+  background: linear-gradient(180deg, var(--a4), var(--a14));
+  text-shadow: 0 0 10px var(--a50); }
+  .rolebar .r.on small { color: var(--sc-fg-1); }
+  .rolebar .r.dim { opacity: 0.4; cursor: not-allowed; }
+  .rolebar .r:last-child { border-right: 0; }
+  .rolebar .r:hover:not(.dim):not(.on) { color: var(--sc-fg-0); }
+  .holo-table > .pb { padding: 0; position: relative; display: block; min-height: 480px; }
+  .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+  repeating-radial-gradient(circle at 50% 52%, transparent 0 58px, var(--a7) 59px 60px),
+  linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,
+  linear-gradient(90deg, var(--a5) 1px, transparent 1px) 0 0 / 40px 100%; }
+  .hangar-dock { position: absolute; top: 0; inset-inline: 0; z-index: 6; display: flex; justify-content: center; pointer-events: none;
+  transform: translateY(calc(-100% + 1px)); }
+  .hangar-dock > * { pointer-events: auto; }
+  .tools5 { position: absolute; top: 10px; right: 12px; display: flex; gap: 12px; align-items: center; z-index: 5; opacity: 0.45; transition: opacity 160ms ease; }
+  .holo-table:hover .tools5, .holo-table:focus-within .tools5, .tools5:has(.on) { opacity: 1; }
+  .tt { background: none; border: none; padding: 4px 2px; cursor: pointer; font-size: max(8.5px, var(--f));
+ letter-spacing: 0.16em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); }
+  .tt:hover { color: var(--sc-fg-0); }
+  .tt.on { color: var(--sc-accent); text-shadow: 0 0 8px var(--a50); }
+  .share-wrap { position: relative; display: inline-flex; }
+  .share-popover { position: absolute; top: 100%; inset-inline-end: 0; z-index: 8; margin-top: 8px; }
+  .silhouette-frame { position: relative; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .mode-viewer { width: 100%; height: 480px; }
+  .shipwrap { position: absolute; left: 50%; top: 52%; width: min(560px, 82%); aspect-ratio: 1 / 1; transform: translate(-50%, -50%); }
+  .shipwrap.no-geometry { width: min(420px, 70%); }
+  .silhouette { width: 100%; height: 100%; display: block; overflow: visible; }
+  .silhouette .glow { fill: none; stroke: var(--sc-accent); stroke-width: 10; opacity: 0.16; filter: blur(6px); }
+  .silhouette .hull { fill: var(--a10); stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px var(--a55)); }
+  .silhouette-placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
+  .silhouette-placeholder .ring { grid-area: 1 / 1; width: 78%; height: 78%; border: 1px dashed var(--l2); border-radius: 50%; }
+  .silhouette-placeholder .ring.inner { width: 40%; height: 40%; border-style: dotted; }
+  .no-geometry-badge { color: var(--sc-fg-2); cursor: help; }
+  .shipwrap.no-geometry .pin-label { display: none; }
+  .shipwrap.no-geometry .pin.sel .pin-label, .shipwrap.no-geometry .pin.active .pin-label, .shipwrap.no-geometry .pin:hover .pin-label { display: inline; }
+  .hero-art { position: absolute; inset: 0; z-index: 3; display: block; pointer-events: none; opacity: 1; }
+  .hero-art ::ng-deep img, .hero-art ::ng-deep picture { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .holo-stage:not(.arrived):not(.reduced-motion) .hero-art { animation: holo-hero-out 1.6s ease-in-out forwards; }
+  .holo-stage:not(.arrived):not(.reduced-motion) .shipwrap, .holo-stage:not(.arrived):not(.reduced-motion) .rings { animation: holo-reveal 1.6s ease-out both; }
+  .holo-stage:not(.arrived):not(.reduced-motion) .silhouette-frame::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: linear-gradient(180deg, transparent 0, var(--a28) 50%, transparent 100%) 0 0 / 100% 18%;
+  background-repeat: no-repeat; animation: holo-scan 1.6s linear both; }
+  @keyframes holo-hero-out { 0% { opacity: 1; transform: scale(1); filter: saturate(1); } 55% { opacity: 0.85; filter: saturate(0.3) brightness(1.4); } 100% { opacity: 0; transform: scale(0.72); filter: saturate(0) brightness(2); } }
+  @keyframes holo-reveal { 0% { opacity: 0; } 45% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes holo-scan { 0% { background-position: 0 -20%; } 100% { background-position: 0 120%; } }
+  .reduced-motion .hero-art { display: none; }
+  .pin { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0; margin: -10px 0 0 -10px; background: none; border: none; cursor: pointer; z-index: 2; color: var(--sc-fg-1); }
+  .pin.rev { flex-direction: row-reverse; transform: translateX(calc(-100% + 20px)); }
+  .pin i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--sc-accent); background: var(--ink); color: var(--sc-accent);
+  font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
+  box-shadow: 0 0 0 4px var(--a12), 0 0 12px var(--a50); }
+  .pin-label { font-size: max(8.5px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-1);
+ background: color-mix(in srgb, var(--sc-bg-0) 85%, transparent); padding: 2px 6px; border: 1px solid var(--l1); border-radius: 2px; white-space: nowrap; }
+  .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none; }
+  .pin.gold i { border-color: var(--holo-gold); color: var(--holo-gold); box-shadow: 0 0 0 4px rgba(var(--holo-gold-rgb), 0.1), 0 0 10px rgba(var(--holo-gold-rgb), 0.4); }
+  .pin.active i, .pin:hover i { box-shadow: 0 0 0 6px var(--a22), 0 0 18px var(--a80); }
+  .pin.active .pin-label, .pin:hover .pin-label { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+  .pin.sel i { background: var(--sc-accent); color: var(--sc-bg-0); }
+  .pin.sel .pin-label { color: var(--sc-accent); border-color: var(--sc-accent); }
+  .pin.unresolved i { border-style: dashed; background: transparent; color: var(--sc-fg-2); border-color: var(--sc-fg-2); box-shadow: none; }
+  .pin.patched i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+  .pin:focus-visible { outline: none; }
+  .pin:focus-visible i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+  .legend { position: absolute; left: 14px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px; font-size: max(8.5px, var(--f));
+ letter-spacing: 0.1em; color: var(--sc-fg-2); z-index: 2; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
+  .legend i.g { border-color: var(--holo-gold); }
+  .empty { display: grid; place-items: center; text-align: center; gap: 8px; color: var(--sc-fg-2); padding: 40px 10px; border: 1px dashed var(--l2); border-radius: 4px; font-size: max(12px, var(--f)); }
+  .empty b { font-size: max(11px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-1); font-weight: 400; }
+  .inspector { display: grid; gap: 10px; padding: 10px 12px; border: 1px solid var(--sc-accent); border-radius: 4px; background: var(--ink); }
+  .insp-head { display: flex; align-items: flex-start; gap: 8px; }
+  .size-tag { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); border-radius: 2px; padding: 1px 5px; flex: none; margin-top: 2px; }
+  .insp-ident { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .insp-ident b { font-weight: 500; color: var(--sc-fg-0); font-size: max(13px, var(--f)); }
+  .insp-ident small { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); }
+  .inspector-close { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); min-width: 24px; padding: 0; flex: none; }
+  .inspector-close:hover { color: var(--sc-fg-0); }
+  .inspector-patch-delta { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-accent); font-family: var(--m); }
+  .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }
+  .insp-stats { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .insp-stats div { display: grid; gap: 1px; padding: 5px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; }
+  .insp-stats dt { font-size: max(8px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); }
+  .insp-stats dd { margin: 0; font-family: var(--m); font-size: 13px; color: var(--sc-fg-0); }
+  .insp-draft { margin: 0; display: flex; align-items: center; gap: 8px; }
+  .tag.draft { font-size: max(10px, var(--f)); color: var(--sc-accent); border: 1px solid var(--sc-accent); border-radius: 2px; padding: 1px 6px; }
+  .tag.draft.pending { color: var(--sc-fg-2); border-color: var(--sc-fg-2); }
+  .tag.draft.unresolved { color: var(--sc-warning); border-color: var(--sc-warning); }
+  .insp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .insp-kid { display: grid; gap: 8px; margin-inline-start: 10px; padding: 8px 0 0 10px; border-inline-start: 2px solid var(--a40); }
+  .insp-kid.empty .insp-ident b { color: var(--sc-fg-2); font-weight: 400; }
+  .insp-kid .btn { padding: 3px 8px; min-height: var(--sc-tap-min, 26px); font-size: max(9.5px, var(--f)); }
+  .card.flat { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--l1); border-radius: 4px; }
+  .h2 { display: flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
+  .mut { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
+  .journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .journal li { display: flex; align-items: center; gap: 8px; font-size: max(11.5px, var(--f)); }
+  .j-label { color: var(--sc-fg-0); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .j-state { color: var(--sc-fg-2); font-size: max(10px, var(--f)); }
+  .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 14px; align-items: start; padding: 0 10px; }
+  .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
+  .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .sh .ctx { font-family: var(--m); font-size: max(10px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-1); }
+  .holo-details { padding: 0 10px; }
+  .holo-details .sh { margin-bottom: 0; }
+  .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
+ font: inherit; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; }
+  .details-toggle:hover, .details-toggle[aria-expanded="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
+  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .switch .track { width: 28px; height: 14px; border-radius: 7px; border: 1px solid var(--l2); background: var(--sc-bg-0); position: relative; transition: background 160ms ease; }
+  .switch .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--sc-fg-2); transition: transform 160ms ease, background 160ms ease; }
+  .switch input:checked + .track { background: color-mix(in srgb, var(--sc-accent) 30%, var(--sc-bg-0)); border-color: var(--sc-accent); }
+  .switch input:checked + .track::after { transform: translateX(14px); background: var(--sc-accent); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+  .undo-toast { position: fixed; bottom: 110px; inset-inline-start: 50%; transform: translateX(-50%); z-index: 20;
+  display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
+  border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
+  @media (max-width: 1180px) {
+  .holo-body { grid-template-columns: 260px minmax(0, 1fr) 260px; }
+  .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 260px; }
+  .right-collapsed .holo-body { grid-template-columns: 260px minmax(0, 1fr) 44px; }
+  .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .holo-below { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1000px) {
+  .holo-topbar { grid-template-columns: 1fr auto; }
+  .ht-eyebrow { display: none; }
+  .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+  .holo-left.collapsed { order: 0; }
+  .holo-table { order: 1; }
+  .holo-right.collapsed { order: 2; }
+  .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: 1 / -1; min-height: 0; }
+  .holo-panel:not(.collapsed).holo-left { order: 3; }
+  .holo-panel:not(.collapsed).holo-right { order: 4; }
+  .holo-body:has(.holo-left:not(.collapsed)) { grid-template-columns: 0 minmax(0, 1fr) 44px; gap: 0 10px; }
+  .holo-body:has(.holo-right:not(.collapsed)) { grid-template-columns: 44px minmax(0, 1fr) 0; }
+  .holo-body:has(.holo-left:not(.collapsed)):has(.holo-right:not(.collapsed)) { grid-template-columns: 0 minmax(0, 1fr) 0; }
+  .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { margin-top: 10px; }
+  }
+  @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
+  .holo-body, .holo-body:has(.holo-right:not(.collapsed)) { grid-template-columns: 44px minmax(0, 1fr) 240px; }
+  .holo-panel:not(.collapsed).holo-right { grid-column: 3; order: 2; margin-top: 0; }
+  .holo-table > .pb, .silhouette-frame { min-height: 320px; }
+  }
+  @media (max-width: 640px) {
+  .holo-stage { padding-bottom: 72px; }
+  .mobile-tabs { display: flex; }
+  .mobile-only { display: inline-flex; }
+  .holo-topbar { grid-template-columns: 1fr auto; grid-template-areas: 'search patch' 'mid mid'; gap: 8px; }
+  .ht-search { grid-area: search; }
+  .ht-right { grid-area: patch; justify-content: flex-end; }
+  .ht-mid { grid-area: mid; min-height: 44px; }
+  .holo-body { grid-template-columns: 1fr; padding: 6px; }
+  .holo-panel, .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: auto; order: initial; min-height: 0; }
+  .holo-table { order: -1; }
+  .holo-table > .pb, .silhouette-frame, .mode-viewer { min-height: 360px; }
+  .shipwrap { width: min(420px, 92%); }
+  .pin-label { display: none; }
+  .pin.sel .pin-label, .pin.active .pin-label { display: inline; }
+  .legend span:last-child { display: none; }
+  .holo-below { grid-template-columns: 1fr; padding: 0 6px; }
+  .holo-body.mobile-hide-table .mobile-table { display: none; }
+  .holo-body.mobile-hide-data .mobile-data { display: none; }
+  .mobile-hide-table ~ .mobile-data, .mobile-hide-data ~ .mobile-table { display: none; }
+  .undo-toast { bottom: 84px; width: calc(100% - 32px); justify-content: space-between; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+  }
+  
   `],
 })
 export class CodexHoloStageComponent {
+  private readonly router = inject(Router);
+  private readonly t = inject(TranslateService);
+
   // ── Identity / chrome ────────────────────────────────────────────
   readonly detail = input.required<CodexDetail>();
   readonly displayName = input.required<string>();
   readonly manufacturerName = input<string | null>(null);
   readonly stageCounts = input<readonly StageCountChip[]>([]);
   readonly heroChips = input<readonly { key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[]>([]);
+  /** The classic hero art candidates — the arrival's loading image. */
+  readonly heroArt = input<readonly string[]>([]);
 
   // ── Hover-sync / ports ───────────────────────────────────────────
   readonly activePorts = input<readonly string[]>([]);
@@ -613,7 +872,10 @@ export class CodexHoloStageComponent {
   readonly hardpointMarkers = input<readonly HardpointMarker[]>([]);
 
   // ── Einsatz bar / KPI ────────────────────────────────────────────
+  /** The six band cells of the active Einsatz (kept for the lead-metric accent). */
   readonly kpiCells = input<readonly KpiStripCell[]>([]);
+  /** Every sheet key as a cell — the perspectives and the strip read these. */
+  readonly allKpiCells = input<readonly KpiStripCell[]>([]);
   readonly activeMissionId = input.required<MissionId>();
   readonly shipCapabilities = input.required<ShipCapabilities>();
   readonly draftChangedCount = input(0);
@@ -681,19 +943,28 @@ export class CodexHoloStageComponent {
   readonly sheetChange = output<PowerSheet>();
 
   // ── Local, purely-presentational view state ───────────────────────
-  readonly leftCollapsed = signal(false);
-  readonly rightCollapsed = signal(false);
+  /** Tablet (concept mo5-rails): both rails start as 44px edges so the table
+   * gets the width; a tap expands one below the table. Desktop and phone
+   * start open (the phone stacks everything anyway). */
+  private static tabletStart(): boolean {
+    try {
+      return typeof matchMedia === 'function' && matchMedia('(min-width: 641px) and (max-width: 1000px)').matches;
+    } catch {
+      return false;
+    }
+  }
+  readonly leftCollapsed = signal(CodexHoloStageComponent.tabletStart());
+  readonly rightCollapsed = signal(CodexHoloStageComponent.tabletStart());
   readonly viewMode = signal<'holo' | '3d' | 'schema'>('holo');
   readonly detailsOpen = signal(false);
   readonly inspectedPort = signal<string | null>(null);
   readonly sharePopoverOpen = signal(false);
-  private readonly openGroups = signal<ReadonlySet<ShipModuleSection>>(new Set());
-  private readonly denseGroups = signal<ReadonlySet<ShipModuleSection>>(new Set());
-  private readonly openTiles = signal<ReadonlySet<Perspective>>(new Set());
   readonly arrived = signal(false);
   readonly soundOn = signal(this.readSoundPref());
   readonly mobileTabsEnabled = signal(this.readMobileTabsPref());
   readonly mobileTab = signal<'table' | 'data'>('table');
+  /** The tile that pulses after a port selection (concept pe4-pulse). */
+  readonly pulseTile = signal<Perspective | null>(null);
 
   // slot: patch-delta outputs, surfaced to the pins/inspector/KPI band
   readonly patchGhosts = signal<HoloPatchKpiGhosts | null>(null);
@@ -709,8 +980,21 @@ export class CodexHoloStageComponent {
         this.arrived.set(true);
         return;
       }
-      const t = setTimeout(() => this.arrived.set(true), 1600);
+      const t = setTimeout(() => {
+        this.arrived.set(true);
+        this.startCountUp();
+      }, ARRIVAL_MS);
       return () => clearTimeout(t);
+    });
+
+    // The "Einordnung" follows the Einsatz (concept round 4: no second
+    // profile selector on the left) — every mission maps onto the nearest
+    // of the three rank profiles, the parent keeps owning the signal.
+    effect(() => {
+      const wanted = MISSION_RANK_PROFILE[this.activeMissionId()];
+      if (wanted !== this.rankProfile() && !this.rankDisabledReasons()[wanted]) {
+        this.rankProfileChange.emit(wanted);
+      }
     });
 
     // Undo toast (item 3): the newest journal entry gets a ~6s toast with an
@@ -738,6 +1022,31 @@ export class CodexHoloStageComponent {
     if (!t) return;
     this.reverted.emit(t.paths);
     this.undoToast.set(null);
+  }
+
+  /** Digit hotkeys select pins ("tippe 1 bis N"), Esc closes the inspector. */
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(ev: KeyboardEvent): void {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const target = ev.target as HTMLElement | null;
+    if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+    if (ev.key === 'Escape' && this.inspectedPort()) {
+      this.inspectedPort.set(null);
+      return;
+    }
+    if (!/^[0-9]$/.test(ev.key)) return;
+    const n = ev.key === '0' ? 10 : Number(ev.key);
+    const pin = this.pins().find((p) => p.index === n);
+    if (!pin) return;
+    ev.preventDefault();
+    this.inspectPin(pin.portName);
+  }
+
+  submitSearch(ev: Event): void {
+    ev.preventDefault();
+    const form = ev.target as HTMLFormElement;
+    const q = (form.elements.namedItem('q') as HTMLInputElement | null)?.value.trim() ?? '';
+    void this.router.navigate(['/codex'], { queryParams: q ? { q } : {} });
   }
 
   toggleViewMode(mode: '3d' | 'schema'): void {
@@ -801,60 +1110,107 @@ export class CodexHoloStageComponent {
     }
   }
 
-  // ── Ports list (right rail) ───────────────────────────────────────
+  // ── Static tiles (Crew · Masse · Laderaum) off the hero chips ─────
+  staticChip(key: 'crew' | 'mass' | 'cargo'): string {
+    const chip = this.heroChips().find((c) => c.key === key);
+    if (!chip) return '—';
+    if (key === 'crew') return chip.text.replace(/\s*crew$/i, '').trim() || chip.text;
+    return chip.text;
+  }
+
+  // ── Einsatz bar segments ──────────────────────────────────────────
+  readonly missionSegments = computed<MissionSegment[]>(() => {
+    const cells = this.allKpiCells();
+    const caps = this.shipCapabilities();
+    const rank = this.rankResult();
+    const portCount = this.pins().length;
+    return MISSIONS.map((m) => {
+      let sub: string;
+      if (m.id === 'all') {
+        sub = this.t.instant('codex.holo.stage.portsCount', { n: portCount });
+      } else {
+        const lead = m.kpis.map((k) => cells.find((c) => c.key === k)).find((c) => c && c.value != null);
+        sub = lead ? `${this.fmtCell(lead)} ${this.t.instant('codex.kpi.short.' + lead.key)}` : this.t.instant('codex.kpi.gap');
+      }
+      if (m.id === this.activeMissionId() && rank?.overall != null) sub += ` · P${Math.round(rank.overall)}`;
+      return { id: m.id, labelKey: m.labelKey, sub, disabledKey: missionDisabledReasonKey(m.id, caps) };
+    });
+  });
+
+  // ── Ports list (below the table) ──────────────────────────────────
   readonly allSections = computed<readonly LayoutSection[]>(() => [
     ...this.primaryModuleSections(),
     ...this.tailModuleSections(),
   ]);
+  /** The layout component wants a mutable array type; same content. */
+  readonly allSectionsMutable = computed<LayoutSection[]>(() => [...this.allSections()]);
 
-  isGroupOpen(section: ShipModuleSection): boolean {
-    return this.openGroups().has(section);
-  }
-  toggleGroupOpen(section: ShipModuleSection): void {
-    const next = new Set(this.openGroups());
-    next.has(section) ? next.delete(section) : next.add(section);
-    this.openGroups.set(next);
-  }
-  isGroupDense(section: ShipModuleSection): boolean {
-    return this.denseGroups().has(section);
-  }
-  toggleGroupDense(section: ShipModuleSection): void {
-    const next = new Set(this.denseGroups());
-    next.has(section) ? next.delete(section) : next.add(section);
-    this.denseGroups.set(next);
-  }
-  shipModuleGroupLabelKeyFor(section: ShipModuleSection): string {
-    return `codex.moduleSection.${section}`;
-  }
+  /** rawPort → slot, in ports-list order — the pin numbering source. Only
+   * the configurable blocks (weapons … countermeasures) pin the table; the
+   * airframe's fixed systems (thrusters, tanks, …) stay in the list below. */
+  private readonly slotByRawPort = computed<Map<string, { slot: LayoutSlot; index: number; section: ShipModuleSection }>>(() => {
+    const out = new Map<string, { slot: LayoutSlot; index: number; section: ShipModuleSection }>();
+    let i = 0;
+    // The SAME display order the ports list applies (weapons first, airframe
+    // last) — so pin 1 is the first row a reader sees, not the first bucket.
+    const rank = (sec: ShipModuleSection) => {
+      const k = SHIP_MODULE_SECTION_ORDER.indexOf(sec);
+      return k === -1 ? SHIP_MODULE_SECTION_ORDER.length : k;
+    };
+    const ordered = [...this.primaryModuleSections()].sort((a, b) => rank(a.section) - rank(b.section));
+    for (const section of ordered) {
+      for (const slot of section.slots) {
+        const key = slot.rawPort ?? slot.port;
+        if (!out.has(key)) out.set(key, { slot, index: ++i, section: section.section });
+      }
+    }
+    return out;
+  });
 
-  // ── Silhouette pins — derived from detail().ports, per the red-team note
-  // (wave1-redteam.md: "Wave 2 derives pins from detail.ports, not from
-  // anchors ∪ unresolved") ───────────────────────────────────────────
+  // ── Silhouette pins — one per port the ports list shows (never from
+  // `anchors ∪ unresolved`, per wave1-redteam.md: the silhouette may place a
+  // pin, it never decides which ports exist). Ships with no loadout blocks
+  // fall back to the extract's raw item ports. Numbered in list order. ──
   readonly pins = computed<StagePin[]>(() => {
     const s = this.silhouette();
-    const ports: readonly CodexItemPort[] = this.detail()?.ports ?? [];
-    if (!s) return [];
-    const byPort = new Map<string, SilhouetteAnchor>(s.anchors.map((a) => [a.portId, a]));
+    const byRaw = this.slotByRawPort();
+    const source: { raw: string; known: { slot: LayoutSlot; index: number; section: ShipModuleSection } | null }[] =
+      byRaw.size > 0
+        ? [...byRaw.entries()].map(([raw, known]) => ({ raw, known }))
+        : ((this.detail()?.ports ?? []) as readonly CodexItemPort[])
+            .filter((p) => !!p.portName)
+            .map((p) => ({ raw: p.portName!, known: null }));
+    const byPort = new Map<string, SilhouetteAnchor>(s ? s.anchors.map((a) => [a.portId, a]) : []);
+    let nextIndex = 0;
     let fallbackIndex = 0;
-    return ports
-      .filter((p) => !!p.portName)
-      .map((p) => {
-        const anchor = byPort.get(p.portName!);
-        if (anchor) {
-          return { portName: p.portName!, x: anchor.x, y: anchor.y, resolved: true };
-        }
+    const n = source.length || 1;
+    return source
+      .map(({ raw, known }) => {
+        const slot = known?.slot ?? null;
+        const index = known?.index ?? ++nextIndex;
+        const anchor = byPort.get(raw);
+        const stat = slot?.stats?.[0] ?? null;
+        const base = {
+          portName: raw,
+          index,
+          label: slot?.name ?? slot?.port ?? humanizeClassName(raw),
+          short: stat ? formatEquippedStat(stat) : slot?.statChip ?? null,
+          tone: (known?.section === 'missiles' ? 'gold' : 'accent') as 'accent' | 'gold',
+          slot,
+        };
+        if (anchor) return { ...base, x: anchor.x, y: anchor.y, resolved: true };
         // Deterministic fallback ring position for a port with no anchor and
         // no `unresolved[]` entry either (§C3: "same as unresolved").
-        const n = ports.length || 1;
-        const angle = (Math.PI * 2 * fallbackIndex) / n;
+        const angle = (Math.PI * 2 * fallbackIndex) / n - Math.PI / 2;
         fallbackIndex += 1;
-        return {
-          portName: p.portName!,
-          x: 50 + 48 * Math.cos(angle),
-          y: 50 + 48 * Math.sin(angle),
-          resolved: false,
-        };
-      });
+        return { ...base, x: 50 + 44 * Math.cos(angle), y: 50 + 44 * Math.sin(angle), resolved: false };
+      })
+      .sort((a, b) => a.index - b.index);
+  });
+
+  readonly inspectedIndex = computed<number>(() => {
+    const port = this.inspectedPort();
+    return port ? (this.pins().find((p) => p.portName === port)?.index ?? 0) : 0;
   });
 
   readonly inspectorTarget = computed<LayoutTarget | null>(() => {
@@ -868,7 +1224,113 @@ export class CodexHoloStageComponent {
   });
 
   inspectPin(port: string): void {
-    this.inspectedPort.set(this.inspectedPort() === port ? null : port);
+    const next = this.inspectedPort() === port ? null : port;
+    this.inspectedPort.set(next);
+    if (next) {
+      if (this.soundOn()) this.blip();
+      // Pulse the perspective the selected port belongs to (concept pe4-pulse).
+      const section = this.slotByRawPort().get(port)?.section ?? null;
+      const tile: Perspective | null =
+        section === 'weapons' || section === 'missiles' || section === 'remoteTurrets' || section === 'pod' ? 'offensive'
+        : section === 'shields' ? 'defensive'
+        : section === 'quantum' ? 'movement'
+        : section === 'coolers' || section === 'radar' ? 'signature'
+        : null;
+      this.pulseTile.set(tile);
+      setTimeout(() => this.pulseTile.set(null), 900);
+    }
+  }
+
+  /** The same dotted `parent.child` target the ports list emits for a sub-slot. */
+  childTarget(it: LayoutTarget, kid: LayoutChild): LayoutTarget {
+    const kids = kid.rawPorts.length > 0 ? kid.rawPorts : [kid.port];
+    return { slot: it.slot, count: kid.count, child: kid, rawPorts: it.rawPorts.flatMap((p) => kids.map((k) => `${p}.${k}`)) };
+  }
+
+  sizeBadge(slot: LayoutSlot): string | null {
+    const size = slot.size ?? slot.portSize;
+    return size != null ? `S${size}` : null;
+  }
+
+  kidMeta(kid: LayoutChild): string {
+    return [kid.manufacturerCode, kid.typeLabel, kid.port].filter((x): x is string => !!x).join(' · ');
+  }
+
+  inspectorMeta(slot: LayoutSlot): string {
+    return [slot.manufacturerCode, slot.typeLabel, slot.port].filter((x): x is string => !!x).join(' · ');
+  }
+
+  inspectorStats(slot: LayoutSlot): readonly EquippedStat[] {
+    return (slot.stats ?? []).slice(0, 4);
+  }
+
+  fmtStat(stat: EquippedStat): string {
+    return formatEquippedStat(stat);
+  }
+
+  fmtCell(c: KpiStripCell): string {
+    return c.value == null ? '—' : formatEquippedStat({ labelKey: c.labelKey, value: c.value, format: c.format });
+  }
+
+  /** Patch Δ ghost for one KPI key: the comparison build's value and how it
+   * differs from the live one (tone = better/worse for THIS stat). */
+  ghostFor(key: KpiStripCell['key']): HoloGhost | null {
+    const g = this.patchGhosts();
+    if (!g) return null;
+    const cell = g.cells.find((c) => c.key === key);
+    if (!cell || !cell.changed || cell.to == null) return null;
+    const live = this.allKpiCells().find((c) => c.key === key);
+    const text = formatEquippedStat({ labelKey: live?.labelKey ?? key, value: cell.to, format: live?.format ?? 'dec' });
+    return { patch: g.toBuild.patchVersion, text, tone: cell.delta ? (cell.delta.good ? 'up' : 'down') : null };
+  }
+
+  // ── Count-up (concept cine-countup): on arrival the headline numbers run
+  // from the previously viewed ship's stock value (read off the SAME cohort
+  // sheets the ranking uses — nothing invented) to this ship's value, ~700 ms,
+  // so a ship switch shows WHICH numbers moved. Reduced motion = cut. ──
+  private readonly countUpProgress = signal(1);
+  private countUpFrom: Partial<Record<KpiStripCell['key'], number>> = {};
+
+  private startCountUp(): void {
+    if (this.reducedMotion()) return;
+    const prev = this.recentlyViewedShips().find((cn) => cn !== this.detail().classNameSlug);
+    const cohort = this.rankCohort();
+    const sheet = prev && cohort ? cohort.find((c) => c.className === prev)?.sheet : undefined;
+    this.countUpFrom = {};
+    for (const c of this.allKpiCells()) {
+      const from = sheet ? (sheet as Record<string, number | null | undefined>)[c.key] : null;
+      this.countUpFrom[c.key] = from ?? 0;
+    }
+    const start = performance.now();
+    const ms = 700;
+    this.countUpProgress.set(0);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      this.countUpProgress.set(1 - Math.pow(1 - t, 3));
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  countUpText(c: KpiStripCell): string {
+    const p = this.countUpProgress();
+    if (c.value == null || p >= 1) return this.fmtCell(c);
+    const from = this.countUpFrom[c.key] ?? 0;
+    return formatEquippedStat({ labelKey: c.labelKey, value: from + (c.value - from) * p, format: c.format });
+  }
+
+  deltaText(c: KpiStripCell): string | null {
+    if (!c.delta) return null;
+    const raw = c.delta.raw;
+    const magnitude = formatEquippedStatNumber({ labelKey: c.labelKey, value: Math.abs(raw), format: c.format });
+    if (/^0([.,]0*)?$/.test(magnitude)) return null;
+    return `${raw > 0 ? '+' : '−'}${magnitude}`;
+  }
+
+  deltaTone(c: KpiStripCell): 'up' | 'down' | null {
+    if (!c.delta) return null;
+    const better = c.lowerIsBetter ? c.delta.raw < 0 : c.delta.raw > 0;
+    return better ? 'up' : 'down';
   }
 
   // ── "Einordnung" top-3 (user decision 1) ────────────────────────────
@@ -889,10 +1351,6 @@ export class CodexHoloStageComponent {
     if (pool.length < 3) {
       const already = new Set(pool.map((p) => p.className));
       const rest = cohort.filter((c) => c.className !== self && !already.has(c.className) && hasValue(c));
-      // Deterministic-enough "random" fill: a fixed shuffle seeded by string
-      // length parity keeps this pure (no Math.random in a computed signal
-      // is not a hard rule here, but avoiding it keeps repeated renders
-      // stable within one change-detection pass).
       const shuffled = [...rest].sort((a, b) => (a.className > b.className ? 1 : -1));
       pool = [...pool, ...shuffled.slice(0, 3 - pool.length)];
     }
@@ -906,36 +1364,58 @@ export class CodexHoloStageComponent {
       .slice(0, 3);
   });
 
-  // ── Perspectives ─────────────────────────────────────────────────
+  // ── Perspectives (concept round 10 "Weg B": four tiles) ──────────
   readonly perspectiveTiles = computed<PerspectiveTile[]>(() => {
-    const cells = this.kpiCells();
+    const cells = this.allKpiCells();
     const rank = this.rankResult();
     return PERSPECTIVES.map((id) => {
-      const keys = PERSPECTIVE_KPIS[id];
-      const tileCells = cells.filter((c) => (keys as readonly string[]).includes(c.key));
-      const ranked = rank
-        ? rank.axes.filter((a) => (keys as readonly string[]).includes(a.key) && a.percentile != null)
-        : [];
-      const gaugePct = ranked.length > 0
+      const keys = PERSPECTIVE_KPIS[id] as readonly string[];
+      const tileCells = cells.filter((c) => keys.includes(c.key));
+      const lead = PERSPECTIVE_LEAD[id].map((k) => tileCells.find((c) => c.key === k && c.value != null)).find((c) => !!c) ?? null;
+      const subs = tileCells.filter((c) => c !== lead && c.value != null).slice(0, 3);
+      const ranked = rank ? rank.axes.filter((a) => keys.includes(a.key) && a.percentile != null) : [];
+      const pct = ranked.length > 0
         ? Math.round(ranked.reduce((sum, a) => sum + (a.percentile ?? 0), 0) / ranked.length)
         : null;
-      return {
-        id,
-        titleKey: `codex.holo.stage.perspective.${id}`,
-        gaugePct,
-        cells: tileCells,
-      };
+      return { id, titleKey: `codex.holo.stage.perspective.${id}`, pct, lead, subs, say: this.sayFor(pct, ranked, rank?.cohortSize ?? 0) };
     });
   });
 
-  isTileOpen(id: Perspective): boolean {
-    return this.openTiles().has(id);
+  /** The one-line reading under the big number: the percentile band against
+   * the cohort, plus the strongest/weakest ranked axis when there is one. */
+  private sayFor(pct: number | null, ranked: RankResult['axes'], n: number): string {
+    if (pct == null) return this.t.instant('codex.holo.stage.say.gap');
+    const band = pct >= 75 ? 'top' : pct >= 50 ? 'high' : pct >= 25 ? 'mid' : 'low';
+    let text: string = this.t.instant(`codex.holo.stage.say.${band}`, { n });
+    if (ranked.length > 1) {
+      const sorted = [...ranked].sort((a, b) => (b.percentile ?? 0) - (a.percentile ?? 0));
+      const best = sorted[0];
+      const worst = sorted[sorted.length - 1];
+      text += ' ' + this.t.instant('codex.holo.stage.say.axes', {
+        best: this.t.instant(best.labelKey), bp: Math.round(best.percentile ?? 0),
+        worst: this.t.instant(worst.labelKey), wp: Math.round(worst.percentile ?? 0),
+      });
+    }
+    return text;
   }
-  toggleTileOpen(id: Perspective): void {
-    const next = new Set(this.openTiles());
-    next.has(id) ? next.delete(id) : next.add(id);
-    this.openTiles.set(next);
-  }
+
+  /** The tiles as the child renders them — every string resolved here, so
+   * the count-up, the ghosts and the formatter stay in one place. */
+  readonly perspectiveViews = computed<HoloPerspectiveView[]>(() =>
+    this.perspectiveTiles().map((t) => ({
+      id: t.id,
+      titleKey: t.titleKey,
+      pct: t.pct,
+      leadText: t.lead ? this.countUpText(t.lead) : null,
+      leadLabelKey: t.lead?.labelKey ?? null,
+      leadShortKey: t.lead ? `codex.kpi.short.${t.lead.key}` : null,
+      deltaText: t.lead ? this.deltaText(t.lead) : null,
+      deltaTone: t.lead ? this.deltaTone(t.lead) : null,
+      ghost: t.lead ? this.ghostFor(t.lead.key) : null,
+      say: t.say,
+      subs: t.subs.map((c) => ({ key: c.key, shortKey: `codex.kpi.short.${c.key}`, text: this.fmtCell(c), ghost: this.ghostFor(c.key) })),
+    })),
+  );
 
   // ── Change journal ───────────────────────────────────────────────
   readonly journal = computed<JournalEntry[]>(() => {

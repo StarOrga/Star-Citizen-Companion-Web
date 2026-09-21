@@ -18,6 +18,7 @@ import { HangarShip, HangarShipConfig, ShipConfigRole, loadoutVariantHint } from
 import { relativeDayBucket } from '../../core/locale/date-format';
 import { CodexService } from '../codex.service';
 import { HoloSilhouette } from '../holo-silhouette';
+import { humanizeClassName } from '../codex-format';
 
 /** Above this many ships the flat tile grid is replaced by role groups —
  * chosen so the fixed 236px overlay never needs to scroll on a typical
@@ -49,7 +50,10 @@ interface HangarTile {
         [title]="'codex.holo.hangar.tab' | translate"
         (click)="toggleOpen()"
       >
-        {{ 'codex.holo.hangar.tab' | translate }}
+        <b aria-hidden="true">⌂</b>
+        <span>{{ 'codex.holo.hangar.tab' | translate }}</span>
+        @if (signedIn() && shipCount() > 0) { <span class="n">{{ shipCount() }}</span> }
+        <span class="ar" aria-hidden="true">{{ open() ? '▴' : '▾' }}</span>
       </button>
 
       @if (open()) {
@@ -82,7 +86,7 @@ interface HangarTile {
                           <span class="ring" [attr.title]="'codex.holo.hangar.noGeometry' | translate" aria-hidden="true"></span>
                         }
                       </span>
-                      <span class="name">{{ t.ship.customName ?? t.ship.shipClassName }}</span>
+                      <span class="name">{{ t.ship.customName ?? humanize(t.ship.shipClassName) }}</span>
                       @if (t.variantHintKey; as key) {
                         <span class="variant">{{ key | translate: t.variantHintParams }}</span>
                       }
@@ -130,7 +134,7 @@ interface HangarTile {
                     <span class="ring" aria-hidden="true"></span>
                   }
                 </span>
-                <span class="name">{{ t.ship.customName ?? t.ship.shipClassName }}</span>
+                <span class="name">{{ t.ship.customName ?? humanize(t.ship.shipClassName) }}</span>
               </a>
             }
           </div>
@@ -144,55 +148,75 @@ interface HangarTile {
       /* The host places this at the table's top edge, absolutely positioned
          (see the wave2 handoff's contract D) — this component only supplies
          its own box, never the outer placement. */
-      .holo-hangar { position: relative; display: flex; justify-content: center; }
+      /* static on purpose: the overlay's containing block is the host's dock
+         (the stage's absolutely positioned, table-wide .hangar-dock), so the
+         overlay spans the table while the tab stays its own width. */
+      .holo-hangar { position: static; display: flex; justify-content: center; --hh-gold: var(--accent-gold, #c8a84b); --hh-gold-rgb: var(--accent-gold-rgb, 200, 168, 75); }
+      /* The golden tab (concept hv6-s1 .hgtab): docked on the table's top
+         edge, hanging INTO the table — the overlay drops from it. Gold is the
+         hangar's own colour here, never the elevated-access hot accent. */
       .hh-tab {
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
-        border-radius: 0 0 6px 6px;
-        background: linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 20%, var(--sc-bg-2)), var(--sc-bg-1));
-        color: var(--sc-accent);
-        padding: 4px 16px;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+        border: 1px solid rgba(var(--hh-gold-rgb), 0.55);
+        border-top: 0;
+        border-radius: 0 0 4px 4px;
+        background: linear-gradient(180deg, rgba(var(--hh-gold-rgb), 0.14), rgba(var(--hh-gold-rgb), 0.04)), var(--sc-bg-1);
+        color: var(--hh-gold);
+        padding: 6px 18px 8px;
+        min-inline-size: 220px;
         min-block-size: var(--sc-tap-min);
+        font-family: var(--sc-font-display);
         font-size: max(11px, var(--sc-fs-floor));
-        letter-spacing: 0.12em;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         cursor: pointer;
+        box-shadow: 0 8px 24px rgba(var(--hh-gold-rgb), 0.12);
       }
-      .hh-tab.open { background: color-mix(in srgb, var(--sc-accent) 30%, var(--sc-bg-2)); }
+      .hh-tab b { font-size: 16px; line-height: 1; font-weight: 400; text-shadow: 0 0 12px rgba(var(--hh-gold-rgb), 0.6); }
+      .hh-tab .n { font-family: var(--font-monospace, monospace); font-size: 10px; letter-spacing: 0; color: var(--sc-bg-0); background: var(--hh-gold); padding: 0 6px; border-radius: 2px; }
+      .hh-tab .ar { font-size: 10px; color: rgba(var(--hh-gold-rgb), 0.7); }
+      .hh-tab:hover, .hh-tab:focus-visible { border-color: var(--hh-gold); }
+      .hh-tab.open { background: var(--sc-bg-0); box-shadow: none; }
       .hh-overlay {
         position: absolute;
         inset-block-start: 100%;
-        inset-inline: 10%;
+        inset-inline: 0;
         block-size: 236px;
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        padding: 10px 14px;
-        background: var(--sc-bg-1);
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 55%, var(--sc-bg-0));
-        border-radius: 6px;
+        gap: 6px;
+        padding: 8px 12px;
+        background: color-mix(in srgb, var(--sc-bg-0) 96%, transparent);
+        border: 1px solid rgba(var(--hh-gold-rgb), 0.45);
+        border-top: 0;
+        border-radius: 0 0 4px 4px;
         box-shadow: 0 18px 40px rgb(0 0 0 / 0.6);
         z-index: 16;
       }
+      .hh-overlay::after { content: ''; position: absolute; inset-inline: 0; inset-block-end: -1px; block-size: 1px; background: rgba(var(--hh-gold-rgb), 0.45); }
       .hh-search { inline-size: 100%; min-block-size: var(--sc-tap-min); padding: 6px 10px;
         background: var(--sc-bg-0); border: 1px solid var(--sc-border); border-radius: 4px; color: var(--sc-fg-0); }
       .hh-body { flex: 1 1 auto; min-block-size: 0; overflow: hidden; position: relative; }
-      .hh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; block-size: 100%; align-content: start; }
-      .hh-tile { display: flex; flex-direction: column; align-items: center; gap: 2px; text-decoration: none; color: var(--sc-fg-1);
-        border: 1px solid var(--sc-border); border-radius: 4px; padding: 6px; }
-      .hh-tile:hover, .hh-tile:focus-visible { border-color: var(--sc-accent); }
-      .thumb { inline-size: 100%; block-size: 48px; display: flex; align-items: center; justify-content: center; }
+      .hh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; block-size: 100%; align-content: start; }
+      .hh-tile { display: flex; flex-direction: column; align-items: center; gap: 1px; text-decoration: none; color: var(--sc-fg-1); min-width: 0;
+        border: 1px solid var(--sc-border); border-radius: 4px; padding: 5px 4px; background: color-mix(in srgb, var(--sc-bg-1) 60%, transparent); }
+      .hh-tile:hover, .hh-tile:focus-visible { border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .thumb { inline-size: 100%; block-size: 36px; display: flex; align-items: center; justify-content: center; }
       .thumb svg { max-inline-size: 100%; max-block-size: 100%; fill: none; stroke: var(--sc-accent); stroke-width: 2; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--sc-accent) 55%, transparent)); }
-      .thumb .ring { inline-size: 32px; block-size: 32px; border-radius: 50%; border: 2px dashed var(--sc-fg-2); }
-      .name { font-size: max(10.5px, var(--sc-fs-floor)); text-align: center; }
-      .variant, .variant-count { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .thumb .ring { inline-size: 26px; block-size: 26px; border-radius: 50%; border: 1px dashed var(--sc-fg-2); }
+      .name { font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.04em; text-align: center; color: var(--sc-fg-0);
+        max-inline-size: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .variant, .variant-count { font-size: max(8.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); max-inline-size: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .hh-groups { display: flex; flex-wrap: wrap; gap: 6px; }
       .hh-group { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--sc-border);
         border-radius: 4px; background: transparent; color: var(--sc-fg-1); padding: 6px 10px; min-block-size: var(--sc-tap-min); cursor: pointer; }
       .hh-group .count { color: var(--sc-accent); font-variant-numeric: tabular-nums; }
       .hh-back { position: absolute; inset-block-start: 0; inset-inline-start: 0; border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; }
-      .hh-hall { align-self: center; border: 1px solid var(--sc-border); border-radius: 4px; background: transparent;
-        color: var(--sc-fg-1); padding: 4px 10px; min-block-size: var(--sc-tap-min); cursor: pointer; }
+      .hh-hall { position: absolute; inset-inline-end: 12px; inset-block-end: 8px; border: 1px solid rgba(var(--hh-gold-rgb), 0.45); border-radius: 3px; background: color-mix(in srgb, var(--sc-bg-0) 90%, transparent);
+        color: var(--hh-gold); padding: 3px 10px; min-block-size: var(--sc-tap-min); cursor: pointer;
+        font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; }
+      .hh-hall:hover { border-color: var(--hh-gold); }
       .empty { color: var(--sc-fg-2); font-size: max(12px, var(--sc-fs-floor)); }
       .signin-hint { margin: 0; }
       .signin-hint a { color: var(--sc-accent); }
@@ -227,6 +251,7 @@ export class CodexHoloHangarComponent {
   protected readonly activeGroup = signal<ShipConfigRole | null>(null);
 
   protected readonly signedIn = computed(() => this.auth.user() !== null);
+  protected readonly shipCount = computed(() => this.hangar.ships().length);
 
   private readonly silhouettes = signal<Map<string, HoloSilhouette>>(new Map());
   /** ShipConfigRole of each ship's ACTIVE config, keyed by hangarShipId — populated on open. */
@@ -338,6 +363,10 @@ export class CodexHoloHangarComponent {
     );
     this.roles.set(roles);
     this.variantHints.set(hints);
+  }
+
+  protected humanize(className: string): string {
+    return humanizeClassName(className);
   }
 
   protected toggleOpen(): void {

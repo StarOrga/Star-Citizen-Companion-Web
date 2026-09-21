@@ -642,7 +642,39 @@
           "defensive": "Verteidigung",
           "movement": "Bewegung",
           "signature": "Signatur & Kühlung"
-        }
+        },
+        "searchLabel": "Codex durchsuchen",
+        "searchPlaceholder": "Schiffe, Komponenten, Hersteller …",
+        "staticCrew": "Crew",
+        "staticMass": "Masse",
+        "staticCargo": "Laderaum",
+        "profileNote": "{{profile}}-Profil",
+        "against": "gegen",
+        "cohortAll": "alle {{n}} Schiffe",
+        "cohortCareer": "{{n}} Schiffe der gleichen Karriere",
+        "cohortSizeClass": "{{n}} Schiffe der Größenklasse",
+        "strengthsWeaknesses": "Stärken · Schwächen",
+        "top3": "Top 3 · zuletzt gesehen & Hangar",
+        "portsCount": "{{n}} Ports",
+        "legendConfigurable": "konfigurierbar",
+        "legendMissiles": "Raketen",
+        "legendHint": "Hover = Kurzwerte · Klick = Inspector",
+        "inspectorEmptyTitle": "Kein Hardpoint gewählt",
+        "inspectorEmptyBody": "Klick auf einen Pin — oder tippe „1“ bis „{{n}}“.",
+        "emptyBay": "Leerer Platz",
+        "journalEmpty": "Noch nichts — Werksausstattung.",
+        "allPorts": "Alle {{n}} Ports",
+        "perspectives": "Perspektiven",
+        "percentileAria": "Perzentil {{p}}",
+        "say": {
+          "gap": "Für diese Perspektive liefert das Vergleichsfeld keinen Rang.",
+          "top": "Top-Quartil gegenüber {{n}} Schiffen.",
+          "high": "Über dem Median gegenüber {{n}} Schiffen.",
+          "mid": "Unter dem Median gegenüber {{n}} Schiffen.",
+          "low": "Unteres Viertel gegenüber {{n}} Schiffen.",
+          "axes": "Stärkste Achse {{best}} (P{{bp}}), schwächste {{worst}} (P{{wp}})."
+        },
+        "ghostTitle": "Wert in Patch {{patch}}"
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -656,7 +688,8 @@
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Schleichen",
         "expand": "Leiste ausklappen",
-        "collapse": "Leiste einklappen"
+        "collapse": "Leiste einklappen",
+        "presetTag": "Preset"
       },
       "hangar": {
         "tab": "Hangar",
@@ -676,7 +709,7 @@
       },
       "patch": {
         "trigger": {
-          "idle": "Patch vergleichen",
+          "idle": "{{active}}-{{channel}}",
           "comparing": "Vergleich mit {{patch}}",
           "hotkeyHint": "Mit einem anderen Patch vergleichen (P)"
         },
@@ -1590,7 +1623,14 @@
         "mass": "Masse",
         "ir": "IR",
         "em": "EM",
-        "crossSection": "Querschnitt"
+        "crossSection": "Querschnitt",
+        "effectiveHp": "Effektive HP",
+        "agility": "Wendigkeit",
+        "armorHp": "Panzerung",
+        "quantumSpeed": "Q-Tempo",
+        "spool": "Spool",
+        "emIdle": "EM (Ruhe)",
+        "emMax": "EM (Last)"
       }
     },
     "damageChannel": {

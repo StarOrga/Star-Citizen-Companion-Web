@@ -31,7 +31,8 @@ export const PERSPECTIVE_KPIS: Readonly<Record<Perspective, readonly KpiKey[]>> 
   signature: ['ir', 'emIdle', 'emMax', 'crossSection'],
 };
 
-const ALL_KPI_KEYS: readonly KpiKey[] = PERSPECTIVES.flatMap((p) => PERSPECTIVE_KPIS[p]);
+/** Every KPI key the four perspectives cover — in perspective order. */
+export const ALL_KPI_KEYS: readonly KpiKey[] = PERSPECTIVES.flatMap((p) => PERSPECTIVE_KPIS[p]);
 
 export interface KpiCellDelta {
   key: KpiKey;

@@ -333,7 +333,17 @@ export interface KpiCell {
 
 /** The six KPI-band cells for the active mission, stock vs. current draft. */
 export function buildKpiCells(mission: MissionDef, stock: KpiSheet, current: KpiSheet): KpiCell[] {
-  return mission.kpis.map((key, i) => {
+  return buildKpiCellsForKeys(mission.kpis, stock, current);
+}
+
+/**
+ * The same cells for an arbitrary key list — the Holotable's perspective
+ * tiles and its sticky strip read EVERY sheet key, not only the six the
+ * active Einsatz shows in the band, so "Bewegung" never renders empty on a
+ * combat Einsatz. Same meta, same delta rule, same gap wording.
+ */
+export function buildKpiCellsForKeys(keys: readonly KpiKey[], stock: KpiSheet, current: KpiSheet): KpiCell[] {
+  return keys.map((key, i) => {
     const meta = KPI_META[key];
     const value = current[key];
     return {

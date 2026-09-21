@@ -74,7 +74,7 @@ export interface HoloPatchComparisonSide {
         [attr.aria-controls]="panelId"
         [attr.title]="'codex.holo.patch.trigger.hotkeyHint' | translate"
       >
-        <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: selected()?.patchVersion } }}</span>
+        <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() } }}</span>
         <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
       </button>
 
