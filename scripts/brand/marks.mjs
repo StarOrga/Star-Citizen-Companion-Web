@@ -37,10 +37,12 @@
  *   small  16-64px — the master with a bolder, larger badge: at these sizes the
  *                    master itself collapses to a disc and a dot (that IS the
  *                    desktop app's 16px icon), and the badge has to survive it.
- *   tray   16-24px — mirrors the desktop app's own tray construction: a dark
- *                    disc plus a bright rim, no blur, no margin. A dark disc on
- *                    a dark Windows taskbar is invisible, which is exactly how
- *                    the old tray icon read as "missing".
+ *   tray   16-24px — the notification area: the master with the small tier's
+ *                    badge scaled up by 40%, so the tray icon IS the taskbar
+ *                    icon and the badge still tells the siblings apart once the
+ *                    master has collapsed to a disc and a dot. (SCC's own tray
+ *                    lives in the desktop app repo; its flat rim construction
+ *                    is only mirrored here for the family sheet.)
  */
 
 // StarUI design tokens — the master is already built on these.
@@ -147,7 +149,36 @@ const starscapeBadge = ({ tier, r, rim, screen, bezel, stand, star }) => {
 </g>`;
 };
 
-/** Badge geometry per tier. `small` is bolder and larger so it survives 16px. */
+/**
+ * The tray tier is the small tier's badge scaled up uniformly. At 16–24px the
+ * master collapses to a dark disc with a glow, so the badge is the only thing
+ * that still says *which* product this is — it gets 40% more of the tile. The
+ * plate (r 64 → ~90, plus its 20-unit halo) still sits inside the master's
+ * 147-unit disc, so the ring and the outer wisps stay visible around it.
+ */
+const TRAY_SCALE = 1.4;
+const scaled = (geom, f = TRAY_SCALE) =>
+  Object.fromEntries(
+    Object.entries(geom).map(([k, v]) => [
+      k,
+      typeof v === 'number' ? Math.round(v * f * 10) / 10 : typeof v === 'object' ? scaled(v, f) : v,
+    ]),
+  );
+
+const SMALL_GEOM = {
+  uploader: {
+    r: 64, rim: 6,
+    head: { top: 42, base: 4, w: 36 }, shaft: { w: 14, bottom: 22 },
+    bar: { w: 26, y: 32, h: 10 }, trail: { w: 13, y: 42, gap: 10, h: 8, sw: 3.5 }, stroke: 4,
+  },
+  starscape: {
+    r: 64, rim: 6,
+    screen: { w: 40, top: 40, h: 52, rx: 6 }, bezel: 7,
+    stand: { neck: 7, gap: 9, foot: 24, h: 9 }, star: 15,
+  },
+};
+
+/** Badge geometry per tier. `small` is bolder and larger so it survives 16px; `tray` is `small` × 1.4. */
 const BADGE = {
   uploader: {
     app: uploaderBadge({
@@ -155,11 +186,8 @@ const BADGE = {
       head: { top: 34, base: 6, w: 27 }, shaft: { w: 10, bottom: 18 },
       bar: { w: 19, y: 26, h: 7 }, trail: { w: 10, y: 34, gap: 8, h: 6, sw: 2.5 }, stroke: 3,
     }),
-    small: uploaderBadge({
-      tier: 'small', r: 64, rim: 6,
-      head: { top: 42, base: 4, w: 36 }, shaft: { w: 14, bottom: 22 },
-      bar: { w: 26, y: 32, h: 10 }, trail: { w: 13, y: 42, gap: 10, h: 8, sw: 3.5 }, stroke: 4,
-    }),
+    small: uploaderBadge({ tier: 'small', ...SMALL_GEOM.uploader }),
+    tray: uploaderBadge({ tier: 'small', ...scaled(SMALL_GEOM.uploader) }),
   },
   starscape: {
     app: starscapeBadge({
@@ -167,11 +195,8 @@ const BADGE = {
       screen: { w: 32, top: 32, h: 42, rx: 5 }, bezel: 4,
       stand: { neck: 5, gap: 8, foot: 18, h: 6 }, star: 11,
     }),
-    small: starscapeBadge({
-      tier: 'small', r: 64, rim: 6,
-      screen: { w: 40, top: 40, h: 52, rx: 6 }, bezel: 7,
-      stand: { neck: 7, gap: 9, foot: 24, h: 9 }, star: 15,
-    }),
+    small: starscapeBadge({ tier: 'small', ...SMALL_GEOM.starscape }),
+    tray: starscapeBadge({ tier: 'small', ...scaled(SMALL_GEOM.starscape) }),
   },
 };
 
@@ -183,8 +208,9 @@ const MARK_END_RE = /<\/g><!-- end \d+% margin scale group -->\s*<\/svg>\s*$/;
 /**
  * Derive a product's mark from the master SVG source.
  *
- * `tier` is `app` (>=128px) or `small` (16-64px). For `scc` both are the master
- * itself — the web app ships the desktop app's icon unchanged.
+ * `tier` is `app` (>=128px), `small` (16-64px) or `tray` (the notification
+ * area: `small` with the badge scaled up). For `scc` all are the master itself —
+ * the web app ships the desktop app's icon unchanged.
  *
  * The master is edited in the *other* repo, so this asserts on its close marker
  * rather than trusting structure: if the artwork is restructured upstream, the
@@ -192,7 +218,7 @@ const MARK_END_RE = /<\/g><!-- end \d+% margin scale group -->\s*<\/svg>\s*$/;
  */
 export function deriveAppMark(masterSvg, product, tier = 'app') {
   if (!PRODUCTS.includes(product)) throw new Error(`unknown product: ${product}`);
-  if (tier !== 'app' && tier !== 'small') throw new Error(`unknown tier: ${tier}`);
+  if (tier !== 'app' && tier !== 'small' && tier !== 'tray') throw new Error(`unknown tier: ${tier}`);
   if (product === 'scc') return masterSvg;
 
   if (!MARK_END_RE.test(masterSvg)) {
@@ -246,35 +272,25 @@ export function monoMark() {
 
 // ─── tray tier ────────────────────────────────────────────────────────────────
 
-const GLYPH_TRAY = {
-  // Identity at 16px is the glyph silhouette — colour stays uniform, because in
-  // the desktop app hue already means tray STATE.
-  //
-  // SCC keeps the master's small core: a glowing point IS its mark. The two
-  // siblings carry their badge glyph instead, drawn large enough to survive the
-  // downscale to 16px and still sit inside the accretion ring.
-  scc: `<circle cx="50" cy="50" r="10.6" fill="url(#scc-tray-core)"/>`,
-  starscape: `<rect x="30" y="30" width="40" height="27" rx="4" fill="${C.canvas}" stroke="url(#starscape-tray-core)" stroke-width="5"/>
-  <rect x="45" y="57" width="10" height="6" fill="${C.hi}"/>
-  <rect x="34" y="63" width="32" height="7" rx="3.5" fill="${C.hi}"/>`,
-  uploader: `<path d="M50,22 L72,50 L59,50 L59,62 L41,62 L41,50 L28,50 Z" fill="url(#uploader-tray-core)"/>
-  <rect x="34" y="68" width="32" height="8" rx="4" fill="${C.hi}"/>`,
-};
-
 /**
  * tray tier — 16-24px.
  *
- * This mirrors the desktop app's own tray construction rather than inventing a
- * second one: a near-opaque dark disc, which carries the silhouette on a LIGHT
- * taskbar, plus a bright rim, which carries it on a DARK one. The disc alone is
- * the bug — #0d2635 on a dark taskbar is invisible, and that is exactly how the
- * app's tray icon came to read as missing. Proportions are the master's tray
- * geometry scaled from its 32-unit canvas onto this 100-unit one, so all four
- * products' tray icons are built the same way at the size the OS actually draws.
+ * Starscape and the Data Uploader: the master, untouched, with the badge
+ * scaled up (see `TRAY_SCALE`). The tray icon is therefore the taskbar icon —
+ * the same nebula disc, glow and ring people already see in the taskbar — and
+ * the enlarged badge is what keeps the two siblings apart once the master has
+ * collapsed to a disc and a dot. An earlier tray tier was a flat, rim-only
+ * redraw of the mark; it read cleanly at 16px but looked like a third product
+ * next to the taskbar icon it was supposed to belong to.
  *
- * No blur filters and no margin: both are unreadable at 16px.
+ * SCC keeps the flat construction below: its tray lives in the desktop app
+ * repo, and this file only mirrors that construction for the family sheet.
  */
-export function trayMark(product) {
+export function trayMark(product, masterSvg) {
+  if (product !== 'scc') {
+    if (!masterSvg) throw new Error(`trayMark(${product}) needs the master SVG`);
+    return deriveAppMark(masterSvg, product, 'tray');
+  }
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!-- GENERATED by scripts/build-brand-icons.mjs — edit scripts/brand/marks.mjs instead. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32" role="img">
@@ -289,7 +305,7 @@ export function trayMark(product) {
     <ellipse cx="50" cy="50" rx="21.9" ry="7.5" fill="none" stroke="${C.bright}" stroke-width="2.5" stroke-opacity=".33"/>
   </g>
   <circle cx="50" cy="50" r="26.25" fill="url(#${product}-tray-halo)"/>
-  ${GLYPH_TRAY[product]}
+  <circle cx="50" cy="50" r="10.6" fill="url(#scc-tray-core)"/>
 </svg>
 `;
 }

@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.89.2",
+  "current": "0.89.3",
   "releases": [
+    {
+      "version": "0.89.3",
+      "date": "2026-09-21",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.35.0 — ehrliche Kategorie-Balken mit echtem „x / y“.",
+              "text": "Der Python-Sidecar klassifiziert alle Katalog-Entitäten in einem flachen Vorlauf (plan_entity_totals, Tiefe 4, derselbe _classify_entity wie die Projektionsschleife) und meldet je Zähler ein Soll (expected auf dem count-Event). Die fünf Balken (Schiffe · Komponenten · Waffen · Gegenstände · Texte — „Fahrzeuge“ war immer 0) zeigen damit echten Fortschritt; ohne Soll laufen sie als Streifen, fertig werden sie grün, eine leere Kategorie endet als „—“. Die alten festen Füllungen (30 % / 60 %) sind weg."
+            },
+            {
+              "title": "Extract-Karte kompakter.",
+              "text": "„Schritt n/m“ entfernt, die Phasenzeile nur noch, wenn sie mehr sagt als der aktive Chip, die doppelten Zähler-Kacheln raus; Esc = Lauf abbrechen (nach Fertigstellung „Zurück“), T = Tempo-Chip, die Randpfeile bleiben sichtbar und sind im Lauf ausgegraut statt versteckt. Pause/Fortsetzen/Verwerfen stehen als Buttons in der Upload-Karte (kein schwebender Kreis mehr)."
+            },
+            {
+              "title": "Uploader-Shell: Fonts, Flächen, Kontraste, Bühne.",
+              "text": "Orbitron/Inter/Share Tech Mono werden mitgeliefert — der Google-Fonts-@import der geteilten Tokens war von der Renderer-CSP blockiert, die Display-Schrift kam in der echten App nie an (der Build strippt den Import und bricht ab, wenn ein Rest bleibt). Neue Flächen-/Rahmen-Tokens, 15-px-Root mit Typo-Skala, gedimmter Text auf ≥ 6:1 (Canvas), Karten und Tracks sichtbar, die Bühne füllt ihre Höhe (Install/Setup/Fertig zentriert, Extract/Upload oben verankert), gestaffelte Aufbau-Animation je Ansicht, Verbindungs-Chip als Button (lag im Drag-Bereich), „Weiter“ erst mit gewählter Installation, ~220 Zeilen totes CSS entfernt. Red-Team-Review (R1–R10) eingearbeitet."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.89.2",
       "date": "2026-09-21",

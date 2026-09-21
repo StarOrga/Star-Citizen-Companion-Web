@@ -132,12 +132,12 @@ for (const p of PRODUCTS) {
   smallMark[p] = deriveAppMark(masterSvg, p, 'small');
   // `scc` IS the master — do not rewrite it, it is vendored, not generated.
   if (p !== 'scc') emit(resolve(BRAND, `${p}-mark.svg`), text(appMark[p]));
-  emit(resolve(BRAND, `${p}-mark-tray.svg`), text(trayMark(p)));
+  emit(resolve(BRAND, `${p}-mark-tray.svg`), text(trayMark(p, masterSvg)));
 }
 // The small tier is never written as a file: for `scc` it IS the master, and for
 // the siblings it only exists to be rasterised below (and inlined into HTML).
 
-const tray = Object.fromEntries(PRODUCTS.map((p) => [p, trayMark(p)]));
+const tray = Object.fromEntries(PRODUCTS.map((p) => [p, trayMark(p, masterSvg)]));
 
 /** Pick the tier for a raster size — the badge gets bolder below 128px. */
 const markFor = (p, s) => (s <= 64 ? smallMark[p] : appMark[p]);
@@ -285,10 +285,9 @@ if (want('starscape')) {
     await pngToIco(ICO_SIZES.map((s) => png(markFor('starscape', s), s))),
   );
   // A SECOND ico for the notification area. `gfx.rs::load_tray_icon` picks the
-  // entry nearest 32px, and in the app ico that is the master's dark #0d2635
-  // disc, which on a dark Windows tray is the invisible icon this whole change
-  // exists to fix. The tray tier (dark disc plus bright rim) has to be its own
-  // file, because the app ico still needs the untouched master for Explorer.
+  // entry nearest 32px. The tray tier is the taskbar mark with the badge scaled
+  // up, so it stays its own file: the app ico keeps the small-tier badge for
+  // Explorer/taskbar, where the icon has more pixels to spend.
   emit(
     resolve(ROOT, 'wallpaper-app/assets/starscape-tray.ico'),
     await pngToIco([16, 20, 24, 32, 48].map((s) => png(tray.starscape, s))),

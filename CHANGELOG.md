@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.4] - 2026-09-21
+
+### Changed
+
+- **Tray-Icons = Taskbar-Icon (Starscape 0.9.1, Data Uploader 0.35.1).** Beide
+  Apps zeigen im Tray jetzt dasselbe Artwork wie in der Taskbar — Nebel-Disc,
+  Glow, Ring — statt der flachen Ring-Neuzeichnung, die daneben wie ein drittes
+  Produkt aussah. Damit die zwei bei 16–24 px unterscheidbar bleiben, ist das
+  Produkt-Badge (Monitor bzw. Pfeil) im Tray-Tier 40 % größer als in der
+  Taskbar (`TRAY_SCALE` in `scripts/brand/marks.mjs`). Alle anderen Raster
+  (Web, Extension, Taskbar-ICOs) sind byte-identisch geblieben.
+
 ## [0.89.3] - 2026-09-21
 
 ### Changed
