@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@ang
 import { RouterOutlet } from '@angular/router';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
+import { PresenceService } from './auth/presence.service';
 import { AnalyticsService } from './core/analytics.service';
 import { ConsentBannerComponent } from './core/consent-banner.component';
 import { LocaleService } from './core/locale/locale.service';
@@ -102,6 +103,7 @@ import { ImpersonationBannerComponent } from './shell/impersonation-banner.compo
 export class AppComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly auth = inject(AuthService);
+  private readonly presence = inject(PresenceService);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly analytics = inject(AnalyticsService);
   private readonly locale = inject(LocaleService);
@@ -166,6 +168,8 @@ export class AppComponent implements OnInit {
     }
 
     this.auth.init();
+    // Keeps the admin "last seen" honest for members who stay signed in.
+    this.presence.init();
     this.swUpdate.init();
     // Turns a route whose lazy chunk will not load back into a working
     // navigation instead of a menu entry that silently does nothing (admin

@@ -47,6 +47,12 @@ interface AdminUserRow extends SuspensionFields {
   report_count?: number | null;
   created_at: string;
   last_sign_in_at: string | null;
+  /**
+   * greatest(sign-in, last visit with a live session) — migration
+   * 20260921220000. Optional so a client running against a pre-migration DB
+   * still parses; `lastSeenAt()` falls back to the sign-in.
+   */
+  last_seen_at?: string | null;
 }
 
 /**
@@ -556,7 +562,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   }
                 </td>
                 <td>{{ u.created_at | scDate }}</td>
-                <td>{{ u.last_sign_in_at ? (u.last_sign_in_at | scDate: 'datetime') : '—' }}</td>
+                <td>{{ lastSeenAt(u) ? (lastSeenAt(u)! | scDate: 'datetime') : '—' }}</td>
                 <td class="actions">
                   @if (u.role !== 'collaborator') {
                     <button class="sc-btn micro"
@@ -1147,7 +1153,7 @@ export class AdminComponent implements OnInit {
         // not be pushed to the bottom by the nulls-last rule in cmp().
         case 'reports': return p.user ? this.reportCount(p.user) : 0;
         case 'joined': return p.since;
-        case 'lastSeen': return p.user?.last_sign_in_at ?? null;
+        case 'lastSeen': return p.user ? this.lastSeenAt(p.user) : null;
       }
     };
 
@@ -1403,6 +1409,14 @@ export class AdminComponent implements OnInit {
   /** Open reports against `u`; 0 when the DB predates migration 20260901181500. */
   reportCount(u: AdminUserRow): number {
     return Number(u.report_count ?? 0);
+  }
+
+  /**
+   * "Last seen" = last sign-in OR last visit with a live session, whichever is
+   * newer; the sign-in alone when the DB predates migration 20260921220000.
+   */
+  lastSeenAt(u: AdminUserRow): string | null {
+    return u.last_seen_at ?? u.last_sign_in_at ?? null;
   }
 
   displayNameOf(name: string | null, handle: string | null): string {
