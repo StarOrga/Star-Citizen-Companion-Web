@@ -159,9 +159,13 @@ export class CodexHoloShareComponent {
     // A link belongs to ONE ship's config: the stage reuses this popover
     // across hull switches, so a token minted for ship A must never be shown
     // (or copied) under ship B (wave 5 B0.1).
+    // Keyed on the config's ID (a computed, so an equal id never re-fires),
+    // not the object: a save or "Aktualisieren" hands the host a new object
+    // for the SAME config and must not throw away a link the user is looking at.
+    const configId = computed(() => this.config()?.id ?? null);
     effect(() => {
       this.shipClassName();
-      this.config();
+      configId();
       untracked(() => {
         this.link.set(null);
         this.error.set(null);

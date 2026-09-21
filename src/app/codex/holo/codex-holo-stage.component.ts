@@ -524,10 +524,14 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                       }
                     </p>
                   }
-                  <div class="insp-actions">
-                    <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
-                    <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
-                  </div>
+                  @if (!inspectorIsRawPort()) {
+                    <div class="insp-actions">
+                      <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
+                      <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
+                    </div>
+                  } @else {
+                    <p class="mut">{{ 'codex.holo.stage.rawPortHint' | translate }}</p>
+                  }
                   <!-- What the mount carries (the gun in the gimbal, the
                        missiles in the rack) — the thing that actually shoots. -->
                   @for (kid of it.slot.children ?? []; track kid.port) {
@@ -1474,7 +1478,11 @@ export class CodexHoloStageComponent {
     const rx = Math.min(54, Math.max(24, ((s.bbox.w / vw) * 100) / 2 + pad));
     const ry = Math.min(54, Math.max(24, ((s.bbox.h / vh) * 100) / 2 + pad));
     const clamp = (v: number) => Math.min(100, Math.max(0, v));
-    return { cx: clamp(cx), cy: clamp(cy), rx, ry };
+    // An off-centre bbox must not push the ring past the canvas (+4 % is the
+    // slack --pin-inset leaves): the radius yields, the centre stays.
+    const ccx = clamp(cx);
+    const ccy = clamp(cy);
+    return { cx: ccx, cy: ccy, rx: Math.min(rx, ccx + 4, 104 - ccx), ry: Math.min(ry, ccy + 4, 104 - ccy) };
   });
 
   readonly pins = computed<StagePin[]>(() => {
@@ -1500,9 +1508,11 @@ export class CodexHoloStageComponent {
     const needMean = (n * 7) / (2 * Math.PI);
     const mean = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
     if (mean < needMean) {
-      ring.rx = Math.min(54, Math.max(ring.rx, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.ry * ring.ry))));
+      const maxRx = Math.min(54, ring.cx + 4, 104 - ring.cx);
+      const maxRy = Math.min(54, ring.cy + 4, 104 - ring.cy);
+      ring.rx = Math.min(maxRx, Math.max(ring.rx, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.ry * ring.ry))));
       const mean2 = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
-      if (mean2 < needMean) ring.ry = Math.min(54, Math.max(ring.ry, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.rx * ring.rx))));
+      if (mean2 < needMean) ring.ry = Math.min(maxRy, Math.max(ring.ry, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.rx * ring.rx))));
     }
     const sideFor = (x: number, y: number): StagePin['side'] => {
       // Near the top/bottom of the ring the neighbours sit side by side, so
@@ -1546,6 +1556,14 @@ export class CodexHoloStageComponent {
   readonly inspectedIndex = computed<number>(() => {
     const port = this.inspectedPort();
     return port ? (this.pins().find((p) => p.portName === port)?.index ?? 0) : 0;
+  });
+
+  /** The inspected pin has no loadout slot behind it (raw extract port) —
+   * nothing to swap or open, the host's swap picker would silently no-op. */
+  readonly inspectorIsRawPort = computed<boolean>(() => {
+    const port = this.inspectedPort();
+    if (!port) return false;
+    return !this.allSections().some((s) => s.slots.some((sl) => (sl.rawPort ?? sl.port) === port));
   });
 
   readonly inspectorTarget = computed<LayoutTarget | null>(() => {

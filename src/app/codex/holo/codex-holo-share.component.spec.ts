@@ -143,6 +143,19 @@ describe('CodexHoloShareComponent — wave 5 states', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.unsaved')!.textContent).toContain('codex.holo.share.unsavedHint');
   });
 
+  it('keeps a minted link when the host hands over a fresh object of the SAME config (after a save)', () => {
+    setup();
+    fixture.componentRef.setInput('config', config({ id: 'cfg-1' }));
+    fixture.detectChanges();
+    fixture.componentInstance.link.set({ id: 'l1', token: 'tok', configId: 'cfg-1', createdAt: '2026-01-01', revokedAt: null } as never);
+    fixture.componentRef.setInput('config', config({ id: 'cfg-1', updatedAt: '2026-02-02' }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.link()).not.toBeNull();
+    fixture.componentRef.setInput('config', config({ id: 'cfg-2' }));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.link()).toBeNull();
+  });
+
   it('forgets a minted link when the ship changes — a token never shows under another hull', () => {
     setup();
     fixture.detectChanges();

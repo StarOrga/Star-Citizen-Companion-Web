@@ -167,8 +167,20 @@ export class HangarService {
     return this.auth.user()?.id ?? null;
   }
 
-  /** Loads ships + role loadouts in one go. Errors land in `error`. */
-  async loadAll(): Promise<void> {
+  private loadAllInFlight: Promise<void> | null = null;
+
+  /** Loads ships + role loadouts in one go. Errors land in `error`. Concurrent
+   * callers (a page's own load + a dependent lookup) share one round trip. */
+  loadAll(): Promise<void> {
+    if (!this.loadAllInFlight) {
+      this.loadAllInFlight = this.loadAllOnce().finally(() => {
+        this.loadAllInFlight = null;
+      });
+    }
+    return this.loadAllInFlight;
+  }
+
+  private async loadAllOnce(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
     try {

@@ -314,13 +314,44 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(c.inspectedPort()).toBeNull();
   });
 
-  it('a raw-port pin (no loadout sections) still gives the inspector a target', async () => {
+  it('a raw-port pin (no loadout sections) still gives the inspector a target — but no dead swap button', async () => {
     const fixture = await setup({ detail: detailWithPorts(['hardpoint_gun_left']) });
     const c = fixture.componentInstance;
+    c.rightCollapsed.set(false);
     c.inspectPin('hardpoint_gun_left');
+    fixture.detectChanges();
     const target = c.inspectorTarget();
     expect(target).toBeTruthy();
     expect(target!.slot.rawPort).toBe('hardpoint_gun_left');
+    expect(c.inspectorIsRawPort()).toBe(true);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.inspector .insp-actions')).toBeNull();
+    expect(el.querySelector('.inspector')!.textContent).toContain('codex.holo.stage.rawPortHint');
+  });
+
+  it('a pin backed by a loadout slot keeps its swap / open actions', async () => {
+    const fixture = await setup({
+      primaryModuleSections: [{ section: 'weapons', slots: [slot('hardpoint_gun_left', 'Laser Cannon')] }],
+    });
+    const c = fixture.componentInstance;
+    c.rightCollapsed.set(false);
+    c.inspectPin('hardpoint_gun_left');
+    fixture.detectChanges();
+    expect(c.inspectorIsRawPort()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.inspector .insp-actions')).toBeTruthy();
+  });
+
+  it('an off-centre bbox never pushes the fallback ring past the canvas', async () => {
+    const fixture = await setup({
+      detail: detailWithPorts(Array.from({ length: 40 }, (_, i) => `p${i}`)),
+      silhouette: silhouetteWithBbox({ x: 0, y: 0, w: 300, h: 300 }),
+    });
+    for (const p of fixture.componentInstance.pins()) {
+      expect(p.x).toBeGreaterThanOrEqual(-4.01);
+      expect(p.x).toBeLessThanOrEqual(104.01);
+      expect(p.y).toBeGreaterThanOrEqual(-4.01);
+      expect(p.y).toBeLessThanOrEqual(104.01);
+    }
   });
 
   it('switching to another hull resets inspector, share popover and view mode', async () => {

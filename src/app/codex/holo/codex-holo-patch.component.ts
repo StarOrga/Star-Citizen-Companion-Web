@@ -16,7 +16,7 @@
 // read, same shape as the host's own) the host supplies, generalised from its
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
-import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { CodexService } from '../codex.service';
@@ -128,13 +128,13 @@ export interface HoloPatchComparisonSide {
            flow (wave 5 A2.6) — the bar keeps its height, the table keeps
            its ghosts/pins, and the panel can be dismissed and reopened. -->
       @if (selected() && !deltaOpen()) {
-        <button type="button" class="delta-reopen" (click)="deltaOpen.set(true)" [attr.aria-expanded]="false">
+        <button #deltaReopen type="button" class="delta-reopen" (click)="deltaOpen.set(true)" [attr.aria-expanded]="false">
           Δ {{ 'codex.holo.patch.deltaShow' | translate }}
         </button>
       }
       @if (perspectives(); as groups) {
         @if (deltaOpen()) {
-          <div class="delta-panel" role="region" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() }">
+          <div #deltaPanel class="delta-panel" role="region" tabindex="-1" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() }">
             <div class="delta-head">
               <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() } }}</span>
               <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
@@ -235,6 +235,8 @@ export interface HoloPatchComparisonSide {
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
     }
+    .delta-panel:focus { outline: none; }
+    .delta-panel:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .delta-head { display: flex; align-items: center; gap: 8px; }
     .delta-head .pop-label { flex: 1; min-width: 0; }
     .delta-head .patch-clear { min-height: 32px; padding: 3px 8px; }
@@ -285,6 +287,18 @@ export class CodexHoloPatchComponent {
   readonly perspectives = signal<ReturnType<typeof buildPerspectiveDeltas> | null>(null);
   /** The Δ panel under the trigger — opens with a pick, dismissable, reopenable. */
   readonly deltaOpen = signal(false);
+  private readonly deltaPanel = viewChild<ElementRef<HTMLElement>>('deltaPanel');
+  private readonly deltaReopen = viewChild<ElementRef<HTMLElement>>('deltaReopen');
+  private readonly trigger = viewChild<ElementRef<HTMLElement>>('trigger');
+  private readonly focusEffect = effect(() => {
+    // Keyboard users follow the panel: focus moves in when it opens and back
+    // to the reopen control (or the trigger) when it closes.
+    const open = this.deltaOpen();
+    const panel = this.deltaPanel()?.nativeElement;
+    const back = this.deltaReopen()?.nativeElement ?? this.trigger()?.nativeElement;
+    if (open && panel) panel.focus({ preventScroll: true });
+    else if (!open && back && this.selected()) back.focus({ preventScroll: true });
+  });
 
   readonly reExtractPending = computed(() => isReExtractPending(this.selected()?.schemaVersion ?? null));
 

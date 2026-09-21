@@ -679,7 +679,8 @@
         "placeholderAria": "Placeholder silhouette of {{name}}",
         "noPorts": "No hardpoints in the game data",
         "pinKey": "Pin key",
-        "legendUnresolved": "Position estimated"
+        "legendUnresolved": "Position estimated",
+        "rawPortHint": "Raw port from the game data — nothing to swap or open."
       },
       "strip": {
         "einsatz": "Mission",
