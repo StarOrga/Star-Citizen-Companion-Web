@@ -37,6 +37,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/concepts/`; Concept-Skill-Regel 4 (LF-only Splices, Engine-Invarianten
   prüfen — dotclaude#430).
 
+## [0.90.1] - 2026-09-21
+
+### Fixed
+
+- **Admin › Benutzer: „Zuletzt aktiv“ zählt jetzt Besuche, nicht nur Logins.**
+  Die Spalte spiegelte `auth.users.last_sign_in_at`, das sich nur beim echten
+  Login bewegt — nie beim Token-Refresh. Wer wochenlang eingeloggt blieb und
+  die Seite täglich öffnete, stand auf dem Tag seines letzten Passwort-Logins.
+  Jetzt: `profiles.last_seen_at`, nur über `touch_last_seen()` beschreibbar
+  (auf `auth.uid()` gepinnt, 5-Minuten-Throttle serverseitig, Write-Guard
+  friert die Spalte für Raw-Sessions ein); die Admin-Liste zeigt
+  `greatest(Login, Besuch)`. Der Client meldet sich beim Start mit Session,
+  wenn der Tab wieder sichtbar wird und alle 15 Minuten — immer für den
+  echten Account, auch während einer „Ansehen als“-Vorschau.
+  Migration `20260921220000_profile_last_seen.sql`; bis sie eingespielt ist,
+  fällt die Tabelle auf den Login-Zeitpunkt zurück.
+
 ## [0.90.0] - 2026-09-21
 
 ### Changed
