@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.89.1",
+  "version": "0.89.2",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
     "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs",
-    "build": "ng build --configuration production",
+    "build": "node scripts/build-with-exit-guard.mjs",
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false --browsers=ChromeHeadless",

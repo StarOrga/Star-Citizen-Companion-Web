@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.89.2] - 2026-09-21
+
+### Fixed
+
+- **`npm run build` hängt nicht mehr nach fertigem Output.** `ng build` blieb
+  lokal nach „Application bundle generation complete" immer wieder stehen
+  (unter Agent-Last und auch isoliert). Der Exit-Guard aus dem Vercel-Build ist
+  jetzt ein eigenes Script `scripts/build-with-exit-guard.mjs`, das beide
+  Pfade teilen: 30 s nach der Fertigmeldung (`NG_BUILD_EXIT_GRACE_MS`) wird ein
+  hängender `ng`-Prozess samt Kindprozessen beendet, sobald `index.html` und
+  `ngsw.json` im `dist` liegen; harte Obergrenze 300 s
+  (`NG_BUILD_TIMEOUT_MS`); jeder andere Exit-Code bleibt erhalten. Drei
+  `node --test`-Fälle, ein echter Lauf hat den Hang reproduziert und
+  abgefangen. Follow-up aus dem Holotable-Concept-Close-out.
+
+### Removed
+
+- Concept-Seite `docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch.html`
+  + Decisions-Journal — abgeschlossen und auf Wunsch entfernt; das
+  Bau-Protokoll unter `docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/`
+  bleibt (Inventar, Vertrag, Redteam, QA).
+
 ## [0.89.1] - 2026-09-21
 
 ### Fixed
