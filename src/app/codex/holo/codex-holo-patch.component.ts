@@ -122,16 +122,31 @@ export interface HoloPatchComparisonSide {
 
       @if (compareLoading()) {
         <p class="delta-state">{{ 'codex.holo.patch.comparing' | translate }}</p>
-      } @else if (perspectives(); as groups) {
-        <div class="delta-view">
-          @for (g of groups; track g.perspective) {
-            <sc-codex-holo-patch-delta [group]="g" />
-          }
-        </div>
       }
 
-      @if (selected() && roles.isCollaborator()) {
-        <div class="admin-schema-row" role="note">
+      <!-- The Δ tables live in an anchored panel, never in the top bar's
+           flow (wave 5 A2.6) — the bar keeps its height, the table keeps
+           its ghosts/pins, and the panel can be dismissed and reopened. -->
+      @if (selected() && !deltaOpen()) {
+        <button type="button" class="delta-reopen" (click)="deltaOpen.set(true)" [attr.aria-expanded]="false">
+          Δ {{ 'codex.holo.patch.deltaShow' | translate }}
+        </button>
+      }
+      @if (perspectives(); as groups) {
+        @if (deltaOpen()) {
+          <div class="delta-panel" role="region" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() }">
+            <div class="delta-head">
+              <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() } }}</span>
+              <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
+              <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [attr.title]="'codex.holo.patch.deltaHide' | translate">✕</button>
+            </div>
+            <div class="delta-view">
+              @for (g of groups; track g.perspective) {
+                <sc-codex-holo-patch-delta [group]="g" />
+              }
+            </div>
+            @if (roles.isCollaborator()) {
+              <div class="admin-schema-row" role="note">
           <span class="admin-flag">{{ 'codex.holo.patch.adminOnly' | translate }}</span>
           <dl>
             <dt>{{ 'codex.holo.patch.schema.version' | translate }}</dt>
@@ -145,14 +160,17 @@ export interface HoloPatchComparisonSide {
               <dd>{{ 'codex.holo.patch.schema.reExtractPendingYes' | translate }}</dd>
             }
           </dl>
-        </div>
+              </div>
+            }
+          </div>
+        }
       }
     </div>
   `,
   styles: [`
     :host { display: block; position: relative; }
     .mono { font-family: var(--font-monospace, 'Share Tech Mono', monospace); font-variant-numeric: tabular-nums; }
-    .holo-patch { position: relative; }
+    .holo-patch { position: relative; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
     .patch-trigger {
       display: inline-flex; align-items: center; gap: 6px;
@@ -203,8 +221,25 @@ export interface HoloPatchComparisonSide {
       color: var(--sc-fg-2); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
     .patch-clear:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
 
-    .delta-state { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .delta-view { margin-top: 10px; }
+    .delta-state { margin: 0; white-space: nowrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .delta-reopen { min-height: 40px; padding: 4px 10px; border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: var(--sc-bg-1); color: var(--sc-accent);
+      font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; }
+    .delta-panel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
+      width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 640px); overflow: auto;
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 14px; border-radius: 10px;
+      background: var(--sc-bg-1);
+      border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    }
+    .delta-head { display: flex; align-items: center; gap: 8px; }
+    .delta-head .pop-label { flex: 1; min-width: 0; }
+    .delta-head .patch-clear { min-height: 32px; padding: 3px 8px; }
+    .delta-close { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: 32px; min-width: 32px; font: inherit; }
+    .delta-close:hover { color: var(--sc-fg-0); }
+    .delta-view { display: flex; flex-direction: column; gap: 6px; }
 
     /* --sc-accent-hot: admin/collaborator-only info, marked in words too. */
     .admin-schema-row {
@@ -247,6 +282,8 @@ export class CodexHoloPatchComponent {
   readonly builds = signal<CodexBuild[]>([]);
   readonly selected = signal<CodexBuild | null>(null);
   readonly perspectives = signal<ReturnType<typeof buildPerspectiveDeltas> | null>(null);
+  /** The Δ panel under the trigger — opens with a pick, dismissable, reopenable. */
+  readonly deltaOpen = signal(false);
 
   readonly reExtractPending = computed(() => isReExtractPending(this.selected()?.schemaVersion ?? null));
 
@@ -327,6 +364,7 @@ export class CodexHoloPatchComponent {
 
       this.selected.set(build);
       this.perspectives.set(buildPerspectiveDeltas(kpiCells));
+      this.deltaOpen.set(true);
       this.kpiGhosts.emit({ toBuild: toRef, cells: kpiCells });
       this.portPins.emit(pins);
       this.comparisonBuild.emit(build);
@@ -338,6 +376,7 @@ export class CodexHoloPatchComponent {
   clear(): void {
     this.selected.set(null);
     this.perspectives.set(null);
+    this.deltaOpen.set(false);
     this.kpiGhosts.emit(null);
     this.portPins.emit(null);
     this.comparisonBuild.emit(null);
@@ -345,12 +384,20 @@ export class CodexHoloPatchComponent {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    this.close();
+    if (this.open()) {
+      this.close();
+      return;
+    }
+    // The Δ panel closes like the picker; the comparison itself stays
+    // active (ghosts, pins) until "Vergleich beenden".
+    this.deltaOpen.set(false);
   }
 
   @HostListener('document:pointerdown', ['$event'])
   onOutside(ev: Event): void {
-    if (!this.open()) return;
-    if (!this.host.nativeElement.contains(ev.target as Node)) this.close();
+    if (!this.open() && !this.deltaOpen()) return;
+    if (this.host.nativeElement.contains(ev.target as Node)) return;
+    this.close();
+    this.deltaOpen.set(false);
   }
 }

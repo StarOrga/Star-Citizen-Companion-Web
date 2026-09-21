@@ -747,7 +747,9 @@
         },
         "forkGuard": {
           "question": "Become the owner? This splits the loadout from the original — cannot be undone."
-        }
+        },
+        "deltaShow": "Show changes",
+        "deltaHide": "Hide changes"
       },
       "share": {
         "copyLink": "Copy link",

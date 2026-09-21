@@ -1490,10 +1490,20 @@ export class CodexHoloStageComponent {
             .filter((p) => !!p.portName && !seenRaw.has(p.portName) && seenRaw.add(p.portName))
             .map((p) => ({ raw: p.portName!, known: null }));
     const byPort = new Map<string, SilhouetteAnchor>(s ? s.anchors.map((a) => [a.portId, a]) : []);
-    const ring = this.fallbackRing();
     let nextIndex = 0;
     let fallbackIndex = 0;
     const n = source.filter(({ raw }) => !byPort.has(raw)).length || 1;
+    // A crowded ring (capital ships: 40+ ports) widens until neighbouring
+    // dots no longer touch — ~7 % of the canvas per pin along the perimeter.
+    const base = this.fallbackRing();
+    const ring = { ...base };
+    const needMean = (n * 7) / (2 * Math.PI);
+    const mean = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
+    if (mean < needMean) {
+      ring.rx = Math.min(54, Math.max(ring.rx, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.ry * ring.ry))));
+      const mean2 = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
+      if (mean2 < needMean) ring.ry = Math.min(54, Math.max(ring.ry, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.rx * ring.rx))));
+    }
     const sideFor = (x: number, y: number): StagePin['side'] => {
       // Near the top/bottom of the ring the neighbours sit side by side, so
       // the label goes above/below the dot; on the flanks it goes outward.

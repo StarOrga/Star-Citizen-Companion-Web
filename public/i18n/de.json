@@ -747,7 +747,9 @@
         },
         "forkGuard": {
           "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
-        }
+        },
+        "deltaShow": "Änderungen zeigen",
+        "deltaHide": "Änderungen ausblenden"
       },
       "share": {
         "copyLink": "Link kopieren",
