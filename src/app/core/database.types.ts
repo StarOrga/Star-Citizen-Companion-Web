@@ -1202,6 +1202,9 @@ export type Database = {
           display_name: string | null
           id: string
           is_approved: boolean
+          // Added by 20260921220000_profile_last_seen.sql — hand-patched;
+          // regenerate this file after `npm run db:push`.
+          last_seen_at: string | null
           preferred_channel: string | null
           preferred_lang: string | null
           preferred_region: string | null
@@ -1215,6 +1218,7 @@ export type Database = {
           display_name?: string | null
           id: string
           is_approved?: boolean
+          last_seen_at?: string | null
           preferred_channel?: string | null
           preferred_lang?: string | null
           preferred_region?: string | null
@@ -1228,6 +1232,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_approved?: boolean
+          last_seen_at?: string | null
           preferred_channel?: string | null
           preferred_lang?: string | null
           preferred_region?: string | null
@@ -1433,6 +1438,9 @@ export type Database = {
           email: string
           id: string
           last_sign_in_at: string
+          // Added by 20260921220000_profile_last_seen.sql — hand-patched;
+          // greatest(last_sign_in_at, profiles.last_seen_at).
+          last_seen_at: string | null
           // Added by 20260802080000_protected_admins.sql — hand-patched
           // because the migration is not deployed yet; regenerate this
           // file after `npm run db:push`.
@@ -1444,6 +1452,11 @@ export type Database = {
       set_bundle_disabled: {
         Args: { bundle_id: string; new_disabled: boolean; reason?: string }
         Returns: undefined
+      }
+      // Added by 20260921220000_profile_last_seen.sql — hand-patched.
+      touch_last_seen: {
+        Args: never
+        Returns: string | null
       }
       set_current_codex_build: {
         Args: { p_build_id: string }
