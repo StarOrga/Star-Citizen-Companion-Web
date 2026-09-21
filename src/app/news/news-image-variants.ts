@@ -56,8 +56,16 @@ const LEGACY_COVER_WIDTH = 1140;
  *
  * Any other url — notably the signed `https://robertsspaceindustries.com/i/<sha1>/…`
  * proxy (already tile-sized, returns 400 if rewritten) — is returned unchanged.
+ *
+ * `target` accepts any RSI derivative name, not just `post`/`cover`: the media
+ * CDN publishes ~45 named derivatives per render (`slideshow_wide`,
+ * `wallpaper_1920x1080`, `background_blur`, `store_large`, …), and callers that
+ * need a specific one (the Codex stage hero) swap in that name directly. The
+ * `post`/`cover` union narrowed the signature historically because they were
+ * the only two callers; every existing call site still passes one of those two
+ * literals, so widening to `string` changes no behavior for them.
  */
-export function rsiVariant(url: string, target: 'post' | 'cover'): string {
+export function rsiVariant(url: string, target: string): string {
   const media = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
   if (media) return `${media[1]}${target}${media[2]}`;
   const cached = /^(https?:\/\/.+\/)(?:post|cover)(\.[a-zA-Z0-9]+)$/.exec(url);

@@ -40,7 +40,7 @@ import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { CodexHoloStripComponent } from './codex-holo-strip.component';
-import { CodexHoloHangarComponent } from './codex-holo-hangar.component';
+import { HangarPickerComponent, HangarPickerItem } from '../stage/hangar-picker.component';
 import {
   CodexHoloPatchComponent,
   HoloPatchComparisonSide,
@@ -120,7 +120,7 @@ const UNDO_TOAST_MS = 6000;
     ShipHardpointMapComponent,
     ShipSkinViewerComponent,
     CodexHoloStripComponent,
-    CodexHoloHangarComponent,
+    HangarPickerComponent,
     CodexHoloPatchComponent,
     CodexHoloShareComponent,
   ],
@@ -254,9 +254,17 @@ const UNDO_TOAST_MS = 6000;
             </div>
           </div>
 
-          <!-- slot: hangar-tab -->
+          <!-- slot: hangar-tab (round 16-17, N4): same HangarPicker as the
+               Codex landing and the classic hero — one component, one
+               behaviour, same "top 3 recently chosen" data source. Replaces
+               the old sc-codex-holo-hangar tab+overlay (kept in the tree,
+               unused, per the round-17 decision text). -->
           <div class="hangar-tab-dock">
-            <sc-codex-holo-hangar />
+            <sc-hangar-picker
+              kind="ship"
+              [items]="hangarPickerItems()"
+              (pick)="hangarPick.emit($event)"
+              (open)="hangarOpen.emit()" />
           </div>
 
           <div class="silhouette-frame">
@@ -654,6 +662,9 @@ export class CodexHoloStageComponent {
   // ── Share popover (slot: share) ─────────────────────────────────────
   readonly myConfig = input<HangarShipConfig | null>(null);
 
+  // ── HangarPicker (slot: hangar-tab, N4) ─────────────────────────────
+  readonly hangarPickerItems = input<readonly HangarPickerItem[]>([]);
+
   // ── Strip (slot: strip) — mirrors sc-codex-energy-dock's own inputs ──
   readonly occupants = input<readonly SummaryOccupant[]>([]);
   readonly shipStats = input<Record<string, Record<string, string | number | boolean | null>> | null>(null);
@@ -679,6 +690,10 @@ export class CodexHoloStageComponent {
   readonly discardDraft = output<void>();
   readonly configRefreshed = output<HangarShipConfig>();
   readonly sheetChange = output<PowerSheet>();
+  /** HangarPicker outputs (slot: hangar-tab, N4) — the parent owns the
+   * subject switch (navigate + `markShipPicked`) and the hangar-open route. */
+  readonly hangarPick = output<string>();
+  readonly hangarOpen = output<void>();
 
   // ── Local, purely-presentational view state ───────────────────────
   readonly leftCollapsed = signal(false);

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
+import { rsiVariant } from '../news/news-image-variants';
 
 /**
  * One "upcoming" ship: an entry from RSI's public ship-matrix that the diff in
@@ -92,6 +93,70 @@ export function heroArtOrder(urls: readonly string[]): string[] {
     .map((url, index) => ({ url, index, rank: heroArtRank(url) }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)
     .map((e) => e.url);
+}
+
+/**
+ * Ordered candidate for the Codex landing "stage" hero (the split ship/person
+ * banner), plus the rest of the chain for an `<img>` `onerror` walk.
+ */
+export interface StageArt {
+  src: string;
+  fallbacks: string[];
+}
+
+/**
+ * Derivative preference for the split-stage hero (research R14, `research-r14.md`):
+ * `store_large` is a centre crop of the master render — the bug and the fin
+ * are cropped off — which is fine for a card but wrong for a bbox-fit stage
+ * that needs the whole ship. `slideshow_wide` (fit ≤1200×800) and
+ * `wallpaper_1920x1080` (16:9) keep the full render; `background_blur` is
+ * mislabeled by RSI (it is NOT blurred) but shares the same uncropped
+ * framing; `slideshow` is the smallest uncropped fallback. `store_large`
+ * stays last — always present, never wrong to show, just the least accurate.
+ */
+const STAGE_DERIVATIVE_ORDER = [
+  'slideshow_wide',
+  'wallpaper_1920x1080',
+  'background_blur',
+  'slideshow',
+  'store_large',
+] as const;
+
+/**
+ * Swap one known RSI media-CDN url through the stage derivative chain.
+ *
+ * All derivatives of one render live under the same `<id>/` path (see
+ * `rsiVariant`'s media-CDN pattern), so any single known url is enough to
+ * derive the rest — `thumbnails[0]` need not already be one of these five
+ * names. Urls `rsiVariant` cannot rewrite (the signed `/i/<sha1>/` proxy, or
+ * anything already tile-sized) come back unchanged from every swap; that is
+ * detected once and the function then returns the original candidates
+ * untouched rather than five copies of the same unusable url.
+ */
+export function stageArtCandidates(urls: readonly string[]): string[] {
+  const base = urls[0];
+  if (!base) return [];
+  if (rsiVariant(base, STAGE_DERIVATIVE_ORDER[0]) === base) {
+    // Not a rewritable media-CDN url — nothing to derive, keep the given order.
+    return urls.slice();
+  }
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const derivative of STAGE_DERIVATIVE_ORDER) {
+    const url = rsiVariant(base, derivative);
+    if (seen.has(url)) continue;
+    seen.add(url);
+    out.push(url);
+  }
+  return out;
+}
+
+/** `stageArtCandidates` shaped for the stage `<img>` (primary + onerror chain). */
+export function stageArtOrder(urls: readonly string[]): StageArt {
+  const candidates = stageArtCandidates(urls);
+  return candidates.length > 0
+    ? { src: candidates[0], fallbacks: candidates.slice(1) }
+    : { src: '', fallbacks: [] };
 }
 
 export interface UpcomingShipsCounts {
@@ -376,6 +441,16 @@ export class UpcomingShipsService {
    */
   heroArtFor(gameName: string | null | undefined): string[] {
     return heroArtOrder(this.artFor(gameName));
+  }
+
+  /**
+   * `artFor` for the Codex landing split-stage hero (K2 "Spot" — see
+   * `stage-sample.ts` for the bbox-fit geometry this feeds). Distinct from
+   * `heroArtFor`: the detail-page hero keeps `store_large` first, the stage
+   * needs the uncropped derivatives instead — see `stageArtCandidates`.
+   */
+  stageArtFor(gameName: string | null | undefined): StageArt {
+    return stageArtOrder(this.artFor(gameName));
   }
 
   async refresh(silent = false): Promise<void> {

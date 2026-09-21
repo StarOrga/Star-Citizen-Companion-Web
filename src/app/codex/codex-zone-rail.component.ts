@@ -46,6 +46,12 @@ export type ZoneRailKind = 'board' | 'hangar';
  * Split out of `codex-landing.component.ts` for the same reason
  * `codex-board-panel.component.ts` was: that file's inline styles sit against
  * an 18 kB budget and these rules push it over.
+ *
+ * SUPERSEDED (concept 2026-09-20, round 14-17): the landing no longer has a
+ * switcher to collapse — both stages show at once (`stage/codex-stage.
+ * component.ts`) — so this component is no longer imported anywhere. Kept
+ * untouched in case a future collapsed-rail pattern is wanted elsewhere; the
+ * 108px figure cap (S6/Q6) below was already satisfied before this round.
  */
 @Component({
   selector: 'sc-codex-zone-rail',

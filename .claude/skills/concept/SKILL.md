@@ -77,6 +77,30 @@ Plugin defaults still apply; only the rules below override or add.
    until it lands, lift it in the page CSS
    (`html[data-template="design"] .concept-layout.design .concept-content { max-width: none; padding: 0 }`).
 
+4. **Splicing a concept page with scratch scripts: LF only, assert the
+   engine invariants after every splice, verify the chrome — a green gate is
+   not "page intact".** Multi-round concepts here are appended by a scratch
+   `append.js` that replaces the mock-CSS block between
+   `/* ── Concept page tokens` and the closing `}` of the
+   `@container device (max-width: 520px)` block. Observed 2026-09-21 (round 11
+   of the codex-landing concept): a Python `open(p, 'w')` on Windows had
+   rewritten `concept-mock.css` to CRLF, round 10 spliced that CRLF block into
+   the page, and round 11's `indexOf('\n}\n')` then found its "block end" deep
+   inside the engine CSS — everything in between, including
+   `.concept-decision-panel { … }`, was cut. The decision panel rendered as a
+   1280-px static block behind the absolutely positioned screens ("concept
+   visuell kaputt"); `hooks/lib/concept-gate.js` stayed rc=0 because it checks
+   structure, not engine CSS (upstream: Jerry0022/dotclaude#430). Rules:
+   - write scratch CSS/HTML only via the Write/Edit tools or node — never
+     Python text mode on Windows (it emits CRLF); normalise inputs with
+     `.replace(/\r\n/g, '\n')` before splicing;
+   - find block ends with `/\r?\n\}\r?\n/`, never a literal `'\n}\n'`;
+   - after every splice assert `page.includes('.concept-decision-panel {')`
+     and `.concept-layout` and that the `<style>` block grew by roughly the
+     appended CSS (not shrank) — `must()` it, do not eyeball;
+   - browser verification covers the page chrome too: decision panel on the
+     right, `#screen-nav` items, no full-width `aside` — not just the mock.
+
 ## Retired rules (absorbed upstream — do not re-add)
 
 The legacy `devops-concept` extension carried two more rules: "copy the

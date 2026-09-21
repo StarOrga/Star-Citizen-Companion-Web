@@ -1690,6 +1690,21 @@
         "max": "≤ {{max}}",
         "values": "{{values}}"
       }
+    },
+    "stage": {
+      "equipped": "{{filled}} / {{total}} equipped"
+    },
+    "hangarPicker": {
+      "hangar": "Hangar",
+      "sets": "Sets",
+      "chain": "Recently chosen",
+      "switchTo": "Switch to {{name}}"
+    },
+    "set": {
+      "back": "← Back to Codex",
+      "notFound": "That set was not found — showing the first set from your hangar.",
+      "signInHint": "Sign in to view and edit your sets.",
+      "noSets": "No set commissioned yet."
     }
   },
   "blueprint": {

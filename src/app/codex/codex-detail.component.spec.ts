@@ -169,6 +169,8 @@ async function setup(kind: 'ship' | 'weapon', skins: ShipSkin[] = [], payload: S
           loadAll: async () => undefined,
           addShip: async () => null,
           shipByClassName: () => null,
+          recentShips: signal([]),
+          markShipPicked: () => undefined,
         } as Partial<HangarService>,
       },
       { provide: AuthService, useValue: { user: signal(null) } as Partial<AuthService> },
