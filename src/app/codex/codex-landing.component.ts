@@ -775,6 +775,14 @@ export class CodexLandingComponent implements OnInit {
     // middle-clicked link into a specific set has to keep applying, not just
     // on the first load — a snapshot read would only ever catch that one.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+      // `?q=` seeds the Archive Terminal — the Holotable's top-bar search
+      // hands its term over here ("durchgezogen wie auf der Codex-Startseite").
+      const term = q.get('q');
+      if (term != null && term !== this.searchInput()) {
+        if (this.searchTimer) clearTimeout(this.searchTimer);
+        this.searchInput.set(term);
+        this.searchTerm.set(term);
+      }
       const set = q.get('set');
       if (set !== this.selectedSetId()) {
         this.selectedSetId.set(set);

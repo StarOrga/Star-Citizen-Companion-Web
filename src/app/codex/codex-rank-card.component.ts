@@ -25,8 +25,9 @@ import {
   standalone: true,
   imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '[class.holo]': 'holo()' },
   template: `
-    <section class="rank-card sc-card">
+    <section class="rank-card" [class.sc-card]="!holo()">
       <div class="rank-head">
         <h2>
           <span class="glyph" aria-hidden="true">◈</span>
@@ -48,6 +49,10 @@ import {
       </div>
 
 
+      @if (holo()) {
+        <p class="rolenote">◈ {{ 'codex.holo.stage.profileNote' | translate: { profile: (activeProfileLabelKey() | translate) } }}</p>
+      }
+
       @if (ready()) {
         <div class="rank-col-radar">
           <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="'codex.rank.radarAria' | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
@@ -67,7 +72,7 @@ import {
               <circle class="weak-axis" [attr.cx]="wv.x" [attr.cy]="wv.y" r="4" />
             }
             @for (cap of axisCaptions(); track cap.key) {
-              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'">{{ (cap.gap ? cap.labelKey! : cap.labelKey) | translate }}</text>
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'" [class.gap]="cap.gap">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
             }
           </svg>
           <dl class="sr-only axis-mirror">
@@ -88,6 +93,21 @@ import {
           <div class="rank-skel sc-skel-field" aria-hidden="true"></div>
         } @else if (!result()) {
           <p class="gap-note">{{ 'codex.rank.gapAxis' | translate }}</p>
+        } @else if (result()!.overall != null && holo()) {
+            <p class="verdict holo-verdict">
+              <b>{{ result()!.overall }} %</b> · {{ result()!.bandKey! | translate }}
+            </p>
+            <p class="cohort holo-cohort">
+              {{ 'codex.holo.stage.against' | translate }}
+              <button type="button" class="scope-link" (click)="cycleScope()" [attr.title]="'codex.rank.scopeLabel' | translate">{{ scopeLineKey() | translate: { n: result()!.cohortSize } }}</button>
+              ·
+              <button
+                type="button"
+                class="tip"
+                [attr.aria-describedby]="'rank-pct-tip'"
+              >{{ 'codex.rank.percentile' | translate }} ⓘ</button>
+              <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ 'codex.rank.percentileTooltip' | translate }}</span>
+            </p>
         } @else if (result()!.overall != null) {
             <p class="verdict">
               {{ 'codex.rank.verdict' | translate: { pct: result()!.overall, band: (result()!.bandKey! | translate), n: result()!.cohortSize } }}
@@ -102,6 +122,7 @@ import {
           <p class="verdict gap">{{ 'codex.kpi.gap' | translate }}</p>
         }
 
+      @if (!holo()) {
       <div class="profile-row" role="radiogroup" [attr.aria-label]="'codex.rank.profileLabel' | translate">
         @for (p of profiles; track p.id) {
           <button
@@ -134,6 +155,10 @@ import {
         </label>
         <span class="scope-hint">{{ 'codex.rank.disabled.noSizeClass' | translate }}</span>
       </div>
+      }
+        @if (ready() && holo()) {
+          <p class="sub-head"><span>{{ 'codex.holo.stage.strengthsWeaknesses' | translate }}</span><i></i></p>
+        }
         @if (ready()) {
           <ul class="bar-list">
             @for (a of result()!.bars; track a.key) {
@@ -154,7 +179,9 @@ import {
               </li>
             }
           </ul>
-          <p class="lens-note">{{ 'codex.rank.lensNote' | translate }}</p>
+          @if (!holo()) {
+            <p class="lens-note">{{ 'codex.rank.lensNote' | translate }}</p>
+          }
         }
       </div>
     </section>
@@ -282,6 +309,34 @@ import {
     /* The concept's own footnote under the bars: 10px, muted, upright — it is
        a caption, not an aside, so it carries no italic there. */
     .lens-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+
+    /* ── Holotable variant (concept round 4–6 "Einordnung" panel): one calm
+       column inside the panel's own frame — no card chrome, no header, the
+       profile as a note (never a second selector), the cohort as a link. ── */
+    :host(.holo) .rank-card { grid-template-columns: 1fr; gap: 8px; padding: 0; background: none; border: 0; box-shadow: none; }
+    :host(.holo) .rank-head { display: none; }
+    :host(.holo) .rolenote { margin: 0; text-align: center; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
+    :host(.holo) .rank-col-radar { align-items: center; gap: 4px; }
+    :host(.holo) .radar { max-width: 230px; }
+    :host(.holo) .radar text { font-size: 7px; }
+    :host(.holo) .radar text.gap { fill: color-mix(in srgb, var(--sc-fg-2) 60%, transparent); }
+    :host(.holo) .legend { display: none; }
+    :host(.holo) .rank-col-bars { gap: 8px; }
+    :host(.holo) .holo-verdict { text-align: center; font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    :host(.holo) .holo-verdict b { font-family: var(--font-monospace, monospace); font-weight: 400; }
+    :host(.holo) .holo-cohort { position: relative; margin: 0; text-align: center; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    :host(.holo) .scope-link { background: none; border: none; padding: 0; font: inherit; color: var(--sc-fg-1); cursor: pointer;
+      text-decoration: underline dotted; text-underline-offset: 3px; min-height: var(--sc-tap-min, 20px); }
+    :host(.holo) .scope-link:hover { color: var(--sc-accent); }
+    :host(.holo) .sub-head { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
+    :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
+    :host(.holo) .bar-list { grid-template-columns: 1fr !important; }
+    :host(.holo) .bar-row { grid-template-columns: 82px 1fr 40px; }
+    :host(.holo) .bar-label { font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; }
+    :host(.holo) .bar-value { font-family: var(--font-monospace, monospace); }
+    :host(.holo) .rank-skel { height: 180px; }
   `],
 })
 export class CodexRankCardComponent {
@@ -299,7 +354,31 @@ export class CodexRankCardComponent {
   readonly profileChange = output<RankProfileId>();
   readonly scopeChange = output<RankScope>();
 
+  /** Holotable "Einordnung" variant — see the `:host(.holo)` rules. */
+  readonly holo = input(false);
+
   readonly profiles = RANK_PROFILES;
+
+  readonly activeProfileLabelKey = computed<string>(
+    () => RANK_PROFILES.find((p) => p.id === this.profile())?.labelKey ?? RANK_PROFILES[0].labelKey,
+  );
+
+  /** The cohort line's wording for the scope the result was ACTUALLY built with. */
+  readonly scopeLineKey = computed<string>(() => {
+    const r = this.result();
+    const scope = r?.scope ?? this.scope();
+    if (scope === 'sizeClass' && this.sizeClass() != null) return 'codex.holo.stage.cohortSizeClass';
+    if (scope === 'career') return 'codex.holo.stage.cohortCareer';
+    return 'codex.holo.stage.cohortAll';
+  });
+
+  /** Holotable: the underlined cohort word cycles through the usable scopes. */
+  cycleScope(): void {
+    const order: RankScope[] = ['all', 'career', 'sizeClass'];
+    const usable = order.filter((s) => s !== 'sizeClass' || this.sizeClass() != null);
+    const i = usable.indexOf(this.scope());
+    this.scopeChange.emit(usable[(i + 1) % usable.length]);
+  }
   readonly rings = [1, 2, 3];
 
   /**
@@ -348,7 +427,7 @@ export class CodexRankCardComponent {
     () => this.result()?.axes.filter((a) => a.percentile != null).length ?? 0,
   );
 
-  readonly axisCaptions = computed<{ key: string; labelKey: string; x: number; y: number; gap: boolean }[]>(() => {
+  readonly axisCaptions = computed<{ key: string; labelKey: string; axisLabelKey: string; x: number; y: number; gap: boolean }[]>(() => {
     const r = this.result();
     if (!r) return [];
     const n = r.axes.length;
@@ -357,6 +436,7 @@ export class CodexRankCardComponent {
       const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
       return {
         key: a.key,
+        axisLabelKey: a.labelKey,
         labelKey: a.percentile == null ? 'codex.rank.gapAxis' : a.labelKey,
         x: cx + r2 * Math.cos(angle),
         y: cy + r2 * Math.sin(angle),

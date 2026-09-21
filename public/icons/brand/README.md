@@ -57,7 +57,7 @@ there must mean "error", never "uploader".
 |---|---|---|
 | `-mark` (app) | ≥128px | The master, badge drawn at its natural weight. |
 | small | 16–64px | The master with a **bolder, larger** badge. At these sizes the master collapses to a disc and a glowing point — that *is* the desktop app's 16px icon — and the badge has to survive it. Never written as a file: for SCC it is the master itself, for the siblings it is only rasterised (and inlined into the uploader's HTML). |
-| `-mark-tray` | 16–24px | Dark disc **plus a bright rim**: the disc carries the silhouette on a *light* taskbar, the rim on a *dark* one. A disc alone is the bug — `#0d2635` on a dark taskbar is invisible, which is exactly how the desktop app's tray icon came to read as missing. Geometry mirrors the desktop app's own tray mark. |
+| `-mark-tray` | 16–24px | The notification area. For the siblings it is the **taskbar icon itself** — the master with the small tier's badge scaled up by 40%, so the tray shows the same nebula disc, glow and ring as the taskbar and the enlarged badge still tells Starscape and the Uploader apart. (An earlier flat rim-only redraw read cleanly but looked like a third product next to the taskbar icon.) For SCC it mirrors the desktop app's own tray construction — dark disc plus bright rim — for the family sheet only; the real SCC tray lives in the desktop app repo. |
 
 To iterate on a badge without churning every committed raster, render only the reference
 sheet: `node scripts/build-brand-icons.mjs --sheet=/tmp/sheet.png`.

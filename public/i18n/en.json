@@ -608,9 +608,9 @@
       "toggle": {
         "group": "View",
         "classic": "Classic",
-        "classicHint": "Classic view (key 1)",
+        "classicHint": "Classic view",
         "holo": "Holotable",
-        "holoHint": "Holotable view (key 2)"
+        "holoHint": "Holotable view"
       },
       "stage": {
         "railToggle": "Collapse/expand rail",
@@ -642,7 +642,39 @@
           "defensive": "Defensive",
           "movement": "Movement",
           "signature": "Signature & Cooling"
-        }
+        },
+        "searchLabel": "Search the codex",
+        "searchPlaceholder": "Ships, components, manufacturers …",
+        "staticCrew": "Crew",
+        "staticMass": "Mass",
+        "staticCargo": "Cargo",
+        "profileNote": "{{profile}} profile",
+        "against": "against",
+        "cohortAll": "all {{n}} ships",
+        "cohortCareer": "{{n}} ships of the same career",
+        "cohortSizeClass": "{{n}} ships of the size class",
+        "strengthsWeaknesses": "Strengths · weaknesses",
+        "top3": "Top 3 · recently viewed & hangar",
+        "portsCount": "{{n}} ports",
+        "legendConfigurable": "configurable",
+        "legendMissiles": "missiles",
+        "legendHint": "Hover = short values · click = inspector",
+        "inspectorEmptyTitle": "No hardpoint selected",
+        "inspectorEmptyBody": "Click a pin — or press “1” to “{{n}}”.",
+        "emptyBay": "Empty bay",
+        "journalEmpty": "Nothing yet — factory loadout.",
+        "allPorts": "All {{n}} ports",
+        "perspectives": "Perspectives",
+        "percentileAria": "Percentile {{p}}",
+        "say": {
+          "gap": "The cohort gives no rank for this perspective.",
+          "top": "Top quartile against {{n}} ships.",
+          "high": "Above the median against {{n}} ships.",
+          "mid": "Below the median against {{n}} ships.",
+          "low": "Bottom quarter against {{n}} ships.",
+          "axes": "Strongest axis {{best}} (P{{bp}}), weakest {{worst}} (P{{wp}})."
+        },
+        "ghostTitle": "Value in patch {{patch}}"
       },
       "strip": {
         "einsatz": "Mission",
@@ -656,7 +688,8 @@
         "coolingValue": "{{used}} / {{total}}",
         "stealthPreset": "Stealth",
         "expand": "Expand strip",
-        "collapse": "Collapse strip"
+        "collapse": "Collapse strip",
+        "presetTag": "preset"
       },
       "hangar": {
         "tab": "Hangar",
@@ -676,7 +709,7 @@
       },
       "patch": {
         "trigger": {
-          "idle": "Compare patch",
+          "idle": "{{active}}-{{channel}}",
           "comparing": "Comparing with {{patch}}",
           "hotkeyHint": "Compare with another patch (P)"
         },
@@ -1590,7 +1623,14 @@
         "mass": "Mass",
         "ir": "IR",
         "em": "EM",
-        "crossSection": "Cross-section"
+        "crossSection": "Cross-section",
+        "effectiveHp": "Effective HP",
+        "agility": "Agility",
+        "armorHp": "Armour",
+        "quantumSpeed": "Q speed",
+        "spool": "Spool",
+        "emIdle": "EM (idle)",
+        "emMax": "EM (load)"
       }
     },
     "damageChannel": {
