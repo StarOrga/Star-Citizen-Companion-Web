@@ -957,8 +957,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { margin-top: 10px; }
   }
   @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
-  .holo-body, .holo-body:has(.holo-right:not(.collapsed)) { grid-template-columns: 44px minmax(0, 1fr) 240px; }
-  .holo-panel:not(.collapsed).holo-right { grid-column: 3; order: 2; margin-top: 0; }
   .holo-table > .pb, .silhouette-frame { min-height: 320px; }
   }
   @media (max-width: 640px) {
@@ -991,7 +989,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-below { grid-template-columns: 1fr; padding: 0 6px; }
   .holo-body.mobile-hide-table .mobile-table { display: none; }
   .holo-body.mobile-hide-data .mobile-data { display: none; }
-  .mobile-hide-table ~ .mobile-data, .mobile-hide-data ~ .mobile-table { display: none; }
   .undo-toast { bottom: 84px; width: calc(100% - 32px); justify-content: space-between; }
   }
 
