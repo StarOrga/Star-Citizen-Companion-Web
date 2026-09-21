@@ -674,7 +674,13 @@
           "low": "Bottom quarter against {{n}} ships.",
           "axes": "Strongest axis {{best}} (P{{bp}}), weakest {{worst}} (P{{wp}})."
         },
-        "ghostTitle": "Value in patch {{patch}}"
+        "ghostTitle": "Value in patch {{patch}}",
+        "viewSchemaUnavailable": "No hardpoint coordinates in this build",
+        "placeholderAria": "Placeholder silhouette of {{name}}",
+        "noPorts": "No hardpoints in the game data",
+        "pinKey": "Pin key",
+        "legendUnresolved": "Position estimated",
+        "rawPortHint": "Raw port from the game data — nothing to swap or open."
       },
       "strip": {
         "einsatz": "Mission",
@@ -711,7 +717,7 @@
         "trigger": {
           "idle": "{{active}}-{{channel}}",
           "comparing": "Comparing with {{patch}}",
-          "hotkeyHint": "Compare with another patch (P)"
+          "hotkeyHint": "Compare with another patch"
         },
         "popTitle": "Choose a patch",
         "loading": "Loading …",
@@ -742,11 +748,13 @@
         },
         "forkGuard": {
           "question": "Become the owner? This splits the loadout from the original — cannot be undone."
-        }
+        },
+        "deltaShow": "Show changes",
+        "deltaHide": "Hide changes"
       },
       "share": {
         "copyLink": "Copy link",
-        "copyLinkHotkeyHint": "Copy the current page as a link (L)",
+        "copyLinkHotkeyHint": "Copy the address of this view to the clipboard",
         "followedBy": "managed by {{owner}}",
         "followedSince": "as of {{date}}",
         "refresh": "Refresh",
@@ -758,7 +766,12 @@
         "revoke": "Stop sharing",
         "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
         "revoked": "Sharing stopped.",
-        "errorGeneric": "That didn't work. Please try again."
+        "errorGeneric": "That didn't work. Please try again.",
+        "copyLinkHint": "Copies the address of this view — including the Holotable and any unsaved hardpoint changes.",
+        "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
+        "signInHint": "Sign in to share a hangar configuration as a link of its own.",
+        "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
+        "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first."
       }
     },
     "empty": {

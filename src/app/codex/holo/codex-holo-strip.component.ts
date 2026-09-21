@@ -566,14 +566,20 @@ export class CodexHoloStripComponent {
     return Math.max(0, Math.min(5, Math.round(mean / 20)));
   });
 
-  private restored = false;
+  /** Last ship class the local power state (`cutGroups`/`levels`/`mode`/
+   * `preset`) was restored for — reset to `null` before every host reuses
+   * this component instance for a different ship, `restoreState()` re-runs
+   * against the *new* ship's own storage key instead of carrying A's state
+   * into B's `persistDraft()` writes (wave5 red-team P0, strip is reused
+   * across `/codex/ship/A -> /codex/ship/B` navigations). */
+  private restoredFor: string | null = null;
 
   constructor() {
     effect(() => {
-      this.shipClassName();
+      const shipKey = this.shipClassName();
       this.userId();
-      if (this.restored) return;
-      this.restored = true;
+      if (this.restoredFor === shipKey) return;
+      this.restoredFor = shipKey;
       untracked(() => this.restoreState());
     });
     effect(() => {

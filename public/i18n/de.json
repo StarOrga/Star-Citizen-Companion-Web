@@ -674,7 +674,13 @@
           "low": "Unteres Viertel gegenüber {{n}} Schiffen.",
           "axes": "Stärkste Achse {{best}} (P{{bp}}), schwächste {{worst}} (P{{wp}})."
         },
-        "ghostTitle": "Wert in Patch {{patch}}"
+        "ghostTitle": "Wert in Patch {{patch}}",
+        "viewSchemaUnavailable": "Keine Hardpoint-Koordinaten in diesem Build",
+        "placeholderAria": "Platzhalter-Silhouette von {{name}}",
+        "noPorts": "Keine Hardpoints in den Spieldaten",
+        "pinKey": "Pin-Legende",
+        "legendUnresolved": "Position geschätzt",
+        "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen."
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -711,7 +717,7 @@
         "trigger": {
           "idle": "{{active}}-{{channel}}",
           "comparing": "Vergleich mit {{patch}}",
-          "hotkeyHint": "Mit einem anderen Patch vergleichen (P)"
+          "hotkeyHint": "Mit einem anderen Patch vergleichen"
         },
         "popTitle": "Patch wählen",
         "loading": "Wird geladen …",
@@ -742,11 +748,13 @@
         },
         "forkGuard": {
           "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
-        }
+        },
+        "deltaShow": "Änderungen zeigen",
+        "deltaHide": "Änderungen ausblenden"
       },
       "share": {
         "copyLink": "Link kopieren",
-        "copyLinkHotkeyHint": "Aktuelle Seite als Link kopieren (L)",
+        "copyLinkHotkeyHint": "Adresse dieser Ansicht in die Zwischenablage",
         "followedBy": "verwaltet von {{owner}}",
         "followedSince": "Stand {{date}}",
         "refresh": "Aktualisieren",
@@ -758,7 +766,12 @@
         "revoke": "Teilen beenden",
         "revokeNote": "Bereits folgende Empfänger:innen bleiben verbunden, bis die Konfiguration gelöscht wird.",
         "revoked": "Teilen beendet.",
-        "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen."
+        "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
+        "copyLinkHint": "Kopiert die Adresse dieser Ansicht — inklusive Holotisch und ungespeicherter Änderungen an den Hardpoints.",
+        "unsavedHint": "{{n}} ungespeicherte Änderung(en) stecken nur im kopierten Link, nicht im Hangar-Link.",
+        "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
+        "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
+        "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung."
       }
     },
     "empty": {

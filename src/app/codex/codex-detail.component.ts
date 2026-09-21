@@ -1212,6 +1212,7 @@ interface GearRecipe {
             (hangarOpen)="onHangarPickerOpen()"
             [allKpiCells]="allKpiCells()"
             [heroArt]="heroArt()"
+            [previewSilhouette]="previewSilhouetteUrl()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="openSwapPicker($event)"
@@ -1224,6 +1225,9 @@ interface GearRecipe {
             (discardDraft)="discardLoadoutDraft()"
             (configRefreshed)="activeHangarConfig.set($event)"
             (sheetChange)="powerSheet.set($event)"
+            (artAvailable)="onArtAvailable($event)"
+            (arrivedShip)="onHoloArrived($event)"
+            [linkCopied]="linkCopied()"
             (copyShareLink)="copyShareLink()">
             <!-- Details drawer content — reused verbatim via content
                  projection, so the ship-link form, edition/skin pickers,
@@ -2090,7 +2094,7 @@ export class CodexDetailComponent implements OnInit {
   /** Wave 2 arrival animation: cut to "already arrived" on a repeat visit
    * within the same tab session (concept: "repeat visit in the session =
    * cut only"). */
-  private readonly holoSeenShips = new Set<string>();
+  private readonly holoSeenShips = signal<ReadonlySet<string>>(new Set<string>());
 
   private initHoloView(className: string): void {
     const fromUrl = this.route.snapshot.queryParamMap.get('view');
@@ -2104,8 +2108,27 @@ export class CodexDetailComponent implements OnInit {
       } catch {
         this.holoView.set(false);
       }
+      // The stored preference is mirrored INTO the url (wave 5 A1.2): what
+      // the visitor sees is what "Link kopieren" hands on — a recipient with
+      // no stored preference must land in the same view.
+      if (this.holoView()) {
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { view: 'holo' },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      }
     }
-    if (this.holoView()) this.holoSeenShips.add(className);
+    // "Seen this session" is recorded by the stage once its arrival played
+    // (`onHoloArrived`) — never here, or the arrival would be cut on the very
+    // first visit (wave 5 A3.1).
+  }
+
+  /** The Holotable finished its arrival for `slug` — a return visit within
+   * this tab session cuts straight to the table. */
+  onHoloArrived(slug: string): void {
+    this.holoSeenShips.update((seen) => new Set(seen).add(slug));
   }
 
   /** Wave 2.5 (item 8/slot: hangar-tab + top-3): this user's OTHER hangar
@@ -2172,9 +2195,15 @@ export class CodexDetailComponent implements OnInit {
 
   private async loadActiveHangarConfig(classNameSlug: string): Promise<void> {
     if (!this.auth.user()) return;
+    // The hangar list is what answers "is this ship mine?" — on a deep link
+    // it is still loading here, so wait for it or the share popover never
+    // sees the config (wave 5 A1.3).
+    if (this.hangar.ships().length === 0) await this.hangar.loadAll();
+    if (this.detail()?.classNameSlug !== classNameSlug) return;
     const ship = this.hangar.shipByClassName(classNameSlug);
     if (!ship) return;
     const configs = await this.hangar.listConfigs(ship.id);
+    if (this.detail()?.classNameSlug !== classNameSlug) return;
     this.activeHangarConfig.set(configs.find((c) => c.isActive) ?? configs[0] ?? null);
   }
 
@@ -2192,13 +2221,11 @@ export class CodexDetailComponent implements OnInit {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
-    const cls = this.detail()?.classNameSlug;
-    if (next && cls) this.holoSeenShips.add(cls);
   }
 
   readonly holoSeenThisSession = computed(() => {
     const cls = this.detail()?.classNameSlug;
-    return !!cls && this.holoSeenShips.has(cls);
+    return !!cls && this.holoSeenShips().has(cls);
   });
 
   /** `prefers-reduced-motion` = hard cut, no arrival transformation, no
@@ -2789,6 +2816,13 @@ export class CodexDetailComponent implements OnInit {
     return out;
   });
 
+  /** The game's flat top-down vehicle icon for the Holotable's default silhouette (null = none in this extract). */
+  readonly previewSilhouetteUrl = computed<string | null>(() => {
+    const d = this.detail();
+    if (!d || d.kind !== 'ship') return null;
+    return this.svc.previewUrl((d.payload as BaseEntityPayload | undefined)?.previewImage);
+  });
+
   /**
    * Lookup key into the RSI art map. Must be the denormalized `name_localized`
    * — the very column the edge function keys `gameShipArt` by — so no second
@@ -2839,7 +2873,11 @@ export class CodexDetailComponent implements OnInit {
   /** HangarPicker `pick` (N4/M6): switch to the picked hull and record it as recently chosen. */
   onShipPickerPick(classNameSlug: string): void {
     this.hangar.markShipPicked(classNameSlug);
-    void this.router.navigate(['/codex', 'ship', classNameSlug]);
+    // Stay in the view the user is in (wave 5 A1.2): a pick from the
+    // Holotable's dock lands on the next hull's Holotable.
+    void this.router.navigate(['/codex', 'ship', classNameSlug], {
+      queryParams: this.holoView() ? { view: 'holo' } : {},
+    });
   }
 
   /** HangarPicker `open` — neither the classic hero nor the Holotable dock has
@@ -3176,6 +3214,9 @@ export class CodexDetailComponent implements OnInit {
         return;
       }
       this.savedPaths.set(new Set(this.saveableEntries().map((e) => e.portName)));
+      // The share popover snapshots `activeHangarConfig` — hand it the config
+      // that was just written, not the one loaded at page open (wave 5 A1.4).
+      this.activeHangarConfig.set(updated);
     } catch {
       this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
     } finally {
@@ -3270,6 +3311,9 @@ export class CodexDetailComponent implements OnInit {
     for (const [path, value] of restored.draft) {
       if (value && !restored.unresolvable.includes(path)) void this.hydrateDraftClass(value);
     }
+    // A draft that came back from localStorage is mirrored into the url so
+    // "Link kopieren" carries what the table shows (wave 5 A1.2).
+    if (!fromUrl) this.persistDraftMirror();
   }
 
   // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────

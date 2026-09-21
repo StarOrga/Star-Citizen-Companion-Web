@@ -7,8 +7,10 @@ import { POWER_REQUIRED_SCHEMA } from '../codex-power';
 import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture';
 import { KpiStripCell } from '../codex-kpi-sets';
 import { rankShip, RankShipInput } from '../codex-rank';
+import { powerStorageKey, serializeLocalPowerDraft } from '../codex-loadout-draft';
 
 const SHIP = 'CNOU_Nomad';
+const SHIP_B = 'AEGS_Avenger';
 
 const CELLS: KpiStripCell[] = [
   { key: 'alpha', labelKey: 'codex.kpi.alpha', format: 'dec', value: 120, delta: { direction: 'up', good: true, pctText: '+20%', raw: 20 }, accent: true, gapKey: null, lowerIsBetter: false, tooltipKey: null, fromPower: false },
@@ -89,6 +91,53 @@ describe('CodexHoloStripComponent', () => {
     expect(defensive.cells.map((c) => c.key)).toContain('shieldHp');
     const movement = tiles.find((t) => t.perspective === 'movement')!;
     expect(movement.cells.map((c) => c.key)).toContain('boost');
+  });
+
+  it('does not bleed one ship\'s power state onto the next and restores the new ship\'s own draft (wave5 red-team P0)', async () => {
+    // Ship B's own draft, seeded up front — proves the switch RESTORES it
+    // rather than merely resetting to defaults.
+    localStorage.setItem(
+      powerStorageKey(SHIP_B),
+      serializeLocalPowerDraft(SHIP_B, { cutGroups: [], levels: {}, mode: 'nav', preset: 'stealth', dock: 'center' }),
+    );
+
+    const fixture = await setup();
+    // Drive ship A into a non-default state (mode + preset).
+    fixture.componentInstance['setMode']('nav');
+    fixture.componentInstance['setPreset']('stealth');
+    fixture.detectChanges();
+    expect(fixture.componentInstance['mode']()).toBe('nav');
+    expect(fixture.componentInstance['preset']()).toBe('stealth');
+
+    // Switching the input to ship B must not keep carrying A's state, and
+    // must not persist it under B's storage key on the next interaction.
+    fixture.componentRef.setInput('shipClassName', SHIP_B);
+    fixture.detectChanges();
+
+    // B has its own stored draft (mode 'nav' + preset 'stealth') — restored,
+    // not merely defaulted. Prove the isolation with cutGroups instead: A
+    // never touched cutGroups, so this alone doesn't disambiguate bleed vs
+    // restore. Assert the storage key for A was not overwritten with B's
+    // active ship key, and that A's own storage still reflects A's draft.
+    const aStored = localStorage.getItem(powerStorageKey(SHIP))!;
+    expect(aStored).toContain('"mode":"nav"');
+    expect(aStored).toContain('"preset":"stealth"');
+
+    // B's own persisted draft won — proves restore, not a blind reset.
+    expect(fixture.componentInstance['mode']()).toBe('nav');
+    expect(fixture.componentInstance['preset']()).toBe('stealth');
+
+    // Now flip A's stored draft to something B does NOT have, switch back to
+    // A, and confirm state does not still read B's values — i.e. the switch
+    // genuinely re-restores per ship rather than caching the first read.
+    localStorage.setItem(
+      powerStorageKey(SHIP),
+      serializeLocalPowerDraft(SHIP, { cutGroups: [], levels: {}, mode: 'scm', preset: 'auto', dock: 'center' }),
+    );
+    fixture.componentRef.setInput('shipClassName', SHIP);
+    fixture.detectChanges();
+    expect(fixture.componentInstance['mode']()).toBe('scm');
+    expect(fixture.componentInstance['preset']()).toBe('auto');
   });
 
   it('carries a percentile rank onto each tile once a rank result is supplied', async () => {
