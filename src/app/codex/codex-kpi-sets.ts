@@ -6,7 +6,7 @@
 // better-when-lower, which carry an ⓘ tooltip, and how the energy dock rewrites
 // the sheet before the cells are built.
 
-import { computeKpiDelta, KpiCell, KpiSheet, buildKpiCells, kpiLowerIsBetter } from './codex-loadout-stats';
+import { computeKpiDelta, KpiCell, KpiSheet, buildKpiCellsForKeys, kpiLowerIsBetter } from './codex-loadout-stats';
 import type { KpiDelta } from './codex-loadout-stats';
 import { KpiKey, MissionDef, MissionId, missionById } from './codex-mission';
 import type { PowerSheet } from './codex-power';
@@ -85,9 +85,19 @@ export function buildKpiStrip(
   current: KpiSheet,
   power?: PowerSheet | null,
 ): KpiStripCell[] {
+  return buildKpiStripForKeys(mission.kpis, factory, current, power);
+}
+
+/** `buildKpiStrip` for an explicit key list (the Holotable reads all keys). */
+export function buildKpiStripForKeys(
+  keys: readonly KpiKey[],
+  factory: KpiSheet,
+  current: KpiSheet,
+  power?: PowerSheet | null,
+): KpiStripCell[] {
   const effective = applyPowerEffects(current, power);
   const changedByPower = effective !== current;
-  return buildKpiCells(mission, factory, effective).map((cell) => ({
+  return buildKpiCellsForKeys(keys, factory, effective).map((cell) => ({
     ...cell,
     lowerIsBetter: kpiLowerIsBetter(cell.key),
     tooltipKey: kpiTooltipKey(cell.key),

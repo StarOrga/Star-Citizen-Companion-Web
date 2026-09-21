@@ -1540,6 +1540,14 @@ export class CodexLandingComponent implements OnInit {
     // navigates to this same route, so a snapshot read would only ever apply
     // the first one.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
+      // `?q=` seeds the Archive Terminal — the Holotable's top-bar search
+      // hands its term over here ("durchgezogen wie auf der Codex-Startseite").
+      const term = q.get('q');
+      if (term != null && term !== this.searchInput()) {
+        if (this.searchTimer) clearTimeout(this.searchTimer);
+        this.searchInput.set(term);
+        this.searchTerm.set(term);
+      }
       const zone = q.get('zone');
       if (zone === 'board' || zone === 'hangar') this.openZone.set(zone);
       const set = q.get('set');

@@ -218,4 +218,32 @@ describe('CodexDetailComponent — Holotable view toggle (Wave 2, item A)', () =
     expect(el.querySelector('sc-codex-holo-stage')).toBeTruthy();
     expect(el.querySelector('.m-top')).toBeFalsy();
   });
+
+  // The strip owns the energy state in the Holotable (concept round 10:
+  // energy lives in the strip's expanded panel) — a second sticky dock
+  // stacked on the strip is exactly the overlap the review found.
+  it('mounts the energy dock in the classic view', async () => {
+    const classic = await setup({ view: 'classic' });
+    classic.detectChanges();
+    expect((classic.nativeElement as HTMLElement).querySelector('sc-codex-energy-dock')).toBeTruthy();
+  });
+
+  it('the Holotable renders the strip and NO energy dock — the strip owns energy', async () => {
+    const holo = await setup({ view: 'holo' });
+    holo.detectChanges();
+    const el: HTMLElement = holo.nativeElement;
+    expect(el.querySelector('sc-codex-energy-dock')).toBeFalsy();
+    expect(el.querySelector('sc-codex-holo-strip')).toBeTruthy();
+  });
+
+  // Every sheet key reaches the stage, not only the six of the active Einsatz
+  // — otherwise "Bewegung"/"Signatur" render empty on a combat Einsatz.
+  it('hands the stage every KPI key as a cell (allKpiCells), beyond the Einsatz band', async () => {
+    const fixture = await setup({ view: 'holo' });
+    fixture.detectChanges();
+    const keys = fixture.componentInstance.allKpiCells().map((c) => c.key);
+    expect(keys).toContain('boost');
+    expect(keys).toContain('ir');
+    expect(keys.length).toBeGreaterThan(fixture.componentInstance.kpiCells().length);
+  });
 });

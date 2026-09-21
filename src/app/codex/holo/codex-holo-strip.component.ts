@@ -27,6 +27,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ICON_PATHS } from '../codex-category-icon.component';
 import { PERSPECTIVE_KPIS, Perspective } from '../codex-build-compare';
 import { formatNumber } from '../codex-format';
+import { formatEquippedStat } from '../codex-equipped-stats';
 import { KpiStripCell } from '../codex-kpi-sets';
 import {
   DEFAULT_POWER_DRAFT,
@@ -79,6 +80,15 @@ const SIGNATURE_RANK_KEYS: readonly ('ir' | 'crossSection')[] = ['ir', 'crossSec
 
 const PERSPECTIVE_TILES: readonly Perspective[] = ['offensive', 'defensive', 'movement'];
 
+/** Cell order inside a strip tile — the headline first (concept round 10:
+ * Alpha · Salve · Dauer | Schild-HP · Regen | Boost · SCM). */
+const STRIP_TILE_ORDER: Readonly<Record<Perspective, readonly string[]>> = {
+  offensive: ['alpha', 'burstDps', 'sustainedDps', 'missiles'],
+  defensive: ['shieldHp', 'shieldRegen', 'hullHp', 'effectiveHp', 'armorHp'],
+  movement: ['boost', 'scm', 'maxSpeed', 'agility', 'quantumRange', 'quantumSpeed', 'spool', 'mass', 'cargo'],
+  signature: ['ir', 'emMax', 'crossSection', 'emIdle'],
+};
+
 interface PerspectiveTile {
   perspective: Perspective;
   labelKey: string;
@@ -98,12 +108,9 @@ let uidSeq = 0;
       <div class="hs-row">
         <div class="seg einsatz">
           <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}</span>
-          <span class="val">{{ activeMissionLabel() | translate }}</span>
+          <span class="val">◈ {{ activeMissionLabel() | translate }}</span>
           @if (rankResult(); as r) {
-            <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: r.cohortSize } }}</span>
-            @if (r.overall != null) {
-              <span class="pct pulse">{{ r.overall }}%</span>
-            }
+            <span class="sub">{{ 'codex.holo.strip.shipCount' | translate: { n: r.cohortSize } }}@if (r.overall != null) { · <span class="pct pulse">P{{ roundPct(r.overall) }}</span> }</span>
           } @else if (rankCohortLoading()) {
             <span class="sub gapv">{{ 'codex.kpi.gap' | translate }}</span>
           }
@@ -112,16 +119,13 @@ let uidSeq = 0;
         <span class="arrow" aria-hidden="true">→</span>
 
         @for (tile of perspectiveTiles(); track tile.perspective) {
-          <div class="seg tile">
-            <span class="lab">{{ tile.labelKey | translate }}</span>
-            @if (tile.percentile != null) {
-              <span class="pct">{{ tile.percentile }}%</span>
-            }
+          <div class="seg tile" [attr.data-p]="tile.perspective">
+            <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span>@if (tile.percentile != null) { <span class="pct">P{{ tile.percentile }}</span> }</span>
             <div class="tile-vals">
               @for (c of tile.cells; track c.key) {
                 <span class="tv">
-                  <span class="k">{{ c.labelKey | translate }}</span>
-                  <span class="v pulse">{{ c.value != null ? fmt(c.value) : '—' }}</span>
+                  <span class="k">{{ ('codex.kpi.short.' + c.key) | translate }}</span>
+                  <span class="v pulse">{{ fmtCell(c) }}</span>
                   @if (deltaTone(c); as tone) {
                     <span class="d" [class.up]="tone === 'up'" [class.down]="tone === 'down'"
                       >{{ c.delta!.raw > 0 ? '+' : '−' }}{{ fmt(absDelta(c)) }}</span
@@ -135,8 +139,8 @@ let uidSeq = 0;
 
         <span class="joint" aria-hidden="true"></span>
 
-        <div class="seg sig">
-          <span class="lab">{{ 'codex.holo.strip.signature' | translate }}</span>
+        <div class="seg sig" data-p="signature">
+          <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span>@if (signaturePercentile(); as p) { <span class="pct">P{{ p }}</span> }</span>
           <span class="rankpips" [attr.aria-label]="'codex.holo.strip.signatureRank' | translate: { n: signatureRankFill() }">
             @for (n of pipFive; track n) {
               <i [class.on]="n <= signatureRankFill()"></i>
@@ -185,18 +189,17 @@ let uidSeq = 0;
           <div class="hp-modes">
             <div class="seg-pick" role="radiogroup" [attr.aria-label]="'codex.energy.mode.label' | translate">
               @for (m of modes; track m) {
-                <button type="button" [class.on]="mode() === m" role="radio" [attr.aria-checked]="mode() === m" (click)="setMode(m)">
+                <button type="button" class="m" [class.on]="mode() === m" role="radio" [attr.aria-checked]="mode() === m" (click)="setMode(m)">
                   {{ ('codex.energy.mode.' + m) | translate }}
                 </button>
               }
             </div>
-            <button type="button" class="preset" [class.on]="preset() === 'stealth'" (click)="setPreset('stealth')">
-              {{ 'codex.holo.strip.stealthPreset' | translate }}
+            <button type="button" class="m preset" [class.on]="preset() === 'stealth'" (click)="setPreset('stealth')">
+              {{ 'codex.holo.strip.stealthPreset' | translate }}<small>{{ 'codex.holo.strip.presetTag' | translate }}</small>
             </button>
-            <button type="button" class="preset" [class.on]="preset() === 'auto'" (click)="setPreset('auto')">
+            <button type="button" class="m preset" [class.on]="preset() === 'auto'" (click)="setPreset('auto')">
               {{ 'codex.energy.preset.auto' | translate }}
             </button>
-            <button type="button" class="preset" (click)="reset()">{{ 'codex.energy.preset.reset' | translate }}</button>
           </div>
 
           @if (sheet().available) {
@@ -246,82 +249,112 @@ let uidSeq = 0;
             <p class="gapv">{{ 'codex.energy.gap.noReactorData' | translate }}</p>
           }
 
-          <div class="hp-cooling tipw">
-            <span class="k">{{ 'codex.holo.strip.cooling' | translate }}</span>
-            @if (sheet().coolant.percent !== null) {
-              <div class="t" [class.over]="sheet().coolant.percent! > 100">
-                <div class="fill" [style.width.%]="minPct(sheet().coolant.percent)"></div>
+          <div class="hp-right">
+            <div class="hp-cooling tipw">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="tr" cx="32" cy="32" r="26" />
+                @if (sheet().coolant.percent !== null) {
+                  <circle class="va" [class.over]="sheet().coolant.percent! > 100" cx="32" cy="32" r="26" [attr.stroke-dasharray]="coolDash(sheet().coolant.percent!)" />
+                }
+                <text class="p" x="32" y="31">{{ sheet().coolant.percent !== null ? sheet().coolant.percent + ' %' : '—' }}</text>
+                <text class="l" x="32" y="42">{{ 'codex.holo.strip.cooling' | translate }}</text>
+              </svg>
+              <div class="hp-cool-txt">
+                @if (sheet().coolant.used != null) {
+                  <span class="v">{{ 'codex.holo.strip.coolingValue' | translate: { used: sheet().coolant.used, total: sheet().coolant.total } }}</span>
+                  <span class="k">{{ 'codex.holo.strip.cooling' | translate }}</span>
+                } @else {
+                  <span class="gapv">{{ 'codex.energy.gap.noCoolingData' | translate }}</span>
+                }
               </div>
-              <span class="v">{{ 'codex.energy.coolingPercent' | translate: { pct: sheet().coolant.percent } }}</span>
-            } @else {
-              <span class="gapv">{{ 'codex.energy.gap.noCoolingData' | translate }}</span>
-            }
-          </div>
+            </div>
 
-          <div class="hp-summary">
+            <div class="hp-summary">
+              @if (sheet().available) {
+                <span class="v">{{ sheet().budgetUsed }}&nbsp;/&nbsp;{{ sheet().budgetTotal }} <small>{{ 'codex.energy.unit.segments' | translate }}</small></span>
+                <span class="ok" [class.no]="!sheet().ready" [attr.title]="(sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate">
+                  {{ sheet().ready ? '✓' : '✕' }} {{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}
+                </span>
+              } @else {
+                <span class="gapv">—</span>
+              }
+              <span class="mode">{{ ('codex.energy.mode.' + mode()) | translate }}</span>
+              <button type="button" class="m reset" (click)="reset()">{{ 'codex.energy.preset.reset' | translate }}</button>
+            </div>
             @if (sheet().available) {
-              <span class="v">{{ sheet().budgetUsed }}&nbsp;/&nbsp;{{ sheet().budgetTotal }} {{ 'codex.energy.unit.segments' | translate }}</span>
-              <span class="ok" [class.no]="!sheet().ready" [attr.title]="(sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate">
-                {{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}
-              </span>
-            } @else {
-              <span class="gapv">—</span>
+              <p class="draft-note">{{ 'codex.energy.draftNote' | translate }}</p>
             }
-            <span class="mode">{{ ('codex.energy.mode.' + mode()) | translate }}</span>
           </div>
-          @if (sheet().available) {
-            <p class="draft-note">{{ 'codex.energy.draftNote' | translate }}</p>
-          }
         </div>
       }
     </div>
   `,
   styles: [
     `
-      :host { display: block; position: sticky; inset-block-end: 0; z-index: 14; }
+      :host { display: block; position: sticky; inset-block-end: 0; z-index: 14;
+        --hs-mono: var(--font-monospace, 'Share Tech Mono', monospace);
+        --p-offensive: var(--sc-accent);
+        --p-defensive: var(--cat-game, #c07888);
+        --p-movement: var(--sc-success);
+        --p-signature: var(--accent-gold, #c8a84b); }
       .holo-strip {
-        background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
+        background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
+        backdrop-filter: blur(6px);
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0));
+        border-block-end: 0;
         border-radius: 4px 4px 0 0;
-        box-shadow: 0 14px 40px rgb(0 0 0 / 0.6);
+        box-shadow: 0 -10px 30px rgb(0 0 0 / 0.5);
         color: var(--sc-fg-0);
         font-size: max(12px, var(--sc-fs-floor));
       }
-      .hs-row { display: flex; align-items: stretch; gap: 8px; padding: 6px 10px; overflow-x: auto; }
-      .seg { display: flex; flex-direction: column; gap: 2px; padding: 2px 8px; min-width: 0; flex: none; }
-      .seg .lab { font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-fg-2); }
-      .einsatz .val { font-family: var(--sc-font-display); font-size: 13px; }
-      .einsatz .sub { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-      .pct { font-variant-numeric: tabular-nums; color: var(--sc-accent); }
-      .arrow { align-self: center; color: var(--sc-fg-2); flex: none; }
-      .tile-vals { display: flex; gap: 8px; flex-wrap: wrap; }
-      .tv { display: flex; align-items: baseline; gap: 3px; }
-      .tv .k { font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; }
-      .tv .v { font-variant-numeric: tabular-nums; font-size: 12.5px; }
-      .d { font-size: max(10px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
+      .hs-row { display: flex; align-items: stretch; gap: 0; padding: 0; overflow-x: auto; min-block-size: 62px; }
+      .seg { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 7px 10px; min-width: 0; flex: none;
+        border-inline-end: 1px solid var(--sc-border); border-block-start: 2px solid transparent; }
+      .seg[data-p="offensive"] { border-block-start-color: var(--p-offensive); }
+      .seg[data-p="defensive"] { border-block-start-color: var(--p-defensive); }
+      .seg[data-p="movement"] { border-block-start-color: var(--p-movement); }
+      .seg[data-p="signature"] { border-block-start-color: var(--p-signature); }
+      .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor));
+        letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
+      .einsatz { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); min-inline-size: 132px; }
+      .einsatz .val { font-family: var(--sc-font-display); font-size: max(11.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
+      .einsatz .sub { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .pct { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; color: var(--sc-fg-1); letter-spacing: 0; font-size: max(9.5px, var(--sc-fs-floor)); }
+      .seg[data-p="offensive"] .pct { color: var(--p-offensive); }
+      .seg[data-p="defensive"] .pct { color: var(--p-defensive); }
+      .seg[data-p="movement"] .pct { color: var(--p-movement); }
+      .seg[data-p="signature"] .pct { color: var(--p-signature); }
+      .arrow { align-self: center; color: var(--sc-fg-2); flex: none; padding: 0 6px; }
+      .tile-vals { display: flex; gap: 10px; flex-wrap: nowrap; }
+      .tv { display: flex; flex-direction: column; gap: 1px; }
+      .tv .k { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; }
+      .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap; }
+      .d { font-family: var(--hs-mono); font-size: max(9.5px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
       .d.up { color: var(--sc-success); }
       .d.down { color: var(--sc-danger); }
       /* the ring joint on the colour bridge — no label (concept it.8). */
-      .joint { align-self: center; inline-size: 14px; block-size: 14px; border-radius: 50%;
-        border: 2px solid var(--sc-accent); flex: none;
-        background: radial-gradient(circle, color-mix(in srgb, var(--sc-accent) 30%, transparent), transparent 70%); }
-      .sig { flex-direction: row; align-items: center; gap: 10px; }
+      .joint { align-self: center; inline-size: 16px; block-size: 16px; border-radius: 50%; margin-inline: 6px;
+        border: 2px solid var(--p-signature); flex: none;
+        background: radial-gradient(circle, color-mix(in srgb, var(--p-signature) 35%, transparent), transparent 70%);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--p-signature) 45%, transparent); }
+      .sig { flex-direction: row; align-items: center; gap: 10px; flex: 0 1 auto; }
       .sig .lab { align-self: center; }
       .rankpips { display: inline-flex; gap: 2px; align-self: center; }
       .rankpips i { display: block; inline-size: 4px; block-size: 10px; border-radius: 1px;
         background: color-mix(in srgb, var(--sc-fg-2) 25%, transparent); font-style: normal; }
-      .rankpips i.on { background: var(--sc-accent); }
-      .fact { display: flex; flex-direction: column; gap: 0; align-items: flex-start; }
-      .fact .v { font-variant-numeric: tabular-nums; font-size: 12.5px; }
-      .fact .v small { color: var(--sc-fg-2); margin-inline-start: 2px; }
-      .tip-trigger { border: none; background: transparent; padding: 0; margin: 0; font: inherit; cursor: help;
-        font-size: max(9px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.1em; }
+      .rankpips i.on { background: var(--p-signature); }
+      .fact { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
+      .fact .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; white-space: nowrap; }
+      .fact .v small { color: var(--sc-fg-2); margin-inline-start: 3px; font-size: 10px; }
+      .tip-trigger { border: none; background: transparent; padding: 0; margin: 0; font: inherit; cursor: help; font-family: var(--sc-font-display);
+        font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; }
       .hs-toggle {
-        align-self: center; margin-inline-start: auto; flex: none;
-        min-inline-size: var(--sc-tap-min); min-block-size: var(--sc-tap-min);
-        border: 1px solid var(--sc-border); border-radius: 4px; background: transparent;
-        color: var(--sc-fg-1); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        align-self: stretch; margin-inline-start: auto; flex: none;
+        min-inline-size: var(--sc-tap-min, 44px); min-block-size: var(--sc-tap-min);
+        border: none; border-inline-start: 1px solid var(--sc-border); background: transparent;
+        color: var(--sc-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;
       }
+      .hs-toggle:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       .tipw { position: relative; }
       .tipbox { display: block; visibility: hidden; opacity: 0; transition: opacity 0.12s ease;
@@ -332,18 +365,21 @@ let uidSeq = 0;
       .tipw:hover .tipbox, .tipw:focus-within .tipbox { visibility: visible; opacity: 1; }
       .gapv { color: var(--sc-fg-2); }
 
+      /* Expanded: modes | pips | cooling (concept round 6 "Energie-Zeile":
+         Modi links, Pips Mitte, Kühlung rechts — one instrument, one row). */
       .hs-panel { border-block-start: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
-        padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
-      .hp-modes { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-      .seg-pick, .preset { border: 1px solid var(--sc-border); border-radius: 4px; }
-      .seg-pick { display: inline-flex; overflow: hidden; }
-      .seg-pick button, .preset {
-        border: none; background: transparent; color: var(--sc-fg-1); padding: 4px 10px;
-        min-block-size: var(--sc-tap-min); cursor: pointer; font-size: max(11px, var(--sc-fs-floor));
-      }
-      .seg-pick button + button { border-inline-start: 1px solid var(--sc-border); }
-      .seg-pick button.on, .preset.on { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
-      .hp-pips { display: flex; flex-wrap: wrap; gap: 6px; --pip-h: 9px; --pip-gap: 2px; --pip-w: 20px; --pips: 1; }
+        padding: 12px 14px; display: grid; grid-template-columns: 180px 1fr 250px; gap: 22px; align-items: center; }
+      .hp-modes { display: grid; gap: 6px; padding-inline-end: 22px; border-inline-end: 1px solid var(--sc-border); }
+      .seg-pick { display: grid; gap: 6px; }
+      .m { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--sc-border); border-radius: 3px;
+        background: transparent; color: var(--sc-fg-1); padding: 5px 10px; min-block-size: var(--sc-tap-min, 30px); cursor: pointer;
+        font-family: var(--sc-font-display); font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; text-align: start; }
+      .m small { font-family: var(--hs-mono); letter-spacing: 0; text-transform: none; font-size: 9px; color: var(--sc-fg-2); }
+      .m.on { color: var(--sc-accent); border-color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 12%, transparent); }
+      .m.preset { border-style: dashed; border-color: rgba(var(--accent-gold-rgb, 200, 168, 75), 0.5); color: var(--p-signature); }
+      .m.preset.on { background: rgba(var(--accent-gold-rgb, 200, 168, 75), 0.12); border-style: solid; border-color: var(--p-signature); }
+      .m.reset { justify-content: center; padding: 3px 8px; min-block-size: 26px; font-size: max(8.5px, var(--sc-fs-floor)); }
+      .hp-pips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; --pip-h: 9px; --pip-gap: 2px; --pip-w: 22px; --pips: 1; }
       .hp-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
       .stack { display: flex; flex-direction: column-reverse; gap: var(--pip-gap);
         block-size: calc(var(--pips) * var(--pip-h) + (var(--pips) - 1) * var(--pip-gap)); min-block-size: 30px; }
@@ -358,25 +394,58 @@ let uidSeq = 0;
         display: inline-flex; align-items: center; justify-content: center; }
       .hp-col.act .grp-btn { color: var(--sc-accent); }
       .ico { width: 16px; height: 16px; }
-      .hp-cooling { display: flex; align-items: center; gap: 8px; }
-      .hp-cooling .t { inline-size: 120px; block-size: 4px; border-radius: 2px;
-        background: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); overflow: hidden; }
-      .hp-cooling .fill { block-size: 100%; background: var(--sc-warn); }
-      .hp-cooling .t.over .fill { background: var(--sc-danger); }
-      .hp-summary { display: flex; gap: 10px; align-items: center; font-variant-numeric: tabular-nums; color: var(--sc-fg-1); }
-      .hp-summary .mode { text-transform: uppercase; letter-spacing: 0.1em; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .hp-right { display: grid; gap: 6px; padding-inline-start: 22px; border-inline-start: 1px solid var(--sc-border); }
+      .hp-cooling { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
+      .hp-cooling svg { width: 64px; height: 64px; display: block; }
+      .hp-cooling .tr { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); stroke-width: 7; }
+      .hp-cooling .va { fill: none; stroke: var(--sc-accent); stroke-width: 7; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+      .hp-cooling .va.over { stroke: var(--sc-danger); }
+      .hp-cooling text { font-family: var(--hs-mono); font-size: 12px; fill: var(--sc-fg-0); text-anchor: middle; }
+      .hp-cooling text.l { font-family: var(--sc-font-display); font-size: 5.5px; letter-spacing: 0.12em; fill: var(--sc-fg-2); text-transform: uppercase; }
+      .hp-cool-txt { display: grid; gap: 1px; }
+      .hp-cool-txt .v { font-family: var(--hs-mono); font-size: 14px; color: var(--sc-fg-0); }
+      .hp-cool-txt .k { font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .hp-summary { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-variant-numeric: tabular-nums; color: var(--sc-fg-1); }
+      .hp-summary .v { font-family: var(--hs-mono); font-size: 13px; color: var(--sc-fg-0); }
+      .hp-summary .v small { font-size: 10px; color: var(--sc-fg-2); }
+      .hp-summary .mode { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.12em; font-size: max(8.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .hp-summary .ok { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-success, #4caf50); }
       .hp-summary .ok.no { color: var(--sc-danger, #ff5252); }
-      .draft-note { margin: 4px 0 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+      .draft-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+      @media (max-width: 1100px) {
+        .hs-panel { grid-template-columns: 1fr; gap: 12px; }
+        .hp-modes { padding-inline-end: 0; border-inline-end: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .seg-pick { grid-template-columns: 1fr 1fr; grid-column: 1 / -1; }
+        .hp-right { padding-inline-start: 0; border-inline-start: 0; }
+      }
 
       /* concept it.1 fb-ready count-up pulse — reduced away below. */
       .pulse { transition: color 0.4s ease; }
 
+      /* Phone: the sticky KPI row keeps one value per perspective (concept
+         mo5-stack "sticky Kennzahl-Zeile"); the rest lives in the expanded sheet. */
       @media (max-width: 900px) {
-        .tile-vals { display: none; }
+        .tile-vals .tv + .tv { display: none; }
+        .sig .fact + .fact { display: none; }
+        .arrow, .joint { display: none; }
+        .seg { padding: 6px 8px; }
+        .einsatz { min-inline-size: 0; }
+        .einsatz .sub { display: none; }
+        .sig { gap: 8px; }
+        .sig .lab { max-inline-size: 64px; white-space: normal; line-height: 1.15; }
       }
       @media (max-width: 640px) {
         .holo-strip { position: fixed; inset-inline: 0; inset-block-end: 0; border-radius: 0; }
+        .hs-row { min-block-size: 52px; }
+        .seg { padding: 5px 7px; flex: 1 1 0; }
+        .seg .lab .lt { display: none; }
+        .seg .lab { gap: 0; }
+        .tile-vals .tv .k { display: none; }
+        .rankpips { display: none; }
+        .sig .lab { max-inline-size: none; }
+        .tip-trigger { display: none; }
+        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
+        .hs-toggle { min-inline-size: 36px; }
         .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; overflow-y: auto;
           background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
       }
@@ -466,11 +535,24 @@ export class CodexHoloStripComponent {
     const rank = this.rankResult();
     return PERSPECTIVE_TILES.map((perspective) => {
       const keys = new Set(PERSPECTIVE_KPIS[perspective]);
-      const tileCells = cells.filter((c) => keys.has(c.key)).slice(0, 3);
+      const order = STRIP_TILE_ORDER[perspective];
+      const tileCells = cells
+        .filter((c) => keys.has(c.key) && c.value != null)
+        .sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
+        .slice(0, 3);
       const axes = rank ? rank.axes.filter((a) => keys.has(a.key) && a.percentile != null) : [];
       const percentile = axes.length ? Math.round(axes.reduce((s, a) => s + a.percentile!, 0) / axes.length) : null;
       return { perspective, labelKey: `codex.holo.strip.${perspective}`, percentile, cells: tileCells };
     });
+  });
+
+  /** Mean percentile of the signature axes the active rank profile carries. */
+  protected readonly signaturePercentile = computed<number | null>(() => {
+    const rank = this.rankResult();
+    if (!rank) return null;
+    const keys = new Set(PERSPECTIVE_KPIS.signature);
+    const axes = rank.axes.filter((a) => keys.has(a.key) && a.percentile != null);
+    return axes.length ? Math.round(axes.reduce((s, a) => s + a.percentile!, 0) / axes.length) : null;
   });
 
   /** 0..5 pips, from the mean percentile of the two rank axes that overlap
@@ -536,8 +618,12 @@ export class CodexHoloStripComponent {
     this.mode.set(isFlightMode(draft.mode) ? draft.mode : 'scm');
     this.preset.set(draft.preset === 'stealth' ? 'stealth' : 'auto');
 
+    // A remembered "open" never survives onto a phone: the expanded sheet
+    // covers 70vh there (concept mo5: the phone strip opens as a bottom
+    // sheet on demand), so the page must never load with the table hidden.
     const expKey = `${dockPositionStorageKey(this.userId())}:strip-open`;
-    this.expanded.set(this.storageGet(expKey) === 'true');
+    const phone = typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches;
+    this.expanded.set(!phone && this.storageGet(expKey) === 'true');
   }
 
   private currentDraft(): PowerDraftState {
@@ -577,6 +663,15 @@ export class CodexHoloStripComponent {
     return formatNumber(v);
   }
 
+  /** The cell's value with its unit — the SAME formatter the KPI band uses. */
+  protected fmtCell(c: KpiStripCell): string {
+    return c.value == null ? '—' : formatEquippedStat({ labelKey: c.labelKey, value: c.value, format: c.format });
+  }
+
+  protected roundPct(v: number): number {
+    return Math.round(v);
+  }
+
   protected fmtKm(v: number | null | undefined): string {
     if (v === null || v === undefined) return '—';
     return (v / 1000).toFixed(1);
@@ -590,6 +685,13 @@ export class CodexHoloStripComponent {
   protected minPct(pct: number | null): number {
     if (pct === null) return 0;
     return Math.min(100, Math.max(0, pct));
+  }
+
+  /** stroke-dasharray for the r=26 cooling ring. */
+  protected coolDash(pct: number): string {
+    const c = 2 * Math.PI * 26;
+    const on = (this.minPct(pct) / 100) * c;
+    return `${on.toFixed(1)} ${(c - on).toFixed(1)}`;
   }
 
   protected absDelta(c: KpiStripCell): number {
