@@ -608,9 +608,9 @@
       "toggle": {
         "group": "Ansicht",
         "classic": "Klassisch",
-        "classicHint": "Klassische Ansicht (Taste 1)",
+        "classicHint": "Klassische Ansicht",
         "holo": "Holotisch",
-        "holoHint": "Holotisch-Ansicht (Taste 2)"
+        "holoHint": "Holotisch-Ansicht"
       },
       "stage": {
         "railToggle": "Leiste ein-/ausklappen",

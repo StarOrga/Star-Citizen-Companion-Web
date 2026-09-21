@@ -411,7 +411,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                       <small>{{ inspectorMeta(it.slot) }}</small>
                     </div>
                     <button type="button" class="inspector-close" (click)="inspectedPort.set(null)"
-                            [attr.aria-label]="'codex.swap.close' | translate">✕</button>
+                            [attr.aria-label]="'codex.swap.close' | translate"
+                            [title]="('codex.swap.close' | translate) + ' (Esc)'">✕</button>
                   </div>
                   @if (inspectedPort() && patchPortPins()?.[inspectedPort()!]; as pin) {
                     <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->

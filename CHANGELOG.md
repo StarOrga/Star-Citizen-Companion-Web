@@ -4,6 +4,48 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.90.0] - 2026-09-21
+
+### Changed
+
+- **Holotable nach dem Konzept neu gebaut (Runden 4–10).** Die Holotisch-
+  Ansicht der Schiffsseite war eine Funktionsverdrahtung ohne das Design —
+  Wave 3 hatte die Route nie im Browser gesehen. Jetzt: Suche · goldener
+  Hangar-Reiter über dem Tisch · Patch-Trigger mit aktivem Patch; drei
+  Panels in einem Rahmen (Einordnung | Tisch | Inspector, einklappbar,
+  Tablet startet eingeklappt); die Einsatz-Leiste ist der Tisch-Kopf mit
+  einer Kennzahl je Einsatz; Ringe, nummerierte Pins aus den
+  konfigurierbaren Blöcken in Listenreihenfolge (nie aus den Roh-Item-Ports),
+  Raketen gold, Legende, Ziffern-Hotkeys 1–9/0, Esc; Inspector mit den
+  Bauteilen im Mount (Waffe im Gimbal, Raketen im Rack), Änderungsprotokoll +
+  Save-Bar; Ankunft Hero → Tisch (Reduced Motion / Wiederholung = Schnitt).
+- **Unterhalb: ruhige Ports | vier Perspektiven.** `sc-codex-hardpoint-layout
+  [calm]` (keine Boxen, Gruppenlinien, „Detail ▾“ je Gruppe) neben der neuen
+  `sc-codex-holo-perspectives` (große Zahl, Lesesatz mit Perzentil-Band und
+  stärkster/schwächster Achse, Ring-Gauge, Unterwerte, Patch-Δ-Ghosts,
+  Count-up vom zuletzt gesehenen Schiff). Die Einordnung folgt dem Einsatz
+  (`sc-codex-rank-card [holo]`, keine Doppelauswahl; Kohortenwort wechselt
+  den Vergleichsrahmen).
+- **Leiste (Runde 10).** Farbige Rails je Perspektive, P-Chips, Mono-Werte
+  mit Einheit, Gelenk-Ring; aufgeklappt Modi | Pips | Kühl-Ring + Summe;
+  Phone = ein Wert je Perspektive, wird nie geöffnet wiederhergestellt.
+
+### Fixed
+
+- Energie-Dock lag als zweites Sticky-Element über der Leiste — nur noch
+  klassisch. Perspektiven lesen alle Sheet-Keys (`buildKpiStripForKeys`),
+  Bewegung/Signatur waren im Kampf-Einsatz leer und zeigten Rohfloats.
+- Ansichts-Umschalter versprach „Taste 1/2“, die nie gebunden waren (jetzt
+  wählen Ziffern Pins); Inspector-Schließen hat einen Tooltip mit Esc.
+- Codex-Landing nimmt `?q=` für die Terminal-Suche (Holotable-Suchfeld).
+
+### Notes
+
+- `codex_silhouettes` ist noch leer: der Uploader baut Silhouetten VOR der
+  Katalog-Promotion (kein Stall-Watchdog) — Vorschlag in
+  `docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/wave4-fidelity.md`.
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.89.4] - 2026-09-21
 
 ### Changed

@@ -608,9 +608,9 @@
       "toggle": {
         "group": "View",
         "classic": "Classic",
-        "classicHint": "Classic view (key 1)",
+        "classicHint": "Classic view",
         "holo": "Holotable",
-        "holoHint": "Holotable view (key 2)"
+        "holoHint": "Holotable view"
       },
       "stage": {
         "railToggle": "Collapse/expand rail",
