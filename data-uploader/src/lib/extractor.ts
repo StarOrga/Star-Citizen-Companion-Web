@@ -41,7 +41,7 @@ export interface ExtractorEvent {
   fileName?: string;
   bytesProcessed?: number;
   bytesTotal?: number;
-  counter?: { key: string; value: number };
+  counter?: { key: string; value: number; expected?: number };
   message?: string;
   level?: 'info' | 'warn' | 'error';
 }

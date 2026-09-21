@@ -140,6 +140,10 @@ _VEHICLE_COMPONENT = "VehicleComponentParams"
 # (extract.py) owns 0–10 (discover/open/decompress) and 85–100 (validate/
 # bundle); everything the extractor itself does lives in 10–85.
 _PCT_ENTITIES = (15, 55)   # typed catalog projection (ships/weapons/…)
+# Resolve depth for the classification pre-pass: record → Components[] (1) →
+# SAttachableComponentParams.AttachDef (2) → Type scalar. 4 leaves headroom
+# without walking the deep loadout/param graphs the projections need.
+_CLASSIFY_DEPTH = 4
 _PCT_RECORDS = (55, 84)    # exhaustive generic dump
 
 
@@ -202,6 +206,30 @@ def _is_catalog_entity(class_name: str) -> bool:
 def _safe_filename(name: str) -> str:
     keep = "".join(c if (c.isalnum() or c in "._-") else "_" for c in name)
     return keep[:180] or "unnamed"
+
+
+def _classify_entity(filename: str, comps: List[Dict[str, Any]],
+                     attach: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Which typed catalog an entity lands in — ``ships`` / ``weapons`` /
+    ``components`` / ``items`` — or ``None`` for entities without an AttachDef
+    (rooms, AI templates, …), which only the generic dump captures.
+
+    The ONE decision both the planning pre-pass and the projection loop use, so
+    the "expected" totals the UI shows can never drift from what gets written.
+    Order matters and mirrors the historical branch order: vehicle path/
+    component first, then weapons, then the component kinds, then any other
+    attachable."""
+    atype = attach.get("Type") if attach else None
+    if _VEHICLE_ROOT_RE.search(filename) or _find_component(comps, _VEHICLE_COMPONENT) is not None:
+        return "ships"
+    if (atype in _SHIP_WEAPON_TYPES or atype in _FPS_WEAPON_TYPES
+            or _find_component(comps, "SCItemWeaponComponentParams") is not None):
+        return "weapons"
+    if atype in _COMPONENT_KIND:
+        return "components"
+    if attach is not None:
+        return "items"
+    return None
 
 
 def _components_of(resolved: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -340,7 +368,8 @@ class CodexExtractor:
                  on_log: Callable[[str, str], None] = lambda lvl, m: None,
                  on_progress: Callable[..., None] = lambda *a, **k: None,
                  dump_generic: bool = True, p4k=None, extract_assets: bool = True,
-                 workers: int = 1, raw_dcb: Optional[bytes] = None) -> None:
+                 workers: int = 1, raw_dcb: Optional[bytes] = None,
+                 on_expected: Callable[[str, int], None] = lambda k, v: None) -> None:
         self.df = df
         self.loc = localizer
         self.out = out_dir
@@ -353,6 +382,10 @@ class CodexExtractor:
         # memory. None => the parallel path is unavailable and we stay serial.
         self.raw_dcb = raw_dcb
         self.on_count = on_count
+        # "How many of each will there be" — announced once a total is known
+        # (the classification pre-pass for entities, the final value for the
+        # one-shot counters) so the UI can draw real per-category progress.
+        self.on_expected = on_expected
         self.on_log = on_log
         self.on_progress = on_progress
         self.dump_generic = dump_generic
@@ -957,6 +990,8 @@ class CodexExtractor:
         n_offroot = 0
         ents = self.df.records_by_type_name("EntityClassDefinition")
         total = len(ents)
+        for key, n in self.plan_entity_totals(ents).items():
+            self.on_expected(key, n)
         for i, r in enumerate(ents):
             # Filter dev/test scaffolding + NPC/derelict/world variants out of the
             # typed catalogs (ships/weapons/components/items) up front — same rule
@@ -970,33 +1005,31 @@ class CodexExtractor:
             comps = _components_of(resolved)
             attach = _attach_def(comps)
             atype = attach.get("Type") if attach else None
-            # Path first (cheap, covers 99%), then the component signal for a
-            # vehicle filed outside the known roots. See _VEHICLE_ROOT_RE.
-            is_ship = bool(_VEHICLE_ROOT_RE.search(fn))
-            if not is_ship and _find_component(comps, _VEHICLE_COMPONENT) is not None:
-                is_ship = True
+            kind = _classify_entity(fn, comps, attach)
+            # A vehicle filed outside the known roots only matched through its
+            # component — logged so a directory rename shows up as a number.
+            if kind == "ships" and not _VEHICLE_ROOT_RE.search(fn):
                 n_offroot += 1
 
-            if is_ship:
+            if kind == "ships":
                 obj = self._project_ship(r, resolved, comps, attach)
                 ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_ship += 1
                 self._note_silhouette_candidate("ship", obj["className"], comps)
-            elif atype in _SHIP_WEAPON_TYPES or atype in _FPS_WEAPON_TYPES or \
-                    _find_component(comps, "SCItemWeaponComponentParams"):
+            elif kind == "weapons":
                 obj = self._project_weapon(r, resolved, comps, attach, atype)
                 wpn_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_wpn += 1
                 self._note_silhouette_candidate("weapon", obj["className"], comps)
-            elif atype in _COMPONENT_KIND:
+            elif kind == "components":
                 obj = self._project_component(r, resolved, comps, attach, atype)
                 comp_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_comp += 1
                 self._note_silhouette_candidate("component", obj["className"], comps)
-            elif attach is not None:
+            elif kind == "items":
                 # any other attachable item — generic item projection. Personal
                 # armor/clothing pieces additionally carry a generic stat block
                 # (SCItemSuitArmorParams / SCItemClothingParams via _component_stats).
@@ -1042,6 +1075,36 @@ class CodexExtractor:
         self._bump("components", n_comp)
         self._bump("items", n_item)
         self._bump("skins", self._skins_total)
+
+    # ── planning pre-pass ────────────────────────────────────────────────────
+    def plan_entity_totals(self, ents: List[Record]) -> Dict[str, int]:
+        """Count how many entities each typed catalog WILL receive, before the
+        projection loop starts — the "y" in the UI's "x von y" per category.
+
+        Same catalog filter and the same ``_classify_entity`` as the loop, but
+        resolved only ``_CLASSIFY_DEPTH`` deep (AttachDef.Type + component
+        type names), which is a fraction of the full projection resolve. A
+        record that fails to resolve here is skipped (the loop will report it)
+        rather than aborting the plan; the totals then err low by that record.
+        """
+        expected: Counter = Counter()
+        total = len(ents)
+        for i, r in enumerate(ents):
+            if not _is_catalog_entity(_strip_type_prefix(r.name)):
+                continue
+            try:
+                resolved = self.df.record_to_dict(r, max_depth=_CLASSIFY_DEPTH)
+            except Exception:  # noqa: BLE001 — the projection loop reports it
+                continue
+            comps = _components_of(resolved)
+            kind = _classify_entity(_norm_path(r.filename), comps, _attach_def(comps))
+            if kind:
+                expected[kind] += 1
+            if i % 2000 == 0:
+                self.on_progress("classify", current=i, total=total, pct=_PCT_ENTITIES[0])
+        self.on_log("info", "planned catalog: " + " · ".join(
+            f"{expected.get(k, 0)} {k}" for k in ("ships", "weapons", "components", "items")))
+        return dict(expected)
 
     # ── asset helpers (preview image + dimensions) ─────────────────────────────
     def _display_icon(self, resolved: Dict[str, Any]) -> Optional[str]:
@@ -2257,6 +2320,9 @@ class CodexExtractor:
 
     def _bump(self, key: str, n: int) -> None:
         self.counts[key] = n
+        # A bumped counter is final: its total is now known, so announce it as
+        # the expected value too (idempotent for the pre-planned entity keys).
+        self.on_expected(key, n)
         self.on_count(key, n)
 
 

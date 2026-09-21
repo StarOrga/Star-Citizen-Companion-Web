@@ -189,8 +189,25 @@ def file_progress(
     emit_event("file", **payload)
 
 
+_last_count: Dict[str, int] = {}
+_expected_seen: Dict[str, int] = {}
+
+
 def count(key: str, value: int) -> None:
+    _last_count[key] = value
     emit_event("count", counter={"key": key, "value": value})
+
+
+def expected(key: str, value: int) -> None:
+    """Announce how many items counter ``key`` will reach ("x von y").
+
+    Rides on the ``count`` event so older hosts ignore it: ``value`` is the
+    counter's current level (never lowered by this call), ``expected`` the
+    planned total. Repeats with an unchanged total are dropped."""
+    if _expected_seen.get(key) == value:
+        return
+    _expected_seen[key] = value
+    emit_event("count", counter={"key": key, "value": _last_count.get(key, 0), "expected": value})
 
 
 def warning(message: str) -> None:

@@ -22,18 +22,23 @@ export function wireChevrons(next: ChevronCtx): void {
   nxt?.addEventListener('click', () => ctx?.goNext());
 }
 
-/** Show the chevrons only on install/setup, before any run has started. */
+/**
+ * Chevrons stay on both edges as the flow's position cue; they are only
+ * ENABLED between Install ↔ Setup before a run starts (concept: "ab
+ * Extraktion starten ausgegraut, weil rückwärts dann Abbrechen hieße").
+ */
 export function paintChevrons(step: StepKey, runStarted: boolean): void {
   const prev = document.getElementById('chevron-prev') as HTMLButtonElement | null;
   const nxt = document.getElementById('chevron-next') as HTMLButtonElement | null;
-  const visible = !runStarted && (step === 'install' || step === 'setup');
+  const canPrev = !runStarted && step === 'setup';
+  const canNext = !runStarted && step === 'install';
   if (prev) {
-    prev.hidden = !visible || step === 'install';
-    prev.disabled = !visible || step === 'install';
+    prev.hidden = false;
+    prev.disabled = !canPrev;
   }
   if (nxt) {
-    nxt.hidden = !visible || step === 'setup';
-    nxt.disabled = !visible || step === 'setup';
+    nxt.hidden = false;
+    nxt.disabled = !canNext;
   }
 }
 

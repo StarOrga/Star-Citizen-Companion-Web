@@ -3,6 +3,7 @@
     "back": "Back",
     "next": "Next",
     "cancel": "Cancel",
+    "tempo": "Tempo",
     "ok": "OK",
     "dismiss": "Dismiss"
   },
@@ -51,10 +52,10 @@
   },
   "category": {
     "ships": "Ships",
-    "vehicles": "Vehicles",
     "components": "Components",
     "weapons": "Weapons",
-    "strings": "Text"
+    "items": "Items",
+    "strings": "Strings"
   },
   "done": {
     "title": "Everything uploaded",
@@ -63,6 +64,7 @@
     "countingDown": "Shutting down in {{secs}}s — Esc to cancel."
   },
   "discover": {
+    "pickOne": "Pick an installation first.",
     "title": "Star Citizen found",
     "subtitle": "Searched automatically: RSI launcher → drives. One game version per run.",
     "scan": "Start scan",
@@ -118,6 +120,7 @@
     },
     "stage": {
       "open": "Opening Data.p4k",
+      "classify": "Planning catalog",
       "datacore": "Unpack game data",
       "localization": "Reading translations",
       "reference": "Reference data",

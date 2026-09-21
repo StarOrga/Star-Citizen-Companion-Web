@@ -182,9 +182,20 @@ function paintChannels(): void {
       if (!Number.isInteger(idx)) return;
       state.channels.forEach((c, i) => (c.selected = i === idx));
       mount.querySelectorAll('.channel-card').forEach((el2, i) => el2.classList.toggle('selected', i === idx));
+      syncNextButton();
     });
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
 
   if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
+  syncNextButton();
+}
+
+/** "Weiter" only makes sense with exactly one install picked — say so via the disabled state. */
+function syncNextButton(): void {
+  const next = $('#btn-to-setup') as HTMLButtonElement | null;
+  if (!next) return;
+  const picked = state.channels.some((c) => c.selected);
+  next.disabled = !picked;
+  next.title = picked ? '' : t('discover.pickOne');
 }

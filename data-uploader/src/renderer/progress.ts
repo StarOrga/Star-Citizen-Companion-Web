@@ -106,7 +106,6 @@ export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
   const stepsHtml =
     steps && steps.length
       ? `<div class="sc-progress-steps" id="${id}-steps">` +
-        `<span class="sc-progress-stepcount" id="${id}-stepcount"></span>` +
         steps
           .map(
             (s, i) =>
@@ -143,7 +142,8 @@ export interface MountProgressOptions {
    * step chips. Given the 1-based active step and the total, returns the label.
    * Omit for a bare "2/3". Only rendered when `steps` are present.
    */
-  stepLabel?: (step: number, total: number) => string;
+  /** Fires on every overall-percentage change (drives the shell's step rail). */
+  onOverallPct?: (pct: number) => void;
 }
 
 /** Wire up a card previously rendered via `progressCardHtml(id, ...)`. */
@@ -156,7 +156,6 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   const metaEl = byId('-meta');
   const countersEl = byId('-counters');
   const elapsedEl = byId('-elapsed');
-  const stepCountEl = byId('-stepcount');
   const labelFn = opts.counterLabel ?? ((k: string) => k);
   const steps = opts.steps ?? [];
   const stepEls = steps.map((s) => byId(`-step-${s.key}`));
@@ -220,8 +219,17 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     return { rate, etaSec };
   };
 
+  // The phase head only earns its row when it says MORE than the active step
+  // chip already does ("Codex: codex_ships" yes, "Auslesen" under an active
+  // AUSLESEN chip no) — otherwise the same word would sit there three times.
+  let activeStepLabel = '';
   const renderHeadAndDetail = (): void => {
-    if (phaseEl) phaseEl.textContent = vm.phaseLabel || '…';
+    if (phaseEl) {
+      const label = vm.phaseLabel || '';
+      const redundant = !label || label.trim().toLowerCase() === activeStepLabel.trim().toLowerCase();
+      phaseEl.textContent = label;
+      phaseEl.hidden = redundant;
+    }
     if (typeof vm.overallPct === 'number' && bar) bar.style.width = `${vm.overallPct}%`;
 
     const hasGoal = typeof vm.total === 'number' && vm.total > 0 && typeof vm.current === 'number';
@@ -313,17 +321,8 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
         el.classList.toggle('active', i === idx);
         el.classList.toggle('done', i < idx);
       });
-      // The macro "2/3" — always answers "which of the N stages am I on" at a
-      // glance, even during an otherwise opaque stage (e.g. the bundle POST).
-      // Cleared when idx points past the last step (a "done" sweep), so a
-      // finished run doesn't read as "6/5".
-      if (stepCountEl) {
-        const total = steps.length;
-        stepCountEl.textContent =
-          total > 0 && idx >= 0 && idx < total
-            ? (opts.stepLabel?.(idx + 1, total) ?? `${idx + 1}/${total}`)
-            : '';
-      }
+      activeStepLabel = steps[idx]?.label ?? '';
+      renderHeadAndDetail();
     },
     update(u: ProgressUpdate): void {
       // A phase change invalidates the previous stage's numbers/hint/throughput
@@ -338,7 +337,10 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       }
       if (u.phaseLabel !== undefined) vm.phaseLabel = u.phaseLabel;
       if (u.stageLabel !== undefined) vm.stageLabel = u.stageLabel;
-      if (u.overallPct !== undefined) vm.overallPct = u.overallPct;
+      if (u.overallPct !== undefined) {
+        vm.overallPct = u.overallPct;
+        opts.onOverallPct?.(u.overallPct);
+      }
       if (u.current !== undefined) vm.current = u.current;
       if (u.total !== undefined) vm.total = u.total;
       if (u.detail !== undefined) vm.detail = u.detail;

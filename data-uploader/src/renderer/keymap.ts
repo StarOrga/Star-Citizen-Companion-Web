@@ -19,6 +19,8 @@ export interface KeymapCtx {
   onSpace: () => void;
   /** Ctrl+L — toggle the log drawer. No-op when the Extract step isn't mounted. */
   onToggleLog: () => void;
+  /** T — open/close the tempo (throttle) picker on the Extract/Upload card. */
+  onTempo: () => void;
   /** Ordered Esc handlers — first one that returns true "wins" and stops there. */
   escHandlers: Array<() => boolean>;
   /** True while focus is inside a text-like input, so Enter/Space don't hijack typing. */
@@ -52,6 +54,11 @@ export function installKeymap(ctx: KeymapCtx): void {
     }
     if (e.key === 'Enter') {
       ctx.onEnter();
+      return;
+    }
+    if ((e.key === 't' || e.key === 'T') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      ctx.onTempo();
       return;
     }
     if (e.key === ' ' || e.code === 'Space') {

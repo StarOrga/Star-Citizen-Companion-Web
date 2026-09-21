@@ -22,6 +22,16 @@ export interface StepRailState {
   activePct: number;
 }
 
+/**
+ * Live update of the active node's incoming fill without repainting the rail —
+ * called from the progress card on every overall-percentage change, so the
+ * rail actually moves during a run (a full repaint only happens per view).
+ */
+export function setStepRailFill(pct: number): void {
+  const fill = document.querySelector<HTMLElement>('#step-rail .step-rail-fill');
+  if (fill) fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+}
+
 export function paintStepRail(s: StepRailState): void {
   const mount = document.getElementById('step-rail');
   if (!mount) return;

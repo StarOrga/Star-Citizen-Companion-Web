@@ -148,7 +148,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: '#050810',
+    backgroundColor: '#0d2635', // = --surface-canvas, so resize/launch never flashes a foreign dark
     title: 'Star Citizen Companion - Data Uploader',
     icon: runtimeIcon('icon.png'),
     webPreferences: {

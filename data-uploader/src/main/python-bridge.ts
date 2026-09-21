@@ -70,7 +70,8 @@ export interface PythonExtractEvent {
   fileName?: string;
   bytesProcessed?: number;
   bytesTotal?: number;
-  counter?: { key: string; value: number };
+  // `expected` = planned total for that counter ("x von y"), sent once known.
+  counter?: { key: string; value: number; expected?: number };
   level?: 'info' | 'warn' | 'error';
   message?: string;
   // 'done' event includes a result payload
