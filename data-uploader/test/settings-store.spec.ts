@@ -108,13 +108,15 @@ describe('SettingsStore', () => {
     expect(s.afterAutoRun).toBe('quit');
   });
 
-  it('defaults uploadAfterExtract ON and persists a deliberate opt-out', () => {
+  it('drops a persisted opt-out of the retired uploadAfterExtract toggle', () => {
+    // Upload after a successful extraction is no longer optional; an old
+    // `false` in settings.json must neither survive a load nor a re-save.
     const io = fakeIO();
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', uploadAfterExtract: false } });
     const store = new SettingsStore(io, seqIds());
-    expect(store.load().uploadAfterExtract).toBe(true);
-    store.patch({ uploadAfterExtract: false });
-    const reloaded = new SettingsStore(io, seqIds());
-    expect(reloaded.load().uploadAfterExtract).toBe(false);
+    expect('uploadAfterExtract' in store.load()).toBe(false);
+    store.patch({ extractScope: 'minimal' });
+    expect(io.data).not.toContain('uploadAfterExtract');
   });
 
   it('defaults extractScope to standard and round-trips a patch', () => {
@@ -144,7 +146,7 @@ describe('SettingsStore', () => {
 
   it('drops a v1 shutdownAfterUpload flag silently and never lets it influence afterAutoRun', () => {
     const io = fakeIO();
-    // A real v1 envelope: no afterAutoRun/uploadAfterExtract/extractScope yet,
+    // A real v1 envelope: no afterAutoRun/extractScope yet,
     // but it does carry the removed shutdownAfterUpload flag turned ON.
     io.data = JSON.stringify({
       v: 1,
@@ -164,7 +166,6 @@ describe('SettingsStore', () => {
     // The removed flag must never be migrated into the new setting.
     expect(s.afterAutoRun).toBe('quit');
     // New v2-only fields fall back to their defaults.
-    expect(s.uploadAfterExtract).toBe(true);
     expect(s.extractScope).toBe('standard');
     // Other v1 fields are still carried over.
     expect(s.installId).toBe('legacy-id');

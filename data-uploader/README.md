@@ -7,9 +7,10 @@ Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
 ## Status
 
 **Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run:
-Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig, Laufoptionen
-(Upload danach, "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
-nie gespeichert) vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
+Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig. Nach einer
+erfolgreichen Extraktion folgt der Upload immer automatisch (angemeldet vorausgesetzt).
+Laufoption "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
+nie gespeichert — vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
 Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
 FS-Scan → Manual), 4 Performance-Profilen, OAuth-Loopback + Release-Token-Header,
@@ -52,7 +53,7 @@ src/
 │   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
 │   ├── steps/             # install (Startrampe), setup (Umfang + Sheet), done, category-bars
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
-│   ├── options-sheet.ts   # nur "diese Runde": Upload danach, Wenn fertig (nie gespeichert)
+│   ├── options-sheet.ts   # nur "diese Runde": Wenn fertig (nie gespeichert)
 │   ├── settings-dialog.ts # alles Dauerhafte: Unbeaufsichtigt, Tray, Ring, Sprache, Telemetrie
 │   ├── connection-popover.ts · throttle-chip.ts · log-drawer.ts · keymap.ts
 │   ├── progress.ts        # Progress-Karte (unverändert)
@@ -129,6 +130,40 @@ nicht wegwerfen.
   `error` markiert, aber weder die Job-Datei noch das `out_dir` werden gelöscht
   — „Upload fortsetzen" macht am gespeicherten Cursor weiter. Aufgeräumt wird
   ausschließlich nach einem vollständig bestätigten Lauf.
+
+## Idle behaviour (tray, no job)
+
+With no job running and the window closed, the uploader does no periodic work:
+the only timers are the 6 h update poll and the job-scoped watchdog / progress
+ticker. The budget, summed over all uploader processes (main, renderer, GPU,
+network service), 5 min after an autostart:
+
+| Metric | Budget |
+|---|---|
+| Write operations (`Win32_Process.WriteOperationCount`) | < 50 per 30 s |
+| Written bytes (`WriteTransferCount`) | < 10 KB/s |
+| `%APPDATA%/@sc-companion/data-uploader/logs/main.log` | +0 bytes over 5 min |
+
+Those counters include pipe/IPC traffic, not only disk. That is how 0.35.1 blew
+the budget (~4,170 writes / 4.6 MB per 30 s) without writing a single file: the
+autostart (`--hidden`) never showed the window, and a never-shown BrowserWindow
+still reports `visibilityState: 'visible'`, so the infinite connection-dot pulse
+kept the renderer and GPU process exchanging frames. The hidden start now calls
+`hide()` explicitly on `ready-to-show` (`src/lib/window-visibility.ts`), which
+stops rendering — the same state a window closed via X was already in.
+`paintWhenInitiallyHidden: false` does not achieve this on Electron 44.
+
+Check it with the probe (Windows; stops a running uploader, launches it with
+`--hidden`, exits 1 over budget):
+
+```bash
+npm run test:idle-io                                   # installed app
+npm run test:idle-io -- --attach --warmup 0 --window 30  # the instance already running
+npm run test:idle-io -- --exe node_modules/electron/dist/electron.exe --app .  # unpackaged out/ build
+```
+
+`test/idle-io.spec.ts` guards the hidden-start `hide()` and the budget maths in
+the regular `npm test` run.
 
 ## Security-Modell (Iter 2 · § B2)
 

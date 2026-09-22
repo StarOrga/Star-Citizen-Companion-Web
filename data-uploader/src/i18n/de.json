@@ -78,8 +78,6 @@
     "title": "Umfang wählen",
     "subtitle": "Tempo ist später jederzeit umschaltbar, der Umfang nicht.",
     "start": "Extraktion starten",
-    "autoUpload": "Nach der Extraktion automatisch hochladen",
-    "autoUploadHint": "Lädt das Bundle nach der Extraktion automatisch hoch (nur wenn du bereits verbunden bist).",
     "speed": {
       "title": "Geschwindigkeit",
       "hint": "Jederzeit umschaltbar — auch mitten im Lauf.",

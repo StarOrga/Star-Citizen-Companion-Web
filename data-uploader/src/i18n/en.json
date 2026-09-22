@@ -79,8 +79,6 @@
     "title": "Choose scope",
     "subtitle": "Speed stays switchable any time later — scope doesn't.",
     "start": "Start extraction",
-    "autoUpload": "Upload automatically after extraction",
-    "autoUploadHint": "Uploads the bundle automatically once extraction finishes (only when you're already connected).",
     "speed": {
       "title": "Speed",
       "hint": "Switch any time — mid-run included.",

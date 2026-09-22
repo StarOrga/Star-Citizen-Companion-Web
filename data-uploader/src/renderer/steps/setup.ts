@@ -87,12 +87,6 @@ export function primaryAction(): void {
 
 function openSheet(): void {
   openOptionsSheet({
-    getUploadAfterExtract: () => Boolean(state.settings?.uploadAfterExtract),
-    setUploadAfterExtract: (v) => {
-      void window.sc.settings.patch({ uploadAfterExtract: v }).then((s) => {
-        state.settings = s;
-      });
-    },
     getWhenDone: () => state.whenDone,
     setWhenDone: (v) => {
       state.whenDone = v;

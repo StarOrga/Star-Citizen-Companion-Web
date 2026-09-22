@@ -20,6 +20,7 @@ import {
 } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { raiseWindow } from '../lib/window-focus.js';
+import { settleInitialVisibility, shouldStartHidden } from '../lib/window-visibility.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { createWatchdog } from '../lib/watchdog.js';
 import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
@@ -163,11 +164,12 @@ function createWindow(): void {
   mainWindow.setMenu(null);
 
   // `--hidden` is passed by the autostart login item: come up straight into the
-  // tray so an unattended run never steals focus at login.
-  const startHidden = process.argv.includes('--hidden') && getSettings().minimizeToTray;
+  // tray so an unattended run never steals focus at login. A never-shown window
+  // still renders (visibilityState 'visible'), so the hidden start hides it
+  // explicitly — see lib/window-visibility.ts.
+  const startHidden = shouldStartHidden(process.argv, getSettings().minimizeToTray);
   mainWindow.on('ready-to-show', () => {
-    if (startHidden) return;
-    mainWindow?.show();
+    if (mainWindow) settleInitialVisibility(mainWindow, startHidden);
   });
 
   // X = minimize to tray. Intercept `close` (not `closed`) so the window is
@@ -249,7 +251,6 @@ function publicSettings(): {
   autoRunOnNewVersion: boolean;
   quitAfterAutoRun: boolean;
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  uploadAfterExtract: boolean;
   extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
   language?: string;
@@ -264,7 +265,6 @@ function publicSettings(): {
     autoRunOnNewVersion: s.autoRunOnNewVersion,
     quitAfterAutoRun: s.quitAfterAutoRun,
     afterAutoRun: s.afterAutoRun,
-    uploadAfterExtract: s.uploadAfterExtract,
     extractScope: s.extractScope,
     updateChannel: s.updateChannel,
     ...(s.language !== undefined ? { language: s.language } : {}),
@@ -288,7 +288,6 @@ ipcMain.handle(
       autoRunOnNewVersion?: boolean;
       quitAfterAutoRun?: boolean;
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
-      uploadAfterExtract?: boolean;
       extractScope?: 'minimal' | 'standard' | 'maximum';
       updateChannel?: 'alpha' | 'beta' | 'stable';
       language?: string;
@@ -311,9 +310,6 @@ ipcMain.handle(
       partial?.afterAutoRun === 'shutdown'
     ) {
       clean.afterAutoRun = partial.afterAutoRun;
-    }
-    if (typeof partial?.uploadAfterExtract === 'boolean') {
-      clean.uploadAfterExtract = partial.uploadAfterExtract;
     }
     if (
       partial?.extractScope === 'minimal' ||

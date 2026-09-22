@@ -86,8 +86,6 @@ export interface PublicSettings {
   quitAfterAutoRun: boolean;
   /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  /** Start the upload step automatically once extraction finishes. Default true. */
-  uploadAfterExtract: boolean;
   /** How much of the game data an extraction run pulls. Default 'standard'. */
   extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
@@ -1379,7 +1377,6 @@ async function runRealExtract(): Promise<void> {
   // classification pre-pass / the final value of one-shot counters.
   const expectedMap: Record<string, number> = {};
 
-  progress.start();
   resetLog();
   resetCategoryBars();
   noteOverallPct(0);
@@ -1389,6 +1386,10 @@ async function runRealExtract(): Promise<void> {
     appendLog('Kein Channel ausgewählt — zurück zum Setup.', 'error');
     return;
   }
+  // Started only past the early return above: that return sits outside the
+  // try/finally that stops the meta ticker, so starting first leaked its
+  // 500 ms interval for the rest of the session.
+  progress.start();
 
   // Per-tool extract-output dir — Electron's app.getPath('userData') would
   // be cleaner; for now use a sibling of the install path.
@@ -1930,6 +1931,10 @@ async function doStartUpload(): Promise<void> {
     }
     await doUploadAfterAuth();
   } finally {
+    // Idempotent. doUploadAfterAuth has exits (paused mid-stage, a rejected
+    // IPC call) that never reach its own stop(), which left the 500 ms meta
+    // ticker running after the upload was over.
+    uploadProgress?.stop();
     if (btn) btn.disabled = false;
     uploadRunning = false;
     // Re-read the durable job: it decides whether we now offer Resume (paused

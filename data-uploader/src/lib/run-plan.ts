@@ -58,18 +58,14 @@ export type BuildRunPlanInput = ManualRunInput | UnattendedRunInput;
 
 /**
  * Build the plan a run executes from. Scope always comes from settings; the
- * two triggers differ in `whenDone` and in how `uploadAfter` is derived:
+ * two triggers differ only in `whenDone`:
  *
- * - Manual run (Start button): `whenDone` is the live per-run pick;
- *   `uploadAfter` follows `settings.uploadAfterExtract` — the operator can
- *   opt into an "extract only" pass.
+ * - Manual run (Start button): `whenDone` is the live per-run pick.
  * - Unattended run (`maybeAutoRun`): `whenDone` derives from
- *   `settings.afterAutoRun`; `uploadAfter` is always true when signed in,
- *   ignoring `uploadAfterExtract` — an unattended run exists to sync, and
- *   there is no live operator to hand an "extract only" result to.
+ *   `settings.afterAutoRun`.
  *
- * Either way, `uploadAfter` is forced `false` when not signed in — there is
- * nothing to upload to.
+ * A successful extraction always continues into the upload when signed in —
+ * there is no "extract only" mode. Not signed in, there is nothing to upload to.
  */
 export function buildRunPlan(input: BuildRunPlanInput): RunPlan {
   if (input.unattended) {
@@ -84,7 +80,7 @@ export function buildRunPlan(input: BuildRunPlanInput): RunPlan {
   return {
     channel: input.channel,
     scope: input.settings.extractScope,
-    uploadAfter: input.signedIn && input.settings.uploadAfterExtract,
+    uploadAfter: input.signedIn,
     whenDone: input.whenDone,
     unattended: false,
   };
