@@ -269,8 +269,17 @@ emit(
   resolve(ROOT, 'data-uploader/build/icon.ico'),
   await pngToIco(ICO_SIZES.map((s) => png(markFor('uploader', s), s))),
 );
-emit(resolve(ROOT, 'data-uploader/build/icon.png'), png(appMark.uploader, 256));
+// The window icon is what Windows shows in the taskbar and Alt-Tab (it overrides
+// the exe's .ico there), so it carries the small tier's large glyph, not the
+// plated app-tier badge that shrinks to a speck at 32px.
+emit(resolve(ROOT, 'data-uploader/build/icon.png'), png(smallMark.uploader, 256));
 emit(resolve(ROOT, 'data-uploader/build/tray.png'), png(tray.uploader, 256));
+// Windows tray: a multi-size .ico so the shell picks the native 16/20/24px frame
+// instead of box-filtering the 256px PNG down into mush.
+emit(
+  resolve(ROOT, 'data-uploader/build/tray.ico'),
+  await pngToIco([16, 20, 24, 32, 48].map((s) => png(tray.uploader, s))),
+);
 }
 
 // ── 5. Starscape (Rust) ─────────────────────────────────────────────────────

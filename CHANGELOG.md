@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.92.1] - 2026-09-22
+
+### Fixed
+
+- **Data Uploader bleibt angemeldet (0.35.2).** Jeder Start – auch der normale
+  im Vordergrund und der erste nach einem Update – nutzt die gespeicherte,
+  still erneuerte Sitzung, genau wie Starscape. Neu anmelden muss man sich nur
+  noch nach dem Abmelden oder wenn die Sitzung serverseitig ungültig wird.
+- **Lesbare Tray- und Taskleisten-Icons (Data Uploader 0.35.2, Starscape
+  0.9.2).** Im kleinen Icon-Tier füllt das Produktsymbol jetzt rund 80 % der
+  Kachel (ohne Plakette, Halo und Bewegungsspur): der Upload-Pfeil in der
+  Taskleiste ist groß, um den Tray-Pfeil liegen keine Streupunkte mehr, und der
+  Starscape-Monitor ist im Tray erkennbar. Das Uploader-Fenster-Icon kommt aus
+  diesem Tier, das Windows-Tray lädt ein Mehrgrößen-`tray.ico`.
+
 ## [0.92.0] - 2026-09-22
 
 ### Fixed

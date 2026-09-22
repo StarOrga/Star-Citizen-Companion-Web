@@ -1,7 +1,65 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.91.0",
+  "current": "0.92.1",
   "releases": [
+    {
+      "version": "0.92.1",
+      "date": "2026-09-22",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader bleibt angemeldet (0.35.2).",
+              "text": "Jeder Start – auch der normale im Vordergrund und der erste nach einem Update – nutzt die gespeicherte, still erneuerte Sitzung, genau wie Starscape. Neu anmelden muss man sich nur noch nach dem Abmelden oder wenn die Sitzung serverseitig ungültig wird."
+            },
+            {
+              "title": "Lesbare Tray- und Taskleisten-Icons (Data Uploader 0.35.2, Starscape 0.9.2).",
+              "text": "Im kleinen Icon-Tier füllt das Produktsymbol jetzt rund 80 % der Kachel (ohne Plakette, Halo und Bewegungsspur): der Upload-Pfeil in der Taskleiste ist groß, um den Tray-Pfeil liegen keine Streupunkte mehr, und der Starscape-Monitor ist im Tray erkennbar. Das Uploader-Fenster-Icon kommt aus diesem Tier, das Windows-Tray lädt ein Mehrgrößen-tray.ico."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.92.0",
+      "date": "2026-09-22",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Holotisch: Link teilen.",
+              "text": "„Link kopieren“ bestätigt jetzt auf dem Knopf („Kopiert“), das Popover schließt per Esc und Klick daneben. Die kopierte Adresse trägt, was der Tisch zeigt: die gespeicherte Holo-Voreinstellung wird in ?view=holo gespiegelt, ein aus dem Browser-Speicher wiederhergestellter Entwurf in ?loadout=, ein Schiffswechsel über den Hangar-Knopf bleibt im Holo. Der Hangar-Link wartet auf die Hangar-Liste (Deep-Link-Race), nimmt nach dem Speichern die frische Konfiguration und erklärt jeden Zustand (anmelden / zum Hangar / erst speichern / ungespeicherte Änderungen)."
+            },
+            {
+              "title": "Holotisch: Überlappungen.",
+              "text": "Hangar-Knopf, Schiffsname und Ansichts-Schalter stehen in einer Kopfzeile, die Legende darunter — nichts liegt mehr über den Pins. Die Pin-Fläche richtet sich nach dem Rahmen; ab neun Pins wandern die Beschriftungen in eine nummerierte Legende unter dem Tisch (Hover/Klick wie am Pin), obere und untere Ring-Pins stapeln ihr Label, der Ring schmiegt sich an die Silhouette und weitet sich bei 40+ Ports. Patch-Δ-Tabellen liegen in einem verankerten Panel statt in der Kopfleiste. Phone: die Tisch-Spalte war 2 px breit (:has()-Regeln überstimmten die Phone-Regel)."
+            },
+            {
+              "title": "Holotisch: Standard-Silhouette.",
+              "text": "Ohne nachgezeichnete Silhouette zeigt der Tisch das Top-Down-Icon des Spiels (getönt, Nase oben), sonst das RSI-Render als Holo-Geist, zuletzt eine generische Hülle — nie zwei leere Ringe. Die Ankunftsanimation spielt wieder (ein Schiff galt schon vor dem Mount als „gesehen“). „3D“ nur mit Modell, „Schema“ ausgegraut mit Grund, leere Schiffe sagen es, der Inspector-Hinweis nennt maximal 10 Ziffern-Hotkeys."
+            },
+            {
+              "title": "Holotisch: Zustand pro Schiff.",
+              "text": "Inspector, Teilen-Popover, Ansicht, Patch-Overlays und Energie-Leiste setzen sich beim Schiffswechsel zurück; ein Roh-Port ohne Ausrüstungs-Slot bietet keinen toten Tausch-Knopf; ein AudioContext statt einer pro Klick; Ziffern-Hotkeys ruhen in Dialogen; Touch-Ziele 48 px (Pins über einen Halo, Hangar-Knopf), Fokus folgt dem Δ-Panel."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Datenbefund 2026-09-22: 0 von 332 Schiffs-Silhouetten im LIVE-Build tragen anchors — jeder Pin sitzt auf dem Ring-Fallback (#643). Sechs Folge-Issues #642–#647 (needs-review) aus dem Red-Team-Bericht docs/concepts/2026-09-20-codex-schiffsansicht-cinematisch-build/wave5-redteam-holodeck.md."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.91.0",
       "date": "2026-09-21",

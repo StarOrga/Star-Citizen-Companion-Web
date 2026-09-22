@@ -128,28 +128,11 @@
 
 </g><!-- end 5% margin scale group -->
 
-<!-- ===== PRODUCT BADGE: Data Uploader (laid over the untouched master) ===== -->
-<g>
-  <defs>
-    
-    <radialGradient id="uploader-badge-halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#7dd5f0" stop-opacity=".5"/><stop offset="35%" stop-color="#52c1e6" stop-opacity=".2"/><stop offset="70%" stop-color="#52c1e6" stop-opacity=".08"/><stop offset="100%" stop-color="#52c1e6" stop-opacity="0"/></radialGradient>
-    <radialGradient id="uploader-badge-plate" cx="50%" cy="40%" r="62%"><stop offset="0%" stop-color="#1a3d54" stop-opacity=".92"/><stop offset="100%" stop-color="#0d2635" stop-opacity=".9"/></radialGradient>
-    <radialGradient id="uploader-badge-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a0dcf0" stop-opacity=".82"/><stop offset="55%" stop-color="#7dd5f0" stop-opacity=".3"/><stop offset="100%" stop-color="#7dd5f0" stop-opacity="0"/></radialGradient>
-    <linearGradient id="uploader-badge-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a0dcf0" stop-opacity=".95"/><stop offset="55%" stop-color="#52c1e6" stop-opacity=".65"/><stop offset="100%" stop-color="#52c1e6" stop-opacity=".35"/></linearGradient>
-    <linearGradient id="uploader-badge-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="#a0dcf0"/></linearGradient>
-  </defs>
-  <circle cx="150" cy="150" r="109.6" fill="url(#uploader-badge-halo)"/>
-  
-  <circle cx="150" cy="150" r="89.6" fill="url(#uploader-badge-plate)"/>
-  <circle cx="150" cy="150" r="77.056" fill="url(#uploader-badge-core)"/>
-  <circle cx="150" cy="150" r="89.6" fill="none" stroke="#52c1e6" stroke-width="8.4" stroke-opacity=".9"/>
-  
-  <path d="M131.8,208.8 L150,197.60000000000002 L168.2,208.8"
-        fill="none" stroke="#7dd5f0" stroke-width="4.9" stroke-linecap="round" stroke-opacity=".5"/>
-  <path d="M137.988,222.8 L150,214.96 L162.012,222.8"
-        fill="none" stroke="#7dd5f0" stroke-width="4.9" stroke-linecap="round" stroke-opacity=".25"/>
-  <path d="M150,91.2 L200.4,144.4 L169.6,144.4 L169.6,180.8 L130.4,180.8 L130.4,144.4 L99.6,144.4 Z"
-        fill="url(#uploader-badge-ink)" stroke="#7dd5f0" stroke-width="5.6" stroke-linejoin="round"/>
-  <rect x="113.6" y="194.8" width="72.8" height="14" rx="7" fill="#7dd5f0"/>
+<!-- ===== PRODUCT GLYPH: Data Uploader, small tier (laid over the untouched master) ===== -->
+<g><defs><linearGradient id="uploader-glyph-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="#a0dcf0"/></linearGradient></defs>
+  <path d="M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-linejoin="round" stroke-opacity=".85"/>
+  <rect x="90" y="238" width="120" height="24" rx="12" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-opacity=".85"/>
+  <path d="M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z" fill="url(#uploader-glyph-ink)" stroke="#7dd5f0" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="90" y="238" width="120" height="24" rx="12" fill="#7dd5f0"/>
 </g>
 </svg>
