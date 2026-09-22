@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
+    "test:idle-io": "node scripts/idle-io-probe.js",
     "icon": "node ../scripts/build-brand-icons.mjs --only=uploader",
     "python:fetch": "node scripts/fetch-embedded-python.js",
     "package:win": "npm run icon && npm run python:fetch && electron-vite build && electron-builder --win --x64 --config electron-builder.yml",
