@@ -41,11 +41,6 @@ export interface Settings {
    */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
   /**
-   * Start the upload step automatically once extraction finishes. Default ON;
-   * per-run it can still be turned off for a manual "extract only" pass.
-   */
-  uploadAfterExtract: boolean;
-  /**
    * How much of the game data an extraction run pulls. Default 'standard'.
    */
   extractScope: 'minimal' | 'standard' | 'maximum';
@@ -72,9 +67,11 @@ const SCHEMA_VERSION = 2;
 
 /**
  * Envelope versions this store can still read. v1 predates `afterAutoRun` /
- * `uploadAfterExtract` / `extractScope` and carried a `shutdownAfterUpload`
- * boolean instead — that key is dropped silently on load (never migrated into
- * `afterAutoRun`) and every new field falls back to its default. Any other
+ * `extractScope` and carried a `shutdownAfterUpload` boolean instead — that key
+ * is dropped silently on load (never migrated into `afterAutoRun`) and every new
+ * field falls back to its default. The retired `uploadAfterExtract` toggle (a
+ * signed-in run now always uploads after a successful extraction) is dropped
+ * the same way. Any other
  * version is treated as unreadable and resets to defaults entirely.
  */
 const READABLE_VERSIONS = new Set([1, SCHEMA_VERSION]);
@@ -118,8 +115,6 @@ export class SettingsStore {
         parsed?.afterAutoRun === 'shutdown'
           ? parsed.afterAutoRun
           : 'quit',
-      uploadAfterExtract:
-        typeof parsed?.uploadAfterExtract === 'boolean' ? parsed.uploadAfterExtract : true,
       extractScope:
         parsed?.extractScope === 'minimal' ||
         parsed?.extractScope === 'standard' ||

@@ -11,7 +11,6 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     autoRunOnNewVersion: false,
     quitAfterAutoRun: true,
     afterAutoRun: 'quit',
-    uploadAfterExtract: true,
     extractScope: 'standard',
     updateChannel: 'stable',
     ...overrides,
@@ -35,10 +34,10 @@ describe('buildRunPlan', () => {
     });
   });
 
-  it('manual run not signed in: uploadAfter forced false even if the setting is on', () => {
+  it('manual run not signed in: uploadAfter is false — nothing to upload to', () => {
     const plan = buildRunPlan({
       channel: 'PTU',
-      settings: baseSettings({ uploadAfterExtract: true }),
+      settings: baseSettings(),
       signedIn: false,
       whenDone: 'nothing',
     });
@@ -47,14 +46,14 @@ describe('buildRunPlan', () => {
     expect(plan.whenDone).toBe('nothing');
   });
 
-  it('manual run respects uploadAfterExtract = false when signed in', () => {
+  it('manual run signed in: always uploads after extraction (no extract-only mode)', () => {
     const plan = buildRunPlan({
       channel: 'LIVE',
-      settings: baseSettings({ uploadAfterExtract: false }),
+      settings: baseSettings(),
       signedIn: true,
       whenDone: 'nothing',
     });
-    expect(plan.uploadAfter).toBe(false);
+    expect(plan.uploadAfter).toBe(true);
   });
 
   it('unattended run maps afterAutoRun=keep to whenDone=nothing', () => {
@@ -88,11 +87,11 @@ describe('buildRunPlan', () => {
     expect(plan.whenDone).toBe('shutdown');
   });
 
-  it('unattended run: uploadAfter is always true when signed in, ignoring uploadAfterExtract', () => {
+  it('unattended run: uploadAfter is always true when signed in', () => {
     const plan = buildRunPlan({
       unattended: true,
       channel: 'LIVE',
-      settings: baseSettings({ uploadAfterExtract: false }),
+      settings: baseSettings(),
       signedIn: true,
     });
     expect(plan.uploadAfter).toBe(true);

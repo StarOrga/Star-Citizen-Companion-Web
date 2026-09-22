@@ -251,7 +251,6 @@ function publicSettings(): {
   autoRunOnNewVersion: boolean;
   quitAfterAutoRun: boolean;
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  uploadAfterExtract: boolean;
   extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
   language?: string;
@@ -266,7 +265,6 @@ function publicSettings(): {
     autoRunOnNewVersion: s.autoRunOnNewVersion,
     quitAfterAutoRun: s.quitAfterAutoRun,
     afterAutoRun: s.afterAutoRun,
-    uploadAfterExtract: s.uploadAfterExtract,
     extractScope: s.extractScope,
     updateChannel: s.updateChannel,
     ...(s.language !== undefined ? { language: s.language } : {}),
@@ -290,7 +288,6 @@ ipcMain.handle(
       autoRunOnNewVersion?: boolean;
       quitAfterAutoRun?: boolean;
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
-      uploadAfterExtract?: boolean;
       extractScope?: 'minimal' | 'standard' | 'maximum';
       updateChannel?: 'alpha' | 'beta' | 'stable';
       language?: string;
@@ -313,9 +310,6 @@ ipcMain.handle(
       partial?.afterAutoRun === 'shutdown'
     ) {
       clean.afterAutoRun = partial.afterAutoRun;
-    }
-    if (typeof partial?.uploadAfterExtract === 'boolean') {
-      clean.uploadAfterExtract = partial.uploadAfterExtract;
     }
     if (
       partial?.extractScope === 'minimal' ||

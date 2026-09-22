@@ -17,8 +17,6 @@ export interface PublicSettings {
   quitAfterAutoRun: boolean;
   /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  /** Start the upload step automatically once extraction finishes. Default true. */
-  uploadAfterExtract: boolean;
   /** How much of the game data an extraction run pulls. Default 'standard'. */
   extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
