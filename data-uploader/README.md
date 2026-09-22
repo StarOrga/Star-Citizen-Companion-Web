@@ -7,9 +7,10 @@ Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
 ## Status
 
 **Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run:
-Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig, Laufoptionen
-(Upload danach, "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
-nie gespeichert) vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
+Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig. Nach einer
+erfolgreichen Extraktion folgt der Upload immer automatisch (angemeldet vorausgesetzt).
+Laufoption "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
+nie gespeichert — vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
 Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
 FS-Scan → Manual), 4 Performance-Profilen, OAuth-Loopback + Release-Token-Header,
@@ -52,7 +53,7 @@ src/
 │   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
 │   ├── steps/             # install (Startrampe), setup (Umfang + Sheet), done, category-bars
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
-│   ├── options-sheet.ts   # nur "diese Runde": Upload danach, Wenn fertig (nie gespeichert)
+│   ├── options-sheet.ts   # nur "diese Runde": Wenn fertig (nie gespeichert)
 │   ├── settings-dialog.ts # alles Dauerhafte: Unbeaufsichtigt, Tray, Ring, Sprache, Telemetrie
 │   ├── connection-popover.ts · throttle-chip.ts · log-drawer.ts · keymap.ts
 │   ├── progress.ts        # Progress-Karte (unverändert)

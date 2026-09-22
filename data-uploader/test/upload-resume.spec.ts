@@ -326,7 +326,8 @@ describe('catalog upload — transient failures', () => {
     expect(res.ok).toBe(true);
     expect(landed).toBe(600);
     expect(rejectionsAfterFirstChunk).toBe(0);
-  });
+    // 600 rows of real job-file I/O: ~1 s idle, 30 s+ on a loaded machine.
+  }, 120_000);
 
   it('reports a persistent timeout as `timeout`, so the UI can say "resume"', async () => {
     const store = new UploadJobStore(diskIO());

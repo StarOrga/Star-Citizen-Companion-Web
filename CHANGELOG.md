@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.93.0] - 2026-09-22
+
+### Changed
+
+- **Data Uploader lädt nach der Extraktion immer hoch (0.36.0).** Die
+  Laufoption „Automatisch hochladen“ entfällt: nach einer erfolgreichen
+  Extraktion startet der Upload stets von selbst, sofern man angemeldet ist.
+  Ein gespeicherter alter Wert wird beim Laden verworfen.
+
+### Fixed
+
+- **Data Uploader schreibt im Leerlauf nicht mehr ständig auf die Platte
+  (0.36.0).** Beim Autostart (`--hidden`) wurde das nie gezeigte Fenster
+  weiter gerendert – der pulsierende Verbindungspunkt hielt Renderer und
+  GPU-Prozess im Austausch (~4.170 Schreiboperationen / 4,6 MB pro 30 s). Das
+  Fenster wird jetzt ausdrücklich versteckt; gemessen bleiben 0,8
+  Schreiboperationen pro 30 s und `main.log` wächst im Leerlauf nicht.
+  `npm run test:idle-io` prüft das Budget gegen einen echten Build.
+- **Fortschrittsanzeige des Uploaders** läuft nach einem abgebrochenen Start
+  oder nach dem Upload nicht mehr im Hintergrund weiter.
+
 ## [0.92.1] - 2026-09-22
 
 ### Fixed
