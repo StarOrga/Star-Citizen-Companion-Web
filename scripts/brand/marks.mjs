@@ -32,17 +32,18 @@
  * also encoded product identity, a red icon would be ambiguous: broken, or the
  * uploader? So every product is cyan, and shape alone carries identity.
  *
- * TIERS: one badge cannot serve 16px and 512px, so each product has three.
- *   app    >=128px — the master with the badge drawn at its natural weight.
- *   small  16-64px — the master with a bolder, larger badge: at these sizes the
- *                    master itself collapses to a disc and a dot (that IS the
- *                    desktop app's 16px icon), and the badge has to survive it.
- *   tray   16-24px — the notification area: the master with the small tier's
- *                    badge scaled up by 40%, so the tray icon IS the taskbar
- *                    icon and the badge still tells the siblings apart once the
- *                    master has collapsed to a disc and a dot. (SCC's own tray
- *                    lives in the desktop app repo; its flat rim construction
- *                    is only mirrored here for the family sheet.)
+ * TIERS: one badge cannot serve 16px and 512px, so each product has two.
+ *   app    >=128px — the master with the badge drawn on a glass plate at its
+ *                    natural weight (Explorer's large icons, installer).
+ *   small  16-64px — the master with the product glyph drawn at ~80% of the
+ *                    tile, no plate, no halo, no motion trail: at these sizes
+ *                    the master collapses to a disc and a glow, and a plated
+ *                    badge shrank to a speck (the taskbar arrow filled ~20%)
+ *                    while the plate's halo and trail turned into stray dots.
+ *   tray   16-24px — the notification area: the same artwork as `small`, so
+ *                    the tray icon IS the taskbar icon. (SCC's own tray lives
+ *                    in the desktop app repo; its flat rim construction is only
+ *                    mirrored here for the family sheet.)
  */
 
 // StarUI design tokens — the master is already built on these.
@@ -150,35 +151,60 @@ const starscapeBadge = ({ tier, r, rim, screen, bezel, stand, star }) => {
 };
 
 /**
- * The tray tier is the small tier's badge scaled up uniformly. At 16–24px the
- * master collapses to a dark disc with a glow, so the badge is the only thing
- * that still says *which* product this is — it gets 40% more of the tile. The
- * plate (r 64 → ~90, plus its 20-unit halo) still sits inside the master's
- * 147-unit disc, so the ring and the outer wisps stay visible around it.
+ * small tier — 16-64px: the taskbar, Alt-Tab, the Start menu and the Data
+ * Uploader's window icon. The master stays untouched underneath, but at these
+ * sizes it has collapsed to a dark disc with a glow, so a badge on a plate ends
+ * up as a speck (the uploader's arrow used to fill ~20% of its taskbar icon).
+ * Here the glyph itself IS the badge: drawn at ~80% of the tile, no plate, no
+ * halo, no motion trail — a dark outline lifts it off the core glow instead.
  */
-const TRAY_SCALE = 1.4;
-const scaled = (geom, f = TRAY_SCALE) =>
-  Object.fromEntries(
-    Object.entries(geom).map(([k, v]) => [
-      k,
-      typeof v === 'number' ? Math.round(v * f * 10) / 10 : typeof v === 'object' ? scaled(v, f) : v,
-    ]),
-  );
+const GLYPH_INK = (product) =>
+  `<defs><linearGradient id="${product}-glyph-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="${C.hi}"/></linearGradient></defs>`;
 
-const SMALL_GEOM = {
-  uploader: {
-    r: 64, rim: 6,
-    head: { top: 42, base: 4, w: 36 }, shaft: { w: 14, bottom: 22 },
-    bar: { w: 26, y: 32, h: 10 }, trail: { w: 13, y: 42, gap: 10, h: 8, sw: 3.5 }, stroke: 4,
-  },
-  starscape: {
-    r: 64, rim: 6,
-    screen: { w: 40, top: 40, h: 52, rx: 6 }, bezel: 7,
-    stand: { neck: 7, gap: 9, foot: 24, h: 9 }, star: 15,
-  },
+/** Upward arrow over a landing bar, in the master's 300-unit space. */
+const UPLOADER_BIG = {
+  arrow: 'M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z',
+  bar: { x: 90, y: 238, w: 120, h: 24 },
 };
 
-/** Badge geometry per tier. `small` is bolder and larger so it survives 16px; `tray` is `small` × 1.4. */
+const uploaderGlyph = () => {
+  const { arrow, bar } = UPLOADER_BIG;
+  const barRect = (attrs) =>
+    `<rect x="${bar.x}" y="${bar.y}" width="${bar.w}" height="${bar.h}" rx="${bar.h / 2}" ${attrs}/>`;
+  return `
+<!-- ===== PRODUCT GLYPH: Data Uploader, small tier (laid over the untouched master) ===== -->
+<g>${GLYPH_INK('uploader')}
+  <path d="${arrow}" fill="${C.canvas}" stroke="${C.canvas}" stroke-width="18" stroke-linejoin="round" stroke-opacity=".85"/>
+  ${barRect(`fill="${C.canvas}" stroke="${C.canvas}" stroke-width="18" stroke-opacity=".85"`)}
+  <path d="${arrow}" fill="url(#uploader-glyph-ink)" stroke="${C.bright}" stroke-width="4" stroke-linejoin="round"/>
+  ${barRect(`fill="${C.bright}"`)}
+</g>`;
+};
+
+/** Monitor on a stand, a four-point star on its screen, in the 300-unit space. */
+const STARSCAPE_BIG = {
+  screen: { x: 54, y: 62, w: 192, h: 124, rx: 14 }, bezel: 16, star: 40,
+  neck: { x: 134, y: 186, w: 32, h: 22 }, foot: { x: 90, y: 208, w: 120, h: 24 },
+};
+
+const starscapeGlyph = () => {
+  const { screen: s, bezel, star, neck, foot } = STARSCAPE_BIG;
+  return `
+<!-- ===== PRODUCT GLYPH: Starscape, small tier (laid over the untouched master) ===== -->
+<g>${GLYPH_INK('starscape')}
+  <g fill="${C.canvas}" stroke="${C.canvas}" stroke-width="${bezel + 18}" stroke-linejoin="round" stroke-opacity=".85">
+    <rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx}"/>
+    <rect x="${neck.x}" y="${neck.y}" width="${neck.w}" height="${neck.h}"/>
+    <rect x="${foot.x}" y="${foot.y}" width="${foot.w}" height="${foot.h}" rx="${foot.h / 2}"/>
+  </g>
+  <rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="${s.rx}" fill="${C.canvas}" stroke="url(#starscape-glyph-ink)" stroke-width="${bezel}"/>
+  <path d="${star4(150, s.y + s.h / 2, star)}" fill="#eaf7fd"/>
+  <rect x="${neck.x}" y="${neck.y}" width="${neck.w}" height="${neck.h}" fill="${C.bright}"/>
+  <rect x="${foot.x}" y="${foot.y}" width="${foot.w}" height="${foot.h}" rx="${foot.h / 2}" fill="${C.bright}"/>
+</g>`;
+};
+
+/** Badge geometry per tier: `app` is the glass-plate badge, `small` the large glyph. */
 const BADGE = {
   uploader: {
     app: uploaderBadge({
@@ -186,8 +212,7 @@ const BADGE = {
       head: { top: 34, base: 6, w: 27 }, shaft: { w: 10, bottom: 18 },
       bar: { w: 19, y: 26, h: 7 }, trail: { w: 10, y: 34, gap: 8, h: 6, sw: 2.5 }, stroke: 3,
     }),
-    small: uploaderBadge({ tier: 'small', ...SMALL_GEOM.uploader }),
-    tray: uploaderBadge({ tier: 'small', ...scaled(SMALL_GEOM.uploader) }),
+    small: uploaderGlyph(),
   },
   starscape: {
     app: starscapeBadge({
@@ -195,8 +220,7 @@ const BADGE = {
       screen: { w: 32, top: 32, h: 42, rx: 5 }, bezel: 4,
       stand: { neck: 5, gap: 8, foot: 18, h: 6 }, star: 11,
     }),
-    small: starscapeBadge({ tier: 'small', ...SMALL_GEOM.starscape }),
-    tray: starscapeBadge({ tier: 'small', ...scaled(SMALL_GEOM.starscape) }),
+    small: starscapeGlyph(),
   },
 };
 
@@ -209,7 +233,7 @@ const MARK_END_RE = /<\/g><!-- end \d+% margin scale group -->\s*<\/svg>\s*$/;
  * Derive a product's mark from the master SVG source.
  *
  * `tier` is `app` (>=128px), `small` (16-64px) or `tray` (the notification
- * area: `small` with the badge scaled up). For `scc` all are the master itself —
+ * area — the same artwork as `small`). For `scc` all are the master itself —
  * the web app ships the desktop app's icon unchanged.
  *
  * The master is edited in the *other* repo, so this asserts on its close marker
@@ -229,7 +253,7 @@ export function deriveAppMark(masterSvg, product, tier = 'app') {
     );
   }
   const iEnd = masterSvg.lastIndexOf('</svg>');
-  return `${masterSvg.slice(0, iEnd)}${BADGE[product][tier]}
+  return `${masterSvg.slice(0, iEnd)}${BADGE[product][tier === 'tray' ? 'small' : tier]}
 </svg>
 `;
 }
@@ -275,13 +299,12 @@ export function monoMark() {
 /**
  * tray tier — 16-24px.
  *
- * Starscape and the Data Uploader: the master, untouched, with the badge
- * scaled up (see `TRAY_SCALE`). The tray icon is therefore the taskbar icon —
- * the same nebula disc, glow and ring people already see in the taskbar — and
- * the enlarged badge is what keeps the two siblings apart once the master has
- * collapsed to a disc and a dot. An earlier tray tier was a flat, rim-only
- * redraw of the mark; it read cleanly at 16px but looked like a third product
- * next to the taskbar icon it was supposed to belong to.
+ * Starscape and the Data Uploader: the small tier unchanged — the master with
+ * the large glyph — so the tray icon is the taskbar icon. An earlier tray tier
+ * was a flat, rim-only redraw (read cleanly, but looked like a third product);
+ * the one after it scaled the plated badge up by 40%, which still left the
+ * Starscape monitor unreadable at 16px and ringed the uploader's arrow with
+ * stray dots from the halo and motion trail.
  *
  * SCC keeps the flat construction below: its tray lives in the desktop app
  * repo, and this file only mirrors that construction for the family sheet.

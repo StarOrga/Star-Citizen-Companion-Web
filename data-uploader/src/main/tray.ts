@@ -51,8 +51,13 @@ function iconPath(): string {
   // near-black square that vanishes on the dark taskbar. Packaged and dev layouts
   // differ: packaged copies it to `<resources>/tray.png` (electron-builder
   // extraResources), dev reads it straight from `build/`. Fall through to the
-  // app icon only if the tray asset is somehow absent.
+  // app icon only if the tray asset is somehow absent. On Windows the multi-size
+  // `tray.ico` comes first: the shell picks its native 16/20/24px frame, where a
+  // single 256px PNG gets downscaled into a blur.
   const candidates = [
+    ...(process.platform === 'win32'
+      ? [join(process.resourcesPath ?? '', 'tray.ico'), join(__dirname, '../../build/tray.ico')]
+      : []),
     join(process.resourcesPath ?? '', 'tray.png'),
     join(__dirname, '../../build/tray.png'),
     join(process.resourcesPath ?? '', 'icon.png'),

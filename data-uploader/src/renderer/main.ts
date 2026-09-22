@@ -280,12 +280,10 @@ async function init(): Promise<void> {
   const env = await window.sc.env();
   paintEnv(env);
 
-  // "Require a login every time the app is opened": a normal (foreground) launch
-  // must not silently reuse the persisted session — the operator signs in fresh,
-  // which also mints a token good for the whole run. The unattended `--hidden`
-  // autostart is exempt: it has no one to click "connect", so it keeps using the
-  // stored session to drive the auto-run.
-  requireFreshLogin = !env.startedHidden;
+  // Every launch — foreground or the `--hidden` autostart — reuses the persisted
+  // session (refreshed silently via the rotating refresh token), exactly like
+  // Starscape: the operator signs in once and stays signed in across restarts
+  // and app updates until they sign out or the refresh lineage dies.
   startedHidden = env.startedHidden;
 
   // Language now lives in the ⚙ Settings dialog (settings-dialog.ts), which
@@ -557,7 +555,6 @@ const conn = {
 // Set true on a foreground launch (see init): the operator must sign in fresh
 // this session before any silent/persisted token is used. Cleared the moment an
 // interactive login succeeds.
-let requireFreshLogin = false;
 /**
  * True only for the `--hidden` autostart launch. It gates every "close yourself
  * again" path (feedback 71b1e402): a window the operator opened themselves is
@@ -583,18 +580,7 @@ async function initConnectionTile(): Promise<void> {
     paintConnection();
   });
 
-  // 3. A foreground launch requires a fresh login: DON'T auto-connect from the
-  // persisted session — show the disconnected tile so the operator signs in
-  // deliberately. (`connectNow`/`ensureUploadToken` then run the interactive
-  // browser flow.) The unattended `--hidden` autostart still auto-connects.
-  if (requireFreshLogin) {
-    conn.status = { connected: false, email: null, expiresAt: null, canPersist: true, needsReconnect: false };
-    conn.resolved = true;
-    paintConnection();
-    return;
-  }
-
-  // 4. Unattended: resolve session + auto-connect/sync without user interaction.
+  // 3. Resolve the persisted session + auto-connect/sync without user interaction.
   await refreshConnection();
 }
 
@@ -662,10 +648,6 @@ let lastSessionRevalidateAt = 0;
 
 async function revalidateSession(force = false): Promise<void> {
   if (!conn.resolved) return; // initial resolve owns the first status fetch
-  // While a fresh login is still required (foreground launch, not signed in
-  // yet), don't probe the persisted session — that would silently flip the pill
-  // to "connected" and undermine the sign-in-on-every-start guarantee.
-  if (requireFreshLogin) return;
   const now = Date.now();
   if (!force && now - lastSessionRevalidateAt < SESSION_REVALIDATE_THROTTLE_MS) return;
   lastSessionRevalidateAt = now;
@@ -691,7 +673,6 @@ export async function connectNow(): Promise<void> {
     const r = await window.sc.authenticate();
     if (r.ok && r.accessToken) {
       state.authToken = r.accessToken;
-      requireFreshLogin = false; // signed in this session
       await refreshConnection();
     } else {
       conn.error = r.error ?? (t('session.connectFailed'));
@@ -721,27 +702,19 @@ async function signOutNow(): Promise<void> {
 
 // Prefer the persisted/refreshed session token (no re-login); fall back to an
 // interactive browser login only when there is no usable session.
-//
-// Exception: on a foreground launch (`requireFreshLogin`) the operator has not
-// yet signed in THIS session, so skip the silent/persisted token entirely and go
-// straight to the interactive browser login — otherwise "log in on every start"
-// would be silently defeated by the stored session.
 async function ensureUploadToken(): Promise<string | null> {
-  if (!requireFreshLogin) {
-    try {
-      const tok = await window.sc.session.token();
-      if (tok.token) {
-        state.authToken = tok.token;
-        return tok.token;
-      }
-    } catch {
-      /* fall through to interactive login */
+  try {
+    const tok = await window.sc.session.token();
+    if (tok.token) {
+      state.authToken = tok.token;
+      return tok.token;
     }
+  } catch {
+    /* fall through to interactive login */
   }
   const r = await window.sc.authenticate();
   if (r.ok && r.accessToken) {
     state.authToken = r.accessToken;
-    requireFreshLogin = false; // signed in this session
     void refreshConnection();
     return r.accessToken;
   }
