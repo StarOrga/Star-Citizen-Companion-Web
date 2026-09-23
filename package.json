@@ -66,7 +66,6 @@
     "@ngx-translate/http-loader": "^18.0.0",
     "@starorga/star-ui": "github:StarOrga/StarUI#v0.1.1",
     "@supabase/supabase-js": "^2.116.0",
-    "lucide-angular": "^1.0.0",
     "modern-screenshot": "^4.7.0",
     "posthog-js": "^1.433.9",
     "rxjs": "~7.8.0",
