@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexDefensivePanelComponent,
   CodexOffensivePanelComponent,
@@ -42,7 +42,7 @@ export interface HoloPerspectiveView {
 @Component({
   selector: 'sc-codex-holo-perspectives',
   standalone: true,
-  imports: [TranslateModule, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
+  imports: [TranslatePipe, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sh">

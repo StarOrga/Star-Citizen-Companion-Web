@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
@@ -91,7 +91,7 @@ const RENDER_CHUNK = 24;
   selector: 'sc-starscape',
   standalone: true,
   imports: [NeuroFieldDirective, 
-    TranslateModule,
+    TranslatePipe,
     ScDatePipe,
     ImgReadyDirective,
     AppDownloadMenuComponent,

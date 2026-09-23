@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { formatEquippedStat, formatEquippedStatNumber } from './codex-equipped-stats';
 import { KpiCell } from './codex-loadout-stats';
 import { KpiStripCell } from './codex-kpi-sets';
@@ -17,7 +17,7 @@ import { KpiStripCell } from './codex-kpi-sets';
 @Component({
   selector: 'sc-codex-kpi-band',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="kpi-band" role="group" [attr.aria-label]="'codex.kpi.bandLabel' | translate">

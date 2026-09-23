@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { StabilityPanelComponent } from './stability-panel.component';
 import { StabilityVerdict } from './patch-stability';
 
@@ -17,7 +17,7 @@ const base: StabilityVerdict = {
 };
 
 describe('StabilityPanelComponent', () => {
-  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityPanelComponent, TranslateModule.forRoot()] }));
+  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityPanelComponent], providers: [provideTranslateService()] }));
 
   function render(v: StabilityVerdict) {
     const f = TestBed.createComponent(StabilityPanelComponent);

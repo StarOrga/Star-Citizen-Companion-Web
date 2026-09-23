@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import {
   RANK_PROFILES,
   RankProfileId,
@@ -23,7 +23,7 @@ import {
 @Component({
   selector: 'sc-codex-rank-card',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.holo]': 'holo()' },
   template: `

@@ -9,7 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexListRow, CodexService } from '../codex/codex.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { HangarService } from './hangar.service';
@@ -46,7 +46,7 @@ const MAX_ENTRIES = 200;
 @Component({
   selector: 'sc-hangar-import',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="import sc-card"

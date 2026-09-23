@@ -12,7 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   alphaDamage,
   damageChannelsOf,
@@ -77,7 +77,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
 @Component({
   selector: 'sc-codex-weapon-detail',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
@@ -159,7 +159,7 @@ export class CodexWeaponDetailComponent {
 
   private readonly i18n = inject(TranslateService);
   /** Re-run the computed on a language switch so the resolved strings below follow (#50). */
-  private readonly lang = signal(this.i18n.currentLang);
+  private readonly lang = signal(this.i18n.getCurrentLang());
 
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));

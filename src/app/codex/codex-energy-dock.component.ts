@@ -26,7 +26,7 @@ import {
   untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ICON_PATHS } from './codex-category-icon.component';
 import { formatNumber } from './codex-format';
@@ -109,7 +109,7 @@ let uidSeq = 0;
 @Component({
   selector: 'sc-codex-energy-dock',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // The HOST is what sticks, so the chosen position has to live here and not
   // only on the inner .mini-dock — see the :host rules below for why.
@@ -180,9 +180,9 @@ let uidSeq = 0;
         </div>
       } @else if (minimised()) {
         <div class="md-strip" [id]="bodyId">
-          <span>{{ 'codex.energy.fact.ir' | translate }} {{ fmt(irFact()?.value) }}</span>
-          <span>{{ 'codex.energy.fact.em' | translate }} {{ fmt(emFact()?.value) }}</span>
-          <span>{{ 'codex.energy.fact.crossSection' | translate }} {{ fmt(csFact()?.value) }}</span>
+          <span>{{ 'codex.energy.fact.ir' | translate }} {{ fmt($safeNavigationMigration(irFact()?.value)) }}</span>
+          <span>{{ 'codex.energy.fact.em' | translate }} {{ fmt($safeNavigationMigration(emFact()?.value)) }}</span>
+          <span>{{ 'codex.energy.fact.crossSection' | translate }} {{ fmt($safeNavigationMigration(csFact()?.value)) }}</span>
           <span>{{ 'codex.energy.fact.coolingLoad' | translate }} {{ sheet().coolant.percent === null ? '—' : ('codex.energy.coolingPercent' | translate: { pct: sheet().coolant.percent }) }}</span>
           <span class="ok" [class.no]="!sheet().ready">{{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}</span>
         </div>

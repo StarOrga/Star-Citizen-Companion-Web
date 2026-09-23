@@ -9,7 +9,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
@@ -50,7 +50,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     HangarImportComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,
@@ -121,7 +121,7 @@ const SEARCH_DEBOUNCE_MS = 250;
               <div class="badges">
                 @if (cardFor(s)?.manufacturerCode; as mfr) { <span class="badge mfr">{{ mfr }}</span> }
                 @if (cardFor(s)?.crewSize != null) {
-                  <span class="badge">{{ 'codex.card.crew' | translate: { count: cardFor(s)?.crewSize } }}</span>
+                  <span class="badge">{{ 'codex.card.crew' | translate: { count: $safeNavigationMigration(cardFor(s)?.crewSize) } }}</span>
                 }
               </div>
             </a>
@@ -252,7 +252,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                   </span>
                   @if (cardFor(s)?.manufacturerCode; as mfr) { <span class="badge mfr">{{ mfr }}</span> }
                   @if (cardFor(s)?.crewSize != null) {
-                    <span class="badge">{{ 'codex.card.crew' | translate: { count: cardFor(s)?.crewSize } }}</span>
+                    <span class="badge">{{ 'codex.card.crew' | translate: { count: $safeNavigationMigration(cardFor(s)?.crewSize) } }}</span>
                   }
                 </div>
                 <button type="button" class="flag-toggle" [class.is-flagship]="isFlagship(s)"

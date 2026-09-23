@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { FriendsService } from './friends.service';
 import {
@@ -27,7 +27,7 @@ import {
 @Component({
   selector: 'sc-friends',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { ImpersonationService, VIEW_AS_STORAGE_KEY } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 import { ImpersonationBannerComponent } from './impersonation-banner.component';
@@ -18,8 +18,9 @@ describe('ImpersonationBannerComponent', () => {
 
   function setup(realRole: 'admin' | 'collaborator' | 'viewer' | null) {
     TestBed.configureTestingModule({
-      imports: [ImpersonationBannerComponent, TranslateModule.forRoot()],
+      imports: [ImpersonationBannerComponent],
       providers: [
+        provideTranslateService(),
         ImpersonationService,
         { provide: RoleService, useValue: { realRole: signal(realRole) } },
       ],

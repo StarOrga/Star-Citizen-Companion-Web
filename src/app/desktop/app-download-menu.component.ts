@@ -13,7 +13,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
@@ -74,7 +74,7 @@ let nextId = 0;
 @Component({
   selector: 'sc-app-download-menu',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslateModule],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (offered()) {

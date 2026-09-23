@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { StabilityChipComponent } from './stability-chip.component';
 import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 
@@ -13,7 +13,7 @@ function verdict(extra: Partial<StabilityVerdict>): StabilityVerdict {
 }
 
 describe('StabilityChipComponent', () => {
-  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityChipComponent, TranslateModule.forRoot()] }));
+  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityChipComponent], providers: [provideTranslateService()] }));
 
   function render(v: StabilityVerdict | null) {
     const f = TestBed.createComponent(StabilityChipComponent);

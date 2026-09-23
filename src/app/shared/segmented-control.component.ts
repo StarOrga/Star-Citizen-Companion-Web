@@ -8,7 +8,7 @@ import {
   output,
 } from '@angular/core';
 import { QueryParamsHandling, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /**
  * Router target for a segment whose state lives in the URL. When present the
@@ -67,7 +67,7 @@ export interface ScSegmentOption {
 @Component({
   selector: 'sc-segmented',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'sc-segmented' },
   template: `

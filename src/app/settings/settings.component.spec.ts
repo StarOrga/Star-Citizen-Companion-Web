@@ -4,7 +4,7 @@ import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import type { User } from '@supabase/supabase-js';
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -45,8 +45,9 @@ describe('SettingsComponent layout', () => {
 
   function configure(user: User | null = makeUser()) {
     TestBed.configureTestingModule({
-      imports: [SettingsComponent, TranslateModule.forRoot()],
+      imports: [SettingsComponent],
       providers: [
+        provideTranslateService(),
         // The rail builds its hrefs from the CURRENT url, and the friends
         // card is a real <a [routerLink]> — both need a router, and the rail
         // also needs a location. Mocked, so nothing touches real history.

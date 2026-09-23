@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { draftScopes } from '../feedback/feedback-draft.types';
 import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
@@ -7,7 +7,6 @@ import { buildDiagnosticTopic, diagnosticLogFile, type DiagnosticRow } from './t
 import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
@@ -90,7 +89,7 @@ const WINDOWS = [7, 30, 90] as const;
 @Component({
   selector: 'sc-telemetry-stats',
   standalone: true,
-  imports: [ScDatePipe, DecimalPipe, TranslateModule, RouterLink, ScSegmentedComponent],
+  imports: [ScDatePipe, DecimalPipe, TranslatePipe, RouterLink, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AccessRequestService } from './access-request.service';
 import { AnalyticsService } from '../core/analytics.service';
@@ -22,8 +22,9 @@ describe('LoginComponent — landing + apply', () => {
   function setup() {
     submit = jasmine.createSpy('submit').and.resolveTo({ kind: 'ok' });
     TestBed.configureTestingModule({
-      imports: [LoginComponent, TranslateModule.forRoot()],
+      imports: [LoginComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         { provide: AccessRequestService, useValue: { submit } },
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, signInWithPassword: () => Promise.resolve({ error: null }), signInWithGoogle: () => Promise.resolve({ error: null }) } },

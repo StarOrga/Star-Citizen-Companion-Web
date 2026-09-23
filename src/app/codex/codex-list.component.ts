@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
   CodexKind,
@@ -117,7 +117,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -585,7 +585,7 @@ export class CodexListComponent implements OnInit {
   // Data language tracks the UI language as a SIGNAL so OnPush card titles
   // re-render on a language switch (they previously read t.currentLang
   // directly and stayed stale until the next unrelated CD cycle). (#50)
-  private readonly dataLang = signal(toLang(this.t.currentLang));
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
   readonly kinds = CODEX_KINDS;
   /** Datamined kinds + the RSI-sourced "upcoming ships" category. */

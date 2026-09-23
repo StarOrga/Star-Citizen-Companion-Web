@@ -11,7 +11,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexService } from './codex.service';
 import { formatNumber } from './codex-format';
 import {
@@ -51,7 +51,7 @@ import { NewsService } from '../news/news.service';
 @Component({
   selector: 'sc-codex-patch-headline',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Class names kept from the retired inline pill: same slot, same weight

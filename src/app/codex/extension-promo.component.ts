@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ExtensionBridgeService } from '../hangar/extension-bridge.service';
 
 /** Dismissal is a local preference, not account state — no round-trip needed. */
@@ -15,7 +15,7 @@ const DISMISS_KEY = 'sc.extensionPromo.dismissed';
 @Component({
   selector: 'sc-extension-promo',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {

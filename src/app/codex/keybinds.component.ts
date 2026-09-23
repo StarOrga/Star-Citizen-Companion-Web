@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexService, toLang } from './codex.service';
 import { cleanLocaleValue } from './codex-format';
 import {
@@ -108,7 +108,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
   imports: [
     FormsModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     CodexStatusBannerComponent,
     ScSelectComponent,
   ],
@@ -782,7 +782,7 @@ export class KeybindsComponent implements OnInit {
         if (b.descriptionKey) keys.add(b.descriptionKey);
         if (b.categoryLabelKey) keys.add(b.categoryLabelKey);
       }
-      const lang = toLang(this.t.currentLang);
+      const lang = toLang(this.t.getCurrentLang());
       this.uiLang.set(lang);
       // The taxonomy and context chips are app wording, not datamine values —
       // they come from the i18n bundles, so the English bundle has to be there

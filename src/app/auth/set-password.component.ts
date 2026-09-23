@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { capturedAuthLinkType } from './auth-link';
 import { AuthService } from './auth.service';
 import { PasswordFormComponent } from './password-form.component';
@@ -25,7 +25,7 @@ import { PasswordFormComponent } from './password-form.component';
 @Component({
   selector: 'sc-set-password',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, TranslateModule],
+  imports: [PasswordFormComponent, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="wrap">

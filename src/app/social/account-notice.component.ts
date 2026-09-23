@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { AccountStatusService } from './account-status.service';
@@ -24,7 +24,7 @@ import { AccountStatusService } from './account-status.service';
 @Component({
   selector: 'sc-account-notice',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (account.warning(); as w) {

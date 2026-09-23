@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, WritableSignal, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule, TranslateService, provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService, TranslatePipe } from '@ngx-translate/core';
 import { HeartbeatState, RoutineHeartbeatService } from './routine-heartbeat.service';
 import { RoutineStatusDirective } from './routine-status.directive';
 
@@ -11,7 +11,7 @@ const iso = (msAgo: number) => new Date(NOW - msAgo).toISOString();
 /** Stands in for the two real hosts: a title the panel renders anyway. */
 @Component({
   standalone: true,
-  imports: [TranslateModule, RoutineStatusDirective],
+  imports: [TranslatePipe, RoutineStatusDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<h1 scRoutineStatus="feedbackFab.title">{{ 'feedbackFab.title' | translate }}</h1>`,
 })

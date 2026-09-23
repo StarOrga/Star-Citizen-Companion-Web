@@ -4,7 +4,7 @@
 // `codex-build-compare.ts`; this component only renders what it is given,
 // it never recomputes the delta).
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { PerspectiveDelta } from '../codex-build-compare';
 
 const PERSPECTIVE_LABEL_KEYS: Record<PerspectiveDelta['perspective'], string> = {
@@ -50,7 +50,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
 @Component({
   selector: 'sc-codex-holo-patch-delta',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="perspective" [attr.data-perspective]="group().perspective">

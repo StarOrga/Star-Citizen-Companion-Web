@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent } from 'rxjs';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScColumnMenuComponent } from '../shared/column-menu.component';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
@@ -171,7 +171,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslateModule, ScSegmentedComponent, ScColumnMenuComponent],
+  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
@@ -619,7 +619,7 @@ export class CodexSwapPickerComponent {
    * Signal-tracked UI language, so the strings this component resolves outside
    * a `| translate` pipe still re-render on a language switch (#50).
    */
-  private readonly lang = signal(this.i18n.currentLang);
+  private readonly lang = signal(this.i18n.getCurrentLang());
 
   /** The hardpoint to explore; `null` renders nothing (closed). */
   readonly target = input<SwapTarget | null>(null);

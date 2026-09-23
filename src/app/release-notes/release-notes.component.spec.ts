@@ -1,5 +1,5 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ReleaseNotesService, ReleaseNotes } from './release-notes.service';
@@ -28,7 +28,7 @@ describe('ReleaseNotesService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [ReleaseNotesService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [ReleaseNotesService, provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     svc = TestBed.inject(ReleaseNotesService);
     http = TestBed.inject(HttpTestingController);
@@ -65,7 +65,7 @@ describe('ReleaseNotesComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [ReleaseNotesComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideTranslateService()],
+      providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideTranslateService()],
     });
     fixture = TestBed.createComponent(ReleaseNotesComponent);
     http = TestBed.inject(HttpTestingController);

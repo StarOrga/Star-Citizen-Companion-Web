@@ -1,8 +1,8 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -17,15 +17,15 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
 // The header's neighbours pull in Supabase-backed services of their own; the
 // nav contract under test doesn't involve them.
-@Component({ selector: 'sc-quick-search', standalone: true, template: '' })
+@Component({ selector: 'sc-quick-search', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class QuickSearchStub {}
-@Component({ selector: 'sc-verse-status-chip', standalone: true, template: '' })
+@Component({ selector: 'sc-verse-status-chip', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class VerseStatusChipStub {}
-@Component({ selector: 'sc-feedback-fab', standalone: true, template: '' })
+@Component({ selector: 'sc-feedback-fab', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class FeedbackFabStub {}
-@Component({ selector: 'sc-user-feedback-fab', standalone: true, template: '' })
+@Component({ selector: 'sc-user-feedback-fab', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class UserFeedbackFabStub {}
-@Component({ selector: 'sc-footer', standalone: true, template: '' })
+@Component({ selector: 'sc-footer', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class FooterStub {}
 
 /**
@@ -53,8 +53,9 @@ describe('ShellComponent navigation', () => {
   function setup() {
     request = jasmine.createSpy('request').and.returnValue(true);
     TestBed.configureTestingModule({
-      imports: [ShellComponent, TranslateModule.forRoot()],
+      imports: [ShellComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request } },

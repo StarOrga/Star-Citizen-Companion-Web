@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
@@ -14,9 +14,9 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
 // Both panels are Supabase-backed and only render once the FAB is opened; this
 // spec never opens one, but the stubs keep the imports out of the injector too.
-@Component({ selector: 'sc-admin-feedback', standalone: true, template: '' })
+@Component({ selector: 'sc-admin-feedback', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AdminFeedbackStub {}
-@Component({ selector: 'sc-user-feedback-panel', standalone: true, template: '' })
+@Component({ selector: 'sc-user-feedback-panel', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class UserFeedbackPanelStub {}
 
 const KEY = 'sc.feedback.fabHidden';
@@ -32,8 +32,8 @@ describe('feedback launcher visibility', () => {
   function adminFab() {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [FeedbackFabComponent, TranslateModule.forRoot()],
-      providers: [{ provide: RoleService, useValue: { isAdmin: signal(true) } }],
+      imports: [FeedbackFabComponent],
+      providers: [provideTranslateService(), { provide: RoleService, useValue: { isAdmin: signal(true) } }],
     });
     TestBed.overrideComponent(FeedbackFabComponent, {
       remove: { imports: [AdminFeedbackComponent] },
@@ -47,8 +47,9 @@ describe('feedback launcher visibility', () => {
   function userFab() {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [UserFeedbackFabComponent, TranslateModule.forRoot()],
+      imports: [UserFeedbackFabComponent],
       providers: [
+        provideTranslateService(),
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
         { provide: RoleService, useValue: { loaded: signal(true), isAdmin: signal(false) } },
         { provide: ImpersonationService, useValue: { activeOrPending: signal(false) } },

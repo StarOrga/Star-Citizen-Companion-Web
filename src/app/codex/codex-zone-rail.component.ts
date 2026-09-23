@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
@@ -57,7 +57,7 @@ export type ZoneRailKind = 'board' | 'hangar';
   selector: 'sc-codex-zone-rail',
   standalone: true,
   imports: [
-    TranslateModule,
+    TranslatePipe,
     CodexBoardFigureComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,

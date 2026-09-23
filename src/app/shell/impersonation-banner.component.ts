@@ -9,7 +9,7 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
 
@@ -39,7 +39,7 @@ import { RoleService } from '../auth/role.service';
 @Component({
   selector: 'sc-impersonation-banner',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (imp.active()) {

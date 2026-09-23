@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CodexListRow,
   CodexKind,
@@ -83,7 +83,7 @@ const SEARCH_DEBOUNCE_MS = 250;
   imports: [
     FormsModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     CodexCompareTrayComponent,
     CodexCategoryIconComponent,
     AppDownloadMenuComponent,
@@ -1077,6 +1077,6 @@ export class CodexLandingComponent implements OnInit {
   }
 
   private lang(): Lang {
-    return toLang(this.t.currentLang ?? this.t.getDefaultLang());
+    return toLang(this.t.getCurrentLang() ?? this.t.getFallbackLang());
   }
 }

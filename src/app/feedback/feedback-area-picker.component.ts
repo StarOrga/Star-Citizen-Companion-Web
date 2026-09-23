@@ -6,7 +6,7 @@ import {
   model,
   untracked,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FeedbackAreaService } from './feedback-area.service';
 import { FeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
 
@@ -44,7 +44,7 @@ import { FeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
 @Component({
   selector: 'sc-feedback-area-picker',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="area-row" role="group" [attr.aria-label]="'feedbackArea.aria' | translate">

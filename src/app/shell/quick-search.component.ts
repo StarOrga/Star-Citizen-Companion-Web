@@ -13,7 +13,7 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexKind,
   CodexListRow,
@@ -46,7 +46,7 @@ const PER_KIND_LIMIT = 6;
 @Component({
   selector: 'sc-quick-search',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The glyph is an inline SVG, not the ⌕ character it used to be: that

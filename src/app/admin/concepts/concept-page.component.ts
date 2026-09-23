@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ConceptPageService, ConceptTicketError, ConceptTicketFailure } from './concept-page.service';
 
 type State = 'loading' | 'ready' | ConceptTicketError;
@@ -24,7 +24,7 @@ type State = 'loading' | 'ready' | ConceptTicketError;
  */
 @Component({
   selector: 'sc-concept-page',
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="concept">

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { StabilityHistoryComponent } from './stability-history.component';
 import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 
@@ -14,7 +14,7 @@ function v(line: string, level: 1 | 2 | 3 | 4 | 5 | null, early = false): Stabil
 }
 
 describe('StabilityHistoryComponent', () => {
-  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityHistoryComponent, TranslateModule.forRoot()] }));
+  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityHistoryComponent], providers: [provideTranslateService()] }));
 
   it('one button column per verdict, hatched when early, emits the line on click', () => {
     const f = TestBed.createComponent(StabilityHistoryComponent);

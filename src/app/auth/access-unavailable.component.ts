@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { safeRedirectTarget } from '../core/safe-redirect.util';
 import { AuthService } from './auth.service';
 import { RoleService } from './role.service';
@@ -26,7 +26,7 @@ import { RoleService } from './role.service';
 @Component({
   selector: 'sc-access-unavailable',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

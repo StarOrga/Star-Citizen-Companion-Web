@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   API_TOKEN_SCOPES,
   ApiTokenRow,
@@ -28,7 +28,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 @Component({
   selector: 'sc-api-tokens',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

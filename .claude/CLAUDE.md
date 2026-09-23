@@ -4,7 +4,7 @@ See root [CLAUDE.md](../CLAUDE.md) for project conventions. This file is the ind
 
 ## Project memory
 
-- Stack: Angular 21 + Supabase (`hcnqhvzlavdycidqyaai`, eu-central-1) + Vercel
+- Stack: Angular 22 + Supabase (`hcnqhvzlavdycidqyaai`, eu-central-1) + Vercel
 - Phase: alpha — minimal MVP, expect schema churn until phase flips to `beta`
 - Inspirations: erkul.games (loadout planner), Hatchit (sibling Angular+Supabase project under `C:/Users/Jerem/IdeaProjects/Hatchit`)
 

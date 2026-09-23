@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { UpcomingShipsFeed, UpcomingShipsService } from './upcoming-ships.service';
 import { ConsentService } from '../core/consent.service';
@@ -34,7 +34,7 @@ describe('UpcomingShipsService', () => {
     TestBed.configureTestingModule({
       providers: [
         UpcomingShipsService,
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: ConsentService, useValue: { preferencesAllowed: () => preferencesAllowed } },
       ],

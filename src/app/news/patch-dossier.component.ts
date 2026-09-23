@@ -13,7 +13,7 @@ import {
   untracked,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { NewsService } from './news.service';
@@ -104,7 +104,7 @@ const SPY_CLEARANCE_PX = 24;
   selector: 'sc-patch-dossier',
   standalone: true,
   imports: [
-    TranslateModule, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
+    TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
     PatchNoteDetailComponent, StabilityBadgeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AnalyticsService } from '../core/analytics.service';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
@@ -23,7 +23,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
 @Component({
   selector: 'sc-hangar-import-page',
   standalone: true,
-  imports: [RouterLink, TranslateModule, HangarImportComponent],
+  imports: [RouterLink, TranslatePipe, HangarImportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
@@ -19,7 +19,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 @Component({
   selector: 'sc-download',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule, AppDownloadPanelComponent, ChannelPickerComponent],
+  imports: [ScDatePipe, TranslatePipe, AppDownloadPanelComponent, ChannelPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dl">

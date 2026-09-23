@@ -9,7 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { NewsService, StatusLevel, effectivePlayability } from './news.service';
 
@@ -48,7 +48,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
 @Component({
   selector: 'sc-verse-status-chip',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (status(); as st) {

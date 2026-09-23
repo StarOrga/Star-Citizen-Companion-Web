@@ -9,7 +9,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /** Permanent opt-out — only the ✕ writes this (admin feedback eb9c6ec3). */
 const DISMISS_KEY = 'sc.starscapePromo.dismissed';
@@ -41,7 +41,7 @@ const ROTATE_MS = 2600;
 @Component({
   selector: 'sc-starscape-app-promo',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {

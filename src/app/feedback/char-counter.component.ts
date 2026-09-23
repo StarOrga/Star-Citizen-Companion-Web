@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FEEDBACK_COUNTER_WARN_AT, FEEDBACK_MAX_CHARS } from './feedback-limits';
 
 /**
@@ -32,7 +32,7 @@ export type CharCounterPlacement = 'inside' | 'below';
 @Component({
   selector: 'sc-char-counter',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     'aria-hidden': 'true',

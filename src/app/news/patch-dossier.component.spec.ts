@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
@@ -131,8 +131,9 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     TestBed.resetTestingModule();
     stub = roadmapStub(roadmap);
     TestBed.configureTestingModule({
-      imports: [PatchDossierComponent, TranslateModule.forRoot()],
+      imports: [PatchDossierComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(FEED) } },

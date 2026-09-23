@@ -9,7 +9,7 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import {
@@ -94,7 +94,7 @@ type Slide =
 @Component({
   selector: 'sc-patch-cadence',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (hasContent()) {

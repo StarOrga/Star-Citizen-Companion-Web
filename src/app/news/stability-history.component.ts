@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { StabilityVerdict } from './patch-stability';
 
 /**
@@ -19,7 +19,7 @@ import { StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-history',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shown().length >= 2) {

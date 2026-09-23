@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CODEX_KINDS, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
 import { formatScDate } from '../core/locale/date-format';
@@ -23,7 +23,7 @@ interface CoverageRow {
 @Component({
   selector: 'sc-codex-status-banner',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (svc.build(); as b) {

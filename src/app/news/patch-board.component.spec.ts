@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
@@ -147,8 +147,9 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     localStorage.clear();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [PatchBoardComponent, TranslateModule.forRoot()],
+      imports: [PatchBoardComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed) } },

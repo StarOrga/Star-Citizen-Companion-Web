@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NewsThumbComponent, isArtwork, isHeroImage } from './news-thumb.component';
 
 /**
@@ -51,6 +51,7 @@ describe('news thumb · what counts as a title image', () => {
 @Component({
   standalone: true,
   imports: [NewsThumbComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<sc-news-thumb [images]="images()" />`,
 })
 class HostComponent {

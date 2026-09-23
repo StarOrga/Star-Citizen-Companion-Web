@@ -17,7 +17,7 @@
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { CodexService } from '../codex.service';
 import { CodexBuild, isReExtractPending } from '../codex.types';
@@ -58,7 +58,7 @@ export interface HoloPatchComparisonSide {
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslateModule, CodexHoloPatchDeltaComponent],
+  imports: [TranslatePipe, CodexHoloPatchDeltaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-patch">
@@ -74,7 +74,7 @@ export interface HoloPatchComparisonSide {
         [attr.aria-controls]="panelId"
         [attr.title]="'codex.holo.patch.trigger.hotkeyHint' | translate"
       >
-        <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() } }}</span>
+        <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
         <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
       </button>
 
@@ -134,9 +134,9 @@ export interface HoloPatchComparisonSide {
       }
       @if (perspectives(); as groups) {
         @if (deltaOpen()) {
-          <div #deltaPanel class="delta-panel" role="region" tabindex="-1" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() }">
+          <div #deltaPanel class="delta-panel" role="region" tabindex="-1" [attr.aria-label]="'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() }">
             <div class="delta-head">
-              <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: selected()?.patchVersion, active: activeBuild().patchVersion, channel: channel() } }}</span>
+              <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
               <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
               <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [attr.title]="'codex.holo.patch.deltaHide' | translate">✕</button>
             </div>

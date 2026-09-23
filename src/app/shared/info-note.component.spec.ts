@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { InfoNoteComponent } from './info-note.component';
 
 @Component({
   standalone: true,
   imports: [InfoNoteComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<sc-info-note label="Woher?"><p class="body">Median-Schätzung</p></sc-info-note>`,
 })
 class HostComponent {}

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { Role, RoleService } from '../auth/role.service';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
@@ -56,8 +56,9 @@ describe('AppDownloadMenuComponent', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [AppDownloadMenuComponent, TranslateModule.forRoot()],
+      imports: [AppDownloadMenuComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         { provide: RoleService, useValue: { role: signal(opts.role ?? null) } },
         {

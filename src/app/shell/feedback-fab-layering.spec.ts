@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { AuthService } from '../auth/auth.service';
@@ -13,9 +13,9 @@ import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
-@Component({ selector: 'sc-admin-feedback', standalone: true, template: '' })
+@Component({ selector: 'sc-admin-feedback', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AdminFeedbackStub {}
-@Component({ selector: 'sc-user-feedback-panel', standalone: true, template: '' })
+@Component({ selector: 'sc-user-feedback-panel', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class UserFeedbackPanelStub {}
 
 /**
@@ -56,8 +56,8 @@ describe('feedback launcher layering', () => {
   function adminFab() {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [FeedbackFabComponent, TranslateModule.forRoot()],
-      providers: [{ provide: RoleService, useValue: { isAdmin: signal(true) } }],
+      imports: [FeedbackFabComponent],
+      providers: [provideTranslateService(), { provide: RoleService, useValue: { isAdmin: signal(true) } }],
     });
     TestBed.overrideComponent(FeedbackFabComponent, {
       remove: { imports: [AdminFeedbackComponent] },
@@ -71,8 +71,9 @@ describe('feedback launcher layering', () => {
   function userFab() {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [UserFeedbackFabComponent, TranslateModule.forRoot()],
+      imports: [UserFeedbackFabComponent],
       providers: [
+        provideTranslateService(),
         { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } },
         { provide: RoleService, useValue: { loaded: signal(true), isAdmin: signal(false) } },
         { provide: ImpersonationService, useValue: { activeOrPending: signal(false) } },
@@ -123,8 +124,8 @@ describe('feedback launcher layering', () => {
   it('still yields to the storage-consent bar, which shares its bottom edge', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [ConsentBannerComponent, TranslateModule.forRoot()],
-      providers: [{ provide: ConsentService, useValue: { decided: signal(false) } }],
+      imports: [ConsentBannerComponent],
+      providers: [provideTranslateService(), { provide: ConsentService, useValue: { decided: signal(false) } }],
     });
     const fixture = TestBed.createComponent(ConsentBannerComponent);
     fixture.detectChanges();

@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { PasswordFormComponent } from '../auth/password-form.component';
 import { ProfileService } from '../auth/profile.service';
@@ -75,7 +75,7 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslateModule],
+  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

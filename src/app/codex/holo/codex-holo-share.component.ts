@@ -3,7 +3,7 @@
 // hosts it inside its own popover shell and wires `copyCurrentLink` to its
 // EXISTING `copyShareLink()` (inventory #14, unchanged).
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../hangar/hangar.types';
@@ -11,7 +11,7 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
 @Component({
   selector: 'sc-codex-holo-share',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-share">

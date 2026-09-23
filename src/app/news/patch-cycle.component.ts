@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import { InfoNoteComponent } from '../shared/info-note.component';
@@ -46,7 +46,7 @@ interface CycleMark {
 @Component({
   selector: 'sc-patch-cycle',
   standalone: true,
-  imports: [TranslateModule, InfoNoteComponent, PatchCadenceComponent],
+  imports: [TranslatePipe, InfoNoteComponent, PatchCadenceComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (cycle(); as c) {

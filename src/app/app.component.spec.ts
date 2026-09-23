@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideServiceWorker } from '@angular/service-worker';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AppComponent } from './app.component';
@@ -11,7 +11,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         provideRouter([]),
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideTranslateService({ fallbackLang: 'en' }),
         // SwUpdateService (injected by AppComponent) depends on SwUpdate, which
         // needs the ngsw comm channel. Disabled keeps it inert under test.

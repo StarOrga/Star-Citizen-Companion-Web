@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, input, untracked, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { formatNumber } from './codex-format';
 import { DefensivePanel, OffensivePanel } from './codex-loadout-stats';
 
@@ -138,7 +138,7 @@ const PANEL_STYLES = `
 @Component({
   selector: 'sc-codex-offensive-panel',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
@@ -288,7 +288,7 @@ export class CodexOffensivePanelComponent {
 @Component({
   selector: 'sc-codex-defensive-panel',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
@@ -377,7 +377,7 @@ export interface ShipFactGroup {
 @Component({
   selector: 'sc-codex-ship-panel',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { StarscapeVotesService } from './starscape-votes.service';
 
 /**
@@ -24,7 +24,7 @@ import { StarscapeVotesService } from './starscape-votes.service';
 @Component({
   selector: 'sc-vote-button',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // The host carries the state so the PARENT can style it — the gallery keeps a
   // cast vote visible on a tile that is not being hovered.

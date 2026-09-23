@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { NewsThumbComponent } from './news-thumb.component';
 
@@ -23,6 +23,7 @@ import { NewsThumbComponent } from './news-thumb.component';
 @Component({
   standalone: true,
   imports: [NewsThumbComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="frame" style="position: relative; width: 320px; height: 180px;">
       <sc-news-thumb

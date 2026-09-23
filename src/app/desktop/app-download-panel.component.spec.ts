@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 
@@ -8,8 +8,9 @@ describe('AppDownloadPanelComponent', () => {
   function setup(inputs: Partial<Record<string, unknown>> = {}, mobile = false) {
     const canInstall = signal(!mobile);
     TestBed.configureTestingModule({
-      imports: [AppDownloadPanelComponent, TranslateModule.forRoot()],
+      imports: [AppDownloadPanelComponent],
       providers: [
+        provideTranslateService(),
         {
           provide: DesktopCapabilityService,
           useValue: { canInstall, isMobileDevice: computed(() => !canInstall()) },

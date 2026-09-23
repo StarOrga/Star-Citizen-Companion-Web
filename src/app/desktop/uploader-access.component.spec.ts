@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { UploaderAccessComponent } from './uploader-access.component';
 import { DesktopReleaseService, ReleaseInfo } from './desktop-release.service';
 import { RoleService } from '../auth/role.service';
@@ -19,8 +19,9 @@ describe('UploaderAccessComponent', () => {
       .createSpy('forChannel')
       .and.resolveTo({ release: RELEASE, error: null });
     TestBed.configureTestingModule({
-      imports: [UploaderAccessComponent, TranslateModule.forRoot()],
+      imports: [UploaderAccessComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         { provide: DesktopReleaseService, useValue: { forChannel } },
         {

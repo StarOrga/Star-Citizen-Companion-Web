@@ -11,7 +11,6 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
 import { HangarPickerComponent, HangarPickerItem } from './hangar-picker.component';
 import { DEFAULT_FIELD, fallbackGeometry, sampleStage, spotGeometry } from '../stage-sample';
 import { StageArt } from '../upcoming-ships.service';
@@ -54,7 +53,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
 @Component({
   selector: 'sc-codex-stage',
   standalone: true,
-  imports: [RouterLink, TranslateModule, HangarPickerComponent],
+  imports: [RouterLink, HangarPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article

@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideTranslateService } from '@ngx-translate/core';
 import { P4kHistoryComponent } from './p4k-history.component';
 import { ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
@@ -41,7 +41,7 @@ function setup(bundles: P4kBundleRow[], isAdmin = false) {
   TestBed.configureTestingModule({
     imports: [P4kHistoryComponent],
     providers: [
-      provideHttpClient(),
+      provideHttpClient(withXhr()),
       provideTranslateService({ fallbackLang: 'en' }),
       { provide: P4kService, useValue: svc },
       { provide: RoleService, useValue: { isAdmin: signal(isAdmin) } },

@@ -10,7 +10,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CodexListRow,
   CodexService,
@@ -66,7 +66,7 @@ interface Lane {
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     CodexCompareTrayComponent,
     CodexCategoryIconComponent,
     CodexStatusBannerComponent,
@@ -659,7 +659,7 @@ export class CodexBridgeComponent implements OnInit {
   // ── card helpers (shared hero + lanes) ─────────────────────────────────────
   rowName(r: CodexListRow): string {
     const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.currentLang)) : '';
+    const localized = p?.name ? pickLocalized(p.name, toLang(this.t.getCurrentLang())) : '';
     return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
@@ -668,7 +668,7 @@ export class CodexBridgeComponent implements OnInit {
    * extracted game data off the row payload, see `manufacturerLabel`.
    */
   rowMfr(r: CodexListRow): string | null {
-    return manufacturerLabel(r, toLang(this.t.currentLang));
+    return manufacturerLabel(r, toLang(this.t.getCurrentLang()));
   }
 
   /**

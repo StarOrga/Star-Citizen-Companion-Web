@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type { FindGroup } from './patch-find';
 import { HighlightSegment, fuzzyTokens, highlightSegments } from './patch-search';
 
@@ -28,7 +28,7 @@ import { HighlightSegment, fuzzyTokens, highlightSegments } from './patch-search
 @Component({
   selector: 'sc-patch-find-results',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="find">

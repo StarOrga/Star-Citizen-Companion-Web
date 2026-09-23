@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { ScSegmentOption, ScSegmentedComponent } from './segmented-control.component';
 
 const BUTTON_OPTIONS: ScSegmentOption[] = [
@@ -15,8 +15,8 @@ describe('ScSegmentedComponent', () => {
     value = 'all',
   ): ComponentFixture<ScSegmentedComponent> {
     TestBed.configureTestingModule({
-      imports: [ScSegmentedComponent, TranslateModule.forRoot()],
-      providers: [provideRouter([])],
+      imports: [ScSegmentedComponent],
+      providers: [provideTranslateService(), provideRouter([])],
     });
     const f = TestBed.createComponent(ScSegmentedComponent);
     f.componentRef.setInput('options', options);

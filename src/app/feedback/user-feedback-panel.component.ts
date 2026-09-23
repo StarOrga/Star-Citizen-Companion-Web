@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 // The composer and the markdown renderer live under admin/feedback for
 // historical reasons but are plain, admin-agnostic building blocks — reused
 // here so the non-admin box has the same draft handling, image paste/drop and
@@ -49,7 +49,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 @Component({
   selector: 'sc-user-feedback-panel',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule, RouterLink, FeedbackAttachmentsComponent, FeedbackComposerComponent],
+  imports: [ScDatePipe, TranslatePipe, RouterLink, FeedbackAttachmentsComponent, FeedbackComposerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="panel-root sc-dense">

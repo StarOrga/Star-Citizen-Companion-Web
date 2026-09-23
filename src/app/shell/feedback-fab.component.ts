@@ -8,7 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
@@ -30,7 +30,7 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
 @Component({
   selector: 'sc-feedback-fab',
   standalone: true,
-  imports: [TranslateModule, AdminFeedbackComponent, RoutineStatusDirective],
+  imports: [TranslatePipe, AdminFeedbackComponent, RoutineStatusDirective],
   // The feedback launcher and its panel are the one thing on screen *because*
   // the user is writing a report, so a page screenshot taken from inside it
   // leaves this whole subtree out (admin feedback 312a4acc, see

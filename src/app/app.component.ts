@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth/auth.service';
 import { PresenceService } from './auth/presence.service';
 import { AnalyticsService } from './core/analytics.service';
@@ -14,7 +14,7 @@ import { ImpersonationBannerComponent } from './shell/impersonation-banner.compo
 @Component({
   selector: 'sc-root',
   standalone: true,
-  imports: [RouterOutlet, TranslateModule, ConsentBannerComponent, ImpersonationBannerComponent],
+  imports: [RouterOutlet, TranslatePipe, ConsentBannerComponent, ImpersonationBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Mounted here (not inside sc-shell) because a signed-out preview bounces

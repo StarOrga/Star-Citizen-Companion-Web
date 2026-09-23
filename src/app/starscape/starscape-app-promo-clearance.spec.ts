@@ -1,13 +1,13 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { RoleService } from '../auth/role.service';
 import { FeedbackFabComponent } from '../shell/feedback-fab.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 
-@Component({ selector: 'sc-admin-feedback', standalone: true, template: '' })
+@Component({ selector: 'sc-admin-feedback', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AdminFeedbackStub {}
 
 const SESSION_KEY = 'sc.starscapePromo.shown';
@@ -69,8 +69,8 @@ describe('Starscape promo vs. the feedback launcher', () => {
   function launcher(): ComponentFixture<FeedbackFabComponent> {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [FeedbackFabComponent, TranslateModule.forRoot()],
-      providers: [{ provide: RoleService, useValue: { isAdmin: signal(true) } }],
+      imports: [FeedbackFabComponent],
+      providers: [provideTranslateService(), { provide: RoleService, useValue: { isAdmin: signal(true) } }],
     });
     TestBed.overrideComponent(FeedbackFabComponent, {
       remove: { imports: [AdminFeedbackComponent] },
@@ -84,7 +84,8 @@ describe('Starscape promo vs. the feedback launcher', () => {
   function promo(): ComponentFixture<StarscapeAppPromoComponent> {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [StarscapeAppPromoComponent, TranslateModule.forRoot()],
+      imports: [StarscapeAppPromoComponent],
+      providers: [provideTranslateService()],
     });
     // The pitch refuses to show below 900px; pin a desktop width so the card
     // renders. Its CSS still resolves in Karma's 749px frame — which is the

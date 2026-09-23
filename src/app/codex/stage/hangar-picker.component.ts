@@ -9,7 +9,7 @@ import {
   viewChildren,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { isPlainLeftClick } from '../../core/modified-click.util';
 
@@ -44,7 +44,7 @@ const COLLAPSE_DELAY_MS = 150;
 @Component({
   selector: 'sc-hangar-picker',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div

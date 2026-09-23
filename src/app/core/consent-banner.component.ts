@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ConsentService } from './consent.service';
 
 /**
@@ -11,7 +11,7 @@ import { ConsentService } from './consent.service';
 @Component({
   selector: 'sc-consent-banner',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (!consent.decided()) {

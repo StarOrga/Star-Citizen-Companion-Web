@@ -22,7 +22,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { ViewAs } from '../auth/impersonation-policy';
@@ -41,7 +41,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslateModule, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FooterComponent } from './footer.component';
 
 /**
@@ -29,7 +29,7 @@ import { FooterComponent } from './footer.component';
 @Component({
   selector: 'sc-public-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, TranslateModule, FooterComponent],
+  imports: [RouterOutlet, RouterLink, TranslatePipe, FooterComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="public-shell">

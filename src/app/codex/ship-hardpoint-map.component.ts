@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-map';
 
 /**
@@ -21,7 +21,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
 @Component({
   selector: 'sc-ship-hardpoint-map',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (markers().length > 0) {

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 
 /**
@@ -12,7 +12,7 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-chip',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (verdict(); as v) {
