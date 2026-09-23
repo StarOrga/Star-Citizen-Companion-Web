@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.94.0] - 2026-09-23
+
+### Changed
+
+- **3D-Schiffe als Hologramm statt mit Original-Texturen (Uploader 0.37.0).**
+  Der Holotisch zeigt die Schiffsform im Akzent-Cyan, ohne CIGs Textur-Art.
+  Alles im öffentlichen `ship-skins`-Bucket ist frei herunterladbar, und die
+  RSI Fankit & Fandom FAQ untersagt, ihre Inhalte zum Download durch andere
+  hochzuladen. Der Uploader baut pro Schiff ein reines Geometrie-Modell
+  (Stalker 157 KB, Cutlass 440 KB, ohne Bilder und UVs). Lackierungen gibt es
+  als offizielle Store-Renders. `ingest-skins` ersetzt beim Commit den ganzen
+  Schiffsstand, sodass alte texturierte Modelle mit dem nächsten Upload aus dem
+  Bucket verschwinden. Uploader vor 0.37.0 dürfen keine Modelle mehr hochladen.
+
+### Fixed
+
+- **Krisseliges 3D-Modell** (z. B. Avenger Stalker): 57 % der Dreiecke trugen
+  eine gekachelte 256-px-Greeble-Textur, 20 % gar kein Material. Das Hologramm
+  entfernt beim Laden auch aus schon hochgeladenen Modellen jede Textur.
+
 ## [0.93.0] - 2026-09-22
 
 ### Changed

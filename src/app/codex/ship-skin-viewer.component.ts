@@ -2,6 +2,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -17,6 +18,7 @@ import {
   parseGlbNodePositions,
   resolveAnchors,
 } from './glb-hardpoints';
+import { HOLO_FALLBACK_ACCENT, HoloMaterial, applyHologram, parseRgbToken } from './ship-hologram';
 
 // Side-effect import registers the <model-viewer> custom element. Because this
 // component is lazy-loaded inside the ship detail route, model-viewer (~1 MB)
@@ -84,12 +86,13 @@ interface HotspotView {
 const GLB_HEAD_BYTES = 1_048_576;
 
 /**
- * Per-ship skin selector with a lazy-loaded 3D <model-viewer>.
+ * Per-ship livery selector with a lazy-loaded 3D <model-viewer>.
  *
- * Selecting a livery loads that skin's web-glb (real hull + real textures from
- * the P4K, ~3 MB) on demand. Skins without a 3D model still appear with their
- * official store-icon (the faithful CIG render) — the view falls back to the
- * paint render. Hidden entirely when a ship has no skins.
+ * The 3D model is the ship's hull as a hologram: geometry only (the uploader
+ * ships no textures, see ship-hologram.ts), one glb per ship, hung off the
+ * factory paint. Every livery shows its official store icon (the faithful CIG
+ * render) — the view falls back to that paint render. Hidden entirely when a
+ * ship has no skins.
  */
 @Component({
   selector: 'sc-ship-skin-viewer',
@@ -148,7 +151,7 @@ const GLB_HEAD_BYTES = 1_048_576;
                   environment-image="neutral"
                   camera-orbit="35deg 75deg 105%"
                   interaction-prompt="none"
-                  (load)="onModelLoad()"
+                  (load)="onModelLoad($event)"
                   (error)="onModelError()"
                 >
                   <!-- Component hover -> position on the hull (#256). The
@@ -656,6 +659,7 @@ export class ShipSkinViewerComponent {
   readonly expanded = signal<boolean>(this.initialExpanded());
 
   private readonly service = inject(ShipSkinsService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   readonly skins = signal<ShipSkin[]>([]);
   readonly current = signal<ShipSkin | null>(null);
   readonly mode = signal<ViewMode>('3d');
@@ -820,9 +824,18 @@ export class ShipSkinViewerComponent {
   }
 
   // model-viewer lifecycle → drives the loading/error overlays.
-  onModelLoad(): void {
+  onModelLoad(event?: Event): void {
     this.modelLoading.set(false);
     this.modelError.set(false);
+    const materials = (event?.target as { model?: { materials?: HoloMaterial[] } } | null)?.model
+      ?.materials;
+    if (materials?.length) applyHologram(materials, this.accent());
+  }
+
+  /** The theme's accent, read live so the hologram follows the design tokens. */
+  private accent() {
+    const token = getComputedStyle(this.host.nativeElement).getPropertyValue('--accent-primary-rgb');
+    return parseRgbToken(token) ?? HOLO_FALLBACK_ACCENT;
   }
   onModelError(): void {
     this.modelLoading.set(false);

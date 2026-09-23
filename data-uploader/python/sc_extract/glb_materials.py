@@ -513,3 +513,126 @@ def drop_interior_geometry(glb: Path, on_log: Optional[LogFn] = None) -> dict:
         on_log("info", f"  interior strip: -{dropped_tris:,} triangles "
                        f"({dropped_prims} primitives, {len(interior)} materials)")
     return stats
+
+
+# ---- geometry-only hull ----------------------------------------------------
+# The published glb carries the ship's SHAPE, never CIG's texture art. The RSI
+# Fankit & Fandom FAQ forbids uploading their content for "download by others",
+# and every object in the public `ship-skins` bucket is exactly that; the web
+# viewer draws the hull as a hologram instead (ship-skin-viewer.component.ts).
+# Dropping the textures also removes the "krisselig" hull of 2026-09-23: the
+# converter had mapped a tiling greeble atlas onto 57 % of the Avenger Stalker.
+#
+# Physics/occlusion helpers are never meant to be seen. With the textures (and
+# the alpha they carried) gone they would render as solid shells.
+_HIDDEN_MATERIAL_HINTS = ("proxy", "nodraw", "no_draw")
+
+# Extensions that only mean something together with textures or the PBR detail
+# we reset — left declared they would be dead payload or dangling requirements.
+_TEXTURE_EXT_PREFIXES = ("EXT_texture_", "KHR_texture_", "MSFT_texture_",
+                         "KHR_materials_")
+
+# Every surface collapses into one of three neutral classes. They must differ
+# in value, not only in name: `gltf-transform optimize` dedups identical
+# materials and keeps whichever name came first — measured on the Avenger
+# Stalker, the whole hull came out as one material called "proxy". The look
+# itself is the viewer's business; the class names are what it keys on.
+_MATERIAL_CLASSES = {
+    "hull": {"baseColorFactor": [0.6, 0.6, 0.6, 1.0],
+             "metallicFactor": 0.0, "roughnessFactor": 0.6},
+    "glass": {"baseColorFactor": [0.3, 0.3, 0.3, 1.0],
+              "metallicFactor": 0.0, "roughnessFactor": 0.1},
+    "glow": {"baseColorFactor": [0.6, 0.6, 0.6, 1.0],
+             "metallicFactor": 0.0, "roughnessFactor": 0.6,
+             "emissive": [1.0, 1.0, 1.0]},
+}
+_GLASS_HINTS = ("glass", "canopy", "window")
+_GLOW_HINTS = ("glow", "light", "emissive", "screen")
+
+
+def is_hidden_material(name: str) -> bool:
+    n = (name or "").strip().lower()
+    return any(h in n for h in _HIDDEN_MATERIAL_HINTS)
+
+
+def material_class(name: str) -> str:
+    n = (name or "").strip().lower()
+    if any(h in n for h in _GLOW_HINTS):
+        return "glow"
+    if any(h in n for h in _GLASS_HINTS):
+        return "glass"
+    return "hull"
+
+
+def strip_to_geometry(glb: Path, on_log: Optional[LogFn] = None) -> dict:
+    """Reduce a converted hull to geometry: no textures, no UVs, neutral classes.
+
+    Every material becomes ``hull``, ``glass`` or ``glow``; primitives without a
+    material count as hull, so no part of the ship falls back to a renderer's
+    default. Orphaned images/bufferViews are left for the `gltf-transform
+    optimize` prune pass, like the interior strip.
+    """
+    gltf, binary = read_glb(glb)
+    mats = gltf.get("materials", [])
+    hidden = {i for i, m in enumerate(mats) if is_hidden_material(m.get("name", ""))}
+    images = len(gltf.get("images", []))
+
+    classes: List[str] = []
+
+    def class_index(cls: str) -> int:
+        if cls not in classes:
+            classes.append(cls)
+        return classes.index(cls)
+
+    kept_meshes: List[dict] = []
+    remap: Dict[int, int] = {}
+    dropped = 0
+    for idx, mesh in enumerate(gltf.get("meshes", [])):
+        keep = []
+        for prim in mesh.get("primitives", []):
+            if prim.get("material") in hidden:
+                dropped += 1
+                continue
+            attrs = prim.get("attributes", {})
+            for key in [k for k in attrs if k.startswith("TEXCOORD_") or k == "TANGENT"]:
+                attrs.pop(key)
+            name = mats[prim["material"]].get("name", "") if "material" in prim else ""
+            prim["material"] = class_index(material_class(name))
+            keep.append(prim)
+        if keep:
+            mesh["primitives"] = keep
+            remap[idx] = len(kept_meshes)
+            kept_meshes.append(mesh)
+    gltf["meshes"] = kept_meshes
+    for node in gltf.get("nodes", []):
+        if "mesh" in node:
+            new = remap.get(node["mesh"])
+            if new is None:
+                node.pop("mesh")
+            else:
+                node["mesh"] = new
+
+    gltf["materials"] = []
+    for cls in classes:
+        spec = dict(_MATERIAL_CLASSES[cls])
+        mat = {"name": cls}
+        if "emissive" in spec:
+            mat["emissiveFactor"] = spec.pop("emissive")
+        mat["pbrMetallicRoughness"] = spec
+        gltf["materials"].append(mat)
+    for key in ("textures", "images", "samplers"):
+        gltf.pop(key, None)
+    for key in ("extensionsUsed", "extensionsRequired"):
+        if key in gltf:
+            gltf[key] = [e for e in gltf[key]
+                         if e != SPEC_GLOSS and not e.startswith(_TEXTURE_EXT_PREFIXES)]
+            if not gltf[key]:
+                gltf.pop(key)
+
+    write_glb(glb, gltf, binary)
+    stats = {"images_dropped": images, "hidden_primitives": dropped,
+             "materials": classes}
+    if on_log:
+        on_log("info", f"  geometry only: {images} images dropped, "
+                       f"{dropped} proxy primitives removed")
+    return stats

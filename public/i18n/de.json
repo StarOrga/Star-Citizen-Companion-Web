@@ -1394,7 +1394,7 @@
     },
     "skins": {
       "title": "Lackierungen",
-      "source": "Aus Data.p4k · echtes Hull + echte Texturen",
+      "source": "Hologramm der Schiffsform · Lackierungen als offizielle Store-Renders",
       "mode3d": "3D-Modell",
       "modePaint": "Paint-Render",
       "no3d": "Kein 3D-Modell verfügbar",
@@ -1405,7 +1405,7 @@
       "retry": "Erneut versuchen",
       "collapse": "3D-Ansicht einklappen",
       "expand": "3D-Ansicht ausklappen",
-      "holoReady": "Holo-Ready — interaktive 3D-Lackierungen verfügbar",
+      "holoReady": "Holo-Ready — interaktives 3D-Hologramm verfügbar",
       "holoReadyShort": "3D",
       "hardpointHint": "{{count}} Hardpoints am Modell markiert — Zeiger auf einen Marker oder eine Zeile unten, beide leuchten gemeinsam."
     },

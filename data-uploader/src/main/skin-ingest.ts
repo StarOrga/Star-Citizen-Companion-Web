@@ -170,7 +170,9 @@ export async function uploadSkins(
         continue;
       }
       const cat = JSON.parse(readFileSync(catPath, 'utf-8')) as SkinCatalog;
-      const built = cat.skins.filter((s) => s.model); // only skins with a glb
+      // The hull glb hangs off one entry; every other paint ships its store
+      // icon only. An entry with neither has nothing to show.
+      const built = cat.skins.filter((s) => s.model || s.icon);
 
       // A ship whose every skin failed to produce a glb has nothing to ship.
       // Asking `ingest-skins` to sign an empty object list is a 400, which used
@@ -180,7 +182,7 @@ export async function uploadSkins(
       if (built.length === 0) {
         markShipped(marker, `${cat.ship} no models`);
         hooks.onShipDone?.(shipId);
-        onLog(`${shipId}: no livery models were built — nothing to upload`, 'info');
+        onLog(`${shipId}: neither a hull nor a paint icon was built — nothing to upload`, 'info');
         out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, empty: true });
         continue;
       }
@@ -188,7 +190,7 @@ export async function uploadSkins(
       // 1. ask the function for signed upload URLs
       const objects: { skin_id: string; ext: 'glb' | 'webp' }[] = [];
       for (const s of built) {
-        objects.push({ skin_id: s.id, ext: 'glb' });
+        if (s.model) objects.push({ skin_id: s.id, ext: 'glb' });
         if (s.icon) objects.push({ skin_id: s.id, ext: 'webp' });
       }
       const signed = await callIngest(getToken, { action: 'sign', ship_id: cat.ship, objects });
@@ -208,8 +210,10 @@ export async function uploadSkins(
         // safe: every PUT is an upsert.
         hooks.control?.checkpoint();
         await hooks.pace?.();
-        await putSigned(byPath.get(`${cat.ship}/${s.id}.glb`), resolve(dir, s.model!), 'model/gltf-binary');
-        n++;
+        if (s.model) {
+          await putSigned(byPath.get(`${cat.ship}/${s.id}.glb`), resolve(dir, s.model), 'model/gltf-binary');
+          n++;
+        }
         if (s.icon) {
           await putSigned(byPath.get(`${cat.ship}/${s.id}.webp`), resolve(dir, s.icon), 'image/webp');
           n++;
@@ -223,7 +227,7 @@ export async function uploadSkins(
         description: s.description ?? '',
         source: s.source ?? 'store',
         name_verified: !!s.name_verified,
-        has_model: true,
+        has_model: !!s.model,
         has_icon: !!s.icon,
         model_bytes: s.model_mb ? Math.round(s.model_mb * 1e6) : null,
       }));

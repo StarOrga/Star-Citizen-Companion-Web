@@ -1,11 +1,9 @@
 """The two glb repair steps must fail independently of each other.
 
-`_unrig_hull` (drop the converter's no-op skin) and `_apply_paint_materials`
-(fold the paint .mtl's layer tints in) fix two unrelated defects of the same
-converter output. They are separate steps with separate `try` blocks on
-purpose: a ship whose paint `.mtl` will not parse must still get a correctly
-*placed* hull, because a white ship is a cosmetic bug while a collapsed one is
-the "kaputtes 3D-Modell" of admin feedback d7f44a41.
+`_unrig_hull` (drop the converter's no-op skin) is best-effort: a hull it
+cannot fix still ships, because a collapsed hull beats no hull (admin feedback
+d7f44a41). `_reduce_to_geometry` (interior + texture strip) is the opposite: it
+raises, because a hull that kept CIG's textures must never be published.
 
 These tests drive the two steps with stubs — no P4K, no cgf-converter.
 """
@@ -88,18 +86,32 @@ def test_unrig_removes_the_skin_and_keeps_the_placement(tmp_path: Path) -> None:
     assert any(lvl == "info" for lvl, _ in logs)
 
 
-def test_unrig_still_runs_when_the_paint_mtl_is_unusable(tmp_path: Path) -> None:
-    """A broken .mtl may cost the colours — never the geometry placement."""
-    ex, logs = _exporter(tmp_path)
+def test_geometry_reduction_keeps_the_unrigged_placement(tmp_path: Path) -> None:
+    ex, _ = _exporter(tmp_path)
     glb = tmp_path / "hull.glb"
     _skinned_glb(glb)
 
     ex._unrig_hull(Paint(mtl="", id="standard"), glb)
-    ex._apply_paint_materials(Paint(mtl="does/not/exist.mtl", id="standard"), glb)
+    ex._reduce_to_geometry(glb)
 
     gltf, _ = glb_materials.read_glb(glb)
-    assert "skins" not in gltf                       # rig repair survived
-    assert any(lvl == "warn" for lvl, _ in logs)     # material failure was reported
+    assert "skins" not in gltf
+    assert gltf["nodes"][1]["translation"] == [0.0, -0.59, -6.85]
+    assert gltf["meshes"][0]["primitives"][0]["material"] == 0   # no default material
+
+
+def test_geometry_reduction_of_an_unreadable_glb_raises(tmp_path: Path) -> None:
+    """Unlike the un-rig, this step must never let a hull through untouched —
+    an unstripped hull would publish CIG's textures."""
+    ex, _ = _exporter(tmp_path)
+    broken = tmp_path / "broken.glb"
+    broken.write_bytes(b"not a glb at all")
+
+    try:
+        ex._reduce_to_geometry(broken)
+    except Exception:  # noqa: BLE001
+        return
+    raise AssertionError("a glb that cannot be stripped must fail the hull")
 
 
 def test_unrig_of_an_unreadable_glb_is_reported_not_raised(tmp_path: Path) -> None:

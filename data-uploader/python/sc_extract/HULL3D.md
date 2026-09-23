@@ -1,29 +1,54 @@
-# 3D Hull + Skin Export (`hull3d.py`)
+# 3D Hull Export (`hull3d.py`)
 
-Turns a ship's CryEngine geometry + paint materials from `Data.p4k` into
-**web-ready, textured glTF — one `.glb` per skin**. Data is **100% from the P4K**;
-the only external pieces are *build tools* (geometry converter + glTF optimizer).
+Turns a ship's CryEngine geometry from `Data.p4k` into **one web-ready,
+geometry-only glTF per ship**, plus the official store icon of every paint.
+Data is **100% from the P4K**; the only external pieces are *build tools*
+(geometry converter + glTF optimizer).
+
+## Why geometry only (since uploader 0.37.0)
+
+Every object in the public `ship-skins` bucket can be downloaded by anyone. The
+RSI Fankit & Fandom FAQ forbids uploading CIG content "for … download by others"
+and says CIG is "not fine with taking assets from our games … and distributing
+those separately"; the ToS (XIII.B/C) forbids copying RSI content without
+written permission. Fan viewers CIG has tolerated for years show the *shape* as
+a hologram (RSI's own holoviewer, SC-Holoviewer, myfleet) — not the textured
+asset. So the published glb carries the shape only and the web viewer draws it
+as a hologram (`src/app/codex/ship-hologram.ts`). Liveries are shown through
+their official store icon.
+
+It also ended the grainy hull of 2026-09-23: the textured Avenger Stalker had
+57 % of its triangles on a 256 px tiling `greeble` atlas and 20 % on no
+material at all — the converter's submaterial mapping against a *paint* `.mtl`
+is not reliable enough to publish textures from.
+
+Enforced on three levels: `strip_to_geometry` raises instead of letting a
+texture through, `skins.json` carries `"format": "geometry-v1"` so a cached
+textured build is rebuilt, and `ingest-skins` signs no glb for an uploader
+older than 0.37.0 and prunes every row/object a ship's commit no longer lists.
 
 ## Pipeline
 
 ```
 Data.p4k
   ├─ DRAK_Cutlass_Black.cga + .cgam   (whole-ship hull mesh — no socpak assembly!)
-  ├─ <paint>.mtl                      (one per livery, in .../Cutlass/Cutlass_Black/)
-  └─ referenced *.dds (+ split mips)  (scdatatools collect_and_unsplit)
+  └─ <paint>.mtl                      (the factory paint — only to name the submaterials)
         │
-        ▼  cgf-converter v2.0.0  -glb -embedtextures -objectdir <root> -mtl <paint>
-   textured glb  (~155 MB, full-res)
+        ▼  cgf-converter v2.0.0  -glb -objectdir <root> -mtl <paint>
+   raw glb
         │
-        ▼  glb_materials repair  (no-op skin · paint tints · interior strip)
-        ▼  gltf-transform optimize  (weld · simplify · webp@512 · meshopt, no palette)
-        ▼  over the per-skin budget? re-optimize at 256
-   web glb  (≤0.6 MB)  ──►  <model-viewer> in the Angular app (lazy-loaded route)
+        ▼  glb_materials repair  (no-op skin · interior strip · strip_to_geometry)
+        ▼  gltf-transform optimize  (weld · simplify · meshopt, no palette)
+   web glb  ──►  <model-viewer> in the Angular app, rendered as hologram
 ```
 
-Plus per skin: the official store **icon** (`Data/UI/SharedAssets/PaintColorLogos/
+Plus per paint: the official store **icon** (`Data/UI/SharedAssets/PaintColorLogos/
 Paint_Cutlass_*_Icon.dds` → WebP) and the official **name/description**
-(`Data/Localization/english/global.ini`).
+(`Data/Localization/english/global.ini`). The hull hangs off the factory paint's
+catalog entry; every other paint is an icon-only row.
+
+The sections below describe the repair steps. Section 2 (layered paint
+materials) documents the textured era; its values are no longer published.
 
 ## Post-conversion repair (`glb_materials.py`)
 

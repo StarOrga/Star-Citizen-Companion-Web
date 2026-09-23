@@ -95,6 +95,52 @@ describe('uploadSkins', () => {
     expect(await exists(join(dir, '.uploaded'))).toBe(true);
   });
 
+  it('ships the hull once and every other paint as an icon-only row', async () => {
+    // Geometry-only export: one glb per ship, hung off the factory paint; the
+    // other liveries are the official store icon and nothing else.
+    const bodies: Record<string, unknown>[] = [];
+    fetchMock.mockImplementation(async (url: string | URL, init?: { body?: unknown }) => {
+      const href = String(url);
+      if (href.includes('ingest-skins')) {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        bodies.push(body);
+        const objects = (body['objects'] as { skin_id: string; ext: string }[] | undefined) ?? [];
+        return {
+          ok: true,
+          json: async () => ({
+            uploads: objects.map((o) => ({
+              path: `SHIP_A/${o.skin_id}.${o.ext}`,
+              token: 't',
+              signedUrl: 'http://x/upload',
+            })),
+            count: 2,
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+    const dir = await makeShip('SHIP_A', [
+      { id: 'standard', name: 'Standard', model: 'models/standard.glb', icon: null },
+      { id: 'pirate', name: 'Pirate', model: null, icon: 'icons/pirate.webp' },
+      { id: 'bare', name: 'Bare', model: null, icon: null },
+    ]);
+    await mkdir(join(dir, 'icons'), { recursive: true });
+    await writeFile(join(dir, 'icons', 'pirate.webp'), 'webp-bytes');
+
+    const res = await uploadSkins('jwt', [{ shipId: 'SHIP_A', dir }], () => {});
+
+    expect(res[0]).toMatchObject({ ok: true, uploaded: 2, committed: 2 });
+    expect(bodies[0]['objects']).toEqual([
+      { skin_id: 'standard', ext: 'glb' },
+      { skin_id: 'pirate', ext: 'webp' },
+    ]);
+    const rows = bodies[1]['skins'] as { skin_id: string; has_model: boolean; has_icon: boolean }[];
+    expect(rows.map((r) => [r.skin_id, r.has_model, r.has_icon])).toEqual([
+      ['standard', true, false],
+      ['pirate', false, true],
+    ]);
+  });
+
   it('logs a failing ship instead of dropping the reason on the floor', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 403, json: async () => ({ error: 'forbidden' }) });
     const dir = await makeShip('SHIP_A', [
