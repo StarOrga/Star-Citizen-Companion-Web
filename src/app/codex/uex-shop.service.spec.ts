@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { UexShopService } from './uex-shop.service';
 
@@ -9,7 +9,7 @@ describe('UexShopService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [UexShopService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [UexShopService, provideHttpClient(withXhr()), provideHttpClientTesting()],
     });
     svc = TestBed.inject(UexShopService);
     http = TestBed.inject(HttpTestingController);

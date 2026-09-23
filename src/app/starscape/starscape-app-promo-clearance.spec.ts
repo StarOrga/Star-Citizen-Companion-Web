@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
@@ -7,7 +7,7 @@ import { RoleService } from '../auth/role.service';
 import { FeedbackFabComponent } from '../shell/feedback-fab.component';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 
-@Component({ selector: 'sc-admin-feedback', standalone: true, template: '' })
+@Component({ selector: 'sc-admin-feedback', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AdminFeedbackStub {}
 
 const SESSION_KEY = 'sc.starscapePromo.shown';

@@ -148,18 +148,18 @@ let uidSeq = 0;
           </span>
           <span class="tipw fact">
             <button type="button" class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</button>
-            <span class="v pulse">{{ fmtKm(irFact()?.value) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM(irFact()?.value) }}&nbsp;m</span>
+            <span class="v pulse">{{ fmtKm($safeNavigationMigration(irFact()?.value)) }}<small>km</small></span>
+            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(irFact()?.value)) }}&nbsp;m</span>
           </span>
           <span class="tipw fact">
             <button type="button" class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</button>
-            <span class="v pulse">{{ fmtKm(emFact()?.value) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM(emFact()?.value) }}&nbsp;m</span>
+            <span class="v pulse">{{ fmtKm($safeNavigationMigration(emFact()?.value)) }}<small>km</small></span>
+            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(emFact()?.value)) }}&nbsp;m</span>
           </span>
           <span class="tipw fact">
             <button type="button" class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</button>
-            <span class="v pulse">{{ fmtKm(csFact()?.value) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM(csFact()?.value) }}&nbsp;m</span>
+            <span class="v pulse">{{ fmtKm($safeNavigationMigration(csFact()?.value)) }}<small>km</small></span>
+            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(csFact()?.value)) }}&nbsp;m</span>
           </span>
           <span class="tipw fact">
             <button type="button" class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</button>

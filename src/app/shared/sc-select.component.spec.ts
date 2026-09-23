@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ScSelectComponent, ScSelectOption } from './sc-select.component';
@@ -12,6 +12,7 @@ const OPTIONS: readonly ScSelectOption[] = [
 @Component({
   standalone: true,
   imports: [ScSelectComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <sc-select
       [options]="options"
@@ -179,6 +180,7 @@ describe('ScSelectComponent', () => {
 @Component({
   standalone: true,
   imports: [ScSelectComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <sc-select
       [options]="options()"

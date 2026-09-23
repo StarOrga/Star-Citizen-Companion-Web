@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -14,9 +14,9 @@ import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
 // Both panels are Supabase-backed and only render once the FAB is opened; this
 // spec never opens one, but the stubs keep the imports out of the injector too.
-@Component({ selector: 'sc-admin-feedback', standalone: true, template: '' })
+@Component({ selector: 'sc-admin-feedback', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class AdminFeedbackStub {}
-@Component({ selector: 'sc-user-feedback-panel', standalone: true, template: '' })
+@Component({ selector: 'sc-user-feedback-panel', standalone: true, changeDetection: ChangeDetectionStrategy.Eager, template: '' })
 class UserFeedbackPanelStub {}
 
 const KEY = 'sc.feedback.fabHidden';

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NewsThumbComponent } from './news-thumb.component';
 
 /**
@@ -27,6 +27,7 @@ import { NewsThumbComponent } from './news-thumb.component';
 @Component({
   standalone: true,
   imports: [NewsThumbComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<sc-news-thumb [images]="images()" />`,
 })
 class HostComponent {

@@ -180,9 +180,9 @@ let uidSeq = 0;
         </div>
       } @else if (minimised()) {
         <div class="md-strip" [id]="bodyId">
-          <span>{{ 'codex.energy.fact.ir' | translate }} {{ fmt(irFact()?.value) }}</span>
-          <span>{{ 'codex.energy.fact.em' | translate }} {{ fmt(emFact()?.value) }}</span>
-          <span>{{ 'codex.energy.fact.crossSection' | translate }} {{ fmt(csFact()?.value) }}</span>
+          <span>{{ 'codex.energy.fact.ir' | translate }} {{ fmt($safeNavigationMigration(irFact()?.value)) }}</span>
+          <span>{{ 'codex.energy.fact.em' | translate }} {{ fmt($safeNavigationMigration(emFact()?.value)) }}</span>
+          <span>{{ 'codex.energy.fact.crossSection' | translate }} {{ fmt($safeNavigationMigration(csFact()?.value)) }}</span>
           <span>{{ 'codex.energy.fact.coolingLoad' | translate }} {{ sheet().coolant.percent === null ? '—' : ('codex.energy.coolingPercent' | translate: { pct: sheet().coolant.percent }) }}</span>
           <span class="ok" [class.no]="!sheet().ready">{{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}</span>
         </div>

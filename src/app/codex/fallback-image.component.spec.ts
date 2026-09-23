@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FallbackImageComponent } from './fallback-image.component';
 
@@ -11,6 +11,7 @@ import { FallbackImageComponent } from './fallback-image.component';
 @Component({
   standalone: true,
   imports: [FallbackImageComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <sc-fallback-image [candidates]="candidates" alt="Ursa">
       <span class="placeholder">glyph</span>

@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ImgReadyDirective } from './news-thumb.component';
 
@@ -26,6 +26,7 @@ function fakeDecodeState(img: HTMLImageElement, complete: boolean, naturalWidth:
 @Component({
   standalone: true,
   imports: [ImgReadyDirective],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<img [src]="src()" scImgReady (ready)="ready = ready + 1" (failed)="failed = failed + 1" />`,
 })
 class HostComponent {
