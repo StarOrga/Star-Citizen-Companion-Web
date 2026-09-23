@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
@@ -133,7 +133,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [ScDatePipe, ScSelectComponent, TranslateModule],
+  imports: [ScDatePipe, ScSelectComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

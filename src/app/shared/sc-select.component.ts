@@ -8,7 +8,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
 /** One choice. `labelKey` is an i18n key — the component translates it itself. */
 export interface ScSelectOption {
@@ -49,7 +49,7 @@ let uid = 0;
 @Component({
   selector: 'sc-select',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'sc-select',

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 
 /** One download button in the panel — a platform asset or a release ring. */
@@ -43,7 +43,7 @@ export interface AppDownloadEntry {
 @Component({
   selector: 'sc-app-download-panel',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ap">

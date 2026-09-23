@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { NewsService, VerseStatus } from './news.service';
@@ -28,8 +28,9 @@ describe('VerseStatusChipComponent — Companion app download', () => {
   function setup(canInstall: boolean) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [VerseStatusChipComponent, TranslateModule.forRoot()],
+      imports: [VerseStatusChipComponent],
       providers: [
+        provideTranslateService(),
         {
           provide: NewsService,
           useValue: {

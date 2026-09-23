@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexDetail, CodexKind, CodexService, pickLocalizedDistinct, toLang } from './codex.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -37,7 +37,7 @@ interface PinnedRef {
 @Component({
   selector: 'sc-codex-compare-tray',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (refs().length > 0) {
@@ -189,7 +189,7 @@ export class CodexCompareTrayComponent {
 
   // Signal-tracked data language so OnPush column/chip names re-render on a
   // language switch instead of reading t.currentLang non-reactively. (#50)
-  private readonly dataLang = signal(toLang(this.t.currentLang));
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
   readonly open = signal(false);
   readonly loading = signal(false);

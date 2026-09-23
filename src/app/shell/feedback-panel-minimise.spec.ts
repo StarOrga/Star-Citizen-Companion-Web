@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
@@ -35,11 +35,11 @@ describe('feedback panels — minimize after an in-app deep link', () => {
   describe('admin shell', () => {
     function mount() {
       TestBed.configureTestingModule({
-        imports: [FeedbackFabComponent, TranslateModule.forRoot()],
+        imports: [FeedbackFabComponent],
         // isAdmin false keeps the embedded board (and its Supabase deps) out of
         // the DOM; the minimize logic under test lives in the class, not the
         // template.
-        providers: [{ provide: RoleService, useValue: { isAdmin: () => false } }],
+        providers: [provideTranslateService(), { provide: RoleService, useValue: { isAdmin: () => false } }],
       });
       const fixture = TestBed.createComponent(FeedbackFabComponent);
       fixture.detectChanges();
@@ -106,8 +106,9 @@ describe('feedback panels — minimize after an in-app deep link', () => {
   describe('viewer shell', () => {
     function mount() {
       TestBed.configureTestingModule({
-        imports: [UserFeedbackFabComponent, TranslateModule.forRoot()],
+        imports: [UserFeedbackFabComponent],
         providers: [
+          provideTranslateService(),
           { provide: AuthService, useValue: { user: signal(null) } },
           { provide: RoleService, useValue: { loaded: () => true, isAdmin: () => false } },
           { provide: ImpersonationService, useValue: { activeOrPending: () => false } },

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { humanizeClassName } from '../codex/codex-format';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { RoleLoadoutItem } from '../hangar/hangar.types';
@@ -25,7 +25,7 @@ import { SharedLoadoutView, isValidShareToken, shareItems } from './loadout-shar
 @Component({
   selector: 'sc-shared-loadout',
   standalone: true,
-  imports: [TranslateModule, RouterLink, ScDatePipe],
+  imports: [TranslatePipe, RouterLink, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

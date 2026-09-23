@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ReleaseNotesService } from '../release-notes/release-notes.service';
 
 /**
@@ -12,7 +12,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
 @Component({
   selector: 'sc-footer',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="site-footer">

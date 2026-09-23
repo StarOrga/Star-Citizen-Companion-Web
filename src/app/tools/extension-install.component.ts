@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ExtensionBridgeService } from '../hangar/extension-bridge.service';
 
 /** Where the unpacked extension lives until the Web Store review is through. */
@@ -29,7 +29,7 @@ const EXTENSION_ZIP_URL =
 @Component({
   selector: 'sc-extension-install',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

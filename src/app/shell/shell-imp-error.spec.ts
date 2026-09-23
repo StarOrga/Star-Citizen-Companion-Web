@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
@@ -40,8 +40,9 @@ describe('ShellComponent — preview write-failed notice', () => {
     enterFailed = signal(false);
     clearEnterFailed = jasmine.createSpy('clearEnterFailed').and.callFake(() => enterFailed.set(false));
     TestBed.configureTestingModule({
-      imports: [ShellComponent, TranslateModule.forRoot()],
+      imports: [ShellComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { UpcomingDetailComponent } from './upcoming-detail.component';
 import { UpcomingShip, UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -62,8 +62,9 @@ describe('UpcomingDetailComponent', () => {
     hangar: ReturnType<typeof hangarStub> = hangarStub(),
   ): Promise<{ fixture: ComponentFixture<UpcomingDetailComponent>; hangar: typeof hangar }> {
     TestBed.configureTestingModule({
-      imports: [UpcomingDetailComponent, TranslateModule.forRoot()],
+      imports: [UpcomingDetailComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         { provide: UpcomingShipsService, useValue: rsiStub(ships) },
         { provide: HangarService, useValue: hangar },

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { KpiCell } from './codex-loadout-stats';
 
@@ -25,7 +25,8 @@ describe('CodexKpiBandComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [CodexKpiBandComponent, TranslateModule.forRoot()],
+      imports: [CodexKpiBandComponent],
+      providers: [provideTranslateService()],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexKpiBandComponent);
     fixture.componentRef.setInput('cells', cells);

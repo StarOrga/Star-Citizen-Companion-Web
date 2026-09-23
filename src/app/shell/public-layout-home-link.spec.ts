@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { FooterComponent } from './footer.component';
 import { PublicLayoutComponent } from './public-layout.component';
@@ -20,8 +20,8 @@ class FooterStub {}
 describe('PublicLayoutComponent home link', () => {
   function setup() {
     TestBed.configureTestingModule({
-      imports: [PublicLayoutComponent, TranslateModule.forRoot()],
-      providers: [provideRouter([])],
+      imports: [PublicLayoutComponent],
+      providers: [provideTranslateService(), provideRouter([])],
     });
     TestBed.overrideComponent(PublicLayoutComponent, {
       remove: { imports: [FooterComponent] },

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 
 export type ReleaseChannel = 'alpha' | 'beta' | 'stable';
@@ -19,7 +19,7 @@ const ALLOWED: Record<string, ReleaseChannel[]> = {
 @Component({
   selector: 'sc-channel-picker',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (options().length > 1) {

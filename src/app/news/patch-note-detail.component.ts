@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoadmapService } from './roadmap.service';
 import { OutlineSection, filterSections, outlineSections } from './patch-outline';
 import { HighlightSegment, highlightSegments } from './patch-search';
@@ -30,7 +30,7 @@ import { StabilityPanelComponent } from './stability-panel.component';
 @Component({
   selector: 'sc-patch-note-detail',
   standalone: true,
-  imports: [TranslateModule, StabilityPanelComponent],
+  imports: [TranslatePipe, StabilityPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="pn">

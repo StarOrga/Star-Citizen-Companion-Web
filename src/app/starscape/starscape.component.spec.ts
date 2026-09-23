@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { StarscapeComponent } from './starscape.component';
 import {
@@ -80,8 +80,9 @@ describe('StarscapeComponent', () => {
     votes: ReturnType<typeof votesStub> = votesStub(),
   ): void {
     TestBed.configureTestingModule({
-      imports: [StarscapeComponent, TranslateModule.forRoot()],
+      imports: [StarscapeComponent],
       providers: [
+        provideTranslateService(),
         provideNoopAnimations(),
         { provide: StarscapeService, useValue: svc },
         { provide: StarscapeVotesService, useValue: votes },

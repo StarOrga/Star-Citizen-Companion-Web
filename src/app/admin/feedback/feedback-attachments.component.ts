@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FeedbackImage } from './markdown.util';
 import {
   ANNOTATION_COLORS,
@@ -78,7 +78,7 @@ export interface AnnotationResult {
 @Component({
   selector: 'sc-feedback-attachments',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showRow()) {

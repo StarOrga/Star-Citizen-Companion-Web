@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /**
  * /legal/privacy — public privacy policy.
@@ -23,7 +23,7 @@ import { TranslateModule } from '@ngx-translate/core';
 @Component({
   selector: 'sc-privacy',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

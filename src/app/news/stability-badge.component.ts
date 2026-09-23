@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 
 /**
@@ -20,7 +20,6 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-badge',
   standalone: true,
-  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shown(); as v) {

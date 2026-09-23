@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { PatchNoteEntry, patchLineOf } from './patch-notes';
 import { PatchNoteDetailComponent } from './patch-note-detail.component';
 import { PatchStabilityService } from './patch-stability.service';
@@ -28,7 +28,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
 @Component({
   selector: 'sc-patch-entry-row',
   standalone: true,
-  imports: [TranslateModule, PatchNoteDetailComponent, StabilityChipComponent],
+  imports: [TranslatePipe, PatchNoteDetailComponent, StabilityChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="row" [class.open]="open()">

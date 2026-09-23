@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
@@ -46,8 +46,9 @@ class FooterStub {}
 describe('ShellComponent — no standalone header exit-preview control (Defect A)', () => {
   function setup(opts: { user: unknown; active: boolean }) {
     TestBed.configureTestingModule({
-      imports: [ShellComponent, TranslateModule.forRoot()],
+      imports: [ShellComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { NewsListComponent } from './news-list.component';
 import { PatchMonitorComponent } from './patch-monitor.component';
@@ -130,8 +130,9 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     localStorage.clear();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [NewsListComponent, TranslateModule.forRoot()],
+      imports: [NewsListComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed(news)) } },
@@ -168,7 +169,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
   function monitorPanel(news: VerseNewsItem[]): { date: string; when: string } {
     const groups = notesOf(news);
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ imports: [PatchMonitorComponent, TranslateModule.forRoot()] });
+    TestBed.configureTestingModule({ imports: [PatchMonitorComponent], providers: [provideTranslateService()] });
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('de', de);
     translate.use('de');

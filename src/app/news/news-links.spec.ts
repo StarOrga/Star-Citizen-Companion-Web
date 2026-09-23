@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { NewsListComponent } from './news-list.component';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
@@ -55,8 +55,9 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
   beforeEach(async () => {
     localStorage.clear();
     TestBed.configureTestingModule({
-      imports: [NewsListComponent, TranslateModule.forRoot()],
+      imports: [NewsListComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed()) } },

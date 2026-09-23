@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
@@ -30,7 +30,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
   standalone: true,
   imports: [
     ScDatePipe,
-    TranslateModule,
+    TranslatePipe,
     P4kHistoryComponent,
     AppDownloadPanelComponent,
     ChannelPickerComponent,

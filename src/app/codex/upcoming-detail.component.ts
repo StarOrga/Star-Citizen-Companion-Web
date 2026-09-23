@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -42,7 +42,7 @@ import {
   imports: [
     NeuroFieldDirective,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     CodexCategoryIconComponent,
     FallbackImageComponent,
   ],

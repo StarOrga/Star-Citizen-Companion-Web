@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ResolvedEntity, fpsArmorSlot } from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import {
@@ -80,7 +80,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
 @Component({
   selector: 'sc-codex-board-panel',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexBoardFigureComponent],
+  imports: [RouterLink, TranslatePipe, CodexBoardFigureComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
           <header class="board-head">

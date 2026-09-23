@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ShipSkinsService } from '../ship-skins.service';
 import { Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexDetail } from '../codex.service';
 import { CodexItemPort } from '../codex.types';
 import type { StageCountChip } from '../codex-detail.component';
@@ -176,7 +176,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   selector: 'sc-codex-holo-stage',
   standalone: true,
   imports: [
-    TranslateModule,
+    TranslatePipe,
     RouterLink,
     CodexRankCardComponent,
     CodexHardpointLayoutComponent,

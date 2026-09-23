@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 /**
  * /legal/imprint — site notice ("Impressum").
@@ -12,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
 @Component({
   selector: 'sc-imprint',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

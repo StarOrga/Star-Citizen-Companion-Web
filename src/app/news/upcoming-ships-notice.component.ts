@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { UpcomingShip, UpcomingShipsService } from '../codex/upcoming-ships.service';
 
 /** How many ship names the notice spells out before collapsing into "+N more". */
@@ -19,7 +19,7 @@ const NAME_LIMIT = 6;
 @Component({
   selector: 'sc-upcoming-ships-notice',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (count() > 0) {

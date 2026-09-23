@@ -10,7 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { NewsService } from './news.service';
 import { findInStack, findTotal, type FindGroup } from './patch-find';
@@ -56,7 +56,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   selector: 'sc-patch-board',
   standalone: true,
   imports: [
-    TranslateModule, RouterLink, RouterOutlet, PatchMonitorComponent,
+    TranslatePipe, RouterLink, RouterOutlet, PatchMonitorComponent,
     StabilityHistoryComponent, StabilityBadgeComponent, PatchFindResultsComponent,
     TeaserStripDirective,
   ],

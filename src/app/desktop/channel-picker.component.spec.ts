@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { ChannelPickerComponent } from './channel-picker.component';
 import { RoleService } from '../auth/role.service';
 
@@ -8,8 +8,8 @@ describe('ChannelPickerComponent', () => {
   function setup(role: 'admin' | 'collaborator' | 'viewer') {
     const roleSig = signal(role);
     TestBed.configureTestingModule({
-      imports: [ChannelPickerComponent, TranslateModule.forRoot()],
-      providers: [{ provide: RoleService, useValue: { role: roleSig.asReadonly() } }],
+      imports: [ChannelPickerComponent],
+      providers: [provideTranslateService(), { provide: RoleService, useValue: { role: roleSig.asReadonly() } }],
     });
     const fixture = TestBed.createComponent(ChannelPickerComponent);
     fixture.detectChanges();

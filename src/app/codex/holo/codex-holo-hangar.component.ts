@@ -10,7 +10,7 @@
 // (concept hv3-s2 / hv-s4). Signed-out users see only the login hint.
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -37,7 +37,7 @@ interface HangarTile {
 @Component({
   selector: 'sc-codex-holo-hangar',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-hangar">
@@ -276,7 +276,7 @@ export class CodexHoloHangarComponent {
           if (bucket === 'today') variantHintKey = 'codex.holo.hangar.savedToday';
           else if (bucket === 'yesterday') variantHintKey = 'codex.holo.hangar.savedYesterday';
           else variantHintKey = 'codex.holo.hangar.savedOn';
-          variantHintParams = { date: new Date(variant.updatedAt).toLocaleDateString(this.translate.currentLang) };
+          variantHintParams = { date: new Date(variant.updatedAt).toLocaleDateString(this.translate.getCurrentLang() ?? undefined) };
         }
       }
       return {

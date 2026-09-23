@@ -11,7 +11,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService } from '../../feedback/feedback-draft.service';
 import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-seed.service';
@@ -160,7 +160,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
   selector: 'sc-feedback-composer',
   standalone: true,
   imports: [
-    TranslateModule,
+    TranslatePipe,
     FeedbackAttachmentsComponent,
     FeedbackAreaPickerComponent,
     CharCounterComponent,

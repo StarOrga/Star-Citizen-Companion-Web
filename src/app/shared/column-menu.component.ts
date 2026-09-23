@@ -14,7 +14,6 @@ import {
 } from '@angular/core';
 import { ConnectedPosition, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { TranslateModule } from '@ngx-translate/core';
 import { ColumnFacet, ColumnKind, SortDir } from '../codex/table-column-menu';
 
 /**
@@ -62,7 +61,6 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
 @Component({
   selector: 'sc-column-menu',
   standalone: true,
-  imports: [TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="cm-wrap">

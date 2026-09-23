@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { BlueprintDetail, CodexService, pickLocalized } from './codex.service';
 import {
   BlueprintPayload,
@@ -31,7 +31,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslateModule],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -241,7 +241,7 @@ export class BlueprintDetailComponent implements OnInit {
   }
 
   private get lang(): Lang {
-    const l = this.translate.currentLang ?? 'en';
+    const l = this.translate.getCurrentLang() ?? 'en';
     return (l === 'de' ? 'de' : 'en') as Lang;
   }
 

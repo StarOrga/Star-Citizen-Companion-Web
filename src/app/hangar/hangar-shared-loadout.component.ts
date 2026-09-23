@@ -6,7 +6,7 @@
 // anonymous half actually works — see app.routes.ts.
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { humanizeClassName } from '../codex/codex-format';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from './hangar.service';
@@ -17,7 +17,7 @@ type LandingState = 'loading' | 'available' | 'unavailable';
 @Component({
   selector: 'sc-hangar-shared-loadout',
   standalone: true,
-  imports: [TranslateModule, RouterLink],
+  imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

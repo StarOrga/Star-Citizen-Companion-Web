@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AccessRequestService } from './access-request.service';
 import { AnalyticsService } from '../core/analytics.service';
@@ -30,8 +30,9 @@ describe('LoginComponent — signed-out preview lock', () => {
     signInWithGoogle = jasmine.createSpy('signInWithGoogle').and.resolveTo({ error: null });
     exit = jasmine.createSpy('exit');
     TestBed.configureTestingModule({
-      imports: [LoginComponent, TranslateModule.forRoot()],
+      imports: [LoginComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         { provide: AccessRequestService, useValue: { submit: () => Promise.resolve({ kind: 'ok' }) } },
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, signInWithPassword, signInWithGoogle } },

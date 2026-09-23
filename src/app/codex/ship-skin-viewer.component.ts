@@ -10,7 +10,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ShipSkin, ShipSkinsService } from './ship-skins.service';
 import {
   Vec3,
@@ -97,7 +97,7 @@ const GLB_HEAD_BYTES = 1_048_576;
 @Component({
   selector: 'sc-ship-skin-viewer',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `

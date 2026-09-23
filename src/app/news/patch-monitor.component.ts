@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import type { PatchLineGroup } from './patch-notes';
@@ -71,7 +71,7 @@ interface MonitorView {
 @Component({
   selector: 'sc-patch-monitor',
   standalone: true,
-  imports: [TranslateModule, InfoNoteComponent],
+  imports: [TranslatePipe, InfoNoteComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (view(); as v) {

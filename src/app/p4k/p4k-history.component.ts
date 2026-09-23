@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 import { useAutoRefresh } from '../core/auto-refresh';
@@ -9,7 +9,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 @Component({
   selector: 'sc-p4k-history',
   standalone: true,
-  imports: [ScDatePipe, DecimalPipe, TranslateModule],
+  imports: [ScDatePipe, DecimalPipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="hist">

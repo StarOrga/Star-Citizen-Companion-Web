@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   BlueprintListFilters,
   CodexListRow,
@@ -31,7 +31,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-blueprint-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="blueprint-page">

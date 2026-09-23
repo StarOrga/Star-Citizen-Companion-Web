@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ReleaseNotesService } from './release-notes.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
@@ -14,7 +14,7 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
 @Component({
   selector: 'sc-release-notes',
   standalone: true,
-  imports: [ScDatePipe, TranslateModule],
+  imports: [ScDatePipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

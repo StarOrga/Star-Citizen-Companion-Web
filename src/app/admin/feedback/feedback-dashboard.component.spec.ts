@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { FeedbackRow, FeedbackStatus, ThreadMap, startOfWeek } from './feedback.types';
 
@@ -55,7 +55,8 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
   function render(rows: FeedbackRow[], threads: ThreadMap = new Map()): ComponentFixture<FeedbackDashboardComponent> {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [FeedbackDashboardComponent, TranslateModule.forRoot()],
+      imports: [FeedbackDashboardComponent],
+      providers: [provideTranslateService()],
     });
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('de', de);

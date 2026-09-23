@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from './codex-mission';
 
 /**
@@ -23,7 +23,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 @Component({
   selector: 'sc-codex-mission-bar',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mission-bar">

@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   BoardWeek,
   FeedbackBucket,
@@ -123,7 +123,7 @@ const PACE_DAYS = 30;
 @Component({
   selector: 'sc-feedback-dashboard',
   standalone: true,
-  imports: [TranslateModule, NgTemplateOutlet],
+  imports: [TranslatePipe, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dash" [class.compact]="compact()">
@@ -962,7 +962,7 @@ export class FeedbackDashboardComponent {
     if (hours === null) return this.t('noneShort');
     if (hours < 1) return this.t('underHour');
     if (hours < 48) return this.t('unitHours', { value: Math.round(hours) });
-    const days = new Intl.NumberFormat(this.translate.currentLang || 'en', {
+    const days = new Intl.NumberFormat(this.translate.getCurrentLang() || 'en', {
       maximumFractionDigits: 1,
     }).format(hours / 24);
     return this.t('unitDays', { value: days });

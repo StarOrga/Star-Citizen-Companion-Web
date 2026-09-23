@@ -7,7 +7,7 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
 import {
   SpecSection,
@@ -65,7 +65,7 @@ export interface ComponentInspectEntry {
 @Component({
   selector: 'sc-codex-component-modal',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {

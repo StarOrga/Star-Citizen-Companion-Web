@@ -7,7 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { FriendsService } from './friends.service';
 import { edgeLabel } from './friends.types';
@@ -28,7 +28,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
 @Component({
   selector: 'sc-loadout-share-panel',
   standalone: true,
-  imports: [TranslateModule, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-card share-card">

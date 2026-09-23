@@ -17,7 +17,7 @@
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
 import { CodexService } from '../codex.service';
 import { CodexBuild, isReExtractPending } from '../codex.types';
@@ -58,7 +58,7 @@ export interface HoloPatchComparisonSide {
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslateModule, CodexHoloPatchDeltaComponent],
+  imports: [TranslatePipe, CodexHoloPatchDeltaComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-patch">

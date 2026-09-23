@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexService,
   PortQuery,
@@ -63,7 +63,7 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslateModule, ShipSkinViewerComponent, HangarItemPickerComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
 
 /** Mirrors the project's Supabase minimum; the sign-in form uses the same 8. */
@@ -18,7 +18,7 @@ const MIN_LENGTH = 8;
 @Component({
   selector: 'sc-password-form',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form class="pw-form" (submit)="submit($event)" novalidate>

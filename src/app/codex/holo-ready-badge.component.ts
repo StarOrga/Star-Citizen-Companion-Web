@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ShowroomService } from './showroom.service';
 
 /**
@@ -11,7 +11,7 @@ import { ShowroomService } from './showroom.service';
 @Component({
   selector: 'sc-holo-ready-badge',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isReady()) {

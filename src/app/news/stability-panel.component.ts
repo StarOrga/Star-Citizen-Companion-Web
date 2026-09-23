@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityComponents, StabilityDay, StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
 
 const ISSUE_URL = 'https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues/';
@@ -18,7 +18,7 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
 @Component({
   selector: 'sc-stability-panel',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (verdict(); as v) {

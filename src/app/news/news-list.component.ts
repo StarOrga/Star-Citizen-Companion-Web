@@ -19,7 +19,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { NewsService, VerseNewsItem } from './news.service';
 import { nextPatchDistance } from './patch-stats';
 import { relativeTime } from './relative-time';
@@ -70,7 +70,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [NeuroFieldDirective, TranslateModule, RouterLink, NewsThumbComponent, UpcomingShipsNoticeComponent],
+  imports: [NeuroFieldDirective, TranslatePipe, RouterLink, NewsThumbComponent, UpcomingShipsNoticeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">

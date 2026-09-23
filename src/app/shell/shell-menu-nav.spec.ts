@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
@@ -66,8 +66,9 @@ describe('ShellComponent menu navigation', () => {
     recoveryDismiss = jasmine.createSpy('dismiss');
 
     TestBed.configureTestingModule({
-      imports: [ShellComponent, TranslateModule.forRoot()],
+      imports: [ShellComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         provideNoopAnimations(),
         { provide: SameRouteRefreshService, useValue: { request: () => true } },

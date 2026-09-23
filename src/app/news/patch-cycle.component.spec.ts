@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { PatchCycleComponent } from './patch-cycle.component';
 import { groupPatchNotes } from './patch-notes';
 import { stackCardFor } from './patch-stack';
@@ -68,7 +68,7 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
 
   async function render(line: string, width: number, now = NOW): Promise<void> {
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ imports: [PatchCycleComponent, TranslateModule.forRoot()] });
+    TestBed.configureTestingModule({ imports: [PatchCycleComponent], providers: [provideTranslateService()] });
     const translate = TestBed.inject(TranslateService);
     translate.setTranslation('de', de);
     translate.use('de');

@@ -9,7 +9,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
@@ -50,7 +50,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     HangarImportComponent,
     CodexCategoryIconComponent,
     FallbackImageComponent,

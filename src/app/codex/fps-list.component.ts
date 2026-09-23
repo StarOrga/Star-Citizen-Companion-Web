@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CodexListRow,
   CodexService,
@@ -65,7 +65,7 @@ type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslateModule, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -448,7 +448,7 @@ export class FpsListComponent implements OnInit {
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
 
-  private readonly dataLang = signal(toLang(this.t.currentLang));
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
   readonly categories: readonly FpsCategory[] = ['weapon', 'armor'];
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);

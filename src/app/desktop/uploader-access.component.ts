@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
@@ -25,7 +25,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
   standalone: true,
   imports: [
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     AppDownloadPanelComponent,
     ChannelPickerComponent,
     P4kHistoryComponent,

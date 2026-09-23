@@ -37,7 +37,7 @@ export class ScDateRelativePipe implements PipeTransform {
     const region = this.locale.region();
     const bucket = relativeDayBucket(value);
     const stamp = value instanceof Date ? value.getTime() : String(value ?? '');
-    const key = `${language}|${region}|${this.translate.currentLang}|${form}|${bucket}|${bucket ? '' : stamp}`;
+    const key = `${language}|${region}|${this.translate.getCurrentLang()}|${form}|${bucket}|${bucket ? '' : stamp}`;
     if (this.primed && key === this.lastKey) return this.lastResult;
     this.lastKey = key;
     this.lastResult = bucket

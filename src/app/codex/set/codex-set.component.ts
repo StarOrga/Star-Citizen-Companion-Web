@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
 import { CodexService, ResolvedEntity } from '../codex.service';
 import { CodexStageComponent } from '../stage/codex-stage.component';
@@ -35,7 +35,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 @Component({
   selector: 'sc-codex-set',
   standalone: true,
-  imports: [RouterLink, TranslateModule, CodexStageComponent, CodexBoardFigureComponent, CodexBoardPanelComponent],
+  imports: [RouterLink, TranslatePipe, CodexStageComponent, CodexBoardFigureComponent, CodexBoardPanelComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="set-page">

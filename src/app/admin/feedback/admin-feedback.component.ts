@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
@@ -194,7 +194,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     ScDateRelativePipe,
     NgTemplateOutlet,
     RouterLink,
-    TranslateModule,
+    TranslatePipe,
     FeedbackAttachmentsComponent,
     FeedbackComposerComponent,
     FeedbackDashboardComponent,

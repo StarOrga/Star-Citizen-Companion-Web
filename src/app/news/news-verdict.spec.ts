@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
-import { TranslateModule, TranslateService, TranslationObject } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { NewsListComponent } from './news-list.component';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
@@ -97,8 +97,9 @@ describe('Verse News — the build-status card', () => {
     localStorage.clear();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      imports: [NewsListComponent, TranslateModule.forRoot()],
+      imports: [NewsListComponent],
       providers: [
+        provideTranslateService(),
         provideRouter([]),
         NewsService,
         { provide: HttpClient, useValue: { get: () => of(feed) } },

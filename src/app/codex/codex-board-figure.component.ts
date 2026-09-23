@@ -10,7 +10,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import type * as THREE from 'three';
 import { SUIT_PARTS, SuitPalette, buildHardsuit, paintPart } from './codex-board-suit';
 import type { Hardsuit } from './codex-board-suit';
@@ -41,7 +41,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
 @Component({
   selector: 'sc-codex-board-figure',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <canvas

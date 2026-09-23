@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { StarscapeAppPromoComponent } from './starscape-app-promo.component';
 
 const DISMISS_KEY = 'sc.starscapePromo.dismissed';
@@ -16,7 +16,8 @@ describe('StarscapeAppPromoComponent', () => {
     // narrower than that, so pin a desktop width for the visibility tests.
     Object.defineProperty(window, 'innerWidth', { value: 1280, configurable: true });
     TestBed.configureTestingModule({
-      imports: [StarscapeAppPromoComponent, TranslateModule.forRoot()],
+      imports: [StarscapeAppPromoComponent],
+      providers: [provideTranslateService()],
     });
   });
 

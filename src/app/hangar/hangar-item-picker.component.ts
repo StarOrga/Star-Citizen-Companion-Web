@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexKind,
   CodexService,
@@ -35,7 +35,7 @@ export interface PickedItem {
 @Component({
   selector: 'sc-hangar-item-picker',
   standalone: true,
-  imports: [FormsModule, TranslateModule],
+  imports: [FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="picker sc-card" (click)="$event.stopPropagation()">

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 
 /**
@@ -28,7 +28,7 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
 @Component({
   selector: 'sc-codex-loadout-save-bar',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (changed() > 0) {

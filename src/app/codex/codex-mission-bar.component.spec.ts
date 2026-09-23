@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { ShipCapabilities } from './codex-mission';
 
@@ -11,7 +11,8 @@ describe('CodexMissionBarComponent', () => {
 
   async function setup(caps: ShipCapabilities) {
     await TestBed.configureTestingModule({
-      imports: [CodexMissionBarComponent, TranslateModule.forRoot()],
+      imports: [CodexMissionBarComponent],
+      providers: [provideTranslateService()],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexMissionBarComponent);
     fixture.componentRef.setInput('active', 'all');

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
 import { AccessRequestService } from './access-request.service';
 import { ImpersonationService } from './impersonation.service';
@@ -16,7 +16,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
 @Component({
   selector: 'sc-login',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, RouterLink, ScDatePipe],
+  imports: [ReactiveFormsModule, TranslatePipe, RouterLink, ScDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!--

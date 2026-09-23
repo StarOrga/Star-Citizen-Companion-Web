@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -32,7 +32,7 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
 @Component({
   selector: 'sc-desktop-read-auth',
   standalone: true,
-  imports: [RouterLink, TranslateModule],
+  imports: [RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">

@@ -22,7 +22,7 @@ import {
   untracked,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ICON_PATHS } from '../codex-category-icon.component';
 import { PERSPECTIVE_KPIS, Perspective } from '../codex-build-compare';
@@ -101,7 +101,7 @@ let uidSeq = 0;
 @Component({
   selector: 'sc-codex-holo-strip',
   standalone: true,
-  imports: [TranslateModule],
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-strip" [class.open]="expanded()">

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
@@ -21,7 +21,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 @Component({
   selector: 'sc-upcoming-grid',
   standalone: true,
-  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslateModule, CodexCategoryIconComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, FallbackImageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (feed()) {

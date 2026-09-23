@@ -10,7 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CodexKind } from './codex.service';
 import {
   FOLD_PEEK_LOCK_KEY,
@@ -302,7 +302,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [TranslateModule, NgTemplateOutlet],
+  imports: [TranslatePipe, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.calm]': 'calm()' },
   template: `

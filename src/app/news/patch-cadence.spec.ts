@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 
 import { PatchCadenceComponent } from './patch-cadence.component';
 import { VerseNewsItem } from './news.service';
@@ -95,7 +95,8 @@ describe('PatchCadenceComponent — rotation, window and forecast', () => {
     );
 
     TestBed.configureTestingModule({
-      imports: [PatchCadenceComponent, TranslateModule.forRoot()],
+      imports: [PatchCadenceComponent],
+      providers: [provideTranslateService()],
     });
   });
 

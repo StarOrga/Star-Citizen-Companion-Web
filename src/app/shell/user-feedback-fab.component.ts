@@ -8,7 +8,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
@@ -34,7 +34,7 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
 @Component({
   selector: 'sc-user-feedback-fab',
   standalone: true,
-  imports: [TranslateModule, UserFeedbackPanelComponent],
+  imports: [TranslatePipe, UserFeedbackPanelComponent],
   // The feedback launcher and its panel are the one thing on screen *because*
   // the user is writing a report, so a page screenshot taken from inside it
   // leaves this whole subtree out (admin feedback 312a4acc, see
