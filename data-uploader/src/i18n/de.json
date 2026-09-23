@@ -202,7 +202,15 @@
       "pauseShort": "pausiert",
       "pausingShort": "Pausiere…"
     },
-    "technicalDetails": "Technische Details"
+    "technicalDetails": "Technische Details",
+    "diff": {
+      "summary": "Änderungen gegenüber dem letzten Bundle:",
+      "first": "Erster Upload für diese Patch-Familie — noch nichts zum Vergleichen.",
+      "none": "keine Änderungen",
+      "colEntity": "Typ",
+      "colPrev": "vorher",
+      "colNew": "neu"
+    }
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",
@@ -287,6 +295,24 @@
       "resumeHint": "Nichts ist verloren — der Fortschritt ist gespeichert. „Upload fortsetzen“ macht genau an dieser Stelle weiter.",
       "reextractHint": "Bitte die Extraktion erneut ausführen.",
       "atPhase": "Abgebrochen bei: {{phase}}"
+    },
+    "phases": {
+      "init": "Build anlegen",
+      "codex_locale_strings": "Texte hochladen",
+      "codex_manufacturers": "Hersteller hochladen",
+      "codex_ships": "Schiffe hochladen",
+      "codex_components": "Komponenten hochladen",
+      "codex_weapons": "Waffen hochladen",
+      "codex_ammunition": "Munition hochladen",
+      "codex_items": "Gegenstände hochladen",
+      "codex_blueprints": "Baupläne hochladen",
+      "codex_blueprint_ingredients": "Bauplan-Zutaten hochladen",
+      "codex_entity_strings": "Namen und Beschreibungen hochladen",
+      "codex_item_ports": "Hardpoints hochladen",
+      "codex_silhouettes": "Silhouetten hochladen",
+      "codex_previews": "Vorschaubilder hochladen",
+      "codex_keybinds": "Tastenbelegung hochladen",
+      "finalize": "Codex freischalten"
     }
   },
   "skins": {

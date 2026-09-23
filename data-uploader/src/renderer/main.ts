@@ -1581,24 +1581,23 @@ function renderAuthUpload(): string {
     <div class="view step-upload">
       <section class="card upload-card">
         <div class="upload-card-head">
-          <h1>⇡ ${t('upload.title')} — ${t('upload.codexTitle')} ${armedChipHtml()}</h1>
+          <h1>${t('upload.title')} — ${t('upload.codexTitle')} ${armedChipHtml()}</h1>
           <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
-          <span class="upload-throughput" id="upload-throughput"></span>
         </div>
-        <p>${t('upload.intro')}</p>
+        <p id="upload-intro">${t('upload.intro')}</p>
         <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
         <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
-        <div class="btn-row">
-          <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-          <button type="button" id="btn-resume-upload" class="btn btn-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
-          <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
-          <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
-        </div>
         ${progressCardHtml('upload-progress', uploadSteps())}
         ${categoryBarsHtml()}
         <div id="auth-status" class="upload-status" hidden></div>
-        <div id="upload-result" style="margin-top: 14px;"></div>
+        <div id="upload-result"></div>
       </section>
+      <div class="btn-row view-footer" id="upload-footer">
+        <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
+        <button type="button" id="btn-resume-upload" class="btn btn-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
+        <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
+        <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
+      </div>
       <details class="upload-bundle-details">
         <summary>${t('upload.bundle')}</summary>
         ${hasResult
@@ -1921,6 +1920,9 @@ async function doStartUpload(): Promise<void> {
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
   uploadRunning = true;
+  // The sign-in explanation is only useful before the first click — once the
+  // run is going it would sit between the title and the bar for nothing.
+  $('#upload-intro')?.setAttribute('hidden', '');
   // Fresh attempt: drop any stale status/diff from a previous attempt so a landed
   // bundle's "first upload" message can't coexist with a new "duplicate" error.
   clearUploadFeedback();
@@ -2278,10 +2280,10 @@ async function promoteToCodex(
       typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number' && ev.phaseTotal > 0
         ? Math.round(((ev.phaseIndex - 1 + stepFrac) / ev.phaseTotal) * 100)
         : undefined;
-    const stageLbl =
-      typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
-        ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) })
-        : undefined;
+    // What is being sent, in words ("Komponenten hochladen") — the raw table
+    // name and the "step 5 / 16" counter meant nothing to the operator; the
+    // category bars and the bar itself already show where the run stands.
+    const stageLbl = tOr(`catalog.phases.${ev.phase}`, ev.phase);
     uploadCounts[ev.phase] = ev.current;
     if (ev.total > 0) uploadExpected[ev.phase] = ev.total;
     updateCategoryBars(uploadCounts, uploadExpected, 'upload');
@@ -2291,7 +2293,7 @@ async function promoteToCodex(
       current: ev.current,
       total: ev.total > 0 ? ev.total : undefined,
       overallPct,
-      detail: ev.phase,
+      detail: '',
       indeterminate: false,
     });
   });
@@ -2328,11 +2330,14 @@ async function promoteToCodex(
   }
 }
 
+// The diff against the previous bundle, folded into one quiet line (like the
+// Extract card's log line) that opens into the per-entity table — the numbers
+// stay one click away without pushing the card's own content down.
 function paintDiffSummary(diff: unknown): void {
   const mount = $('#upload-result');
   if (!mount) return;
   if (!diff) {
-    mount.innerHTML = '<p class="ok">Erster Upload für diese Patch-Familie — kein Diff zur Anzeige.</p>';
+    mount.innerHTML = `<p class="upload-diff-line">${escapeHtml(t('upload.diff.first'))}</p>`;
     return;
   }
   // Server shape (diff_bundle in migration 00005, ingest_bundle_atomic in
@@ -2348,25 +2353,24 @@ function paintDiffSummary(diff: unknown): void {
     ? Object.entries(d.count_diffs)
         .filter(([, v]) => v.delta !== 0)
         .sort(([, a], [, b]) => Math.abs(b.delta) - Math.abs(a.delta))
-        .map(
-          ([key, v]) => {
-            const deltaCls = v.delta > 0 ? 'ok' : v.delta < 0 ? 'error' : '';
-            const sign = v.delta > 0 ? '+' : '';
-            return `<tr><td>${key}</td><td>${v.prev}</td><td>${v.new}</td><td class="${deltaCls}">${sign}${v.delta}</td></tr>`;
-          },
-        )
+        .map(([key, v]) => {
+          const deltaCls = v.delta > 0 ? 'ok' : v.delta < 0 ? 'error' : '';
+          const sign = v.delta > 0 ? '+' : '';
+          return `<tr><td>${escapeHtml(counterLabel(key))}</td><td>${v.prev.toLocaleString()}</td><td>${v.new.toLocaleString()}</td><td class="${deltaCls}">${sign}${v.delta.toLocaleString()}</td></tr>`;
+        })
         .join('')
     : '';
   mount.innerHTML = `
-    <h3>Diff vs. previous bundle</h3>
-    <p>Σ <span class="ok">+${totalAdded.toLocaleString()}</span>
-       / <span class="error">−${totalRemoved.toLocaleString()}</span></p>
-    <div class="diff-scroll">
-      <table class="diff-table">
-        <thead><tr><th>entity</th><th>prev</th><th>new</th><th>delta</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="4"><em>no entity changes</em></td></tr>'}</tbody>
-      </table>
-    </div>
+    <details class="upload-diff">
+      <summary class="upload-diff-line">${escapeHtml(t('upload.diff.summary'))}
+        <span class="ok">+${totalAdded.toLocaleString()}</span> / <span class="error">−${totalRemoved.toLocaleString()}</span></summary>
+      <div class="diff-scroll">
+        <table class="diff-table">
+          <thead><tr><th>${escapeHtml(t('upload.diff.colEntity'))}</th><th>${escapeHtml(t('upload.diff.colPrev'))}</th><th>${escapeHtml(t('upload.diff.colNew'))}</th><th>Δ</th></tr></thead>
+          <tbody>${rows || `<tr><td colspan="4"><em>${escapeHtml(t('upload.diff.none'))}</em></td></tr>`}</tbody>
+        </table>
+      </div>
+    </details>
   `;
 }
 
@@ -2509,9 +2513,8 @@ async function buildSilhouettes(
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
       progress?.update({
-        stageLabel:
-          t('silhouettes.entityProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }) ||
-          `Entity ${ev.current}/${ev.total}`,
+        // The card appends "x / y" itself; the lead names the work.
+        stageLabel: label,
         current: ev.current,
         total: ev.total,
         overallPct: ev.pct,
@@ -2629,7 +2632,7 @@ async function buildAndUploadSkins(
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
       progress?.update({
-        stageLabel: t('skins.shipProgress', { current: String(ev.current ?? 0), total: String(ev.total ?? 0) }),
+        stageLabel: label,
         current: ev.current,
         total: ev.total,
         overallPct: ev.pct,

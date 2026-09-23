@@ -284,16 +284,18 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     return { rate, etaSec };
   };
 
-  // The phase head only earns its row when it says MORE than the active step
-  // chip already does ("Codex: codex_ships" yes, "Auslesen" under an active
-  // AUSLESEN chip no) — otherwise the same word would sit there three times.
+  // With a step-chip row the chips ARE the phase head, so the head row stays
+  // hidden and a phase label that says more than the active chip ("Silhouetten
+  // werden gebaut" under 3D-SKINS) leads the detail line instead — the card
+  // then has the same rows in Extract and Upload. Without chips the head row
+  // carries the phase as before.
   let activeStepLabel = '';
   const renderHeadAndDetail = (): void => {
+    const label = vm.phaseLabel || '';
+    const redundant = !label || label.trim().toLowerCase() === activeStepLabel.trim().toLowerCase();
     if (phaseEl) {
-      const label = vm.phaseLabel || '';
-      const redundant = !label || label.trim().toLowerCase() === activeStepLabel.trim().toLowerCase();
       phaseEl.textContent = label;
-      phaseEl.hidden = redundant;
+      phaseEl.hidden = redundant || steps.length > 0;
     }
     if (typeof vm.overallPct === 'number' && bar) bar.style.width = `${vm.overallPct}%`;
     // The dark clock copy is clipped to exactly the fill; a sliding
@@ -304,13 +306,12 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     );
 
     const hasGoal = typeof vm.total === 'number' && vm.total > 0 && typeof vm.current === 'number';
-    let txt = vm.stageLabel ?? '';
+    let txt = vm.stageLabel || (steps.length > 0 && !redundant ? label : '');
     if (hasGoal) {
-      const pct =
-        typeof vm.overallPct === 'number'
-          ? vm.overallPct
-          : Math.floor(((vm.current as number) / (vm.total as number)) * 100);
-      txt += `${txt ? ' — ' : ''}${(vm.current as number).toLocaleString()} / ${(vm.total as number).toLocaleString()} (${pct} %)`;
+      // The percentage belongs to the "x / y" it follows — the bar above
+      // already shows the overall position.
+      const pct = Math.floor(((vm.current as number) / (vm.total as number)) * 100);
+      txt +=`${txt ? ' — ' : ''}${(vm.current as number).toLocaleString()} / ${(vm.total as number).toLocaleString()} (${pct} %)`;
     } else if (typeof vm.current === 'number') {
       txt += `${txt ? ' — ' : ''}${vm.current.toLocaleString()}`;
     } else if (txt) {
