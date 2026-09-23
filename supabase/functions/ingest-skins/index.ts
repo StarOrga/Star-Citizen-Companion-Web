@@ -18,16 +18,37 @@
 // (`<ship_id>/<skin_id>.<ext>`) — the client never supplies a storage path,
 // so a malicious client can't traverse the bucket.
 //
+// A commit REPLACES the ship: rows and objects it no longer lists are removed.
+// That is how the textured one-glb-per-skin export leaves the public bucket —
+// since uploader 0.37.0 a ship is one geometry-only hull glb plus store icons,
+// and CIG's texture art must not stay downloadable (RSI Fankit & Fandom FAQ).
+// For the same reason a glb is only signed for an uploader of that version or
+// newer: an older binary would publish textured hulls again.
+//
 //   400 invalid_json | invalid_body | unsafe_id
 //   401 unauthorized
 //   403 forbidden | unknown_release_token | release_token_revoked
-//   500 server_misconfigured | sign_failed | commit_failed
+//   426 uploader_outdated
+//   500 server_misconfigured | sign_failed | commit_failed | prune_failed
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
 const ALLOWED_SOURCES = new Set(['store', 'event', 'subscriber', 'factory', 'pu_npc']);
+/** First uploader whose hull glb is geometry-only. */
+const MIN_GLB_TOOL_VERSION = [0, 37, 0];
+
+/** `a.b.c` (any suffix ignored) at or above `min`; unparsable → false. */
+export function toolVersionAtLeast(version: string | null, min: number[]): boolean {
+  const m = /^(\d+)\.(\d+)\.(\d+)/.exec((version ?? '').trim());
+  if (!m) return false;
+  const v = [Number(m[1]), Number(m[2]), Number(m[3])];
+  for (let i = 0; i < 3; i++) {
+    if (v[i] !== min[i]) return v[i] > min[i];
+  }
+  return true;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -145,6 +166,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (ext !== 'glb' && ext !== 'webp') {
         return json({ error: 'invalid_body', message: 'ext must be glb|webp' }, 400);
       }
+      if (ext === 'glb' && !toolVersionAtLeast(req.headers.get('x-sc-tool-version'), MIN_GLB_TOOL_VERSION)) {
+        return json(
+          {
+            error: 'uploader_outdated',
+            message: `3D hulls need uploader ${MIN_GLB_TOOL_VERSION.join('.')} or newer`,
+          },
+          426,
+        );
+      }
       const path = `${shipId}/${skinId}.${ext}`;
       const { data, error } = await adminClient.storage
         .from(BUCKET)
@@ -190,7 +220,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .from('ship_skins')
       .upsert(rows, { onConflict: 'ship_id,skin_id' });
     if (error) return json({ error: 'commit_failed', message: error.message }, 500);
-    return json({ ok: true, count: rows.length });
+
+    // Replace semantics: drop what this commit no longer lists. Ids are
+    // SAFE_ID-checked, so they can go into the filter list unquoted.
+    const keepIds = rows.map((r) => r.skin_id as string);
+    const { error: rowErr } = await adminClient
+      .from('ship_skins')
+      .delete()
+      .eq('ship_id', shipId)
+      .not('skin_id', 'in', `(${keepIds.join(',')})`);
+    if (rowErr) return json({ error: 'prune_failed', message: rowErr.message }, 500);
+    const keepPaths = new Set(
+      rows.flatMap((r) => [r.model_path, r.icon_path]).filter((p): p is string => !!p),
+    );
+    const { data: listed, error: listErr } = await adminClient.storage
+      .from(BUCKET)
+      .list(shipId, { limit: 1000 });
+    if (listErr) return json({ error: 'prune_failed', message: listErr.message }, 500);
+    const stale = (listed ?? [])
+      .map((o) => `${shipId}/${o.name}`)
+      .filter((p) => !keepPaths.has(p));
+    if (stale.length) {
+      const { error: rmErr } = await adminClient.storage.from(BUCKET).remove(stale);
+      if (rmErr) return json({ error: 'prune_failed', message: rmErr.message }, 500);
+    }
+    return json({ ok: true, count: rows.length, pruned: stale.length });
   }
 
   return json({ error: 'invalid_body', message: "action must be 'sign' or 'commit'" }, 400);

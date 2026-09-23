@@ -1,4 +1,5 @@
-"""Events-emitting CLI for the 3D ship-skin export — consumed by the Electron
+"""Events-emitting CLI for the 3D hull export (one geometry-only glb per ship
++ paint icons) — consumed by the Electron
 data-uploader (see src/main/skin-bridge.ts). Wraps ShipDiscovery +
 Hull3DExporter and streams JSON-line events (events.py contract) on stdout so
 the renderer shows live progress, exactly like sc_extract.extract.
@@ -26,7 +27,7 @@ import sys
 from pathlib import Path
 
 from .events import count, done, error, log, phase, progress
-from .hull3d import Hull3DExporter, HullExportConfig
+from .hull3d import EXPORT_FORMAT, Hull3DExporter, HullExportConfig
 from .ship_discovery import ShipDiscovery, ShipRef
 from .ship_export import parse_ship
 
@@ -131,14 +132,17 @@ def main() -> int:
             # patch builds everything; subsequent runs finish in seconds.
             if args.skip_existing:
                 cached = args.out / ref.ship_id / "skins.json"
-                if cached.exists() and cached.stat().st_size > 2:
+                try:
+                    prev = json.loads(cached.read_text(encoding="utf-8"))
+                except Exception:  # noqa: BLE001 — missing/unreadable = not cached
+                    prev = None
+                # Only a build of the CURRENT format counts: a cache from the
+                # textured per-skin export must be rebuilt, or its textured glbs
+                # would be uploaded again.
+                if isinstance(prev, dict) and prev.get("format") == EXPORT_FORMAT:
                     log("info", f"{ref.ship_id}: cached — skipping build")
-                    try:
-                        prev = json.loads(cached.read_text(encoding="utf-8"))
-                        skins_prev = prev.get("skins", prev if isinstance(prev, list) else [])
-                        n_prev = sum(1 for s in skins_prev if s.get("model") or s.get("has_model"))
-                    except Exception:  # noqa: BLE001 — cache read is best-effort
-                        n_prev = 0
+                    n_prev = sum(1 for s in prev.get("skins", [])
+                                 if s.get("model") or s.get("has_model"))
                     count(ref.ship_id, n_prev)
                     ships_out.append({
                         "ship_id": ref.ship_id,

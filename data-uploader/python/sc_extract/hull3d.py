@@ -1,11 +1,18 @@
-"""3D hull + skin export: turn a ship's CryEngine geometry and paint materials
-from the P4K into web-ready, textured glTF (one glb per skin) — 100% from the
-P4K, no external data sources.
+"""3D hull export: turn a ship's CryEngine geometry from the P4K into ONE
+web-ready, geometry-only glTF per ship (plus the official store icon of every
+paint) — 100% from the P4K, no external data sources.
 
-Pipeline (per ship, per skin):
-    p4k  -> .cga + .cgam + paint .mtl + referenced DDS  (scdatatools, unsplit)
-         -> cgf-converter (-embedtextures)              -> textured glb
-         -> gltf-transform optimize (simplify+webp+meshopt)-> web glb (~3 MB)
+Pipeline (per ship):
+    p4k  -> .cga + .cgam + one paint .mtl              (scdatatools)
+         -> cgf-converter                               -> raw glb
+         -> un-rig + interior strip + strip_to_geometry -> shape only
+         -> gltf-transform optimize (simplify+meshopt)  -> web glb
+
+No texture ever leaves the P4K: the published hull carries the ship's shape,
+not CIG's texture art (RSI Fankit & Fandom FAQ: no uploading their content for
+"download by others"). The web viewer renders it as a hologram. The paint .mtl
+is still handed to the converter because it names the submaterials, which is
+how proxies and the interior are recognised and dropped.
 
 External *build tools* (NOT data sources — data is 100% P4K):
   * cgf-converter v2.0.0+  (Markemp/Cryengine-Converter) — parses SC 4.x Ivo
@@ -131,8 +138,28 @@ class HullExportConfig:
     keep_work: bool = False       # keep scratch for debugging
 
 
+# Written into skins.json. A cached ship built by an older pipeline (the textured
+# one-glb-per-skin export) carries no or another format and must be rebuilt —
+# `skin_export_app --skip-existing` compares against this.
+EXPORT_FORMAT = "geometry-v1"
+
+
+def hull_paint(paints: List[Paint]) -> Optional[Paint]:
+    """The paint whose .mtl names the hull's submaterials for the one build.
+
+    Any paint would do for the geometry; the factory finish is the one every
+    ship has, so it is the most predictable choice.
+    """
+    for pred in (lambda p: p.id == "standard", lambda p: p.source == "factory",
+                 lambda p: True):
+        for p in paints:
+            if p.mtl and pred(p):
+                return p
+    return None
+
+
 class Hull3DExporter:
-    """Builds web-ready textured glbs (one per skin) + a skin catalog."""
+    """Builds one geometry-only web glb per ship + a paint catalog."""
 
     def __init__(self, p4k, cfg: HullExportConfig) -> None:
         self.p4k = p4k
@@ -171,39 +198,12 @@ class Hull3DExporter:
         dest.write_bytes(self._read(p4k_path))
         return dest
 
-    def _extract_mtl_textures(self, mtl_path: str, root: Path) -> int:
-        """Decode every DDS a .mtl references into the mirrored Data/ tree."""
-        from scdatatools.engine.textures import dds as ddsmod
-        from scdatatools.engine.chunkfile import etree_from_cryxml_file
-
-        raw = self._read(mtl_path)
-        tree = etree_from_cryxml_file(io.BytesIO(raw))
-        refs = set()
-        for el in tree.getroot().iter("Texture"):
-            f = (el.get("File") or el.get("file") or "").replace("\\", "/")
-            if f:
-                refs.add(f)
-        ok = 0
-        for ref in sorted(refs):
-            rel = ref[:-4] if ref.lower().endswith((".tif", ".dds", ".png")) else ref
-            info = self._ddsidx.get(("data/" + rel + ".dds").lower())
-            if not info:
-                continue
-            try:
-                out = _safe_join(root, "Data", rel + ".dds")
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_bytes(ddsmod.collect_and_unsplit(info))
-                ok += 1
-            except Exception:  # noqa: BLE001 — best-effort per texture
-                pass
-        return ok
-
     # ---- build tools -------------------------------------------------------
     def _cgf_to_glb(self, cga_disk: Path, objectdir: Path, mtl_rel: Optional[str],
                     out_glb: Path) -> None:
         produced = cga_disk.with_suffix(".glb")
         produced.unlink(missing_ok=True)  # never mistake a stale glb for success
-        cmd = [str(self.cfg.cgf_converter), cga_disk.name, "-glb", "-embedtextures",
+        cmd = [str(self.cfg.cgf_converter), cga_disk.name, "-glb",
                "-objectdir", str(objectdir), "-loglevel", "Error"]
         if mtl_rel:
             cmd += ["-mtl", mtl_rel]
@@ -317,24 +317,39 @@ class Hull3DExporter:
 
     # ---- public API --------------------------------------------------------
     def export_ship(self, spec: ShipSpec) -> dict:
-        """Export one ship: a web glb per skin + a skin catalog. Returns the catalog."""
+        """Export one ship: its hull glb + every paint's icon. Returns the catalog.
+
+        The hull hangs off exactly one catalog entry (see `hull_paint`); every
+        other paint is listed with its store icon only.
+        """
         t0 = time.time()
         safe_id(spec.ship_id, "ship_id")  # flows into filenames + storage paths + cmdline
         ship_out = self.cfg.out_dir / spec.ship_id
+        # A rebuild replaces the ship wholesale: textured glbs of an older export
+        # and its `.uploaded` marker must not survive next to the new catalog.
+        shutil.rmtree(ship_out, ignore_errors=True)
         (ship_out / "models").mkdir(parents=True, exist_ok=True)
         (ship_out / "icons").mkdir(parents=True, exist_ok=True)
 
         catalog: List[dict] = []
+        hull: dict = {}
         try:
-            for paint in spec.paints:
+            base = hull_paint(spec.paints)
+            if base is not None:
                 try:
-                    entry = self._export_skin(spec, paint, ship_out)
-                    catalog.append(entry)
-                    self.log("info", f"skin '{paint.id}' -> {entry.get('model')}")
-                except Exception as exc:  # noqa: BLE001 — one bad skin must not kill the run
-                    self.log("warn", f"skin '{paint.id}' failed: {type(exc).__name__}: {exc}")
-                    catalog.append({"id": paint.id, "name": paint.name, "model": None,
-                                    "error": str(exc)})
+                    hull = self._export_hull(spec, base, ship_out)
+                    self.log("info", f"hull via '{base.id}' -> {hull['model']}")
+                except Exception as exc:  # noqa: BLE001 — the icons still ship
+                    self.log("warn", f"hull via '{base.id}' failed: {type(exc).__name__}: {exc}")
+                    hull = {"model": None, "error": str(exc)}
+            for paint in spec.paints:
+                entry = {"id": paint.id, "name": paint.name,
+                         "description": paint.description, "source": paint.source,
+                         "name_verified": paint.name_verified, "model": None,
+                         "icon": self._export_icon(paint, ship_out) if paint.icon_dds else None}
+                if paint is base:
+                    entry.update(hull)
+                catalog.append(entry)
         finally:
             # always clean scratch, even on an unexpected escape — per-skin mirrors
             # each hold the full mirrored Data subtree + DDS (can be GBs).
@@ -342,26 +357,29 @@ class Hull3DExporter:
                 shutil.rmtree(self.cfg.work_dir, ignore_errors=True)
 
         cat_path = ship_out / "skins.json"
-        cat_path.write_text(json.dumps({"ship": spec.ship_id, "skins": catalog},
+        cat_path.write_text(json.dumps({"ship": spec.ship_id, "format": EXPORT_FORMAT,
+                                        "skins": catalog},
                                        indent=2, ensure_ascii=False), encoding="utf-8")
-        self.log("info", f"{spec.ship_id}: {sum(1 for c in catalog if c.get('model'))}/"
-                         f"{len(catalog)} skins in {time.time()-t0:.0f}s")
+        self.log("info", f"{spec.ship_id}: hull {'ok' if hull.get('model') else 'missing'}, "
+                         f"{sum(1 for c in catalog if c.get('icon'))}/{len(catalog)} "
+                         f"paint icons in {time.time()-t0:.0f}s")
         return {"ship": spec.ship_id, "skins": catalog, "catalog_path": str(cat_path)}
 
-    def _export_skin(self, spec: ShipSpec, paint: Paint, ship_out: Path) -> dict:
+    def _export_hull(self, spec: ShipSpec, paint: Paint, ship_out: Path) -> dict:
         safe_id(paint.id, "skin_id")  # flows into filenames + storage paths + cmdline
         mirror = self.cfg.work_dir / paint.id
         if mirror.exists():
             shutil.rmtree(mirror, ignore_errors=True)
         try:
-            return self._export_skin_inner(spec, paint, ship_out, mirror)
+            return self._export_hull_inner(spec, paint, ship_out, mirror)
         finally:
             if not self.cfg.keep_work:
-                shutil.rmtree(mirror, ignore_errors=True)  # free this skin's GBs now
+                shutil.rmtree(mirror, ignore_errors=True)  # free the mirror's GBs now
 
-    def _export_skin_inner(self, spec: ShipSpec, paint: Paint, ship_out: Path,
+    def _export_hull_inner(self, spec: ShipSpec, paint: Paint, ship_out: Path,
                            mirror: Path) -> dict:
-        # 1. mesh + mesh-data + paint material into mirrored tree
+        # 1. mesh + mesh-data + paint material into mirrored tree. No DDS is
+        # extracted: the output is geometry only.
         cga_disk = self._mirror_save(spec.hull_cga, mirror)
         cgam = spec.hull_cga[:-4] + ".cgam"
         if (self._byname.get(cgam) or self._ddsidx.get(cgam.lower())):
@@ -370,10 +388,7 @@ class Hull3DExporter:
             except FileNotFoundError:
                 pass
         mtl_disk = self._mirror_save(paint.mtl, mirror)
-        # 2. textures referenced by this paint
-        n = self._extract_mtl_textures(paint.mtl, mirror)
-        self.log("info", f"  {paint.id}: {n} textures")
-        # 3. convert -> textured glb (-mtl path is relative to the .cga directory)
+        # 2. convert -> raw glb (-mtl path is relative to the .cga directory)
         import os
         objectdir = mirror / spec.objectdir_anchor
         mtl_rel = os.path.relpath(mtl_disk, cga_disk.parent).replace("\\", "/")
@@ -387,24 +402,14 @@ class Hull3DExporter:
         # a ship whose paint .mtl will not parse must still get a correctly
         # PLACED hull (white beats collapsed). See HULL3D.md for the numbers.
         self._unrig_hull(paint, raw_glb)
-        # 3b. fold the paint's LAYERED material values back in. cgf-converter
-        # ignores <MatLayers>, so every HardSurface paint panel comes out of the
-        # converter as untextured pure white — on the Cutlass that is ~42 % of
-        # the hull. glb_materials re-derives baseColor/roughness/metallic from
-        # the same .mtl the converter was handed.
-        self._apply_paint_materials(paint, raw_glb)
+        # 3b. shape only: drop the interior and every texture/UV. NOT
+        # best-effort like the un-rig — a hull that still carries CIG's
+        # textures must never be published, so a failure here costs the model.
+        self._reduce_to_geometry(raw_glb)
         # 4. optimize -> web glb (within the per-model size budget)
         web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
         size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id)
-        # 5. icon
-        icon_rel = None
-        if paint.icon_dds:
-            icon_rel = self._export_icon(paint, ship_out)
-        size_mb = size_bytes / 1e6
-        return {"id": paint.id, "name": paint.name, "description": paint.description,
-                "source": paint.source, "name_verified": paint.name_verified,
-                "model": f"models/{web_glb.name}", "model_mb": round(size_mb, 2),
-                "icon": icon_rel}
+        return {"model": f"models/{web_glb.name}", "model_mb": round(size_bytes / 1e6, 2)}
 
     def _unrig_hull(self, paint: Paint, raw_glb: Path) -> None:
         """Drop the converter's no-op skin so the hull's parts stay in place.
@@ -422,22 +427,12 @@ class Hull3DExporter:
             self.log("warn", f"  {paint.id}: un-rigging failed "
                              f"({type(exc).__name__}: {exc}) — hull may render collapsed")
 
-    def _apply_paint_materials(self, paint: Paint, raw_glb: Path) -> None:
-        """Re-colour the converted glb from the paint .mtl's <MatLayers>.
-
-        Best-effort: a ship whose .mtl we cannot parse still gets its (white)
-        model rather than no model at all — but the failure is logged loudly,
-        because a silently white hull is the exact defect this step exists for.
-        """
-        try:
-            from . import glb_materials
-            submats = glb_materials.parse_paint_mtl(self._read(paint.mtl))
-            glb_materials.patch_glb_materials(raw_glb, submats, self.log)
-            if self.cfg.strip_interior:
-                glb_materials.drop_interior_geometry(raw_glb, self.log)
-        except Exception as exc:  # noqa: BLE001 — never lose a model over colours
-            self.log("warn", f"  {paint.id}: paint-material resolve failed "
-                             f"({type(exc).__name__}: {exc}) — hull stays untinted")
+    def _reduce_to_geometry(self, raw_glb: Path) -> None:
+        """Interior strip + texture strip; raises instead of shipping textures."""
+        from . import glb_materials
+        if self.cfg.strip_interior:
+            glb_materials.drop_interior_geometry(raw_glb, self.log)
+        glb_materials.strip_to_geometry(raw_glb, self.log)
 
     def _export_icon(self, paint: Paint, ship_out: Path) -> Optional[str]:
         from scdatatools.engine.textures import dds as ddsmod
