@@ -54,6 +54,19 @@ updates:
       # only if Angular ever widens the window past its own major.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # three is pinned by a peer range: @google/model-viewer 4.3.1 (current
+      # latest) declares `three: ^0.183.0`, and on a 0.x version the caret only
+      # admits 0.183.x patches. #630 bumped three to 0.186 inside the
+      # npm-dependencies group, which made `npm install` fail with ERESOLVE and
+      # blocked every other package in that group. Dependabot counts 0.183 →
+      # 0.186 as a *minor*, so both majors and minors are ignored; 0.183.x
+      # patches keep flowing. @types/three moves in lockstep with three.
+      #
+      # Lift both when @google/model-viewer widens its `three` peer range.
+      - dependency-name: "three"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/three"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   # ---- data-uploader (npm) ----
   - package-ecosystem: "npm"
