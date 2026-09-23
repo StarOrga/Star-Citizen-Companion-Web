@@ -1,7 +1,63 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.92.1",
+  "current": "0.94.0",
   "releases": [
+    {
+      "version": "0.94.0",
+      "date": "2026-09-23",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "3D-Schiffe als Hologramm statt mit Original-Texturen (Uploader 0.37.0).",
+              "text": "Der Holotisch zeigt die Schiffsform im Akzent-Cyan, ohne CIGs Textur-Art. Alles im öffentlichen ship-skins-Bucket ist frei herunterladbar, und die RSI Fankit & Fandom FAQ untersagt, ihre Inhalte zum Download durch andere hochzuladen. Der Uploader baut pro Schiff ein reines Geometrie-Modell (Stalker 157 KB, Cutlass 440 KB, ohne Bilder und UVs). Lackierungen gibt es als offizielle Store-Renders. ingest-skins ersetzt beim Commit den ganzen Schiffsstand, sodass alte texturierte Modelle mit dem nächsten Upload aus dem Bucket verschwinden. Uploader vor 0.37.0 dürfen keine Modelle mehr hochladen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Krisseliges 3D-Modell",
+              "text": "(z. B. Avenger Stalker): 57 % der Dreiecke trugen eine gekachelte 256-px-Greeble-Textur, 20 % gar kein Material. Das Hologramm entfernt beim Laden auch aus schon hochgeladenen Modellen jede Textur."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.93.0",
+      "date": "2026-09-22",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader lädt nach der Extraktion immer hoch (0.36.0).",
+              "text": "Die Laufoption „Automatisch hochladen“ entfällt: nach einer erfolgreichen Extraktion startet der Upload stets von selbst, sofern man angemeldet ist. Ein gespeicherter alter Wert wird beim Laden verworfen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader schreibt im Leerlauf nicht mehr ständig auf die Platte (0.36.0).",
+              "text": "Beim Autostart (--hidden) wurde das nie gezeigte Fenster weiter gerendert – der pulsierende Verbindungspunkt hielt Renderer und GPU-Prozess im Austausch (~4.170 Schreiboperationen / 4,6 MB pro 30 s). Das Fenster wird jetzt ausdrücklich versteckt; gemessen bleiben 0,8 Schreiboperationen pro 30 s und main.log wächst im Leerlauf nicht. npm run test:idle-io prüft das Budget gegen einen echten Build."
+            },
+            {
+              "title": "Fortschrittsanzeige des Uploaders",
+              "text": "läuft nach einem abgebrochenen Start oder nach dem Upload nicht mehr im Hintergrund weiter."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.92.1",
       "date": "2026-09-22",
