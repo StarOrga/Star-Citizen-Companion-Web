@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.96.0] - 2026-09-24
+
+### Changed
+
+- **Data Uploader arbeitet die Kategorien von links nach rechts ab (0.38.0).**
+  Extraktion und Upload laufen jetzt in der Reihenfolge der Balken: Texte,
+  Schiffe, Komponenten, Waffen, Gegenstände. Der Extraktor sortiert die
+  Entitäten nach der Klassifizierung vor, statt sie in DataCore-Reihenfolge
+  durcheinander abzuarbeiten, und der Katalog-Upload schickt die Texte zuerst.
+  Der Upload-Schritt zeigt dieselben fünf Kategorie-Balken. Ein pausierter
+  Upload aus einer älteren Version lässt sich weiter fortsetzen.
+- **Neuer Fortschrittsbalken im Data Uploader.** Der Gesamtbalken ist höher und
+  trägt beide Zeiten: die bisherige Laufzeit links im gefüllten Teil, die
+  Restzeit rechts im leeren Teil. Der Durchsatz (`~124/s`) steht hinter der
+  Prozentangabe. Stromlinien laufen über den Balken zur Spitze, aber nur solange
+  wirklich gearbeitet wird: ein Zähler bewegt sich, der Extraktor meldet
+  CPU-Last oder ein Upload ist unterwegs. Steht der Prozess, steht auch der
+  Balken.
+
 ## [0.95.0] - 2026-09-24
 
 ### Changed
