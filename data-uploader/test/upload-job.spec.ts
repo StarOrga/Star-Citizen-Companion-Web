@@ -265,20 +265,20 @@ describe('resumeSummary', () => {
     expect(sum.activeStage).toBe('catalog');
     expect(sum.macroStep).toBe(2);
     expect(sum.stages.map((s) => s.state)).toEqual(['done', 'active', 'pending']);
-    // codex_ships is the 3rd of the 16 publish phases — the SAME number the live
+    // codex_ships is the 4th of the 16 publish phases — the SAME number the live
     // bar shows, so banner and bar agree.
-    expect(sum.catalog).toEqual({ step: 3, total: 16, phase: 'codex_ships' });
+    expect(sum.catalog).toEqual({ step: 4, total: 16, phase: 'codex_ships' });
   });
 
   it('falls back to the next unsent phase when catalog has no live cursor', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'running';
-    s.catalog.donePhases = ['codex_manufacturers', 'codex_ships'];
+    s.catalog.donePhases = ['codex_locale_strings', 'codex_manufacturers', 'codex_ships'];
     s.catalog.cursor = null;
     const sum = resumeSummary(s);
-    // codex_weapons is next after the two done phases — step 4 of 16.
-    expect(sum.catalog).toEqual({ step: 4, total: 16, phase: 'codex_weapons' });
+    // codex_components is next after the three done phases — step 5 of 16.
+    expect(sum.catalog).toEqual({ step: 5, total: 16, phase: 'codex_components' });
   });
 
   it('reports committed ships for a skin-stage resume (macro 3 / 3)', () => {

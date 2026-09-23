@@ -1,30 +1,61 @@
 /**
- * Five category bars under the Extract card: Schiffe, Komponenten, Waffen,
- * Gegenstände, Texte. Each one is driven by the sidecar's cumulative `count`
- * events; once the sidecar has announced an `expected` total for every counter
- * of a category (the classification pre-pass, or the final value of a one-shot
- * counter) the bar becomes a real "x / y" percentage. Until then it shows an
+ * Five category bars under the Extract and the Upload card, in the order the
+ * work actually runs: Texte, Schiffe, Komponenten, Waffen, Gegenstände — the
+ * extractor projects its catalogs and the catalog upload sends its tables in
+ * this same order, so the bars fill left to right.
+ *
+ * Each bar is driven by cumulative counts per source key — the sidecar's
+ * `count` events while extracting, the catalog phases' rows sent while
+ * uploading. Once an `expected` total is known for every key of a category
+ * (the classification pre-pass, a one-shot counter's final value, a phase's
+ * row total) the bar becomes a real "x / y" percentage. Until then it shows an
  * honest scanning stripe — no number is ever invented. At completion a bar is
- * solid success, or empty + "—" when the category yielded nothing. Every count
- * event flashes a bright head on its bar once (the "Datenpunkt-Tick");
+ * solid success, or empty + "—" when the category yielded nothing. Every
+ * change flashes a bright head on its bar once (the "Datenpunkt-Tick");
  * `prefers-reduced-motion` swaps the flash for a static head (CSS only).
  */
 
 import { t } from '../../lib/i18n.js';
 
+export type CategorySource = 'extract' | 'upload';
+
 interface Category {
   key: string;
   labelKey: string;
+  /** Extractor counter keys (sidecar `count` events). */
   counters: string[];
+  /** Catalog upload phases (catalog-bridge progress events). */
+  phases: string[];
 }
 
 const CATEGORIES: Category[] = [
-  { key: 'ships', labelKey: 'category.ships', counters: ['ships'] },
-  { key: 'components', labelKey: 'category.components', counters: ['components'] },
-  { key: 'weapons', labelKey: 'category.weapons', counters: ['weapons', 'ammunition'] },
-  { key: 'items', labelKey: 'category.items', counters: ['items'] },
-  { key: 'strings', labelKey: 'category.strings', counters: ['strings'] },
+  { key: 'strings', labelKey: 'category.strings', counters: ['strings'], phases: ['codex_locale_strings'] },
+  { key: 'ships', labelKey: 'category.ships', counters: ['ships'], phases: ['codex_ships'] },
+  { key: 'components', labelKey: 'category.components', counters: ['components'], phases: ['codex_components'] },
+  {
+    key: 'weapons',
+    labelKey: 'category.weapons',
+    counters: ['weapons', 'ammunition'],
+    phases: ['codex_weapons', 'codex_ammunition'],
+  },
+  { key: 'items', labelKey: 'category.items', counters: ['items'], phases: ['codex_items'] },
 ];
+
+/**
+ * Planned upload totals per catalog phase, seeded from the extract's entity
+ * counts so every bar shows "0 / y" before its phase starts; the phase's own
+ * row total replaces the seed once it runs.
+ */
+export function uploadExpectedFromCounts(counts: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const c of CATEGORIES) {
+    c.counters.forEach((counter, i) => {
+      const phase = c.phases[i];
+      if (phase && typeof counts[counter] === 'number') out[phase] = counts[counter];
+    });
+  }
+  return out;
+}
 
 /** Last running total per category — the source of truth for the "empty" verdict at completion. */
 const totals: Record<string, number> = {};
@@ -55,10 +86,10 @@ export function resetCategoryBars(): void {
   }
 }
 
-/** Planned total for a category, or null while any of its counters is still unannounced. */
-function expectedFor(c: Category, expectedMap: Record<string, number>): number | null {
+/** Planned total for a category, or null while any of its keys is still unannounced. */
+function expectedFor(keys: string[], expectedMap: Record<string, number>): number | null {
   let sum = 0;
-  for (const k of c.counters) {
+  for (const k of keys) {
     const e = expectedMap[k];
     if (typeof e !== 'number') return null;
     sum += e;
@@ -67,17 +98,23 @@ function expectedFor(c: Category, expectedMap: Record<string, number>): number |
 }
 
 /**
- * Update the bars from the extractor's cumulative `count` map plus the
- * `expected` totals announced so far. A category with a known total gets a
- * measured width; one without keeps the scanning stripe.
+ * Update the bars from a cumulative count map plus the `expected` totals
+ * announced so far, keyed by extractor counter (`source: 'extract'`) or by
+ * catalog phase (`'upload'`). A category with a known total gets a measured
+ * width; one without keeps the scanning stripe.
  */
-export function updateCategoryBars(countMap: Record<string, number>, expectedMap: Record<string, number> = {}): void {
+export function updateCategoryBars(
+  countMap: Record<string, number>,
+  expectedMap: Record<string, number> = {},
+  source: CategorySource = 'extract',
+): void {
   for (const c of CATEGORIES) {
-    const total = c.counters.reduce((sum, k) => sum + (countMap[k] ?? 0), 0);
+    const keys = source === 'upload' ? c.phases : c.counters;
+    const total = keys.reduce((sum, k) => sum + (countMap[k] ?? 0), 0);
     const fill = document.getElementById(`cat-fill-${c.key}`);
     const count = document.getElementById(`cat-count-${c.key}`);
     if (!fill || fill.classList.contains('done')) continue;
-    const expected = expectedFor(c, expectedMap);
+    const expected = expectedFor(keys, expectedMap);
     if (expected !== null && expected > 0) {
       fill.classList.add('measured');
       fill.classList.remove('active');
@@ -101,11 +138,11 @@ export function updateCategoryBars(countMap: Record<string, number>, expectedMap
 }
 
 /**
- * Extraction moved past "Auslesen" — freeze every bar: solid success where the
- * category produced items, empty + "—" where it produced none (a full green
- * bar over a zero would claim a completeness that never happened). Idempotent:
- * called on the validate/bundle phase AND on done, so the verdict comes from
- * the tracked counts, not from a class the first call removed.
+ * The work behind the bars is over — freeze every bar: solid success where
+ * the category produced items, empty + "—" where it produced none (a full
+ * green bar over a zero would claim a completeness that never happened).
+ * Idempotent: called on the validate/bundle phase AND on done, so the verdict
+ * comes from the tracked counts, not from a class the first call removed.
  */
 export function markCategoriesComplete(): void {
   for (const c of CATEGORIES) {

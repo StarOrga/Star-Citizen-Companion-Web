@@ -20,6 +20,12 @@ describe('CATALOG_PHASE_ORDER', () => {
   it('has no duplicate phases (a repeat would break index math)', () => {
     expect(new Set(CATALOG_PHASE_ORDER).size).toBe(CATALOG_PHASE_ORDER.length);
   });
+
+  it('uploads in the category-bar order: Texte, Schiffe, Komponenten, Waffen, Gegenstände', () => {
+    const at = (p: string): number => catalogPhaseIndex(p) ?? -1;
+    const seq = ['codex_locale_strings', 'codex_ships', 'codex_components', 'codex_weapons', 'codex_items'].map(at);
+    expect(seq.every((v, i) => v > 0 && (i === 0 || v > seq[i - 1]))).toBe(true);
+  });
 });
 
 describe('catalogPhaseIndex', () => {
@@ -29,8 +35,9 @@ describe('catalogPhaseIndex', () => {
   });
 
   it('maps a mid-order data phase to its human step number', () => {
-    expect(catalogPhaseIndex('codex_ships')).toBe(3);
-    expect(catalogPhaseIndex('codex_item_ports')).toBe(11);
+    expect(catalogPhaseIndex('codex_locale_strings')).toBe(2);
+    expect(catalogPhaseIndex('codex_ships')).toBe(4);
+    expect(catalogPhaseIndex('codex_item_ports')).toBe(12);
   });
 
   it('returns null for an unknown phase rather than a bogus 0', () => {
@@ -41,11 +48,11 @@ describe('catalogPhaseIndex', () => {
 
 describe('nextCatalogPhase', () => {
   it('starts at the first data phase when nothing is done', () => {
-    expect(nextCatalogPhase([])).toBe('codex_manufacturers');
+    expect(nextCatalogPhase([])).toBe('codex_locale_strings');
   });
 
   it('skips over the phases already sent, in order', () => {
-    expect(nextCatalogPhase(['codex_manufacturers', 'codex_ships'])).toBe('codex_weapons');
+    expect(nextCatalogPhase(['codex_locale_strings', 'codex_manufacturers', 'codex_ships'])).toBe('codex_components');
   });
 
   it('never returns init or finalize — only data phases resume', () => {

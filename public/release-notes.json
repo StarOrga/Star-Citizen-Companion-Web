@@ -1,7 +1,51 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.94.0",
+  "current": "0.96.0",
   "releases": [
+    {
+      "version": "0.96.0",
+      "date": "2026-09-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader arbeitet die Kategorien von links nach rechts ab (0.38.0).",
+              "text": "Extraktion und Upload laufen jetzt in der Reihenfolge der Balken: Texte, Schiffe, Komponenten, Waffen, Gegenstände. Der Extraktor sortiert die Entitäten nach der Klassifizierung vor, statt sie in DataCore-Reihenfolge durcheinander abzuarbeiten, und der Katalog-Upload schickt die Texte zuerst. Der Upload-Schritt zeigt dieselben fünf Kategorie-Balken. Ein pausierter Upload aus einer älteren Version lässt sich weiter fortsetzen."
+            },
+            {
+              "title": "Neuer Fortschrittsbalken im Data Uploader.",
+              "text": "Der Gesamtbalken ist höher und trägt beide Zeiten: die bisherige Laufzeit links im gefüllten Teil, die Restzeit rechts im leeren Teil. Der Durchsatz (~124/s) steht hinter der Prozentangabe. Stromlinien laufen über den Balken zur Spitze, aber nur solange wirklich gearbeitet wird: ein Zähler bewegt sich, der Extraktor meldet CPU-Last oder ein Upload ist unterwegs. Steht der Prozess, steht auch der Balken."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.95.0",
+      "date": "2026-09-24",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Angular 22 und TypeScript 6.",
+              "text": "Framework, CLI, CDK und Material stehen auf 22.2, TypeScript auf 6.0. Die Migrationen von ng update sind übernommen: Test-Stubs mit explizitem Change-Detection-Modus, withXhr() in HTTP-Tests und vier Template-Stellen, die das alte null-Verhalten von ?. behalten. Lokal braucht die CLI jetzt Node ≥ 24.15 (bzw. ≥ 22.22.3). Das ungenutzte lucide-angular ist entfernt (#629)."
+            },
+            {
+              "title": "Abhängigkeiten aktualisiert (#630).",
+              "text": "@ngx-translate 18, dafür ist die App auf TranslatePipe, provideTranslateService(), getCurrentLang() und getFallbackLang() umgestellt. Außerdem neue Versionen von @supabase/supabase-js, posthog-js, zone.js, supabase und @types/node 26. three bleibt auf 0.183, weil @google/model-viewer nichts Neueres erlaubt; Dependabot ignoriert three-Minors, bis sich das ändert. jasmine-core bleibt auf 6.3, weil 7.x unter Karma 6.4 keinen Test startet."
+            },
+            {
+              "title": "Data Uploader 0.37.1 (#628).",
+              "text": "Electron 44.4, Vitest 5.0.1, @types/node 26.6."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.94.0",
       "date": "2026-09-23",

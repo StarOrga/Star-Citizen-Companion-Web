@@ -137,7 +137,7 @@ interface ExtractFinal {
 }
 interface ExtractEvent {
   jobId: string;
-  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
+  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error' | 'pulse';
   phase?: string;
   pct?: number;
   // 'progress' event fields (see python-bridge.ts PythonExtractEvent).
@@ -151,6 +151,8 @@ interface ExtractEvent {
   counter?: { key: string; value: number; expected?: number };
   level?: 'info' | 'warn' | 'error';
   message?: string;
+  /** 'pulse' event: sidecar CPU load since the last pulse (1 ≈ one busy core). */
+  busy?: number;
   result?: ExtractResultPayload;
   error_type?: string;
 }

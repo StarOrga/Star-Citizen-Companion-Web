@@ -442,6 +442,8 @@ def main() -> int:
         mem_cap_mb=args.mem_cap_mb,
     )
 
+    # Proof of work for the host's progress-bar animation (see events.start_heartbeat).
+    events.start_heartbeat()
     try:
         run_extract(cfg)
         return 0

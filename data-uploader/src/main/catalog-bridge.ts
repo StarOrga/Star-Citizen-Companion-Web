@@ -436,134 +436,11 @@ export async function uploadCatalog(
     const ports: PortRow[] = [];
     const counts: Record<string, number> = {};
 
-    // 2. manufacturers (always full) ---------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'manufacturers');
-      for (const m of list) {
-        collectStrings(strings, buildId, nat, m.className as string, 'manufacturer', [
-          { field: 'name', loc: m.name },
-          { field: 'description', loc: m.description },
-        ]);
-      }
-      counts.manufacturers = await sendEntity('codex_manufacturers', mapManufacturers(list, tag));
-    }
-
-    // 3. ships (always full) -----------------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'ships');
-      for (const s of list) {
-        collectStrings(strings, buildId, nat, s.className as string, 'ship', [
-          { field: 'name', loc: s.name },
-          { field: 'description', loc: s.description },
-          { field: 'vehicleName', loc: (s as { vehicleName?: unknown }).vehicleName },
-        ]);
-        collectPorts(ports, buildId, nat, s.className as string, 'ship', (s as { itemPorts?: unknown }).itemPorts);
-      }
-      counts.ships = await sendEntity('codex_ships', mapShips(list, tag));
-    }
-
-    // 4. weapons -----------------------------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'weapons');
-      for (const w of list) {
-        collectStrings(strings, buildId, nat, w.className as string, 'weapon', [
-          { field: 'name', loc: w.name },
-          { field: 'description', loc: w.description },
-        ]);
-        collectPorts(ports, buildId, nat, w.className as string, 'weapon', (w as { itemPorts?: unknown }).itemPorts);
-      }
-      counts.weapons = await sendEntity('codex_weapons', mapWeapons(list, tag));
-    }
-
-    // 5. components --------------------------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'components');
-      for (const c of list) {
-        collectStrings(strings, buildId, nat, c.className as string, 'component', [
-          { field: 'name', loc: c.name },
-          { field: 'description', loc: c.description },
-        ]);
-        collectPorts(ports, buildId, nat, c.className as string, 'component', (c as { itemPorts?: unknown }).itemPorts);
-      }
-      counts.components = await sendEntity('codex_components', mapComponents(list, tag));
-    }
-
-    // 6. items -------------------------------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'items');
-      for (const it of list) {
-        collectStrings(strings, buildId, nat, it.className as string, 'item', [
-          { field: 'name', loc: it.name },
-          { field: 'description', loc: it.description },
-        ]);
-      }
-      counts.items = await sendEntity('codex_items', mapItems(list, tag));
-    }
-
-    // 7. ammunition --------------------------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'ammunition');
-      counts.ammunition = await sendEntity('codex_ammunition', mapAmmunition(list, tag));
-    }
-
-    // 7b. blueprints + ingredients -----------------------------------------
-    {
-      const list = await readJsonDir(outDir, 'blueprints');
-      for (const bp of list) {
-        collectStrings(strings, buildId, nat, bp.className as string, 'blueprint', [
-          { field: 'name', loc: bp.name },
-          { field: 'description', loc: bp.description },
-        ]);
-      }
-      counts.blueprints = await sendEntity('codex_blueprints', mapBlueprints(list, tag));
-
-      const ingredientRows = collectIngredients(buildId, nat, list);
-      counts.blueprint_ingredients = await sendChunks(
-        'codex_blueprint_ingredients',
-        ingredientRows,
-        CHUNK,
-        (slice) => post('ingredients', { build_id: buildId, rows: slice }),
-        { onFirstChunk: () => post('clear_ingredients', { build_id: buildId }).then(() => undefined) },
-      );
-    }
-
-    // 8. entity strings (deduped) + ports ----------------------------------
-    {
-      const deduped = dedupeStrings(strings);
-      counts.entity_strings = await sendChunks('codex_entity_strings', deduped, CHUNK, (slice) =>
-        post('strings', { rows: slice }),
-      );
-    }
-    {
-      counts.item_ports = await sendChunks(
-        'codex_item_ports',
-        ports,
-        CHUNK,
-        (slice) => post('ports', { build_id: buildId, rows: slice }),
-        { onFirstChunk: () => post('clear_ports', { build_id: buildId }).then(() => undefined) },
-      );
-    }
-
-    // 8b. silhouettes (ships + weapons/components/armor tile art) ----------
-    // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
-    // this build's existing rows before the first chunk (never on a mid-phase
-    // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
-    // upserts. Missing directory (an out_dir from before this phase existed,
-    // or a run where the silhouette build step did not execute) just sends
-    // nothing — never invents rows for entities without geometry.
-    {
-      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
-      const rows = mapSilhouettes(list, tag);
-      counts.silhouettes = await sendChunks(
-        'codex_silhouettes',
-        rows,
-        CHUNK,
-        (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
-        { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
-      );
-    }
-
-    // 9. full localization tables ------------------------------------------
+    // 2. full localization tables ------------------------------------------
+    // First, then ships → components → weapons → items: the same left-to-right
+    // order as the category bars (Texte · Schiffe · Komponenten · Waffen ·
+    // Gegenstände), so the upload fills them in reading order too. Independent
+    // of every later phase (own table, own rows), so moving it up is free.
     {
       const dir = join(outDir, 'localization');
       const localeRows: { build_id: string; lang: string; key: string; value: string }[] = [];
@@ -585,7 +462,142 @@ export async function uploadCatalog(
       );
     }
 
-    // 9b. preview images ----------------------------------------------------
+    // 3. manufacturers (always full) ---------------------------------------
+    {
+      const list = await readJsonDir(outDir, 'manufacturers');
+      for (const m of list) {
+        collectStrings(strings, buildId, nat, m.className as string, 'manufacturer', [
+          { field: 'name', loc: m.name },
+          { field: 'description', loc: m.description },
+        ]);
+      }
+      counts.manufacturers = await sendEntity('codex_manufacturers', mapManufacturers(list, tag));
+    }
+
+    // 4. ships (always full) -----------------------------------------------
+    {
+      const list = await readJsonDir(outDir, 'ships');
+      for (const s of list) {
+        collectStrings(strings, buildId, nat, s.className as string, 'ship', [
+          { field: 'name', loc: s.name },
+          { field: 'description', loc: s.description },
+          { field: 'vehicleName', loc: (s as { vehicleName?: unknown }).vehicleName },
+        ]);
+        collectPorts(ports, buildId, nat, s.className as string, 'ship', (s as { itemPorts?: unknown }).itemPorts);
+      }
+      counts.ships = await sendEntity('codex_ships', mapShips(list, tag));
+    }
+
+    // 5. components --------------------------------------------------------
+    // Their strings/ports are held back and appended after the weapons' below:
+    // the entity-strings and item-ports phases resume by row offset, so those
+    // arrays must keep the ship → weapon → component order older app versions
+    // wrote their cursors against, even though components now upload first.
+    const componentStrings: StringRow[] = [];
+    const componentPorts: PortRow[] = [];
+    {
+      const list = await readJsonDir(outDir, 'components');
+      for (const c of list) {
+        collectStrings(componentStrings, buildId, nat, c.className as string, 'component', [
+          { field: 'name', loc: c.name },
+          { field: 'description', loc: c.description },
+        ]);
+        collectPorts(componentPorts, buildId, nat, c.className as string, 'component', (c as { itemPorts?: unknown }).itemPorts);
+      }
+      counts.components = await sendEntity('codex_components', mapComponents(list, tag));
+    }
+
+    // 6. weapons -----------------------------------------------------------
+    {
+      const list = await readJsonDir(outDir, 'weapons');
+      for (const w of list) {
+        collectStrings(strings, buildId, nat, w.className as string, 'weapon', [
+          { field: 'name', loc: w.name },
+          { field: 'description', loc: w.description },
+        ]);
+        collectPorts(ports, buildId, nat, w.className as string, 'weapon', (w as { itemPorts?: unknown }).itemPorts);
+      }
+      counts.weapons = await sendEntity('codex_weapons', mapWeapons(list, tag));
+    }
+    for (const row of componentStrings) strings.push(row);
+    for (const row of componentPorts) ports.push(row);
+
+    // 7. ammunition (same "Waffen" bar as the guns) -------------------------
+    {
+      const list = await readJsonDir(outDir, 'ammunition');
+      counts.ammunition = await sendEntity('codex_ammunition', mapAmmunition(list, tag));
+    }
+
+    // 8. items -------------------------------------------------------------
+    {
+      const list = await readJsonDir(outDir, 'items');
+      for (const it of list) {
+        collectStrings(strings, buildId, nat, it.className as string, 'item', [
+          { field: 'name', loc: it.name },
+          { field: 'description', loc: it.description },
+        ]);
+      }
+      counts.items = await sendEntity('codex_items', mapItems(list, tag));
+    }
+
+    // 9. blueprints + ingredients -----------------------------------------
+    {
+      const list = await readJsonDir(outDir, 'blueprints');
+      for (const bp of list) {
+        collectStrings(strings, buildId, nat, bp.className as string, 'blueprint', [
+          { field: 'name', loc: bp.name },
+          { field: 'description', loc: bp.description },
+        ]);
+      }
+      counts.blueprints = await sendEntity('codex_blueprints', mapBlueprints(list, tag));
+
+      const ingredientRows = collectIngredients(buildId, nat, list);
+      counts.blueprint_ingredients = await sendChunks(
+        'codex_blueprint_ingredients',
+        ingredientRows,
+        CHUNK,
+        (slice) => post('ingredients', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_ingredients', { build_id: buildId }).then(() => undefined) },
+      );
+    }
+
+    // 10. entity strings (deduped) + ports ----------------------------------
+    {
+      const deduped = dedupeStrings(strings);
+      counts.entity_strings = await sendChunks('codex_entity_strings', deduped, CHUNK, (slice) =>
+        post('strings', { rows: slice }),
+      );
+    }
+    {
+      counts.item_ports = await sendChunks(
+        'codex_item_ports',
+        ports,
+        CHUNK,
+        (slice) => post('ports', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_ports', { build_id: buildId }).then(() => undefined) },
+      );
+    }
+
+    // 10b. silhouettes (ships + weapons/components/armor tile art) ----------
+    // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
+    // this build's existing rows before the first chunk (never on a mid-phase
+    // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
+    // upserts. Missing directory (an out_dir from before this phase existed,
+    // or a run where the silhouette build step did not execute) just sends
+    // nothing — never invents rows for entities without geometry.
+    {
+      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
+      const rows = mapSilhouettes(list, tag);
+      counts.silhouettes = await sendChunks(
+        'codex_silhouettes',
+        rows,
+        CHUNK,
+        (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
+        { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
+      );
+    }
+
+    // 11. preview images ----------------------------------------------------
     {
       const dir = join(outDir, 'previews');
       if (existsSync(dir)) {
@@ -604,7 +616,7 @@ export async function uploadCatalog(
       }
     }
 
-    // 9c. keybindings (default action profile) ------------------------------
+    // 11b. keybindings (default action profile) ------------------------------
     {
       const file = join(outDir, 'keybinds', 'keybinds.json');
       if (existsSync(file)) {
@@ -621,7 +633,7 @@ export async function uploadCatalog(
       }
     }
 
-    // 10. finalize (flip is_current) ---------------------------------------
+    // 12. finalize (flip is_current) ---------------------------------------
     // Hardening: never promote an empty/partial build to live. If the extract
     // yielded no ships AND no manufacturers, the out_dir was corrupt or its
     // layout changed — leave the build row written but is_current untouched so
