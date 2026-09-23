@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.95.0] - 2026-09-24
+
+### Changed
+
+- **Angular 22 und TypeScript 6.** Framework, CLI, CDK und Material stehen auf
+  22.2, TypeScript auf 6.0. Die Migrationen von `ng update` sind übernommen:
+  Test-Stubs mit explizitem Change-Detection-Modus, `withXhr()` in
+  HTTP-Tests und vier Template-Stellen, die das alte `null`-Verhalten von
+  `?.` behalten. Lokal braucht die CLI jetzt Node ≥ 24.15 (bzw. ≥ 22.22.3).
+  Das ungenutzte `lucide-angular` ist entfernt (#629).
+- **Abhängigkeiten aktualisiert (#630).** `@ngx-translate` 18, dafür ist die
+  App auf `TranslatePipe`, `provideTranslateService()`,
+  `getCurrentLang()` und `getFallbackLang()` umgestellt. Außerdem neue
+  Versionen von `@supabase/supabase-js`, `posthog-js`, `zone.js`,
+  `supabase` und `@types/node` 26. `three` bleibt auf 0.183, weil
+  `@google/model-viewer` nichts Neueres erlaubt; Dependabot ignoriert
+  three-Minors, bis sich das ändert. `jasmine-core` bleibt auf 6.3, weil 7.x
+  unter Karma 6.4 keinen Test startet.
+- **Data Uploader 0.37.1 (#628).** Electron 44.4, Vitest 5.0.1,
+  `@types/node` 26.6.
+
 ## [0.94.0] - 2026-09-23
 
 ### Changed
