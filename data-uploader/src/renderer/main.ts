@@ -27,7 +27,13 @@ import * as SetupStep from './steps/setup.js';
 import * as DoneStep from './steps/done.js';
 import { throttleChipHtml, wireThrottleChip, toggleThrottlePopover } from './throttle-chip.js';
 import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
-import { updateCategoryBars, categoryBarsHtml, resetCategoryBars, markCategoriesComplete } from './steps/category-bars.js';
+import {
+  updateCategoryBars,
+  categoryBarsHtml,
+  resetCategoryBars,
+  markCategoriesComplete,
+  uploadExpectedFromCounts,
+} from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -175,8 +181,9 @@ interface ExtractResultPayload {
 }
 
 // Logical display order for entity counters (run view + upload summary).
-// Reference data first (strings, manufacturers), then the ship → component →
-// weapon → ammunition → blueprint chain, with the records_total meta count last.
+// Reference data first (strings, manufacturers), then ships → components →
+// weapons (+ ammunition) → items — the category bars' left-to-right order —
+// then blueprints, with the records_total meta count last.
 // Keys not listed fall to the end alphabetically, so a future extractor counter
 // still shows up (just unsorted) instead of silently vanishing.
 const COUNTER_ORDER = [
@@ -186,9 +193,9 @@ const COUNTER_ORDER = [
   'vehicles',
   'skins',
   'components',
-  'items',
   'weapons',
   'ammunition',
+  'items',
   'blueprints',
   'records_total',
 ] as const;
@@ -1401,6 +1408,11 @@ async function runRealExtract(): Promise<void> {
   const unsubscribe = window.sc.extract.onEvent((ev) => {
     currentExtractJobId = ev.jobId; // stable for the run; lets "abort" cancel it
     switch (ev.type) {
+      case 'pulse':
+        // The sidecar's CPU heartbeat — keeps the bar's activity animation
+        // honest through stretches where no counter moves.
+        progress.pulse(ev.busy ?? 0);
+        return;
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
         const si = RUN_STEP_INDEX[ev.phase ?? ''];
@@ -1583,6 +1595,7 @@ function renderAuthUpload(): string {
           <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
         </div>
         ${progressCardHtml('upload-progress', uploadSteps())}
+        ${categoryBarsHtml()}
         <div id="auth-status" class="upload-status" hidden></div>
         <div id="upload-result" style="margin-top: 14px;"></div>
       </section>
@@ -1620,6 +1633,7 @@ function wireAuthUpload(): void {
     labels: progressLabels(),
     onOverallPct: noteOverallPct,
   });
+  resetUploadCategories();
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
@@ -1929,7 +1943,14 @@ async function doStartUpload(): Promise<void> {
         return;
       }
     }
-    await doUploadAfterAuth();
+    // Animate the bar for as long as upload work is in flight — not while the
+    // sign-in above waits on the operator's browser.
+    const release = uploadProgress?.hold();
+    try {
+      await doUploadAfterAuth();
+    } finally {
+      release?.();
+    }
   } finally {
     // Idempotent. doUploadAfterAuth has exits (paused mid-stage, a rejected
     // IPC call) that never reach its own stop(), which left the 500 ms meta
@@ -2227,6 +2248,17 @@ function paintCatalogFailure(): void {
   );
 }
 
+// Rows sent / planned per catalog phase — the Upload card's category bars.
+const uploadCounts: Record<string, number> = {};
+let uploadExpected: Record<string, number> = {};
+
+function resetUploadCategories(): void {
+  for (const k of Object.keys(uploadCounts)) delete uploadCounts[k];
+  uploadExpected = uploadExpectedFromCounts(state.lastResult?.entity_counts ?? {});
+  resetCategoryBars();
+  updateCategoryBars(uploadCounts, uploadExpected, 'upload');
+}
+
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
 // any failure is surfaced as a warning but never blocks the confirmed upload.
 // `progress` is optional so this stays callable without a mounted view (tests).
@@ -2250,6 +2282,9 @@ async function promoteToCodex(
       typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number'
         ? t('catalog.step', { current: String(ev.phaseIndex), total: String(ev.phaseTotal) })
         : undefined;
+    uploadCounts[ev.phase] = ev.current;
+    if (ev.total > 0) uploadExpected[ev.phase] = ev.total;
+    updateCategoryBars(uploadCounts, uploadExpected, 'upload');
     progress?.update({
       phaseLabel: label,
       stageLabel: stageLbl,
@@ -2265,6 +2300,7 @@ async function promoteToCodex(
     if (res.ok) {
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
+      markCategoriesComplete();
       setAuthStatus(
         `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
         'ok',

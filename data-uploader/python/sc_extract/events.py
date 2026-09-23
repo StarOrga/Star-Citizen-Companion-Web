@@ -5,7 +5,9 @@ One JSON line per event. flush after each line so Electron sees them in real tim
 
 import json
 import sys
-from typing import Any, Dict, Literal, Optional
+import threading
+import time
+from typing import Any, Callable, Dict, Literal, Optional
 
 # The host (Electron data-uploader) launches every sidecar entrypoint with `-E`,
 # which makes Python IGNORE PYTHONUTF8 / PYTHONIOENCODING — so on Windows the
@@ -25,7 +27,7 @@ for _std in ("stdout", "stderr"):
     except Exception:  # noqa: BLE001 — best-effort; pytest-captured / non-reconfigurable streams no-op
         pass
 
-EventType = Literal["phase", "progress", "file", "count", "log", "warning", "done", "error"]
+EventType = Literal["phase", "progress", "file", "count", "log", "warning", "done", "error", "pulse"]
 LogLevel = Literal["info", "warn", "error"]
 Phase = Literal["discover", "plan", "extract", "validate", "bundle"]
 
@@ -44,6 +46,10 @@ Phase = Literal["discover", "plan", "extract", "validate", "bundle"]
 # to the parent, and the parent — the only process that ever calls
 # `_write_stdout` — re-emits it. `set_event_sink` is what makes that switch.
 _sink: Optional[Any] = None
+# The heartbeat thread (see ``start_heartbeat``) writes from a second thread of
+# the SAME process, so the one stdout path is serialised — two threads must not
+# interleave half-lines any more than two processes may.
+_stdout_lock = threading.Lock()
 
 
 def _write_stdout(event: Dict[str, Any]) -> None:
@@ -56,6 +62,11 @@ def _write_stdout(event: Dict[str, Any]) -> None:
     straight to the binary buffer, so the load-bearing 'done'/'error' events
     ALWAYS reach the Electron bridge instead of crashing the run.
     """
+    with _stdout_lock:
+        _write_stdout_locked(event)
+
+
+def _write_stdout_locked(event: Dict[str, Any]) -> None:
     try:
         sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
         sys.stdout.flush()
@@ -220,3 +231,31 @@ def done(pct: int = 100, result: Optional[Dict[str, Any]] = None) -> None:
 
 def error(message: str, **extra: Any) -> None:
     emit_event("error", message=message, **extra)
+
+
+def start_heartbeat(interval: float = 1.0) -> Callable[[], None]:
+    """Emit a ``pulse`` event every ``interval`` seconds with this process's
+    CPU load since the last one (``busy``: CPU seconds per wall second, so a
+    fully busy single thread reads ~1.0).
+
+    The host animates its progress bar only while pulses report real load, so
+    the animation means "the extractor is working right now" even through long
+    stretches where no counter moves — and stops when the process is idle,
+    suspended or hung. Parent process only; a daemon thread, so it never keeps
+    the process alive. Returns a stop function.
+    """
+    stop = threading.Event()
+
+    def _run() -> None:
+        last_wall = time.monotonic()
+        last_cpu = time.process_time()
+        while not stop.wait(interval):
+            wall = time.monotonic()
+            cpu = time.process_time()
+            dt = wall - last_wall
+            busy = (cpu - last_cpu) / dt if dt > 0 else 0.0
+            last_wall, last_cpu = wall, cpu
+            emit_event("pulse", busy=round(busy, 2))
+
+    threading.Thread(target=_run, name="sc-heartbeat", daemon=True).start()
+    return stop.set

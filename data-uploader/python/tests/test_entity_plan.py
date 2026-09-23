@@ -76,3 +76,36 @@ def test_expected_rides_on_count_event(capsys: pytest.CaptureFixture[str], monke
     assert counts[0] == {"key": "ships", "value": 12}
     assert counts[1] == {"key": "ships", "value": 12, "expected": 340}
     assert len(counts) == 2
+
+
+def test_category_order_groups_catalogs_left_to_right() -> None:
+    # Display order ships → components → weapons → items; stable inside a
+    # catalog; unplaced records (None) last.
+    from sc_extract.dataforge_extract import _category_order
+
+    kinds = ["items", None, "weapons", "ships", "components", "items", "ships"]
+    order = _category_order(kinds)
+    assert [kinds[i] for i in order] == [
+        "ships", "ships", "components", "weapons", "items", "items", None,
+    ]
+    assert order[:2] == [3, 6]  # DataCore order kept within a catalog
+    assert order[4:6] == [0, 5]
+
+
+def test_heartbeat_reports_cpu_load(capsys: pytest.CaptureFixture[str], monkeypatch) -> None:
+    import time
+
+    monkeypatch.setattr(events, "_sink", None)
+    stop = events.start_heartbeat(interval=0.05)
+    deadline = time.monotonic() + 0.3
+    while time.monotonic() < deadline:
+        sum(range(10_000))  # keep this process busy
+    stop()
+    time.sleep(0.1)
+    pulses = [
+        json.loads(l) for l in capsys.readouterr().out.splitlines()
+        if l.strip() and json.loads(l).get("type") == "pulse"
+    ]
+    assert pulses, "heartbeat emitted nothing"
+    assert all(isinstance(p["busy"], (int, float)) for p in pulses)
+    assert max(p["busy"] for p in pulses) > 0.1

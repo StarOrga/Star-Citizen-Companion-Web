@@ -9,16 +9,17 @@
  * longer?" — with:
  *
  *  - a phase/stage head + a step-chip journey (which of the known stages)
- *  - a bar that is determinate (a subtle shimmer keeps it alive even while
- *    the width holds for minutes) or indeterminate (sliding pulse)
- *  - a detail line with concrete current / total
- *  - a **meta line** that shows live throughput + ETA when the goal is known
- *    ("~318/s · Rest 0:54"), and otherwise a stall timer that names how long
- *    the current step has been running ("arbeitet noch · 42s") plus an
- *    optional contextual hint for known-slow opaque steps
+ *  - a tall bar, determinate or indeterminate (sliding pulse), that carries
+ *    the two clocks inside it: elapsed time on the filled part (left), the
+ *    remaining time on the empty track (right)
+ *  - an **activity animation** on the fill — current arcs that surge towards
+ *    the head — that runs ONLY while real work is observed: a counter moved,
+ *    the worker reported CPU load (`pulse`), or the caller holds an in-flight
+ *    operation (`hold`). A stalled or idle run keeps a still bar.
+ *  - a detail line with concrete current / total / % and live throughput
+ *  - a meta line for the contextual hint of a known-slow opaque step and the
+ *    stall timer ("arbeitet noch · 42s")
  *  - live sub-count chips that flash when they tick
- *  - a heartbeat dot + elapsed clock that keep moving no matter what, so a
- *    300s opaque stretch never reads as "frozen"
  *
  * `prefers-reduced-motion: reduce` is handled globally in styles.css (kills
  * all animation/transition durations), so nothing extra is needed here.
@@ -48,6 +49,12 @@ function fmtSince(ms: number): string {
 const STALL_MS = 3500;
 // Rolling window over which throughput is averaged (smooths out bursty events).
 const RATE_WINDOW_MS = 6000;
+// How long one observation of real work keeps the bar animated.
+const LIVE_MS = 2500;
+// CPU seconds per wall second below which a worker pulse counts as idle.
+const BUSY_MIN = 0.05;
+// Current arcs drawn on the fill — each surges on its own clock.
+const ARC_COUNT = 2;
 
 export interface ProgressStep {
   key: string;
@@ -88,6 +95,17 @@ export interface ProgressController {
   setStep(idx: number): void;
   /** Milliseconds elapsed since the last `start()`. */
   elapsedMs(): number;
+  /**
+   * A worker reported its load (CPU seconds per wall second). Anything above
+   * idle keeps the activity animation running for a moment.
+   */
+  pulse(busy?: number): void;
+  /**
+   * Work is in flight that emits no events of its own (a network request, a
+   * sidecar without a heartbeat): the bar stays animated until the returned
+   * release is called. Releasing twice is harmless.
+   */
+  hold(): () => void;
 }
 
 /** Localized labels for the meta line (defaults are English). */
@@ -119,18 +137,51 @@ export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
     <div class="sc-progress" id="${id}">
       <div class="sc-progress-head">
         <span class="sc-progress-phase" id="${id}-phase">…</span>
-        <span class="sc-progress-heartbeat" id="${id}-heartbeat" title="still working">
-          <span class="sc-progress-dot"></span>
-          <span class="run-elapsed" id="${id}-elapsed">0:00</span>
-        </span>
       </div>
       ${stepsHtml}
-      <div class="progress-bar" id="${id}-bar-wrap"><span id="${id}-bar" style="width:0%"></span></div>
-      <div class="progress-detail" id="${id}-detail"></div>
+      <div class="progress-bar sc-progress-bar" id="${id}-bar-wrap">
+        <span class="sc-progress-fill" id="${id}-bar" style="width:0%">${arcsSvg()}</span>
+        <div class="sc-progress-clocks" aria-hidden="true">
+          <span class="sc-progress-clock" data-clock="elapsed">0:00</span>
+          <span class="sc-progress-clock" data-clock="eta"></span>
+        </div>
+        <div class="sc-progress-clocks sc-progress-clocks--on-fill">
+          <span class="sc-progress-clock" data-clock="elapsed" id="${id}-elapsed">0:00</span>
+          <span class="sc-progress-clock" data-clock="eta" id="${id}-eta"></span>
+        </div>
+      </div>
+      <div class="progress-detail"><span id="${id}-detail"></span><span class="sc-progress-rate" id="${id}-rate"></span></div>
       <div class="sc-progress-meta" id="${id}-meta"></div>
       <div class="counters" id="${id}-counters"></div>
     </div>
   `;
+}
+
+/**
+ * A jagged "current arc" across the fill in a 100×20 box (stretched to the
+ * fill; strokes stay hairline via non-scaling-stroke). Random every call, so
+ * each surge draws a fresh bolt.
+ */
+function arcPath(): string {
+  let x = 0;
+  let d = `M0 ${(10 + (Math.random() - 0.5) * 6).toFixed(1)}`;
+  while (x < 100) {
+    x = Math.min(100, x + 3 + Math.random() * 6);
+    d += ` L${x.toFixed(1)} ${(10 + (Math.random() - 0.5) * 14).toFixed(1)}`;
+  }
+  return d;
+}
+
+// One <svg> per arc: the travelling mask sits on the outer svg box, where CSS
+// masking is reliable, rather than on the path inside it.
+function arcsSvg(): string {
+  const arcs = Array.from(
+    { length: ARC_COUNT },
+    (_, i) =>
+      `<svg class="sc-progress-arc sc-progress-arc--${i}" viewBox="0 0 100 20" preserveAspectRatio="none">` +
+      `<path d="${arcPath()}" vector-effect="non-scaling-stroke"/></svg>`,
+  ).join('');
+  return `<span class="sc-progress-arcs" aria-hidden="true">${arcs}</span>`;
 }
 
 export interface MountProgressOptions {
@@ -155,7 +206,18 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   const detailEl = byId('-detail');
   const metaEl = byId('-meta');
   const countersEl = byId('-counters');
-  const elapsedEl = byId('-elapsed');
+  const rateEl = byId('-rate');
+  // Both copies of each clock: the dark one clipped to the fill, the muted one
+  // on the empty track — together they read as one label that changes colour
+  // exactly where the fill ends.
+  const clockEls = (kind: string): HTMLElement[] =>
+    barWrap ? Array.from(barWrap.querySelectorAll<HTMLElement>(`[data-clock="${kind}"]`)) : [];
+  const elapsedEls = clockEls('elapsed');
+  const etaEls = clockEls('eta');
+  // Re-roll each arc's shape whenever its surge restarts.
+  barWrap?.querySelectorAll<SVGSVGElement>('.sc-progress-arc').forEach((arc) => {
+    arc.addEventListener('animationiteration', () => arc.querySelector('path')?.setAttribute('d', arcPath()));
+  });
   const labelFn = opts.counterLabel ?? ((k: string) => k);
   const steps = opts.steps ?? [];
   const stepEls = steps.map((s) => byId(`-step-${s.key}`));
@@ -196,6 +258,9 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   let prevCounters: Record<string, number> = {};
   const samples: { t: number; current: number }[] = [];
   let timer: number | null = null;
+  let running = false;
+  let lastActiveAt = 0;
+  let holds = 0;
 
   // Throughput over the rolling window → items/sec + ETA to the current goal.
   const rateInfo = (): { rate: number; etaSec: number | null } | null => {
@@ -231,6 +296,12 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       phaseEl.hidden = redundant;
     }
     if (typeof vm.overallPct === 'number' && bar) bar.style.width = `${vm.overallPct}%`;
+    // The dark clock copy is clipped to exactly the fill; a sliding
+    // indeterminate glint has no fill edge, so the clocks stay muted then.
+    barWrap?.style.setProperty(
+      '--sc-fill',
+      !vm.indeterminate && typeof vm.overallPct === 'number' ? `${vm.overallPct}%` : '0%',
+    );
 
     const hasGoal = typeof vm.total === 'number' && vm.total > 0 && typeof vm.current === 'number';
     let txt = vm.stageLabel ?? '';
@@ -273,20 +344,28 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   // The one part that must paint on its own clock (independent of events), so a
   // long opaque step still visibly counts up instead of freezing.
   const renderMeta = (): void => {
-    if (elapsedEl) elapsedEl.textContent = fmtElapsed(Date.now() - startedAt);
-    if (!metaEl) return;
-    const since = Date.now() - lastChangeAt;
+    const now = Date.now();
+    const elapsed = fmtElapsed(now - startedAt);
+    for (const el of elapsedEls) el.textContent = elapsed;
+    const since = now - lastChangeAt;
     const stalled = since > STALL_MS;
     const ri = vm.indeterminate ? null : rateInfo();
 
+    const eta = ri?.etaSec != null ? `${labels.eta} ${fmtElapsed(ri.etaSec * 1000)}` : '';
+    for (const el of etaEls) el.textContent = eta;
+    if (rateEl) {
+      rateEl.textContent = ri
+        ? `~${ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1)}${labels.perSec}`
+        : '';
+    }
+    // Animate only while work is observed — see pulse()/hold().
+    barWrap?.classList.toggle('live', running && (holds > 0 || now - lastActiveAt < LIVE_MS));
+
+    if (!metaEl) return;
     let txt = '';
     if (vm.hint && (vm.indeterminate || stalled)) {
       txt = vm.hint + (stalled ? ` · ${fmtSince(since)}` : '');
-    } else if (ri) {
-      const r = ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1);
-      txt = `~${r}${labels.perSec}`;
-      if (ri.etaSec != null) txt += ` · ${labels.eta} ${fmtElapsed(ri.etaSec * 1000)}`;
-    } else if (stalled) {
+    } else if (stalled && !ri) {
       txt = `${labels.still} · ${fmtSince(since)}`;
     }
     metaEl.textContent = txt;
@@ -297,8 +376,11 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
 
   return {
     start(): void {
+      running = true;
+      holds = 0;
       startedAt = Date.now();
       lastChangeAt = Date.now();
+      lastActiveAt = 0;
       samples.length = 0;
       prevSig = '';
       renderMeta();
@@ -306,6 +388,7 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       timer = window.setInterval(renderMeta, 500);
     },
     stop(): void {
+      running = false;
       if (timer !== null) {
         window.clearInterval(timer);
         timer = null;
@@ -314,6 +397,21 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     },
     elapsedMs(): number {
       return Date.now() - startedAt;
+    },
+    pulse(busy?: number): void {
+      if (busy !== undefined && !(busy >= BUSY_MIN)) return;
+      lastActiveAt = Date.now();
+    },
+    hold(): () => void {
+      holds += 1;
+      renderMeta();
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        holds = Math.max(0, holds - 1);
+        lastActiveAt = Date.now(); // let the last surge finish instead of cutting it
+      };
     },
     setStep(idx: number): void {
       stepEls.forEach((el, i) => {
@@ -359,6 +457,7 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       const sig = `${vm.phaseLabel}|${vm.stageLabel}|${vm.current}|${vm.detail}|${countersSum}`;
       if (sig !== prevSig) {
         lastChangeAt = Date.now();
+        lastActiveAt = lastChangeAt; // a number moved — that is work, too
         prevSig = sig;
       }
 

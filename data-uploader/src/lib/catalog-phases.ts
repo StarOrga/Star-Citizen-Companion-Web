@@ -16,18 +16,20 @@
 
 export const CATALOG_PHASE_ORDER = [
   'init',
+  // Texte first, then ships → components → weapons (+ ammunition) → items: the
+  // left-to-right order of the uploader's category bars.
+  'codex_locale_strings',
   'codex_manufacturers',
   'codex_ships',
-  'codex_weapons',
   'codex_components',
-  'codex_items',
+  'codex_weapons',
   'codex_ammunition',
+  'codex_items',
   'codex_blueprints',
   'codex_blueprint_ingredients',
   'codex_entity_strings',
   'codex_item_ports',
   'codex_silhouettes',
-  'codex_locale_strings',
   'codex_previews',
   'codex_keybinds',
   'finalize',

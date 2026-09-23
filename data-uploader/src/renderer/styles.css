@@ -683,8 +683,9 @@ kbd.sc-kbd {
    =================================================================== */
 
 /* Determinate = solid accent on a recessed track; the width IS the signal.
-   Liveness comes from the heartbeat dot + elapsed clock in the head, not from
-   a decorative shimmer. Indeterminate = a sliding glint, no fake percentage. */
+   The progress card's own bar (.sc-progress-bar, below) adds its clocks and
+   the work-gated activity animation. Indeterminate = a sliding glint, no fake
+   percentage. */
 .progress-bar {
   position: relative;
   height: 6px;
@@ -723,36 +724,111 @@ kbd.sc-kbd {
   letter-spacing: 0.04em;
 }
 .sc-progress-phase[hidden] { display: none; }
-/* With the phase head gone the heartbeat rides on the chip row instead. */
-.sc-progress-head:has(.sc-progress-phase[hidden]) { position: absolute; right: 0; top: 11px; }
-.sc-progress { position: relative; }
-.sc-progress-heartbeat {
-  display: inline-flex;
+.sc-progress-head:has(.sc-progress-phase[hidden]) { display: none; }
+
+/* The main bar: tall enough to carry its two clocks — elapsed on the fill
+   (dark on light), remaining on the empty track (muted on dark). Both clocks
+   exist twice; the dark copy is clipped to the fill width (--sc-fill), so a
+   label that straddles the edge changes colour exactly there. */
+.sc-progress .progress-bar.sc-progress-bar {
+  height: 22px;
+  border-radius: 4px;
+  margin-top: 12px;
+}
+.sc-progress-bar > .sc-progress-fill {
+  overflow: hidden;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 78%, var(--sc-bg-0)), var(--sc-accent) 70%, var(--accent-strong));
+}
+.sc-progress-clocks {
+  position: absolute;
+  inset: 0;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-/* The one clock-driven liveness signal: pulses on its own clock so opaque
-   stages (archive open, DataCore decompress, multi-GB PUTs) never read as
-   frozen. */
-.sc-progress-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sc-accent);
-  box-shadow: 0 0 6px var(--sc-accent);
-  animation: sc-heartbeat 1.4s ease-in-out infinite;
-}
-@keyframes sc-heartbeat {
-  0%, 100% { opacity: 0.4; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1.3); }
-}
-.run-elapsed {
+  justify-content: space-between;
+  padding: 0 9px;
   font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
-  color: var(--sc-fg-1);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  color: var(--sc-fg-2);
+  pointer-events: none;
 }
+.sc-progress-clocks--on-fill {
+  color: #062234;
+  font-weight: 600;
+  clip-path: inset(0 calc(100% - var(--sc-fill, 0%)) 0 0);
+  transition: clip-path 0.25s ease;
+}
+
+/* Activity: current arcs surge from the left end of the fill to its head,
+   re-rolled each pass (progress.ts), plus a crackling head. Runs only while
+   the bar carries .live — i.e. while progress.ts observes real work (counter
+   moved, worker CPU pulse, in-flight hold). Idle or stalled = a still bar. */
+.sc-progress-arcs {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.sc-progress-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* White core with a deep-blue halo: reads on the light fill, not just on dark. */
+  filter: drop-shadow(0 0 1px #ffffff) drop-shadow(0 0 3px #0b5f84) drop-shadow(0 0 6px rgba(var(--accent-primary-rgb), 0.9));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 70%, transparent);
+  -webkit-mask-size: 40% 100%;
+  mask-size: 40% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: sc-arc-surge 1.5s cubic-bezier(0.55, 0, 0.25, 1) infinite paused;
+}
+.sc-progress-arc path {
+  fill: none;
+  stroke: #eafaff;
+  stroke-width: 1.8px;
+  stroke-linejoin: round;
+}
+.sc-progress-arc--1 path { stroke-width: 1.2px; }
+.sc-progress-arc--1 {
+  opacity: 0.7;
+  animation-duration: 2.3s;
+  animation-delay: -0.9s;
+}
+@keyframes sc-arc-surge {
+  from { -webkit-mask-position: -70% 0; mask-position: -70% 0; }
+  to { -webkit-mask-position: 170% 0; mask-position: 170% 0; }
+}
+.sc-progress-bar > .sc-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 3px;
+  background: #ffffff;
+  box-shadow: 0 0 6px 2px var(--accent-strong);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.sc-progress-bar.live > .sc-progress-fill .sc-progress-arcs { opacity: 1; }
+.sc-progress-bar.live .sc-progress-arc { animation-play-state: running; }
+.sc-progress-bar.live > .sc-progress-fill::after {
+  animation: sc-head-crackle 1.1s steps(1, end) infinite;
+}
+@keyframes sc-head-crackle {
+  0% { opacity: 0.9; }
+  12% { opacity: 0.35; }
+  20% { opacity: 1; }
+  47% { opacity: 0.55; }
+  55% { opacity: 1; }
+  78% { opacity: 0.4; }
+  86% { opacity: 0.95; }
+}
+.sc-progress-bar.indeterminate .sc-progress-arcs,
+.sc-progress-bar.indeterminate > .sc-progress-fill::after { display: none; }
 .sc-progress-steps {
   display: flex;
   align-items: center;
@@ -790,13 +866,23 @@ kbd.sc-kbd {
 .sc-progress .progress-bar { margin-top: 10px; }
 
 .progress-detail {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   min-height: 1.1em;
   font-size: var(--fs-md);
   color: var(--sc-fg-1);
   margin: 2px 0 4px;
   font-variant-numeric: tabular-nums;
 }
-/* Meta line: throughput + ETA when the goal is known, else a stall timer. */
+/* Throughput rides after the percentage, quieter than the numbers it rates. */
+.sc-progress-rate {
+  font-family: var(--sc-font-mono);
+  font-size: var(--fs-sm);
+  color: var(--sc-fg-2);
+  white-space: nowrap;
+}
+/* Meta line: contextual hint for an opaque step, else a stall timer. */
 .sc-progress-meta {
   min-height: 1.05em;
   margin-top: 2px;

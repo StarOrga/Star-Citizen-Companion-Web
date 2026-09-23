@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -145,6 +146,23 @@ _PCT_ENTITIES = (15, 55)   # typed catalog projection (ships/weapons/…)
 # without walking the deep loadout/param graphs the projections need.
 _CLASSIFY_DEPTH = 4
 _PCT_RECORDS = (55, 84)    # exhaustive generic dump
+# Seconds between live count/progress events in the entity loop.
+_COUNT_EMIT_S = 0.25
+# Order the typed catalogs are projected in — the same left-to-right order as
+# the uploader's category bars (Texte, which runs first, sits left of them).
+_ENTITY_ORDER = ("ships", "components", "weapons", "items")
+
+
+def _category_order(kinds: List[Optional[str]]) -> List[int]:
+    """Indices into the entity list, grouped by catalog in ``_ENTITY_ORDER``.
+
+    Stable within a catalog (DataCore order is kept), and records the pre-pass
+    could not place (``None`` — non-catalog or unresolvable) go last, where the
+    loop skips them cheaply.
+    """
+    rank = {k: i for i, k in enumerate(_ENTITY_ORDER)}
+    last = len(_ENTITY_ORDER)
+    return sorted(range(len(kinds)), key=lambda i: rank.get(kinds[i], last))  # type: ignore[arg-type]
 
 
 def _mapped_pct(current: int, total: int, lo: int, hi: int) -> int:
@@ -430,6 +448,9 @@ class CodexExtractor:
         # components / armor items (every catalog entity with a mesh), since
         # the silhouette also becomes those kinds' tile-view image.
         self._silhouette_candidates: List[Dict[str, str]] = []
+        # Classification pre-pass verdict per EntityClassDefinition record (see
+        # plan_entity_totals); drives the category-ordered projection loop.
+        self._planned_kinds: List[Optional[str]] = []
 
     # ── public entry ─────────────────────────────────────────────────────────
     def run(self) -> Dict[str, int]:
@@ -992,6 +1013,12 @@ class CodexExtractor:
         total = len(ents)
         for key, n in self.plan_entity_totals(ents).items():
             self.on_expected(key, n)
+        # Walk the catalogs in the order the UI lays them out (ships → components
+        # → weapons → items), not in DataCore record order — so the category
+        # bars fill left to right instead of all creeping up at once.
+        if len(self._planned_kinds) == total:
+            ents = [ents[j] for j in _category_order(self._planned_kinds)]
+        last_emit = 0.0
         for i, r in enumerate(ents):
             # Filter dev/test scaffolding + NPC/derelict/world variants out of the
             # typed catalogs (ships/weapons/components/items) up front — same rule
@@ -1049,10 +1076,13 @@ class CodexExtractor:
             # entities with no AttachDef (rooms, AI templates, etc.) are still
             # captured by dump_all_records().
 
-            if i % 2000 == 0:
-                # Live counters (the grid) + a smooth "scanned i of total" line.
-                # The per-2000 'entities i/total' log line is dropped — the
-                # progress event now carries that, so the transcript stays clean.
+            now = time.monotonic()
+            if now - last_emit >= _COUNT_EMIT_S:
+                # Live counters (the category bars) + a smooth "scanned i of
+                # total" line. Time-based, not every N records: with the
+                # catalogs sorted, the 349 slow ships would otherwise sit at 0
+                # and then jump to full in one step.
+                last_emit = now
                 self.on_count("ships", n_ship)
                 self.on_count("weapons", n_wpn)
                 self.on_count("components", n_comp)
@@ -1089,6 +1119,9 @@ class CodexExtractor:
         """
         expected: Counter = Counter()
         total = len(ents)
+        # Per-record verdict, aligned with ``ents`` — lets the projection loop
+        # walk the catalogs in display order without classifying twice.
+        self._planned_kinds = [None] * total
         for i, r in enumerate(ents):
             if not _is_catalog_entity(_strip_type_prefix(r.name)):
                 continue
@@ -1100,6 +1133,7 @@ class CodexExtractor:
             kind = _classify_entity(_norm_path(r.filename), comps, _attach_def(comps))
             if kind:
                 expected[kind] += 1
+                self._planned_kinds[i] = kind
             if i % 2000 == 0:
                 self.on_progress("classify", current=i, total=total, pct=_PCT_ENTITIES[0])
         self.on_log("info", "planned catalog: " + " · ".join(

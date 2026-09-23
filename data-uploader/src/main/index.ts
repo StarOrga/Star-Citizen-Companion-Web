@@ -872,6 +872,13 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   hub.start('extract');
   const job = newActiveJob('extract', req.outDir);
   const handle = startExtraction(req, (ev: PythonExtractEvent) => {
+    // A heartbeat pulse only says "the process is alive", not "it progressed" —
+    // it must not pet the stall watchdog (a spinning hang would never trip it)
+    // nor flood the diagnostics. It goes straight to the renderer's bar.
+    if (ev.type === 'pulse') {
+      event.sender.send('sc:extract:event', { jobId, ...ev });
+      return;
+    }
     watchdog.pet(); // every event is a sign of life — reset the stall timer
     collectDiagnostic(job.diagnostics, ev, Date.now() - job.startedAt);
     // Mirror into main's hub so the tray shows extraction progress even while

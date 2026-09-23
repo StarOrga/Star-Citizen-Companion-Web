@@ -57,7 +57,7 @@ export interface ExtractRequest {
  *  Kept in lockstep with the existing ExtractorEvent in lib/extractor.ts so
  *  the renderer doesn't need a second adapter. */
 export interface PythonExtractEvent {
-  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error';
+  type: 'phase' | 'progress' | 'file' | 'count' | 'log' | 'warning' | 'done' | 'error' | 'pulse';
   phase?: 'discover' | 'plan' | 'extract' | 'validate' | 'bundle';
   pct?: number;
   // 'progress' event — live position within a phase ("how many of how many").
@@ -74,6 +74,9 @@ export interface PythonExtractEvent {
   counter?: { key: string; value: number; expected?: number };
   level?: 'info' | 'warn' | 'error';
   message?: string;
+  // 'pulse' event — the sidecar's CPU seconds per wall second since the last
+  // pulse (events.start_heartbeat). Drives the bar animation, never the watchdog.
+  busy?: number;
   // 'done' event includes a result payload
   result?: {
     channel: string;
