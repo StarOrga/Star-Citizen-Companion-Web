@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.96.1] - 2026-09-24
+
+### Changed
+
+- **Upload-Schritt im Data Uploader sieht aus wie der Auslesen-Schritt
+  (0.38.1).** Titel mit Ziel-Kapsel rechts, darunter Schritt-Chips, Balken,
+  Detailzeile und Kategorie-Balken. Pause und Fortsetzen stehen unter der
+  Karte. Die Detailzeile nennt, was gerade hochgeladen wird („Komponenten
+  hochladen — 1.560 / 2.177 (71 %)“), statt „Schritt 5 / 16 …
+  codex_components“. Der Anmelde-Hinweis verschwindet nach dem Start,
+  Erfolgsmeldungen sind eine ruhige ✓-Zeile, und der Vergleich mit dem
+  letzten Bundle ist eine einklappbare Zeile mit übersetzter Tabelle.
+- **Auslesen und Upload unterscheiden sich über ein Hintergrundmotiv.** In der
+  rechten oberen Ecke der Karte fließen beim Auslesen Datenzeilen nach unten
+  und steigen beim Upload Pfeile nach oben – nur solange gearbeitet wird.
+- **Die Prozentangabe hinter „x / y“ gehört jetzt zu genau diesem Bruch**,
+  nicht mehr zum Gesamtbalken.
+
 ## [0.96.0] - 2026-09-24
 
 ### Changed
