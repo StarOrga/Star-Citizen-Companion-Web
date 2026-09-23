@@ -202,7 +202,15 @@
       "pauseShort": "paused",
       "pausingShort": "Pausing…"
     },
-    "technicalDetails": "Technical details"
+    "technicalDetails": "Technical details",
+    "diff": {
+      "summary": "Changes since the previous bundle:",
+      "first": "First upload for this patch family — nothing to compare yet.",
+      "none": "no changes",
+      "colEntity": "Type",
+      "colPrev": "before",
+      "colNew": "now"
+    }
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",
@@ -287,6 +295,24 @@
       "resumeHint": "Nothing is lost — your progress is saved. “Resume upload” picks up exactly here.",
       "reextractHint": "Please run the extraction again.",
       "atPhase": "Stopped at: {{phase}}"
+    },
+    "phases": {
+      "init": "Creating build",
+      "codex_locale_strings": "Uploading texts",
+      "codex_manufacturers": "Uploading manufacturers",
+      "codex_ships": "Uploading ships",
+      "codex_components": "Uploading components",
+      "codex_weapons": "Uploading weapons",
+      "codex_ammunition": "Uploading ammunition",
+      "codex_items": "Uploading items",
+      "codex_blueprints": "Uploading blueprints",
+      "codex_blueprint_ingredients": "Uploading blueprint ingredients",
+      "codex_entity_strings": "Uploading names and descriptions",
+      "codex_item_ports": "Uploading hardpoints",
+      "codex_silhouettes": "Uploading silhouettes",
+      "codex_previews": "Uploading preview images",
+      "codex_keybinds": "Uploading keybindings",
+      "finalize": "Publishing the Codex"
     }
   },
   "skins": {
