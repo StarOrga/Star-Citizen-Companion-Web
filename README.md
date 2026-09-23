@@ -3,7 +3,7 @@
 **Version: 0.94.0**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
-> Built with Angular 21 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
+> Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
 
 [![Live](https://img.shields.io/badge/live-sc--companion.vercel.app-00d4ff)](https://sc-companion.vercel.app)
 [![Stack](https://img.shields.io/badge/stack-Angular%2021%20%C2%B7%20Supabase%20%C2%B7%20Vercel-00d4ff)](#)

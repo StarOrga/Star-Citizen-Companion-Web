@@ -11,7 +11,7 @@ a personal Hangar, and hosts companion tools like the Starscape App.
 
 - **Web app:** <https://sc-companion.vercel.app>
 - **Source:** [StarOrga/Star-Citizen-Companion-Web](https://github.com/StarOrga/Star-Citizen-Companion-Web)
-- **Stack:** Angular 21 PWA · Supabase (Auth, Postgres, Storage, Edge Functions) · Vercel
+- **Stack:** Angular 22 PWA · Supabase (Auth, Postgres, Storage, Edge Functions) · Vercel
 - **Licence:** MIT
 - **Ads / tracking:** none
 
