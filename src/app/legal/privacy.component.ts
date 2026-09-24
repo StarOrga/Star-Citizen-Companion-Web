@@ -26,11 +26,11 @@ import { TranslatePipe } from '@ngx-translate/core';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
+    <section class="page sc-card-page">
       <h1>{{ 'legal.privacy.title' | translate }}</h1>
       <p class="subtitle">{{ 'legal.privacy.updated' | translate }}</p>
 
-      <div class="sc-card summary">
+      <div class="sc-card summary wide">
         <h2>{{ 'legal.privacy.summary.title' | translate }}</h2>
         <ul class="list">
           @for (item of ['noAds', 'signIn', 'noTracking', 'minimal', 'euHosting']; track item) {
@@ -103,7 +103,8 @@ import { TranslatePipe } from '@ngx-translate/core';
     </section>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    /* Layout: the shared .sc-card-page (styles.scss) — full page frame, the
+       sections paired in two columns, the summary across both. */
     h1 { margin: 0; }
     .subtitle { color: var(--sc-fg-2); margin: -8px 0 0; font-size: 0.85rem; }
     h2 {

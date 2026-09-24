@@ -77,7 +77,9 @@ type LandingState = 'loading' | 'available' | 'unavailable';
   `,
   styles: [`
     :host { display: block; }
-    .page { display: flex; flex-direction: column; gap: 16px; max-width: 680px; margin: 0 auto; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own.
+       The slots tile across it (below) instead of running frame-wide. */
+    .page { display: flex; flex-direction: column; gap: 16px; }
     .eyebrow { margin: 0 0 4px; color: var(--sc-fg-2); font-family: var(--sc-font-display);
       font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.1em; text-transform: uppercase; }
     h1 { margin: 0; overflow-wrap: anywhere; }
@@ -88,7 +90,8 @@ type LandingState = 'loading' | 'available' | 'unavailable';
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); text-transform: none; letter-spacing: 0; }
     .byline { margin: 10px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; }
     .loadout-name { margin: 0 0 8px; font-weight: 600; }
-    .slot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .slot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
     .slot { padding: 10px 12px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .slot-item { font-size: 0.9rem; overflow-wrap: anywhere; }
     .state { color: var(--sc-fg-2); text-align: center; padding: 28px; }

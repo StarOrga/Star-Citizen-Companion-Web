@@ -94,10 +94,13 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
   `,
   styles: [
     `
-      .page { display: flex; flex-direction: column; gap: 16px; padding: 20px 16px 48px; max-width: 860px; margin: 0 auto; }
+      /* The full page frame (styles.scss, "PAGE FRAME") — no width or side/top
+         padding of its own; running text caps its own line length. */
+      .page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 48px; }
       .head h1 { margin: 0 0 4px; font-size: 1.25rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
-      .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0; line-height: 1.55; }
+      .hint { color: var(--sc-fg-2); font-size: 0.85rem; margin: 0; line-height: 1.55; max-width: var(--sc-measure); }
       .state { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+      .state p { max-width: var(--sc-measure); }
       .state.done strong { color: var(--sc-success); }
       .row { display: flex; gap: 10px; flex-wrap: wrap; }
       .meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.85rem; align-items: baseline; }

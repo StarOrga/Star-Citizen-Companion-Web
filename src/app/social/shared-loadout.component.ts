@@ -80,7 +80,10 @@ import { SharedLoadoutView, isValidShareToken, shareItems } from './loadout-shar
   `,
   styles: [`
     :host { display: block; }
-    .page { display: flex; flex-direction: column; gap: 16px; max-width: 680px; margin: 0 auto; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own.
+       The slots tile across it (below) instead of running as frame-wide rows
+       with the label at one end and the item at the other. */
+    .page { display: flex; flex-direction: column; gap: 16px; }
     .eyebrow {
       margin: 0 0 4px;
       color: var(--sc-fg-2);
@@ -103,7 +106,8 @@ import { SharedLoadoutView, isValidShareToken, shareItems } from './loadout-shar
     .byline { margin: 10px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; overflow-wrap: anywhere; }
     .dot { margin: 0 6px; }
 
-    .slot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .slot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
     .slot {
       display: flex;
       align-items: baseline;

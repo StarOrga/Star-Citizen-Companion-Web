@@ -479,8 +479,9 @@ const SEARCH_DEBOUNCE_MS = 250;
     :host { display: block; }
     .page { display: flex; flex-direction: column; gap: 20px; }
 
-    /* Signed-out teaser (#131) */
-    .teaser { display: flex; flex-direction: column; gap: 16px; max-width: 860px; }
+    /* Signed-out teaser (#131). Full page frame like the signed-in view
+       (styles.scss, "PAGE FRAME"): the benefit cards line up in one row. */
+    .teaser { display: flex; flex-direction: column; gap: 16px; }
     .teaser h1 { margin: 0; }
     .teaser .hint { color: var(--sc-fg-2); margin: -8px 0 0; max-width: 60ch; }
     .benefits { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px;

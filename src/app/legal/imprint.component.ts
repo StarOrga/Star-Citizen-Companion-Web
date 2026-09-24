@@ -15,7 +15,7 @@ import { TranslatePipe } from '@ngx-translate/core';
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
+    <section class="page sc-card-page">
       <h1>{{ 'legal.imprint.title' | translate }}</h1>
 
       <div class="sc-card">
@@ -56,7 +56,8 @@ import { TranslatePipe } from '@ngx-translate/core';
     </section>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    /* Layout: the shared .sc-card-page (styles.scss) — full page frame, the
+       four sections in two columns. */
     h1 { margin: 0; }
     h2 {
       margin: 0 0 10px;

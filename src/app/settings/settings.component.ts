@@ -798,9 +798,9 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
         z-index: 5;
         /* Runs edge to edge: a pinned bar that content slides past has to
            cover the full width, or the cards travel visibly up its flanks.
-           --sc-content-pad-x is the shell's page gutter (shell.component.ts). */
-        margin: 0 calc(-1 * var(--sc-content-pad-x, 16px)) 20px;
-        padding: 8px var(--sc-content-pad-x, 16px);
+           --sc-page-gutter is the page frame's side padding (styles.scss). */
+        margin: 0 calc(-1 * var(--sc-page-gutter)) 20px;
+        padding: 8px var(--sc-page-gutter);
         background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
         -webkit-backdrop-filter: blur(12px);
         backdrop-filter: blur(12px);

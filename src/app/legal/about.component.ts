@@ -16,11 +16,11 @@ import { TranslatePipe } from '@ngx-translate/core';
   imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
+    <section class="page sc-card-page">
       <h1>{{ 'legal.about.title' | translate }}</h1>
       <p class="subtitle">{{ 'legal.about.subtitle' | translate }}</p>
 
-      <div class="sc-card">
+      <div class="sc-card wide">
         <h2>{{ 'legal.about.what.title' | translate }}</h2>
         <p>{{ 'legal.about.what.p1' | translate }}</p>
         <p>{{ 'legal.about.what.p2' | translate }}</p>
@@ -71,7 +71,8 @@ import { TranslatePipe } from '@ngx-translate/core';
     </section>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 20px; max-width: 860px; }
+    /* Layout: the shared .sc-card-page (styles.scss) — full page frame, "what
+       is this" across both columns, the other four sections paired. */
     h1 { margin: 0; }
     .subtitle { color: var(--sc-fg-2); margin: -8px 0 0; }
     h2 {

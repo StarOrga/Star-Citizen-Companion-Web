@@ -48,7 +48,9 @@ import { AccountStatusService } from './account-status.service';
     }
   `,
   styles: [`
-    :host { display: block; }
+    /* Sits on the page content's edges (styles.scss, "PAGE FRAME"): the host
+       carries the frame's gutter, the notice the frame minus its gutters. */
+    :host { display: block; padding: 0 var(--sc-page-gutter); }
     .notice {
       display: flex;
       align-items: flex-start;
@@ -56,7 +58,7 @@ import { AccountStatusService } from './account-status.service';
       flex-wrap: wrap;
       margin: 0 auto;
       padding: 12px 16px;
-      max-width: 1280px;
+      max-width: calc(var(--sc-page-max) - 2 * var(--sc-page-gutter));
       border-radius: 4px;
       font-size: 0.9rem;
       line-height: 1.45;
@@ -80,7 +82,6 @@ import { AccountStatusService } from './account-status.service';
       .notice__ack { min-height: 48px; }
     }
     @media (max-width: 560px) {
-      .notice { margin: 0 16px; }
       .notice__ack { width: 100%; min-height: 48px; }
     }
   `],

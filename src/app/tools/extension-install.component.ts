@@ -32,12 +32,12 @@ const EXTENSION_ZIP_URL =
   imports: [TranslatePipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page">
+    <section class="page sc-card-page">
       <h1>{{ 'extension.install.title' | translate }}</h1>
       <p class="subtitle">{{ 'extension.install.subtitle' | translate }}</p>
 
       @if (installed()) {
-        <div class="sc-card ok">
+        <div class="sc-card ok wide">
           <strong>{{ 'extension.install.detected.title' | translate }}</strong>
           <p>{{ 'extension.install.detected.text' | translate }}</p>
           <a class="sc-btn" href="https://robertsspaceindustries.com/en/account/pledges"
@@ -116,10 +116,13 @@ const EXTENSION_ZIP_URL =
   `,
   styles: [
     `
-      .page { display: flex; flex-direction: column; gap: 16px; padding: 20px 16px 48px; max-width: 860px; margin: 0 auto; }
+      /* Layout: the shared .sc-card-page (styles.scss) — full page frame, the
+         four cards paired in two columns; title, subtitle, the "detected"
+         notice and the disclaimer keep the full row. */
+      .page { padding-bottom: 48px; }
       h1 { margin: 0; font-size: 1.35rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
       h2 { margin: 0 0 8px; font-size: 0.95rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
-      .subtitle { margin: 0; color: var(--sc-fg-2); font-size: 0.9rem; line-height: 1.6; }
+      .subtitle { margin: 0; color: var(--sc-fg-2); font-size: 0.9rem; line-height: 1.6; max-width: var(--sc-measure); }
       p { line-height: 1.6; font-size: 0.86rem; }
       .hint { color: var(--sc-fg-2); font-size: 0.8rem; }
       .ok { border-color: color-mix(in srgb, var(--sc-success) 45%, transparent); }
@@ -142,7 +145,7 @@ const EXTENSION_ZIP_URL =
       .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
       .browsers { margin-top: 10px; }
       .sc-btn-primary { background: var(--sc-accent); color: var(--sc-bg-0); border-color: var(--sc-accent); }
-      .disclaimer { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.6; }
+      .disclaimer { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); line-height: 1.6; max-width: var(--sc-measure); }
     `,
   ],
 })

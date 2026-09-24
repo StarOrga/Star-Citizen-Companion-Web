@@ -39,26 +39,28 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
                 <span class="ver mono">v{{ r.version }}</span>
                 @if (r.date) { <time class="date">{{ toDate(r.date) | scDate }}</time> }
               </div>
-              @for (s of r.sections; track $index) {
-                <div class="section">
-                  <div class="sec-head">
-                    @if (kind(s.category); as k) {
-                      <span class="tag tag-{{ k }}">{{ 'releaseNotes.cat.' + k | translate }}</span>
-                    } @else {
-                      <span class="tag tag-other">{{ s.category }}</span>
-                    }
-                    @if (s.label) { <span class="sec-label">{{ s.label }}</span> }
+              <div class="rel-body">
+                @for (s of r.sections; track $index) {
+                  <div class="section">
+                    <div class="sec-head">
+                      @if (kind(s.category); as k) {
+                        <span class="tag tag-{{ k }}">{{ 'releaseNotes.cat.' + k | translate }}</span>
+                      } @else {
+                        <span class="tag tag-other">{{ s.category }}</span>
+                      }
+                      @if (s.label) { <span class="sec-label">{{ s.label }}</span> }
+                    </div>
+                    <ul class="items">
+                      @for (it of s.items; track $index) {
+                        <li>
+                          @if (it.title) { <strong>{{ it.title }}</strong> }
+                          {{ it.text }}
+                        </li>
+                      }
+                    </ul>
                   </div>
-                  <ul class="items">
-                    @for (it of s.items; track $index) {
-                      <li>
-                        @if (it.title) { <strong>{{ it.title }}</strong> }
-                        {{ it.text }}
-                      </li>
-                    }
-                  </ul>
-                </div>
-              }
+                }
+              </div>
             </li>
           }
         </ol>
@@ -77,7 +79,8 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     </section>
   `,
   styles: [`
-    .page { padding: 0.5rem 0; max-width: 820px; margin: 0 auto; }
+    /* No .page sizing: the page runs the full frame like every other page
+       (styles.scss, "PAGE FRAME"). */
     .head { margin-bottom: 1.5rem; }
     .head h1 {
       font-family: var(--sc-font-display); letter-spacing: 0.06em;
@@ -120,8 +123,15 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     .ver { font-family: var(--sc-font-display); font-size: 1.05rem; color: var(--sc-fg-1); letter-spacing: 0.04em; }
     .date { color: var(--sc-fg-2); font-size: 0.8rem; }
 
+    /* The entries are paragraphs (often 300-800 characters), not one-liners, so
+       across the full frame a release flows through newspaper columns instead
+       of running 170-character lines: one column on a phone, two on a laptop,
+       three on a wide screen, each line near a comfortable reading measure.
+       A bullet never splits across columns, and a category tag never ends a
+       column alone. */
+    .rel-body { columns: 26rem; column-gap: 32px; }
     .section { margin: 0 0 0.9rem; }
-    .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem; flex-wrap: wrap; }
+    .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem; flex-wrap: wrap; break-after: avoid; }
     .tag {
       font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.09em; text-transform: uppercase;
       font-family: var(--sc-font-display); padding: 2px 8px; border-radius: 4px;
@@ -136,8 +146,11 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     .tag-other { color: var(--sc-fg-2); }
     .sec-label { color: var(--sc-fg-1); font-size: 0.9rem; font-weight: 600; }
 
-    .items { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.4rem; }
-    .items li { color: var(--sc-fg-2); line-height: 1.5; font-size: 0.9rem; }
+    /* Block flow, not a grid: plain blocks fragment across columns in every
+       engine, grid rows do not everywhere. */
+    .items { margin: 0; padding-left: 1.1rem; }
+    .items li { color: var(--sc-fg-2); line-height: 1.5; font-size: 0.9rem; break-inside: avoid; }
+    .items li + li { margin-top: 0.4rem; }
     .items li strong { color: var(--sc-fg-1); font-weight: 600; }
     .mono { font-family: ui-monospace, monospace; }
 

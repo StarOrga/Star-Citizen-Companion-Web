@@ -78,6 +78,68 @@
 }
 
 /* ============================================================
+   PAGE FRAME — one content width for every page
+   (admin, 2026-09-24: the content area changed width from menu
+   entry to menu entry)
+
+   The shell's .content and the public layout's .content are the
+   ONLY elements that size a page. At any screen width every page
+   gets exactly the same frame, so switching pages never moves the
+   left edge, the right edge or the line the first heading sits on.
+   A page never sets max-width, a centring margin or side/top
+   padding on its root: that is how the frame had drifted into
+   eight widths (620 / 720 / 820 / 860 / 900 / 1100 / 1180px beside
+   the shell's 1280px), some centred, some flush left.
+
+   Whatever reads better narrower limits ITSELF inside the frame:
+   running text takes --sc-measure, a compact card or dialog keeps
+   its own max-width. The page around it stays full width.
+
+     --sc-page-max     the frame, gutters included. 1280px up to a
+                       1920px-wide viewport, so laptops and full-HD
+                       screens look exactly as before; beyond that
+                       it grows with the viewport to 1600px at
+                       2560px (QHD, ultrawide), where a fixed 1280px
+                       column left half the screen as empty margin.
+     --sc-page-gutter  the frame's side padding. Footer and banners
+                       align to it, and a page-level bar that runs
+                       edge to edge (the settings sub-navigation)
+                       undoes exactly this much.
+     --sc-measure      comfortable line length for running text.
+   ============================================================ */
+:root {
+  --sc-page-max: clamp(1280px, 50vw + 320px, 1600px);
+  --sc-page-gutter: 28px;
+  --sc-measure: 70ch;
+}
+@media (max-width: 720px) {
+  :root { --sc-page-gutter: 16px; }
+}
+/* Last step of the gutter: on a 360-375px handset every one of these 4px is
+   a word (admin feedback 3bc01a3d). */
+@media (max-width: 400px) {
+  :root { --sc-page-gutter: 12px; }
+}
+
+/* A page made of self-contained text cards (about, privacy, imprint, the
+   extension install page) spends the frame the way settings does
+   (settings.component.ts, .grid): one column, two from 900px up, instead of
+   one column of 170-character lines across the whole frame. Headings and
+   lead text (every child that is not a card) keep the full row, and so does
+   a card marked .wide. */
+.sc-card-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .sc-card-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.sc-card-page > :not(.sc-card),
+.sc-card-page > .wide { grid-column: 1 / -1; }
+
+/* ============================================================
    DENSITY SCALE — one padding rhythm for the whole app
    (admin feedback 3bc01a3d: "viele Ränder in Rändern in Rändern
    und viel wo die eigentliche Info nur 10 Prozent horizontal
@@ -523,7 +585,8 @@ button {
    02-handover §2). Kept global — codex-detail.component.ts is already near
    its per-component style budget, and this layout has no ship-specific
    logic worth scoping. Single column below 1120px; the analysis column
-   simply follows the loadout below it (no reordering needed there). */
+   simply follows the loadout below it (no reordering needed there). The
+   blueprint detail splits the same way (ingredients | output + quality). */
 .analysis-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);

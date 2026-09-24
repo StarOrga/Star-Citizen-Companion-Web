@@ -147,7 +147,8 @@ import {
   `,
   styles: [`
     :host { display: block; }
-    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; max-width: 900px; margin: 0 auto; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
+    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
     .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; }
     .back:hover { color: var(--sc-accent); }
@@ -203,7 +204,7 @@ import {
     .browse { display: inline-block; margin-top: 10px; color: var(--sc-accent); text-decoration: none; font-size: 0.85rem; }
     .browse:hover { text-decoration: underline; }
 
-    .muted { color: var(--sc-fg-2); margin: 0; line-height: 1.55; }
+    .muted { color: var(--sc-fg-2); margin: 0; line-height: 1.55; max-width: var(--sc-measure); }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); display: flex; flex-direction: column; gap: 8px; align-items: center; }
     .err { color: var(--sc-danger); margin: 4px 0 0; font-size: 0.84rem; }
 
