@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.98.0] - 2026-09-25
+
+### Changed
+
+- **Alle Seiten haben dieselbe Breite.** Beim Wechsel zwischen den Menüpunkten
+  springt der Inhaltsbereich nicht mehr: Codex, Telemetrie, Release Notes,
+  Uploader, Detailseiten, Rechtstexte und geteilte Loadouts nutzen jetzt
+  denselben Seitenrahmen wie Verse News, Starscape und alle übrigen Seiten —
+  gleiche Kanten, gleiche Linie für die erste Überschrift.
+- **Auf großen Bildschirmen wächst der Rahmen mit.** Bis Full HD bleibt er bei
+  1280 px, auf QHD- und Ultrawide-Monitoren wächst er bis 1600 px. Lange Texte
+  behalten eine angenehme Zeilenlänge: Release Notes laufen in Spalten,
+  Rechtstexte und die Extension-Seite zeigen ihre Karten zweispaltig, das
+  Blueprint-Detail stellt Zutaten und Ergebnis nebeneinander.
+
+### Fixed
+
+- **Kein Seitenversatz mehr durch die Scrollleiste.** Ihr Platz ist immer
+  reserviert, lange und kurze Seiten stehen exakt an derselben Stelle.
+- **Jede Seite passt auf Handy und Tablet.** Die Benutzer-Tabelle scrollt in
+  ihrer Karte, statt die Seite zu verbreitern; die Codex-Brücke bricht ihre
+  Links unter das Suchfeld um; lange Klassennamen und Code-Stellen brechen um,
+  und „Datenschutzerklärung“ trennt sauber, statt über den Rand zu laufen.
+
 ## [0.97.1] - 2026-09-25
 
 ### Fixed
