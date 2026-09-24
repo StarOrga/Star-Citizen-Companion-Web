@@ -986,13 +986,28 @@ describe('AdminFeedbackComponent — frame nesting', () => {
  *
  * The fixtures are dated off `Date.now()` on purpose. A hard-coded date would
  * quietly change bucket as the calendar moves past it and turn this into a
- * test that fails on a Tuesday in a month's time.
+ * test that fails on a Tuesday in a month's time. They are anchored to the
+ * local calendar the buckets count in (relativeDayBucket), not to a fixed
+ * number of hours: "two hours ago" is yesterday between 00:00 and 02:00, and
+ * "26 hours ago" then lands two days back, so both specs went red every night.
  */
 describe('AdminFeedbackComponent — a card states the age, not the calendar', () => {
-  const iso = (msAgo: number) => new Date(Date.now() - msAgo).toISOString();
+  /** Two hours ago, but never before today's local midnight. */
+  const todayIso = () => {
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    return new Date(Math.max(midnight.getTime(), Date.now() - 2 * 3600_000)).toISOString();
+  };
+  /** Noon of the previous local calendar day. */
+  const yesterdayIso = () => {
+    const noon = new Date();
+    noon.setDate(noon.getDate() - 1);
+    noon.setHours(12, 0, 0, 0);
+    return noon.toISOString();
+  };
 
   it('labels today as today and hides the exact stamp in the tooltip', async () => {
-    const created = iso(2 * 3600_000);
+    const created = todayIso();
     const { el } = await mount({
       admin_feedback: [row('o9', 'open', created)],
       admin_feedback_messages: [],
@@ -1012,7 +1027,7 @@ describe('AdminFeedbackComponent — a card states the age, not the calendar', (
   it('uses the prepositional label where the row reads "waiting since"', async () => {
     // A Rückfrage the routine asked: the baton is with the admin, so the chip
     // says how long he has been sitting on it.
-    const asked = iso(26 * 3600_000);
+    const asked = yesterdayIso();
     const { el } = await mount({
       admin_feedback: [row('q9', 'needs_input', asked)],
       admin_feedback_messages: [msg('mq9', 'q9', true, asked, 'Kurze Frage?')],

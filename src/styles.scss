@@ -509,13 +509,12 @@ h1, h2, h3, h4 {
 }
 /* A single long word in a page title ("Datenschutzerklärung" is 403px at the
    h1 size) is wider than a 360px handset: the heading pushed the page wider
-   than the screen and the phone zoomed the whole page out. Long words
-   hyphenate (the document language follows the UI language, see
-   app.component.ts) and break outright only if they still do not fit. */
+   than the screen and the phone zoomed the whole page out. A word breaks only
+   when it cannot fit on a line of its own — no automatic hyphenation, which
+   would also split ship and item names by German rules. A known long title
+   carries a soft hyphen in its translation instead (legal.privacy.title). */
 h1 {
   overflow-wrap: break-word;
-  hyphens: auto;
-  hyphenate-limit-chars: 10 4 4;
 }
 
 a {
@@ -596,12 +595,11 @@ button {
   box-shadow: var(--sc-glow);
 }
 
-/* Loadout | Analyse two-column split on the codex ship detail page (PR C,
-   02-handover §2). Kept global — codex-detail.component.ts is already near
-   its per-component style budget, and this layout has no ship-specific
-   logic worth scoping. Single column below 1120px; the analysis column
-   simply follows the loadout below it (no reordering needed there). The
-   blueprint detail splits the same way (ingredients | output + quality). */
+/* Two-column split, single column below 1120px. Born as the codex ship
+   detail's Loadout | Analyse split (PR C, 02-handover §2) and kept global
+   because codex-detail.component.ts sits near its per-component style
+   budget; the ship detail now only uses .analysis-col, and .analysis-grid
+   splits the blueprint detail (ingredients | output + quality). */
 .analysis-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);

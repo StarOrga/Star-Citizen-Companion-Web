@@ -127,10 +127,10 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
        across the full frame a release flows through newspaper columns instead
        of running 170-character lines: one column on a phone, two on a laptop,
        three on a wide screen, each line near a comfortable reading measure.
-       A bullet never splits across columns, and a category tag never ends a
-       column alone. */
+       A section never splits across columns, so every bullet sits under its
+       own category tag (a balanced split left bullets in column 2 unlabelled). */
     .rel-body { columns: 26rem; column-gap: 32px; }
-    .section { margin: 0 0 0.9rem; }
+    .section { margin: 0 0 0.9rem; break-inside: avoid; }
     .sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 0.35rem; flex-wrap: wrap; break-after: avoid; }
     .tag {
       font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.09em; text-transform: uppercase;

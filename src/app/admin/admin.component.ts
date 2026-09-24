@@ -742,6 +742,10 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     }
     .table thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
     .table thead th.sortable:hover { color: var(--sc-fg-0); }
+    /* Inside the header cell: the scrolling card (.table-scroll) clips
+       anything drawn outside it, which cut the app-wide focus ring off at the
+       card's edges. */
+    .table thead th.sortable:focus-visible { outline-offset: -2px; }
     .table thead th.active { color: var(--sc-accent); }
     .sort-ind { display: inline-block; width: 1em; margin-left: 4px; font-size: 0.8em; }
     .user-name { display: block; }
