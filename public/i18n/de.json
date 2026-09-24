@@ -680,7 +680,12 @@
         "noPorts": "Keine Hardpoints in den Spieldaten",
         "pinKey": "Pin-Legende",
         "legendUnresolved": "Position geschätzt",
-        "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen."
+        "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen.",
+        "eyebrowTop": "Draufsicht · {{n}} Hardpoints",
+        "eyebrow3d": "3D-Modell · ziehen zum Drehen",
+        "eyebrowSchema": "Schema · Hardpoint-Positionen",
+        "pinListTitle": "Alle Hardpoints",
+        "pinGroupOther": "Hardpoints"
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -750,7 +755,8 @@
           "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
         },
         "deltaShow": "Änderungen zeigen",
-        "deltaHide": "Änderungen ausblenden"
+        "deltaHide": "Änderungen ausblenden",
+        "current": "aktiv"
       },
       "share": {
         "copyLink": "Link kopieren",
@@ -771,7 +777,8 @@
         "unsavedHint": "{{n}} ungespeicherte Änderung(en) stecken nur im kopierten Link, nicht im Hangar-Link.",
         "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
         "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
-        "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung."
+        "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
+        "addToHangar": "Zum Hangar hinzufügen"
       }
     },
     "empty": {
@@ -1170,6 +1177,7 @@
         "reExtractPending": "Dieser Katalog-Build bringt noch keine Energiewerte mit — weder für die einzelnen Module noch für das Budget. Sie kommen mit dem nächsten Katalog-Upload (Extract-Schema 3).",
         "noChannelInMode": "In diesem Flugmodus hat diese Gruppe keinen Kanal.",
         "noCoolingData": "Keine Kühlerdaten in diesem Build — die Kühllast bleibt leer.",
+        "noCoolantDraw": "Die Spieldaten nennen nicht, wie viel Kühlmittel die Bauteile ziehen — die Kühllast bleibt leer.",
         "noSignatureData": "Keine Signaturdaten in diesem Extract — Re-Extract ausstehend."
       },
       "unit": {
@@ -1511,6 +1519,8 @@
       "caretCollapse": "einklappen",
       "census": "{{slots}} Slots · {{active}} aktiv · {{passive}} passiv",
       "censusSlots": "{{slots}} Slots",
+      "censusSlot": "{{slots}} Slot",
+      "censusOne": "{{slots}} Slot · {{active}} aktiv · {{passive}} passiv",
       "total": "Gesamt",
       "badge": {
         "active": "Aktiv",

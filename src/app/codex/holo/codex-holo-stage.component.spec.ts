@@ -381,6 +381,50 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(c.arrived()).toBe(false);
   });
 
+  it('a missile pin keeps its gold tone when its position is only estimated', async () => {
+    const fixture = await setup({
+      primaryModuleSections: [
+        { section: 'weapons', slots: [slot('hardpoint_gun_left', 'Laser Cannon')] },
+        { section: 'missiles', slots: [slot('hardpoint_missile_rack', 'Rack')] },
+      ],
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('.pin.unresolved').length).toBe(2);
+    expect(el.querySelector('.pin.gold.unresolved')).toBeTruthy();
+    expect(fixture.componentInstance.pinRing()).not.toBeNull();
+  });
+
+  it('with nothing inspected, the inspector lists the pins by block instead of an empty box', async () => {
+    const fixture = await setup({
+      primaryModuleSections: [
+        { section: 'shields', slots: [slot('hardpoint_shield_generator', 'FR-66')] },
+        { section: 'weapons', slots: [slot('hardpoint_gun_left', 'Laser Cannon'), slot('hardpoint_gun_right', 'Laser Cannon')] },
+      ],
+    });
+    const c = fixture.componentInstance;
+    c.rightCollapsed.set(false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const groups = Array.from(el.querySelectorAll('.holo-right .pgroup'));
+    expect(groups.length).toBe(2);
+    expect(groups[0].querySelectorAll('.prow').length).toBe(2);
+    expect(el.querySelector('.holo-right .empty')).toBeNull();
+    (el.querySelectorAll('.holo-right .prow')[2] as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(c.inspectedPort()).toBe('hardpoint_shield_generator');
+    expect(el.querySelector('.inspector')!.textContent).toContain('FR-66');
+  });
+
+  it('the page title names the ship once, without repeating the maker word', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('displayName', 'Aegis Avenger Stalker');
+    fixture.componentRef.setInput('manufacturerName', 'Aegis Dynamics');
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('h1.ht-name')!.textContent!.trim()).toBe('Avenger Stalker');
+    expect(el.querySelector('.ht-kicker')!.textContent).toContain('Aegis Dynamics');
+  });
+
   it('a static tile that carries a sentence instead of a value shows the dash and keeps the sentence as tooltip', async () => {
     const fixture = await setup();
     fixture.componentRef.setInput('heroChips', [

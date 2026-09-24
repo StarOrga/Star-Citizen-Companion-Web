@@ -438,6 +438,18 @@ describe('cooler units (590230e3, F1d)', () => {
   });
   const col = (s: ReturnType<typeof computePowerSheet>, key: string) => s.groups.find((g) => g.key === key)!;
 
+  // The 4.10 extract: coolers state what they generate, no consumer states
+  // what it draws — that is a gap, not a cold ship ("Kühllast 0 / 68").
+  it('reports the cooling load as a gap when coolers generate but nothing reports a draw', () => {
+    const generateOnly = computePowerSheet({ occupants: [cooler2] });
+    expect(generateOnly.coolant.total).toBe(20);
+    expect(generateOnly.coolant.used).toBeNull();
+    expect(generateOnly.coolant.percent).toBeNull();
+    expect(generateOnly.facts.find((f) => f.key === 'coolant')!.value).toBeNull();
+    // …and says why: the draw is missing, not the coolers.
+    expect(generateOnly.facts.find((f) => f.key === 'coolant')!.gapKey).toBe('codex.energy.gap.noCoolantDraw');
+  });
+
   it('renders one column per installed cooler, in hardpoint order, after the seven groups', () => {
     const s = computePowerSheet({ occupants: twoCoolers });
     const cols = s.groups.filter((g) => g.group === 'coolers');

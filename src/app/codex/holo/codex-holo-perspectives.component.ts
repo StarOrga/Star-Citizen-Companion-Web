@@ -57,7 +57,7 @@ export interface HoloPerspectiveView {
           @if (tile.pct != null) { <span class="pp">P{{ tile.pct }}</span> }
           <span class="prof">{{ missionLabelKey() | translate }}</span>
         </div>
-        <div class="pt-main">
+        <div class="pt-main" [class.no-gauge]="tile.pct == null">
           <div class="pt-lead">
             @if (tile.leadText != null) {
               <div class="big">
@@ -74,16 +74,18 @@ export interface HoloPerspectiveView {
             }
             <p class="say">{{ tile.say }}</p>
           </div>
-          <div class="gauge" role="img" [attr.aria-label]="tile.pct != null ? ('codex.holo.stage.percentileAria' | translate: { p: tile.pct }) : ('codex.kpi.gap' | translate)">
-            <svg viewBox="0 0 84 84" aria-hidden="true">
-              <circle class="tr" cx="42" cy="42" r="36" />
-              @if (tile.pct != null) {
+          <!-- No rank for this perspective = no ring: an empty gauge is a hole,
+               the reading line above already says why. -->
+          @if (tile.pct != null) {
+            <div class="gauge" role="img" [attr.aria-label]="'codex.holo.stage.percentileAria' | translate: { p: tile.pct }">
+              <svg viewBox="0 0 84 84" aria-hidden="true">
+                <circle class="tr" cx="42" cy="42" r="36" />
                 <circle class="va" cx="42" cy="42" r="36" [attr.stroke-dasharray]="ringDash(tile.pct)" />
-              }
-              <text class="p" x="42" y="40">{{ tile.pct != null ? 'P' + tile.pct : '—' }}</text>
-              <text class="l" x="42" y="54">{{ tile.leadShortKey ? (tile.leadShortKey | translate) : '' }}</text>
-            </svg>
-          </div>
+                <text class="p" x="42" y="40">P{{ tile.pct }}</text>
+                <text class="l" x="42" y="54">{{ tile.leadShortKey ? (tile.leadShortKey | translate) : '' }}</text>
+              </svg>
+            </div>
+          }
         </div>
         @if (tile.subs.length > 0) {
           <div class="subs">
@@ -127,8 +129,10 @@ export interface HoloPerspectiveView {
     .sh .ctx { font-family: var(--m); font-size: max(10px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-1); }
     .rule { flex: 1; height: 1px; background: var(--l1); }
     .ptile { position: relative; display: grid; gap: 10px; padding: 12px 14px 10px 16px; border: 1px solid var(--l2); border-radius: 4px; overflow: hidden;
-      background: linear-gradient(180deg, color-mix(in srgb, var(--sc-bg-1) 70%, transparent), color-mix(in srgb, var(--sc-bg-0) 60%, transparent)); }
-    .ptile::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--p); }
+      background: linear-gradient(180deg, color-mix(in srgb, var(--sc-bg-1) 70%, transparent), color-mix(in srgb, var(--sc-bg-0) 60%, transparent));
+      transition: border-color 200ms ease; }
+    .ptile:hover { border-color: color-mix(in srgb, var(--p) 55%, var(--l2)); }
+    .ptile::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--p); box-shadow: 0 0 10px color-mix(in srgb, var(--p) 45%, transparent); }
     .ptile[data-p="offensive"] { --p: var(--p-offensive); }
     .ptile[data-p="defensive"] { --p: var(--p-defensive); }
     .ptile[data-p="movement"] { --p: var(--p-movement); }
@@ -139,6 +143,7 @@ export interface HoloPerspectiveView {
     .pt-head .pp { font-family: var(--m); letter-spacing: 0; color: var(--p); font-size: max(10px, var(--f)); }
     .pt-head .prof { font-size: max(8.5px, var(--f)); color: var(--sc-fg-2); }
     .pt-main { display: grid; grid-template-columns: 1fr 84px; gap: 12px; align-items: center; }
+    .pt-main.no-gauge { grid-template-columns: 1fr; }
     .pt-lead { display: grid; gap: 6px; min-width: 0; }
     .big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
     .big .num { font-family: var(--m); font-size: 28px; line-height: 1; color: var(--sc-fg-0); }
@@ -153,10 +158,16 @@ export interface HoloPerspectiveView {
     .say { margin: 0; font-size: max(11.5px, var(--f)); line-height: 1.45; color: var(--sc-fg-1); }
     .gauge svg { width: 84px; height: 84px; display: block; }
     .gauge .tr { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); stroke-width: 6; }
-    .gauge .va { fill: none; stroke: var(--p); stroke-width: 6; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dasharray 600ms ease; }
+    .gauge .va { fill: none; stroke: var(--p); stroke-width: 6; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%;
+      filter: drop-shadow(0 0 4px color-mix(in srgb, var(--p) 55%, transparent));
+      transition: stroke-dasharray 600ms cubic-bezier(0.2, 0.7, 0.2, 1); animation: gauge-draw 900ms cubic-bezier(0.2, 0.7, 0.2, 1) 200ms backwards; }
+    @keyframes gauge-draw { from { stroke-dasharray: 0 227; } }
+    .gauge text.p { animation: gauge-num 500ms ease-out 400ms backwards; }
+    @keyframes gauge-num { from { opacity: 0; } }
     .gauge text { text-anchor: middle; fill: var(--sc-fg-0); font-family: var(--m); font-size: 15px; }
     .gauge text.l { font-size: 6px; letter-spacing: 0.12em; fill: var(--sc-fg-2); }
-    .subs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    /* auto-fit: two sub-values share the row instead of leaving a hole. */
+    .subs { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
     .sv { display: grid; gap: 2px; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; min-width: 0; }
     .sv .k { font-size: max(8px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sv .v { font-family: var(--m); font-size: 14px; color: var(--sc-fg-0); white-space: nowrap; }
@@ -166,9 +177,10 @@ export interface HoloPerspectiveView {
     .sv.ghosted { border: 1px dashed var(--l2); }
     .tile-expand { justify-self: start; background: none; border: none; padding: 0; cursor: pointer; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); }
     .tile-expand:hover, .tile-expand[aria-expanded="true"] { color: var(--sc-accent); }
-    .tile-full { border-top: 1px solid var(--l1); padding-top: 10px; }
+    .tile-full { border-top: 1px solid var(--l1); padding-top: 10px; animation: tile-open 280ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+    @keyframes tile-open { from { opacity: 0; transform: translateY(-4px); } }
     @media (max-width: 640px) { .big .num { font-size: 22px; } }
-    @media (prefers-reduced-motion: reduce) { .ptile.pulse { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   `],
 })
 export class CodexHoloPerspectivesComponent {

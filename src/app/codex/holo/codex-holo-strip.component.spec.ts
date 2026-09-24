@@ -8,6 +8,7 @@ import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture
 import { KpiStripCell } from '../codex-kpi-sets';
 import { rankShip, RankShipInput } from '../codex-rank';
 import { powerStorageKey, serializeLocalPowerDraft } from '../codex-loadout-draft';
+import { setNumberLocale } from '../codex-format';
 
 const SHIP = 'CNOU_Nomad';
 const SHIP_B = 'AEGS_Avenger';
@@ -138,6 +139,31 @@ describe('CodexHoloStripComponent', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance['mode']()).toBe('scm');
     expect(fixture.componentInstance['preset']()).toBe('auto');
+  });
+
+  it('writes the km values in the page number locale (German comma)', async () => {
+    setNumberLocale('de');
+    try {
+      const fixture = await setup();
+      const km = (fixture.nativeElement as HTMLElement).querySelector('.sig .fact .v')!.textContent!.replace(/\s/g, '');
+      expect(/^\d+,\dkm$/.test(km)).toBeTrue();
+    } finally {
+      setNumberLocale('en');
+    }
+  });
+
+  it('a perspective with no value for this hull shows a dash, not an empty cell', async () => {
+    const fixture = await setup();
+    fixture.componentRef.setInput('cells', CELLS.filter((c) => c.key !== 'alpha' && c.key !== 'sustainedDps'));
+    fixture.detectChanges();
+    const offensive = (fixture.nativeElement as HTMLElement).querySelector('.seg.tile[data-p="offensive"]')!;
+    expect(offensive.querySelector('.tv.none')!.textContent).toContain('—');
+  });
+
+  it('shows no class-rank pips while the profile ranks no signature axis', async () => {
+    const fixture = await setup({ rank: true });
+    // The combat profile ranks alpha/dps/shield/agility/boost — no IR, no cross-section.
+    expect((fixture.nativeElement as HTMLElement).querySelector('.rankpips')).toBeNull();
   });
 
   it('carries a percentile rank onto each tile once a rank result is supplied', async () => {

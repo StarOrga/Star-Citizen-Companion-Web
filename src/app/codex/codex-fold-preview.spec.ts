@@ -28,6 +28,30 @@ function shieldOcc(count: number, hp: number, segments: number): SummaryOccupant
   };
 }
 
+describe('buildFoldPreview — item names', () => {
+  // CIG's "TRANSLATION NOT FOUND FOR LOCID …" marker arrives as a localized
+  // value for some items; it leaked into the folded previews verbatim.
+  it('never names a chip with the untranslated-LOCID marker', () => {
+    const occ: SummaryOccupant = {
+      section: 'lifeSupport',
+      kind: 'component',
+      count: 1,
+      payload: {
+        entityKind: 'component',
+        className: 'LIFE_TYOT_S01_ComfortAir',
+        size: 1,
+        name: {
+          de: '! GERMAN_(GERMANY) TRANSLATION NOT FOUND FOR LOCID: item_NameLIFE_TYOT_S01_ComfortAir !',
+          en: '! ENGLISH TRANSLATION NOT FOUND FOR LOCID: item_NameLIFE_TYOT_S01_ComfortAir !',
+        },
+      },
+    };
+    const chip = buildFoldPreview('lifeSupport', [occ]).chips[0];
+    expect(chip.name).not.toMatch(/translation not found/i);
+    expect(chip.name).toBe('LIFE TYOT S01 Comfort Air');
+  });
+});
+
 describe('buildShieldPreview — the concept’s Nomad shield module', () => {
   const preview = buildShieldPreview([shieldOcc(2, 2160, 3), shieldOcc(1, 2160, 0)]);
 

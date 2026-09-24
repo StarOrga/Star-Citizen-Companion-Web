@@ -12,7 +12,7 @@
 // invented figure.
 
 import { alphaDamage, damagePerSecond, EquippedStatFormat } from './codex-equipped-stats';
-import { humanizeClassName } from './codex-format';
+import { cleanLocaleValue, humanizeClassName } from './codex-format';
 import { findStat, toFiniteNumber } from '../hangar/loadout-stats';
 import { isPassiveShield, occupantDraw } from './codex-power';
 import type { SummaryOccupant } from './ship-summary-panels';
@@ -61,8 +61,11 @@ function nameOf(payload: unknown): string {
     | { name?: { de?: string; en?: string }; className?: string }
     | null
     | undefined;
-  const localized = p?.name?.de || p?.name?.en || '';
-  if (localized.trim()) return localized.trim();
+  // The extract ships CIG's "TRANSLATION NOT FOUND FOR LOCID …" marker as a
+  // localized value for some items — never a name (it leaked into the folded
+  // Quantum / life-support previews verbatim).
+  const localized = cleanLocaleValue(p?.name?.de) || cleanLocaleValue(p?.name?.en);
+  if (localized) return localized;
   return p?.className ? humanizeClassName(p.className) : '';
 }
 

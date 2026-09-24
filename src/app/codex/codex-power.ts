@@ -848,11 +848,15 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
     gapKeys.push('codex.energy.gap.noCoolingData');
   }
 
+  // Coolers that GENERATE coolant while no consumer reports what it DRAWS is
+  // a gap on the consumption side, not a ship that runs cold: "0 / 68" read
+  // as "no heat at all" on every hull of the 4.10 extract. Gap, never zero.
+  const hasConsumeData = draws.some((d) => d.coolantConsume > 0);
   const coolant = {
-    used: hasCoolantData ? coolantUsedRaw : null,
+    used: hasCoolantData && hasConsumeData ? coolantUsedRaw : null,
     total: coolantTotalRaw > 0 ? coolantTotalRaw : null,
     percent:
-      hasCoolantData && coolantTotalRaw > 0 ? Math.round((coolantUsedRaw / coolantTotalRaw) * 100) : null,
+      hasCoolantData && hasConsumeData && coolantTotalRaw > 0 ? Math.round((coolantUsedRaw / coolantTotalRaw) * 100) : null,
   };
 
   const emRaw = round(powered.reduce((s, d) => s + d.emNominal, 0));
@@ -893,7 +897,12 @@ export function computePowerSheet(input: PowerSheetInput): PowerSheet {
     fact('ir', hasSignature ? irRaw : null, true, 'codex.energy.gap.noSignatureData'),
     fact('em', hasSignature ? emRaw : null, true, 'codex.energy.gap.noSignatureData'),
     fact('crossSection', cs, true, 'codex.summary.gap.noSignature'),
-    fact('coolant', coolant.percent, true, 'codex.energy.gap.noCoolingData'),
+    fact(
+      'coolant',
+      coolant.percent,
+      true,
+      hasCoolantData && !hasConsumeData ? 'codex.energy.gap.noCoolantDraw' : 'codex.energy.gap.noCoolingData',
+    ),
   ];
 
   const ready =

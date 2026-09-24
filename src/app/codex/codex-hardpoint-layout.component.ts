@@ -37,7 +37,7 @@ import {
   shipModuleGroupLabelKey,
   shipModuleGroupOf,
 } from './ship-module-sections';
-import { formatNumber } from './codex-format';
+import { displayItemName, formatNumber } from './codex-format';
 
 /**
  * A sub-slot the installed mount itself exposes: the gun port inside a VariPuck
@@ -319,7 +319,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
             <summary class="sec-head">
               <span class="sec-glyph" aria-hidden="true">◈</span>
               {{ grp.labelKey | translate }}
-              <span class="sec-ct">{{ 'codex.module.censusSlots' | translate: { slots: grp.count } }}</span>
+              <span class="sec-ct">{{ (grp.count === 1 ? 'codex.module.censusSlot' : 'codex.module.censusSlots') | translate: { slots: grp.count } }}</span>
               <span class="caret" [class.open]="grp.open">
                 <span aria-hidden="true">{{ (grp.open ? '▴' : '▾') }}</span>
                 {{ (grp.open ? 'codex.module.caretCollapse' : 'codex.module.caretExpand') | translate }}
@@ -446,7 +446,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                         <span class="slot-head">
                           @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
                           <span class="slot-ident">
-                            <span class="slot-item">{{ row.slot.name }}</span>
+                            <span class="slot-item">{{ itemName(row.slot.name) }}</span>
                             <span class="slot-meta">
                               @if (row.slot.roleKey) {
                                 <span class="tag role">{{ row.slot.roleKey | translate }}</span>
@@ -608,7 +608,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                 <span class="slot-head">
                                   @if (kidBadge(row, kid); as b) { <span class="size-tag">{{ b }}</span> }
                                   <span class="slot-ident">
-                                    <span class="slot-item">{{ kid.name }}</span>
+                                    <span class="slot-item">{{ itemName(kid.name) }}</span>
                                     <span class="slot-meta">
                                       @if (kidMetaLine(kid); as m) { <span class="meta-txt">{{ m }}</span> }
                                       @for (ch of kid.damageChannels; track ch) {
@@ -994,7 +994,9 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     :host(.calm) .sec-head::after { content: ''; order: 1; flex: 1 1 24px; height: 1px; background: var(--sc-border); }
     :host(.calm) .sec-head > .sec-glyph { display: none; }
     :host(.calm) .sec-head > .sec-ct, :host(.calm) .sec-head > .sec-tag, :host(.calm) .sec-head > .sec-btn, :host(.calm) .sec-head > .caret { order: 2; }
-    :host(.calm) .sec-head > .fold-preview { order: 3; }
+    :host(.calm) .sec-head > .fold-preview { order: 3; font-family: var(--sc-font-body); letter-spacing: 0; }
+    /* The caret beside the heading already says "aufklappen". */
+    :host(.calm) .fp-lock { display: none; }
     :host(.calm) .mod-sec[open] > .sec-head, :host(.calm) .mod-sub[open] > .sub-head { margin-inline: 0; padding: 6px 0; border-bottom: 0; }
     :host(.calm) .sec-ct { background: transparent; color: var(--sc-fg-2); font-family: var(--font-monospace, monospace); letter-spacing: 0; padding: 0; }
     :host(.calm) .sec-btn { min-height: 26px; padding: 1px 7px; border-radius: 2px; font-family: var(--sc-font-display); letter-spacing: 0.1em; }
@@ -1128,7 +1130,10 @@ export class CodexHardpointLayoutComponent {
    * occupant counts as "active" by construction, so the split is noise. */
   censusKey(sec: RenderSection): string {
     const census = this.preview(sec).census;
-    return sec.section === 'shields' || census.passive > 0 ? 'codex.module.census' : 'codex.module.censusSlots';
+    // "1 Slot", never "1 Slots" — the one-slot keys carry the singular.
+    const one = sec.count === 1;
+    if (sec.section === 'shields' || census.passive > 0) return one ? 'codex.module.censusOne' : 'codex.module.census';
+    return one ? 'codex.module.censusSlot' : 'codex.module.censusSlots';
   }
 
   /**
@@ -1425,6 +1430,12 @@ export class CodexHardpointLayoutComponent {
    * catalog data (a manufacturer code and a humanized engine type), not UI
    * copy, so neither is translated; either half may be absent.
    */
+  /** An item the extract has no name for arrives as its raw class name —
+   * shown humanized (`Vehicle_Screen_MFD` → `Vehicle Screen MFD`). */
+  itemName(name: string | null | undefined): string {
+    return displayItemName(name);
+  }
+
   metaLine(row: GroupedSlot<LayoutSlot>): string {
     return [row.slot.manufacturerCode, row.slot.typeLabel].filter(Boolean).join(' · ');
   }

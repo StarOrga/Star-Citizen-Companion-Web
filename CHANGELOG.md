@@ -4,6 +4,70 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.0] - 2026-09-25
+
+### Changed
+
+- **Holotisch: die Ankunft ist eine abgestimmte Choreografie.** Das Render des
+  Schiffs erscheint kurz auf dem Tisch und löst sich auf, während eine
+  Scan-Front den Rumpf von oben nach unten aufbaut; danach tauchen die Pins im
+  Uhrzeigersinn nacheinander auf, und Einordnung, Inspektor und die Werte
+  darunter steigen versetzt ein. Lädt das Render nicht schnell genug, startet
+  der Tisch ohne es. Ein Wiederbesuch in derselben Sitzung und „Bewegung
+  reduzieren“ schneiden weiterhin direkt auf den fertigen Tisch.
+- **Mehr Bewegung, überall gleich getaktet.** Die Einsatz-Leiste hat einen
+  gleitenden Indikator unter dem aktiven Einsatz, der gewählte Pin pulsiert
+  wie ein Kontakt auf dem Radar, Teilen- und Patch-Fenster klappen weich auf
+  und zu, die Leiste unten entfaltet sich statt aufzuspringen, der
+  Inspektor blendet beim Pin-Wechsel neu ein, Radar und Balken der Einordnung
+  wachsen beim Laden, die Ringe der Perspektiven zeichnen sich, und ein
+  langsamer Radar-Schwenk läuft über den Tisch. Beim Schiffswechsel rollen die
+  Werte der Leiste vom alten zum neuen Schiff; ein Bauteiltausch lässt genau
+  die Werte aufleuchten, die er ändert.
+- **Der Inspektor ist nie mehr ein leerer Kasten.** Ohne gewählten Pin listet
+  er alle Hardpoints nach Block, mit Nummer und Kurzwert – Hover leuchtet den
+  Pin, Klick öffnet ihn. Die Nummern-Legende unter dem Tisch entfällt dann auf
+  dem Desktop.
+- **Der Schiffsname steht als Titel über dem Tisch** (Hersteller · Karriere ·
+  Rolle darüber), statt abgeschnitten in der Tischkopfzeile; dort steht jetzt,
+  was der Tisch zeigt („Draufsicht · 18 Hardpoints“, „3D-Modell · ziehen zum
+  Drehen“).
+
+### Fixed
+
+- **Holotisch-Pins:** Raketen-Pins sind wieder gold, und der gewählte bzw.
+  überfahrene Pin ist sichtbar hervorgehoben – die Darstellung „Position
+  geschätzt“ hatte Farbe und Zustand komplett überschrieben. Auf langen Ringen
+  (Idris, Polaris) liegen die Pins gleichmäßig verteilt statt an Bug und Heck
+  übereinander; bei schlanken Rümpfen (X1) zeigen die Beschriftungen nach
+  außen statt sich über dem Rumpf zu überlagern.
+- **Großschiffe:** Die 40-Zeilen-Liste im Inspektor streckte den Tisch auf
+  über 1.500 px, der Rumpf rutschte ganz nach unten – der Inspektor scrollt
+  jetzt in seinem Panel.
+- **Einsatz-Leiste** passt auf dem Desktop ohne Scrollbalken; nicht fliegbare
+  Einsätze machen Platz, der Wert darunter kürzt sich statt die Leiste zu
+  sprengen.
+- **Teilen** öffnet ein echtes Fenster mit Hintergrund statt Text frei über
+  dem Tisch; **Patch wählen** klappt nicht mehr aus dem Bildschirm, zeigt den
+  aktuellen Build als „aktiv“ und unterscheidet gleichnamige Builds.
+- **Portliste im Holotisch:** Blockzählung und Faltvorschau fehlten
+  („0 aktiv · 0 passiv“, nur „zum Ändern aufklappen“); „1 Slot“ statt
+  „1 Slots“; „Screen Right Top“ statt „Creen Right Top“; Rohnamen wie
+  `Vehicle_Screen_MFD` erscheinen lesbar; der Platzhalter „TRANSLATION NOT
+  FOUND …“ taucht nicht mehr als Bauteilname auf.
+- **Leeres und Falsches:** Perspektiven-Kacheln ohne Rang zeigen keinen leeren
+  Ring mehr, Teilwerte füllen die Zeile, die Signatur-Kachel zeigt IR und EM;
+  eine Leisten-Kachel ohne Wert zeigt „—“ statt nichts; die Klassen-Pips
+  erscheinen nur, wenn das Profil Signatur überhaupt bewertet; „Kühllast
+  0 / 68“ war eine Datenlücke und steht jetzt als „—“ mit Grund; km-Werte
+  im deutschen Zahlenformat; Masse großer Schiffe passt in ihre Kachel;
+  „WENDIGKEIT“ im Radar ist nicht mehr abgeschnitten; die Top 3 nennen die
+  echten Schiffsnamen.
+- **Handy und Tablet:** der Feedback-Knopf verdeckt den Umschalter der Leiste
+  nicht mehr, Suche und Patch stehen in einer Zeile ohne leere Reihe darüber,
+  der Mobil-Schalter erscheint nur noch auf dem Handy, und der Leerraum unter
+  der Leiste am Seitenende ist weg.
+
 ## [0.98.0] - 2026-09-25
 
 ### Changed

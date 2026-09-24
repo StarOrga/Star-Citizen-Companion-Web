@@ -9,6 +9,7 @@ import {
   comparePatchVersion,
   computeStatDeltas,
   curateComponentStats,
+  displayItemName,
   flattenSpec,
   formatCraftTime,
   formatNumber,
@@ -114,6 +115,29 @@ describe('codex-format', () => {
     });
     it('separates digits', () => {
       expect(humanizeKey('size3')).toBe('Size 3');
+    });
+    // A port or key that merely STARTS with the letter S is not a wrapper —
+    // "Screen_Right_Top" rendered as "Creen Right Top" in the ports list.
+    it('never strips the first letter of a word that begins with S', () => {
+      expect(humanizeKey('Screen_Right_Top')).toBe('Screen Right Top');
+      expect(humanizeKey('Size')).toBe('Size');
+      expect(humanizeKey('SSCSignatureSystemParams')).toBe('Signature System');
+    });
+  });
+
+  describe('displayItemName', () => {
+    it('passes a real name through untouched', () => {
+      expect(displayItemName('VariPuck S3 Gimbal Mount')).toBe('VariPuck S3 Gimbal Mount');
+      expect(displayItemName('M2C "Swarm"')).toBe('M2C "Swarm"');
+    });
+    it('humanizes a raw class name that stands in for a missing one', () => {
+      expect(displayItemName('Vehicle_Screen_MFD')).toBe('Vehicle Screen MFD');
+      expect(displayItemName('Radar_Display_Screen_Template')).toBe('Radar Display Screen');
+      expect(displayItemName('AEGS_Idris_SCItem_AI_Turret_Top_Left')).toBe('AEGS Idris AI Turret Top Left');
+    });
+    it('returns empty for nullish', () => {
+      expect(displayItemName(null)).toBe('');
+      expect(displayItemName('')).toBe('');
     });
   });
 

@@ -680,7 +680,12 @@
         "noPorts": "No hardpoints in the game data",
         "pinKey": "Pin key",
         "legendUnresolved": "Position estimated",
-        "rawPortHint": "Raw port from the game data — nothing to swap or open."
+        "rawPortHint": "Raw port from the game data — nothing to swap or open.",
+        "eyebrowTop": "Top view · {{n}} hardpoints",
+        "eyebrow3d": "3D model · drag to rotate",
+        "eyebrowSchema": "Schematic · hardpoint positions",
+        "pinListTitle": "All hardpoints",
+        "pinGroupOther": "Hardpoints"
       },
       "strip": {
         "einsatz": "Mission",
@@ -750,7 +755,8 @@
           "question": "Become the owner? This splits the loadout from the original — cannot be undone."
         },
         "deltaShow": "Show changes",
-        "deltaHide": "Hide changes"
+        "deltaHide": "Hide changes",
+        "current": "active"
       },
       "share": {
         "copyLink": "Copy link",
@@ -771,7 +777,8 @@
         "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
         "signInHint": "Sign in to share a hangar configuration as a link of its own.",
         "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
-        "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first."
+        "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
+        "addToHangar": "Add to hangar"
       }
     },
     "empty": {
@@ -1170,6 +1177,7 @@
         "reExtractPending": "This catalog build carries no power figures yet — neither per module nor for the budget. They arrive with the next catalog upload (extract schema 3).",
         "noChannelInMode": "This group has no channel in this flight mode.",
         "noCoolingData": "No cooler data in this build — the cooling load stays empty.",
+        "noCoolantDraw": "The game data does not state how much coolant the components draw — the cooling load stays empty.",
         "noSignatureData": "No signature data in this extract — re-extract pending."
       },
       "unit": {
@@ -1511,6 +1519,8 @@
       "caretCollapse": "collapse",
       "census": "{{slots}} slots · {{active}} active · {{passive}} passive",
       "censusSlots": "{{slots}} slots",
+      "censusSlot": "{{slots}} slot",
+      "censusOne": "{{slots}} slot · {{active}} active · {{passive}} passive",
       "total": "Total",
       "badge": {
         "active": "Active",
