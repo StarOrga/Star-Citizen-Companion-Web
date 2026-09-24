@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ShipSkinsService } from './ship-skins.service';
+import { ShipSkinsService, shipSkinsBase } from './ship-skins.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 
@@ -131,6 +131,24 @@ describe('ShipSkinsService', () => {
     it('flags error:true on query failure (distinct from empty)', async () => {
       const svc = makeService({ data: null, error: { message: 'boom' } });
       await expectAsync(svc.listSkins('X')).toBeResolvedTo({ skins: [], error: true });
+    });
+  });
+
+  describe('shipSkinsBase', () => {
+    it('falls back to the Supabase bucket while no R2 host is configured', () => {
+      const supa = `${environment.supabase.url}/storage/v1/object/public/ship-skins/`;
+      expect(shipSkinsBase('')).toBe(supa);
+      expect(shipSkinsBase('   ')).toBe(supa);
+      expect(shipSkinsBase(undefined)).toBe(supa);
+    });
+
+    it('serves from the R2 Worker under ship-skins/ once a host is set', () => {
+      expect(shipSkinsBase('https://sc-assets.acct.workers.dev')).toBe(
+        'https://sc-assets.acct.workers.dev/ship-skins/',
+      );
+      expect(shipSkinsBase('https://sc-assets.acct.workers.dev//')).toBe(
+        'https://sc-assets.acct.workers.dev/ship-skins/',
+      );
     });
   });
 });

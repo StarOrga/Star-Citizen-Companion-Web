@@ -31,3 +31,4 @@ Angular 22 PWA · Supabase · Vercel — live at `sc-companion.vercel.app` (the 
 - `.claude/deep-knowledge/local-dev.md` — dev-server IPv4-only bind (localhost ≠ 127.0.0.1), Docker, worktrees
 - `.claude/deep-knowledge/patch-stability.md` — stability indicator sources (Spectrum replies, status JSON, CIG KB), API quirks, where the formula lives
 - `.claude/deep-knowledge/scheduled-tasks.md` — the feedback routine as a Desktop scheduled task: one session per tick, why every tick archives older sessions and itself, what to check before touching cron or cadence
+- `.claude/deep-knowledge/storage.md` — which data lives where (Supabase / R2 via Worker / Vercel / GitHub mirror), the 500 MB DB budget and codex retention, R2 cost guard, why no Redis yet

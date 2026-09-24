@@ -16,7 +16,19 @@ export interface ShipSkin {
   sort: number;
 }
 
-const BUCKET_PUBLIC = `${environment.supabase.url}/storage/v1/object/public/ship-skins/`;
+const SUPABASE_PUBLIC = `${environment.supabase.url}/storage/v1/object/public/ship-skins/`;
+
+/**
+ * Where ship-skins objects are read from. The R2 Worker serves the same
+ * `<ship>/<skin>.<ext>` paths under `ship-skins/` and proxies anything R2 does
+ * not hold yet from the Supabase bucket, so flipping this is safe mid-migration.
+ */
+export function shipSkinsBase(r2BaseUrl: string | null | undefined): string {
+  const r2 = (r2BaseUrl ?? '').trim().replace(/\/+$/, '');
+  return r2 ? `${r2}/ship-skins/` : SUPABASE_PUBLIC;
+}
+
+const BUCKET_PUBLIC = shipSkinsBase(environment.assets?.r2BaseUrl);
 
 /**
  * Loads the per-ship skin catalog from public.ship_skins and resolves
