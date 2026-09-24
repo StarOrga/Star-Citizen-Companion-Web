@@ -29,7 +29,10 @@
 -- ROLLBACK: select cron.unschedule('codex-build-retention');
 --           drop function public.prune_codex_builds(int);
 
-create extension if not exists pg_cron;
+-- pg_cron is already enabled (20260906130000_patch_stability_cron.sql). Do NOT
+-- repeat `create extension if not exists pg_cron` here: on this project it
+-- fails with 2BP01 "dependent privileges exist" once cron grants exist, and
+-- that rolled back the first `db push` of this file on 2026-09-25.
 
 create or replace function public.prune_codex_builds(p_keep int default 2)
 returns table (build_id uuid, channel text, patch_version text)
