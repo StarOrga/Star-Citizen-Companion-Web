@@ -149,7 +149,10 @@ type KnownCategory = (typeof KNOWN_CATEGORIES)[number];
     /* Block flow, not a grid: plain blocks fragment across columns in every
        engine, grid rows do not everywhere. */
     .items { margin: 0; padding-left: 1.1rem; }
-    .items li { color: var(--sc-fg-2); line-height: 1.5; font-size: 0.9rem; break-inside: avoid; }
+    /* overflow-wrap: a code token in an entry ("ship/weapon/component/item/…",
+       a SQL expression) is wider than a phone column and pushed the page wider
+       than the screen. */
+    .items li { color: var(--sc-fg-2); line-height: 1.5; font-size: 0.9rem; break-inside: avoid; overflow-wrap: anywhere; }
     .items li + li { margin-top: 0.4rem; }
     .items li strong { color: var(--sc-fg-1); font-weight: 600; }
     .mono { font-family: ui-monospace, monospace; }

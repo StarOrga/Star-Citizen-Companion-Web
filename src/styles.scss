@@ -471,6 +471,11 @@ input[type='radio']:checked::after { transform: scale(1); }
  * `min-height` lets the body grow with its content instead of clipping it. */
 html {
   overflow-x: hidden;
+  /* The scrollbar's space is always reserved, so the page frame ("PAGE FRAME"
+     above) does not jump sideways by half a scrollbar between a page that
+     scrolls and one that does not. No effect with overlay scrollbars (phones,
+     macOS), which take no space in the first place. */
+  scrollbar-gutter: stable;
 }
 
 html, body {
@@ -501,6 +506,16 @@ h1, h2, h3, h4 {
   font-family: var(--sc-font-display);
   letter-spacing: 0.04em;
   margin: 0 0 0.6em;
+}
+/* A single long word in a page title ("Datenschutzerklärung" is 403px at the
+   h1 size) is wider than a 360px handset: the heading pushed the page wider
+   than the screen and the phone zoomed the whole page out. Long words
+   hyphenate (the document language follows the UI language, see
+   app.component.ts) and break outright only if they still do not fit. */
+h1 {
+  overflow-wrap: break-word;
+  hyphens: auto;
+  hyphenate-limit-chars: 10 4 4;
 }
 
 a {
@@ -593,10 +608,13 @@ button {
   gap: 16px;
   align-items: start;
 }
-.analysis-grid.single { grid-template-columns: 1fr; }
+/* minmax(0, …), not a bare 1fr: a bare track grows to its widest unbreakable
+   content (a 50-character class name in the blueprint detail), which pushed
+   the single column past a phone's edge. */
+.analysis-grid.single { grid-template-columns: minmax(0, 1fr); }
 .analysis-col { display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 1120px) {
-  .analysis-grid { grid-template-columns: 1fr; }
+  .analysis-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .sc-btn {

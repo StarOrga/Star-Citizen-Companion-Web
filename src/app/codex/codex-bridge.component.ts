@@ -81,16 +81,18 @@ interface Lane {
       <!-- Scanner: the always-present fast path -->
       <div class="scanner">
         <div class="scanner-row">
-          <span class="scanner-icon" aria-hidden="true">⌕</span>
-          <input class="scanner-input" type="search" [ngModel]="searchInput()"
-                 (ngModelChange)="onSearchInput($event)"
-                 (keydown.enter)="openFirstResult()"
-                 [attr.aria-label]="'codex.search.label' | translate"
-                 [attr.placeholder]="'codex.bridge.scannerPlaceholder' | translate" />
-          @if (searchInput()) {
-            <button class="scanner-clear" type="button" (click)="clearSearch()"
-                    [attr.aria-label]="'codex.search.clear' | translate">×</button>
-          }
+          <div class="scanner-field">
+            <span class="scanner-icon" aria-hidden="true">⌕</span>
+            <input class="scanner-input" type="search" [ngModel]="searchInput()"
+                   (ngModelChange)="onSearchInput($event)"
+                   (keydown.enter)="openFirstResult()"
+                   [attr.aria-label]="'codex.search.label' | translate"
+                   [attr.placeholder]="'codex.bridge.scannerPlaceholder' | translate" />
+            @if (searchInput()) {
+              <button class="scanner-clear" type="button" (click)="clearSearch()"
+                      [attr.aria-label]="'codex.search.clear' | translate">×</button>
+            }
+          </div>
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
           <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
@@ -320,10 +322,15 @@ interface Lane {
 
     /* Scanner */
     .scanner { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
-    .scanner-row { position: relative; display: flex; align-items: center; gap: 8px; flex: 1 1 320px; }
+    /* The row wraps: on a phone the five index links used to stay on the
+       search field's line and pushed the page ~650px wider than the screen.
+       The field (icon, input, clear) is its own box, so the icon stays on the
+       input however the links wrap. */
+    .scanner-row { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; flex-wrap: wrap; }
+    .scanner-field { position: relative; display: flex; align-items: center; flex: 1 1 260px; min-width: 0; }
     .scanner-icon { position: absolute; left: 14px; color: var(--sc-accent); font-size: 1.1rem; pointer-events: none; }
     .scanner-input {
-      flex: 1; padding: 13px 14px 13px 40px; border-radius: 10px;
+      flex: 1; min-width: 0; padding: 13px 14px 13px 40px; border-radius: 10px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 1rem;
     }
@@ -331,6 +338,7 @@ interface Lane {
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
     .scanner-clear:hover { color: var(--sc-danger); }
     .index-link {
+      display: inline-flex; align-items: center;
       padding: 6px 12px; border-radius: 8px;
       background: color-mix(in srgb, var(--sc-accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 34%, transparent);
       color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.05em;

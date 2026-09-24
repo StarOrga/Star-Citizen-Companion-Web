@@ -174,7 +174,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .hero { display: flex; flex-direction: column; gap: 16px; }
     .hero-text { display: flex; flex-direction: column; gap: 6px; }
     .entity-name { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.5; max-width: var(--sc-measure); }
 
     .facts { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
@@ -203,7 +203,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .ing-name { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); }
     .ing-name.link { color: var(--sc-accent); text-decoration: none; }
     .ing-name.link:hover { text-decoration: underline; }
-    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .ing-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
