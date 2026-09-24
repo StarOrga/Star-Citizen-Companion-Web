@@ -563,7 +563,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
      stretching the table (and dropping the hull to the bottom of a 1500px frame). */
   @media (min-width: 1001px) {
   .holo-right { height: 0; min-height: 100%; }
-  .holo-right > .pb:not(.rail-min) { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--a28) transparent; }
+  .holo-right > .pb:not(.rail-min) { overflow-y: auto; overscroll-behavior: contain; }
   }
   .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2); }
   .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .n, .holo-panel.collapsed > .ph .ph-glyph { display: none; }
@@ -641,7 +641,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* The share popover is a real surface: background, frame, shadow, a notch
      pointing at "Teilen" — never floating text over the table. */
   .share-popover { position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(340px, calc(100vw - 32px));
-  padding: 14px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+  padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px var(--a10); transform-origin: calc(100% - 22px) -6px; }
   .share-popover::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg; background: var(--sc-bg-1);
   border-top: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-left: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); }
