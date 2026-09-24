@@ -63,94 +63,107 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
           </div>
         </div>
 
-        <!-- Ingredients -->
-        <div class="section sc-card">
-          <h2 class="section-title">{{ 'blueprint.detail.ingredients' | translate }}</h2>
-          @if (ingredients().length === 0) {
-            <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
-          } @else {
-            <div class="ingredient-list">
-              @for (ing of ingredients(); track ing.ingredientIndex) {
-                <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
-                  <div class="ing-qty">× {{ ing.quantity }}</div>
-                  <div class="ing-info">
-                    @if (ing.ingredientClassName && ing.entityKind) {
-                      <a class="ing-name link"
-                         [routerLink]="['/codex', ing.entityKind, ing.ingredientClassName]">
-                        {{ ingredientName(ing) }}
-                      </a>
-                    } @else if (ing.ingredientClassName) {
-                      <span class="ing-name">{{ ingredientName(ing) }}</span>
-                    } @else {
-                      <span class="ing-name muted">{{ 'blueprint.detail.unresolved' | translate }}</span>
-                    }
-                    @if (ing.ingredientClassName) {
-                      <code class="ing-cls">{{ ing.ingredientClassName }}</code>
-                    }
-                    <div class="ing-meta">
-                      @if (ing.role && ing.role !== 'primary') {
-                        <span class="badge role">{{ ('blueprint.role.' + ing.role) | translate }}</span>
+        <!-- What goes in, and what comes out of it: side by side on a wide
+             frame, stacked below 1120px (the shared .analysis-grid in
+             styles.scss). The page itself runs the full frame. -->
+        <div class="analysis-grid" [class.single]="!(outputInfo() || qualityStats().length > 0)">
+          <div class="analysis-col">
+            <!-- Ingredients -->
+            <div class="section sc-card">
+              <h2 class="section-title">{{ 'blueprint.detail.ingredients' | translate }}</h2>
+              @if (ingredients().length === 0) {
+                <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
+              } @else {
+                <div class="ingredient-list">
+                  @for (ing of ingredients(); track ing.ingredientIndex) {
+                    <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
+                      <div class="ing-qty">× {{ ing.quantity }}</div>
+                      <div class="ing-info">
+                        @if (ing.ingredientClassName && ing.entityKind) {
+                          <a class="ing-name link"
+                             [routerLink]="['/codex', ing.entityKind, ing.ingredientClassName]">
+                            {{ ingredientName(ing) }}
+                          </a>
+                        } @else if (ing.ingredientClassName) {
+                          <span class="ing-name">{{ ingredientName(ing) }}</span>
+                        } @else {
+                          <span class="ing-name muted">{{ 'blueprint.detail.unresolved' | translate }}</span>
+                        }
+                        @if (ing.ingredientClassName) {
+                          <code class="ing-cls">{{ ing.ingredientClassName }}</code>
+                        }
+                        <div class="ing-meta">
+                          @if (ing.role && ing.role !== 'primary') {
+                            <span class="badge role">{{ ('blueprint.role.' + ing.role) | translate }}</span>
+                          }
+                          @if (ing.minQuality != null) {
+                            <span class="badge quality">{{ 'blueprint.detail.minQuality' | translate }}: {{ formatQuality(ing.minQuality) }}</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (outputInfo() || qualityStats().length > 0) {
+            <div class="analysis-col">
+              <!-- Output -->
+              @if (outputInfo(); as out) {
+                <div class="section sc-card">
+                  <h2 class="section-title">{{ 'blueprint.detail.output' | translate }}</h2>
+                  <div class="output-row">
+                    <div class="ing-qty">× {{ out.quantity }}</div>
+                    <div class="ing-info">
+                      @if (out.className && out.entityKind) {
+                        <a class="ing-name link"
+                           [routerLink]="['/codex', out.entityKind, out.className]">
+                          {{ out.name }}
+                        </a>
+                      } @else {
+                        <span class="ing-name">{{ out.name }}</span>
                       }
-                      @if (ing.minQuality != null) {
-                        <span class="badge quality">{{ 'blueprint.detail.minQuality' | translate }}: {{ formatQuality(ing.minQuality) }}</span>
+                      @if (out.className) {
+                        <code class="ing-cls">{{ out.className }}</code>
                       }
                     </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Static quality summary (v2: interactive sliders) -->
+              @if (qualityStats().length > 0) {
+                <div class="section sc-card">
+                  <h2 class="section-title">{{ 'blueprint.detail.qualitySummary' | translate }}</h2>
+                  <p class="quality-note muted">{{ 'blueprint.detail.qualityNote' | translate }}</p>
+                  <div class="quality-table">
+                    @for (qs of qualityStats(); track qs.stat) {
+                      <div class="quality-row" [class.primary]="qs.primary">
+                        <span class="q-label">{{ humanizeKey(qs.stat) }}</span>
+                        <span class="q-val">
+                          {{ qs.baseValue != null ? formatNumber(qs.baseValue) + (qs.unit ? ' ' + qs.unit : '') : ('codex.detail.naValue' | translate) }}
+                        </span>
+                        @if (qs.primary) {
+                          <span class="q-primary-badge">{{ 'blueprint.detail.primary' | translate }}</span>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
               }
             </div>
           }
         </div>
-
-        <!-- Output -->
-        @if (outputInfo(); as out) {
-          <div class="section sc-card">
-            <h2 class="section-title">{{ 'blueprint.detail.output' | translate }}</h2>
-            <div class="output-row">
-              <div class="ing-qty">× {{ out.quantity }}</div>
-              <div class="ing-info">
-                @if (out.className && out.entityKind) {
-                  <a class="ing-name link"
-                     [routerLink]="['/codex', out.entityKind, out.className]">
-                    {{ out.name }}
-                  </a>
-                } @else {
-                  <span class="ing-name">{{ out.name }}</span>
-                }
-                @if (out.className) {
-                  <code class="ing-cls">{{ out.className }}</code>
-                }
-              </div>
-            </div>
-          </div>
-        }
-
-        <!-- Static quality summary (v2: interactive sliders) -->
-        @if (qualityStats().length > 0) {
-          <div class="section sc-card">
-            <h2 class="section-title">{{ 'blueprint.detail.qualitySummary' | translate }}</h2>
-            <p class="quality-note muted">{{ 'blueprint.detail.qualityNote' | translate }}</p>
-            <div class="quality-table">
-              @for (qs of qualityStats(); track qs.stat) {
-                <div class="quality-row" [class.primary]="qs.primary">
-                  <span class="q-label">{{ humanizeKey(qs.stat) }}</span>
-                  <span class="q-val">
-                    {{ qs.baseValue != null ? formatNumber(qs.baseValue) + (qs.unit ? ' ' + qs.unit : '') : ('codex.detail.naValue' | translate) }}
-                  </span>
-                  @if (qs.primary) {
-                    <span class="q-primary-badge">{{ 'blueprint.detail.primary' | translate }}</span>
-                  }
-                </div>
-              }
-            </div>
-          </div>
-        }
       }
     </section>
   `,
   styles: [`
     :host { display: block; }
-    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; max-width: 900px; margin: 0 auto; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own;
+       the sections below share it in two columns. */
+    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
     .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; }
     .back:hover { color: var(--sc-accent); }
@@ -161,8 +174,8 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .hero { display: flex; flex-direction: column; gap: 16px; }
     .hero-text { display: flex; flex-direction: column; gap: 6px; }
     .entity-name { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
-    .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.5; }
+    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
+    .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.5; max-width: var(--sc-measure); }
 
     .facts { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
     .fact {
@@ -190,7 +203,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .ing-name { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); }
     .ing-name.link { color: var(--sc-accent); text-decoration: none; }
     .ing-name.link:hover { text-decoration: underline; }
-    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
+    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .ing-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }

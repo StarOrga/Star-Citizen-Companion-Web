@@ -330,13 +330,15 @@ const SEARCH_DEBOUNCE_MS = 250;
   `,
   styles: [
     `
+      /* The full page frame, like every other page (styles.scss, "PAGE FRAME").
+         The landing opens on the terminal's hard edge rather than a heading, so
+         it takes the shared --sc-page-lead; the 96px at the bottom keep the
+         last row clear of the fixed compare tray. */
       .landing {
         display: flex;
         flex-direction: column;
         gap: 20px;
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 16px 16px 96px;
+        padding: var(--sc-page-lead) 0 96px;
       }
       .icon { width: 100%; height: 100%; display: block; }
       .mono { font-family: var(--font-monospace, 'Share Tech Mono', monospace); font-variant-numeric: tabular-nums; }

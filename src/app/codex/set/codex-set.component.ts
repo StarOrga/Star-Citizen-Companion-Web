@@ -81,7 +81,9 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
   `,
   styles: [
     `
-      .set-page { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 16px 16px 96px; }
+      /* The full page frame (styles.scss, "PAGE FRAME") — no width or side/top
+         padding of its own. */
+      .set-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 96px; }
       .back { align-self: flex-start; color: var(--sc-fg-2); font-size: 0.85rem; text-decoration: none; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       .hint { color: var(--sc-fg-2); }

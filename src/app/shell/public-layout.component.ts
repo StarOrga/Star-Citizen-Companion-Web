@@ -92,16 +92,17 @@ import { FooterComponent } from './footer.component';
       text-transform: uppercase;
       font-weight: 600;
     }
+    /* The same page frame as the shell's .content (styles.scss, "PAGE FRAME"). */
     .content {
       flex: 1;
       width: 100%;
-      padding: 26px 28px 32px;
-      max-width: 1280px;
+      padding: 26px var(--sc-page-gutter) 32px;
+      max-width: var(--sc-page-max);
       margin: 0 auto;
     }
     @media (max-width: 720px) {
       .public-topbar { padding: 4px 12px; }
-      .content { padding: 20px 16px; }
+      .content { padding: 20px var(--sc-page-gutter); }
     }
   `],
 })

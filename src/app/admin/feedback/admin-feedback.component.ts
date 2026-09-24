@@ -1026,9 +1026,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
   `,
   styles: [`
     :host { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-    .page { position: relative; display: flex; flex-direction: column; gap: var(--sc-gap-2); max-width: 860px; min-height: 0; }
+    /* As a page it runs the full frame (styles.scss, "PAGE FRAME") — the same
+       width the maximized FAB panel already gives the large board. */
+    .page { position: relative; display: flex; flex-direction: column; gap: var(--sc-gap-2); min-height: 0; }
     .page:not(.embedded) { min-height: 70vh; }
-    .page.embedded { max-width: none; flex: 1 1 auto; padding: var(--sc-pad-2); box-sizing: border-box; }
+    .page.embedded { flex: 1 1 auto; padding: var(--sc-pad-2); box-sizing: border-box; }
     /* overflow-x: the stream scrolls DOWN, never sideways (admin feedback
        96259f21). overflow-y: auto alone leaves the x axis at "visible", which
        computes to "auto" — so a few stray pixels anywhere in the list (a

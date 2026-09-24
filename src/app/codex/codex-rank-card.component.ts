@@ -274,11 +274,13 @@ import {
 
     /* ONE column by default. A row spends 74 + 34 + two 5px gaps = 118px on
        label, value and gutters and gives the rest to the track, so the track
-       is only as wide as the column it sits in. On the widest desktop the
-       card is 604px (1224px of shell content halved with a 16px gap) = 566px
+       is only as wide as the column it sits in. On a full-HD desktop the
+       card is 604px (1224px of page content halved with a 16px gap) = 566px
        of content, 346px of that in the bars column: one column leaves a
        228px track, two would leave 114px each — and every step narrower took
-       the two-column track towards zero and then overflowed the row. */
+       the two-column track towards zero and then overflowed the row. Beyond
+       1920px the page frame grows (styles.scss, "PAGE FRAME"), and the
+       container query below decides again from the card's real width. */
     .bar-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr;
       gap: 4px 12px; align-content: start; }
     /* Two columns only once the CARD can pay for them: 708px of card content

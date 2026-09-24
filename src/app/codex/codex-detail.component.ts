@@ -1540,7 +1540,8 @@ interface GearRecipe {
   `,
   styles: [`
     :host { display: block; }
-    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; max-width: 1500px; margin: 0 auto; width: 100%; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
+    .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
     /* Card chrome, concept part-02:140 (.m-card): a 4px corner and a flat
        surface - the mock draws no glow at all. The app-wide .sc-card keeps its
        8px radius and its cyan halo everywhere else; only this page is redrawn,

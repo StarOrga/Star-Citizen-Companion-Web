@@ -421,7 +421,8 @@ const WINDOWS = [7, 30, 90] as const;
     </section>
   `,
   styles: [`
-    .page { padding: 1rem; max-width: 1100px; margin: 0 auto; }
+    /* No .page sizing: the page runs the full frame like every other page
+       (styles.scss, "PAGE FRAME"). */
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
     .hint { color: var(--sc-text-dim, #8b97a8); font-size: 0.85rem; }
     .err { background: rgba(248,81,73,.12); color: #f85149; padding: 0.6rem 0.9rem; border-radius: 8px; margin-bottom: 1rem; }
@@ -509,7 +510,6 @@ const WINDOWS = [7, 30, 90] as const;
 
     @media (max-width: 760px) { .totals { grid-template-columns: repeat(2,1fr); } .cols { grid-template-columns: 1fr; } }
     @media (max-width: 560px) {
-      .page { padding: 0; }
       .head { flex-direction: column; align-items: stretch; }
       /* Full width so all three ranges stay a comfortable thumb target. */
       .window-seg { display: block; }

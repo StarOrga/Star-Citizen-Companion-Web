@@ -52,7 +52,8 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
     </section>
   `,
   styles: [`
-    .dl { display: flex; flex-direction: column; gap: 14px; max-width: 620px; }
+    /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
+    .dl { display: flex; flex-direction: column; gap: 14px; }
     .u-head h1 { margin: 0; }
     .u-head .hint { color: var(--sc-fg-2); margin: 4px 0 0; }
     .err {

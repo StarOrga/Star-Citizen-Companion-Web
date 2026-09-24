@@ -78,6 +78,68 @@
 }
 
 /* ============================================================
+   PAGE FRAME — one content width for every page
+   (admin, 2026-09-24: the content area changed width from menu
+   entry to menu entry)
+
+   The shell's .content and the public layout's .content are the
+   ONLY elements that size a page. At any screen width every page
+   gets exactly the same frame, so switching pages never moves the
+   left edge, the right edge or the line the first heading sits on.
+   A page never sets max-width, a centring margin or side/top
+   padding on its root: that is how the frame had drifted into
+   eight widths (620 / 720 / 820 / 860 / 900 / 1100 / 1180px beside
+   the shell's 1280px), some centred, some flush left.
+
+   Whatever reads better narrower limits ITSELF inside the frame:
+   running text takes --sc-measure, a compact card or dialog keeps
+   its own max-width. The page around it stays full width.
+
+     --sc-page-max     the frame, gutters included. 1280px up to a
+                       1920px-wide viewport, so laptops and full-HD
+                       screens look exactly as before; beyond that
+                       it grows with the viewport to 1600px at
+                       2560px (QHD, ultrawide), where a fixed 1280px
+                       column left half the screen as empty margin.
+     --sc-page-gutter  the frame's side padding. Footer and banners
+                       align to it, and a page-level bar that runs
+                       edge to edge (the settings sub-navigation)
+                       undoes exactly this much.
+     --sc-measure      comfortable line length for running text.
+   ============================================================ */
+:root {
+  --sc-page-max: clamp(1280px, 50vw + 320px, 1600px);
+  --sc-page-gutter: 28px;
+  --sc-measure: 70ch;
+}
+@media (max-width: 720px) {
+  :root { --sc-page-gutter: 16px; }
+}
+/* Last step of the gutter: on a 360-375px handset every one of these 4px is
+   a word (admin feedback 3bc01a3d). */
+@media (max-width: 400px) {
+  :root { --sc-page-gutter: 12px; }
+}
+
+/* A page made of self-contained text cards (about, privacy, imprint, the
+   extension install page) spends the frame the way settings does
+   (settings.component.ts, .grid): one column, two from 900px up, instead of
+   one column of 170-character lines across the whole frame. Headings and
+   lead text (every child that is not a card) keep the full row, and so does
+   a card marked .wide. */
+.sc-card-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .sc-card-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.sc-card-page > :not(.sc-card),
+.sc-card-page > .wide { grid-column: 1 / -1; }
+
+/* ============================================================
    DENSITY SCALE — one padding rhythm for the whole app
    (admin feedback 3bc01a3d: "viele Ränder in Rändern in Rändern
    und viel wo die eigentliche Info nur 10 Prozent horizontal
@@ -409,6 +471,11 @@ input[type='radio']:checked::after { transform: scale(1); }
  * `min-height` lets the body grow with its content instead of clipping it. */
 html {
   overflow-x: hidden;
+  /* The scrollbar's space is always reserved, so the page frame ("PAGE FRAME"
+     above) does not jump sideways by half a scrollbar between a page that
+     scrolls and one that does not. No effect with overlay scrollbars (phones,
+     macOS), which take no space in the first place. */
+  scrollbar-gutter: stable;
 }
 
 html, body {
@@ -439,6 +506,15 @@ h1, h2, h3, h4 {
   font-family: var(--sc-font-display);
   letter-spacing: 0.04em;
   margin: 0 0 0.6em;
+}
+/* A single long word in a page title ("Datenschutzerklärung" is 403px at the
+   h1 size) is wider than a 360px handset: the heading pushed the page wider
+   than the screen and the phone zoomed the whole page out. A word breaks only
+   when it cannot fit on a line of its own — no automatic hyphenation, which
+   would also split ship and item names by German rules. A known long title
+   carries a soft hyphen in its translation instead (legal.privacy.title). */
+h1 {
+  overflow-wrap: break-word;
 }
 
 a {
@@ -519,21 +595,24 @@ button {
   box-shadow: var(--sc-glow);
 }
 
-/* Loadout | Analyse two-column split on the codex ship detail page (PR C,
-   02-handover §2). Kept global — codex-detail.component.ts is already near
-   its per-component style budget, and this layout has no ship-specific
-   logic worth scoping. Single column below 1120px; the analysis column
-   simply follows the loadout below it (no reordering needed there). */
+/* Two-column split, single column below 1120px. Born as the codex ship
+   detail's Loadout | Analyse split (PR C, 02-handover §2) and kept global
+   because codex-detail.component.ts sits near its per-component style
+   budget; the ship detail now only uses .analysis-col, and .analysis-grid
+   splits the blueprint detail (ingredients | output + quality). */
 .analysis-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
-.analysis-grid.single { grid-template-columns: 1fr; }
+/* minmax(0, …), not a bare 1fr: a bare track grows to its widest unbreakable
+   content (a 50-character class name in the blueprint detail), which pushed
+   the single column past a phone's edge. */
+.analysis-grid.single { grid-template-columns: minmax(0, 1fr); }
 .analysis-col { display: flex; flex-direction: column; gap: 16px; }
 @media (max-width: 1120px) {
-  .analysis-grid { grid-template-columns: 1fr; }
+  .analysis-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .sc-btn {

@@ -487,7 +487,8 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
           }
         </div>
 
-        <table class="sc-card table">
+        <div class="sc-card table-scroll">
+        <table class="table">
           <thead>
             <tr>
               <th class="sortable" (click)="toggleSort('user')"
@@ -655,6 +656,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
             }
           </tbody>
         </table>
+        </div>
       }
     </section>
   `,
@@ -707,19 +709,22 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .no-matches { text-align: center; color: var(--sc-fg-2); padding: 24px !important; }
     @media (max-width: 640px) {
       .filter-search, sc-select.filter-role { flex: 1 1 100%; width: auto; }
-      /* Make the wide user table scroll horizontally instead of pushing the page. */
-      .table {
-        display: block;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        white-space: nowrap;
-      }
-      /* 720, not 640: the reports column (feedback cf0ddf7d) added a track. */
-      .table thead, .table tbody { display: table; width: 100%; min-width: 720px; }
+      /* One line per user on a phone, read by scrolling the card sideways
+         (.table-scroll below) — squeezed into the screen instead, every row
+         wrapped into a tall stack of fragments. */
+      .table { white-space: nowrap; }
+      .table .actions { flex-wrap: nowrap; }
     }
 
-    .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
+    /* The card scrolls, the table keeps its own layout: wherever the frame is
+       narrower than the table's ~900px of content (every phone, and tablets up
+       to ~960px) the table scrolls sideways inside the card instead of pushing
+       the page wider than the screen. The old phone-only rule turned the table
+       itself into the scroller, but the plain .table rule after it reset
+       overflow to hidden, so a phone got clipped columns, and tablets had no
+       rule at all. */
+    .table-scroll { padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table { width: 100%; border-collapse: collapse; }
     .table th, .table td {
       padding: 10px 14px;
       text-align: left;
@@ -737,6 +742,10 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     }
     .table thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
     .table thead th.sortable:hover { color: var(--sc-fg-0); }
+    /* Inside the header cell: the scrolling card (.table-scroll) clips
+       anything drawn outside it, which cut the app-wide focus ring off at the
+       card's edges. */
+    .table thead th.sortable:focus-visible { outline-offset: -2px; }
     .table thead th.active { color: var(--sc-accent); }
     .sort-ind { display: inline-block; width: 1em; margin-left: 4px; font-size: 0.8em; }
     .user-name { display: block; }

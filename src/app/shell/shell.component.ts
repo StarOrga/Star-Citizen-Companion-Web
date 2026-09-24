@@ -681,20 +681,19 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     }
     .route-load-error__dismiss:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
 
-    /* Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
+    /* The page frame — the one element that sizes every routed page. Width and
+       side gutter are the global --sc-page-max / --sc-page-gutter tokens
+       (styles.scss, "PAGE FRAME"), shared with the public layout, the footer
+       and the account notice, so all of them share one pair of edges. Pages
+       never size themselves inside it.
+       Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
-       reclaimed space is reused below the heading by the pages themselves.
-       The side gutter is published as --sc-content-pad-x: a page-level bar that
-       wants to run edge to edge (the settings sub-navigation) can then undo
-       exactly this padding instead of hard-coding a number that drifts apart
-       from the shell's at the next breakpoint. Custom properties inherit, so it
-       reaches the routed component through the outlet. */
+       reclaimed space is reused below the heading by the pages themselves. */
     .content {
-      --sc-content-pad-x: 28px;
       flex: 1;
       width: 100%;
-      padding: 26px var(--sc-content-pad-x) 32px;
-      max-width: 1280px;
+      padding: 26px var(--sc-page-gutter) 32px;
+      max-width: var(--sc-page-max);
       margin: 0 auto;
     }
     /* Below 1080px the header stops sticking.
@@ -741,7 +740,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
       }
       .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
-      .content { --sc-content-pad-x: 16px; padding: 20px var(--sc-content-pad-x); }
+      .content { padding: 20px var(--sc-page-gutter); }
     }
     /* Touch baseline: nav entries are the app's primary controls, so they get a
        real finger target rather than the 33px the text padding alone gives. */
@@ -750,10 +749,8 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     }
     @media (max-width: 400px) {
       .topbar { padding: 8px 12px; }
-      /* Last step of the gutter: on a 360-375px handset every one of these 8px
-         is a word (admin feedback 3bc01a3d). Published as --sc-content-pad-x,
-         so the page bars that undo the gutter follow it down automatically. */
-      .content { --sc-content-pad-x: 12px; }
+      /* The content gutter's last step (12px) lives in the --sc-page-gutter
+         token, so the page bars that undo it follow it down automatically. */
       /* Anchor the dropdown to the viewport edges so a 180px menu can't push
          the page wider than the screen. */
       .dropdown { right: 0; left: auto; min-width: 200px; max-width: calc(100vw - 24px); }

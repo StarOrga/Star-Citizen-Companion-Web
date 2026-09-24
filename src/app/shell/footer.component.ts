@@ -62,15 +62,17 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     .site-footer {
       border-top: 1px solid var(--sc-border);
       background: linear-gradient(0deg, var(--sc-bg-2), transparent);
-      padding: 12px 28px;
+      padding: 12px var(--sc-page-gutter);
       margin-top: auto;
     }
     /* The community badge and the disclaimer column need real air between them
        (feedback #79, item 6): at 18px the wrapped "… Community" and the
        "Dies ist eine inoffizielle …" line ran into each other and read as one
-       sentence. 34px separates the two blocks without breaking the single row. */
+       sentence. 34px separates the two blocks without breaking the single row.
+       The row shares the page content's edges (styles.scss, "PAGE FRAME"): the
+       frame minus its gutters is exactly the content box above it. */
     .inner {
-      max-width: 1400px;
+      max-width: calc(var(--sc-page-max) - 2 * var(--sc-page-gutter));
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -170,7 +172,6 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
     }
     .legal-links a:hover { color: var(--sc-accent); }
     @media (max-width: 640px) {
-      .site-footer { padding: 12px 16px; }
       .inner { flex-direction: column; align-items: flex-start; gap: 10px; }
       .badge-label { max-width: none; }
       .whatsnew { align-items: flex-start; }
