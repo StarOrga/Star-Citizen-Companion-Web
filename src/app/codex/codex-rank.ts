@@ -91,6 +91,10 @@ export function rankProfileById(id: string | null | undefined): RankProfile {
 /** One cohort member — the ranking never sees payloads, only sheets. */
 export interface RankShipInput {
   className: string;
+  /** The ship's localized display name, when the cohort read carried one —
+   * lists that name cohort ships (the Holotable top-3) show it instead of a
+   * humanized class name. Optional: cached cohorts from before it existed. */
+  name?: string | null;
   /** ship size class (1..5) — the default scope groups by it. */
   sizeClass: number | null;
   career: string | null;

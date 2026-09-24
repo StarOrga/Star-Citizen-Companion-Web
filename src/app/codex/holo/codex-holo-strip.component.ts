@@ -13,6 +13,9 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -123,15 +126,19 @@ let uidSeq = 0;
             <span class="lab"><span class="lt">{{ tile.labelKey | translate }}</span>@if (tile.percentile != null) { <span class="pct">P{{ tile.percentile }}</span> }</span>
             <div class="tile-vals">
               @for (c of tile.cells; track c.key) {
-                <span class="tv">
+                <span class="tv" [class.flash]="flashKeys().has(c.key)">
                   <span class="k">{{ ('codex.kpi.short.' + c.key) | translate }}</span>
-                  <span class="v pulse">{{ fmtCell(c) }}</span>
+                  <span class="v">{{ fmtRolled(c) }}</span>
                   @if (deltaTone(c); as tone) {
                     <span class="d" [class.up]="tone === 'up'" [class.down]="tone === 'down'"
                       >{{ c.delta!.raw > 0 ? '+' : '−' }}{{ fmt(absDelta(c)) }}</span
                     >
                   }
                 </span>
+              } @empty {
+                <!-- Nothing in this perspective has a value for this hull — say
+                     so instead of leaving a label over an empty cell. -->
+                <span class="tv none" [attr.title]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
               }
             </div>
           </div>
@@ -141,11 +148,15 @@ let uidSeq = 0;
 
         <div class="seg sig" data-p="signature">
           <span class="lab"><span class="lt">{{ 'codex.holo.strip.signature' | translate }}</span>@if (signaturePercentile(); as p) { <span class="pct">P{{ p }}</span> }</span>
-          <span class="rankpips" [attr.aria-label]="'codex.holo.strip.signatureRank' | translate: { n: signatureRankFill() }">
-            @for (n of pipFive; track n) {
-              <i [class.on]="n <= signatureRankFill()"></i>
-            }
-          </span>
+          <!-- Class-rank pips only when the active profile ranks a signature
+               axis at all — five empty pips read as "worst in class". -->
+          @if (signatureRanked()) {
+            <span class="rankpips" [attr.aria-label]="'codex.holo.strip.signatureRank' | translate: { n: signatureRankFill() }">
+              @for (n of pipFive; track n) {
+                <i [class.on]="n <= signatureRankFill()"></i>
+              }
+            </span>
+          }
           <span class="tipw fact">
             <button type="button" class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</button>
             <span class="v pulse">{{ fmtKm($safeNavigationMigration(irFact()?.value)) }}<small>km</small></span>
@@ -179,13 +190,14 @@ let uidSeq = 0;
           [title]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
           (click)="toggleExpanded()"
         >
-          <span aria-hidden="true">{{ expanded() ? '▾' : '▴' }}</span>
+          <span class="chev" [class.open]="expanded()" aria-hidden="true">▴</span>
           <span class="sr-only">{{ (expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate }}</span>
         </button>
       </div>
 
       @if (expanded()) {
-        <div class="hs-panel" [id]="panelId" (keydown.escape)="dismissTooltips()" (focusin)="reopenTooltips()" (pointerenter)="reopenTooltips()">
+        <div class="hs-panel" [id]="panelId" animate.enter="hp-enter" animate.leave="hp-leave"
+             (keydown.escape)="dismissTooltips()" (focusin)="reopenTooltips()" (pointerenter)="reopenTooltips()">
           <div class="hp-modes">
             <div class="seg-pick" role="radiogroup" [attr.aria-label]="'codex.energy.mode.label' | translate">
               @for (m of modes; track m) {
@@ -264,7 +276,7 @@ let uidSeq = 0;
                   <span class="v">{{ 'codex.holo.strip.coolingValue' | translate: { used: sheet().coolant.used, total: sheet().coolant.total } }}</span>
                   <span class="k">{{ 'codex.holo.strip.cooling' | translate }}</span>
                 } @else {
-                  <span class="gapv">{{ 'codex.energy.gap.noCoolingData' | translate }}</span>
+                  <span class="gapv">{{ coolantGapKey() | translate }}</span>
                 }
               </div>
             </div>
@@ -292,6 +304,7 @@ let uidSeq = 0;
   styles: [
     `
       :host { display: block; position: sticky; inset-block-end: 0; z-index: 14;
+        --e-out: cubic-bezier(0.2, 0.7, 0.2, 1);
         --hs-mono: var(--font-monospace, 'Share Tech Mono', monospace);
         --p-offensive: var(--sc-accent);
         --p-defensive: var(--cat-game, #c07888);
@@ -307,7 +320,12 @@ let uidSeq = 0;
         color: var(--sc-fg-0);
         font-size: max(12px, var(--sc-fs-floor));
       }
-      .hs-row { display: flex; align-items: stretch; gap: 0; padding: 0; overflow-x: auto; min-block-size: 62px; }
+      /* --fab-clear: the feedback launcher owns the bottom-right corner
+         (--sc-fab-lane in styles.scss) — where the strip reaches into that
+         lane, its content stops short of it (measured, see the class). */
+      .hs-row { display: flex; align-items: stretch; gap: 0; padding: 0; padding-inline-end: var(--fab-clear, 0px); overflow-x: auto;
+        scrollbar-width: none; min-block-size: 62px; }
+      .hs-row::-webkit-scrollbar { display: none; }
       .seg { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 7px 10px; min-width: 0; flex: none;
         border-inline-end: 1px solid var(--sc-border); border-block-start: 2px solid transparent; }
       .seg[data-p="offensive"] { border-block-start-color: var(--p-offensive); }
@@ -328,7 +346,13 @@ let uidSeq = 0;
       .tile-vals { display: flex; gap: 10px; flex-wrap: nowrap; }
       .tv { display: flex; flex-direction: column; gap: 1px; }
       .tv .k { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; }
-      .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap; }
+      .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap;
+        border-radius: 2px; transition: color 0.4s ease; }
+      .tv.none .v { color: var(--sc-fg-2); }
+      /* A value the pilot just changed (a swap, a revert) lights up once. */
+      .tv.flash .v { animation: val-flash 900ms var(--e-out); }
+      @keyframes val-flash { 0% { color: var(--sc-accent); text-shadow: 0 0 10px color-mix(in srgb, var(--sc-accent) 70%, transparent);
+        background: color-mix(in srgb, var(--sc-accent) 16%, transparent); } }
       .d { font-family: var(--hs-mono); font-size: max(9.5px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
       .d.up { color: var(--sc-success); }
       .d.down { color: var(--sc-danger); }
@@ -355,6 +379,9 @@ let uidSeq = 0;
         color: var(--sc-accent); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;
       }
       .hs-toggle:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .hs-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      .hs-toggle .chev { display: inline-block; transition: transform 260ms var(--e-out); }
+      .hs-toggle .chev.open { transform: rotate(180deg); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       .tipw { position: relative; }
       .tipbox { display: block; visibility: hidden; opacity: 0; transition: opacity 0.12s ease;
@@ -369,6 +396,11 @@ let uidSeq = 0;
          Modi links, Pips Mitte, Kühlung rechts — one instrument, one row). */
       .hs-panel { border-block-start: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
         padding: 12px 14px; display: grid; grid-template-columns: 180px 1fr 250px; gap: 22px; align-items: center; }
+      /* The panel unfolds out of the strip and folds back into it. */
+      .hp-enter { animation: hp-in 260ms var(--e-out); }
+      .hp-leave { animation: hp-out 180ms ease-in forwards; }
+      @keyframes hp-in { from { opacity: 0; clip-path: inset(100% 0 0 0); } }
+      @keyframes hp-out { to { opacity: 0; clip-path: inset(100% 0 0 0); } }
       .hp-modes { display: grid; gap: 6px; padding-inline-end: 22px; border-inline-end: 1px solid var(--sc-border); }
       .seg-pick { display: grid; gap: 6px; }
       .m { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--sc-border); border-radius: 3px;
@@ -379,12 +411,15 @@ let uidSeq = 0;
       .m.preset { border-style: dashed; border-color: rgba(var(--accent-gold-rgb, 200, 168, 75), 0.5); color: var(--p-signature); }
       .m.preset.on { background: rgba(var(--accent-gold-rgb, 200, 168, 75), 0.12); border-style: solid; border-color: var(--p-signature); }
       .m.reset { justify-content: center; padding: 3px 8px; min-block-size: 26px; font-size: max(8.5px, var(--sc-fs-floor)); }
-      .hp-pips { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; --pip-h: 9px; --pip-gap: 2px; --pip-w: 22px; --pips: 1; }
+      .hp-pips { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; --pip-h: 10px; --pip-gap: 3px; --pip-w: 26px; --pips: 1; }
       .hp-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
       .stack { display: flex; flex-direction: column-reverse; gap: var(--pip-gap);
         block-size: calc(var(--pips) * var(--pip-h) + (var(--pips) - 1) * var(--pip-gap)); min-block-size: 30px; }
       .stack .pip { inline-size: var(--pip-w); block-size: var(--pip-h); border: none; border-radius: 2px;
-        background: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); cursor: pointer; padding: 0; }
+        background: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); cursor: pointer; padding: 0;
+        transition: background 160ms ease, box-shadow 160ms ease, transform 120ms ease; }
+      .stack .pip:not(:disabled):hover { transform: scaleX(1.08); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 55%, transparent); }
+      .stack .pip.on { box-shadow: 0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
       .stack .pip.on { background: var(--sc-accent); }
       .stack .pip.min { background: var(--sc-warn); }
       .hp-col.off .stack .pip { background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent); }
@@ -482,6 +517,8 @@ export class CodexHoloStripComponent {
 
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly modes: readonly FlightMode[] = ['scm', 'nav'];
   protected readonly pipFive = [1, 2, 3, 4, 5];
@@ -517,6 +554,10 @@ export class CodexHoloStripComponent {
 
   protected readonly irFact = computed(() => this.sheet().facts.find((f) => f.key === 'ir'));
   protected readonly emFact = computed(() => this.sheet().facts.find((f) => f.key === 'em'));
+  /** WHY the cooling load is empty — no coolers vs. no stated draw. */
+  protected readonly coolantGapKey = computed(
+    () => this.sheet().facts.find((f) => f.key === 'coolant')?.gapKey ?? 'codex.energy.gap.noCoolingData',
+  );
   protected readonly csFact = computed(() => {
     const base = this.sheet().facts.find((f) => f.key === 'crossSection');
     const override = this.crossSection();
@@ -555,16 +596,91 @@ export class CodexHoloStripComponent {
     return axes.length ? Math.round(axes.reduce((s, a) => s + a.percentile!, 0) / axes.length) : null;
   });
 
-  /** 0..5 pips, from the mean percentile of the two rank axes that overlap
-   * the signature facts (ir + crossSection — see {@link SIGNATURE_RANK_KEYS}). */
-  protected readonly signatureRankFill = computed(() => {
+  /** The two rank axes that overlap the signature facts, when the active
+   * profile ranks them (ir + crossSection — see {@link SIGNATURE_RANK_KEYS}). */
+  private readonly signatureAxes = computed(() => {
     const rank = this.rankResult();
-    if (!rank) return 0;
-    const axes = rank.axes.filter((a) => SIGNATURE_RANK_KEYS.includes(a.key as 'ir' | 'crossSection') && a.percentile != null);
+    return rank ? rank.axes.filter((a) => SIGNATURE_RANK_KEYS.includes(a.key as 'ir' | 'crossSection') && a.percentile != null) : [];
+  });
+  protected readonly signatureRanked = computed(() => this.signatureAxes().length > 0);
+
+  /** 0..5 pips, from the mean percentile of those axes. */
+  protected readonly signatureRankFill = computed(() => {
+    const axes = this.signatureAxes();
     if (!axes.length) return 0;
     const mean = axes.reduce((s, a) => s + a.percentile!, 0) / axes.length;
     return Math.max(0, Math.min(5, Math.round(mean / 20)));
   });
+
+  // ── Rolling values: a changed number runs from where it stood to where it
+  // lands (~650 ms) — a hull switch shows WHICH numbers moved, a swap lights
+  // the values it touched. The very first paint is a plain render; reduced
+  // motion never rolls. ──
+  private readonly still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  private readonly shown = new Map<string, number>();
+  private shownShip: string | null = null;
+  private rollFrom = new Map<string, number>();
+  private rollRaf: number | null = null;
+  private flashTimer: ReturnType<typeof setTimeout> | null = null;
+  protected readonly rollProgress = signal(1);
+  protected readonly flashKeys = signal<ReadonlySet<string>>(new Set());
+
+  private startRoll(cells: readonly KpiStripCell[], ship: string): void {
+    const first = this.shown.size === 0;
+    const sameShip = this.shownShip === ship;
+    const from = new Map<string, number>();
+    const changed = new Set<string>();
+    for (const c of cells) {
+      if (c.value == null) continue;
+      const prev = this.shown.get(c.key);
+      if (prev !== undefined && prev !== c.value) {
+        from.set(c.key, prev);
+        changed.add(c.key);
+      }
+      this.shown.set(c.key, c.value);
+    }
+    this.shownShip = ship;
+    if (first || this.still || changed.size === 0 || typeof requestAnimationFrame !== 'function') return;
+    this.rollFrom = from;
+    const start = performance.now();
+    const ms = 650;
+    if (this.rollRaf) cancelAnimationFrame(this.rollRaf);
+    this.rollProgress.set(0);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      this.rollProgress.set(1 - Math.pow(1 - t, 3));
+      this.rollRaf = t < 1 ? requestAnimationFrame(tick) : null;
+    };
+    this.rollRaf = requestAnimationFrame(tick);
+    // Only a change on the SAME hull (a swap, a revert, a patch) flashes —
+    // a hull switch changes everything, and lighting everything says nothing.
+    if (sameShip) {
+      this.flashKeys.set(changed);
+      if (this.flashTimer) clearTimeout(this.flashTimer);
+      this.flashTimer = setTimeout(() => this.flashKeys.set(new Set()), 950);
+    }
+  }
+
+  /** The cell's value mid-roll (or at rest) — the SAME formatter as `fmtCell`. */
+  protected fmtRolled(c: KpiStripCell): string {
+    const p = this.rollProgress();
+    const from = this.rollFrom.get(c.key);
+    if (c.value == null || p >= 1 || from === undefined) return this.fmtCell(c);
+    return formatEquippedStat({ labelKey: c.labelKey, value: from + (c.value - from) * p, format: c.format });
+  }
+
+  /** How far the strip reaches into the feedback launcher's corner lane. */
+  private measureFabClearance(): void {
+    const el = this.host.nativeElement;
+    const root = getComputedStyle(document.documentElement);
+    const lane = (parseFloat(root.getPropertyValue('--sc-fab-inset')) || 24) + (parseFloat(root.getPropertyValue('--sc-fab-size')) || 56);
+    const gutter = parseFloat(root.getPropertyValue('--sc-fab-gutter')) || 12;
+    const right = el.getBoundingClientRect().right;
+    // clientWidth, not innerWidth: the launcher's `right` inset is measured
+    // from the viewport WITHOUT the page's scrollbar.
+    const clear = Math.max(0, Math.round(right - (document.documentElement.clientWidth - lane - gutter)));
+    el.style.setProperty('--fab-clear', `${clear}px`);
+  }
 
   /** Last ship class the local power state (`cutGroups`/`levels`/`mode`/
    * `preset`) was restored for — reset to `null` before every host reuses
@@ -584,6 +700,26 @@ export class CodexHoloStripComponent {
     });
     effect(() => {
       this.sheetChange.emit(this.sheet());
+    });
+    effect(() => {
+      const cells = this.cells();
+      const ship = this.shipClassName();
+      untracked(() => this.startRoll(cells, ship));
+    });
+    afterNextRender(() => {
+      this.measureFabClearance();
+      const onResize = () => this.measureFabClearance();
+      window.addEventListener('resize', onResize, { passive: true });
+      const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+      ro?.observe(this.host.nativeElement);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('resize', onResize);
+        ro?.disconnect();
+      });
+    });
+    this.destroyRef.onDestroy(() => {
+      if (this.rollRaf) cancelAnimationFrame(this.rollRaf);
+      if (this.flashTimer) clearTimeout(this.flashTimer);
     });
   }
 
@@ -678,9 +814,13 @@ export class CodexHoloStripComponent {
     return Math.round(v);
   }
 
+  /** One decimal in the page's number locale ("14,5" in German — never a
+   * stray "14.5" beside every other comma-decimal on the page). */
   protected fmtKm(v: number | null | undefined): string {
     if (v === null || v === undefined) return '—';
-    return (v / 1000).toFixed(1);
+    const km = Math.round(v / 100) / 10;
+    const text = formatNumber(km);
+    return Number.isInteger(km) ? `${text}${formatNumber(1.5).charAt(1)}0` : text;
   }
 
   protected fmtM(v: number | null | undefined): string {

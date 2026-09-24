@@ -70,6 +70,25 @@ export function humanizeClassName(className: string | null | undefined): string 
     .trim() || raw;
 }
 
+// A raw engine identifier leaking in as a "name": snake_case, no spaces
+// (`RELAY_3slot`, `Vehicle_Screen_MFD`, `QDRV_WETK_S04_Idris_TEMP`).
+const RAW_IDENTIFIER = /^[A-Za-z0-9-]+(?:_[A-Za-z0-9-]+)+$/;
+// Build-pipeline tokens that say nothing to a pilot.
+const RAW_NAME_NOISE = new Set(['scitem', 'temp', 'template']);
+
+/**
+ * The name to SHOW for a fitted item. A localized name passes through
+ * untouched; an item the extract carries no name for arrives as its raw class
+ * name and is humanized here (`Radar_Display_Screen_Template` →
+ * `Radar Display Screen`) instead of leaking the identifier into the UI.
+ */
+export function displayItemName(name: string | null | undefined): string {
+  const raw = (name ?? '').trim();
+  if (!raw || !RAW_IDENTIFIER.test(raw)) return raw;
+  const kept = raw.split('_').filter((tok) => tok && !RAW_NAME_NOISE.has(tok.toLowerCase()));
+  return humanizeClassName(kept.join('_')) || humanizeClassName(raw);
+}
+
 /**
  * Human label for a raw CIG blueprint category (`codex_blueprints.category`).
  *
@@ -129,7 +148,10 @@ const ACRONYMS = new Set([
 ]);
 
 // Struct-name wrappers stripped before humanizing a component-stats group title.
-const STRUCT_NOISE = /^(SCItem|EntityComponent|Item|InteriorMap|SSC|SC|S)/;
+// Only a wrapper that is followed by the next PascalCase word counts: a port or
+// key that merely starts with the letter ("Screen_Right_Top", "Size") keeps it
+// ("Creen Right Top" leaked into the Holotable ports list).
+const STRUCT_NOISE = /^(SCItem|EntityComponent|Item|InteriorMap|SSC|SC|S)(?=[A-Z])/;
 
 /**
  * Turn an engine identifier (`MaxShieldHealth`, `scmSpeed`, `jump_range`,

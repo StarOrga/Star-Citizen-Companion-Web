@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   HostListener,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -11,6 +12,7 @@ import {
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { ShipSkinsService } from '../ship-skins.service';
 import { Router, RouterLink } from '@angular/router';
@@ -19,16 +21,14 @@ import { CodexDetail } from '../codex.service';
 import { CodexItemPort } from '../codex.types';
 import type { StageCountChip } from '../codex-detail.component';
 import { HoloSilhouette, SilhouetteAnchor } from '../holo-silhouette';
-import { MISSIONS, MissionId, missionById, missionDisabledReasonKey } from '../codex-mission';
+import { MISSIONS, MissionId, missionDisabledReasonKey } from '../codex-mission';
 import type { ShipCapabilities } from '../codex-mission';
 import { KpiStripCell } from '../codex-kpi-sets';
 import { formatEquippedStat, formatEquippedStatNumber } from '../codex-equipped-stats';
-import type { EquippedStat } from '../codex-equipped-stats';
 import { CodexRankCardComponent } from '../codex-rank-card.component';
 import { RankProfileId, RankResult, RankScope, RankShipInput } from '../codex-rank';
 import {
   CodexHardpointLayoutComponent,
-  LayoutChild,
   LayoutSection,
   LayoutSlot,
   LayoutTarget,
@@ -37,12 +37,9 @@ import { SHIP_MODULE_SECTION_ORDER, ShipModuleSection } from '../ship-module-sec
 import { ShipFactGroup } from '../codex-analysis-panels.component';
 import { KpiSheet, OffensivePanel, DefensivePanel } from '../codex-loadout-stats';
 import { BuildRef, PERSPECTIVE_KPIS, PERSPECTIVES, Perspective, PortOccupantMap } from '../codex-build-compare';
-import { humanizeClassName } from '../codex-format';
-import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.component';
-import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
+import { displayItemName, formatNumber, humanizeClassName } from '../codex-format';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
-import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
-import { FallbackImageComponent } from '../fallback-image.component';
+import { HardpointPortRef } from '../ship-skin-viewer.component';
 import { CodexHoloStripComponent } from './codex-holo-strip.component';
 import { HangarPickerComponent, HangarPickerItem } from '../stage/hangar-picker.component';
 import {
@@ -53,43 +50,13 @@ import {
 } from './codex-holo-patch.component';
 import { CodexHoloShareComponent } from './codex-holo-share.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
+import { CodexHoloTableComponent } from './codex-holo-table.component';
+import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
+import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker } from './codex-holo-model';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
-
-/** One journal row — a single draft-changed hardpoint, sourced straight off
- * the same `LayoutSlot.draftState`/`draftPaths` the ports list already
- * renders per-row (#37). No new draft tracking, only a second read of it. */
-interface JournalEntry {
-  port: string;
-  label: string;
-  state: 'changed' | 'pending' | 'unresolved';
-  paths: string[];
-}
-
-/** One pin on the silhouette: an anchored port, an unresolved one (dashed
- * fallback ring), or — per the wave1-redteam note — a port that is neither
- * (same dashed treatment; "pins derived from detail.ports, not from
- * anchors ∪ unresolved"). Numbered in ports-list order so the legend, the
- * inspector counter and the digit hotkeys all mean the same pin. */
-interface StagePin {
-  portName: string;
-  index: number;
-  x: number;
-  y: number;
-  resolved: boolean;
-  /** Where the label sits relative to the dot — chosen so ring neighbours
-   * never run into each other (top/bottom pins stack vertically). */
-  side: 'right' | 'left' | 'above' | 'below';
-  /** What sits in the port (occupant name, else the humanized port label). */
-  label: string;
-  /** Short value shown on hover ("Hover = Kurzwerte"): the row's first stat. */
-  short: string | null;
-  /** Missile racks pin gold (concept legend), everything else accent. */
-  tone: 'accent' | 'gold';
-  slot: LayoutSlot | null;
-}
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
 interface PerspectiveTile {
@@ -111,6 +78,8 @@ interface MissionSegment {
   id: MissionId;
   labelKey: string;
   sub: string;
+  /** The active Einsatz's overall percentile ("P68"), shown when the bar has room. */
+  pct: string | null;
   disabledKey: string | null;
 }
 
@@ -121,11 +90,17 @@ interface TopCohortShip {
   value: number;
 }
 
+type StaticKey = 'crew' | 'mass' | 'cargo';
+
 const SOUND_PREF_KEY = 'sc.codex.holo.sound';
 const MOBILE_TABS_PREF_KEY = 'sc.codex.holo.mobileTabs';
 const UNDO_TOAST_MS = 6000;
-/** ≈1.6 s hero → table transformation (concept: "keine 5 Sekunden"). */
-const ARRIVAL_MS = 1600;
+/** Arrival timing (concept hv3-s1: "keine 5 Sekunden"): how long the hero art
+ * may take to arrive before the table goes on without it, how long it holds,
+ * and the reveal itself — every entrance animation of the reveal ends inside it. */
+const HERO_WAIT_MS = 450;
+const HERO_HOLD_MS = 520;
+const REVEAL_MS = 1100;
 /** Above this many pins the labels leave the canvas for the numbered key —
  * on a ring of ~250 px radius, 8 labels of 120–220 px is the most that
  * stays legible without collisions (wave 5 A2.4). */
@@ -133,10 +108,6 @@ const DENSE_PIN_COUNT = 8;
 /** Digit hotkeys cover 1–9 and 0 (= 10); the inspector hint must not
  * promise more (wave 5 B1.4). */
 const HOTKEY_PIN_MAX = 10;
-/** Last-resort hull glyph (top-down, nose up, 100×100 viewBox) shown only
- * when a ship has neither a traced silhouette nor any artwork. */
-const GENERIC_HULL_PATH =
-  'M50 4 L56 18 L58 34 L74 46 L90 52 L90 58 L72 58 L64 66 L66 82 L60 88 L54 78 L50 90 L46 78 L40 88 L34 82 L36 66 L28 58 L10 58 L10 52 L26 46 L42 34 L44 18 Z';
 
 /** The headline key per perspective, in preference order (first with a value wins). */
 const PERSPECTIVE_LEAD: Readonly<Record<Perspective, readonly KpiStripCell['key'][]>> = {
@@ -166,11 +137,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
  * weapon detail, compare tray, draft persistence and hover-sync
  * `activePorts` for BOTH views.
  *
- * Layout (hv6-s1 / hv6-s4 / hv10-s1): top bar = search | hangar tab docked
- * on the table | patch chooser; three panels in one frame = Einordnung |
- * Tisch (Einsatz bar as its header, rings, numbered pins, legend) |
- * Inspector (+ "Zuletzt geändert" journal with the save bar); below =
- * calm ports list | four perspective tiles; details drawer; sticky strip.
+ * Layout (hv6-s1 / hv6-s4 / hv10-s1): top bar = search | ship title | patch
+ * chooser; three panels in one frame = Einordnung | Tisch (Einsatz bar as its
+ * header, `sc-codex-holo-table` as its surface) | Inspector
+ * (`sc-codex-holo-inspector`); below = calm ports list | four perspective
+ * tiles; details drawer; sticky strip. The stage computes every pin and owns
+ * the arrival phase; the two children only render.
  */
 @Component({
   selector: 'sc-codex-holo-stage',
@@ -181,21 +153,20 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
     CodexRankCardComponent,
     CodexHardpointLayoutComponent,
     CodexHoloPerspectivesComponent,
-    CodexLoadoutSaveBarComponent,
-    ShipHardpointMapComponent,
-    ShipSkinViewerComponent,
-    FallbackImageComponent,
     CodexHoloStripComponent,
     HangarPickerComponent,
     CodexHoloPatchComponent,
     CodexHoloShareComponent,
+    CodexHoloTableComponent,
+    CodexHoloInspectorComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()"
+             [class.ph-wait]="phase() === 'wait'" [class.ph-hero]="phase() === 'hero'" [class.ph-reveal]="phase() === 'reveal'"
              [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()">
 
-      <!-- ── Top bar: search | (hangar tab docks on the table) | patch ── -->
+      <!-- ── Top bar: search | the ship | patch ─────────────────────── -->
       <div class="holo-topbar">
         <form class="ht-search" role="search" (submit)="submitSearch($event)">
           <svg class="ht-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -207,7 +178,13 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                  [placeholder]="'codex.holo.stage.searchPlaceholder' | translate" />
           <kbd>↵</kbd>
         </form>
-        <div class="ht-mid" aria-hidden="true"></div>
+        <!-- Keyed on the name: a hull switch re-enters the title with it. -->
+        @for (name of [shortName()]; track name) {
+          <div class="ht-title">
+            @if (kicker(); as k) { <span class="ht-kicker">{{ k }}</span> }
+            <h1 class="ht-name" [attr.title]="eyebrowTitle()">{{ name }}</h1>
+          </div>
+        }
         <div class="ht-right">
           <!-- slot: patch-delta trigger -->
           @if (buildRef(); as ab) {
@@ -248,13 +225,16 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           </div>
           @if (leftCollapsed()) {
             <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.einordnung' | translate }}</span></div>
-          } @else {
+          } @else if (bodyReady()) {
             <div class="pb frame">
               <div class="wm" aria-hidden="true">{{ ('codex.mission.' + activeMissionId()) | translate }}</div>
               <div class="statics">
-                <div [attr.title]="staticChipTitle('crew')"><span class="k">{{ 'codex.holo.stage.staticCrew' | translate }}</span><span class="v">{{ staticChip('crew') }}</span></div>
-                <div [attr.title]="staticChipTitle('mass')"><span class="k">{{ 'codex.holo.stage.staticMass' | translate }}</span><span class="v">{{ staticChip('mass') }}</span></div>
-                <div [attr.title]="staticChipTitle('cargo')"><span class="k">{{ 'codex.holo.stage.staticCargo' | translate }}</span><span class="v" [class.long]="staticChip('cargo').length > 7">{{ staticChip('cargo') }}</span></div>
+                @for (k of staticKeys; track k) {
+                  <div [attr.title]="staticChipTitle(k)">
+                    <span class="k">{{ staticLabelKey(k) | translate }}</span>
+                    <span class="v" [class.mid]="staticChip(k).length > 6" [class.long]="staticChip(k).length > 8">{{ staticChip(k) }}</span>
+                  </div>
+                }
               </div>
               <sc-codex-rank-card
                 [holo]="true"
@@ -271,7 +251,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                 <div class="sub"><span>{{ 'codex.holo.stage.top3' | translate }}</span><i></i></div>
                 <ol class="top3">
                   @for (s of topCohortShips(); track s.className) {
-                    <li><a [routerLink]="['/codex', 'ship', s.className]">{{ s.displayName }}</a></li>
+                    <li><a [routerLink]="['/codex', 'ship', s.className]" [queryParams]="{ view: 'holo' }">{{ s.displayName }}</a></li>
                   }
                 </ol>
               }
@@ -282,15 +262,10 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           }
         </aside>
 
-        <!-- ── Table: Einsatz header, rings, silhouette, pins, legend ── -->
+        <!-- ── Table: Einsatz header, head row, projection surface ───── -->
         <section class="holo-panel holo-table mobile-table">
-          <!-- slot: hangar-tab (round 16-17, N4): the same HangarPicker as the
-               Codex landing and the classic hero, top-left inside the table —
-               one component, one behaviour, the same "top 3 recently chosen"
-               source. Replaces the golden sc-codex-holo-hangar tab+overlay
-               (kept in the tree, unused, per the round-17 decision text). -->
           <div class="ph role">
-            <div class="rolebar" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
+            <div class="rolebar" #rolebar role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
               <span class="lab">{{ 'codex.mission.label' | translate }}</span>
               @for (m of missionSegments(); track m.id) {
                 <button type="button" class="r" role="radio"
@@ -298,19 +273,18 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                         [class.dim]="!!m.disabledKey"
                         [disabled]="!!m.disabledKey"
                         [attr.aria-checked]="m.id === activeMissionId()"
-                        [attr.title]="m.disabledKey ? (m.disabledKey | translate) : null"
+                        [attr.title]="m.disabledKey ? (m.disabledKey | translate) : m.sub"
                         (click)="missionChange.emit(m.id)">
                   <span class="r-l">{{ m.labelKey | translate }}</span>
-                  <small>{{ m.sub }}</small>
+                  <small>{{ m.sub }}@if (m.pct) {<span class="rp"> · {{ m.pct }}</span>}</small>
                 </button>
               }
+              <span class="ink" aria-hidden="true"></span>
             </div>
           </div>
           <div class="pb">
-            <div class="rings" aria-hidden="true"></div>
-
             <!-- Table head — ONE flow row, never absolute overlays (wave 5
-                 A2.1): hangar dock | eyebrow (ellipsis) | view tools. -->
+                 A2.1): hangar dock | what the surface shows | view tools. -->
             <div class="table-head">
               <!-- slot: hangar-tab (round 16-17, N4): the same HangarPicker as
                    the Codex landing and the classic hero. -->
@@ -323,10 +297,10 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                   (pick)="hangarPick.emit($event)"
                   (open)="hangarOpen.emit()" />
               </div>
-              <p class="table-eyebrow" [attr.title]="eyebrowTitle()">
-                @if (manufacturerName(); as mfr) { <span>{{ mfr }}</span> · }<b>{{ displayName() }}</b>
+              <p class="table-eyebrow" [attr.title]="eyebrowKey() | translate: { n: pins().length }">
+                {{ eyebrowKey() | translate: { n: pins().length } }}
                 @if (!silhouette() && viewMode() === 'holo') {
-                  <span class="no-geometry-badge" [title]="'codex.holo.stage.noGeometryReason' | translate">&nbsp;· {{ 'codex.holo.noGeometry' | translate }}</span>
+                  <span class="no-geometry-badge" [title]="'codex.holo.stage.noGeometryReason' | translate">· {{ 'codex.holo.noGeometry' | translate }}</span>
                 }
               </p>
               <div class="tools5" [class.open]="sharePopoverOpen()">
@@ -343,6 +317,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                     <!-- slot: share -->
                     <sc-codex-holo-share
                       class="share-popover"
+                      animate.enter="pop-enter"
+                      animate.leave="pop-leave"
                       [config]="myConfig()"
                       [shipClassName]="detail().classNameSlug"
                       [channel]="channel()"
@@ -359,119 +335,31 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               </div>
             </div>
 
-            <div class="silhouette-frame" [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
-              <!-- Arrival (concept hv3-s1): the hero art is the loading image
-                   and transforms into the table — no click, ≈1.6 s, a cut on
-                   reduced motion or a repeat visit. -->
-              @if (!arrived() && heroArt().length > 0) {
-                <sc-fallback-image class="hero-art" [candidates]="heroArt()" [alt]="displayName()" [eager]="true" />
-              }
-              @if (viewMode() === '3d') {
-                <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
-                  [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
-                  (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
-              } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
-                <sc-ship-hardpoint-map class="mode-viewer" [markers]="hardpointMarkersMutable()" [frame]="frame"
-                  [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
-              } @else {
-                <div class="shipwrap" [class.no-geometry]="!silhouette()" [class.dense]="dense()" [class.empty]="pins().length === 0">
-                  @if (silhouette(); as s) {
-                    <svg class="silhouette" [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" role="img"
-                         [attr.aria-label]="'codex.holo.stage.silhouetteAria' | translate: { name: displayName() }">
-                      <path class="glow" [attr.d]="s.path" fill-rule="evenodd" />
-                      <path class="hull" [attr.d]="s.path" fill-rule="evenodd" />
-                    </svg>
-                  } @else {
-                    <!-- No traced silhouette for this hull (wave 5 A3.2): the
-                         default is the hull's own artwork (RSI render, else the
-                         game's flat previewImage) in a holo treatment — and
-                         only when even that is missing, a generic hull glyph.
-                         Never a client-side guess of the real outline. -->
-                    <div class="silhouette-placeholder" role="img" [attr.aria-label]="'codex.holo.stage.placeholderAria' | translate: { name: displayName() }">
-                      <span class="ring"></span>
-                      <span class="ring inner"></span>
-                      @if (previewSilhouette() && !previewFailed()) {
-                        <!-- The game's own flat top-down icon (nose right in the
-                             file) — the closest thing to a traced outline. -->
-                        <img class="ghost-icon" [src]="previewSilhouette()" alt="" aria-hidden="true" (error)="previewFailed.set(true)" />
-                      } @else if (heroArt().length > 0) {
-                        <div class="ghost-art" aria-hidden="true">
-                          <sc-fallback-image [candidates]="heroArt()" [alt]="''" [eager]="true">
-                            <svg class="generic-hull" viewBox="0 0 100 100" aria-hidden="true"><path [attr.d]="GENERIC_HULL" /></svg>
-                          </sc-fallback-image>
-                        </div>
-                      } @else {
-                        <svg class="generic-hull" viewBox="0 0 100 100" aria-hidden="true"><path [attr.d]="GENERIC_HULL" /></svg>
-                      }
-                    </div>
-                  }
-                  @if (pins().length === 0) {
-                    <p class="table-empty">{{ 'codex.holo.stage.noPorts' | translate }}</p>
-                  }
-                  @for (pin of pins(); track pin.portName) {
-                    <button
-                      type="button"
-                      class="pin"
-                      [class.unresolved]="!pin.resolved"
-                      [class.gold]="pin.tone === 'gold'"
-                      [class.active]="activePorts().includes(pin.portName)"
-                      [class.sel]="inspectedPort() === pin.portName"
-                      [class.patched]="!!patchPortPins()?.[pin.portName]"
-                      [class.rev]="pin.side === 'left'"
-                      [class.pos-b]="pin.side === 'below'"
-                      [class.pos-t]="pin.side === 'above'"
-                      [style.left.%]="pin.x"
-                      [style.top.%]="pin.y"
-                      [attr.aria-pressed]="inspectedPort() === pin.portName"
-                      [attr.title]="pin.resolved ? pin.label : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
-                      (mouseenter)="hovered.emit([pin.portName])"
-                      (mouseleave)="hovered.emit(null)"
-                      (focus)="hovered.emit([pin.portName])"
-                      (blur)="hovered.emit(null)"
-                      (click)="inspectPin(pin.portName)">
-                      <i aria-hidden="true">{{ pin.index }}</i>
-                      <span class="pin-label">
-                        {{ pin.label }}
-                        @if (pin.short && (activePorts().includes(pin.portName) || inspectedPort() === pin.portName)) {
-                          <em>· {{ pin.short }}</em>
-                        }
-                      </span>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-
-            <!-- Dense tables (wave 5 A2.4): labels leave the pins and become a
-                 numbered key under the table — hover/click work like the pins. -->
-            @if (dense() && viewMode() === 'holo') {
-              <ol class="pin-key" [attr.aria-label]="'codex.holo.stage.pinKey' | translate">
-                @for (pin of pins(); track pin.portName) {
-                  <li>
-                    <button type="button" class="pk"
-                            [class.gold]="pin.tone === 'gold'"
-                            [class.active]="activePorts().includes(pin.portName)"
-                            [class.sel]="inspectedPort() === pin.portName"
-                            (mouseenter)="hovered.emit([pin.portName])"
-                            (mouseleave)="hovered.emit(null)"
-                            (focus)="hovered.emit([pin.portName])"
-                            (blur)="hovered.emit(null)"
-                            (click)="inspectPin(pin.portName)">
-                      <i aria-hidden="true">{{ pin.index }}</i><span>{{ pin.label }}</span>
-                    </button>
-                  </li>
-                }
-              </ol>
-            }
-
-            <div class="legend">
-              <span><i aria-hidden="true"></i>{{ 'codex.holo.stage.legendConfigurable' | translate }}</span>
-              <span><i class="g" aria-hidden="true"></i>{{ 'codex.holo.stage.legendMissiles' | translate }}</span>
-              @if (hasUnresolvedPins()) {
-                <span><i class="u" aria-hidden="true"></i>{{ 'codex.holo.stage.legendUnresolved' | translate }}</span>
-              }
-              <span class="legend-hint">{{ 'codex.holo.stage.legendHint' | translate }}</span>
-            </div>
+            <sc-codex-holo-table
+              [pins]="pins()"
+              [orbit]="pinRing()"
+              [silhouette]="silhouette()"
+              [previewSilhouette]="previewSilhouette()"
+              [previewFailed]="previewFailed()"
+              [heroArt]="heroArt()"
+              [heroSrc]="phase() === 'hero' || phase() === 'reveal' ? heroSrc() : null"
+              [viewMode]="viewMode()"
+              [shipClassName]="shipClassName()"
+              [hardpointPortRefs]="hardpointPortRefs()"
+              [hardpointFrame]="hardpointFrame()"
+              [hardpointMarkers]="hardpointMarkersMutable()"
+              [activePorts]="activePorts()"
+              [inspectedPort]="inspectedPort()"
+              [patchPortPins]="patchPortPins()"
+              [displayName]="displayName()"
+              [dense]="dense()"
+              [hasUnresolved]="hasUnresolvedPins()"
+              [phase]="phase()"
+              [still]="reducedMotion()"
+              (hovered)="hovered.emit($event)"
+              (pinInspect)="inspectPin($event)"
+              (artAvailable)="artAvailable.emit($event)"
+              (previewError)="previewFailed.set(true)" />
           </div>
         </section>
 
@@ -489,119 +377,30 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           </div>
           @if (rightCollapsed()) {
             <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.inspector' | translate }}</span></div>
-          } @else {
-            <div class="pb">
-              @if (inspectorTarget(); as it) {
-                <div class="inspector" role="region" [attr.aria-label]="'codex.holo.stage.inspector' | translate">
-                  <div class="insp-head">
-                    @if (sizeBadge(it.slot); as b) { <span class="size-tag">{{ b }}</span> }
-                    <div class="insp-ident">
-                      <b>{{ it.slot.name ?? ((it.slot.emptyLabelKey ?? 'codex.holo.stage.emptyBay') | translate) }}</b>
-                      <small>{{ inspectorMeta(it.slot) }}</small>
-                    </div>
-                    <button type="button" class="inspector-close" (click)="inspectedPort.set(null)"
-                            [attr.aria-label]="'codex.swap.close' | translate"
-                            [title]="('codex.swap.close' | translate) + ' (Esc)'">✕</button>
-                  </div>
-                  @if (inspectedPort() && patchPortPins()?.[inspectedPort()!]; as pin) {
-                    <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->
-                    <p class="inspector-patch-delta" [class.unresolved]="pin.unresolved">
-                      {{ pin.fromClassName ?? '—' }} → {{ pin.unresolved ? ('codex.holo.pinUnresolved' | translate) : (pin.toClassName ?? '—') }}
-                    </p>
-                  }
-                  @if (inspectorStats(it.slot).length > 0) {
-                    <dl class="insp-stats">
-                      @for (st of inspectorStats(it.slot); track st.labelKey) {
-                        <div><dt>{{ st.labelKey | translate }}</dt><dd>{{ fmtStat(st) }}</dd></div>
-                      }
-                    </dl>
-                  }
-                  @if (it.slot.draftState; as ds) {
-                    <p class="insp-draft">
-                      <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">{{ ('codex.loadout.draftState.' + ds) | translate }}</span>
-                      @if (it.slot.draftPaths?.length) {
-                        <button type="button" class="lnk" (click)="reverted.emit(it.slot.draftPaths!)">{{ 'codex.loadout.revert' | translate }}</button>
-                      }
-                    </p>
-                  }
-                  @if (!inspectorIsRawPort()) {
-                    <div class="insp-actions">
-                      <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
-                      <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
-                    </div>
-                  } @else {
-                    <p class="mut">{{ 'codex.holo.stage.rawPortHint' | translate }}</p>
-                  }
-                  <!-- What the mount carries (the gun in the gimbal, the
-                       missiles in the rack) — the thing that actually shoots. -->
-                  @for (kid of it.slot.children ?? []; track kid.port) {
-                    <div class="insp-kid" [class.empty]="!kid.className">
-                      <div class="insp-head">
-                        @if (kid.size != null) { <span class="size-tag">{{ kid.count > 1 ? kid.count + '×' : '' }}S{{ kid.size }}</span> }
-                        <div class="insp-ident">
-                          <b>{{ kid.name ?? '—' }}</b>
-                          <small>{{ kidMeta(kid) }}</small>
-                        </div>
-                      </div>
-                      @if (kid.stats?.length) {
-                        <dl class="insp-stats">
-                          @for (st of kid.stats!.slice(0, 4); track st.labelKey) {
-                            <div><dt>{{ st.labelKey | translate }}</dt><dd>{{ fmtStat(st) }}</dd></div>
-                          }
-                        </dl>
-                      }
-                      <div class="insp-actions">
-                        @if (kid.className || kid.rawTypes.length > 0) {
-                          <button type="button" class="btn quiet" (click)="swapRequested.emit(childTarget(it, kid))">⇄ {{ 'codex.swap.open' | translate }}</button>
-                        }
-                        @if (kid.className) {
-                          <button type="button" class="btn quiet" (click)="inspected.emit(childTarget(it, kid))">{{ 'codex.inspect.openStats' | translate }}</button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="empty">
-                  <b>{{ 'codex.holo.stage.inspectorEmptyTitle' | translate }}</b>
-                  @if (hotkeyPinCount() > 0) {
-                    {{ 'codex.holo.stage.inspectorEmptyBody' | translate: { n: hotkeyPinCount() } }}
-                  } @else {
-                    {{ 'codex.holo.stage.noPorts' | translate }}
-                  }
-                </div>
-              }
-
-              <div class="card flat">
-                <div class="h2"><span>{{ 'codex.holo.stage.journal' | translate }}</span><span class="rule"></span></div>
-                @if (journal().length === 0) {
-                  <p class="mut">{{ 'codex.holo.stage.journalEmpty' | translate }}</p>
-                } @else {
-                  <ul class="journal">
-                    @for (e of journal(); track e.port) {
-                      <li>
-                        <span class="j-label">{{ e.label }}</span>
-                        <span class="j-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
-                        <button type="button" class="lnk" (click)="reverted.emit(e.paths)">{{ 'codex.holo.stage.undo' | translate }}</button>
-                      </li>
-                    }
-                  </ul>
-                  <sc-codex-loadout-save-bar
-                    class="draft-controls"
-                    [changed]="draftChangedCount()"
-                    [saveable]="saveableCount()"
-                    [saving]="saving()"
-                    [error]="saveError()"
-                    [inHangar]="inHangar()"
-                    (save)="saveDraft.emit()"
-                    (discard)="discardDraft.emit()"
-                    (addAndSave)="saveDraft.emit()" />
-                  <button type="button" class="lnk" (click)="reverted.emit(journalAllPaths())">
-                    {{ 'codex.detail.actionFactoryLoadout' | translate }}
-                  </button>
-                }
-              </div>
-            </div>
+          } @else if (bodyReady()) {
+            <sc-codex-holo-inspector
+              class="pb"
+              [target]="inspectorTarget()"
+              [isRawPort]="inspectorIsRawPort()"
+              [patchPin]="inspectedPatchPin()"
+              [inspectedPort]="inspectedPort()"
+              [pinGroups]="pinGroups()"
+              [hotkeyPinCount]="hotkeyPinCount()"
+              [activePorts]="activePorts()"
+              [journal]="journal()"
+              [draftChangedCount]="draftChangedCount()"
+              [saveableCount]="saveableCount()"
+              [saving]="saving()"
+              [saveError]="saveError()"
+              [inHangar]="inHangar()"
+              (closed)="inspectedPort.set(null)"
+              (pinInspect)="inspectPin($event)"
+              (hovered)="hovered.emit($event)"
+              (swapRequested)="swapRequested.emit($event)"
+              (inspected)="inspected.emit($event)"
+              (reverted)="reverted.emit($event)"
+              (saveDraft)="saveDraft.emit()"
+              (discardDraft)="discardDraft.emit()" />
           }
         </aside>
       </div>
@@ -616,6 +415,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           <sc-codex-hardpoint-layout
             [calm]="true"
             [sections]="allSectionsMutable()"
+            [foldedSections]="foldedModuleSections()"
+            [occupantsBySection]="occupantsBySection()"
             [locatablePorts]="locatablePorts()"
             [activePorts]="activePorts()"
             (reverted)="reverted.emit($event)"
@@ -636,9 +437,9 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
       </div>
 
       <!-- Undo toast (concept fb-journal: "Undo gern einfach als toast") -->
-      @if (undoToast(); as toast) {
-        <div class="undo-toast" role="status">
-          <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: toast.label } }}</span>
+      @if (undoToast()) {
+        <div class="undo-toast" role="status" animate.enter="toast-enter" animate.leave="toast-leave">
+          <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: undoToastLabel() } }}</span>
           <button type="button" class="btn quiet" (click)="undoToastAction()">{{ 'codex.holo.stage.undo' | translate }}</button>
         </div>
       }
@@ -682,7 +483,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         [capabilities]="shipCapabilities()"
         [rankResult]="rankResult()"
         [rankCohortLoading]="rankLoading()"
-        (sheetChange)="sheetChange.emit($event)" />
+        (sheetChange)="onSheetChange($event)" />
     </section>
   `,
   styles: [
@@ -694,55 +495,76 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   --glass: color-mix(in srgb, var(--sc-bg-1) 55%, transparent); --ink: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
   --holo-gold: var(--accent-gold, #c8a84b); --holo-gold-rgb: var(--accent-gold-rgb, 200, 168, 75);
   --a4: color-mix(in srgb, var(--sc-accent) 4%, transparent); --a5: color-mix(in srgb, var(--sc-accent) 5%, transparent); --a7: color-mix(in srgb, var(--sc-accent) 7%, transparent); --a10: color-mix(in srgb, var(--sc-accent) 10%, transparent); --a12: color-mix(in srgb, var(--sc-accent) 12%, transparent); --a14: color-mix(in srgb, var(--sc-accent) 14%, transparent); --a22: color-mix(in srgb, var(--sc-accent) 22%, transparent); --a28: color-mix(in srgb, var(--sc-accent) 28%, transparent); --a40: color-mix(in srgb, var(--sc-accent) 40%, transparent); --a50: color-mix(in srgb, var(--sc-accent) 50%, transparent); --a55: color-mix(in srgb, var(--sc-accent) 55%, transparent); --a80: color-mix(in srgb, var(--sc-accent) 80%, transparent);
-  --p-offensive: var(--sc-accent); --p-defensive: var(--cat-game, #c07888); --p-movement: var(--sc-success); --p-signature: var(--holo-gold);
-  display: flex; flex-direction: column; gap: 10px; padding-bottom: 96px;
+  --e-out: cubic-bezier(0.2, 0.7, 0.2, 1); --e-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --rail: 300px;
+  display: flex; flex-direction: column; gap: 10px;
   }
-  .btn, .table-eyebrow, .mobile-tabs button, .holo-panel > .ph, .rail-min .vi, .wm, .statics .k, .sub, .rolebar .r, .tt, .pin-label, .legend, .empty b, .insp-stats dt, .h2, .sh, .details-toggle, .switch { font-family: var(--d); text-transform: uppercase; }
+  .btn, .mobile-tabs button, .holo-panel > .ph, .rail-min .vi, .wm, .statics .k, .sub, .rolebar .r, .tt, .table-eyebrow, .sh, .details-toggle, .switch, .ht-kicker, .ht-name { font-family: var(--d); text-transform: uppercase; }
   .n { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-fg-1); background: var(--sc-bg-2); padding: 0 6px; border-radius: 2px; letter-spacing: 0; }
   .sp { flex: 1; }
   .rule { flex: 1; height: 1px; background: var(--l1); }
-  .lnk { background: none; border: none; padding: 0; color: var(--sc-accent); cursor: pointer; font: inherit; font-size: max(11px, var(--f)); min-height: var(--sc-tap-min, 24px); }
-  .btn { min-height: var(--sc-tap-min, 32px); padding: 5px 12px; border-radius: 3px; border: 1px solid var(--l2);
- background: var(--a10); color: var(--sc-fg-0); cursor: pointer; font: inherit;
- font-size: max(11px, var(--f)); letter-spacing: 0.08em; }
+  .btn { min-height: var(--sc-tap-min, 32px); padding: 5px 12px; border-radius: 3px; border: 1px solid var(--l2); background: var(--a10);
+  color: var(--sc-fg-0); cursor: pointer; font-size: max(11px, var(--f)); letter-spacing: 0.08em; transition: border-color 160ms ease, color 160ms ease; }
   .btn.quiet { background: none; border-color: var(--l1); color: var(--sc-fg-1); }
   .btn:hover, .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); }
-  .holo-topbar { display: grid; grid-template-columns: minmax(220px, 380px) 1fr auto; align-items: center; gap: 12px; }
-  .ht-search { display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--l2); border-radius: 3px;
-  background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-2); min-height: var(--sc-tap-min, 34px); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  @keyframes fade-in { from { opacity: 0; } }
+
+  /* ── Top bar: search | the ship (the page's h1) | patch ── */
+  .holo-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: 'search title patch'; align-items: center; gap: 16px; }
+  .ht-search { grid-area: search; width: 100%; max-width: 360px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--l2); border-radius: 4px;
+  background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-2); min-height: max(40px, var(--sc-tap-min, 0px)); transition: border-color 160ms ease, box-shadow 160ms ease; }
+  .ht-search:focus-within { border-color: var(--sc-accent); box-shadow: 0 0 0 3px var(--a12); }
   .ht-icon { width: 15px; height: 15px; flex: none; }
   .ht-input { flex: 1; min-width: 0; background: none; border: none; color: var(--sc-fg-0); font: inherit; font-size: max(12px, var(--f)); padding: 7px 0; outline: none; }
   .ht-input::placeholder { color: var(--sc-fg-2); }
-  .ht-search:focus-within { border-color: var(--sc-accent); }
   .ht-search kbd { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); padding: 0 5px; border-radius: 2px; }
-  .ht-mid { min-height: 34px; }
-  .table-head { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 12px 0; min-height: 40px; }
-  .table-eyebrow { flex: 1; min-width: 0; margin: 0; font-size: max(9.5px, var(--f)); color: var(--sc-fg-2);
- letter-spacing: 0.14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .table-eyebrow b { font-weight: 400; color: var(--sc-fg-0); }
-  .ht-right { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+  /* Capped: a long variant name ("… Wikelo War Special") ellipsizes instead
+     of squeezing the search and the patch chooser off the bar. */
+  .ht-title { grid-area: title; display: grid; justify-items: center; gap: 3px; min-width: 0; max-width: min(46vw, 640px); text-align: center; }
+  .ht-kicker { max-width: 100%; font-size: max(9px, var(--f)); letter-spacing: 0.2em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  animation: fade-in 480ms ease-out 120ms backwards; }
+  .ht-name { margin: 0; max-width: 100%; font-weight: 500; font-size: clamp(16px, 1.55vw, 22px); line-height: 1.15; letter-spacing: 0.12em; color: var(--sc-fg-0);
+  text-shadow: 0 0 18px var(--a40); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: name-in 640ms var(--e-out) backwards; }
+  @keyframes name-in { from { opacity: 0; letter-spacing: 0.32em; filter: blur(3px); } }
+  .ht-right { grid-area: patch; display: flex; justify-content: flex-end; align-items: center; gap: 10px; min-width: 0; }
   .mobile-tabs { display: none; gap: 6px; }
   .mobile-tabs button { flex: 1; min-height: var(--sc-tap-min, 32px); padding: 6px 10px; border-radius: 3px; border: 1px solid var(--l2); background: var(--glass); color: var(--sc-fg-1); cursor: pointer;
- font-size: max(10px, var(--f)); letter-spacing: 0.14em; }
+  font-size: max(10px, var(--f)); letter-spacing: 0.14em; transition: color 160ms ease, border-color 160ms ease; }
   .mobile-tabs button[aria-selected="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
-  .mobile-only { display: none; }
+
+  /* ── The frame: Einordnung | Tisch | Inspektor ── */
   .holo-body { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail); gap: 10px; align-items: stretch;
-  padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: 4px; }
-  .holo-stage { --rail: 300px; }
+  padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: 4px; transition: grid-template-columns 360ms var(--e-io); }
   .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) var(--rail); }
   .right-collapsed .holo-body { grid-template-columns: var(--rail) minmax(0, 1fr) 44px; }
   .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .holo-panel { border: 1px solid var(--l2); border-radius: 4px; background: var(--glass);
   display: grid; grid-template-rows: auto 1fr; min-height: 520px; min-width: 0; position: relative; }
   .holo-panel > .ph { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--l2);
- background: var(--ink); font-size: max(9.5px, var(--f));
- letter-spacing: 0.16em; color: var(--sc-accent); min-height: 38px; }
+  background: var(--ink); font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); min-height: 38px; }
   .ph-glyph { font-size: 11px; }
-  .ph .ic { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; font: inherit; font-size: 13px; letter-spacing: 0;
-  min-width: var(--sc-tap-min, 24px); min-height: var(--sc-tap-min, 24px); padding: 0; }
-  .ph .ic:hover { color: var(--sc-accent); }
-  .holo-panel > .pb { padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  /* --sc-tap-min is 0 on a mouse desktop: without the max() the rail toggle
+     shrank to its 5px glyph. */
+  .ph .ic { background: none; border: none; border-radius: 3px; color: var(--sc-fg-2); cursor: pointer; font: inherit; font-size: 13px; letter-spacing: 0;
+  min-width: max(28px, var(--sc-tap-min, 0px)); min-height: max(28px, var(--sc-tap-min, 0px)); padding: 0; transition: color 160ms ease, background 160ms ease; }
+  .ph .ic:hover { color: var(--sc-accent); background: var(--a10); }
+  .holo-panel > .pb { padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0;
+  animation: rise var(--rise-dur, 300ms) var(--e-out) var(--rise-delay, 60ms) backwards; }
+  /* The arrival: the panels' bodies are created with the reveal and rise
+     after the table began to materialise (same keyframes, slower timing). */
+  .ph-reveal .holo-left > .pb { --rise-dur: 560ms; --rise-delay: 260ms; }
+  .ph-reveal .holo-right > .pb { --rise-dur: 560ms; --rise-delay: 380ms; }
+  .holo-stage:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
+  .ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
   .holo-panel > .pb.rail-min { padding: 10px 4px; justify-items: center; }
+  /* The inspector never decides the frame's height: a capital ship's
+     hardpoint list is 40 rows long — it scrolls inside its panel instead of
+     stretching the table (and dropping the hull to the bottom of a 1500px frame). */
+  @media (min-width: 1001px) {
+  .holo-right { height: 0; min-height: 100%; }
+  .holo-right > .pb:not(.rail-min) { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--a28) transparent; }
+  }
   .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2); }
   .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .n, .holo-panel.collapsed > .ph .ph-glyph { display: none; }
   .holo-panel.collapsed > .ph { padding: 7px 4px; justify-content: center; }
@@ -750,200 +572,125 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* Watermark: the Einsatz word behind the panel's lower half. Specificity
      matches the ".frame > *" rule below (wave 5 A2.3) so it stays out of the flow. */
   .frame > .wm { position: absolute; inset: auto 0 6% 0; text-align: center; font-size: 30px;
- letter-spacing: 0.3em; color: var(--a7); pointer-events: none; z-index: 0; overflow: hidden; white-space: nowrap; text-overflow: clip; }
+  letter-spacing: 0.3em; color: var(--a7); pointer-events: none; z-index: 0; overflow: hidden; white-space: nowrap; text-overflow: clip; }
   .frame > * { position: relative; z-index: 1; }
-  .statics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .statics div { display: grid; gap: 2px; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; min-width: 0; }
+  .statics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .statics div { display: grid; gap: 2px; align-content: space-between; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; min-width: 0; }
   .statics .k { font-size: max(8px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
   .statics .v { font-family: var(--m); font-size: 15px; color: var(--sc-fg-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .statics .v.mid { font-size: 13px; }
   .statics .v.long { font-family: var(--sc-font-body); font-size: max(10.5px, var(--f)); white-space: normal; color: var(--sc-fg-1); line-height: 1.2; }
   .sub { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); display: flex; align-items: center; gap: 8px; }
   .sub i { flex: 1; height: 1px; background: var(--l1); }
   .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(11.5px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
-  .top3 a { color: var(--sc-fg-0); text-decoration: none; }
+  .top3 a { color: var(--sc-fg-0); text-decoration: none; transition: color 160ms ease; }
   .top3 a:hover { color: var(--sc-accent); }
-  .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; }
+  .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; transition: color 160ms ease; }
   .cohort-link:hover { color: var(--sc-accent); }
-  .holo-table > .ph.role { padding: 0; gap: 0; background: var(--ink); overflow-x: auto; }
-  .rolebar { display: flex; width: 100%; min-width: max-content; }
-  .rolebar .lab { display: grid; place-items: center; padding: 0 14px; font-size: max(8.5px, var(--f)); letter-spacing: 0.2em; color: var(--sc-fg-2); border-right: 1px solid var(--l1); }
-  .rolebar .r { flex: 1; padding: 8px 8px 6px; text-align: center; font-size: max(10.5px, var(--f));
- letter-spacing: 0.16em; color: var(--sc-fg-1); border: none; border-right: 1px solid var(--l1); border-bottom: 2px solid transparent;
- background: none; cursor: pointer; display: grid; gap: 2px; min-height: var(--sc-tap-min, 44px); min-width: 92px; }
-  .rolebar .r small { font-family: var(--m); font-size: max(9px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-2); }
-  .rolebar .r.on { color: var(--sc-accent); border-bottom-color: var(--sc-accent);
-  background: linear-gradient(180deg, var(--a4), var(--a14));
-  text-shadow: 0 0 10px var(--a50); }
+
+  /* ── Einsatz bar: every segment fits its label; the lead value may
+     ellipsize; an ink bar glides to the active Einsatz. ── */
+  .holo-table > .ph.role { padding: 0; gap: 0; background: var(--ink); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; container-type: inline-size; }
+  .holo-table > .ph.role::-webkit-scrollbar { display: none; }
+  .rolebar { position: relative; display: flex; width: 100%; min-width: max-content; }
+  .rolebar .lab { display: grid; place-items: center; padding: 0 12px; font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.2em; color: var(--sc-fg-2); border-right: 1px solid var(--l1); }
+  @container (max-width: 760px) { .rolebar .lab { display: none; } }
+  /* The percentile rides along only where it fits — the strip repeats it. */
+  @container (max-width: 900px) { .rolebar .rp { display: none; } }
+  /* Where the bar scrolls (phones), its right edge fades: there is more. */
+  @media (max-width: 640px) {
+  .holo-table > .ph.role { -webkit-mask-image: linear-gradient(90deg, #000 86%, transparent); mask-image: linear-gradient(90deg, #000 86%, transparent); }
+  }
+  .rolebar .r { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 8px 6px;
+  font-size: max(10px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-1); border: none; border-right: 1px solid var(--l1); background: none; cursor: pointer;
+  min-height: var(--sc-tap-min, 44px); transition: color 200ms ease, background 260ms ease, text-shadow 260ms ease; }
+  .rolebar .r-l { white-space: nowrap; }
+  /* width:0 + min-width:100%: the value never widens its segment, it fills it and ellipsizes. */
+  .rolebar .r small { width: 0; min-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--m); font-size: max(9px, var(--f));
+  letter-spacing: 0; text-transform: none; color: var(--sc-fg-2); transition: color 200ms ease; }
+  .rolebar .r.on { color: var(--sc-accent); background: linear-gradient(180deg, var(--a4), var(--a14)); text-shadow: 0 0 10px var(--a50); }
   .rolebar .r.on small { color: var(--sc-fg-1); }
-  .rolebar .r.dim { opacity: 0.4; cursor: not-allowed; }
-  .rolebar .r:last-child { border-right: 0; }
-  .rolebar .r:hover:not(.dim):not(.on) { color: var(--sc-fg-0); }
+  /* An Einsatz this hull cannot fly keeps its label (it says what the ship is
+     not) but gives its width to the ones it can. */
+  .rolebar .r.dim { opacity: 0.38; cursor: not-allowed; flex-grow: 0; letter-spacing: 0.05em; }
+  .rolebar .r.dim small { visibility: hidden; }
+  .rolebar .r:last-of-type { border-right: 0; }
+  .rolebar .r:hover:not(.dim):not(.on) { color: var(--sc-fg-0); background: var(--a4); }
+  .rolebar .r:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+  .rolebar .ink { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--ink-w, 0px); translate: var(--ink-x, 0px) 0; pointer-events: none;
+  background: var(--sc-accent); box-shadow: 0 0 10px var(--a55); transition: translate 340ms var(--e-io), width 340ms var(--e-io); }
+
+  /* ── Table head: hangar | what the surface shows | view tools ── */
   .holo-table > .pb { padding: 0 0 8px; position: relative; display: flex; flex-direction: column; min-height: 480px; }
-  .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background:
-  repeating-radial-gradient(circle at 50% 52%, transparent 0 58px, var(--a7) 59px 60px),
-  linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,
-  linear-gradient(90deg, var(--a5) 1px, transparent 1px) 0 0 / 40px 100%; }
+  .table-head { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 12px 0; min-height: 44px; }
   .hangar-dock { flex: none; display: flex; align-items: center; }
-  .tools5 { flex: none; display: flex; gap: 12px; align-items: center; opacity: 0.55; transition: opacity 160ms ease; }
+  .table-eyebrow { flex: 1; min-width: 0; margin: 0; font-size: max(9px, var(--f)); color: var(--sc-fg-2); letter-spacing: 0.16em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .no-geometry-badge { cursor: help; }
+  .tools5 { flex: none; display: flex; gap: 14px; align-items: center; opacity: 0.8; transition: opacity 160ms ease; }
   .holo-table:hover .tools5, .holo-table:focus-within .tools5, .tools5:has(.on), .tools5.open { opacity: 1; }
   @media (hover: none) { .tools5 { opacity: 1; } }
-  .tt { background: none; border: none; padding: 4px 2px; cursor: pointer; font-size: max(8.5px, var(--f));
- letter-spacing: 0.16em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); }
-  .tt:hover { color: var(--sc-fg-0); }
+  .tt { position: relative; background: none; border: none; padding: 4px 2px; cursor: pointer; font-size: max(8.5px, var(--f));
+  letter-spacing: 0.16em; color: var(--sc-fg-1); min-height: var(--sc-tap-min, 24px); transition: color 160ms ease, text-shadow 160ms ease; }
+  .tt::after { content: ''; position: absolute; left: 2px; right: 2px; bottom: 1px; height: 1px; background: currentColor; scale: 0 1; transition: scale 220ms var(--e-out); }
+  .tt:hover:not(:disabled) { color: var(--sc-fg-0); }
+  .tt:hover:not(:disabled)::after, .tt.on::after { scale: 1 1; }
   .tt.on { color: var(--sc-accent); text-shadow: 0 0 8px var(--a50); }
-  .tt:disabled { opacity: 0.35; cursor: not-allowed; }
+  .tt:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .share-wrap { position: relative; display: inline-flex; }
-  .share-popover { position: absolute; top: 100%; inset-inline-end: 0; z-index: 8; margin-top: 8px; }
-  /* The pin canvas is sized FROM the frame (wave 5 A2.2): a square that fits
-     the frame's height minus a label inset on every side, so ring pins and
-     their labels always stay inside the table — never under the head/legend. */
-  .silhouette-frame { position: relative; flex: 1; width: 100%; min-height: 480px; z-index: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;
-  container-type: size; --pin-inset: 56px; }
-  /* Dense tables carry no on-canvas labels, so the hull may use more of the frame. */
-  .silhouette-frame:has(.shipwrap.dense) { --pin-inset: 40px; }
-  .mode-viewer { width: 100%; height: 100%; min-height: 480px; }
-  .shipwrap { position: absolute; left: 50%; top: 50%; width: min(560px, 100cqw - 2 * var(--pin-inset), 100cqh - 2 * var(--pin-inset)); aspect-ratio: 1 / 1; transform: translate(-50%, -50%); }
-  .shipwrap.no-geometry { width: min(440px, 100cqw - 2 * var(--pin-inset), 100cqh - 2 * var(--pin-inset)); }
-  .silhouette { width: 100%; height: 100%; display: block; overflow: visible; }
-  .silhouette .glow { fill: none; stroke: var(--sc-accent); stroke-width: 10; opacity: 0.16; filter: blur(6px); }
-  .silhouette .hull { fill: var(--a10); stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 6px var(--a55)); }
-  .silhouette-placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
-  .silhouette-placeholder .ring { grid-area: 1 / 1; width: 78%; height: 78%; border: 1px dashed var(--l2); border-radius: 50%; }
-  .silhouette-placeholder .ring.inner { width: 40%; height: 40%; border-style: dotted; }
-  /* Default silhouette (wave 5 A3.2): the hull's own artwork, holo-tinted and
-     feathered into the rings, so a ship without a traced outline still shows
-     its shape. The generic glyph is the last resort behind a missing image. */
-  /* sc-fallback-image is display:contents — its img (or the projected glyph)
-     is the grid item, so the sizing goes on those, not on the host. */
-  .silhouette-placeholder > .generic-hull, .silhouette-placeholder .ghost-art, .silhouette-placeholder .ghost-icon { grid-area: 1 / 1; width: 74%; height: 74%; display: block; pointer-events: none; }
-  /* The icon file pads its hull generously and points nose-right: rotate to
-     the table's nose-up and scale it up to read like the traced outlines. */
-  .silhouette-placeholder .ghost-icon { object-fit: contain; transform: rotate(-90deg) scale(1.4); opacity: 0.5;
-  filter: sepia(1) saturate(4) hue-rotate(160deg) brightness(1.05) drop-shadow(0 0 3px var(--sc-accent)) drop-shadow(0 0 10px var(--a55)); }
-  .silhouette-placeholder .ghost-art { display: grid; place-items: center; mix-blend-mode: screen; opacity: 0.75;
-  filter: grayscale(1) sepia(1) hue-rotate(158deg) saturate(2.6) brightness(1.05) contrast(1.15);
-  -webkit-mask-image: radial-gradient(ellipse closest-side at center, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse closest-side at center, #000 55%, transparent 100%); }
-  .silhouette-placeholder .ghost-art ::ng-deep img { width: 100%; height: 100%; max-height: none; object-fit: contain; display: block; filter: none; }
-  .silhouette-placeholder .ghost-art .generic-hull { width: 100%; height: 100%; }
-  .generic-hull path { fill: var(--a10); stroke: var(--sc-accent); stroke-width: 0.8; stroke-dasharray: 2 1.5; opacity: 0.7; filter: drop-shadow(0 0 4px var(--a40)); }
-  .no-geometry-badge { color: var(--sc-fg-2); cursor: help; }
-  .table-empty { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; text-align: center; font-family: var(--d); text-transform: uppercase; letter-spacing: 0.14em; font-size: max(10px, var(--f)); color: var(--sc-fg-2); padding: 24px; }
-  /* Dense tables (many pins) keep the labels off the canvas — the numbered
-     key below carries them; hover / selection still shows the pin's own. */
-  .shipwrap.dense .pin-label { display: none; }
-  .shipwrap.dense .pin:is(.sel, .active, :hover, :focus-visible) .pin-label { display: inline; }
-  .pin-key { position: relative; z-index: 2; list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
-  .pk { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 2px; border: 1px solid var(--l1); border-radius: 999px; background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
-  color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(9.5px, var(--f)); min-height: var(--sc-tap-min, 24px); max-width: 100%; transition: border-color 160ms ease, color 160ms ease; }
-  .pk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-  .pk i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--m); font-style: normal; font-size: 9px; display: grid; place-items: center; flex: none; }
-  .pk.gold i { border-color: var(--holo-gold); color: var(--holo-gold); }
-  .pk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pk:hover, .pk.active { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-  .pk.sel { border-color: var(--sc-accent); color: var(--sc-accent); }
-  .pk.sel i { background: var(--sc-accent); color: var(--sc-bg-0); }
-  .hero-art { position: absolute; inset: 0; z-index: 3; display: block; pointer-events: none; opacity: 1; }
-  .hero-art ::ng-deep img, .hero-art ::ng-deep picture { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .holo-stage:not(.arrived):not(.reduced-motion) .hero-art { animation: holo-hero-out 1.6s ease-in-out forwards; }
-  .holo-stage:not(.arrived):not(.reduced-motion) .shipwrap, .holo-stage:not(.arrived):not(.reduced-motion) .rings { animation: holo-reveal 1.6s ease-out both; }
-  .holo-stage:not(.arrived):not(.reduced-motion) .silhouette-frame::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
-  background: linear-gradient(180deg, transparent 0, var(--a28) 50%, transparent 100%) 0 0 / 100% 18%;
-  background-repeat: no-repeat; animation: holo-scan 1.6s linear both; }
-  @keyframes holo-hero-out { 0% { opacity: 1; transform: scale(1); filter: saturate(1); } 55% { opacity: 0.85; filter: saturate(0.3) brightness(1.4); } 100% { opacity: 0; transform: scale(0.72); filter: saturate(0) brightness(2); } }
-  @keyframes holo-reveal { 0% { opacity: 0; } 45% { opacity: 0; } 100% { opacity: 1; } }
-  @keyframes holo-scan { 0% { background-position: 0 -20%; } 100% { background-position: 0 120%; } }
-  .reduced-motion .hero-art { display: none; }
-  /* The pin keeps its 20px box so the dot stays ON its anchor even under the
-     global 48px touch minimum; the hit area comes from the dot's halo. */
-  .pin { position: absolute; display: flex; align-items: center; gap: 6px; padding: 0; margin: -10px 0 0 -10px; background: none; border: none; cursor: pointer; z-index: 2; color: var(--sc-fg-1); min-width: 0; min-height: 0; }
-  .pin i { position: relative; }
-  .pin i::after { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
-  .pin.rev { flex-direction: row-reverse; transform: translateX(calc(-100% + 20px)); }
-  /* Top / bottom ring pins stack their label vertically so neighbours on the
-     ring never run into each other horizontally (wave 5 A2.4). */
-  .pin.pos-b { flex-direction: column; transform: translateX(calc(-50% + 10px)); }
-  .pin.pos-t { flex-direction: column-reverse; transform: translate(calc(-50% + 10px), calc(-100% + 20px)); }
-  .pin.sel, .pin:hover, .pin:focus-visible { z-index: 4; }
-  .pin i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--sc-accent); background: var(--ink); color: var(--sc-accent);
-  font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
-  box-shadow: 0 0 0 4px var(--a12), 0 0 12px var(--a50); }
-  .pin-label { font-size: max(8.5px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-1);
- background: color-mix(in srgb, var(--sc-bg-0) 85%, transparent); padding: 2px 6px; border: 1px solid var(--l1); border-radius: 2px; white-space: nowrap; }
-  .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none; }
-  .pin.gold i { border-color: var(--holo-gold); color: var(--holo-gold); box-shadow: 0 0 0 4px rgba(var(--holo-gold-rgb), 0.1), 0 0 10px rgba(var(--holo-gold-rgb), 0.4); }
-  .pin:is(.active, :hover) i { box-shadow: 0 0 0 6px var(--a22), 0 0 18px var(--a80); }
-  .pin:is(.active, :hover) .pin-label { border-color: var(--sc-accent); color: var(--sc-fg-0); }
-  .pin.sel i { background: var(--sc-accent); color: var(--sc-bg-0); }
-  .pin.sel .pin-label { color: var(--sc-accent); border-color: var(--sc-accent); }
-  .pin.unresolved i { border-style: dashed; background: transparent; color: var(--sc-fg-2); border-color: var(--sc-fg-2); box-shadow: none; }
-  .pin.patched i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-  .pin:focus-visible { outline: none; }
-  .pin:focus-visible i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-  .legend { position: relative; z-index: 2; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: max(8.5px, var(--f));
- letter-spacing: 0.1em; color: var(--sc-fg-2); }
-  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
-  .legend i.g { border-color: var(--holo-gold); }
-  .legend i.u { border-style: dashed; border-color: var(--sc-fg-2); }
-  .legend-hint { margin-inline-start: auto; }
-  .empty { display: grid; place-items: center; text-align: center; gap: 8px; color: var(--sc-fg-2); padding: 40px 10px; border: 1px dashed var(--l2); border-radius: 4px; font-size: max(12px, var(--f)); }
-  .empty b { font-size: max(11px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-1); font-weight: 400; }
-  .inspector { display: grid; gap: 10px; padding: 10px 12px; border: 1px solid var(--sc-accent); border-radius: 4px; background: var(--ink); }
-  .insp-head { display: flex; align-items: flex-start; gap: 8px; }
-  .size-tag { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); border-radius: 2px; padding: 1px 5px; flex: none; margin-top: 2px; }
-  .insp-ident { display: grid; gap: 2px; min-width: 0; flex: 1; }
-  .insp-ident b { font-weight: 500; color: var(--sc-fg-0); font-size: max(13px, var(--f)); }
-  .insp-ident small { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); }
-  .inspector-close { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); min-width: 24px; padding: 0; flex: none; }
-  .inspector-close:hover { color: var(--sc-fg-0); }
-  .inspector-patch-delta { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-accent); font-family: var(--m); }
-  .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }
-  .insp-stats { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .insp-stats div { display: grid; gap: 1px; padding: 5px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; }
-  .insp-stats dt { font-size: max(8px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); }
-  .insp-stats dd { margin: 0; font-family: var(--m); font-size: 13px; color: var(--sc-fg-0); }
-  .insp-draft { margin: 0; display: flex; align-items: center; gap: 8px; }
-  .tag.draft { font-size: max(10px, var(--f)); color: var(--sc-accent); border: 1px solid var(--sc-accent); border-radius: 2px; padding: 1px 6px; }
-  .tag.draft.pending { color: var(--sc-fg-2); border-color: var(--sc-fg-2); }
-  .tag.draft.unresolved { color: var(--sc-warning); border-color: var(--sc-warning); }
-  .insp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .insp-kid { display: grid; gap: 8px; margin-inline-start: 10px; padding: 8px 0 0 10px; border-inline-start: 2px solid var(--a40); }
-  .insp-kid.empty .insp-ident b { color: var(--sc-fg-2); font-weight: 400; }
-  .insp-kid .btn { padding: 3px 8px; min-height: var(--sc-tap-min, 26px); font-size: max(9.5px, var(--f)); }
-  .card.flat { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--l1); border-radius: 4px; }
-  .h2 { display: flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); }
-  .mut { margin: 0; font-size: max(11.5px, var(--f)); color: var(--sc-fg-2); }
-  .journal { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-  .journal li { display: flex; align-items: center; gap: 8px; font-size: max(11.5px, var(--f)); }
-  .j-label { color: var(--sc-fg-0); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .j-state { color: var(--sc-fg-2); font-size: max(10px, var(--f)); }
+  /* The share popover is a real surface: background, frame, shadow, a notch
+     pointing at "Teilen" — never floating text over the table. */
+  .share-popover { position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(340px, calc(100vw - 32px));
+  padding: 14px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px var(--a10); transform-origin: calc(100% - 22px) -6px; }
+  .share-popover::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg; background: var(--sc-bg-1);
+  border-top: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-left: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); }
+  .pop-enter { animation: pop-in 200ms var(--e-out); }
+  .pop-leave { animation: pop-out 140ms ease-in forwards; }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+  @keyframes pop-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+  /* On a desktop with the inspector open, its hardpoint list replaces the
+     dense key under the table — one list, not two. */
+  @media (min-width: 1001px) { .holo-stage:not(.right-collapsed) ::ng-deep .pin-key { display: none; } }
+
+  /* ── Below: calm ports list | perspectives (sticky beside the long list) ── */
   .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 14px; align-items: start; padding: 0 10px; }
+  @media (min-width: 1181px) {
+  .below-persp { position: sticky; top: max(84px, calc(100vh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
+  }
   .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
   .holo-details { padding: 0 10px; }
-  .holo-details .sh { margin-bottom: 0; }
+  .holo-details .sh { margin-bottom: 0; flex-wrap: wrap; }
   .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
- font: inherit; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; }
+  font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; transition: color 160ms ease, border-color 160ms ease; }
   .details-toggle:hover, .details-toggle[aria-expanded="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
-  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
-  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); }
+  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; animation: rise 320ms var(--e-out) backwards; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); white-space: nowrap; }
+  .switch.mobile-only { display: none; }
   .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-  .switch .track { width: 28px; height: 14px; border-radius: 7px; border: 1px solid var(--l2); background: var(--sc-bg-0); position: relative; transition: background 160ms ease; }
-  .switch .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--sc-fg-2); transition: transform 160ms ease, background 160ms ease; }
+  .switch .track { width: 28px; height: 14px; border-radius: 7px; border: 1px solid var(--l2); background: var(--sc-bg-0); position: relative; transition: background 160ms ease, border-color 160ms ease; }
+  .switch .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--sc-fg-2); transition: transform 200ms var(--e-out), background 160ms ease; }
   .switch input:checked + .track { background: color-mix(in srgb, var(--sc-accent) 30%, var(--sc-bg-0)); border-color: var(--sc-accent); }
   .switch input:checked + .track::after { transform: translateX(14px); background: var(--sc-accent); }
   .switch input:focus-visible + .track { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-  .undo-toast { position: fixed; bottom: 110px; inset-inline-start: 50%; transform: translateX(-50%); z-index: 20;
+  /* The toast rides above the strip, whatever height the strip has. */
+  .undo-toast { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
-  border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); }
+  border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
+  .toast-enter { animation: toast-in 240ms var(--e-out); }
+  .toast-leave { animation: toast-out 160ms ease-in forwards; }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
+  @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
+
   @media (max-width: 1180px) {
   .holo-stage { --rail: 260px; }
-  .holo-body { grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail); }
   .holo-below { grid-template-columns: 1fr; }
   }
   @media (max-width: 1000px) {
-  .holo-topbar { grid-template-columns: 1fr auto; }
+  .holo-topbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title title' 'search patch'; gap: 10px; }
+  .ht-search { max-width: none; }
+  .ht-title { max-width: 100%; justify-self: center; }
   .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   .holo-left.collapsed { order: 0; }
   .holo-table { order: 1; }
@@ -957,16 +704,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { margin-top: 10px; }
   }
   @media (orientation: landscape) and (max-width: 1000px) and (max-height: 600px) {
-  .holo-table > .pb, .silhouette-frame { min-height: 320px; }
+  .holo-table > .pb { min-height: 320px; }
   }
   @media (max-width: 640px) {
   .holo-stage { padding-bottom: 72px; }
   .mobile-tabs { display: flex; }
-  .mobile-only { display: inline-flex; }
-  .holo-topbar { grid-template-columns: 1fr auto; grid-template-areas: 'search patch' 'mid mid'; gap: 8px; }
-  .ht-search { grid-area: search; }
-  .ht-right { grid-area: patch; justify-content: flex-end; }
-  .ht-mid { grid-area: mid; min-height: 44px; }
+  .switch.mobile-only { display: inline-flex; }
   /* Every :has() column rule from the <=1000px block outranks a bare
      .holo-body (wave 5 A2.7) — restate them here or the table lands in a
      0px column on phones. */
@@ -975,23 +718,26 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-panel, .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: auto; order: initial; min-height: 0; margin-top: 0; }
   .holo-table { order: -1; }
   .holo-table > .ph.role { max-width: 100%; }
-  .holo-table > .pb, .silhouette-frame, .mode-viewer { min-height: 360px; }
-  .silhouette-frame { --pin-inset: 36px; }
-  /* Phone: dock and tools share the first line, the ship name gets its own. */
+  .holo-table > .pb { min-height: 360px; }
+  /* A collapsed panel on a phone is its header — no vertical rail label. */
+  .holo-panel.collapsed > .ph { padding: 7px 12px; justify-content: flex-start; }
+  .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .ph-glyph { display: inline; }
+  .holo-panel > .pb.rail-min { display: none; }
+  /* Phone: dock and tools share the first line, the surface label its own. */
   .table-head { flex-wrap: wrap; gap: 6px; padding: 6px 6px 0; }
   .table-head .hangar-dock { order: 1; }
-  .table-head .tools5 { order: 2; margin-inline-start: auto; gap: 6px; }
+  .table-head .tools5 { order: 2; margin-inline-start: auto; gap: 8px; }
   .tt { letter-spacing: 0.1em; padding: 4px 0; }
   .table-head .table-eyebrow { order: 3; flex-basis: 100%; }
-  .pin-label { display: none; }
-  .pin.sel .pin-label, .pin.active .pin-label { display: inline; }
-  .legend-hint { display: none; }
   .holo-below { grid-template-columns: 1fr; padding: 0 6px; }
   .holo-body.mobile-hide-table .mobile-table { display: none; }
   .holo-body.mobile-hide-data .mobile-data { display: none; }
-  .undo-toast { bottom: 84px; width: calc(100% - 32px); justify-content: space-between; }
+  .undo-toast { width: calc(100% - 32px); justify-content: space-between; }
   }
-
+  .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation: none !important; transition: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
   `],
 })
 export class CodexHoloStageComponent {
@@ -1000,7 +746,7 @@ export class CodexHoloStageComponent {
   private readonly skins = inject(ShipSkinsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
-  readonly GENERIC_HULL = GENERIC_HULL_PATH;
+  private readonly rolebar = viewChild<ElementRef<HTMLElement>>('rolebar');
 
   // ── Identity / chrome ────────────────────────────────────────────
   readonly detail = input.required<CodexDetail>();
@@ -1020,6 +766,10 @@ export class CodexHoloStageComponent {
   readonly locatablePorts = input<readonly string[]>([]);
   readonly primaryModuleSections = input<readonly LayoutSection[]>([]);
   readonly tailModuleSections = input<readonly LayoutSection[]>([]);
+  /** The calm ports list's folded previews and block census read these —
+   * the same maps the classic view hands its layout. */
+  readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
+  readonly foldedModuleSections = input<ReadonlySet<ShipModuleSection>>(new Set());
 
   // ── Silhouette / 3D / schema (in-place, user decision 2) ──────────
   readonly silhouette = input<HoloSilhouette | null>(null);
@@ -1133,11 +883,18 @@ export class CodexHoloStageComponent {
   readonly inspectedPort = signal<string | null>(null);
   readonly sharePopoverOpen = signal(false);
   readonly arrived = signal(false);
+  /** Where the arrival stands — `wait` until the first run decides (so no
+   * canvas is created with the wrong timing), see {@link HoloPhase}. */
+  readonly phase = signal<HoloPhase>('wait');
+  /** The arrival's hero image, set only once it actually loaded. */
+  readonly heroSrc = signal<string | null>(null);
   readonly soundOn = signal(this.readSoundPref());
   readonly mobileTabsEnabled = signal(this.readMobileTabsPref());
   readonly mobileTab = signal<'table' | 'data'>('table');
   /** The tile that pulses after a port selection (concept pe4-pulse). */
   readonly pulseTile = signal<Perspective | null>(null);
+  /** The strip's last power sheet — the signature tile reads IR / EM off it. */
+  readonly powerSheet = signal<PowerSheet | null>(null);
 
   // slot: patch-delta outputs, surfaced to the pins/inspector/KPI band
   readonly patchGhosts = signal<HoloPatchKpiGhosts | null>(null);
@@ -1149,26 +906,82 @@ export class CodexHoloStageComponent {
   readonly has3d = signal(false);
   private skinsSeq = 0;
 
+  /** The panels' bodies exist from the reveal on, so they rise WITH it. */
+  readonly bodyReady = computed(() => this.phase() === 'reveal' || this.phase() === 'done');
+
+  readonly staticKeys: readonly StaticKey[] = ['crew', 'mass', 'cargo'];
+
   constructor() {
+    // The arrival (concept hv3-s1), keyed on the ship: every hull switch
+    // re-runs it. Reduced motion or a repeat visit in the same session = a
+    // hard cut. Otherwise the hero art is fetched (briefly — the table never
+    // waits long for it), shown, and dissolved into the table while the
+    // outline materialises and the pins pop in.
     effect((onCleanup) => {
-      // Keyed on the ship: every hull switch re-runs the arrival. Reduced
-      // motion = hard cut (no transformation). A repeat visit in the same
-      // session also cuts straight to the arrived state (concept: "repeat
-      // visit in the session = cut only").
       const slug = this.detail().classNameSlug;
-      if (this.reducedMotion() || this.seenThisSession()) {
-        this.arrived.set(true);
-        return;
-      }
-      this.arrived.set(false);
-      const t = setTimeout(() => {
-        this.arrived.set(true);
-        this.startCountUp();
-        // Only now is the ship "seen" — the host must not mark it before the
-        // stage mounted, or the arrival never plays (wave 5 A3.1).
-        this.arrivedShip.emit(slug);
-      }, ARRIVAL_MS);
-      onCleanup(() => clearTimeout(t));
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+        timers.forEach((t) => clearTimeout(t));
+      });
+      untracked(() => {
+        this.heroSrc.set(null);
+        if (this.reducedMotion() || this.seenThisSession()) {
+          this.phase.set('done');
+          this.arrived.set(true);
+          return;
+        }
+        this.arrived.set(false);
+        const reveal = (): void =>
+          untracked(() => {
+            if (cancelled) return;
+            this.phase.set('reveal');
+            this.startCountUp();
+            timers.push(
+              setTimeout(() => {
+                if (cancelled) return;
+                this.phase.set('done');
+                this.heroSrc.set(null);
+                this.arrived.set(true);
+                // Only now is the ship "seen" — the host must not mark it before
+                // the stage arrived, or the arrival never plays (wave 5 A3.1).
+                this.arrivedShip.emit(slug);
+              }, REVEAL_MS),
+            );
+          });
+        // A render is a hero; the game's flat top-down icon is not (a white
+        // cut-out filling the table) — that one already IS the ghost hull.
+        const src = this.heroArt().find((u) => !!u && u !== this.previewSilhouette()) ?? null;
+        if (!src || typeof Image === 'undefined') {
+          reveal();
+          return;
+        }
+        this.phase.set('wait');
+        let settled = false;
+        const img = new Image();
+        const giveUp = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          reveal();
+        }, HERO_WAIT_MS);
+        timers.push(giveUp);
+        img.onload = () => {
+          if (settled || cancelled) return;
+          settled = true;
+          clearTimeout(giveUp);
+          this.heroSrc.set(src);
+          this.phase.set('hero');
+          timers.push(setTimeout(reveal, HERO_HOLD_MS));
+        };
+        img.onerror = () => {
+          if (settled || cancelled) return;
+          settled = true;
+          clearTimeout(giveUp);
+          reveal();
+        };
+        img.src = src;
+      });
     });
 
     // A new hull is a new table (wave 5 B0.1 / B1.1 / B1.2): nothing the user
@@ -1224,6 +1037,39 @@ export class CodexHoloStageComponent {
       });
     });
 
+    // The Einsatz bar's ink follows the active segment (and re-measures when
+    // the lead values under the labels change the segment widths).
+    effect((onCleanup) => {
+      this.activeMissionId();
+      this.missionSegments();
+      const bar = this.rolebar()?.nativeElement;
+      if (!bar || typeof requestAnimationFrame !== 'function') return;
+      const raf = requestAnimationFrame(() => this.placeInk(bar));
+      onCleanup(() => cancelAnimationFrame(raf));
+    });
+
+    // Sizes other rules depend on: the ink (bar width), the toast's and the
+    // sticky tiles' clearance above the strip, the tiles' own height.
+    afterNextRender(() => {
+      if (typeof ResizeObserver !== 'function') return;
+      const root = this.host.nativeElement;
+      const stage = root.querySelector<HTMLElement>('.holo-stage');
+      const ro = new ResizeObserver((entries) => {
+        for (const e of entries) {
+          const el = e.target as HTMLElement;
+          const h = Math.round(el.getBoundingClientRect().height);
+          if (el.matches('sc-codex-holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
+          else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
+          else if (el.matches('.rolebar')) this.placeInk(el);
+        }
+      });
+      for (const sel of ['sc-codex-holo-strip', '.below-persp', '.rolebar']) {
+        const el = root.querySelector(sel);
+        if (el) ro.observe(el);
+      }
+      this.destroyRef.onDestroy(() => ro.disconnect());
+    });
+
     this.destroyRef.onDestroy(() => {
       if (this.pulseTimer) clearTimeout(this.pulseTimer);
       if (this.countUpRaf) cancelAnimationFrame(this.countUpRaf);
@@ -1257,14 +1103,47 @@ export class CodexHoloStageComponent {
         toastTimer = setTimeout(() => this.undoToast.set(null), UNDO_TOAST_MS);
       }
     });
+    this.destroyRef.onDestroy(() => {
+      if (toastTimer) clearTimeout(toastTimer);
+    });
   }
 
   readonly undoToast = signal<JournalEntry | null>(null);
+  /** The toast names the part as the journal names it NOW — a swap lands as
+   * the raw class name while its payload loads, then resolves to the name. */
+  readonly undoToastLabel = computed(() => {
+    const t = this.undoToast();
+    if (!t) return '';
+    return displayItemName(this.journal().find((e) => e.port === t.port)?.label ?? t.label);
+  });
   undoToastAction(): void {
     const t = this.undoToast();
     if (!t) return;
     this.reverted.emit(t.paths);
     this.undoToast.set(null);
+  }
+
+  /** Slides the Einsatz bar's ink under the active segment; keeps that
+   * segment in view when the bar scrolls (narrow tables, phones). */
+  private placeInk(bar: HTMLElement): void {
+    const on = bar.querySelector<HTMLElement>('.r.on');
+    if (!on) {
+      bar.style.setProperty('--ink-w', '0px');
+      return;
+    }
+    bar.style.setProperty('--ink-x', `${on.offsetLeft}px`);
+    bar.style.setProperty('--ink-w', `${on.offsetWidth}px`);
+    const scroller = bar.parentElement;
+    if (scroller && scroller.scrollWidth > scroller.clientWidth + 1) {
+      const left = Math.max(0, on.offsetLeft - (scroller.clientWidth - on.offsetWidth) / 2);
+      scroller.scrollTo({ left, behavior: this.reducedMotion() ? 'auto' : 'smooth' });
+    }
+  }
+
+  /** The strip's power sheet goes up to the host AND feeds the signature tile. */
+  onSheetChange(sheet: PowerSheet): void {
+    this.powerSheet.set(sheet);
+    this.sheetChange.emit(sheet);
   }
 
   /** Digit hotkeys select pins ("tippe 1 bis N"), Esc closes the share
@@ -1309,6 +1188,24 @@ export class CodexHoloStageComponent {
     const mfr = this.manufacturerName();
     return mfr ? `${mfr} · ${this.displayName()}` : this.displayName();
   });
+
+  /** The title without the maker's own first word — the kicker names the maker. */
+  readonly shortName = computed(() => shipNameWithoutMaker(this.displayName(), this.manufacturerName()));
+
+  /** Above the name: maker · career · role, whatever the extract knows. */
+  readonly kicker = computed(() => {
+    const chips = this.heroChips();
+    const parts = [this.manufacturerName(), ...['career', 'role'].map((k) => chips.find((c) => c.key === k)?.text ?? null)]
+      .filter((p): p is string => !!p && p.trim().length > 0);
+    return [...new Set(parts)].join(' · ') || null;
+  });
+
+  /** What the table surface currently shows. */
+  readonly eyebrowKey = computed(() =>
+    this.viewMode() === '3d' ? 'codex.holo.stage.eyebrow3d'
+    : this.viewMode() === 'schema' ? 'codex.holo.stage.eyebrowSchema'
+    : 'codex.holo.stage.eyebrowTop',
+  );
 
   submitSearch(ev: Event): void {
     ev.preventDefault();
@@ -1385,7 +1282,11 @@ export class CodexHoloStageComponent {
   }
 
   // ── Static tiles (Crew · Masse · Laderaum) off the hero chips ─────
-  staticChip(key: 'crew' | 'mass' | 'cargo'): string {
+  staticLabelKey(key: StaticKey): string {
+    return key === 'crew' ? 'codex.holo.stage.staticCrew' : key === 'mass' ? 'codex.holo.stage.staticMass' : 'codex.holo.stage.staticCargo';
+  }
+
+  staticChip(key: StaticKey): string {
     const chip = this.heroChips().find((c) => c.key === key);
     if (!chip) return '—';
     if (key === 'crew') return chip.text.replace(/\s*crew$/i, '').trim() || chip.text;
@@ -1397,7 +1298,7 @@ export class CodexHoloStageComponent {
   }
 
   /** The gap explanation behind a dashed static tile, else null. */
-  staticChipTitle(key: 'crew' | 'mass' | 'cargo'): string | null {
+  staticChipTitle(key: StaticKey): string | null {
     const chip = this.heroChips().find((c) => c.key === key);
     if (!chip) return null;
     return this.staticChip(key) === '—' ? chip.text : null;
@@ -1417,8 +1318,8 @@ export class CodexHoloStageComponent {
         const lead = m.kpis.map((k) => cells.find((c) => c.key === k)).find((c) => c && c.value != null);
         sub = lead ? `${this.fmtCell(lead)} ${this.t.instant('codex.kpi.short.' + lead.key)}` : this.t.instant('codex.kpi.gap');
       }
-      if (m.id === this.activeMissionId() && rank?.overall != null) sub += ` · P${Math.round(rank.overall)}`;
-      return { id: m.id, labelKey: m.labelKey, sub, disabledKey: missionDisabledReasonKey(m.id, caps) };
+      const pct = m.id === this.activeMissionId() && rank?.overall != null ? `P${Math.round(rank.overall)}` : null;
+      return { id: m.id, labelKey: m.labelKey, sub, pct, disabledKey: missionDisabledReasonKey(m.id, caps) };
     });
   });
 
@@ -1452,14 +1353,24 @@ export class CodexHoloStageComponent {
     return out;
   });
 
-  // ── Silhouette pins — one per port the ports list shows (never from
-  // `anchors ∪ unresolved`, per wave1-redteam.md: the silhouette may place a
-  // pin, it never decides which ports exist). Ships with no loadout blocks
-  // fall back to the extract's raw item ports. Numbered in list order. ──
+  /** The ports that pin the table — one per port the ports list shows (never
+   * from `anchors ∪ unresolved`, per wave1-redteam.md: the silhouette may
+   * place a pin, it never decides which ports exist). Ships with no loadout
+   * blocks fall back to the extract's raw item ports, de-duplicated (wave 5
+   * A2.4: `track pin.portName` must stay unique). */
+  private readonly pinSource = computed<{ raw: string; known: { slot: LayoutSlot; index: number; section: ShipModuleSection } | null }[]>(() => {
+    const byRaw = this.slotByRawPort();
+    if (byRaw.size > 0) return [...byRaw.entries()].map(([raw, known]) => ({ raw, known }));
+    const seenRaw = new Set<string>();
+    return ((this.detail()?.ports ?? []) as readonly CodexItemPort[])
+      .filter((p) => !!p.portName && !seenRaw.has(p.portName) && seenRaw.add(p.portName))
+      .map((p) => ({ raw: p.portName!, known: null }));
+  });
+
   /** The fallback ring, as an ellipse that hugs the traced hull's bbox (in %
    * of the canvas) — or the plain ring when there is no silhouette. Pins
    * without an anchor sit on it in list order, starting at the nose. */
-  private readonly fallbackRing = computed<{ cx: number; cy: number; rx: number; ry: number }>(() => {
+  private readonly fallbackRing = computed<PinRing>(() => {
     const s = this.silhouette();
     const plain = { cx: 50, cy: 50, rx: 42, ry: 42 };
     if (!s) return plain;
@@ -1482,26 +1393,15 @@ export class CodexHoloStageComponent {
     return { cx: ccx, cy: ccy, rx: Math.min(rx, ccx + 4, 104 - ccx), ry: Math.min(ry, ccy + 4, 104 - ccy) };
   });
 
-  readonly pins = computed<StagePin[]>(() => {
+  /** The ring the estimated pins actually ride on (null when every pin is
+   * anchored): a crowded ring (capital ships, 40+ ports) widens until
+   * neighbouring dots no longer touch — ~7 % of the canvas per pin. */
+  readonly pinRing = computed<PinRing | null>(() => {
     const s = this.silhouette();
-    const byRaw = this.slotByRawPort();
-    // Raw-port fallback is de-duplicated (wave 5 A2.4): the extract can list a
-    // port name twice, and `track pin.portName` must stay unique.
-    const seenRaw = new Set<string>();
-    const source: { raw: string; known: { slot: LayoutSlot; index: number; section: ShipModuleSection } | null }[] =
-      byRaw.size > 0
-        ? [...byRaw.entries()].map(([raw, known]) => ({ raw, known }))
-        : ((this.detail()?.ports ?? []) as readonly CodexItemPort[])
-            .filter((p) => !!p.portName && !seenRaw.has(p.portName) && seenRaw.add(p.portName))
-            .map((p) => ({ raw: p.portName!, known: null }));
-    const byPort = new Map<string, SilhouetteAnchor>(s ? s.anchors.map((a) => [a.portId, a]) : []);
-    let nextIndex = 0;
-    let fallbackIndex = 0;
-    const n = source.filter(({ raw }) => !byPort.has(raw)).length || 1;
-    // A crowded ring (capital ships: 40+ ports) widens until neighbouring
-    // dots no longer touch — ~7 % of the canvas per pin along the perimeter.
-    const base = this.fallbackRing();
-    const ring = { ...base };
+    const anchored = new Set(s ? s.anchors.map((a) => a.portId) : []);
+    const n = this.pinSource().filter(({ raw }) => !anchored.has(raw)).length;
+    if (n === 0) return null;
+    const ring = { ...this.fallbackRing() };
     const needMean = (n * 7) / (2 * Math.PI);
     const mean = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
     if (mean < needMean) {
@@ -1511,11 +1411,30 @@ export class CodexHoloStageComponent {
       const mean2 = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
       if (mean2 < needMean) ring.ry = Math.min(maxRy, Math.max(ring.ry, Math.sqrt(Math.max(0, 2 * needMean * needMean - ring.rx * ring.rx))));
     }
-    const sideFor = (x: number, y: number): StagePin['side'] => {
+    return ring;
+  });
+
+  readonly pins = computed<StagePin[]>(() => {
+    const s = this.silhouette();
+    const byPort = new Map<string, SilhouetteAnchor>(s ? s.anchors.map((a) => [a.portId, a]) : []);
+    const source = this.pinSource();
+    const ring = this.pinRing();
+    // Estimated positions are spread evenly ALONG the ring (not by angle), in
+    // list order from the nose clockwise — see `ringPositions`.
+    const spots = ring ? ringPositions(ring, source.filter(({ raw }) => !byPort.has(raw)).length) : [];
+    let nextIndex = 0;
+    let spot = 0;
+    // A narrow ring (a slim hull — the X1, a Cutter) leaves the flank labels
+    // no room to point inward: both sides met over the hull and collided.
+    // There they point OUTWARD, into the free table; on a wide ring the
+    // outside is the frame edge, so they point inward as before.
+    const narrow = !!ring && ring.rx < 30;
+    const sideFor = (x: number, y: number, estimated: boolean): StagePin['side'] => {
       // Near the top/bottom of the ring the neighbours sit side by side, so
-      // the label goes above/below the dot; on the flanks it goes outward.
+      // the label goes above/below the dot.
       if (y <= 18) return 'below';
       if (y >= 82) return 'above';
+      if (estimated && narrow) return x < 50 ? 'left' : 'right';
       return x > 55 ? 'left' : 'right';
     };
     return source
@@ -1527,21 +1446,33 @@ export class CodexHoloStageComponent {
         const base = {
           portName: raw,
           index,
-          label: slot?.name ?? slot?.port ?? humanizeClassName(raw),
+          label: slot?.name ? displayItemName(slot.name) : (slot?.port ?? humanizeClassName(raw)),
           short: stat ? formatEquippedStat(stat) : slot?.statChip ?? null,
           tone: (known?.section === 'missiles' ? 'gold' : 'accent') as 'accent' | 'gold',
           slot,
+          section: known?.section ?? null,
         };
-        if (anchor) return { ...base, x: anchor.x, y: anchor.y, side: sideFor(anchor.x, anchor.y), resolved: true };
-        // Deterministic fallback ring position for a port with no anchor and
-        // no `unresolved[]` entry either (§C3: "same as unresolved").
-        const angle = (Math.PI * 2 * fallbackIndex) / n - Math.PI / 2;
-        fallbackIndex += 1;
-        const x = ring.cx + ring.rx * Math.cos(angle);
-        const y = ring.cy + ring.ry * Math.sin(angle);
-        return { ...base, x, y, side: sideFor(x, y), resolved: false };
+        if (anchor) return { ...base, x: anchor.x, y: anchor.y, side: sideFor(anchor.x, anchor.y, false), resolved: true };
+        const p = spots[spot++] ?? { x: 50, y: 50 };
+        return { ...base, x: p.x, y: p.y, side: sideFor(p.x, p.y, true), resolved: false };
       })
       .sort((a, b) => a.index - b.index);
+  });
+
+  /** The inspector's list: the pins grouped by loadout block, in pin order. */
+  readonly pinGroups = computed<PinGroup[]>(() => {
+    const groups = new Map<string, StagePin[]>();
+    for (const p of this.pins()) {
+      const key = p.section ?? 'other';
+      const hit = groups.get(key);
+      if (hit) hit.push(p);
+      else groups.set(key, [p]);
+    }
+    return [...groups.entries()].map(([key, pins]) => ({
+      key,
+      labelKey: key === 'other' ? 'codex.holo.stage.pinGroupOther' : `codex.moduleSection.${key}`,
+      pins,
+    }));
   });
 
   /** Too many pins for on-canvas labels — the numbered key takes over. */
@@ -1553,6 +1484,12 @@ export class CodexHoloStageComponent {
   readonly inspectedIndex = computed<number>(() => {
     const port = this.inspectedPort();
     return port ? (this.pins().find((p) => p.portName === port)?.index ?? 0) : 0;
+  });
+
+  /** The patch Δ badge of the pin under inspection, if the comparison has one. */
+  readonly inspectedPatchPin = computed<PortPinBadge | null>(() => {
+    const port = this.inspectedPort();
+    return port ? (this.patchPortPins()?.[port] ?? null) : null;
   });
 
   /** The inspected pin has no loadout slot behind it (raw extract port) —
@@ -1611,33 +1548,6 @@ export class CodexHoloStageComponent {
     }
   }
 
-  /** The same dotted `parent.child` target the ports list emits for a sub-slot. */
-  childTarget(it: LayoutTarget, kid: LayoutChild): LayoutTarget {
-    const kids = kid.rawPorts.length > 0 ? kid.rawPorts : [kid.port];
-    return { slot: it.slot, count: kid.count, child: kid, rawPorts: it.rawPorts.flatMap((p) => kids.map((k) => `${p}.${k}`)) };
-  }
-
-  sizeBadge(slot: LayoutSlot): string | null {
-    const size = slot.size ?? slot.portSize;
-    return size != null ? `S${size}` : null;
-  }
-
-  kidMeta(kid: LayoutChild): string {
-    return [kid.manufacturerCode, kid.typeLabel, kid.port].filter((x): x is string => !!x).join(' · ');
-  }
-
-  inspectorMeta(slot: LayoutSlot): string {
-    return [slot.manufacturerCode, slot.typeLabel, slot.port].filter((x): x is string => !!x).join(' · ');
-  }
-
-  inspectorStats(slot: LayoutSlot): readonly EquippedStat[] {
-    return (slot.stats ?? []).slice(0, 4);
-  }
-
-  fmtStat(stat: EquippedStat): string {
-    return formatEquippedStat(stat);
-  }
-
   fmtCell(c: KpiStripCell): string {
     return c.value == null ? '—' : formatEquippedStat({ labelKey: c.labelKey, value: c.value, format: c.format });
   }
@@ -1654,23 +1564,28 @@ export class CodexHoloStageComponent {
     return { patch: g.toBuild.patchVersion, text, tone: cell.delta ? (cell.delta.good ? 'up' : 'down') : null };
   }
 
-  // ── Count-up (concept cine-countup): on arrival the headline numbers run
-  // from the previously viewed ship's stock value (read off the SAME cohort
-  // sheets the ranking uses — nothing invented) to this ship's value, ~700 ms,
-  // so a ship switch shows WHICH numbers moved. Reduced motion = cut. ──
+  // ── Count-up (concept cine-countup): with the reveal the headline numbers
+  // run from the previously viewed ship's stock value (read off the SAME
+  // cohort sheets the ranking uses — nothing invented) to this ship's value,
+  // ~700 ms, so a ship switch shows WHICH numbers moved. Without a previous
+  // ship there is nothing to compare — the numbers simply stand (a run up
+  // from zero says nothing). Reduced motion = cut. ──
   private readonly countUpProgress = signal(1);
   private countUpFrom: Partial<Record<KpiStripCell['key'], number>> = {};
   private countUpRaf: number | null = null;
 
   private startCountUp(): void {
-    if (this.reducedMotion()) return;
+    if (this.reducedMotion() || typeof requestAnimationFrame !== 'function') return;
     const prev = this.recentlyViewedShips().find((cn) => cn !== this.detail().classNameSlug);
     const cohort = this.rankCohort();
     const sheet = prev && cohort ? cohort.find((c) => c.className === prev)?.sheet : undefined;
+    if (!sheet) return;
     this.countUpFrom = {};
     for (const c of this.allKpiCells()) {
-      const from = sheet ? (sheet as Record<string, number | null | undefined>)[c.key] : null;
-      this.countUpFrom[c.key] = from ?? 0;
+      const from = (sheet as Record<string, number | null | undefined>)[c.key];
+      // A key the previous ship has no value for stands still instead of
+      // running up from an invented zero.
+      this.countUpFrom[c.key] = from ?? c.value ?? 0;
     }
     const start = performance.now();
     const ms = 700;
@@ -1729,7 +1644,7 @@ export class CodexHoloStageComponent {
     return pool
       .map((c) => ({
         className: c.className,
-        displayName: humanizeClassName(c.className),
+        displayName: c.name?.trim() || humanizeClassName(c.className),
         value: (c.sheet as Record<string, number | null>)[activeKey] ?? 0,
       }))
       .sort((a, b) => b.value - a.value)
@@ -1771,22 +1686,35 @@ export class CodexHoloStageComponent {
     return text;
   }
 
+  /** The signature tile's sub-values when the KPI sheet has none: IR and EM
+   * as the strip's power sheet computes them (the dock's raw numbers). */
+  private readonly signatureFactSubs = computed(() => {
+    const facts = this.powerSheet()?.facts ?? [];
+    return (['ir', 'em'] as const)
+      .map((k) => facts.find((f) => f.key === k))
+      .filter((f): f is NonNullable<typeof f> => !!f && f.value != null)
+      .map((f) => ({ key: f.key, shortKey: `codex.energy.fact.${f.key}`, text: formatNumber(Math.round(f.value!)), ghost: null }));
+  });
+
   /** The tiles as the child renders them — every string resolved here, so
    * the count-up, the ghosts and the formatter stay in one place. */
   readonly perspectiveViews = computed<HoloPerspectiveView[]>(() =>
-    this.perspectiveTiles().map((t) => ({
-      id: t.id,
-      titleKey: t.titleKey,
-      pct: t.pct,
-      leadText: t.lead ? this.countUpText(t.lead) : null,
-      leadLabelKey: t.lead?.labelKey ?? null,
-      leadShortKey: t.lead ? `codex.kpi.short.${t.lead.key}` : null,
-      deltaText: t.lead ? this.deltaText(t.lead) : null,
-      deltaTone: t.lead ? this.deltaTone(t.lead) : null,
-      ghost: t.lead ? this.ghostFor(t.lead.key) : null,
-      say: t.say,
-      subs: t.subs.map((c) => ({ key: c.key, shortKey: `codex.kpi.short.${c.key}`, text: this.fmtCell(c), ghost: this.ghostFor(c.key) })),
-    })),
+    this.perspectiveTiles().map((t) => {
+      const subs = t.subs.map((c) => ({ key: c.key as string, shortKey: `codex.kpi.short.${c.key}`, text: this.fmtCell(c), ghost: this.ghostFor(c.key) }));
+      return {
+        id: t.id,
+        titleKey: t.titleKey,
+        pct: t.pct,
+        leadText: t.lead ? this.countUpText(t.lead) : null,
+        leadLabelKey: t.lead?.labelKey ?? null,
+        leadShortKey: t.lead ? `codex.kpi.short.${t.lead.key}` : null,
+        deltaText: t.lead ? this.deltaText(t.lead) : null,
+        deltaTone: t.lead ? this.deltaTone(t.lead) : null,
+        ghost: t.lead ? this.ghostFor(t.lead.key) : null,
+        say: t.say,
+        subs: t.id === 'signature' && subs.length === 0 ? this.signatureFactSubs() : subs,
+      };
+    }),
   );
 
   // ── Change journal ───────────────────────────────────────────────
@@ -1806,8 +1734,4 @@ export class CodexHoloStageComponent {
     }
     return entries;
   });
-
-  journalAllPaths(): string[] {
-    return this.journal().flatMap((e) => e.paths);
-  }
 }

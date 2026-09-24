@@ -69,6 +69,26 @@ describe('CodexHoloPatchComponent', () => {
     expect(rows[1].querySelector('.row-flag')).toBeTruthy();
   });
 
+  it('lists the build on the table as current (never comparable) and tells same-named builds apart', async () => {
+    setup(false);
+    buildsForChannel.and.returnValue(Promise.resolve([
+      build({ id: 'active', patchVersion: '4.9' }),
+      build({ id: 'x1', patchVersion: '4.x', buildNumber: 'live-a' }),
+      build({ id: 'x2', patchVersion: '4.x', buildNumber: 'live-b' }),
+    ]));
+    fixture.nativeElement.querySelector('.patch-trigger').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = Array.from(fixture.nativeElement.querySelectorAll('.build-row')) as HTMLButtonElement[];
+    expect(rows[0].disabled).toBeTrue();
+    expect(rows[0].querySelector('.row-flag.cur')!.textContent).toContain('codex.holo.patch.current');
+    expect(rows[1].disabled).toBeFalse();
+    expect(rows[1].querySelector('.row-build')!.textContent).toContain('live-a');
+    expect(rows[2].querySelector('.row-build')!.textContent).toContain('live-b');
+    expect(rows[0].querySelector('.row-build')).toBeNull();
+  });
+
   it('hides the admin schema row for a plain viewer and shows it, labelled, for a collaborator', async () => {
     setup(false);
     buildsForChannel.and.returnValue(Promise.resolve([build({ id: 'finalised' })]));

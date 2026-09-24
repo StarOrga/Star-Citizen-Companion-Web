@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
-import { isCatalogStale, comparePatchVersion } from './codex-format';
+import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
 import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
@@ -1144,7 +1144,7 @@ export class CodexService {
     if (!build) return [];
     const key = cohortCacheKey(build.id, 'all');
     const cached = readCohortCache(key);
-    if (cached) return cached;
+    if (cached) return cached.length > 0 && !cached.some((s) => 'name' in s) ? this.backfillCohortNames(key, build.id, cached) : cached;
 
     const rows = await this.allShipRows();
     if (rows.length === 0) return [];
@@ -1176,6 +1176,7 @@ export class CodexService {
         const payload = row.payload as ShipPayload | undefined;
         ships.push({
           className: row.classNameSlug,
+          name: cleanLocaleValue(row.nameLocalized) || null,
           sizeClass: null, // schema gap — see the header comment.
           career: resolveCareerLabel(payload?.career ?? null),
           sheet: computeKpiSheet(
@@ -1189,6 +1190,27 @@ export class CodexService {
 
     writeCohortCache(key, ships);
     return ships;
+  }
+
+  /** A cohort cached before it carried display names gets them from ONE light
+   * read (class name + name only) instead of a full re-score; a failed read
+   * simply keeps the cached cohort as it was. */
+  private async backfillCohortNames(key: string, buildId: string, cached: RankShipInput[]): Promise<RankShipInput[]> {
+    try {
+      const { data, error } = await this.sb.client
+        .from('codex_ships')
+        .select('class_name, name_localized')
+        .eq('build_id', buildId);
+      if (error || !data) return cached;
+      const names = new Map(
+        (data as { class_name: string; name_localized: string | null }[]).map((r) => [r.class_name, cleanLocaleValue(r.name_localized) || null] as const),
+      );
+      const named = cached.map((s) => ({ ...s, name: names.get(s.className) ?? null }));
+      writeCohortCache(key, named);
+      return named;
+    } catch {
+      return cached;
+    }
   }
 
   /** Every buyable ship row of the current build, unpaginated (the cohort

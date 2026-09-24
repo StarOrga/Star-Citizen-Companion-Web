@@ -38,7 +38,7 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
         } @else if (!inHangar()) {
           <div class="hangar-share">
             <p class="hint-text state">{{ 'codex.holo.share.notInHangarHint' | translate }}</p>
-            <button type="button" (click)="addToHangar.emit()">{{ 'quickSearch.addToHangar' | translate }}</button>
+            <button type="button" (click)="addToHangar.emit()">{{ 'codex.holo.share.addToHangar' | translate }}</button>
           </div>
         } @else {
           <p class="hint-text state">{{ 'codex.holo.share.noConfigHint' | translate }}</p>

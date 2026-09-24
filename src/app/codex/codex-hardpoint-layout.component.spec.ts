@@ -112,6 +112,17 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.slot-port')?.textContent?.trim()).toBe('Hardpoint Weapon Top Left');
   });
 
+  it('counts one slot in the singular — "1 Slot", never "1 Slots"', () => {
+    const el = render([{ section: 'weapons', slots: [PANTHER] }]);
+    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-ct')?.textContent).toContain('codex.module.censusSlot');
+    expect(el.querySelector('.mod-sec[data-sec="weapons"] .sec-ct')?.textContent).not.toContain('codex.module.censusSlots');
+  });
+
+  it('shows a raw class name standing in for a missing item name humanized', () => {
+    const el = render([{ section: 'weapons', slots: [{ ...PANTHER, name: 'Vehicle_Screen_MFD' }] }]);
+    expect(el.querySelector('.slot-item')?.textContent?.trim()).toBe('Vehicle Screen MFD');
+  });
+
   it('multiplies the headline figure out to the whole group, never the per-item value', () => {
     // concept/part-06.html:318-324: "3× S3 CF-337 Panther Repeater", l3 quoting
     // the per-gun number and the figure quoting the three of them together.

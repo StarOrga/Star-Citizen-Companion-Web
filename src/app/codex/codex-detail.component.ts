@@ -1168,6 +1168,8 @@ interface GearRecipe {
             [locatablePorts]="locatablePorts()"
             [primaryModuleSections]="primaryModuleSections()"
             [tailModuleSections]="tailModuleSections()"
+            [occupantsBySection]="occupantsBySection()"
+            [foldedModuleSections]="foldedModuleSections()"
             [silhouette]="shipSilhouette()"
             [kpiCells]="kpiCells()"
             [activeMissionId]="activeMissionId()"
@@ -1542,6 +1544,8 @@ interface GearRecipe {
     :host { display: block; }
     /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
+    /* The Holotable's strip is sticky IN the flow — no dock to leave room for. */
+    .detail-page:has(sc-codex-holo-stage) { padding-bottom: 16px; }
     /* Card chrome, concept part-02:140 (.m-card): a 4px corner and a flat
        surface - the mock draws no glow at all. The app-wide .sc-card keeps its
        8px radius and its cyan halo everywhere else; only this page is redrawn,
@@ -3781,7 +3785,10 @@ export class CodexDetailComponent implements OnInit {
     }
     const massKg = p.hull?.mass ?? null;
     if (massKg != null && massKg > 0) {
-      out.push({ key: 'mass', text: `${formatNumber(massKg / 1000)} t` });
+      // Hundredths of a tonne only mean something on a light hull; a capital
+      // ship's "37.854,32 t" was noise that no longer fit its chip.
+      const tonnes = massKg / 1000;
+      out.push({ key: 'mass', text: `${formatNumber(tonnes >= 100 ? Math.round(tonnes) : tonnes)} t` });
     }
     return out;
   });

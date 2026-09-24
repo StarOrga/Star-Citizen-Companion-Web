@@ -312,7 +312,7 @@ let uidSeq = 0;
                 <span class="v">{{ 'codex.energy.coolingPercent' | translate: { pct: sheet().coolant.percent } }}</span>
                 <span class="sub">{{ 'codex.energy.coolingValue' | translate: { used: sheet().coolant.used, total: sheet().coolant.total } }}</span>
               } @else {
-                <span class="gapv">{{ 'codex.energy.gap.noCoolingData' | translate }}</span>
+                <span class="gapv">{{ coolantGapKey() | translate }}</span>
               }
               <div class="tipbox" [id]="heatTipId" role="tooltip">
                 <b>{{ 'codex.energy.fact.coolingLoad' | translate }}</b>
@@ -982,6 +982,10 @@ export class CodexEnergyDockComponent {
 
   protected readonly irFact = computed(() => this.sheet().facts.find((f) => f.key === 'ir'));
   protected readonly emFact = computed(() => this.sheet().facts.find((f) => f.key === 'em'));
+  /** WHY the cooling load is empty — no coolers vs. no stated draw. */
+  protected readonly coolantGapKey = computed(
+    () => this.sheet().facts.find((f) => f.key === 'coolant')?.gapKey ?? 'codex.energy.gap.noCoolingData',
+  );
   protected readonly csFact = computed<PowerFact | undefined>(() => {
     const base = this.sheet().facts.find((f) => f.key === 'crossSection');
     const override = this.crossSection();

@@ -6,6 +6,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PerspectiveDelta } from '../codex-build-compare';
+import { formatNumber } from '../codex-format';
 
 const PERSPECTIVE_LABEL_KEYS: Record<PerspectiveDelta['perspective'], string> = {
   offensive: 'codex.holo.patch.perspective.offensive',
@@ -72,8 +73,8 @@ const KPI_LABEL_KEYS: Record<string, string> = {
               <tr [class.up]="row.delta?.direction === 'up'" [class.down]="row.delta?.direction === 'down'"
                   [class.good]="row.delta?.good" [class.bad]="row.delta && !row.delta.good">
                 <th scope="row">{{ kpiLabelKey(row.key) | translate }}</th>
-                <td>{{ row.from ?? '—' }}</td>
-                <td>{{ row.to ?? '—' }}</td>
+                <td>{{ fmt(row.from) }}</td>
+                <td>{{ fmt(row.to) }}</td>
                 <td class="pct">{{ row.delta?.pctText ?? '—' }}</td>
               </tr>
             }
@@ -89,7 +90,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
       letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2); }
     .none { margin: 0; padding: 4px 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .delta-table { width: 100%; border-collapse: collapse; font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .delta-table th, .delta-table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--sc-border); }
+    .delta-table th, .delta-table td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--sc-border); font-variant-numeric: tabular-nums; }
     .delta-table th[scope="row"] { text-align: left; color: var(--sc-fg-1); font-weight: 500; }
     .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.7rem, var(--sc-fs-floor));
       text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--sc-border); }
@@ -105,5 +106,10 @@ export class CodexHoloPatchDeltaComponent {
 
   kpiLabelKey(key: string): string {
     return KPI_LABEL_KEYS[key] ?? key;
+  }
+
+  /** The page's number format ("5.861", not a bare "5861"); a gap is a dash. */
+  fmt(v: number | null): string {
+    return v == null ? '—' : formatNumber(v);
   }
 }

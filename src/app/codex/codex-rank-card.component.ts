@@ -303,8 +303,17 @@ import {
        is square-ended; the track's own radius and overflow clip it. */
     .bar-track { height: 4px; border-radius: 2px; overflow: hidden;
       background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); }
-    .bar-fill { display: block; height: 100%; background: var(--sc-accent); }
+    .bar-fill { display: block; height: 100%; background: var(--sc-accent);
+      transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1); animation: bar-grow 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 180ms backwards; }
     .bar-fill.weak { background: var(--sc-danger); }
+    /* The card fills in: the bars grow from zero, the ship's polygon opens
+       out of the radar's centre. A later re-rank eases between values. */
+    @keyframes bar-grow { from { width: 0; } }
+    .radar .ship { transform-origin: 100px 100px; transform-box: view-box; animation: radar-open 720ms cubic-bezier(0.2, 0.7, 0.2, 1) 120ms backwards; }
+    @keyframes radar-open { from { opacity: 0; transform: scale(0.15); } }
+    @media (prefers-reduced-motion: reduce) {
+      .bar-fill, .radar .ship { animation: none; transition: none; }
+    }
     .bar-value { font-size: max(11px, var(--sc-fs-floor)); text-align: right; color: var(--sc-fg-0);
       font-variant-numeric: tabular-nums; }
     .gap-dash { color: var(--sc-fg-2); cursor: help; }
@@ -320,7 +329,10 @@ import {
     :host(.holo) .rolenote { margin: 0; text-align: center; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
       letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-accent); }
     :host(.holo) .rank-col-radar { align-items: center; gap: 4px; }
-    :host(.holo) .radar { max-width: 230px; }
+    /* The axis captions sit on the rim and run past the 200-unit box on the
+       flanks ("WENDIGKEIT" lost its W); the Holotable centres the radar in a
+       wide column, so they may use the margin. */
+    :host(.holo) .radar { max-width: 230px; overflow: visible; }
     :host(.holo) .radar text { font-size: 7px; }
     :host(.holo) .radar text.gap { fill: color-mix(in srgb, var(--sc-fg-2) 60%, transparent); }
     :host(.holo) .legend { display: none; }
