@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.97.0] - 2026-09-25
+
+### Changed
+
+- **Die Datenbank ist wieder unter dem Free-Limit.** Alte Codex-Builds (drei
+  Prototypen vom Mai und 4.8.0) sind entfernt, die Datenbank schrumpft von
+  952 MB auf 349 MB (Limit 500 MB). Eine nächtliche Aufräumrunde behält pro
+  Kanal die zwei neuesten Builds, damit Patch-Auswahl und Patch-Vergleich
+  weiter funktionieren.
+
+### Added
+
+- **Schiffs-Hüllen können aus Cloudflare R2 kommen.** Der Upload der Hüllen
+  schreibt nach R2, sobald die R2-Zugangsdaten hinterlegt sind, und ein
+  Worker liefert sie ohne Egress-Kosten aus. Solange nichts hinterlegt ist,
+  bleibt alles bei Supabase.
+
 ## [0.96.1] - 2026-09-24
 
 ### Changed

@@ -30,8 +30,25 @@
 //   403 forbidden | unknown_release_token | release_token_revoked
 //   426 uploader_outdated
 //   500 server_misconfigured | sign_failed | commit_failed | prune_failed
+//   507 storage_quota_exceeded (R2 mode only)
+//
+// STORAGE BACKEND (storage plan 2026-09-24): with the R2_* secrets set (see
+// _r2.ts) objects go to Cloudflare R2 under `ship-skins/<ship>/<skin>.<ext>`
+// and are served by cloudflare/assets-worker; without them, to the Supabase
+// `ship-skins` bucket as before. The response shape is identical either way
+// (`signedUrl` is absolute for R2, `token` empty), so the uploader does not
+// care. An R2 commit also removes that ship's leftover Supabase objects: the
+// hull now lives in R2, and the Supabase copy only costs Free-plan storage.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import {
+  SKINS_PREFIX,
+  bucketBytes,
+  deleteObject,
+  listObjects,
+  presignPut,
+  r2FromEnv,
+} from './_r2.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -151,10 +168,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'unsafe_id', message: `ship_id must match ${SAFE_ID}` }, 400);
   }
 
+  const r2 = r2FromEnv((k) => Deno.env.get(k));
+
   // ---- action: sign ----
   if (body.action === 'sign') {
     const objects = Array.isArray(body.objects) ? body.objects : [];
     if (!objects.length) return json({ error: 'invalid_body', message: 'objects required' }, 400);
+
+    if (r2) {
+      let used: number;
+      try {
+        used = await bucketBytes(r2);
+      } catch (e) {
+        return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+      }
+      if (used >= r2.quotaBytes) {
+        return json(
+          { error: 'storage_quota_exceeded', message: `R2 holds ${used} of ${r2.quotaBytes} bytes` },
+          507,
+        );
+      }
+    }
 
     const uploads: { path: string; token: string; signedUrl: string }[] = [];
     for (const o of objects) {
@@ -176,6 +210,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         );
       }
       const path = `${shipId}/${skinId}.${ext}`;
+      if (r2) {
+        try {
+          uploads.push({ path, token: '', signedUrl: await presignPut(r2, SKINS_PREFIX + path) });
+        } catch (e) {
+          return json({ error: 'sign_failed', message: (e as Error).message, path }, 500);
+        }
+        continue;
+      }
       const { data, error } = await adminClient.storage
         .from(BUCKET)
         .createSignedUploadUrl(path, { upsert: true });
@@ -233,6 +275,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const keepPaths = new Set(
       rows.flatMap((r) => [r.model_path, r.icon_path]).filter((p): p is string => !!p),
     );
+    let prunedR2 = 0;
+    if (r2) {
+      try {
+        const listedR2 = await listObjects(r2, `${SKINS_PREFIX}${shipId}/`);
+        for (const o of listedR2) {
+          if (keepPaths.has(o.key.slice(SKINS_PREFIX.length))) continue;
+          await deleteObject(r2, o.key);
+          prunedR2++;
+        }
+      } catch (e) {
+        return json({ error: 'prune_failed', message: (e as Error).message }, 500);
+      }
+      // Everything this ship still needs is in R2 now; the Supabase copy goes.
+      keepPaths.clear();
+    }
     const { data: listed, error: listErr } = await adminClient.storage
       .from(BUCKET)
       .list(shipId, { limit: 1000 });
@@ -244,7 +301,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { error: rmErr } = await adminClient.storage.from(BUCKET).remove(stale);
       if (rmErr) return json({ error: 'prune_failed', message: rmErr.message }, 500);
     }
-    return json({ ok: true, count: rows.length, pruned: stale.length });
+    return json({ ok: true, count: rows.length, pruned: stale.length + prunedR2 });
   }
 
   return json({ error: 'invalid_body', message: "action must be 'sign' or 'commit'" }, 400);
