@@ -58,6 +58,25 @@ than the ship you take it in:
 Each kit has slots (with custom slots if the defaults do not fit) and tracks
 how many items are equipped.
 
+### The set page
+
+Every kit has its own page in the Codex, `/codex/set/<id>`; the set block on
+the Codex stage links there. The figure shows the six armour positions
+(*Armour 3 / 6*), the weapons and tools the role carries are listed below it,
+and the readiness icons cover only what the role can hold: an FPS kit shows
+primary, secondary, melee and throwable, an engineering kit a single gadget
+icon.
+
+- **Equip from the archive.** Every position links into the on-foot archive
+  (`/codex/fps`) with the kit attached. The list then offers only the pieces
+  that fit that position, and each card equips straight into the kit.
+- **FPS positions.** Next to primary, secondary and sidearm, an FPS kit has a
+  melee position (knives) and a throwable position (grenades). A medical kit's
+  medgun position takes the ParaMed.
+- **Clearing is safe.** Emptying a position offers *Undo* for five seconds. If
+  the position was changed in another tab meanwhile, nothing is deleted: the
+  page shows what the position holds now.
+
 ## Alpha caveat
 
 Hangar contents live in tables covered by the alpha-phase data policy — see

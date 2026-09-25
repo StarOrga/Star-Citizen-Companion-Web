@@ -49,6 +49,15 @@ Kind tabs are driven by the build manifest: a kind the current build reports as
 empty is shown greyed out with a *soon* marker, and everything the build
 actually carries — blueprints included — is browsable.
 
+Kind, search and filters are part of the address, so a link reproduces the
+list and *Back* from a detail page lands on it again. A search of three or more
+characters also names the other kinds that have matches (*Also found in: …*),
+one click each.
+
+On-foot gear has its own archive at `/codex/fps`, with weapons and tools in one
+tab and armour in the other. Liveries fold into their base piece (`+n skins`),
+and the search understands `*` as a wildcard (`klwe_*`).
+
 #### Weapons: FPS gear and ship weapons in one tab
 
 The **Weapons** tab holds *both* catalogs — everything a character carries and
