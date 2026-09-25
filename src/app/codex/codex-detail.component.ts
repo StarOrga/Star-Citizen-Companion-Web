@@ -60,7 +60,11 @@ import {
   humanizeClassName,
   formatCraftTime,
   formatNumber,
+  formatQuality,
+  formatQuantity,
+  hasQualityRequirement,
   humanizePortType,
+  ingredientRoleLabel,
   meaningfulRows,
   unescapeText,
 } from './codex-format';
@@ -1087,9 +1091,9 @@ interface GearRecipe {
                   <li>
                     <span class="compat-link plain">{{ ingredientName(i) }}</span>
                     <span class="compat-meta">
-                      @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
-                      @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
-                      @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
+                      @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
+                      @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
+                      @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
                     </span>
                   </li>
                 }
@@ -1398,9 +1402,9 @@ interface GearRecipe {
                       <li>
                         <span class="compat-link plain">{{ ingredientName(i) }}</span>
                         <span class="compat-meta">
-                          @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
-                          @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
-                          @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
+                          @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
+                          @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
+                          @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
                         </span>
                       </li>
                     }
@@ -2758,6 +2762,11 @@ export class CodexDetailComponent implements OnInit {
     return cleanLocaleValue(i.nameLocalized)
       || humanizeClassName(i.ingredientClassName ?? '')
       || (i.ingredientClassName ?? '');
+  }
+
+  /** The material's slot — CIG's slot name, readable; '' when the row names none. */
+  ingredientRole(i: CodexBlueprintIngredient): string {
+    return ingredientRoleLabel(i.role, (key) => this.t.instant(key));
   }
 
   // ── derived views ──────────────────────────────────────────────────────────
@@ -4583,6 +4592,16 @@ export class CodexDetailComponent implements OnInit {
   }
   fmt(n: number): string {
     return formatNumber(n);
+  }
+  fmtQty(n: number): string {
+    return formatQuantity(n);
+  }
+  fmtQuality(q: number | null): string {
+    return formatQuality(q);
+  }
+  /** A recipe slot's quality floor that actually rules materials out (0 and 1 do not). */
+  needsQuality(q: number | null): boolean {
+    return hasQualityRequirement(q);
   }
   humanizeName(cls: string): string {
     return humanizeClassName(cls);

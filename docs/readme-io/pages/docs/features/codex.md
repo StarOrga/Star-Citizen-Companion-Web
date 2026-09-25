@@ -183,9 +183,11 @@ and its craft time. The category filter is built from the categories the current
 build actually contains, so it never offers a bucket that returns nothing.
 
 A blueprint page then shows the full recipe: tier, craft and dismantle time,
-output quantity, and every ingredient with its quantity, role (primary,
-secondary, catalyst) and minimum quality. Ingredients link to their own Codex
-pages, and an item page links back to the blueprints that consume it.
+output quantity, and every ingredient with its quantity and the slot it fills,
+named as the game names it (Frame, Substrate, Barrel …). A slot that demands a
+minimum material quality says so on the game's 0–1000 scale ("900 / 1,000");
+a slot that takes any quality carries no such badge. Ingredients link to their
+own Codex pages, and an item page links back to the blueprints that consume it.
 
 ## Keybinds
 

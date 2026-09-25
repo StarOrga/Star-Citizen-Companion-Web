@@ -20,10 +20,13 @@ import {
   formatCraftTime,
   formatNumber,
   formatQuality,
+  formatQuantity,
+  hasQualityRequirement,
   humanizeBlueprintCategory,
   humanizeBlueprintName,
   humanizeClassName,
   humanizeKey,
+  ingredientRoleLabel,
   unescapeText,
 } from './codex-format';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -77,7 +80,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                 <div class="ingredient-list">
                   @for (ing of ingredients(); track ing.ingredientIndex) {
                     <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
-                      <div class="ing-qty">× {{ ing.quantity }}</div>
+                      <div class="ing-qty">× {{ formatQuantity(ing.quantity) }}</div>
                       <div class="ing-info">
                         @if (ing.ingredientClassName && ing.entityKind) {
                           <a class="ing-name link"
@@ -93,10 +96,10 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                           <code class="ing-cls">{{ ing.ingredientClassName }}</code>
                         }
                         <div class="ing-meta">
-                          @if (ing.role && ing.role !== 'primary') {
-                            <span class="badge role">{{ ('blueprint.role.' + ing.role) | translate }}</span>
+                          @if (roleLabel(ing); as role) {
+                            <span class="badge role">{{ role }}</span>
                           }
-                          @if (ing.minQuality != null) {
+                          @if (hasQualityRequirement(ing.minQuality)) {
                             <span class="badge quality">{{ 'blueprint.detail.minQuality' | translate }}: {{ formatQuality(ing.minQuality) }}</span>
                           }
                         </div>
@@ -115,7 +118,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                 <div class="section sc-card">
                   <h2 class="section-title">{{ 'blueprint.detail.output' | translate }}</h2>
                   <div class="output-row">
-                    <div class="ing-qty">× {{ out.quantity }}</div>
+                    <div class="ing-qty">× {{ formatQuantity(out.quantity) }}</div>
                     <div class="ing-info">
                       @if (out.className && out.entityKind) {
                         <a class="ing-name link"
@@ -207,8 +210,10 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .ing-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.role { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
-    .badge.quality { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
+    /* Every ingredient names its slot, so the slot badge stays quiet; the rare
+       real quality requirement is the one a crafter has to act on. */
+    .badge.role { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
+    .badge.quality { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
 
     .quality-note { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); margin: -6px 0 12px; font-style: italic; }
     .quality-table { display: flex; flex-direction: column; gap: 6px; }
@@ -245,6 +250,8 @@ export class BlueprintDetailComponent implements OnInit {
   readonly formatCraftTime = formatCraftTime;
   readonly formatQuality = formatQuality;
   readonly formatNumber = formatNumber;
+  readonly formatQuantity = formatQuantity;
+  readonly hasQualityRequirement = hasQualityRequirement;
   readonly humanizeKey = humanizeKey;
 
   private get payload(): BlueprintPayload | null {
@@ -309,7 +316,7 @@ export class BlueprintDetailComponent implements OnInit {
     }
     const outQty = d.row['output_quantity'] as number | null;
     if (outQty != null && outQty !== 1) {
-      facts.push({ label: t('blueprint.detail.outputQty'), value: String(outQty) });
+      facts.push({ label: t('blueprint.detail.outputQty'), value: formatQuantity(outQty) });
     }
     return facts;
   });
@@ -341,6 +348,11 @@ export class BlueprintDetailComponent implements OnInit {
       cleanLocaleValue(ing.nameLocalized) ||
       humanizeClassName(ing.ingredientClassName)
     );
+  }
+
+  /** The slot badge — CIG's slot name, readable; '' when the row names none. */
+  roleLabel(ing: CodexBlueprintIngredient): string {
+    return ingredientRoleLabel(ing.role, (key) => this.translate.instant(key));
   }
 
   async ngOnInit(): Promise<void> {
