@@ -57,6 +57,7 @@ import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
 interface PerspectiveTile {
@@ -159,6 +160,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
     CodexHoloShareComponent,
     CodexHoloTableComponent,
     CodexHoloInspectorComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -182,7 +184,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         @for (name of [shortName()]; track name) {
           <div class="ht-title">
             @if (kicker(); as k) { <span class="ht-kicker">{{ k }}</span> }
-            <h1 class="ht-name" [attr.title]="eyebrowTitle()">{{ name }}</h1>
+            <h1 class="ht-name" [scTooltip]="eyebrowTitle()">{{ name }}</h1>
           </div>
         }
         <div class="ht-right">
@@ -221,7 +223,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
             <button type="button" class="ic" (click)="leftCollapsed.set(!leftCollapsed())"
                     [attr.aria-expanded]="!leftCollapsed()"
                     [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
-                    [title]="'codex.holo.stage.railToggle' | translate">{{ leftCollapsed() ? '⟩' : '⟨' }}</button>
+                    [scTooltip]="'codex.holo.stage.railToggle' | translate" scTooltipTier="label">{{ leftCollapsed() ? '⟩' : '⟨' }}</button>
           </div>
           @if (leftCollapsed()) {
             <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.einordnung' | translate }}</span></div>
@@ -230,7 +232,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               <div class="wm" aria-hidden="true">{{ ('codex.mission.' + activeMissionId()) | translate }}</div>
               <div class="statics">
                 @for (k of staticKeys; track k) {
-                  <div [attr.title]="staticChipTitle(k)">
+                  <div [scTooltip]="staticChipTitle(k)" scTooltipTier="label">
                     <span class="k">{{ staticLabelKey(k) | translate }}</span>
                     <span class="v" [class.mid]="staticChip(k).length > 6" [class.long]="staticChip(k).length > 8">{{ staticChip(k) }}</span>
                   </div>
@@ -268,16 +270,17 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
             <div class="rolebar" #rolebar role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
               <span class="lab">{{ 'codex.mission.label' | translate }}</span>
               @for (m of missionSegments(); track m.id) {
+                <span style="display: contents" [scTooltip]="m.disabledKey ? (m.disabledKey | translate) : null" scTooltipTier="label">
                 <button type="button" class="r" role="radio"
                         [class.on]="m.id === activeMissionId()"
                         [class.dim]="!!m.disabledKey"
                         [disabled]="!!m.disabledKey"
                         [attr.aria-checked]="m.id === activeMissionId()"
-                        [attr.title]="m.disabledKey ? (m.disabledKey | translate) : m.sub"
                         (click)="missionChange.emit(m.id)">
                   <span class="r-l">{{ m.labelKey | translate }}</span>
                   <small>{{ m.sub }}@if (m.pct) {<span class="rp"> · {{ m.pct }}</span>}</small>
                 </button>
+                </span>
               }
               <span class="ink" aria-hidden="true"></span>
             </div>
@@ -297,20 +300,21 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                   (pick)="hangarPick.emit($event)"
                   (open)="hangarOpen.emit()" />
               </div>
-              <p class="table-eyebrow" [attr.title]="eyebrowKey() | translate: { n: pins().length }">
+              <p class="table-eyebrow">
                 {{ eyebrowKey() | translate: { n: pins().length } }}
                 @if (!silhouette() && viewMode() === 'holo') {
-                  <span class="no-geometry-badge" [title]="'codex.holo.stage.noGeometryReason' | translate">· {{ 'codex.holo.noGeometry' | translate }}</span>
+                  <span class="no-geometry-badge" [scTooltip]="'codex.holo.stage.noGeometryReason' | translate" scTooltipTier="label">· {{ 'codex.holo.noGeometry' | translate }}</span>
                 }
               </p>
               <div class="tools5" [class.open]="sharePopoverOpen()">
                 @if (has3d()) {
                   <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}</button>
                 }
+                <span style="display: contents" [scTooltip]="hardpointFrame() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)" scTooltipTier="label">
                 <button type="button" class="tt" [class.on]="viewMode() === 'schema'" [attr.aria-pressed]="viewMode() === 'schema'"
                         [disabled]="!hardpointFrame()"
-                        [attr.title]="hardpointFrame() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)"
                         (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}</button>
+                </span>
                 <span class="share-wrap" (keydown.escape)="closeShare($event)">
                   <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" (click)="toggleShare()">↗ {{ 'codex.holo.stage.viewShare' | translate }}</button>
                   @if (sharePopoverOpen()) {
@@ -373,7 +377,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
             <button type="button" class="ic" (click)="rightCollapsed.set(!rightCollapsed())"
                     [attr.aria-expanded]="!rightCollapsed()"
                     [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
-                    [title]="'codex.holo.stage.railToggle' | translate">{{ rightCollapsed() ? '⟨' : '⟩' }}</button>
+                    [scTooltip]="'codex.holo.stage.railToggle' | translate" scTooltipTier="label">{{ rightCollapsed() ? '⟨' : '⟩' }}</button>
           </div>
           @if (rightCollapsed()) {
             <div class="pb rail-min"><span class="vi">{{ 'codex.holo.stage.inspector' | translate }}</span></div>

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The stability of a patch as a PICTURE, parked in the top-right corner of the
@@ -20,12 +21,13 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-badge',
   standalone: true,
+  imports: [ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shown(); as v) {
       <span class="badge" [attr.data-tone]="v.tone" [attr.data-size]="size()"
             [class.early]="v.early" [style.--fill]="v.stability + '%'"
-            [attr.title]="hint()" [attr.aria-label]="hint()" role="img">
+            [scTooltip]="hint()" scTooltipTier="label" [attr.aria-label]="hint()" role="img">
         <span class="ring" aria-hidden="true"></span>
         <span class="val" aria-hidden="true">{{ v.stability }}<i>%</i></span>
       </span>

@@ -25,6 +25,7 @@ import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from '../hangar/hangar.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 interface QuickResult {
   kind: CodexKind;
@@ -46,7 +47,7 @@ const PER_KIND_LIMIT = 6;
 @Component({
   selector: 'sc-quick-search',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The glyph is an inline SVG, not the ⌕ character it used to be: that
@@ -134,7 +135,7 @@ const PER_KIND_LIMIT = 6;
                   <span class="qs-kind">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
                   <span class="qs-name">{{ name(r.row) }}</span>
                   <span class="qs-chips">
-                    @if (r.row.manufacturerCode) { <span class="badge mfr" [attr.title]="mfrName(r.row)">{{ r.row.manufacturerCode }}</span> }
+                    @if (r.row.manufacturerCode) { <span class="badge mfr" [scTooltip]="mfrName(r.row)" scTooltipTier="label">{{ r.row.manufacturerCode }}</span> }
                     @if (r.row.componentKind) { <span class="badge">{{ r.row.componentKind }}</span> }
                     @if (r.row.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.row.weaponClass) | translate }}</span> }
                     @if (r.row.size != null) { <span class="badge">S{{ r.row.size }}</span> }

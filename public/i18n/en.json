@@ -1766,6 +1766,38 @@
         "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
       },
       "equipInArchive": "Equip from the archive"
+    },
+    "stat": {
+      "health": "Health",
+      "distortionCapacity": "Distortion Capacity",
+      "maxShieldHealth": "Max Shield Health",
+      "maxShieldRegen": "Max Shield Regen",
+      "scmSpeed": "SCM Speed",
+      "maxSpeed": "Max Speed",
+      "boostSpeed": "Boost Speed",
+      "fireRate": "Fire Rate",
+      "roundsPerMinute": "Rounds Per Minute",
+      "muzzleVelocity": "Muzzle Velocity",
+      "projectileSpeed": "Projectile Speed",
+      "lifetime": "Lifetime",
+      "radiationCapacityMax": "Max Radiation Capacity",
+      "radiationResistance": "Radiation Resistance",
+      "punctureResistance": "Puncture Resistance",
+      "impactResistance": "Impact Resistance",
+      "energyResistance": "Energy Resistance",
+      "explosiveResistance": "Explosive Resistance",
+      "coldResistance": "Cold Resistance",
+      "heatResistance": "Heat Resistance",
+      "biochemicalResistance": "Biochemical Resistance",
+      "temperatureResistance": "Temperature Resistance",
+      "weight": "Weight",
+      "durability": "Durability",
+      "cargoGrid": "Cargo Grid",
+      "ammoCapacity": "Ammo Capacity",
+      "magazineSize": "Magazine Size",
+      "damage": "Damage",
+      "range": "Range",
+      "effectiveRange": "Effective Range"
     }
   },
   "blueprint": {
@@ -3011,7 +3043,8 @@
       "rename": "Rename",
       "cancel": "Cancel",
       "share": "Share",
-      "deleteConfirm": "Delete for good?"
+      "deleteConfirm": "Delete for good?",
+      "roleLabel": "Role"
     },
     "detail": {
       "back": "Back to hangar",
@@ -3035,7 +3068,8 @@
       "activate": "Set active",
       "saveLoadout": "Save loadout",
       "discard": "Discard",
-      "delete": "Delete"
+      "delete": "Delete",
+      "roleLabel": "Role"
     },
     "standard": {
       "title": "Standard components",

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
@@ -138,6 +139,12 @@ async function mount(tables: Record<string, unknown[]>) {
   await fixture.whenStable();
   fixture.detectChanges();
   return { fixture, cmp: fixture.componentInstance, el: fixture.nativeElement as HTMLElement, sb, motion };
+}
+
+/** The app tooltip's text for a native element, via the directive that replaced `title`. */
+function tooltipOf(fixture: { debugElement: import('@angular/core').DebugElement }, native: Element): string | null {
+  const de = fixture.debugElement.query((d) => d.nativeElement === native);
+  return de?.injector.get(ScTooltipDirective, null)?.scTooltip() ?? null;
 }
 
 const QUESTION = 'Soll der Filter oben oder unten sitzen?\n\n[[Oben|Unten]]';
@@ -620,7 +627,7 @@ describe('AdminFeedbackComponent — the flight path reads as four steps', () =>
   }
 
   it('gives every step a drawing and its own name, and keeps the path itself labelled', async () => {
-    const { el } = await mount(fixtureTables());
+    const { el, fixture } = await mount(fixtureTables());
 
     // Four steps, four different drawings — a repeated `d` would mean two steps
     // look identical, which is the bug this feedback was about.
@@ -632,7 +639,7 @@ describe('AdminFeedbackComponent — the flight path reads as four steps', () =>
     expect(new Set(paths).size).toBe(4);
 
     // Each step names itself on hover…
-    expect(steps.map((i) => i.getAttribute('title'))).toEqual([
+    expect(steps.map((i) => tooltipOf(fixture, i))).toEqual([
       'adminFeedback.station.step.contract',
       'adminFeedback.station.step.doing',
       'adminFeedback.station.step.delivered',
@@ -712,7 +719,7 @@ describe('AdminFeedbackComponent — the Fortschritt door wears the house icon',
     // name and tooltip that say where the door leads.
     expect(door.querySelector('.tb-icon')!.getAttribute('aria-hidden')).toBe('true');
     expect(door.getAttribute('aria-label')).toBe('adminFeedback.stream.progressHint');
-    expect(door.getAttribute('title')).toBe('adminFeedback.stream.progressHint');
+    expect(tooltipOf(fixture, door)).toBe('adminFeedback.stream.progressHint');
 
     // …and the page behind the door carries the same mark.
     door.click();
@@ -1009,7 +1016,7 @@ describe('AdminFeedbackComponent — a card states the age, not the calendar', (
 
   it('labels today as today and hides the exact stamp in the tooltip', async () => {
     const created = todayIso();
-    const { el } = await mount({
+    const { el, fixture } = await mount({
       admin_feedback: [row('o9', 'open', created)],
       admin_feedback_messages: [],
       feedback_author_messages: [],
@@ -1022,14 +1029,14 @@ describe('AdminFeedbackComponent — a card states the age, not the calendar', (
     expect(chip.textContent).not.toContain('2026');
 
     // …and the full stamp, region-ordered with the clock, one hover away.
-    expect(chip.getAttribute('title')).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
+    expect(tooltipOf(fixture, chip)).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
   });
 
   it('uses the prepositional label where the row reads "waiting since"', async () => {
     // A Rückfrage the routine asked: the baton is with the admin, so the chip
     // says how long he has been sitting on it.
     const asked = yesterdayIso();
-    const { el } = await mount({
+    const { el, fixture } = await mount({
       admin_feedback: [row('q9', 'needs_input', asked)],
       admin_feedback_messages: [msg('mq9', 'q9', true, asked, 'Kurze Frage?')],
       feedback_author_messages: [],
@@ -1037,7 +1044,7 @@ describe('AdminFeedbackComponent — a card states the age, not the calendar', (
 
     const chip = el.querySelector<HTMLElement>('.scroll.stream .ch-time')!;
     expect(chip.textContent!.trim()).toBe('date.relativeSince.yesterday');
-    expect(chip.getAttribute('title')).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
+    expect(tooltipOf(fixture, chip)).toMatch(/^\d{2} \/ .+ \/ \d{4} · \d{2}:\d{2}$/);
   });
 });
 

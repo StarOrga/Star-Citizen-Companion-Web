@@ -15,6 +15,7 @@ import { ConsentService } from '../core/consent.service';
 import { LocaleService } from '../core/locale/locale.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { SettingsComponent } from './settings.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Layout + account-card contract of the settings page (feedback af058ca4).
@@ -391,12 +392,15 @@ describe('SettingsComponent layout', () => {
     // One unit only — never a "1 year 2 months 3 days" breakdown.
     expect(label!.key).toMatch(/^profile\.memberSince\.(days|months|years)\.(one|other)$/);
 
-    const row = Array.from(
+    const values = Array.from(
       (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>(
         '.account .row .value',
       ),
-    ).find((v) => v.hasAttribute('title'));
+    );
+    const row = values
+      .map((v) => ({ v, de: fixture.debugElement.query((d) => d.nativeElement === v) }))
+      .find(({ de }) => !!de?.injector.get(ScTooltipDirective, null)?.scTooltip());
     expect(row).toBeTruthy();
-    expect(row!.getAttribute('title')).toBeTruthy();
+    expect(row!.de!.injector.get(ScTooltipDirective).scTooltip()).toBeTruthy();
   });
 });

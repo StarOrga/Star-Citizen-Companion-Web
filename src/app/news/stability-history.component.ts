@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { StabilityVerdict } from './patch-stability';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * All-time comparison: one column per LIVE line, height = how much of that
@@ -19,7 +20,7 @@ import { StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-history',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shown().length >= 2) {
@@ -31,7 +32,7 @@ import { StabilityVerdict } from './patch-stability';
         <div class="chart">
           @for (v of shown(); track v.line) {
             <button type="button" class="col" [class.early]="v.early" [class.none]="v.level === null"
-                    [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [attr.title]="colAria(v)"
+                    [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [scTooltip]="colAria(v)" scTooltipTier="label"
                     (click)="showLine.emit(v.line)">
               <span class="col-bar" [style.height.%]="v.stability ?? 8"></span>
               <span class="col-val">{{ v.stability === null ? '–' : v.stability }}</span>

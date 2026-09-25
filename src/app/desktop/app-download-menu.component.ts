@@ -27,6 +27,7 @@ import {
 } from './desktop-access';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** Per-product chrome — one place, so both mounts are visually identical. */
 const CHROME: Record<DesktopProduct, { icon: string; title: string; desc: string; note: string }> = {
@@ -74,7 +75,7 @@ let nextId = 0;
 @Component({
   selector: 'sc-app-download-menu',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, TranslatePipe],
+  imports: [NgTemplateOutlet, RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (offered()) {
@@ -154,7 +155,7 @@ let nextId = 0;
                     [class.secondary]="r.ring !== 'stable'"
                     [class.admin-only]="adminOnlyRing(r.ring)"
                     [href]="r.url"
-                    [title]="tooltip(r)"
+                    [scTooltip]="tooltip(r)"
                     target="_blank"
                     rel="noopener noreferrer"
                     download

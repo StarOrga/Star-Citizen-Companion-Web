@@ -4,7 +4,7 @@ import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexListComponent } from './codex-list.component';
-import { CodexListRow, CodexService } from './codex.service';
+import { CodexFacetValues, CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { RoleService } from '../auth/role.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -45,15 +45,21 @@ describe('CodexListComponent (Index mode)', () => {
       query?: Record<string, string>;
       /** Per-kind match counts for the cross-category search hint. */
       crossCounts?: Map<string, number>;
+      /** `codex_facet_values` answer (AUD-063) — null (default) exercises the row-derived fallback. */
+      facetValues?: CodexFacetValues | null;
     } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
     cmp: CodexListComponent;
     listByKind: jasmine.Spy;
+    facetValues: jasmine.Spy;
   }> {
     const listByKind = jasmine
       .createSpy('listByKind')
       .and.resolveTo({ rows: opts.rows ?? [], count: (opts.rows ?? []).length });
+    const facetValues = jasmine
+      .createSpy('facetValues')
+      .and.resolveTo(opts.facetValues ?? null);
 
     const codex: Partial<CodexService> = {
       build: signal({ id: 'b1', entityCounts }) as never,
@@ -77,6 +83,7 @@ describe('CodexListComponent (Index mode)', () => {
       countSearchMatches: jasmine
         .createSpy('countSearchMatches')
         .and.resolveTo(opts.crossCounts ?? new Map()),
+      facetValues,
     };
 
     const hangar: Partial<HangarService> = {
@@ -127,7 +134,7 @@ describe('CodexListComponent (Index mode)', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, cmp: fixture.componentInstance, listByKind };
+    return { fixture, cmp: fixture.componentInstance, listByKind, facetValues };
   }
 
   it('offers the blueprint kind once the build actually carries blueprints', async () => {
@@ -573,6 +580,85 @@ describe('CodexListComponent (Index mode)', () => {
       expect(el.querySelector('a.card')).not.toBeNull();
       expect(el.querySelector('a.card button')).toBeNull();
       expect(el.querySelector('.card-wrap > .card-actions .pin')).not.toBeNull();
+    });
+  });
+
+  describe('facet dropdowns (AUD-063)', () => {
+    /** One loaded component row — only ONE size/grade/manufacturer of what a real build carries. */
+    const componentRow = (className: string): CodexListRow => ({
+      classNameSlug: className,
+      nameLocalized: className,
+      manufacturerCode: 'AEG',
+      size: 2,
+      grade: 'B',
+      role: null,
+      crewSize: null,
+      weaponClass: null,
+      componentKind: 'Shield',
+      subType: null,
+      attachType: null,
+      speed: null,
+      isVariant: false,
+      payload: { manufacturer: { name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics' } } },
+      blueprintCategory: null,
+      blueprintTier: null,
+      craftTimeSec: null,
+    });
+
+    it('uses the server facet values, including codes absent from the loaded page', async () => {
+      const { fixture, cmp, facetValues } = await setup(
+        { components: 500 },
+        {
+          rows: [componentRow('MISC_Shield_01')],
+          facetValues: {
+            manufacturers: [
+              { code: 'AEG', name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics', key: '@manufacturer_NameAEG' } },
+              { code: 'MISC', name: { en: 'MISC', de: 'MISC', key: '@manufacturer_NameMISC' } },
+            ],
+            sizes: [1, 2, 3, 4],
+            grades: ['A', 'B', 'C'],
+            componentKinds: ['Shield', 'PowerPlant', 'Cooler'],
+          },
+        },
+      );
+      cmp.setKind('component');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(facetValues).toHaveBeenCalledWith('component');
+      // All four sizes/grades/kinds show up, not only the single loaded row's.
+      expect(cmp.sizeOptions()).toEqual(['1', '2', '3', '4']);
+      expect(cmp.gradeOptions()).toEqual(['A', 'B', 'C']);
+      expect(cmp.componentKindOptions()).toEqual(['PowerPlant', 'Shield', 'Cooler']);
+      expect(cmp.manufacturerOptions().map((m) => m.code)).toEqual(['AEG', 'MISC']);
+    });
+
+    it('falls back to the row-derived options when the server read comes back null', async () => {
+      const { fixture, cmp } = await setup(
+        { components: 500 },
+        { rows: [componentRow('MISC_Shield_01')], facetValues: null },
+      );
+      cmp.setKind('component');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Only what the single loaded row carries — the pre-AUD-063 behaviour.
+      expect(cmp.sizeOptions()).toEqual(['2']);
+      expect(cmp.gradeOptions()).toEqual(['B']);
+      expect(cmp.componentKindOptions()).toEqual(['Shield']);
+      expect(cmp.manufacturerOptions()).toEqual([{ code: 'AEG', label: 'Aegis Dynamics' }]);
+    });
+
+    it('keeps a selected value in the dropdown even when the facet list does not carry it', async () => {
+      const { cmp } = await setup(
+        { components: 500 },
+        { rows: [componentRow('MISC_Shield_01')], facetValues: null },
+      );
+      cmp.setKind('component');
+      cmp.grade.set('Z'); // not present on the one loaded row
+      await Promise.resolve();
+
+      expect(cmp.gradeSelect().some((o) => o.value === 'Z')).toBeTrue();
     });
   });
 });

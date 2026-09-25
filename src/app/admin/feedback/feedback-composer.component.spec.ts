@@ -10,6 +10,13 @@ import { FeedbackAreaService } from '../../feedback/feedback-area.service';
 import { FEEDBACK_AREAS } from '../../feedback/feedback-area.types';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { FEEDBACK_MAX_CHARS } from '../../feedback/feedback-limits';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+
+/** The app tooltip's text for a native element, via the directive that replaced `title`. */
+function tooltipOf(fixture: ComponentFixture<unknown>, native: Element): string | null {
+  const de = fixture.debugElement.query((d) => d.nativeElement === native);
+  return de?.injector.get(ScTooltipDirective, null)?.scTooltip() ?? null;
+}
 
 /**
  * Stand-in for the account-bound draft store: the composer's contract with it is
@@ -1030,7 +1037,7 @@ describe('FeedbackComposerComponent - the send row', () => {
 
     expect(send.textContent?.trim()).withContext('the key, not the word').toBe('⏎');
     expect(send.getAttribute('aria-label')).toBe('Reply');
-    expect(send.getAttribute('title')).withContext('the mapping in words').toContain('Enter');
+    expect(tooltipOf(fixture, send)).withContext('the mapping in words').toContain('Enter');
   });
 
   it('names Ctrl+Enter on the icon-send button when Enter does not send', async () => {
@@ -1153,7 +1160,7 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
     const label = input.closest('label');
     expect(label).withContext('wrapped in its label').not.toBeNull();
     expect(label!.textContent?.trim()).toBe('Complex');
-    expect(label!.getAttribute('title')).withContext('what it means, in words').toContain(
+    expect(tooltipOf(fixture, label!)).withContext('what it means, in words').toContain(
       'reasoning',
     );
   });

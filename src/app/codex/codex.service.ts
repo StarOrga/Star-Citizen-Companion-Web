@@ -94,6 +94,20 @@ export interface CodexListResult {
   count: number;
 }
 
+/**
+ * Server-side facet values for one kind's browse dropdowns — the complete set
+ * of values under the default browse filters, not just what the loaded pages
+ * happen to carry. See `codex_facet_values` (migration
+ * 20260926120000_codex_facet_values.sql). A kind without a given facet (e.g.
+ * `componentKinds` outside `component`) simply comes back empty.
+ */
+export interface CodexFacetValues {
+  manufacturers: { code: string; name: LocalizedText | null }[];
+  sizes: number[];
+  grades: string[];
+  componentKinds: string[];
+}
+
 export interface CodexListFilters {
   search?: string;
   manufacturer?: string;
@@ -332,6 +346,8 @@ export class CodexService {
   private readonly searchCountCache = new Map<string, Promise<number | null>>();
   /** `countItemsByAttachType` answers for the current build. */
   private attachTypeCounts: { buildId: string; counts: Map<string, number> } | null = null;
+  /** `facetValues` answers, per build + kind (in flight or done) — see facetValues. */
+  private readonly facetValuesCache = new Map<string, Promise<CodexFacetValues | null>>();
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -690,6 +706,53 @@ export class CodexService {
   async listBridgeShips(limit = 24): Promise<CodexListRow[]> {
     const res = await this.listByKind('ship', { limit, offset: 0 });
     return res.rows;
+  }
+
+  /**
+   * The COMPLETE manufacturer/size/grade/component-kind facet values for one
+   * kind, under the current build and the same default browse filters
+   * `listByKind` applies — the source for the index's filter dropdowns, which
+   * a 60-row page cannot represent on its own (AUD-063). Cached per build +
+   * kind; a failed or not-yet-deployed RPC (this ships before the migration
+   * necessarily has) returns null so the caller can fall back to the
+   * row-derived options instead of breaking the page.
+   */
+  async facetValues(kind: CodexKind): Promise<CodexFacetValues | null> {
+    const build = await this.buildOrThrow();
+    if (!build) return null;
+    const key = `${build.id}|${kind}`;
+    let pending = this.facetValuesCache.get(key);
+    if (!pending) {
+      // Only the current build's answers stay cached — a patch switch must
+      // not keep serving a stale build's facets under the new key's neighbour.
+      for (const cached of this.facetValuesCache.keys()) {
+        if (!cached.startsWith(`${build.id}|`)) this.facetValuesCache.delete(cached);
+      }
+      pending = this.fetchFacetValues(build.id, kind);
+      this.facetValuesCache.set(key, pending);
+    }
+    const result = await pending;
+    if (result === null) this.facetValuesCache.delete(key); // a failed read is asked again next time
+    return result;
+  }
+
+  private async fetchFacetValues(buildId: string, kind: CodexKind): Promise<CodexFacetValues | null> {
+    try {
+      const { data, error } = await this.sb.client.rpc('codex_facet_values', {
+        p_build_id: buildId,
+        p_kind: kind,
+      });
+      if (error || !data) return null;
+      const d = data as Record<string, unknown>;
+      return {
+        manufacturers: ((d['manufacturers'] as unknown[]) ?? []) as CodexFacetValues['manufacturers'],
+        sizes: ((d['sizes'] as unknown[]) ?? []) as number[],
+        grades: ((d['grades'] as unknown[]) ?? []) as string[],
+        componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
+      };
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -2101,6 +2164,15 @@ export function manufacturerLabel(
 export const UNKNOWN_MANUFACTURER_CODE = 'UNKN';
 
 /**
+ * Shape of a real manufacturer code (RSI, AEGS, KLWE, 987). Paint items carry
+ * their livery token in `manufacturer_code` instead ("Paint_400i_Black_…" — 940
+ * one-off codes in the items table of build 4.9), each labelled with the maker's
+ * name, so a facet built from them repeats "Roberts Space Industries" hundreds
+ * of times. The same rule filters the server facet (codex_facet_values).
+ */
+const MANUFACTURER_CODE_SHAPE = /^[A-Z0-9]{2,6}$/;
+
+/**
  * Manufacturer facet options for a list view: the option VALUE stays the
  * promoted `manufacturer_code` (that is what `listByKind` filters on), only the
  * LABEL is spelled out from the row payload's extracted name. A code whose rows
@@ -2114,7 +2186,7 @@ export function manufacturerFacetOptions(
   const byCode = new Map<string, string>();
   for (const r of rows) {
     const code = r.manufacturerCode;
-    if (!code || code === UNKNOWN_MANUFACTURER_CODE) continue;
+    if (!code || code === UNKNOWN_MANUFACTURER_CODE || !MANUFACTURER_CODE_SHAPE.test(code)) continue;
     const label = manufacturerLabel(r, lang) ?? code;
     const existing = byCode.get(code);
     // First resolved name wins; never let a later code-only row overwrite it.

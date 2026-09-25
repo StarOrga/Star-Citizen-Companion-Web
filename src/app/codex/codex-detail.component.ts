@@ -39,6 +39,8 @@ import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig } from '../hangar/hangar.types';
 import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import {
   computeLoadoutStats,
   findStat,
@@ -50,7 +52,6 @@ import {
   HARDPOINT_CATEGORY_ORDER,
   HardpointCategory,
   SpecSection,
-  StatGroup,
   StatRow,
   ammoDamage,
   categorizePort,
@@ -293,7 +294,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, HangarPickerComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, HangarPickerComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -301,12 +302,12 @@ interface GearRecipe {
         <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
         <span class="crumb-spacer"></span>
         @if (kind() === 'ship' && dataPill(); as pill) {
-          <span class="prov data-pill" [class.pending]="pill.pending" [attr.title]="'codex.detail.dataPillAria' | translate: { build: pill.build, n: pill.schema } ">
+          <span class="prov data-pill" [class.pending]="pill.pending">
             {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
             @if (pill.pending) { · {{ 'codex.detail.dataPillPending' | translate }} }
           </span>
         } @else if (kind() === 'ship' && provenance(); as p) {
-          <span class="prov" [attr.title]="'codex.provenance.tooltip' | translate">
+          <span class="prov">
             {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
           </span>
         }
@@ -315,13 +316,11 @@ interface GearRecipe {
           <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
             <button type="button" class="ht-btn" [class.active]="!holoView()"
                     [attr.aria-pressed]="!holoView()"
-                    [attr.title]="'codex.holo.toggle.classicHint' | translate"
                     (click)="holoView() && toggleHoloView()">
               {{ 'codex.holo.toggle.classic' | translate }}
             </button>
             <button type="button" class="ht-btn" [class.active]="holoView()"
                     [attr.aria-pressed]="holoView()"
-                    [attr.title]="'codex.holo.toggle.holoHint' | translate"
                     (click)="!holoView() && toggleHoloView()">
               {{ 'codex.holo.toggle.holo' | translate }}
             </button>
@@ -413,7 +412,8 @@ interface GearRecipe {
                 [class.on]="heroView3d()"
                 [attr.aria-pressed]="heroView3d()"
                 [attr.aria-label]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
-                [attr.title]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
+                [scTooltip]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
+                scTooltipTier="label"
                 (click)="toggleHeroView()">
                 <span class="vs-num" aria-hidden="true">{{ viewLabel.slice(0, -1) }}</span><span class="vs-letter" aria-hidden="true">{{ viewLabel.slice(-1) }}</span>
               </button>
@@ -971,7 +971,7 @@ interface GearRecipe {
               }
               <div class="stat-grid">
                 @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
                 }
               </div>
             }
@@ -988,7 +988,7 @@ interface GearRecipe {
               }
               <div class="stat-grid">
                 @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
                 }
               </div>
             }
@@ -1005,7 +1005,7 @@ interface GearRecipe {
               }
               <div class="stat-grid">
                 @for (s of g.rows; track s.key) {
-                  <div class="stat"><span class="s-label">{{ s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
+                  <div class="stat"><span class="s-label">{{ s.i18nKey ? (s.i18nKey | translate) : s.key }}</span><span class="s-value">{{ s.value }}@if (s.unit) {<span class="s-unit"> {{ s.unit }}</span>}</span></div>
                 }
               </div>
             }
@@ -1897,7 +1897,6 @@ interface GearRecipe {
     .sl-admin { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sc-border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .sl-admin-tag { font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
     .sl-admin-hint { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); flex: 1 1 220px; }
-    .in-hangar { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .prov { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
     /* Generic block. The card title is the mock's .m-h2 (part-02:141):
@@ -1914,7 +1913,7 @@ interface GearRecipe {
     .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
     .sg-head:first-of-type { margin-top: 0; }
     /* The category icon's weapon orange — one orange for "offense", well clear of the admin red. */
-    .sg-head[data-purpose="offense"] { color: #e8864a; }
+    .sg-head[data-purpose="offense"] { color: var(--sc-offense); }
     .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
@@ -1942,7 +1941,7 @@ interface GearRecipe {
     .dmg-bar { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .dmg-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .dmg[data-ch="energy"] .dmg-fill { background: var(--sc-accent); }
-    .dmg[data-ch="physical"] .dmg-fill { background: #e8864a; }
+    .dmg[data-ch="physical"] .dmg-fill { background: var(--sc-offense); }
     .dmg[data-ch="thermal"] .dmg-fill { background: #ff5252; }
     .dmg[data-ch="distortion"] .dmg-fill { background: #a674ff; }
     .dmg[data-ch="biochemical"] .dmg-fill { background: #5fd35f; }
@@ -1955,7 +1954,7 @@ interface GearRecipe {
     .hp-cat { margin: 0 0 6px; font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-1);
       display: flex; align-items: center; gap: 6px; }
     .hp-cat .hp-ct { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .hp-list, .ld-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .hp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
     .hp { border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); overflow: hidden; }
     .hp.open { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
@@ -3048,13 +3047,23 @@ export class CodexDetailComponent implements OnInit {
     return curateComponentStats((d.payload as ItemPayload | undefined)?.stats);
   });
 
-  // Decision stats grouped by what the thing is FOR (Slice 3) — not a flat dump.
-  readonly componentStatGroups = computed<StatGroup[]>(() => groupStatRows(this.componentStats()));
-  readonly weaponParamGroups = computed<StatGroup[]>(() => groupStatRows(this.weaponParams()));
-  readonly armorStatGroups = computed<StatGroup[]>(() => groupStatRows(this.armorStats()));
+  // Decision stats grouped by what the thing is FOR (Slice 3) — not a flat
+  // dump. `toDisplayStatGroups` (AUD-060) hides engine internals that slip
+  // past codex-format.ts's own noise filter and attaches an i18n key for
+  // every stat label the dictionary knows, leaving the rest on the existing
+  // humanized fallback.
+  readonly componentStatGroups = computed<DisplayStatGroup[]>(() =>
+    toDisplayStatGroups(groupStatRows(this.componentStats())),
+  );
+  readonly weaponParamGroups = computed<DisplayStatGroup[]>(() =>
+    toDisplayStatGroups(groupStatRows(this.weaponParams())),
+  );
+  readonly armorStatGroups = computed<DisplayStatGroup[]>(() =>
+    toDisplayStatGroups(groupStatRows(this.armorStats())),
+  );
 
   /** Group headers only help once the stats span ≥2 buckets. */
-  showStatGroupHeaders(groups: StatGroup[]): boolean {
+  showStatGroupHeaders(groups: DisplayStatGroup[]): boolean {
     return groups.length > 1 || (groups.length === 1 && groups[0].purpose !== 'general');
   }
 

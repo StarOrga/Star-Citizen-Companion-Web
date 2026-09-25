@@ -34,6 +34,8 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.component';
 import { LoadoutShareService } from '../social/loadout-share.service';
 import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -55,6 +57,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     CodexCategoryIconComponent,
     FallbackImageComponent,
     LoadoutSharePanelComponent,
+    ScSelectComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -179,7 +183,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           @if (c.manufacturer) { <span class="db-mfr">{{ c.manufacturer }}</span> }
           <span class="db-name">{{ c.name }}</span>
         </span>
-        <span class="db-wip" [attr.title]="'codex.upcoming.notFlightReady' | translate">
+        <span class="db-wip" [scTooltip]="'codex.upcoming.notFlightReady' | translate">
           {{ 'codex.upcoming.conceptBadge' | translate }}
         </span>
       </ng-template>
@@ -242,7 +246,10 @@ const SEARCH_DEBOUNCE_MS = 250;
                 <div class="card-top">
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
                   <div class="card-top-right">
-                    @if (isFlagship(s)) { <span class="flag-badge" [attr.title]="'hangar.flagship.badge' | translate">★</span> }
+                    @if (isFlagship(s)) {
+                      <span class="flag-badge" [scTooltip]="'hangar.flagship.badge' | translate" scTooltipTier="label"
+                            [attr.aria-label]="'hangar.flagship.badge' | translate">★</span>
+                    }
                     @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
                   </div>
                 </div>
@@ -328,11 +335,9 @@ const SEARCH_DEBOUNCE_MS = 250;
         <div class="loadouts-head">
           <h2>{{ 'hangar.roleLoadouts.title' | translate }}</h2>
           <div class="new-loadout">
-            <select class="sc-select" [ngModel]="newLoadoutRole()" (ngModelChange)="newLoadoutRole.set($event)">
-              @for (r of loadoutRoles; track r) {
-                <option [value]="r">{{ ('hangar.roles.' + r) | translate }}</option>
-              }
-            </select>
+            <sc-select class="role-select" [options]="loadoutRoleOptions()" [value]="newLoadoutRole()"
+                       [allowEmpty]="false" [ariaLabel]="'hangar.roleLoadouts.roleLabel' | translate"
+                       (valueChange)="onNewLoadoutRoleChange($event)" />
             <input class="ld-name" type="text" [ngModel]="newLoadoutName()" (ngModelChange)="newLoadoutName.set($event)"
                    [attr.placeholder]="'hangar.roleLoadouts.namePlaceholder' | translate"
                    [attr.aria-label]="'hangar.roleLoadouts.namePlaceholder' | translate" />
@@ -650,7 +655,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .new-loadout { display: flex; gap: 8px; flex-wrap: wrap; }
     .ld-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.84rem; }
     .ld-name:focus { outline: none; border-color: var(--sc-accent); }
-    .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+    /* The themed select (shared/sc-select) draws itself; this only sizes it. */
+    .new-loadout sc-select.role-select { min-width: 150px; font-size: 0.82rem; }
     .loadout-card .ld-summary { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .own-card { display: flex; flex-direction: column; gap: 10px; cursor: default; }
     .ld-open { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; }
@@ -716,6 +722,9 @@ export class HangarDashboardComponent implements OnInit {
   private readonly codex = inject(CodexService);
 
   readonly loadoutRoles = ROLE_LOADOUT_ROLES;
+  readonly loadoutRoleOptions = computed<ScSelectOption[]>(() =>
+    this.loadoutRoles.map((r) => ({ value: r, labelKey: 'hangar.roles.' + r })),
+  );
   readonly skeletons = Array.from({ length: 4 }, (_, i) => i);
 
   readonly searchInput = signal('');
@@ -886,6 +895,10 @@ export class HangarDashboardComponent implements OnInit {
 
   async removeConcept(id: string): Promise<void> {
     await this.hangar.removeConceptShip(id);
+  }
+
+  onNewLoadoutRoleChange(value: string | null): void {
+    if (value) this.newLoadoutRole.set(value as RoleLoadoutRole);
   }
 
   async createLoadout(): Promise<void> {

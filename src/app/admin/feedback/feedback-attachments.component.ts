@@ -14,6 +14,7 @@ import {
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { FeedbackImage } from './markdown.util';
 import {
   ANNOTATION_COLORS,
@@ -78,7 +79,7 @@ export interface AnnotationResult {
 @Component({
   selector: 'sc-feedback-attachments',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (showRow()) {
@@ -97,13 +98,14 @@ export interface AnnotationResult {
                   [href]="img.src"
                   target="_blank"
                   rel="noopener noreferrer"
-                  [attr.title]="img.alt"
+                  [scTooltip]="img.alt"
+                  scTooltipTier="label"
                   [attr.aria-label]="'feedbackAttachments.openFile' | translate: { name: img.alt }">
                   <span class="af-ext">{{ extOf(img.alt) }}</span>
                   <span class="af-name">{{ img.alt }}</span>
                 </a>
               } @else {
-                <span class="att-thumb att-file" [attr.title]="img.alt">
+                <span class="att-thumb att-file" [scTooltip]="img.alt" scTooltipTier="label">
                   <span class="af-ext">{{ extOf(img.alt) }}</span>
                   <span class="af-name">{{ img.alt }}</span>
                 </span>
@@ -145,7 +147,8 @@ export interface AnnotationResult {
             type="button"
             class="att-thumb att-add"
             (click)="add.emit()"
-            [title]="addLabelKey() | translate"
+            [scTooltip]="addLabelKey() | translate"
+            scTooltipTier="label"
             [attr.aria-label]="addLabelKey() | translate">
             <span class="tile-glyph" aria-hidden="true">＋</span>
           </button>
@@ -156,7 +159,8 @@ export interface AnnotationResult {
             class="att-thumb att-capture"
             (click)="capture.emit()"
             [disabled]="capturing()"
-            [title]="'feedbackAttachments.capture' | translate"
+            [scTooltip]="'feedbackAttachments.capture' | translate"
+            scTooltipTier="label"
             [attr.aria-label]="'feedbackAttachments.capture' | translate">
             @if (capturing()) {
               <span class="tile-glyph spin" aria-hidden="true">◌</span>
@@ -225,7 +229,8 @@ export interface AnnotationResult {
                     [class.on]="tool() === t"
                     (click)="tool.set(t)"
                     [attr.aria-pressed]="tool() === t"
-                    [title]="'feedbackAttachments.tool.' + t | translate"
+                    [scTooltip]="'feedbackAttachments.tool.' + t | translate"
+                    scTooltipTier="label"
                     [attr.aria-label]="'feedbackAttachments.tool.' + t | translate">
                     @switch (t) {
                       @case ('rect') { ▭ }
@@ -251,7 +256,8 @@ export interface AnnotationResult {
                   class="lb-tool"
                   (click)="undo()"
                   [disabled]="shapes().length === 0"
-                  [title]="'feedbackAttachments.undo' | translate"
+                  [scTooltip]="'feedbackAttachments.undo' | translate"
+                  scTooltipTier="label"
                   [attr.aria-label]="'feedbackAttachments.undo' | translate">↶</button>
               </div>
               @if (annotateError()) {

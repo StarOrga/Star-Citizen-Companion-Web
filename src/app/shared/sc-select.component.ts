@@ -21,6 +21,12 @@ export interface ScSelectOption {
    * game names it. Leave unset for the normal, translated case.
    */
   readonly label?: string;
+  /**
+   * Listed but not pickable — the native `<option disabled>`: a choice that
+   * exists but has no data behind it yet. The trigger still shows it when it
+   * is the current value; clicks, Enter and the arrow keys pass it by.
+   */
+  readonly disabled?: boolean;
 }
 
 /** Sentinel for "nothing picked" — `null` on the wire, `''` inside the list. */
@@ -86,7 +92,9 @@ let uid = 0;
             role="option"
             [class.active]="i === activeIndex()"
             [class.selected]="o.value === currentValue()"
+            [class.disabled]="o.disabled"
             [attr.aria-selected]="o.value === currentValue()"
+            [attr.aria-disabled]="o.disabled || null"
             (pointerdown)="$event.preventDefault()"
             (click)="choose(i)"
           >
@@ -139,6 +147,8 @@ let uid = 0;
     }
     .option.active { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); color: var(--sc-fg-0); }
     .option.selected { color: var(--sc-accent); }
+    .option.disabled { opacity: 0.45; cursor: not-allowed; }
+    .option.disabled.active { background: transparent; }
     .option .label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Checkmark for the committed value — the active row is carried by the
@@ -224,7 +234,7 @@ export class ScSelectComponent {
 
   choose(i: number): void {
     const picked = this.choices()[i];
-    if (!picked) return;
+    if (!picked || picked.disabled) return;
     this.close();
     this.triggerEl()?.focus();
     const next = picked.value === NONE ? null : picked.value;
@@ -239,23 +249,23 @@ export class ScSelectComponent {
       case 'ArrowDown':
         ev.preventDefault();
         if (!this.open()) this.openList();
-        else if (!ev.altKey) this.moveTo(this.activeIndex() + 1, last);
+        else if (!ev.altKey) this.moveTo(this.activeIndex() + 1, last, 1);
         return;
       case 'ArrowUp':
         ev.preventDefault();
         if (!this.open()) this.openList();
         else if (ev.altKey) this.close();
-        else this.moveTo(this.activeIndex() - 1, last);
+        else this.moveTo(this.activeIndex() - 1, last, -1);
         return;
       case 'Home':
         ev.preventDefault();
         if (!this.open()) this.openList();
-        else this.moveTo(0, last);
+        else this.moveTo(0, last, 1);
         return;
       case 'End':
         ev.preventDefault();
         if (!this.open()) this.openList();
-        else this.moveTo(last, last);
+        else this.moveTo(last, last, -1);
         return;
       case 'Enter':
       case ' ':
@@ -300,8 +310,13 @@ export class ScSelectComponent {
     this.scrollActiveIntoView();
   }
 
-  private moveTo(to: number, last: number): void {
-    this.activeIndex.set(Math.min(last, Math.max(0, to)));
+  /** Move the highlight to `to`, stepping on in `dir` past disabled options; stays put when none is left. */
+  private moveTo(to: number, last: number, dir: 1 | -1): void {
+    const items = this.choices();
+    let i = Math.min(last, Math.max(0, to));
+    while (i >= 0 && i <= last && items[i]?.disabled) i += dir;
+    if (i < 0 || i > last) return;
+    this.activeIndex.set(i);
     this.scrollActiveIntoView();
   }
 
@@ -312,6 +327,7 @@ export class ScSelectComponent {
     const from = this.open() ? this.activeIndex() + 1 : 0;
     for (let n = 0; n < items.length; n++) {
       const i = (from + n) % items.length;
+      if (items[i].disabled) continue;
       const label = items[i].label ?? String(this.i18n.instant(items[i].labelKey) ?? '');
       if (label.toLowerCase().startsWith(needle)) {
         ev.preventDefault();

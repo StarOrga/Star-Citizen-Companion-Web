@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { PatchCycleComponent } from './patch-cycle.component';
 import { groupPatchNotes } from './patch-notes';
 import { stackCardFor } from './patch-stack';
 import type { VerseNewsItem } from './news.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The cycle axis as it is laid out (feedback 01df732d, follow-up).
@@ -136,8 +138,9 @@ describe('Patch cycle axis — the panel may not print over itself', () => {
     expect((Array.from(root().querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key')))
       .toEqual(['prevLive', 'firstTest', 'leadUsual', 'live', 'hotfix', 'now', 'usual']);
     expect(root().querySelector('.track .lab')).withContext('no free-floating labels left').toBeNull();
-    // The names that came off the rail stay reachable on hover.
-    expect(root().querySelector('.pt[data-key="hotfix"]')?.getAttribute('title')).toContain('Hotfix');
+    // The names that came off the rail stay reachable on hover, via the app tooltip.
+    const hotfixPt = fixture.debugElement.query(By.css('.pt[data-key="hotfix"]'));
+    expect(hotfixPt.injector.get(ScTooltipDirective).scTooltip()).toContain('Hotfix');
   });
 
   it('a finished cycle ends on its real successor and has no today marker', async () => {

@@ -15,6 +15,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
+  CodexFacetValues,
   CodexKind,
   CodexListFilters,
   CodexListRow,
@@ -933,38 +934,80 @@ export class CodexListComponent implements OnInit {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private loadSeq = 0;
 
-  // Facet options derived from the rows actually loaded for the active kind.
+  // Facet options: the complete set from `codex_facet_values` (AUD-063) when it
+  // loaded, else the row-derived options from whatever pages happen to be
+  // loaded for the active kind (also the fallback while the RPC is in flight,
+  // and forever on a build that predates the migration).
+  private readonly serverFacets = signal<CodexFacetValues | null>(null);
   /**
    * Manufacturer facet — spelled-out labels over the promoted code as the
    * filter value. See `manufacturerFacetOptions`.
    */
-  readonly manufacturerOptions = computed(() =>
-    manufacturerFacetOptions(this.rows(), this.dataLang()),
-  );
-  readonly sizeOptions = computed(() =>
-    uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
+  readonly manufacturerOptions = computed(() => {
+    const server = this.serverFacets();
+    if (!server) return manufacturerFacetOptions(this.rows(), this.dataLang());
+    const lang = this.dataLang();
+    return [...server.manufacturers]
+      .map((m) => ({ code: m.code, label: manufacturerLabel({ manufacturerCode: m.code, payload: { manufacturer: { name: m.name } } }, lang) ?? m.code }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
+  readonly sizeOptions = computed(() => {
+    const server = this.serverFacets();
+    if (server) return server.sizes.map(String);
+    return uniqSorted(this.rows().map((r) => (r.size != null ? String(r.size) : null))).sort(
       (a, b) => Number(a) - Number(b),
-    ),
-  );
-  readonly gradeOptions = computed(() => uniqSorted(this.rows().map((r) => r.grade)));
+    );
+  });
+  readonly gradeOptions = computed(() => {
+    const server = this.serverFacets();
+    return server ? server.grades : uniqSorted(this.rows().map((r) => r.grade));
+  });
   readonly componentKindOptions = computed(() => {
+    const server = this.serverFacets();
+    if (server) return COMPONENT_KINDS.filter((k) => server.componentKinds.includes(k));
     const present = new Set(this.rows().map((r) => r.componentKind).filter(Boolean));
     return COMPONENT_KINDS.filter((k) => present.has(k));
   });
 
-  /** The facets in the themed select's shape: raw values ride in `label`, translatable ones in `labelKey`. */
+  /**
+   * The facets in the themed select's shape: raw values ride in `label`,
+   * translatable ones in `labelKey`. Always includes the currently selected
+   * value even when the (server or row-derived) facet list does not carry it
+   * — e.g. a URL/route param naming a value outside the loaded pages, or the
+   * server facet read still in flight — so `sc-select` never silently reverts
+   * a real selection to "None".
+   */
+  private withSelected(options: ScSelectOption[], selected: string): ScSelectOption[] {
+    if (!selected || options.some((o) => o.value === selected)) return options;
+    return [...options, { value: selected, labelKey: '', label: selected }];
+  }
   readonly manufacturerSelect = computed<ScSelectOption[]>(() =>
-    this.manufacturerOptions().map((m) => ({ value: m.code, labelKey: '', label: m.label })),
+    this.withSelected(
+      this.manufacturerOptions().map((m) => ({ value: m.code, labelKey: '', label: m.label })),
+      this.manufacturer(),
+    ),
   );
   readonly sizeSelect = computed<ScSelectOption[]>(() =>
-    this.sizeOptions().map((s) => ({ value: s, labelKey: '', label: 'S' + s })),
+    this.withSelected(
+      this.sizeOptions().map((s) => ({ value: s, labelKey: '', label: 'S' + s })),
+      this.size(),
+    ),
   );
   readonly gradeSelect = computed<ScSelectOption[]>(() =>
-    this.gradeOptions().map((g) => ({ value: g, labelKey: '', label: g })),
+    this.withSelected(
+      this.gradeOptions().map((g) => ({ value: g, labelKey: '', label: g })),
+      this.grade(),
+    ),
   );
-  readonly componentKindSelect = computed<ScSelectOption[]>(() =>
-    this.componentKindOptions().map((c) => ({ value: c, labelKey: 'codex.componentKind.' + c })),
-  );
+  readonly componentKindSelect = computed<ScSelectOption[]>(() => {
+    const options = this.componentKindOptions().map((c) => ({
+      value: c,
+      labelKey: 'codex.componentKind.' + c,
+    }));
+    const selected = this.componentKind();
+    if (!selected || options.some((o) => o.value === selected)) return options;
+    return [...options, { value: selected, labelKey: 'codex.componentKind.' + selected }];
+  });
   // categoryLabel() reads the data language, so this recomputes on a DE/EN switch.
   readonly blueprintCategorySelect = computed<ScSelectOption[]>(() =>
     this.blueprintCategoryOptions().map((c) => ({ value: c, labelKey: '', label: this.categoryLabel(c) })),
@@ -1087,6 +1130,32 @@ export class CodexListComponent implements OnInit {
       const active = this.category();
       untracked(() => void this.loadCrossHits(term, active));
     });
+
+    // Complete facet values for the active kind's dropdowns (AUD-063) — reread
+    // on a kind switch or a build/patch switch; the row-derived fallback keeps
+    // the dropdowns usable while this is in flight.
+    effect(() => {
+      const kind = this.kind();
+      const build = this.svc.build();
+      untracked(() => void this.loadFacetValues(kind, build?.id));
+    });
+  }
+
+  private facetValuesSeq = 0;
+
+  /** Loads the complete facet values for one kind; null (server error / not yet deployed) clears to the row-derived fallback. */
+  private async loadFacetValues(kind: CodexKind, buildId: string | undefined): Promise<void> {
+    if (!buildId) {
+      this.serverFacets.set(null);
+      return;
+    }
+    const seq = ++this.facetValuesSeq;
+    try {
+      const values = await this.svc.facetValues(kind);
+      if (seq === this.facetValuesSeq) this.serverFacets.set(values);
+    } catch {
+      if (seq === this.facetValuesSeq) this.serverFacets.set(null);
+    }
   }
 
   /** Set once the route's state is applied — before that the URL is the source, not the target. */

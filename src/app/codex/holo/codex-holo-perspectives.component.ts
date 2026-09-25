@@ -8,6 +8,7 @@ import {
 } from '../codex-analysis-panels.component';
 import { DefensivePanel, OffensivePanel } from '../codex-loadout-stats';
 import { Perspective } from '../codex-build-compare';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /** A patch-Δ ghost beside a number: the other build's value and its tone. */
 export interface HoloGhost {
@@ -42,7 +43,7 @@ export interface HoloPerspectiveView {
 @Component({
   selector: 'sc-codex-holo-perspectives',
   standalone: true,
-  imports: [TranslatePipe, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent],
+  imports: [TranslatePipe, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sh">
@@ -66,7 +67,7 @@ export interface HoloPerspectiveView {
                 @if (tile.deltaText; as d) { <span class="d" [class.up]="tile.deltaTone === 'up'" [class.down]="tile.deltaTone === 'down'">{{ d }}</span> }
                 @if (tile.ghost; as g) {
                   <span class="ghost" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'"
-                        [attr.title]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }">{{ g.patch }} · {{ g.text }}</span>
+                        [scTooltip]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }" scTooltipTier="label">{{ g.patch }} · {{ g.text }}</span>
                 }
               </div>
             } @else {
@@ -94,7 +95,7 @@ export interface HoloPerspectiveView {
                 <span class="k">{{ c.shortKey | translate }}</span>
                 <span class="v">{{ c.text }}</span>
                 @if (c.ghost; as g) {
-                  <span class="gv" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'" [attr.title]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }">{{ g.text }}</span>
+                  <span class="gv" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'" [scTooltip]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }" scTooltipTier="label">{{ g.text }}</span>
                 }
               </div>
             }

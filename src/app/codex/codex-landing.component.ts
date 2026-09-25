@@ -50,6 +50,7 @@ import { AuthService } from '../auth/auth.service';
 import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component';
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -87,6 +88,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     CodexPatchHeadlineComponent,
     CodexStageComponent,
     CodexBoardFigureComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -149,7 +151,8 @@ const SEARCH_DEBOUNCE_MS = 250;
           class="terminal-tool"
           routerLink="/codex/keybinds"
           [attr.aria-label]="'codex.landing.terminal.keybinds' | translate"
-          [attr.title]="'codex.landing.terminal.keybinds' | translate"
+          [scTooltip]="'codex.landing.terminal.keybinds' | translate"
+          scTooltipTier="label"
         >
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -208,7 +211,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                         'codex.kindSingular.' + hit.kind | translate
                       }}</span>
                       @if (hitMfr(hit); as mfr) {
-                        <span class="hit-mfr" [attr.title]="mfr">{{ mfr }}</span>
+                        <span class="hit-mfr">{{ mfr }}</span>
                       }
                       @if (hit.size != null) {
                         <span class="hit-badge">{{

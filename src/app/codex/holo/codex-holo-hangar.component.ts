@@ -18,6 +18,7 @@ import { HangarShip, HangarShipConfig, ShipConfigRole, loadoutVariantHint } from
 import { relativeDayBucket } from '../../core/locale/date-format';
 import { CodexService } from '../codex.service';
 import { HoloSilhouette } from '../holo-silhouette';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { humanizeClassName } from '../codex-format';
 
 /** Above this many ships the flat tile grid is replaced by role groups —
@@ -37,7 +38,7 @@ interface HangarTile {
 @Component({
   selector: 'sc-codex-holo-hangar',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-hangar">
@@ -47,7 +48,6 @@ interface HangarTile {
         [class.open]="open()"
         [attr.aria-expanded]="open()"
         [attr.aria-controls]="panelId"
-        [title]="'codex.holo.hangar.tab' | translate"
         (click)="toggleOpen()"
       >
         <b aria-hidden="true">⌂</b>
@@ -83,7 +83,7 @@ interface HangarTile {
                         @if (t.silhouette; as s) {
                           <svg [attr.viewBox]="s.viewBox" aria-hidden="true"><path [attr.d]="s.path" /></svg>
                         } @else {
-                          <span class="ring" [attr.title]="'codex.holo.hangar.noGeometry' | translate" aria-hidden="true"></span>
+                          <span class="ring" [scTooltip]="'codex.holo.hangar.noGeometry' | translate" scTooltipTier="label" aria-hidden="true"></span>
                         }
                       </span>
                       <span class="name">{{ t.ship.customName ?? humanize(t.ship.shipClassName) }}</span>

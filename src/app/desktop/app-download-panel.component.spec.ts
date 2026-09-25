@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { computed, signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 describe('AppDownloadPanelComponent', () => {
   function setup(inputs: Partial<Record<string, unknown>> = {}, mobile = false) {
@@ -45,8 +47,9 @@ describe('AppDownloadPanelComponent', () => {
     const f = setup({ entries: [entry] });
     const link = f.nativeElement.querySelector('a.ap-btn') as HTMLAnchorElement;
     expect(link.textContent).not.toContain('MB');
-    expect(link.getAttribute('title')).toContain('3.0 MB');
-    expect(link.getAttribute('title')).toContain('abcdef123456');
+    const tooltip = f.debugElement.query(By.css('a.ap-btn')).injector.get(ScTooltipDirective).scTooltip();
+    expect(tooltip).toContain('3.0 MB');
+    expect(tooltip).toContain('abcdef123456');
   });
 
   it('hides the details toggle when there is nothing behind it', () => {

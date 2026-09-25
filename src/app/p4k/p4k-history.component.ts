@@ -5,11 +5,12 @@ import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.s
 import { RoleService } from '../auth/role.service';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 @Component({
   selector: 'sc-p4k-history',
   standalone: true,
-  imports: [ScDatePipe, DecimalPipe, TranslatePipe],
+  imports: [ScDatePipe, DecimalPipe, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="hist">
@@ -33,7 +34,8 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
                     (click)="svc.toggleDisabled()"
                     [attr.aria-pressed]="svc.includeDisabled()"
                     [attr.aria-label]="'p4k.toggle.disabled' | translate"
-                    [title]="'p4k.toggle.disabled' | translate">
+                    [scTooltip]="'p4k.toggle.disabled' | translate"
+                    scTooltipTier="label">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
@@ -104,7 +106,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
                         <div class="up-left">
                           <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
                           @if (isSuperseded(b)) {
-                            <span class="badge" [title]="b.disabled_reason ?? ''">{{ 'p4k.superseded.badge' | translate }}</span>
+                            <span class="badge" [scTooltip]="b.disabled_reason ?? ''" scTooltipTier="label">{{ 'p4k.superseded.badge' | translate }}</span>
                           }
                           <span class="up-b mono">{{ b.build_number || '—' }}</span>
                           <div class="qbar">
@@ -117,7 +119,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
                           </div>
                           <div class="up-ent">
                             @for (ent of entityKeys(b); track ent.key) {
-                              <span class="echip" [title]="ent.key">{{ ent.icon }} {{ ent.value | number }}</span>
+                              <span class="echip" [scTooltip]="ent.key" scTooltipTier="label">{{ ent.icon }} {{ ent.value | number }}</span>
                             }
                           </div>
                         </div>
@@ -131,7 +133,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
                               <span class="small">—</span>
                             }
                           </span>
-                          <span class="up-tool mono small" [title]="'p4k.col.tool' | translate">{{ b.tool_version ?? '—' }}</span>
+                          <span class="up-tool mono small" [scTooltip]="'p4k.col.tool' | translate">{{ b.tool_version ?? '—' }}</span>
                           <div class="uploader-cell">
                             <span class="n">{{ b.uploaded_by_name ?? '—' }}</span>
                             <span class="e mono">{{ b.uploaded_by_email }}</span>

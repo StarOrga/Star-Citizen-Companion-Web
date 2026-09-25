@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexRankCardComponent } from './codex-rank-card.component';
 import { rankShip, RankShipInput } from './codex-rank';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 describe('CodexRankCardComponent', () => {
   let fixture: ComponentFixture<CodexRankCardComponent>;
@@ -49,13 +51,21 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelectorAll('.bar-row').length).toBe(result.axes.length);
   });
 
-  it('disables a profile chip with its reason as the title', () => {
+  it('disables a profile chip with its reason as an app tooltip', () => {
     fixture.componentRef.setInput('disabledReasons', { transport: 'codex.rank.disabled.noCargo' });
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    const chip = Array.from(el.querySelectorAll('.profile-chip')).find((b) => b.getAttribute('title') === 'codex.rank.disabled.noCargo');
+    const chip = Array.from(el.querySelectorAll('.profile-chip')).find(
+      (b) => (b as HTMLButtonElement).disabled,
+    ) as HTMLButtonElement;
     expect(chip).toBeTruthy();
-    expect((chip as HTMLButtonElement).disabled).toBeTrue();
+    // A disabled button gets no pointer events, so the tooltip sits on the
+    // wrapping span instead — find it via the directive, not the `title` attribute.
+    const wrap = fixture.debugElement
+      .queryAll(By.directive(ScTooltipDirective))
+      .find((de) => de.nativeElement.contains(chip));
+    expect(wrap).toBeTruthy();
+    expect(wrap!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.rank.disabled.noCargo');
   });
 });
 

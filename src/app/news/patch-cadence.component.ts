@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import type { PatchLineGroup } from './patch-notes';
 import {
   PatchForecastRow,
@@ -94,7 +95,7 @@ type Slide =
 @Component({
   selector: 'sc-patch-cadence',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (hasContent()) {
@@ -114,7 +115,7 @@ type Slide =
                   <button type="button" class="dot" [class.on]="i === index()"
                           [attr.aria-pressed]="i === index()"
                           [attr.aria-label]="'news.patch.kpi.goto' | translate:{ title: slideTitle(s) }"
-                          [attr.title]="slideTitle(s)"
+                          [scTooltip]="slideTitle(s)" scTooltipTier="label"
                           (click)="show(i)">
                     @if (i === index()) {
                       <span class="dot-fill" [class.reset]="fillReset()"
@@ -130,7 +131,7 @@ type Slide =
               <button type="button" class="cad-play"
                       [attr.aria-pressed]="paused()"
                       [attr.aria-label]="(paused() ? 'news.patch.kpi.play' : 'news.patch.kpi.pause') | translate"
-                      [attr.title]="(paused() ? 'news.patch.kpi.play' : 'news.patch.kpi.pause') | translate"
+                      [scTooltip]="(paused() ? 'news.patch.kpi.play' : 'news.patch.kpi.pause') | translate" scTooltipTier="label"
                       (click)="togglePause()">{{ paused() ? '▶' : '❚❚' }}</button>
             }
             <!-- Window toggle: always here, so it is reachable on every slide. -->
@@ -174,7 +175,7 @@ type Slide =
                     <div class="chart" role="img" [attr.aria-label]="chartAria(s.kpi)">
                       <span class="avg-rule" [style.bottom.%]="medianPct(s.kpi)" aria-hidden="true"></span>
                       @for (p of s.kpi.points; track $index; let last = $last) {
-                        <span class="col" [class.now]="last" [attr.title]="pointTitle(p)">
+                        <span class="col" [class.now]="last" [scTooltip]="pointTitle(p)" scTooltipTier="label">
                           <span class="col-bar" [style.height.%]="barPct(s.kpi, p)"></span>
                         </span>
                       }

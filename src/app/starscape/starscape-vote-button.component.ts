@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { StarscapeVotesService } from './starscape-votes.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Star-Citizen thumbs-up (admin feedback 058468f7).
@@ -24,7 +25,7 @@ import { StarscapeVotesService } from './starscape-votes.service';
 @Component({
   selector: 'sc-vote-button',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // The host carries the state so the PARENT can style it — the gallery keeps a
   // cast vote visible on a tile that is not being hovered.
@@ -38,30 +39,35 @@ import { StarscapeVotesService } from './starscape-votes.service';
     @let tally = totalKey() | translate: { count: count() };
     @let mine = voted() ? tally + ' · ' + ('starscape.vote.mine' | translate) : tally;
     @let hint = mine + ' · ' + (label() | translate);
-    <button
-      type="button"
-      class="vote"
-      [class.voted]="voted()"
-      [class.busy]="busy()"
-      [class.compact]="compact()"
-      [disabled]="!votes.canVote() || busy()"
-      [attr.aria-pressed]="voted()"
-      [attr.aria-label]="hint"
-      [attr.title]="hint"
-      (click)="onClick($event)">
-      <svg class="vote-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M12 2.4 L20.6 11 L3.4 11 Z" />
-        <path d="M12 13 L20.6 21.6 L3.4 21.6 Z" />
-      </svg>
-      <!-- Rendered at zero too. A blank badge is indistinguishable from "the
-           counts never loaded", which is exactly how the missing tally read on
-           a gallery where almost nothing has been voted for yet - and on touch
-           there is no tooltip to fall back on. -->
-      <span class="vote-count" [class.zero]="count() === 0">{{ count() }}</span>
-    </button>
+    <!-- Wrapped: a disabled <button> gets no pointer events, so the tooltip
+         directive (which needs hover/focus on a live element) sits on this
+         span instead of the button itself (ui-defaults R1). -->
+    <span class="vote-wrap" [scTooltip]="hint" scTooltipTier="label">
+      <button
+        type="button"
+        class="vote"
+        [class.voted]="voted()"
+        [class.busy]="busy()"
+        [class.compact]="compact()"
+        [disabled]="!votes.canVote() || busy()"
+        [attr.aria-pressed]="voted()"
+        [attr.aria-label]="hint"
+        (click)="onClick($event)">
+        <svg class="vote-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 2.4 L20.6 11 L3.4 11 Z" />
+          <path d="M12 13 L20.6 21.6 L3.4 21.6 Z" />
+        </svg>
+        <!-- Rendered at zero too. A blank badge is indistinguishable from "the
+             counts never loaded", which is exactly how the missing tally read on
+             a gallery where almost nothing has been voted for yet - and on touch
+             there is no tooltip to fall back on. -->
+        <span class="vote-count" [class.zero]="count() === 0">{{ count() }}</span>
+      </button>
+    </span>
   `,
   styles: [`
     :host { display: inline-flex; }
+    .vote-wrap { display: inline-flex; }
     .vote {
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       min-width: 44px; min-height: 32px; padding: 4px 10px;

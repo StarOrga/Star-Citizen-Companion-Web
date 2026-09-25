@@ -1,8 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem, PortQuery } from './codex.service';
 import { SwapCandidate } from './swap-table';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 // The picker is the answer to admin request 461288f9, redesigned per MASTER
 // §9 (iteration 7 `#g3` window + iteration 8 `#h3` values): a centred window
@@ -277,7 +279,8 @@ describe('CodexSwapPickerComponent', () => {
     widenToAllSize(el);
     const gapCell = el.querySelector('td.gapc') as HTMLElement | null;
     expect(gapCell).toBeTruthy();
-    expect(gapCell?.getAttribute('title')).toBe('codex.picker.dashCellTitle');
+    const gapCellDebugEl = fixture.debugElement.queryAll(By.css('td.gapc')).find((de) => de.nativeElement === gapCell)!;
+    expect(gapCellDebugEl.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.picker.dashCellTitle');
   });
 
   /** The service stub's guns all carry `fireRate: 0`, so real fixtures never

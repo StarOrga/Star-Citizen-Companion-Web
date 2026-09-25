@@ -38,6 +38,7 @@ import {
   shipModuleGroupOf,
 } from './ship-module-sections';
 import { displayItemName, formatNumber } from './codex-format';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * A sub-slot the installed mount itself exposes: the gun port inside a VariPuck
@@ -302,7 +303,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [TranslatePipe, NgTemplateOutlet],
+  imports: [TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.calm]': 'calm()' },
   template: `
@@ -382,7 +383,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
             @if (sec.splittable) {
               <button type="button" class="sec-btn" (click)="$event.stopPropagation(); toggleSplit(sec.section)"
                       [attr.aria-expanded]="sec.split"
-                      [attr.title]="(sec.split ? 'codex.moduleSection.groupRowsHint' : 'codex.moduleSection.splitRowsHint') | translate">
+                      [scTooltip]="(sec.split ? 'codex.moduleSection.groupRowsHint' : 'codex.moduleSection.splitRowsHint') | translate">
                 <span class="chev" [class.open]="sec.split" aria-hidden="true">›</span>
                 {{ (sec.split ? 'codex.moduleSection.groupRows' : 'codex.moduleSection.splitRows') | translate }}
               </button>
@@ -441,7 +442,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                   <div class="main">
                   @if (row.slot.className) {
                     <button type="button" class="slot-btn linked" (click)="openSlot(row, sec.configurable)"
-                            [attr.title]="portTitle(row)">
+                            [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-top">
                         <span class="slot-head">
                           @if (badge(row); as b) { <span class="size-tag">{{ b }}</span> }
@@ -492,13 +493,15 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                as the total; a split block drops the prefix. -->
                           <dl class="slot-stats">
                             @for (st of rest; track st.labelKey) {
-                              <div class="stat" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
+                              <div class="stat" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
                                 <dt>
                                   @if (row.count > 1) { <span class="mult">{{ row.count }}×</span> }
                                   {{ st.labelKey | translate }}
                                   @if (st.derived) {
                                     <span class="derived"
-                                          [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                          [scTooltip]="'codex.equipped.derivedHint' | translate"
+                                          scTooltipTier="label"
+                                          [attr.aria-label]="'codex.equipped.derivedHint' | translate">*</span>
                                   }
                                   @if (st.hintKey) {
                                     <span class="derived hint" aria-hidden="true">ⓘ</span>
@@ -524,7 +527,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                          empty (1add86a4). -->
                     <button type="button" class="slot-btn linked open-bay"
                             (click)="openSlot(row, sec.configurable)"
-                            [attr.title]="portTitle(row)">
+                            [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
                         <span class="slot-ident">
@@ -540,7 +543,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                       <span class="slot-port">{{ portLabel(row) }}</span>
                     </button>
                   } @else {
-                    <span class="slot-btn static" [attr.title]="portTitle(row)">
+                    <span class="slot-btn static" [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
                         <span class="slot-ident">
@@ -565,7 +568,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                     @if (row.slot.draftPaths?.length) {
                       <button type="button" class="slot-revert" (click)="revertRow(row)"
                               [attr.aria-label]="'codex.loadout.revert' | translate"
-                              [attr.title]="'codex.loadout.revert' | translate">↺</button>
+                              [scTooltip]="'codex.loadout.revert' | translate" scTooltipTier="label">↺</button>
                     }
                   }
                   <!-- The full stat sheet, on EVERY occupied row (feedback
@@ -577,11 +580,11 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                   @if (row.slot.className) {
                     <button type="button" class="slot-swap" (click)="inspectRow(row)"
                             [attr.aria-label]="'codex.inspect.openStats' | translate"
-                            [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
+                            [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>
                     @if (sec.configurable) {
                       <button type="button" class="slot-swap-action" (click)="openSlot(row, true)"
                               [attr.aria-label]="'codex.swap.open' | translate"
-                              [attr.title]="'codex.swap.open' | translate">⇄</button>
+                              [scTooltip]="'codex.swap.open' | translate" scTooltipTier="label">⇄</button>
                     }
                   }
                   </div>
@@ -641,13 +644,15 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                               @if (kid.stats?.length) {
                                 <dl class="slot-stats">
                                   @for (st of kid.stats; track st.labelKey) {
-                                    <div class="stat" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
+                                    <div class="stat" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
                                       <dt>
                                         @if (kidMult(row, kid) > 1) { <span class="mult">{{ kidMult(row, kid) }}×</span> }
                                         {{ st.labelKey | translate }}
                                         @if (st.derived) {
                                           <span class="derived"
-                                                [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                                                [scTooltip]="'codex.equipped.derivedHint' | translate"
+                                                scTooltipTier="label"
+                                                [attr.aria-label]="'codex.equipped.derivedHint' | translate">*</span>
                                         }
                                         @if (st.hintKey) {
                                           <span class="derived hint" aria-hidden="true">ⓘ</span>
@@ -670,7 +675,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                                  the mount, which is not the thing that shoots. -->
                             <button type="button" class="slot-swap kid-swap" (click)="inspectChild(row, kid)"
                                     [attr.aria-label]="'codex.inspect.openStats' | translate"
-                                    [attr.title]="'codex.inspect.openStats' | translate">ⓘ</button>
+                                    [scTooltip]="'codex.inspect.openStats' | translate" scTooltipTier="label">ⓘ</button>
                           } @else if (kid.rawTypes.length > 0 && sec.configurable) {
                             <!-- An unfitted sub-slot we know the accepted engine
                                  type(s) for is still a real choice (Falle 3). -->

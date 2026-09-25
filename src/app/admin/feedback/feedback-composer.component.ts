@@ -21,6 +21,7 @@ import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-l
 import type { FeedbackArea } from '../../feedback/feedback-area.types';
 import { isImageAttachment } from '../../feedback/feedback-images.util';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
   AnnotationResult,
   AttachmentChip,
@@ -164,6 +165,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     FeedbackAttachmentsComponent,
     FeedbackAreaPickerComponent,
     CharCounterComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -308,7 +310,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
              in the tooltip rather than in a second line of chrome in the
              tightest row of the panel. -->
         @if (complexToggle()) {
-          <label class="complex" [attr.title]="'adminFeedback.compose.complexHint' | translate">
+          <label class="complex" [scTooltip]="'adminFeedback.compose.complexHint' | translate">
             <input
               type="checkbox"
               [checked]="complex()"
@@ -323,7 +325,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
           [class.micro]="compact()"
           [class.hot]="primaryHot()"
           [class.key]="iconSend()"
-          [attr.title]="sendHintKey() | translate"
+          [scTooltip]="sendHintKey() | translate"
           [attr.aria-label]="sendLabel() | translate"
           (click)="submit()"
           [disabled]="!canSend()">

@@ -168,7 +168,10 @@ export class ScTooltipDirective implements OnDestroy {
     this.scheduleCloseIfIdle();
   }
 
-  @HostListener('focus')
+  // focusin/focusout, not focus/blur: they bubble, so a wrapper that carries
+  // the tooltip of the control inside it (a disabled button's "why") opens on
+  // keyboard focus of that control too. On a focusable host they fire the same.
+  @HostListener('focusin')
   onFocus(): void {
     if (!lastInputWasKeyboard) return;
     this.focusedOpen = true;
@@ -176,7 +179,7 @@ export class ScTooltipDirective implements OnDestroy {
     this.openNow();
   }
 
-  @HostListener('blur')
+  @HostListener('focusout')
   onBlur(): void {
     this.focusedOpen = false;
     this.scheduleCloseIfIdle();
@@ -258,6 +261,20 @@ export class ScTooltipDirective implements OnDestroy {
     }, SC_TOOLTIP_HOVER_GRACE);
   }
 
+  /**
+   * What the bubble is placed against. Normally the host; a host that draws
+   * no box of its own (`display: contents` — a wrapper that only exists to
+   * carry the tooltip of a disabled control without touching the layout)
+   * measures 0×0 at the page origin, so the bubble anchors to its first
+   * element child instead.
+   */
+  private anchorElement(): Element {
+    const el: HTMLElement = this.host.nativeElement;
+    const child = el.firstElementChild;
+    if (child && el.getClientRects().length === 0) return child;
+    return el;
+  }
+
   private openNow(): void {
     this.clearOpenTimer();
     const text = this.scTooltip();
@@ -267,7 +284,7 @@ export class ScTooltipDirective implements OnDestroy {
     const overlayRef = this.overlay.create({
       positionStrategy: this.overlay
         .position()
-        .flexibleConnectedTo(this.host.nativeElement)
+        .flexibleConnectedTo(this.anchorElement())
         .withPositions(POSITIONS)
         .withPush(true),
       scrollStrategy: this.overlay.scrollStrategies.reposition(),

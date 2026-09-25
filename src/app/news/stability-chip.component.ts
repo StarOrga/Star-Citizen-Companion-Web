@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The stability pill on a collapsed LIVE row: the surviving percentage, the
@@ -12,13 +13,13 @@ import { EARLY_DAYS, StabilityVerdict } from './patch-stability';
 @Component({
   selector: 'sc-stability-chip',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (verdict(); as v) {
       @if (v.level !== null) {
         <span class="chip" [attr.data-tone]="v.tone" [class.early]="v.early"
-              [attr.title]="v.early ? ('news.patch.stability.early' | translate:{ day: day(), threshold: threshold }) : null"
+              [scTooltip]="v.early ? ('news.patch.stability.early' | translate:{ day: day(), threshold: threshold }) : null"
               [attr.aria-label]="'news.patch.stability.badgeAria' | translate:{ version: v.line, percent: v.stability, level: (levelKey() | translate) }">
           <span class="dot" aria-hidden="true"></span>
           <span class="pct">{{ v.stability }}%</span>

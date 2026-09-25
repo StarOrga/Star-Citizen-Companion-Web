@@ -221,3 +221,66 @@ describe('ScTooltipDirective', () => {
     expect(overlayContainerElement.querySelector('.sc-tooltip-bubble')).toBeNull();
   }));
 });
+
+// A wrapper that only carries the tooltip of the control inside it (a disabled
+// button's "why is this locked") — display: contents so it stays out of the
+// layout. The admin, rank card and holo stage use this shape.
+describe('ScTooltipDirective on a display: contents wrapper', () => {
+  @Component({
+    standalone: true,
+    imports: [ScTooltipDirective],
+    template: `
+      <div style="margin: 200px 0 0 320px">
+        <span class="wrap" style="display: contents" [scTooltip]="'Locked: last admin'" scTooltipTier="label">
+          <button type="button" class="inner">Make viewer</button>
+        </span>
+      </div>
+    `,
+  })
+  class WrapHost {}
+
+  let fixture: ComponentFixture<WrapHost>;
+  let overlayContainer: OverlayContainer;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ imports: [WrapHost] }).compileComponents();
+    fixture = TestBed.createComponent(WrapHost);
+    document.body.appendChild(fixture.nativeElement);
+    overlayContainer = TestBed.inject(OverlayContainer);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.nativeElement.remove();
+    overlayContainer.ngOnDestroy();
+  });
+
+  const inner = () => fixture.nativeElement.querySelector('.inner') as HTMLButtonElement;
+  const bubble = () => overlayContainer.getContainerElement().querySelector('.sc-tooltip-bubble') as HTMLElement | null;
+
+  it('opens on keyboard focus of the control inside the wrapper', fakeAsync(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    inner().focus();
+    fixture.detectChanges();
+    tick(0);
+    expect(bubble()?.textContent).toContain('Locked: last admin');
+    inner().blur();
+    tick(200);
+    expect(bubble()).toBeNull();
+  }));
+
+  it('places the bubble at the control, not at the page origin', fakeAsync(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    inner().focus();
+    fixture.detectChanges();
+    tick(0);
+    const pane = bubble()!.getBoundingClientRect();
+    const btn = inner().getBoundingClientRect();
+    // The wrapper itself measures 0×0 at (0,0); anchored to it the bubble
+    // would sit in the top-left corner, far from the button.
+    expect(Math.abs(pane.left + pane.width / 2 - (btn.left + btn.width / 2))).toBeLessThan(150);
+    expect(Math.abs(pane.top - btn.top)).toBeLessThan(150);
+    inner().blur();
+    tick(200);
+  }));
+});

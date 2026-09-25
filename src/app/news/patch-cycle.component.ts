@@ -3,6 +3,7 @@ import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import type { PatchLineGroup } from './patch-notes';
 import { InfoNoteComponent } from '../shared/info-note.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { PatchCadenceComponent } from './patch-cadence.component';
 import { buildPatchCycle, type CyclePoint, type CyclePointKey, type CycleStretch } from './patch-cycle';
 import { computePatchStats, liveReleaseAt } from './patch-stats';
@@ -46,7 +47,7 @@ interface CycleMark {
 @Component({
   selector: 'sc-patch-cycle',
   standalone: true,
-  imports: [TranslatePipe, InfoNoteComponent, PatchCadenceComponent],
+  imports: [TranslatePipe, InfoNoteComponent, PatchCadenceComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (cycle(); as c) {
@@ -100,7 +101,7 @@ interface CycleMark {
             }
           }
           @for (p of c.points; track p.key + p.at) {
-            <span class="pt" [attr.data-key]="p.key" [style.left.%]="p.pct" [attr.title]="pointTitle(p)"></span>
+            <span class="pt" [attr.data-key]="p.key" [style.left.%]="p.pct" [scTooltip]="pointTitle(p)" scTooltipTier="label"></span>
           }
         </div>
 

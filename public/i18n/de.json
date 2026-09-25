@@ -1766,6 +1766,38 @@
         "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
       },
       "equipInArchive": "Im Archiv ausrüsten"
+    },
+    "stat": {
+      "health": "Lebenspunkte",
+      "distortionCapacity": "Störungskapazität",
+      "maxShieldHealth": "Max. Schildstärke",
+      "maxShieldRegen": "Schildregeneration",
+      "scmSpeed": "SCM-Geschwindigkeit",
+      "maxSpeed": "Max. Geschwindigkeit",
+      "boostSpeed": "Boost-Geschwindigkeit",
+      "fireRate": "Feuerrate",
+      "roundsPerMinute": "Schuss pro Minute",
+      "muzzleVelocity": "Mündungsgeschwindigkeit",
+      "projectileSpeed": "Geschossgeschwindigkeit",
+      "lifetime": "Lebensdauer",
+      "radiationCapacityMax": "Max. Strahlungskapazität",
+      "radiationResistance": "Strahlungsresistenz",
+      "punctureResistance": "Stichresistenz",
+      "impactResistance": "Aufprallresistenz",
+      "energyResistance": "Energieresistenz",
+      "explosiveResistance": "Explosivresistenz",
+      "coldResistance": "Kälteresistenz",
+      "heatResistance": "Hitzeresistenz",
+      "biochemicalResistance": "Biochemische Resistenz",
+      "temperatureResistance": "Temperaturresistenz",
+      "weight": "Gewicht",
+      "durability": "Haltbarkeit",
+      "cargoGrid": "Frachtraster",
+      "ammoCapacity": "Munitionskapazität",
+      "magazineSize": "Magazingröße",
+      "damage": "Schaden",
+      "range": "Reichweite",
+      "effectiveRange": "Effektive Reichweite"
     }
   },
   "blueprint": {
@@ -3011,7 +3043,8 @@
       "rename": "Umbenennen",
       "cancel": "Abbrechen",
       "share": "Teilen",
-      "deleteConfirm": "Wirklich löschen?"
+      "deleteConfirm": "Wirklich löschen?",
+      "roleLabel": "Rolle"
     },
     "detail": {
       "back": "Zurück zum Hangar",
@@ -3035,7 +3068,8 @@
       "activate": "Aktiv setzen",
       "saveLoadout": "Loadout speichern",
       "discard": "Verwerfen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "roleLabel": "Rolle"
     },
     "standard": {
       "title": "Standard-Komponenten",

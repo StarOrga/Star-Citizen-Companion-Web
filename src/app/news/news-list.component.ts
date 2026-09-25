@@ -28,6 +28,7 @@ import { UpcomingShipsNoticeComponent } from './upcoming-ships-notice.component'
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** How many stream tiles the first serving holds, and how many each "more" adds. */
 const STREAM_PAGE = 12;
@@ -70,7 +71,14 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 @Component({
   selector: 'sc-news-list',
   standalone: true,
-  imports: [NeuroFieldDirective, TranslatePipe, RouterLink, NewsThumbComponent, UpcomingShipsNoticeComponent],
+  imports: [
+    NeuroFieldDirective,
+    TranslatePipe,
+    RouterLink,
+    NewsThumbComponent,
+    UpcomingShipsNoticeComponent,
+    ScTooltipDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
@@ -130,13 +138,11 @@ const SAFE_SVG = new Map<string, SafeHtml>();
               </a>
               <button type="button" class="act fav" [class.on]="isFav(item)"
                       [attr.aria-pressed]="isFav(item)"
-                      [attr.title]="favLabel(item) | translate"
                       (click)="toggleFavorite($event, item)">
                 <span class="ic" [innerHTML]="favIcon(isFav(item))"></span>
                 <span class="lbl">{{ favLabel(item) | translate }}</span>
               </button>
               <button type="button" class="act share"
-                      [attr.title]="'news.share.label' | translate"
                       (click)="share($event, item)">
                 <span class="ic" [innerHTML]="shareIcon()"></span>
                 <span class="lbl">{{ 'news.share.label' | translate }}</span>
@@ -276,13 +282,13 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                     <span class="actions">
                       <button type="button" class="act fav icon-only" [class.on]="isFav(item)"
                               [attr.aria-pressed]="isFav(item)"
-                              [attr.title]="favLabel(item) | translate"
+                              [scTooltip]="favLabel(item) | translate" scTooltipTier="label"
                               (click)="toggleFavorite($event, item)">
                         <span class="ic" [innerHTML]="favIcon(isFav(item))"></span>
                         <span class="lbl">{{ favLabel(item) | translate }}</span>
                       </button>
                       <button type="button" class="act share icon-only"
-                              [attr.title]="'news.share.label' | translate"
+                              [scTooltip]="'news.share.label' | translate" scTooltipTier="label"
                               (click)="share($event, item)">
                         <span class="ic" [innerHTML]="shareIcon()"></span>
                         <span class="lbl">{{ 'news.share.label' | translate }}</span>
@@ -290,7 +296,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                       <a class="act ext" [href]="item.url" target="_blank" rel="noopener noreferrer"
                          (click)="$event.stopPropagation()"
                          [attr.aria-label]="'news.openExternal' | translate:{ host: hostOf(item.url) }"
-                         [attr.title]="'news.openExternal' | translate:{ host: hostOf(item.url) }">{{ hostOf(item.url) }} ↗</a>
+                         [scTooltip]="'news.openExternal' | translate:{ host: hostOf(item.url) }">{{ hostOf(item.url) }} ↗</a>
                     </span>
                   </div>
                 </div>
@@ -334,7 +340,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
               @if (isVideo(item)) {
                 <a class="play play-link" [href]="item.url" target="_blank" rel="noopener noreferrer"
                    [attr.aria-label]="'news.videos.play' | translate"
-                   [attr.title]="'news.videos.play' | translate">
+                   [scTooltip]="'news.videos.play' | translate" scTooltipTier="label">
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.6v12.8a.6.6 0 0 0 .92.5l9.6-6.4a.6.6 0 0 0 0-1L8.92 5.1a.6.6 0 0 0-.92.5z"/></svg>
                 </a>
               }
