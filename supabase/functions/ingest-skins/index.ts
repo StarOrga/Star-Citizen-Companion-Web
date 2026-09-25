@@ -30,7 +30,8 @@
 //   403 forbidden | unknown_release_token | release_token_revoked
 //   426 uploader_outdated
 //   500 server_misconfigured | sign_failed | commit_failed | prune_failed
-//   507 storage_quota_exceeded (R2 mode only)
+//   503 r2_usage_unknown (R2 mode only: usage could not be read — fail closed)
+//   507 storage_quota_exceeded | r2_free_tier_guard (R2 mode only)
 //
 // STORAGE BACKEND (storage plan 2026-09-24): with the R2_* secrets set (see
 // _r2.ts) objects go to Cloudflare R2 under `ship-skins/<ship>/<skin>.<ext>`
@@ -45,10 +46,12 @@ import {
   SKINS_PREFIX,
   bucketBytes,
   deleteObject,
+  fetchUsage,
   listObjects,
   presignPut,
   r2FromEnv,
 } from './_r2.ts';
+import { overLimit } from './_r2-usage.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -176,6 +179,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!objects.length) return json({ error: 'invalid_body', message: 'objects required' }, 400);
 
     if (r2) {
+      // Cost kill-switch: no signature once this month's account-wide usage
+      // reaches 80 % of any free allowance, or while usage cannot be read.
+      try {
+        const over = overLimit(await fetchUsage(r2));
+        if (over) {
+          return json({ error: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${over}` }, 507);
+        }
+      } catch (e) {
+        return json({ error: 'r2_usage_unknown', message: (e as Error).message }, 503);
+      }
       let used: number;
       try {
         used = await bucketBytes(r2);
