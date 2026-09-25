@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.99.2",
+  "current": "0.99.3",
   "releases": [
+    {
+      "version": "0.99.3",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Blueprint-Zutaten: Qualität auf der Skala des Spiels, Slots lesbar.",
+              "text": "Die Mindestqualität einer Zutat wurde als Bruchteil von 1 gelesen, das Spiel bewertet Qualität aber von 0 bis 1000 — Titan im Collector-Material-Blueprint stand deshalb als „Min. Qualität: 90000 %“ da. Jetzt steht dort „900 / 1.000“, und nur noch dort, wo ein Slot wirklich eine Mindestqualität verlangt: das falsche „0 %“ an jeder FPS-Zutat und „100 %“ an jedem Schiffsteil-Slot entfällt. Diese seltene echte Anforderung ist jetzt die hervorgehobene Plakette. Die Slot-Plakette zeigt den Slot-Namen des Spiels lesbar („Substrate“, „Protective Sheathing“, „Barrel“) statt eines rohen Übersetzungsschlüssels wie „blueprint.role.SUBSTRATE“. Die Liste „Herstellungsmaterialien“ auf den Codex-Detailseiten zeigt beides genauso."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.99.2",
       "date": "2026-09-25",
