@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.100.1] - 2026-09-25
+
+### Fixed
+
+- **Die Testsuite läuft wieder stabil durch.** In vollen `npm test`-Läufen
+  liefen bei jedem Durchlauf andere Specs in einen Timeout (Patch-Board,
+  Patch-Dossier, Feedback-Animation), einzeln liefen sie grün. Ursache war
+  keine CPU-Last: Zwei Hangar-Picker-Specs lösten einen echten Strg+Klick auf
+  einen Link aus, Chrome öffnete dafür einen echten Tab, und die Karma-Seite
+  lag danach im Hintergrund, wo sie keine Frames mehr bekommt. Die Specs fangen
+  den Klick jetzt selbst ab, und ein Wächter lässt jede Spec scheitern, die
+  künftig einen Tab öffnen würde. Specs, die auf einen Frame warten, steuern
+  `requestAnimationFrame`, `ResizeObserver` und Web Animations jetzt selbst,
+  mit unveränderten Prüfungen. Die App selbst ist unverändert.
+
+### Notes
+
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.100.0] - 2026-09-25
 
 ### Added

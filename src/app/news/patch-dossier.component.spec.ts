@@ -5,6 +5,7 @@ import { signal } from '@angular/core';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
+import { installFrameClock } from '../testing/frames';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { PatchDossierComponent, sectionOrder } from './patch-dossier.component';
 import type { PatchOutline } from './patch-outline';
@@ -222,11 +223,15 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
    * Feedback fdaad6b7: "wenn man auf ein bildchen dort schon draufklickt
    * sollte sofort das spezifische roadmap icon geöffnet werden bzw. dort
    * hingescrollt werden." The board's teaser links carry `?focus=<card id>`.
+   *
+   * The reveal waits a frame for the section to render; the spec says when
+   * that frame is, rather than waiting on Karma's (testing/frames.ts).
    */
   it('opens, lights and scrolls to the ONE roadmap card the board linked to', async () => {
     const scroll = spyOn(Element.prototype, 'scrollIntoView');
+    const frames = installFrameClock();
     await render('4.10', undefined, ROADMAP, 'orison');
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    frames.runFrame();
     fixture.detectChanges();
 
     const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
@@ -241,8 +246,9 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   });
 
   it('ignores a focus that names no card of this release', async () => {
+    const frames = installFrameClock();
     await render('4.10', undefined, ROADMAP, 'not-a-card');
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    frames.runFrame();
     fixture.detectChanges();
     const cards = Array.from(root().querySelectorAll('#pd-contents .fc')) as HTMLElement[];
     expect(cards.length).toBe(2);
@@ -286,11 +292,12 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
   });
 
   it('picking a section from the table of contents lights it up', async () => {
+    const frames = installFrameClock();
     await render('4.10');
     const link = root().querySelectorAll('.toc-link')[2] as HTMLAnchorElement;
     link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
     fixture.detectChanges();
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    frames.runFrame();
     fixture.detectChanges();
     expect(root().querySelector('#pd-next')!.classList.contains('flash')).toBeTrue();
   });

@@ -5,6 +5,7 @@ import { signal } from '@angular/core';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { ConsentService } from '../core/consent.service';
+import { installResizeDriver } from '../testing/frames';
 import { NewsService, VerseFeed, VerseNewsItem } from './news.service';
 import { PatchBoardComponent } from './patch-board.component';
 import { PatchStabilityService } from './patch-stability.service';
@@ -279,15 +280,23 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/news/patches/4.11');
   });
 
-  it('measures itself: the strip reports its width without being told', async () => {
+  /**
+   * The strip reports its box from a ResizeObserver, i.e. in a rendering step
+   * after layout — one Karma cannot promise (testing/frames.ts). The spec
+   * plays the browser's part and says WHEN the observer reports; what gets
+   * measured, and from which CSS, is still the directive's own business.
+   */
+  async function renderMeasured(): Promise<void> {
+    const resize = installResizeDriver();
     await render(FEED, ROADMAP_MANY);
+    expect(resize.observed()).withContext('the strip watches its own box').toContain(rows()[0].querySelector('.teaser')!);
+    resize.notify();
+    fixture.detectChanges();
+  }
+
+  it('measures itself: the strip reports its width without being told', async () => {
+    await renderMeasured();
     const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
-    // The strip reports its box from a ResizeObserver, i.e. after layout —
-    // so give the browser frames rather than microtasks.
-    for (let frame = 0; frame < 8 && strip().querySelectorAll('.tz:not(.rest)').length <= 3; frame++) {
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      fixture.detectChanges();
-    }
     const icons = Array.from(strip().querySelectorAll('.tz:not(.rest)')) as HTMLElement[];
     expect(icons.length)
       .withContext('the strip measured itself and grew past the unmeasured fallback of three').toBeGreaterThan(3);
@@ -307,13 +316,8 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
    * that clears the 48 px tap target round 1 left it short of.
    */
   it('draws the thumbnails at double size, over two rows, inside the card', async () => {
-    await render(FEED, ROADMAP_MANY);
+    await renderMeasured();
     const strip = () => rows()[0].querySelector('.teaser') as HTMLElement;
-    // Same as above: the strip reports its box after layout, so give it frames.
-    for (let frame = 0; frame < 8 && strip().querySelectorAll('.tz:not(.rest)').length <= 3; frame++) {
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      fixture.detectChanges();
-    }
     const icon = (strip().querySelector('.tz:not(.rest)') as HTMLElement).getBoundingClientRect();
     expect(Math.round(icon.width)).withContext('42/48 px in round 1').toBeGreaterThanOrEqual(84);
     expect(Math.round(icon.height)).withContext('26/30 px in round 1').toBeGreaterThanOrEqual(52);
