@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.101.0] - 2026-09-25
+
+### Changed
+
+- **Schiffshüllen und Lackierungs-Vorschaubilder kommen jetzt aus Cloudflare R2.**
+  Sie laden über den eigenen Worker `sc-assets.sc-assets-worker.workers.dev`.
+  Der Browser darf sie eine Stunde cachen, und bei R2 fallen keine
+  Egress-Kosten an. Alle 445 vorhandenen Dateien (340 MB) liegen bereits dort. Was R2
+  noch nicht hat, streamt der Worker aus dem Supabase-Bucket, sodass keine
+  Hülle fehlt. Das entlastet die 1 GB Speicher und das Egress-Kontingent von
+  Supabase Free.
+
+### Notes
+
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.100.2] - 2026-09-25
 
 ### Fixed

@@ -51,7 +51,7 @@ describe('ShipSkinsService', () => {
       const svc = makeService({ data: [], error: null });
       const url = svc.assetUrl('/DRAK_Cutlass_Black/pirate.glb');
       expect(url).toBe(
-        `${environment.supabase.url}/storage/v1/object/public/ship-skins/DRAK_Cutlass_Black/pirate.glb`,
+        `${shipSkinsBase(environment.assets?.r2BaseUrl)}DRAK_Cutlass_Black/pirate.glb`,
       );
     });
   });
