@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.100.0",
+  "current": "0.100.1",
   "releases": [
+    {
+      "version": "0.100.1",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Testsuite läuft wieder stabil durch.",
+              "text": "In vollen npm test-Läufen liefen bei jedem Durchlauf andere Specs in einen Timeout (Patch-Board, Patch-Dossier, Feedback-Animation), einzeln liefen sie grün. Ursache war keine CPU-Last: Zwei Hangar-Picker-Specs lösten einen echten Strg+Klick auf einen Link aus, Chrome öffnete dafür einen echten Tab, und die Karma-Seite lag danach im Hintergrund, wo sie keine Frames mehr bekommt. Die Specs fangen den Klick jetzt selbst ab, und ein Wächter lässt jede Spec scheitern, die künftig einen Tab öffnen würde. Specs, die auf einen Frame warten, steuern requestAnimationFrame, ResizeObserver und Web Animations jetzt selbst, mit unveränderten Prüfungen. Die App selbst ist unverändert."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.100.0",
       "date": "2026-09-25",
