@@ -38,6 +38,12 @@ class HostComponent {
   depth = new Map();
 }
 
+/** 0–255 channels of a computed colour, whether Chrome reports rgb() or color(srgb …) (color-mix). */
+function channels(color: string): number[] {
+  const values = (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+  return color.startsWith('color(') ? values.map((v) => Math.round(v * 255)) : values;
+}
+
 describe('CodexBoardPanelComponent', () => {
   async function render(): Promise<HTMLElement> {
     await TestBed.configureTestingModule({
@@ -60,7 +66,12 @@ describe('CodexBoardPanelComponent', () => {
     // so the dashed border and the idle background both dropped out.
     expect(getComputedStyle(square).borderTopStyle).toBe('dashed');
     expect(getComputedStyle(square).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
-    expect(getComputedStyle(label).color).toBe('rgb(61, 90, 108)');
+    // The label is --idle lifted with fg-0 (≈5:1 instead of 2.4:1): still the
+    // blue-grey family — blue over red — but no longer the raw #3d5a6c.
+    const [r, , b] = channels(getComputedStyle(label).color);
+    expect(b).toBeGreaterThan(r);
+    expect(r).toBeGreaterThan(61);
+    expect(b).toBeLessThan(230);
   });
 
   it('shows only the readiness classes the set\'s role has a position for', async () => {

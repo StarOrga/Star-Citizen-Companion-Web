@@ -25,6 +25,7 @@ import {
 import { BlueprintPayload } from './codex.types';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 const PAGE_SIZE = 60;
@@ -33,7 +34,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-blueprint-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, ScSelectComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="blueprint-page">
@@ -60,7 +61,8 @@ const SEARCH_DEBOUNCE_MS = 250;
                  [attr.placeholder]="'blueprint.search.placeholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"
-                    [attr.aria-label]="'codex.search.clear' | translate">×</button>
+                    [attr.aria-label]="'codex.search.clear' | translate"
+                    [scTooltip]="'codex.search.clear' | translate">×</button>
           }
         </div>
         <div class="facets">
@@ -86,7 +88,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       <!-- Results -->
       @if (error(); as err) {
         <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
@@ -112,7 +114,13 @@ const SEARCH_DEBOUNCE_MS = 250;
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            <p>{{ (hasActiveFilters() || searchInput() ? 'codex.empty.filtered' : 'blueprint.empty') | translate }}</p>
+            @if (hasActiveFilters() || searchInput()) {
+              <p>{{ 'codex.empty.filtered' | translate }}</p>
+              <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
+              <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+            } @else {
+              <p>{{ 'blueprint.empty' | translate }}</p>
+            }
           </div>
         } @else {
           <div class="grid">
@@ -152,8 +160,9 @@ const SEARCH_DEBOUNCE_MS = 250;
     :host { display: block; }
     .blueprint-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; }
-    .back:hover { color: var(--sc-accent); }
+    /* Same back link as every other archive view: only the text is the target. */
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
 
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .title-block { display: flex; flex-direction: column; gap: 4px; }
@@ -179,8 +188,15 @@ const SEARCH_DEBOUNCE_MS = 250;
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; }
-    .search-clear:hover { color: var(--sc-danger); }
+    .search-clear {
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min));
+      border: none; border-radius: 6px; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer;
+    }
+    /* Clearing a search is neither an error nor destructive — no danger red. */
+    .search-clear:hover { color: var(--sc-accent); }
+    .search-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
     .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
@@ -202,7 +218,8 @@ const SEARCH_DEBOUNCE_MS = 250;
       color: inherit; text-decoration: none;
       transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
-    .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
+    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; border-color: var(--sc-accent); }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
@@ -221,12 +238,21 @@ const SEARCH_DEBOUNCE_MS = 250;
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
+    .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
       .provenance { align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .card { transition: none; }
+      .card:hover { transform: none; }
     }
     /* Phones give the facet the full row, like the other archive lists. */
     @media (max-width: 640px) {
@@ -321,6 +347,12 @@ export class BlueprintListComponent implements OnInit {
 
   resetFilters(): void {
     this.category.set('');
+  }
+
+  /** The filtered empty state's way out: the search AND the category. */
+  resetAll(): void {
+    this.clearSearch();
+    this.resetFilters();
   }
 
   reload(): void { this.runQuery(true); }

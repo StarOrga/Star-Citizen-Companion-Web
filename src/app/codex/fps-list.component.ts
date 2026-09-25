@@ -40,6 +40,8 @@ import { ARMOR_SLOT_SPECS, roleSlotForAttachType } from './codex-landing-kpi';
 import { mirrorQueryParams } from './codex-url-state';
 import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -81,7 +83,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSelectComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -105,6 +107,9 @@ interface FacetOption {
             {{ 'fps.equip.targetSet' | translate: { name: set.name } }}
             <span class="equip-role">{{ ('hangar.roles.' + set.role) | translate }}</span>
           </span>
+          @if (fittingSlot(); as slot) {
+            <span class="equip-only">{{ 'fps.equip.onlyFitting' | translate: { slot: slotLabel(slot) } }}</span>
+          }
           <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
@@ -112,24 +117,31 @@ interface FacetOption {
       } @else if (equipTargetMissing()) {
         <!-- A stale or foreign ?equipInto= used to drop the equip mode without
              a word — the reader clicked "put on" and landed in a plain list. -->
-        <p class="sc-card equip-missing" role="status">{{ 'fps.equip.setUnavailable' | translate }}</p>
+        <div class="sc-card equip-missing" role="status">
+          <p>{{ 'fps.equip.setUnavailable' | translate }}</p>
+          <p class="equip-next">
+            <a routerLink="/hangar">{{ 'fps.equip.mySets' | translate }}</a>
+            <a [attr.href]="browseHref()" (click)="dropEquipIntent($event)">{{ 'fps.equip.browseWithout' | translate }}</a>
+          </p>
+        </div>
       }
 
-      <!-- Category switcher: a pressed-button group, not tabs — there is no
-           tab panel behind it, the whole page below re-renders. -->
-      <div class="kind-bar" role="group" [attr.aria-label]="'fps.categoriesAria' | translate">
+      <!-- Category switcher. Real links since the category lives in the URL
+           (?cat=): middle click and "open in new tab" work, a plain left
+           click switches in place. -->
+      <nav class="kind-bar" [attr.aria-label]="'fps.categoriesAria' | translate">
         @for (c of categories; track c) {
-          <button class="kind" type="button"
-                  [class.active]="category() === c"
-                  [attr.aria-pressed]="category() === c"
-                  (click)="setCategory(c)">
+          <a class="kind" [attr.href]="categoryHref(c)"
+             [class.active]="category() === c"
+             [attr.aria-current]="category() === c ? 'page' : null"
+             (click)="onCategoryClick($event, c)">
             <span>{{ ('fps.category.' + c) | translate }}</span>
             @if (categoryCount(c); as ct) {
               <span class="kind-ct">{{ ct }}</span>
             }
-          </button>
+          </a>
         }
-      </div>
+      </nav>
 
       <!-- Search + facets -->
       <div class="controls sc-card">
@@ -140,7 +152,8 @@ interface FacetOption {
                  [attr.placeholder]="'fps.searchPlaceholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"
-                    [attr.aria-label]="'codex.search.clear' | translate">×</button>
+                    [attr.aria-label]="'codex.search.clear' | translate"
+                    [scTooltip]="'codex.search.clear' | translate">×</button>
           }
         </div>
 
@@ -192,7 +205,7 @@ interface FacetOption {
       <!-- Results -->
       @if (error(); as err) {
         <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
@@ -223,7 +236,13 @@ interface FacetOption {
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            <p>{{ (hasActiveFilters() || searchInput() ? 'codex.empty.filtered' : ('fps.empty.' + category()) | translate) | translate }}</p>
+            @if (hasActiveFilters() || searchInput()) {
+              <p>{{ 'codex.empty.filtered' | translate }}</p>
+              <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
+              <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+            } @else {
+              <p>{{ ('fps.empty.' + category()) | translate }}</p>
+            }
           </div>
         } @else {
           <div class="grid">
@@ -243,7 +262,7 @@ interface FacetOption {
                   <h3 class="name">{{ cardName(r) }}</h3>
                   <code class="cls">{{ r.classNameSlug }}</code>
                   <div class="badges">
-                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
+                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [scTooltip]="mfr" scTooltipTier="label">{{ mfr }}</span> }
                     <span class="badge cat">{{ ('fps.category.' + category()) | translate }}</span>
                     @if (armorSlotKey(r); as slotKey) { <span class="badge slot">{{ slotKey | translate }}</span> }
                     @if (typeKey(r); as typeKey) { <span class="badge subtle">{{ typeKey | translate }}</span> }
@@ -251,19 +270,19 @@ interface FacetOption {
                     @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
                     @if (r.foldedClassNames.length; as folded) {
                       <span class="badge folded"
-                            [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                            [scTooltip]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
                         {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
                       </span>
                     }
                     @if (r.skinVariants.length; as skins) {
                       <span class="badge skins"
-                            [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                            [scTooltip]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
                         {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
                       </span>
                     }
                   </div>
                   @if (showSizeBar() && r.size != null) {
-                    <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
+                    <div class="size-bar" [scTooltip]="'codex.card.size' | translate: { size: r.size }">
                       <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
                       <span class="size-tag">S{{ r.size }}</span>
                     </div>
@@ -274,7 +293,8 @@ interface FacetOption {
                         [attr.aria-pressed]="isPinned(r)"
                         (click)="togglePin(r)"
                         [attr.aria-label]="(isPinned(r) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                        [attr.title]="(isPinned(r) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
+                        [scTooltip]="(isPinned(r) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                        scTooltipTier="label">
                   {{ isPinned(r) ? '★' : '☆' }}
                 </button>
                 @if (equipSlots(r); as slots) {
@@ -290,13 +310,15 @@ interface FacetOption {
                                 [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
                                 [disabled]="equipBusy() !== null"
                                 (click)="equip($event, r, slot)">
-                          {{ slotLabel(slot) }}
+                          {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
                         </button>
                       }
                       <!-- At the card that was clicked, not in the bar at the top of a
                            list the reader has scrolled away from. -->
                       @if (equipFailedOn(r)) {
                         <p class="equip-err" role="alert">{{ 'fps.equip.failed' | translate }}</p>
+                      } @else if (equipConflictOn(r)) {
+                        <p class="equip-note" role="status">{{ 'fps.equip.changedElsewhere' | translate }}</p>
                       }
                     </div>
                   }
@@ -350,7 +372,13 @@ interface FacetOption {
     .equip-back { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; }
     .equip-back:hover, .equip-back:focus-visible { text-decoration: underline; }
     .equip-err { flex: 1 1 100%; margin: 0; color: var(--sc-danger); font-size: max(0.8rem, var(--sc-fs-floor)); }
-    .equip-missing { margin: 0; padding: 12px 16px; color: var(--sc-fg-1); font-size: max(0.84rem, var(--sc-fs-floor)); }
+    .equip-missing { margin: 0; padding: var(--sc-pad-2) var(--sc-gap-1); color: var(--sc-fg-1); font-size: max(0.84rem, var(--sc-fs-floor)); }
+    .equip-missing p { margin: 0; }
+    .equip-missing .equip-next { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; }
+    .equip-next a { color: var(--sc-accent); display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
+    .equip-next a:hover, .equip-next a:focus-visible { text-decoration: underline; }
+    .equip-only { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
+    .equip-note { flex: 1 1 100%; margin: 0; color: var(--sc-fg-1); font-size: max(0.8rem, var(--sc-fs-floor)); }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 14px 14px; }
     .equip-label {
@@ -379,14 +407,16 @@ interface FacetOption {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 8px 16px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: var(--sc-font-display);
+      color: var(--sc-fg-1); font-family: var(--sc-font-display); text-decoration: none;
       font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
       cursor: pointer; transition: all 0.16s;
     }
     .kind:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .kind:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .kind.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .kind-ct { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    /* Light text on the tint — the dark bg-0 on two stacked accent tints read at ~2.3:1. */
+    .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-fg-0); }
 
     .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
     .search-row { position: relative; display: flex; }
@@ -396,8 +426,15 @@ interface FacetOption {
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; }
-    .search-clear:hover { color: var(--sc-danger); }
+    .search-clear {
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min));
+      border: none; border-radius: 6px; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer;
+    }
+    /* Clearing a search is neither an error nor destructive — no danger red. */
+    .search-clear:hover { color: var(--sc-accent); }
+    .search-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
     .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
@@ -424,7 +461,9 @@ interface FacetOption {
       border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1);
       transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
-    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
+    /* Keyboard focus on the card link lights the frame the way a hover does. */
+    .card-wrap:has(> .card:focus-visible) { border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
     .card {
       flex: 1; display: flex; flex-direction: column; gap: 8px;
       padding: 14px; border-radius: 8px; color: inherit; text-decoration: none;
@@ -478,12 +517,15 @@ interface FacetOption {
     .card-wrap.skel { min-height: 116px; }
 
     .more-row { display: flex; justify-content: center; }
-    .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; min-height: var(--sc-tap-min); }
+    .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
     .load-more:hover { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); }
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
+    .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
@@ -528,6 +570,14 @@ export class FpsListComponent {
   readonly equipFailed = signal<string | null>(null);
   /** `?equipInto=` named a set this reader cannot load — say so instead of silently browsing. */
   readonly equipTargetMissing = signal(false);
+  /** `<className>|<slot>` of a clear that met another tab's newer piece in the slot. */
+  readonly equipConflict = signal<string | null>(null);
+  /**
+   * The weapon/tool slot the set page sent the reader to fill: while its set
+   * is loaded, the weapon list shows only what fits it. A link from the
+   * primary slot used to list knives and pistols too — without an equip button.
+   */
+  readonly fittingSlot = computed(() => (this.targetSet() && this.category() === 'weapon' ? this.equipSlot() : null));
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
@@ -556,8 +606,10 @@ export class FpsListComponent {
     const grade = this.grade();
     const sub = this.subType();
     const armor = this.category() === 'armor';
+    const fitting = this.fittingSlot();
     return this.catalog().filter(
       (r) =>
+        (!fitting || slotAccepts(fitting, { className: r.classNameSlug, subType: r.subType })) &&
         (!matches ||
           matches(this.cardName(r)) ||
           matches(r.nameLocalized ?? '') ||
@@ -709,6 +761,52 @@ export class FpsListComponent {
     mirrorQueryParams(this.router, this.route, this.location, queryParams);
   }
 
+  /**
+   * A list URL as a plain href. Links here are plain hrefs, not routerLink:
+   * RouterLink would ALSO navigate on the plain click that is kept in place
+   * (page view, scroll to top, history entry).
+   */
+  private hrefFor(queryParams: Record<string, string | null>): string | null {
+    try {
+      const tree = this.router.createUrlTree([], { relativeTo: this.route, queryParams });
+      return this.location.prepareExternalUrl(this.router.serializeUrl(tree));
+    } catch {
+      return null; // a view outside the router (tests): the in-place click still works
+    }
+  }
+
+  /** Each category link: that category's list with the current search and equip intent. */
+  private readonly categoryHrefs = computed(() => {
+    const q = this.searchTerm() || null;
+    const equipInto = this.equipInto();
+    const equipSlot = this.equipSlot();
+    return new Map(this.categories.map((c) => [c, this.hrefFor({ cat: c, q, equipInto, equipSlot })] as const));
+  });
+
+  categoryHref(c: FpsCategory): string | null {
+    return this.categoryHrefs().get(c) ?? null;
+  }
+
+  /** The archive without the equip intent — the missing-set notice's way on. */
+  readonly browseHref = computed(() => this.hrefFor({ cat: this.category(), q: this.searchTerm() || null }));
+
+  /** A plain left click switches in place; a modified one is the browser's (new tab, window …). */
+  onCategoryClick(ev: MouseEvent, c: FpsCategory): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.setCategory(c);
+  }
+
+  /** "Keep browsing without a set": drop the stale equip intent in place, URL included. */
+  dropEquipIntent(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.equipInto.set(null);
+    this.equipSlot.set(null);
+    this.equipTargetMissing.set(false);
+    this.writeUrl({ equipInto: null, equipSlot: null });
+  }
+
   /** Both display passes of `rows` — or neither, when the raw records are asked for. */
   private fold(rows: FpsRow[], raw: boolean): FpsGridRow[] {
     return raw
@@ -831,6 +929,11 @@ export class FpsListComponent {
     return this.equipFailed()?.startsWith(r.classNameSlug + '|') ?? false;
   }
 
+  /** True when this card's last clear found a newer piece from another tab. */
+  equipConflictOn(r: FpsRow): boolean {
+    return this.equipConflict()?.startsWith(r.classNameSlug + '|') ?? false;
+  }
+
   /** i18n label for a slot token; `hangar.slots.*` covers every suggested one. */
   slotLabel(slot: string): string {
     const key = 'hangar.slots.' + slot;
@@ -872,6 +975,7 @@ export class FpsListComponent {
     const key = `${r.classNameSlug}|${slot}`;
     this.equipBusy.set(key);
     this.equipFailed.set(null);
+    this.equipConflict.set(null);
     try {
       // The service reports a refused write as null (and never throws for it);
       // a thrown error is the transport failing. Both used to look exactly
@@ -879,8 +983,13 @@ export class FpsListComponent {
       const updated = await this.hangar
         .setRoleLoadoutSlot(set.id, slot, clearing ? null : { className: r.classNameSlug, kind: r.detailKind }, shown)
         .catch(() => null);
-      if (updated) this.targetSet.set(updated);
-      else this.equipFailed.set(key);
+      if (updated) {
+        this.targetSet.set(updated);
+        // A clear that met another tab's newer piece leaves it there — say so.
+        if (clearing && updated.items.some((i) => i.slot === slot && i.className)) this.equipConflict.set(key);
+      } else {
+        this.equipFailed.set(key);
+      }
     } finally {
       this.equipBusy.set(null);
     }
@@ -985,6 +1094,12 @@ export class FpsListComponent {
     this.grade.set('');
     this.subType.set('');
     this.includeVariants.set(false);
+  }
+
+  /** The filtered empty state's way out: the search AND the facets, not the facets alone. */
+  resetAll(): void {
+    this.clearSearch();
+    this.resetFilters();
   }
 
   reload(): void {

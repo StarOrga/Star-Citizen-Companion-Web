@@ -211,6 +211,8 @@ const NON_SHIP_VEHICLE_PREFIXES = ['SalvageableDebris', 'Orbital_Sentry', 'probe
 
 /** Guard for listFpsCatalog's paging loop — ~5× today's largest on-foot category. */
 const FPS_CATALOG_HARD_CAP = 12000;
+/** Search-count cache bound: a session types a few dozen terms, not thousands. */
+const SEARCH_COUNT_CACHE_MAX = 200;
 // Ceiling for the livery-/edition-sibling reads. The largest family in build
 // 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
 // seven); the prefix also catches unrelated neighbours, so this sits well above
@@ -326,6 +328,10 @@ export class CodexService {
   private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
   /** Whole on-foot catalogs, per build + category + variant switch — see listFpsCatalog. */
   private fpsCatalogCache = new Map<string, Promise<CodexListRow[]>>();
+  /** `countSearchMatches` answers per build + term + kind (in flight or done), oldest dropped first. */
+  private readonly searchCountCache = new Map<string, Promise<number | null>>();
+  /** `countItemsByAttachType` answers for the current build. */
+  private attachTypeCounts: { buildId: string; counts: Map<string, number> } | null = null;
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -607,17 +613,69 @@ export class CodexService {
     if (!build) return out;
     await Promise.all(
       kinds.map(async (kind) => {
-        const query = applyDefaultBrowseFilters(
-          this.sb.client
-            .from(CODEX_ENTITY_TABLES[kind])
-            .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
-            .eq('build_id', build.id),
-          kind,
-        );
-        const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
-        if (!error && count) out.set(kind, count);
+        // Cached per build + term + kind: a category switch asks again for
+        // the same term, minus one kind and plus the one just left.
+        const key = `${build.id}|${safe.toLowerCase()}|${kind}`;
+        let pending = this.searchCountCache.get(key);
+        if (!pending) {
+          pending = this.countOneKind(build.id, kind, safe);
+          this.searchCountCache.set(key, pending);
+          if (this.searchCountCache.size > SEARCH_COUNT_CACHE_MAX) {
+            this.searchCountCache.delete(this.searchCountCache.keys().next().value!);
+          }
+        }
+        const count = await pending;
+        if (count === null) this.searchCountCache.delete(key); // a failed count is asked again next time
+        else if (count > 0) out.set(kind, count);
       }),
     );
+    return out;
+  }
+
+  /** One head-only count for `countSearchMatches`; null when the query failed. */
+  private async countOneKind(buildId: string, kind: CodexKind, safe: string): Promise<number | null> {
+    const query = applyDefaultBrowseFilters(
+      this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
+        .eq('build_id', buildId),
+      kind,
+    );
+    const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+    return error ? null : (count ?? 0);
+  }
+
+  /**
+   * How many personal-armour pieces the archive holds per attach type, under
+   * the default browse filters — the "N im Archiv" hint on a set's open
+   * positions. Head-only counts, cached per build: a set switch used to fetch
+   * one full ~10 kB payload row per open position just for its count.
+   */
+  async countItemsByAttachType(attachTypes: readonly string[]): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    const build = await this.buildOrThrow();
+    if (!build || attachTypes.length === 0) return out;
+    if (this.attachTypeCounts?.buildId !== build.id) this.attachTypeCounts = { buildId: build.id, counts: new Map() };
+    const cache = this.attachTypeCounts.counts;
+    await Promise.all(
+      attachTypes
+        .filter((t) => !cache.has(t))
+        .map(async (attachType) => {
+          const { count, error } = await applyDefaultBrowseFilters(
+            this.sb.client
+              .from(CODEX_ENTITY_TABLES['item'])
+              .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
+              .eq('build_id', build.id),
+            'item',
+          ).eq('attach_type', attachType);
+          if (error) throw error;
+          cache.set(attachType, count ?? 0);
+        }),
+    );
+    for (const t of attachTypes) {
+      const count = cache.get(t);
+      if (count != null) out.set(t, count);
+    }
     return out;
   }
 
@@ -700,36 +758,50 @@ export class CodexService {
         (category === 'weapon' ? 'weapon_class, ' : '') +
         'name:payload->name, previewImage:payload->previewImage, manufacturer:payload->manufacturer';
       const page = 1000; // PostgREST caps a response at 1000 rows
-      const out: CodexListRow[] = [];
-      for (let offset = 0; offset < FPS_CATALOG_HARD_CAP; offset += page) {
-        let query = this.sb.client.from(CODEX_ENTITY_TABLES[kind]).select(select).eq('build_id', build.id);
+      const pageAt = async (offset: number, withCount: boolean) => {
+        let query = this.sb.client
+          .from(CODEX_ENTITY_TABLES[kind])
+          .select(select, withCount ? { count: 'exact' } : undefined)
+          .eq('build_id', build.id);
         query =
           category === 'weapon'
             ? query.eq('weapon_class', 'FPS')
             : query.in('attach_type', [...FPS_ARMOR_ATTACH_TYPES]);
         if (!includeVariants) query = applyDefaultBrowseFilters(query, kind);
-        const { data, error } = await query
+        const { data, count, error } = await query
           .order('name_localized', { ascending: true, nullsFirst: false })
           .order('class_name', { ascending: true })
           .range(offset, offset + page - 1);
         if (error) throw error;
-        const rows = (data ?? []) as unknown as Record<string, unknown>[];
-        for (const r of rows) {
-          out.push(
-            mapListRow(kind, {
-              ...r,
-              payload: { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
-            }),
-          );
+        return { rows: (data ?? []) as unknown as Record<string, unknown>[], count };
+      };
+
+      // The first page brings the total along; the others are then read side
+      // by side — armour (~2.4k rows) took three round trips one after another.
+      const first = await pageAt(0, true);
+      const pages = [first.rows];
+      if (first.count != null) {
+        const offsets: number[] = [];
+        for (let o = page; o < Math.min(first.count, FPS_CATALOG_HARD_CAP); o += page) offsets.push(o);
+        pages.push(...(await Promise.all(offsets.map((o) => pageAt(o, false)))).map((p) => p.rows));
+      } else {
+        // No total came back: page on until a short page, as before.
+        for (let o = page, last = first.rows; last.length === page && o < FPS_CATALOG_HARD_CAP; o += page) {
+          last = (await pageAt(o, false)).rows;
+          pages.push(last);
         }
-        if (rows.length < page) break;
       }
-      if (out.length >= FPS_CATALOG_HARD_CAP) {
+      if ((first.count ?? 0) > FPS_CATALOG_HARD_CAP) {
         // Five times today's largest category — reaching it means the list
         // stopped early and its "exact" count is not. Loud, not silent.
         console.error(`[codex] listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
       }
-      return out;
+      return pages.flat().map((r) =>
+        mapListRow(kind, {
+          ...r,
+          payload: { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
+        }),
+      );
     };
     const key = `${build.id}|${category}|${includeVariants}`;
     let hit = this.fpsCatalogCache.get(key);

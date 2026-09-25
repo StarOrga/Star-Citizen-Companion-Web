@@ -19,7 +19,7 @@ async function setup(opts: {
   resolved?: Map<string, ResolvedEntity>;
 }): Promise<ComponentFixture<CodexSetGearComponent>> {
   setSlotCalls = [];
-  setSlotResult = { id: 'set-1' } as HangarRoleLoadout;
+  setSlotResult = { id: 'set-1', items: [] as RoleLoadoutItem[] } as HangarRoleLoadout;
   gate = null;
   await TestBed.configureTestingModule({
     imports: [CodexSetGearComponent],
@@ -198,6 +198,43 @@ describe('CodexSetGearComponent', () => {
     fixture.detectChanges();
     expect(sidearm.disabled).toBe(false);
     expect(setSlotCalls.length).toBe(1);
+  });
+
+  it('offers "undo" after a clear, and undo puts the piece back', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+    });
+    (slotEl(fixture, 'primary').querySelector('button.gear-clear') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const note = slotEl(fixture, 'primary').querySelector('.gear-note');
+    expect(note?.textContent).toContain('codex.set.gear.cleared');
+    (note!.querySelector('button.gear-undo') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(setSlotCalls[1]).toEqual(['set-1', 'primary', { className: 'behr_rifle_ballistic_01', kind: 'weapon' }, undefined]);
+    expect(slotEl(fixture, 'primary').querySelector('.gear-note')).toBeNull();
+  });
+
+  it('says so when a clear met a newer piece from another tab — no undo for that', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+    });
+    setSlotResult = {
+      id: 'set-1',
+      items: [{ slot: 'primary', className: 'gmni_smg_energy_01', kind: 'weapon' }],
+    } as HangarRoleLoadout;
+    (slotEl(fixture, 'primary').querySelector('button.gear-clear') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const note = slotEl(fixture, 'primary').querySelector('.gear-note');
+    expect(note?.textContent).toContain('codex.set.gear.changedElsewhere');
+    expect(note?.querySelector('button.gear-undo')).toBeNull();
   });
 
   it('names a failed clear inline as an alert', async () => {

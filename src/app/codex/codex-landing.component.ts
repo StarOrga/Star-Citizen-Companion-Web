@@ -718,7 +718,7 @@ export class CodexLandingComponent implements OnInit {
 
   /** "· 5 / 6 ausgerüstet" — U1's honest count, never a bare percentage. */
   readonly stagePersonEquipSuffix = computed(
-    () => '· ' + this.t.instant('codex.stage.equipped', { filled: this.boardHero().size, total: 6 }),
+    () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.boardHero().size, total: 6 }),
   );
 
   /** HangarPicker chain for the person stage: `HangarService.recentSets()` (M1), active = the one on stage. */

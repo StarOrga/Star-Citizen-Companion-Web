@@ -537,7 +537,34 @@ describe('CodexListComponent (Index mode)', () => {
       await fixture.whenStable();
       fixture.detectChanges();
       const hits = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.cross-hit')).map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
-      expect(hits).toEqual(['codex.kinds.component 3']);
+      // No number: the server counts raw records, the target list folds variants.
+      expect(hits).toEqual(['codex.kinds.component']);
+    });
+
+    it('makes categories real links: a plain click switches in place, a modified one is left to the browser', async () => {
+      const { fixture, cmp } = await setup(
+        { ships: 300, components: 2000 },
+        { query: { kind: 'ship', q: 'titan' }, crossCounts: new Map([['component', 3]]) },
+      );
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const link = el.querySelector('.kind-bar a.kind:not(.active)') as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(el.querySelector('.kind-bar button')).toBeNull();
+      expect(el.querySelector('.kind-bar a.kind.active')?.getAttribute('aria-current')).toBe('page');
+
+      // A modified click must reach the browser untouched (new tab / window).
+      // The handler is called directly — a dispatched Ctrl+click would open a real tab.
+      const modified = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true });
+      cmp.onCategoryClick(modified, 'component');
+      expect(modified.defaultPrevented).toBeFalse();
+      expect(cmp.kind()).toBe('ship');
+
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      cmp.onCategoryClick(plain, 'component');
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(cmp.kind()).toBe('component');
     });
 
     it('keeps pin and add-to-hangar outside the card link', async () => {

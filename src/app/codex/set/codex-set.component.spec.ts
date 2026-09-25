@@ -45,6 +45,7 @@ function makeCodexServiceStub(): Partial<CodexService> {
     resolveEntities: async () => new Map(),
     getEntityPayloads: async () => new Map(),
     listByKind: async () => ({ rows: [], count: 0 }) as never,
+    countItemsByAttachType: async () => new Map(),
   };
 }
 

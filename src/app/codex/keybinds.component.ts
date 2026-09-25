@@ -25,6 +25,7 @@ import { CodexKeybind, KeybindDevice, Lang } from './codex.types';
 import { RoleService } from '../auth/role.service';
 import { EnglishStringsService } from '../shared/english-strings.service';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { KeybindCategoryService, KeybindTarget, keybindKey } from './keybind-category.service';
 import {
   EMPTY_ASSIGNMENT,
@@ -111,6 +112,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     TranslatePipe,
     CodexStatusBannerComponent,
     ScSelectComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -124,7 +126,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
 
       @if (error(); as err) {
         <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
           <button type="button" class="retry" (click)="reload()">
             {{ 'codex.error.retry' | translate }}
           </button>
@@ -168,7 +170,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
               @for (l of nameLangs; track l) {
                 <button type="button" class="seg-btn" [class.on]="nameLang() === l"
                         [attr.aria-pressed]="nameLang() === l"
-                        [attr.title]="'codex.keybinds.lang.hint.' + l | translate"
+                        [scTooltip]="'codex.keybinds.lang.hint.' + l | translate"
                         (click)="setNameLang(l)">
                   {{ 'codex.keybinds.lang.short.' + l | translate }}
                 </button>
@@ -312,7 +314,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
               <ul class="rows">
                 @for (r of g.rows; track r.key) {
                   <li class="row" [class.picked]="isSelected(r)"
-                      [class.selectable]="editing()" [attr.title]="rowTitle(r)">
+                      [class.selectable]="editing()" [scTooltip]="rowTitle(r)">
                     @if (editing()) {
                       <!-- The checkbox lives in its own <label>, whose ::after
                            is stretched over the whole row (see .row-pick::after).
@@ -580,8 +582,11 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     }
     .bind.unbound { background: transparent; color: var(--sc-fg-2); border-style: dashed; }
 
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
 

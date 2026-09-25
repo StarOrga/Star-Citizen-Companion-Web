@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
@@ -15,6 +15,9 @@ import {
 
 /** The six anatomical positions — the board panel above already renders them. */
 const ARMOR_ROLE_SLOTS: ReadonlySet<string> = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
+
+/** How long "Undo" stays offered after a clear. */
+export const UNDO_WINDOW_MS = 5000;
 
 /** Every slot token some role suggests — each has a `hangar.slots.*` label. */
 const KNOWN_SLOTS: ReadonlySet<string> = new Set(Object.values(ROLE_SLOT_SUGGESTIONS).flat());
@@ -95,6 +98,18 @@ export interface GearSlotRow {
               <p class="gear-err" role="alert">
                 {{ 'codex.set.gear.clearFailed' | translate: { slot: label } }}
               </p>
+            } @else if (undoFailedSlot() === r.slot) {
+              <p class="gear-err" role="alert">{{ 'codex.set.gear.undoFailed' | translate: { slot: label } }}</p>
+            } @else if (conflictSlot() === r.slot) {
+              <p class="gear-note" role="status">{{ 'codex.set.gear.changedElsewhere' | translate: { slot: label } }}</p>
+            } @else if (undoable()?.slot === r.slot) {
+              <!-- Clear sits right beside the slot link: a mis-tap on a phone gets its piece back here. -->
+              <p class="gear-note" role="status">
+                {{ 'codex.set.gear.cleared' | translate: { slot: label } }}
+                <button type="button" class="gear-undo" [disabled]="busySlot() !== null" (click)="undo()">
+                  {{ 'codex.set.gear.undo' | translate }}
+                </button>
+              </p>
             }
           </li>
         }
@@ -121,8 +136,8 @@ export interface GearSlotRow {
       }
       .t-label {
         display: block;
-        font-family: var(--sc-font-display, inherit);
-        font-size: max(0.6rem, var(--sc-fs-floor, 0.6rem));
+        font-family: var(--sc-font-display);
+        font-size: max(0.6rem, var(--sc-fs-floor));
         letter-spacing: 0.18em;
         text-transform: uppercase;
         line-height: 1.3;
@@ -130,7 +145,7 @@ export interface GearSlotRow {
       }
       .t-value {
         display: block;
-        font-size: max(0.78rem, var(--sc-fs-floor, 0.7rem));
+        font-size: max(0.78rem, var(--sc-fs-floor));
         line-height: 1.35;
         color: var(--sc-fg-0);
         overflow: hidden;
@@ -152,7 +167,7 @@ export interface GearSlotRow {
       .gear-tile {
         flex: 1 1 auto;
         min-width: 0;
-        min-height: max(40px, var(--sc-tap-min, 0px));
+        min-height: max(40px, var(--sc-tap-min));
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -170,38 +185,48 @@ export interface GearSlotRow {
         background: color-mix(in srgb, var(--tint) 9%, transparent);
       }
       .empty .gear-tile { border-style: dashed; border-color: var(--idle); background: var(--idle-bg); }
-      .empty .t-label, .empty .t-value { color: var(--idle); }
+      /* The frame keeps the concept's blue-grey; the TEXT is lifted with fg-0 — --idle
+         itself reads at ~2.4:1 on --idle-bg, too faint for 0.6–0.78rem labels. */
+      .empty .t-label, .empty .t-value { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); }
       .empty .t-value { font-style: italic; }
       .empty a.gear-tile:hover, .empty a.gear-tile:focus-visible { border-color: var(--tint); }
       .empty a.gear-tile:hover .t-value, .empty a.gear-tile:focus-visible .t-value { color: var(--sc-fg-1); }
 
-      /* No archive source (medpen): muted, never a link. */
-      .gear-tile.static { opacity: 0.75; }
-      .gear-note { font-size: max(0.68rem, var(--sc-fs-floor, 0.6rem)); color: var(--sc-fg-2); line-height: 1.3; }
+      /* No archive source (medpen) or a free-form slot: never a link. Dotted, not
+         faded — opacity also dimmed the note below it to ~3.4:1. */
+      .gear-tile.static { border-style: dotted; }
+      .gear-note { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.3; }
 
       .gear-clear {
         flex: 0 0 auto;
-        min-height: max(40px, var(--sc-tap-min, 0px));
+        min-height: max(40px, var(--sc-tap-min));
         padding: 0 10px;
         border-radius: 3px;
         border: 1px solid var(--sc-border);
         background: transparent;
         color: var(--sc-fg-2);
-        font-family: var(--sc-font-display, inherit);
-        font-size: max(0.6rem, var(--sc-fs-floor, 0.6rem));
-        letter-spacing: 0.12em;
+        font-family: var(--sc-font-display);
+        font-size: max(0.6rem, var(--sc-fs-floor));
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         cursor: pointer;
       }
-      .gear-clear:hover { color: var(--sc-fg-0); border-color: var(--tint); }
-      .gear-clear:focus-visible { outline: 2px solid var(--tint); outline-offset: 1px; }
+      /* Neutral hover: amber (--tint) means "equipped / yours" in this zone, not "remove". */
+      .gear-clear:hover, .gear-undo:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+      .gear-clear:focus-visible, .gear-undo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
       .gear-clear:disabled { cursor: progress; opacity: 0.6; }
 
-      .gear-err { margin: 4px 0 0; font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem)); color: var(--sc-danger); }
-
-      @media (max-width: 600px) {
-        .gear-tile, .gear-clear { min-height: 48px; }
+      .gear-err { margin: 4px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger); }
+      .gear-note {
+        margin: 4px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-1);
       }
+      .gear-undo {
+        padding: 2px 10px; border-radius: 3px; border: 1px solid var(--sc-border); background: transparent;
+        color: var(--sc-fg-1); font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
+        letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+      }
+      .gear-undo:disabled { cursor: progress; opacity: 0.6; }
     `,
   ],
 })
@@ -218,6 +243,18 @@ export class CodexSetGearComponent {
   readonly busySlot = signal<string | null>(null);
   /** The slot whose last clear failed; its inline alert shows until the next attempt. */
   readonly failedSlot = signal<string | null>(null);
+  /** The slot whose last clear met another tab's newer piece — that piece stays, and the tile says so. */
+  readonly conflictSlot = signal<string | null>(null);
+  /** The piece the last clear removed, re-equippable for {@link UNDO_WINDOW_MS}. */
+  readonly undoable = signal<{ slot: string; className: string; kind: string } | null>(null);
+  /** The slot whose undo could not put the piece back. */
+  readonly undoFailedSlot = signal<string | null>(null);
+  private undoTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly zone = inject(NgZone);
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.dropUndo());
+  }
 
   readonly rows = computed<GearSlotRow[]>(() => {
     const items = this.items();
@@ -266,15 +303,53 @@ export class CodexSetGearComponent {
    */
   async clear(slot: string, shown: string | null): Promise<void> {
     if (this.busySlot()) return;
+    const kind = this.items().find((i) => i.slot === slot)?.kind ?? null;
     this.busySlot.set(slot);
     this.failedSlot.set(null);
+    this.undoFailedSlot.set(null);
+    this.conflictSlot.set(null);
+    this.dropUndo();
     try {
       const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), slot, null, shown ?? undefined);
       if (!saved) this.failedSlot.set(slot);
+      else if (saved.items.some((i) => i.slot === slot && i.className)) this.conflictSlot.set(slot);
+      else if (shown && kind) this.offerUndo({ slot, className: shown, kind });
     } catch {
       this.failedSlot.set(slot);
     } finally {
       this.busySlot.set(null);
     }
+  }
+
+  /** Put back the piece the last clear removed. */
+  async undo(): Promise<void> {
+    const last = this.undoable();
+    if (!last || this.busySlot()) return;
+    this.dropUndo();
+    this.busySlot.set(last.slot);
+    try {
+      const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), last.slot, {
+        className: last.className,
+        kind: last.kind,
+      });
+      if (!saved) this.undoFailedSlot.set(last.slot);
+    } catch {
+      this.undoFailedSlot.set(last.slot);
+    } finally {
+      this.busySlot.set(null);
+    }
+  }
+
+  private offerUndo(piece: { slot: string; className: string; kind: string }): void {
+    this.undoable.set(piece);
+    // Outside the zone: a pending 5 s timer would hold it unstable (whenStable,
+    // hydration) for the whole undo window. The signal still re-renders the view.
+    this.undoTimer = this.zone.runOutsideAngular(() => setTimeout(() => this.undoable.set(null), UNDO_WINDOW_MS));
+  }
+
+  private dropUndo(): void {
+    if (this.undoTimer) clearTimeout(this.undoTimer);
+    this.undoTimer = null;
+    this.undoable.set(null);
   }
 }

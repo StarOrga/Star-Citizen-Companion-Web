@@ -565,7 +565,9 @@
       "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}",
       "editionsOne": "+1 variant",
       "editionsMany": "+{{count}} variants",
-      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}"
+      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}",
+      "addToHangar": "Add to hangar",
+      "addToHangarFailed": "Couldn't add it to the hangar. Please try again."
     },
     "skinPicker": {
       "label": "Skin",
@@ -761,7 +763,8 @@
       "filtered": "No entries match your search or filters.",
       "kind": "No {{kind}} in this build.",
       "noBuild": "No catalog build is published yet.",
-      "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded."
+      "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded.",
+      "resetAll": "Reset search & filters"
     },
     "error": {
       "title": "Could not load the codex",
@@ -1730,7 +1733,8 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} equipped"
+      "equipped": "{{filled}} / {{total}} equipped",
+      "armorEquipped": "Armour {{filled}} / {{total}}"
     },
     "hangarPicker": {
       "hangar": "Hangar",
@@ -1755,8 +1759,13 @@
         "clearing": "Clearing …",
         "clearFailed": "{{slot}} could not be cleared. Please try again.",
         "noSource": "Not in the archive — consumable",
-        "customSlot": "Your own position — not filled from the archive"
-      }
+        "customSlot": "Your own position — not filled from the archive",
+        "cleared": "{{slot}} cleared.",
+        "undo": "Undo",
+        "undoFailed": "{{slot}} couldn't be put back. Please equip it again.",
+        "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
+      },
+      "equipInArchive": "Equip from the archive"
     }
   },
   "blueprint": {
@@ -1855,7 +1864,12 @@
       "backToSet": "Back to the set",
       "into": "Into slot:",
       "failed": "Not saved — the set did not accept the change. Please try again.",
-      "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped."
+      "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped.",
+      "mySets": "My sets",
+      "browseWithout": "Keep browsing without a set",
+      "onlyFitting": "Showing only what fits “{{slot}}”.",
+      "saving": "Saving …",
+      "changedElsewhere": "Changed in another tab meanwhile — the slot now holds something else."
     }
   },
   "news": {

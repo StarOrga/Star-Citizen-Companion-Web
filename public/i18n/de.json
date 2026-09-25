@@ -565,7 +565,9 @@
       "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}",
       "editionsOne": "+1 Variante",
       "editionsMany": "+{{count}} Varianten",
-      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}"
+      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}",
+      "addToHangar": "Zum Hangar hinzufügen",
+      "addToHangarFailed": "Konnte nicht zum Hangar hinzugefügt werden. Bitte erneut versuchen."
     },
     "skinPicker": {
       "label": "Skin",
@@ -761,7 +763,8 @@
       "filtered": "Keine Einträge passen zu Suche oder Filtern.",
       "kind": "Keine {{kind}} in diesem Build.",
       "noBuild": "Es ist noch kein Katalog-Build veröffentlicht.",
-      "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider."
+      "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider.",
+      "resetAll": "Suche & Filter zurücksetzen"
     },
     "error": {
       "title": "Codex konnte nicht geladen werden",
@@ -1730,7 +1733,8 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} ausgerüstet"
+      "equipped": "{{filled}} / {{total}} ausgerüstet",
+      "armorEquipped": "Rüstung {{filled}} / {{total}}"
     },
     "hangarPicker": {
       "hangar": "Hangar",
@@ -1755,8 +1759,13 @@
         "clearing": "Wird geleert …",
         "clearFailed": "{{slot}} konnte nicht geleert werden. Bitte erneut versuchen.",
         "noSource": "Nicht im Archiv — Verbrauchsgut",
-        "customSlot": "Eigene Position — nicht aus dem Archiv befüllbar"
-      }
+        "customSlot": "Eigene Position — nicht aus dem Archiv befüllbar",
+        "cleared": "{{slot}} geleert.",
+        "undo": "Rückgängig",
+        "undoFailed": "{{slot}} konnte nicht zurückgelegt werden. Bitte erneut ausrüsten.",
+        "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
+      },
+      "equipInArchive": "Im Archiv ausrüsten"
     }
   },
   "blueprint": {
@@ -1855,7 +1864,12 @@
       "backToSet": "Zurück zum Set",
       "into": "In Slot:",
       "failed": "Nicht gespeichert — das Set hat die Änderung nicht angenommen. Bitte erneut versuchen.",
-      "setUnavailable": "Das Set aus dem Link gibt es nicht (mehr) oder es gehört dir nicht — hier wird nur gestöbert, nichts ausgerüstet."
+      "setUnavailable": "Das Set aus dem Link gibt es nicht (mehr) oder es gehört dir nicht — hier wird nur gestöbert, nichts ausgerüstet.",
+      "mySets": "Meine Sets",
+      "browseWithout": "Ohne Set weiterstöbern",
+      "onlyFitting": "Zeigt nur, was in „{{slot}}“ passt.",
+      "saving": "Speichert …",
+      "changedElsewhere": "Inzwischen in einem anderen Tab geändert — der Slot enthält jetzt etwas anderes."
     }
   },
   "news": {

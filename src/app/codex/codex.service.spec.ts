@@ -499,11 +499,13 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
     const from = (table: string): any => {
       let range: [number, number] | null = null;
       let head = false;
+      let withCount = false;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {
-        select: (cols: string, o?: { head?: boolean }) => {
+        select: (cols: string, o?: { head?: boolean; count?: string }) => {
           if (table !== 'codex_builds') cap.selects.push(`${table}:${cols}`);
           head = !!o?.head;
+          withCount = o?.count === 'exact' && !o?.head;
           return chain;
         },
         eq: (col: string, value: unknown) => {
@@ -543,7 +545,8 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
               failures--;
               return { data: null, error: new Error('flaky') };
             }
-            return { data: rows.slice(range[0], Math.min(range[1] + 1, range[0] + 1000)), error: null };
+            const data = rows.slice(range[0], Math.min(range[1] + 1, range[0] + 1000));
+            return { data, count: withCount ? rows.length : null, error: null };
           };
           return Promise.resolve(answer()).then(onOk, onErr);
         },
@@ -644,6 +647,35 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
     expect((await svc.countSearchMatches('(((', ['ship'])).size).toBe(0);
     expect((await svc.countSearchMatches('a,', ['ship'])).size).toBe(0);
     expect(cap.selects.length).toBe(0);
+  });
+
+  it('asks each kind once per term — a category switch re-uses the counts it already has', async () => {
+    const cap = fresh();
+    const svc = make([], cap, { count: 2 });
+
+    await svc.countSearchMatches('titan', ['ship', 'item']);
+    const first = cap.selects.length;
+    const again = await svc.countSearchMatches('Titan', ['item', 'weapon']);
+
+    expect(again.get('item')).toBe(2);
+    expect(cap.selects.length - first).toBe(1); // only the new kind, weapon
+  });
+
+  it('counts the archive per armour position with head-only queries, once per build', async () => {
+    const cap = fresh();
+    const svc = make([], cap, { count: 7 });
+
+    const counts = await svc.countItemsByAttachType(['Char_Armor_Helmet', 'Char_Armor_Torso']);
+    expect([...counts.entries()]).toEqual([
+      ['Char_Armor_Helmet', 7],
+      ['Char_Armor_Torso', 7],
+    ]);
+    expect(cap.filters).toContain('codex_items:eq:attach_type=Char_Armor_Helmet');
+    expect(cap.filters).toContain('codex_items:eq:is_variant=false');
+
+    const before = cap.selects.length;
+    await svc.countItemsByAttachType(['Char_Armor_Torso']);
+    expect(cap.selects.length).toBe(before);
   });
 });
 

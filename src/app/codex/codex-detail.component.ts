@@ -1913,7 +1913,8 @@ interface GearRecipe {
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 8px; }
     .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
     .sg-head:first-of-type { margin-top: 0; }
-    .sg-head[data-purpose="offense"] { color: #ff7a45; }
+    /* The category icon's weapon orange — one orange for "offense", well clear of the admin red. */
+    .sg-head[data-purpose="offense"] { color: #e8864a; }
     .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
@@ -1941,7 +1942,7 @@ interface GearRecipe {
     .dmg-bar { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .dmg-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .dmg[data-ch="energy"] .dmg-fill { background: var(--sc-accent); }
-    .dmg[data-ch="physical"] .dmg-fill { background: #ff7a45; }
+    .dmg[data-ch="physical"] .dmg-fill { background: #e8864a; }
     .dmg[data-ch="thermal"] .dmg-fill { background: #ff5252; }
     .dmg[data-ch="distortion"] .dmg-fill { background: #a674ff; }
     .dmg[data-ch="biochemical"] .dmg-fill { background: #5fd35f; }
@@ -2017,7 +2018,8 @@ interface GearRecipe {
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
 
     .skel-card { height: 260px; }
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }

@@ -12,6 +12,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexKind } from './codex.service';
 import {
   SpecSection,
@@ -69,7 +70,7 @@ export interface ComponentInspectEntry {
 @Component({
   selector: 'sc-codex-component-modal',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
@@ -93,17 +94,18 @@ export interface ComponentInspectEntry {
               </div>
             </div>
             <button type="button" class="cm-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.inspect.close' | translate">✕</button>
+                    [attr.aria-label]="'codex.inspect.close' | translate"
+                    [scTooltip]="'codex.inspect.close' | translate">✕</button>
           </header>
 
           @if (headline().length > 0) {
             <dl class="cm-headline">
               @for (st of headline(); track st.labelKey) {
-                <div class="hs" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
+                <div class="hs" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
                   <dt>
                     {{ st.labelKey | translate }}
                     @if (st.derived) {
-                      <span class="derived" [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                      <span class="derived" [scTooltip]="'codex.equipped.derivedHint' | translate" scTooltipTier="label">*</span>
                     }
                   </dt>
                   <dd>{{ fmtStat(st) }}</dd>

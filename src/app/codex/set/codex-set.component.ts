@@ -69,7 +69,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
               [class.on]="shareOpen()"
               [attr.aria-label]="'codex.set.share' | translate"
               [attr.aria-expanded]="shareOpen()"
-              aria-controls="set-share-panel"
+              [attr.aria-controls]="shareOpen() ? 'set-share-panel' : null"
               (click)="shareOpen.set(!shareOpen())"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
@@ -180,16 +180,17 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       @media (hover: none) { .share-btn:hover + .share-tip { opacity: 0; visibility: hidden; } }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
-      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px; color: var(--sc-danger); }
+      /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--sc-danger); }
       .load-err .retry {
-        margin-left: auto; padding: 6px 14px; min-height: var(--sc-tap-min); border-radius: 6px; cursor: pointer;
+        margin-left: auto; padding: 6px 14px; border-radius: 6px; cursor: pointer;
         background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); font-family: inherit;
       }
       .load-err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
       .load-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
       /* The empty state's only action: a real thumb target, not a line of running text. */
       .hint .create-set { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
-      .hint.note { color: var(--amber, #f0c27b); }
+      .hint.note { color: var(--sc-warning); }
 
       .set-hero { display: block; height: 420px; border-radius: 4px; overflow: hidden; border: 1px solid var(--sc-border); }
       /* N5: title 30px on the set page's full-width hero (the landing's
@@ -200,7 +201,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .set-hero ::ng-deep .stage-archive { display: none; }
 
       .board-wrap {
-        --tint: var(--sc-warning, #ffc14d);
+        --tint: var(--sc-warning);
         position: relative;
         border: 1px solid var(--sc-border);
         border-radius: 4px;
@@ -208,8 +209,8 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
         background: var(--sc-bg-1);
       }
       .set-gear {
-        margin-top: 16px;
-        padding-top: 14px;
+        margin-top: var(--sc-gap-1);
+        padding-top: var(--sc-pad-2);
         border-top: 1px solid color-mix(in srgb, var(--tint) 18%, var(--sc-border));
       }
     `,
@@ -267,7 +268,7 @@ export class CodexSetComponent implements OnInit {
   });
 
   readonly equipSuffix = computed(
-    () => '· ' + this.t.instant('codex.stage.equipped', { filled: this.filledSlots().size, total: 6 }),
+    () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.filledSlots().size, total: 6 }),
   );
 
   readonly setPickerItems = computed<HangarPickerItem[]>(() => {
@@ -343,18 +344,12 @@ export class CodexSetComponent implements OnInit {
         .getEntityPayloads(classNames)
         .then((m) => land(this.armorPayloads, m))
         .catch(() => land(this.armorPayloads, new Map())),
-      Promise.all(
-        emptySlots.map((s) =>
-          this.svc
-            .listByKind('item', { attachType: s.attachType, limit: 1 })
-            .then((r) => [s.attachType, r.count] as const)
-            .catch(() => [s.attachType, null] as const),
-        ),
-      ).then((entries) => {
-        const m = new Map<string, number>();
-        for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
-        land(this.archiveDepth, m);
-      }),
+      // "N im Archiv" on the open positions: head-only counts, cached per build
+      // (a set switch used to fetch one full payload row per open position).
+      this.svc
+        .countItemsByAttachType(emptySlots.map((s) => s.attachType))
+        .then((m) => land(this.archiveDepth, m))
+        .catch(() => land(this.archiveDepth, new Map())),
     ]);
   }
 

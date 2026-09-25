@@ -144,6 +144,49 @@ describe('FpsListComponent (equip mode)', () => {
     expect(el.querySelector('.equip-btn')).toBeNull();
   });
 
+  it('gives a missing set two ways on: my sets, or the archive without the set', async () => {
+    const { el, fixture } = await setup({ query: { cat: 'armor', equipInto: 'gone' }, set: null });
+    const links = Array.from(el.querySelectorAll('.equip-missing a')).map((a) => a.textContent!.trim());
+    expect(links).toEqual(['fps.equip.mySets', 'fps.equip.browseWithout']);
+
+    const cmp = fixture.componentInstance;
+    cmp.dropEquipIntent(new MouseEvent('click', { button: 0, cancelable: true }));
+    fixture.detectChanges();
+    expect(el.querySelector('.equip-missing')).toBeNull();
+    expect(cmp.equipInto()).toBeNull();
+  });
+
+  it('shows the pressed equip button as saving while its write is in flight', async () => {
+    let release!: (v: HangarRoleLoadout | null) => void;
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.returnValue(
+      new Promise<HangarRoleLoadout | null>((r) => (release = r)),
+    );
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
+
+    (el.querySelector('.equip-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.equip-btn')!.textContent!.trim()).toBe('fps.equip.saving');
+
+    release(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.equip-btn')!.textContent!.trim()).not.toBe('fps.equip.saving');
+  });
+
+  it('says so when a clear met a newer piece from another tab', async () => {
+    const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const other: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_02', kind: 'item' }] };
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(other);
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
+
+    (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(update).toHaveBeenCalledWith('set-1', 'helmet', null, 'rsi_helmet_01');
+    expect(el.querySelector('.equip-note')?.textContent).toContain('fps.equip.changedElsewhere');
+  });
+
   it('shows no equip controls and no notice during ordinary browsing', async () => {
     const { el } = await setup({ query: { cat: 'armor' } });
     expect(el.querySelector('.equip-missing')).toBeNull();
@@ -239,6 +282,14 @@ describe('FpsListComponent (honest slot fitting)', () => {
     expect(buttonsOf('Test Knife')).toEqual(['melee']);
     expect(buttonsOf('Test Grenade')).toEqual(['throwable']);
     expect(buttonsOf('Arclight Pistol')).toEqual(['secondary', 'sidearm']);
+  });
+
+  it('in slot mode lists only what fits the slot the set page sent the reader to fill', async () => {
+    const knife = weapon('kdid_knife_01', 'Test Knife', 'Knife');
+    const { el } = await render({ cat: 'weapon', equipInto: 'set-1', equipSlot: 'primary' }, SET, [PISTOL, RIFLE, knife]);
+    const names = Array.from(el.querySelectorAll('a.card .name')).map((n) => n.textContent!.trim());
+    expect(names).toEqual(['P4-AR Rifle']);
+    expect(el.querySelector('.equip-only')?.textContent).toContain('fps.equip.onlyFitting');
   });
 
   it('puts the ParaMed into the medgun slot of a medical set, not into a gun slot', async () => {

@@ -57,6 +57,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
 
 /**
@@ -124,7 +125,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -144,7 +145,7 @@ export function blueprintCategoriesForGroup(
       <nav class="kind-bar" [attr.aria-label]="'codex.categoriesAria' | translate">
         @for (k of categories; track k) {
           @if (isComingSoon(k)) {
-            <span class="kind soon" aria-disabled="true" [attr.title]="'codex.soon' | translate">
+            <span class="kind soon" aria-disabled="true" [scTooltip]="'codex.soon' | translate" scTooltipTier="label">
               <span>{{ ('codex.kinds.' + k) | translate }}</span>
               <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
             </span>
@@ -215,7 +216,8 @@ export function blueprintCategoriesForGroup(
                  [attr.placeholder]="'codex.search.placeholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"
-                    [attr.aria-label]="'codex.search.clear' | translate">×</button>
+                    [attr.aria-label]="'codex.search.clear' | translate"
+                    [scTooltip]="'codex.search.clear' | translate">×</button>
           }
         </div>
 
@@ -231,7 +233,8 @@ export function blueprintCategoriesForGroup(
                          (valueChange)="setManufacturer($event ?? '')" />
             </div>
           }
-          @if (sizeOptions().length > 0) {
+          <!-- One option is no choice — but a picked one stays reachable (the options come from the loaded rows). -->
+          @if (sizeOptions().length > 1 || size()) {
             <div class="facet">
               <span>{{ 'codex.filters.size' | translate }}</span>
               <sc-select [options]="sizeSelect()" [value]="size() || null" placeholderKey="codex.filters.anySize"
@@ -239,7 +242,7 @@ export function blueprintCategoriesForGroup(
                          (valueChange)="setSize($event ?? '')" />
             </div>
           }
-          @if (gradeOptions().length > 0) {
+          @if (gradeOptions().length > 1 || grade()) {
             <div class="facet">
               <span>{{ 'codex.filters.grade' | translate }}</span>
               <sc-select [options]="gradeSelect()" [value]="grade() || null" placeholderKey="codex.filters.anyGrade"
@@ -256,14 +259,15 @@ export function blueprintCategoriesForGroup(
             </div>
           }
           @if (kind() === 'blueprint') {
-            <label class="facet">
+            <!-- A div, not a label: clicking a label's caption presses its first control (the "Alle" segment). -->
+            <div class="facet">
               <span>{{ 'codex.filters.blueprintGroup' | translate }}</span>
               <sc-segmented
                 [options]="blueprintGroupOptions"
                 [value]="blueprintGroup() || 'all'"
                 [ariaLabel]="'codex.filters.blueprintGroup' | translate"
                 (valueChange)="setBlueprintGroup($event)" />
-            </label>
+            </div>
           }
           @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
             <div class="facet">
@@ -303,7 +307,7 @@ export function blueprintCategoriesForGroup(
       <!-- Results -->
       @if (error(); as err) {
         <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
@@ -354,7 +358,13 @@ export function blueprintCategoriesForGroup(
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            <p>{{ (hasActiveFilters() || searchInput() ? 'codex.empty.filtered' : ('codex.empty.kind' | translate: { kind: ('codex.kinds.' + kind()) | translate })) | translate }}</p>
+            @if (hasActiveFilters() || searchInput()) {
+              <p>{{ 'codex.empty.filtered' | translate }}</p>
+              <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
+              <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+            } @else {
+              <p>{{ 'codex.empty.kind' | translate: { kind: ('codex.kinds.' + kind()) | translate } }}</p>
+            }
           </div>
         } @else {
           <div class="grid">
@@ -372,38 +382,38 @@ export function blueprintCategoriesForGroup(
                   <h3 class="name">{{ cardName(r) }}</h3>
                   <code class="cls">{{ r.classNameSlug }}</code>
                   <div class="badges">
-                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
-                    @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
-                    @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [scTooltip]="mfr" scTooltipTier="label">{{ mfr }}</span> }
+                    @if (r.componentKind) { <span class="badge cat">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
+                    @if (r.weaponClass) { <span class="badge cat">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
                     @if (r.subType) { <span class="badge subtle">{{ subTypeKey(r) ? (subTypeKey(r)! | translate) : r.subType }}</span> }
                     @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
                     @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
                     @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
                     @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
-                    @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
+                    @if (r.blueprintCategory) { <span class="badge cat">{{ categoryLabel(r.blueprintCategory) }}</span> }
                     @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
                     @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
                     @if (r.foldedClassNames.length; as folded) {
                       <span class="badge folded"
-                            [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                            [scTooltip]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
                         {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
                       </span>
                     }
                     @if (r.skinVariants.length; as skins) {
                       <span class="badge skins"
-                            [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                            [scTooltip]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
                         {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
                       </span>
                     }
                     @if (r.editions.length; as editions) {
                       <span class="badge editions"
-                            [attr.title]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
+                            [scTooltip]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
                         {{ (editions === 1 ? 'codex.card.editionsOne' : 'codex.card.editionsMany') | translate: { count: editions } }}
                       </span>
                     }
                   </div>
                   @if (r.size != null) {
-                    <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
+                    <div class="size-bar" [scTooltip]="'codex.card.size' | translate: { size: r.size }">
                       <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
                       <span class="size-tag">S{{ r.size }}</span>
                     </div>
@@ -414,12 +424,14 @@ export function blueprintCategoriesForGroup(
                     @if (inHangarSet().has(r.classNameSlug)) {
                       <span class="hangar-chip" role="img"
                             [attr.aria-label]="'codex.card.inHangar' | translate"
-                            [attr.title]="'codex.card.inHangar' | translate">✓</span>
+                            [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
                     } @else {
                       <button type="button" class="act hangar-add"
+                              [disabled]="addBusy() !== null"
+                              [attr.aria-busy]="addBusy() === r.classNameSlug"
                               (click)="addShipToHangar(r.classNameSlug)"
-                              [attr.aria-label]="'quickSearch.addToHangar' | translate"
-                              [attr.title]="'quickSearch.addToHangar' | translate">+</button>
+                              [attr.aria-label]="'codex.card.addToHangar' | translate"
+                              [scTooltip]="'codex.card.addToHangar' | translate" scTooltipTier="label">+</button>
                     }
                   }
                   <button type="button" class="act pin"
@@ -427,10 +439,14 @@ export function blueprintCategoriesForGroup(
                           [attr.aria-pressed]="isPinned(r.classNameSlug)"
                           (click)="togglePin(r.classNameSlug)"
                           [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
-                          [attr.title]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
+                          [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                          scTooltipTier="label">
                     {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
                   </button>
                 </div>
+                @if (addFailed() === r.classNameSlug) {
+                  <p class="card-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+                }
               </div>
             }
           </div>
@@ -484,7 +500,7 @@ export function blueprintCategoriesForGroup(
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 999px; min-height: var(--sc-tap-min);
+      padding: 8px 16px; border-radius: 999px;
       border: 1px solid var(--sc-border); background: transparent;
       color: var(--sc-fg-1); font-family: var(--sc-font-display); text-decoration: none;
       font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
@@ -517,7 +533,7 @@ export function blueprintCategoriesForGroup(
     .group.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .group.sub { padding: 5px 12px; text-transform: none; letter-spacing: 0.02em; font-family: inherit; }
     .group-ct { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .group.active .group-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    .group.active .group-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-fg-0); }
 
     .controls { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; }
     .search-row { position: relative; display: flex; }
@@ -527,8 +543,15 @@ export function blueprintCategoriesForGroup(
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-    .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; }
-    .search-clear:hover { color: var(--sc-danger); }
+    .search-clear {
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min));
+      border: none; border-radius: 6px; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer;
+    }
+    /* Clearing a search is neither an error nor destructive — no danger red. */
+    .search-clear:hover { color: var(--sc-accent); }
+    .search-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
     .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
@@ -555,7 +578,9 @@ export function blueprintCategoriesForGroup(
       border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1);
       transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
-    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
+    /* Keyboard focus on the card link lights the frame the way a hover does. */
+    .card-wrap:has(> .card:focus-visible) { border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), var(--sc-glow); }
     .card {
       flex: 1; display: flex; flex-direction: column; gap: 8px;
       padding: 14px; border-radius: 8px; color: inherit; text-decoration: none;
@@ -577,6 +602,8 @@ export function blueprintCategoriesForGroup(
       background: color-mix(in srgb, var(--sc-bg-0) 66%, transparent); color: var(--sc-fg-2);
     }
     .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .act:disabled { cursor: progress; opacity: 0.6; }
+    .card-err { margin: 0 14px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger); }
     .pin { font-size: 1.1rem; }
     .pin:hover, .pin.pinned { color: var(--sc-accent); }
     .pin:hover { border-color: var(--sc-border); }
@@ -589,6 +616,8 @@ export function blueprintCategoriesForGroup(
        Concern"), so the pill has to stay inside the card on a phone. */
     .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1);
       max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Category-type badges read neutral, as on the FPS and blueprint lists. */
+    .badge.cat { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
     /* "+n file variants folded" — a quiet note, not a warning: nothing is wrong,
@@ -628,7 +657,10 @@ export function blueprintCategoriesForGroup(
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
+    .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
@@ -1332,6 +1364,12 @@ export class CodexListComponent implements OnInit {
     this.includeVariants.set(false);
   }
 
+  /** The filtered empty state's way out: the search AND the facets, not the facets alone. */
+  resetAll(): void {
+    this.clearSearch();
+    this.resetFilters();
+  }
+
   reload(): void {
     this.runQuery(true);
   }
@@ -1349,9 +1387,25 @@ export class CodexListComponent implements OnInit {
     this.svc.togglePin(this.kind(), className);
   }
 
+  /** Ship whose hangar add is in flight — one at a time, so a double click can't insert twice. */
+  readonly addBusy = signal<string | null>(null);
+  /** Ship whose last hangar add failed; its card says so until the next try. */
+  readonly addFailed = signal<string | null>(null);
+
   /** UC-02: add a ship to the hangar inline, without leaving the list. */
-  addShipToHangar(className: string): void {
-    void this.hangar.addShip(className, 'owned');
+  async addShipToHangar(className: string): Promise<void> {
+    if (this.addBusy()) return;
+    this.addBusy.set(className);
+    this.addFailed.set(null);
+    try {
+      // A refused insert comes back as null, its reason parked in the hangar's
+      // shared error, which this page never shows — so say it at the card.
+      if (!(await this.hangar.addShip(className, 'owned'))) this.addFailed.set(className);
+    } catch {
+      this.addFailed.set(className);
+    } finally {
+      this.addBusy.set(null);
+    }
   }
 
   /** UC-10: size S1–S12 as a 0–100% bar width for at-a-glance scanning. */

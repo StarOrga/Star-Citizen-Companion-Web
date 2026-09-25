@@ -16,6 +16,7 @@ import {
 } from './codex-landing-kpi';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * One anatomical position as the AN BORD zone renders it. `weight` is the
@@ -80,14 +81,21 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
 @Component({
   selector: 'sc-codex-board-panel',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, CodexBoardFigureComponent],
+  imports: [RouterLink, TranslatePipe, CodexBoardFigureComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
           <header class="board-head">
             <span class="zone-eyebrow" id="board-title">{{ 'codex.landing.me.eyebrow' | translate }}</span>
-            <a class="board-name" [routerLink]="['/codex', 'fps']" [queryParams]="boardEntryQuery()">
+            <!-- The set's own name is text on the set's own page, not a link that
+                 leaves for the archive; the archive gets a labelled link of its own. -->
+            <span class="board-name">
               {{ hasPersonalSet() ? activeLoadout()!.name : ('codex.landing.me.title' | translate) }}
-            </a>
+            </span>
+            @if (hasPersonalSet()) {
+              <a class="board-archive" [routerLink]="['/codex', 'fps']" [queryParams]="boardEntryQuery()">
+                {{ 'codex.set.equipInArchive' | translate }}
+              </a>
+            }
           </header>
 
           @if (!hasPersonalSet()) {
@@ -142,7 +150,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
                   @for (r of readiness(); track r.key) {
                     <!-- role=img + label: the state must not live in a hover-only title. -->
                     <span class="rdy-ic" [class.on]="r.ok" role="img"
-                          [attr.aria-label]="readyLabel(r)" [attr.title]="readyLabel(r)">
+                          [attr.aria-label]="readyLabel(r)" [scTooltip]="readyLabel(r)" scTooltipTier="label">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="readyIcon(r.key)" /></svg>
                     </span>
                   }
@@ -169,7 +177,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
               @for (s of boardSlots(); track s.roleSlot) {
                 <a class="board-sq" [class.empty]="!s.filled" [class.nodata]="s.filled && s.weight === null"
                    [routerLink]="['/codex', 'fps']" [queryParams]="slotQuery(s)"
-                   [attr.title]="(s.labelKey | translate) + ' — ' + slotClassTitle(s)">
+                   [scTooltip]="(s.labelKey | translate) + ' — ' + slotClassTitle(s)">
                   @if (s.weight !== null) {
                     <span class="sq-fill" [class.off-scale]="s.offScale" [style.height.%]="s.weight * 100"></span>
                   }
@@ -184,9 +192,10 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
             <div class="board-dial">
               @for (l of boardSets(); track l.id) {
                 <a class="dial-node" [class.on]="l.id === activeLoadout()!.id"
+                   [attr.aria-current]="l.id === activeLoadout()!.id ? 'page' : null"
                    [routerLink]="['/codex', 'set', l.id]">
                   <span class="t-value">{{ l.name }}</span>
-                  <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ l.filled }}/6</span>
+                  <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ 'codex.stage.armorEquipped' | translate: { filled: l.filled, total: 6 } }}</span>
                 </a>
               }
               @if (moreSetCount() > 0) {
@@ -235,7 +244,9 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-decoration: none;
         text-shadow: 0 0 18px color-mix(in srgb, var(--tint) 32%, transparent);
       }
-      .board-name:hover, .board-name:focus-visible { color: var(--tint); }
+      .board-archive { margin-left: auto; color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); text-decoration: none; }
+      .board-archive:hover { text-decoration: underline; }
+      .board-archive:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
       .board-person {
         position: relative;
@@ -271,13 +282,15 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .board-slot.empty .t-label, .board-slot.empty .t-value { color: var(--idle); }
+      /* Text lifted with fg-0: --idle itself reads at ~2.4:1, too faint for small labels. */
+      .board-slot.empty .t-label, .board-slot.empty .t-value { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); }
       .board-slot.empty .t-value { font-style: italic; }
       .board-slot:hover, .board-slot:focus-visible {
         border-color: var(--tint);
         background: color-mix(in srgb, var(--tint) 9%, transparent);
-        outline: none;
       }
+      /* A 2px ring like the gear tiles — a 1px border was the only focus mark. */
+      .board-slot:focus-visible { outline: 2px solid var(--tint); outline-offset: 1px; }
 
       .board-fig { display: flex; flex-direction: column; align-items: center; }
 
@@ -366,10 +379,8 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         color: color-mix(in srgb, var(--tint) 70%, #fff);
       }
       .board-sq .t-label { position: relative; z-index: 2; font-size: 0.53rem; letter-spacing: 0.13em; }
-      .board-sq:hover, .board-sq:focus-visible {
-        box-shadow: inset 0 0 0 1px var(--tint);
-        outline: none;
-      }
+      .board-sq:hover { box-shadow: inset 0 0 0 1px var(--tint); }
+      .board-sq:focus-visible { box-shadow: inset 0 0 0 2px var(--tint); outline: none; }
       .sq-fill {
         position: absolute;
         left: 0;
@@ -414,10 +425,11 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-decoration: none;
       }
       .dial-node .t-value { display: block; }
-      .dial-sub { display: block; opacity: 0.7; font-size: 0.55rem; }
+      .dial-sub { display: block; opacity: 0.7; font-size: max(0.55rem, var(--sc-fs-floor)); }
       .dial-node.on { border-color: var(--tint); background: color-mix(in srgb, var(--tint) 18%, transparent); color: var(--tint); }
       .dial-node.more { border-style: dashed; }
-      .dial-node:hover, .dial-node:focus-visible { border-color: var(--tint); color: var(--tint); outline: none; }
+      .dial-node:hover, .dial-node:focus-visible { border-color: var(--tint); color: var(--tint); }
+      .dial-node:focus-visible { outline: 2px solid var(--tint); outline-offset: 2px; }
 
       @media (max-width: 560px) {
         .board-person { grid-template-columns: 1fr; }
@@ -438,7 +450,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
       .board-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
       .empty-chip {
         font-family: var(--sc-font-display);
-        font-size: 0.7rem;
+        font-size: max(0.7rem, var(--sc-fs-floor));
         letter-spacing: 0.06em;
         text-transform: uppercase;
         padding: 3px 9px;
@@ -481,11 +493,10 @@ export class CodexBoardPanelComponent {
   readonly hasPersonalSet = computed(() => this.activeLoadout() !== null);
 
   /**
-   * The zone's name link — the on-foot archive, carrying the equip intent for
-   * the set whose name it is. Since the standalone editor was retired (admin
-   * feedback 34505d70, decision 2A) this IS the "open my set" destination:
-   * `/codex/fps?equipInto=…` is where a piece gets put into a slot. Without a
-   * set it degrades to the bare archive, same as the empty-state CTA.
+   * The zone's archive link — the on-foot archive, carrying the equip intent
+   * for the set on screen: `/codex/fps?equipInto=…` is where a piece gets put
+   * into a slot. The set itself lives at `/codex/set/:id`, the page this panel
+   * sits on, so the set's name is no longer the link that leaves it.
    */
   readonly boardEntryQuery = computed<Record<string, string>>(() => {
     const active = this.activeLoadout();
