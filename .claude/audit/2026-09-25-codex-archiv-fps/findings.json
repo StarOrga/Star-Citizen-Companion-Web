@@ -1,0 +1,288 @@
+{
+  "audit": "codex-archiv-fps",
+  "date": "2026-09-25",
+  "scope": "all",
+  "mode": "implement",
+  "findings": [
+    {
+      "id": "AUD-001",
+      "severity": "high",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Set picker changed the URL but not the page",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-002",
+      "severity": "high",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Set page open slots lost the blue-grey (--idle undefined)",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-003",
+      "severity": "high",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Set links (switcher, back to set, hangar card, redirect) went to the landing",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-004",
+      "severity": "medium",
+      "dimension": "resilience",
+      "status": "fixed",
+      "what": "Failed equip / stale equipInto looked like a dead click",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-005",
+      "severity": "medium",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Keybinds scrolled sideways on phones",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-006",
+      "severity": "high",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Armour/FPS weapon detail 573px wide on phones",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-007",
+      "severity": "medium",
+      "dimension": "resilience",
+      "status": "fixed",
+      "what": "Set page: load failure shown as no sets; empty state dead end",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-008",
+      "severity": "low",
+      "dimension": "resilience",
+      "status": "fixed",
+      "what": "Detail: no retry, unknown category queried table undefined, stale answers",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-009",
+      "severity": "low",
+      "dimension": "resilience",
+      "status": "fixed",
+      "what": "Keybinds: error + empty state together, overlapping reloads",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-010",
+      "severity": "low",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "0 results shown above loading skeletons",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-011",
+      "severity": "low",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "FPS search placeholder used ship examples",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-012",
+      "severity": "low",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Figure SVG fallback without colours outside the panel",
+      "route": "auto-fix"
+    },
+    {
+      "id": "AUD-020",
+      "severity": "high",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Two tabs equipping one set overwrote each other",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-021",
+      "severity": "high",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Set page had no weapon/tool slots",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-022",
+      "severity": "medium",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Weapons offered for slots they cannot fill; medgun readiness",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-023",
+      "severity": "medium",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "No share icon on the set page",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-030",
+      "severity": "medium",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "Nameless records sorted first; PH Unknown Manufacturer badge",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-031",
+      "severity": "medium",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "Salvage wrecks / sentries / probes listed as ships",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-032",
+      "severity": "medium",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "FPS lists folded per page (split liveries, estimated counts, ~600kB pages)",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-033",
+      "severity": "medium",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "Raw English tokens on the German FPS UI",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-040",
+      "severity": "medium",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "List state not in the URL",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-041",
+      "severity": "high",
+      "dimension": "resilience",
+      "status": "fixed",
+      "what": "Failed build lookup emptied every archive view until reload",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-042",
+      "severity": "high",
+      "dimension": "functional",
+      "status": "fixed",
+      "what": "Index search ignored other categories",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-043",
+      "severity": "medium",
+      "dimension": "accessibility",
+      "status": "fixed",
+      "what": "Buttons nested in card links",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-050",
+      "severity": "medium",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Admin red on viewer badges/icons; admin toggle unmarked",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-051",
+      "severity": "low",
+      "dimension": "content",
+      "status": "fixed",
+      "what": "Five back-link wordings, stale Bruecke",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-052",
+      "severity": "low",
+      "dimension": "visual",
+      "status": "fixed",
+      "what": "Token drift, tab roles, aria, slot param validation, stale comments, modal focus",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-053",
+      "severity": "low",
+      "dimension": "architecture",
+      "status": "fixed",
+      "what": "Dead KPI code, zone rail, unused i18n keys",
+      "route": "ask:approved"
+    },
+    {
+      "id": "AUD-060",
+      "severity": "medium",
+      "dimension": "content",
+      "status": "open",
+      "what": "Stat labels English humanized keys; armour shows engine internals",
+      "route": "issue"
+    },
+    {
+      "id": "AUD-061",
+      "severity": "medium",
+      "dimension": "architecture",
+      "status": "open",
+      "what": "/codex/blueprint duplicates the index blueprint tab; list views near copies",
+      "route": "issue"
+    },
+    {
+      "id": "AUD-062",
+      "severity": "medium",
+      "dimension": "build-config",
+      "status": "open",
+      "what": "codex-detail styles 22.95kB of 24kB error budget",
+      "route": "issue"
+    },
+    {
+      "id": "AUD-063",
+      "severity": "medium",
+      "dimension": "functional",
+      "status": "partly",
+      "what": "Facet options from loaded rows only (fixed for FPS, index still per page)",
+      "route": "issue"
+    },
+    {
+      "id": "AUD-064",
+      "severity": "medium",
+      "dimension": "functional",
+      "status": "open",
+      "what": "Equip possible while viewing a past patch",
+      "route": "issue"
+    },
+    {
+      "id": "AUD-065",
+      "severity": "medium",
+      "dimension": "visual",
+      "status": "open",
+      "what": "Set page repeats figure/name/role (hero + old panel stacked)",
+      "route": "concept"
+    },
+    {
+      "id": "AUD-066",
+      "severity": "info",
+      "dimension": "build-config",
+      "status": "open",
+      "what": "npm run lint is a no-op",
+      "route": "issue"
+    }
+  ]
+}
