@@ -8,7 +8,7 @@ import { ResolvedEntity } from '../codex.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout, RoleLoadoutItem, RoleLoadoutRole } from '../../hangar/hangar.types';
 
-let setSlotCalls: Array<[string, string, unknown]>;
+let setSlotCalls: Array<[string, string, unknown, string | undefined]>;
 let setSlotResult: HangarRoleLoadout | null;
 /** When set, `setRoleLoadoutSlot` waits on it — lets a spec look at the busy state. */
 let gate: Promise<void> | null;
@@ -30,8 +30,8 @@ async function setup(opts: {
         provide: HangarService,
         useValue: {
           error: signal<string | null>(null),
-          setRoleLoadoutSlot: async (id: string, slot: string, piece: unknown) => {
-            setSlotCalls.push([id, slot, piece]);
+          setRoleLoadoutSlot: async (id: string, slot: string, piece: unknown, expect?: string) => {
+            setSlotCalls.push([id, slot, piece, expect]);
             if (gate) await gate;
             return setSlotResult;
           },
@@ -118,6 +118,29 @@ describe('CodexSetGearComponent', () => {
     expect(a.getAttribute('href')).toBe('/codex/fps?cat=weapon&equipInto=set-1&equipSlot=tractor');
   });
 
+  it('lists filled slots outside the role\'s positions — clearable, not linked', async () => {
+    // The retired editor stored whatever slot name the user typed; readiness
+    // still counts those pieces, so the page must show them too.
+    const fixture = await setup({
+      role: 'fps',
+      items: [
+        { slot: 'Knife', className: 'kdid_knife_01', kind: 'weapon' },
+        { slot: 'multitool', className: 'grin_multitool_01', kind: 'weapon' },
+        { slot: 'Grenade belt', className: null, kind: null },
+        { slot: 'helmet', className: 'Test_Helmet', kind: 'item' },
+      ],
+    });
+    expect(slotEls(fixture).map((e) => e.dataset['slot'])).toEqual(['primary', 'secondary', 'sidearm', 'Knife', 'multitool']);
+
+    const knife = slotEl(fixture, 'Knife');
+    expect(knife.querySelector('a')).toBeNull();
+    expect(knife.querySelector('.t-label')?.textContent?.trim()).toBe('Knife');
+    expect(knife.querySelector('.gear-note')?.textContent).toContain('codex.set.gear.customSlot');
+    expect(knife.querySelector('button.gear-clear')).not.toBeNull();
+    // A known token keeps its translated label even outside its own role.
+    expect(slotEl(fixture, 'multitool').querySelector('.t-label')?.textContent?.trim()).toBe('hangar.slots.multitool');
+  });
+
   it('renders the medpen position muted, without a link, with the no-source note', async () => {
     const fixture = await setup({ role: 'medical' });
     const medpen = slotEl(fixture, 'medpen');
@@ -126,7 +149,7 @@ describe('CodexSetGearComponent', () => {
     expect(medpen.textContent).toContain('codex.set.gear.noSource');
   });
 
-  it('clears a position through setRoleLoadoutSlot(id, slot, null) with a busy state', async () => {
+  it('clears a position through setRoleLoadoutSlot(id, slot, null, shown piece) with a busy state', async () => {
     const fixture = await setup({
       role: 'engineering',
       items: [{ slot: 'multitool', className: 'grin_multitool_01', kind: 'weapon' }],
@@ -137,7 +160,8 @@ describe('CodexSetGearComponent', () => {
     const btn = slotEl(fixture, 'multitool').querySelector('button.gear-clear') as HTMLButtonElement;
     btn.click();
     fixture.detectChanges();
-    expect(setSlotCalls).toEqual([['set-1', 'multitool', null]]);
+    // The shown piece rides along: a newer one another tab put there survives.
+    expect(setSlotCalls).toEqual([['set-1', 'multitool', null, 'grin_multitool_01']]);
     expect(btn.disabled).toBe(true);
     expect(btn.getAttribute('aria-busy')).toBe('true');
     expect(btn.textContent?.trim()).toBe('codex.set.gear.clearing');
@@ -147,6 +171,31 @@ describe('CodexSetGearComponent', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.busySlot()).toBeNull();
     expect(slotEl(fixture, 'multitool').querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('holds every clear button while one clear is in flight', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [
+        { slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' },
+        { slot: 'sidearm', className: 'KSAR_Pistol_Energy_01', kind: 'weapon' },
+      ],
+    });
+    let release!: () => void;
+    gate = new Promise<void>((r) => (release = r));
+
+    (slotEl(fixture, 'primary').querySelector('button.gear-clear') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const sidearm = slotEl(fixture, 'sidearm').querySelector('button.gear-clear') as HTMLButtonElement;
+    // Disabled rather than silently ignoring the click, and only the busy one says so.
+    expect(sidearm.disabled).toBe(true);
+    expect(sidearm.getAttribute('aria-busy')).toBe('false');
+
+    release();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(sidearm.disabled).toBe(false);
+    expect(setSlotCalls.length).toBe(1);
   });
 
   it('names a failed clear inline as an alert', async () => {

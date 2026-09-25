@@ -16,15 +16,22 @@ import {
 /** The six anatomical positions — the board panel above already renders them. */
 const ARMOR_ROLE_SLOTS: ReadonlySet<string> = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
 
+/** Every slot token some role suggests — each has a `hangar.slots.*` label. */
+const KNOWN_SLOTS: ReadonlySet<string> = new Set(Object.values(ROLE_SLOT_SUGGESTIONS).flat());
+
 export interface GearSlotRow {
   slot: string;
-  /** i18n key of the position's label (`hangar.slots.<slot>`). */
-  labelKey: string;
+  /** i18n key of the position's label (`hangar.slots.<slot>`); null for a free-form slot. */
+  labelKey: string | null;
+  /** A free-form slot's own name, as the user typed it; null when `labelKey` names it. */
+  label: string | null;
   className: string | null;
   /** Resolved display name of the equipped piece; '' when the slot is open. */
   name: string;
-  /** False where the FPS archive has nothing to offer (medpen) — no link then. */
+  /** False where the FPS archive has nothing to offer (medpen, custom slots) — no link then. */
   linkable: boolean;
+  /** A filled position outside the role's own list (see `rows`). */
+  custom: boolean;
 }
 
 /**
@@ -53,30 +60,32 @@ export interface GearSlotRow {
         @for (r of rows(); track r.slot) {
           <li class="gear-slot" [class.empty]="!r.className" [class.nosource]="!r.linkable" [attr.data-slot]="r.slot">
             <div class="gear-row">
+              @let label = r.label ?? (r.labelKey | translate);
               @if (r.linkable) {
                 <a
                   class="gear-tile"
                   routerLink="/codex/fps"
                   [queryParams]="{ cat: 'weapon', equipInto: setId(), equipSlot: r.slot }"
                 >
-                  <span class="t-label">{{ r.labelKey | translate }}</span>
+                  <span class="t-label">{{ label }}</span>
                   <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
                 </a>
               } @else {
                 <div class="gear-tile static">
-                  <span class="t-label">{{ r.labelKey | translate }}</span>
+                  <span class="t-label">{{ label }}</span>
                   <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
-                  <span class="gear-note">{{ 'codex.set.gear.noSource' | translate }}</span>
+                  <span class="gear-note">{{ (r.custom ? 'codex.set.gear.customSlot' : 'codex.set.gear.noSource') | translate }}</span>
                 </div>
               }
               @if (r.className) {
+                <!-- One write at a time: every clear waits while one is in flight. -->
                 <button
                   type="button"
                   class="gear-clear"
-                  [disabled]="busySlot() === r.slot"
+                  [disabled]="busySlot() !== null"
                   [attr.aria-busy]="busySlot() === r.slot"
-                  [attr.aria-label]="'codex.set.gear.clearAria' | translate: { slot: (r.labelKey | translate) }"
-                  (click)="clear(r.slot)"
+                  [attr.aria-label]="'codex.set.gear.clearAria' | translate: { slot: label }"
+                  (click)="clear(r.slot, r.className)"
                 >
                   {{ (busySlot() === r.slot ? 'codex.set.gear.clearing' : 'codex.set.gear.clear') | translate }}
                 </button>
@@ -84,7 +93,7 @@ export interface GearSlotRow {
             </div>
             @if (failedSlot() === r.slot) {
               <p class="gear-err" role="alert">
-                {{ 'codex.set.gear.clearFailed' | translate: { slot: (r.labelKey | translate) } }}
+                {{ 'codex.set.gear.clearFailed' | translate: { slot: label } }}
               </p>
             }
           </li>
@@ -205,31 +214,62 @@ export class CodexSetGearComponent {
   /** Names of the set's pieces — the set page resolves every item, not only armour. */
   readonly resolved = input<ReadonlyMap<string, ResolvedEntity>>(new Map());
 
-  /** The slot whose clear is in flight — one write at a time per slot. */
+  /** The slot whose clear is in flight — one write at a time for the whole list. */
   readonly busySlot = signal<string | null>(null);
   /** The slot whose last clear failed; its inline alert shows until the next attempt. */
   readonly failedSlot = signal<string | null>(null);
 
   readonly rows = computed<GearSlotRow[]>(() => {
-    const bySlot = new Map(this.items().map((i) => [i.slot, i.className] as const));
+    const items = this.items();
+    const bySlot = new Map(items.map((i) => [i.slot, i.className] as const));
     const resolved = this.resolved();
-    return (ROLE_SLOT_SUGGESTIONS[this.role()] ?? [])
-      .filter((slot) => !ARMOR_ROLE_SLOTS.has(slot))
-      .map((slot) => {
-        const className = bySlot.get(slot) ?? null;
-        const name = className
-          ? cleanLocaleValue(resolved.get(className)?.nameLocalized) || humanizeClassName(className)
-          : '';
-        return { slot, labelKey: 'hangar.slots.' + slot, className, name, linkable: slotHasArchiveSource(slot) };
+    const nameOf = (className: string | null): string =>
+      className ? cleanLocaleValue(resolved.get(className)?.nameLocalized) || humanizeClassName(className) : '';
+    const suggested = (ROLE_SLOT_SUGGESTIONS[this.role()] ?? []).filter((slot) => !ARMOR_ROLE_SLOTS.has(slot));
+    const rows: GearSlotRow[] = suggested.map((slot) => {
+      const className = bySlot.get(slot) ?? null;
+      return {
+        slot,
+        labelKey: 'hangar.slots.' + slot,
+        label: null,
+        className,
+        name: nameOf(className),
+        linkable: slotHasArchiveSource(slot),
+        custom: false,
+      };
+    });
+    // Filled slots outside the role's positions: the retired set editor
+    // (until #496) stored whatever slot name the user typed. Readiness still
+    // counts their pieces, so they are listed — clearable, not linked — rather
+    // than lighting a glyph from something the page never shows.
+    const listed = new Set(suggested);
+    for (const item of items) {
+      if (!item.className || listed.has(item.slot) || ARMOR_ROLE_SLOTS.has(item.slot)) continue;
+      listed.add(item.slot);
+      const known = KNOWN_SLOTS.has(item.slot);
+      rows.push({
+        slot: item.slot,
+        labelKey: known ? 'hangar.slots.' + item.slot : null,
+        label: known ? null : item.slot,
+        className: item.className,
+        name: nameOf(item.className),
+        linkable: false,
+        custom: true,
       });
+    }
+    return rows;
   });
 
-  async clear(slot: string): Promise<void> {
+  /**
+   * Empty `slot` — but only while it still holds `shown`, the piece this tile
+   * displays; a newer piece another tab put there stays (see setRoleLoadoutSlot).
+   */
+  async clear(slot: string, shown: string | null): Promise<void> {
     if (this.busySlot()) return;
     this.busySlot.set(slot);
     this.failedSlot.set(null);
     try {
-      const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), slot, null);
+      const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), slot, null, shown ?? undefined);
       if (!saved) this.failedSlot.set(slot);
     } catch {
       this.failedSlot.set(slot);

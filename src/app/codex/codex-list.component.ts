@@ -55,6 +55,7 @@ import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
+import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -723,15 +724,8 @@ export class CodexListComponent implements OnInit {
    * Other tokens (ship turret shapes …) stay as the catalog spells them.
    */
   subTypeKey(r: CodexListRow): string | null {
-    const sub = r.subType ?? '';
-    if (r.weaponClass === 'FPS') {
-      const id = ({ Small: 'sidearm', Medium: 'primary', Large: 'heavy', Knife: 'melee', Grenade: 'throwable', Gadget: 'gadget' } as Record<string, string>)[sub];
-      return id ? `fps.weaponType.${id}` : null;
-    }
-    if (this.kind() === 'item') {
-      const id = ({ Light: 'light', Medium: 'medium', Heavy: 'heavy' } as Record<string, string>)[sub];
-      return id ? `fps.weight.${id}` : null;
-    }
+    if (r.weaponClass === 'FPS') return fpsWeaponTypeKey(r.subType);
+    if (this.kind() === 'item') return fpsArmorWeightKey(r.subType);
     return null;
   }
 
@@ -1135,7 +1129,9 @@ export class CodexListComponent implements OnInit {
       if (v) set(v);
     };
     take('mfr', (v) => this.manufacturer.set(v));
-    take('size', (v) => this.size.set(v));
+    // A size is a number: `?size=abc` from a typed link used to reach the
+    // query as `size=eq.NaN` and put an error card over the list.
+    take('size', (v) => /^\d{1,2}$/.test(v) && this.size.set(v));
     take('grade', (v) => this.grade.set(v));
     if (this.kind() === 'component') take('ck', (v) => this.componentKind.set(v));
     if (this.kind() === 'weapon') {

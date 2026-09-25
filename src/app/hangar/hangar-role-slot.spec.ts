@@ -81,14 +81,16 @@ describe('HangarService.setRoleLoadoutSlot', () => {
     expect(saved?.items.map((i) => i.slot)).toEqual(['helmet', 'core']);
   });
 
-  it('gives up after a second conflict and says so', async () => {
+  it('gives up after a second conflict — null, and the shared banner stays clear', async () => {
     const stub = makeClient([row('t1', []), row('t2', [])], [[], []]);
     const svc = makeService(stub.client);
 
     const saved = await svc.setRoleLoadoutSlot('set-1', 'core', { className: 'x', kind: 'item' });
 
     expect(saved).toBeNull();
-    expect(svc.error()).toBe('hangar.errors.setChanged');
+    // Both callers report a refused write inline; `error` drives the hangar
+    // banner and the set page's load-failure card, so it must not carry this.
+    expect(svc.error()).toBeNull();
   });
 
   it('clears a slot with a null piece', async () => {
@@ -127,6 +129,37 @@ describe('HangarService.setRoleLoadoutSlot', () => {
 
     expect(await svc.setRoleLoadoutSlot('gone', 'core', null)).toBeNull();
     expect(stub.written.length).toBe(0);
-    expect(svc.error()).toBe('hangar.errors.setNotFound');
+    expect(svc.error()).toBeNull();
+  });
+
+  it('keeps a newer piece another tab put in the slot when a stale clear arrives', async () => {
+    // Tab A still shows the C54 in primary; tab B has since put a P4-AR there.
+    const p4ar = { slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' };
+    const cachedSet: HangarRoleLoadout = {
+      id: 'set-1', name: 'Recon', role: 'fps',
+      items: [{ slot: 'primary', className: 'gmni_smg_energy_01', kind: 'weapon' }],
+      createdAt: 'c', updatedAt: 't1',
+    };
+    const stub = makeClient([row('t2', [p4ar])], []);
+    const svc = makeService(stub.client, [cachedSet]);
+
+    const back = await svc.setRoleLoadoutSlot('set-1', 'primary', null, 'gmni_smg_energy_01');
+
+    expect(stub.written.length).toBe(0);
+    expect(back?.items).toEqual([p4ar]);
+    // The fresh copy replaces the stale cached one, so the page shows the P4-AR.
+    expect(svc.roleLoadouts()[0].items).toEqual([p4ar]);
+  });
+
+  it('clears the slot while it still holds the piece the caller showed', async () => {
+    const stub = makeClient(
+      [row('t1', [{ slot: 'primary', className: 'gmni_smg_energy_01', kind: 'weapon' }])],
+      [[row('t2', [])]],
+    );
+    const svc = makeService(stub.client);
+
+    await svc.setRoleLoadoutSlot('set-1', 'primary', null, 'gmni_smg_energy_01');
+
+    expect(stub.written).toEqual([{ items: [], guard: 't1' }]);
   });
 });

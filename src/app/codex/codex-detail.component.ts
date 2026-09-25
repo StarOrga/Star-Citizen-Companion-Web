@@ -2502,9 +2502,9 @@ export class CodexDetailComponent implements OnInit {
       this.detail.set(d);
       if (d) {
         await Promise.all([
-          this.resolveLoadoutEntities(d),
-          this.resolveLocale(d),
-          this.resolveShipTech(d),
+          this.resolveLoadoutEntities(d, seq),
+          this.resolveLocale(d, seq),
+          this.resolveShipTech(d, seq),
         ]);
         if (seq !== this.loadSeq) return;
         if (kind === 'ship') {
@@ -2515,9 +2515,9 @@ export class CodexDetailComponent implements OnInit {
         void this.loadSkinGroup(kind, d.classNameSlug);
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
-        if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+        if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug, seq);
         // Ships are not craftable either, so skip the forward lookup as well.
-        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug);
+        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
         // Ship pages: hangar membership backs the add-to-hangar action.
         if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
         // Ship pages: resolve the pinned pledge link (own > global). Best
@@ -2550,13 +2550,24 @@ export class CodexDetailComponent implements OnInit {
     }
   }
 
+  /**
+   * Every follow-up read of load() takes its `seq` and only writes while that
+   * load is still the current one: a quick livery or edition switch must not
+   * end on the previous entity's tech stats, loadout, recipe or "used in" list
+   * (harden scan, 2026-09-25).
+   */
+  private isCurrentLoad(seq: number): boolean {
+    return seq === this.loadSeq;
+  }
+
   /** Resolve raw @-keys on the row (currently the ship role) to localized text. */
-  private async resolveLocale(d: CodexDetail): Promise<void> {
+  private async resolveLocale(d: CodexDetail, seq: number): Promise<void> {
     const keys: string[] = [];
     const role = d.row['role'];
     if (typeof role === 'string' && role.startsWith('@')) keys.push(role);
     if (keys.length === 0) return;
-    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.lang()));
+    const resolved = await this.svc.resolveLocaleKeys(keys, this.lang());
+    if (this.isCurrentLoad(seq)) this.localeMap.set(resolved);
   }
 
   // ── hardpoint slot compatibility ────────────────────────────────────────────
@@ -2595,14 +2606,13 @@ export class CodexDetailComponent implements OnInit {
     this.compatMap.set(m);
   }
 
-  private async resolveLoadoutEntities(d: CodexDetail): Promise<void> {
+  private async resolveLoadoutEntities(d: CodexDetail, seq: number): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
     // Sub-items too — a gun that only exists inside a mount still needs its
     // name, size and manufacturer resolved.
-    this.loadoutEntities.set(
-      await this.svc.resolveEntities(stockLoadoutClassNames(entries)),
-    );
+    const entities = await this.svc.resolveEntities(stockLoadoutClassNames(entries));
+    if (this.isCurrentLoad(seq)) this.loadoutEntities.set(entities);
   }
 
   /**
@@ -2612,7 +2622,7 @@ export class CodexDetailComponent implements OnInit {
    * codex and hangar always agree. Best-effort: failures leave the hero
    * facts without tech chips instead of breaking the page.
    */
-  private async resolveShipTech(d: CodexDetail): Promise<void> {
+  private async resolveShipTech(d: CodexDetail, seq: number): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
     // Sub-items included: the per-hardpoint readout needs the payload of a gun
@@ -2623,10 +2633,12 @@ export class CodexDetailComponent implements OnInit {
     if (classNames.length === 0) return;
     try {
       const payloads = await this.svc.getEntityPayloads(classNames);
+      if (!this.isCurrentLoad(seq)) return;
       // Publish the payloads first: the per-hardpoint stat readout depends only
       // on them, so it must survive a failure in the aggregate tech math below.
       this.loadoutPayloads.set(payloads);
-      await this.resolveLoadoutAmmo(payloads);
+      await this.resolveLoadoutAmmo(payloads, seq);
+      if (!this.isCurrentLoad(seq)) return;
       const lines: ResolvedLoadoutLine[] = [];
       for (const e of entries) {
         if (!e.entityClassName) continue;
@@ -2681,6 +2693,7 @@ export class CodexDetailComponent implements OnInit {
    */
   private async resolveLoadoutAmmo(
     payloads: Map<string, { kind: CodexKind; payload: unknown }>,
+    seq: number,
   ): Promise<void> {
     const weaponClasses = [...payloads.entries()]
       .filter(([, v]) => (v.payload as { entityKind?: string } | null)?.entityKind === 'weapon')
@@ -2688,7 +2701,8 @@ export class CodexDetailComponent implements OnInit {
     const ammoNames = ammoClassNamesFor(weaponClasses, (cn) => payloads.get(cn)?.payload);
     if (ammoNames.length === 0) return;
     try {
-      this.ammoPayloads.set(await this.svc.getAmmoPayloads(ammoNames));
+      const ammo = await this.svc.getAmmoPayloads(ammoNames);
+      if (this.isCurrentLoad(seq)) this.ammoPayloads.set(ammo);
     } catch {
       // projectile stats are a bonus — a failed lookup just hides those rows
     }
@@ -2734,18 +2748,21 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
-  private async loadUsedInBlueprints(className: string): Promise<void> {
+  private async loadUsedInBlueprints(className: string, seq: number): Promise<void> {
+    let used: BlueprintRef[] = [];
     try {
-      this.usedInBlueprints.set(await this.svc.blueprintsUsingIngredient(className));
+      used = await this.svc.blueprintsUsingIngredient(className);
     } catch {
-      this.usedInBlueprints.set([]);
+      // supplementary — a failed lookup just hides the list
     }
+    if (this.isCurrentLoad(seq)) this.usedInBlueprints.set(used);
   }
 
   /** Forward lookup: the recipe that produces this entity, with its materials. */
-  private async loadRecipe(className: string): Promise<void> {
+  private async loadRecipe(className: string, seq: number): Promise<void> {
     try {
       const bp = await this.svc.getCraftingRecipe(className);
+      if (!this.isCurrentLoad(seq)) return;
       this.recipe.set(bp ? {
         classNameSlug: bp.classNameSlug,
         craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
@@ -2753,7 +2770,7 @@ export class CodexDetailComponent implements OnInit {
       } : null);
     } catch {
       // Crafting data is supplementary — a failed lookup just hides the panel.
-      this.recipe.set(null);
+      if (this.isCurrentLoad(seq)) this.recipe.set(null);
     }
   }
 

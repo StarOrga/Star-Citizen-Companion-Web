@@ -38,6 +38,7 @@ import {
 } from '../hangar/hangar.types';
 import { ARMOR_SLOT_SPECS, roleSlotForAttachType } from './codex-landing-kpi';
 import { mirrorQueryParams } from './codex-url-state';
+import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -63,41 +64,6 @@ interface FacetOption {
   labelKey: string | null;
   raw: string;
 }
-
-/**
- * FPS weapon sub-types → the index's on-foot weapon groups (codex-weapon-taxonomy):
- * the facet reuses those labels ("Einhandwaffen"), a card its singular
- * (`fps.weaponType.*`). Only the tokens the catalog really carries.
- */
-const WEAPON_TYPE_ID: Readonly<Record<string, string>> = {
-  Small: 'sidearm',
-  Medium: 'primary',
-  Large: 'heavy',
-  Knife: 'melee',
-  Grenade: 'throwable',
-  Gadget: 'gadget',
-};
-
-/** Armour slot tokens (`fpsArmorSlot`) → the AN BORD figure's position labels. */
-const ARMOR_SLOT_ID: Readonly<Record<string, string>> = {
-  Helmet: 'helmet',
-  Torso: 'torso',
-  Arms: 'arms',
-  Legs: 'legs',
-  Undersuit: 'undersuit',
-  Backpack: 'backpack',
-};
-
-/**
- * Armour `sub_type` is the weight class for most pieces; for helmets and
- * undersuits it repeats the slot ("Helmet") or is the game's "UNDEFINED" —
- * those carry nothing the slot badge doesn't already say, so no badge.
- */
-const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
-  Light: 'light',
-  Medium: 'medium',
-  Heavy: 'heavy',
-};
 
 /**
  * FPS / on-foot equipment Codex section (issue #251) — a dedicated, curated
@@ -582,7 +548,7 @@ export class FpsListComponent {
 
   /** The catalog narrowed by search and facets — before any folding. */
   private readonly filtered = computed<FpsRow[]>(() => {
-    const term = this.searchTerm().trim().toLowerCase();
+    const matches = searchMatcher(this.searchTerm());
     const mfr = this.manufacturer();
     const size = this.size();
     const grade = this.grade();
@@ -590,10 +556,10 @@ export class FpsListComponent {
     const armor = this.category() === 'armor';
     return this.catalog().filter(
       (r) =>
-        (!term ||
-          this.cardName(r).toLowerCase().includes(term) ||
-          (r.nameLocalized ?? '').toLowerCase().includes(term) ||
-          r.classNameSlug.toLowerCase().includes(term)) &&
+        (!matches ||
+          matches(this.cardName(r)) ||
+          matches(r.nameLocalized ?? '') ||
+          matches(r.classNameSlug)) &&
         (!mfr || r.manufacturerCode === mfr) &&
         (!size || String(r.size) === size) &&
         (!grade || r.grade === grade) &&
@@ -617,15 +583,7 @@ export class FpsListComponent {
    * until pass 1 has folded them. Ticking "include variants" — the control that
    * already means "show me the raw records" — turns BOTH off.
    */
-  readonly rows = computed<FpsGridRow[]>(() =>
-    this.includeVariants()
-      ? this.filtered().map((r) => ({
-          ...r,
-          foldedClassNames: [] as readonly string[],
-          skinVariants: [] as readonly SkinVariantRef[],
-        }))
-      : groupSkinRows(foldVariantRows(this.filtered(), (r) => this.cardName(r))),
-  );
+  readonly rows = computed<FpsGridRow[]>(() => this.fold(this.filtered(), this.includeVariants()));
   readonly visibleRows = computed(() => this.rows().slice(0, this.shown()));
   /** Exact: the whole category is folded, so this is the number of cards there are. */
   readonly total = computed(() => this.rows().length);
@@ -661,11 +619,11 @@ export class FpsListComponent {
       : uniqSorted(this.catalog().map((r) => r.subType));
     // Head to toe / sidearm to gadget — the order the labels mean, not the
     // alphabet of the English tokens behind them.
-    const order = Object.keys(armor ? ARMOR_SLOT_ID : WEAPON_TYPE_ID);
+    const order = Object.keys(armor ? FPS_ARMOR_SLOT_ID : FPS_WEAPON_TYPE_ID);
     const rank = (v: string) => (order.includes(v) ? order.indexOf(v) : order.length);
     values.sort((a, b) => rank(a) - rank(b));
     return values.map((v) => {
-      const id = armor ? ARMOR_SLOT_ID[v] : WEAPON_TYPE_ID[v];
+      const id = armor ? FPS_ARMOR_SLOT_ID[v] : FPS_WEAPON_TYPE_ID[v];
       // A weapon token outside the known six (one record says just "Weapon")
       // reads as the index's "Sonstige", not as a raw English word.
       const labelKey = armor
@@ -731,6 +689,32 @@ export class FpsListComponent {
     mirrorQueryParams(this.router, this.route, this.location, queryParams);
   }
 
+  /** Both display passes of `rows` — or neither, when the raw records are asked for. */
+  private fold(rows: FpsRow[], raw: boolean): FpsGridRow[] {
+    return raw
+      ? rows.map((r) => ({
+          ...r,
+          foldedClassNames: [] as readonly string[],
+          skinVariants: [] as readonly SkinVariantRef[],
+        }))
+      : groupSkinRows(foldVariantRows(rows, (r) => this.cardName(r)));
+  }
+
+  /**
+   * Drop a facet the loaded category does not carry. A typed or stale link
+   * (`?slot=Foo`, `?size=abc`, a manufacturer an older build had) would filter
+   * the list down to zero cards with no hint why; a weapon type outside the
+   * known six (one record says just "Weapon") is still restored, because the
+   * catalog offers it.
+   */
+  private dropUnknownFacets(): void {
+    const carried = (value: string, options: readonly string[]) => !value || options.includes(value);
+    if (!carried(this.subType(), this.subTypeOptions().map((o) => o.value))) this.subType.set('');
+    if (!carried(this.manufacturer(), this.manufacturerOptions().map((o) => o.code))) this.manufacturer.set('');
+    if (!carried(this.size(), this.sizeOptions())) this.size.set('');
+    if (!carried(this.grade(), this.gradeOptions())) this.grade.set('');
+  }
+
   /**
    * Resolve `?equipInto=` into the actual set. Best-effort on purpose: a stale
    * id (deleted set, old bookmark) leaves `targetSet` null and says so in the
@@ -766,12 +750,11 @@ export class FpsListComponent {
     const q = this.route.snapshot.queryParamMap;
     const cat = q.get('cat');
     if (cat === 'armor' || cat === 'weapon') this.category.set(cat);
-    // Only accept a facet the category can actually carry — a stale or typed
-    // link (?slot=Foo) used to filter the list down to zero rows.
+    // Taken as given here; once the category has loaded, dropUnknownFacets()
+    // clears one it does not carry — a stale or typed link (?slot=Foo) used to
+    // filter the list down to zero rows.
     const slot = q.get('slot');
-    const knownSlot =
-      !!slot && Object.hasOwn(this.category() === 'armor' ? ARMOR_SLOT_ID : WEAPON_TYPE_ID, slot);
-    if (knownSlot) this.subType.set(slot!);
+    if (slot) this.subType.set(slot);
     const term = q.get('q');
     if (term) {
       this.searchInput.set(term);
@@ -786,7 +769,7 @@ export class FpsListComponent {
     // weapon type that slot takes, unless the link already named a facet.
     const equipSlot = q.get('equipSlot');
     this.equipSlot.set(equipSlot);
-    if (equipSlot && this.category() === 'weapon' && !knownSlot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
+    if (equipSlot && this.category() === 'weapon' && !slot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
       this.subType.set(SLOT_WEAPON_FACET[equipSlot]);
     }
   }
@@ -863,6 +846,9 @@ export class FpsListComponent {
     const set = this.targetSet();
     if (!set || this.equipBusy()) return;
     const clearing = this.isEquipped(r, slot);
+    // A clear names the piece this page showed in the slot, so a newer one that
+    // another tab put there survives (the service hands back the fresh set).
+    const shown = clearing ? (set.items.find((i) => i.slot === slot)?.className ?? undefined) : undefined;
     const key = `${r.classNameSlug}|${slot}`;
     this.equipBusy.set(key);
     this.equipFailed.set(null);
@@ -871,7 +857,7 @@ export class FpsListComponent {
       // a thrown error is the transport failing. Both used to look exactly
       // like a click that did nothing.
       const updated = await this.hangar
-        .setRoleLoadoutSlot(set.id, slot, clearing ? null : { className: r.classNameSlug, kind: r.detailKind })
+        .setRoleLoadoutSlot(set.id, slot, clearing ? null : { className: r.classNameSlug, kind: r.detailKind }, shown)
         .catch(() => null);
       if (updated) this.targetSet.set(updated);
       else this.equipFailed.set(key);
@@ -933,7 +919,7 @@ export class FpsListComponent {
   /** i18n key of the armour slot badge (Helm/Torso/…); null for weapons. */
   armorSlotKey(r: FpsRow): string | null {
     if (this.category() !== 'armor') return null;
-    const id = ARMOR_SLOT_ID[fpsArmorSlot(r.attachType) ?? ''];
+    const id = FPS_ARMOR_SLOT_ID[fpsArmorSlot(r.attachType) ?? ''];
     return id ? `codex.landing.paperdoll.${id}` : null;
   }
 
@@ -943,13 +929,7 @@ export class FpsListComponent {
    * "UNDEFINED" get no badge instead of a raw English word.
    */
   typeKey(r: FpsRow): string | null {
-    const sub = r.subType ?? '';
-    if (this.category() === 'armor') {
-      const id = ARMOR_WEIGHT_ID[sub];
-      return id ? `fps.weight.${id}` : null;
-    }
-    const id = WEAPON_TYPE_ID[sub];
-    return id ? `fps.weaponType.${id}` : null;
+    return this.category() === 'armor' ? fpsArmorWeightKey(r.subType) : fpsWeaponTypeKey(r.subType);
   }
 
   setCategory(c: FpsCategory): void {
@@ -1016,8 +996,12 @@ export class FpsListComponent {
       const rows = await this.svc.listFpsCatalog(category, includeVariants);
       if (seq !== this.loadSeq) return;
       const detailKind: 'weapon' | 'item' = category === 'weapon' ? 'weapon' : 'item';
-      this.catalog.set(rows.map((r) => ({ ...r, detailKind })));
-      this.counts.update((c) => ({ ...c, [category]: this.total() }));
+      const catalog = rows.map((r) => ({ ...r, detailKind }));
+      this.catalog.set(catalog);
+      this.dropUnknownFacets();
+      // The tab keeps the category's own size, not what the current search and
+      // facets leave of it — it still shows after the reader switches tabs.
+      this.counts.update((c) => ({ ...c, [category]: this.fold(catalog, includeVariants).length }));
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
@@ -1025,6 +1009,21 @@ export class FpsListComponent {
       if (seq === this.loadSeq) this.loading.set(false);
     }
   }
+}
+
+/**
+ * Case-insensitive "contains" test for the list search, with `*` as a
+ * wildcard the way the index search's ILIKE reads it — the placeholder's own
+ * example `klwe_*` found nothing while `*` was compared literally. Null for a
+ * term that filters nothing (empty, or only wildcards).
+ */
+function searchMatcher(raw: string): ((text: string) => boolean) | null {
+  const term = raw.trim().toLowerCase();
+  if (!term.includes('*')) return term ? (text) => text.toLowerCase().includes(term) : null;
+  const parts = term.split('*').filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (parts.length === 0) return null;
+  const pattern = new RegExp(parts.join('.*'));
+  return (text) => pattern.test(text.toLowerCase());
 }
 
 function uniqSorted(values: (string | null)[]): string[] {

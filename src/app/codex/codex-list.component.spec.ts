@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexListComponent } from './codex-list.component';
@@ -87,6 +88,7 @@ describe('CodexListComponent (Index mode)', () => {
       imports: [CodexListComponent],
       providers: [
         provideRouter([]),
+        provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },

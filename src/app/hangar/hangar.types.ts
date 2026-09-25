@@ -70,6 +70,9 @@ export interface SlotCandidate {
  *    records are the multi-tool with that attachment fitted;
  *  - the Cambio SRT (`grin_salvage_repair_01`), the MaxLift tractor beams
  *    (`grin_tractor_01…`) and the ParaMed medical device (`crlf_medgun_01`).
+ * The medgun slot takes the ParaMed only: the healing multi-tool goes into
+ * the medical set's own multi-tool slot (the archive folds it into the plain
+ * multi-tool card anyway, and readiness counts it as a gadget, not medical).
  * Medpens are consumable ITEMS, not FPS weapons, so nothing in this archive
  * fills a `medpen` slot — see {@link slotHasArchiveSource}.
  */
@@ -94,7 +97,7 @@ export function slotAccepts(slot: string, piece: SlotCandidate): boolean {
     case 'tractor':
       return cls.includes('tractor');
     case 'medgun':
-      return medgun || (multitool && cls.includes('healing'));
+      return medgun;
     case 'gadget':
       return sub === 'gadget';
     default:

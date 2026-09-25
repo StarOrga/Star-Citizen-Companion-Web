@@ -14,7 +14,10 @@ import { ActivatedRoute, Router } from '@angular/router';
  * (navigationId for back/forward) stays intact.
  *
  * `params` holds the page's own keys; null removes one. Keys it does not name
- * (`equipInto`, `equipSlot`, …) are kept.
+ * (`equipInto`, `equipSlot`, …) are kept. They are merged with the ADDRESS
+ * BAR, not with the router's `queryParamsHandling: 'merge'`: the router never
+ * learns about a `replaceState`, so its URL still holds the query the page
+ * was opened with, and a key removed by an earlier call would come back.
  */
 export function mirrorQueryParams(
   router: Router,
@@ -23,7 +26,8 @@ export function mirrorQueryParams(
   params: Record<string, string | null>,
 ): void {
   try {
-    const tree = router.createUrlTree([], { relativeTo: route, queryParams: params, queryParamsHandling: 'merge' });
+    const current = router.parseUrl(location.path()).queryParams;
+    const tree = router.createUrlTree([], { relativeTo: route, queryParams: { ...current, ...params } });
     const url = router.serializeUrl(tree);
     if (url !== location.path()) location.replaceState(url, '', location.getState());
   } catch {

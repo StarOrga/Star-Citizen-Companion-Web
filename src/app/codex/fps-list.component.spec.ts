@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FpsListComponent } from './fps-list.component';
@@ -75,6 +76,7 @@ describe('FpsListComponent (equip mode)', () => {
       imports: [FpsListComponent],
       providers: [
         provideRouter([]),
+        provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
@@ -171,6 +173,7 @@ describe('FpsListComponent (honest slot fitting)', () => {
       imports: [FpsListComponent],
       providers: [
         provideRouter([]),
+        provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         {
           provide: CodexService,
@@ -260,7 +263,9 @@ describe('FpsListComponent (honest slot fitting)', () => {
 
     primary.click();
     await fixture.whenStable();
-    expect(setSlot).toHaveBeenCalledWith('set-1', 'primary', null);
+    // The clear names the livery the set holds, so a newer piece that another
+    // tab put in the slot meanwhile is not the one that gets removed.
+    expect(setSlot).toHaveBeenCalledWith('set-1', 'primary', null, livery.classNameSlug);
   });
 });
 
@@ -270,6 +275,7 @@ describe('FpsListComponent (whole catalog)', () => {
       imports: [FpsListComponent],
       providers: [
         provideRouter([]),
+        provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         {
           provide: CodexService,
@@ -342,5 +348,56 @@ describe('FpsListComponent (whole catalog)', () => {
     const { el } = await browse({ cat: 'weapon' }, [weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small')]);
     expect(el.querySelector('a.card button')).toBeNull();
     expect(el.querySelector('.card-wrap > .pin')).not.toBeNull();
+  });
+
+  it('reads * in the search as a wildcard, like the placeholder example klwe_*', async () => {
+    const guns = [
+      weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small'),
+      weapon('behr_rifle_ballistic_01', 'P4-AR Rifle', 'Medium'),
+    ];
+    const prefix = await browse({ cat: 'weapon', q: 'klwe_*' }, guns);
+    expect(prefix.names()).toEqual(['Arclight Pistol']);
+    TestBed.resetTestingModule();
+
+    const inner = await browse({ cat: 'weapon', q: 'behr*ballistic' }, guns);
+    expect(inner.names()).toEqual(['P4-AR Rifle']);
+    TestBed.resetTestingModule();
+
+    // Wildcards alone narrow nothing; regex characters stay literal.
+    expect((await browse({ cat: 'weapon', q: '*' }, guns)).names().length).toBe(2);
+    TestBed.resetTestingModule();
+    expect((await browse({ cat: 'weapon', q: 'p4-ar (*' }, guns)).names()).toEqual([]);
+  });
+
+  it('keeps the category\'s own size on its tab after the reader switches tabs', async () => {
+    const piece = (cls: string, attach: string): CodexListRow => ({ ...HELMET, classNameSlug: cls, nameLocalized: cls, attachType: attach });
+    const armor = [
+      piece('rsi_helmet_01', 'Char_Armor_Helmet'),
+      piece('rsi_torso_01', 'Char_Armor_Torso'),
+      piece('rsi_legs_01', 'Char_Armor_Legs'),
+    ];
+    const { cmp, fixture } = await browse({ cat: 'armor', slot: 'Helmet' }, [weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small')], armor);
+    expect(cmp.total()).toBe(1);
+
+    cmp.setCategory('weapon');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    // Three armour pieces exist — the helmet facet narrowed the list, not the category.
+    expect(cmp.categoryCount('armor')).toBe(3);
+  });
+
+  it('restores a weapon type outside the known six, and drops facets the category does not carry', async () => {
+    const guns = [
+      weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small'),
+      weapon('odd_weapon_01', 'Odd Weapon', 'Weapon'),
+    ];
+    const odd = await browse({ cat: 'weapon', slot: 'Weapon' }, guns);
+    expect(odd.cmp.subType()).toBe('Weapon');
+    expect(odd.names()).toEqual(['Odd Weapon']);
+    TestBed.resetTestingModule();
+
+    const stale = await browse({ cat: 'weapon', size: 'abc', mfr: 'NOPE', grade: 'Z' }, guns);
+    expect([stale.cmp.size(), stale.cmp.manufacturer(), stale.cmp.grade()]).toEqual(['', '', '']);
+    expect(stale.names().length).toBe(2);
   });
 });

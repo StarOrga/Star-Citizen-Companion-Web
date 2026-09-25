@@ -671,6 +671,30 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
   });
 });
 
+describe('CodexDetailComponent — stale follow-up answers', () => {
+  it('keeps a late recipe of an earlier load off the page', async () => {
+    // A quick livery switch re-enters load(); the first load's recipe read
+    // answering last used to paint the previous entity's recipe.
+    let releaseFirst!: (bp: BlueprintDetail | null) => void;
+    let calls = 0;
+    const getCraftingRecipe: CodexService['getCraftingRecipe'] = () => {
+      calls++;
+      if (calls === 1) return new Promise<BlueprintDetail | null>((r) => (releaseFirst = r));
+      return Promise.resolve({ classNameSlug: 'BP_NEW', row: {}, ingredients: [] } as unknown as BlueprintDetail);
+    };
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe });
+    const cmp = fixture.componentInstance;
+
+    cmp.retryLoad();
+    await fixture.whenStable();
+    expect(cmp.recipe()?.classNameSlug).toBe('BP_NEW');
+
+    releaseFirst({ classNameSlug: 'BP_OLD', row: {}, ingredients: [] } as unknown as BlueprintDetail);
+    await fixture.whenStable();
+    expect(cmp.recipe()?.classNameSlug).toBe('BP_NEW');
+  });
+});
+
 describe('CodexDetailComponent — failed load (non-ship archive pages)', () => {
   it('offers a retry on the error card, and the retry loads the entry', async () => {
     let calls = 0;

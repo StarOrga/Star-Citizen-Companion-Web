@@ -547,21 +547,8 @@ export class CodexService {
       .select(LIST_SELECT[kind], { count: 'exact' })
       .eq('build_id', build.id);
 
-    // Buyable-only by default. ammunition/manufacturer/blueprint tables have no
-    // is_variant column — skip the filter for them.
-    if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint' && !filters.includeVariants) {
-      query = query.eq('is_variant', false);
-      // Records without a name in ANY language — the game's own "! GERMAN_…
-      // TRANSLATION NOT FOUND … !" marker, English only an @-key — are
-      // unfinished items. "!" sorts before every letter, so a dozen of them
-      // opened every armour list (audit 2026-09-25). NULL names stay.
-      query = query.or('name_localized.is.null,name_localized.not.like.!*');
-    }
-    if (kind === 'ship' && !filters.includeVariants) {
-      for (const prefix of NON_SHIP_VEHICLE_PREFIXES) {
-        query = query.not('class_name', 'ilike', `${prefix}*`);
-      }
-    }
+    // "Include variants" is the switch for the raw records — all of them.
+    if (!filters.includeVariants) query = applyDefaultBrowseFilters(query, kind);
 
     if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
     if (filters.size != null) query = query.eq('size', filters.size);
@@ -612,22 +599,21 @@ export class CodexService {
    */
   async countSearchMatches(search: string, kinds: readonly CodexKind[]): Promise<Map<CodexKind, number>> {
     const out = new Map<CodexKind, number>();
-    const term = search.trim();
+    // Three characters must survive the escaping: `(((` escapes to nothing,
+    // and an empty pattern would count every record of every kind.
+    const safe = escapeIlike(search);
+    if (safe.length < 3) return out;
     const build = await this.loadCurrentBuild();
-    if (!build || !term) return out;
-    const safe = escapeIlike(term);
+    if (!build) return out;
     await Promise.all(
       kinds.map(async (kind) => {
-        let query = this.sb.client
-          .from(CODEX_ENTITY_TABLES[kind])
-          .select('class_name', { count: 'exact', head: true })
-          .eq('build_id', build.id);
-        if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint') {
-          query = query.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
-        }
-        if (kind === 'ship') {
-          for (const prefix of NON_SHIP_VEHICLE_PREFIXES) query = query.not('class_name', 'ilike', `${prefix}*`);
-        }
+        const query = applyDefaultBrowseFilters(
+          this.sb.client
+            .from(CODEX_ENTITY_TABLES[kind])
+            .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
+            .eq('build_id', build.id),
+          kind,
+        );
         const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
         if (!error && count) out.set(kind, count);
       }),
@@ -688,32 +674,12 @@ export class CodexService {
   }
 
   /**
-   * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
-   * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
-   * as every other kind (is_variant = false by default), which is also what
-   * drops the huge pile of `@LOC_PLACEHOLDER` / NPC test rows in this table.
-   */
-  async listFpsWeapons(filters: Omit<CodexListFilters, 'weaponClass'> = {}): Promise<CodexListResult> {
-    return this.listByKind('weapon', { ...filters, weaponClass: 'FPS' });
-  }
-
-  /**
-   * FPS Codex section (#251): on-foot / CHARACTER armor — `codex_items` scoped
-   * to the personal-armor slots (`Char_Armor_*`). NB: `attach_type = 'Armor'`
-   * (no `Char_` prefix) is SHIP hull armor (ARMR_* classes) — a different thing
-   * entirely; do not confuse the two. Personal armor carries no rich stat block
-   * in the extract yet (tracked separately, blocked issue #253); the list/detail
-   * degrade gracefully to name/grade/size/slot/manufacturer only. A caller may
-   * additionally pass `attachType` to narrow to one slot (e.g. Char_Armor_Helmet).
-   */
-  async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
-    return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
-  }
-
-  /**
    * The WHOLE on-foot catalog of one category (FPS weapons or personal armour)
    * in one go, slim: the promoted columns plus the only three payload fields a
-   * list card reads (name, preview image, manufacturer).
+   * list card reads (name, preview image, manufacturer). Weapons are
+   * `codex_weapons` with `weapon_class = 'FPS'`; armour is `codex_items` with a
+   * personal-armour `attach_type` (`Char_Armor_*` — plain `Armor` is SHIP hull
+   * armour, a different thing entirely).
    *
    * Why not pages: `/codex/fps` folds file variants and liveries into one card,
    * and folding per 60-row page split families at the page edge — the C54's
@@ -741,9 +707,7 @@ export class CodexService {
           category === 'weapon'
             ? query.eq('weapon_class', 'FPS')
             : query.in('attach_type', [...FPS_ARMOR_ATTACH_TYPES]);
-        if (!includeVariants) {
-          query = query.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
-        }
+        if (!includeVariants) query = applyDefaultBrowseFilters(query, kind);
         const { data, error } = await query
           .order('name_localized', { ascending: true, nullsFirst: false })
           .order('class_name', { ascending: true })
@@ -760,11 +724,21 @@ export class CodexService {
         }
         if (rows.length < page) break;
       }
+      if (out.length >= FPS_CATALOG_HARD_CAP) {
+        // Five times today's largest category — reaching it means the list
+        // stopped early and its "exact" count is not. Loud, not silent.
+        console.error(`[codex] listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
+      }
       return out;
     };
     const key = `${build.id}|${category}|${includeVariants}`;
     let hit = this.fpsCatalogCache.get(key);
     if (!hit) {
+      // Only the current build's catalogs stay: each is 1–5 MB, and every
+      // patch the reader switched to would otherwise stay cached all session.
+      for (const cached of this.fpsCatalogCache.keys()) {
+        if (!cached.startsWith(`${build.id}|`)) this.fpsCatalogCache.delete(cached);
+      }
       // A failed read must not stick: drop it so the retry button reads again.
       hit = run().catch((err) => {
         this.fpsCatalogCache.delete(key);
@@ -1894,6 +1868,45 @@ function escapeIlike(input: string): string {
 }
 
 /**
+ * Column list of a head-only count query. Typed `string` on purpose: a literal
+ * select makes supabase-js parse it into a row type, and checking that builder
+ * against `BrowseFilterable` hits TS2589 ("excessively deep").
+ */
+const COUNT_ONLY_SELECT: string = 'class_name';
+
+/** The three filter calls the default browse filters need — every PostgREST filter builder has them. */
+interface BrowseFilterable {
+  eq(column: string, value: boolean): this;
+  or(filters: string): this;
+  not(column: string, operator: string, value: string): this;
+}
+
+/**
+ * The default filters every archive list shares — the index (`listByKind`),
+ * its "also found in …" counts (`countSearchMatches`) and the FPS catalog
+ * (`listFpsCatalog`). One place, so a count can never drift from the list it
+ * points at (harden scan, 2026-09-25):
+ *  - buyable records only (`is_variant = false`); the ammunition, manufacturer
+ *    and blueprint tables have no such column;
+ *  - no records without a name in ANY language — the game's own "! GERMAN_…
+ *    TRANSLATION NOT FOUND … !" marker, English only an @-key — which are
+ *    unfinished items. "!" sorts before every letter, so a dozen of them
+ *    opened every armour list (audit 2026-09-25). NULL names stay;
+ *  - for ships: no salvage wrecks, orbital sentries or probes, which the data
+ *    files as vehicles but nobody flies.
+ */
+function applyDefaultBrowseFilters<T extends BrowseFilterable>(query: T, kind: CodexKind): T {
+  let out = query;
+  if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint') {
+    out = out.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
+  }
+  if (kind === 'ship') {
+    for (const prefix of NON_SHIP_VEHICLE_PREFIXES) out = out.not('class_name', 'ilike', `${prefix}*`);
+  }
+  return out;
+}
+
+/**
  * PostgREST `or` clause for "column is none of these values" that ALSO keeps
  * NULL rows. `not.in` alone drops them (SQL three-valued logic), which would
  * quietly hide records from the taxonomy's catch-all bucket. Values are the
@@ -1935,11 +1948,6 @@ export const FPS_ARMOR_ATTACH_TYPES = [
 export function fpsArmorSlot(attachType: string | null | undefined): string | null {
   if (!attachType) return null;
   return attachType.startsWith('Char_Armor_') ? attachType.slice('Char_Armor_'.length) : attachType;
-}
-
-/** Reverse of fpsArmorSlot: a slot token back to its attach_type ('Helmet' → 'Char_Armor_Helmet'). */
-export function fpsArmorAttachType(slot: string | null | undefined): string | null {
-  return slot ? `Char_Armor_${slot}` : null;
 }
 
 /** Pick the active-language string out of a LocalizedText, with fallbacks. */

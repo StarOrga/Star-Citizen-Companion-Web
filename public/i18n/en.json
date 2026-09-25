@@ -1754,7 +1754,8 @@
         "clearAria": "Clear {{slot}}",
         "clearing": "Clearing …",
         "clearFailed": "{{slot}} could not be cleared. Please try again.",
-        "noSource": "Not in the archive — consumable"
+        "noSource": "Not in the archive — consumable",
+        "customSlot": "Your own position — not filled from the archive"
       }
     }
   },
@@ -3135,10 +3136,6 @@
       "medgun": "Medgun",
       "medpen": "MedPen",
       "repair-attachment": "Repair attachment"
-    },
-    "errors": {
-      "setNotFound": "This set does not exist (any more) or is not yours.",
-      "setChanged": "The set changed twice elsewhere while saving — please try again."
     },
     "shared": {
       "eyebrow": "Shared loadout",
