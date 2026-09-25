@@ -16,6 +16,7 @@ import {
 } from './codex-landing-kpi';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * One anatomical position as the AN BORD zone renders it. `weight` is the
@@ -68,26 +69,33 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
  * against an 18 kB budget and this panel would push it over. Keeping the zone
  * here also makes it testable without the rest of the landing.
  *
- * The parent still owns the `<article class="zone board">` frame — its `.zone`
- * rules and the `--tint` custom property live there and inherit into here.
+ * The host page owns the frame around the panel and the `--tint` custom
+ * property, which inherits into here.
  *
- * SUPERSEDED on the landing (concept 2026-09-20, round 14-17): the landing
- * now shows the person as the "Spot" stage (`stage/codex-stage.component.ts`
- * + `codex-board-figure.component.ts`, no paperdoll) and no longer imports
- * this component. Kept, untouched, for the future `/codex/set/:id` page
- * (round 2 decision T1) — the six-slot detail view still belongs there.
+ * Since the landing redesign (concept 2026-09-20, rounds 14-17) the landing
+ * shows the person as the "Spot" stage and no longer imports this component;
+ * its home is the set page (`/codex/set/:id`, round 2 decision T1), which
+ * hosts it inside `.board-wrap` (that wrapper provides `--tint`; `--idle`
+ * lives on this component's own :host).
  */
 @Component({
   selector: 'sc-codex-board-panel',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, CodexBoardFigureComponent],
+  imports: [RouterLink, TranslatePipe, CodexBoardFigureComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
           <header class="board-head">
             <span class="zone-eyebrow" id="board-title">{{ 'codex.landing.me.eyebrow' | translate }}</span>
-            <a class="board-name" [routerLink]="['/codex', 'fps']" [queryParams]="boardEntryQuery()">
+            <!-- The set's own name is text on the set's own page, not a link that
+                 leaves for the archive; the archive gets a labelled link of its own. -->
+            <span class="board-name">
               {{ hasPersonalSet() ? activeLoadout()!.name : ('codex.landing.me.title' | translate) }}
-            </a>
+            </span>
+            @if (hasPersonalSet()) {
+              <a class="board-archive" [routerLink]="['/codex', 'fps']" [queryParams]="boardEntryQuery()">
+                {{ 'codex.set.equipInArchive' | translate }}
+              </a>
+            }
           </header>
 
           @if (!hasPersonalSet()) {
@@ -133,15 +141,16 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
                   <span class="t-label plinth-role">{{ 'hangar.roles.' + activeLoadout()!.role | translate }}</span>
                 </div>
 
-                <!-- Readiness: only the six classes the archive really carries.
-                     Mining/salvage/tractor are absent on purpose — every such hit
-                     in the archive is a SHIP component, so a "mining ready" mark
-                     would be fabricated. -->
+                <!-- Readiness: only classes the archive really carries, and of
+                     those only the ones this set's role has a position for — a
+                     glyph nothing can light says nothing. Mining/salvage/tractor
+                     are no classes of their own on purpose: the handheld tools
+                     are Gadgets, a "mining ready" mark would claim more. -->
                 <div class="board-rdy">
                   @for (r of readiness(); track r.key) {
-                    <span class="rdy-ic" [class.on]="r.ok"
-                          [attr.title]="('codex.landing.board.readiness.' + r.key | translate)
-                            + ' — ' + ((r.ok ? 'codex.landing.board.readyOn' : 'codex.landing.board.readyOff') | translate)">
+                    <!-- role=img + label: the state must not live in a hover-only title. -->
+                    <span class="rdy-ic" [class.on]="r.ok" role="img"
+                          [attr.aria-label]="readyLabel(r)" [scTooltip]="readyLabel(r)" scTooltipTier="label">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="readyIcon(r.key)" /></svg>
                     </span>
                   }
@@ -168,7 +177,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
               @for (s of boardSlots(); track s.roleSlot) {
                 <a class="board-sq" [class.empty]="!s.filled" [class.nodata]="s.filled && s.weight === null"
                    [routerLink]="['/codex', 'fps']" [queryParams]="slotQuery(s)"
-                   [attr.title]="(s.labelKey | translate) + ' — ' + slotClassTitle(s)">
+                   [scTooltip]="(s.labelKey | translate) + ' — ' + slotClassTitle(s)">
                   @if (s.weight !== null) {
                     <span class="sq-fill" [class.off-scale]="s.offScale" [style.height.%]="s.weight * 100"></span>
                   }
@@ -183,9 +192,10 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
             <div class="board-dial">
               @for (l of boardSets(); track l.id) {
                 <a class="dial-node" [class.on]="l.id === activeLoadout()!.id"
-                   [routerLink]="['/codex']" [queryParams]="{ zone: 'board', set: l.id }">
+                   [attr.aria-current]="l.id === activeLoadout()!.id ? 'page' : null"
+                   [routerLink]="['/codex', 'set', l.id]">
                   <span class="t-value">{{ l.name }}</span>
-                  <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ l.filled }}/6</span>
+                  <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ 'codex.stage.armorEquipped' | translate: { filled: l.filled, total: 6 } }}</span>
                 </a>
               }
               @if (moreSetCount() > 0) {
@@ -199,7 +209,12 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
           `,
   styles: [
     `
-      :host { display: contents; }
+      /* --idle lives on the host, not on a parent's class: the styles are
+         view-encapsulated, so a ".board" rule here never reached the page that
+         hosts the panel, and on the set page every open position lost its
+         blue-grey (white labels, invisible squares). Custom properties still
+         inherit through a display:contents host. */
+      :host { display: contents; --idle: #3d5a6c; --idle-bg: #0a1c26; }
       /* ── AN BORD ───────────────────────────────────────────────────────
          Design system fixed in concept iteration 6 — the old zone carried FOUR
          meanings on amber (equipped / set name / slot label / armour class
@@ -212,7 +227,6 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
            armour class    = BAR HEIGHT on .board-sq     — never a hue
            type            = .t-label / .t-value / name  — three roles, no more
       */
-      .board { --idle: #3d5a6c; --idle-bg: #0a1c26; }
       .t-label {
         font-family: var(--sc-font-display, inherit);
         font-size: max(0.6rem, var(--sc-fs-floor, 0.6rem));
@@ -230,7 +244,9 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-decoration: none;
         text-shadow: 0 0 18px color-mix(in srgb, var(--tint) 32%, transparent);
       }
-      .board-name:hover, .board-name:focus-visible { color: var(--tint); }
+      .board-archive { margin-left: auto; color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); text-decoration: none; }
+      .board-archive:hover { text-decoration: underline; }
+      .board-archive:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
       .board-person {
         position: relative;
@@ -238,9 +254,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         display: grid;
         /* Q7 (codex landing redesign round 1): capped rather than 1fr, so the
            slot columns track the figure instead of stretching to the panel's
-           full width once it is wide. This panel is currently unused by the
-           landing (superseded by the Spot stage) but kept for the future
-           /codex/set/:id page (T1), where the fix still applies. */
+           full width once it is wide — on the set page it spans the frame. */
         grid-template-columns: minmax(0, 200px) auto minmax(0, 200px);
         justify-content: center;
         gap: 8px;
@@ -268,13 +282,15 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      .board-slot.empty .t-label, .board-slot.empty .t-value { color: var(--idle); }
+      /* Text lifted with fg-0: --idle itself reads at ~2.4:1, too faint for small labels. */
+      .board-slot.empty .t-label, .board-slot.empty .t-value { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); }
       .board-slot.empty .t-value { font-style: italic; }
       .board-slot:hover, .board-slot:focus-visible {
         border-color: var(--tint);
         background: color-mix(in srgb, var(--tint) 9%, transparent);
-        outline: none;
       }
+      /* A 2px ring like the gear tiles — a 1px border was the only focus mark. */
+      .board-slot:focus-visible { outline: 2px solid var(--tint); outline-offset: 1px; }
 
       .board-fig { display: flex; flex-direction: column; align-items: center; }
 
@@ -363,10 +379,8 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         color: color-mix(in srgb, var(--tint) 70%, #fff);
       }
       .board-sq .t-label { position: relative; z-index: 2; font-size: 0.53rem; letter-spacing: 0.13em; }
-      .board-sq:hover, .board-sq:focus-visible {
-        box-shadow: inset 0 0 0 1px var(--tint);
-        outline: none;
-      }
+      .board-sq:hover { box-shadow: inset 0 0 0 1px var(--tint); }
+      .board-sq:focus-visible { box-shadow: inset 0 0 0 2px var(--tint); outline: none; }
       .sq-fill {
         position: absolute;
         left: 0;
@@ -411,10 +425,11 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         text-decoration: none;
       }
       .dial-node .t-value { display: block; }
-      .dial-sub { display: block; opacity: 0.7; font-size: 0.55rem; }
+      .dial-sub { display: block; opacity: 0.7; font-size: max(0.55rem, var(--sc-fs-floor)); }
       .dial-node.on { border-color: var(--tint); background: color-mix(in srgb, var(--tint) 18%, transparent); color: var(--tint); }
       .dial-node.more { border-style: dashed; }
-      .dial-node:hover, .dial-node:focus-visible { border-color: var(--tint); color: var(--tint); outline: none; }
+      .dial-node:hover, .dial-node:focus-visible { border-color: var(--tint); color: var(--tint); }
+      .dial-node:focus-visible { outline: 2px solid var(--tint); outline-offset: 2px; }
 
       @media (max-width: 560px) {
         .board-person { grid-template-columns: 1fr; }
@@ -427,7 +442,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
          these are eight short rules, not a design system. */
       .zone-eyebrow {
         font-family: var(--sc-font-display);
-        font-size: 0.68rem;
+        font-size: max(0.68rem, var(--sc-fs-floor));
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--tint);
@@ -435,7 +450,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
       .board-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
       .empty-chip {
         font-family: var(--sc-font-display);
-        font-size: 0.7rem;
+        font-size: max(0.7rem, var(--sc-fs-floor));
         letter-spacing: 0.06em;
         text-transform: uppercase;
         padding: 3px 9px;
@@ -478,11 +493,10 @@ export class CodexBoardPanelComponent {
   readonly hasPersonalSet = computed(() => this.activeLoadout() !== null);
 
   /**
-   * The zone's name link — the on-foot archive, carrying the equip intent for
-   * the set whose name it is. Since the standalone editor was retired (admin
-   * feedback 34505d70, decision 2A) this IS the "open my set" destination:
-   * `/codex/fps?equipInto=…` is where a piece gets put into a slot. Without a
-   * set it degrades to the bare archive, same as the empty-state CTA.
+   * The zone's archive link — the on-foot archive, carrying the equip intent
+   * for the set on screen: `/codex/fps?equipInto=…` is where a piece gets put
+   * into a slot. The set itself lives at `/codex/set/:id`, the page this panel
+   * sits on, so the set's name is no longer the link that leaves it.
    */
   readonly boardEntryQuery = computed<Record<string, string>>(() => {
     const active = this.activeLoadout();
@@ -522,10 +536,11 @@ export class CodexBoardPanelComponent {
   readonly boardSlotsLeft = computed(() => this.boardSlots().filter((_, i) => i % 2 === 0));
   readonly boardSlotsRight = computed(() => this.boardSlots().filter((_, i) => i % 2 === 1));
 
-  /** Six readiness classes the archive really carries — see computeReadiness(). */
-  readonly readiness = computed<ReadinessSlot[]>(() =>
-    computeReadiness(this.activeLoadout()?.items ?? [], this.payloads()),
-  );
+  /** The readiness classes the set's role can hold, of the six the archive carries — see computeReadiness(). */
+  readonly readiness = computed<ReadinessSlot[]>(() => {
+    const active = this.activeLoadout();
+    return computeReadiness(active?.items ?? [], this.payloads(), active?.role);
+  });
 
   /**
    * Set switcher: up to three, favourites first, topped up with the most
@@ -571,5 +586,14 @@ export class CodexBoardPanelComponent {
 
   readyIcon(key: ReadinessKey): string {
     return READY_ICON_PATHS[key];
+  }
+
+  /** "Primärwaffe — angelegt": the class and its state, for the tooltip and assistive tech. */
+  readyLabel(r: ReadinessSlot): string {
+    return (
+      this.t.instant('codex.landing.board.readiness.' + r.key) +
+      ' — ' +
+      this.t.instant(r.ok ? 'codex.landing.board.readyOn' : 'codex.landing.board.readyOff')
+    );
   }
 }

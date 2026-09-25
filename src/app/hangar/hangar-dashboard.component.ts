@@ -99,7 +99,8 @@ const SEARCH_DEBOUNCE_MS = 250;
       </header>
 
       @if (hangar.error(); as err) {
-        <div class="sc-card err">{{ err }}</div>
+        <!-- Through translate: service error keys resolve, raw backend messages pass through. -->
+        <div class="sc-card err">{{ err | translate }}</div>
       }
 
       <!-- Import from export file (#136) -->
@@ -348,8 +349,9 @@ const SEARCH_DEBOUNCE_MS = 250;
             share, delete); the set's contents are edited on the Codex side
             (admin feedback 34505d70, decision "2A" on issue #411 point 2 —
             "hangar nicht explizit, der ist schon auf der codex startseite
-            implizit drin"). So the card opens the Codex start page's AN BORD
-            zone on this set, and the standalone editor page is gone.
+            implizit drin"). So the card opens the Codex set page for this set
+            (/codex/set/:id, the on-foot editor since the 2026-09-20 concept),
+            and the standalone editor page is gone.
 
             The card is no longer one big <a>: the housekeeping controls are
             real actions and must not sit inside the navigation.
@@ -357,7 +359,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           <div class="grid">
             @for (l of hangar.roleLoadouts(); track l.id) {
               <div class="card loadout-card own-card">
-                <a class="ld-open" routerLink="/codex" [queryParams]="{ zone: 'board', set: l.id }">
+                <a class="ld-open" [routerLink]="['/codex', 'set', l.id]">
                   <div class="card-top">
                     <h3 class="name">{{ l.name }}</h3>
                     <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
@@ -636,7 +638,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .cls { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
+    .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .badge[class*='role-'] { text-transform: uppercase; letter-spacing: 0.05em; }
 

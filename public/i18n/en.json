@@ -211,9 +211,7 @@
         "uncommissioned": "Uncommissioned",
         "emptyLead": "No personal armour set yet.",
         "cta": "Equip armour",
-        "ctaGoal": "→ Combat-ready",
-        "ready": "Combat-ready",
-        "openSet": "Open set"
+        "ctaGoal": "→ Combat-ready"
       },
       "fleet": {
         "eyebrow": "In the hangar",
@@ -248,30 +246,7 @@
         "arms": "Arms",
         "legs": "Legs",
         "undersuit": "Undersuit",
-        "backpack": "Backpack",
-        "empty": "— empty —",
-        "archiveDepth": "{{count}} in the archive"
-      },
-      "kpi": {
-        "ship": {
-          "shieldTotal": "Shield total",
-          "emptyMounts": "Empty weapon mounts",
-          "weaponMounts": "Weapon mounts",
-          "missileCapacity": "Missile capacity",
-          "quantumDrive": "Quantum drive",
-          "fillRate": "Fill rate"
-        },
-        "fps": {
-          "slotsFilled": "Slots filled",
-          "gradeMix": "Grade mix",
-          "weightClass": "Weight class",
-          "manufacturer": "Manufacturer",
-          "archiveDepth": "Archive depth (empty)",
-          "gapArmor": "Protection value",
-          "gapArmorTitle": "Armour pieces carry no combat-stat block in the current archive — only name, grade, size, manufacturer.",
-          "gapWeapon": "Weapon power",
-          "gapWeaponTitle": "FPS weapons carry no stats block in the current archive."
-        }
+        "backpack": "Backpack"
       },
       "configs": {
         "otherRoles": "Other saved role loadouts",
@@ -312,7 +287,6 @@
       "indexMode": "Index mode",
       "keybinds": "Keybinds",
       "hangar": "Hangar",
-      "backToBridge": "Back to the Bridge",
       "addCompare": "Compare",
       "hero": {
         "featured": "Featured ship",
@@ -423,6 +397,7 @@
       "label": "Search the codex",
       "clear": "Clear search",
       "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
+      "alsoIn": "Also found in:",
       "upcomingLink": "View in Upcoming Ships"
     },
     "kinds": {
@@ -590,7 +565,9 @@
       "skinsTitle": "Every livery of this weapon shares one card. Pick between them inside the entry: {{names}}",
       "editionsOne": "+1 variant",
       "editionsMany": "+{{count}} variants",
-      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}"
+      "editionsTitle": "The game files carry this hull several times over — duplicate records and marketing editions. They share one card; pick between them inside the entry: {{names}}",
+      "addToHangar": "Add to hangar",
+      "addToHangarFailed": "Couldn't add it to the hangar. Please try again."
     },
     "skinPicker": {
       "label": "Skin",
@@ -786,7 +763,8 @@
       "filtered": "No entries match your search or filters.",
       "kind": "No {{kind}} in this build.",
       "noBuild": "No catalog build is published yet.",
-      "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded."
+      "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded.",
+      "resetAll": "Reset search & filters"
     },
     "error": {
       "title": "Could not load the codex",
@@ -794,7 +772,6 @@
     },
     "keybinds": {
       "title": "Keybindings",
-      "back": "Codex",
       "subtitle": "Default key bindings from the current Star Citizen build.",
       "device": "Device",
       "devices": {
@@ -1029,6 +1006,7 @@
       "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
+      "invalidRoute": "This address does not lead to a Codex category.",
       "noArtwork": "No artwork for this ship in this build yet.",
       "showRaw": "Show raw data",
       "hideRaw": "Hide raw data",
@@ -1755,7 +1733,8 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} equipped"
+      "equipped": "{{filled}} / {{total}} equipped",
+      "armorEquipped": "Armour {{filled}} / {{total}}"
     },
     "hangarPicker": {
       "hangar": "Hangar",
@@ -1767,7 +1746,26 @@
       "back": "← Back to Codex",
       "notFound": "That set was not found — showing the first set from your hangar.",
       "signInHint": "Sign in to view and edit your sets.",
-      "noSets": "No set commissioned yet."
+      "noSets": "No set commissioned yet.",
+      "createInHangar": "Create a set in the hangar →",
+      "loading": "Loading the set …",
+      "loadFailed": "Your sets could not be loaded.",
+      "share": "Share set",
+      "gear": {
+        "eyebrow": "Weapons & tools",
+        "open": "open",
+        "clear": "Clear",
+        "clearAria": "Clear {{slot}}",
+        "clearing": "Clearing …",
+        "clearFailed": "{{slot}} could not be cleared. Please try again.",
+        "noSource": "Not in the archive — consumable",
+        "customSlot": "Your own position — not filled from the archive",
+        "cleared": "{{slot}} cleared.",
+        "undo": "Undo",
+        "undoFailed": "{{slot}} couldn't be put back. Please equip it again.",
+        "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
+      },
+      "equipInArchive": "Equip from the archive"
     }
   },
   "blueprint": {
@@ -1834,6 +1832,7 @@
     "subtitle": "On-foot gear — weapons and armor, datamined from the live build.",
     "bridgeLink": "FPS Gear",
     "categoriesAria": "FPS equipment categories",
+    "searchPlaceholder": "Search name or class (e.g. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Weapons",
       "armor": "Armor"
@@ -1841,6 +1840,19 @@
     "filters": {
       "weaponType": "Weapon type",
       "armorSlot": "Armor slot"
+    },
+    "weaponType": {
+      "sidearm": "Sidearm",
+      "primary": "Primary weapon",
+      "heavy": "Heavy weapon",
+      "melee": "Melee",
+      "throwable": "Throwable",
+      "gadget": "Tool / gadget"
+    },
+    "weight": {
+      "light": "Light",
+      "medium": "Medium",
+      "heavy": "Heavy"
     },
     "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
     "empty": {
@@ -1850,7 +1862,14 @@
     "equip": {
       "targetSet": "Equipping: {{name}}",
       "backToSet": "Back to the set",
-      "into": "Into slot:"
+      "into": "Into slot:",
+      "failed": "Not saved — the set did not accept the change. Please try again.",
+      "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped.",
+      "mySets": "My sets",
+      "browseWithout": "Keep browsing without a set",
+      "onlyFitting": "Showing only what fits “{{slot}}”.",
+      "saving": "Saving …",
+      "changedElsewhere": "Changed in another tab meanwhile — the slot now holds something else."
     }
   },
   "news": {
@@ -3117,6 +3136,8 @@
       "primary": "Primary weapon",
       "secondary": "Secondary weapon",
       "sidearm": "Sidearm",
+      "melee": "Melee weapon",
+      "throwable": "Throwable",
       "helmet": "Helmet",
       "core": "Torso",
       "arms": "Arms",

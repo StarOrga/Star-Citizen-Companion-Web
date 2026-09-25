@@ -48,7 +48,8 @@ describe('CodexComponentModalComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CodexComponentModalComponent],
-      providers: [provideRouter([]), provideTranslateService({})],
+      // A catch-all route, so the detail link's plain click navigates somewhere.
+      providers: [provideRouter([{ path: '**', children: [] }]), provideTranslateService({})],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexComponentModalComponent);
   });
@@ -102,5 +103,28 @@ describe('CodexComponentModalComponent', () => {
     const el = render({ ...PANTHER, payload: null, ammoPayload: undefined });
     expect(el.querySelector('.cm-empty')).toBeTruthy();
     expect(el.querySelector('.cm-table')).toBeNull();
+  });
+
+  it('moves focus into the dialog when it opens', async () => {
+    const el = render(PANTHER);
+    await Promise.resolve();
+    expect(document.activeElement).toBe(el.querySelector('.cm-panel'));
+  });
+
+  it('stays open when the detail link is ctrl+clicked into a new tab, closes on a plain click', () => {
+    let closes = 0;
+    fixture.componentInstance.closed.subscribe(() => closes++);
+    const el = render(PANTHER);
+    const link = el.querySelector('.cm-open') as HTMLAnchorElement;
+    // Swallow the browser default AFTER the page's handlers, so no real tab
+    // opens. On the link itself: the panel stops propagation, so a listener on
+    // window would never see the click.
+    const swallow = (ev: Event) => ev.preventDefault();
+    link.addEventListener('click', swallow);
+    link.dispatchEvent(new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }));
+    expect(closes).toBe(0);
+    link.dispatchEvent(new MouseEvent('click', { button: 0, bubbles: true, cancelable: true }));
+    link.removeEventListener('click', swallow);
+    expect(closes).toBe(1);
   });
 });

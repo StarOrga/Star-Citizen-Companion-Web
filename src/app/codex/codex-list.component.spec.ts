@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideLocationMocks } from '@angular/common/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexListComponent } from './codex-list.component';
 import { CodexListRow, CodexService } from './codex.service';
@@ -40,6 +41,10 @@ describe('CodexListComponent (Index mode)', () => {
       art?: string[];
       preview?: string | null;
       weaponFacets?: WeaponFacetRow[];
+      /** Query params of the page URL (a stub route when given). */
+      query?: Record<string, string>;
+      /** Per-kind match counts for the cross-category search hint. */
+      crossCounts?: Map<string, number>;
     } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
@@ -69,6 +74,9 @@ describe('CodexListComponent (Index mode)', () => {
       weaponFacets: jasmine
         .createSpy('weaponFacets')
         .and.resolveTo(opts.weaponFacets ?? []),
+      countSearchMatches: jasmine
+        .createSpy('countSearchMatches')
+        .and.resolveTo(opts.crossCounts ?? new Map()),
     };
 
     const hangar: Partial<HangarService> = {
@@ -80,9 +88,13 @@ describe('CodexListComponent (Index mode)', () => {
       imports: [CodexListComponent],
       providers: [
         provideRouter([]),
+        provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
+        ...(opts.query
+          ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
+          : []),
         // The embedded status banner injects the real RoleService otherwise,
         // which pulls Auth/Supabase and hangs whenStable.
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
@@ -105,6 +117,7 @@ describe('CodexListComponent (Index mode)', () => {
             acknowledge: () => undefined,
             isFavorite: () => false,
             artFor: () => opts.art ?? ([] as string[]),
+            searchLoadedShips: () => [],
           },
         },
       ],
@@ -182,6 +195,30 @@ describe('CodexListComponent (Index mode)', () => {
       'blueprint',
       jasmine.objectContaining({ category: 'FPSArmours' }),
     );
+  });
+
+  it('offers its facets as themed selects — a native one opens as an unthemed OS menu', async () => {
+    const { fixture, cmp, listByKind } = await setup(
+      { blueprints: 1595, blueprint_ingredients: 4800 },
+      { categories: ['FPSArmours', 'FPSWeapons'], rows: [blueprintRow('BP_CRAFT_helmet', 'FPSArmours')] },
+    );
+    cmp.setKind('blueprint');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.facets select')).toBeNull();
+    const facet = Array.from(el.querySelectorAll('.facet')).find((f) => f.textContent?.includes('blueprint.filters.category'))!;
+    (facet.querySelector('sc-select .trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const option = Array.from(facet.querySelectorAll('[role=option]')).find((o) => o.textContent?.trim() === 'FPS Weapons') as HTMLElement;
+    option.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(cmp.blueprintCategory()).toBe('FPSWeapons');
+    expect(listByKind).toHaveBeenCalledWith('blueprint', jasmine.objectContaining({ category: 'FPSWeapons' }));
   });
 
   /**
@@ -468,6 +505,74 @@ describe('CodexListComponent (Index mode)', () => {
 
       expect(cmp.rows().length).toBe(2);
       expect(cmp.rows().every((r) => r.editions.length === 0)).toBeTrue();
+    });
+  });
+
+  describe('archive state and search reach (audit 2026-09-25)', () => {
+    const ship = (className: string): CodexListRow => ({ ...blueprintRow(className, null), blueprintCategory: null, blueprintTier: null, craftTimeSec: null });
+
+    it('restores the category and its facets from the URL, so Back returns to the same list', async () => {
+      const { cmp, listByKind } = await setup(
+        { ships: 300, weapons: 1300 },
+        { query: { kind: 'weapon', wg: 'ship', mfr: 'KLWE' } },
+      );
+      expect(cmp.kind()).toBe('weapon');
+      expect(cmp.weaponGroup()).toBe('ship');
+      expect(cmp.manufacturer()).toBe('KLWE');
+      const last = listByKind.calls.mostRecent().args;
+      expect(last[0]).toBe('weapon');
+      expect(last[1].manufacturer).toBe('KLWE');
+    });
+
+    it('ignores a weapon group the rail does not have', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1300 }, { query: { kind: 'weapon', wg: 'bogus' } });
+      expect(cmp.weaponGroup()).toBe('');
+    });
+
+    it('names the other categories a search term also matches', async () => {
+      const { fixture } = await setup(
+        { ships: 300, components: 2000 },
+        { query: { kind: 'ship', q: 'titan' }, crossCounts: new Map([['component', 3]]) },
+      );
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const hits = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.cross-hit')).map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
+      // No number: the server counts raw records, the target list folds variants.
+      expect(hits).toEqual(['codex.kinds.component']);
+    });
+
+    it('makes categories real links: a plain click switches in place, a modified one is left to the browser', async () => {
+      const { fixture, cmp } = await setup(
+        { ships: 300, components: 2000 },
+        { query: { kind: 'ship', q: 'titan' }, crossCounts: new Map([['component', 3]]) },
+      );
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const link = el.querySelector('.kind-bar a.kind:not(.active)') as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(el.querySelector('.kind-bar button')).toBeNull();
+      expect(el.querySelector('.kind-bar a.kind.active')?.getAttribute('aria-current')).toBe('page');
+
+      // A modified click must reach the browser untouched (new tab / window).
+      // The handler is called directly — a dispatched Ctrl+click would open a real tab.
+      const modified = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ctrlKey: true });
+      cmp.onCategoryClick(modified, 'component');
+      expect(modified.defaultPrevented).toBeFalse();
+      expect(cmp.kind()).toBe('ship');
+
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      cmp.onCategoryClick(plain, 'component');
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(cmp.kind()).toBe('component');
+    });
+
+    it('keeps pin and add-to-hangar outside the card link', async () => {
+      const { fixture } = await setup({ ships: 300 }, { rows: [ship('AEGS_Avenger_Titan')] });
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('a.card')).not.toBeNull();
+      expect(el.querySelector('a.card button')).toBeNull();
+      expect(el.querySelector('.card-wrap > .card-actions .pin')).not.toBeNull();
     });
   });
 });

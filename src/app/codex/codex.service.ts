@@ -198,6 +198,21 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+
+/**
+ * Ship-table records that are no ship a player can own or fly: salvage wrecks
+ * (`SalvageableDebris*`, named after the hull they came from — a second "Aegis
+ * Avenger Titan" card), orbital sentry turrets and comm probes. The extractor
+ * files them as vehicles without the variant flag, so the default browse drops
+ * them by class name; "include variants" still lists them. 16 records in the
+ * 4.10 LIVE build (audit 2026-09-25).
+ */
+const NON_SHIP_VEHICLE_PREFIXES = ['SalvageableDebris', 'Orbital_Sentry', 'probe_'] as const;
+
+/** Guard for listFpsCatalog's paging loop — ~5× today's largest on-foot category. */
+const FPS_CATALOG_HARD_CAP = 12000;
+/** Search-count cache bound: a session types a few dozen terms, not thousands. */
+const SEARCH_COUNT_CACHE_MAX = 200;
 // Ceiling for the livery-/edition-sibling reads. The largest family in build
 // 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
 // seven); the prefix also catches unrelated neighbours, so this sits well above
@@ -311,6 +326,12 @@ export class CodexService {
 
   /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
   private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
+  /** Whole on-foot catalogs, per build + category + variant switch — see listFpsCatalog. */
+  private fpsCatalogCache = new Map<string, Promise<CodexListRow[]>>();
+  /** `countSearchMatches` answers per build + term + kind (in flight or done), oldest dropped first. */
+  private readonly searchCountCache = new Map<string, Promise<number | null>>();
+  /** `countItemsByAttachType` answers for the current build. */
+  private attachTypeCounts: { buildId: string; counts: Map<string, number> } | null = null;
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -380,8 +401,30 @@ export class CodexService {
   async loadCurrentBuild(): Promise<CodexBuild | null> {
     if (this.build()) return this.build();
     if (this.buildPromise) return this.buildPromise;
-    this.buildPromise = this.fetchCurrentBuild();
-    return this.buildPromise;
+    const attempt = this.fetchCurrentBuild();
+    this.buildPromise = attempt;
+    // Don't memoise a failure: the next caller (a retry button) reads again.
+    // Cleared here, after the promise is stored, so a failure that happens
+    // before fetchCurrentBuild's first await is not cached either.
+    void attempt.then((build) => {
+      if (!build && this.buildError() && this.buildPromise === attempt) this.buildPromise = null;
+    });
+    return attempt;
+  }
+
+  /**
+   * The current build for a READER whose "no build" and "build lookup failed"
+   * must not look the same. `loadCurrentBuild` answers null for both, and every
+   * archive list then rendered "nothing here" after one failed lookup — until a
+   * full reload (audit 2026-09-25). This throws on the failure instead, so the
+   * reader's own error card (with its retry) appears; the retry reads again,
+   * because a failed lookup is no longer cached.
+   */
+  private async buildOrThrow(): Promise<CodexBuild | null> {
+    const build = await this.loadCurrentBuild();
+    const failed = this.buildError();
+    if (!build && failed) throw new Error(failed);
+    return build;
   }
 
   private async fetchCurrentBuild(): Promise<CodexBuild | null> {
@@ -498,7 +541,7 @@ export class CodexService {
    * `AEGS_*` classNames directly.
    */
   async listByKind(kind: CodexKind, filters: CodexListFilters = {}): Promise<CodexListResult> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
     const table = CODEX_ENTITY_TABLES[kind];
@@ -510,11 +553,8 @@ export class CodexService {
       .select(LIST_SELECT[kind], { count: 'exact' })
       .eq('build_id', build.id);
 
-    // Buyable-only by default. ammunition/manufacturer/blueprint tables have no
-    // is_variant column — skip the filter for them.
-    if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint' && !filters.includeVariants) {
-      query = query.eq('is_variant', false);
-    }
+    // "Include variants" is the switch for the raw records — all of them.
+    if (!filters.includeVariants) query = applyDefaultBrowseFilters(query, kind);
 
     if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
     if (filters.size != null) query = query.eq('size', filters.size);
@@ -554,6 +594,89 @@ export class CodexService {
 
     const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
     return { rows, count: count ?? rows.length };
+  }
+
+  /**
+   * How many records of each kind match a search term under the default
+   * browse filters — the index's "also found in …" line (feedback #7: search
+   * primarily inside the category, but never hide a match that lives in
+   * another one). Head-only count queries, one per kind, run in parallel;
+   * a kind whose count fails is simply left out.
+   */
+  async countSearchMatches(search: string, kinds: readonly CodexKind[]): Promise<Map<CodexKind, number>> {
+    const out = new Map<CodexKind, number>();
+    // Three characters must survive the escaping: `(((` escapes to nothing,
+    // and an empty pattern would count every record of every kind.
+    const safe = escapeIlike(search);
+    if (safe.length < 3) return out;
+    const build = await this.loadCurrentBuild();
+    if (!build) return out;
+    await Promise.all(
+      kinds.map(async (kind) => {
+        // Cached per build + term + kind: a category switch asks again for
+        // the same term, minus one kind and plus the one just left.
+        const key = `${build.id}|${safe.toLowerCase()}|${kind}`;
+        let pending = this.searchCountCache.get(key);
+        if (!pending) {
+          pending = this.countOneKind(build.id, kind, safe);
+          this.searchCountCache.set(key, pending);
+          if (this.searchCountCache.size > SEARCH_COUNT_CACHE_MAX) {
+            this.searchCountCache.delete(this.searchCountCache.keys().next().value!);
+          }
+        }
+        const count = await pending;
+        if (count === null) this.searchCountCache.delete(key); // a failed count is asked again next time
+        else if (count > 0) out.set(kind, count);
+      }),
+    );
+    return out;
+  }
+
+  /** One head-only count for `countSearchMatches`; null when the query failed. */
+  private async countOneKind(buildId: string, kind: CodexKind, safe: string): Promise<number | null> {
+    const query = applyDefaultBrowseFilters(
+      this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
+        .eq('build_id', buildId),
+      kind,
+    );
+    const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+    return error ? null : (count ?? 0);
+  }
+
+  /**
+   * How many personal-armour pieces the archive holds per attach type, under
+   * the default browse filters — the "N im Archiv" hint on a set's open
+   * positions. Head-only counts, cached per build: a set switch used to fetch
+   * one full ~10 kB payload row per open position just for its count.
+   */
+  async countItemsByAttachType(attachTypes: readonly string[]): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    const build = await this.buildOrThrow();
+    if (!build || attachTypes.length === 0) return out;
+    if (this.attachTypeCounts?.buildId !== build.id) this.attachTypeCounts = { buildId: build.id, counts: new Map() };
+    const cache = this.attachTypeCounts.counts;
+    await Promise.all(
+      attachTypes
+        .filter((t) => !cache.has(t))
+        .map(async (attachType) => {
+          const { count, error } = await applyDefaultBrowseFilters(
+            this.sb.client
+              .from(CODEX_ENTITY_TABLES['item'])
+              .select(COUNT_ONLY_SELECT, { count: 'exact', head: true })
+              .eq('build_id', build.id),
+            'item',
+          ).eq('attach_type', attachType);
+          if (error) throw error;
+          cache.set(attachType, count ?? 0);
+        }),
+    );
+    for (const t of attachTypes) {
+      const count = cache.get(t);
+      if (count != null) out.set(t, count);
+    }
+    return out;
   }
 
   /**
@@ -609,26 +732,93 @@ export class CodexService {
   }
 
   /**
-   * FPS Codex section (#251): on-foot weapons — `codex_weapons` scoped to
-   * `weapon_class = 'FPS'`. Reuses the same buyable-only / variant filtering
-   * as every other kind (is_variant = false by default), which is also what
-   * drops the huge pile of `@LOC_PLACEHOLDER` / NPC test rows in this table.
+   * The WHOLE on-foot catalog of one category (FPS weapons or personal armour)
+   * in one go, slim: the promoted columns plus the only three payload fields a
+   * list card reads (name, preview image, manufacturer). Weapons are
+   * `codex_weapons` with `weapon_class = 'FPS'`; armour is `codex_items` with a
+   * personal-armour `attach_type` (`Char_Armor_*` — plain `Armor` is SHIP hull
+   * armour, a different thing entirely).
+   *
+   * Why not pages: `/codex/fps` folds file variants and liveries into one card,
+   * and folding per 60-row page split families at the page edge — the C54's
+   * seven liveries showed as seven cards because the base record sorted onto
+   * page two — and turned the result count into an estimate. The full payload
+   * was also ~10 kB per armour row (~600 kB per 60-card page) for 3 % of it on
+   * screen; slim, all 2.4k armour rows are ~1.3 MB before compression — about
+   * two of the old pages. Same default filters as {@link listByKind}. Cached
+   * per build, category and variant switch.
    */
-  async listFpsWeapons(filters: Omit<CodexListFilters, 'weaponClass'> = {}): Promise<CodexListResult> {
-    return this.listByKind('weapon', { ...filters, weaponClass: 'FPS' });
-  }
+  async listFpsCatalog(category: 'weapon' | 'armor', includeVariants = false): Promise<CodexListRow[]> {
+    const build = await this.buildOrThrow();
+    if (!build) return [];
+    const run = async (): Promise<CodexListRow[]> => {
+      const kind: CodexKind = category === 'weapon' ? 'weapon' : 'item';
+      const select =
+        'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, ' +
+        (category === 'weapon' ? 'weapon_class, ' : '') +
+        'name:payload->name, previewImage:payload->previewImage, manufacturer:payload->manufacturer';
+      const page = 1000; // PostgREST caps a response at 1000 rows
+      const pageAt = async (offset: number, withCount: boolean) => {
+        let query = this.sb.client
+          .from(CODEX_ENTITY_TABLES[kind])
+          .select(select, withCount ? { count: 'exact' } : undefined)
+          .eq('build_id', build.id);
+        query =
+          category === 'weapon'
+            ? query.eq('weapon_class', 'FPS')
+            : query.in('attach_type', [...FPS_ARMOR_ATTACH_TYPES]);
+        if (!includeVariants) query = applyDefaultBrowseFilters(query, kind);
+        const { data, count, error } = await query
+          .order('name_localized', { ascending: true, nullsFirst: false })
+          .order('class_name', { ascending: true })
+          .range(offset, offset + page - 1);
+        if (error) throw error;
+        return { rows: (data ?? []) as unknown as Record<string, unknown>[], count };
+      };
 
-  /**
-   * FPS Codex section (#251): on-foot / CHARACTER armor — `codex_items` scoped
-   * to the personal-armor slots (`Char_Armor_*`). NB: `attach_type = 'Armor'`
-   * (no `Char_` prefix) is SHIP hull armor (ARMR_* classes) — a different thing
-   * entirely; do not confuse the two. Personal armor carries no rich stat block
-   * in the extract yet (tracked separately, blocked issue #253); the list/detail
-   * degrade gracefully to name/grade/size/slot/manufacturer only. A caller may
-   * additionally pass `attachType` to narrow to one slot (e.g. Char_Armor_Helmet).
-   */
-  async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
-    return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
+      // The first page brings the total along; the others are then read side
+      // by side — armour (~2.4k rows) took three round trips one after another.
+      const first = await pageAt(0, true);
+      const pages = [first.rows];
+      if (first.count != null) {
+        const offsets: number[] = [];
+        for (let o = page; o < Math.min(first.count, FPS_CATALOG_HARD_CAP); o += page) offsets.push(o);
+        pages.push(...(await Promise.all(offsets.map((o) => pageAt(o, false)))).map((p) => p.rows));
+      } else {
+        // No total came back: page on until a short page, as before.
+        for (let o = page, last = first.rows; last.length === page && o < FPS_CATALOG_HARD_CAP; o += page) {
+          last = (await pageAt(o, false)).rows;
+          pages.push(last);
+        }
+      }
+      if ((first.count ?? 0) > FPS_CATALOG_HARD_CAP) {
+        // Five times today's largest category — reaching it means the list
+        // stopped early and its "exact" count is not. Loud, not silent.
+        console.error(`[codex] listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
+      }
+      return pages.flat().map((r) =>
+        mapListRow(kind, {
+          ...r,
+          payload: { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
+        }),
+      );
+    };
+    const key = `${build.id}|${category}|${includeVariants}`;
+    let hit = this.fpsCatalogCache.get(key);
+    if (!hit) {
+      // Only the current build's catalogs stay: each is 1–5 MB, and every
+      // patch the reader switched to would otherwise stay cached all session.
+      for (const cached of this.fpsCatalogCache.keys()) {
+        if (!cached.startsWith(`${build.id}|`)) this.fpsCatalogCache.delete(cached);
+      }
+      // A failed read must not stick: drop it so the retry button reads again.
+      hit = run().catch((err) => {
+        this.fpsCatalogCache.delete(key);
+        throw err;
+      });
+      this.fpsCatalogCache.set(key, hit);
+    }
+    return hit;
   }
 
   /**
@@ -688,7 +878,7 @@ export class CodexService {
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return null;
     return this.fetchDetailForBuild(kind, classNameSlug, build.id);
   }
@@ -1349,7 +1539,7 @@ export class CodexService {
    * them in a batch via resolveLocaleKeys. Empty array when no build is live.
    */
   async listKeybinds(): Promise<CodexKeybind[]> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return [];
     const rows: Record<string, unknown>[] = [];
     for (let page = 0; page < KEYBIND_MAX_PAGES; page++) {
@@ -1501,7 +1691,7 @@ export class CodexService {
    * pattern as listByKind). Optional category facet.
    */
   async listBlueprints(filters: BlueprintListFilters = {}): Promise<BlueprintListResult> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
     const limit = filters.limit ?? PAGE_SIZE;
@@ -1543,7 +1733,7 @@ export class CodexService {
    * preserves recipe order).
    */
   async getBlueprint(className: string): Promise<BlueprintDetail | null> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1750,6 +1940,45 @@ function escapeIlike(input: string): string {
 }
 
 /**
+ * Column list of a head-only count query. Typed `string` on purpose: a literal
+ * select makes supabase-js parse it into a row type, and checking that builder
+ * against `BrowseFilterable` hits TS2589 ("excessively deep").
+ */
+const COUNT_ONLY_SELECT: string = 'class_name';
+
+/** The three filter calls the default browse filters need — every PostgREST filter builder has them. */
+interface BrowseFilterable {
+  eq(column: string, value: boolean): this;
+  or(filters: string): this;
+  not(column: string, operator: string, value: string): this;
+}
+
+/**
+ * The default filters every archive list shares — the index (`listByKind`),
+ * its "also found in …" counts (`countSearchMatches`) and the FPS catalog
+ * (`listFpsCatalog`). One place, so a count can never drift from the list it
+ * points at (harden scan, 2026-09-25):
+ *  - buyable records only (`is_variant = false`); the ammunition, manufacturer
+ *    and blueprint tables have no such column;
+ *  - no records without a name in ANY language — the game's own "! GERMAN_…
+ *    TRANSLATION NOT FOUND … !" marker, English only an @-key — which are
+ *    unfinished items. "!" sorts before every letter, so a dozen of them
+ *    opened every armour list (audit 2026-09-25). NULL names stay;
+ *  - for ships: no salvage wrecks, orbital sentries or probes, which the data
+ *    files as vehicles but nobody flies.
+ */
+function applyDefaultBrowseFilters<T extends BrowseFilterable>(query: T, kind: CodexKind): T {
+  let out = query;
+  if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint') {
+    out = out.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
+  }
+  if (kind === 'ship') {
+    for (const prefix of NON_SHIP_VEHICLE_PREFIXES) out = out.not('class_name', 'ilike', `${prefix}*`);
+  }
+  return out;
+}
+
+/**
  * PostgREST `or` clause for "column is none of these values" that ALSO keeps
  * NULL rows. `not.in` alone drops them (SQL three-valued logic), which would
  * quietly hide records from the taxonomy's catch-all bucket. Values are the
@@ -1791,11 +2020,6 @@ export const FPS_ARMOR_ATTACH_TYPES = [
 export function fpsArmorSlot(attachType: string | null | undefined): string | null {
   if (!attachType) return null;
   return attachType.startsWith('Char_Armor_') ? attachType.slice('Char_Armor_'.length) : attachType;
-}
-
-/** Reverse of fpsArmorSlot: a slot token back to its attach_type ('Helmet' → 'Char_Armor_Helmet'). */
-export function fpsArmorAttachType(slot: string | null | undefined): string | null {
-  return slot ? `Char_Armor_${slot}` : null;
 }
 
 /** Pick the active-language string out of a LocalizedText, with fallbacks. */
@@ -1865,9 +2089,16 @@ export function manufacturerLabel(
   lang: Lang,
 ): string | null {
   if (!row) return null;
+  // The game's own "unknown" maker: its German name is the unfinished
+  // placeholder "PH  Unknown Manufacturer", and even a clean "Unknown" badge
+  // says nothing — 320 weapons and items carried one (audit 2026-09-25).
+  if (row.manufacturerCode === UNKNOWN_MANUFACTURER_CODE) return null;
   const p = row.payload as { manufacturer?: { name?: LocalizedText } } | undefined;
   return pickLocalized(p?.manufacturer?.name, lang) || row.manufacturerCode || null;
 }
+
+/** The catalog's "no known maker" code — never shown as a manufacturer. */
+export const UNKNOWN_MANUFACTURER_CODE = 'UNKN';
 
 /**
  * Manufacturer facet options for a list view: the option VALUE stays the
@@ -1883,7 +2114,7 @@ export function manufacturerFacetOptions(
   const byCode = new Map<string, string>();
   for (const r of rows) {
     const code = r.manufacturerCode;
-    if (!code) continue;
+    if (!code || code === UNKNOWN_MANUFACTURER_CODE) continue;
     const label = manufacturerLabel(r, lang) ?? code;
     const existing = byCode.get(code);
     // First resolved name wins; never let a later code-only row overwrite it.

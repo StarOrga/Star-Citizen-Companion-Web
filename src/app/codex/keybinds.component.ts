@@ -25,6 +25,7 @@ import { CodexKeybind, KeybindDevice, Lang } from './codex.types';
 import { RoleService } from '../auth/role.service';
 import { EnglishStringsService } from '../shared/english-strings.service';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { KeybindCategoryService, KeybindTarget, keybindKey } from './keybind-category.service';
 import {
   EMPTY_ASSIGNMENT,
@@ -111,12 +112,13 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     TranslatePipe,
     CodexStatusBannerComponent,
     ScSelectComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="kb">
       <header class="kb-head">
-        <a class="back" routerLink="/codex">← {{ 'codex.keybinds.back' | translate }}</a>
+        <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
         <h1>{{ 'codex.keybinds.title' | translate }}</h1>
         <p class="sub">{{ 'codex.keybinds.subtitle' | translate }}</p>
         <sc-codex-status-banner />
@@ -124,7 +126,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
 
       @if (error(); as err) {
         <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
           <button type="button" class="retry" (click)="reload()">
             {{ 'codex.error.retry' | translate }}
           </button>
@@ -135,6 +137,9 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
         @for (s of skeletons; track s; let i = $index) {
           <div class="row-skel sc-skel" [style.--sc-skel-i]="i"></div>
         }
+      } @else if (error()) {
+        <!-- The error card above already says what went wrong; "no catalog
+             build published" under it would contradict it. -->
       } @else if (total() === 0) {
         <div class="sc-card empty">
           <strong>{{ 'codex.empty.title' | translate }}</strong>
@@ -142,10 +147,10 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
         </div>
       } @else {
         <div class="kb-controls">
-          <div class="devices" role="tablist" [attr.aria-label]="'codex.keybinds.device' | translate">
+          <div class="devices" role="group" [attr.aria-label]="'codex.keybinds.device' | translate">
             @for (d of devices; track d) {
-              <button type="button" class="dev" role="tab"
-                      [class.active]="device() === d" [attr.aria-selected]="device() === d"
+              <button type="button" class="dev"
+                      [class.active]="device() === d" [attr.aria-pressed]="device() === d"
                       (click)="setDevice(d)">
                 {{ 'codex.keybinds.devices.' + d | translate }}
               </button>
@@ -165,7 +170,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
               @for (l of nameLangs; track l) {
                 <button type="button" class="seg-btn" [class.on]="nameLang() === l"
                         [attr.aria-pressed]="nameLang() === l"
-                        [attr.title]="'codex.keybinds.lang.hint.' + l | translate"
+                        [scTooltip]="'codex.keybinds.lang.hint.' + l | translate"
                         (click)="setNameLang(l)">
                   {{ 'codex.keybinds.lang.short.' + l | translate }}
                 </button>
@@ -175,8 +180,10 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
           @if (roles.isAdmin()) {
             <button type="button" class="assign-toggle" [class.on]="assignMode()"
                     [attr.aria-pressed]="assignMode()" (click)="toggleAssignMode()">
-              {{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
-                 | translate }}
+              <span class="toggle-label">{{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
+                 | translate }}</span>
+              <!-- Red = elevated access, and said in words too (CLAUDE.md). -->
+              <span class="admin-tag">{{ 'nav.adminOnly' | translate }}</span>
             </button>
           }
         </div>
@@ -307,7 +314,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
               <ul class="rows">
                 @for (r of g.rows; track r.key) {
                   <li class="row" [class.picked]="isSelected(r)"
-                      [class.selectable]="editing()" [attr.title]="rowTitle(r)">
+                      [class.selectable]="editing()" [scTooltip]="rowTitle(r)">
                     @if (editing()) {
                       <!-- The checkbox lives in its own <label>, whose ::after
                            is stretched over the whole row (see .row-pick::after).
@@ -367,8 +374,8 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     .kb { display: flex; flex-direction: column; gap: 18px; padding-bottom: 90px; }
 
     .kb-head { display: flex; flex-direction: column; gap: 4px; }
-    .back { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); text-decoration: none; width: fit-content; }
-    .back:hover { text-decoration: underline; }
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
     .kb-head h1 { margin: 4px 0 0; font-size: clamp(1.4rem, 2.6vw, 2rem); }
     .sub { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
 
@@ -387,21 +394,27 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       text-transform: uppercase; border-radius: 7px; cursor: pointer;
     }
     .dev:hover { color: var(--sc-fg-0); }
+    .dev:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .dev.active { background: var(--sc-accent); color: var(--sc-bg-0); }
     .search {
       flex: 1 1 220px; padding: 11px 14px; border-radius: 10px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 0.95rem;
     }
-    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    /* Admin-only tooling: the elevated-access red, never the viewer accent. */
     .assign-toggle {
       flex: 0 0 auto; padding: 10px 16px; border-radius: 10px; cursor: pointer; min-height: 48px;
-      background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+      display: inline-flex; align-items: center; gap: 8px; background: transparent;
+      border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); color: var(--sc-accent-hot);
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .assign-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .assign-toggle.on { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-bg-0); }
+    .assign-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent-hot); }
+    .assign-toggle:focus-visible { outline: 2px solid var(--sc-accent-hot); outline-offset: 2px; }
+    .assign-toggle.on { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
+    /* Same wording tag as the shell's admin menu entries (.di-tag). */
+    .admin-tag { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.08em; opacity: 0.8; white-space: nowrap; }
 
     /* ── name-language switch ──────────────────────────────────────────────
        Same segmented control as the news stream's "Beiträge | Gemerkt": two
@@ -569,8 +582,11 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     }
     .bind.unbound { background: transparent; color: var(--sc-fg-2); border-style: dashed; }
 
-    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
 
@@ -590,6 +606,11 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
          switch grows rather than leaving a gap beside itself, which also puts
          both halves on a comfortable half-width thumb target. */
       .search { flex: 1 1 100%; }
+      /* The four device tabs are ~405px side by side — wider than a phone,
+         which made the whole page scroll sideways. Two by two, full width,
+         each a proper thumb target. */
+      .devices { display: flex; flex-wrap: wrap; flex: 1 1 100%; }
+      .dev { flex: 1 1 calc(50% - 4px); min-height: 48px; }
       .seg.lang { flex: 1 1 auto; }
       .seg.lang .seg-btn { flex: 1 1 0; }
       .assign-toggle { flex: 1 1 auto; }
@@ -770,11 +791,17 @@ export class KeybindsComponent implements OnInit {
 
   readonly shownCount = computed(() => this.groups().reduce((n, g) => n + g.rows.length, 0));
 
+  /** Bumped per load: a language switch reloads, and the older answer must not land last. */
+  private loadSeq = 0;
+
   async ngOnInit(): Promise<void> {
+    const seq = ++this.loadSeq;
+    const current = () => seq === this.loadSeq;
     this.loading.set(true);
     this.error.set(null);
     try {
       const binds = await this.svc.listKeybinds();
+      if (!current()) return;
       this.all.set(binds);
       const keys = new Set<string>();
       for (const b of binds) {
@@ -790,20 +817,21 @@ export class KeybindsComponent implements OnInit {
       this.english.ensureLoaded();
       const wanted = [...keys];
       const map = await this.svc.resolveLocaleKeys(wanted, lang);
+      if (!current()) return;
       this.labels.set(map);
       // Only ~62 % of actions resolve in English and ~55 % in German, so a
       // non-English UI additionally pulls the English originals: a readable
       // foreign name beats a programmatic key (the admin's explicit ask).
-      this.labelsEn.set(
-        lang === 'en' ? map : await this.svc.resolveLocaleKeys(wanted, 'en'),
-      );
+      const en = lang === 'en' ? map : await this.svc.resolveLocaleKeys(wanted, 'en');
+      if (!current()) return;
+      this.labelsEn.set(en);
       // The curated categories are public, so they load for every visitor —
       // the chips are part of the reference, not of the admin tooling.
       await this.cats.load();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      if (current()) this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (current()) this.loading.set(false);
     }
   }
 

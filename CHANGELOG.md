@@ -4,6 +4,57 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.102.0] - 2026-09-26
+
+### Added
+
+- **Die Set-Seite zeigt auch Waffen und Werkzeuge.** Unter den sechs
+  Rüstungsplätzen stehen jetzt die Plätze, die die Rolle trägt (Primär,
+  Sekundär, Seitenwaffe, Multitool, Traktorstrahl …). Jeder Platz führt ins
+  Archiv, das dann nur passende Teile anbietet und direkt ins Set ausrüstet.
+- **FPS-Sets haben einen Nahkampf- und einen Wurfwaffenplatz** (Messer,
+  Granaten). Die Bereitschafts-Symbole zeigen nur noch, was die Rolle
+  überhaupt tragen kann.
+- **Rückgängig nach dem Leeren.** Wer einen Platz leert, kann das fünf
+  Sekunden lang zurücknehmen. Wurde der Platz inzwischen in einem anderen Tab
+  geändert, löscht das Leeren nichts, und die Seite zeigt den aktuellen Stand.
+- **Eigene Tooltips in den Archivansichten** statt der Browser-Tooltips:
+  kurze Verzögerung bei reinen Symbol-Knöpfen, lange bei Zusatzinfos, per
+  Tastatur-Fokus sofort, auf Touch per langem Drücken.
+
+### Changed
+
+- **Kategorie, Suche und Filter stehen in der Adresse.** *Zurück* von einer
+  Detailseite landet wieder in derselben Liste, und Kategorien sind echte
+  Links (Mittelklick, neuer Tab). Eine Suche nennt außerdem die anderen
+  Kategorien mit Treffern („Auch gefunden in: …“).
+- **FPS-Archiv aufgeräumt.** Lackierungen falten in ihr Grundmodell
+  (*+n Skins*), `*` wirkt in der Suche als Platzhalter, die Filter sind
+  app-eigene Auswahllisten, und Plätze, Gewichtsklassen und Waffentypen
+  heißen deutsch. Namenlose Platzhalter-Einträge sowie Wracks, Sonden und
+  Wachgeschütze stehen nicht mehr in den Listen.
+- **Hersteller- und Kategorie-Badges sind neutral** statt rot — Rot bleibt
+  Admin-Bereichen vorbehalten.
+
+### Fixed
+
+- **Ausrüsten aus zwei Tabs** überschreibt sich nicht mehr gegenseitig.
+- **Set-Seite:** offene Plätze sind wieder sichtbar (blaugrau statt weiß bzw.
+  unsichtbar), Set-Wechsler, „Zurück zum Set“ und die Hangar-Karte führen auf
+  die Set-Seite statt auf die Codex-Startseite, und ein Ladefehler bietet
+  *Erneut versuchen*.
+- **Handy:** Tastenbelegung sowie Rüstungs- und Waffen-Detailseiten scrollen
+  nicht mehr seitwärts.
+- **Ein einzelner fehlgeschlagener Build-Abruf** ließ alle Archivansichten bis
+  zum Neuladen leer erscheinen.
+
+### Notes
+
+- Doku (readme.io): Set-Seite, Archiv-Adresse und FPS-Archiv beschrieben.
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+- Mobile-Gate: /about und /login grün; die angemeldeten Routen blieben
+  ungeprüft (kein Test-Account eingerichtet).
+
 ## [0.101.0] - 2026-09-25
 
 ### Changed

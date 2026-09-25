@@ -385,3 +385,305 @@ describe('manufacturerFacetOptions', () => {
     expect(manufacturerFacetOptions([row(null, 'Nowhere Inc')], 'en')).toEqual([]);
   });
 });
+
+// Archive audit 2026-09-25: a failed build lookup used to be cached for the
+// session, and every archive reader then rendered "nothing here" until a full
+// reload. Readers now see the failure (error card + retry), and the retry reads
+// the build again.
+describe('CodexService archive readers and the build lookup', () => {
+  interface Calls {
+    builds: number;
+    filters: string[];
+  }
+
+  function provider(calls: Calls, buildFailsFirst: boolean): SupabaseClientProvider {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      const listResult = { data: [], count: 0, error: null };
+      Object.assign(chain, {
+        select: () => chain,
+        eq: (col: string, value: unknown) => {
+          if (table === 'p4k_bundles_public_stats') return Promise.resolve({ data: [], error: null });
+          calls.filters.push(`${table}:eq:${col}=${String(value)}`);
+          return chain;
+        },
+        or: (expr: string) => {
+          calls.filters.push(`${table}:or:${expr}`);
+          return chain;
+        },
+        not: (col: string, op: string, value: string) => {
+          calls.filters.push(`${table}:not:${col}.${op}.${value}`);
+          return chain;
+        },
+        in: () => chain,
+        order: () => chain,
+        range: () => Promise.resolve(listResult),
+        maybeSingle: () => {
+          calls.builds++;
+          if (buildFailsFirst && calls.builds === 1) return Promise.resolve({ data: null, error: new Error('network down') });
+          return Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          });
+        },
+      });
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(calls: Calls, buildFailsFirst = false): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(calls, buildFailsFirst) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  it('surfaces a failed build lookup to the list, and the retry reads the build again', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls, true);
+
+    await expectAsync(svc.listByKind('item')).toBeRejectedWithError('network down');
+    await expectAsync(svc.listByKind('item')).toBeResolved();
+    expect(calls.builds).toBe(2);
+  });
+
+  it('drops nameless records and non-ship vehicles from the default browse only', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls);
+
+    await svc.listByKind('ship');
+    const browse = [...calls.filters];
+    calls.filters.length = 0;
+    await svc.listByKind('ship', { includeVariants: true });
+    const raw = [...calls.filters];
+
+    expect(browse).toContain('codex_ships:or:name_localized.is.null,name_localized.not.like.!*');
+    expect(browse).toContain('codex_ships:not:class_name.ilike.SalvageableDebris*');
+    expect(raw.some((f) => f.includes('not.like.!*') || f.includes('SalvageableDebris'))).toBeFalse();
+  });
+});
+
+describe('CodexService.listFpsCatalog and countSearchMatches', () => {
+  interface Cap {
+    selects: string[];
+    ranges: [number, number][];
+    filters: string[];
+  }
+  const fresh = (): Cap => ({ selects: [], ranges: [], filters: [] });
+
+  /** `n` slim FPS weapon rows, the shape the JSON-path select returns. */
+  const fpsRows = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      class_name: `klwe_pistol_${String(i).padStart(4, '0')}`,
+      name_localized: `Pistol ${i}`,
+      manufacturer_code: 'KLWE',
+      attach_type: null,
+      sub_type: 'Small',
+      size: 1,
+      grade: null,
+      is_variant: false,
+      weapon_class: 'FPS',
+      name: { de: `Pistole ${i}`, en: `Pistol ${i}`, key: '@item_Name' },
+      previewImage: `thumbs/p${i}.webp`,
+      manufacturer: { code: 'KLWE', name: 'Klaus & Werner' },
+    }));
+
+  /**
+   * Pages `rows` like PostgREST (max 1000 per response); head-only queries
+   * answer `count`. The first `failReads` page reads fail.
+   */
+  function provider(rows: unknown[], cap: Cap, opts: { failReads?: number; count?: number } = {}): SupabaseClientProvider {
+    let failures = opts.failReads ?? 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const from = (table: string): any => {
+      let range: [number, number] | null = null;
+      let head = false;
+      let withCount = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chain: any = {
+        select: (cols: string, o?: { head?: boolean; count?: string }) => {
+          if (table !== 'codex_builds') cap.selects.push(`${table}:${cols}`);
+          head = !!o?.head;
+          withCount = o?.count === 'exact' && !o?.head;
+          return chain;
+        },
+        eq: (col: string, value: unknown) => {
+          if (table === 'p4k_bundles_public_stats') return Promise.resolve({ data: [], error: null });
+          if (table !== 'codex_builds') cap.filters.push(`${table}:eq:${col}=${String(value)}`);
+          return chain;
+        },
+        in: (col: string) => {
+          cap.filters.push(`${table}:in:${col}`);
+          return chain;
+        },
+        or: (expr: string) => {
+          cap.filters.push(`${table}:or:${expr}`);
+          return chain;
+        },
+        not: (col: string, op: string, value: string) => {
+          cap.filters.push(`${table}:not:${col}.${op}.${value}`);
+          return chain;
+        },
+        order: () => chain,
+        range: (a: number, b: number) => {
+          range = [a, b];
+          return chain;
+        },
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        then: (onOk: any, onErr: any) => {
+          const answer = () => {
+            if (head) return { data: null, count: opts.count ?? 0, error: null };
+            if (!range) return { data: [], error: null };
+            cap.ranges.push(range);
+            if (failures > 0) {
+              failures--;
+              return { data: null, error: new Error('flaky') };
+            }
+            const data = rows.slice(range[0], Math.min(range[1] + 1, range[0] + 1000));
+            return { data, count: withCount ? rows.length : null, error: null };
+          };
+          return Promise.resolve(answer()).then(onOk, onErr);
+        },
+      };
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(rows: unknown[], cap: Cap, opts: { failReads?: number; count?: number } = {}): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(rows, cap, opts) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('reads the whole category past the 1000-row cap and stops on the first short page', async () => {
+    const cap = fresh();
+    const rows = await make(fpsRows(1103), cap).listFpsCatalog('weapon');
+
+    expect(rows.length).toBe(1103);
+    expect(cap.ranges).toEqual([
+      [0, 999],
+      [1000, 1999],
+    ]);
+  });
+
+  it('selects slim columns and hands the three payload paths to the card as its payload', async () => {
+    const cap = fresh();
+    const [row] = await make(fpsRows(1), cap).listFpsCatalog('weapon');
+
+    const select = cap.selects.find((s) => s.startsWith('codex_weapons:'))!;
+    expect(select).toContain('name:payload->name');
+    // Never the whole payload column: ~10 kB per armour row, 3 % of it on a card.
+    expect(select).not.toMatch(/(:|, )payload(,|$)/);
+    expect(row.classNameSlug).toBe('klwe_pistol_0000');
+    expect(row.payload).toEqual({
+      name: { de: 'Pistole 0', en: 'Pistol 0', key: '@item_Name' },
+      previewImage: 'thumbs/p0.webp',
+      manufacturer: { code: 'KLWE', name: 'Klaus & Werner' },
+    });
+  });
+
+  it('serves repeat calls from the cache, per category and variant switch', async () => {
+    const cap = fresh();
+    const svc = make(fpsRows(3), cap);
+
+    await svc.listFpsCatalog('weapon');
+    await svc.listFpsCatalog('weapon');
+    expect(cap.ranges.length).toBe(1);
+
+    await svc.listFpsCatalog('weapon', true);
+    await svc.listFpsCatalog('armor');
+    expect(cap.ranges.length).toBe(3);
+  });
+
+  it('drops a failed read from the cache, so the retry reads again', async () => {
+    const cap = fresh();
+    const svc = make(fpsRows(3), cap, { failReads: 1 });
+
+    await expectAsync(svc.listFpsCatalog('weapon')).toBeRejectedWithError('flaky');
+    expect((await svc.listFpsCatalog('weapon')).length).toBe(3);
+    expect(cap.ranges.length).toBe(2);
+  });
+
+  it('applies the default browse filters unless the raw records are asked for', async () => {
+    const cap = fresh();
+    const svc = make([], cap);
+
+    await svc.listFpsCatalog('armor');
+    expect(cap.filters).toContain('codex_items:eq:is_variant=false');
+    expect(cap.filters).toContain('codex_items:or:name_localized.is.null,name_localized.not.like.!*');
+    expect(cap.filters).toContain('codex_items:in:attach_type');
+
+    cap.filters.length = 0;
+    await svc.listFpsCatalog('armor', true);
+    expect(cap.filters.some((f) => f.includes('is_variant') || f.includes('not.like.!*'))).toBeFalse();
+  });
+
+  it('counts other categories under the same default filters as their lists', async () => {
+    const cap = fresh();
+    const counts = await make([], cap, { count: 4 }).countSearchMatches('titan', ['ship', 'item']);
+
+    expect(counts.get('ship')).toBe(4);
+    expect(counts.get('item')).toBe(4);
+    expect(cap.filters).toContain('codex_ships:not:class_name.ilike.SalvageableDebris*');
+    expect(cap.filters).toContain('codex_items:eq:is_variant=false');
+    expect(cap.filters).toContain('codex_ships:or:name_localized.ilike.%titan%,class_name.ilike.%titan%');
+  });
+
+  it('counts nothing for a term with fewer than three characters left after escaping', async () => {
+    const cap = fresh();
+    const svc = make([], cap, { count: 99 });
+
+    // `(((` escapes to an empty pattern, which would match every record.
+    expect((await svc.countSearchMatches('(((', ['ship'])).size).toBe(0);
+    expect((await svc.countSearchMatches('a,', ['ship'])).size).toBe(0);
+    expect(cap.selects.length).toBe(0);
+  });
+
+  it('asks each kind once per term — a category switch re-uses the counts it already has', async () => {
+    const cap = fresh();
+    const svc = make([], cap, { count: 2 });
+
+    await svc.countSearchMatches('titan', ['ship', 'item']);
+    const first = cap.selects.length;
+    const again = await svc.countSearchMatches('Titan', ['item', 'weapon']);
+
+    expect(again.get('item')).toBe(2);
+    expect(cap.selects.length - first).toBe(1); // only the new kind, weapon
+  });
+
+  it('counts the archive per armour position with head-only queries, once per build', async () => {
+    const cap = fresh();
+    const svc = make([], cap, { count: 7 });
+
+    const counts = await svc.countItemsByAttachType(['Char_Armor_Helmet', 'Char_Armor_Torso']);
+    expect([...counts.entries()]).toEqual([
+      ['Char_Armor_Helmet', 7],
+      ['Char_Armor_Torso', 7],
+    ]);
+    expect(cap.filters).toContain('codex_items:eq:attach_type=Char_Armor_Helmet');
+    expect(cap.filters).toContain('codex_items:eq:is_variant=false');
+
+    const before = cap.selects.length;
+    await svc.countItemsByAttachType(['Char_Armor_Torso']);
+    expect(cap.selects.length).toBe(before);
+  });
+});
+
+describe('the placeholder manufacturer (UNKN)', () => {
+  const row = { manufacturerCode: 'UNKN', payload: { manufacturer: { code: 'UNKN', name: 'PH Unknown Manufacturer' } } };
+
+  it('gets no card badge and no facet option', () => {
+    expect(manufacturerLabel(row, 'de')).toBeNull();
+    expect(manufacturerFacetOptions([row], 'de')).toEqual([]);
+  });
+});

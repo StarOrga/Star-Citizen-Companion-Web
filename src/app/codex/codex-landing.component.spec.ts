@@ -292,7 +292,8 @@ describe('CodexLandingComponent', () => {
     expect(stage.querySelector('.stage-title')?.textContent?.trim()).toBe('FixIt');
     // No translation loader in the TestBed, so the key renders — but the
     // honest-fraction key (U1) is what's used, never a bare-percentage one.
-    expect(fixture.componentInstance.stagePersonEquipSuffix()).toContain('codex.stage.equipped');
+    // Armour only — the set page lists weapon positions too, so the count says what it counts.
+    expect(fixture.componentInstance.stagePersonEquipSuffix()).toContain('codex.stage.armorEquipped');
     expect(fixture.componentInstance.boardHero().size).toBe(0);
   });
 

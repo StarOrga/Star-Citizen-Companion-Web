@@ -734,16 +734,16 @@ export class HangarService {
     return mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
   }
 
-  async updateRoleLoadout(
-    id: string,
-    patch: Partial<{ name: string; items: RoleLoadoutItem[] }>,
-  ): Promise<HangarRoleLoadout | null> {
-    const update: Record<string, unknown> = {};
-    if (patch.name !== undefined) update['name'] = patch.name;
-    if (patch.items !== undefined) update['items'] = patch.items;
+  /**
+   * Rename a set. Its pieces change one slot at a time through
+   * `setRoleLoadoutSlot` — a whole-`items` write from a caller's own copy is
+   * exactly the lost update that method exists to prevent, so this one no
+   * longer takes `items`.
+   */
+  async updateRoleLoadout(id: string, patch: { name: string }): Promise<HangarRoleLoadout | null> {
     const { data, error } = await this.sb.client
       .from('hangar_role_loadouts')
-      .update(update)
+      .update({ name: patch.name })
       .eq('id', id)
       .select('*')
       .single();
@@ -754,6 +754,72 @@ export class HangarService {
     const loadout = mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
     this.roleLoadouts.set(this.roleLoadouts().map((l) => (l.id === loadout.id ? loadout : l)));
     return loadout;
+  }
+
+  /**
+   * Put one piece into one slot of a set — `piece: null` empties it — without
+   * clobbering the rest (audit 2026-09-25, lost update between two tabs).
+   *
+   * A whole-`items` write from the caller's own, possibly old, copy loses
+   * pieces: equip the helmet in one tab, the torso in a second tab opened
+   * earlier, and the second write deletes the helmet. Here the merge happens
+   * against the SERVER row, and the write only lands if that row is still the
+   * one that was read (`updated_at`, bumped by the
+   * `hangar_role_loadouts_updated_at` trigger); a write in between means one
+   * re-read and one retry.
+   *
+   * `expect` is the piece the caller showed in the slot when the reader asked
+   * to clear it: the slot is only emptied while the server copy still holds
+   * that piece, so a stale "remove C54" cannot delete the P4-AR another tab
+   * put there since. The set then comes back unchanged and the caller shows
+   * what is really in the slot.
+   *
+   * A refused write returns null and leaves the shared `error` alone: both
+   * callers report it inline at the control that was used, while `error`
+   * drives the hangar banner and the set page's load-failure card.
+   */
+  async setRoleLoadoutSlot(
+    id: string,
+    slot: string,
+    piece: { className: string; kind: string } | null,
+    expect?: string,
+  ): Promise<HangarRoleLoadout | null> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
+      if (read.error || !read.data) return null;
+      const row = read.data as HangarRoleLoadoutRow;
+      const current = mapHangarRoleLoadout(row);
+      if (expect !== undefined && current.items.find((i) => i.slot === slot)?.className !== expect) {
+        this.refreshCachedLoadout(current);
+        return current;
+      }
+      const items = current.items.filter((i) => i.slot !== slot);
+      if (piece) items.push({ slot, className: piece.className, kind: piece.kind });
+      const write = await this.sb.client
+        .from('hangar_role_loadouts')
+        .update({ items: items as unknown as never[] })
+        .eq('id', id)
+        .eq('updated_at', row.updated_at)
+        .select('*');
+      if (write.error) return null;
+      const saved = (write.data ?? [])[0] as HangarRoleLoadoutRow | undefined;
+      if (!saved) continue; // written elsewhere in between — merge again on the new row
+      const loadout = mapHangarRoleLoadout(saved);
+      this.refreshCachedLoadout(loadout);
+      return loadout;
+    }
+    return null;
+  }
+
+  /**
+   * Swap a set the cache already holds for a fresher copy — never insert one.
+   * A single set in an unfilled cache (a tab opened straight on /codex/fps)
+   * would look like the user's ONLY set, and the set page would skip its reload.
+   */
+  private refreshCachedLoadout(loadout: HangarRoleLoadout): void {
+    if (this.roleLoadouts().some((l) => l.id === loadout.id)) {
+      this.roleLoadouts.set(this.roleLoadouts().map((l) => (l.id === loadout.id ? loadout : l)));
+    }
   }
 
   async deleteRoleLoadout(id: string): Promise<boolean> {

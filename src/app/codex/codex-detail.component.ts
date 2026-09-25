@@ -26,6 +26,7 @@ import {
 } from './codex.types';
 import {
   BlueprintRef,
+  CODEX_KINDS,
   CodexDetail,
   CodexKind,
   CodexService,
@@ -331,7 +332,12 @@ interface GearRecipe {
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
-        <div class="sc-card err"><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</div>
+        <div class="sc-card err">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+          @if (canRetry()) {
+            <button type="button" class="retry" (click)="retryLoad()">{{ 'codex.error.retry' | translate }}</button>
+          }
+        </div>
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
@@ -1561,8 +1567,8 @@ interface GearRecipe {
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: 999px; overflow: hidden; }
     .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: 11px; }
     .ht-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .back { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
-    .back:hover { text-decoration: underline; }
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
 
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
@@ -1907,13 +1913,18 @@ interface GearRecipe {
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 8px; }
     .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
     .sg-head:first-of-type { margin-top: 0; }
-    .sg-head[data-purpose="offense"] { color: var(--sc-accent-hot, #ff7a45); }
+    /* The category icon's weapon orange — one orange for "offense", well clear of the admin red. */
+    .sg-head[data-purpose="offense"] { color: #e8864a; }
     .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
-    .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .s-label { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
-    .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
+    /* min-width + anywhere: armour and FPS weapons carry long unbroken labels
+       and values ("Radiation Resistance.Maximum Radiation Capacity",
+       "playerhits_armour_light") that pushed the tile out of its track — on a
+       phone the whole detail page then scrolled sideways (feedback #196). */
+    .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); min-width: 0; }
+    .s-label { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
     .s-unit { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
 
     /* Where to buy */
@@ -1931,7 +1942,7 @@ interface GearRecipe {
     .dmg-bar { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .dmg-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .dmg[data-ch="energy"] .dmg-fill { background: var(--sc-accent); }
-    .dmg[data-ch="physical"] .dmg-fill { background: var(--sc-accent-hot, #ff7a45); }
+    .dmg[data-ch="physical"] .dmg-fill { background: #e8864a; }
     .dmg[data-ch="thermal"] .dmg-fill { background: #ff5252; }
     .dmg[data-ch="distortion"] .dmg-fill { background: #a674ff; }
     .dmg[data-ch="biochemical"] .dmg-fill { background: #5fd35f; }
@@ -2007,7 +2018,11 @@ interface GearRecipe {
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
 
     .skel-card { height: 260px; }
-    .err { color: var(--sc-danger); padding: 16px; }
+    /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
     .empty { text-align: center; padding: 40px; color: var(--sc-fg-2); }
 
     @media (max-width: 760px) {
@@ -2413,11 +2428,15 @@ export class CodexDetailComponent implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const kind = params.get('kind') as CodexKind | null;
       const className = params.get('className');
-      if (!kind || !className) {
-        this.error.set('Invalid route');
+      // An unknown category (/codex/foo/x) used to query a table named
+      // "undefined" and print the raw database message.
+      if (!kind || !className || !CODEX_KINDS.includes(kind)) {
+        this.lastRequest = null;
+        this.error.set(this.t.instant('codex.detail.invalidRoute'));
         this.loading.set(false);
         return;
       }
+      this.lastRequest = { kind, className };
       // Deep links land here without ever touching the list, so the RSI art map
       // would otherwise be empty and every ship hero would fall back to the
       // datamined silhouette. `feed` is a signal — the hero repaints when it
@@ -2427,7 +2446,21 @@ export class CodexDetailComponent implements OnInit {
     });
   }
 
+  /** The entity the route asked for last — what "retry" loads again. */
+  private lastRequest: { kind: CodexKind; className: string } | null = null;
+  /** Bumped per load: a quick switch (livery, edition) must not end on the older answer. */
+  private loadSeq = 0;
+
+  canRetry(): boolean {
+    return this.lastRequest !== null;
+  }
+
+  retryLoad(): void {
+    if (this.lastRequest) void this.load(this.lastRequest.kind, this.lastRequest.className);
+  }
+
   private async load(kind: CodexKind, className: string): Promise<void> {
+    const seq = ++this.loadSeq;
     if (kind === 'ship') this.initHoloView(className);
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);
@@ -2467,13 +2500,15 @@ export class CodexDetailComponent implements OnInit {
     this.shipSilhouette.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
+      if (seq !== this.loadSeq) return;
       this.detail.set(d);
       if (d) {
         await Promise.all([
-          this.resolveLoadoutEntities(d),
-          this.resolveLocale(d),
-          this.resolveShipTech(d),
+          this.resolveLoadoutEntities(d, seq),
+          this.resolveLocale(d, seq),
+          this.resolveShipTech(d, seq),
         ]);
+        if (seq !== this.loadSeq) return;
         if (kind === 'ship') {
           this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
         }
@@ -2482,9 +2517,9 @@ export class CodexDetailComponent implements OnInit {
         void this.loadSkinGroup(kind, d.classNameSlug);
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
-        if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug);
+        if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug, seq);
         // Ships are not craftable either, so skip the forward lookup as well.
-        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug);
+        if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
         // Ship pages: hangar membership backs the add-to-hangar action.
         if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
         // Ship pages: resolve the pinned pledge link (own > global). Best
@@ -2511,19 +2546,30 @@ export class CodexDetailComponent implements OnInit {
         }
       }
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      if (seq === this.loadSeq) this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 
+  /**
+   * Every follow-up read of load() takes its `seq` and only writes while that
+   * load is still the current one: a quick livery or edition switch must not
+   * end on the previous entity's tech stats, loadout, recipe or "used in" list
+   * (harden scan, 2026-09-25).
+   */
+  private isCurrentLoad(seq: number): boolean {
+    return seq === this.loadSeq;
+  }
+
   /** Resolve raw @-keys on the row (currently the ship role) to localized text. */
-  private async resolveLocale(d: CodexDetail): Promise<void> {
+  private async resolveLocale(d: CodexDetail, seq: number): Promise<void> {
     const keys: string[] = [];
     const role = d.row['role'];
     if (typeof role === 'string' && role.startsWith('@')) keys.push(role);
     if (keys.length === 0) return;
-    this.localeMap.set(await this.svc.resolveLocaleKeys(keys, this.lang()));
+    const resolved = await this.svc.resolveLocaleKeys(keys, this.lang());
+    if (this.isCurrentLoad(seq)) this.localeMap.set(resolved);
   }
 
   // ── hardpoint slot compatibility ────────────────────────────────────────────
@@ -2562,14 +2608,13 @@ export class CodexDetailComponent implements OnInit {
     this.compatMap.set(m);
   }
 
-  private async resolveLoadoutEntities(d: CodexDetail): Promise<void> {
+  private async resolveLoadoutEntities(d: CodexDetail, seq: number): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
     // Sub-items too — a gun that only exists inside a mount still needs its
     // name, size and manufacturer resolved.
-    this.loadoutEntities.set(
-      await this.svc.resolveEntities(stockLoadoutClassNames(entries)),
-    );
+    const entities = await this.svc.resolveEntities(stockLoadoutClassNames(entries));
+    if (this.isCurrentLoad(seq)) this.loadoutEntities.set(entities);
   }
 
   /**
@@ -2579,7 +2624,7 @@ export class CodexDetailComponent implements OnInit {
    * codex and hangar always agree. Best-effort: failures leave the hero
    * facts without tech chips instead of breaking the page.
    */
-  private async resolveShipTech(d: CodexDetail): Promise<void> {
+  private async resolveShipTech(d: CodexDetail, seq: number): Promise<void> {
     if (d.kind !== 'ship') return;
     const entries = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
     // Sub-items included: the per-hardpoint readout needs the payload of a gun
@@ -2590,10 +2635,12 @@ export class CodexDetailComponent implements OnInit {
     if (classNames.length === 0) return;
     try {
       const payloads = await this.svc.getEntityPayloads(classNames);
+      if (!this.isCurrentLoad(seq)) return;
       // Publish the payloads first: the per-hardpoint stat readout depends only
       // on them, so it must survive a failure in the aggregate tech math below.
       this.loadoutPayloads.set(payloads);
-      await this.resolveLoadoutAmmo(payloads);
+      await this.resolveLoadoutAmmo(payloads, seq);
+      if (!this.isCurrentLoad(seq)) return;
       const lines: ResolvedLoadoutLine[] = [];
       for (const e of entries) {
         if (!e.entityClassName) continue;
@@ -2648,6 +2695,7 @@ export class CodexDetailComponent implements OnInit {
    */
   private async resolveLoadoutAmmo(
     payloads: Map<string, { kind: CodexKind; payload: unknown }>,
+    seq: number,
   ): Promise<void> {
     const weaponClasses = [...payloads.entries()]
       .filter(([, v]) => (v.payload as { entityKind?: string } | null)?.entityKind === 'weapon')
@@ -2655,7 +2703,8 @@ export class CodexDetailComponent implements OnInit {
     const ammoNames = ammoClassNamesFor(weaponClasses, (cn) => payloads.get(cn)?.payload);
     if (ammoNames.length === 0) return;
     try {
-      this.ammoPayloads.set(await this.svc.getAmmoPayloads(ammoNames));
+      const ammo = await this.svc.getAmmoPayloads(ammoNames);
+      if (this.isCurrentLoad(seq)) this.ammoPayloads.set(ammo);
     } catch {
       // projectile stats are a bonus — a failed lookup just hides those rows
     }
@@ -2701,18 +2750,21 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /** Reverse lookup: crafting blueprints that consume this entity as an ingredient. */
-  private async loadUsedInBlueprints(className: string): Promise<void> {
+  private async loadUsedInBlueprints(className: string, seq: number): Promise<void> {
+    let used: BlueprintRef[] = [];
     try {
-      this.usedInBlueprints.set(await this.svc.blueprintsUsingIngredient(className));
+      used = await this.svc.blueprintsUsingIngredient(className);
     } catch {
-      this.usedInBlueprints.set([]);
+      // supplementary — a failed lookup just hides the list
     }
+    if (this.isCurrentLoad(seq)) this.usedInBlueprints.set(used);
   }
 
   /** Forward lookup: the recipe that produces this entity, with its materials. */
-  private async loadRecipe(className: string): Promise<void> {
+  private async loadRecipe(className: string, seq: number): Promise<void> {
     try {
       const bp = await this.svc.getCraftingRecipe(className);
+      if (!this.isCurrentLoad(seq)) return;
       this.recipe.set(bp ? {
         classNameSlug: bp.classNameSlug,
         craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
@@ -2720,7 +2772,7 @@ export class CodexDetailComponent implements OnInit {
       } : null);
     } catch {
       // Crafting data is supplementary — a failed lookup just hides the panel.
-      this.recipe.set(null);
+      if (this.isCurrentLoad(seq)) this.recipe.set(null);
     }
   }
 

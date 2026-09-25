@@ -1,13 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   HostListener,
   computed,
+  effect,
   input,
   output,
+  viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { isPlainLeftClick } from '../core/modified-click.util';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexKind } from './codex.service';
 import {
   SpecSection,
@@ -65,13 +70,14 @@ export interface ComponentInspectEntry {
 @Component({
   selector: 'sc-codex-component-modal',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
       <div class="cm-backdrop" (click)="closed.emit()">
-        <article class="cm-panel sc-card" role="dialog" aria-modal="true"
-                 [attr.aria-label]="e.name" (click)="$event.stopPropagation()">
+        <article #dialog class="cm-panel sc-card" role="dialog" aria-modal="true" tabindex="-1"
+                 [attr.aria-label]="e.name" (click)="$event.stopPropagation()"
+                 (keydown)="onKeydown($event)">
           <header class="cm-head">
             <div class="cm-ident">
               @if (badge(); as b) { <span class="cm-size">{{ b }}</span> }
@@ -88,17 +94,18 @@ export interface ComponentInspectEntry {
               </div>
             </div>
             <button type="button" class="cm-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.inspect.close' | translate">✕</button>
+                    [attr.aria-label]="'codex.inspect.close' | translate"
+                    [scTooltip]="'codex.inspect.close' | translate">✕</button>
           </header>
 
           @if (headline().length > 0) {
             <dl class="cm-headline">
               @for (st of headline(); track st.labelKey) {
-                <div class="hs" [attr.title]="st.hintKey ? (st.hintKey | translate) : null">
+                <div class="hs" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
                   <dt>
                     {{ st.labelKey | translate }}
                     @if (st.derived) {
-                      <span class="derived" [attr.title]="'codex.equipped.derivedHint' | translate">*</span>
+                      <span class="derived" [scTooltip]="'codex.equipped.derivedHint' | translate" scTooltipTier="label">*</span>
                     }
                   </dt>
                   <dd>{{ fmtStat(st) }}</dd>
@@ -171,7 +178,7 @@ export interface ComponentInspectEntry {
 
           <footer class="cm-foot">
             @if (e.kind) {
-              <a class="cm-open" [routerLink]="['/codex', e.kind, e.className]" (click)="closed.emit()">
+              <a class="cm-open" [routerLink]="['/codex', e.kind, e.className]" (click)="onOpenDetail($event)">
                 {{ 'codex.inspect.openDetail' | translate }} →
               </a>
             }
@@ -198,6 +205,8 @@ export interface ComponentInspectEntry {
     }
     @keyframes cm-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     @media (prefers-reduced-motion: reduce) { .cm-panel { animation: none; } }
+    /* Focused on open so Tab starts inside; the dialog itself needs no ring. */
+    .cm-panel:focus { outline: none; }
 
     .cm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .cm-ident { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
@@ -265,6 +274,55 @@ export class CodexComponentModalComponent {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.entry()) this.closed.emit();
+  }
+
+  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
+  private returnFocus: HTMLElement | null = null;
+
+  constructor() {
+    // Focus into the dialog on open, back to the opener on close, Tab wraps
+    // inside — the weapon-detail window's pattern (§13). Without it a keyboard
+    // reader stayed on the page behind the overlay.
+    effect(() => {
+      if (this.entry()) {
+        this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
+        queueMicrotask(() => this.dialog()?.nativeElement.focus());
+      } else {
+        const el = this.returnFocus;
+        this.returnFocus = null;
+        if (el?.isConnected) el.focus();
+      }
+    });
+  }
+
+  onKeydown(ev: KeyboardEvent): void {
+    if (ev.key !== 'Tab') return;
+    const root = this.dialog()?.nativeElement;
+    const focusable = root
+      ? Array.from(root.querySelectorAll<HTMLElement>('button, input, a[href], [tabindex]:not([tabindex="-1"])')).filter(
+          (el) => !el.hasAttribute('disabled'),
+        )
+      : [];
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = globalThis.document?.activeElement as HTMLElement | null;
+    if (ev.shiftKey && active === first) {
+      ev.preventDefault();
+      last.focus();
+    } else if (!ev.shiftKey && active === last) {
+      ev.preventDefault();
+      first.focus();
+    }
+  }
+
+  /**
+   * The detail link closes the overlay only for a plain left click — a middle
+   * or Ctrl/⌘ click opens the page in a new tab and the overlay should stay
+   * (RULE-B, isPlainLeftClick).
+   */
+  onOpenDetail(ev: MouseEvent): void {
+    if (isPlainLeftClick(ev)) this.closed.emit();
   }
 
   /** "3× S3" / "S3" / "3×" — never a guessed size. */

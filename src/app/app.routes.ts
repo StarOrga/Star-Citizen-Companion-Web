@@ -23,14 +23,12 @@ const PRIVATE = [authGuard, approvedGuard] as const;
  *
  * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hangar/ship/:id`
  * and `/codex/ship/:className`, and never reached this path. So the destination
- * is unambiguous — the Codex start page's AN BORD zone, opened on that set,
- * which is the view that replaced the editor. Exported so the mapping has a
- * test instead of only a comment.
+ * is unambiguous — that set's Codex set page (`/codex/set/:id`), the on-foot
+ * editor that replaced the retired one (concept 2026-09-20, decision T1).
+ * Exported so the mapping has a test instead of only a comment.
  */
 export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
-  return inject(Router).createUrlTree(['/codex'], {
-    queryParams: { zone: 'board', set: params['id'] },
-  });
+  return inject(Router).createUrlTree(['/codex', 'set', params['id']]);
 }
 
 export const routes: Routes = [

@@ -15,13 +15,12 @@ import {
   CodexListRow,
   CodexKind,
   CodexService,
-  ResolvedEntity,
   manufacturerLabel,
   pickLocalized,
   toLang,
 } from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
-import { LocalizedText, Lang, ShipPayload } from './codex.types';
+import { LocalizedText, Lang } from './codex.types';
 import {
   PolySearchHit,
   isUpcomingHit,
@@ -37,7 +36,6 @@ import { totalRecordCount } from './codex-patch-timeline';
 import { ShipStatDelta } from './codex-build-diff';
 import {
   ArmorSlotState,
-  EntityPayloadEntry,
   armorSlotsFromLoadout,
   sortByRecency,
   withSelectedFirst,
@@ -73,9 +71,8 @@ const SEARCH_DEBOUNCE_MS = 250;
  * bottom. See `stage/codex-stage.component.ts` and
  * `stage/hangar-picker.component.ts`.
  *
- * The six-slot paperdoll (`sc-codex-board-panel`) and the collapsed-rail
- * switcher (`sc-codex-zone-rail`) are superseded here — see those files'
- * own headers; they are kept for the future `/codex/set/:id` page (T1).
+ * The six-slot paperdoll (`sc-codex-board-panel`) is superseded here; it
+ * lives on the set page (`/codex/set/:id`, T1) now.
  */
 @Component({
   selector: 'sc-codex-landing',
@@ -569,7 +566,6 @@ export class CodexLandingComponent implements OnInit {
   private readonly fleetDeltas = signal<Map<string, ShipStatDelta[]>>(new Map());
 
   // IM HANGAR extras (flagship-scoped, best-effort)
-  readonly shipComponentPayloads = signal<Map<string, EntityPayloadEntry>>(new Map());
   readonly shipRoleResolved = signal<string | null>(null);
   readonly selectedHangarShipId = signal<string | null>(null);
 
@@ -596,16 +592,8 @@ export class CodexLandingComponent implements OnInit {
    */
   readonly selectedShipSlug = signal<string | null>(null);
 
-  // AN BORD extras
+  // AN BORD: the sets, most recently touched (or URL-named) first.
   readonly personalLoadouts = signal<HangarRoleLoadout[]>([]);
-  readonly resolvedArmor = signal<Map<string, ResolvedEntity>>(new Map());
-  readonly archiveDepth = signal<Map<string, number>>(new Map());
-  /**
-   * Payloads of everything the active set carries — the armour class lives in
-   * `stats.SCItemSuitArmorParams`, the readiness classes in `subType`, so ONE
-   * batch covers both. Same zero-to-one-extra-query budget as the ship zone.
-   */
-  readonly armorPayloads = signal<Map<string, EntityPayloadEntry>>(new Map());
 
   readonly searchActive = computed(() => this.searchTerm().trim().length > 0);
 
@@ -730,7 +718,7 @@ export class CodexLandingComponent implements OnInit {
 
   /** "· 5 / 6 ausgerüstet" — U1's honest count, never a bare percentage. */
   readonly stagePersonEquipSuffix = computed(
-    () => '· ' + this.t.instant('codex.stage.equipped', { filled: this.boardHero().size, total: 6 }),
+    () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.boardHero().size, total: 6 }),
   );
 
   /** HangarPicker chain for the person stage: `HangarService.recentSets()` (M1), active = the one on stage. */
@@ -790,7 +778,7 @@ export class CodexLandingComponent implements OnInit {
         this.selectedSetId.set(set);
         // Only re-resolve once the first load has populated the service; the
         // initial pass is driven by ngOnInit.
-        if (this.hangar.roleLoadouts().length > 0) void this.resolvePersonal();
+        if (this.hangar.roleLoadouts().length > 0) this.resolvePersonal();
       }
     });
 
@@ -814,7 +802,8 @@ export class CodexLandingComponent implements OnInit {
       if (this.auth.user() && this.hangar.ships().length === 0) {
         await this.hangar.loadAll();
       }
-      await Promise.all([this.resolveFleet(), this.resolvePersonal()]);
+      this.resolvePersonal();
+      await this.resolveFleet();
     } catch (err) {
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
@@ -831,7 +820,6 @@ export class CodexLandingComponent implements OnInit {
     if (names.length === 0) {
       this.fleetRows.set([]);
       this.fleetDeltas.set(new Map());
-      this.shipComponentPayloads.set(new Map());
       this.shipRoleResolved.set(null);
       this.fleetRoleLabels.set(new Map());
       return;
@@ -882,30 +870,18 @@ export class CodexLandingComponent implements OnInit {
   private async resolveShipExtras(): Promise<void> {
     const ship = this.flagshipRow();
     if (!ship) {
-      this.shipComponentPayloads.set(new Map());
       this.shipRoleResolved.set(null);
       this.selectedHangarShipId.set(null);
       return;
     }
-    const payload = ship.payload as ShipPayload | null;
-    const classNames = (payload?.defaultLoadout ?? [])
-      .map((e) => e.entityClassName)
-      .filter((c): c is string => !!c);
-
-    const tasks: Promise<void>[] = [
-      this.svc
-        .getEntityPayloads(classNames)
-        .then((m) => this.shipComponentPayloads.set(m))
-        .catch(() => this.shipComponentPayloads.set(new Map())),
-    ];
-
+    // The flagship's component payloads used to be fetched here as well —
+    // for KPI rows the landing no longer renders (harden scan 2026-09-25).
+    let roleTask: Promise<void> | null = null;
     if (ship.role?.startsWith('@')) {
-      tasks.push(
-        this.svc
-          .resolveLocaleKeys([ship.role], this.lang())
-          .then((m) => this.shipRoleResolved.set(cleanLocaleValue(m.get(ship.role!)) || null))
-          .catch(() => this.shipRoleResolved.set(null)),
-      );
+      roleTask = this.svc
+        .resolveLocaleKeys([ship.role], this.lang())
+        .then((m) => this.shipRoleResolved.set(cleanLocaleValue(m.get(ship.role!)) || null))
+        .catch(() => this.shipRoleResolved.set(null));
     } else {
       this.shipRoleResolved.set(cleanLocaleValue(ship.role) || null);
     }
@@ -916,56 +892,19 @@ export class CodexLandingComponent implements OnInit {
     // link still uses it.
     this.selectedHangarShipId.set(this.hangar.shipByClassName(ship.classNameSlug)?.id ?? null);
 
-    await Promise.all(tasks);
+    await roleTask;
   }
 
-  /** AN BORD extras — active + other loadouts, resolved armour, archive depth for empty slots. */
-  private async resolvePersonal(): Promise<void> {
-    // Most recently touched first — unless the URL names a set, which then
-    // leads. Everything downstream (`activeLoadout`, the paperdoll, the panel's
-    // switcher) reads position 0, so ordering IS the selection.
-    const loadouts = withSelectedFirst(
-      sortByRecency(this.hangar.roleLoadouts()),
-      this.selectedSetId(),
-    );
-    this.personalLoadouts.set(loadouts);
-    const active = loadouts[0] ?? null;
-    if (!active) {
-      this.resolvedArmor.set(new Map());
-      this.archiveDepth.set(new Map());
-      this.armorPayloads.set(new Map());
-      return;
-    }
-    const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
-    const slots = armorSlotsFromLoadout(active.items);
-    const emptySlots = slots.filter((s) => !s.className);
-
-    const tasks: Promise<void>[] = [
-      this.svc
-        .resolveEntities(classNames)
-        .then((m) => this.resolvedArmor.set(m))
-        .catch(() => this.resolvedArmor.set(new Map())),
-      // Armour class (stats.SCItemSuitArmorParams) + readiness (subType) both
-      // live on the payload, so one batch covers both. Best-effort: a failure
-      // degrades to "no class known", which renders as an honest hatch.
-      this.svc
-        .getEntityPayloads(classNames)
-        .then((m) => this.armorPayloads.set(m))
-        .catch(() => this.armorPayloads.set(new Map())),
-      Promise.all(
-        emptySlots.map((s) =>
-          this.svc
-            .listByKind('item', { attachType: s.attachType, limit: 1 })
-            .then((r) => [s.attachType, r.count] as const)
-            .catch(() => [s.attachType, null] as const),
-        ),
-      ).then((entries) => {
-        const m = new Map<string, number>();
-        for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
-        this.archiveDepth.set(m);
-      }),
-    ];
-    await Promise.all(tasks);
+  /**
+   * AN BORD — the person stage's sets. Most recently touched first, unless the
+   * URL names a set, which then leads: everything downstream (`activeLoadout`,
+   * the paperdoll, the panel's switcher) reads position 0, so ordering IS the
+   * selection. The names, payloads and archive counts of the active set's
+   * pieces used to be fetched here too — one to eight queries per visit for
+   * KPI rows the landing no longer renders (harden scan 2026-09-25).
+   */
+  private resolvePersonal(): void {
+    this.personalLoadouts.set(withSelectedFirst(sortByRecency(this.hangar.roleLoadouts()), this.selectedSetId()));
   }
 
   // ── Archive Terminal ──────────────────────────────────────────────────────
@@ -1070,7 +1009,7 @@ export class CodexLandingComponent implements OnInit {
     this.hangar.markSetPicked(id);
     if (id === this.selectedSetId()) return;
     this.selectedSetId.set(id);
-    void this.resolvePersonal();
+    this.resolvePersonal();
   }
 
   /** Neither stage has an overlay yet (M3/M4 are out of this round's scope) — both open the hangar page. */

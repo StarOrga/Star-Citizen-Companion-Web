@@ -1,183 +1,32 @@
+import { ROLE_SLOT_SUGGESTIONS, slotHasArchiveSource } from '../hangar/hangar.types';
 import {
-  analyzeShipMounts,
+  ARMOR_SLOT_SPECS,
+  READINESS_BY_SLOT,
   armorSlotsFromLoadout,
-  computeFpsKpis,
-  computeShipKpis,
-  groupPortsBySize,
+  computeReadiness,
+  readinessKeysFor,
   roleSlotForAttachType,
   sortByRecency,
   withSelectedFirst,
   type EntityPayloadEntry,
 } from './codex-landing-kpi';
-import type { ShipPayload } from './codex.types';
 
-// A trimmed real-world example (Avenger Stalker per the redesign spec): one S4
-// nose gimbal + two S3 wing gimbals, all stock-empty, plus a fitted shield.
-function avengerStalkerPayload(): ShipPayload {
-  return {
-    className: 'AEGS_Avenger_Stalker',
-    guid: 'g',
-    type: 't',
-    recordTag: null,
-    name: { de: 'Avenger Stalker', en: 'Avenger Stalker', key: '@x' },
-    description: { de: '', en: '', key: '@x' },
-    manufacturer: null,
-    tags: [],
-    iconPath: null,
-    previewImage: null,
-    source: { channel: 'LIVE', patch: '4.9.0', build: 'desktop' },
-    entityKind: 'ship',
-    role: null,
-    crew: { size: null },
-    vehicleName: { de: '', en: '', key: '@x' },
-    dimensions: null,
-    flight: {
-      scmSpeed: null, maxSpeed: null, boostSpeed: null, pitch: null, yaw: null, roll: null,
-    },
-    itemPorts: [
-      {
-        portName: 'hardpoint_weapon_class2_nose', minSize: 4, maxSize: 4,
-        types: ['WeaponGun'], flags: [],
-      },
-      {
-        portName: 'hardpoint_weapon_gun_class1_left_wing', minSize: 3, maxSize: 3,
-        types: ['WeaponGun'], flags: [],
-      },
-      {
-        portName: 'hardpoint_weapon_gun_class1_right_wing', minSize: 3, maxSize: 3,
-        types: ['WeaponGun'], flags: [],
-      },
-      {
-        portName: 'hardpoint_shield_generator', minSize: 2, maxSize: 2,
-        types: ['Shield'], flags: [],
-      },
-    ],
-    defaultLoadout: [
-      { itemPortName: 'hardpoint_weapon_class2_nose', entityClassName: null },
-      { itemPortName: 'hardpoint_weapon_gun_class1_left_wing', entityClassName: null },
-      { itemPortName: 'hardpoint_weapon_gun_class1_right_wing', entityClassName: null },
-      { itemPortName: 'hardpoint_shield_generator', entityClassName: 'GATS_Shimmer' },
-    ],
-  } as ShipPayload;
-}
-
-function shieldPayloads(): Map<string, EntityPayloadEntry> {
-  return new Map([
-    [
-      'GATS_Shimmer',
-      {
-        kind: 'component',
-        payload: {
-          name: { de: 'Shimmer', en: 'Shimmer', key: '@x' },
-          kind: 'Shield',
-          size: 2,
-          grade: 'A',
-          stats: { SCItemShieldGeneratorParams: { MaxShieldHealth: 2244 } },
-        },
-      },
-    ],
-  ]);
-}
-
-describe('analyzeShipMounts', () => {
-  it('finds the real Avenger Stalker empty-mount set: S4 nose + 2× S3 wing, all stock-empty', () => {
-    const analysis = analyzeShipMounts(avengerStalkerPayload());
-    expect(analysis.weaponPorts.length).toBe(3);
-    expect(analysis.emptyWeaponPorts.length).toBe(3);
-    expect(analysis.emptyWeaponPorts.map((p) => p.maxSize).sort()).toEqual([3, 3, 4]);
-  });
-
-  it('does not count a fitted shield generator as an empty weapon mount', () => {
-    const analysis = analyzeShipMounts(avengerStalkerPayload());
-    expect(analysis.emptyWeaponPorts.some((p) => p.portName === 'hardpoint_shield_generator')).toBeFalse();
-  });
-});
-
-describe('groupPortsBySize', () => {
-  it('groups and orders by size descending: "1× S4 · 2× S3"', () => {
-    expect(groupPortsBySize([{ size: 3 }, { size: 4 }, { size: 3 }])).toBe('1× S4 · 2× S3');
-  });
-
-  it('renders "0" for an empty set', () => {
-    expect(groupPortsBySize([])).toBe('0');
-  });
-});
-
-describe('computeShipKpis', () => {
-  it('sums MaxShieldHealth across fitted shield generators (2× Shimmer = 4488)', () => {
-    const doubleShield: ShipPayload = {
-      ...avengerStalkerPayload(),
-      defaultLoadout: [
-        ...avengerStalkerPayload().defaultLoadout,
-        { itemPortName: 'hardpoint_shield_generator_2', entityClassName: 'GATS_Shimmer' },
-      ],
-    };
-    const rows = computeShipKpis(doubleShield, shieldPayloads());
-    const shieldRow = rows.find((r) => r.labelKey === 'codex.landing.kpi.ship.shieldTotal');
-    expect(shieldRow?.value).toBe('4,488 HP');
-  });
-
-  it('surfaces the empty-mount KPI warn-flagged with the real Avenger Stalker gap: 1× S4 + 2× S3', () => {
-    const rows = computeShipKpis(avengerStalkerPayload(), shieldPayloads());
-    const emptyRow = rows.find((r) => r.labelKey === 'codex.landing.kpi.ship.emptyMounts');
-    expect(emptyRow?.value).toBe('1× S4 · 2× S3');
-    expect(emptyRow?.warn).toBeTrue();
-  });
-
-  it('never emits a shield KPI when no component payload resolved it (best-effort degrade)', () => {
-    const rows = computeShipKpis(avengerStalkerPayload(), new Map());
-    expect(rows.some((r) => r.labelKey === 'codex.landing.kpi.ship.shieldTotal')).toBeFalse();
-    // the mount analysis itself needs no component payloads — it still renders.
-    expect(rows.some((r) => r.labelKey === 'codex.landing.kpi.ship.emptyMounts')).toBeTrue();
-  });
-
-  it('returns no ship KPIs at all for a null payload', () => {
-    expect(computeShipKpis(null, new Map())).toEqual([]);
-  });
-
-  it('caps at 7 KPIs', () => {
-    const rows = computeShipKpis(avengerStalkerPayload(), shieldPayloads());
-    expect(rows.length).toBeLessThanOrEqual(7);
-  });
-});
-
-describe('armorSlotsFromLoadout + computeFpsKpis', () => {
-  it('reports 3/6 slots filled for the Prospector Suit gap scenario (helmet/torso/legs only)', () => {
+describe('armorSlotsFromLoadout', () => {
+  it('resolves the six anatomical positions from a free-form item list, open ones as null', () => {
     const slots = armorSlotsFromLoadout([
       { slot: 'helmet', className: 'P4-AR_Ballistic' },
       { slot: 'core', className: 'Outland_Miner_Torso' },
       { slot: 'legs', className: 'Novikov_Legschutz' },
-      { slot: 'arms', className: null },
-      { slot: 'undersuit', className: null },
-      { slot: 'backpack', className: null },
+      { slot: 'primary', className: 'behr_rifle_ballistic_01' },
     ]);
-    const rows = computeFpsKpis(slots, new Map(), new Map([['Char_Armor_Arms', 1779], ['Char_Armor_Undersuit', 867], ['Char_Armor_Backpack', 540]]));
-    const slotsRow = rows.find((r) => r.labelKey === 'codex.landing.kpi.fps.slotsFilled');
-    expect(slotsRow?.value).toBe('3 / 6');
-  });
-
-  it('never fabricates Stealth/Rüstung/Waffengewalt — always emits the two honest gap markers', () => {
-    const slots = armorSlotsFromLoadout([]);
-    const rows = computeFpsKpis(slots, new Map(), new Map());
-    const gaps = rows.filter((r) => r.gap);
-    expect(gaps.length).toBe(2);
-    expect(gaps.every((g) => g.value === '—')).toBeTrue();
-  });
-
-  it('caps at 7 KPIs', () => {
-    const slots = armorSlotsFromLoadout([
-      { slot: 'helmet', className: 'A' },
-      { slot: 'core', className: 'B' },
-      { slot: 'arms', className: 'C' },
-      { slot: 'legs', className: 'D' },
-      { slot: 'undersuit', className: 'E' },
-      { slot: 'backpack', className: 'F' },
+    expect(slots.map((s) => [s.roleSlot, s.className])).toEqual([
+      ['helmet', 'P4-AR_Ballistic'],
+      ['core', 'Outland_Miner_Torso'],
+      ['arms', null],
+      ['legs', 'Novikov_Legschutz'],
+      ['undersuit', null],
+      ['backpack', null],
     ]);
-    const resolved = new Map(
-      ['A', 'B', 'C', 'D', 'E', 'F'].map((cn) => [cn, { grade: 'B', manufacturerCode: 'RSI' }]),
-    );
-    const rows = computeFpsKpis(slots, resolved, new Map());
-    expect(rows.length).toBeLessThanOrEqual(7);
   });
 });
 
@@ -233,5 +82,56 @@ describe('roleSlotForAttachType', () => {
     expect(roleSlotForAttachType('Armor')).toBeNull();
     expect(roleSlotForAttachType(null)).toBeNull();
     expect(roleSlotForAttachType('')).toBeNull();
+  });
+});
+
+describe('computeReadiness', () => {
+  const weapon = (subType: string): EntityPayloadEntry => ({ kind: 'weapon', payload: { subType } }) as EntityPayloadEntry;
+  const on = (slots: { key: string; ok: boolean }[]) => slots.filter((s) => s.ok).map((s) => s.key);
+
+  it('classifies guns, blades and tools by their sub-type', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([
+      ['behr_rifle_ballistic_01', weapon('Medium')],
+      ['klwe_pistol_energy_01', weapon('Small')],
+      ['grin_multitool_01', weapon('Gadget')],
+    ]);
+    const items = [...payloads.keys()].map((className) => ({ className }));
+    expect(on(computeReadiness(items, payloads))).toEqual(['primary', 'secondary', 'gadget']);
+  });
+
+  it('counts the ParaMed as medical, not as a second pistol', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([['crlf_medgun_01', weapon('Small')]]);
+    expect(on(computeReadiness([{ className: 'crlf_medgun_01' }], payloads))).toEqual(['medical']);
+  });
+
+  it('with a role, drops the classes the role has no position for, unless a piece lights one', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([
+      ['behr_rifle_ballistic_01', weapon('Medium')],
+      ['grin_multitool_01', weapon('Gadget')],
+    ]);
+    const keys = (slots: { key: string }[]) => slots.map((s) => s.key);
+    expect(keys(computeReadiness([{ className: 'behr_rifle_ballistic_01' }], payloads, 'fps'))).toEqual([
+      'primary', 'secondary', 'melee', 'throwable',
+    ]);
+    // A multi-tool in a free-form slot of an fps set (retired editor) still shows, lit.
+    const tool = computeReadiness([{ className: 'grin_multitool_01' }], payloads, 'fps');
+    expect(keys(tool)).toEqual(['primary', 'secondary', 'melee', 'throwable', 'gadget']);
+    expect(on(tool)).toEqual(['gadget']);
+  });
+});
+
+describe('readinessKeysFor', () => {
+  it('gives each role only the classes one of its positions can light', () => {
+    expect(readinessKeysFor('fps')).toEqual(['primary', 'secondary', 'melee', 'throwable']);
+    expect(readinessKeysFor('medical')).toEqual(['gadget', 'medical']);
+    expect(readinessKeysFor('mining')).toEqual(['gadget']);
+  });
+
+  it('knows what every archive-backed weapon or tool position lights', () => {
+    // A new position without an entry would silently hide its readiness class.
+    const anatomical = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
+    const slots = new Set(Object.values(ROLE_SLOT_SUGGESTIONS).flat());
+    const unmapped = [...slots].filter((s) => !anatomical.has(s) && slotHasArchiveSource(s) && !READINESS_BY_SLOT[s]);
+    expect(unmapped).toEqual([]);
   });
 });

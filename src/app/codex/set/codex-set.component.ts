@@ -17,6 +17,9 @@ import { CodexStageComponent } from '../stage/codex-stage.component';
 import { HangarPickerItem } from '../stage/hangar-picker.component';
 import { CodexBoardFigureComponent } from '../codex-board-figure.component';
 import { CodexBoardPanelComponent } from '../codex-board-panel.component';
+import { CodexSetGearComponent } from './codex-set-gear.component';
+import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
   ArmorSlotState,
   EntityPayloadEntry,
@@ -45,21 +48,71 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 @Component({
   selector: 'sc-codex-set',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, CodexStageComponent, CodexBoardFigureComponent, CodexBoardPanelComponent],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    CodexStageComponent,
+    CodexBoardFigureComponent,
+    CodexBoardPanelComponent,
+    CodexSetGearComponent,
+    LoadoutSharePanelComponent,
+    ScTooltipDirective,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="set-page">
-      <a class="back" routerLink="/codex">{{ 'codex.set.back' | translate }}</a>
+      <div class="top-row">
+        <a class="back" routerLink="/codex">{{ 'codex.set.back' | translate }}</a>
+        @if (!loading() && auth.user() && activeSet()) {
+          <span class="share-wrap">
+            <button
+              type="button"
+              class="share-btn"
+              [class.on]="shareOpen()"
+              [attr.aria-label]="'codex.set.share' | translate"
+              [scTooltip]="'codex.set.share' | translate"
+              scTooltipTier="label"
+              [attr.aria-expanded]="shareOpen()"
+              [attr.aria-controls]="shareOpen() ? 'set-share-panel' : null"
+              (click)="shareOpen.set(!shareOpen())"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                <circle cx="18" cy="5" r="2.6" />
+                <circle cx="6" cy="12" r="2.6" />
+                <circle cx="18" cy="19" r="2.6" />
+                <path d="M8.3 10.8 15.7 6.3M8.3 13.2l7.4 4.5" />
+              </svg>
+            </button>
+            <span class="share-tip" aria-hidden="true">{{ 'codex.set.share' | translate }}</span>
+          </span>
+        }
+      </div>
 
       @if (loading()) {
-        <p class="hint">…</p>
+        <p class="hint" role="status">{{ 'codex.set.loading' | translate }}</p>
       } @else if (!auth.user()) {
         <p class="hint">
           <a routerLink="/login" [queryParams]="{ redirect: currentPath }">{{ 'codex.set.signInHint' | translate }}</a>
         </p>
+      } @else if (!activeSet() && hangar.error()) {
+        <!-- loadAll() never throws — it parks the failure in hangar.error. Without
+             this branch a failed read read as "no set commissioned yet". -->
+        <div class="sc-card load-err" role="alert">
+          <span>{{ 'codex.set.loadFailed' | translate }}</span>
+          <button type="button" class="retry" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
+        </div>
       } @else if (!activeSet()) {
-        <p class="hint">{{ 'codex.set.noSets' | translate }}</p>
+        <p class="hint">
+          {{ 'codex.set.noSets' | translate }}
+          <a class="create-set" routerLink="/hangar">{{ 'codex.set.createInHangar' | translate }}</a>
+        </p>
       } @else {
+        @if (shareOpen()) {
+          <div class="share-box" id="set-share-panel">
+            <sc-loadout-share-panel [loadoutId]="activeSet()!.id" />
+          </div>
+        }
+
         @if (notFound()) {
           <p class="hint note">{{ 'codex.set.notFound' | translate }}</p>
         }
@@ -85,6 +138,13 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
             [payloads]="armorPayloads()"
             [archiveDepth]="archiveDepth()"
           />
+          <sc-codex-set-gear
+            class="set-gear"
+            [setId]="activeSet()!.id"
+            [role]="activeSet()!.role"
+            [items]="activeSet()!.items"
+            [resolved]="resolvedArmor()"
+          />
         </div>
       }
     </section>
@@ -94,11 +154,47 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       /* The full page frame (styles.scss, "PAGE FRAME") — no width or side/top
          padding of its own. */
       .set-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 96px; }
-      .back { align-self: flex-start; color: var(--sc-fg-2); font-size: 0.85rem; text-decoration: none; }
+      .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
+      .back { color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
+      /* Share is a set action: an icon button beside the back link. Its label
+         shows as an app-styled tooltip (Label tier: the icon is its only
+         visible name) — instantly on keyboard focus, after 400 ms on hover. */
+      .share-wrap { position: relative; display: inline-flex; }
+      .share-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; min-width: var(--sc-tap-min, 0px); min-height: var(--sc-tap-min, 0px);
+        padding: 0; border-radius: 4px; cursor: pointer;
+        background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+      }
+      .share-btn svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+      .share-btn:hover, .share-btn.on { color: var(--sc-accent); border-color: var(--sc-accent); }
+      .share-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .share-tip {
+        position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; white-space: nowrap;
+        padding: 5px 9px; border-radius: 4px; pointer-events: none;
+        background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+        font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem));
+        opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+      }
+      .share-btn:hover + .share-tip {
+        opacity: 1; visibility: visible; transition: opacity 0.12s ease 400ms, visibility 0s linear 400ms;
+      }
+      .share-btn:focus-visible + .share-tip { opacity: 1; visibility: visible; transition: none; }
+      @media (hover: none) { .share-btn:hover + .share-tip { opacity: 0; visibility: hidden; } }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
-      .hint.note { color: var(--amber, #f0c27b); }
+      /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
+      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--sc-danger); }
+      .load-err .retry {
+        margin-left: auto; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+        background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); font-family: inherit;
+      }
+      .load-err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+      .load-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+      /* The empty state's only action: a real thumb target, not a line of running text. */
+      .hint .create-set { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
+      .hint.note { color: var(--sc-warning); }
 
       .set-hero { display: block; height: 420px; border-radius: 4px; overflow: hidden; border: 1px solid var(--sc-border); }
       /* N5: title 30px on the set page's full-width hero (the landing's
@@ -109,19 +205,24 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .set-hero ::ng-deep .stage-archive { display: none; }
 
       .board-wrap {
-        --tint: var(--sc-warning, #ffc14d);
+        --tint: var(--sc-warning);
         position: relative;
         border: 1px solid var(--sc-border);
         border-radius: 4px;
         padding: 16px;
         background: var(--sc-bg-1);
       }
+      .set-gear {
+        margin-top: var(--sc-gap-1);
+        padding-top: var(--sc-pad-2);
+        border-top: 1px solid color-mix(in srgb, var(--tint) 18%, var(--sc-border));
+      }
     `,
   ],
 })
 export class CodexSetComponent implements OnInit {
   readonly auth = inject(AuthService);
-  private readonly hangar = inject(HangarService);
+  readonly hangar = inject(HangarService);
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -134,6 +235,8 @@ export class CodexSetComponent implements OnInit {
   }
 
   readonly loading = signal(true);
+  /** The inline share panel under the top row; closes when the page moves to another set. */
+  readonly shareOpen = signal(false);
   readonly requestedId = signal<string | null>(null);
   /** Bumped per load, so a late answer for a set the page has left never lands on the next one. */
   private loadSeq = 0;
@@ -169,7 +272,7 @@ export class CodexSetComponent implements OnInit {
   });
 
   readonly equipSuffix = computed(
-    () => '· ' + this.t.instant('codex.stage.equipped', { filled: this.filledSlots().size, total: 6 }),
+    () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.filledSlots().size, total: 6 }),
   );
 
   readonly setPickerItems = computed<HangarPickerItem[]>(() => {
@@ -198,10 +301,20 @@ export class CodexSetComponent implements OnInit {
    */
   private async load(id: string | null): Promise<void> {
     const seq = ++this.loadSeq;
+    // The share panel reads its loadout id once — never leave set A's shares
+    // open under set B's title.
+    if (id !== this.requestedId()) this.shareOpen.set(false);
     this.requestedId.set(id);
+    // Only the first load blanks the page; a set switch swaps the data in place.
+    if (!this.activeSet()) this.loading.set(true);
     try {
-      if (this.auth.user() && this.hangar.roleLoadouts().length === 0) {
-        await this.hangar.loadAll();
+      if (this.auth.user()) {
+        const known = this.hangar.roleLoadouts();
+        // An empty cache, or a set created since it was filled (another tab,
+        // another device): refresh once before calling the id "not found".
+        if (known.length === 0 || (id && !known.some((l) => l.id === id))) {
+          await this.hangar.loadAll();
+        }
       }
       if (seq === this.loadSeq) await this.resolveActiveSet(seq);
     } finally {
@@ -235,19 +348,17 @@ export class CodexSetComponent implements OnInit {
         .getEntityPayloads(classNames)
         .then((m) => land(this.armorPayloads, m))
         .catch(() => land(this.armorPayloads, new Map())),
-      Promise.all(
-        emptySlots.map((s) =>
-          this.svc
-            .listByKind('item', { attachType: s.attachType, limit: 1 })
-            .then((r) => [s.attachType, r.count] as const)
-            .catch(() => [s.attachType, null] as const),
-        ),
-      ).then((entries) => {
-        const m = new Map<string, number>();
-        for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
-        land(this.archiveDepth, m);
-      }),
+      // "N im Archiv" on the open positions: head-only counts, cached per build
+      // (a set switch used to fetch one full payload row per open position).
+      this.svc
+        .countItemsByAttachType(emptySlots.map((s) => s.attachType))
+        .then((m) => land(this.archiveDepth, m))
+        .catch(() => land(this.archiveDepth, new Map())),
     ]);
+  }
+
+  retry(): void {
+    void this.load(this.requestedId());
   }
 
   onSetPick(id: string): void {

@@ -211,9 +211,7 @@
         "uncommissioned": "Unkommissioniert",
         "emptyLead": "Noch keine persönliche Rüstung angelegt.",
         "cta": "Rüstung anlegen",
-        "ctaGoal": "→ Kampfbereit",
-        "ready": "Kampfbereit",
-        "openSet": "Set öffnen"
+        "ctaGoal": "→ Kampfbereit"
       },
       "fleet": {
         "eyebrow": "Im Hangar",
@@ -248,30 +246,7 @@
         "arms": "Arme",
         "legs": "Beine",
         "undersuit": "Untersuit",
-        "backpack": "Rucksack",
-        "empty": "— leer —",
-        "archiveDepth": "{{count}} im Archiv"
-      },
-      "kpi": {
-        "ship": {
-          "shieldTotal": "Schildsumme",
-          "emptyMounts": "Unbestückte Aufhängungen",
-          "weaponMounts": "Waffenaufhängungen",
-          "missileCapacity": "Raketenkapazität",
-          "quantumDrive": "Quantum-Antrieb",
-          "fillRate": "Bestückungsgrad"
-        },
-        "fps": {
-          "slotsFilled": "Belegte Slots",
-          "gradeMix": "Grad-Mix",
-          "weightClass": "Gewichtsklasse",
-          "manufacturer": "Hersteller",
-          "archiveDepth": "Archivtiefe (leer)",
-          "gapArmor": "Rüstungswert",
-          "gapArmorTitle": "Rüstungsteile tragen im aktuellen Archiv keinen Kampfwert-Block — nur Name, Grad, Größe, Hersteller.",
-          "gapWeapon": "Waffengewalt",
-          "gapWeaponTitle": "FPS-Waffen tragen im aktuellen Archiv keinen Stats-Block."
-        }
+        "backpack": "Rucksack"
       },
       "configs": {
         "otherRoles": "Andere gespeicherte Rollen-Loadouts",
@@ -312,7 +287,6 @@
       "indexMode": "Index-Modus",
       "keybinds": "Keybinds",
       "hangar": "Hangar",
-      "backToBridge": "Zurück zur Brücke",
       "addCompare": "Vergleich",
       "hero": {
         "featured": "Vorgestelltes Schiff",
@@ -423,6 +397,7 @@
       "label": "Codex durchsuchen",
       "clear": "Suche löschen",
       "upcomingHint": "Nicht in den Spieldaten, aber von RSI angekündigt: {{names}}",
+      "alsoIn": "Auch gefunden in:",
       "upcomingLink": "Bei „Kommende Schiffe“ ansehen"
     },
     "kinds": {
@@ -590,7 +565,9 @@
       "skinsTitle": "Alle Lackierungen dieser Waffe stehen in einer Karte. Im Eintrag lassen sie sich einzeln auswählen: {{names}}",
       "editionsOne": "+1 Variante",
       "editionsMany": "+{{count}} Varianten",
-      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}"
+      "editionsTitle": "Die Spieldateien führen diesen Rumpf mehrfach — doppelte Einträge und Sondereditionen. Sie teilen sich eine Karte; im Eintrag lassen sie sich einzeln auswählen: {{names}}",
+      "addToHangar": "Zum Hangar hinzufügen",
+      "addToHangarFailed": "Konnte nicht zum Hangar hinzugefügt werden. Bitte erneut versuchen."
     },
     "skinPicker": {
       "label": "Skin",
@@ -786,7 +763,8 @@
       "filtered": "Keine Einträge passen zu Suche oder Filtern.",
       "kind": "Keine {{kind}} in diesem Build.",
       "noBuild": "Es ist noch kein Katalog-Build veröffentlicht.",
-      "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider."
+      "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider.",
+      "resetAll": "Suche & Filter zurücksetzen"
     },
     "error": {
       "title": "Codex konnte nicht geladen werden",
@@ -794,7 +772,6 @@
     },
     "keybinds": {
       "title": "Tastenbelegung",
-      "back": "Codex",
       "subtitle": "Standard-Tastenbelegung aus dem aktuellen Star-Citizen-Build.",
       "device": "Gerät",
       "devices": {
@@ -1029,6 +1006,7 @@
       "viewOnRsi": "Bei RSI ansehen",
       "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "invalidRoute": "Diese Adresse führt zu keiner Codex-Kategorie.",
       "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
       "showRaw": "Rohdaten anzeigen",
       "hideRaw": "Rohdaten ausblenden",
@@ -1755,7 +1733,8 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} ausgerüstet"
+      "equipped": "{{filled}} / {{total}} ausgerüstet",
+      "armorEquipped": "Rüstung {{filled}} / {{total}}"
     },
     "hangarPicker": {
       "hangar": "Hangar",
@@ -1767,7 +1746,26 @@
       "back": "← Zurück zum Codex",
       "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
       "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
-      "noSets": "Noch kein Set kommissioniert."
+      "noSets": "Noch kein Set kommissioniert.",
+      "createInHangar": "Set im Hangar anlegen →",
+      "loading": "Set wird geladen …",
+      "loadFailed": "Deine Sets konnten nicht geladen werden.",
+      "share": "Set teilen",
+      "gear": {
+        "eyebrow": "Waffen & Werkzeug",
+        "open": "offen",
+        "clear": "Leeren",
+        "clearAria": "{{slot}} leeren",
+        "clearing": "Wird geleert …",
+        "clearFailed": "{{slot}} konnte nicht geleert werden. Bitte erneut versuchen.",
+        "noSource": "Nicht im Archiv — Verbrauchsgut",
+        "customSlot": "Eigene Position — nicht aus dem Archiv befüllbar",
+        "cleared": "{{slot}} geleert.",
+        "undo": "Rückgängig",
+        "undoFailed": "{{slot}} konnte nicht zurückgelegt werden. Bitte erneut ausrüsten.",
+        "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
+      },
+      "equipInArchive": "Im Archiv ausrüsten"
     }
   },
   "blueprint": {
@@ -1834,6 +1832,7 @@
     "subtitle": "Ausrüstung zu Fuß — Waffen und Rüstung, datamined aus dem Live-Build.",
     "bridgeLink": "FPS-Ausrüstung",
     "categoriesAria": "FPS-Ausrüstungskategorien",
+    "searchPlaceholder": "Name oder Klasse suchen (z. B. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Waffen",
       "armor": "Rüstung"
@@ -1841,6 +1840,19 @@
     "filters": {
       "weaponType": "Waffentyp",
       "armorSlot": "Rüstungsslot"
+    },
+    "weaponType": {
+      "sidearm": "Einhandwaffe",
+      "primary": "Primärwaffe",
+      "heavy": "Schwere Waffe",
+      "melee": "Nahkampf",
+      "throwable": "Wurfobjekt",
+      "gadget": "Werkzeug / Gadget"
+    },
+    "weight": {
+      "light": "Leicht",
+      "medium": "Mittel",
+      "heavy": "Schwer"
     },
     "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
     "empty": {
@@ -1850,7 +1862,14 @@
     "equip": {
       "targetSet": "Ausrüsten für: {{name}}",
       "backToSet": "Zurück zum Set",
-      "into": "In Slot:"
+      "into": "In Slot:",
+      "failed": "Nicht gespeichert — das Set hat die Änderung nicht angenommen. Bitte erneut versuchen.",
+      "setUnavailable": "Das Set aus dem Link gibt es nicht (mehr) oder es gehört dir nicht — hier wird nur gestöbert, nichts ausgerüstet.",
+      "mySets": "Meine Sets",
+      "browseWithout": "Ohne Set weiterstöbern",
+      "onlyFitting": "Zeigt nur, was in „{{slot}}“ passt.",
+      "saving": "Speichert …",
+      "changedElsewhere": "Inzwischen in einem anderen Tab geändert — der Slot enthält jetzt etwas anderes."
     }
   },
   "news": {
@@ -3117,6 +3136,8 @@
       "primary": "Primärwaffe",
       "secondary": "Sekundärwaffe",
       "sidearm": "Seitenwaffe",
+      "melee": "Nahkampfwaffe",
+      "throwable": "Wurfwaffe",
       "helmet": "Helm",
       "core": "Torso",
       "arms": "Arme",
