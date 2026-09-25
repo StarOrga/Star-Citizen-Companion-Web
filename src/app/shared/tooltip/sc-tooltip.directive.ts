@@ -92,7 +92,7 @@ const POSITIONS: ConnectedPosition[] = [
 
 /**
  * App-styled replacement for the native `title` attribute (ui-defaults.md
- * R0/R1): a CDK-overlay-portaled bubble, matching `.share-tip`'s look, with
+ * R0/R1): a CDK-overlay-portaled bubble (`sc-tooltip-bubble`), with
  * the two delay tiers, WCAG 2.2 SC 1.4.13 hover/focus persistence, Escape
  * dismissal and a long-press affordance on touch.
  *

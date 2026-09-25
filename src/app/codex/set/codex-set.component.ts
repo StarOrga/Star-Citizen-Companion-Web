@@ -83,7 +83,6 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
                 <path d="M8.3 10.8 15.7 6.3M8.3 13.2l7.4 4.5" />
               </svg>
             </button>
-            <span class="share-tip" aria-hidden="true">{{ 'codex.set.share' | translate }}</span>
           </span>
         }
       </div>
@@ -158,8 +157,8 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .back { color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       /* Share is a set action: an icon button beside the back link. Its label
-         shows as an app-styled tooltip (Label tier: the icon is its only
-         visible name) — instantly on keyboard focus, after 400 ms on hover. */
+         is the app tooltip ([scTooltip], Label tier: the icon is its only
+         visible name) — one tooltip, not a second CSS one next to it. */
       .share-wrap { position: relative; display: inline-flex; }
       .share-btn {
         display: inline-flex; align-items: center; justify-content: center;
@@ -170,18 +169,6 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .share-btn svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
       .share-btn:hover, .share-btn.on { color: var(--sc-accent); border-color: var(--sc-accent); }
       .share-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .share-tip {
-        position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; white-space: nowrap;
-        padding: 5px 9px; border-radius: 4px; pointer-events: none;
-        background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
-        font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem));
-        opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s;
-      }
-      .share-btn:hover + .share-tip {
-        opacity: 1; visibility: visible; transition: opacity 0.12s ease 400ms, visibility 0s linear 400ms;
-      }
-      .share-btn:focus-visible + .share-tip { opacity: 1; visibility: visible; transition: none; }
-      @media (hover: none) { .share-btn:hover + .share-tip { opacity: 0; visibility: hidden; } }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
       /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
