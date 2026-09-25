@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
 import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
@@ -11,6 +11,7 @@ function ingredient(
   ingredientIndex: number,
   ingredientClassName: string,
   quantity: number,
+  slot: Partial<Pick<CodexBlueprintIngredient, 'role' | 'minQuality'>> = {},
 ): CodexBlueprintIngredient {
   return {
     blueprintClassName: MICROSAT,
@@ -21,6 +22,7 @@ function ingredient(
     role: 'primary',
     nameLocalized: null,
     entityKind: null,
+    ...slot,
   };
 }
 
@@ -37,7 +39,14 @@ function blueprint(ingredients: CodexBlueprintIngredient[]): BlueprintDetail {
   };
 }
 
-async function setup(detail: BlueprintDetail): Promise<ComponentFixture<BlueprintDetailComponent>> {
+/**
+ * Render the page for `detail`. Without `translations` every key renders as
+ * itself, as the pipe does before a language file arrives.
+ */
+async function setup(
+  detail: BlueprintDetail,
+  translations?: TranslationObject,
+): Promise<ComponentFixture<BlueprintDetailComponent>> {
   TestBed.configureTestingModule({
     imports: [BlueprintDetailComponent],
     providers: [
@@ -50,6 +59,11 @@ async function setup(detail: BlueprintDetail): Promise<ComponentFixture<Blueprin
       },
     ],
   });
+  if (translations) {
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', translations);
+    translate.use('en');
+  }
   const fixture = TestBed.createComponent(BlueprintDetailComponent);
   fixture.detectChanges();
   await fixture.whenStable();
@@ -88,5 +102,62 @@ describe('BlueprintDetailComponent — quantities', () => {
   it('prints the output count as a whole number', async () => {
     const fixture = await setup(blueprint([ingredient(0, 'Aluminum', 0.20000000298023224)]));
     expect(quantities(fixture, '.output-row')).toEqual(['× 1']);
+  });
+});
+
+/** The texts of every ingredient row's `.badge.<kind>`, in page order. */
+function badges(fixture: ComponentFixture<BlueprintDetailComponent>, kind: 'role' | 'quality'): string[] {
+  const el: HTMLElement = fixture.nativeElement;
+  return Array.from(el.querySelectorAll(`.ingredient-row .badge.${kind}`)).map((b) => b.textContent!.trim());
+}
+
+// Slots and quality floors as the current build stores them: CIG's upper-case
+// slot names (some with a trailing colon) and its 0–1000 quality scale.
+describe('BlueprintDetailComponent — ingredient badges', () => {
+  it('reads a min quality on the 0–1000 scale, not as a fraction (CollectorMaterial_001: Titanium 900, Riccite 800)', async () => {
+    const fixture = await setup(
+      blueprint([
+        ingredient(0, 'Titanium', 2, { role: 'SUBSTRATE', minQuality: 900 }),
+        ingredient(1, 'Riccite', 2, { role: 'LATTICE', minQuality: 800 }),
+      ]),
+      { blueprint: { detail: { minQuality: 'Min quality' } } },
+    );
+    expect(badges(fixture, 'quality')).toEqual(['Min quality: 900 / 1,000', 'Min quality: 800 / 1,000']);
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('%');
+  });
+
+  it('shows no quality badge for a slot that takes any material (0 on FPS gear, 1 on ship parts, none)', async () => {
+    const fixture = await setup(
+      blueprint([
+        ingredient(0, 'Iron', 0.2, { role: 'CASING', minQuality: 0 }),
+        ingredient(1, 'Agricium', 0.36000001430511475, { role: 'FRAME', minQuality: 1 }),
+        ingredient(2, 'Copper', 0.1, { role: 'WIRING', minQuality: null }),
+      ]),
+    );
+    expect(badges(fixture, 'quality')).toEqual([]);
+  });
+
+  it('labels CIG slot names in readable words and never shows a raw i18n key', async () => {
+    const fixture = await setup(
+      blueprint([
+        ingredient(0, 'Titanium', 2, { role: 'SUBSTRATE' }),
+        ingredient(1, 'Aluminum', 0.2, { role: 'PROTECTIVE SHEATHING' }),
+        ingredient(2, 'Iron', 0.2, { role: 'BARREL:' }),
+      ]),
+    );
+    expect(badges(fixture, 'role')).toEqual(['Substrate', 'Protective Sheathing', 'Barrel']);
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('blueprint.role.');
+  });
+
+  it('takes a slot translation when one exists and gives a row without a slot no badge', async () => {
+    const fixture = await setup(
+      blueprint([
+        ingredient(0, 'Gold', 0.015, { role: 'secondary' }),
+        ingredient(1, 'Aluminum', 0.2, { role: 'PROTECTIVE SHEATHING' }),
+        ingredient(2, 'Iron', 15), // role 'primary': the service's stand-in for "no slot named"
+      ]),
+      { blueprint: { role: { secondary: 'Secondary', protectiveSheathing: 'Sheathing' } } },
+    );
+    expect(badges(fixture, 'role')).toEqual(['Secondary', 'Sheathing']);
   });
 });

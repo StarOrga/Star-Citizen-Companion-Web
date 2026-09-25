@@ -1007,12 +1007,6 @@ export function formatCraftTime(seconds: number | null | undefined): string | nu
   return parts.join(' ');
 }
 
-/** Format a quality fraction (0–1) as a percentage string. Returns "n/a" for null. */
-export function formatQuality(q: number | null | undefined): string {
-  if (q == null || !Number.isFinite(q)) return 'n/a';
-  return `${Math.round(q * 100)} %`;
-}
-
 /**
  * A blueprint quantity — an ingredient's SCU amount or the output count. The
  * extractor stores them as 32-bit floats, so 0.2 SCU arrives as
@@ -1023,6 +1017,82 @@ export function formatQuality(q: number | null | undefined): string {
  */
 export function formatQuantity(q: number, locale: string = numberLocale()): string {
   return formatNumber(q, locale, 3);
+}
+
+// ── blueprint ingredient badges ───────────────────────────────────────────────
+
+/**
+ * Top of CIG's crafting quality scale. Mined resources and the recipe slots
+ * that take them are rated 0–1000, and `codex_blueprint_ingredients.min_quality`
+ * holds that raw number — not a 0–1 fraction (read as one, a 900 printed as
+ * "90000 %").
+ */
+export const QUALITY_MAX = 1000;
+
+/**
+ * Whether a recipe slot's minimum quality narrows which material fits. CIG
+ * writes 0 into every FPS-gear slot and 1 into every ship-component and
+ * ship-weapon slot; both take any material, so neither earns a badge. Only the
+ * real requirements (500–900 in the current build) do.
+ */
+export function hasQualityRequirement(q: number | null | undefined): boolean {
+  return q != null && Number.isFinite(q) && q > 1;
+}
+
+/**
+ * A minimum material quality with its scale spelled out, so it cannot pass
+ * for a percentage: 900 → "900 / 1,000", grouped in the UI locale like every
+ * codex figure. "n/a" for nullish.
+ */
+export function formatQuality(q: number | null | undefined, locale: string = numberLocale()): string {
+  if (q == null || !Number.isFinite(q)) return 'n/a';
+  return `${formatNumber(q, locale)} / ${formatNumber(QUALITY_MAX, locale)}`;
+}
+
+/**
+ * The `blueprint.role.<suffix>` suffix for an ingredient's slot, or '' when
+ * the row has no slot worth a badge.
+ *
+ * `codex_blueprint_ingredients.role` carries CIG's own slot names, upper-case
+ * and open-ended: `FRAME`, `PROTECTIVE SHEATHING`, `BARREL:` (five keep a
+ * trailing colon). The suffix camel-cases the words, so `BARREL:` and `BARREL`
+ * share a key. `primary` is what the service writes for a row without a role.
+ */
+export function ingredientRoleKey(role: string | null | undefined): string {
+  const words = (role ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const key = words.map((w, i) => (i === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1))).join('');
+  return key === 'primary' ? '' : key;
+}
+
+/**
+ * A CIG slot name in the game's own words, minus the shouting and the stray
+ * colon: `PROTECTIVE SHEATHING` → `Protective Sheathing`, `BARREL:` → `Barrel`.
+ * The fallback for a slot with no translation, as {@link humanizeBlueprintCategory}
+ * is for categories — a patch can add a slot at any time.
+ */
+export function humanizeIngredientRole(role: string | null | undefined): string {
+  return (role ?? '')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/**
+ * The slot badge of an ingredient row: the `blueprint.role.*` translation when
+ * there is one, otherwise the humanized CIG name — never the raw i18n key.
+ * '' = no badge. `translate` is `TranslateService.instant`, which hands a
+ * missing key back unchanged.
+ */
+export function ingredientRoleLabel(
+  role: string | null | undefined,
+  translate: (key: string) => string,
+): string {
+  const suffix = ingredientRoleKey(role);
+  if (!suffix) return '';
+  const key = `blueprint.role.${suffix}`;
+  const label = translate(key);
+  return label && label !== key ? label : humanizeIngredientRole(role);
 }
 
 // ── patch-version comparison (data-freshness) ─────────────────────────────────

@@ -17,10 +17,14 @@ import {
   formatQuantity,
   groupCompareRows,
   groupStatRows,
+  hasQualityRequirement,
   humanizeBlueprintCategory,
   humanizeBlueprintName,
   humanizeClassName,
+  humanizeIngredientRole,
   humanizeKey,
+  ingredientRoleKey,
+  ingredientRoleLabel,
   isCatalogStale,
   isMeaningfulValue,
   isNoiseKey,
@@ -381,15 +385,64 @@ describe('codex-format', () => {
     });
   });
 
+  // Quality floors as codex_blueprint_ingredients.min_quality holds them: CIG's
+  // 0–1000 scale (current build: 0, 1, 500, 700, 800, 900).
   describe('formatQuality', () => {
-    it('converts 0–1 fraction to percent string', () => {
-      expect(formatQuality(0.5)).toBe('50 %');
-      expect(formatQuality(1)).toBe('100 %');
-      expect(formatQuality(0)).toBe('0 %');
+    it('reads the 0–1000 scale and says so, instead of treating it as a fraction', () => {
+      expect(formatQuality(900)).toBe('900 / 1,000');
+      expect(formatQuality(500)).toBe('500 / 1,000');
+      expect(formatQuality(900)).not.toContain('%');
+    });
+    it('groups in the UI locale like every other codex figure', () => {
+      expect(formatQuality(800, 'de')).toBe('800 / 1.000');
     });
     it('returns n/a for nullish', () => {
       expect(formatQuality(null)).toBe('n/a');
       expect(formatQuality(undefined)).toBe('n/a');
+    });
+  });
+
+  describe('hasQualityRequirement', () => {
+    it('is false for a slot that takes any material: 0 (FPS gear), 1 (ship parts), none', () => {
+      expect(hasQualityRequirement(0)).toBeFalse();
+      expect(hasQualityRequirement(1)).toBeFalse();
+      expect(hasQualityRequirement(null)).toBeFalse();
+      expect(hasQualityRequirement(undefined)).toBeFalse();
+      expect(hasQualityRequirement(Number.NaN)).toBeFalse();
+    });
+    it('is true for a real floor', () => {
+      expect(hasQualityRequirement(500)).toBeTrue();
+      expect(hasQualityRequirement(900)).toBeTrue();
+    });
+  });
+
+  // Slot names as codex_blueprint_ingredients.role holds them.
+  describe('ingredient slot roles', () => {
+    it('humanizes CIG slot names: case, stray colon, spacing', () => {
+      expect(humanizeIngredientRole('SUBSTRATE')).toBe('Substrate');
+      expect(humanizeIngredientRole('PROTECTIVE SHEATHING')).toBe('Protective Sheathing');
+      expect(humanizeIngredientRole('BARREL:')).toBe('Barrel');
+      expect(humanizeIngredientRole('  INSULATIVE  LINER ')).toBe('Insulative Liner');
+      expect(humanizeIngredientRole(null)).toBe('');
+    });
+    it('keys a slot by its words, so "BARREL:" and "BARREL" share one translation', () => {
+      expect(ingredientRoleKey('BARREL:')).toBe('barrel');
+      expect(ingredientRoleKey('BARREL')).toBe('barrel');
+      expect(ingredientRoleKey('PROTECTIVE SHEATHING')).toBe('protectiveSheathing');
+      expect(ingredientRoleKey('secondary')).toBe('secondary');
+    });
+    it('has no key for the "primary" stand-in or an empty role', () => {
+      expect(ingredientRoleKey('primary')).toBe('');
+      expect(ingredientRoleKey('')).toBe('');
+      expect(ingredientRoleKey(null)).toBe('');
+    });
+    it('labels a slot by its translation, else its humanized name — never the raw key', () => {
+      const translations: Record<string, string> = { 'blueprint.role.secondary': 'Sekundär' };
+      const instant = (key: string) => translations[key] ?? key; // TranslateService.instant echoes a miss
+      expect(ingredientRoleLabel('secondary', instant)).toBe('Sekundär');
+      expect(ingredientRoleLabel('SUBSTRATE', instant)).toBe('Substrate');
+      expect(ingredientRoleLabel('primary', instant)).toBe('');
+      expect(ingredientRoleLabel(null, instant)).toBe('');
     });
   });
 

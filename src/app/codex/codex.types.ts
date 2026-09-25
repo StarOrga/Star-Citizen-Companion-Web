@@ -560,7 +560,12 @@ export type BlueprintCategory =
   | 'medicine'
   | 'other';
 
-/** Ingredient role within a blueprint recipe. */
+/**
+ * Ingredient role within a blueprint recipe, as first planned. 'primary' is
+ * still what the service writes for a row without a role; the live data
+ * carries CIG's slot names instead (`FRAME`, `SUBSTRATE`, `BARREL:` …) —
+ * label them with `ingredientRoleLabel` (codex-format.ts).
+ */
 export type IngredientRole = 'primary' | 'secondary' | 'catalyst';
 
 /** Quality summary entry (STATIC — interactive sliders are deferred to v2). */
@@ -596,8 +601,8 @@ export interface BlueprintIngredientPayload {
   ingredientIndex: number;
   ingredientClassName: string | null; // null = unresolved / engine-internal
   quantity: number;
-  minQuality: number | null;          // 0–1 float
-  role: IngredientRole | string;
+  minQuality: number | null;          // CIG quality 0–1000; 0 and 1 take any material
+  role: IngredientRole | string;      // CIG slot name (FRAME, SUBSTRATE, …)
   // Resolved display fields (denormalized from codex_items/codex_components at ingest)
   nameLocalized: string | null;
   entityKind: string | null;          // 'item' | 'component' | 'weapon' | null
@@ -629,7 +634,9 @@ export interface CodexBlueprintIngredient {
   ingredientIndex: number;
   ingredientClassName: string | null;
   quantity: number;
+  /** Minimum material quality on CIG's 0–1000 scale; 0 and 1 take any material. */
   minQuality: number | null;
+  /** CIG slot name (`FRAME`, `SUBSTRATE`, `BARREL:` …); 'primary' when the row names none. */
   role: string;
   nameLocalized: string | null;
   entityKind: string | null;
