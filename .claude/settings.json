@@ -18,7 +18,9 @@
   },
   "env": {
     "FORCE_COLOR": "1",
-    "NG_CLI_ANALYTICS": "false"
+    "NG_CLI_ANALYTICS": "false",
+    "PLAYWRIGHT_MCP_INIT_PAGE": "scripts/playwright/test-session.cjs",
+    "PLAYWRIGHT_MCP_ISOLATED": "true"
   },
   "hooks": {
     "PreToolUse": [
