@@ -70,7 +70,7 @@ const RIFLE: ResolvedEntity = {
 describe('CodexSetGearComponent', () => {
   it('lists the role\'s non-anatomical positions in their suggestion order', async () => {
     const fps = await setup({ role: 'fps' });
-    expect(slotEls(fps).map((e) => e.dataset['slot'])).toEqual(['primary', 'secondary', 'sidearm']);
+    expect(slotEls(fps).map((e) => e.dataset['slot'])).toEqual(['primary', 'secondary', 'sidearm', 'melee', 'throwable']);
     TestBed.resetTestingModule();
 
     const medical = await setup({ role: 'medical' });
@@ -130,7 +130,9 @@ describe('CodexSetGearComponent', () => {
         { slot: 'helmet', className: 'Test_Helmet', kind: 'item' },
       ],
     });
-    expect(slotEls(fixture).map((e) => e.dataset['slot'])).toEqual(['primary', 'secondary', 'sidearm', 'Knife', 'multitool']);
+    expect(slotEls(fixture).map((e) => e.dataset['slot'])).toEqual([
+      'primary', 'secondary', 'sidearm', 'melee', 'throwable', 'Knife', 'multitool',
+    ]);
 
     const knife = slotEl(fixture, 'Knife');
     expect(knife.querySelector('a')).toBeNull();

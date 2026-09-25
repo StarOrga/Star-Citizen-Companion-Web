@@ -1,6 +1,10 @@
+import { ROLE_SLOT_SUGGESTIONS, slotHasArchiveSource } from '../hangar/hangar.types';
 import {
+  ARMOR_SLOT_SPECS,
+  READINESS_BY_SLOT,
   armorSlotsFromLoadout,
   computeReadiness,
+  readinessKeysFor,
   roleSlotForAttachType,
   sortByRecency,
   withSelectedFirst,
@@ -98,5 +102,36 @@ describe('computeReadiness', () => {
   it('counts the ParaMed as medical, not as a second pistol', () => {
     const payloads = new Map<string, EntityPayloadEntry>([['crlf_medgun_01', weapon('Small')]]);
     expect(on(computeReadiness([{ className: 'crlf_medgun_01' }], payloads))).toEqual(['medical']);
+  });
+
+  it('with a role, drops the classes the role has no position for, unless a piece lights one', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([
+      ['behr_rifle_ballistic_01', weapon('Medium')],
+      ['grin_multitool_01', weapon('Gadget')],
+    ]);
+    const keys = (slots: { key: string }[]) => slots.map((s) => s.key);
+    expect(keys(computeReadiness([{ className: 'behr_rifle_ballistic_01' }], payloads, 'fps'))).toEqual([
+      'primary', 'secondary', 'melee', 'throwable',
+    ]);
+    // A multi-tool in a free-form slot of an fps set (retired editor) still shows, lit.
+    const tool = computeReadiness([{ className: 'grin_multitool_01' }], payloads, 'fps');
+    expect(keys(tool)).toEqual(['primary', 'secondary', 'melee', 'throwable', 'gadget']);
+    expect(on(tool)).toEqual(['gadget']);
+  });
+});
+
+describe('readinessKeysFor', () => {
+  it('gives each role only the classes one of its positions can light', () => {
+    expect(readinessKeysFor('fps')).toEqual(['primary', 'secondary', 'melee', 'throwable']);
+    expect(readinessKeysFor('medical')).toEqual(['gadget', 'medical']);
+    expect(readinessKeysFor('mining')).toEqual(['gadget']);
+  });
+
+  it('knows what every archive-backed weapon or tool position lights', () => {
+    // A new position without an entry would silently hide its readiness class.
+    const anatomical = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
+    const slots = new Set(Object.values(ROLE_SLOT_SUGGESTIONS).flat());
+    const unmapped = [...slots].filter((s) => !anatomical.has(s) && slotHasArchiveSource(s) && !READINESS_BY_SLOT[s]);
+    expect(unmapped).toEqual([]);
   });
 });

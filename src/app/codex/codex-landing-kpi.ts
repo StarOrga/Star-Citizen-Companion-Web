@@ -11,6 +11,7 @@
 // the 2026-09-20 landing redesign, removed in the archive audit 2026-09-25.)
 
 import type { CodexKind } from './codex.service';
+import { ROLE_SLOT_SUGGESTIONS, RoleLoadoutRole } from '../hangar/hangar.types';
 
 export interface EntityPayloadEntry {
   kind: CodexKind;
@@ -168,12 +169,47 @@ export interface ReadinessSlot {
 }
 
 /**
+ * The readiness classes a piece in each set position can light — the same
+ * fitting `slotAccepts` enforces: a sidearm is a Small gun (secondary), the
+ * multi-tool and its attachments, tractor beams and the Cambio are Gadgets.
+ * Armour positions and the medpen (no archive source) light nothing.
+ */
+export const READINESS_BY_SLOT: Readonly<Record<string, readonly ReadinessKey[]>> = {
+  primary: ['primary'],
+  secondary: ['primary', 'secondary'],
+  sidearm: ['secondary'],
+  melee: ['melee'],
+  throwable: ['throwable'],
+  multitool: ['gadget'],
+  'mining-attachment': ['gadget'],
+  'salvage-attachment': ['gadget'],
+  'repair-attachment': ['gadget'],
+  tractor: ['gadget'],
+  gadget: ['gadget'],
+  medgun: ['medical'],
+};
+
+/**
+ * The readiness classes a set of this role can show at all — those some
+ * position of the role takes a piece for. A glyph no position can ever light
+ * says nothing: after the honest slot fitting, fps sets carried four of them
+ * (harden scan 2026-09-25).
+ */
+export function readinessKeysFor(role: RoleLoadoutRole): ReadinessKey[] {
+  const holdable = new Set((ROLE_SLOT_SUGGESTIONS[role] ?? []).flatMap((slot) => READINESS_BY_SLOT[slot] ?? []));
+  return READINESS_KEYS.filter((key) => holdable.has(key));
+}
+
+/**
  * Which of the six honest readiness classes the set covers. Pure: takes the
- * loadout's items plus the payload batch the zone already fetches.
+ * loadout's items plus the payload batch the zone already fetches. With a
+ * `role`, only that role's classes (`readinessKeysFor`) come back — plus any
+ * class a piece already lights anyway (a free-form slot of the retired editor).
  */
 export function computeReadiness(
   items: readonly { className: string | null }[],
   payloads: ReadonlyMap<string, EntityPayloadEntry>,
+  role?: RoleLoadoutRole,
 ): ReadinessSlot[] {
   const hit = new Set<ReadinessKey>();
   for (const item of items) {
@@ -192,7 +228,11 @@ export function computeReadiness(
       hit.add('medical');
     }
   }
-  return READINESS_KEYS.map((key) => ({ key, ok: hit.has(key) }));
+  const shown = role ? new Set(readinessKeysFor(role)) : null;
+  return READINESS_KEYS.filter((key) => !shown || shown.has(key) || hit.has(key)).map((key) => ({
+    key,
+    ok: hit.has(key),
+  }));
 }
 
 // ── "recently touched" ordering (no last_opened_at yet) ─────────────────────

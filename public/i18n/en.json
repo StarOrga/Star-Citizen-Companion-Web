@@ -3122,6 +3122,8 @@
       "primary": "Primary weapon",
       "secondary": "Secondary weapon",
       "sidearm": "Sidearm",
+      "melee": "Melee weapon",
+      "throwable": "Throwable",
       "helmet": "Helmet",
       "core": "Torso",
       "arms": "Arms",

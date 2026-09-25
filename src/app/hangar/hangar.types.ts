@@ -45,7 +45,9 @@ export interface RoleLoadoutItem {
 
 /** The positions each role's set is built from — the Codex set page lists them, the FPS archive fills them. */
 export const ROLE_SLOT_SUGGESTIONS: Record<RoleLoadoutRole, string[]> = {
-  fps: ['primary', 'secondary', 'sidearm', 'helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack'],
+  // Knife and grenades have positions of their own, as in the game: since the
+  // honest slot fitting a knife no longer fits the sidearm slot (harden scan 2026-09-25).
+  fps: ['primary', 'secondary', 'sidearm', 'melee', 'throwable', 'helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack'],
   mining: ['multitool', 'mining-attachment', 'gadget', 'helmet', 'core', 'backpack'],
   salvage: ['multitool', 'salvage-attachment', 'tractor', 'helmet', 'core', 'backpack'],
   medical: ['medgun', 'multitool', 'medpen', 'helmet', 'core', 'backpack'],
@@ -65,6 +67,8 @@ export interface SlotCandidate {
  *
  * Grounded in what the current build actually carries (FPS weapons):
  *  - guns by sub-type — Medium/Large are long guns, Small are pistols;
+ *  - knives (sub-type Knife) and grenades (Grenade) by sub-type, into the
+ *    fps set's melee and throwable positions;
  *  - the Pyro RYT multi-tool (`grin_multitool_01…`), whose `_default_mining`,
  *    `_default_salvage_repair`, `_default_tractorbeam` and `_default_healing`
  *    records are the multi-tool with that attachment fitted;
@@ -88,6 +92,10 @@ export function slotAccepts(slot: string, piece: SlotCandidate): boolean {
       return (sub === 'medium' || sub === 'large' || sub === 'small') && !medgun;
     case 'sidearm':
       return sub === 'small' && !medgun;
+    case 'melee':
+      return sub === 'knife';
+    case 'throwable':
+      return sub === 'grenade';
     case 'multitool':
     case 'mining-attachment':
       return multitool;
@@ -119,6 +127,8 @@ export function slotHasArchiveSource(slot: string): boolean {
  */
 export const SLOT_WEAPON_FACET: Readonly<Record<string, string>> = {
   sidearm: 'Small',
+  melee: 'Knife',
+  throwable: 'Grenade',
   medgun: 'Small',
   multitool: 'Gadget',
   'mining-attachment': 'Gadget',

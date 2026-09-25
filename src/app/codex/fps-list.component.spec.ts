@@ -232,6 +232,15 @@ describe('FpsListComponent (honest slot fitting)', () => {
     expect(buttonsOf('Pyro RYT Multi-Tool')).toEqual(['multitool', 'mining-attachment', 'gadget']);
   });
 
+  it('offers a knife the melee position and a grenade the throwable one', async () => {
+    const knife = weapon('kdid_knife_01', 'Test Knife', 'Knife');
+    const grenade = weapon('bhnd_grenade_frag_01', 'Test Grenade', 'Grenade');
+    const { buttonsOf } = await render({ cat: 'weapon', equipInto: 'set-1' }, SET, [knife, grenade, PISTOL]);
+    expect(buttonsOf('Test Knife')).toEqual(['melee']);
+    expect(buttonsOf('Test Grenade')).toEqual(['throwable']);
+    expect(buttonsOf('Arclight Pistol')).toEqual(['secondary', 'sidearm']);
+  });
+
   it('puts the ParaMed into the medgun slot of a medical set, not into a gun slot', async () => {
     const medical: HangarRoleLoadout = { ...SET, role: 'medical' };
     const { buttonsOf } = await render({ cat: 'weapon', equipInto: 'set-1' }, medical, [MEDGUN]);

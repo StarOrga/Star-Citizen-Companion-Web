@@ -133,10 +133,11 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
                   <span class="t-label plinth-role">{{ 'hangar.roles.' + activeLoadout()!.role | translate }}</span>
                 </div>
 
-                <!-- Readiness: only the six classes the archive really carries.
-                     Mining/salvage/tractor are absent on purpose — every such hit
-                     in the archive is a SHIP component, so a "mining ready" mark
-                     would be fabricated. -->
+                <!-- Readiness: only classes the archive really carries, and of
+                     those only the ones this set's role has a position for — a
+                     glyph nothing can light says nothing. Mining/salvage/tractor
+                     are no classes of their own on purpose: the handheld tools
+                     are Gadgets, a "mining ready" mark would claim more. -->
                 <div class="board-rdy">
                   @for (r of readiness(); track r.key) {
                     <!-- role=img + label: the state must not live in a hover-only title. -->
@@ -524,10 +525,11 @@ export class CodexBoardPanelComponent {
   readonly boardSlotsLeft = computed(() => this.boardSlots().filter((_, i) => i % 2 === 0));
   readonly boardSlotsRight = computed(() => this.boardSlots().filter((_, i) => i % 2 === 1));
 
-  /** Six readiness classes the archive really carries — see computeReadiness(). */
-  readonly readiness = computed<ReadinessSlot[]>(() =>
-    computeReadiness(this.activeLoadout()?.items ?? [], this.payloads()),
-  );
+  /** The readiness classes the set's role can hold, of the six the archive carries — see computeReadiness(). */
+  readonly readiness = computed<ReadinessSlot[]>(() => {
+    const active = this.activeLoadout();
+    return computeReadiness(active?.items ?? [], this.payloads(), active?.role);
+  });
 
   /**
    * Set switcher: up to three, favourites first, topped up with the most

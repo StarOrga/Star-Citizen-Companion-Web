@@ -63,6 +63,14 @@ describe('CodexBoardPanelComponent', () => {
     expect(getComputedStyle(label).color).toBe('rgb(61, 90, 108)');
   });
 
+  it('shows only the readiness classes the set\'s role has a position for', async () => {
+    const el = await render();
+    // An engineering set holds tools only: one gadget glyph, not five that can never light.
+    const glyphs = Array.from(el.querySelectorAll('.rdy-ic')).map((g) => g.getAttribute('aria-label'));
+    expect(glyphs.length).toBe(1);
+    expect(glyphs[0]).toContain('codex.landing.board.readiness.gadget');
+  });
+
   it('switches sets on the set page instead of sending the reader to the landing', async () => {
     const el = await render();
     const hrefs = Array.from(el.querySelectorAll('.dial-node')).map((a) => a.getAttribute('href'));

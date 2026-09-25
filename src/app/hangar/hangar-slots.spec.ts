@@ -29,6 +29,13 @@ describe('slotAccepts', () => {
     expect(accepted('sidearm')).toEqual(['PISTOL']);
   });
 
+  it('gives the knife and the grenades positions of their own', () => {
+    expect(accepted('melee')).toEqual(['KNIFE']);
+    expect(accepted('throwable')).toEqual(['GRENADE']);
+    expect(ROLE_SLOT_SUGGESTIONS.fps).toContain('melee');
+    expect(ROLE_SLOT_SUGGESTIONS.fps).toContain('throwable');
+  });
+
   it('fills the tool positions with the multi-tool and the tools made for them', () => {
     expect(accepted('multitool')).toEqual(['MULTITOOL', 'MINING', 'HEALING']);
     expect(accepted('mining-attachment')).toEqual(['MULTITOOL', 'MINING', 'HEALING']);

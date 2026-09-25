@@ -3122,6 +3122,8 @@
       "primary": "Primärwaffe",
       "secondary": "Sekundärwaffe",
       "sidearm": "Seitenwaffe",
+      "melee": "Nahkampfwaffe",
+      "throwable": "Wurfwaffe",
       "helmet": "Helm",
       "core": "Torso",
       "arms": "Arme",
