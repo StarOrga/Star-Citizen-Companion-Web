@@ -19,6 +19,7 @@ import { CodexBoardFigureComponent } from '../codex-board-figure.component';
 import { CodexBoardPanelComponent } from '../codex-board-panel.component';
 import { CodexSetGearComponent } from './codex-set-gear.component';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
   ArmorSlotState,
   EntityPayloadEntry,
@@ -55,6 +56,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
     CodexBoardPanelComponent,
     CodexSetGearComponent,
     LoadoutSharePanelComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -68,6 +70,8 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
               class="share-btn"
               [class.on]="shareOpen()"
               [attr.aria-label]="'codex.set.share' | translate"
+              [scTooltip]="'codex.set.share' | translate"
+              scTooltipTier="label"
               [attr.aria-expanded]="shareOpen()"
               [attr.aria-controls]="shareOpen() ? 'set-share-panel' : null"
               (click)="shareOpen.set(!shareOpen())"
