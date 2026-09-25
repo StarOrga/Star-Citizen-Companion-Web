@@ -24,6 +24,27 @@ describe('HangarPickerComponent', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  /**
+   * Ctrl+click an anchor the way a user would, minus the browser's part. The
+   * component is meant to leave such a click to the browser — which, left
+   * alone, opens a REAL tab and sends Karma's page to the background, where it
+   * renders no frames for the rest of the run (see
+   * `testing/new-tab-guard.spec.ts`). So the click is swallowed on `window`,
+   * after every listener of the page has seen it. Returns whether the page
+   * left the click to the browser.
+   */
+  function ctrlClick(target: HTMLElement): boolean {
+    let leftToBrowser = false;
+    const swallow = (ev: Event) => {
+      leftToBrowser = !ev.defaultPrevented;
+      ev.preventDefault();
+    };
+    window.addEventListener('click', swallow);
+    target.dispatchEvent(new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }));
+    window.removeEventListener('click', swallow);
+    return leftToBrowser;
+  }
+
   it('does not expand on the first pixel of hover — 300 ms delay', fakeAsync(() => {
     return setup().then((fixture) => {
       const el: HTMLElement = fixture.nativeElement;
@@ -151,7 +172,7 @@ describe('HangarPickerComponent', () => {
 
     const el: HTMLElement = fixture.nativeElement;
     const item = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item')[1];
-    item.dispatchEvent(new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }));
+    expect(ctrlClick(item)).withContext('the anchor keeps the click for its new tab').toBeTrue();
     expect(picked).toEqual([]);
   });
 
@@ -160,9 +181,8 @@ describe('HangarPickerComponent', () => {
     let opened = 0;
     fixture.componentInstance.open.subscribe(() => opened++);
     const el: HTMLElement = fixture.nativeElement;
-    el.querySelector<HTMLAnchorElement>('.picker-btn')!.dispatchEvent(
-      new MouseEvent('click', { button: 0, ctrlKey: true, bubbles: true, cancelable: true }),
-    );
+    expect(ctrlClick(el.querySelector<HTMLAnchorElement>('.picker-btn')!))
+      .withContext('the anchor keeps the click for its new tab').toBeTrue();
     fixture.detectChanges();
     expect(fixture.componentInstance.expanded()).toBeFalse();
     expect(opened).toBe(0);

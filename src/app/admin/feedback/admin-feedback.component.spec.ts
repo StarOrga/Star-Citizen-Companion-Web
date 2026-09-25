@@ -5,6 +5,7 @@ import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { AuthService } from '../../auth/auth.service';
 import { deepestBoxNesting, drawsBox } from '../../feedback/testing/frame-nesting';
+import { installFrameClock } from '../../testing/frames';
 import { ConsentService } from '../../core/consent.service';
 import { LocaleService } from '../../core/locale/locale.service';
 import { CelebrationService } from './celebration.service';
@@ -1054,6 +1055,9 @@ describe('AdminFeedbackComponent — motion', () => {
   it('sign-off inside the topic: back to the stream, row folds out, arrives in Geliefert', async () => {
     const tables = fixtureTables();
     const { fixture, cmp, el, sb, motion } = await mount(tables);
+    // The fold waits a frame for the sheet to unrender; the spec says when
+    // that frame is, rather than waiting on Karma's (testing/frames.ts).
+    const frames = installFrameClock();
     expect(cmp.arrived('r1')).withContext('the first load highlights nothing').toBeFalse();
 
     cmp.openTopic('r1');
@@ -1065,7 +1069,7 @@ describe('AdminFeedbackComponent — motion', () => {
     (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')!.reviewed_at = '2026-09-01T14:00:00Z';
     const accepted = cmp.acceptReview(r1);
     // Before the write even resolves, the sheet is gone and the row folds.
-    await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+    frames.runFrame();
     fixture.detectChanges();
     expect(cmp.openRow()).withContext('the sheet closes at once').toBeNull();
     expect(el.querySelector('.sheet.topic')).toBeNull();
@@ -1108,10 +1112,14 @@ describe('AdminFeedbackComponent — motion', () => {
       }
       return c;
     };
+    const frames = installFrameClock();
     cmp.openTopic('r1');
     fixture.detectChanges();
     const r1 = (tables.admin_feedback as FeedbackRow[]).find((r) => r.id === 'r1')!;
-    await cmp.acceptReview(r1);
+    const accepted = cmp.acceptReview(r1);
+    // The frame the fold waits for (see the first motion spec).
+    frames.runFrame();
+    await accepted;
     fixture.detectChanges();
     expect(motion.folded).toEqual(['fb-card-r1']);
     expect(motion.restored).withContext('the row comes back').toEqual(['fb-card-r1']);

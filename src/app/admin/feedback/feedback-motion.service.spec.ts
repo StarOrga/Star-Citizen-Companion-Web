@@ -43,15 +43,30 @@ describe('FeedbackMotionService', () => {
     return injector.get(FeedbackMotionService);
   }
 
+  /**
+   * The fold is a Web Animation, and those only move when the page renders a
+   * frame — which Karma cannot promise (testing/frames.ts). So the specs do
+   * not wait out its 320 ms: they hold the fold, look, and run it to its end.
+   */
   it('folds the row shut and closes the gap under it', async () => {
     const { row, below } = mountList();
     const svc = service(false);
     const topBefore = below.getBoundingClientRect().top;
-    const started = performance.now();
 
-    await svc.collapse(row);
+    let done = false;
+    const folding = svc.collapse(row).then(() => {
+      done = true;
+    });
+    const [fold] = row.getAnimations();
+    expect(fold?.effect?.getTiming().duration).withContext('the row folds, it does not snap').toBe(LEAVE_MS);
+    // Held still, so nothing but `finish()` can end it while the spec looks
+    // for an early resolve.
+    fold.pause();
+    await new Promise((r) => setTimeout(r));
+    expect(done).withContext('waits for the fold').toBeFalse();
 
-    expect(performance.now() - started).withContext('waits for the fold').toBeGreaterThanOrEqual(LEAVE_MS - 40);
+    fold.finish();
+    await folding;
     expect(row.getBoundingClientRect().height).toBeLessThan(1);
     expect(getComputedStyle(row).opacity).toBe('0');
     // The list gap is animated away too: what was below moved up by the row
@@ -63,9 +78,13 @@ describe('FeedbackMotionService', () => {
   it('gives a reduced-motion viewer the end state at once', async () => {
     const { row } = mountList();
     const svc = service(true);
-    const started = performance.now();
-    await svc.collapse(row);
-    expect(performance.now() - started).toBeLessThan(LEAVE_MS / 2);
+    let done = false;
+    void svc.collapse(row).then(() => {
+      done = true;
+    });
+    await Promise.resolve();
+    expect(done).withContext('before any timer or frame could fire').toBeTrue();
+    expect(row.getAnimations()).withContext('nothing is animated').toEqual([]);
     expect(row.style.visibility).toBe('hidden');
   });
 
@@ -73,7 +92,10 @@ describe('FeedbackMotionService', () => {
     const { row } = mountList();
     const svc = service(false);
     const heightBefore = row.getBoundingClientRect().height;
-    await svc.collapse(row);
+    const folding = svc.collapse(row);
+    for (const fold of row.getAnimations()) fold.finish();
+    await folding;
+    expect(row.getBoundingClientRect().height).withContext('folded first').toBeLessThan(1);
     svc.restore(row);
     expect(row.getBoundingClientRect().height).toBe(heightBefore);
     expect(row.style.pointerEvents).toBe('');
