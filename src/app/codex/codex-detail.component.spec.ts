@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { CodexDetailComponent } from './codex-detail.component';
 import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
@@ -639,5 +639,34 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
       c.textContent!.trim(),
     );
     expect(amounts).toEqual(['0.2 SCU', '0.015 SCU', '15 SCU']);
+  });
+
+  it('names CIG slots in words and shows only a real quality floor, on the 0–1000 scale — as the blueprint page does', async () => {
+    const recipe: BlueprintDetail = {
+      ...RECIPE,
+      ingredients: [
+        { ...ingredient(0, 'Titanium', 2), role: 'SUBSTRATE', minQuality: 900 },
+        { ...ingredient(1, 'Agricium', 0.36000001430511475), role: 'BARREL:', minQuality: 1 },
+        { ...ingredient(2, 'Iron', 0.2), role: 'PROTECTIVE SHEATHING', minQuality: 0 },
+      ],
+    };
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => recipe });
+    const translate = TestBed.inject(TranslateService);
+    translate.setTranslation('en', { codex: { detail: { minQuality: 'min. quality {{value}}' } } });
+    translate.use('en');
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const section = Array.from(el.querySelectorAll('section')).find((s) =>
+      s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
+    );
+    expect(section).withContext('recipe section').toBeTruthy();
+    const chips = Array.from(section!.querySelectorAll('.compat-list li')).map((li) =>
+      Array.from(li.querySelectorAll('.chip')).map((c) => c.textContent!.trim()),
+    );
+    expect(chips).toEqual([
+      ['Substrate', '2 SCU', 'min. quality 900 / 1,000'],
+      ['Barrel', '0.36 SCU'],
+      ['Protective Sheathing', '0.2 SCU'],
+    ]);
   });
 });

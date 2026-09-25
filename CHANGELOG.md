@@ -4,6 +4,26 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.3] - 2026-09-25
+
+### Fixed
+
+- **Blueprint-Zutaten: Qualität auf der Skala des Spiels, Slots lesbar.** Die
+  Mindestqualität einer Zutat wurde als Bruchteil von 1 gelesen, das Spiel
+  bewertet Qualität aber von 0 bis 1000 — Titan im Collector-Material-Blueprint
+  stand deshalb als „Min. Qualität: 90000 %“ da. Jetzt steht dort
+  „900 / 1.000“, und nur noch dort, wo ein Slot wirklich eine Mindestqualität
+  verlangt: das falsche „0 %“ an jeder FPS-Zutat und „100 %“ an jedem
+  Schiffsteil-Slot entfällt. Diese seltene echte Anforderung ist jetzt die
+  hervorgehobene Plakette. Die Slot-Plakette zeigt den Slot-Namen des Spiels
+  lesbar („Substrate“, „Protective Sheathing“, „Barrel“) statt eines rohen
+  Übersetzungsschlüssels wie „blueprint.role.SUBSTRATE“. Die Liste
+  „Herstellungsmaterialien“ auf den Codex-Detailseiten zeigt beides genauso.
+
+### Notes
+
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.99.2] - 2026-09-25
 
 ### Fixed
