@@ -1,11 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { BlueprintDetail, CodexService, pickLocalized } from './codex.service';
@@ -241,10 +243,13 @@ export class BlueprintDetailComponent implements OnInit {
   readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly detail = signal<BlueprintDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  /** Bumped per load, so a late answer for an earlier blueprint never lands on a newer one. */
+  private loadSeq = 0;
 
   // Expose format helpers for template use
   readonly formatCraftTime = formatCraftTime;
@@ -355,15 +360,33 @@ export class BlueprintDetailComponent implements OnInit {
     return ingredientRoleLabel(ing.role, (key) => this.translate.instant(key));
   }
 
-  async ngOnInit(): Promise<void> {
-    const className = this.route.snapshot.paramMap.get('className') ?? '';
+  /**
+   * Params are SUBSCRIBED, not snapshotted: the router reuses this page when
+   * one blueprint leads to another — the header's poly search, back/forward
+   * between two blueprint pages — so a snapshot read leaves the new URL over
+   * the old blueprint. The first emission is synchronous, so a deep link
+   * loads exactly as before.
+   */
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      void this.load(params.get('className') ?? '');
+    });
+  }
+
+  private async load(className: string): Promise<void> {
+    const seq = ++this.loadSeq;
+    this.detail.set(null);
+    this.error.set(null);
+    this.loading.set(true);
     try {
       const result = await this.svc.getBlueprint(className);
+      if (seq !== this.loadSeq) return;
       this.detail.set(result);
     } catch (err) {
+      if (seq !== this.loadSeq) return;
       this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 }
