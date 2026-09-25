@@ -9,7 +9,7 @@ built in by design.
 |---|---|---|
 | Relational: users, social, hangar, feedback, telemetry, codex catalog | Supabase Postgres (Free, 500 MB) | RLS, RPCs, Realtime. Blocks (402) at its limit, never bills |
 | RLS-gated files (feedback attachments), codex previews | Supabase Storage (Free, 1 GB) | RLS per owner cannot be rebuilt elsewhere |
-| Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets`, read via `cloudflare/assets-worker` | 0 € egress, 10 GB. Falls back to Supabase until the R2 secrets exist |
+| Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` | 0 € egress, 10 GB. Falls back to Supabase until the R2 secrets exist |
 | App bundle, icons, meshopt decoder | Vercel Hobby | Static hosting |
 | Desktop installers | GitHub Releases in the public `Star-Citizen-Companion-Binaries` mirror | No bandwidth cap, trusted domain for AV scanners |
 | Backups / codex build archive | *(planned)* Backblaze B2 EU with daily caps | Supabase Free has no downloadable backups |
@@ -41,8 +41,29 @@ built in by design.
 - **Writes** only through presigned PUTs that ingest-skins hands out after the
   usual JWT + release-token + role gate. `sign` refuses with 507 once the bucket
   holds `R2_QUOTA_BYTES` (default 8 GB of the free 10 GB).
+- **Usage gate = the kill-switch** (`ingest-skins/_r2-usage.ts`, 0.100.0).
+  Before signing, it reads this month's account-wide usage (storage, Class A,
+  Class B) from the GraphQL Analytics API with `CF_ANALYTICS_TOKEN`, an
+  Account Analytics Read token. At 80 % of any allowance it returns 507
+  `r2_free_tier_guard`. If usage cannot be read it returns 503
+  `r2_usage_unknown`: it fails closed, and unknown is never zero.
+  - Only the edge function holds the R2 secret, so "stop signing" works as
+    "stop writing".
+  - **Deliberately not a token-deleting switch.** Deleting or disabling a
+    token needs *Account API Tokens Write*, which can mint tokens with any
+    permission. That makes it account-admin, and it would sit in a secret
+    store.
+  - If the R2 secret ever leaks, revoke the token by hand in the dashboard
+    (R2 → Manage API Tokens). The Access Key ID is the token id.
+- Cloudflare has **no** R2 spend cap and no suspend API. Budget alerts
+  ($1 set) only send email, only after overage has started. Webhook alerts
+  need a Pro zone.
+- **Money-side cap:** the user withdraws Cloudflare's PayPal debit
+  authorization (decided 2026-09-25). A charge then fails instead of going
+  through. Any invoice still stands legally, so the gate above is what keeps
+  it at $0.
 - The API token is scoped to the one bucket and lives only as an Edge-Function
-  secret. Budget alert at $1.
+  secret.
 - `*.workers.dev` may get the same Kaspersky treatment as `vercel.app`. A custom
   domain (~10 €/yr, not free) is the durable fix for both, and would also enable
   the Cloudflare CDN cache and an R2 custom domain.
