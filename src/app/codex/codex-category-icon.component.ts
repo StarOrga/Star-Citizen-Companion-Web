@@ -51,13 +51,13 @@ export const ICON_PATHS: Readonly<Record<string, string>> = {
 const CAT_COLORS: Readonly<Record<string, string>> = {
   ship: 'var(--sc-accent, #52c1e6)',
   // A warm orange of its own: --sc-accent-hot means elevated access (CLAUDE.md).
-  weapon: '#e8864a',
+  weapon: 'var(--sc-offense, #e8864a)',
   component: 'var(--sc-accent, #52c1e6)',
   shield: '#52c1e6',
   power: '#f0c419',
   cooler: '#5fd3ff',
   quantum: '#a674ff',
-  thruster: '#e8864a',
+  thruster: 'var(--sc-offense, #e8864a)',
   fuel: '#5fd698',
   cargo: '#c8a84b',
   item: '#c8a84b',

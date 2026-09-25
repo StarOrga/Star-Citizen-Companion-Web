@@ -119,8 +119,8 @@ export interface GearSlotRow {
   styles: [
     `
       :host {
-        --idle: #3d5a6c;
-        --idle-bg: #0a1c26;
+        --idle: var(--sc-idle);
+        --idle-bg: var(--sc-idle-bg);
         display: block;
       }
       .gear { display: flex; flex-direction: column; gap: 8px; }

@@ -214,7 +214,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
          hosts the panel, and on the set page every open position lost its
          blue-grey (white labels, invisible squares). Custom properties still
          inherit through a display:contents host. */
-      :host { display: contents; --idle: #3d5a6c; --idle-bg: #0a1c26; }
+      :host { display: contents; --idle: var(--sc-idle); --idle-bg: var(--sc-idle-bg); }
       /* ── AN BORD ───────────────────────────────────────────────────────
          Design system fixed in concept iteration 6 — the old zone carried FOUR
          meanings on amber (equipped / set name / slot label / armour class

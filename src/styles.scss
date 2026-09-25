@@ -26,6 +26,13 @@
      fallback before this token existed (mixed-range / mixed-generator notes) —
      defining it here is a no-visual-change consistency fix. */
   --sc-warn: #e8a33d;
+  /* Codex data-viz colours shared by several components: the blue-grey of an
+     open (idle) loadout position and its square, and the warm orange for
+     offense / physical damage / weapons (not --sc-accent-hot, which means
+     elevated access). */
+  --sc-idle: #3d5a6c;
+  --sc-idle-bg: #0a1c26;
+  --sc-offense: #e8864a;
   --sc-danger: var(--accent-danger-light);
   --sc-border: var(--border-subtle);
   --sc-glow: var(--shadow-glow);
