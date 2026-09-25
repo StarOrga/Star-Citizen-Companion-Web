@@ -131,6 +131,8 @@ describe('KeybindsComponent', () => {
     admin?: boolean;
     /** Seeded category assignments, keyed `actionmap::action_name`. */
     cats?: Record<string, Partial<KeybindAssignment>>;
+    /** The keybind read fails instead of answering. */
+    failList?: boolean;
   }) {
     const empty = new Map<string, string>();
     const codex: Partial<CodexService> = {
@@ -138,7 +140,9 @@ describe('KeybindsComponent', () => {
       stale: signal(false) as never,
       latestLivePatch: signal(null) as never,
       loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
-      listKeybinds: jasmine.createSpy('listKeybinds').and.resolveTo(opts.binds),
+      listKeybinds: opts.failList
+        ? jasmine.createSpy('listKeybinds').and.rejectWith(new Error('network down'))
+        : jasmine.createSpy('listKeybinds').and.resolveTo(opts.binds),
       resolveLocaleKeys: jasmine
         .createSpy('resolveLocaleKeys')
         .and.callFake((_keys: string[], lang: string) =>
@@ -260,6 +264,14 @@ describe('KeybindsComponent', () => {
     const fixture = await setup({ binds: [] });
     expect(fixture.componentInstance.total()).toBe(0);
     expect(fixture.nativeElement.querySelector('.empty')).not.toBeNull();
+  });
+
+  it('shows only the error card when the read fails, not "no build published" under it', async () => {
+    const fixture = await setup({ binds: [], failList: true });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.err')?.textContent).toContain('network down');
+    expect(el.querySelector('.err .retry')).not.toBeNull();
+    expect(el.querySelector('.empty')).toBeNull();
   });
   // ── name language switch (feedback d8f096a7) ─────────────────────────────
 

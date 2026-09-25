@@ -348,8 +348,9 @@ const SEARCH_DEBOUNCE_MS = 250;
             share, delete); the set's contents are edited on the Codex side
             (admin feedback 34505d70, decision "2A" on issue #411 point 2 —
             "hangar nicht explizit, der ist schon auf der codex startseite
-            implizit drin"). So the card opens the Codex start page's AN BORD
-            zone on this set, and the standalone editor page is gone.
+            implizit drin"). So the card opens the Codex set page for this set
+            (/codex/set/:id, the on-foot editor since the 2026-09-20 concept),
+            and the standalone editor page is gone.
 
             The card is no longer one big <a>: the housekeeping controls are
             real actions and must not sit inside the navigation.
@@ -357,7 +358,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           <div class="grid">
             @for (l of hangar.roleLoadouts(); track l.id) {
               <div class="card loadout-card own-card">
-                <a class="ld-open" routerLink="/codex" [queryParams]="{ zone: 'board', set: l.id }">
+                <a class="ld-open" [routerLink]="['/codex', 'set', l.id]">
                   <div class="card-top">
                     <h3 class="name">{{ l.name }}</h3>
                     <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>

@@ -12,20 +12,21 @@ describe('hangar/loadout/:id bridge', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
   });
 
-  it('sends an old editor link to the AN BORD zone of that very set', () => {
+  it('sends an old editor link to the set page of that very set', () => {
     const tree = TestBed.runInInjectionContext(() =>
       hangarLoadoutRedirect({ params: { id: 'set-42' } }),
     );
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex?zone=board&set=set-42');
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/set/set-42');
   });
 
-  it('escapes an id that would otherwise break out of the query string', () => {
+  it('escapes an id that would otherwise break out of its path segment', () => {
     const tree = TestBed.runInInjectionContext(() =>
-      hangarLoadoutRedirect({ params: { id: 'a b&c=d' } }),
+      hangarLoadoutRedirect({ params: { id: 'a/b?c=d' } }),
     );
     const url = TestBed.inject(Router).serializeUrl(tree);
-    expect(url.startsWith('/codex?zone=board&set=')).toBeTrue();
-    expect(url).not.toContain('c=d');
+    expect(url.startsWith('/codex/set/')).toBeTrue();
+    expect(url).not.toContain('?');
+    expect(url.split('/').length).toBe(4);
   });
 
   it('still registers the path, so a shared link resolves instead of 404ing', () => {

@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
+import { BehaviorSubject } from 'rxjs';
 import { CodexSetComponent } from './codex-set.component';
 import { CodexService } from '../codex.service';
 import { AuthService } from '../../auth/auth.service';
@@ -40,11 +41,23 @@ function makeCodexServiceStub(): Partial<CodexService> {
   };
 }
 
+/** The route's param stream — `next()` it to navigate the SAME component instance. */
+let params$: BehaviorSubject<ParamMap>;
+let loadAllCalls: number;
+
 async function setup(opts: {
   id: string | null;
   loadouts?: HangarRoleLoadout[];
   signedIn?: boolean;
+  /** What a fresh `loadAll()` finds on the server (defaults to `loadouts`). */
+  serverLoadouts?: HangarRoleLoadout[];
+  /** `loadAll()` fails the way the real one does: parked in `error`, never thrown. */
+  loadFails?: boolean;
 }): Promise<ComponentFixture<CodexSetComponent>> {
+  params$ = new BehaviorSubject(convertToParamMap({ id: opts.id ?? '' }));
+  loadAllCalls = 0;
+  const roleLoadouts = signal(opts.loadouts ?? []);
+  const error = signal<string | null>(null);
   await TestBed.configureTestingModule({
     imports: [CodexSetComponent],
     providers: [
@@ -53,7 +66,7 @@ async function setup(opts: {
       { provide: CodexService, useValue: makeCodexServiceStub() },
       {
         provide: ActivatedRoute,
-        useValue: { snapshot: { paramMap: convertToParamMap({ id: opts.id ?? '' }) } },
+        useValue: { paramMap: params$.asObservable(), snapshot: { paramMap: params$.value } },
       },
       {
         provide: AuthService,
@@ -62,9 +75,18 @@ async function setup(opts: {
       {
         provide: HangarService,
         useValue: {
-          roleLoadouts: signal(opts.loadouts ?? []),
-          recentSets: signal(opts.loadouts ?? []),
-          loadAll: async () => undefined,
+          roleLoadouts,
+          recentSets: roleLoadouts,
+          error,
+          loadAll: async () => {
+            loadAllCalls++;
+            if (opts.loadFails) {
+              error.set('network down');
+              return;
+            }
+            error.set(null);
+            if (opts.serverLoadouts) roleLoadouts.set(opts.serverLoadouts);
+          },
           markSetPicked: () => undefined,
         } as Partial<HangarService>,
       },
@@ -75,6 +97,12 @@ async function setup(opts: {
   await fixture.whenStable();
   fixture.detectChanges();
   return fixture;
+}
+
+async function navigateTo(fixture: ComponentFixture<CodexSetComponent>, id: string): Promise<void> {
+  params$.next(convertToParamMap({ id }));
+  await fixture.whenStable();
+  fixture.detectChanges();
 }
 
 describe('CodexSetComponent', () => {
@@ -93,6 +121,59 @@ describe('CodexSetComponent', () => {
     // uses (flagship-or-first).
     expect(fixture.componentInstance.activeSet()?.id).toBe('set-b');
     expect(fixture.componentInstance.notFound()).toBe(true);
+  });
+
+  it('follows an in-place navigation to another set instead of keeping the first one', async () => {
+    // The picker navigates /codex/set/A → /codex/set/B on the SAME component
+    // instance; a snapshot read in ngOnInit kept showing set A under B's URL.
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    expect(fixture.componentInstance.activeSet()?.id).toBe('set-a');
+
+    await navigateTo(fixture, 'set-b');
+
+    expect(fixture.componentInstance.activeSet()?.id).toBe('set-b');
+    const title = (fixture.nativeElement as HTMLElement).querySelector('.stage-title');
+    expect(title?.textContent).toContain('Medical Set');
+  });
+
+  it('drops the "not found" note once the page navigates to a set that exists', async () => {
+    const fixture = await setup({ id: 'missing', loadouts: [SET_A, SET_B] });
+    expect(fixture.componentInstance.notFound()).toBe(true);
+
+    await navigateTo(fixture, 'set-a');
+
+    expect(fixture.componentInstance.notFound()).toBe(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.hint.note')).toBeNull();
+  });
+
+  it('refreshes the sets once before reporting a set created elsewhere as not found', async () => {
+    const created: HangarRoleLoadout = { ...SET_A, id: 'set-new', name: 'New Set' };
+    const fixture = await setup({
+      id: 'set-new',
+      loadouts: [SET_A],
+      serverLoadouts: [SET_A, created],
+    });
+
+    expect(loadAllCalls).toBe(1);
+    expect(fixture.componentInstance.activeSet()?.id).toBe('set-new');
+    expect(fixture.componentInstance.notFound()).toBe(false);
+  });
+
+  it('names a failed read and offers a retry instead of claiming there are no sets', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [], loadFails: true });
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.load-err')).not.toBeNull();
+    expect(el.textContent).not.toContain('codex.set.noSets');
+
+    (el.querySelector('.load-err .retry') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(loadAllCalls).toBe(2);
+  });
+
+  it('points a reader without sets to the hangar, where sets are created', async () => {
+    const fixture = await setup({ id: null, loadouts: [] });
+    const link = (fixture.nativeElement as HTMLElement).querySelector('.hint a');
+    expect(link?.getAttribute('href')).toBe('/hangar');
   });
 
   it('shows a sign-in hint when the visitor is signed out', async () => {

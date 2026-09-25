@@ -89,10 +89,17 @@ type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
             {{ 'fps.equip.targetSet' | translate: { name: set.name } }}
             <span class="equip-role">{{ ('hangar.roles.' + set.role) | translate }}</span>
           </span>
-          <a class="equip-back" routerLink="/codex" [queryParams]="{ zone: 'board', set: set.id }">
+          <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
+          @if (equipFailed()) {
+            <p class="equip-err" role="alert">{{ 'fps.equip.failed' | translate }}</p>
+          }
         </div>
+      } @else if (equipTargetMissing()) {
+        <!-- A stale or foreign ?equipInto= used to drop the equip mode without
+             a word — the reader clicked "put on" and landed in a plain list. -->
+        <p class="sc-card equip-missing" role="status">{{ 'fps.equip.setUnavailable' | translate }}</p>
       }
 
       <!-- Category switcher -->
@@ -116,7 +123,7 @@ type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
                  [attr.aria-label]="'codex.search.label' | translate"
-                 [attr.placeholder]="'codex.search.placeholder' | translate" />
+                 [attr.placeholder]="'fps.searchPlaceholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"
                     [attr.aria-label]="'codex.search.clear' | translate">×</button>
@@ -181,7 +188,12 @@ type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
       } @else {
         <div class="result-head">
           <span class="count">
-            {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            @if (loading() && rows().length === 0) {
+              <!-- Not "0 results" above the skeletons: nothing has been counted yet. -->
+              {{ 'codex.results.loading' | translate }}
+            } @else {
+              {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            }
           </span>
           @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
@@ -317,6 +329,8 @@ type FpsGridRow = SkinGroupedRow<FoldedRow<FpsRow>>;
     }
     .equip-back { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; }
     .equip-back:hover { text-decoration: underline; }
+    .equip-err { flex: 1 1 100%; margin: 0; color: var(--sc-danger); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    .equip-missing { margin: 0; padding: 12px 16px; color: var(--sc-fg-1); font-size: max(0.84rem, var(--sc-fs-floor)); }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     .equip-label {
@@ -463,6 +477,10 @@ export class FpsListComponent implements OnInit {
   readonly targetSet = signal<HangarRoleLoadout | null>(null);
   /** `<className>|<slot>` while a write is in flight — disables the whole row. */
   readonly equipBusy = signal<string | null>(null);
+  /** The last equip write was refused (RLS, network, set deleted meanwhile). */
+  readonly equipFailed = signal(false);
+  /** `?equipInto=` named a set this reader cannot load — say so instead of silently browsing. */
+  readonly equipTargetMissing = signal(false);
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
@@ -583,11 +601,14 @@ export class FpsListComponent implements OnInit {
       this.targetSet.set(null);
       return;
     }
+    let set: HangarRoleLoadout | null = null;
     try {
-      this.targetSet.set(await this.hangar.getRoleLoadout(id));
+      set = await this.hangar.getRoleLoadout(id);
     } catch {
-      this.targetSet.set(null);
+      set = null;
     }
+    this.targetSet.set(set);
+    this.equipTargetMissing.set(set === null);
   }
 
   /**
@@ -666,9 +687,14 @@ export class FpsListComponent implements OnInit {
     const items: RoleLoadoutItem[] = set.items.filter((i) => i.slot !== slot);
     if (!clearing) items.push({ slot, className: r.classNameSlug, kind: r.detailKind });
     this.equipBusy.set(`${r.classNameSlug}|${slot}`);
+    this.equipFailed.set(false);
     try {
-      const updated = await this.hangar.updateRoleLoadout(set.id, { items });
+      // The service reports a refused write as null (and never throws for it);
+      // a thrown error is the transport failing. Both used to look exactly
+      // like a click that did nothing.
+      const updated = await this.hangar.updateRoleLoadout(set.id, { items }).catch(() => null);
       if (updated) this.targetSet.set(updated);
+      else this.equipFailed.set(true);
     } finally {
       this.equipBusy.set(null);
     }

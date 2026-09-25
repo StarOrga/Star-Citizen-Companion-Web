@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
@@ -42,13 +43,23 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       <a class="back" routerLink="/codex">{{ 'codex.set.back' | translate }}</a>
 
       @if (loading()) {
-        <p class="hint">…</p>
+        <p class="hint" role="status">{{ 'codex.set.loading' | translate }}</p>
       } @else if (!auth.user()) {
         <p class="hint">
           <a routerLink="/login" [queryParams]="{ redirect: currentPath }">{{ 'codex.set.signInHint' | translate }}</a>
         </p>
+      } @else if (!activeSet() && hangar.error()) {
+        <!-- loadAll() never throws — it parks the failure in hangar.error. Without
+             this branch a failed read read as "no set commissioned yet". -->
+        <div class="sc-card load-err" role="alert">
+          <span>{{ 'codex.set.loadFailed' | translate }}</span>
+          <button type="button" class="retry" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
+        </div>
       } @else if (!activeSet()) {
-        <p class="hint">{{ 'codex.set.noSets' | translate }}</p>
+        <p class="hint">
+          {{ 'codex.set.noSets' | translate }}
+          <a routerLink="/hangar">{{ 'codex.set.createInHangar' | translate }}</a>
+        </p>
       } @else {
         @if (notFound()) {
           <p class="hint note">{{ 'codex.set.notFound' | translate }}</p>
@@ -88,6 +99,11 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
+      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; color: var(--sc-danger); }
+      .load-err .retry {
+        margin-left: auto; padding: 6px 14px; min-height: var(--sc-tap-min, 44px); border-radius: 6px; cursor: pointer;
+        background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); font-family: inherit;
+      }
       .hint.note { color: var(--amber, #f0c27b); }
 
       .set-hero { display: block; height: 420px; border-radius: 4px; overflow: hidden; border: 1px solid var(--sc-border); }
@@ -109,9 +125,9 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
     `,
   ],
 })
-export class CodexSetComponent implements OnInit {
+export class CodexSetComponent {
   readonly auth = inject(AuthService);
-  private readonly hangar = inject(HangarService);
+  readonly hangar = inject(HangarService);
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -161,20 +177,39 @@ export class CodexSetComponent implements OnInit {
     return this.hangar.recentSets().map((l) => ({ id: l.id, label: l.name, active: l.id === current }));
   });
 
-  async ngOnInit(): Promise<void> {
-    this.requestedId.set(this.route.snapshot.paramMap.get('id'));
-    this.loading.set(true);
+  /** Bumped per load, so a slow answer for the set left behind never lands on the set picked after it. */
+  private loadSeq = 0;
+
+  constructor() {
+    // The picker navigates /codex/set/A → /codex/set/B, and the router REUSES
+    // this component for that — a one-time snapshot read would keep showing A
+    // under B's URL. So the page follows the param, not its first value.
+    this.route.paramMap
+      .pipe(takeUntilDestroyed())
+      .subscribe((params) => void this.load(params.get('id')));
+  }
+
+  private async load(id: string | null): Promise<void> {
+    const seq = ++this.loadSeq;
+    this.requestedId.set(id);
+    // Only the first load blanks the page; a set switch swaps the data in place.
+    if (!this.activeSet()) this.loading.set(true);
     try {
-      if (this.auth.user() && this.hangar.roleLoadouts().length === 0) {
-        await this.hangar.loadAll();
+      if (this.auth.user()) {
+        const known = this.hangar.roleLoadouts();
+        // An empty cache, or a set created since it was filled (another tab,
+        // another device): refresh once before calling the id "not found".
+        if (known.length === 0 || (id && !known.some((l) => l.id === id))) {
+          await this.hangar.loadAll();
+        }
       }
-      await this.resolveActiveSet();
+      if (seq === this.loadSeq) await this.resolveActiveSet(seq);
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 
-  private async resolveActiveSet(): Promise<void> {
+  private async resolveActiveSet(seq: number): Promise<void> {
     const active = this.activeSet();
     if (!active) {
       this.resolvedArmor.set(new Map());
@@ -185,16 +220,17 @@ export class CodexSetComponent implements OnInit {
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
     const slots = armorSlotsFromLoadout(active.items);
     const emptySlots = slots.filter((s) => !s.className);
+    const current = () => seq === this.loadSeq;
 
     await Promise.all([
       this.svc
         .resolveEntities(classNames)
-        .then((m) => this.resolvedArmor.set(m))
-        .catch(() => this.resolvedArmor.set(new Map())),
+        .catch(() => new Map<string, ResolvedEntity>())
+        .then((m) => current() && this.resolvedArmor.set(m)),
       this.svc
         .getEntityPayloads(classNames)
-        .then((m) => this.armorPayloads.set(m))
-        .catch(() => this.armorPayloads.set(new Map())),
+        .catch(() => new Map<string, EntityPayloadEntry>())
+        .then((m) => current() && this.armorPayloads.set(m)),
       Promise.all(
         emptySlots.map((s) =>
           this.svc
@@ -203,11 +239,16 @@ export class CodexSetComponent implements OnInit {
             .catch(() => [s.attachType, null] as const),
         ),
       ).then((entries) => {
+        if (!current()) return;
         const m = new Map<string, number>();
         for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
         this.archiveDepth.set(m);
       }),
     ]);
+  }
+
+  retry(): void {
+    void this.load(this.requestedId());
   }
 
   onSetPick(id: string): void {

@@ -26,6 +26,7 @@ import {
 } from './codex.types';
 import {
   BlueprintRef,
+  CODEX_KINDS,
   CodexDetail,
   CodexKind,
   CodexService,
@@ -331,7 +332,12 @@ interface GearRecipe {
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
-        <div class="sc-card err"><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</div>
+        <div class="sc-card err">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+          @if (canRetry()) {
+            <button type="button" class="retry" (click)="retryLoad()">{{ 'codex.error.retry' | translate }}</button>
+          }
+        </div>
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
@@ -1911,9 +1917,13 @@ interface GearRecipe {
     .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
-    .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
-    .s-label { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); }
-    .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
+    /* min-width + anywhere: armour and FPS weapons carry long unbroken labels
+       and values ("Radiation Resistance.Maximum Radiation Capacity",
+       "playerhits_armour_light") that pushed the tile out of its track — on a
+       phone the whole detail page then scrolled sideways (feedback #196). */
+    .stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); min-width: 0; }
+    .s-label { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.05em; color: var(--sc-fg-2); overflow-wrap: anywhere; }
+    .s-value { font-size: 1.05rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
     .s-unit { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: system-ui, sans-serif; }
 
     /* Where to buy */
@@ -2007,7 +2017,8 @@ interface GearRecipe {
     .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
 
     .skel-card { height: 260px; }
-    .err { color: var(--sc-danger); padding: 16px; }
+    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
     .empty { text-align: center; padding: 40px; color: var(--sc-fg-2); }
 
     @media (max-width: 760px) {
@@ -2413,11 +2424,15 @@ export class CodexDetailComponent implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const kind = params.get('kind') as CodexKind | null;
       const className = params.get('className');
-      if (!kind || !className) {
-        this.error.set('Invalid route');
+      // An unknown category (/codex/foo/x) used to query a table named
+      // "undefined" and print the raw database message.
+      if (!kind || !className || !CODEX_KINDS.includes(kind)) {
+        this.lastRequest = null;
+        this.error.set(this.t.instant('codex.detail.invalidRoute'));
         this.loading.set(false);
         return;
       }
+      this.lastRequest = { kind, className };
       // Deep links land here without ever touching the list, so the RSI art map
       // would otherwise be empty and every ship hero would fall back to the
       // datamined silhouette. `feed` is a signal — the hero repaints when it
@@ -2427,7 +2442,21 @@ export class CodexDetailComponent implements OnInit {
     });
   }
 
+  /** The entity the route asked for last — what "retry" loads again. */
+  private lastRequest: { kind: CodexKind; className: string } | null = null;
+  /** Bumped per load: a quick switch (livery, edition) must not end on the older answer. */
+  private loadSeq = 0;
+
+  canRetry(): boolean {
+    return this.lastRequest !== null;
+  }
+
+  retryLoad(): void {
+    if (this.lastRequest) void this.load(this.lastRequest.kind, this.lastRequest.className);
+  }
+
   private async load(kind: CodexKind, className: string): Promise<void> {
+    const seq = ++this.loadSeq;
     if (kind === 'ship') this.initHoloView(className);
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);
@@ -2467,6 +2496,7 @@ export class CodexDetailComponent implements OnInit {
     this.shipSilhouette.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
+      if (seq !== this.loadSeq) return;
       this.detail.set(d);
       if (d) {
         await Promise.all([
@@ -2474,6 +2504,7 @@ export class CodexDetailComponent implements OnInit {
           this.resolveLocale(d),
           this.resolveShipTech(d),
         ]);
+        if (seq !== this.loadSeq) return;
         if (kind === 'ship') {
           this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
         }
@@ -2511,9 +2542,9 @@ export class CodexDetailComponent implements OnInit {
         }
       }
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      if (seq === this.loadSeq) this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 

@@ -1029,6 +1029,7 @@
       "viewOnRsi": "View on RSI",
       "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
+      "invalidRoute": "This address does not lead to a Codex category.",
       "noArtwork": "No artwork for this ship in this build yet.",
       "showRaw": "Show raw data",
       "hideRaw": "Hide raw data",
@@ -1767,7 +1768,10 @@
       "back": "← Back to Codex",
       "notFound": "That set was not found — showing the first set from your hangar.",
       "signInHint": "Sign in to view and edit your sets.",
-      "noSets": "No set commissioned yet."
+      "noSets": "No set commissioned yet.",
+      "createInHangar": "Create a set in the hangar →",
+      "loading": "Loading the set …",
+      "loadFailed": "Your sets could not be loaded."
     }
   },
   "blueprint": {
@@ -1834,6 +1838,7 @@
     "subtitle": "On-foot gear — weapons and armor, datamined from the live build.",
     "bridgeLink": "FPS Gear",
     "categoriesAria": "FPS equipment categories",
+    "searchPlaceholder": "Search name or class (e.g. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Weapons",
       "armor": "Armor"
@@ -1850,7 +1855,9 @@
     "equip": {
       "targetSet": "Equipping: {{name}}",
       "backToSet": "Back to the set",
-      "into": "Into slot:"
+      "into": "Into slot:",
+      "failed": "Not saved — the set did not accept the change. Please try again.",
+      "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped."
     }
   },
   "news": {

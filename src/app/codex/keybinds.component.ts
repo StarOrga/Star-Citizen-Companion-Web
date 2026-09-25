@@ -135,6 +135,9 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
         @for (s of skeletons; track s; let i = $index) {
           <div class="row-skel sc-skel" [style.--sc-skel-i]="i"></div>
         }
+      } @else if (error()) {
+        <!-- The error card above already says what went wrong; "no catalog
+             build published" under it would contradict it. -->
       } @else if (total() === 0) {
         <div class="sc-card empty">
           <strong>{{ 'codex.empty.title' | translate }}</strong>
@@ -590,6 +593,11 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
          switch grows rather than leaving a gap beside itself, which also puts
          both halves on a comfortable half-width thumb target. */
       .search { flex: 1 1 100%; }
+      /* The four device tabs are ~405px side by side — wider than a phone,
+         which made the whole page scroll sideways. Two by two, full width,
+         each a proper thumb target. */
+      .devices { display: flex; flex-wrap: wrap; flex: 1 1 100%; }
+      .dev { flex: 1 1 calc(50% - 4px); min-height: 48px; }
       .seg.lang { flex: 1 1 auto; }
       .seg.lang .seg-btn { flex: 1 1 0; }
       .assign-toggle { flex: 1 1 auto; }
@@ -770,11 +778,17 @@ export class KeybindsComponent implements OnInit {
 
   readonly shownCount = computed(() => this.groups().reduce((n, g) => n + g.rows.length, 0));
 
+  /** Bumped per load: a language switch reloads, and the older answer must not land last. */
+  private loadSeq = 0;
+
   async ngOnInit(): Promise<void> {
+    const seq = ++this.loadSeq;
+    const current = () => seq === this.loadSeq;
     this.loading.set(true);
     this.error.set(null);
     try {
       const binds = await this.svc.listKeybinds();
+      if (!current()) return;
       this.all.set(binds);
       const keys = new Set<string>();
       for (const b of binds) {
@@ -790,20 +804,21 @@ export class KeybindsComponent implements OnInit {
       this.english.ensureLoaded();
       const wanted = [...keys];
       const map = await this.svc.resolveLocaleKeys(wanted, lang);
+      if (!current()) return;
       this.labels.set(map);
       // Only ~62 % of actions resolve in English and ~55 % in German, so a
       // non-English UI additionally pulls the English originals: a readable
       // foreign name beats a programmatic key (the admin's explicit ask).
-      this.labelsEn.set(
-        lang === 'en' ? map : await this.svc.resolveLocaleKeys(wanted, 'en'),
-      );
+      const en = lang === 'en' ? map : await this.svc.resolveLocaleKeys(wanted, 'en');
+      if (!current()) return;
+      this.labelsEn.set(en);
       // The curated categories are public, so they load for every visitor —
       // the chips are part of the reference, not of the admin tooling.
       await this.cats.load();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      if (current()) this.error.set((err as Error).message ?? 'Unknown error');
     } finally {
-      this.loading.set(false);
+      if (current()) this.loading.set(false);
     }
   }
 

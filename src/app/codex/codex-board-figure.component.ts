@@ -203,15 +203,15 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
          still fully drawn in --idle, which is the whole point of the
          seams and rims — an unequipped figure reads as a body, not a
          silhouette. */
-      .pd-idle stop { stop-color: var(--idle); }
-      .pd-tint stop { stop-color: var(--tint); }
+      .pd-idle stop { stop-color: var(--idle, #3d5a6c); }
+      .pd-tint stop { stop-color: var(--tint, #f0c27b); }
       /* The open figure is LIT, not greyed out — the whole complaint was a
          figure that vanished into the panel when nothing is equipped. Same
          --idle hue, lifted with white so the suit is legible on its own. */
-      .pd-part { color: color-mix(in srgb, var(--idle) 62%, #fff); }
+      .pd-part { color: color-mix(in srgb, var(--idle, #3d5a6c) 62%, #fff); }
       .pd-part.on {
-        color: color-mix(in srgb, var(--tint) 88%, #fff);
-        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tint) 32%, transparent));
+        color: color-mix(in srgb, var(--tint, #f0c27b) 88%, #fff);
+        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tint, #f0c27b) 32%, transparent));
       }
       .board-doll .plate, .board-doll .joint, .board-doll .visor {
         stroke: currentColor;

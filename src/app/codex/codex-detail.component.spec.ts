@@ -670,3 +670,26 @@ describe('CodexDetailComponent — crafting recipe (#187)', () => {
     ]);
   });
 });
+
+describe('CodexDetailComponent — failed load (non-ship archive pages)', () => {
+  it('offers a retry on the error card, and the retry loads the entry', async () => {
+    let calls = 0;
+    const stub = makeCodexServiceStub(NOMAD_PAYLOAD);
+    const getDetail: CodexService['getDetail'] = async (kind, className) => {
+      calls++;
+      if (calls === 1) throw new Error('network down');
+      return stub.getDetail!(kind, className);
+    };
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getDetail });
+    const el: HTMLElement = fixture.nativeElement;
+
+    expect(el.querySelector('.err')?.textContent).toContain('network down');
+    (el.querySelector('.err .retry') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(calls).toBe(2);
+    expect(el.querySelector('.err')).toBeNull();
+    expect(fixture.componentInstance.detail()?.classNameSlug).toBe('klwe_laserrepeater_s3');
+  });
+});

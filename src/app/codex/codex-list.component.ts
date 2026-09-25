@@ -303,7 +303,12 @@ export function blueprintCategoriesForGroup(
       } @else {
         <div class="result-head">
           <span class="count">
-            {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            @if (loading() && rows().length === 0) {
+              <!-- Not "0 results" above the skeletons: nothing has been counted yet. -->
+              {{ 'codex.results.loading' | translate }}
+            } @else {
+              {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            }
           </span>
           @if (hasMore()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>

@@ -1029,6 +1029,7 @@
       "viewOnRsi": "Bei RSI ansehen",
       "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
+      "invalidRoute": "Diese Adresse führt zu keiner Codex-Kategorie.",
       "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
       "showRaw": "Rohdaten anzeigen",
       "hideRaw": "Rohdaten ausblenden",
@@ -1767,7 +1768,10 @@
       "back": "← Zurück zum Codex",
       "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
       "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
-      "noSets": "Noch kein Set kommissioniert."
+      "noSets": "Noch kein Set kommissioniert.",
+      "createInHangar": "Set im Hangar anlegen →",
+      "loading": "Set wird geladen …",
+      "loadFailed": "Deine Sets konnten nicht geladen werden."
     }
   },
   "blueprint": {
@@ -1834,6 +1838,7 @@
     "subtitle": "Ausrüstung zu Fuß — Waffen und Rüstung, datamined aus dem Live-Build.",
     "bridgeLink": "FPS-Ausrüstung",
     "categoriesAria": "FPS-Ausrüstungskategorien",
+    "searchPlaceholder": "Name oder Klasse suchen (z. B. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Waffen",
       "armor": "Rüstung"
@@ -1850,7 +1855,9 @@
     "equip": {
       "targetSet": "Ausrüsten für: {{name}}",
       "backToSet": "Zurück zum Set",
-      "into": "In Slot:"
+      "into": "In Slot:",
+      "failed": "Nicht gespeichert — das Set hat die Änderung nicht angenommen. Bitte erneut versuchen.",
+      "setUnavailable": "Das Set aus dem Link gibt es nicht (mehr) oder es gehört dir nicht — hier wird nur gestöbert, nichts ausgerüstet."
     }
   },
   "news": {

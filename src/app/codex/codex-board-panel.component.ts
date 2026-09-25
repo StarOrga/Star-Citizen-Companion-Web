@@ -183,7 +183,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
             <div class="board-dial">
               @for (l of boardSets(); track l.id) {
                 <a class="dial-node" [class.on]="l.id === activeLoadout()!.id"
-                   [routerLink]="['/codex']" [queryParams]="{ zone: 'board', set: l.id }">
+                   [routerLink]="['/codex', 'set', l.id]">
                   <span class="t-value">{{ l.name }}</span>
                   <span class="t-label dial-sub">{{ ('hangar.roles.' + l.role) | translate }} · {{ l.filled }}/6</span>
                 </a>
@@ -199,7 +199,12 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
           `,
   styles: [
     `
-      :host { display: contents; }
+      /* --idle lives on the host, not on a parent's class: the styles are
+         view-encapsulated, so a ".board" rule here never reached the page that
+         hosts the panel, and on the set page every open position lost its
+         blue-grey (white labels, invisible squares). Custom properties still
+         inherit through a display:contents host. */
+      :host { display: contents; --idle: #3d5a6c; --idle-bg: #0a1c26; }
       /* ── AN BORD ───────────────────────────────────────────────────────
          Design system fixed in concept iteration 6 — the old zone carried FOUR
          meanings on amber (equipped / set name / slot label / armour class
@@ -212,7 +217,6 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
            armour class    = BAR HEIGHT on .board-sq     — never a hue
            type            = .t-label / .t-value / name  — three roles, no more
       */
-      .board { --idle: #3d5a6c; --idle-bg: #0a1c26; }
       .t-label {
         font-family: var(--sc-font-display, inherit);
         font-size: max(0.6rem, var(--sc-fs-floor, 0.6rem));

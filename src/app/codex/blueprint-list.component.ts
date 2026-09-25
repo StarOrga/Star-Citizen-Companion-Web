@@ -90,7 +90,11 @@ const SEARCH_DEBOUNCE_MS = 250;
       } @else {
         <div class="result-head">
           <span class="count">
-            {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            @if (loading() && rows().length === 0) {
+              {{ 'codex.results.loading' | translate }}
+            } @else {
+              {{ (total() === 1 ? 'codex.results.countOne' : 'codex.results.count') | translate: { count: total() } }}
+            }
           </span>
           @if (rows().length < total()) {
             <span class="showing">{{ 'codex.results.showingOf' | translate: { shown: rows().length, total: total() } }}</span>
