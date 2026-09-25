@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.100.0] - 2026-09-25
+
+### Added
+
+- **Kostenbremse für Cloudflare R2.** Bevor der Hüllen-Upload nach R2 geht,
+  liest er die R2-Nutzung dieses Monats bei Cloudflare nach. Ab 80 % eines
+  Gratis-Kontingents (Speicher, Schreib- oder Lesezugriffe) wird nichts mehr
+  hochgeladen. Lässt sich die Nutzung nicht lesen, wird ebenfalls nichts
+  hochgeladen. Cloudflare selbst bietet für R2 keine Obergrenze.
+
 ## [0.99.3] - 2026-09-25
 
 ### Fixed

@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.99.3",
+  "current": "0.100.0",
   "releases": [
+    {
+      "version": "0.100.0",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Kostenbremse für Cloudflare R2.",
+              "text": "Bevor der Hüllen-Upload nach R2 geht, liest er die R2-Nutzung dieses Monats bei Cloudflare nach. Ab 80 % eines Gratis-Kontingents (Speicher, Schreib- oder Lesezugriffe) wird nichts mehr hochgeladen. Lässt sich die Nutzung nicht lesen, wird ebenfalls nichts hochgeladen. Cloudflare selbst bietet für R2 keine Obergrenze."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.99.3",
       "date": "2026-09-25",
