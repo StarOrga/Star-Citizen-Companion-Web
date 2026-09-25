@@ -3136,6 +3136,10 @@
       "medpen": "MedPen",
       "repair-attachment": "Repair attachment"
     },
+    "errors": {
+      "setNotFound": "This set does not exist (any more) or is not yours.",
+      "setChanged": "The set changed twice elsewhere while saving — please try again."
+    },
     "shared": {
       "eyebrow": "Shared loadout",
       "loading": "Loading …",

@@ -385,3 +385,81 @@ describe('manufacturerFacetOptions', () => {
     expect(manufacturerFacetOptions([row(null, 'Nowhere Inc')], 'en')).toEqual([]);
   });
 });
+
+// Archive audit 2026-09-25: a failed build lookup used to be cached for the
+// session, and every archive reader then rendered "nothing here" until a full
+// reload. Readers now see the failure (error card + retry), and the retry reads
+// the build again.
+describe('CodexService archive readers and the build lookup', () => {
+  interface Calls {
+    builds: number;
+    filters: string[];
+  }
+
+  function provider(calls: Calls, buildFailsFirst: boolean): SupabaseClientProvider {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      const listResult = { data: [], count: 0, error: null };
+      Object.assign(chain, {
+        select: () => chain,
+        eq: (col: string, value: unknown) => {
+          if (table === 'p4k_bundles_public_stats') return Promise.resolve({ data: [], error: null });
+          calls.filters.push(`${table}:eq:${col}=${String(value)}`);
+          return chain;
+        },
+        or: (expr: string) => {
+          calls.filters.push(`${table}:or:${expr}`);
+          return chain;
+        },
+        not: (col: string, op: string, value: string) => {
+          calls.filters.push(`${table}:not:${col}.${op}.${value}`);
+          return chain;
+        },
+        in: () => chain,
+        order: () => chain,
+        range: () => Promise.resolve(listResult),
+        maybeSingle: () => {
+          calls.builds++;
+          if (buildFailsFirst && calls.builds === 1) return Promise.resolve({ data: null, error: new Error('network down') });
+          return Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          });
+        },
+      });
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(calls: Calls, buildFailsFirst = false): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(calls, buildFailsFirst) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  it('surfaces a failed build lookup to the list, and the retry reads the build again', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls, true);
+
+    await expectAsync(svc.listByKind('item')).toBeRejectedWithError('network down');
+    await expectAsync(svc.listByKind('item')).toBeResolved();
+    expect(calls.builds).toBe(2);
+  });
+
+  it('drops nameless records and non-ship vehicles from the default browse only', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls);
+
+    await svc.listByKind('ship');
+    const browse = [...calls.filters];
+    calls.filters.length = 0;
+    await svc.listByKind('ship', { includeVariants: true });
+    const raw = [...calls.filters];
+
+    expect(browse).toContain('codex_ships:or:name_localized.is.null,name_localized.not.like.!*');
+    expect(browse).toContain('codex_ships:not:class_name.ilike.SalvageableDebris*');
+    expect(raw.some((f) => f.includes('not.like.!*') || f.includes('SalvageableDebris'))).toBeFalse();
+  });
+});

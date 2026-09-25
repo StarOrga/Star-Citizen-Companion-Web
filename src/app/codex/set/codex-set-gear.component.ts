@@ -104,7 +104,7 @@ export interface GearSlotRow {
       .zone-eyebrow {
         margin: 0;
         font-family: var(--sc-font-display);
-        font-size: 0.68rem;
+        font-size: max(0.68rem, var(--sc-fs-floor));
         font-weight: normal;
         letter-spacing: 0.12em;
         text-transform: uppercase;

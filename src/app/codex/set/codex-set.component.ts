@@ -100,7 +100,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       } @else if (!activeSet()) {
         <p class="hint">
           {{ 'codex.set.noSets' | translate }}
-          <a routerLink="/hangar">{{ 'codex.set.createInHangar' | translate }}</a>
+          <a class="create-set" routerLink="/hangar">{{ 'codex.set.createInHangar' | translate }}</a>
         </p>
       } @else {
         @if (shareOpen()) {
@@ -151,7 +151,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
          padding of its own. */
       .set-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 96px; }
       .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
-      .back { color: var(--sc-fg-2); font-size: 0.85rem; text-decoration: none; }
+      .back { color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       /* Share is a set action: an icon button beside the back link. Its label
          shows as an app-styled tooltip (Label tier: the icon is its only
@@ -180,11 +180,15 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       @media (hover: none) { .share-btn:hover + .share-tip { opacity: 0; visibility: hidden; } }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
-      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; color: var(--sc-danger); }
+      .load-err { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px; color: var(--sc-danger); }
       .load-err .retry {
-        margin-left: auto; padding: 6px 14px; min-height: var(--sc-tap-min, 44px); border-radius: 6px; cursor: pointer;
+        margin-left: auto; padding: 6px 14px; min-height: var(--sc-tap-min); border-radius: 6px; cursor: pointer;
         background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); font-family: inherit;
       }
+      .load-err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+      .load-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+      /* The empty state's only action: a real thumb target, not a line of running text. */
+      .hint .create-set { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
       .hint.note { color: var(--amber, #f0c27b); }
 
       .set-hero { display: block; height: 420px; border-radius: 4px; overflow: hidden; border: 1px solid var(--sc-border); }

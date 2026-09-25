@@ -395,8 +395,15 @@ export class CodexService {
   async loadCurrentBuild(): Promise<CodexBuild | null> {
     if (this.build()) return this.build();
     if (this.buildPromise) return this.buildPromise;
-    this.buildPromise = this.fetchCurrentBuild();
-    return this.buildPromise;
+    const attempt = this.fetchCurrentBuild();
+    this.buildPromise = attempt;
+    // Don't memoise a failure: the next caller (a retry button) reads again.
+    // Cleared here, after the promise is stored, so a failure that happens
+    // before fetchCurrentBuild's first await is not cached either.
+    void attempt.then((build) => {
+      if (!build && this.buildError() && this.buildPromise === attempt) this.buildPromise = null;
+    });
+    return attempt;
   }
 
   /**
@@ -439,8 +446,6 @@ export class CodexService {
       return mapped;
     } catch (err) {
       this.buildError.set((err as Error).message ?? 'Unknown error');
-      // Don't memoise the failure: the next caller (a retry button) reads again.
-      this.buildPromise = null;
       return null;
     } finally {
       this.buildLoading.set(false);

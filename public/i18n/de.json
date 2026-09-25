@@ -3136,6 +3136,10 @@
       "medpen": "MedPen",
       "repair-attachment": "Reparatur-Aufsatz"
     },
+    "errors": {
+      "setNotFound": "Dieses Set gibt es nicht (mehr) oder es gehört dir nicht.",
+      "setChanged": "Das Set wurde beim Speichern zweimal anderswo geändert — bitte erneut versuchen."
+    },
     "shared": {
       "eyebrow": "Geteiltes Loadout",
       "loading": "Wird geladen …",

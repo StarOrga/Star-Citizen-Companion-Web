@@ -1567,8 +1567,8 @@ interface GearRecipe {
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: 999px; overflow: hidden; }
     .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: 11px; }
     .ht-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); }
-    .back { font-size: 0.82rem; color: var(--sc-accent); text-decoration: none; align-self: flex-start; }
-    .back:hover { text-decoration: underline; }
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
 
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
@@ -2019,6 +2019,8 @@ interface GearRecipe {
     .skel-card { height: 260px; }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
     .empty { text-align: center; padding: 40px; color: var(--sc-fg-2); }
 
     @media (max-width: 760px) {

@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
 } from '@angular/core';
+import { Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -35,6 +37,7 @@ import {
   slotAccepts,
 } from '../hangar/hangar.types';
 import { ARMOR_SLOT_SPECS, roleSlotForAttachType } from './codex-landing-kpi';
+import { mirrorQueryParams } from './codex-url-state';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -138,9 +141,6 @@ const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
           <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
-          @if (equipFailed()) {
-            <p class="equip-err" role="alert">{{ 'fps.equip.failed' | translate }}</p>
-          }
         </div>
       } @else if (equipTargetMissing()) {
         <!-- A stale or foreign ?equipInto= used to drop the equip mode without
@@ -326,10 +326,16 @@ const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
                         <button type="button" class="equip-btn"
                                 [class.on]="isEquipped(r, slot)"
                                 [attr.aria-pressed]="isEquipped(r, slot)"
+                                [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
                                 [disabled]="equipBusy() !== null"
                                 (click)="equip($event, r, slot)">
                           {{ slotLabel(slot) }}
                         </button>
+                      }
+                      <!-- At the card that was clicked, not in the bar at the top of a
+                           list the reader has scrolled away from. -->
+                      @if (equipFailedOn(r)) {
+                        <p class="equip-err" role="alert">{{ 'fps.equip.failed' | translate }}</p>
                       }
                     </div>
                   }
@@ -381,7 +387,7 @@ const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
       border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
     }
     .equip-back { color: var(--sc-accent); text-decoration: none; font-size: 0.82rem; }
-    .equip-back:hover { text-decoration: underline; }
+    .equip-back:hover, .equip-back:focus-visible { text-decoration: underline; }
     .equip-err { flex: 1 1 100%; margin: 0; color: var(--sc-danger); font-size: max(0.8rem, var(--sc-fs-floor)); }
     .equip-missing { margin: 0; padding: 12px 16px; color: var(--sc-fg-1); font-size: max(0.84rem, var(--sc-fs-floor)); }
 
@@ -400,6 +406,7 @@ const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
       min-height: max(32px, var(--sc-tap-min));
     }
     .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .equip-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn:disabled { opacity: 0.5; cursor: default; }
     .equip-btn.on {
       border-color: var(--sc-accent); color: var(--sc-accent);
@@ -515,6 +522,8 @@ const ARMOR_WEIGHT_ID: Readonly<Record<string, string>> = {
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
@@ -531,6 +540,7 @@ export class FpsListComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);
+  private readonly location = inject(Location);
 
   private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
@@ -546,8 +556,8 @@ export class FpsListComponent {
   readonly targetSet = signal<HangarRoleLoadout | null>(null);
   /** `<className>|<slot>` while a write is in flight — disables the whole row. */
   readonly equipBusy = signal<string | null>(null);
-  /** The last equip write was refused (RLS, network, set deleted meanwhile). */
-  readonly equipFailed = signal(false);
+  /** `<className>|<slot>` of the last refused equip write (RLS, network, set deleted meanwhile). */
+  readonly equipFailed = signal<string | null>(null);
   /** `?equipInto=` named a set this reader cannot load — say so instead of silently browsing. */
   readonly equipTargetMissing = signal(false);
   readonly searchInput = signal('');
@@ -712,16 +722,13 @@ export class FpsListComponent {
 
     void this.svc.loadCurrentBuild();
     void this.loadTargetSet();
+    inject(DestroyRef).onDestroy(() => {
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+    });
   }
 
   private writeUrl(queryParams: Record<string, string | null>): void {
-    try {
-      void this.router
-        .navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge', replaceUrl: true })
-        .catch(() => undefined);
-    } catch {
-      // A router without this route (tests, detached views): the list still works, only the URL stays behind.
-    }
+    mirrorQueryParams(this.router, this.route, this.location, queryParams);
   }
 
   /**
@@ -763,7 +770,7 @@ export class FpsListComponent {
     // link (?slot=Foo) used to filter the list down to zero rows.
     const slot = q.get('slot');
     const knownSlot =
-      !!slot && (this.category() === 'armor' ? slot in ARMOR_SLOT_ID : slot in WEAPON_TYPE_ID);
+      !!slot && Object.hasOwn(this.category() === 'armor' ? ARMOR_SLOT_ID : WEAPON_TYPE_ID, slot);
     if (knownSlot) this.subType.set(slot!);
     const term = q.get('q');
     if (term) {
@@ -779,7 +786,7 @@ export class FpsListComponent {
     // weapon type that slot takes, unless the link already named a facet.
     const equipSlot = q.get('equipSlot');
     this.equipSlot.set(equipSlot);
-    if (equipSlot && this.category() === 'weapon' && !knownSlot && SLOT_WEAPON_FACET[equipSlot]) {
+    if (equipSlot && this.category() === 'weapon' && !knownSlot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
       this.subType.set(SLOT_WEAPON_FACET[equipSlot]);
     }
   }
@@ -814,6 +821,11 @@ export class FpsListComponent {
         (!only || s === only) &&
         slotAccepts(s, { className: r.classNameSlug, subType: r.subType }),
     );
+  }
+
+  /** True when this card's last equip write was refused. */
+  equipFailedOn(r: FpsRow): boolean {
+    return this.equipFailed()?.startsWith(r.classNameSlug + '|') ?? false;
   }
 
   /** i18n label for a slot token; `hangar.slots.*` covers every suggested one. */
@@ -851,8 +863,9 @@ export class FpsListComponent {
     const set = this.targetSet();
     if (!set || this.equipBusy()) return;
     const clearing = this.isEquipped(r, slot);
-    this.equipBusy.set(`${r.classNameSlug}|${slot}`);
-    this.equipFailed.set(false);
+    const key = `${r.classNameSlug}|${slot}`;
+    this.equipBusy.set(key);
+    this.equipFailed.set(null);
     try {
       // The service reports a refused write as null (and never throws for it);
       // a thrown error is the transport failing. Both used to look exactly
@@ -861,7 +874,7 @@ export class FpsListComponent {
         .setRoleLoadoutSlot(set.id, slot, clearing ? null : { className: r.classNameSlug, kind: r.detailKind })
         .catch(() => null);
       if (updated) this.targetSet.set(updated);
-      else this.equipFailed.set(true);
+      else this.equipFailed.set(key);
     } finally {
       this.equipBusy.set(null);
     }

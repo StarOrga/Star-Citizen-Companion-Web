@@ -776,7 +776,7 @@ export class HangarService {
     for (let attempt = 0; attempt < 2; attempt++) {
       const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
       if (read.error || !read.data) {
-        this.error.set(read.error?.message ?? 'Set not found');
+        this.error.set(read.error?.message ?? 'hangar.errors.setNotFound');
         return null;
       }
       const row = read.data as HangarRoleLoadoutRow;
@@ -795,15 +795,15 @@ export class HangarService {
       const saved = (write.data ?? [])[0] as HangarRoleLoadoutRow | undefined;
       if (!saved) continue; // written elsewhere in between — merge again on the new row
       const loadout = mapHangarRoleLoadout(saved);
-      const known = this.roleLoadouts().some((l) => l.id === loadout.id);
-      this.roleLoadouts.set(
-        known
-          ? this.roleLoadouts().map((l) => (l.id === loadout.id ? loadout : l))
-          : [loadout, ...this.roleLoadouts()],
-      );
+      // Only refresh a set the cache already holds. Inserting one into an
+      // unfilled cache (a tab opened straight on /codex/fps) would make it look
+      // like the user's ONLY set, and the set page would skip its reload.
+      if (this.roleLoadouts().some((l) => l.id === loadout.id)) {
+        this.roleLoadouts.set(this.roleLoadouts().map((l) => (l.id === loadout.id ? loadout : l)));
+      }
       return loadout;
     }
-    this.error.set('The set changed twice while saving — please try again.');
+    this.error.set('hangar.errors.setChanged');
     return null;
   }
 

@@ -2,12 +2,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  DestroyRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
 } from '@angular/core';
+import { Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -52,6 +54,7 @@ import {
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { mirrorQueryParams } from './codex-url-state';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -618,6 +621,8 @@ export function blueprintCategoriesForGroup(
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
@@ -625,6 +630,7 @@ export function blueprintCategoriesForGroup(
     @media (prefers-reduced-motion: reduce) {
       .card-wrap, .kind, .group { transition: none; }
       .card-wrap:hover { transform: none; }
+      .card-wrap:hover .thumb sc-codex-icon { transform: none; }
     }
   `],
 })
@@ -635,6 +641,7 @@ export class CodexListComponent implements OnInit {
   private readonly rsi = inject(UpcomingShipsService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
 
   // Data language tracks the UI language as a SIGNAL so OnPush card titles
   // re-render on a language switch (they previously read t.currentLang
@@ -947,6 +954,9 @@ export class CodexListComponent implements OnInit {
   }
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+    });
     // Keep the data language in sync with UI language switches. (#50)
     this.t.onLangChange
       .pipe(takeUntilDestroyed())
@@ -973,7 +983,8 @@ export class CodexListComponent implements OnInit {
     effect(() => {
       const queryParams: Record<string, string | null> = {
         kind: this.category(),
-        q: this.searchTerm() || null,
+        // The upcoming grid owns its own search box (on the RSI feed service).
+        q: (this.isUpcoming() ? this.rsi.query() : this.searchTerm()) || null,
         mfr: this.manufacturer() || null,
         size: this.size() || null,
         grade: this.grade() || null,
@@ -1007,10 +1018,11 @@ export class CodexListComponent implements OnInit {
 
   private async loadCrossHits(term: string, active: CodexCategory): Promise<void> {
     const seq = ++this.crossSeq;
-    if (term.length < 2) {
-      this.crossHits.set([]);
-      return;
-    }
+    // The previous term's counts must not stay clickable while this one loads.
+    this.crossHits.set([]);
+    // Three characters: below that the trigram index can't help and every
+    // count would scan a whole table.
+    if (term.length < 3) return;
     const others = CODEX_KINDS.filter((k) => k !== active && !this.isComingSoon(k));
     try {
       const counts = await this.svc.countSearchMatches(term, others);
@@ -1025,13 +1037,7 @@ export class CodexListComponent implements OnInit {
   }
 
   private writeUrl(queryParams: Record<string, string | null>): void {
-    try {
-      void this.router
-        .navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge', replaceUrl: true })
-        .catch(() => undefined);
-    } catch {
-      // A router without this route (tests): the list still works, only the URL stays behind.
-    }
+    mirrorQueryParams(this.router, this.route, this.location, queryParams);
   }
 
   async ngOnInit(): Promise<void> {
@@ -1071,7 +1077,9 @@ export class CodexListComponent implements OnInit {
    */
   private applyRouteCategory(): void {
     const snap = this.route.snapshot;
-    const wanted = (snap.data['category'] ?? snap.queryParamMap.get('kind') ?? '') as string;
+    // An explicit ?kind= wins over the route's preset: /codex/upcoming?kind=ship
+    // is a reader who switched to ships there, and Back must bring ships back.
+    const wanted = (snap.queryParamMap.get('kind') ?? snap.data['category'] ?? '') as string;
     const match = this.categories.find((c) => c === wanted);
     if (match) this.setCategory(match);
   }

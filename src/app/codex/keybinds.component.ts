@@ -392,6 +392,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       text-transform: uppercase; border-radius: 7px; cursor: pointer;
     }
     .dev:hover { color: var(--sc-fg-0); }
+    .dev:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .dev.active { background: var(--sc-accent); color: var(--sc-bg-0); }
     .search {
       flex: 1 1 220px; padding: 11px 14px; border-radius: 10px;
@@ -399,17 +400,19 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       font-family: inherit; font-size: 0.95rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    /* Admin-only tooling: the elevated-access red, never the viewer accent. */
     .assign-toggle {
       flex: 0 0 auto; padding: 10px 16px; border-radius: 10px; cursor: pointer; min-height: 48px;
-      background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1);
+      display: inline-flex; align-items: center; gap: 8px; background: transparent;
+      border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); color: var(--sc-accent-hot);
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.04em; text-transform: uppercase;
     }
-    /* Admin-only tooling: the elevated-access red, never the viewer accent. */
-    .assign-toggle { border-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); color: var(--sc-accent-hot); display: inline-flex; align-items: center; gap: 8px; }
     .assign-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent-hot); }
+    .assign-toggle:focus-visible { outline: 2px solid var(--sc-accent-hot); outline-offset: 2px; }
     .assign-toggle.on { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
-    .admin-tag { font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.06em; padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; opacity: 0.85; }
+    /* Same wording tag as the shell's admin menu entries (.di-tag). */
+    .admin-tag { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.08em; opacity: 0.8; white-space: nowrap; }
 
     /* ── name-language switch ──────────────────────────────────────────────
        Same segmented control as the news stream's "Beiträge | Gemerkt": two

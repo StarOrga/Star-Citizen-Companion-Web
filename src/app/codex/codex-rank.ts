@@ -300,7 +300,9 @@ export function resolveCareerLabel(career: string | null | undefined): string | 
 // new extract never serves stale numbers. Every access is try/catch'd because
 // Safari private mode throws on `localStorage` access itself.
 
-const COHORT_CACHE_PREFIX = 'scc-codex-rank:v1';
+// v2: the cohort drops salvage wrecks, sentries, probes and nameless records
+// (archive audit 2026-09-25) — a v1 entry holds the old fleet.
+const COHORT_CACHE_PREFIX = 'scc-codex-rank:v2';
 
 export function cohortCacheKey(buildId: string, scope: RankScope, discriminator = ''): string {
   return `${COHORT_CACHE_PREFIX}:${buildId}:${scope}${discriminator ? `:${discriminator}` : ''}`;

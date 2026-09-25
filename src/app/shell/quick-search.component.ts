@@ -227,7 +227,8 @@ const PER_KIND_LIMIT = 6;
     .qs-name { flex: 1; font-size: 0.9rem; min-width: 120px; }
     .qs-chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
     .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
+    .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .add-btn {
       position: relative; z-index: 1;
       flex: 0 0 auto; padding: 4px 10px; border-radius: 6px;
