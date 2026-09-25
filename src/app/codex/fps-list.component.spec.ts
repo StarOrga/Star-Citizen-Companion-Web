@@ -359,6 +359,31 @@ describe('FpsListComponent (whole catalog)', () => {
     expect(el.querySelector('.card-wrap > .pin')).not.toBeNull();
   });
 
+  it('offers its facets as themed selects, and picking one filters the list', async () => {
+    const guns = [
+      weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small'),
+      weapon('behr_rifle_ballistic_01', 'P4-AR Rifle', 'Medium'),
+    ];
+    const { el, fixture, names } = await browse({ cat: 'weapon' }, guns);
+
+    // A native select opens as an unthemed OS menu (admin feedback fd58a5eb).
+    expect(el.querySelector('.facet select')).toBeNull();
+    const typeSelect = el.querySelector('.facet sc-select') as HTMLElement;
+    (typeSelect.querySelector('.trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const primary = Array.from(typeSelect.querySelectorAll('[role=option]')).find((o) =>
+      o.textContent!.includes('codex.weaponGroup.fps.primary'),
+    ) as HTMLElement;
+    primary.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(names()).toEqual(['P4-AR Rifle']);
+    // The facet is a div, not a label — a label would forward option clicks to the trigger.
+    expect(typeSelect.closest('label')).toBeNull();
+  });
+
   it('reads * in the search as a wildcard, like the placeholder example klwe_*', async () => {
     const guns = [
       weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small'),

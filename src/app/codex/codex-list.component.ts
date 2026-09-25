@@ -56,6 +56,7 @@ import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -122,7 +123,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -216,43 +217,40 @@ export function blueprintCategoriesForGroup(
         </div>
 
         <div class="facets">
+          <!-- Facets use the themed select (a native one opens as an unthemed
+               OS menu, admin feedback fd58a5eb) inside a div: a label would
+               forward clicks on the listbox's options to the trigger. -->
           @if (manufacturerOptions().length > 0) {
-            <label class="facet">
+            <div class="facet mfr">
               <span>{{ 'codex.filters.manufacturer' | translate }}</span>
-              <select class="sc-select" [ngModel]="manufacturer()" (ngModelChange)="setManufacturer($event)">
-                <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (m of manufacturerOptions(); track m.code) {
-                  <option [value]="m.code">{{ m.label }}</option>
-                }
-              </select>
-            </label>
+              <sc-select [options]="manufacturerSelect()" [value]="manufacturer() || null" placeholderKey="codex.filters.all"
+                         [ariaLabel]="'codex.filters.manufacturer' | translate"
+                         (valueChange)="setManufacturer($event ?? '')" />
+            </div>
           }
           @if (sizeOptions().length > 0) {
-            <label class="facet">
+            <div class="facet">
               <span>{{ 'codex.filters.size' | translate }}</span>
-              <select class="sc-select" [ngModel]="size()" (ngModelChange)="setSize($event)">
-                <option value="">{{ 'codex.filters.anySize' | translate }}</option>
-                @for (s of sizeOptions(); track s) { <option [value]="s">S{{ s }}</option> }
-              </select>
-            </label>
+              <sc-select [options]="sizeSelect()" [value]="size() || null" placeholderKey="codex.filters.anySize"
+                         [ariaLabel]="'codex.filters.size' | translate"
+                         (valueChange)="setSize($event ?? '')" />
+            </div>
           }
           @if (gradeOptions().length > 0) {
-            <label class="facet">
+            <div class="facet">
               <span>{{ 'codex.filters.grade' | translate }}</span>
-              <select class="sc-select" [ngModel]="grade()" (ngModelChange)="setGrade($event)">
-                <option value="">{{ 'codex.filters.anyGrade' | translate }}</option>
-                @for (g of gradeOptions(); track g) { <option [value]="g">{{ g }}</option> }
-              </select>
-            </label>
+              <sc-select [options]="gradeSelect()" [value]="grade() || null" placeholderKey="codex.filters.anyGrade"
+                         [ariaLabel]="'codex.filters.grade' | translate"
+                         (valueChange)="setGrade($event ?? '')" />
+            </div>
           }
           @if (kind() === 'component' && componentKindOptions().length > 0) {
-            <label class="facet">
+            <div class="facet">
               <span>{{ 'codex.filters.componentKind' | translate }}</span>
-              <select class="sc-select" [ngModel]="componentKind()" (ngModelChange)="setComponentKind($event)">
-                <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (c of componentKindOptions(); track c) { <option [value]="c">{{ ('codex.componentKind.' + c) | translate }}</option> }
-              </select>
-            </label>
+              <sc-select [options]="componentKindSelect()" [value]="componentKind() || null" placeholderKey="codex.filters.all"
+                         [ariaLabel]="'codex.filters.componentKind' | translate"
+                         (valueChange)="setComponentKind($event ?? '')" />
+            </div>
           }
           @if (kind() === 'blueprint') {
             <label class="facet">
@@ -265,13 +263,12 @@ export function blueprintCategoriesForGroup(
             </label>
           }
           @if (kind() === 'blueprint' && blueprintCategoryOptions().length > 0) {
-            <label class="facet">
+            <div class="facet">
               <span>{{ 'blueprint.filters.category' | translate }}</span>
-              <select class="sc-select" [ngModel]="blueprintCategory()" (ngModelChange)="setBlueprintCategory($event)">
-                <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (c of blueprintCategoryOptions(); track c) { <option [value]="c">{{ categoryLabel(c) }}</option> }
-              </select>
-            </label>
+              <sc-select [options]="blueprintCategorySelect()" [value]="blueprintCategory() || null" placeholderKey="codex.filters.all"
+                         [ariaLabel]="'blueprint.filters.category' | translate"
+                         (valueChange)="setBlueprintCategory($event ?? '')" />
+            </div>
           }
           @if (supportsVariants()) {
             <label class="facet check">
@@ -529,8 +526,10 @@ export function blueprintCategoriesForGroup(
     .facet > span { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .facet.check { flex-direction: row; align-items: center; gap: 6px; align-self: center; }
     .facet.check span { font-size: max(0.78rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; color: var(--sc-fg-1); }
-    .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; min-width: 140px; }
-    .sc-select:focus { outline: none; border-color: var(--sc-accent); }
+    /* The themed select (shared/sc-select) draws itself; the facet only sizes it. */
+    .facet sc-select { min-width: 160px; }
+    /* Maker names run long ("Clark Defense Systems") and the list is as wide as its trigger. */
+    .facet.mfr sc-select { min-width: 220px; }
     .reset { align-self: center; padding: 7px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
     .reset:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
@@ -627,6 +626,11 @@ export function blueprintCategoriesForGroup(
 
     @media (max-width: 720px) {
       .head { flex-direction: column; }
+    }
+    /* Phones stack the facets one per row — full width, not ragged 160/220 px boxes. */
+    @media (max-width: 640px) {
+      .facet:not(.check) { flex: 1 1 100%; }
+      .facet sc-select, .facet.mfr sc-select { min-width: 0; }
     }
     @media (prefers-reduced-motion: reduce) {
       .card-wrap, .kind, .group { transition: none; }
@@ -883,6 +887,24 @@ export class CodexListComponent implements OnInit {
     const present = new Set(this.rows().map((r) => r.componentKind).filter(Boolean));
     return COMPONENT_KINDS.filter((k) => present.has(k));
   });
+
+  /** The facets in the themed select's shape: raw values ride in `label`, translatable ones in `labelKey`. */
+  readonly manufacturerSelect = computed<ScSelectOption[]>(() =>
+    this.manufacturerOptions().map((m) => ({ value: m.code, labelKey: '', label: m.label })),
+  );
+  readonly sizeSelect = computed<ScSelectOption[]>(() =>
+    this.sizeOptions().map((s) => ({ value: s, labelKey: '', label: 'S' + s })),
+  );
+  readonly gradeSelect = computed<ScSelectOption[]>(() =>
+    this.gradeOptions().map((g) => ({ value: g, labelKey: '', label: g })),
+  );
+  readonly componentKindSelect = computed<ScSelectOption[]>(() =>
+    this.componentKindOptions().map((c) => ({ value: c, labelKey: 'codex.componentKind.' + c })),
+  );
+  // categoryLabel() reads the data language, so this recomputes on a DE/EN switch.
+  readonly blueprintCategorySelect = computed<ScSelectOption[]>(() =>
+    this.blueprintCategoryOptions().map((c) => ({ value: c, labelKey: '', label: this.categoryLabel(c) })),
+  );
   readonly weaponSuperGroups = WEAPON_SUPER_GROUPS;
   /** The rail only makes sense on the weapon category. */
   readonly showsWeaponGroups = computed(() => !this.isUpcoming() && this.kind() === 'weapon');

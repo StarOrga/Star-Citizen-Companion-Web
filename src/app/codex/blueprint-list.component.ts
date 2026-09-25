@@ -24,6 +24,8 @@ import {
 } from './codex-format';
 import { BlueprintPayload } from './codex.types';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -31,7 +33,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-blueprint-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="blueprint-page">
@@ -63,15 +65,15 @@ const SEARCH_DEBOUNCE_MS = 250;
         </div>
         <div class="facets">
           @if (categories().length > 0) {
-            <label class="facet">
+            <!-- Themed select (a native one opens as an unthemed OS menu, admin
+                 feedback fd58a5eb) in a div: a label would forward clicks on the
+                 listbox's options to the trigger. -->
+            <div class="facet">
               <span>{{ 'blueprint.filters.category' | translate }}</span>
-              <select class="sc-select" [ngModel]="category()" (ngModelChange)="setCategory($event)">
-                <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (c of categories(); track c) {
-                  <option [value]="c">{{ categoryLabel(c) }}</option>
-                }
-              </select>
-            </label>
+              <sc-select [options]="categorySelect()" [value]="category() || null" placeholderKey="codex.filters.all"
+                         [ariaLabel]="'blueprint.filters.category' | translate"
+                         (valueChange)="setCategory($event ?? '')" />
+            </div>
           }
           @if (hasActiveFilters()) {
             <button class="reset" type="button" (click)="resetFilters()">
@@ -183,8 +185,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
     .facet > span { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; min-width: 160px; }
-    .sc-select:focus { outline: none; border-color: var(--sc-accent); }
+    /* The themed select (shared/sc-select) draws itself; the facet only sizes it. */
+    .facet sc-select { min-width: 160px; }
     .reset { align-self: center; padding: 7px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
     .reset:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
@@ -226,6 +228,11 @@ const SEARCH_DEBOUNCE_MS = 250;
       .head { flex-direction: column; }
       .provenance { align-items: flex-start; }
     }
+    /* Phones give the facet the full row, like the other archive lists. */
+    @media (max-width: 640px) {
+      .facet { flex: 1 1 100%; }
+      .facet sc-select { min-width: 0; }
+    }
   `],
 })
 export class BlueprintListComponent implements OnInit {
@@ -255,7 +262,16 @@ export class BlueprintListComponent implements OnInit {
 
   readonly hasActiveFilters = computed(() => !!this.category());
 
+  /** Bumped on a DE/EN switch — categoryLabel() reads the translation table imperatively. */
+  private readonly langTick = signal(0);
+  /** The category facet in the themed select's shape; labels are ready-made (`label`). */
+  readonly categorySelect = computed<ScSelectOption[]>(() => {
+    this.langTick();
+    return this.categories().map((c) => ({ value: c, labelKey: '', label: this.categoryLabel(c) }));
+  });
+
   constructor() {
+    this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => this.langTick.update((n) => n + 1));
     effect(() => {
       this.searchTerm();
       this.category();

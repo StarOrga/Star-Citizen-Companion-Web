@@ -197,6 +197,30 @@ describe('CodexListComponent (Index mode)', () => {
     );
   });
 
+  it('offers its facets as themed selects — a native one opens as an unthemed OS menu', async () => {
+    const { fixture, cmp, listByKind } = await setup(
+      { blueprints: 1595, blueprint_ingredients: 4800 },
+      { categories: ['FPSArmours', 'FPSWeapons'], rows: [blueprintRow('BP_CRAFT_helmet', 'FPSArmours')] },
+    );
+    cmp.setKind('blueprint');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.facets select')).toBeNull();
+    const facet = Array.from(el.querySelectorAll('.facet')).find((f) => f.textContent?.includes('blueprint.filters.category'))!;
+    (facet.querySelector('sc-select .trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const option = Array.from(facet.querySelectorAll('[role=option]')).find((o) => o.textContent?.trim() === 'FPS Weapons') as HTMLElement;
+    option.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(cmp.blueprintCategory()).toBe('FPSWeapons');
+    expect(listByKind).toHaveBeenCalledWith('blueprint', jasmine.objectContaining({ category: 'FPSWeapons' }));
+  });
+
   /**
    * The AN BORD / IM HANGAR archive quick-access links (prio 3/4) preset
    * `?group=fps|vehicle` to pre-filter the blueprint index without forcing a
