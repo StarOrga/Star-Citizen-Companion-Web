@@ -20,6 +20,7 @@ import {
   formatCraftTime,
   formatNumber,
   formatQuality,
+  formatQuantity,
   humanizeBlueprintCategory,
   humanizeBlueprintName,
   humanizeClassName,
@@ -77,7 +78,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                 <div class="ingredient-list">
                   @for (ing of ingredients(); track ing.ingredientIndex) {
                     <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
-                      <div class="ing-qty">× {{ ing.quantity }}</div>
+                      <div class="ing-qty">× {{ formatQuantity(ing.quantity) }}</div>
                       <div class="ing-info">
                         @if (ing.ingredientClassName && ing.entityKind) {
                           <a class="ing-name link"
@@ -115,7 +116,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                 <div class="section sc-card">
                   <h2 class="section-title">{{ 'blueprint.detail.output' | translate }}</h2>
                   <div class="output-row">
-                    <div class="ing-qty">× {{ out.quantity }}</div>
+                    <div class="ing-qty">× {{ formatQuantity(out.quantity) }}</div>
                     <div class="ing-info">
                       @if (out.className && out.entityKind) {
                         <a class="ing-name link"
@@ -245,6 +246,7 @@ export class BlueprintDetailComponent implements OnInit {
   readonly formatCraftTime = formatCraftTime;
   readonly formatQuality = formatQuality;
   readonly formatNumber = formatNumber;
+  readonly formatQuantity = formatQuantity;
   readonly humanizeKey = humanizeKey;
 
   private get payload(): BlueprintPayload | null {
@@ -309,7 +311,7 @@ export class BlueprintDetailComponent implements OnInit {
     }
     const outQty = d.row['output_quantity'] as number | null;
     if (outQty != null && outQty !== 1) {
-      facts.push({ label: t('blueprint.detail.outputQty'), value: String(outQty) });
+      facts.push({ label: t('blueprint.detail.outputQty'), value: formatQuantity(outQty) });
     }
     return facts;
   });

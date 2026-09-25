@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { CodexDetailComponent } from './codex-detail.component';
-import { CodexService, ResolvedEntity } from './codex.service';
+import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
@@ -144,14 +144,19 @@ const NOMAD_SKIN: ShipSkin = {
   sort: 1,
 };
 
-async function setup(kind: 'ship' | 'weapon', skins: ShipSkin[] = [], payload: ShipPayload = NOMAD_PAYLOAD) {
+async function setup(
+  kind: 'ship' | 'weapon',
+  skins: ShipSkin[] = [],
+  payload: ShipPayload = NOMAD_PAYLOAD,
+  svc: Partial<CodexService> = {},
+) {
   const className = kind === 'ship' ? 'cnou_nomad' : 'klwe_laserrepeater_s3';
   await TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
       provideRouter([]),
       provideTranslateService({}),
-      { provide: CodexService, useValue: makeCodexServiceStub(payload) },
+      { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
       {
         provide: ActivatedRoute,
         useValue: {
@@ -597,5 +602,42 @@ describe('CodexDetailComponent — weapon kind (legacy regions)', () => {
   it('renders the legacy detail block', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.detail-page')).toBeTruthy();
+  });
+});
+
+describe('CodexDetailComponent — crafting recipe (#187)', () => {
+  const BP = 'BP_CRAFT_KLWE_LaserRepeater_S3';
+  const ingredient = (ingredientIndex: number, ingredientClassName: string, quantity: number) => ({
+    blueprintClassName: BP,
+    ingredientIndex,
+    ingredientClassName,
+    quantity,
+    minQuality: 0,
+    role: 'FRAME',
+    nameLocalized: null,
+    entityKind: null,
+  });
+  // SCU amounts as codex_blueprint_ingredients stores them: 32-bit floats.
+  const RECIPE: BlueprintDetail = {
+    classNameSlug: BP,
+    row: { class_name: BP, craft_time_seconds: 90 },
+    ingredients: [
+      ingredient(0, 'Aluminum', 0.20000000298023224),
+      ingredient(1, 'Gold', 0.014999999664723873),
+      ingredient(2, 'Iron', 15),
+    ],
+  };
+
+  it('prints each material amount in SCU without the float noise', async () => {
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getCraftingRecipe: async () => RECIPE });
+    const el: HTMLElement = fixture.nativeElement;
+    const section = Array.from(el.querySelectorAll('section')).find((s) =>
+      s.querySelector('h2')?.textContent?.includes('codex.detail.craftedFrom'),
+    );
+    expect(section).withContext('recipe section').toBeTruthy();
+    const amounts = Array.from(section!.querySelectorAll('.compat-meta .chip:not(.subtle)')).map((c) =>
+      c.textContent!.trim(),
+    );
+    expect(amounts).toEqual(['0.2 SCU', '0.015 SCU', '15 SCU']);
   });
 });

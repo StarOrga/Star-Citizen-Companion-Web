@@ -60,6 +60,7 @@ import {
   humanizeClassName,
   formatCraftTime,
   formatNumber,
+  formatQuantity,
   humanizePortType,
   meaningfulRows,
   unescapeText,
@@ -1088,7 +1089,7 @@ interface GearRecipe {
                     <span class="compat-link plain">{{ ingredientName(i) }}</span>
                     <span class="compat-meta">
                       @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
-                      @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
+                      @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
                       @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
                     </span>
                   </li>
@@ -1399,7 +1400,7 @@ interface GearRecipe {
                         <span class="compat-link plain">{{ ingredientName(i) }}</span>
                         <span class="compat-meta">
                           @if (i.role) { <span class="chip subtle">{{ i.role }}</span> }
-                          @if (i.quantity != null) { <span class="chip">{{ fmt(i.quantity) }} SCU</span> }
+                          @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
                           @if (i.minQuality) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: i.minQuality } }}</span> }
                         </span>
                       </li>
@@ -4583,6 +4584,9 @@ export class CodexDetailComponent implements OnInit {
   }
   fmt(n: number): string {
     return formatNumber(n);
+  }
+  fmtQty(n: number): string {
+    return formatQuantity(n);
   }
   humanizeName(cls: string): string {
     return humanizeClassName(cls);

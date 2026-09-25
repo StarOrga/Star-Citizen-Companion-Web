@@ -243,8 +243,8 @@ function separatorsFor(locale: string): NumberSeparators {
 }
 
 /**
- * Format a numeric stat: grouped thousands, up to 2 decimals (trailing zeros
- * trimmed), FLT_MAX → ∞.
+ * Format a numeric stat: grouped thousands, up to `maxDecimals` decimals (2
+ * unless a caller needs finer; trailing zeros trimmed), FLT_MAX → ∞.
  *
  * Locale-aware since feedback dbdb2ffe (*"wir sind Deutsche also Deutsches
  * Format außer ich englische Sprache eingestellt"*): the separators come from
@@ -253,18 +253,24 @@ function separatorsFor(locale: string): NumberSeparators {
  * the two characters differ — so nothing that compared these strings before
  * behaves differently while the locale stays English.
  */
-export function formatNumber(v: number, locale: string = numberLocale()): string {
+export function formatNumber(
+  v: number,
+  locale: string = numberLocale(),
+  maxDecimals = 2,
+): string {
   if (!Number.isFinite(v) || Math.abs(v) >= SENTINEL) return '∞';
   const { group, decimal } = separatorsFor(locale);
-  const rounded = Math.round(v * 100) / 100;
+  const scale = 10 ** maxDecimals;
+  const rounded = Math.round(v * scale) / scale;
   const neg = rounded < 0;
   const abs = Math.abs(rounded);
   const intPart = Math.trunc(abs);
-  const frac = Math.round((abs - intPart) * 100); // 0..99
+  const frac = Math.round((abs - intPart) * scale); // 0..scale-1
   const grouped = String(intPart).replace(/\B(?=(\d{3})+(?!\d))/g, group);
   let out = grouped;
   if (frac > 0) {
-    const fracStr = (frac % 10 === 0 ? String(frac / 10) : String(frac).padStart(2, '0'));
+    // Full width first, then drop trailing zeros: 5 → "05", 20 → "2".
+    const fracStr = String(frac).padStart(maxDecimals, '0').replace(/0+$/, '');
     out = `${grouped}${decimal}${fracStr}`;
   }
   return neg ? `-${out}` : out;
@@ -1005,6 +1011,18 @@ export function formatCraftTime(seconds: number | null | undefined): string | nu
 export function formatQuality(q: number | null | undefined): string {
   if (q == null || !Number.isFinite(q)) return 'n/a';
   return `${Math.round(q * 100)} %`;
+}
+
+/**
+ * A blueprint quantity — an ingredient's SCU amount or the output count. The
+ * extractor stores them as 32-bit floats, so 0.2 SCU arrives as
+ * 0.20000000298023224 and a raw print leaks the noise. This is
+ * {@link formatNumber} with one decimal more than its default: CIG's finest
+ * recipe step is 0.015 SCU, which two decimals would round to 0.01. Whole
+ * amounts stay whole ("1", "15").
+ */
+export function formatQuantity(q: number, locale: string = numberLocale()): string {
+  return formatNumber(q, locale, 3);
 }
 
 // ── patch-version comparison (data-freshness) ─────────────────────────────────

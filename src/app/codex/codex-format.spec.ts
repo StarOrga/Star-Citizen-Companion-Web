@@ -14,6 +14,7 @@ import {
   formatCraftTime,
   formatNumber,
   formatQuality,
+  formatQuantity,
   groupCompareRows,
   groupStatRows,
   humanizeBlueprintCategory,
@@ -190,6 +191,12 @@ describe('codex-format', () => {
     });
     it('renders FLT_MAX sentinels as ∞', () => {
       expect(formatNumber(3.4028e38)).toBe('∞');
+    });
+    it('takes a finer precision on request, trimmed the same way', () => {
+      expect(formatNumber(0.014999999664723873, 'en', 3)).toBe('0.015');
+      expect(formatNumber(1234.0625, 'en', 3)).toBe('1,234.063');
+      expect(formatNumber(0.20000000298023224, 'en', 3)).toBe('0.2');
+      expect(formatNumber(5, 'en', 3)).toBe('5');
     });
   });
 
@@ -383,6 +390,36 @@ describe('codex-format', () => {
     it('returns n/a for nullish', () => {
       expect(formatQuality(null)).toBe('n/a');
       expect(formatQuality(undefined)).toBe('n/a');
+    });
+  });
+
+  describe('formatQuantity', () => {
+    // Values as they sit in codex_blueprint_ingredients.quantity: SCU amounts
+    // the extractor carried over as 32-bit floats.
+    it('drops the float32 noise of a stored SCU amount', () => {
+      expect(formatQuantity(0.20000000298023224)).toBe('0.2');
+      expect(formatQuantity(0.009999999776482582)).toBe('0.01');
+      expect(formatQuantity(4.28000020980835)).toBe('4.28');
+      expect(formatQuantity(6.739999771118164)).toBe('6.74');
+    });
+    it('keeps the finest real recipe step, 0.015 SCU, that the 2-decimal default rounds away', () => {
+      expect(formatQuantity(0.014999999664723873)).toBe('0.015');
+      expect(formatNumber(0.014999999664723873)).toBe('0.01');
+    });
+    it('keeps whole amounts whole', () => {
+      expect(formatQuantity(1)).toBe('1');
+      expect(formatQuantity(15)).toBe('15');
+      expect(formatQuantity(12.5)).toBe('12.5');
+    });
+    it('follows the UI locale like every other codex figure', () => {
+      expect(formatQuantity(0.20000000298023224, 'de')).toBe('0,2');
+      expect(formatQuantity(0.014999999664723873, 'de')).toBe('0,015');
+      try {
+        setNumberLocale('de');
+        expect(formatQuantity(10.5)).toBe('10,5');
+      } finally {
+        setNumberLocale('en');
+      }
     });
   });
 
