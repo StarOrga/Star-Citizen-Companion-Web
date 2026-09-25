@@ -57,6 +57,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -136,26 +137,28 @@ export function blueprintCategoriesForGroup(
         <sc-codex-status-banner />
       </header>
 
-      <!-- Category switcher (datamined kinds + the RSI "upcoming" category) — a
-           pressed-button group: there is no tab panel, the page re-renders. -->
-      <div class="kind-bar" role="group" [attr.aria-label]="'codex.categoriesAria' | translate">
+      <!-- Category switcher (datamined kinds + the RSI "upcoming" category).
+           Real links since the category lives in the URL (?kind=): middle
+           click and "open in new tab" work, a plain left click switches in
+           place. A category that is not in the build yet is no link at all. -->
+      <nav class="kind-bar" [attr.aria-label]="'codex.categoriesAria' | translate">
         @for (k of categories; track k) {
-          <button class="kind" type="button"
-                  [class.active]="category() === k"
-                  [class.soon]="isComingSoon(k)"
-                  [disabled]="isComingSoon(k)"
-                  [attr.aria-pressed]="category() === k"
-                  [attr.title]="isComingSoon(k) ? ('codex.soon' | translate) : null"
-                  (click)="setCategory(k)">
-            <span>{{ ('codex.kinds.' + k) | translate }}</span>
-            @if (isComingSoon(k)) {
+          @if (isComingSoon(k)) {
+            <span class="kind soon" aria-disabled="true" [attr.title]="'codex.soon' | translate">
+              <span>{{ ('codex.kinds.' + k) | translate }}</span>
               <span class="kind-ct soon-tag">{{ 'codex.soonShort' | translate }}</span>
-            } @else if (categoryCount(k); as ct) {
-              <span class="kind-ct">{{ ct }}</span>
-            }
-          </button>
+            </span>
+          } @else {
+            <a class="kind" [attr.href]="categoryHrefs().get(k)"
+               [class.active]="category() === k"
+               [attr.aria-current]="category() === k ? 'page' : null"
+               (click)="onCategoryClick($event, k)">
+              <span>{{ ('codex.kinds.' + k) | translate }}</span>
+              @if (categoryCount(k); as ct) { <span class="kind-ct">{{ ct }}</span> }
+            </a>
+          }
         }
-      </div>
+      </nav>
 
       <!-- Weapons hold BOTH the on-foot catalog and every ship hardpoint mount
            in one table (admin feedback 7897bcb0), so the flat A-Z grid was
@@ -321,12 +324,16 @@ export function blueprintCategoriesForGroup(
         <!-- The search runs inside the active category first (feedback #7), but
              a hit in another one is named here instead of silently missing. -->
         @if (crossHits().length > 0) {
+          <!-- Links (the same list URL a reload would restore) — no count: the
+               server counts raw records, the target list folds variants,
+               liveries and editions, so a number here would not match it. -->
           <p class="cross-hits">
             <span class="cross-label">{{ 'codex.search.alsoIn' | translate }}</span>
             @for (h of crossHits(); track h.kind) {
-              <button type="button" class="cross-hit" (click)="setCategory(h.kind)">
-                {{ ('codex.kinds.' + h.kind) | translate }} <b>{{ h.count }}</b>
-              </button>
+              <a class="cross-hit" [attr.href]="categoryHrefs().get(h.kind)"
+                 (click)="onCategoryClick($event, h.kind)">
+                {{ ('codex.kinds.' + h.kind) | translate }}
+              </a>
             }
           </p>
         }
@@ -477,16 +484,18 @@ export function blueprintCategoriesForGroup(
     .kind-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .kind {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 999px;
+      padding: 8px 16px; border-radius: 999px; min-height: var(--sc-tap-min);
       border: 1px solid var(--sc-border); background: transparent;
-      color: var(--sc-fg-1); font-family: var(--sc-font-display);
+      color: var(--sc-fg-1); font-family: var(--sc-font-display); text-decoration: none;
       font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase;
       cursor: pointer; transition: all 0.16s;
     }
     .kind:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .kind:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .kind.active { background: color-mix(in srgb, var(--sc-accent) 18%, transparent); border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .kind-ct { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-bg-0); }
+    /* Light text on the tint — the dark bg-0 on two stacked accent tints read at ~2.3:1. */
+    .kind.active .kind-ct { background: color-mix(in srgb, var(--sc-accent) 25%, transparent); color: var(--sc-fg-0); }
     .kind.soon { opacity: 0.5; cursor: not-allowed; }
     .kind.soon:hover { color: var(--sc-fg-1); border-color: var(--sc-border); }
     .kind-ct.soon-tag { background: color-mix(in srgb, var(--sc-warning, #f0c419) 22%, transparent); color: var(--sc-warning, #f0c419); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -607,10 +616,10 @@ export function blueprintCategoriesForGroup(
     .cross-hit {
       display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
       border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1); font-family: inherit;
-      font-size: max(0.78rem, var(--sc-fs-floor)); min-height: max(28px, var(--sc-tap-min));
+      font-size: max(0.78rem, var(--sc-fs-floor)); min-height: max(28px, var(--sc-tap-min)); text-decoration: none;
     }
-    .cross-hit b { color: var(--sc-accent); font-weight: 600; }
     .cross-hit:hover, .cross-hit:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .cross-hit:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
     .more-row { display: flex; justify-content: center; }
     .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
@@ -656,6 +665,29 @@ export class CodexListComponent implements OnInit {
   readonly kinds = CODEX_KINDS;
   /** Datamined kinds + the RSI-sourced "upcoming ships" category. */
   readonly categories: readonly CodexCategory[] = [...CODEX_KINDS, UPCOMING_CATEGORY];
+
+  /**
+   * Where each category link points: that category's list URL with the
+   * current search (facets are per category and stay behind), so a middle
+   * click or "open in new tab" lands on the list a plain click switches to.
+   * A plain href, not routerLink: RouterLink would ALSO navigate on the plain
+   * click the handler keeps in place (page view, scroll to top, history entry).
+   */
+  readonly categoryHrefs = computed(() => {
+    const term = this.searchTerm();
+    const upcomingTerm = this.rsi.query();
+    const hrefs = new Map<CodexCategory, string | null>();
+    for (const k of this.categories) {
+      const q = (k === UPCOMING_CATEGORY ? upcomingTerm : term) || null;
+      try {
+        const tree = this.router.createUrlTree([], { relativeTo: this.route, queryParams: { kind: k, q } });
+        hrefs.set(k, this.location.prepareExternalUrl(this.router.serializeUrl(tree)));
+      } catch {
+        hrefs.set(k, null); // a view outside the router (tests): the in-place click still works
+      }
+    }
+    return hrefs;
+  });
   readonly skeletons = Array.from({ length: 8 }, (_, i) => i);
 
   // UC-02: class names already in the hangar — a pure read-overlay over the
@@ -1217,6 +1249,13 @@ export class CodexListComponent implements OnInit {
   categoryCount(k: CodexCategory): number | null {
     if (k === UPCOMING_CATEGORY) return this.rsi.feed()?.ships.length ?? null;
     return this.kindCount(k);
+  }
+
+  /** A plain left click switches in place; a modified one is the browser's (new tab, window …). */
+  onCategoryClick(ev: MouseEvent, k: CodexCategory): void {
+    if (!isPlainLeftClick(ev)) return;
+    ev.preventDefault();
+    this.setCategory(k);
   }
 
   setCategory(k: CodexCategory): void {
