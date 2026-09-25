@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  WritableSignal,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
@@ -116,11 +126,17 @@ export class CodexSetComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly currentPath = typeof location !== 'undefined' ? location.pathname : '/';
+  /** Where the sign-in hint sends the visitor back to — read live, as the page outlives the URL it opened on. */
+  protected get currentPath(): string {
+    return this.router.url;
+  }
 
   readonly loading = signal(true);
   readonly requestedId = signal<string | null>(null);
+  /** Bumped per load, so a late answer for a set the page has left never lands on the next one. */
+  private loadSeq = 0;
 
   readonly resolvedArmor = signal<Map<string, ResolvedEntity>>(new Map());
   readonly archiveDepth = signal<Map<string, number>>(new Map());
@@ -161,20 +177,39 @@ export class CodexSetComponent implements OnInit {
     return this.hangar.recentSets().map((l) => ({ id: l.id, label: l.name, active: l.id === current }));
   });
 
-  async ngOnInit(): Promise<void> {
-    this.requestedId.set(this.route.snapshot.paramMap.get('id'));
-    this.loading.set(true);
+  /**
+   * Params are SUBSCRIBED, not snapshotted: the stage's own set picker routes
+   * `codex/set/:id` to itself, and the router reuses this page across that
+   * params-only navigation — and across back/forward between two set pages —
+   * so a snapshot read leaves the new URL over the old set. The first emission
+   * is synchronous, so a deep link loads exactly as before.
+   */
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      void this.load(params.get('id'));
+    });
+  }
+
+  /**
+   * A set switch keeps the page up (no loading state over hero and board):
+   * the new id re-picks the active set at once, and only what it carries is
+   * resolved again. The maps are keyed by class name and attach type, not by
+   * set, so the previous answers stand until the new ones land.
+   */
+  private async load(id: string | null): Promise<void> {
+    const seq = ++this.loadSeq;
+    this.requestedId.set(id);
     try {
       if (this.auth.user() && this.hangar.roleLoadouts().length === 0) {
         await this.hangar.loadAll();
       }
-      await this.resolveActiveSet();
+      if (seq === this.loadSeq) await this.resolveActiveSet(seq);
     } finally {
-      this.loading.set(false);
+      if (seq === this.loadSeq) this.loading.set(false);
     }
   }
 
-  private async resolveActiveSet(): Promise<void> {
+  private async resolveActiveSet(seq: number): Promise<void> {
     const active = this.activeSet();
     if (!active) {
       this.resolvedArmor.set(new Map());
@@ -185,16 +220,21 @@ export class CodexSetComponent implements OnInit {
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
     const slots = armorSlotsFromLoadout(active.items);
     const emptySlots = slots.filter((s) => !s.className);
+    // Each answer lands as it arrives — unless the page has moved on to
+    // another set meanwhile, then it is dropped.
+    const land = <T>(state: WritableSignal<T>, value: T) => {
+      if (seq === this.loadSeq) state.set(value);
+    };
 
     await Promise.all([
       this.svc
         .resolveEntities(classNames)
-        .then((m) => this.resolvedArmor.set(m))
-        .catch(() => this.resolvedArmor.set(new Map())),
+        .then((m) => land(this.resolvedArmor, m))
+        .catch(() => land(this.resolvedArmor, new Map())),
       this.svc
         .getEntityPayloads(classNames)
-        .then((m) => this.armorPayloads.set(m))
-        .catch(() => this.armorPayloads.set(new Map())),
+        .then((m) => land(this.armorPayloads, m))
+        .catch(() => land(this.armorPayloads, new Map())),
       Promise.all(
         emptySlots.map((s) =>
           this.svc
@@ -205,7 +245,7 @@ export class CodexSetComponent implements OnInit {
       ).then((entries) => {
         const m = new Map<string, number>();
         for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
-        this.archiveDepth.set(m);
+        land(this.archiveDepth, m);
       }),
     ]);
   }
