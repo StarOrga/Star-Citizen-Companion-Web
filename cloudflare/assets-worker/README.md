@@ -16,16 +16,24 @@ Why R2 behind a Worker, and what else is planned there, is in
 
 1. **Cloudflare account** with R2 enabled (needs a payment method). Set a
    **budget alert at $1** under Billing → Budget alerts.
-2. **Bucket:** R2 → Create bucket `sc-companion-assets`, location *Europe (EU
-   jurisdiction)*. Leave public access and `r2.dev` **off**.
+2. **Bucket:** R2 → Create bucket `sc-companion-assets`, location hint
+   *Western Europe (WEUR)*. Do **not** pick the EU jurisdiction: an EU-jurisdiction
+   bucket lives on a separate `<account>.eu.r2.cloudflarestorage.com` endpoint
+   that `_r2.ts` and the migration script do not use. Leave public access and
+   `r2.dev` **off**.
 3. **API token:** R2 → Manage API tokens → *Object Read & Write*, restricted to
    that bucket only. Note the Access Key ID, the Secret Access Key and the
    account ID.
+   Then a second token for the usage gate: My Profile / Manage account →
+   API Tokens → *Create Token* → custom, permission **Account → Account
+   Analytics → Read**, this account only. Nothing else.
 4. **Edge-Function secrets** (Supabase dashboard → Edge Functions → Secrets, or
    `supabase secrets set`): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
-   `R2_SECRET_ACCESS_KEY`. Optional: `R2_BUCKET` (default
-   `sc-companion-assets`), `R2_QUOTA_BYTES` (default 8 GB). From then on
-   ingest-skins signs R2 uploads instead of Supabase ones.
+   `R2_SECRET_ACCESS_KEY`, `CF_ANALYTICS_TOKEN`. Optional: `R2_BUCKET`
+   (default `sc-companion-assets`), `R2_QUOTA_BYTES` (default 8 GB). From then
+   on ingest-skins signs R2 uploads instead of Supabase ones, but only while
+   the usage gate can read this month's usage and it is below 80 % of every
+   free allowance. Without `CF_ANALYTICS_TOKEN` it refuses (fail closed).
 5. **Deploy the Worker** from this directory:
 
    ```bash

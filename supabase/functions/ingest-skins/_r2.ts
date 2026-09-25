@@ -16,12 +16,16 @@
 // stops at 100k requests/day, which is below R2's free Class-B allowance.
 
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.20';
+import { USAGE_QUERY, monthStart, parseUsage } from './_r2-usage.ts';
+import type { R2Usage } from './_r2-usage.ts';
 
 export interface R2Config {
   accountId: string;
   bucket: string;
   quotaBytes: number;
   client: AwsClient;
+  /** Cloudflare API token with Account Analytics Read only — feeds the usage gate. */
+  analyticsToken: string;
 }
 
 /** Key prefix inside the shared assets bucket. */
@@ -43,6 +47,7 @@ export function r2FromEnv(get: (k: string) => string | undefined): R2Config | nu
     bucket: (get('R2_BUCKET') ?? '').trim() || DEFAULT_BUCKET,
     quotaBytes: Number.isFinite(quota) && quota > 0 ? quota : DEFAULT_QUOTA_BYTES,
     client: new AwsClient({ accessKeyId, secretAccessKey, service: 's3', region: 'auto' }),
+    analyticsToken: (get('CF_ANALYTICS_TOKEN') ?? '').trim(),
   };
 }
 
@@ -123,4 +128,30 @@ export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
 export async function bucketBytes(cfg: R2Config): Promise<number> {
   const objects = await listObjects(cfg, '');
   return objects.reduce((sum, o) => sum + o.size, 0);
+}
+
+/** Usage is re-read at most every 5 minutes per isolate — a catalog run signs ~150 ships. */
+const USAGE_TTL_MS = 5 * 60 * 1000;
+let usageCache: { at: number; usage: R2Usage } | null = null;
+
+/**
+ * This month's account-wide R2 usage from the GraphQL Analytics API (see
+ * _r2-usage.ts). Throws when it cannot be known: no token, HTTP error, GraphQL
+ * error. The caller treats that as "do not sign".
+ */
+export async function fetchUsage(cfg: R2Config, now = new Date()): Promise<R2Usage> {
+  if (usageCache && now.getTime() - usageCache.at < USAGE_TTL_MS) return usageCache.usage;
+  if (!cfg.analyticsToken) throw new Error('CF_ANALYTICS_TOKEN is not set');
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${cfg.analyticsToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      query: USAGE_QUERY,
+      variables: { accountTag: cfg.accountId, start: monthStart(now), end: now.toISOString() },
+    }),
+  });
+  if (!res.ok) throw new Error(`analytics HTTP ${res.status}`);
+  const usage = parseUsage(await res.json());
+  usageCache = { at: now.getTime(), usage };
+  return usage;
 }
