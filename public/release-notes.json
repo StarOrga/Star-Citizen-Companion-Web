@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.100.1",
+  "current": "0.100.2",
   "releases": [
+    {
+      "version": "0.100.2",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Der Set-Wechsler auf der Set-Seite wirkt wieder.",
+              "text": "Er änderte zwar die Adresse, Titel, Rüstungsbrett und der Hinweis „Dieses Set wurde nicht gefunden“ blieben aber beim vorher gezeigten Set, und die Rüstungsteile des gewählten Sets wurden nicht nachgeladen. Dasselbe galt für Zurück/Vorwärts zwischen zwei Set-Seiten. Die Seite folgt jetzt jedem Wechsel, und eine verspätete Antwort für das vorige Set überschreibt das neue nicht mehr."
+            },
+            {
+              "title": "Die Blueprint-Seite ist genauso abgesichert.",
+              "text": "Führt eine Navigation direkt von einem Blueprint zum nächsten, lädt die Seite den neuen Blueprint, statt Held, Zutaten und Ergebnis des vorigen stehen zu lassen."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.100.1",
       "date": "2026-09-25",
