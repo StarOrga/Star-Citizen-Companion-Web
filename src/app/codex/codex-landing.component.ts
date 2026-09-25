@@ -73,9 +73,8 @@ const SEARCH_DEBOUNCE_MS = 250;
  * bottom. See `stage/codex-stage.component.ts` and
  * `stage/hangar-picker.component.ts`.
  *
- * The six-slot paperdoll (`sc-codex-board-panel`) and the collapsed-rail
- * switcher (`sc-codex-zone-rail`) are superseded here — see those files'
- * own headers; they are kept for the future `/codex/set/:id` page (T1).
+ * The six-slot paperdoll (`sc-codex-board-panel`) is superseded here; it
+ * lives on the set page (`/codex/set/:id`, T1) now.
  */
 @Component({
   selector: 'sc-codex-landing',

@@ -399,6 +399,21 @@ export class CodexService {
     return this.buildPromise;
   }
 
+  /**
+   * The current build for a READER whose "no build" and "build lookup failed"
+   * must not look the same. `loadCurrentBuild` answers null for both, and every
+   * archive list then rendered "nothing here" after one failed lookup — until a
+   * full reload (audit 2026-09-25). This throws on the failure instead, so the
+   * reader's own error card (with its retry) appears; the retry reads again,
+   * because a failed lookup is no longer cached.
+   */
+  private async buildOrThrow(): Promise<CodexBuild | null> {
+    const build = await this.loadCurrentBuild();
+    const failed = this.buildError();
+    if (!build && failed) throw new Error(failed);
+    return build;
+  }
+
   private async fetchCurrentBuild(): Promise<CodexBuild | null> {
     this.buildLoading.set(true);
     this.buildError.set(null);
@@ -424,6 +439,8 @@ export class CodexService {
       return mapped;
     } catch (err) {
       this.buildError.set((err as Error).message ?? 'Unknown error');
+      // Don't memoise the failure: the next caller (a retry button) reads again.
+      this.buildPromise = null;
       return null;
     } finally {
       this.buildLoading.set(false);
@@ -513,7 +530,7 @@ export class CodexService {
    * `AEGS_*` classNames directly.
    */
   async listByKind(kind: CodexKind, filters: CodexListFilters = {}): Promise<CodexListResult> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
     const table = CODEX_ENTITY_TABLES[kind];
@@ -579,6 +596,38 @@ export class CodexService {
 
     const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
     return { rows, count: count ?? rows.length };
+  }
+
+  /**
+   * How many records of each kind match a search term under the default
+   * browse filters — the index's "also found in …" line (feedback #7: search
+   * primarily inside the category, but never hide a match that lives in
+   * another one). Head-only count queries, one per kind, run in parallel;
+   * a kind whose count fails is simply left out.
+   */
+  async countSearchMatches(search: string, kinds: readonly CodexKind[]): Promise<Map<CodexKind, number>> {
+    const out = new Map<CodexKind, number>();
+    const term = search.trim();
+    const build = await this.loadCurrentBuild();
+    if (!build || !term) return out;
+    const safe = escapeIlike(term);
+    await Promise.all(
+      kinds.map(async (kind) => {
+        let query = this.sb.client
+          .from(CODEX_ENTITY_TABLES[kind])
+          .select('class_name', { count: 'exact', head: true })
+          .eq('build_id', build.id);
+        if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint') {
+          query = query.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
+        }
+        if (kind === 'ship') {
+          for (const prefix of NON_SHIP_VEHICLE_PREFIXES) query = query.not('class_name', 'ilike', `${prefix}*`);
+        }
+        const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+        if (!error && count) out.set(kind, count);
+      }),
+    );
+    return out;
   }
 
   /**
@@ -671,7 +720,7 @@ export class CodexService {
    * per build, category and variant switch.
    */
   async listFpsCatalog(category: 'weapon' | 'armor', includeVariants = false): Promise<CodexListRow[]> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return [];
     const run = async (): Promise<CodexListRow[]> => {
       const kind: CodexKind = category === 'weapon' ? 'weapon' : 'item';
@@ -778,7 +827,7 @@ export class CodexService {
 
   /** Entity row + its hardpoints + its localized strings, for the detail view. */
   async getDetail(kind: CodexKind, classNameSlug: string): Promise<CodexDetail | null> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return null;
     return this.fetchDetailForBuild(kind, classNameSlug, build.id);
   }
@@ -1439,7 +1488,7 @@ export class CodexService {
    * them in a batch via resolveLocaleKeys. Empty array when no build is live.
    */
   async listKeybinds(): Promise<CodexKeybind[]> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return [];
     const rows: Record<string, unknown>[] = [];
     for (let page = 0; page < KEYBIND_MAX_PAGES; page++) {
@@ -1591,7 +1640,7 @@ export class CodexService {
    * pattern as listByKind). Optional category facet.
    */
   async listBlueprints(filters: BlueprintListFilters = {}): Promise<BlueprintListResult> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
     const limit = filters.limit ?? PAGE_SIZE;
@@ -1633,7 +1682,7 @@ export class CodexService {
    * preserves recipe order).
    */
   async getBlueprint(className: string): Promise<BlueprintDetail | null> {
-    const build = await this.loadCurrentBuild();
+    const build = await this.buildOrThrow();
     if (!build) return null;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -211,9 +211,7 @@
         "uncommissioned": "Unkommissioniert",
         "emptyLead": "Noch keine persönliche Rüstung angelegt.",
         "cta": "Rüstung anlegen",
-        "ctaGoal": "→ Kampfbereit",
-        "ready": "Kampfbereit",
-        "openSet": "Set öffnen"
+        "ctaGoal": "→ Kampfbereit"
       },
       "fleet": {
         "eyebrow": "Im Hangar",
@@ -248,30 +246,7 @@
         "arms": "Arme",
         "legs": "Beine",
         "undersuit": "Untersuit",
-        "backpack": "Rucksack",
-        "empty": "— leer —",
-        "archiveDepth": "{{count}} im Archiv"
-      },
-      "kpi": {
-        "ship": {
-          "shieldTotal": "Schildsumme",
-          "emptyMounts": "Unbestückte Aufhängungen",
-          "weaponMounts": "Waffenaufhängungen",
-          "missileCapacity": "Raketenkapazität",
-          "quantumDrive": "Quantum-Antrieb",
-          "fillRate": "Bestückungsgrad"
-        },
-        "fps": {
-          "slotsFilled": "Belegte Slots",
-          "gradeMix": "Grad-Mix",
-          "weightClass": "Gewichtsklasse",
-          "manufacturer": "Hersteller",
-          "archiveDepth": "Archivtiefe (leer)",
-          "gapArmor": "Rüstungswert",
-          "gapArmorTitle": "Rüstungsteile tragen im aktuellen Archiv keinen Kampfwert-Block — nur Name, Grad, Größe, Hersteller.",
-          "gapWeapon": "Waffengewalt",
-          "gapWeaponTitle": "FPS-Waffen tragen im aktuellen Archiv keinen Stats-Block."
-        }
+        "backpack": "Rucksack"
       },
       "configs": {
         "otherRoles": "Andere gespeicherte Rollen-Loadouts",
@@ -312,7 +287,6 @@
       "indexMode": "Index-Modus",
       "keybinds": "Keybinds",
       "hangar": "Hangar",
-      "backToBridge": "Zurück zur Brücke",
       "addCompare": "Vergleich",
       "hero": {
         "featured": "Vorgestelltes Schiff",
@@ -423,6 +397,7 @@
       "label": "Codex durchsuchen",
       "clear": "Suche löschen",
       "upcomingHint": "Nicht in den Spieldaten, aber von RSI angekündigt: {{names}}",
+      "alsoIn": "Auch gefunden in:",
       "upcomingLink": "Bei „Kommende Schiffe“ ansehen"
     },
     "kinds": {
@@ -794,7 +769,6 @@
     },
     "keybinds": {
       "title": "Tastenbelegung",
-      "back": "Codex",
       "subtitle": "Standard-Tastenbelegung aus dem aktuellen Star-Citizen-Build.",
       "device": "Gerät",
       "devices": {

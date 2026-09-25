@@ -211,9 +211,7 @@
         "uncommissioned": "Uncommissioned",
         "emptyLead": "No personal armour set yet.",
         "cta": "Equip armour",
-        "ctaGoal": "→ Combat-ready",
-        "ready": "Combat-ready",
-        "openSet": "Open set"
+        "ctaGoal": "→ Combat-ready"
       },
       "fleet": {
         "eyebrow": "In the hangar",
@@ -248,30 +246,7 @@
         "arms": "Arms",
         "legs": "Legs",
         "undersuit": "Undersuit",
-        "backpack": "Backpack",
-        "empty": "— empty —",
-        "archiveDepth": "{{count}} in the archive"
-      },
-      "kpi": {
-        "ship": {
-          "shieldTotal": "Shield total",
-          "emptyMounts": "Empty weapon mounts",
-          "weaponMounts": "Weapon mounts",
-          "missileCapacity": "Missile capacity",
-          "quantumDrive": "Quantum drive",
-          "fillRate": "Fill rate"
-        },
-        "fps": {
-          "slotsFilled": "Slots filled",
-          "gradeMix": "Grade mix",
-          "weightClass": "Weight class",
-          "manufacturer": "Manufacturer",
-          "archiveDepth": "Archive depth (empty)",
-          "gapArmor": "Protection value",
-          "gapArmorTitle": "Armour pieces carry no combat-stat block in the current archive — only name, grade, size, manufacturer.",
-          "gapWeapon": "Weapon power",
-          "gapWeaponTitle": "FPS weapons carry no stats block in the current archive."
-        }
+        "backpack": "Backpack"
       },
       "configs": {
         "otherRoles": "Other saved role loadouts",
@@ -312,7 +287,6 @@
       "indexMode": "Index mode",
       "keybinds": "Keybinds",
       "hangar": "Hangar",
-      "backToBridge": "Back to the Bridge",
       "addCompare": "Compare",
       "hero": {
         "featured": "Featured ship",
@@ -423,6 +397,7 @@
       "label": "Search the codex",
       "clear": "Clear search",
       "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
+      "alsoIn": "Also found in:",
       "upcomingLink": "View in Upcoming Ships"
     },
     "kinds": {
@@ -794,7 +769,6 @@
     },
     "keybinds": {
       "title": "Keybindings",
-      "back": "Codex",
       "subtitle": "Default key bindings from the current Star Citizen build.",
       "device": "Device",
       "devices": {

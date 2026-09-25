@@ -430,9 +430,11 @@ function safeColor(value: string, fallback: string): string {
 }
 
 /**
- * The zone's own custom properties, resolved. They live on `.zone.board` in the
- * parent, so reading them off the canvas keeps the 3D suit on exactly the same
- * palette as everything else in the zone — including a future theme swap.
+ * The zone's own custom properties, resolved off the canvas: `--idle` from the
+ * AN BORD panel's host, `--tint` from the page around it (the set page's
+ * `.board-wrap`), so the 3D suit keeps exactly the palette of everything next
+ * to it — including a future theme swap. Outside those (the Spot stage) the
+ * fallbacks apply.
  */
 function readPalette(el: HTMLElement): SuitPalette {
   const cs = getComputedStyle(el);

@@ -6,9 +6,10 @@ import {
   effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CODEX_KINDS,
@@ -48,15 +49,15 @@ import {
   weaponGroupQuery,
   weaponSuperGroup,
 } from './codex-weapon-taxonomy';
+import { CodexStatusBannerComponent } from './codex-status-banner.component';
+import { HangarService } from '../hangar/hangar.service';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
  * weapons) and edition grouping (ships).
  */
 type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
-import { CodexStatusBannerComponent } from './codex-status-banner.component';
-import { HangarService } from '../hangar/hangar.service';
-import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
@@ -123,21 +124,22 @@ export function blueprintCategoriesForGroup(
     <section class="codex-page">
       <header class="head">
         <div class="title-block">
-          <a class="to-bridge" routerLink="/codex">← {{ 'codex.bridge.backToBridge' | translate }}</a>
+          <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
           <h1>{{ 'codex.index.title' | translate }}</h1>
           <p class="hint">{{ 'codex.subtitle' | translate }}</p>
         </div>
         <sc-codex-status-banner />
       </header>
 
-      <!-- Category switcher (datamined kinds + the RSI "upcoming" category) -->
-      <div class="kind-bar" role="tablist" [attr.aria-label]="'codex.categoriesAria' | translate">
+      <!-- Category switcher (datamined kinds + the RSI "upcoming" category) — a
+           pressed-button group: there is no tab panel, the page re-renders. -->
+      <div class="kind-bar" role="group" [attr.aria-label]="'codex.categoriesAria' | translate">
         @for (k of categories; track k) {
-          <button class="kind" type="button" role="tab"
+          <button class="kind" type="button"
                   [class.active]="category() === k"
                   [class.soon]="isComingSoon(k)"
                   [disabled]="isComingSoon(k)"
-                  [attr.aria-selected]="category() === k"
+                  [attr.aria-pressed]="category() === k"
                   [attr.title]="isComingSoon(k) ? ('codex.soon' | translate) : null"
                   (click)="setCategory(k)">
             <span>{{ ('codex.kinds.' + k) | translate }}</span>
@@ -244,7 +246,7 @@ export function blueprintCategoriesForGroup(
               <span>{{ 'codex.filters.componentKind' | translate }}</span>
               <select class="sc-select" [ngModel]="componentKind()" (ngModelChange)="setComponentKind($event)">
                 <option value="">{{ 'codex.filters.all' | translate }}</option>
-                @for (c of componentKindOptions(); track c) { <option [value]="c">{{ c }}</option> }
+                @for (c of componentKindOptions(); track c) { <option [value]="c">{{ ('codex.componentKind.' + c) | translate }}</option> }
               </select>
             </label>
           }
@@ -315,6 +317,19 @@ export function blueprintCategoriesForGroup(
           }
         </div>
 
+        <!-- The search runs inside the active category first (feedback #7), but
+             a hit in another one is named here instead of silently missing. -->
+        @if (crossHits().length > 0) {
+          <p class="cross-hits">
+            <span class="cross-label">{{ 'codex.search.alsoIn' | translate }}</span>
+            @for (h of crossHits(); track h.kind) {
+              <button type="button" class="cross-hit" (click)="setCategory(h.kind)">
+                {{ ('codex.kinds.' + h.kind) | translate }} <b>{{ h.count }}</b>
+              </button>
+            }
+          </p>
+        }
+
         @if (isPartialKind()) {
           <p class="partial-note">{{ 'codex.empty.partial' | translate }}</p>
         }
@@ -325,7 +340,7 @@ export function blueprintCategoriesForGroup(
         @if (loading() && rows().length === 0) {
           <div class="grid">
             @for (s of skeletons; track s; let i = $index) {
-              <div class="card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
+              <div class="card-wrap skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
             }
           </div>
         } @else if (rows().length === 0) {
@@ -336,72 +351,79 @@ export function blueprintCategoriesForGroup(
         } @else {
           <div class="grid">
             @for (r of rows(); track r.classNameSlug) {
-              <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
-                <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
-                  <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
-                    <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
-                  </sc-fallback-image>
-                </div>
-                <div class="card-top">
+              <!-- The card is the navigation; pin and add-to-hangar are actions,
+                   so they sit NEXT TO the link inside the wrapper (no interactive
+                   content nested in an <a>) — the upcoming grid's pattern. -->
+              <div class="card-wrap">
+                <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
+                  <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
+                    <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
+                      <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
+                    </sc-fallback-image>
+                  </div>
                   <h3 class="name">{{ cardName(r) }}</h3>
-                  <div class="card-actions">
-                    @if (kind() === 'ship') {
-                      @if (inHangarSet().has(r.classNameSlug)) {
-                        <span class="hangar-chip" [attr.title]="'codex.card.inHangar' | translate">✓</span>
-                      } @else {
-                        <button type="button" class="hangar-add"
-                                (click)="addShipToHangar($event, r.classNameSlug)"
-                                [attr.aria-label]="'quickSearch.addToHangar' | translate"
-                                [attr.title]="'quickSearch.addToHangar' | translate">+</button>
-                      }
+                  <code class="cls">{{ r.classNameSlug }}</code>
+                  <div class="badges">
+                    @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
+                    @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
+                    @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
+                    @if (r.subType) { <span class="badge subtle">{{ subTypeKey(r) ? (subTypeKey(r)! | translate) : r.subType }}</span> }
+                    @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
+                    @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
+                    @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
+                    @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
+                    @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
+                    @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
+                    @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
+                    @if (r.foldedClassNames.length; as folded) {
+                      <span class="badge folded"
+                            [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
+                        {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
+                      </span>
                     }
-                    <button type="button" class="pin"
-                            [class.pinned]="isPinned(r.classNameSlug)"
-                            (click)="togglePin($event, r.classNameSlug)"
-                            [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
-                      {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
-                    </button>
+                    @if (r.skinVariants.length; as skins) {
+                      <span class="badge skins"
+                            [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
+                        {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
+                      </span>
+                    }
+                    @if (r.editions.length; as editions) {
+                      <span class="badge editions"
+                            [attr.title]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
+                        {{ (editions === 1 ? 'codex.card.editionsOne' : 'codex.card.editionsMany') | translate: { count: editions } }}
+                      </span>
+                    }
                   </div>
+                  @if (r.size != null) {
+                    <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
+                      <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
+                      <span class="size-tag">S{{ r.size }}</span>
+                    </div>
+                  }
+                </a>
+                <div class="card-actions">
+                  @if (kind() === 'ship') {
+                    @if (inHangarSet().has(r.classNameSlug)) {
+                      <span class="hangar-chip" role="img"
+                            [attr.aria-label]="'codex.card.inHangar' | translate"
+                            [attr.title]="'codex.card.inHangar' | translate">✓</span>
+                    } @else {
+                      <button type="button" class="act hangar-add"
+                              (click)="addShipToHangar(r.classNameSlug)"
+                              [attr.aria-label]="'quickSearch.addToHangar' | translate"
+                              [attr.title]="'quickSearch.addToHangar' | translate">+</button>
+                    }
+                  }
+                  <button type="button" class="act pin"
+                          [class.pinned]="isPinned(r.classNameSlug)"
+                          [attr.aria-pressed]="isPinned(r.classNameSlug)"
+                          (click)="togglePin(r.classNameSlug)"
+                          [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                          [attr.title]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate">
+                    {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
+                  </button>
                 </div>
-                <code class="cls">{{ r.classNameSlug }}</code>
-                <div class="badges">
-                  @if (cardMfr(r); as mfr) { <span class="badge mfr" [attr.title]="mfr">{{ mfr }}</span> }
-                  @if (r.componentKind) { <span class="badge">{{ ('codex.componentKind.' + r.componentKind) | translate }}</span> }
-                  @if (r.weaponClass) { <span class="badge">{{ ('codex.weaponClass.' + r.weaponClass) | translate }}</span> }
-                  @if (r.subType) { <span class="badge subtle">{{ r.subType }}</span> }
-                  @if (r.grade) { <span class="badge grade" [attr.data-grade]="r.grade">{{ 'codex.card.grade' | translate: { grade: r.grade } }}</span> }
-                  @if (r.crewSize != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: r.crewSize } }}</span> }
-                  @if (r.speed != null) { <span class="badge subtle">{{ r.speed }} m/s</span> }
-                  @if (r.isVariant) { <span class="badge variant">{{ 'codex.card.variant' | translate }}</span> }
-                  @if (r.blueprintCategory) { <span class="badge">{{ categoryLabel(r.blueprintCategory) }}</span> }
-                  @if (r.blueprintTier != null) { <span class="badge">{{ 'blueprint.card.tier' | translate: { tier: r.blueprintTier } }}</span> }
-                  @if (craftTimeLabel(r); as ct) { <span class="badge subtle">{{ ct }}</span> }
-                  @if (r.foldedClassNames.length; as folded) {
-                    <span class="badge folded"
-                          [attr.title]="'codex.card.foldedTitle' | translate: { names: foldedNames(r) }">
-                      {{ (folded === 1 ? 'codex.card.foldedOne' : 'codex.card.foldedMany') | translate: { count: folded } }}
-                    </span>
-                  }
-                  @if (r.skinVariants.length; as skins) {
-                    <span class="badge skins"
-                          [attr.title]="'codex.card.skinsTitle' | translate: { names: skinNames(r) }">
-                      {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
-                    </span>
-                  }
-                  @if (r.editions.length; as editions) {
-                    <span class="badge editions"
-                          [attr.title]="'codex.card.editionsTitle' | translate: { names: editionNames(r) }">
-                      {{ (editions === 1 ? 'codex.card.editionsOne' : 'codex.card.editionsMany') | translate: { count: editions } }}
-                    </span>
-                  }
-                </div>
-                @if (r.size != null) {
-                  <div class="size-bar" [attr.title]="'codex.card.size' | translate: { size: r.size }">
-                    <span class="size-track"><span class="size-fill" [style.width.%]="sizePct(r.size)"></span></span>
-                    <span class="size-tag">S{{ r.size }}</span>
-                  </div>
-                }
-              </a>
+              </div>
             }
           </div>
 
@@ -424,10 +446,12 @@ export function blueprintCategoriesForGroup(
     .codex-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    .to-bridge { display: inline-block; margin-bottom: 8px; font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.04em; color: var(--sc-accent); text-decoration: none; }
-    .to-bridge:hover { text-decoration: underline; }
-    .title-block h1 { margin: 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
+    /* Same back link and head rhythm as every other archive view. */
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
+    .title-block { display: flex; flex-direction: column; gap: 4px; }
+    .title-block h1 { margin: 4px 0 0; }
+    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: var(--sc-measure); }
 
     .upcoming-lede { margin: -4px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 72ch; }
 
@@ -492,7 +516,7 @@ export function blueprintCategoriesForGroup(
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 0.92rem;
     }
-    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
     .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; }
     .search-clear:hover { color: var(--sc-danger); }
 
@@ -512,35 +536,46 @@ export function blueprintCategoriesForGroup(
     .partial-note { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-warning); padding: 6px 10px; border-radius: 6px; background: color-mix(in srgb, var(--sc-warning) 10%, transparent); border: 1px solid color-mix(in srgb, var(--sc-warning) 28%, transparent); }
 
     .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-    .card {
-      display: flex; flex-direction: column; gap: 8px;
-      padding: 14px; border-radius: 8px; min-height: 116px;
-      border: 1px solid var(--sc-border); background: var(--sc-bg-1);
-      color: inherit; text-decoration: none;
+    /* The wrapper is the visible card (frame, lift on hover); the link fills it
+       and the actions ride on top as its siblings. */
+    .card-wrap {
+      position: relative; display: flex; flex-direction: column; min-height: 116px;
+      border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-1);
       transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
     }
-    .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card-wrap:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
+    .card {
+      flex: 1; display: flex; flex-direction: column; gap: 8px;
+      padding: 14px; border-radius: 8px; color: inherit; text-decoration: none;
+    }
+    .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
       border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0));
       /* sc-fallback-image owns the <img>; sizing crosses the boundary as a var. */
       --sc-img-max-h: 88px; }
     .card .thumb sc-codex-icon { width: 100%; height: 100%; }
-    .card:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
-    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-wrap:hover .thumb sc-codex-icon { transform: scale(1.05); transition: transform 0.16s; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
-    .card-actions { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; }
-    .pin { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0; flex: 0 0 auto; }
-    .pin:hover { color: var(--sc-accent); }
-    .pin.pinned { color: var(--sc-accent); }
-    .hangar-chip { font-size: 0.82rem; line-height: 1; color: var(--sc-success, #5fd698); }
-    .hangar-add { border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2); font-size: 1rem; line-height: 1; width: 22px; height: 22px; border-radius: 6px; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-    .hangar-add:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
+    .card-actions { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .act {
+      width: max(32px, var(--sc-tap-min)); height: max(32px, var(--sc-tap-min));
+      display: inline-flex; align-items: center; justify-content: center; padding: 0;
+      border-radius: 8px; border: 1px solid transparent; cursor: pointer; line-height: 1;
+      background: color-mix(in srgb, var(--sc-bg-0) 66%, transparent); color: var(--sc-fg-2);
+    }
+    .act:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .pin { font-size: 1.1rem; }
+    .pin:hover, .pin.pinned { color: var(--sc-accent); }
+    .pin:hover { border-color: var(--sc-border); }
+    .hangar-chip { font-size: 0.82rem; line-height: 1; color: var(--sc-success); padding: 0 6px; }
+    .hangar-add { font-size: 1rem; border-color: var(--sc-border); }
+    .hangar-add:hover { color: var(--sc-success); border-color: var(--sc-success); }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     /* Holds a spelled-out manufacturer now ("Musashi Industrial & Starflight
        Concern"), so the pill has to stay inside the card on a phone. */
-    .badge.mfr { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent);
+    .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1);
       max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .badge.variant { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: var(--sc-fg-1); }
@@ -554,16 +589,25 @@ export function blueprintCategoriesForGroup(
       border-color: color-mix(in srgb, var(--sc-accent) 42%, transparent);
       color: var(--sc-fg-0); cursor: help;
     }
-    .badge.grade[data-grade="A"] { background: color-mix(in srgb, #5fd698 18%, transparent); border-color: color-mix(in srgb, #5fd698 42%, transparent); color: #8fe5b5; }
+    .badge.grade[data-grade="A"] { background: color-mix(in srgb, var(--sc-success) 18%, transparent); border-color: color-mix(in srgb, var(--sc-success) 42%, transparent); color: color-mix(in srgb, var(--sc-success) 70%, #fff); }
     .badge.grade[data-grade="B"] { background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); color: var(--sc-fg-0); }
-    .badge.grade[data-grade="C"] { background: color-mix(in srgb, #f0c419 16%, transparent); border-color: color-mix(in srgb, #f0c419 40%, transparent); color: #f0d060; }
+    .badge.grade[data-grade="C"] { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); color: color-mix(in srgb, var(--sc-warning) 75%, #fff); }
     .badge.grade[data-grade="D"] { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
     .size-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
     .size-track { flex: 1; height: 5px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .size-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .size-tag { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
 
-    .card.skel { min-height: 116px; }
+    .card-wrap.skel { min-height: 116px; }
+
+    .cross-hits { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .cross-hit {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1); font-family: inherit;
+      font-size: max(0.78rem, var(--sc-fs-floor)); min-height: max(28px, var(--sc-tap-min));
+    }
+    .cross-hit b { color: var(--sc-accent); font-weight: 600; }
+    .cross-hit:hover, .cross-hit:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); }
 
     .more-row { display: flex; justify-content: center; }
     .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
@@ -578,6 +622,10 @@ export function blueprintCategoriesForGroup(
     @media (max-width: 720px) {
       .head { flex-direction: column; }
     }
+    @media (prefers-reduced-motion: reduce) {
+      .card-wrap, .kind, .group { transition: none; }
+      .card-wrap:hover { transform: none; }
+    }
   `],
 })
 export class CodexListComponent implements OnInit {
@@ -586,6 +634,7 @@ export class CodexListComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   private readonly rsi = inject(UpcomingShipsService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   // Data language tracks the UI language as a SIGNAL so OnPush card titles
   // re-render on a language switch (they previously read t.currentLang
@@ -651,7 +700,6 @@ export class CodexListComponent implements OnInit {
     return out;
   }
 
-  /** Sub-category that refines the fallback icon (componentKind/weaponClass/subType). */
   /**
    * Sub-category that refines the fallback glyph. `sub_type` ranks ABOVE
    * `weapon_class`: the class is only 'FPS'/'Ship' and refines nothing, while
@@ -660,6 +708,24 @@ export class CodexListComponent implements OnInit {
    */
   iconSub(r: CodexListRow): string | null {
     return r.componentKind || r.subType || r.weaponClass || null;
+  }
+
+  /**
+   * i18n key for the sub-type badge where the token has a translation — the
+   * on-foot weapon types and armour weight classes the FPS page labels too.
+   * Other tokens (ship turret shapes …) stay as the catalog spells them.
+   */
+  subTypeKey(r: CodexListRow): string | null {
+    const sub = r.subType ?? '';
+    if (r.weaponClass === 'FPS') {
+      const id = ({ Small: 'sidearm', Medium: 'primary', Large: 'heavy', Knife: 'melee', Grenade: 'throwable', Gadget: 'gadget' } as Record<string, string>)[sub];
+      return id ? `fps.weaponType.${id}` : null;
+    }
+    if (this.kind() === 'item') {
+      const id = ({ Light: 'light', Medium: 'medium', Heavy: 'heavy' } as Record<string, string>)[sub];
+      return id ? `fps.weight.${id}` : null;
+    }
+    return null;
   }
 
   /** Class names of the records folded into this card, for the badge tooltip. */
@@ -901,12 +967,79 @@ export class CodexListComponent implements OnInit {
       this.blueprintGroup();
       this.runQuery(true);
     });
+
+    // Mirror the list state into the URL (replaceUrl): Back from a detail page,
+    // a reload or a shared link lands on the same list, not on ships again.
+    effect(() => {
+      const queryParams: Record<string, string | null> = {
+        kind: this.category(),
+        q: this.searchTerm() || null,
+        mfr: this.manufacturer() || null,
+        size: this.size() || null,
+        grade: this.grade() || null,
+        ck: this.componentKind() || null,
+        wg: this.weaponGroup() || null,
+        wsg: this.weaponSubGroup() || null,
+        bpc: this.blueprintCategory() || null,
+        group: this.blueprintGroup() || null,
+        v: this.includeVariants() ? '1' : null,
+        // Superseded by wg — a landing link's weaponClass must not linger.
+        weaponClass: null,
+      };
+      if (!this.routeApplied()) return;
+      untracked(() => this.writeUrl(queryParams));
+    });
+
+    // Other categories' matches for the current search term (feedback #7).
+    effect(() => {
+      const term = this.searchTerm().trim();
+      const active = this.category();
+      untracked(() => void this.loadCrossHits(term, active));
+    });
+  }
+
+  /** Set once the route's state is applied — before that the URL is the source, not the target. */
+  private readonly routeApplied = signal(false);
+
+  /** Matches for the current search in the OTHER data categories, largest first. */
+  readonly crossHits = signal<{ kind: CodexKind; count: number }[]>([]);
+  private crossSeq = 0;
+
+  private async loadCrossHits(term: string, active: CodexCategory): Promise<void> {
+    const seq = ++this.crossSeq;
+    if (term.length < 2) {
+      this.crossHits.set([]);
+      return;
+    }
+    const others = CODEX_KINDS.filter((k) => k !== active && !this.isComingSoon(k));
+    try {
+      const counts = await this.svc.countSearchMatches(term, others);
+      if (seq !== this.crossSeq) return;
+      this.crossHits.set(
+        [...counts.entries()].map(([kind, count]) => ({ kind, count })).sort((a, b) => b.count - a.count),
+      );
+    } catch {
+      // Advisory only: without the counts the page is exactly what it was.
+      if (seq === this.crossSeq) this.crossHits.set([]);
+    }
+  }
+
+  private writeUrl(queryParams: Record<string, string | null>): void {
+    try {
+      void this.router
+        .navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge', replaceUrl: true })
+        .catch(() => undefined);
+    } catch {
+      // A router without this route (tests): the list still works, only the URL stays behind.
+    }
   }
 
   async ngOnInit(): Promise<void> {
     this.applyRouteCategory();
     this.applyRouteFacets();
     this.applyRouteQuery();
+    this.applyRouteState();
+    this.routeApplied.set(true);
     // RSI artwork for ship cards + the upcoming badge count. Advisory and
     // silent: a failure just leaves the datamined renders as they were.
     void this.rsi.ensureLoaded();
@@ -980,6 +1113,29 @@ export class CodexListComponent implements OnInit {
     }
     this.searchInput.set(q);
     this.searchTerm.set(q);
+  }
+
+  /**
+   * The rest of a list the reader left (see the URL effect in the constructor):
+   * facets, weapon rail and the variant switch. Runs after the category is set,
+   * because switching the category resets the facets.
+   */
+  private applyRouteState(): void {
+    const q = this.route.snapshot.queryParamMap;
+    const take = (key: string, set: (v: string) => void) => {
+      const v = q.get(key);
+      if (v) set(v);
+    };
+    take('mfr', (v) => this.manufacturer.set(v));
+    take('size', (v) => this.size.set(v));
+    take('grade', (v) => this.grade.set(v));
+    if (this.kind() === 'component') take('ck', (v) => this.componentKind.set(v));
+    if (this.kind() === 'weapon') {
+      take('wg', (v) => WEAPON_SUPER_GROUPS.some((g) => g.id === v) && this.weaponGroup.set(v));
+      take('wsg', (v) => this.weaponSubGroup.set(v));
+    }
+    if (this.kind() === 'blueprint') take('bpc', (v) => this.blueprintCategory.set(v));
+    if (q.get('v') === '1') this.includeVariants.set(true);
   }
 
   /** Facet source for the blueprint kind. Advisory — a failure just hides it. */
@@ -1124,16 +1280,12 @@ export class CodexListComponent implements OnInit {
     return this.svc.isPinned(this.kind(), className);
   }
 
-  togglePin(ev: Event, className: string): void {
-    ev.preventDefault();
-    ev.stopPropagation();
+  togglePin(className: string): void {
     this.svc.togglePin(this.kind(), className);
   }
 
   /** UC-02: add a ship to the hangar inline, without leaving the list. */
-  addShipToHangar(ev: Event, className: string): void {
-    ev.preventDefault();
-    ev.stopPropagation();
+  addShipToHangar(className: string): void {
     void this.hangar.addShip(className, 'owned');
   }
 

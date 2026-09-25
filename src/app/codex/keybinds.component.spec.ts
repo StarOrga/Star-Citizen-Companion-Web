@@ -481,12 +481,15 @@ describe('KeybindsComponent', () => {
   it('names the mode it is entering and leaving on the button itself', async () => {
     const fixture = await setup({ binds: SAMPLE, labels: LABELS, admin: true, lang: 'de' });
     const toggle = () => fixture.nativeElement.querySelector('.assign-toggle') as HTMLButtonElement;
-    expect(toggle().textContent!.trim()).toBe('Kategorien zuweisen');
+    const label = () => toggle().querySelector('.toggle-label')!.textContent!.trim();
+    expect(label()).toBe('Kategorien zuweisen');
+    // Admin-only tooling says so in words, not only in its red.
+    expect(toggle().querySelector('.admin-tag')).not.toBeNull();
 
     toggle().click();
     fixture.detectChanges();
     // The way back has to be readable, not inferred from a pressed state.
-    expect(toggle().textContent!.trim()).toBe('Zuweisen beenden');
+    expect(label()).toBe('Zuweisen beenden');
     expect(toggle().getAttribute('aria-pressed')).toBe('true');
   });
 

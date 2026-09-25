@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexListComponent } from './codex-list.component';
 import { CodexListRow, CodexService } from './codex.service';
@@ -40,6 +40,10 @@ describe('CodexListComponent (Index mode)', () => {
       art?: string[];
       preview?: string | null;
       weaponFacets?: WeaponFacetRow[];
+      /** Query params of the page URL (a stub route when given). */
+      query?: Record<string, string>;
+      /** Per-kind match counts for the cross-category search hint. */
+      crossCounts?: Map<string, number>;
     } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
@@ -69,6 +73,9 @@ describe('CodexListComponent (Index mode)', () => {
       weaponFacets: jasmine
         .createSpy('weaponFacets')
         .and.resolveTo(opts.weaponFacets ?? []),
+      countSearchMatches: jasmine
+        .createSpy('countSearchMatches')
+        .and.resolveTo(opts.crossCounts ?? new Map()),
     };
 
     const hangar: Partial<HangarService> = {
@@ -83,6 +90,9 @@ describe('CodexListComponent (Index mode)', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
+        ...(opts.query
+          ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
+          : []),
         // The embedded status banner injects the real RoleService otherwise,
         // which pulls Auth/Supabase and hangs whenStable.
         { provide: RoleService, useValue: { isCollaborator: signal(false) } },
@@ -105,6 +115,7 @@ describe('CodexListComponent (Index mode)', () => {
             acknowledge: () => undefined,
             isFavorite: () => false,
             artFor: () => opts.art ?? ([] as string[]),
+            searchLoadedShips: () => [],
           },
         },
       ],
@@ -468,6 +479,47 @@ describe('CodexListComponent (Index mode)', () => {
 
       expect(cmp.rows().length).toBe(2);
       expect(cmp.rows().every((r) => r.editions.length === 0)).toBeTrue();
+    });
+  });
+
+  describe('archive state and search reach (audit 2026-09-25)', () => {
+    const ship = (className: string): CodexListRow => ({ ...blueprintRow(className, null), blueprintCategory: null, blueprintTier: null, craftTimeSec: null });
+
+    it('restores the category and its facets from the URL, so Back returns to the same list', async () => {
+      const { cmp, listByKind } = await setup(
+        { ships: 300, weapons: 1300 },
+        { query: { kind: 'weapon', wg: 'ship', mfr: 'KLWE' } },
+      );
+      expect(cmp.kind()).toBe('weapon');
+      expect(cmp.weaponGroup()).toBe('ship');
+      expect(cmp.manufacturer()).toBe('KLWE');
+      const last = listByKind.calls.mostRecent().args;
+      expect(last[0]).toBe('weapon');
+      expect(last[1].manufacturer).toBe('KLWE');
+    });
+
+    it('ignores a weapon group the rail does not have', async () => {
+      const { cmp } = await setup({ ships: 300, weapons: 1300 }, { query: { kind: 'weapon', wg: 'bogus' } });
+      expect(cmp.weaponGroup()).toBe('');
+    });
+
+    it('names the other categories a search term also matches', async () => {
+      const { fixture } = await setup(
+        { ships: 300, components: 2000 },
+        { query: { kind: 'ship', q: 'titan' }, crossCounts: new Map([['component', 3]]) },
+      );
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const hits = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.cross-hit')).map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
+      expect(hits).toEqual(['codex.kinds.component 3']);
+    });
+
+    it('keeps pin and add-to-hangar outside the card link', async () => {
+      const { fixture } = await setup({ ships: 300 }, { rows: [ship('AEGS_Avenger_Titan')] });
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('a.card')).not.toBeNull();
+      expect(el.querySelector('a.card button')).toBeNull();
+      expect(el.querySelector('.card-wrap > .card-actions .pin')).not.toBeNull();
     });
   });
 });

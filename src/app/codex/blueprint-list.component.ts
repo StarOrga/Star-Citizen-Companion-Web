@@ -159,7 +159,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     /* The column gap alone sets title-to-subtitle distance (feedback 98f50dfc):
        a margin here stacked on top of it and made this head 4px taller than
        every other list view's. */
-    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: 60ch; }
+    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: var(--sc-measure); }
 
     .provenance {
       display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
@@ -176,7 +176,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 0.92rem;
     }
-    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
     .search-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; }
     .search-clear:hover { color: var(--sc-danger); }
 
@@ -206,7 +206,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .card .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .badge.cat { background: color-mix(in srgb, var(--sc-accent-hot) 14%, transparent); border-color: color-mix(in srgb, var(--sc-accent-hot) 35%, transparent); }
+    /* Neutral, never the elevated-access red (CLAUDE.md). */
+    .badge.cat { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
     .badge.subtle { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-2); }
 
     .card.skel { min-height: 100px; }

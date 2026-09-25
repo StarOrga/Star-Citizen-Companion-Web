@@ -1913,7 +1913,7 @@ interface GearRecipe {
       color: var(--sc-fg-1); display: flex; align-items: center; gap: 8px; }
     .sg-head::after { content: ''; flex: 1; height: 1px; background: var(--sc-border); }
     .sg-head:first-of-type { margin-top: 0; }
-    .sg-head[data-purpose="offense"] { color: var(--sc-accent-hot, #ff7a45); }
+    .sg-head[data-purpose="offense"] { color: #ff7a45; }
     .sg-head[data-purpose="defense"] { color: var(--sc-accent); }
     .stat-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
     .stat-grid + .sg-head { margin-top: 14px; }
@@ -1941,7 +1941,7 @@ interface GearRecipe {
     .dmg-bar { height: 8px; border-radius: 999px; background: var(--sc-bg-2); overflow: hidden; }
     .dmg-fill { display: block; height: 100%; border-radius: 999px; background: var(--sc-accent); }
     .dmg[data-ch="energy"] .dmg-fill { background: var(--sc-accent); }
-    .dmg[data-ch="physical"] .dmg-fill { background: var(--sc-accent-hot, #ff7a45); }
+    .dmg[data-ch="physical"] .dmg-fill { background: #ff7a45; }
     .dmg[data-ch="thermal"] .dmg-fill { background: #ff5252; }
     .dmg[data-ch="distortion"] .dmg-fill { background: #a674ff; }
     .dmg[data-ch="biochemical"] .dmg-fill { background: #5fd35f; }

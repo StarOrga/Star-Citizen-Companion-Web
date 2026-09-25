@@ -68,14 +68,14 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
  * against an 18 kB budget and this panel would push it over. Keeping the zone
  * here also makes it testable without the rest of the landing.
  *
- * The parent still owns the `<article class="zone board">` frame — its `.zone`
- * rules and the `--tint` custom property live there and inherit into here.
+ * The host page owns the frame around the panel and the `--tint` custom
+ * property, which inherits into here.
  *
- * SUPERSEDED on the landing (concept 2026-09-20, round 14-17): the landing
- * now shows the person as the "Spot" stage (`stage/codex-stage.component.ts`
- * + `codex-board-figure.component.ts`, no paperdoll) and no longer imports
- * this component. Kept, untouched, for the future `/codex/set/:id` page
- * (round 2 decision T1) — the six-slot detail view still belongs there.
+ * Since the landing redesign (concept 2026-09-20, rounds 14-17) the landing
+ * shows the person as the "Spot" stage and no longer imports this component;
+ * its home is the set page (`/codex/set/:id`, round 2 decision T1), which
+ * hosts it inside `.board-wrap` (that wrapper provides `--tint`; `--idle`
+ * lives on this component's own :host).
  */
 @Component({
   selector: 'sc-codex-board-panel',
@@ -139,9 +139,9 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
                      would be fabricated. -->
                 <div class="board-rdy">
                   @for (r of readiness(); track r.key) {
-                    <span class="rdy-ic" [class.on]="r.ok"
-                          [attr.title]="('codex.landing.board.readiness.' + r.key | translate)
-                            + ' — ' + ((r.ok ? 'codex.landing.board.readyOn' : 'codex.landing.board.readyOff') | translate)">
+                    <!-- role=img + label: the state must not live in a hover-only title. -->
+                    <span class="rdy-ic" [class.on]="r.ok" role="img"
+                          [attr.aria-label]="readyLabel(r)" [attr.title]="readyLabel(r)">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="readyIcon(r.key)" /></svg>
                     </span>
                   }
@@ -242,9 +242,7 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
         display: grid;
         /* Q7 (codex landing redesign round 1): capped rather than 1fr, so the
            slot columns track the figure instead of stretching to the panel's
-           full width once it is wide. This panel is currently unused by the
-           landing (superseded by the Spot stage) but kept for the future
-           /codex/set/:id page (T1), where the fix still applies. */
+           full width once it is wide — on the set page it spans the frame. */
         grid-template-columns: minmax(0, 200px) auto minmax(0, 200px);
         justify-content: center;
         gap: 8px;
@@ -575,5 +573,14 @@ export class CodexBoardPanelComponent {
 
   readyIcon(key: ReadinessKey): string {
     return READY_ICON_PATHS[key];
+  }
+
+  /** "Primärwaffe — angelegt": the class and its state, for the tooltip and assistive tech. */
+  readyLabel(r: ReadinessSlot): string {
+    return (
+      this.t.instant('codex.landing.board.readiness.' + r.key) +
+      ' — ' +
+      this.t.instant(r.ok ? 'codex.landing.board.readyOn' : 'codex.landing.board.readyOff')
+    );
   }
 }

@@ -116,7 +116,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
   template: `
     <section class="kb">
       <header class="kb-head">
-        <a class="back" routerLink="/codex">← {{ 'codex.keybinds.back' | translate }}</a>
+        <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
         <h1>{{ 'codex.keybinds.title' | translate }}</h1>
         <p class="sub">{{ 'codex.keybinds.subtitle' | translate }}</p>
         <sc-codex-status-banner />
@@ -145,10 +145,10 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
         </div>
       } @else {
         <div class="kb-controls">
-          <div class="devices" role="tablist" [attr.aria-label]="'codex.keybinds.device' | translate">
+          <div class="devices" role="group" [attr.aria-label]="'codex.keybinds.device' | translate">
             @for (d of devices; track d) {
-              <button type="button" class="dev" role="tab"
-                      [class.active]="device() === d" [attr.aria-selected]="device() === d"
+              <button type="button" class="dev"
+                      [class.active]="device() === d" [attr.aria-pressed]="device() === d"
                       (click)="setDevice(d)">
                 {{ 'codex.keybinds.devices.' + d | translate }}
               </button>
@@ -178,8 +178,10 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
           @if (roles.isAdmin()) {
             <button type="button" class="assign-toggle" [class.on]="assignMode()"
                     [attr.aria-pressed]="assignMode()" (click)="toggleAssignMode()">
-              {{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
-                 | translate }}
+              <span class="toggle-label">{{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
+                 | translate }}</span>
+              <!-- Red = elevated access, and said in words too (CLAUDE.md). -->
+              <span class="admin-tag">{{ 'nav.adminOnly' | translate }}</span>
             </button>
           }
         </div>
@@ -370,8 +372,8 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     .kb { display: flex; flex-direction: column; gap: 18px; padding-bottom: 90px; }
 
     .kb-head { display: flex; flex-direction: column; gap: 4px; }
-    .back { font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-accent); text-decoration: none; width: fit-content; }
-    .back:hover { text-decoration: underline; }
+    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
+    .back:hover, .back:focus-visible { color: var(--sc-accent); }
     .kb-head h1 { margin: 4px 0 0; font-size: clamp(1.4rem, 2.6vw, 2rem); }
     .sub { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
 
@@ -396,15 +398,18 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
       font-family: inherit; font-size: 0.95rem;
     }
-    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
     .assign-toggle {
       flex: 0 0 auto; padding: 10px 16px; border-radius: 10px; cursor: pointer; min-height: 48px;
       background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1);
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .assign-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
-    .assign-toggle.on { background: var(--sc-accent); border-color: var(--sc-accent); color: var(--sc-bg-0); }
+    /* Admin-only tooling: the elevated-access red, never the viewer accent. */
+    .assign-toggle { border-color: color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border)); color: var(--sc-accent-hot); display: inline-flex; align-items: center; gap: 8px; }
+    .assign-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent-hot); }
+    .assign-toggle.on { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
+    .admin-tag { font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.06em; padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; opacity: 0.85; }
 
     /* ── name-language switch ──────────────────────────────────────────────
        Same segmented control as the news stream's "Beiträge | Gemerkt": two
