@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.1] - 2026-09-25
+
+### Added
+
+- **Claudes Test-Browser starten eingeloggt — lokal und live.** Jeder
+  Playwright-Browser einer Claude-Session meldet sich jetzt als eigener
+  Test-Account an, bevor die App startet: auf lokalen Dev-Servern
+  (127.0.0.1/localhost, Ports 4200–4399), auf `sc-companion.vercel.app` und
+  auf Vercel-Previews. Bisher lief fast jede Browser-Prüfung auf `/login`
+  auf, weil das Playwright-Profil pro Worktree neu und damit ausgeloggt war.
+  Das Passwort liegt nur im Windows-Anmeldeinformationsspeicher
+  (`sc-companion/test-account`) und läuft nie durch den Chat; jede
+  Seite bekommt ihre eigene Session, damit sich parallele Browser nicht
+  gegenseitig abmelden. `npm run test-account` prüft Anmeldung, Rolle und
+  Freigabe; `gate:mobile:auth` nutzt denselben Account. Einrichtung und
+  Regeln: `.claude/deep-knowledge/test-account.md`.
+
+### Notes
+
+- Wirksam ab der nächsten Session, sobald der Account angelegt und
+  gespeichert ist — bis dahin bleibt alles wie bisher.
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.99.0] - 2026-09-25
 
 ### Changed
