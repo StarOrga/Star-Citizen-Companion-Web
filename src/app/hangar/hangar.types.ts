@@ -43,13 +43,86 @@ export interface RoleLoadoutItem {
   kind: string | null;
 }
 
-/** Suggested slot labels per role — the editor seeds these, users may add more. */
+/** The positions each role's set is built from — the Codex set page lists them, the FPS archive fills them. */
 export const ROLE_SLOT_SUGGESTIONS: Record<RoleLoadoutRole, string[]> = {
   fps: ['primary', 'secondary', 'sidearm', 'helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack'],
   mining: ['multitool', 'mining-attachment', 'gadget', 'helmet', 'core', 'backpack'],
   salvage: ['multitool', 'salvage-attachment', 'tractor', 'helmet', 'core', 'backpack'],
   medical: ['medgun', 'multitool', 'medpen', 'helmet', 'core', 'backpack'],
   engineering: ['multitool', 'repair-attachment', 'tractor', 'helmet', 'core', 'backpack'],
+};
+
+/** An archive piece as far as slot fitting cares: its class name and weapon sub-type. */
+export interface SlotCandidate {
+  className: string;
+  subType: string | null;
+}
+
+/**
+ * Whether an on-foot archive piece honestly goes into a non-anatomical slot
+ * (audit 2026-09-25). The FPS archive used to offer every weapon for every
+ * slot of the set's role, so a pistol could land in "mining attachment".
+ *
+ * Grounded in what the current build actually carries (FPS weapons):
+ *  - guns by sub-type — Medium/Large are long guns, Small are pistols;
+ *  - the Pyro RYT multi-tool (`grin_multitool_01…`), whose `_default_mining`,
+ *    `_default_salvage_repair`, `_default_tractorbeam` and `_default_healing`
+ *    records are the multi-tool with that attachment fitted;
+ *  - the Cambio SRT (`grin_salvage_repair_01`), the MaxLift tractor beams
+ *    (`grin_tractor_01…`) and the ParaMed medical device (`crlf_medgun_01`).
+ * Medpens are consumable ITEMS, not FPS weapons, so nothing in this archive
+ * fills a `medpen` slot — see {@link slotHasArchiveSource}.
+ */
+export function slotAccepts(slot: string, piece: SlotCandidate): boolean {
+  const cls = piece.className.toLowerCase();
+  const sub = (piece.subType ?? '').toLowerCase();
+  const multitool = cls.startsWith('grin_multitool');
+  const medgun = cls.includes('medgun');
+  switch (slot) {
+    case 'primary':
+      return sub === 'medium' || sub === 'large';
+    case 'secondary':
+      return (sub === 'medium' || sub === 'large' || sub === 'small') && !medgun;
+    case 'sidearm':
+      return sub === 'small' && !medgun;
+    case 'multitool':
+    case 'mining-attachment':
+      return multitool;
+    case 'salvage-attachment':
+    case 'repair-attachment':
+      return multitool || cls.includes('salvage_repair');
+    case 'tractor':
+      return cls.includes('tractor');
+    case 'medgun':
+      return medgun || (multitool && cls.includes('healing'));
+    case 'gadget':
+      return sub === 'gadget';
+    default:
+      return false;
+  }
+}
+
+/** Slots no FPS archive piece can fill (medpens are consumable items) — shown as such, never linked. */
+const SLOTS_WITHOUT_ARCHIVE_SOURCE: ReadonlySet<string> = new Set(['medpen']);
+
+export function slotHasArchiveSource(slot: string): boolean {
+  return !SLOTS_WITHOUT_ARCHIVE_SOURCE.has(slot);
+}
+
+/**
+ * The weapon-type facet that narrows `/codex/fps` to what a slot can take, so
+ * "equip into the multi-tool slot" does not open 400 rifles with no button.
+ * Slots taking several sub-types (long guns) stay unfiltered.
+ */
+export const SLOT_WEAPON_FACET: Readonly<Record<string, string>> = {
+  sidearm: 'Small',
+  medgun: 'Small',
+  multitool: 'Gadget',
+  'mining-attachment': 'Gadget',
+  'salvage-attachment': 'Gadget',
+  'repair-attachment': 'Gadget',
+  tractor: 'Gadget',
+  gadget: 'Gadget',
 };
 
 export interface HangarShip {

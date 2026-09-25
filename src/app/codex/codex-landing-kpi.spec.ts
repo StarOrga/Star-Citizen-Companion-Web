@@ -2,6 +2,7 @@ import {
   analyzeShipMounts,
   armorSlotsFromLoadout,
   computeFpsKpis,
+  computeReadiness,
   computeShipKpis,
   groupPortsBySize,
   roleSlotForAttachType,
@@ -233,5 +234,25 @@ describe('roleSlotForAttachType', () => {
     expect(roleSlotForAttachType('Armor')).toBeNull();
     expect(roleSlotForAttachType(null)).toBeNull();
     expect(roleSlotForAttachType('')).toBeNull();
+  });
+});
+
+describe('computeReadiness', () => {
+  const weapon = (subType: string): EntityPayloadEntry => ({ kind: 'weapon', payload: { subType } }) as EntityPayloadEntry;
+  const on = (slots: { key: string; ok: boolean }[]) => slots.filter((s) => s.ok).map((s) => s.key);
+
+  it('classifies guns, blades and tools by their sub-type', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([
+      ['behr_rifle_ballistic_01', weapon('Medium')],
+      ['klwe_pistol_energy_01', weapon('Small')],
+      ['grin_multitool_01', weapon('Gadget')],
+    ]);
+    const items = [...payloads.keys()].map((className) => ({ className }));
+    expect(on(computeReadiness(items, payloads))).toEqual(['primary', 'secondary', 'gadget']);
+  });
+
+  it('counts the ParaMed as medical, not as a second pistol', () => {
+    const payloads = new Map<string, EntityPayloadEntry>([['crlf_medgun_01', weapon('Small')]]);
+    expect(on(computeReadiness([{ className: 'crlf_medgun_01' }], payloads))).toEqual(['medical']);
   });
 });

@@ -198,6 +198,19 @@ export interface PortQuery {
 
 const PAGE_SIZE = 60;
 const SEARCH_LIMIT = 60;
+
+/**
+ * Ship-table records that are no ship a player can own or fly: salvage wrecks
+ * (`SalvageableDebris*`, named after the hull they came from — a second "Aegis
+ * Avenger Titan" card), orbital sentry turrets and comm probes. The extractor
+ * files them as vehicles without the variant flag, so the default browse drops
+ * them by class name; "include variants" still lists them. 16 records in the
+ * 4.10 LIVE build (audit 2026-09-25).
+ */
+const NON_SHIP_VEHICLE_PREFIXES = ['SalvageableDebris', 'Orbital_Sentry', 'probe_'] as const;
+
+/** Guard for listFpsCatalog's paging loop — ~5× today's largest on-foot category. */
+const FPS_CATALOG_HARD_CAP = 12000;
 // Ceiling for the livery-/edition-sibling reads. The largest family in build
 // 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
 // seven); the prefix also catches unrelated neighbours, so this sits well above
@@ -311,6 +324,8 @@ export class CodexService {
 
   /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
   private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
+  /** Whole on-foot catalogs, per build + category + variant switch — see listFpsCatalog. */
+  private fpsCatalogCache = new Map<string, Promise<CodexListRow[]>>();
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -514,6 +529,16 @@ export class CodexService {
     // is_variant column — skip the filter for them.
     if (kind !== 'ammunition' && kind !== 'manufacturer' && kind !== 'blueprint' && !filters.includeVariants) {
       query = query.eq('is_variant', false);
+      // Records without a name in ANY language — the game's own "! GERMAN_…
+      // TRANSLATION NOT FOUND … !" marker, English only an @-key — are
+      // unfinished items. "!" sorts before every letter, so a dozen of them
+      // opened every armour list (audit 2026-09-25). NULL names stay.
+      query = query.or('name_localized.is.null,name_localized.not.like.!*');
+    }
+    if (kind === 'ship' && !filters.includeVariants) {
+      for (const prefix of NON_SHIP_VEHICLE_PREFIXES) {
+        query = query.not('class_name', 'ilike', `${prefix}*`);
+      }
     }
 
     if (filters.manufacturer) query = query.eq('manufacturer_code', filters.manufacturer);
@@ -629,6 +654,71 @@ export class CodexService {
    */
   async listFpsArmor(filters: Omit<CodexListFilters, 'attachTypeIn'> = {}): Promise<CodexListResult> {
     return this.listByKind('item', { ...filters, attachTypeIn: [...FPS_ARMOR_ATTACH_TYPES] });
+  }
+
+  /**
+   * The WHOLE on-foot catalog of one category (FPS weapons or personal armour)
+   * in one go, slim: the promoted columns plus the only three payload fields a
+   * list card reads (name, preview image, manufacturer).
+   *
+   * Why not pages: `/codex/fps` folds file variants and liveries into one card,
+   * and folding per 60-row page split families at the page edge — the C54's
+   * seven liveries showed as seven cards because the base record sorted onto
+   * page two — and turned the result count into an estimate. The full payload
+   * was also ~10 kB per armour row (~600 kB per 60-card page) for 3 % of it on
+   * screen; slim, all 2.4k armour rows are ~1.3 MB before compression — about
+   * two of the old pages. Same default filters as {@link listByKind}. Cached
+   * per build, category and variant switch.
+   */
+  async listFpsCatalog(category: 'weapon' | 'armor', includeVariants = false): Promise<CodexListRow[]> {
+    const build = await this.loadCurrentBuild();
+    if (!build) return [];
+    const run = async (): Promise<CodexListRow[]> => {
+      const kind: CodexKind = category === 'weapon' ? 'weapon' : 'item';
+      const select =
+        'class_name, name_localized, manufacturer_code, attach_type, sub_type, size, grade, is_variant, ' +
+        (category === 'weapon' ? 'weapon_class, ' : '') +
+        'name:payload->name, previewImage:payload->previewImage, manufacturer:payload->manufacturer';
+      const page = 1000; // PostgREST caps a response at 1000 rows
+      const out: CodexListRow[] = [];
+      for (let offset = 0; offset < FPS_CATALOG_HARD_CAP; offset += page) {
+        let query = this.sb.client.from(CODEX_ENTITY_TABLES[kind]).select(select).eq('build_id', build.id);
+        query =
+          category === 'weapon'
+            ? query.eq('weapon_class', 'FPS')
+            : query.in('attach_type', [...FPS_ARMOR_ATTACH_TYPES]);
+        if (!includeVariants) {
+          query = query.eq('is_variant', false).or('name_localized.is.null,name_localized.not.like.!*');
+        }
+        const { data, error } = await query
+          .order('name_localized', { ascending: true, nullsFirst: false })
+          .order('class_name', { ascending: true })
+          .range(offset, offset + page - 1);
+        if (error) throw error;
+        const rows = (data ?? []) as unknown as Record<string, unknown>[];
+        for (const r of rows) {
+          out.push(
+            mapListRow(kind, {
+              ...r,
+              payload: { name: r['name'], previewImage: r['previewImage'], manufacturer: r['manufacturer'] },
+            }),
+          );
+        }
+        if (rows.length < page) break;
+      }
+      return out;
+    };
+    const key = `${build.id}|${category}|${includeVariants}`;
+    let hit = this.fpsCatalogCache.get(key);
+    if (!hit) {
+      // A failed read must not stick: drop it so the retry button reads again.
+      hit = run().catch((err) => {
+        this.fpsCatalogCache.delete(key);
+        throw err;
+      });
+      this.fpsCatalogCache.set(key, hit);
+    }
+    return hit;
   }
 
   /**
@@ -1865,9 +1955,16 @@ export function manufacturerLabel(
   lang: Lang,
 ): string | null {
   if (!row) return null;
+  // The game's own "unknown" maker: its German name is the unfinished
+  // placeholder "PH  Unknown Manufacturer", and even a clean "Unknown" badge
+  // says nothing — 320 weapons and items carried one (audit 2026-09-25).
+  if (row.manufacturerCode === UNKNOWN_MANUFACTURER_CODE) return null;
   const p = row.payload as { manufacturer?: { name?: LocalizedText } } | undefined;
   return pickLocalized(p?.manufacturer?.name, lang) || row.manufacturerCode || null;
 }
+
+/** The catalog's "no known maker" code — never shown as a manufacturer. */
+export const UNKNOWN_MANUFACTURER_CODE = 'UNKN';
 
 /**
  * Manufacturer facet options for a list view: the option VALUE stays the
@@ -1883,7 +1980,7 @@ export function manufacturerFacetOptions(
   const byCode = new Map<string, string>();
   for (const r of rows) {
     const code = r.manufacturerCode;
-    if (!code) continue;
+    if (!code || code === UNKNOWN_MANUFACTURER_CODE) continue;
     const label = manufacturerLabel(r, lang) ?? code;
     const existing = byCode.get(code);
     // First resolved name wins; never let a later code-only row overwrite it.

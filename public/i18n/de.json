@@ -1771,7 +1771,17 @@
       "noSets": "Noch kein Set kommissioniert.",
       "createInHangar": "Set im Hangar anlegen →",
       "loading": "Set wird geladen …",
-      "loadFailed": "Deine Sets konnten nicht geladen werden."
+      "loadFailed": "Deine Sets konnten nicht geladen werden.",
+      "share": "Set teilen",
+      "gear": {
+        "eyebrow": "Waffen & Werkzeug",
+        "open": "offen",
+        "clear": "Leeren",
+        "clearAria": "{{slot}} leeren",
+        "clearing": "Wird geleert …",
+        "clearFailed": "{{slot}} konnte nicht geleert werden. Bitte erneut versuchen.",
+        "noSource": "Nicht im Archiv — Verbrauchsgut"
+      }
     }
   },
   "blueprint": {
@@ -1846,6 +1856,19 @@
     "filters": {
       "weaponType": "Waffentyp",
       "armorSlot": "Rüstungsslot"
+    },
+    "weaponType": {
+      "sidearm": "Einhandwaffe",
+      "primary": "Primärwaffe",
+      "heavy": "Schwere Waffe",
+      "melee": "Nahkampf",
+      "throwable": "Wurfobjekt",
+      "gadget": "Werkzeug / Gadget"
+    },
+    "weight": {
+      "light": "Leicht",
+      "medium": "Mittel",
+      "heavy": "Schwer"
     },
     "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
     "empty": {

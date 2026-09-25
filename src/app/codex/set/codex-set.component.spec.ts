@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { Component, input, signal } from '@angular/core';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
@@ -8,6 +8,13 @@ import { CodexService } from '../codex.service';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
+import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
+
+/** Stands in for the real share panel, which pulls friends + share RPCs. */
+@Component({ selector: 'sc-loadout-share-panel', standalone: true, template: '<p class="share-stub">{{ loadoutId() }}</p>' })
+class SharePanelStub {
+  readonly loadoutId = input.required<string>();
+}
 
 const SET_A: HangarRoleLoadout = {
   id: 'set-a',
@@ -88,10 +95,16 @@ async function setup(opts: {
             if (opts.serverLoadouts) roleLoadouts.set(opts.serverLoadouts);
           },
           markSetPicked: () => undefined,
+          setRoleLoadoutSlot: async () => null,
         } as Partial<HangarService>,
       },
     ],
-  }).compileComponents();
+  })
+    .overrideComponent(CodexSetComponent, {
+      remove: { imports: [LoadoutSharePanelComponent] },
+      add: { imports: [SharePanelStub] },
+    })
+    .compileComponents();
   const fixture = TestBed.createComponent(CodexSetComponent);
   fixture.detectChanges();
   await fixture.whenStable();
@@ -112,6 +125,54 @@ describe('CodexSetComponent', () => {
     expect(fixture.componentInstance.activeSet()?.id).toBe('set-b');
     expect(el.querySelector('sc-hangar-picker')).toBeTruthy();
     expect(el.querySelectorAll('.board-slot').length).toBe(6);
+  });
+
+  it("renders the set's weapon/tool positions below the armour board", async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const el: HTMLElement = fixture.nativeElement;
+    const gear = el.querySelector('.board-wrap sc-codex-set-gear');
+    expect(gear).not.toBeNull();
+    // SET_A is an engineering set: multitool, repair attachment, tractor.
+    const slots = Array.from(gear!.querySelectorAll<HTMLElement>('.gear-slot')).map((e) => e.dataset['slot']);
+    expect(slots).toEqual(['multitool', 'repair-attachment', 'tractor']);
+    const link = gear!.querySelector('a.gear-tile');
+    expect(link?.getAttribute('href')).toBe('/codex/fps?cat=weapon&equipInto=set-a&equipSlot=multitool');
+  });
+
+  it('toggles the inline share panel from the share icon button', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const el: HTMLElement = fixture.nativeElement;
+    const btn = el.querySelector('button.share-btn') as HTMLButtonElement;
+    expect(btn).not.toBeNull();
+    expect(btn.closest('a')).toBeNull();
+    expect(btn.getAttribute('aria-label')).toBe('codex.set.share');
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector('sc-loadout-share-panel')).toBeNull();
+
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector('.share-stub')?.textContent).toBe('set-a');
+
+    btn.click();
+    fixture.detectChanges();
+    expect(el.querySelector('sc-loadout-share-panel')).toBeNull();
+  });
+
+  it('closes the share panel when the page moves to another set', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('button.share-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('sc-loadout-share-panel')).not.toBeNull();
+
+    await navigateTo(fixture, 'set-b');
+    expect(el.querySelector('sc-loadout-share-panel')).toBeNull();
+  });
+
+  it('offers no share button to a signed-out visitor', async () => {
+    const fixture = await setup({ id: null, signedIn: false, loadouts: [] });
+    expect((fixture.nativeElement as HTMLElement).querySelector('button.share-btn')).toBeNull();
   });
 
   it('falls back to the most recently touched set when the requested id no longer exists', async () => {

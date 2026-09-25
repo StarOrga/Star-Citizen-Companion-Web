@@ -309,11 +309,16 @@ export function armorClassFromPayload(payload: unknown): ArmorClass | null {
 // (Medium 1105 · Small 297 · Gadget 163 · Knife 140 · Grenade 74 · Large 57)
 // plus `FPS_Consumable / Medical` (60) for medpens.
 //
-// There is deliberately NO mining/salvage/tractor entry: every `Mining*` and
-// `Tractor` hit in the archive is a SHIP component (turrets, seats,
-// `AEGS_Reclaimer_Salvage_Arm`), and a handheld multitool with attachments does
-// not exist as a personal-item category in this build. A "mining ready ✓" mark
-// would therefore be a fabricated claim.
+// There is deliberately NO mining/salvage/tractor entry. The handheld tools do
+// exist as FPS weapons of sub-type `Gadget` (Pyro RYT multi-tool with its
+// `_default_mining` / `_default_salvage_repair` / `_default_tractorbeam`
+// records, MaxLift tractor beams, Cambio SRT — re-checked 2026-09-25), so they
+// count as `gadget`; a separate "mining ready ✓" per attachment would still
+// claim more than the record says.
+//
+// The one exception to "classify by sub-type": the ParaMed medical device
+// (`crlf_medgun_01`) is sub-type Small like a pistol, but it heals — it marks
+// `medical`, never `secondary`.
 
 export const READINESS_KEYS = [
   'primary', 'secondary', 'melee', 'throwable', 'gadget', 'medical',
@@ -351,7 +356,9 @@ export function computeReadiness(
     const subType = (entry.payload as { subType?: string | null } | null)?.subType ?? null;
     if (!subType) continue;
     const key = subType.toLowerCase();
-    if (entry.kind === 'weapon') {
+    if (entry.kind === 'weapon' && item.className.toLowerCase().includes('medgun')) {
+      hit.add('medical');
+    } else if (entry.kind === 'weapon') {
       const mapped = READINESS_BY_WEAPON_SUBTYPE[key];
       if (mapped) hit.add(mapped);
     } else if (entry.kind === 'item' && key === 'medical') {

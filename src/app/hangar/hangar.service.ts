@@ -756,6 +756,57 @@ export class HangarService {
     return loadout;
   }
 
+  /**
+   * Put one piece into one slot of a set — `piece: null` empties it — without
+   * clobbering the rest (audit 2026-09-25, lost update between two tabs).
+   *
+   * `updateRoleLoadout` writes a whole `items` array the caller assembled from
+   * its own, possibly old, copy: equip the helmet in one tab, the torso in a
+   * second tab opened earlier, and the second write deletes the helmet. Here
+   * the merge happens against the SERVER row, and the write only lands if that
+   * row is still the one that was read (`updated_at`, bumped by the
+   * `hangar_role_loadouts_updated_at` trigger); a write in between means one
+   * re-read and one retry.
+   */
+  async setRoleLoadoutSlot(
+    id: string,
+    slot: string,
+    piece: { className: string; kind: string } | null,
+  ): Promise<HangarRoleLoadout | null> {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
+      if (read.error || !read.data) {
+        this.error.set(read.error?.message ?? 'Set not found');
+        return null;
+      }
+      const row = read.data as HangarRoleLoadoutRow;
+      const items = mapHangarRoleLoadout(row).items.filter((i) => i.slot !== slot);
+      if (piece) items.push({ slot, className: piece.className, kind: piece.kind });
+      const write = await this.sb.client
+        .from('hangar_role_loadouts')
+        .update({ items: items as unknown as never[] })
+        .eq('id', id)
+        .eq('updated_at', row.updated_at)
+        .select('*');
+      if (write.error) {
+        this.error.set(write.error.message);
+        return null;
+      }
+      const saved = (write.data ?? [])[0] as HangarRoleLoadoutRow | undefined;
+      if (!saved) continue; // written elsewhere in between — merge again on the new row
+      const loadout = mapHangarRoleLoadout(saved);
+      const known = this.roleLoadouts().some((l) => l.id === loadout.id);
+      this.roleLoadouts.set(
+        known
+          ? this.roleLoadouts().map((l) => (l.id === loadout.id ? loadout : l))
+          : [loadout, ...this.roleLoadouts()],
+      );
+      return loadout;
+    }
+    this.error.set('The set changed twice while saving — please try again.');
+    return null;
+  }
+
   async deleteRoleLoadout(id: string): Promise<boolean> {
     const { error } = await this.sb.client.from('hangar_role_loadouts').delete().eq('id', id);
     if (error) {

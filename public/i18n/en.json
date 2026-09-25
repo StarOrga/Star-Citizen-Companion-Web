@@ -1771,7 +1771,17 @@
       "noSets": "No set commissioned yet.",
       "createInHangar": "Create a set in the hangar →",
       "loading": "Loading the set …",
-      "loadFailed": "Your sets could not be loaded."
+      "loadFailed": "Your sets could not be loaded.",
+      "share": "Share set",
+      "gear": {
+        "eyebrow": "Weapons & tools",
+        "open": "open",
+        "clear": "Clear",
+        "clearAria": "Clear {{slot}}",
+        "clearing": "Clearing …",
+        "clearFailed": "{{slot}} could not be cleared. Please try again.",
+        "noSource": "Not in the archive — consumable"
+      }
     }
   },
   "blueprint": {
@@ -1846,6 +1856,19 @@
     "filters": {
       "weaponType": "Weapon type",
       "armorSlot": "Armor slot"
+    },
+    "weaponType": {
+      "sidearm": "Sidearm",
+      "primary": "Primary weapon",
+      "heavy": "Heavy weapon",
+      "melee": "Melee",
+      "throwable": "Throwable",
+      "gadget": "Tool / gadget"
+    },
+    "weight": {
+      "light": "Light",
+      "medium": "Medium",
+      "heavy": "Heavy"
     },
     "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
     "empty": {
