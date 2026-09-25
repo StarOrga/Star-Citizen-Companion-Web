@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { CodexBoardPanelComponent } from './codex-board-panel.component';
+import { ResolvedEntity } from './codex.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 
 const OPEN_SET: HangarRoleLoadout = {
@@ -15,6 +16,22 @@ const OPEN_SET: HangarRoleLoadout = {
 };
 
 const OTHER_SET: HangarRoleLoadout = { ...OPEN_SET, id: 'set-other', name: 'Other Set' };
+
+/** A helmet, resolved with a genuine EN/DE payload name plus its slim nameLocalized fallback. */
+const HELMET_SET: HangarRoleLoadout = {
+  ...OPEN_SET,
+  id: 'set-helmet',
+  items: [{ slot: 'helmet', className: 'Helmet_01', kind: 'item' }],
+};
+const HELMET_RESOLVED: ResolvedEntity = {
+  kind: 'item',
+  className: 'Helmet_01',
+  nameLocalized: 'Helmet 01 EN',
+  name: { key: '@item_Helmet_01', en: 'Combat Helmet', de: 'Kampfhelm' },
+  manufacturerCode: null,
+  size: null,
+  grade: null,
+};
 
 /** Hosts the panel the way the set page does: a plain wrapper carrying --tint, no `.board` class. */
 @Component({
@@ -45,20 +62,33 @@ function channels(color: string): number[] {
 }
 
 describe('CodexBoardPanelComponent', () => {
-  async function render(): Promise<HTMLElement> {
+  async function render(setup?: (host: HostComponent) => void): Promise<{
+    el: HTMLElement;
+    translate: TranslateService;
+    detectChanges: () => Promise<void>;
+  }> {
     await TestBed.configureTestingModule({
       imports: [HostComponent],
       providers: [provideRouter([]), provideTranslateService({})],
     }).compileComponents();
     const fixture = TestBed.createComponent(HostComponent);
+    setup?.(fixture.componentInstance);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return fixture.nativeElement as HTMLElement;
+    return {
+      el: fixture.nativeElement as HTMLElement,
+      translate: TestBed.inject(TranslateService),
+      detectChanges: async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+      },
+    };
   }
 
   it('paints open positions blue-grey wherever it is hosted, not only under a ".board" parent', async () => {
-    const el = await render();
+    const { el } = await render();
     const square = el.querySelector('.board-sq.empty') as HTMLElement;
     const label = el.querySelector('.board-slot.empty .t-label') as HTMLElement;
 
@@ -75,7 +105,7 @@ describe('CodexBoardPanelComponent', () => {
   });
 
   it('shows only the readiness classes the set\'s role has a position for', async () => {
-    const el = await render();
+    const { el } = await render();
     // An engineering set holds tools only: one gadget glyph, not five that can never light.
     const glyphs = Array.from(el.querySelectorAll('.rdy-ic')).map((g) => g.getAttribute('aria-label'));
     expect(glyphs.length).toBe(1);
@@ -83,8 +113,43 @@ describe('CodexBoardPanelComponent', () => {
   });
 
   it('switches sets on the set page instead of sending the reader to the landing', async () => {
-    const el = await render();
+    const { el } = await render();
     const hrefs = Array.from(el.querySelectorAll('.dial-node')).map((a) => a.getAttribute('href'));
     expect(hrefs).toEqual(['/codex/set/set-open', '/codex/set/set-other']);
+  });
+
+  it('shows the equipped piece name in the current UI language, EN default', async () => {
+    const { el } = await render((host) => {
+      host.loadouts = [HELMET_SET];
+      host.resolved = new Map([['Helmet_01', HELMET_RESOLVED]]);
+    });
+    const value = el.querySelector('.board-slot .t-value') as HTMLElement;
+    expect(value.textContent?.trim()).toBe('Combat Helmet');
+  });
+
+  it('follows a language switch to German and back', async () => {
+    const { el, translate, detectChanges } = await render((host) => {
+      host.loadouts = [HELMET_SET];
+      host.resolved = new Map([['Helmet_01', HELMET_RESOLVED]]);
+    });
+
+    translate.use('de');
+    await detectChanges();
+    expect((el.querySelector('.board-slot .t-value') as HTMLElement).textContent?.trim()).toBe('Kampfhelm');
+
+    translate.use('en');
+    await detectChanges();
+    expect((el.querySelector('.board-slot .t-value') as HTMLElement).textContent?.trim()).toBe('Combat Helmet');
+  });
+
+  it('falls back to nameLocalized when the payload carries no localized name', async () => {
+    const { el } = await render((host) => {
+      host.loadouts = [HELMET_SET];
+      host.resolved = new Map([
+        ['Helmet_01', { ...HELMET_RESOLVED, name: null }],
+      ]);
+    });
+    const value = el.querySelector('.board-slot .t-value') as HTMLElement;
+    expect(value.textContent?.trim()).toBe('Helmet 01 EN');
   });
 });

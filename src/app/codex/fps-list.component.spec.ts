@@ -47,11 +47,22 @@ describe('FpsListComponent (equip mode)', () => {
     holdList?: boolean;
     /** What the list query returns (defaults to one helmet). */
     rows?: CodexListRow[];
-  }): Promise<{ fixture: ComponentFixture<FpsListComponent>; el: HTMLElement; update: jasmine.Spy }> {
+    /** True selects an older patch than the live one (CodexService.viewingPastPatch). */
+    viewingPastPatch?: boolean;
+    selectBuild?: jasmine.Spy;
+  }): Promise<{
+    fixture: ComponentFixture<FpsListComponent>;
+    el: HTMLElement;
+    update: jasmine.Spy;
+    selectBuild: jasmine.Spy;
+    viewingPastPatch: ReturnType<typeof signal<boolean>>;
+  }> {
     const list = opts.holdList
       ? jasmine.createSpy('listFpsCatalog').and.returnValue(new Promise(() => undefined))
       : jasmine.createSpy('listFpsCatalog').and.resolveTo(opts.rows ?? [HELMET]);
     const update = opts.update ?? jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(null);
+    const viewingPastPatch = signal(opts.viewingPastPatch ?? false);
+    const selectBuild = opts.selectBuild ?? jasmine.createSpy('selectBuild').and.returnValue(true);
 
     const codex: Partial<CodexService> = {
       build: signal({ id: 'b1', entityCounts: {} }) as never,
@@ -66,6 +77,8 @@ describe('FpsListComponent (equip mode)', () => {
       listFpsCatalog: list,
       isPinned: () => false,
       previewUrl: () => null,
+      viewingPastPatch: viewingPastPatch as never,
+      selectBuild: selectBuild as never,
     };
     const hangar: Partial<HangarService> = {
       getRoleLoadout: jasmine.createSpy('getRoleLoadout').and.resolveTo(opts.set ?? null),
@@ -92,7 +105,7 @@ describe('FpsListComponent (equip mode)', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, el: fixture.nativeElement as HTMLElement, update };
+    return { fixture, el: fixture.nativeElement as HTMLElement, update, selectBuild, viewingPastPatch };
   }
 
   it('says so when the equip write is refused instead of looking like a dead click', async () => {
@@ -193,6 +206,49 @@ describe('FpsListComponent (equip mode)', () => {
     expect(el.querySelector('.equip-btn')).toBeNull();
   });
 
+  it('disables equip and shows the past-patch note when an older patch is selected in equip mode', async () => {
+    const { fixture, el, update } = await setup({
+      query: { cat: 'armor', equipInto: 'set-1' },
+      set: SET,
+      viewingPastPatch: true,
+    });
+
+    const btn = el.querySelector('.equip-btn') as HTMLButtonElement;
+    expect(btn.disabled).toBeTrue();
+    expect(el.querySelector('.equip-past-note')?.textContent).toContain('fps.equip.pastPatch');
+
+    // A stale click (e.g. a synthetic event) must not slip through even if
+    // the disabled attribute were somehow bypassed.
+    fixture.componentInstance.equip(new Event('click', { cancelable: true }), { ...HELMET, detailKind: 'item' } as never, 'helmet');
+    await fixture.whenStable();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('re-enables equip once the reader switches back to the current patch', async () => {
+    const selectBuild = jasmine.createSpy('selectBuild').and.returnValue(true);
+    const { fixture, el, viewingPastPatch } = await setup({
+      query: { cat: 'armor', equipInto: 'set-1' },
+      set: SET,
+      viewingPastPatch: true,
+      selectBuild,
+    });
+
+    (el.querySelector('.equip-past-back') as HTMLButtonElement).click();
+    expect(selectBuild).toHaveBeenCalledWith(null);
+
+    // The service call is what actually switches the build back — simulate
+    // its effect on the signal the component reads.
+    viewingPastPatch.set(false);
+    fixture.detectChanges();
+    expect((el.querySelector('.equip-btn') as HTMLButtonElement).disabled).toBeFalse();
+    expect(el.querySelector('.equip-past-note')).toBeNull();
+  });
+
+  it('shows no past-patch note outside equip mode, even on an older patch', async () => {
+    const { el } = await setup({ query: { cat: 'armor' }, viewingPastPatch: true });
+    expect(el.querySelector('.equip-past-note')).toBeNull();
+  });
+
   it('does not announce "0 results" while the first page is still loading', async () => {
     const { el } = await setup({ query: { cat: 'weapon' }, holdList: true });
     const head = el.querySelector('.result-head .count')!.textContent!.trim();
@@ -233,6 +289,8 @@ describe('FpsListComponent (honest slot fitting)', () => {
             listFpsCatalog: async (category: string) => (category === 'weapon' ? rows : []),
             isPinned: () => false,
             previewUrl: () => null,
+            viewingPastPatch: signal(false),
+            selectBuild: () => true,
           } as unknown as Partial<CodexService>,
         },
         {
@@ -352,6 +410,8 @@ describe('FpsListComponent (whole catalog)', () => {
             listFpsCatalog: async (category: string) => (category === 'weapon' ? rows : armor),
             isPinned: () => false,
             previewUrl: () => null,
+            viewingPastPatch: signal(false),
+            selectBuild: () => true,
           } as unknown as Partial<CodexService>,
         },
         { provide: HangarService, useValue: { getRoleLoadout: async () => null } as Partial<HangarService> },

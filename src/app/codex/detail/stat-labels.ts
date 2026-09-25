@@ -61,6 +61,58 @@ const STAT_LABEL_KEYS: Record<string, string> = {
   Damage: 'damage',
   Range: 'range',
   'Effective Range': 'effectiveRange',
+  // Live walk 2026-09-26 (helmet, undersuit, FPS weapon, shield, quantum drive
+  // pages of build 4.9): the keys that actually reach the grids. Full dotted
+  // paths where the leaf alone is ambiguous ("Max Resistance", "Max Range").
+  'g Force Resistance': 'gForceResistance',
+  'Temperature Resistance.Max Resistance': 'temperatureMax',
+  'Temperature Resistance.Min Resistance': 'temperatureMin',
+  'EM Signature On': 'emSignature',
+  'IR Signature On': 'irSignature',
+  'Atmosphere Capacity': 'atmosphereCapacity',
+  'Radiation Dissipation Rate': 'radiationDissipationRate',
+  'Atmospheric Pressure Range.Max Range': 'pressureMax',
+  'Atmospheric Pressure Range.Min Range': 'pressureMin',
+  'Heat Per Shot': 'heatPerShot',
+  'Projectiles Per Shot': 'projectilesPerShot',
+  'Downed Regen Delay': 'downedRegenDelay',
+  'Damaged Regen Delay': 'damagedRegenDelay',
+  'Decay Ratio': 'decayRatio',
+  'Reserve Pool Drain Rate Ratio': 'reserveDrainRate',
+  'Max Alpha Damage Ratio': 'stunMaxAlphaRatio',
+  'Min Alpha Damage Ratio': 'stunMinAlphaRatio',
+  'Max Stun Time': 'stunMaxTime',
+  'Min Stun Time': 'stunMinTime',
+  'Spline Jump Params.Drive Speed': 'splineDriveSpeed',
+  'Spline Jump Params.Engage Speed': 'splineEngageSpeed',
+  'Spline Jump Params.Spool Up Time': 'splineSpoolUpTime',
+  'Spline Jump Params.Cooldown Time': 'splineCooldownTime',
+  'Spline Jump Params.Calibration Rate': 'splineCalibrationRate',
+  'Spline Jump Params.Stage One Accel Rate': 'splineAccelStageOne',
+  'Spline Jump Params.Stage Two Accel Rate': 'splineAccelStageTwo',
+  'Spline Jump Params.Interdiction Effect Time': 'splineInterdictionTime',
+  'Spline Jump Params.Calibration Delay In Seconds': 'splineCalibrationDelay',
+  'Spline Jump Params.Max Calibration Requirement': 'splineCalibrationMax',
+  'Spline Jump Params.Min Calibration Requirement': 'splineCalibrationMin',
+  'Drive Speed': 'driveSpeed',
+  'Engage Speed': 'engageSpeed',
+  'Spool Up Time': 'spoolUpTime',
+  'Cooldown Time': 'cooldownTime',
+  'Calibration Rate': 'calibrationRate',
+  'Calibration Delay In Seconds': 'calibrationDelay',
+  'Max Calibration Requirement': 'calibrationMax',
+  'Min Calibration Requirement': 'calibrationMin',
+  'Stage One Accel Rate': 'accelStageOne',
+  'Stage Two Accel Rate': 'accelStageTwo',
+  'Interdiction Effect Time': 'interdictionTime',
+  'Ramp Up Thermal Energy Draw': 'rampUpHeat',
+  Duration: 'duration',
+  'Disconnect Range': 'disconnectRange',
+  'Quantum Fuel Requirement': 'quantumFuel',
+  'In Flight Thermal Energy Draw': 'inFlightHeat',
+  'Ramp Down Thermal Energy Draw': 'rampDownHeat',
+  'Pre Ramp Up Thermal Energy Draw': 'preRampUpHeat',
+  'Post Ramp Down Thermal Energy Draw': 'postRampDownHeat',
 };
 
 const STAT_LABEL_LOOKUP = new Map<string, string>(
@@ -93,7 +145,28 @@ const ENGINE_INTERNAL_DENYLIST: RegExp[] = [
   /\btooltip\b/i,
   /\bbinding\b/i,
   /\bicon\b/i,
+  // Live walk 2026-09-26, build 4.9 — whole families of plumbing on real pages:
+  /^(?:other|legacy|local player) params\./i, // helmet lamp: fov, style, fog multiplier, shadow quality cap …
+  /^legacy thrust params\./i, // undersuit EVA thrust tuning
+  /\bv?fx\b/i, // "VFX Thruster Threshold", "Params.VFX Pinch Max Velocity" (quantum drive)
+  /\bshader\b/i, // "Params.Shader Node Engage Velocity"
+  /^(?:f stop|max fov|min fov|focal distance|motion modifier)$/i, // helmet camera
+  /^dof\b/i, // "DOF Min Z", "DOF Blur Amount"
+  /^(?:stop )?inspect\b/i, // "Inspect Rotate Limits X.Y", "Stop Inspect Interaction"
+  /\bconstraint(?: offset)?$/i, // "Global Constraint", "Top Constraint Offset"
+  /^puncture max (?:area|number)$/i,
+  /\bpost effects?\b/i, // "Transparency Post Effects Exclusion Region"
+  /^animate on equip\b/i,
+  /^integrity milestone\b/i,
+  /\bclass name$/i, // "Ammo Class Name": a raw class token, the ammo has its own link
+  /^equip category$/i, // "Pistol" / "HeavyHip" — the weapon type is shown in the header
+  /^supplementary fire time$/i,
+  /\bangle limit$/i, // quantum calibration angle limits
+  /^(?:self refill rate|recipient transfer rate|recipient ideal pressure)$/i, // oxygen plumbing
 ];
+
+/** A value that is an unresolved engine reference ("_PointsTo_:ptr:6") — never a stat. */
+const POINTER_VALUE = /_PointsTo_:ptr/;
 
 function leafOf(key: string): string {
   const i = key.lastIndexOf('.');
@@ -130,7 +203,7 @@ export interface DisplayStatGroup {
 export function toDisplayStatRows(rows: StatRow[]): DisplayStatRow[] {
   const out: DisplayStatRow[] = [];
   for (const r of rows) {
-    if (isEngineInternalStatLabel(r.key)) continue;
+    if (isEngineInternalStatLabel(r.key) || POINTER_VALUE.test(r.value)) continue;
     const i18nKey = statLabelI18nKey(r.key);
     out.push(i18nKey ? { ...r, i18nKey } : r);
   }

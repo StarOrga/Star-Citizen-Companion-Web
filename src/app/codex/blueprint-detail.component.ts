@@ -40,7 +40,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <a class="back" [routerLink]="['/codex/blueprint']">← {{ 'blueprint.detail.back' | translate }}</a>
+      <a class="back" routerLink="/codex/index" [queryParams]="{ kind: 'blueprint' }">← {{ 'blueprint.detail.back' | translate }}</a>
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>

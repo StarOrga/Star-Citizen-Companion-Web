@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
-import { ResolvedEntity, fpsArmorSlot } from './codex.service';
+import { ResolvedEntity, fpsArmorSlot, pickLocalized, toLang } from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import {
   ARMOR_CLASS_OFF_SCALE,
@@ -480,6 +481,15 @@ const READY_ICON_PATHS: Readonly<Record<ReadinessKey, string>> = {
 export class CodexBoardPanelComponent {
   private readonly t = inject(TranslateService);
 
+  /** UI language for slot names — re-derived on every language switch (see constructor). */
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
+
+  constructor() {
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.dataLang.set(toLang(e.lang)));
+  }
+
   /** Personal sets, already sorted most-recently-touched first. */
   readonly loadouts = input.required<HangarRoleLoadout[]>();
   /** Names/manufacturers for everything the active set carries. */
@@ -512,6 +522,7 @@ export class CodexBoardPanelComponent {
     const payloads = this.payloads();
     const resolved = this.resolved();
     const depth = this.archiveDepth();
+    const lang = this.dataLang();
     return armorSlotsFromLoadout(this.activeLoadout()?.items ?? []).map((s) => {
       if (!s.className) {
         return {
@@ -521,8 +532,10 @@ export class CodexBoardPanelComponent {
         };
       }
       const cls = armorClassFromPayload(payloads.get(s.className)?.payload ?? null);
+      const entity = resolved.get(s.className);
       const name =
-        cleanLocaleValue(resolved.get(s.className)?.nameLocalized) ||
+        pickLocalized(entity?.name, lang) ||
+        cleanLocaleValue(entity?.nameLocalized) ||
         humanizeClassName(s.className);
       return {
         roleSlot: s.roleSlot, labelKey: s.labelKey, attachType: s.attachType,

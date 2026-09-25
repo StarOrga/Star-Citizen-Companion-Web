@@ -97,7 +97,7 @@ interface Lane {
           </div>
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
-          <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
+          <a class="index-link" routerLink="/codex/index" [queryParams]="{ kind: 'blueprint' }">{{ 'blueprint.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>

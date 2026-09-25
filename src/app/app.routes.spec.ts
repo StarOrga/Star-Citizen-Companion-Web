@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { hangarLoadoutRedirect, routes } from './app.routes';
+import { blueprintListRedirect, hangarLoadoutRedirect, routes } from './app.routes';
 
 /**
  * The retired hangar loadout editor (admin feedback 34505d70, decision "2A").
@@ -36,5 +36,42 @@ describe('hangar/loadout/:id bridge', () => {
     // A bridge, not a page: no component may hang off it any more.
     expect(bridge?.loadComponent).toBeUndefined();
     expect(bridge?.redirectTo).toBe(hangarLoadoutRedirect);
+  });
+});
+
+/**
+ * The retired standalone blueprint list (AUD-061) — folded into the Codex
+ * index's blueprint category. The detail route (`codex/blueprint/:className`)
+ * is untouched; only the list moved.
+ */
+describe('codex/blueprint bridge', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
+
+  it('sends the bare list to the index with the blueprint category', () => {
+    const tree = TestBed.runInInjectionContext(() =>
+      blueprintListRedirect({ queryParams: {} }),
+    );
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/index?kind=blueprint');
+  });
+
+  it('carries an incoming search term over', () => {
+    const tree = TestBed.runInInjectionContext(() =>
+      blueprintListRedirect({ queryParams: { q: 'gold' } }),
+    );
+    const url = TestBed.inject(Router).serializeUrl(tree);
+    expect(url).toContain('kind=blueprint');
+    expect(url).toContain('q=gold');
+  });
+
+  it('still registers the detail route unchanged', () => {
+    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'codex/blueprint'));
+    const list = (shell?.children ?? []).find((c) => c.path === 'codex/blueprint');
+    const detail = (shell?.children ?? []).find((c) => c.path === 'codex/blueprint/:className');
+    expect(list?.redirectTo).toBe(blueprintListRedirect);
+    expect(list?.loadComponent).toBeUndefined();
+    expect(detail).toBeDefined();
+    expect(detail?.loadComponent).toBeDefined();
   });
 });

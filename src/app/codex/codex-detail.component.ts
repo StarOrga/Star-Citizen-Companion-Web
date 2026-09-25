@@ -37,10 +37,10 @@ import {
 } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig } from '../hangar/hangar.types';
-import { HangarPickerComponent, HangarPickerItem } from './stage/hangar-picker.component';
+import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
-import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
+import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
 import {
   computeLoadoutStats,
   findStat,
@@ -294,7 +294,7 @@ interface GearRecipe {
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, HangarPickerComponent, ScTooltipDirective],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -361,115 +361,30 @@ interface GearRecipe {
              has no analysis card to move its facts into. ── -->
         <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'">
           @if (kind() === 'ship') {
-            <!-- The stage art is a picture and therefore inert — unless it is
-                 the live 3D model, which has to stay interactive. -->
-            <div class="stage-art" [class.live]="heroView3d()"
-                 [attr.aria-hidden]="heroView3d() ? null : 'true'">
-              @if (heroView3d() && shipClassName(); as cls) {
-                <sc-ship-skin-viewer
-                  class="stage-viewer"
-                  [shipId]="cls"
-                  [embedded]="true"
-                  [hardpointPorts]="hardpointPortRefs()"
-                  [activePorts]="activePorts()"
-                  (hovered)="setActivePorts($event)"
-                  (locatable)="glbLocatablePorts.set($event)"
-                  (available)="onArtAvailable($event)" />
-              } @else {
-                <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
-                  <span class="art-fallback">
-                    <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
-                    <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
-                  </span>
-                </sc-fallback-image>
-              }
-            </div>
-
-            <!-- HangarPicker (round 16-17, N4): the same "⌂ Hangar" control
-                 and fly-out chain as the Codex landing's ship stage, top-left
-                 in the hero picture. Only the hangar mechanic changes here —
-                 everything else on the classic hero stays as it was. -->
-            <sc-hangar-picker
-              class="stage-hangar-picker"
-              kind="ship"
-              [items]="shipPickerItems()"
-              (pick)="onShipPickerPick($event)"
-              (open)="onHangarPickerOpen()" />
-
-            <!-- 2D ⇄ 3D on the card itself. A toggle, not a navigation, so a
-                 real button: deliberately quiet and half-transparent, and it
-                 names the view you would switch TO (pressing "3D" gives you
-                 3D). The two characters are decorative; the accessible name is
-                 the whole sentence. -->
-            @if (has3dView()) {
-              <!-- The label is split into its digit and its letter: Orbitron
-                   draws a "D" that reads as a "0"/"O" next to the "3", so the
-                   letter is set in the body face (feedback 140dfb7e). -->
-              @let viewLabel = (heroView3d() ? 'codex.detail.heroView2d' : 'codex.detail.heroView3d') | translate;
-              <button
-                type="button"
-                class="view-switch"
-                [class.on]="heroView3d()"
-                [attr.aria-pressed]="heroView3d()"
-                [attr.aria-label]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
-                [scTooltip]="(heroView3d() ? 'codex.detail.heroSwitchTo2d' : 'codex.detail.heroSwitchTo3d') | translate"
-                scTooltipTier="label"
-                (click)="toggleHeroView()">
-                <span class="vs-num" aria-hidden="true">{{ viewLabel.slice(0, -1) }}</span><span class="vs-letter" aria-hidden="true">{{ viewLabel.slice(-1) }}</span>
-              </button>
-            }
-
-            <!-- The bottom band of the stage: identity left, figures right.
-                 Nothing in here is clickable any more — the four frequent
-                 actions moved out of the picture into their own row directly
-                 beneath it (feedback 140dfb7e: "die anklickbaren Links raus
-                 aus dem Bild"), so the band carries the name, the stat chips
-                 and, bottom-right, the module census that used to sit in the
-                 tool row. A column that grows from the bottom cannot collide
-                 with itself. -->
-            <div class="stage-foot">
-              <!-- Upper line of the band: identity left, stat chips right. -->
-              <div class="stage-row">
-                <!-- Maker and role as one small eyebrow, the name bold and in
-                     the accent under it — the ship IS the subject — on a
-                     translucent panel so both stay legible on any render.
-                     The role lives here rather than in the chip row so it is
-                     not printed twice. -->
-                <div class="stage-ident">
-                  @if (heroEyebrow(); as eb) { <p class="mfr">{{ eb }}</p> }
-                  <h1>{{ displayName() }}</h1>
-                </div>
-
-                @if (heroChips().length > 0) {
-                  <ul class="chips stage-side">
-                    @for (c of heroChips(); track c.key) {
-                      @if (c.key !== 'role') {
-                        <li class="hchip" [class.accent]="c.accent" [class.ghost]="c.ghost" [class.gap]="c.gap">{{ c.text }}</li>
-                      }
-                    }
-                  </ul>
-                }
-              </div>
-              <!-- Module census, bottom-right ON the art, on its own line so
-                   it can use the full width of the stage and wraps into two or
-                   three short rows instead of a tall column. Read from the
-                   same resolved sections the loadout column renders, so "3
-                   Bewaffnung" here is the "Bewaffnung · 3 Slots" heading down
-                   there — never a second classifier with its own opinion. -->
-              @if (stageCounts().length > 0) {
-                <ul class="loadout-summary stage-counts" [attr.aria-label]="'codex.detail.equipment' | translate">
-                  @for (s of stageCounts(); track s.group) {
-                    <li class="ls-item" [attr.data-cat]="s.group">
-                      <span class="ls-count">{{ s.count }}</span>
-                      <span class="ls-cat">{{ s.labelKey | translate }}</span>
-                      @if (s.detailKey) {
-                        <span class="ls-detail">· {{ s.detailKey | translate: { n: s.detailCount } }}</span>
-                      }
-                    </li>
-                  }
-                </ul>
-              }
-            </div>
+            <!-- Extracted to keep this file's component-style budget under the
+                 Angular build budget (AUD-062) — same DOM, classes and
+                 bindings as before, now behind sc-codex-ship-stage's own
+                 inputs/outputs (see that component for detail). -->
+            <sc-codex-ship-stage
+              [kind]="detail()!.kind"
+              [heroSub]="heroSub()"
+              [heroArt]="heroArt()"
+              [displayName]="displayName()"
+              [heroView3d]="heroView3d()"
+              [shipClassName]="shipClassName()"
+              [hardpointPortRefs]="hardpointPortRefs()"
+              [activePorts]="activePorts()"
+              [has3dView]="has3dView()"
+              [heroEyebrow]="heroEyebrow()"
+              [heroChips]="heroChips()"
+              [stageCounts]="stageCounts()"
+              [shipPickerItems]="shipPickerItems()"
+              (hovered)="setActivePorts($event)"
+              (locatable)="glbLocatablePorts.set($event)"
+              (artAvailable)="onArtAvailable($event)"
+              (viewToggle)="toggleHeroView()"
+              (hangarPick)="onShipPickerPick($event)"
+              (hangarOpen)="onHangarPickerOpen()" />
           } @else {
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
             <div class="art">
@@ -1610,27 +1525,9 @@ interface GearRecipe {
     .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
     .draft-controls { flex: 0 0 auto; }
 
-    /* Hero chip row (MASTER §2): career / role / crew / cargo / mass, one line.
-       Shape and type come from the concept's .chip (part-02:156): a 3px
-       rectangle carrying a 10px uppercase run at .12em - not a rounded pill.
-       10px is the size the mock renders at; the coarse-pointer readability
-       floor lifts it to 12px on a phone, so nothing shrinks on touch. */
-    .hchip { font-size: max(10px, var(--sc-fs-floor)); padding: 3px 7px; border-radius: 3px;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); }
-    .hchip.accent { color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    /* part-02:158 makes the ghost chip muted text and nothing else. The italic
-       and the dashed edge it used to carry shouted louder than the mock draws
-       a chip that simply says "not fitted". */
-    .hchip.ghost { color: var(--sc-fg-2); }
-    /* "it hauls, the files do not size it" - a disclosed gap, not a denial. */
-    .hchip.gap { color: var(--sc-warn); background: transparent; border-style: dashed;
-      border-color: color-mix(in srgb, var(--sc-warn) 50%, transparent); }
-    /* On the stage every chip sits on the art, the disclosed gap included:
-       a transparent dashed box over a white hull is unreadable, so it takes
-       the same translucent ground as its neighbours (feedback 140dfb7e). */
-    .hero.stage .hchip.gap { background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); }
+    /* The ship stage's own hero chip row (.hchip, career/role/crew/cargo/mass)
+       moved to sc-codex-ship-stage (AUD-062) along with everything else the
+       stage renders — nothing else on this page uses that class. */
 
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
@@ -1641,82 +1538,20 @@ interface GearRecipe {
        grid track. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
-    /* ── BUEHNE (concept section 2) ─────────────────────────────────────────
-       The art fills the card; name, chips and the four frequent actions sit
-       ON it. Nothing else lives here. */
-    /* The concept's 246px stage: art edge to edge, name top-left, chips and
-       actions bottom-right. A GRID rather than a stack of absolutely placed
-       overlays — the name row, the flexible middle and the foot each own a
-       band, so the foot can grow (wrapped buttons, many chips) and push the
-       stage taller instead of sliding under the row above it or being cut off
-       by the overflow clip. 246px stays the floor, never the ceiling; the
-       top band keeps at least the 2D/3D switch's height free so a tall foot
-       never climbs into it. */
-    /* ONE column: the base .hero rule is a two-column grid (art | body) and
-       used to leak through, so the whole foot band was squeezed into the
-       320px art column while the right two thirds of the card stayed empty. */
+    /* ── BUEHNE (concept section 2) ── sc-codex-ship-stage (AUD-062) renders
+       with display:contents inside this header, so its content becomes this
+       grid's own items; only the card chrome (the 246px grid, the bottom-wash
+       pseudo) stays here — the stage's own rules moved with its template. */
     .hero.stage { display: grid; grid-template-columns: minmax(0, 1fr);
       grid-template-rows: minmax(56px, 1fr) auto; position: relative;
       min-height: 246px; padding: 12px 14px;
       overflow: hidden; background: var(--sc-bg-1); }
-    .hero.stage .stage-art { position: absolute; inset: 0; display: flex; align-items: center;
-      justify-content: center; pointer-events: none;
-      --sc-img-max-h: none;
-      --sc-img-shadow: drop-shadow(0 12px 34px rgba(0,0,0,0.72));
-      --sc-icon-max: 132px; }
-    /* The live model is the one piece of stage art you may grab. */
-    .hero.stage .stage-art.live { pointer-events: auto; }
-    /* The HangarPicker's own host is a plain block box; its child positions
-       itself absolutely (top:12/left:16 — see hangar-picker.component.ts).
-       Anchoring the host itself out of the grid flow keeps it from claiming
-       a third grid row (round 16-17, N4). */
-    .hero.stage .stage-hangar-picker { position: absolute; top: 0; left: 0; z-index: 5; }
-    .hero.stage .stage-art sc-ship-skin-viewer { display: block; width: 100%; height: 100%; }
-    /* Readability floor for whatever the render happens to be. */
     /* The art is the card; everything readable sits in the band at its foot,
        so the wash comes up from the bottom instead of across the diagonal —
        the same shape a codex fleet tile uses for its caption. */
     .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
       background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent) 0%,
         color-mix(in srgb, var(--sc-bg-0) 72%, transparent) 34%, transparent 68%); }
-    /* The identity block sits on a translucent panel (feedback 140dfb7e:
-       "Texthintergrund einfügen"): whatever the render puts behind it — a
-       white hull, a bright engine glow — the eyebrow and the name keep their
-       contrast. bg-0 based, so it is dark on the dark theme and light on the
-       light one, and the text tokens on top of it stay readable in both. */
-    .hero.stage .stage-ident { min-width: min-content; flex: 0 1 auto; pointer-events: none;
-      align-self: flex-end; padding: 8px 12px; border-radius: 4px;
-      background: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent);
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-    /* Typography lifted from the codex fleet tile (.fleet-tile__mfr / __name),
-       with the emphasis swapped: the NAME carries the accent now — it is the
-       ship this page is about ("das ist das Schiff, darum geht es") — and the
-       maker/role eyebrow steps back to the secondary text colour. */
-    .hero.stage .mfr { margin: 0; font-family: var(--sc-font-display);
-      font-size: max(0.6rem, var(--sc-fs-floor)); letter-spacing: 0.08em; line-height: 1.2;
-      text-transform: uppercase; color: var(--sc-fg-1); }
-    .hero.stage h1 { margin: 2px 0 0; font-size: clamp(19px, 1.9vw, 25px); font-weight: 700;
-      line-height: 1.15; color: var(--sc-accent); overflow-wrap: normal; }
-    .hero.stage .stage-foot { grid-row: 2; position: relative; z-index: 1;
-      display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-    /* Identity and stat chips share one line and never wrap onto two: the
-       chips own 45-50% of the band (enough that a long caveat chip folds into
-       two lines, not five), the panel takes the rest, folds its eyebrow and
-       never breaks a word of the name (min-content is its floor). */
-    .hero.stage .stage-row { display: flex; align-items: flex-end;
-      justify-content: space-between; gap: 8px 12px; }
-    .hero.stage .chips { list-style: none; margin: 0; padding: 0;
-      display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-    .hero.stage .stage-side { flex: 1 1 0; min-width: 45%; max-width: 50%; }
-    /* The census takes the full width of the band, right-aligned. */
-    .hero.stage .stage-counts { margin: 0; justify-content: flex-end; }
-    /* The census chips sit on the art, so they take the stat chips' opaque-ish
-       ground rather than the tool row's near-transparent one. */
-    .hero.stage .stage-counts .ls-item {
-      background: color-mix(in srgb, var(--sc-bg-0) 82%, transparent); }
-    .ls-detail { font-size: max(10px, var(--sc-fs-floor)); text-transform: uppercase;
-      letter-spacing: 0.12em; color: var(--sc-fg-2); }
 
     /* The four frequent actions in their own row directly under the stage. */
     .stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -1749,27 +1584,8 @@ interface GearRecipe {
     .btn:disabled, .pin:disabled { opacity: 0.38; cursor: not-allowed; }
     .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
 
-    /* 2D <-> 3D. Quiet on purpose: a two-character label that only steps
-       fully forward when you reach for it. */
-    .view-switch { position: absolute; top: 12px; inset-inline-end: 12px; z-index: 2;
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: 48px; min-height: 48px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--sc-border) 70%, transparent);
-      border-radius: var(--radius-md, 4px);
-      background: color-mix(in srgb, var(--sc-bg-0) 45%, transparent);
-      color: var(--sc-fg-1); opacity: 0.8;
-      font-family: var(--sc-font-display); font-size: max(12px, var(--sc-fs-floor));
-      letter-spacing: 0.12em; cursor: pointer; }
-    .view-switch:hover, .view-switch:focus-visible { opacity: 1; }
-    .view-switch.on { color: var(--sc-accent); opacity: 0.85;
-      border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
-    .view-switch:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    /* "3D", not "30": the digit keeps the display face, the letter is set in
-       the body face (Inter) at a heavier weight so its straight stem and flat
-       bowl cannot be mistaken for a zero (feedback 140dfb7e). Half-opacity
-       was the other half of the problem, so the label starts at 0.8 above. */
-    .view-switch .vs-num { font-family: var(--sc-font-display); }
-    .view-switch .vs-letter { font-family: var(--sc-font-body, 'Inter', system-ui, sans-serif);
-      font-weight: 700; font-size: 1.15em; letter-spacing: 0; margin-inline-start: 0.08em; line-height: 1; }
+    /* The 2D/3D switch (.view-switch) moved to sc-codex-ship-stage — see
+       codex-ship-stage.component.ts. */
 
     /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
        One flat row, no card: Ausfuehrung, Lackierung, then the rarer actions
@@ -1818,10 +1634,8 @@ interface GearRecipe {
     }
     /* No artwork anywhere: say so instead of leaving a lost glyph in a big
        empty frame — the catalog simply has no render for this hull yet. */
-    .hero-art .art-fallback, .stage-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    .hero-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 10px; width: 100%; padding: 14px; box-sizing: border-box; }
-    .hero-art .art-note, .stage-art .art-note { font-size: max(0.72rem, var(--sc-fs-floor)); line-height: 1.35; text-align: center;
-      color: var(--sc-fg-2); max-width: 24ch; text-wrap: balance; }
     .hero-art .hero-icon { width: 100%; min-height: 120px; }
     .hero-body { padding: 22px 24px 22px 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
     .kind-tag { align-self: flex-start; font-size: max(0.64rem, var(--sc-fs-floor)); padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.1em;
@@ -1864,21 +1678,9 @@ interface GearRecipe {
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
 
-    /* Module census (bottom-right of the stage). The mock has no element of
-       its own for it, so it takes the chip vocabulary (part-02:156): count and category
-       are one 10px uppercase run at .12em inside a 3px rectangle. The pill
-       shape and the 14px count were the app's own invention. */
-    .loadout-summary { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-    .ls-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 7px; border-radius: 3px;
-      background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent); border: 1px solid var(--sc-border); }
-    .ls-count { font-family: var(--sc-font-display); font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.12em; color: var(--sc-fg-0); }
-    .ls-cat { font-size: max(10px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.12em; color: var(--sc-fg-2); }
-    /* No hot accent and no mock literals here (concept section 0): nothing in
-       the port overview is admin-gated and none of it is an error. */
-    .ls-item[data-cat="weapons"] { border-color: color-mix(in srgb, var(--sc-accent) 55%, transparent); }
-    .ls-item[data-cat="weapons"] .ls-count { color: var(--sc-accent); }
-    .ls-item[data-cat="missiles"] { border-color: color-mix(in srgb, var(--sc-warn) 45%, transparent); }
-    .ls-item[data-cat="shields"] { border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
+    /* Module census (bottom-right of the stage): .loadout-summary/.ls-* moved
+       to sc-codex-ship-stage along with the template that uses them — no
+       other section on this page renders that vocabulary. */
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
@@ -2031,20 +1833,11 @@ interface GearRecipe {
       .dmg { grid-template-columns: 84px 1fr 56px; }
       /* A phone has no room for four overlays on one picture: the stage keeps
          the art and the name, and hands chips and actions to normal flow
-         underneath it. Nothing is dropped, nothing overlaps. */
+         underneath it. Nothing is dropped, nothing overlaps. The stage's own
+         rules for this breakpoint live in sc-codex-ship-stage now; only the
+         card chrome (grid → flex, the wash's height) stays here. */
       .hero.stage { display: flex; flex-direction: column; min-height: 0; padding: 0; gap: 0; }
-      .hero.stage .stage-art { position: relative; inset: auto; min-height: 190px; }
       .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
-      /* Below the art the name needs no panel — it sits on the card. */
-      .hero.stage .stage-ident { padding: 10px 14px 0; background: none; border: 0;
-        backdrop-filter: none; -webkit-backdrop-filter: none; border-radius: 0; }
-      .hero.stage .stage-foot { padding-bottom: 12px; }
-      .hero.stage .stage-row { flex-direction: column; align-items: stretch; gap: 8px; }
-      .hero.stage .stage-ident { min-width: 0; flex: 0 0 auto; }
-      .hero.stage .stage-side { min-width: 0; max-width: none; }
-      .hero.stage .chips, .hero.stage .stage-counts { justify-content: flex-start;
-        padding: 0 14px; }
-      .hero.stage .view-switch { top: 8px; inset-inline-end: 8px; }
       .stage-actions .btn { flex: 1 1 auto; justify-content: center; }
     }
     @media (max-width: 400px) {

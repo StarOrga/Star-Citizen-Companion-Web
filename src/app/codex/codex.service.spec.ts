@@ -808,3 +808,74 @@ describe('CodexService.facetValues', () => {
     expect(calls.length).toBe(2);
   });
 });
+
+describe('CodexService.resolveEntities', () => {
+  /**
+   * One table (codex_weapons) carries the requested class name with a
+   * payload->name JSON path; every other entity table answers empty. Mirrors
+   * the real "first table that owns a class name wins" shape without needing
+   * all five tables populated.
+   */
+  function provider(rows: Record<string, unknown>[]): SupabaseClientProvider {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => chain,
+        in: () =>
+          table === 'codex_weapons'
+            ? Promise.resolve({ data: rows, error: null })
+            : Promise.resolve({ data: [], error: null }),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(rows: Record<string, unknown>[]): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(rows) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  it('maps the payload->name localized field alongside name_localized', async () => {
+    const svc = make([
+      {
+        class_name: 'LH86',
+        name_localized: 'LH86 Pistol',
+        manufacturer_code: 'KRIG',
+        size: 1,
+        grade: 'A',
+        name: { key: '@item_LH86_Name', en: 'LH86 Pistol', de: 'LH86 Pistole' },
+      },
+    ]);
+
+    const resolved = await svc.resolveEntities(['LH86']);
+
+    expect(resolved.get('LH86')?.name).toEqual({ key: '@item_LH86_Name', en: 'LH86 Pistol', de: 'LH86 Pistole' });
+    expect(resolved.get('LH86')?.nameLocalized).toBe('LH86 Pistol');
+  });
+
+  it('leaves name null when the row carries no payload name', async () => {
+    const svc = make([
+      {
+        class_name: 'LH86',
+        name_localized: 'LH86 Pistol',
+        manufacturer_code: 'KRIG',
+        size: 1,
+        grade: 'A',
+        name: null,
+      },
+    ]);
+
+    const resolved = await svc.resolveEntities(['LH86']);
+
+    expect(resolved.get('LH86')?.name).toBeNull();
+  });
+});

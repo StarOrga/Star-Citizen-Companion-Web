@@ -73,4 +73,44 @@ describe('stat-labels (AUD-060)', () => {
       expect(health?.unit).toBe('HP');
     });
   });
+
+  // Keys copied from the live walk of build 4.9 (helmet, undersuit, quantum drive).
+  describe('real grids from build 4.9', () => {
+    it('hides the helmet lamp, camera, inspect and constraint plumbing', () => {
+      for (const key of [
+        'Other Params.Fov',
+        'Legacy Params.Diffuse Mult',
+        'Local Player Params.Shadow Quality Cap',
+        'DOF Blur Amount',
+        'Max FOV',
+        'Inspect Rotate Limits X.Y',
+        'Top Constraint Offset',
+        'Transparency Post Effects Exclusion Region',
+        'Params.VFX Pinch Max Velocity',
+        'Params.Shader Node Engage Velocity',
+        'Legacy Thrust Params.Boost Scale',
+        'Ammo Class Name',
+      ]) {
+        expect(isEngineInternalStatLabel(key)).withContext(key).toBeTrue();
+      }
+    });
+
+    it('drops a row whose value is an unresolved engine pointer', () => {
+      const out = toDisplayStatRows([{ key: 'Spline Jump Params.Idle State', value: '_PointsTo_:ptr:1' }]);
+      expect(out).toEqual([]);
+    });
+
+    it('translates the player-facing stats by full path or leaf', () => {
+      expect(statLabelI18nKey('Temperature Resistance.Max Resistance')).toBe('codex.stat.temperatureMax');
+      expect(statLabelI18nKey('Flight.g Force Resistance')).toBe('codex.stat.gForceResistance');
+      expect(statLabelI18nKey('Params.Drive Speed')).toBe('codex.stat.driveSpeed');
+      expect(statLabelI18nKey('Spline Jump Params.Drive Speed')).toBe('codex.stat.splineDriveSpeed');
+      expect(statLabelI18nKey('Stun Params.Max Stun Time')).toBe('codex.stat.stunMaxTime');
+    });
+
+    it('keeps a stat that only sounds technical', () => {
+      expect(isEngineInternalStatLabel('Radiation Resistance.Radiation Dissipation Rate')).toBeFalse();
+      expect(isEngineInternalStatLabel('Duration')).toBeFalse();
+    });
+  });
 });

@@ -186,6 +186,11 @@ export interface ResolvedEntity {
   kind: CodexKind;
   className: string;
   nameLocalized: string | null;
+  // Localized name straight from the payload (`payload->name`) — follows the
+  // UI language via pickLocalized; null when the table has no payload column
+  // in this select or the field is absent. Optional so existing callers that
+  // only read nameLocalized are unaffected.
+  name?: LocalizedText | null;
   manufacturerCode: string | null;
   size: number | null;
   grade: string | null;
@@ -1147,11 +1152,11 @@ export class CodexService {
 
     // Column set per table — only columns that exist on each table.
     const selects: Partial<Record<CodexKind, string>> = {
-      weapon: 'class_name, name_localized, manufacturer_code, size, grade',
-      component: 'class_name, name_localized, manufacturer_code, size, grade',
-      item: 'class_name, name_localized, manufacturer_code, size, grade',
-      ship: 'class_name, name_localized, manufacturer_code',
-      ammunition: 'class_name, name_localized, size',
+      weapon: 'class_name, name_localized, manufacturer_code, size, grade, name:payload->name',
+      component: 'class_name, name_localized, manufacturer_code, size, grade, name:payload->name',
+      item: 'class_name, name_localized, manufacturer_code, size, grade, name:payload->name',
+      ship: 'class_name, name_localized, manufacturer_code, name:payload->name',
+      ammunition: 'class_name, name_localized, size, name:payload->name',
     };
 
     await Promise.all(
@@ -1169,6 +1174,7 @@ export class CodexService {
             kind,
             className: cn,
             nameLocalized: (r['name_localized'] as string | null) ?? null,
+            name: (r['name'] as LocalizedText | null) ?? null,
             manufacturerCode: (r['manufacturer_code'] as string | null) ?? null,
             size: (r['size'] as number | null) ?? null,
             grade: (r['grade'] as string | null) ?? null,

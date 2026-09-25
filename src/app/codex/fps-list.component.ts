@@ -110,6 +110,14 @@ interface FacetOption {
           @if (fittingSlot(); as slot) {
             <span class="equip-only">{{ 'fps.equip.onlyFitting' | translate: { slot: slotLabel(slot) } }}</span>
           }
+          @if (svc.viewingPastPatch()) {
+            <span class="equip-past-note" role="status">
+              {{ 'fps.equip.pastPatch' | translate }}
+              <button type="button" class="equip-past-back" (click)="backToLivePatch()">
+                {{ 'fps.equip.pastPatchBack' | translate }}
+              </button>
+            </span>
+          }
           <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
@@ -304,14 +312,16 @@ interface FacetOption {
                     <div class="equip-row">
                       <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
                       @for (slot of slots; track slot) {
-                        <button type="button" class="equip-btn"
-                                [class.on]="isEquipped(r, slot)"
-                                [attr.aria-pressed]="isEquipped(r, slot)"
-                                [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
-                                [disabled]="equipBusy() !== null"
-                                (click)="equip($event, r, slot)">
-                          {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
-                        </button>
+                        <span class="tip-wrap" [scTooltip]="svc.viewingPastPatch() ? ('fps.equip.pastPatch' | translate) : null" scTooltipTier="label">
+                          <button type="button" class="equip-btn"
+                                  [class.on]="isEquipped(r, slot)"
+                                  [attr.aria-pressed]="isEquipped(r, slot)"
+                                  [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
+                                  [disabled]="equipBusy() !== null || svc.viewingPastPatch()"
+                                  (click)="equip($event, r, slot)">
+                            {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
+                          </button>
+                        </span>
                       }
                       <!-- At the card that was clicked, not in the bar at the top of a
                            list the reader has scrolled away from. -->
@@ -379,6 +389,26 @@ interface FacetOption {
     .equip-next a:hover, .equip-next a:focus-visible { text-decoration: underline; }
     .equip-only { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
     .equip-note { flex: 1 1 100%; margin: 0; color: var(--sc-fg-1); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    /* Past-patch guard: the warning colour, never the danger red — nothing
+       broke, equipping is simply parked until the reader is back on live. */
+    .equip-past-note {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: color-mix(in srgb, var(--sc-warning) 80%, var(--sc-fg-1));
+      font-size: max(0.8rem, var(--sc-fs-floor));
+    }
+    .equip-past-back {
+      padding: 4px 10px; border-radius: 999px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--sc-warning) 40%, transparent);
+      background: color-mix(in srgb, var(--sc-warning) 12%, transparent);
+      color: var(--sc-warning); font-family: inherit;
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      min-height: max(28px, var(--sc-tap-min));
+    }
+    .equip-past-back:hover, .equip-past-back:focus-visible { background: color-mix(in srgb, var(--sc-warning) 20%, transparent); }
+    .equip-past-back:focus-visible { outline: 2px solid var(--sc-warning); outline-offset: 2px; }
+    /* Carries the "why is this locked" tooltip of a disabled button (a disabled
+       button gets no pointer events) without becoming a flex item itself. */
+    .tip-wrap { display: contents; }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 14px 14px; }
     .equip-label {
@@ -797,6 +827,11 @@ export class FpsListComponent {
     this.setCategory(c);
   }
 
+  /** Equip mode's past-patch note: the same switch-back the patch dropdown uses. */
+  backToLivePatch(): void {
+    this.svc.selectBuild(null);
+  }
+
   /** "Keep browsing without a set": drop the stale equip intent in place, URL included. */
   dropEquipIntent(ev: MouseEvent): void {
     if (!isPlainLeftClick(ev)) return;
@@ -966,6 +1001,9 @@ export class FpsListComponent {
   async equip(ev: Event, r: FpsRow, slot: string): Promise<void> {
     ev.preventDefault();
     ev.stopPropagation();
+    // A stale click (button disabled a moment too late, or a synthetic event
+    // in a test) must not slip a write through while a past patch is shown.
+    if (this.svc.viewingPastPatch()) return;
     const set = this.targetSet();
     if (!set || this.equipBusy()) return;
     const clearing = this.isEquipped(r, slot);

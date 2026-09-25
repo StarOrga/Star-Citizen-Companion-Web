@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
-import { ResolvedEntity } from '../codex.service';
+import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { ARMOR_SLOT_SPECS } from '../codex-landing-kpi';
 import { cleanLocaleValue, humanizeClassName } from '../codex-format';
 import { HangarService } from '../../hangar/hangar.service';
@@ -232,6 +233,10 @@ export interface GearSlotRow {
 })
 export class CodexSetGearComponent {
   private readonly hangar = inject(HangarService);
+  private readonly t = inject(TranslateService);
+
+  /** UI language for piece names — re-derived on every language switch (see constructor). */
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
   readonly setId = input.required<string>();
   readonly role = input.required<RoleLoadoutRole>();
@@ -254,14 +259,25 @@ export class CodexSetGearComponent {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.dropUndo());
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.dataLang.set(toLang(e.lang)));
   }
 
   readonly rows = computed<GearSlotRow[]>(() => {
     const items = this.items();
     const bySlot = new Map(items.map((i) => [i.slot, i.className] as const));
     const resolved = this.resolved();
-    const nameOf = (className: string | null): string =>
-      className ? cleanLocaleValue(resolved.get(className)?.nameLocalized) || humanizeClassName(className) : '';
+    const lang = this.dataLang();
+    const nameOf = (className: string | null): string => {
+      if (!className) return '';
+      const entity = resolved.get(className);
+      return (
+        pickLocalized(entity?.name, lang) ||
+        cleanLocaleValue(entity?.nameLocalized) ||
+        humanizeClassName(className)
+      );
+    };
     const suggested = (ROLE_SLOT_SUGGESTIONS[this.role()] ?? []).filter((slot) => !ARMOR_ROLE_SLOTS.has(slot));
     const rows: GearSlotRow[] = suggested.map((slot) => {
       const className = bySlot.get(slot) ?? null;
