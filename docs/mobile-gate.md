@@ -33,7 +33,7 @@ node scripts/mobile-gate.mjs --devices=iphone-14 --routes=/about,/login
 
 # a gated route cannot be singled out this way: --routes feeds the public pass
 # only and never reaches auth.routes. Narrow the signed-in pass by device.
-SC_GATE_EMAIL=… SC_GATE_PASSWORD=…   node scripts/mobile-gate.mjs --auth --devices=iphone-14
+node scripts/mobile-gate.mjs --auth --devices=iphone-14   # test account: npm run test-account
 
 # artefacts
 node scripts/mobile-gate.mjs --json=mobile-gate.json --screenshots=.mobile-gate
@@ -241,15 +241,17 @@ phone — and then audits:
   (default: `/news`), reported as `/news [panel]`.
 
 ```bash
-SC_GATE_EMAIL=gate@example.test SC_GATE_PASSWORD=… \
-  node scripts/mobile-gate.mjs --auth
+npm run test-account          # once: is the account stored and approved?
+node scripts/mobile-gate.mjs --auth
 ```
 
 Rules it keeps:
 
-- **Credentials never live in the repo.** They come from `SC_GATE_EMAIL` and
-  `SC_GATE_PASSWORD`; the password is never logged or written to the JSON
-  report. Use a dedicated test account, not a real admin's.
+- **Credentials never live in the repo.** The gate uses the shared test account
+  (`scripts/lib/test-account.cjs`): `SC_TEST_EMAIL` / `SC_TEST_PASSWORD`, the
+  legacy `SC_GATE_EMAIL` / `SC_GATE_PASSWORD`, or the Windows Credential Manager
+  entry `sc-companion/test-account`. The password is never logged or written to
+  the JSON report. Setup: `.claude/deep-knowledge/test-account.md`.
 - **Missing credentials are a hard stop** (exit `2`), never a silent skip — an
   `--auth` run that audits nothing is the false GREEN this feature exists to
   prevent.
@@ -277,7 +279,7 @@ would follow the redirect, measure the login page and report GREEN for a route
 it never rendered. That is what the `auth-redirect` check now catches, so the
 misfiling turns the run RED instead of quietly shrinking its coverage.
 
-A run without `SC_GATE_EMAIL` / `SC_GATE_PASSWORD` cannot reach `auth.routes`
+A run without `--auth` cannot reach `auth.routes`
 at all. It does not pretend otherwise: the header lists them under `UNCHECKED`
 and the verdict reads
 

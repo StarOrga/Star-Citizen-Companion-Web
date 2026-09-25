@@ -29,9 +29,11 @@
  * through the app's own login form and then audits `auth.routes` plus the FAB
  * panel opened on top of `auth.panelRoutes`.
  *
- * Credentials come from the environment, never from the repo:
- *   SC_GATE_EMAIL / SC_GATE_PASSWORD   — a dedicated test account
- * Without them `--auth` exits 2 rather than quietly auditing nothing.
+ * Credentials are the shared test account (scripts/lib/test-account.cjs), never
+ * the repo: SC_TEST_EMAIL / SC_TEST_PASSWORD, the legacy SC_GATE_EMAIL /
+ * SC_GATE_PASSWORD, or the Windows Credential Manager entry
+ * `sc-companion/test-account` (`npm run test-account` checks it).
+ * Without one `--auth` exits 2 rather than quietly auditing nothing.
  *
  * No npm dependencies: uses node:http, the built-in WebSocket client and a
  * locally installed Chrome/Edge binary.
@@ -45,6 +47,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import testAccount from './lib/test-account.cjs';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const CONFIG_PATH = join(REPO_ROOT, 'scripts', 'mobile-gate.config.json');
@@ -1249,24 +1252,23 @@ async function main() {
     .filter((r) => !(cfg.ignore.routes || []).includes(r))
     .map((r) => (r.startsWith('/') ? r : '/' + r));
 
-  // Opt-in authenticated pass (#516). Credentials live in the environment,
-  // never in the repo — and a missing one is a hard stop, because an --auth
-  // run that silently audits nothing is exactly the false GREEN this closes.
+  // Opt-in authenticated pass (#516). Credentials come from the shared test
+  // account, never the repo — and a missing one is a hard stop, because an
+  // --auth run that silently audits nothing is exactly the false GREEN this closes.
   const wantsAuth = args.flags.has('auth') || process.env.MOBILE_GATE_AUTH === '1';
   let auth = null;
   if (wantsAuth && !selftest) {
-    const email = process.env.SC_GATE_EMAIL;
-    const password = process.env.SC_GATE_PASSWORD;
-    if (!email || !password) {
+    const account = testAccount.readTestAccount();
+    if (!account) {
       fail(
-        '--auth needs SC_GATE_EMAIL and SC_GATE_PASSWORD in the environment ' +
-          '(a dedicated test account with the role you want audited). ' +
+        '--auth needs the test account: `cmdkey /generic:sc-companion/test-account /user:<email> /pass` ' +
+          'or SC_TEST_EMAIL / SC_TEST_PASSWORD (see .claude/deep-knowledge/test-account.md). ' +
           'Refusing to run an authenticated pass that would audit nothing.',
       );
     }
     const a = cfg.auth || {};
     auth = {
-      credentials: { email, password },
+      credentials: { email: account.email, password: account.password },
       routes: (a.routes || []).filter((r) => !(cfg.ignore.routes || []).includes(r)),
       panelRoutes: a.panelRoutes || [],
     };
@@ -1343,7 +1345,7 @@ async function main() {
         routes: configuredAuthRoutes,
         why: wantsAuth
           ? 'the authenticated pass could not run'
-          : 'these need a signed-in session: re-run with --auth and SC_GATE_EMAIL / SC_GATE_PASSWORD set',
+          : 'these need a signed-in session: re-run with --auth (test account: npm run test-account)',
       }
     : null;
 
