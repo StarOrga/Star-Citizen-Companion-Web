@@ -1,7 +1,53 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.99.0",
+  "current": "0.99.2",
   "releases": [
+    {
+      "version": "0.99.2",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Blueprint-Mengen ohne Rechenrauschen.",
+              "text": "Zutaten und Ausgabe eines Blueprints zeigen „× 0,2“ statt „× 0.20000000298023224“, ganze Mengen bleiben ganz („× 1“, „× 15“), und die feinste Rezeptstufe von 0,015 SCU wird nicht mehr zu 0,01 gerundet. Dasselbe gilt für die SCU-Angaben unter „Herstellungsmaterialien“ auf den Codex-Detailseiten."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.99.1",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Claudes Test-Browser starten eingeloggt — lokal und live.",
+              "text": "Jeder Playwright-Browser einer Claude-Session meldet sich jetzt als eigener Test-Account an, bevor die App startet: auf lokalen Dev-Servern (127.0.0.1/localhost, Ports 4200–4399), auf sc-companion.vercel.app und auf Vercel-Previews. Bisher lief fast jede Browser-Prüfung auf /login auf, weil das Playwright-Profil pro Worktree neu und damit ausgeloggt war. Das Passwort liegt nur im Windows-Anmeldeinformationsspeicher (sc-companion/test-account) und läuft nie durch den Chat; jede Seite bekommt ihre eigene Session, damit sich parallele Browser nicht gegenseitig abmelden. npm run test-account prüft Anmeldung, Rolle und Freigabe; gate:mobile:auth nutzt denselben Account. Einrichtung und Regeln: .claude/deep-knowledge/test-account.md."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Wirksam ab der nächsten Session, sobald der Account angelegt und gespeichert ist — bis dahin bleibt alles wie bisher."
+            },
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.99.0",
       "date": "2026-09-25",

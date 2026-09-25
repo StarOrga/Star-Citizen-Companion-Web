@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.2] - 2026-09-25
+
+### Fixed
+
+- **Blueprint-Mengen ohne Rechenrauschen.** Zutaten und Ausgabe eines
+  Blueprints zeigen „× 0,2“ statt „× 0.20000000298023224“, ganze Mengen
+  bleiben ganz („× 1“, „× 15“), und die feinste Rezeptstufe von 0,015 SCU wird
+  nicht mehr zu 0,01 gerundet. Dasselbe gilt für die SCU-Angaben unter
+  „Herstellungsmaterialien“ auf den Codex-Detailseiten.
+
 ## [0.99.1] - 2026-09-25
 
 ### Added
