@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.101.0] - 2026-09-25
+
+### Changed
+
+- **Schiffshüllen und Lackierungs-Vorschaubilder kommen jetzt aus Cloudflare R2.**
+  Sie laden über den eigenen Worker `sc-assets.sc-assets-worker.workers.dev`.
+  Der Browser darf sie eine Stunde cachen, und bei R2 fallen keine
+  Egress-Kosten an. Alle 445 vorhandenen Dateien (340 MB) liegen bereits dort. Was R2
+  noch nicht hat, streamt der Worker aus dem Supabase-Bucket, sodass keine
+  Hülle fehlt. Das entlastet die 1 GB Speicher und das Egress-Kontingent von
+  Supabase Free.
+
+### Notes
+
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
+## [0.100.2] - 2026-09-25
+
+### Fixed
+
+- **Der Set-Wechsler auf der Set-Seite wirkt wieder.** Er änderte zwar die
+  Adresse, Titel, Rüstungsbrett und der Hinweis „Dieses Set wurde nicht
+  gefunden“ blieben aber beim vorher gezeigten Set, und die Rüstungsteile des
+  gewählten Sets wurden nicht nachgeladen. Dasselbe galt für Zurück/Vorwärts
+  zwischen zwei Set-Seiten. Die Seite folgt jetzt jedem Wechsel, und eine
+  verspätete Antwort für das vorige Set überschreibt das neue nicht mehr.
+- **Die Blueprint-Seite ist genauso abgesichert.** Führt eine Navigation direkt
+  von einem Blueprint zum nächsten, lädt die Seite den neuen Blueprint, statt
+  Held, Zutaten und Ergebnis des vorigen stehen zu lassen.
+
+### Notes
+
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.100.1] - 2026-09-25
 
 ### Fixed

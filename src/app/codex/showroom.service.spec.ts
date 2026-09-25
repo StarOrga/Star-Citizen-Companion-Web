@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ShowroomService } from './showroom.service';
-import { ShipSkinsService } from './ship-skins.service';
+import { ShipSkinsService, shipSkinsBase } from './ship-skins.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 
@@ -58,7 +58,7 @@ describe('ShowroomService', () => {
       sources: ['factory', 'pu_npc', 'store', 'subscriber'],
       latestAdded: '2026-06-03T00:00:00Z',
       posterUrl:
-        `${environment.supabase.url}/storage/v1/object/public/ship-skins/DRAK_Cutlass_Black/cypress.webp`,
+        `${shipSkinsBase(environment.assets?.r2BaseUrl)}DRAK_Cutlass_Black/cypress.webp`,
     });
   });
 

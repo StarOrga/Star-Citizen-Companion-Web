@@ -4,7 +4,7 @@ import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@ang
 import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
 import { CodexSetComponent } from './codex-set.component';
-import { CodexService } from '../codex.service';
+import { CodexService, ResolvedEntity } from '../codex.service';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
@@ -60,6 +60,7 @@ async function setup(opts: {
   serverLoadouts?: HangarRoleLoadout[];
   /** `loadAll()` fails the way the real one does: parked in `error`, never thrown. */
   loadFails?: boolean;
+  codex?: Partial<CodexService>;
 }): Promise<ComponentFixture<CodexSetComponent>> {
   params$ = new BehaviorSubject(convertToParamMap({ id: opts.id ?? '' }));
   loadAllCalls = 0;
@@ -70,10 +71,12 @@ async function setup(opts: {
     providers: [
       provideRouter([]),
       provideTranslateService({}),
-      { provide: CodexService, useValue: makeCodexServiceStub() },
+      { provide: CodexService, useValue: opts.codex ?? makeCodexServiceStub() },
       {
         provide: ActivatedRoute,
-        useValue: { paramMap: params$.asObservable(), snapshot: { paramMap: params$.value } },
+        // The subject itself, so both navigateTo() here and a spec that reaches
+        // for TestBed.inject(ActivatedRoute).paramMap can move the route on.
+        useValue: { paramMap: params$, snapshot: { paramMap: params$.value } },
       },
       {
         provide: AuthService,
@@ -106,10 +109,15 @@ async function setup(opts: {
     })
     .compileComponents();
   const fixture = TestBed.createComponent(CodexSetComponent);
+  await settle(fixture);
+  return fixture;
+}
+
+/** Let the page take in what just happened — pushed params, a service answer — and repaint. */
+async function settle(fixture: ComponentFixture<CodexSetComponent>): Promise<void> {
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
-  return fixture;
 }
 
 async function navigateTo(fixture: ComponentFixture<CodexSetComponent>, id: string): Promise<void> {
@@ -242,5 +250,104 @@ describe('CodexSetComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const link = el.querySelector('.hint a') as HTMLAnchorElement | null;
     expect(link?.getAttribute('href')).toContain('/login');
+  });
+});
+
+/** A set that carries other armour than SET_A, so switching to it has to resolve anew. */
+const SET_M: HangarRoleLoadout = {
+  ...SET_A,
+  id: 'set-m',
+  name: 'Medic Set',
+  role: 'medical',
+  items: [
+    { slot: 'helmet', className: 'Medic_Helmet', kind: 'item' },
+    { slot: 'core', className: null, kind: null },
+    { slot: 'arms', className: null, kind: null },
+    { slot: 'legs', className: null, kind: null },
+    { slot: 'undersuit', className: null, kind: null },
+    { slot: 'backpack', className: null, kind: null },
+  ],
+};
+
+/** What the name lookup answers for `classNames`: each one named "Resolved <class>". */
+function named(classNames: string[]): Map<string, ResolvedEntity> {
+  return new Map(
+    classNames.map((c): [string, ResolvedEntity] => [
+      c,
+      { kind: 'item', className: c, nameLocalized: `Resolved ${c}`, manufacturerCode: null, size: null, grade: null },
+    ]),
+  );
+}
+
+/**
+ * A codex whose name lookups the spec answers by hand, keyed by the first class
+ * name asked for — so they can arrive in any order, as they may over a slow network.
+ */
+function namesByHand() {
+  const waiting = new Map<string, () => void>();
+  return {
+    codex: {
+      ...makeCodexServiceStub(),
+      resolveEntities: (classNames: string[]) =>
+        new Promise<Map<string, ResolvedEntity>>((resolve) =>
+          waiting.set(classNames[0], () => resolve(named(classNames))),
+        ),
+    } as Partial<CodexService>,
+    answer: (className: string) => {
+      const release = waiting.get(className);
+      if (!release) throw new Error(`the page never asked for ${className}`);
+      release();
+    },
+  };
+}
+
+/**
+ * A params-only navigation to set `id`: the router keeps the page and pushes
+ * the new params into its route — the stage's own set picker, back/forward
+ * between two set pages.
+ */
+async function moveTo(fixture: ComponentFixture<CodexSetComponent>, id: string): Promise<void> {
+  (TestBed.inject(ActivatedRoute).paramMap as BehaviorSubject<ParamMap>).next(convertToParamMap({ id }));
+  await settle(fixture);
+}
+
+/** The hero title and the names on the board's filled slots. */
+function shown(fixture: ComponentFixture<CodexSetComponent>): { title: string | null; slots: string[] } {
+  const el: HTMLElement = fixture.nativeElement;
+  return {
+    title: el.querySelector('.set-hero .stage-title')?.textContent?.trim() ?? null,
+    slots: Array.from(el.querySelectorAll('.board-slot:not(.empty) .t-value')).map((s) => s.textContent!.trim()),
+  };
+}
+
+describe('CodexSetComponent — switching sets', () => {
+  it('switches hero and board to the set the route moves on to', async () => {
+    const fixture = await setup({
+      id: 'set-a',
+      loadouts: [SET_A, SET_M],
+      codex: { ...makeCodexServiceStub(), resolveEntities: async (classNames: string[]) => named(classNames) },
+    });
+    expect(shown(fixture)).toEqual({
+      title: 'Tech Set',
+      slots: jasmine.arrayWithExactContents(['Resolved Test_Helmet', 'Resolved Test_Torso']),
+    });
+
+    await moveTo(fixture, 'set-m');
+
+    expect(fixture.componentInstance.activeSet()?.id).toBe('set-m');
+    expect(shown(fixture)).toEqual({ title: 'Medic Set', slots: ['Resolved Medic_Helmet'] });
+  });
+
+  it('drops a late answer for the set it left', async () => {
+    const names = namesByHand();
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_M], codex: names.codex });
+    await moveTo(fixture, 'set-m');
+
+    names.answer('Medic_Helmet');
+    await settle(fixture);
+    names.answer('Test_Helmet');
+    await settle(fixture);
+
+    expect(shown(fixture)).toEqual({ title: 'Medic Set', slots: ['Resolved Medic_Helmet'] });
   });
 });

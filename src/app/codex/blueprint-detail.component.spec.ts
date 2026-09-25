@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
 import { TranslateService, TranslationObject, provideTranslateService } from '@ngx-translate/core';
+import { BehaviorSubject } from 'rxjs';
 import { BlueprintDetailComponent } from './blueprint-detail.component';
 import { BlueprintDetail, CodexService } from './codex.service';
 import { CodexBlueprintIngredient } from './codex.types';
@@ -27,13 +28,13 @@ function ingredient(
 }
 
 /** The blueprint row as codex_blueprints holds it, with the given ingredients. */
-function blueprint(ingredients: CodexBlueprintIngredient[]): BlueprintDetail {
+function blueprint(ingredients: CodexBlueprintIngredient[], className = MICROSAT): BlueprintDetail {
   return {
-    classNameSlug: MICROSAT,
+    classNameSlug: className,
     row: {
-      class_name: MICROSAT,
+      class_name: className,
       output_class_name: 'Carryable_2H_FL_MissionItem_Microsatellite_a',
-      payload: { className: MICROSAT },
+      payload: { className },
     },
     ingredients,
   };
@@ -41,21 +42,23 @@ function blueprint(ingredients: CodexBlueprintIngredient[]): BlueprintDetail {
 
 /**
  * Render the page for `detail`. Without `translations` every key renders as
- * itself, as the pipe does before a language file arrives.
+ * itself, as the pipe does before a language file arrives. `getBlueprint`
+ * stands in for the service when the page is to move on to other blueprints.
  */
 async function setup(
   detail: BlueprintDetail,
   translations?: TranslationObject,
+  getBlueprint: CodexService['getBlueprint'] = async () => detail,
 ): Promise<ComponentFixture<BlueprintDetailComponent>> {
   TestBed.configureTestingModule({
     imports: [BlueprintDetailComponent],
     providers: [
       provideTranslateService(),
       provideRouter([]),
-      { provide: CodexService, useValue: { getBlueprint: async () => detail } as Partial<CodexService> },
+      { provide: CodexService, useValue: { getBlueprint } as Partial<CodexService> },
       {
         provide: ActivatedRoute,
-        useValue: { snapshot: { paramMap: convertToParamMap({ className: detail.classNameSlug }) } },
+        useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
       },
     ],
   });
@@ -65,10 +68,15 @@ async function setup(
     translate.use('en');
   }
   const fixture = TestBed.createComponent(BlueprintDetailComponent);
+  await settle(fixture);
+  return fixture;
+}
+
+/** Let the page take in what just happened — pushed params, a service answer — and repaint. */
+async function settle(fixture: ComponentFixture<BlueprintDetailComponent>): Promise<void> {
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
-  return fixture;
 }
 
 /** The "× n" read-outs of every row matching `rowSelector`, in page order. */
@@ -159,5 +167,110 @@ describe('BlueprintDetailComponent — ingredient badges', () => {
       { blueprint: { role: { secondary: 'Secondary', protectiveSheathing: 'Sheathing' } } },
     );
     expect(badges(fixture, 'role')).toEqual(['Secondary', 'Sheathing']);
+  });
+});
+
+const COLLECTOR = 'BP_CRAFT_Carryable_2H_CY_CollectorMaterial_001';
+const LASER_CANNON = 'BP_CRAFT_AMRS_LaserCannon_S1';
+
+// Both as the current build stores them.
+const COLLECTOR_BP = blueprint(
+  [
+    ingredient(0, 'Titanium', 2, { role: 'SUBSTRATE', minQuality: 900 }),
+    ingredient(1, 'Riccite', 2, { role: 'LATTICE', minQuality: 800 }),
+  ],
+  COLLECTOR,
+);
+const LASER_CANNON_BP = blueprint(
+  [ingredient(0, 'Agricium', 0.36000001430511475, { role: 'FRAME', minQuality: 1 })],
+  LASER_CANNON,
+);
+
+/**
+ * A `getBlueprint` whose answers the spec hands out itself, per class name —
+ * so they can arrive in any order, as they may over a slow network.
+ */
+function answersByHand() {
+  const waiting = new Map<string, { resolve(d: BlueprintDetail): void; reject(e: Error): void }>();
+  const asked = (className: string) => {
+    const w = waiting.get(className);
+    if (!w) throw new Error(`the page never asked for ${className}`);
+    return w;
+  };
+  return {
+    getBlueprint: (className: string) =>
+      new Promise<BlueprintDetail | null>((resolve, reject) => waiting.set(className, { resolve, reject })),
+    answer: (detail: BlueprintDetail) => asked(detail.classNameSlug).resolve(detail),
+    fail: (className: string, message: string) => asked(className).reject(new Error(message)),
+  };
+}
+
+/**
+ * A params-only navigation to `className`: the router keeps the page and
+ * pushes the new params into its route — the header's poly search on a
+ * blueprint page, back/forward between two blueprint pages.
+ */
+async function moveTo(fixture: ComponentFixture<BlueprintDetailComponent>, className: string): Promise<void> {
+  (TestBed.inject(ActivatedRoute).paramMap as BehaviorSubject<ParamMap>).next(convertToParamMap({ className }));
+  await settle(fixture);
+}
+
+/** The class names of the ingredient rows, in page order. */
+function ingredientClasses(fixture: ComponentFixture<BlueprintDetailComponent>): string[] {
+  const el: HTMLElement = fixture.nativeElement;
+  return Array.from(el.querySelectorAll('.ingredient-row .ing-cls')).map((c) => c.textContent!.trim());
+}
+
+/** The class name the hero shows, or null while there is no hero. */
+function heroClass(fixture: ComponentFixture<BlueprintDetailComponent>): string | null {
+  return (fixture.nativeElement as HTMLElement).querySelector('.hero .cls')?.textContent?.trim() ?? null;
+}
+
+describe('BlueprintDetailComponent — moving on to another blueprint', () => {
+  it('renders the next blueprint, with a skeleton instead of the old rows while it loads', async () => {
+    const answers = answersByHand();
+    const fixture = await setup(COLLECTOR_BP, undefined, answers.getBlueprint);
+    answers.answer(COLLECTOR_BP);
+    await settle(fixture);
+    expect(ingredientClasses(fixture)).toEqual(['Titanium', 'Riccite']);
+
+    await moveTo(fixture, LASER_CANNON);
+    expect(ingredientClasses(fixture)).toEqual([]);
+    expect(heroClass(fixture)).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.skel-card')).not.toBeNull();
+
+    answers.answer(LASER_CANNON_BP);
+    await settle(fixture);
+    expect(ingredientClasses(fixture)).toEqual(['Agricium']);
+    expect(heroClass(fixture)).toBe(LASER_CANNON);
+  });
+
+  it('keeps the newer blueprint when the one it left answers last', async () => {
+    const answers = answersByHand();
+    const fixture = await setup(COLLECTOR_BP, undefined, answers.getBlueprint);
+    await moveTo(fixture, LASER_CANNON);
+
+    answers.answer(LASER_CANNON_BP);
+    await settle(fixture);
+    answers.answer(COLLECTOR_BP);
+    await settle(fixture);
+
+    expect(ingredientClasses(fixture)).toEqual(['Agricium']);
+    expect(heroClass(fixture)).toBe(LASER_CANNON);
+  });
+
+  it('drops the error of the blueprint it left', async () => {
+    const answers = answersByHand();
+    const fixture = await setup(COLLECTOR_BP, undefined, answers.getBlueprint);
+    answers.fail(COLLECTOR, 'timeout');
+    await settle(fixture);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.err')).not.toBeNull();
+
+    await moveTo(fixture, LASER_CANNON);
+    answers.answer(LASER_CANNON_BP);
+    await settle(fixture);
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.err')).toBeNull();
+    expect(ingredientClasses(fixture)).toEqual(['Agricium']);
   });
 });

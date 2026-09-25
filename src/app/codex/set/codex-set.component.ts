@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  WritableSignal,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -202,20 +211,26 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
     `,
   ],
 })
-export class CodexSetComponent {
+export class CodexSetComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly currentPath = typeof location !== 'undefined' ? location.pathname : '/';
+  /** Where the sign-in hint sends the visitor back to — read live, as the page outlives the URL it opened on. */
+  protected get currentPath(): string {
+    return this.router.url;
+  }
 
   readonly loading = signal(true);
   /** The inline share panel under the top row; closes when the page moves to another set. */
   readonly shareOpen = signal(false);
   readonly requestedId = signal<string | null>(null);
+  /** Bumped per load, so a late answer for a set the page has left never lands on the next one. */
+  private loadSeq = 0;
 
   readonly resolvedArmor = signal<Map<string, ResolvedEntity>>(new Map());
   readonly archiveDepth = signal<Map<string, number>>(new Map());
@@ -256,18 +271,25 @@ export class CodexSetComponent {
     return this.hangar.recentSets().map((l) => ({ id: l.id, label: l.name, active: l.id === current }));
   });
 
-  /** Bumped per load, so a slow answer for the set left behind never lands on the set picked after it. */
-  private loadSeq = 0;
-
-  constructor() {
-    // The picker navigates /codex/set/A → /codex/set/B, and the router REUSES
-    // this component for that — a one-time snapshot read would keep showing A
-    // under B's URL. So the page follows the param, not its first value.
-    this.route.paramMap
-      .pipe(takeUntilDestroyed())
-      .subscribe((params) => void this.load(params.get('id')));
+  /**
+   * Params are SUBSCRIBED, not snapshotted: the stage's own set picker routes
+   * `codex/set/:id` to itself, and the router reuses this page across that
+   * params-only navigation — and across back/forward between two set pages —
+   * so a snapshot read leaves the new URL over the old set. The first emission
+   * is synchronous, so a deep link loads exactly as before.
+   */
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      void this.load(params.get('id'));
+    });
   }
 
+  /**
+   * A set switch keeps the page up (no loading state over hero and board):
+   * the new id re-picks the active set at once, and only what it carries is
+   * resolved again. The maps are keyed by class name and attach type, not by
+   * set, so the previous answers stand until the new ones land.
+   */
   private async load(id: string | null): Promise<void> {
     const seq = ++this.loadSeq;
     // The share panel reads its loadout id once — never leave set A's shares
@@ -302,17 +324,21 @@ export class CodexSetComponent {
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
     const slots = armorSlotsFromLoadout(active.items);
     const emptySlots = slots.filter((s) => !s.className);
-    const current = () => seq === this.loadSeq;
+    // Each answer lands as it arrives — unless the page has moved on to
+    // another set meanwhile, then it is dropped.
+    const land = <T>(state: WritableSignal<T>, value: T) => {
+      if (seq === this.loadSeq) state.set(value);
+    };
 
     await Promise.all([
       this.svc
         .resolveEntities(classNames)
-        .catch(() => new Map<string, ResolvedEntity>())
-        .then((m) => current() && this.resolvedArmor.set(m)),
+        .then((m) => land(this.resolvedArmor, m))
+        .catch(() => land(this.resolvedArmor, new Map())),
       this.svc
         .getEntityPayloads(classNames)
-        .catch(() => new Map<string, EntityPayloadEntry>())
-        .then((m) => current() && this.armorPayloads.set(m)),
+        .then((m) => land(this.armorPayloads, m))
+        .catch(() => land(this.armorPayloads, new Map())),
       Promise.all(
         emptySlots.map((s) =>
           this.svc
@@ -321,10 +347,9 @@ export class CodexSetComponent {
             .catch(() => [s.attachType, null] as const),
         ),
       ).then((entries) => {
-        if (!current()) return;
         const m = new Map<string, number>();
         for (const [attachType, count] of entries) if (count != null) m.set(attachType, count);
-        this.archiveDepth.set(m);
+        land(this.archiveDepth, m);
       }),
     ]);
   }
