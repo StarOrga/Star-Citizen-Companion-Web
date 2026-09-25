@@ -67,6 +67,21 @@ function seedScriptSource() {
   return `(${seedStorage})(${JSON.stringify(args)}, ${isAppOrigin});`;
 }
 
+/**
+ * Only the app's own page may collect a session. This guard is load-bearing:
+ * Playwright adds `access-control-allow-origin` to every fulfilled response
+ * (`_maybeAddCorsHeaders`), so without it any site opened in the test browser
+ * could fetch `http://127.0.0.1:4200/__sc-test-session` and read an admin
+ * session (verified 2026-09-25: the foreign fetch got a readable status).
+ */
+function isSameOriginCaller(request, origin) {
+  try {
+    return new URL(request.frame().url()).origin === origin;
+  } catch {
+    return false; // no frame (service worker) or an unparsable URL
+  }
+}
+
 function createTestSession({
   cwd = process.cwd(),
   readAccount = readTestAccount,
@@ -112,7 +127,12 @@ function createTestSession({
     await context.route(
       (url) => url.pathname === SESSION_PATH && isAppOrigin(url),
       async (route) => {
-        const session = await sessionFor(new URL(route.request().url()).origin);
+        const origin = new URL(route.request().url()).origin;
+        if (!isSameOriginCaller(route.request(), origin)) {
+          logLine(`refused: session request for ${origin} from another origin`);
+          return route.fulfill({ status: 403, headers: { 'cache-control': 'no-store' } });
+        }
+        const session = await sessionFor(origin);
         if (!session) return route.fulfill({ status: 204, headers: { 'cache-control': 'no-store' } });
         const consent = { preferences: false, statistics: false, decidedAt: new Date().toISOString() };
         return route.fulfill({

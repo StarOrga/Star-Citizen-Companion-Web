@@ -50,6 +50,11 @@ App origins (`APP_ORIGIN_RULES` in `scripts/lib/test-account.cjs`):
 `http://127.0.0.1|localhost` on ports 4200–4399, `https://sc-companion.vercel.app`,
 `https://star-citizen-companion-website*.vercel.app` (previews).
 
+The route answers only a page of the **same** origin (403 otherwise).
+Playwright adds `access-control-allow-origin` to every fulfilled response, so
+without that check any site opened in the test browser could fetch the path
+and read an admin session.
+
 A second init script added from inside the route handler looks simpler, but
 `addInitScript` deadlocks while a navigation request is held.
 

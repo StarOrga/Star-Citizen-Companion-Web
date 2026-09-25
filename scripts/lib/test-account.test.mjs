@@ -226,9 +226,9 @@ function fakeContext() {
   return ctx;
 }
 
-function fakeRoute(url) {
+function fakeRoute(url, callerUrl = url) {
   const route = { fulfilled: null };
-  route.request = () => ({ url: () => url });
+  route.request = () => ({ url: () => url, frame: () => ({ url: () => callerUrl }) });
   route.fulfill = async (response) => {
     route.fulfilled = response;
   };
@@ -301,6 +301,15 @@ describe('createTestSession (the init page)', () => {
     await handler(c);
     assert.equal(mints(), 2);
     assert.equal(JSON.parse(JSON.parse(c.fulfilled.body).session).access_token, 'at2');
+  });
+
+  it('refuses a session request from another origin without signing in', async () => {
+    const { init, context, page, mints } = setup();
+    await init({ page });
+    const route = fakeRoute(`http://127.0.0.1:4200${initPage.SESSION_PATH}`, 'https://example.test/attack');
+    await context.routes[0].handler(route);
+    assert.equal(route.fulfilled.status, 403);
+    assert.equal(mints(), 0);
   });
 
   it('answers 204 when the sign-in fails', async () => {
