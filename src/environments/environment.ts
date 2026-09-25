@@ -14,7 +14,7 @@ export const environment = {
   // Empty = ship hulls and icons load from the Supabase `ship-skins` bucket.
   // Setting it also needs the host in vercel.json's CSP (connect-src + img-src).
   assets: {
-    r2BaseUrl: '',
+    r2BaseUrl: 'https://sc-assets.sc-assets-worker.workers.dev',
   },
   // Anonymous product analytics (#139). The project key is a public, write-only
   // ingest key — same class as the Supabase publishable key above, not a secret.

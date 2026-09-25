@@ -9,7 +9,7 @@ built in by design.
 |---|---|---|
 | Relational: users, social, hangar, feedback, telemetry, codex catalog | Supabase Postgres (Free, 500 MB) | RLS, RPCs, Realtime. Blocks (402) at its limit, never bills |
 | RLS-gated files (feedback attachments), codex previews | Supabase Storage (Free, 1 GB) | RLS per owner cannot be rebuilt elsewhere |
-| Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` | 0 € egress, 10 GB. Falls back to Supabase until the R2 secrets exist |
+| Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` at `https://sc-assets.sc-assets-worker.workers.dev` (live 2026-09-25) | 0 € egress, 10 GB. A key the bucket lacks is streamed from Supabase by the Worker |
 | App bundle, icons, meshopt decoder | Vercel Hobby | Static hosting |
 | Desktop installers | GitHub Releases in the public `Star-Citizen-Companion-Binaries` mirror | No bandwidth cap, trusted domain for AV scanners |
 | Backups / codex build archive | *(planned)* Backblaze B2 EU with daily caps | Supabase Free has no downloadable backups |
