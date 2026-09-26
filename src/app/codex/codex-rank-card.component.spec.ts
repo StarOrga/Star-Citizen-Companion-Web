@@ -51,6 +51,36 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelectorAll('.bar-row').length).toBe(result.axes.length);
   });
 
+  it('marks the weakest axis in the warning colour, never in the error colour', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100 } };
+    const cohort: RankShipInput[] = [
+      target,
+      { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200 } },
+    ];
+    fixture.componentRef.setInput('result', rankShip(target, cohort, { profile: 'combat', scope: 'sizeClass' }));
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    // A token as the browser resolves it (styles.scss is part of the test build).
+    const resolved = (token: string): string => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${token})`;
+      document.body.appendChild(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    };
+    const warning = resolved('--sc-warning');
+    expect(warning).not.toBe(resolved('--sc-danger'));
+
+    const bar = el.querySelector<HTMLElement>('.bar-fill.weak');
+    const ring = el.querySelector<SVGCircleElement>('.radar .weak-axis');
+    expect(bar).withContext('weak bar').toBeTruthy();
+    expect(ring).withContext('weakest-axis ring').toBeTruthy();
+    expect(getComputedStyle(bar!).backgroundColor).toBe(warning);
+    expect(getComputedStyle(ring!).stroke).toBe(warning);
+  });
+
   it('disables a profile chip with its reason as an app tooltip', () => {
     fixture.componentRef.setInput('disabledReasons', { transport: 'codex.rank.disabled.noCargo' });
     fixture.detectChanges();

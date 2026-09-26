@@ -45,12 +45,7 @@ import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponType
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
-import {
-  ARM_TTL_MS,
-  SET_SLOT_TRANSITION_NAME,
-  SetArsenalTransition,
-  nameForTransition,
-} from './set/set-arsenal-transition';
+import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set/set-arsenal-transition';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -1124,13 +1119,13 @@ export class FpsListComponent {
     }
   }
 
-  /** Arms the arsenal → set hop on the band, names it, then navigates back. */
+  /** The arsenal → set hop: the band shrinks back into the slot tile it grew from. */
   private returnToSet(slot: string, setId: string): void {
-    const el = this.bandRef()?.nativeElement ?? null;
-    this.transition.arm(slot, 'toSet');
-    nameForTransition(el, true);
-    setTimeout(() => nameForTransition(el, false), ARM_TTL_MS);
-    void this.router.navigate(['/codex', 'set', setId]);
+    void this.transition.hop(
+      this.router.createUrlTree(['/codex', 'set', setId]),
+      { slot, direction: 'toSet' },
+      this.bandRef()?.nativeElement ?? null,
+    );
   }
 
   categoryCount(c: FpsCategory): number | null {

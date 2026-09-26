@@ -57,7 +57,7 @@ describe('FpsListComponent (equip mode)', () => {
     update: jasmine.Spy;
     selectBuild: jasmine.Spy;
     viewingPastPatch: ReturnType<typeof signal<boolean>>;
-    navigateSpy: jasmine.Spy;
+    hopSpy: jasmine.Spy;
   }> {
     const list = opts.holdList
       ? jasmine.createSpy('listFpsCatalog').and.returnValue(new Promise(() => undefined))
@@ -103,14 +103,13 @@ describe('FpsListComponent (equip mode)', () => {
       ],
     }).compileComponents();
 
-    const router = TestBed.inject(Router);
-    const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
+    const hopSpy = spyOn(TestBed.inject(SetArsenalTransition), 'hop').and.resolveTo(true);
 
     const fixture = TestBed.createComponent(FpsListComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, el: fixture.nativeElement as HTMLElement, update, selectBuild, viewingPastPatch, navigateSpy };
+    return { fixture, el: fixture.nativeElement as HTMLElement, update, selectBuild, viewingPastPatch, hopSpy };
   }
 
   it('says so when the equip write is refused instead of looking like a dead click', async () => {
@@ -138,7 +137,7 @@ describe('FpsListComponent (equip mode)', () => {
       Promise.resolve(null),
       Promise.resolve(saved),
     );
-    const { fixture, el, navigateSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
+    const { fixture, el, hopSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
 
     for (let i = 0; i < 2; i++) {
       (el.querySelector('.equip-btn') as HTMLButtonElement).click();
@@ -149,8 +148,12 @@ describe('FpsListComponent (equip mode)', () => {
     expect(el.querySelector('.equip-err')).toBeNull();
     expect(el.querySelector('.equip-btn')!.classList).toContain('on');
     // A successful armour equip (not a clear) hops back into the set page —
-    // the same slot tile the reader arrived from, view-transitioned back in.
-    expect(navigateSpy).toHaveBeenCalledWith(['/codex', 'set', 'set-1']);
+    // the band shrinks into the same slot tile the reader arrived from.
+    expect(hopSpy).toHaveBeenCalledTimes(1);
+    const [tree, landing, source] = hopSpy.calls.mostRecent().args;
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/set/set-1');
+    expect(landing).toEqual({ slot: 'helmet', direction: 'toSet' });
+    expect(source).toBe(el.querySelector('.equip-band'));
   });
 
   it('leads "back to the set" to the set page, not the landing', async () => {
@@ -198,7 +201,7 @@ describe('FpsListComponent (equip mode)', () => {
     const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
     const other: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_02', kind: 'item' }] };
     const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(other);
-    const { fixture, el, navigateSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
+    const { fixture, el, hopSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
 
     (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
     await fixture.whenStable();
@@ -207,7 +210,7 @@ describe('FpsListComponent (equip mode)', () => {
     expect(update).toHaveBeenCalledWith('set-1', 'helmet', null, 'rsi_helmet_01');
     expect(el.querySelector('.equip-note')?.textContent).toContain('fps.equip.changedElsewhere');
     // A clear stays on the list — the reader may pick a replacement right away.
-    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(hopSpy).not.toHaveBeenCalled();
   });
 
   it('shows no equip controls and no notice during ordinary browsing', async () => {

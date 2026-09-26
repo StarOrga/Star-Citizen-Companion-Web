@@ -15,8 +15,8 @@ import {
   viewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NgTemplateOutlet } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Location, NgTemplateOutlet } from '@angular/common';
+import { Router, UrlTree } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import { ResolvedEntity, fpsArmorSlot, pickLocalized, toLang } from '../codex.service';
@@ -32,7 +32,7 @@ import { isPlainLeftClick } from '../../core/modified-click.util';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { ArmorRatingRow, SetLensId, lensValueFor } from './set-rating';
 import { setReadiness } from './set-readiness';
-import { ARM_TTL_MS, SET_SLOT_TRANSITION_NAME, SetArsenalTransition, nameForTransition } from './set-arsenal-transition';
+import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set-arsenal-transition';
 
 /** Which column a slot's tile sits in — the figure's default anchor side, so a line never crosses the body. */
 const LEFT_SLOTS = ['helmet', 'core', 'arms'] as const;
@@ -55,6 +55,8 @@ export interface SetStageTile {
   archiveCount: string | null;
   /** The arsenal, filtered to this slot, with the equip intent for this set. */
   query: Record<string, string>;
+  /** That arsenal URL as a plain href (new tab, link preview); null outside the router. */
+  href: string | null;
   /** The active lens' readout for this piece, when the lens has one. */
   lens: { text: string; warn: boolean } | null;
 }
@@ -90,7 +92,6 @@ export interface SetStageLine {
   standalone: true,
   imports: [
     NgTemplateOutlet,
-    RouterLink,
     TranslatePipe,
     CodexStageComponent,
     CodexBoardFigureComponent,
@@ -164,8 +165,7 @@ export interface SetStageLine {
         [class.open]="!t.filled"
         [class.lit]="lit() === t.slot"
         [attr.data-slot]="t.slot"
-        [routerLink]="['/codex', 'fps']"
-        [queryParams]="t.query"
+        [attr.href]="t.href"
         [scTooltip]="t.labelKey | translate"
         scTooltipTier="label"
         [style.view-transition-name]="transition.isLandingOn(t.slot, 'toSet') ? transitionName : null"
@@ -173,7 +173,7 @@ export interface SetStageLine {
         (pointerleave)="leaveTile(t.slot)"
         (focus)="hoveredTile.set(t.slot)"
         (blur)="leaveTile(t.slot)"
-        (click)="onTileClick($event, t.slot, tile)"
+        (click)="onTileClick($event, t, tile)"
       >
         <span class="ic" aria-hidden="true"><sc-codex-icon kind="item" [attachType]="t.attachType" /></span>
         <span class="txt">
@@ -337,6 +337,8 @@ export interface SetStageLine {
 export class CodexSetStageComponent {
   private readonly t = inject(TranslateService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
   readonly transition = inject(SetArsenalTransition);
   readonly transitionName = SET_SLOT_TRANSITION_NAME;
 
@@ -382,13 +384,14 @@ export class CodexSetStageComponent {
     return armorSlotsFromLoadout(set.items).map((s) => {
       const side: 'left' | 'right' = (LEFT_SLOTS as readonly string[]).includes(s.roleSlot) ? 'left' : 'right';
       const query: Record<string, string> = { cat: 'armor', slot: fpsArmorSlot(s.attachType) ?? '', equipInto: set.id };
+      const href = this.hrefFor(query);
       if (!s.className) {
         const count = depth.get(s.attachType);
         return {
           slot: s.roleSlot, labelKey: s.labelKey, attachType: s.attachType, side,
           filled: false, className: null, name: '',
           archiveCount: count != null ? formatNumber(count) : null,
-          query, lens: null,
+          query, href, lens: null,
         };
       }
       const entity = resolved.get(s.className);
@@ -397,7 +400,7 @@ export class CodexSetStageComponent {
       const row = rows.find((r) => r.className === s.className);
       return {
         slot: s.roleSlot, labelKey: s.labelKey, attachType: s.attachType, side,
-        filled: true, className: s.className, name, archiveCount: null, query,
+        filled: true, className: s.className, name, archiveCount: null, query, href,
         lens: lens === 'all' ? null : lensValueFor(row, lens, rows, lang),
       };
     });
@@ -420,7 +423,6 @@ export class CodexSetStageComponent {
   private readonly tileEls = viewChildren<ElementRef<HTMLElement>>('tile');
   /** Bumped by the ResizeObserver — re-runs the measurement. */
   private readonly layoutTick = signal(0);
-  private readonly timers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor() {
     this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(toLang(e.lang)));
@@ -443,10 +445,6 @@ export class CodexSetStageComponent {
       this.destroyRef.onDestroy(() => ro.disconnect());
     });
 
-    this.destroyRef.onDestroy(() => {
-      for (const id of this.timers) clearTimeout(id);
-      this.timers.clear();
-    });
   }
 
   leaveTile(slot: string): void {
@@ -454,20 +452,29 @@ export class CodexSetStageComponent {
   }
 
   /**
-   * Arms the set → arsenal view transition for a plain left click only; the
-   * anchor navigates on its own. A modified click (new tab) must not arm a
-   * hop that never happens here. The name is cleared again after the arm's
-   * lifetime, so a cancelled navigation cannot leave it on the tile.
+   * A plain left click hops into the arsenal: the tile grows into its header
+   * band. Every other click (new tab, new window) is left to the anchor.
    */
-  onTileClick(ev: MouseEvent, slot: string, el: HTMLElement): void {
+  onTileClick(ev: MouseEvent, t: SetStageTile, el: HTMLElement): void {
     if (!isPlainLeftClick(ev)) return;
-    this.transition.arm(slot, 'toArsenal');
-    nameForTransition(el, true);
-    const id = setTimeout(() => {
-      this.timers.delete(id);
-      nameForTransition(el, false);
-    }, ARM_TTL_MS);
-    this.timers.add(id);
+    ev.preventDefault();
+    void this.transition.hop(this.arsenalTree(t.query), { slot: t.slot, direction: 'toArsenal' }, el);
+  }
+
+  private arsenalTree(query: Record<string, string>): UrlTree {
+    return this.router.createUrlTree(['/codex', 'fps'], { queryParams: query });
+  }
+
+  /**
+   * The tile's href. Plain, not routerLink: RouterLink would navigate on the
+   * plain click as well, next to the hop.
+   */
+  private hrefFor(query: Record<string, string>): string | null {
+    try {
+      return this.location.prepareExternalUrl(this.router.serializeUrl(this.arsenalTree(query)));
+    } catch {
+      return null; // a view outside the router (tests)
+    }
   }
 
   /** Tile inner edge → elbow → part anchor, in rig pixels. */

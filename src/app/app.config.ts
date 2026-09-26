@@ -1,10 +1,5 @@
 import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
-import {
-  provideRouter,
-  withComponentInputBinding,
-  withInMemoryScrolling,
-  withViewTransitions,
-} from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { REMOVE_STYLES_ON_COMPONENT_DESTROY } from '@angular/platform-browser';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
@@ -14,7 +9,6 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
-import { onSetArsenalViewTransition } from './codex/set/set-arsenal-transition';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -23,11 +17,6 @@ export const appConfig: ApplicationConfig = {
       routes,
       withComponentInputBinding(),
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
-      // Only the set <-> arsenal hop animates (the slot tile grows into the
-      // arsenal's header band and back). Every other navigation, and every
-      // navigation under prefers-reduced-motion, skips its transition at once;
-      // see codex/set/set-arsenal-transition.ts.
-      withViewTransitions({ skipInitialTransition: true, onViewTransitionCreated: onSetArsenalViewTransition }),
     ),
     provideAnimationsAsync(),
     // Keep a component's <style> in the document once it has been added, instead

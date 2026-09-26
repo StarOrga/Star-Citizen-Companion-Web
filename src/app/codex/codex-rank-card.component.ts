@@ -278,10 +278,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .radar .median { fill: none; stroke: var(--sc-fg-2); stroke-width: 1; stroke-dasharray: 3 3; }
     .radar .ship { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke: var(--sc-accent); stroke-width: 1.5; }
     /* Weakest ranked axis (Holotable "Einordnung" ask): a stroke-only ring,
-       no fill, no coloured text — CLAUDE.md reserves --sc-danger for errors/
-       destructive actions, so this is a deliberate one-off "warning-class
-       highlight" on the vertex itself, not a navigation or status colour. */
-    .radar .weak-axis { fill: none; stroke: var(--sc-danger); stroke-width: 2; }
+       no fill, no coloured text. --sc-warning, not --sc-danger: a weak axis is
+       neither an error nor a destructive action (CLAUDE.md), and the set
+       page's rating card marks its weak axes the same way. */
+    .radar .weak-axis { fill: none; stroke: var(--sc-warning); stroke-width: 2; }
     .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend .ship { color: var(--sc-accent); }
@@ -319,7 +319,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); }
     .bar-fill { display: block; height: 100%; background: var(--sc-accent);
       transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1); animation: bar-grow 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 180ms backwards; }
-    .bar-fill.weak { background: var(--sc-danger); }
+    .bar-fill.weak { background: var(--sc-warning); }
     /* The card fills in: the bars grow from zero, the ship's polygon opens
        out of the radar's centre. A later re-rank eases between values. */
     @keyframes bar-grow { from { width: 0; } }
@@ -431,7 +431,7 @@ export class CodexRankCardComponent {
 
   /**
    * Vertex of the single weakest ranked axis (lowest percentile), for the
-   * Holotable "Einordnung" panel's danger-stroke marker. Ties keep the first
+   * Holotable "Einordnung" panel's warning-stroke marker. Ties keep the first
    * axis in profile order. `null` when nothing is ranked yet.
    */
   readonly weakestAxisVertex = computed<{ x: number; y: number } | null>(() => {

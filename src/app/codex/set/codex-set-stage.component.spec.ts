@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -10,7 +10,7 @@ import { CodexBoardFigureComponent } from '../codex-board-figure.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { ArmorRatingRow, SetLensId } from './set-rating';
-import { ARM_TTL_MS, SetArsenalTransition } from './set-arsenal-transition';
+import { SetArsenalTransition } from './set-arsenal-transition';
 
 const SET: HangarRoleLoadout = {
   id: 'set-a',
@@ -163,27 +163,26 @@ describe('CodexSetStageComponent', () => {
     expect(tile('arms').querySelector('.lens')).toBeNull();
   });
 
-  it('arms the set → arsenal transition on a plain left click only', () => {
-    const transition = TestBed.inject(SetArsenalTransition);
-    const arm = spyOn(transition, 'arm').and.callThrough();
+  it('hops into the arsenal on a plain left click only, leaving every other click to the anchor', () => {
+    const hop = spyOn(TestBed.inject(SetArsenalTransition), 'hop').and.resolveTo(true);
     const helmet = tile('helmet');
-    jasmine.clock().install();
-    try {
-      // Called directly: a dispatched modified click would open a real tab in Karma.
-      stage().onTileClick(new MouseEvent('click', { button: 0, ctrlKey: true }), 'helmet', helmet);
-      expect(arm).not.toHaveBeenCalled();
-      expect(helmet.style.getPropertyValue('view-transition-name')).toBe('');
+    const t = stage().tiles().find((x) => x.slot === 'helmet')!;
 
-      stage().onTileClick(new MouseEvent('click', { button: 0 }), 'helmet', helmet);
-      expect(arm).toHaveBeenCalledOnceWith('helmet', 'toArsenal');
-      expect(helmet.style.getPropertyValue('view-transition-name')).toBe('set-slot');
+    // Called directly: a dispatched modified click would open a real tab in Karma.
+    const modified = new MouseEvent('click', { button: 0, ctrlKey: true, cancelable: true });
+    stage().onTileClick(modified, t, helmet);
+    expect(hop).not.toHaveBeenCalled();
+    expect(modified.defaultPrevented).toBeFalse();
 
-      // A navigation that never happens must not leave the name behind.
-      jasmine.clock().tick(ARM_TTL_MS + 1);
-      expect(helmet.style.getPropertyValue('view-transition-name')).toBe('');
-    } finally {
-      jasmine.clock().uninstall();
-    }
+    const plain = new MouseEvent('click', { button: 0, cancelable: true });
+    stage().onTileClick(plain, t, helmet);
+    expect(plain.defaultPrevented).toBeTrue();
+    expect(hop).toHaveBeenCalledTimes(1);
+    const [tree, landing, source] = hop.calls.mostRecent().args;
+    // The hop goes exactly where the href points.
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe(helmet.getAttribute('href')!);
+    expect(landing).toEqual({ slot: 'helmet', direction: 'toArsenal' });
+    expect(source).toBe(helmet);
   });
 
   it('names the tile the returning arsenal hop lands on', () => {

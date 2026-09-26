@@ -943,11 +943,12 @@ button {
 }
 
 /* === SET <-> ARSENAL VIEW TRANSITION =======================================
-   The one router view transition in the app (app.config.ts arms it only for
-   this hop, see codex/set/set-arsenal-transition.ts): an open slot's tile on
-   /codex/set/:id grows into the arsenal list's header band, and back after
-   equipping. Both ends carry `view-transition-name: set-slot`
-   (SET_SLOT_TRANSITION_NAME), set by the pages right before navigating.
+   The one view transition in the app, started for this hop only (no router
+   view transitions, see codex/set/set-arsenal-transition.ts): an open slot's
+   tile on /codex/set/:id grows into the arsenal list's header band, and back
+   after equipping. Both ends carry `view-transition-name: set-slot`
+   (SET_SLOT_TRANSITION_NAME): the source while the old page is captured, the
+   destination while the new one is.
    The snapshots keep their natural size and are clipped by the morphing box,
    so the tile's text never balloons to band width. The page itself only
    cross-fades, briefly. */
