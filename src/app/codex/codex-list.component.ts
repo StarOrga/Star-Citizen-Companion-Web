@@ -377,7 +377,7 @@ export function blueprintCategoriesForGroup(
                 <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
                   <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
                     <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
-                      <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" />
+                      <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
                     </sc-fallback-image>
                   </div>
                   <h3 class="name">{{ cardName(r) }}</h3>

@@ -390,7 +390,7 @@ interface GearRecipe {
             <div class="art">
               <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
                 <span class="art-fallback">
-                  <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" />
+                  <sc-codex-icon class="hero-icon" [kind]="detail()!.kind" [sub]="heroSub()" [attachType]="heroAttachType()" />
                 </span>
               </sc-fallback-image>
             </div>
@@ -2701,6 +2701,11 @@ export class CodexDetailComponent implements OnInit {
     const row = this.detail()?.row;
     if (!row) return null;
     return (row['kind'] as string) || (row['sub_type'] as string) || (row['weapon_class'] as string) || null;
+  }
+
+  /** Char_Armor_* attach_type of the current entity, for the hero icon's part glyph. */
+  heroAttachType(): string | null {
+    return (this.detail()?.row['attach_type'] as string | null) ?? null;
   }
 
   // Original class_name (e.g. 'DRAK_Cutlass_Black') for the skin selector —

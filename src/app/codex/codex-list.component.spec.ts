@@ -574,6 +574,16 @@ describe('CodexListComponent (Index mode)', () => {
       expect(cmp.kind()).toBe('component');
     });
 
+    it('passes an armour item\'s attach type to its card icon (part glyph, not the generic item box)', async () => {
+      const legs: CodexListRow = { ...blueprintRow('rsi_legs_01', null), attachType: 'Char_Armor_Legs' };
+      const { fixture } = await setup({ items: 5 }, { query: { kind: 'item' }, rows: [legs] });
+      const el = fixture.nativeElement as HTMLElement;
+      const icon = el.querySelector('.card-wrap sc-codex-icon path')!;
+      // armorLegs' glyph path (codex-category-icon.component.ts) — distinct from
+      // the generic 'item' box, which is what a missing attachType binding renders.
+      expect(icon.getAttribute('d')).toContain('M7.5 3.5 H16.5');
+    });
+
     it('keeps pin and add-to-hangar outside the card link', async () => {
       const { fixture } = await setup({ ships: 300 }, { rows: [ship('AEGS_Avenger_Titan')] });
       const el = fixture.nativeElement as HTMLElement;

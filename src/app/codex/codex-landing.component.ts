@@ -72,8 +72,10 @@ const SEARCH_DEBOUNCE_MS = 250;
  * bottom. See `stage/codex-stage.component.ts` and
  * `stage/hangar-picker.component.ts`.
  *
- * The six-slot paperdoll (`sc-codex-board-panel`) is superseded here; it
- * lives on the set page (`/codex/set/:id`, T1) now.
+ * The six-slot paperdoll is superseded here; the set page (`/codex/set/:id`,
+ * T1) configures the person — its masthead stage (`sc-codex-set-stage`) puts
+ * the six armour slots around the one figure (AUD-065 retired the old
+ * `sc-codex-board-panel`).
  */
 @Component({
   selector: 'sc-codex-landing',

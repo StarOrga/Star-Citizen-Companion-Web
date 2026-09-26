@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideLocationMocks } from '@angular/common/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FpsListComponent } from './fps-list.component';
 import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
 import { RoleService } from '../auth/role.service';
+import { SetArsenalTransition } from './set/set-arsenal-transition';
 
 const HELMET: CodexListRow = {
   classNameSlug: 'rsi_helmet_01',
@@ -56,6 +57,7 @@ describe('FpsListComponent (equip mode)', () => {
     update: jasmine.Spy;
     selectBuild: jasmine.Spy;
     viewingPastPatch: ReturnType<typeof signal<boolean>>;
+    navigateSpy: jasmine.Spy;
   }> {
     const list = opts.holdList
       ? jasmine.createSpy('listFpsCatalog').and.returnValue(new Promise(() => undefined))
@@ -101,11 +103,14 @@ describe('FpsListComponent (equip mode)', () => {
       ],
     }).compileComponents();
 
+    const router = TestBed.inject(Router);
+    const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
+
     const fixture = TestBed.createComponent(FpsListComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, el: fixture.nativeElement as HTMLElement, update, selectBuild, viewingPastPatch };
+    return { fixture, el: fixture.nativeElement as HTMLElement, update, selectBuild, viewingPastPatch, navigateSpy };
   }
 
   it('says so when the equip write is refused instead of looking like a dead click', async () => {
@@ -133,7 +138,7 @@ describe('FpsListComponent (equip mode)', () => {
       Promise.resolve(null),
       Promise.resolve(saved),
     );
-    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
+    const { fixture, el, navigateSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
 
     for (let i = 0; i < 2; i++) {
       (el.querySelector('.equip-btn') as HTMLButtonElement).click();
@@ -143,6 +148,9 @@ describe('FpsListComponent (equip mode)', () => {
 
     expect(el.querySelector('.equip-err')).toBeNull();
     expect(el.querySelector('.equip-btn')!.classList).toContain('on');
+    // A successful armour equip (not a clear) hops back into the set page —
+    // the same slot tile the reader arrived from, view-transitioned back in.
+    expect(navigateSpy).toHaveBeenCalledWith(['/codex', 'set', 'set-1']);
   });
 
   it('leads "back to the set" to the set page, not the landing', async () => {
@@ -152,7 +160,7 @@ describe('FpsListComponent (equip mode)', () => {
 
   it('tells the reader when the linked set cannot be loaded', async () => {
     const { el } = await setup({ query: { cat: 'armor', equipInto: 'gone' }, set: null });
-    expect(el.querySelector('.equip-bar')).toBeNull();
+    expect(el.querySelector('.equip-band')).toBeNull();
     expect(el.querySelector('.equip-missing')).not.toBeNull();
     expect(el.querySelector('.equip-btn')).toBeNull();
   });
@@ -190,7 +198,7 @@ describe('FpsListComponent (equip mode)', () => {
     const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
     const other: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_02', kind: 'item' }] };
     const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(other);
-    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
+    const { fixture, el, navigateSpy } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
 
     (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
     await fixture.whenStable();
@@ -198,6 +206,8 @@ describe('FpsListComponent (equip mode)', () => {
 
     expect(update).toHaveBeenCalledWith('set-1', 'helmet', null, 'rsi_helmet_01');
     expect(el.querySelector('.equip-note')?.textContent).toContain('fps.equip.changedElsewhere');
+    // A clear stays on the list — the reader may pick a replacement right away.
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   it('shows no equip controls and no notice during ordinary browsing', async () => {
@@ -253,6 +263,37 @@ describe('FpsListComponent (equip mode)', () => {
     const { el } = await setup({ query: { cat: 'weapon' }, holdList: true });
     const head = el.querySelector('.result-head .count')!.textContent!.trim();
     expect(head).toBe('codex.results.loading');
+  });
+
+  // The slot must be one the list carries (a stale ?slot= is cleared), and the
+  // test bed has no translations: the band shows its keys, not interpolated text.
+  it('dresses the equip band with the target set and the slot from a set-page link', async () => {
+    const { el } = await setup({ query: { cat: 'armor', slot: 'Helmet', equipInto: 'set-1' }, set: SET });
+    expect(el.querySelector('.band-title')!.textContent).toContain('fps.equip.band.titleSlot');
+    expect(el.querySelector('.band-eyebrow')!.textContent).toContain('fps.equip.band.eyebrowSlot');
+    expect(el.querySelector('.band-figure')).not.toBeNull();
+  });
+
+  it('shows no slot highlight or title-slot text in weapon equip mode', async () => {
+    const { el } = await setup({ query: { cat: 'weapon', equipInto: 'set-1' }, set: SET, rows: [] });
+    expect(el.querySelector('.equip-band')).not.toBeNull();
+    expect(el.querySelector('.band-figure')).toBeNull();
+    expect(el.querySelector('.band-title')!.textContent).toContain('fps.equip.targetSet');
+  });
+
+  it('carries the set ⇄ arsenal transition name on the band only while the hop is landing here', async () => {
+    const { fixture, el } = await setup({ query: { cat: 'armor', slot: 'Helmet', equipInto: 'set-1' }, set: SET });
+    const band = () => el.querySelector('.equip-band') as HTMLElement;
+    expect(band().style.getPropertyValue('view-transition-name')).toBe('');
+
+    const transition = TestBed.inject(SetArsenalTransition);
+    transition.active.set({ slot: 'helmet', direction: 'toArsenal' });
+    fixture.detectChanges();
+    expect(band().style.getPropertyValue('view-transition-name')).toBe('set-slot');
+
+    transition.active.set(null);
+    fixture.detectChanges();
+    expect(band().style.getPropertyValue('view-transition-name')).toBe('');
   });
 });
 

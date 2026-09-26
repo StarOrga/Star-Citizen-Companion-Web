@@ -941,3 +941,34 @@ button {
   .sc-reveal, .sc-snap::after { animation: none; }
   .sc-snap::after { opacity: 0; }
 }
+
+/* === SET <-> ARSENAL VIEW TRANSITION =======================================
+   The one router view transition in the app (app.config.ts arms it only for
+   this hop, see codex/set/set-arsenal-transition.ts): an open slot's tile on
+   /codex/set/:id grows into the arsenal list's header band, and back after
+   equipping. Both ends carry `view-transition-name: set-slot`
+   (SET_SLOT_TRANSITION_NAME), set by the pages right before navigating.
+   The snapshots keep their natural size and are clipped by the morphing box,
+   so the tile's text never balloons to band width. The page itself only
+   cross-fades, briefly. */
+::view-transition-group(set-slot) {
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+::view-transition-image-pair(set-slot) { overflow: clip; }
+::view-transition-old(set-slot),
+::view-transition-new(set-slot) {
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+}
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 180ms; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
+/* === END SET <-> ARSENAL VIEW TRANSITION =================================== */

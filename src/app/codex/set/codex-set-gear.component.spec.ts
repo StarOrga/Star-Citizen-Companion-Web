@@ -83,6 +83,28 @@ describe('CodexSetGearComponent', () => {
     expect(slotEls(medical).map((e) => e.dataset['slot'])).toEqual(['medgun', 'multitool', 'medpen']);
   });
 
+  it('numbers each position as a fixed hotbar (1 Primary → 2 Secondary → 3 Sidearm → 4 Melee → 5 Throwable)', async () => {
+    const fixture = await setup({ role: 'fps' });
+    const numbers = ['primary', 'secondary', 'sidearm', 'melee', 'throwable'].map(
+      (slot) => slotEl(fixture, slot).querySelector('.t-num')?.textContent?.trim(),
+    );
+    expect(numbers).toEqual(['1', '2', '3', '4', '5']);
+  });
+
+  it('numbers other roles too, in their own fixed order', async () => {
+    const fixture = await setup({ role: 'medical' });
+    const numbers = ['medgun', 'multitool', 'medpen'].map(
+      (slot) => slotEl(fixture, slot).querySelector('.t-num')?.textContent?.trim(),
+    );
+    expect(numbers).toEqual(['1', '2', '3']);
+  });
+
+  it('lays the hotbar out as one row of as many equal columns as the role has positions', async () => {
+    const fixture = await setup({ role: 'fps' });
+    const grid = (fixture.nativeElement as HTMLElement).querySelector('.gear-grid') as HTMLElement;
+    expect(grid.style.getPropertyValue('--gear-cols').trim()).toBe('5');
+  });
+
   it('shows a filled position with its resolved name and a clear button', async () => {
     const fixture = await setup({
       role: 'fps',
@@ -142,11 +164,14 @@ describe('CodexSetGearComponent', () => {
 
     const knife = slotEl(fixture, 'Knife');
     expect(knife.querySelector('a')).toBeNull();
-    expect(knife.querySelector('.t-label')?.textContent?.trim()).toBe('Knife');
+    // Custom slots keep numbering going after the role's own five (6, then 7).
+    expect(knife.querySelector('.t-label')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('6 Knife');
     expect(knife.querySelector('.gear-note')?.textContent).toContain('codex.set.gear.customSlot');
     expect(knife.querySelector('button.gear-clear')).not.toBeNull();
     // A known token keeps its translated label even outside its own role.
-    expect(slotEl(fixture, 'multitool').querySelector('.t-label')?.textContent?.trim()).toBe('hangar.slots.multitool');
+    expect(slotEl(fixture, 'multitool').querySelector('.t-label')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      '7 hangar.slots.multitool',
+    );
   });
 
   it('renders the medpen position muted, without a link, with the no-source note', async () => {

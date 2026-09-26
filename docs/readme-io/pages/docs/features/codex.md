@@ -12,7 +12,7 @@ account needed.
 
 The top of `/codex` states two things in one line: whether Star Citizen is
 **playable right now** — the same live server status the app header reports —
-and **which game patch** the archive below it was extracted from.
+and **which game patch** the Arsenal below it was extracted from.
 
 That patch label is also a switch. Open it for the last five patches, with
 *Load older* paging five more at a time. Every entry says whether we hold
@@ -54,7 +54,7 @@ list and *Back* from a detail page lands on it again. A search of three or more
 characters also names the other kinds that have matches (*Also found in: …*),
 one click each.
 
-On-foot gear has its own archive at `/codex/fps`, with weapons and tools in one
+On-foot gear has its own Arsenal at `/codex/fps`, with weapons and tools in one
 tab and armour in the other. Liveries fold into their base piece (`+n skins`),
 and the search understands `*` as a wildcard (`klwe_*`).
 

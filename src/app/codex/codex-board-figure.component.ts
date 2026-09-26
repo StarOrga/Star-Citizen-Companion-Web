@@ -4,16 +4,39 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
+  computed,
   effect,
   inject,
   input,
+  output,
   signal,
   viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type * as THREE from 'three';
-import { SUIT_PARTS, SuitPalette, buildHardsuit, paintPart } from './codex-board-suit';
-import type { Hardsuit } from './codex-board-suit';
+import {
+  FIGURE_ASPECT,
+  SUIT_CAMERA,
+  SUIT_PARTS,
+  SuitPalette,
+  buildHardsuit,
+  fallbackAnchors,
+  fallbackZones,
+  paintPart,
+  suitAnchors3d,
+  suitZones,
+} from './codex-board-suit';
+import type { AnchorSide, FigurePoint, Hardsuit, PartZone, SuitPart } from './codex-board-suit';
+
+/** Which side of each part a leader line lands on unless `anchorSide` says otherwise. */
+export const DEFAULT_ANCHOR_SIDE: Record<SuitPart, AnchorSide> = {
+  helmet: 'left',
+  core: 'left',
+  arms: 'left',
+  backpack: 'right',
+  undersuit: 'right',
+  legs: 'right',
+};
 
 /** Fallbacks for the three custom properties the suit is painted from. */
 const PALETTE_FALLBACK: SuitPalette = { idle: '#3d5a6c', tint: '#f0c27b', accent: '#52c1e6' };
@@ -53,7 +76,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       [attr.aria-label]="decorative() ? null : ('codex.landing.paperdoll.aria' | translate)"
     ></canvas>
 
-    <svg class="board-doll" viewBox="0 0 120 184"
+    <svg class="board-doll" viewBox="0 0 120 184" [class.has-hl]="!!highlight()"
          [attr.role]="decorative() ? null : 'img'"
          [attr.aria-hidden]="decorative() ? 'true' : null"
          [attr.aria-label]="decorative() ? null : ('codex.landing.paperdoll.aria' | translate)">
@@ -73,6 +96,11 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
           <stop offset="0%" stop-opacity="0.72" />
           <stop offset="55%" stop-opacity="0.32" />
           <stop offset="100%" stop-opacity="0.1" />
+        </linearGradient>
+        <linearGradient id="pd-plate-hl" class="pd-accent" x1="0" y1="0" x2="0.85" y2="1">
+          <stop offset="0%" stop-opacity="0.8" />
+          <stop offset="55%" stop-opacity="0.38" />
+          <stop offset="100%" stop-opacity="0.12" />
         </linearGradient>
         <linearGradient id="pd-visor" class="pd-idle" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-opacity="0.72" />
@@ -95,7 +123,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       <!-- RUCKSACK — life-support tanks behind the shoulders plus the
            antenna; the torso covers their inner half, which is what
            puts them *behind* the figure. -->
-      <g class="pd-part" [class.on]="slotFilled('backpack')" [attr.fill]="plateFill('backpack')">
+      <g class="pd-part" data-part="backpack" [class.on]="slotFilled('backpack')" [class.hl]="highlight() === 'backpack'" [attr.fill]="plateFill('backpack')">
         <rect class="plate" x="44" y="30" width="11" height="26" rx="5" />
         <rect class="plate" x="65" y="30" width="11" height="26" rx="5" />
         <path class="seam" d="M48 38h3M48 44h3M69 38h3M69 44h3M44 33h-7v-19" />
@@ -105,7 +133,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       <!-- UNTERSUIT — the soft layer the plates ride on: neck seal,
            waist and hips. It was invisible before; the position is
            equippable, so it gets a body part like the other five. -->
-      <g class="pd-part" [class.on]="slotFilled('undersuit')" [attr.fill]="plateFill('undersuit')">
+      <g class="pd-part" data-part="undersuit" [class.on]="slotFilled('undersuit')" [class.hl]="highlight() === 'undersuit'" [attr.fill]="plateFill('undersuit')">
         <path class="plate" d="M53 36h14v10c0 2-3 4-7 4s-7-2-7-4z" />
         <path class="plate" d="M47 100h26v9c0 3-2 5-5 5H52c-3 0-5-2-5-5z" />
         <path class="plate" d="M45 112h30v10c0 4-3 7-7 7H52c-4 0-7-3-7-7z" />
@@ -113,7 +141,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       </g>
 
       <!-- BEINE — thigh, knee joint, shin, boot. -->
-      <g class="pd-part" [class.on]="slotFilled('legs')" [attr.fill]="plateFill('legs')">
+      <g class="pd-part" data-part="legs" [class.on]="slotFilled('legs')" [class.hl]="highlight() === 'legs'" [attr.fill]="plateFill('legs')">
         <rect class="plate" x="46" y="122" width="12" height="26" rx="4" />
         <rect class="plate" x="62" y="122" width="12" height="26" rx="4" />
         <circle class="joint" cx="52" cy="151" r="5" />
@@ -127,7 +155,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       </g>
 
       <!-- TORSO — chest plate, collar, ribs and two abdomen bands. -->
-      <g class="pd-part" [class.on]="slotFilled('core')" [attr.fill]="plateFill('core')">
+      <g class="pd-part" data-part="core" [class.on]="slotFilled('core')" [class.hl]="highlight() === 'core'" [attr.fill]="plateFill('core')">
         <path class="plate" d="M60 48c-8 0-15 2-20 6l-2 20 3 14h38l3-14-2-20c-5-4-12-6-20-6z" />
         <path class="plate" d="M45 90h30l-2 5H47z" />
         <path class="plate" d="M47 97h26l-2 5H49z" />
@@ -137,7 +165,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       </g>
 
       <!-- ARME — pauldron, upper arm, elbow joint, forearm, glove. -->
-      <g class="pd-part" [class.on]="slotFilled('arms')" [attr.fill]="plateFill('arms')">
+      <g class="pd-part" data-part="arms" [class.on]="slotFilled('arms')" [class.hl]="highlight() === 'arms'" [attr.fill]="plateFill('arms')">
         <path class="plate" d="M41 49l-9 3c-4 1-6 5-6 9v7l15 3z" />
         <path class="plate" d="M79 49l9 3c4 1 6 5 6 9v7l-15 3z" />
         <rect class="plate" x="28" y="70" width="12" height="24" rx="5" />
@@ -153,7 +181,7 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
       </g>
 
       <!-- HELM — shell, visor, crest and comms nubs. -->
-      <g class="pd-part" [class.on]="slotFilled('helmet')" [attr.fill]="plateFill('helmet')">
+      <g class="pd-part" data-part="helmet" [class.on]="slotFilled('helmet')" [class.hl]="highlight() === 'helmet'" [attr.fill]="plateFill('helmet')">
         <path class="plate" d="M60 6c-11 0-19 7-19 17v9c0 5 3 8 8 8h22c5 0 8-3 8-8v-9c0-10-8-17-19-17z" />
         <path class="visor" [attr.fill]="visorFill()" d="M45 22h30v8c0 4-3 6-7 6H52c-4 0-7-2-7-6z" />
         <path class="seam" d="M60 7v11M45 16h-4M75 16h4M52 36h16" />
@@ -167,6 +195,26 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
         <rect class="pd-scan" x="24" y="-14" width="72" height="14" fill="url(#pd-scan)" />
       </g>
     </svg>
+
+    <!-- Pointer targets for the set page: invisible, aligned with whatever
+         is on screen (3D zones projected from the meshes through the render
+         camera, or the drawn suit's own shapes), one group per part. Mouse
+         and touch alike: a tap is a pointerenter too. The tiles carry the
+         names and the keyboard path; this layer is pointer-only and hidden
+         from assistive tech. -->
+    @if (interactive()) {
+      <svg class="board-zones" viewBox="0 0 120 184" preserveAspectRatio="none" aria-hidden="true">
+        @for (zone of zones(); track zone.part) {
+          <g class="zone" [attr.data-part]="zone.part"
+             (pointerenter)="partHover.emit(zone.part)"
+             (pointerleave)="partHover.emit(null)">
+            @for (poly of zone.polygons; track $index) {
+              <polygon [attr.points]="points(poly)" />
+            }
+          </g>
+        }
+      </svg>
+    }
   `,
   styles: [
     `
@@ -176,9 +224,21 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
          ratio never has to be restated anywhere else. */
       :host {
         display: block;
+        position: relative;
         width: 108px;
         max-width: 100%;
       }
+      /* Same box as the canvas / drawn suit: top-left, full width, 120:184. */
+      .board-zones {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 120 / 184;
+        pointer-events: none;
+      }
+      .board-zones polygon { fill: transparent; stroke: none; pointer-events: all; }
       /* The canvas keeps the drawn suit's box exactly, so switching between the
          two changes the picture and never the layout. */
       .board-stage {
@@ -187,6 +247,11 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
         aspect-ratio: 120 / 184;
       }
       .board-stage.on { display: block; }
+      /* The highlight is painted into the render itself (one redraw); only the
+         drawn suit's step-back eases, and only where motion is welcome. */
+      @media (prefers-reduced-motion: no-preference) {
+        .pd-part { transition: opacity 160ms ease, filter 160ms ease; }
+      }
       .board-stage.on ~ .board-doll { display: none; }
 
       .board-doll { width: 100%; height: auto; overflow: visible; }
@@ -241,6 +306,13 @@ const COLOR_RE = /^(#[0-9a-f]{3,8}|rgba?\(|hsla?\()/i;
         stroke-linecap: round;
       }
       .pd-part.on .rim, .pd-part.on .glint { stroke-opacity: 0.38; }
+      /* Highlight in the drawn suit: the part in the accent, the rest steps back. */
+      .pd-accent stop { stop-color: var(--sc-accent); }
+      .pd-part.hl {
+        color: color-mix(in srgb, var(--sc-accent) 85%, #fff);
+        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent));
+      }
+      .board-doll.has-hl .pd-part:not(.hl) { opacity: 0.38; }
       /* Holo sweep: hidden unless motion is welcome, so the resting state
          of the zone is always a still image. */
       .pd-scan { display: none; pointer-events: none; }
@@ -264,6 +336,43 @@ export class CodexBoardFigureComponent {
    * is then what it looks like, a picture of the set, and nothing else.
    */
   readonly decorative = input(false);
+  /**
+   * The one part to light up (set page: hovered / focused tile). It renders in
+   * `--sc-accent` and every other part steps back; `null` = normal figure.
+   * One redraw per change, still no animation loop.
+   */
+  readonly highlight = input<string | null>(null);
+  /** Render invisible per-part hit zones and emit {@link partHover}. */
+  readonly interactive = input(false);
+  /** Per-part override of which side's anchor {@link partAnchors} reports. */
+  readonly anchorSide = input<Partial<Record<SuitPart, AnchorSide>>>({});
+  /** The part under the pointer (enter) or `null` (leave). Only when `interactive`. */
+  readonly partHover = output<string | null>();
+
+  /** Width / height of the rendered figure box (the canvas client box). */
+  private readonly aspect = signal(FIGURE_ASPECT);
+  /** 3D hit zones, set once the engine has built and sized the suit. */
+  private readonly zones3d = signal<PartZone[] | null>(null);
+
+  /**
+   * Leader-line end points for BOTH sides of every part, in fractions (0..1) of
+   * the figure box (top-left origin, y down; see codex-board-suit.ts
+   * "COORDINATE SYSTEM"). Projected through the render camera once the 3D suit
+   * is on screen, taken from the drawn shapes while the fallback is.
+   */
+  readonly partAnchorsBySide = computed<Record<SuitPart, Record<AnchorSide, FigurePoint>>>(() =>
+    this.ready() ? suitAnchors3d(this.aspect()) : fallbackAnchors(),
+  );
+  /** One anchor per part: the side from `anchorSide`, else DEFAULT_ANCHOR_SIDE. */
+  readonly partAnchors = computed<Record<SuitPart, FigurePoint>>(() => {
+    const both = this.partAnchorsBySide();
+    const sides = this.anchorSide();
+    const out = {} as Record<SuitPart, FigurePoint>;
+    for (const part of SUIT_PARTS) out[part] = both[part][sides[part] ?? DEFAULT_ANCHOR_SIDE[part]];
+    return out;
+  });
+  /** What the hit-zone layer draws: the 3D zones when the 3D suit is the picture. */
+  readonly zones = computed<PartZone[]>(() => (this.ready() && this.zones3d()) || fallbackZones());
 
   private readonly stage = viewChild.required<ElementRef<HTMLCanvasElement>>('stage');
   private readonly destroyRef = inject(DestroyRef);
@@ -286,9 +395,11 @@ export class CodexBoardFigureComponent {
     // `ready` is read here so the first paint can't be missed by ordering.
     effect(() => {
       const filled = this.filled();
+      const lit = this.highlight();
       if (!this.ready() || !this.three || !this.suit) return;
       for (const part of SUIT_PARTS) {
-        paintPart(this.three, this.suit.armour[part], this.palette, filled.has(part));
+        const emphasis = !lit ? 'normal' : lit === part ? 'lit' : 'dim';
+        paintPart(this.three, this.suit.armour[part], this.palette, filled.has(part), emphasis);
       }
       this.suit.glass.emissive
         .set(this.palette.accent)
@@ -311,7 +422,13 @@ export class CodexBoardFigureComponent {
    * `color` the way every stroke does — it has to pick one of two gradients.
    */
   plateFill(roleSlot: string): string {
+    if (this.highlight() === roleSlot) return 'url(#pd-plate-hl)';
     return this.slotFilled(roleSlot) ? 'url(#pd-plate-on)' : 'url(#pd-plate)';
+  }
+
+  /** SVG `points` for one zone polygon, in the overlay's 120 x 184 viewBox. */
+  points(poly: readonly FigurePoint[]): string {
+    return poly.map((p) => `${(p.x * 120).toFixed(2)},${(p.y * 184).toFixed(2)}`).join(' ');
   }
 
   /** Same two-gradient trick for the visor glass. */
@@ -361,9 +478,10 @@ export class CodexBoardFigureComponent {
 
       // Slightly off-axis: enough for the pauldrons and the pack to show their
       // depth, not so much that the suit stops reading as a front view.
+      // SUIT_CAMERA is also what projectSuitPoint() uses for anchors and zones.
       const camera = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 40);
-      camera.position.set(2.05, 1.5, 5.6);
-      camera.lookAt(0, 0.93, 0);
+      camera.position.set(...SUIT_CAMERA.position);
+      camera.lookAt(...SUIT_CAMERA.target);
       this.camera = camera;
 
       this.resize();
@@ -385,8 +503,10 @@ export class CodexBoardFigureComponent {
     const h = canvas.clientHeight || Math.round((108 * 184) / 120);
     const camera = this.camera;
     if (!camera || !this.renderer) return;
-    const halfH = 1.025;
+    const halfH = SUIT_CAMERA.halfHeight;
     const halfW = halfH * (w / h);
+    this.aspect.set(w / h);
+    if (this.three && this.suit) this.zones3d.set(suitZones(this.three, this.suit, w / h));
     camera.left = -halfW;
     camera.right = halfW;
     camera.top = halfH;
@@ -407,22 +527,38 @@ export class CodexBoardFigureComponent {
     this.observer = null;
     this.suit?.dispose();
     this.suit = null;
+    // dispose() frees three's resources but keeps the GL context alive until GC;
+    // a page that mounts figures repeatedly (set ⇄ arsenal) runs into the browser's
+    // context limit ("Context Lost") unless the context is handed back right away.
     this.renderer?.dispose();
+    this.renderer?.forceContextLoss();
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+    this.zones3d.set(null);
     this.ready.set(false);
   }
 }
 
-/** A context probe, not a feature test — cheap enough to run before the import. */
+/** WebGL support does not change within a page — probe once, not per figure. */
+let webglSupport: boolean | null = null;
+
+/**
+ * A context probe, not a feature test — cheap enough to run before the import.
+ * The probe's own context is released at once: every figure used to leave one
+ * behind, and enough of them push the page into the browser's context limit.
+ */
 function hasWebgl(): boolean {
+  if (webglSupport !== null) return webglSupport;
   try {
     const probe = document.createElement('canvas');
-    return !!(probe.getContext('webgl2') ?? probe.getContext('webgl'));
+    const gl = (probe.getContext('webgl2') ?? probe.getContext('webgl')) as WebGLRenderingContext | null;
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    webglSupport = !!gl;
   } catch {
-    return false;
+    webglSupport = false;
   }
+  return webglSupport;
 }
 
 function safeColor(value: string, fallback: string): string {

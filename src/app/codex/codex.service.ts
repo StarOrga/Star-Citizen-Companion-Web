@@ -108,6 +108,37 @@ export interface CodexFacetValues {
   componentKinds: string[];
 }
 
+/**
+ * One on-foot armour item's cohort rating, as returned by `codex_armor_rating`
+ * (migration 20260926140000_codex_armor_rating.sql) — see `set-rating.ts` for
+ * the pure domain logic (`rankSet`/`lensValueFor`) this data feeds.
+ */
+export interface ArmorRatingRow {
+  className: string;
+  slot: 'helmet' | 'core' | 'arms' | 'legs' | 'undersuit' | 'backpack';
+  itemType: string | null;
+  values: {
+    damageReduction: number | null;
+    tempMin: number | null;
+    tempMax: number | null;
+    radCapacity: number | null;
+    radRate: number | null;
+    gForce: number | null;
+    mass: number | null;
+    carryMicroScu: number | null;
+  };
+  pct: {
+    protection: number | null;
+    mobility: number | null;
+    gForce: number | null;
+    heat: number | null;
+    cold: number | null;
+    radiation: number | null;
+    scrub: number | null;
+    carry: number | null;
+  };
+}
+
 export interface CodexListFilters {
   search?: string;
   manufacturer?: string;
@@ -353,6 +384,8 @@ export class CodexService {
   private attachTypeCounts: { buildId: string; counts: Map<string, number> } | null = null;
   /** `facetValues` answers, per build + kind (in flight or done) — see facetValues. */
   private readonly facetValuesCache = new Map<string, Promise<CodexFacetValues | null>>();
+  /** `armorRating` answers, per build + class-name set (in flight or done) — see armorRating. */
+  private readonly armorRatingCache = new Map<string, Promise<ArmorRatingRow[] | null>>();
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -755,6 +788,49 @@ export class CodexService {
         grades: ((d['grades'] as unknown[]) ?? []) as string[],
         componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
       };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * On-foot armour cohort ratings (protection/mobility/g-force/heat/cold/
+   * radiation/scrub/carry percentiles) for exactly the given class names,
+   * under the current build — the source for the set page's rating card
+   * (`set-rating.ts` `rankSet`/`lensValueFor`). Cached per build + class-name
+   * set; a failed or not-yet-deployed RPC returns null so the caller can hide
+   * the rating card instead of breaking the page, same idiom as facetValues.
+   */
+  async armorRating(classNames: readonly string[]): Promise<ArmorRatingRow[] | null> {
+    const build = await this.buildOrThrow();
+    if (!build || classNames.length === 0) return classNames.length === 0 ? [] : null;
+    const key = `${build.id}|${[...classNames].sort().join(',')}`;
+    let pending = this.armorRatingCache.get(key);
+    if (!pending) {
+      // Only the current build's answers stay cached — a patch switch must
+      // not keep serving a stale build's ratings under the new key's neighbour.
+      for (const cached of this.armorRatingCache.keys()) {
+        if (!cached.startsWith(`${build.id}|`)) this.armorRatingCache.delete(cached);
+      }
+      pending = this.fetchArmorRating(build.id, classNames);
+      this.armorRatingCache.set(key, pending);
+    }
+    const result = await pending;
+    if (result === null) this.armorRatingCache.delete(key); // a failed read is asked again next time
+    return result;
+  }
+
+  private async fetchArmorRating(
+    buildId: string,
+    classNames: readonly string[],
+  ): Promise<ArmorRatingRow[] | null> {
+    try {
+      const { data, error } = await this.sb.client.rpc('codex_armor_rating', {
+        p_build_id: buildId,
+        p_class_names: [...classNames],
+      });
+      if (error || !data) return null;
+      return data as ArmorRatingRow[];
     } catch {
       return null;
     }

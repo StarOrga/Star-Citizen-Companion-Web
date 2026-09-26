@@ -161,13 +161,13 @@
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
       "terminal": {
-        "label": "Archiv durchsuchen",
-        "placeholder": "Archiv-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
+        "label": "Arsenal durchsuchen",
+        "placeholder": "Arsenal-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
         "clear": "Suche löschen",
         "keybinds": "Tastenbelegungen"
       },
       "archive": {
-        "label": "Archiv",
+        "label": "Arsenal",
         "armor": "Rüstung",
         "weapons": "Waffen",
         "blueprints": "Baupläne",
@@ -191,13 +191,13 @@
         "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
       },
       "patch": {
-        "archive": "{{count}} Datensätze im Archiv",
+        "archive": "{{count}} Datensätze im Arsenal",
         "extracted": "Eingelesen {{date}}",
         "build": "Build „{{build}}“ (Platzhalter)"
       },
       "results": {
-        "title": "Archiv-Treffer",
-        "searching": "Durchsuche das Archiv …",
+        "title": "Arsenal-Treffer",
+        "searching": "Durchsuche das Arsenal …",
         "empty": "Keine Treffer für „{{term}}“.",
         "upcomingBadge": "Noch nicht im Spiel"
       },
@@ -207,11 +207,7 @@
       },
       "me": {
         "eyebrow": "An Bord",
-        "title": "Ich",
-        "uncommissioned": "Unkommissioniert",
-        "emptyLead": "Noch keine persönliche Rüstung angelegt.",
-        "cta": "Rüstung anlegen",
-        "ctaGoal": "→ Kampfbereit"
+        "uncommissioned": "Unkommissioniert"
       },
       "fleet": {
         "eyebrow": "Im Hangar",
@@ -255,20 +251,7 @@
         "openDetail": "Zur Detailseite „{{name}}“ →"
       },
       "board": {
-        "open": "offen",
-        "archiveCount": "{{count}} im Archiv",
-        "classUnknown": "Keine Klassendaten im Archiv",
-        "more": "mehr",
-        "moreCount": "{{count}} weitere",
-        "class": {
-          "light": "Leichte Rüstung",
-          "medium": "Mittlere Rüstung",
-          "heavy": "Schwere Rüstung",
-          "superheavy": "Sehr schwere Rüstung",
-          "undersuit": "Untersuit",
-          "flightsuit": "Flugkombi",
-          "utility": "Schwere Arbeitsrüstung"
-        },
+        "archiveCount": "{{count}} im Arsenal",
         "readyOn": "angelegt",
         "readyOff": "offen",
         "readiness": {
@@ -1758,14 +1741,20 @@
         "clearAria": "{{slot}} leeren",
         "clearing": "Wird geleert …",
         "clearFailed": "{{slot}} konnte nicht geleert werden. Bitte erneut versuchen.",
-        "noSource": "Nicht im Archiv — Verbrauchsgut",
-        "customSlot": "Eigene Position — nicht aus dem Archiv befüllbar",
+        "noSource": "Nicht im Arsenal — Verbrauchsgut",
+        "customSlot": "Eigene Position — nicht aus dem Arsenal befüllbar",
         "cleared": "{{slot}} geleert.",
         "undo": "Rückgängig",
         "undoFailed": "{{slot}} konnte nicht zurückgelegt werden. Bitte erneut ausrüsten.",
         "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
       },
-      "equipInArchive": "Im Archiv ausrüsten"
+      "equipInArchive": "Im Arsenal ausrüsten",
+      "stage": {
+        "free": "Frei",
+        "slotsAria": "Rüstungsteile",
+        "readinessAria": "Einsatzbereitschaft",
+        "lensLimits": "begrenzt das Set in diesem Einsatz"
+      }
     },
     "stat": {
       "health": "Lebenspunkte",
@@ -1847,6 +1836,67 @@
       "rampDownHeat": "Wärme beim Herunterfahren",
       "preRampUpHeat": "Wärme vor dem Hochfahren",
       "postRampDownHeat": "Wärme nach dem Herunterfahren"
+    },
+    "setRank": {
+      "profile": {
+        "cig": "CIG-Raster",
+        "env": "Umwelt & Traglast"
+      },
+      "axis": {
+        "protection": "Schutz",
+        "mobility": "Mobilität",
+        "stealth": "Tarnung",
+        "activeScan": "Aktiv-Scan",
+        "gForce": "G-Kraft",
+        "eva": "EVA",
+        "heat": "Hitze",
+        "cold": "Kälte",
+        "radiation": "Strahlung",
+        "scrub": "Abbau",
+        "carry": "Traglast"
+      },
+      "cohort": "gegenüber allen Rüstungsteilen gleicher Art",
+      "gap": {
+        "noData": "nicht in den Spieldaten"
+      },
+      "note": {
+        "limited": "Hitze und Kälte begrenzt {{item}} ({{range}})."
+      },
+      "header": "Einordnung",
+      "profileLabel": "Profil",
+      "verdict": "{{pct}} % — {{band}}",
+      "radarAria": "Radardiagramm der Set-Perzentile, {{cohort}}",
+      "legend": {
+        "set": "Dieses Set",
+        "median": "Median"
+      },
+      "loading": "Wird berechnet …",
+      "unavailable": "Die Einordnung erscheint, sobald die Spielwerte geladen sind.",
+      "empty": "Noch keine Rüstung ausgerüstet — die Einordnung erscheint mit dem ersten Teil."
+    },
+    "setLens": {
+      "all": "Alles",
+      "combat": "Kampf",
+      "stealth": "Schleichen",
+      "pilot": "Pilot",
+      "env": "Umwelt",
+      "transport": "Transport",
+      "eva": "EVA",
+      "scan": "Scannen",
+      "tip": {
+        "all": "Alle Werte gleich gewichtet, ohne Schwerpunkt.",
+        "combat": "Wie CIGs Spezialisierung „Tank“: Schutz und Rüstungsklasse stehen im Vordergrund.",
+        "stealth": "Wie unauffällig das Set gegenüber Scannern wäre.",
+        "pilot": "Wie CIGs Spezialisierungen „Pilot“ und „Fahrer“: G-Kraft-Verträglichkeit im Vordergrund.",
+        "env": "Wie gut das Set gegen Hitze, Kälte und Strahlung schützt.",
+        "transport": "Wie viel Traglast das Set mitbringt.",
+        "eva": "Wie gut das Set für den Außenbordeinsatz geeignet wäre.",
+        "scan": "Wie CIGs Spezialisierung „Tracker“: Ortung und Aufspüren im Vordergrund."
+      },
+      "disabled": {
+        "noSignature": "Signaturwerte (EM/IR) stehen noch nicht in den Spieldaten",
+        "noData": "Dieser Wert steht noch nicht in den Spieldaten"
+      }
     }
   },
   "blueprint": {
@@ -1946,7 +1996,12 @@
       "saving": "Speichert …",
       "changedElsewhere": "Inzwischen in einem anderen Tab geändert — der Slot enthält jetzt etwas anderes.",
       "pastPatch": "Ausrüsten geht nur im aktuellen Patch.",
-      "pastPatchBack": "Zum aktuellen Patch"
+      "pastPatchBack": "Zum aktuellen Patch",
+      "band": {
+        "eyebrow": "Arsenal",
+        "eyebrowSlot": "Arsenal · {{slot}}",
+        "titleSlot": "{{slot}} für {{name}}"
+      }
     }
   },
   "news": {

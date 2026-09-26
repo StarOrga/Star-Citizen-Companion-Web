@@ -161,13 +161,13 @@
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
       "terminal": {
-        "label": "Search the archive",
-        "placeholder": "Archive Terminal — ship, component, weapon, item, manufacturer, blueprint …",
+        "label": "Search the Arsenal",
+        "placeholder": "Arsenal Terminal — ship, component, weapon, item, manufacturer, blueprint …",
         "clear": "Clear search",
         "keybinds": "Keybindings"
       },
       "archive": {
-        "label": "Archive",
+        "label": "Arsenal",
         "armor": "Armour",
         "weapons": "Weapons",
         "blueprints": "Blueprints",
@@ -191,13 +191,13 @@
         "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch."
       },
       "patch": {
-        "archive": "{{count}} records in the archive",
+        "archive": "{{count}} records in the Arsenal",
         "extracted": "Extracted {{date}}",
         "build": "Build \"{{build}}\" (placeholder)"
       },
       "results": {
-        "title": "Archive hits",
-        "searching": "Searching the archive …",
+        "title": "Arsenal hits",
+        "searching": "Searching the Arsenal …",
         "empty": "No matches for “{{term}}”.",
         "upcomingBadge": "Not in game yet"
       },
@@ -207,11 +207,7 @@
       },
       "me": {
         "eyebrow": "On board",
-        "title": "Me",
-        "uncommissioned": "Uncommissioned",
-        "emptyLead": "No personal armour set yet.",
-        "cta": "Equip armour",
-        "ctaGoal": "→ Combat-ready"
+        "uncommissioned": "Uncommissioned"
       },
       "fleet": {
         "eyebrow": "In the hangar",
@@ -255,20 +251,7 @@
         "openDetail": "Open detail page \"{{name}}\" →"
       },
       "board": {
-        "open": "open",
-        "archiveCount": "{{count}} in the archive",
-        "classUnknown": "No class data in the archive",
-        "more": "more",
-        "moreCount": "{{count}} more",
-        "class": {
-          "light": "Light armour",
-          "medium": "Medium armour",
-          "heavy": "Heavy armour",
-          "superheavy": "Super-heavy armour",
-          "undersuit": "Undersuit",
-          "flightsuit": "Flight suit",
-          "utility": "Heavy utility armour"
-        },
+        "archiveCount": "{{count}} in the Arsenal",
         "readyOn": "equipped",
         "readyOff": "open",
         "readiness": {
@@ -1758,14 +1741,20 @@
         "clearAria": "Clear {{slot}}",
         "clearing": "Clearing …",
         "clearFailed": "{{slot}} could not be cleared. Please try again.",
-        "noSource": "Not in the archive — consumable",
-        "customSlot": "Your own position — not filled from the archive",
+        "noSource": "Not in the Arsenal — consumable",
+        "customSlot": "Your own position — not filled from the Arsenal",
         "cleared": "{{slot}} cleared.",
         "undo": "Undo",
         "undoFailed": "{{slot}} couldn't be put back. Please equip it again.",
         "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
       },
-      "equipInArchive": "Equip from the archive"
+      "equipInArchive": "Equip from the Arsenal",
+      "stage": {
+        "free": "Free",
+        "slotsAria": "Armour pieces",
+        "readinessAria": "Readiness",
+        "lensLimits": "limits the set for this mission"
+      }
     },
     "stat": {
       "health": "Health",
@@ -1847,6 +1836,67 @@
       "rampDownHeat": "Ramp-down heat",
       "preRampUpHeat": "Pre-ramp-up heat",
       "postRampDownHeat": "Post-ramp-down heat"
+    },
+    "setRank": {
+      "profile": {
+        "cig": "CIG Grid",
+        "env": "Environment & Carry"
+      },
+      "axis": {
+        "protection": "Protection",
+        "mobility": "Mobility",
+        "stealth": "Stealth",
+        "activeScan": "Active Scan",
+        "gForce": "G-Force",
+        "eva": "EVA",
+        "heat": "Heat",
+        "cold": "Cold",
+        "radiation": "Radiation",
+        "scrub": "Scrub",
+        "carry": "Carry"
+      },
+      "cohort": "against every armour part of the same kind",
+      "gap": {
+        "noData": "not in the game data"
+      },
+      "note": {
+        "limited": "Heat and cold are limited by {{item}} ({{range}})."
+      },
+      "header": "Standing",
+      "profileLabel": "Profile",
+      "verdict": "{{pct}} % — {{band}}",
+      "radarAria": "Radar chart of the set's percentiles, {{cohort}}",
+      "legend": {
+        "set": "This set",
+        "median": "Median"
+      },
+      "loading": "Calculating …",
+      "unavailable": "Standing appears once the in-game figures have loaded.",
+      "empty": "No armour equipped yet — the rating appears with the first piece."
+    },
+    "setLens": {
+      "all": "All",
+      "combat": "Combat",
+      "stealth": "Stealth",
+      "pilot": "Pilot",
+      "env": "Environment",
+      "transport": "Transport",
+      "eva": "EVA",
+      "scan": "Scan",
+      "tip": {
+        "all": "Every value weighted equally, no focus.",
+        "combat": "Like CIG's \"Tank\" specialisation: protection and armour class come first.",
+        "stealth": "How hard the set would be to spot on a scanner.",
+        "pilot": "Like CIG's \"Pilot\" and \"Driver\" specialisations: g-force tolerance comes first.",
+        "env": "How well the set protects against heat, cold and radiation.",
+        "transport": "How much carrying capacity the set brings.",
+        "eva": "How well-suited the set would be for EVA work.",
+        "scan": "Like CIG's \"Tracker\" specialisation: detection and tracking come first."
+      },
+      "disabled": {
+        "noSignature": "Signature values (EM/IR) are not in the game data yet",
+        "noData": "This value is not in the game data yet"
+      }
     }
   },
   "blueprint": {
@@ -1946,7 +1996,12 @@
       "saving": "Saving …",
       "changedElsewhere": "Changed in another tab meanwhile — the slot now holds something else.",
       "pastPatch": "Equipping works on the current patch only.",
-      "pastPatchBack": "Go to current patch"
+      "pastPatchBack": "Go to current patch",
+      "band": {
+        "eyebrow": "Arsenal",
+        "eyebrowSlot": "Arsenal · {{slot}}",
+        "titleSlot": "{{slot}} for {{name}}"
+      }
     }
   },
   "news": {
