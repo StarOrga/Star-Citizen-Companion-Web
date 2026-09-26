@@ -43,6 +43,7 @@ import {
   computeLoadoutStats,
   mergeLoadout,
 } from './loadout-stats';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 
 interface PortRow {
   port: CodexItemPort;
@@ -63,7 +64,7 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -99,15 +100,14 @@ interface PortRow {
             </div>
           </div>
           <div class="head-actions">
-            <label class="facet">
+            <!-- A div, not a label: a label forwards clicks on the listbox's
+                 options to the trigger and would snap the list shut again. -->
+            <div class="facet">
               <span>{{ 'hangar.detail.pinLabel' | translate }}</span>
-              <select class="sc-select" [ngModel]="pinValue()" (ngModelChange)="setPin($event)">
-                <option value="">—</option>
-                <option value="1">#1</option>
-                <option value="2">#2</option>
-                <option value="3">#3</option>
-              </select>
-            </label>
+              <sc-select class="pin-select" [options]="pinOptions" [value]="pinValue() || null"
+                         placeholderLabel="—" [ariaLabel]="'hangar.detail.pinLabel' | translate"
+                         (valueChange)="setPin($event ?? '')" />
+            </div>
             <button class="sc-btn small" type="button" (click)="toggleStatus()">
               {{ (s.status === 'owned' ? 'hangar.detail.moveToWishlist' : 'hangar.detail.moveToOwned') | translate }}
             </button>
@@ -131,11 +131,9 @@ interface PortRow {
               <input class="cfg-name" type="text" [ngModel]="newConfigName()" (ngModelChange)="newConfigName.set($event)"
                      [attr.placeholder]="'hangar.configs.namePlaceholder' | translate"
                      [attr.aria-label]="'hangar.configs.namePlaceholder' | translate" />
-              <select class="sc-select" [ngModel]="newConfigRole()" (ngModelChange)="newConfigRole.set($event)">
-                @for (r of roles; track r) {
-                  <option [value]="r">{{ ('hangar.roles.' + r) | translate }}</option>
-                }
-              </select>
+              <sc-select class="role-select" [options]="configRoleOptions()" [value]="newConfigRole()"
+                         [allowEmpty]="false" [ariaLabel]="'hangar.configs.roleLabel' | translate"
+                         (valueChange)="onNewConfigRoleChange($event)" />
               <button class="sc-btn small" type="button" [disabled]="!newConfigName().trim()" (click)="createConfig()">
                 {{ 'hangar.configs.create' | translate }}
               </button>
@@ -363,7 +361,9 @@ interface PortRow {
     .head-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
     .facet > span { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .sc-select { background: var(--sc-bg-1); color: var(--sc-fg-0); border: 1px solid var(--sc-border); border-radius: 6px; padding: 7px 10px; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+    /* The themed select (shared/sc-select) draws itself; these only size it. */
+    .facet sc-select.pin-select { min-width: 84px; font-size: 0.82rem; }
+    .new-config sc-select.role-select { min-width: 150px; font-size: 0.84rem; }
     .sc-btn { padding: 8px 14px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
     .sc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .sc-btn:disabled { opacity: 0.5; cursor: default; }
@@ -449,6 +449,15 @@ export class HangarShipDetailComponent implements OnInit {
   private readonly codex = inject(CodexService);
 
   readonly roles = SHIP_CONFIG_ROLES;
+  readonly configRoleOptions = computed<ScSelectOption[]>(() =>
+    this.roles.map((r) => ({ value: r, labelKey: 'hangar.roles.' + r })),
+  );
+  /** #1/#2/#3 are raw text, not translated — same digits in every locale. */
+  readonly pinOptions: ScSelectOption[] = [
+    { value: '1', labelKey: '', label: '#1' },
+    { value: '2', labelKey: '', label: '#2' },
+    { value: '3', labelKey: '', label: '#3' },
+  ];
 
   readonly ship = signal<HangarShip | null>(null);
   readonly notFound = signal(false);
@@ -585,6 +594,10 @@ export class HangarShipDetailComponent implements OnInit {
     this.dirty.set(false);
     this.pickerPort.set(null);
     void this.refreshResolved();
+  }
+
+  onNewConfigRoleChange(value: string | null): void {
+    if (value) this.newConfigRole.set(value as ShipConfigRole);
   }
 
   async createConfig(): Promise<void> {

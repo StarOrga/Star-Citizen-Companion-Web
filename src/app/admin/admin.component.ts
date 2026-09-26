@@ -8,6 +8,7 @@ import { isDeleteBlocked, isProtectedAccount, isRoleChangeBlocked } from './admi
 import { PeopleRow, mergePeopleRows } from './people-rows';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 // Pure function, no Angular dependency — the same "vor 3 Std." formatter the
 // news surfaces use (and the `news.relative.*` keys it is documented to read).
 import { relativeTime } from '../news/relative-time';
@@ -133,7 +134,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [ScDatePipe, ScSelectComponent, TranslatePipe],
+  imports: [ScDatePipe, ScSelectComponent, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -302,18 +303,20 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                         {{ 'admin.moderation.unsuspend' | translate }}
                       </button>
                     } @else {
-                      <button type="button" class="sc-btn micro"
-                              [disabled]="moderation.busy() || !canModerate(f.user)"
-                              [title]="moderationLockReason(f.user)"
-                              (click)="openModeration(f.user.id, 'warn')">
-                        {{ 'admin.moderation.warn' | translate }}
-                      </button>
-                      <button type="button" class="sc-btn micro danger"
-                              [disabled]="moderation.busy() || !canModerate(f.user)"
-                              [title]="moderationLockReason(f.user)"
-                              (click)="openModeration(f.user.id, 'suspend')">
-                        {{ 'admin.moderation.suspend' | translate }}
-                      </button>
+                      <span class="tip-wrap" [scTooltip]="moderationLockReason(f.user)" scTooltipTier="label">
+                        <button type="button" class="sc-btn micro"
+                                [disabled]="moderation.busy() || !canModerate(f.user)"
+                                (click)="openModeration(f.user.id, 'warn')">
+                          {{ 'admin.moderation.warn' | translate }}
+                        </button>
+                      </span>
+                      <span class="tip-wrap" [scTooltip]="moderationLockReason(f.user)" scTooltipTier="label">
+                        <button type="button" class="sc-btn micro danger"
+                                [disabled]="moderation.busy() || !canModerate(f.user)"
+                                (click)="openModeration(f.user.id, 'suspend')">
+                          {{ 'admin.moderation.suspend' | translate }}
+                        </button>
+                      </span>
                     }
                     <button type="button" class="sc-btn micro"
                             [disabled]="moderation.busy()" (click)="resolveReports(f.user, false)">
@@ -540,17 +543,17 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     {{ ('profile.roles.' + u.role) | translate }}
                   </span>
                   @if (u.role === 'admin' && adminCount() === 1) {
-                    <span class="role-pill last-admin" [title]="'admin.lastAdminTip' | translate">
+                    <span class="role-pill last-admin" [scTooltip]="'admin.lastAdminTip' | translate">
                       {{ 'admin.lastAdmin' | translate }}
                     </span>
                   }
                   @if (isProtected(u)) {
-                    <span class="role-pill protected" [title]="'admin.protectedTip' | translate">
+                    <span class="role-pill protected" [scTooltip]="'admin.protectedTip' | translate">
                       {{ 'admin.protected' | translate }}
                     </span>
                   }
                   @if (isUserSuspended(u)) {
-                    <span class="role-pill suspended" [title]="u.suspension_reason ?? ''">
+                    <span class="role-pill suspended" [scTooltip]="u.suspension_reason ?? ''" scTooltipTier="label">
                       {{ 'admin.moderation.suspendedPill' | translate }}
                     </span>
                   }
@@ -566,28 +569,31 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                 <td>{{ lastSeenAt(u) ? (lastSeenAt(u)! | scDate: 'datetime') : '—' }}</td>
                 <td class="actions">
                   @if (u.role !== 'collaborator') {
-                    <button class="sc-btn micro"
-                            (click)="setRole(u.id, 'collaborator')"
-                            [disabled]="busy() || roleLocked(u, 'collaborator')"
-                            [title]="roleLockReason(u, 'collaborator')">
-                      {{ 'admin.actions.promoteCollab' | translate }}
-                    </button>
+                    <span class="tip-wrap" [scTooltip]="roleLockReason(u, 'collaborator')" scTooltipTier="label">
+                      <button class="sc-btn micro"
+                              (click)="setRole(u.id, 'collaborator')"
+                              [disabled]="busy() || roleLocked(u, 'collaborator')">
+                        {{ 'admin.actions.promoteCollab' | translate }}
+                      </button>
+                    </span>
                   }
                   @if (u.role !== 'admin') {
-                    <button class="sc-btn micro"
-                            (click)="setRole(u.id, 'admin')"
-                            [disabled]="busy() || roleLocked(u, 'admin')"
-                            [title]="roleLockReason(u, 'admin')">
-                      {{ 'admin.actions.promoteAdmin' | translate }}
-                    </button>
+                    <span class="tip-wrap" [scTooltip]="roleLockReason(u, 'admin')" scTooltipTier="label">
+                      <button class="sc-btn micro"
+                              (click)="setRole(u.id, 'admin')"
+                              [disabled]="busy() || roleLocked(u, 'admin')">
+                        {{ 'admin.actions.promoteAdmin' | translate }}
+                      </button>
+                    </span>
                   }
                   @if (u.role !== 'viewer') {
-                    <button class="sc-btn micro"
-                            (click)="setRole(u.id, 'viewer')"
-                            [disabled]="busy() || roleLocked(u, 'viewer')"
-                            [title]="roleLockReason(u, 'viewer')">
-                      {{ 'admin.actions.demoteViewer' | translate }}
-                    </button>
+                    <span class="tip-wrap" [scTooltip]="roleLockReason(u, 'viewer')" scTooltipTier="label">
+                      <button class="sc-btn micro"
+                              (click)="setRole(u.id, 'viewer')"
+                              [disabled]="busy() || roleLocked(u, 'viewer')">
+                        {{ 'admin.actions.demoteViewer' | translate }}
+                      </button>
+                    </span>
                   }
                   <!-- Lifting a suspension is available on every row, not just
                        on a reported one: a suspension outlives the reports
@@ -598,16 +604,18 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     <button class="sc-btn micro"
                             (click)="unsuspend(u)"
                             [disabled]="moderation.busy()"
-                            [title]="u.suspension_reason ?? ''">
+                            [scTooltip]="u.suspension_reason ?? ''"
+                            scTooltipTier="label">
                       {{ 'admin.moderation.unsuspend' | translate }}
                     </button>
                   }
-                  <button class="sc-btn micro danger"
-                          (click)="deleteUser(u)"
-                          [disabled]="busy() || deleteLocked(u)"
-                          [title]="deleteLockReason(u)">
-                    {{ (u.id === selfId() ? 'admin.actions.leaveSelf' : 'admin.actions.delete') | translate }}
-                  </button>
+                  <span class="tip-wrap" [scTooltip]="deleteLockReason(u)" scTooltipTier="label">
+                    <button class="sc-btn micro danger"
+                            (click)="deleteUser(u)"
+                            [disabled]="busy() || deleteLocked(u)">
+                      {{ (u.id === selfId() ? 'admin.actions.leaveSelf' : 'admin.actions.delete') | translate }}
+                    </button>
+                  </span>
                 </td>
               </tr>
             } @else if (p.invite; as inv) {
@@ -620,7 +628,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
               -->
               <tr class="invited-row">
                 <td>
-                  <span class="role-pill pending" [title]="'admin.people.invitedTitle' | translate">
+                  <span class="role-pill pending" [scTooltip]="'admin.people.invitedTitle' | translate">
                     {{ 'admin.people.invitedPill' | translate }}
                   </span>
                   <span class="invite-age">{{ inviteAge(inv.created_at) }}</span>
@@ -635,14 +643,14 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   </span>
                 </td>
                 <td><span class="muted-zero">—</span></td>
-                <td [title]="inv.created_at | scDate: 'datetime'">{{ inv.created_at | scDate }}</td>
+                <td [scTooltip]="inv.created_at | scDate: 'datetime'" scTooltipTier="label">{{ inv.created_at | scDate }}</td>
                 <td><span class="muted-zero">—</span></td>
                 <td class="actions">
                   <!-- The old card said it in a subline nobody re-read; here the
                        promise sits on the button that needs it. -->
                   <button type="button" class="sc-btn micro danger"
                           (click)="withdrawInvite(inv)"
-                          [title]="'admin.people.withdrawTitle' | translate"
+                          [scTooltip]="'admin.people.withdrawTitle' | translate"
                           [disabled]="allowlistBusy()">
                     {{ 'admin.people.withdraw' | translate }}
                   </button>
@@ -836,6 +844,9 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .susp-reason { margin: 4px 0 0; font-size: 0.85rem; overflow-wrap: anywhere; }
 
     .mod-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    /* Carries the "why is this locked" tooltip of a disabled button (a disabled
+       button gets no pointer events) without becoming a flex item itself. */
+    .tip-wrap { display: contents; }
     .mod-form {
       margin-top: 12px;
       padding: 12px;

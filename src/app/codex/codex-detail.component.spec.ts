@@ -605,6 +605,26 @@ describe('CodexDetailComponent — weapon kind (legacy regions)', () => {
   });
 });
 
+describe('CodexDetailComponent — armour hero icon (part glyph)', () => {
+  it("passes the item's attach type to the hero icon (part glyph, not the generic item box)", async () => {
+    const fixture = await setup('weapon', [], NOMAD_PAYLOAD, {
+      getDetail: async () => ({
+        classNameSlug: 'rsi_legs_01',
+        kind: 'item',
+        row: { attach_type: 'Char_Armor_Legs' },
+        payload: {},
+        ports: [],
+        strings: [],
+      }),
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    const icon = el.querySelector('.hero-icon path')!;
+    // armorLegs' glyph path (codex-category-icon.component.ts) — distinct from
+    // the generic 'item' box, which is what a missing attachType binding renders.
+    expect(icon.getAttribute('d')).toContain('M7.5 3.5 H16.5');
+  });
+});
+
 describe('CodexDetailComponent — crafting recipe (#187)', () => {
   const BP = 'BP_CRAFT_KLWE_LaserRepeater_S3';
   const ingredient = (ingredientIndex: number, ingredientClassName: string, quantity: number) => ({

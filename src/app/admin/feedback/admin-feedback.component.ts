@@ -26,6 +26,7 @@ import { CelebrationService } from './celebration.service';
 import { FeedbackMotionService, HIGHLIGHT_MS } from './feedback-motion.service';
 import { FeedbackDashboardComponent } from './feedback-dashboard.component';
 import { RoutineStatusDirective } from './routine-status.directive';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
   AdminAsk,
   AnswerOptions,
@@ -199,6 +200,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     FeedbackComposerComponent,
     FeedbackDashboardComponent,
     RoutineStatusDirective,
+    ScTooltipDirective,
     CharCounterComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -293,7 +295,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <button type="button" class="f-chip" [class.on]="whoIs('mine')" [attr.aria-pressed]="whoIs('mine')" (click)="setWho('mine')"><span class="f-label">{{ 'adminFeedback.filters.whoMine' | translate }}</span></button>
               <button type="button" class="f-chip more" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
                 <span class="f-label">{{ 'adminFeedback.filters.whoUsers' | translate }}</span>
-                @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
+                @if (untriagedWaiting()) { <span class="dot hot" [scTooltip]="'adminFeedback.sourceFilter.untriagedHint' | translate" scTooltipTier="label" [attr.aria-label]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
               </button>
             </div>
           }
@@ -303,7 +305,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [class.active]="filterCount() > 0"
             (click)="openFilters()"
             [attr.aria-expanded]="filtersOpen()"
-            [attr.title]="filterCount() > 0 ? ('adminFeedback.filters.activeHint' | translate: { count: filterCount() }) : null"
+            [scTooltip]="filterCount() > 0 ? ('adminFeedback.filters.activeHint' | translate: { count: filterCount() }) : null"
             [attr.aria-label]="'adminFeedback.filters.open' | translate">
             <span aria-hidden="true">⚲</span>
             <span class="tb-label">{{ 'adminFeedback.filters.open' | translate }}</span>
@@ -317,7 +319,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             type="button"
             class="tb-btn progress"
             (click)="setView('progress')"
-            [attr.title]="'adminFeedback.stream.progressHint' | translate"
+            [scTooltip]="'adminFeedback.stream.progressHint' | translate"
             [attr.aria-label]="'adminFeedback.stream.progressHint' | translate">
             <span class="tb-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false">
@@ -364,7 +366,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('admin')"
                 [attr.aria-expanded]="!bandCollapsed('admin')"
-                [attr.title]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
+                [scTooltip]="(bandCollapsed('admin') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.yourTurn' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.yourTurn' | translate }}</span>
                 <span class="bh-count" [class.hot]="yourTurn().length > 0" [class.pulse]="bandPulse('admin')">{{ yourTurn().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('admin')" aria-hidden="true">▸</span>
@@ -387,7 +389,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('routine')"
                 [attr.aria-expanded]="!bandCollapsed('routine')"
-                [attr.title]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
+                [scTooltip]="(bandCollapsed('routine') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.running' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.running' | translate }}</span>
                 <span class="bh-count" [class.pulse]="bandPulse('routine')">{{ running().length }}</span>
                 <span class="chev" [class.open]="!bandCollapsed('routine')" aria-hidden="true">▸</span>
@@ -412,11 +414,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 class="band-head"
                 (click)="toggleBand('nobody')"
                 [attr.aria-expanded]="!bandCollapsed('nobody')"
-                [attr.title]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
+                [scTooltip]="(bandCollapsed('nobody') ? 'adminFeedback.stream.expandBand' : 'adminFeedback.stream.collapseBand') | translate: { band: ('adminFeedback.stream.delivered' | translate) }">
                 <span class="bh-title">{{ 'adminFeedback.stream.delivered' | translate }}</span>
                 <span class="bh-count" [class.pulse]="bandPulse('nobody')">{{ deliveredCount() }}</span>
                 @if (newDeliveredCount() > 0) {
-                  <span class="bh-new" [attr.title]="'adminFeedback.stream.newSince' | translate">
+                  <span class="bh-new" [scTooltip]="'adminFeedback.stream.newSince' | translate">
                     {{ 'adminFeedback.stream.newCount' | translate: { count: newDeliveredCount() } }}
                   </span>
                 }
@@ -514,12 +516,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             type="button"
             class="card-head"
             (click)="openTopic(m.id)"
-            [attr.title]="'adminFeedback.stream.openTopic' | translate">
+            [scTooltip]="'adminFeedback.stream.openTopic' | translate">
             <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: m.author, self: m.author_id === selfId() }"></ng-container>
             <span class="ch-body">
               <span class="ch-title-line">
                 @if (topicNo(m); as no) {
-                  <span class="topic-no" [attr.title]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
+                  <span class="topic-no" [scTooltip]="'adminFeedback.topicNumber' | translate: { n: no }">#{{ no }}</span>
                 }
                 <span class="topic-title">{{ cardTitle(m, 96) }}</span>
               </span>
@@ -546,7 +548,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                      423e5130) — shown back on the card so the tick is visible
                      after the box that set it is gone. -->
                 @if (m.complex) {
-                  <span class="chip" [attr.title]="'adminFeedback.compose.complexHint' | translate">{{ 'adminFeedback.compose.complex' | translate }}</span>
+                  <span class="chip" [scTooltip]="'adminFeedback.compose.complexHint' | translate">{{ 'adminFeedback.compose.complex' | translate }}</span>
                 }
                 @if (issueRequested(m)) {
                   <span class="chip">{{ 'adminFeedback.issue.pill' | translate }}</span>
@@ -562,11 +564,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                      / 2026" makes the reader compute. The exact stamp stays one
                      hover away, in the viewer's own region format. -->
                 @if (turn === 'admin') {
-                  <span class="ch-time" [attr.title]="waitingSinceIso(m) | scDate: 'datetime'">
+                  <span class="ch-time" [scTooltip]="waitingSinceIso(m) | scDate: 'datetime'" scTooltipTier="label">
                     {{ waitingSinceIso(m) | scDateRelative: 'since' }}
                   </span>
                 } @else {
-                  <span class="ch-time" [attr.title]="lastActivityIso(m) | scDate: 'datetime'">
+                  <span class="ch-time" [scTooltip]="lastActivityIso(m) | scDate: 'datetime'" scTooltipTier="label">
                     {{ lastActivityIso(m) | scDateRelative }}
                   </span>
                 }
@@ -585,7 +587,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 </button>
               }
               @if (areaLink(m); as href) {
-                <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)" [attr.title]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
+                <a class="link-btn" [routerLink]="href" (click)="onViewInApp($event)" [scTooltip]="'adminFeedback.stream.viewTitle' | translate: { area: (areaLabelKey(areaOf(m)!) | translate) }">
                   ▸ {{ 'adminFeedback.stream.view' | translate }}
                 </a>
               }
@@ -598,7 +600,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       <!-- Role-coloured avatar: admin red (elevated access), collaborator light
            blue, user grey-blue. Initials, never a photo. -->
       <ng-template #avatar let-a let-self="self">
-        <span class="av" role="img" [class]="'av ' + toneOf(a)" [attr.title]="roleTitle(a)" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
+        <span class="av" role="img" [class]="'av ' + toneOf(a)" [scTooltip]="roleTitle(a)" scTooltipTier="label" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
       </ng-template>
 
       <!-- The flight path: four stations, filled up to the current one; a
@@ -621,7 +623,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
           [class]="'fp s' + stationIndex(pos.station) + (pos.branch ? ' b-' + pos.branch : '') + (pos.loop ? ' loop' : '')"
           [attr.aria-label]="'adminFeedback.station.pathLabel' | translate: { station: (stationLabelKey(pos) | translate) }">
           @for (g of stationGlyphs(pos); track $index) {
-            <i [class]="'g-' + g" [attr.title]="stationGlyphLabelKey(g) | translate">
+            <i [class]="'g-' + g" [scTooltip]="stationGlyphLabelKey(g) | translate">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path
                   [attr.d]="glyphPath(g)"
@@ -699,7 +701,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             [href]="m.ship_ref"
             target="_blank"
             rel="noopener noreferrer"
-            [attr.title]="refLabel"
+            [scTooltip]="refLabel"
+            scTooltipTier="label"
             [attr.aria-label]="refLabel">↗</a>
         }
       </ng-template>
@@ -913,7 +916,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   class="sc-btn micro sign-off"
                   (click)="acceptReview(m)"
                   [disabled]="busy()"
-                  [attr.title]="'adminFeedback.review.hint' | translate">
+                  [scTooltip]="'adminFeedback.review.hint' | translate">
                   ✓ {{ 'adminFeedback.review.accept' | translate }}
                 </button>
               }
@@ -944,7 +947,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <button type="button" class="f-chip" [class.on]="whoIs('others')" [attr.aria-pressed]="whoIs('others')" (click)="setWho('others')"><span class="f-label">{{ 'adminFeedback.filters.whoOthers' | translate }}</span></button>
               <button type="button" class="f-chip" [class.on]="whoIs('users')" [attr.aria-pressed]="whoIs('users')" (click)="setWho('users')">
                 <span class="f-label">{{ 'adminFeedback.filters.whoUsers' | translate }}</span>
-                @if (untriagedWaiting()) { <span class="dot hot" [attr.title]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
+                @if (untriagedWaiting()) { <span class="dot hot" [scTooltip]="'adminFeedback.sourceFilter.untriagedHint' | translate" scTooltipTier="label" [attr.aria-label]="'adminFeedback.sourceFilter.untriagedHint' | translate"></span> }
               </button>
               @for (a of authorOptions(); track a.id) {
                 <button type="button" class="f-chip sub" [class.on]="whoIsAuthor(a.id)" [attr.aria-pressed]="whoIsAuthor(a.id)" (click)="setWhoAuthor(a.id)">

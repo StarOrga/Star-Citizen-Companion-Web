@@ -1,4 +1,4 @@
-import { categoryColor, categoryIconKey } from './codex-category-icon.component';
+import { armorPartGlyph, categoryColor, categoryIconKey } from './codex-category-icon.component';
 
 describe('codex-category-icon', () => {
   describe('categoryIconKey', () => {
@@ -50,6 +50,47 @@ describe('codex-category-icon', () => {
       expect(categoryIconKey('blueprint')).toBe('generic');
       expect(categoryIconKey('' as never)).toBe('generic');
     });
+
+    // UC-armour-parity: item rows with a Char_Armor_* attach_type get the
+    // matching part glyph instead of the generic item box, wherever the
+    // caller resolves the icon (list card, detail hero, set page figure).
+    it('refines item icons by armour attach_type', () => {
+      expect(categoryIconKey('item', null, 'Char_Armor_Helmet')).toBe('helmet');
+      expect(categoryIconKey('item', null, 'Char_Armor_Torso')).toBe('armorCore');
+      expect(categoryIconKey('item', null, 'Char_Armor_Arms')).toBe('armorArms');
+      expect(categoryIconKey('item', null, 'Char_Armor_Legs')).toBe('armorLegs');
+      expect(categoryIconKey('item', null, 'Char_Armor_Undersuit')).toBe('undersuit');
+      expect(categoryIconKey('item', null, 'Char_Armor_Backpack')).toBe('backpack');
+    });
+
+    it('also accepts the attach_type via the sub argument (callers with no separate attachType param)', () => {
+      expect(categoryIconKey('item', 'Char_Armor_Helmet')).toBe('helmet');
+    });
+
+    it('keeps the generic item glyph for non-armour items and unknown attach_types', () => {
+      expect(categoryIconKey('item')).toBe('item');
+      expect(categoryIconKey('item', 'Consumable')).toBe('item');
+      expect(categoryIconKey('item', null, 'Armor')).toBe('item'); // ship hull armor, not personal armour
+    });
+  });
+
+  describe('armorPartGlyph', () => {
+    it('maps every personal-armour attach_type to its part glyph', () => {
+      expect(armorPartGlyph('Char_Armor_Helmet')).toBe('helmet');
+      expect(armorPartGlyph('Char_Armor_Torso')).toBe('armorCore');
+      expect(armorPartGlyph('Char_Armor_Arms')).toBe('armorArms');
+      expect(armorPartGlyph('Char_Armor_Legs')).toBe('armorLegs');
+      expect(armorPartGlyph('Char_Armor_Undersuit')).toBe('undersuit');
+      expect(armorPartGlyph('Char_Armor_Backpack')).toBe('backpack');
+    });
+
+    it('returns null for anything that is not a personal-armour attach_type', () => {
+      expect(armorPartGlyph(null)).toBeNull();
+      expect(armorPartGlyph(undefined)).toBeNull();
+      expect(armorPartGlyph('')).toBeNull();
+      expect(armorPartGlyph('Armor')).toBeNull();
+      expect(armorPartGlyph('Consumable')).toBeNull();
+    });
   });
 
   describe('categoryColor', () => {
@@ -69,6 +110,10 @@ describe('codex-category-icon', () => {
         expect(categoryColor('weapon', sub)).toBeTruthy();
         expect(categoryColor('weapon', sub)).not.toBe(categoryColor('weapon', 'Medium'));
       }
+    });
+
+    it('keeps the item accent colour for armour part glyphs', () => {
+      expect(categoryColor('item', null, 'Char_Armor_Helmet')).toBe(categoryColor('item'));
     });
   });
 });

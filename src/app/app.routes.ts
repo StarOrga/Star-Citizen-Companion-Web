@@ -31,6 +31,20 @@ export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
   return inject(Router).createUrlTree(['/codex', 'set', params['id']]);
 }
 
+/**
+ * Bridge for the retired standalone blueprint list (AUD-061): it was a
+ * second, weaker copy of the Codex index's blueprint category (missing the
+ * group facet, German names and URL state), so `/codex/blueprint` now just
+ * opens `/codex/index?kind=blueprint`. A functional `redirectTo` (Angular 22)
+ * so an incoming `q` search param survives the hop — a plain string
+ * `redirectTo` would drop it.
+ */
+export function blueprintListRedirect({ queryParams }: { queryParams: Params }): UrlTree {
+  const params: Params = { kind: 'blueprint' };
+  if (queryParams['q']) params['q'] = queryParams['q'];
+  return inject(Router).createUrlTree(['/codex/index'], { queryParams: params });
+}
+
 export const routes: Routes = [
   {
     path: '',
@@ -171,11 +185,16 @@ export const routes: Routes = [
           import('./codex/codex-list.component').then((m) => m.CodexListComponent),
       },
       {
-        // Blueprint routes — must come BEFORE codex/:kind/:className so the
+        // The standalone blueprint list is retired (AUD-061) — it duplicated
+        // the Codex index's blueprint category with weaker facets. Redirect
+        // instead of a page; must come BEFORE codex/:kind/:className so the
         // static "blueprint" segment is not consumed by the :kind wildcard.
+        // No guards on the old list route to carry over — the shell's
+        // canActivateChild above already gates the redirect target the same
+        // way it gated this path.
         path: 'codex/blueprint',
-        loadComponent: () =>
-          import('./codex/blueprint-list.component').then((m) => m.BlueprintListComponent),
+        pathMatch: 'full',
+        redirectTo: blueprintListRedirect,
       },
       {
         path: 'codex/blueprint/:className',

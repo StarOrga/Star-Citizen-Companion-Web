@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { QueryParamsHandling, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from './tooltip/sc-tooltip.directive';
 
 /**
  * Router target for a segment whose state lives in the URL. When present the
@@ -67,7 +68,7 @@ export interface ScSegmentOption {
 @Component({
   selector: 'sc-segmented',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'sc-segmented' },
   template: `
@@ -83,7 +84,7 @@ export interface ScSegmentOption {
             class="seg-btn"
             [class.active]="o.value === value()"
             [attr.aria-current]="o.value === value() ? 'true' : null"
-            [attr.title]="o.titleKey ? (o.titleKey | translate) : null"
+            [scTooltip]="o.titleKey ? (o.titleKey | translate) : null" scTooltipTier="label"
             [routerLink]="link.commands"
             [queryParams]="link.queryParams ?? null"
             [queryParamsHandling]="link.queryParamsHandling ?? ''"
@@ -96,7 +97,7 @@ export interface ScSegmentOption {
             role="radio"
             [class.active]="o.value === value()"
             [attr.aria-checked]="o.value === value()"
-            [attr.title]="o.titleKey ? (o.titleKey | translate) : null"
+            [scTooltip]="o.titleKey ? (o.titleKey | translate) : null" scTooltipTier="label"
             [attr.tabindex]="i === activeIndex() ? 0 : -1"
             (click)="pick(o.value)"
             >{{ o.label ?? (o.labelKey ?? '' | translate) }}</button

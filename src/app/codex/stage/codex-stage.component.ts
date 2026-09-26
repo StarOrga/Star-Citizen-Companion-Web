@@ -136,6 +136,13 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
         }
       }
 
+      <!-- Optional full-stage layer for a host that lays its own content over the
+           whole picture (the set page: figure, slot tiles, leader lines,
+           readiness). Pointer-transparent itself; nothing projected = no box. -->
+      <div class="stage-overlay">
+        <ng-content select="[stageOverlay]" />
+      </div>
+
       <span class="stage-seam" aria-hidden="true"></span>
 
       <sc-hangar-picker
@@ -209,7 +216,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
       }
       .stage-halo {
         position: absolute; inset: 0;
-        background: radial-gradient(ellipse 170px 248px at 62% 50%, color-mix(in srgb, var(--amber, #f0c27b) 20%, var(--field)) 0 55%, var(--field) 100%);
+        background: radial-gradient(ellipse 170px 248px at var(--stage-halo-x, 62%) 50%, color-mix(in srgb, var(--amber, #f0c27b) 20%, var(--field)) 0 55%, var(--field) 100%);
       }
       .stage-figure {
         position: absolute;
@@ -238,6 +245,11 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
         flex-direction: column;
         gap: 2px;
       }
+
+      /* Host-owned overlay (set page). Above the figure and text, below the
+         seam and the picker; only what the host marks clickable takes pointers. */
+      .stage-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+      .stage-overlay:empty { display: none; }
 
       /* ── seam between the two stages — 48px into rgba(3,10,16,.8), no line ── */
       .stage-seam {

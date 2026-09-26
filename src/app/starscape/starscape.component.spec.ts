@@ -13,6 +13,8 @@ import {
   starscapeSourceId,
 } from './starscape.service';
 import { StarscapeVotesService } from './starscape-votes.service';
+import { By } from '@angular/platform-browser';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 function wallpaper(id: string): Wallpaper {
   return {
@@ -382,8 +384,11 @@ describe('StarscapeComponent', () => {
     expect(label).toContain('starscape.vote.mine');
     // Hover has no touch equivalent, so the number itself stays on the button.
     expect(button.textContent).toContain('5');
-    // title mirrors aria-label - the tooltip is the desktop surface for it.
-    expect(button.getAttribute('title')).toBe(label);
+    // The app tooltip mirrors aria-label - it is the desktop surface for it. It sits on
+    // the wrapper: a disabled button (signed out, busy) gets no pointer events.
+    const wrap = f.debugElement.query(By.css('sc-vote-button .vote-wrap'));
+    expect(wrap.injector.get(ScTooltipDirective).scTooltip()).toBe(label);
+    expect(button.hasAttribute('title')).toBeFalse();
     f.destroy();
   });
 

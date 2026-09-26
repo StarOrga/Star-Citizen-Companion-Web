@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { EARLY_DAYS, StabilityComponents, StabilityDay, StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const ISSUE_URL = 'https://issue-council.robertsspaceindustries.com/projects/STAR-CITIZEN/issues/';
 type CompKey = keyof StabilityComponents;
@@ -18,7 +19,7 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
 @Component({
   selector: 'sc-stability-panel',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (verdict(); as v) {
@@ -42,7 +43,7 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
                  with a minus and drawn in the warning colour so it can never
                  be misread as "more is better" like the headline figure. -->
             @for (k of compKeys; track k) {
-              <li class="comp" [attr.title]="('news.patch.stability.componentHint.' + k) | translate">
+              <li class="comp" [scTooltip]="('news.patch.stability.componentHint.' + k) | translate">
                 <span class="comp-name">{{ ('news.patch.stability.component.' + k) | translate }}</span>
                 <span class="comp-bar" aria-hidden="true">
                   @if (v.components[k] !== null) {
@@ -65,7 +66,7 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
               <div class="chart" role="img" [attr.aria-label]="'news.patch.stability.timelineAria' | translate:{ days: v.days.length }">
                 @for (d of v.days; track d.date) {
                   <span class="col" [class.early]="isEarlyDay(v, d)" [class.hotfix]="d.hotfixes.length > 0"
-                        [attr.data-tone]="tone(d)" [attr.title]="dayTitle(d)">
+                        [attr.data-tone]="tone(d)" [scTooltip]="dayTitle(d)" scTooltipTier="label">
                     <span class="col-bar" [style.height.%]="dayStability(d)"></span>
                     @if (d.hotfixes.length > 0) {
                       <!-- Decorative: the build number rides along in the column's

@@ -2,11 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +28,7 @@ import { FoldedRow, foldVariantRows } from './codex-variant-fold';
 import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { CodexBoardFigureComponent } from './codex-board-figure.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -36,12 +39,13 @@ import {
   SLOT_WEAPON_FACET,
   slotAccepts,
 } from '../hangar/hangar.types';
-import { ARMOR_SLOT_SPECS, roleSlotForAttachType } from './codex-landing-kpi';
+import { ARMOR_SLOT_SPECS, armorSlotsFromLoadout, roleSlotForAttachType } from './codex-landing-kpi';
 import { mirrorQueryParams } from './codex-url-state';
 import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set/set-arsenal-transition';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -83,7 +87,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -102,14 +106,47 @@ interface FacetOption {
            retired (admin feedback 34505d70, decision 2A) this is where a piece
            gets put into a personal set — the archive IS the editor. -->
       @if (targetSet(); as set) {
-        <div class="sc-card equip-bar">
-          <span class="equip-for">
-            {{ 'fps.equip.targetSet' | translate: { name: set.name } }}
-            <span class="equip-role">{{ ('hangar.roles.' + set.role) | translate }}</span>
-          </span>
-          @if (fittingSlot(); as slot) {
-            <span class="equip-only">{{ 'fps.equip.onlyFitting' | translate: { slot: slotLabel(slot) } }}</span>
+        <!-- Dressed like the set page's stage (dark field, thin border) —
+             the reader arrives here FROM one slot tile of that page, so the
+             archive should look like it grew out of it rather than a plain
+             card. The board figure is decorative and mirrors the set page's
+             AN BORD figure; only ONE may ever be in this page's DOM (shared
+             gradient ids in codex-board-figure.component.ts). -->
+        <div class="sc-card equip-band" #band
+             [style.view-transition-name]="isBandTransitionTarget() ? SET_SLOT_TRANSITION_NAME : null">
+          @if (armorFittingRoleSlot(); as roleSlot) {
+            <sc-codex-board-figure class="band-figure" [filled]="targetFilledSlots()" [highlight]="roleSlot" [decorative]="true" />
           }
+          <div class="band-body">
+            <span class="band-eyebrow">
+              @if (armorSlotLabel(); as label) {
+                {{ 'fps.equip.band.eyebrowSlot' | translate: { slot: label } }}
+              } @else {
+                {{ 'fps.equip.band.eyebrow' | translate }}
+              }
+            </span>
+            <h2 class="band-title">
+              @if (armorSlotLabel(); as label) {
+                {{ 'fps.equip.band.titleSlot' | translate: { slot: label, name: set.name } }}
+              } @else {
+                {{ 'fps.equip.targetSet' | translate: { name: set.name } }}
+              }
+            </h2>
+            <p class="band-sub">
+              <span class="equip-role">{{ ('hangar.roles.' + set.role) | translate }}</span>
+              @if (bandOnlyFittingLabel(); as label) {
+                <span class="equip-only">{{ 'fps.equip.onlyFitting' | translate: { slot: label } }}</span>
+              }
+            </p>
+            @if (svc.viewingPastPatch()) {
+              <span class="equip-past-note" role="status">
+                {{ 'fps.equip.pastPatch' | translate }}
+                <button type="button" class="equip-past-back" (click)="backToLivePatch()">
+                  {{ 'fps.equip.pastPatchBack' | translate }}
+                </button>
+              </span>
+            }
+          </div>
           <a class="equip-back" [routerLink]="['/codex', 'set', set.id]">
             {{ 'fps.equip.backToSet' | translate }}
           </a>
@@ -256,7 +293,7 @@ interface FacetOption {
                     @if (thumb(r); as src) {
                       <img [src]="src" [alt]="cardName(r)" loading="lazy" (error)="onThumbError(r)" />
                     } @else {
-                      <sc-codex-icon [kind]="r.detailKind" [sub]="iconSub(r)" />
+                      <sc-codex-icon [kind]="r.detailKind" [sub]="iconSub(r)" [attachType]="r.attachType" />
                     }
                   </div>
                   <h3 class="name">{{ cardName(r) }}</h3>
@@ -304,14 +341,16 @@ interface FacetOption {
                     <div class="equip-row">
                       <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
                       @for (slot of slots; track slot) {
-                        <button type="button" class="equip-btn"
-                                [class.on]="isEquipped(r, slot)"
-                                [attr.aria-pressed]="isEquipped(r, slot)"
-                                [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
-                                [disabled]="equipBusy() !== null"
-                                (click)="equip($event, r, slot)">
-                          {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
-                        </button>
+                        <span class="tip-wrap" [scTooltip]="svc.viewingPastPatch() ? ('fps.equip.pastPatch' | translate) : null" scTooltipTier="label">
+                          <button type="button" class="equip-btn"
+                                  [class.on]="isEquipped(r, slot)"
+                                  [attr.aria-pressed]="isEquipped(r, slot)"
+                                  [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
+                                  [disabled]="equipBusy() !== null || svc.viewingPastPatch()"
+                                  (click)="equip($event, r, slot)">
+                            {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
+                          </button>
+                        </span>
                       }
                       <!-- At the card that was clicked, not in the bar at the top of a
                            list the reader has scrolled away from. -->
@@ -354,14 +393,27 @@ interface FacetOption {
        every other list view's. */
     .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: var(--sc-measure); }
 
-    /* Equip mode — the archive working FOR one personal set. The accent frame
-       marks the mode; the bar itself names the set, so no banner has to shout. */
-    .equip-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap;
+    /* Equip mode — the archive working FOR one personal set. Dressed like the
+       set page's stage (dark field, thin border, radius) since the reader
+       arrives here from one of its slot tiles — the view transition grows
+       that tile into this band, so it has to already look like it belongs to
+       the same page. */
+    .equip-band {
+      --tint: var(--sc-warning);
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      background: var(--field, #071520);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+      padding: 14px 16px;
     }
-    .equip-for { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .band-figure { flex: 0 0 auto; width: 64px; }
+    .band-body { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 200px; }
+    .band-eyebrow {
+      font-family: var(--sc-font-display); text-transform: uppercase;
+      letter-spacing: 0.1em; font-size: max(0.66rem, var(--sc-fs-floor));
+      color: var(--sc-warning);
+    }
+    .band-title { margin: 0; font-size: 1.15rem; line-height: 1.2; }
+    .band-sub { display: flex; align-items: center; gap: 8px; margin: 0; flex-wrap: wrap; }
     .equip-role {
       font-family: var(--sc-font-display); text-transform: uppercase;
       letter-spacing: 0.08em; font-size: max(0.64rem, var(--sc-fs-floor));
@@ -379,6 +431,26 @@ interface FacetOption {
     .equip-next a:hover, .equip-next a:focus-visible { text-decoration: underline; }
     .equip-only { color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); }
     .equip-note { flex: 1 1 100%; margin: 0; color: var(--sc-fg-1); font-size: max(0.8rem, var(--sc-fs-floor)); }
+    /* Past-patch guard: the warning colour, never the danger red — nothing
+       broke, equipping is simply parked until the reader is back on live. */
+    .equip-past-note {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: color-mix(in srgb, var(--sc-warning) 80%, var(--sc-fg-1));
+      font-size: max(0.8rem, var(--sc-fs-floor));
+    }
+    .equip-past-back {
+      padding: 4px 10px; border-radius: 999px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--sc-warning) 40%, transparent);
+      background: color-mix(in srgb, var(--sc-warning) 12%, transparent);
+      color: var(--sc-warning); font-family: inherit;
+      font-size: max(0.76rem, var(--sc-fs-floor));
+      min-height: max(28px, var(--sc-tap-min));
+    }
+    .equip-past-back:hover, .equip-past-back:focus-visible { background: color-mix(in srgb, var(--sc-warning) 20%, transparent); }
+    .equip-past-back:focus-visible { outline: 2px solid var(--sc-warning); outline-offset: 2px; }
+    /* Carries the "why is this locked" tooltip of a disabled button (a disabled
+       button gets no pointer events) without becoming a flex item itself. */
+    .tip-wrap { display: contents; }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 14px 14px; }
     .equip-label {
@@ -551,6 +623,10 @@ export class FpsListComponent {
   private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);
   private readonly location = inject(Location);
+  private readonly transition = inject(SetArsenalTransition);
+  /** Exposed for the template — a bound constant reads better than a re-import there. */
+  readonly SET_SLOT_TRANSITION_NAME = SET_SLOT_TRANSITION_NAME;
+  private readonly bandRef = viewChild<ElementRef<HTMLElement>>('band');
 
   private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
@@ -578,6 +654,38 @@ export class FpsListComponent {
    * primary slot used to list knives and pistols too — without an equip button.
    */
   readonly fittingSlot = computed(() => (this.targetSet() && this.category() === 'weapon' ? this.equipSlot() : null));
+  /**
+   * The one anatomical position the equip band is dressed for — the same
+   * role-slot key the AN BORD figure and `equip()` use (helmet/core/arms/
+   * legs/undersuit/backpack). Set from the armour slot facet (`?slot=`), the
+   * one the set page's slot tile links here with; empty when armour is
+   * browsed without a slot filter, or in weapon mode.
+   */
+  readonly armorFittingRoleSlot = computed<string | null>(() => {
+    if (!this.targetSet() || this.category() !== 'armor') return null;
+    const raw = this.subType();
+    return raw ? roleSlotForAttachType('Char_Armor_' + raw) : null;
+  });
+  /** The armour slots the target set already carries — the band figure's `[filled]`. */
+  readonly targetFilledSlots = computed<ReadonlySet<string>>(() => {
+    const set = this.targetSet();
+    if (!set) return new Set<string>();
+    return new Set(armorSlotsFromLoadout(set.items).filter((s) => s.className).map((s) => s.roleSlot));
+  });
+  /** The armour slot facet's translated label ("Beine"), or null outside a slot filter. */
+  armorSlotLabel(): string | null {
+    const id = FPS_ARMOR_SLOT_ID[this.subType()];
+    return this.armorFittingRoleSlot() && id ? this.t.instant(`codex.landing.paperdoll.${id}`) : null;
+  }
+  /** The band's "only what fits" line: the weapon slot label, or the armour slot's. */
+  bandOnlyFittingLabel(): string | null {
+    const weaponSlot = this.fittingSlot();
+    return weaponSlot ? this.slotLabel(weaponSlot) : this.armorSlotLabel();
+  }
+  /** Whether the band is the destination of a running set → arsenal hop. */
+  isBandTransitionTarget(): boolean {
+    return this.transition.isLandingOn(this.armorFittingRoleSlot(), 'toArsenal');
+  }
   readonly searchInput = signal('');
   private readonly searchTerm = signal('');
   readonly manufacturer = signal('');
@@ -797,6 +905,11 @@ export class FpsListComponent {
     this.setCategory(c);
   }
 
+  /** Equip mode's past-patch note: the same switch-back the patch dropdown uses. */
+  backToLivePatch(): void {
+    this.svc.selectBuild(null);
+  }
+
   /** "Keep browsing without a set": drop the stale equip intent in place, URL included. */
   dropEquipIntent(ev: MouseEvent): void {
     if (!isPlainLeftClick(ev)) return;
@@ -966,6 +1079,9 @@ export class FpsListComponent {
   async equip(ev: Event, r: FpsRow, slot: string): Promise<void> {
     ev.preventDefault();
     ev.stopPropagation();
+    // A stale click (button disabled a moment too late, or a synthetic event
+    // in a test) must not slip a write through while a past patch is shown.
+    if (this.svc.viewingPastPatch()) return;
     const set = this.targetSet();
     if (!set || this.equipBusy()) return;
     const clearing = this.isEquipped(r, slot);
@@ -986,13 +1102,30 @@ export class FpsListComponent {
       if (updated) {
         this.targetSet.set(updated);
         // A clear that met another tab's newer piece leaves it there — say so.
-        if (clearing && updated.items.some((i) => i.slot === slot && i.className)) this.equipConflict.set(key);
+        if (clearing && updated.items.some((i) => i.slot === slot && i.className)) {
+          this.equipConflict.set(key);
+        } else if (!clearing && this.category() === 'armor') {
+          // Armour has exactly one home: once it's on, the reader is done here
+          // and the hop back into the set page (reversing the slot tile's grow
+          // animation) is the natural next step. A weapon slot stays on the
+          // list — a role loadout usually needs several of those in one visit.
+          this.returnToSet(slot, set.id);
+        }
       } else {
         this.equipFailed.set(key);
       }
     } finally {
       this.equipBusy.set(null);
     }
+  }
+
+  /** The arsenal → set hop: the band shrinks back into the slot tile it grew from. */
+  private returnToSet(slot: string, setId: string): void {
+    void this.transition.hop(
+      this.router.createUrlTree(['/codex', 'set', setId]),
+      { slot, direction: 'toSet' },
+      this.bandRef()?.nativeElement ?? null,
+    );
   }
 
   categoryCount(c: FpsCategory): number | null {

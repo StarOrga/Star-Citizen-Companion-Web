@@ -34,6 +34,7 @@ import {
   comparePortOccupants,
 } from '../codex-build-compare';
 import { CodexHoloPatchDeltaComponent } from './codex-holo-patch-delta.component';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /** One port's Δ badge — keyed by port name in {@link CodexHoloPatchComponent.portPins}'s emitted map. */
 export interface PortPinBadge {
@@ -59,7 +60,7 @@ export interface HoloPatchComparisonSide {
 @Component({
   selector: 'sc-codex-holo-patch',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe, CodexHoloPatchDeltaComponent],
+  imports: [TranslatePipe, ScDatePipe, CodexHoloPatchDeltaComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-patch">
@@ -73,7 +74,7 @@ export interface HoloPatchComparisonSide {
         [attr.aria-expanded]="open()"
         aria-haspopup="listbox"
         [attr.aria-controls]="panelId"
-        [attr.title]="'codex.holo.patch.trigger.hotkeyHint' | translate"
+        [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate"
       >
         <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
         <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
@@ -105,7 +106,7 @@ export interface HoloPatchComparisonSide {
                     [attr.aria-selected]="selected()?.id === b.id"
                     [disabled]="!isFinalised(b) || isActive(b)"
                     [attr.aria-disabled]="!isFinalised(b) || isActive(b)"
-                    [attr.title]="rowTitle(b)"
+                    [scTooltip]="rowTitle(b)" scTooltipTier="label"
                     [style.--r]="$index"
                     (click)="pick(b)"
                   >
@@ -149,7 +150,7 @@ export interface HoloPatchComparisonSide {
             <div class="delta-head">
               <span class="pop-label">{{ 'codex.holo.patch.trigger.comparing' | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
               <button type="button" class="patch-clear" (click)="clear()">{{ 'codex.holo.patch.clear' | translate }}</button>
-              <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [attr.title]="'codex.holo.patch.deltaHide' | translate">✕</button>
+              <button type="button" class="delta-close" (click)="deltaOpen.set(false)" [attr.aria-label]="'codex.holo.patch.deltaHide' | translate" [scTooltip]="'codex.holo.patch.deltaHide' | translate">✕</button>
             </div>
             <div class="delta-view">
               @for (g of groups; track g.perspective) {

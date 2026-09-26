@@ -3,6 +3,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { formatEquippedStat, formatEquippedStatNumber } from './codex-equipped-stats';
 import { KpiCell } from './codex-loadout-stats';
 import { KpiStripCell } from './codex-kpi-sets';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Six headline numbers for the ship's active mission (02-handover §2.3 / PR C).
@@ -17,7 +18,7 @@ import { KpiStripCell } from './codex-kpi-sets';
 @Component({
   selector: 'sc-codex-kpi-band',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="kpi-band" role="group" [attr.aria-label]="'codex.kpi.bandLabel' | translate">
@@ -33,11 +34,11 @@ import { KpiStripCell } from './codex-kpi-sets';
           @if (c.value != null) {
             <span class="kpi-value">{{ fmt(c) }}</span>
           } @else {
-            <span class="kpi-value gap-dash" [attr.title]="c.gapKey ? (c.gapKey | translate) : null">—</span>
+            <span class="kpi-value gap-dash" [scTooltip]="c.gapKey ? (c.gapKey | translate) : null" scTooltipTier="label">—</span>
           }
           @if (c.delta; as d) {
             @if (deltaText(c); as body) {
-              <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [attr.title]="d.pctText">{{ body }}</span>
+              <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [scTooltip]="d.pctText" scTooltipTier="label">{{ body }}</span>
             }
           }
         </div>

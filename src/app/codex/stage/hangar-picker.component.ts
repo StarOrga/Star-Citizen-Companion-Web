@@ -61,7 +61,6 @@ const COLLAPSE_DELAY_MS = 150;
         class="picker-btn"
         [attr.aria-expanded]="expanded()"
         [attr.aria-label]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
-        [attr.title]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
         (click)="onButtonClick($event)"
         (focus)="onFocus()"
         (keydown.arrowright)="onArrowFromButton($event)"

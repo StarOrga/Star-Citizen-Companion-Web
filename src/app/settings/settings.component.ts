@@ -27,6 +27,7 @@ import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
 import { PICKER_REGIONS } from '../core/locale/region.data';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { memberSince } from './member-since';
 
 // Only languages with a real translation file are offered (issue #23) — the
@@ -75,7 +76,7 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe],
+  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -160,7 +161,8 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
                     <span class="label">{{ 'profile.created' | translate }}</span>
                     <span
                       class="value"
-                      [title]="
+                      scTooltipTier="label"
+                      [scTooltip]="
                         'profile.memberSince.exact'
                           | translate: { date: (user.created_at | scDate: 'datetime') }
                       ">

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 
 import { CodexSetGearComponent } from './codex-set-gear.component';
 import { ResolvedEntity } from '../codex.service';
@@ -67,6 +67,12 @@ const RIFLE: ResolvedEntity = {
   grade: null,
 } as ResolvedEntity;
 
+/** Carries a genuine EN/DE payload name, distinct from its slim nameLocalized fallback. */
+const RIFLE_LOCALIZED: ResolvedEntity = {
+  ...RIFLE,
+  name: { key: '@weapon_P4AR', en: 'P4-AR Rifle EN', de: 'P4-AR Gewehr' },
+};
+
 describe('CodexSetGearComponent', () => {
   it('lists the role\'s non-anatomical positions in their suggestion order', async () => {
     const fps = await setup({ role: 'fps' });
@@ -75,6 +81,28 @@ describe('CodexSetGearComponent', () => {
 
     const medical = await setup({ role: 'medical' });
     expect(slotEls(medical).map((e) => e.dataset['slot'])).toEqual(['medgun', 'multitool', 'medpen']);
+  });
+
+  it('numbers each position as a fixed hotbar (1 Primary → 2 Secondary → 3 Sidearm → 4 Melee → 5 Throwable)', async () => {
+    const fixture = await setup({ role: 'fps' });
+    const numbers = ['primary', 'secondary', 'sidearm', 'melee', 'throwable'].map(
+      (slot) => slotEl(fixture, slot).querySelector('.t-num')?.textContent?.trim(),
+    );
+    expect(numbers).toEqual(['1', '2', '3', '4', '5']);
+  });
+
+  it('numbers other roles too, in their own fixed order', async () => {
+    const fixture = await setup({ role: 'medical' });
+    const numbers = ['medgun', 'multitool', 'medpen'].map(
+      (slot) => slotEl(fixture, slot).querySelector('.t-num')?.textContent?.trim(),
+    );
+    expect(numbers).toEqual(['1', '2', '3']);
+  });
+
+  it('lays the hotbar out as one row of as many equal columns as the role has positions', async () => {
+    const fixture = await setup({ role: 'fps' });
+    const grid = (fixture.nativeElement as HTMLElement).querySelector('.gear-grid') as HTMLElement;
+    expect(grid.style.getPropertyValue('--gear-cols').trim()).toBe('5');
   });
 
   it('shows a filled position with its resolved name and a clear button', async () => {
@@ -136,11 +164,14 @@ describe('CodexSetGearComponent', () => {
 
     const knife = slotEl(fixture, 'Knife');
     expect(knife.querySelector('a')).toBeNull();
-    expect(knife.querySelector('.t-label')?.textContent?.trim()).toBe('Knife');
+    // Custom slots keep numbering going after the role's own five (6, then 7).
+    expect(knife.querySelector('.t-label')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('6 Knife');
     expect(knife.querySelector('.gear-note')?.textContent).toContain('codex.set.gear.customSlot');
     expect(knife.querySelector('button.gear-clear')).not.toBeNull();
     // A known token keeps its translated label even outside its own role.
-    expect(slotEl(fixture, 'multitool').querySelector('.t-label')?.textContent?.trim()).toBe('hangar.slots.multitool');
+    expect(slotEl(fixture, 'multitool').querySelector('.t-label')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      '7 hangar.slots.multitool',
+    );
   });
 
   it('renders the medpen position muted, without a link, with the no-source note', async () => {
@@ -250,5 +281,40 @@ describe('CodexSetGearComponent', () => {
     const alert = slotEl(fixture, 'primary').querySelector('[role="alert"]');
     expect(alert?.textContent).toContain('codex.set.gear.clearFailed');
     expect(fixture.componentInstance.busySlot()).toBeNull();
+  });
+
+  it('shows the piece name in the current UI language, EN default', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+      resolved: new Map([['behr_rifle_ballistic_01', RIFLE_LOCALIZED]]),
+    });
+    expect(slotEl(fixture, 'primary').querySelector('.t-value')?.textContent?.trim()).toBe('P4-AR Rifle EN');
+  });
+
+  it('follows a language switch to German and back', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+      resolved: new Map([['behr_rifle_ballistic_01', RIFLE_LOCALIZED]]),
+    });
+    const translate = TestBed.inject(TranslateService);
+
+    translate.use('de');
+    fixture.detectChanges();
+    expect(slotEl(fixture, 'primary').querySelector('.t-value')?.textContent?.trim()).toBe('P4-AR Gewehr');
+
+    translate.use('en');
+    fixture.detectChanges();
+    expect(slotEl(fixture, 'primary').querySelector('.t-value')?.textContent?.trim()).toBe('P4-AR Rifle EN');
+  });
+
+  it('falls back to nameLocalized when the payload carries no localized name', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+      resolved: new Map([['behr_rifle_ballistic_01', RIFLE]]),
+    });
+    expect(slotEl(fixture, 'primary').querySelector('.t-value')?.textContent?.trim()).toBe('P4-AR Rifle');
   });
 });

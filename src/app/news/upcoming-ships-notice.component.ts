@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject } from '@a
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { UpcomingShip, UpcomingShipsService } from '../codex/upcoming-ships.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** How many ship names the notice spells out before collapsing into "+N more". */
 const NAME_LIMIT = 6;
@@ -19,7 +20,7 @@ const NAME_LIMIT = 6;
 @Component({
   selector: 'sc-upcoming-ships-notice',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (count() > 0) {
@@ -29,7 +30,7 @@ const NAME_LIMIT = 6;
           <h2>{{ 'news.upcomingShips.title' | translate }}</h2>
           <button type="button" class="dismiss" (click)="dismiss()"
                   [attr.aria-label]="'news.upcomingShips.dismiss' | translate"
-                  [attr.title]="'news.upcomingShips.dismiss' | translate">×</button>
+                  [scTooltip]="'news.upcomingShips.dismiss' | translate">×</button>
         </div>
 
         @if (added().length > 0) {

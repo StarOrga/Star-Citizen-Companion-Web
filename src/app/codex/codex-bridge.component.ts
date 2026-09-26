@@ -29,6 +29,7 @@ import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
@@ -74,6 +75,7 @@ interface Lane {
     UploaderAccessComponent,
     HoloReadyBadgeComponent,
     FallbackImageComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -95,7 +97,7 @@ interface Lane {
           </div>
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>
           <a class="index-link" routerLink="/codex/fps">{{ 'fps.bridgeLink' | translate }}</a>
-          <a class="index-link" routerLink="/codex/blueprint">{{ 'blueprint.title' | translate }}</a>
+          <a class="index-link" routerLink="/codex/index" [queryParams]="{ kind: 'blueprint' }">{{ 'blueprint.title' | translate }}</a>
           <a class="index-link" routerLink="/codex/keybinds">{{ 'codex.bridge.keybinds' | translate }}</a>
           <a class="index-link" routerLink="/hangar">{{ 'codex.bridge.hangar' | translate }}</a>
         </div>
@@ -179,7 +181,7 @@ interface Lane {
                   </div>
                 }
                 @if (freshness(); as fresh) {
-                  <div class="hero-fresh" [attr.title]="'codex.provenance.tooltip' | translate">
+                  <div class="hero-fresh" [scTooltip]="'codex.provenance.tooltip' | translate">
                     <span class="fresh-dot" aria-hidden="true"></span>
                     <span>{{ fresh }}</span>
                   </div>
@@ -198,7 +200,7 @@ interface Lane {
                           (click)="toggleFlagship(h.classNameSlug)"
                           [attr.aria-pressed]="isFlagship(h.classNameSlug)"
                           [attr.aria-describedby]="flagshipHintId"
-                          [attr.title]="flagshipHintKey(h.classNameSlug) | translate">
+                          [scTooltip]="flagshipHintKey(h.classNameSlug) | translate" scTooltipTier="label">
                     {{ (isFlagship(h.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate }}
                   </button>
                 }
@@ -254,7 +256,7 @@ interface Lane {
                   </div>
                   <div class="lane-info">
                     <h3 class="lane-name">{{ ship.name }}</h3>
-                    @if (upcomingMfr(ship); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
+                    @if (upcomingMfr(ship); as mfr) { <span class="lane-mfr">{{ mfr }}</span> }
                   </div>
                   <div class="lane-actions">
                     <span class="upcoming-tag" [class.concept]="!ship.flightReadyButMissing">
@@ -286,27 +288,29 @@ interface Lane {
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
             <sc-holo-ready-badge [shipId]="r.classNameSlug" />
-            @if (rowMfr(r); as mfr) { <span class="lane-mfr" [attr.title]="mfr">{{ mfr }}</span> }
+            @if (rowMfr(r); as mfr) { <span class="lane-mfr">{{ mfr }}</span> }
           </div>
           <div class="lane-actions">
             @if (inHangarSet().has(r.classNameSlug)) {
-              <span class="in-hangar" [attr.title]="'codex.card.inHangar' | translate">✓</span>
+              <span class="in-hangar" [attr.aria-label]="'codex.card.inHangar' | translate" [scTooltip]="'codex.card.inHangar' | translate">✓</span>
               <button type="button" class="chip-btn flag" [class.is-flagship]="isFlagship(r.classNameSlug)"
                       (click)="onToggleFlagship($event, r.classNameSlug)"
                       [attr.aria-pressed]="isFlagship(r.classNameSlug)"
                       aria-label="{{ (isFlagship(r.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate }} — {{ flagshipHintKey(r.classNameSlug) | translate }}"
-                      title="{{ (isFlagship(r.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate }} — {{ flagshipHintKey(r.classNameSlug) | translate }}">
+                      scTooltip="{{ (isFlagship(r.classNameSlug) ? 'codex.bridge.flagship.pinned' : 'codex.bridge.flagship.set') | translate }} — {{ flagshipHintKey(r.classNameSlug) | translate }}"
+                      scTooltipTier="label">
                 {{ isFlagship(r.classNameSlug) ? '★' : '⚑' }}
               </button>
             } @else {
               <button type="button" class="chip-btn" (click)="addToHangar($event, r.classNameSlug)"
                       [attr.aria-label]="'quickSearch.addToHangar' | translate"
-                      [attr.title]="'quickSearch.addToHangar' | translate">＋⌂</button>
+                      [scTooltip]="'quickSearch.addToHangar' | translate" scTooltipTier="label">＋⌂</button>
             }
             <button type="button" class="chip-btn compare" [class.pinned]="isPinned(r.classNameSlug)"
                     (click)="togglePin($event, r.classNameSlug)"
                     [attr.aria-label]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.bridge.addCompare') | translate"
-                    [attr.title]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.bridge.addCompare') | translate">
+                    [scTooltip]="(isPinned(r.classNameSlug) ? 'codex.compare.pinned' : 'codex.bridge.addCompare') | translate"
+                    scTooltipTier="label">
               {{ isPinned(r.classNameSlug) ? '★' : '☆' }}
             </button>
           </div>

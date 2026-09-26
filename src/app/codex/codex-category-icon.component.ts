@@ -45,19 +45,32 @@ export const ICON_PATHS: Readonly<Record<string, string>> = {
   crossSection:
     'M3 12 A9 9 0 0 1 21 12 A9 9 0 0 1 3 12 M12 7.5 L16.5 12 L12 16.5 L7.5 12 Z M12 3 V5 M12 19 V21 M3 12 H5 M19 12 H21',
   heat: 'M12 2.5 C12 2.5 16 6.5 16 10 A4 4 0 0 1 8 10 C8 8.4 9 7 9 7 C9 8.6 10 9.5 10.8 9.5 C11.8 9.5 12 8.2 12 2.5 Z M6 16 H18 M6 19 H18',
+  // ── personal-armour part glyphs (UC-armour-parity) — one per Char_Armor_*
+  // attach_type, matched with the set page's figure so a helmet reads as a
+  // helmet everywhere, not a generic item box. See armorPartGlyph() below.
+  helmet:
+    'M5 14 C5 8 8 4 12 4 C16 4 19 8 19 14 V17 C19 18.7 17.7 20 16 20 H8 C6.3 20 5 18.7 5 17 Z M7.5 11 H16.5 C17.3 11 18 11.7 18 12.5 V13 C18 13.8 17.3 14.5 16.5 14.5 H7.5 C6.7 14.5 6 13.8 6 13 V12.5 C6 11.7 6.7 11 7.5 11 Z',
+  armorCore: 'M8 3.5 L12 5.5 L16 3.5 L20.5 6.5 L18.5 11.5 V20.5 H5.5 V11.5 L3.5 6.5 Z M9 10 H15 M9 14 H15',
+  armorArms:
+    'M5.5 3.5 H10 V11 L18.5 15.5 C19.8 16.2 20.2 17.8 19.4 19 C18.7 20.1 17.3 20.5 16.1 19.9 L7 15.2 C6 14.7 5.5 13.8 5.5 12.8 Z',
+  armorLegs: 'M7.5 3.5 H16.5 L17 12 L15.5 20.5 H12.8 L12 12.5 L11.2 20.5 H8.5 L7 12 Z',
+  undersuit:
+    'M12 2.5 A2.2 2.2 0 1 1 11.99 2.5 M8.5 7.5 H15.5 L18 13.5 L16.2 14.2 L14.8 11 V21 H12.9 L12 15.5 L11.1 21 H9.2 V11 L7.8 14.2 L6 13.5 Z',
+  backpack:
+    'M9 5.5 V4.5 C9 3.7 9.7 3 10.5 3 H13.5 C14.3 3 15 3.7 15 4.5 V5.5 M6.5 5.5 H17.5 C18.6 5.5 19.5 6.4 19.5 7.5 V19 C19.5 20.1 18.6 21 17.5 21 H6.5 C5.4 21 4.5 20.1 4.5 19 V7.5 C4.5 6.4 5.4 5.5 6.5 5.5 Z M8 12 H16 V16.5 H8 Z',
 };
 
 /** Category accent colours — semantic, theme-token-aware where one exists. */
 const CAT_COLORS: Readonly<Record<string, string>> = {
   ship: 'var(--sc-accent, #52c1e6)',
   // A warm orange of its own: --sc-accent-hot means elevated access (CLAUDE.md).
-  weapon: '#e8864a',
+  weapon: 'var(--sc-offense, #e8864a)',
   component: 'var(--sc-accent, #52c1e6)',
   shield: '#52c1e6',
   power: '#f0c419',
   cooler: '#5fd3ff',
   quantum: '#a674ff',
-  thruster: '#e8864a',
+  thruster: 'var(--sc-offense, #e8864a)',
   fuel: '#5fd698',
   cargo: '#c8a84b',
   item: '#c8a84b',
@@ -67,7 +80,36 @@ const CAT_COLORS: Readonly<Record<string, string>> = {
   ammunition: '#ff8282',
   manufacturer: 'var(--sc-fg-1, #b6c2d2)',
   generic: 'var(--sc-fg-2, #8a92a0)',
+  // Personal-armour parts stay on the 'item' accent — they are items, just
+  // drawn with a part-specific glyph instead of the generic item box.
+  helmet: '#c8a84b',
+  armorCore: '#c8a84b',
+  armorArms: '#c8a84b',
+  armorLegs: '#c8a84b',
+  undersuit: '#c8a84b',
+  backpack: '#c8a84b',
 };
+
+/** Char_Armor_* attach_type → the personal-armour part glyph in ICON_PATHS. */
+const ARMOR_PART_ICON: Readonly<Record<string, string>> = {
+  Char_Armor_Helmet: 'helmet',
+  Char_Armor_Torso: 'armorCore',
+  Char_Armor_Arms: 'armorArms',
+  Char_Armor_Legs: 'armorLegs',
+  Char_Armor_Undersuit: 'undersuit',
+  Char_Armor_Backpack: 'backpack',
+};
+
+/**
+ * Maps a personal-armour `attach_type` (`Char_Armor_Helmet` etc.) to its part
+ * glyph key in ICON_PATHS — null for anything that is not personal armour, so
+ * callers can pass any item's attach_type (or subType, which is never one of
+ * these tokens) without a guard.
+ */
+export function armorPartGlyph(attachType: string | null | undefined): string | null {
+  if (!attachType) return null;
+  return ARMOR_PART_ICON[attachType] ?? null;
+}
 
 // componentKind (codex_components.kind) → icon/colour key.
 const COMPONENT_SUB: Readonly<Record<string, string>> = {
@@ -97,10 +139,23 @@ const WEAPON_SUB: Readonly<Record<string, string>> = {
   Grenade: 'grenade',
 };
 
-/** Resolve a (kind, sub) pair to an icon key in ICON_PATHS. Never returns null. */
-export function categoryIconKey(kind: CodexKind, sub?: string | null): string {
+/**
+ * Resolve a (kind, sub, attachType) triple to an icon key in ICON_PATHS. Never
+ * returns null. `attachType` is optional and only matters for `item` rows: a
+ * personal-armour attach_type (Char_Armor_*) wins over the generic item box so
+ * a helmet, chest piece, arms, legs, undersuit or backpack reads as that part
+ * everywhere — list cards, the detail hero and the set page's figure — the
+ * same glyph the set page's hotbar/figure uses. Callers that only ever had a
+ * `sub` value (subType) may pass it as `attachType` too: armorPartGlyph()
+ * simply returns null for anything that is not one of the six armour tokens.
+ */
+export function categoryIconKey(kind: CodexKind, sub?: string | null, attachType?: string | null): string {
   if (kind === 'component' && sub && COMPONENT_SUB[sub]) return COMPONENT_SUB[sub];
   if (kind === 'weapon' && sub && WEAPON_SUB[sub]) return WEAPON_SUB[sub];
+  if (kind === 'item') {
+    const part = armorPartGlyph(attachType) ?? armorPartGlyph(sub);
+    if (part) return part;
+  }
   switch (kind) {
     case 'ship':
       return 'ship';
@@ -119,9 +174,9 @@ export function categoryIconKey(kind: CodexKind, sub?: string | null): string {
   }
 }
 
-/** Accent colour for a (kind, sub) pair — mirrors categoryIconKey. */
-export function categoryColor(kind: CodexKind, sub?: string | null): string {
-  return CAT_COLORS[categoryIconKey(kind, sub)] ?? CAT_COLORS['generic'];
+/** Accent colour for a (kind, sub, attachType) triple — mirrors categoryIconKey. */
+export function categoryColor(kind: CodexKind, sub?: string | null, attachType?: string | null): string {
+  return CAT_COLORS[categoryIconKey(kind, sub, attachType)] ?? CAT_COLORS['generic'];
 }
 
 /**
@@ -173,7 +228,11 @@ export function categoryColor(kind: CodexKind, sub?: string | null): string {
 export class CodexCategoryIconComponent {
   readonly kind = input.required<CodexKind>();
   readonly sub = input<string | null>(null);
+  /** Char_Armor_* attach_type — resolves to the matching armour part glyph for item rows. */
+  readonly attachType = input<string | null>(null);
 
-  readonly path = computed(() => ICON_PATHS[categoryIconKey(this.kind(), this.sub())] ?? ICON_PATHS['generic']);
-  readonly color = computed(() => categoryColor(this.kind(), this.sub()));
+  readonly path = computed(
+    () => ICON_PATHS[categoryIconKey(this.kind(), this.sub(), this.attachType())] ?? ICON_PATHS['generic'],
+  );
+  readonly color = computed(() => categoryColor(this.kind(), this.sub(), this.attachType()));
 }

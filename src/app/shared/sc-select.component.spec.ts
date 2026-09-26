@@ -296,3 +296,79 @@ describe('ScSelectComponent — allowEmpty=false (required picker)', () => {
     expect(fixture.componentInstance.value()).toBe('out_of_game');
   });
 });
+
+describe('ScSelectComponent — disabled options', () => {
+  // The rank card's "same size class" scope: listed, not pickable (#523).
+  const WITH_DISABLED: readonly ScSelectOption[] = [
+    { value: 'sizeClass', labelKey: 'scope.sizeClass', disabled: true },
+    { value: 'all', labelKey: 'scope.all' },
+    { value: 'career', labelKey: 'scope.career' },
+  ];
+
+  @Component({
+    standalone: true,
+    imports: [ScSelectComponent],
+    template: `
+      <sc-select
+        [options]="options"
+        [allowEmpty]="false"
+        [value]="value()"
+        ariaLabel="Scope"
+        (valueChange)="value.set($event)"
+      />
+    `,
+  })
+  class DisabledHost {
+    readonly options = WITH_DISABLED;
+    readonly value = signal<string | null>('sizeClass');
+  }
+
+  let fixture: ComponentFixture<DisabledHost>;
+  const trigger = () => fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement;
+  const opts = () => Array.from(fixture.nativeElement.querySelectorAll('.option') as NodeListOf<HTMLElement>);
+  const key = (k: string) => {
+    trigger().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    fixture.detectChanges();
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DisabledHost],
+      providers: [provideTranslateService()],
+    }).compileComponents();
+    fixture = TestBed.createComponent(DisabledHost);
+    fixture.detectChanges();
+  });
+
+  it('shows a disabled current value on the trigger and marks the row aria-disabled', () => {
+    expect(fixture.nativeElement.querySelector('.value').textContent.trim()).toBe('scope.sizeClass');
+    trigger().click();
+    fixture.detectChanges();
+    expect(opts()[0].getAttribute('aria-disabled')).toBe('true');
+    expect(opts()[1].hasAttribute('aria-disabled')).toBeFalse();
+  });
+
+  it('ignores a click on the disabled row', () => {
+    fixture.componentInstance.value.set('all');
+    fixture.detectChanges();
+    trigger().click();
+    fixture.detectChanges();
+    opts()[0].click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.value()).toBe('all');
+  });
+
+  it('steps past the disabled row with the arrow keys and Home', () => {
+    fixture.componentInstance.value.set('career');
+    fixture.detectChanges();
+    key('ArrowDown'); // opens on "career"
+    key('Home'); // first ENABLED row: "all"
+    key('Enter');
+    expect(fixture.componentInstance.value()).toBe('all');
+
+    key('ArrowDown'); // opens on "all"
+    key('ArrowUp'); // nothing enabled above — stays on "all"
+    key('Enter');
+    expect(fixture.componentInstance.value()).toBe('all');
+  });
+});

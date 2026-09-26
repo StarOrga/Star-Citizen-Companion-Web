@@ -1,7 +1,113 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.102.1",
+  "current": "0.103.0",
   "releases": [
+    {
+      "version": "0.103.0",
+      "date": "2026-09-26",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Set-Seite ist eine Bühne.",
+              "text": "Eine Figur in der Mitte, sechs Kacheln links und rechts, jede mit einer Linie zu ihrem Körperteil. Die Kachel zeigt das Teil-Icon und das ausgerüstete Teil, der Platzname steht im Tooltip. Überfahren oder Fokus hebt Kachel und Körperteil gemeinsam hervor, auch umgekehrt. Auf dem Handy werden die Kacheln zu einer Liste mit Icons. Die zweite Figur mit Name und Rolle darunter ist weg."
+            },
+            {
+              "title": "Einordnung und Einsatz für Rüstungs-Sets",
+              "text": ", wie auf der Schiffsseite: Netzdiagramm und Balken gegen alle Rüstungsteile desselben Platzes, mit den Profilen „CIG-Raster“ und „Umwelt & Traglast“. Bremst ein Teil das Set, sagt die Karte, welches. Die Einsatz-Linsen Kampf, Pilot, Umwelt und Transport schreiben ihren Wert an jede Kachel und werden pro Set gemerkt. Tarnung, EVA und Scannen bleiben gesperrt, bis die Spieldaten sie hergeben."
+            },
+            {
+              "title": "Ein offener Platz führt mit einem Übergang ins Arsenal.",
+              "text": "Die Kachel wächst zum Kopf des Arsenals („Beine für …“ mit Figur). Nach dem Ausrüsten eines Rüstungsteils geht es auf demselben Weg zurück. Mit „Bewegung reduzieren“ läuft der Wechsel ohne Animation."
+            },
+            {
+              "title": "Teil-Icons",
+              "text": "für Helm, Torso, Arme, Beine, Rucksack und Unteranzug, auch auf den Detailseiten und in den Listen."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Aus „Archiv“ wird „Arsenal“",
+              "text": ", in der ganzen App und in der Doku."
+            },
+            {
+              "title": "App-eigene Tooltips überall",
+              "text": "statt der Browser-Tooltips. Tooltips, die nur den sichtbaren Text wiederholten, sind weg, und gesperrte Knöpfe sagen im Tooltip, warum."
+            },
+            {
+              "title": "Die Auswahllisten im Hangar",
+              "text": "(Rolle, Pin, Vergleichsumfang der Einordnung) sind app-eigene Auswahllisten."
+            },
+            {
+              "title": "Ausrüsten nur im aktuellen Patch.",
+              "text": "Auf einem älteren Patch sind die Ausrüsten-Knöpfe gesperrt, mit Hinweis und einem Sprung zum aktuellen Patch."
+            },
+            {
+              "title": "Die Blueprint-Liste steckt jetzt im Index.",
+              "text": "/codex/blueprint führt zum Index mit Blueprint-Filter, die Detailseiten bleiben."
+            },
+            {
+              "title": "Codex-Details:",
+              "text": "deutsche Bezeichnungen für Rüstung, Unteranzug, Schild, Quantenantrieb und 29 häufige Werte; Engine-Interna sind ausgeblendet."
+            },
+            {
+              "title": "Die Index-Filter",
+              "text": "bieten alle Werte des Builds an, nicht nur die der geladenen Zeilen."
+            },
+            {
+              "title": "Die Waffenleiste eines Sets",
+              "text": "ist nummeriert und hat eine feste Reihenfolge."
+            },
+            {
+              "title": "Die Rüstungsfigur zeigt ihren Rucksack.",
+              "text": "Er ist etwas größer und hat zwei Finnen neben dem Helm; vorher verdeckte ihn die feste Kamera ganz."
+            },
+            {
+              "title": "Schwache Achsen der Schiffs-Einordnung sind gelb statt rot.",
+              "text": "Rot bleibt Fehlern vorbehalten, wie schon auf der Set-Seite."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Der Teilen-Knopf der Set-Seite",
+              "text": "zeigte beim Überfahren zwei Tooltips."
+            },
+            {
+              "title": "Set-Seite:",
+              "text": "Teilenamen folgen der eingestellten Sprache."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Neue Datenbankfunktionen codex_facet_values und codex_armor_rating (Migrationen 20260926120000, 20260926140000)."
+            },
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            },
+            {
+              "title": "",
+              "text": "Mobile-Gate: /about und /login grün; die angemeldeten Routen blieben ungeprüft (kein Test-Account eingerichtet)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.102.1",
       "date": "2026-09-26",

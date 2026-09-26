@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { computed, signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -9,6 +10,7 @@ import { AppDownloadMenuComponent } from './app-download-menu.component';
 import { DesktopProduct, connectionState } from './desktop-access';
 import { DesktopConnectionService } from './desktop-connection.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -204,7 +206,8 @@ describe('AppDownloadMenuComponent', () => {
     expect(links[0].hasAttribute('download')).toBeTrue();
     expect(links[0].getAttribute('target')).toBe('_blank');
     expect(links[0].getAttribute('rel')).toBe('noopener noreferrer');
-    expect(links[0].getAttribute('title')).toContain('3.0 MB');
+    const tooltip = fixture.debugElement.query(By.css('a.pop-dl')).injector.get(ScTooltipDirective).scTooltip();
+    expect(tooltip).toContain('3.0 MB');
   });
 
   it('collapses itself the moment a download is started', async () => {

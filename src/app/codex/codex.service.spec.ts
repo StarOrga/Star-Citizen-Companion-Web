@@ -384,6 +384,15 @@ describe('manufacturerFacetOptions', () => {
   it('drops rows without a code — there is nothing to filter on', () => {
     expect(manufacturerFacetOptions([row(null, 'Nowhere Inc')], 'en')).toEqual([]);
   });
+
+  it('drops livery tokens that paint items carry in place of a maker code', () => {
+    expect(
+      manufacturerFacetOptions(
+        [row('Paint_400i_Black_Orange_Logo', 'Origin Jumpworks'), row('ORIG', 'Origin Jumpworks')],
+        'en',
+      ),
+    ).toEqual([{ code: 'ORIG', label: 'Origin Jumpworks' }]);
+  });
 });
 
 // Archive audit 2026-09-25: a failed build lookup used to be cached for the
@@ -685,5 +694,188 @@ describe('the placeholder manufacturer (UNKN)', () => {
   it('gets no card badge and no facet option', () => {
     expect(manufacturerLabel(row, 'de')).toBeNull();
     expect(manufacturerFacetOptions([row], 'de')).toEqual([]);
+  });
+});
+
+/**
+ * AUD-063: /codex/index's dropdowns need the COMPLETE facet values, not just
+ * what the loaded pages carry — this is what talks to `codex_facet_values`.
+ */
+describe('CodexService.facetValues', () => {
+  interface RpcCall {
+    fn: string;
+    params: Record<string, unknown>;
+  }
+
+  function provider(
+    calls: RpcCall[],
+    respond: () => { data: unknown; error: unknown },
+  ): SupabaseClientProvider {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () =>
+          table === 'p4k_bundles_public_stats' ? Promise.resolve({ data: [], error: null }) : chain,
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    const rpc = (fn: string, params: Record<string, unknown>) => {
+      calls.push({ fn, params });
+      return Promise.resolve(respond());
+    };
+    return { client: { from, rpc } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(
+    calls: RpcCall[],
+    respond: () => { data: unknown; error: unknown },
+  ): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(calls, respond) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  const okResponse = () => ({
+    data: {
+      manufacturers: [{ code: 'AEG', name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics', key: '@manufacturer_NameAEG' } }],
+      sizes: [1, 2, 3],
+      grades: ['A', 'B'],
+      componentKinds: ['Shield'],
+    },
+    error: null,
+  });
+
+  it('calls the RPC with the current build and the requested kind', async () => {
+    const calls: RpcCall[] = [];
+    const svc = make(calls, okResponse);
+
+    const result = await svc.facetValues('component');
+
+    expect(calls).toEqual([{ fn: 'codex_facet_values', params: { p_build_id: BUILD_ID, p_kind: 'component' } }]);
+    expect(result).toEqual({
+      manufacturers: [{ code: 'AEG', name: { en: 'Aegis Dynamics', de: 'Aegis Dynamics', key: '@manufacturer_NameAEG' } }],
+      sizes: [1, 2, 3],
+      grades: ['A', 'B'],
+      componentKinds: ['Shield'],
+    });
+  });
+
+  it('caches the answer per build + kind — a second call for the same kind does not ask again', async () => {
+    const calls: RpcCall[] = [];
+    const svc = make(calls, okResponse);
+
+    await svc.facetValues('weapon');
+    await svc.facetValues('weapon');
+
+    expect(calls.length).toBe(1);
+  });
+
+  it('asks again per kind — a different kind is a different cache key', async () => {
+    const calls: RpcCall[] = [];
+    const svc = make(calls, okResponse);
+
+    await svc.facetValues('weapon');
+    await svc.facetValues('item');
+
+    expect(calls.length).toBe(2);
+  });
+
+  it('returns null (never throws) when the RPC errors — e.g. the migration is not deployed yet', async () => {
+    const calls: RpcCall[] = [];
+    const svc = make(calls, () => ({ data: null, error: new Error('function does not exist') }));
+
+    const result = await svc.facetValues('ship');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not cache a failed read — a retry asks the RPC again', async () => {
+    const calls: RpcCall[] = [];
+    const svc = make(calls, () => ({ data: null, error: new Error('boom') }));
+
+    await svc.facetValues('ship');
+    await svc.facetValues('ship');
+
+    expect(calls.length).toBe(2);
+  });
+});
+
+describe('CodexService.resolveEntities', () => {
+  /**
+   * One table (codex_weapons) carries the requested class name with a
+   * payload->name JSON path; every other entity table answers empty. Mirrors
+   * the real "first table that owns a class name wins" shape without needing
+   * all five tables populated.
+   */
+  function provider(rows: Record<string, unknown>[]): SupabaseClientProvider {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => chain,
+        in: () =>
+          table === 'codex_weapons'
+            ? Promise.resolve({ data: rows, error: null })
+            : Promise.resolve({ data: [], error: null }),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(rows: Record<string, unknown>[]): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(rows) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  it('maps the payload->name localized field alongside name_localized', async () => {
+    const svc = make([
+      {
+        class_name: 'LH86',
+        name_localized: 'LH86 Pistol',
+        manufacturer_code: 'KRIG',
+        size: 1,
+        grade: 'A',
+        name: { key: '@item_LH86_Name', en: 'LH86 Pistol', de: 'LH86 Pistole' },
+      },
+    ]);
+
+    const resolved = await svc.resolveEntities(['LH86']);
+
+    expect(resolved.get('LH86')?.name).toEqual({ key: '@item_LH86_Name', en: 'LH86 Pistol', de: 'LH86 Pistole' });
+    expect(resolved.get('LH86')?.nameLocalized).toBe('LH86 Pistol');
+  });
+
+  it('leaves name null when the row carries no payload name', async () => {
+    const svc = make([
+      {
+        class_name: 'LH86',
+        name_localized: 'LH86 Pistol',
+        manufacturer_code: 'KRIG',
+        size: 1,
+        grade: 'A',
+        name: null,
+      },
+    ]);
+
+    const resolved = await svc.resolveEntities(['LH86']);
+
+    expect(resolved.get('LH86')?.name).toBeNull();
   });
 });

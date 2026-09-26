@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
-import { ResolvedEntity } from '../codex.service';
+import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { ARMOR_SLOT_SPECS } from '../codex-landing-kpi';
 import { cleanLocaleValue, humanizeClassName } from '../codex-format';
 import { HangarService } from '../../hangar/hangar.service';
@@ -35,6 +36,13 @@ export interface GearSlotRow {
   linkable: boolean;
   /** A filled position outside the role's own list (see `rows`). */
   custom: boolean;
+  /**
+   * 1-based hotbar position: fixed per role (`ROLE_SLOT_SUGGESTIONS`' own
+   * array order — for `fps` that is 1 Primary → 2 Secondary → 3 Sidearm →
+   * 4 Melee → 5 Throwable), continuing across any custom slot the retired
+   * set editor left behind.
+   */
+  order: number;
 }
 
 /**
@@ -59,7 +67,7 @@ export interface GearSlotRow {
   template: `
     <section class="gear" aria-labelledby="set-gear-title">
       <h2 class="zone-eyebrow" id="set-gear-title">{{ 'codex.set.gear.eyebrow' | translate }}</h2>
-      <ul class="gear-grid">
+      <ul class="gear-grid" [style.--gear-cols]="rows().length">
         @for (r of rows(); track r.slot) {
           <li class="gear-slot" [class.empty]="!r.className" [class.nosource]="!r.linkable" [attr.data-slot]="r.slot">
             <div class="gear-row">
@@ -70,12 +78,12 @@ export interface GearSlotRow {
                   routerLink="/codex/fps"
                   [queryParams]="{ cat: 'weapon', equipInto: setId(), equipSlot: r.slot }"
                 >
-                  <span class="t-label">{{ label }}</span>
+                  <span class="t-label"><b class="t-num">{{ r.order }}</b> {{ label }}</span>
                   <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
                 </a>
               } @else {
                 <div class="gear-tile static">
-                  <span class="t-label">{{ label }}</span>
+                  <span class="t-label"><b class="t-num">{{ r.order }}</b> {{ label }}</span>
                   <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
                   <span class="gear-note">{{ (r.custom ? 'codex.set.gear.customSlot' : 'codex.set.gear.noSource') | translate }}</span>
                 </div>
@@ -119,11 +127,11 @@ export interface GearSlotRow {
   styles: [
     `
       :host {
-        --idle: #3d5a6c;
-        --idle-bg: #0a1c26;
+        --idle: var(--sc-idle);
+        --idle-bg: var(--sc-idle-bg);
         display: block;
       }
-      .gear { display: flex; flex-direction: column; gap: 8px; }
+      .gear { display: flex; flex-direction: column; gap: 8px; container-type: inline-size; container-name: gear; }
       /* Same eyebrow as the board panel's zone header. */
       .zone-eyebrow {
         margin: 0;
@@ -143,6 +151,10 @@ export interface GearSlotRow {
         line-height: 1.3;
         color: var(--tint);
       }
+      /* The hotbar number: fixed per role (1 Primary → 2 Secondary → …), same
+         --tint accent as the label it precedes, just bolder so it reads as a
+         key/slot number rather than more label text. */
+      .t-num { font-weight: 700; letter-spacing: normal; }
       .t-value {
         display: block;
         font-size: max(0.78rem, var(--sc-fs-floor));
@@ -153,13 +165,20 @@ export interface GearSlotRow {
         white-space: nowrap;
       }
 
+      /* Hotbar: one row of equal columns, one per slot the role defines (5 for
+         FPS: Primary/Secondary/Sidearm/Melee/Throwable) — the numeral in
+         .t-num is the reading order. Below ~700px container width, wrap to
+         two equal columns instead of squeezing every tile unreadably thin. */
       .gear-grid {
         list-style: none;
         margin: 0;
         padding: 0;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+        grid-template-columns: repeat(var(--gear-cols, 1), 1fr);
         gap: 6px;
+      }
+      @container gear (max-width: 700px) {
+        .gear-grid { grid-template-columns: repeat(2, 1fr); }
       }
       .gear-slot { min-width: 0; }
       .gear-row { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
@@ -232,6 +251,10 @@ export interface GearSlotRow {
 })
 export class CodexSetGearComponent {
   private readonly hangar = inject(HangarService);
+  private readonly t = inject(TranslateService);
+
+  /** UI language for piece names — re-derived on every language switch (see constructor). */
+  private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
   readonly setId = input.required<string>();
   readonly role = input.required<RoleLoadoutRole>();
@@ -254,16 +277,27 @@ export class CodexSetGearComponent {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.dropUndo());
+    this.t.onLangChange
+      .pipe(takeUntilDestroyed())
+      .subscribe((e) => this.dataLang.set(toLang(e.lang)));
   }
 
   readonly rows = computed<GearSlotRow[]>(() => {
     const items = this.items();
     const bySlot = new Map(items.map((i) => [i.slot, i.className] as const));
     const resolved = this.resolved();
-    const nameOf = (className: string | null): string =>
-      className ? cleanLocaleValue(resolved.get(className)?.nameLocalized) || humanizeClassName(className) : '';
+    const lang = this.dataLang();
+    const nameOf = (className: string | null): string => {
+      if (!className) return '';
+      const entity = resolved.get(className);
+      return (
+        pickLocalized(entity?.name, lang) ||
+        cleanLocaleValue(entity?.nameLocalized) ||
+        humanizeClassName(className)
+      );
+    };
     const suggested = (ROLE_SLOT_SUGGESTIONS[this.role()] ?? []).filter((slot) => !ARMOR_ROLE_SLOTS.has(slot));
-    const rows: GearSlotRow[] = suggested.map((slot) => {
+    const rows: GearSlotRow[] = suggested.map((slot, i) => {
       const className = bySlot.get(slot) ?? null;
       return {
         slot,
@@ -273,6 +307,7 @@ export class CodexSetGearComponent {
         name: nameOf(className),
         linkable: slotHasArchiveSource(slot),
         custom: false,
+        order: i + 1,
       };
     });
     // Filled slots outside the role's positions: the retired set editor
@@ -292,6 +327,7 @@ export class CodexSetGearComponent {
         name: nameOf(item.className),
         linkable: false,
         custom: true,
+        order: rows.length + 1,
       });
     }
     return rows;

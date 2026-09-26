@@ -6,6 +6,7 @@ import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The "Kommende Schiffe" card grid — toolbar, the two status blocks and the
@@ -21,7 +22,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 @Component({
   selector: 'sc-upcoming-grid',
   standalone: true,
-  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, FallbackImageComponent],
+  imports: [NeuroFieldDirective, NgTemplateOutlet, RouterLink, TranslatePipe, CodexCategoryIconComponent, FallbackImageComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (feed()) {
@@ -134,7 +135,8 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
         <button type="button" class="fav" [class.on]="isFavorite(ship)"
                 [attr.aria-pressed]="isFavorite(ship)"
                 [attr.aria-label]="(isFavorite(ship) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
-                [attr.title]="(isFavorite(ship) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
+                [scTooltip]="(isFavorite(ship) ? 'codex.upcoming.favorite.remove' : 'codex.upcoming.favorite.add') | translate"
+                scTooltipTier="label"
                 (click)="toggleFavorite(ship)">{{ isFavorite(ship) ? '★' : '☆' }}</button>
       </div>
     </ng-template>

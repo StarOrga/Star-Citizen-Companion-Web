@@ -5,23 +5,25 @@ import {
   OnInit,
   WritableSignal,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
 import { CodexService, ResolvedEntity } from '../codex.service';
-import { CodexStageComponent } from '../stage/codex-stage.component';
 import { HangarPickerItem } from '../stage/hangar-picker.component';
-import { CodexBoardFigureComponent } from '../codex-board-figure.component';
-import { CodexBoardPanelComponent } from '../codex-board-panel.component';
 import { CodexSetGearComponent } from './codex-set-gear.component';
+import { CodexSetStageComponent } from './codex-set-stage.component';
+import { CodexSetRankCardComponent } from './codex-set-rank-card.component';
+import { CodexSetMissionBarComponent } from './codex-set-mission-bar.component';
+import { ArmorRatingRow, SET_LENSES, SetLensId, setLensStorageKey } from './set-rating';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
-  ArmorSlotState,
   EntityPayloadEntry,
   armorSlotsFromLoadout,
   sortByRecency,
@@ -39,11 +41,14 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
  * configurable piece — the six slots, armour class, readiness, set-switch —
  * lives here, one click away.
  *
- * Hero: the same `sc-codex-stage kind="person"` construction the landing
- * uses, full width, 420px (N5 — no archive line in this hero, the page
- * navigation is the way out). Below it: the existing on-foot editor
- * (`sc-codex-board-panel`, unchanged) reused as-is — six slots, item art,
- * armour-class bars, readiness glyphs, set switcher.
+ * Masthead (concept 2026-09-26 "Set-Seite Doppelungen", round 3, design C1
+ * "ausgebaut" — AUD-065): ONE figure. The stage (`sc-codex-set-stage`) holds
+ * set picker, role, "Rüstung n/6", set name, readiness and the figure with its
+ * six armour tiles and leader lines; beside it (stacked under it on narrow
+ * frames) the Einordnung card. Below: the Einsatz strip, whose lens adds a
+ * readout line to every tile (persisted per set), then the weapons hotbar.
+ * The old six-slot board panel, which repeated figure, name and role under
+ * the hero, is gone.
  */
 @Component({
   selector: 'sc-codex-set',
@@ -51,9 +56,9 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
   imports: [
     RouterLink,
     TranslatePipe,
-    CodexStageComponent,
-    CodexBoardFigureComponent,
-    CodexBoardPanelComponent,
+    CodexSetStageComponent,
+    CodexSetRankCardComponent,
+    CodexSetMissionBarComponent,
     CodexSetGearComponent,
     LoadoutSharePanelComponent,
     ScTooltipDirective,
@@ -83,7 +88,6 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
                 <path d="M8.3 10.8 15.7 6.3M8.3 13.2l7.4 4.5" />
               </svg>
             </button>
-            <span class="share-tip" aria-hidden="true">{{ 'codex.set.share' | translate }}</span>
           </span>
         }
       </div>
@@ -117,35 +121,31 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
           <p class="hint note">{{ 'codex.set.notFound' | translate }}</p>
         }
 
-        <sc-codex-stage
-          class="set-hero"
-          kind="person"
-          [eyebrow]="roleLabel()"
-          [eyebrowSuffix]="equipSuffix()"
-          [title]="activeSet()!.name"
-          pickerKind="set"
-          [pickerItems]="setPickerItems()"
-          (pick)="onSetPick($event)"
-          (open)="onHangarOpen()"
-        >
-          <sc-codex-board-figure stageFigure [filled]="filledSlots()" [decorative]="true" />
-        </sc-codex-stage>
-
-        <div class="board-wrap">
-          <sc-codex-board-panel
-            [loadouts]="orderedLoadouts()"
+        <div class="masthead">
+          <sc-codex-set-stage
+            class="set-hero"
+            [set]="activeSet()!"
             [resolved]="resolvedArmor()"
             [payloads]="armorPayloads()"
             [archiveDepth]="archiveDepth()"
+            [ratingRows]="ratingRows()"
+            [lens]="lens()"
+            [pickerItems]="setPickerItems()"
+            (pick)="onSetPick($event)"
+            (open)="onHangarOpen()"
           />
-          <sc-codex-set-gear
-            class="set-gear"
-            [setId]="activeSet()!.id"
-            [role]="activeSet()!.role"
-            [items]="activeSet()!.items"
-            [resolved]="resolvedArmor()"
-          />
+          <sc-codex-set-rank-card class="rank" [rows]="ratingRows()" [loading]="ratingLoading()" />
         </div>
+
+        <sc-codex-set-mission-bar [lens]="lens()" (lensChange)="setLens($event)" />
+
+        <sc-codex-set-gear
+          class="set-gear"
+          [setId]="activeSet()!.id"
+          [role]="activeSet()!.role"
+          [items]="activeSet()!.items"
+          [resolved]="resolvedArmor()"
+        />
       }
     </section>
   `,
@@ -158,8 +158,8 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .back { color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       /* Share is a set action: an icon button beside the back link. Its label
-         shows as an app-styled tooltip (Label tier: the icon is its only
-         visible name) — instantly on keyboard focus, after 400 ms on hover. */
+         is the app tooltip ([scTooltip], Label tier: the icon is its only
+         visible name) — one tooltip, not a second CSS one next to it. */
       .share-wrap { position: relative; display: inline-flex; }
       .share-btn {
         display: inline-flex; align-items: center; justify-content: center;
@@ -170,18 +170,6 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .share-btn svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
       .share-btn:hover, .share-btn.on { color: var(--sc-accent); border-color: var(--sc-accent); }
       .share-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      .share-tip {
-        position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; white-space: nowrap;
-        padding: 5px 9px; border-radius: 4px; pointer-events: none;
-        background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1);
-        font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem));
-        opacity: 0; visibility: hidden; transition: opacity 0.12s ease, visibility 0s linear 0.12s;
-      }
-      .share-btn:hover + .share-tip {
-        opacity: 1; visibility: visible; transition: opacity 0.12s ease 400ms, visibility 0s linear 400ms;
-      }
-      .share-btn:focus-visible + .share-tip { opacity: 1; visibility: visible; transition: none; }
-      @media (hover: none) { .share-btn:hover + .share-tip { opacity: 0; visibility: hidden; } }
       .hint { color: var(--sc-fg-2); }
       .hint a { color: var(--sc-accent); }
       /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
@@ -196,27 +184,16 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       .hint .create-set { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
       .hint.note { color: var(--sc-warning); }
 
-      .set-hero { display: block; height: 420px; border-radius: 4px; overflow: hidden; border: 1px solid var(--sc-border); }
-      /* N5: title 30px on the set page's full-width hero (the landing's
-         person stage stays at the shared 24px — see codex-stage.component.ts). */
-      .set-hero ::ng-deep .stage-title { font-size: 30px; }
-      /* N5: no archive line in this hero — nothing is projected into the
-         stage's [stageArchive] slot, so its (empty) row stays invisible. */
-      .set-hero ::ng-deep .stage-archive { display: none; }
-
-      .board-wrap {
-        --tint: var(--sc-warning);
-        position: relative;
-        border: 1px solid var(--sc-border);
-        border-radius: 4px;
-        padding: 16px;
-        background: var(--sc-bg-1);
+      /* Masthead: stage + Einordnung card side by side from ~1100px of page
+         width, stacked below that (container query: the page frame decides,
+         not the viewport). */
+      .set-page { container: setpage / inline-size; }
+      .masthead { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+      @container setpage (min-width: 1100px) {
+        .masthead { grid-template-columns: minmax(0, 1fr) 360px; }
       }
-      .set-gear {
-        margin-top: var(--sc-gap-1);
-        padding-top: var(--sc-pad-2);
-        border-top: 1px solid color-mix(in srgb, var(--tint) 18%, var(--sc-border));
-      }
+      .set-hero, .rank { display: block; min-width: 0; }
+      .set-gear { display: block; }
     `,
   ],
 })
@@ -259,21 +236,12 @@ export class CodexSetComponent implements OnInit {
     return !this.hangar.roleLoadouts().some((l) => l.id === id);
   });
 
-  private readonly slots = computed<ArmorSlotState[]>(() =>
-    armorSlotsFromLoadout(this.activeSet()?.items ?? []),
-  );
-  readonly filledSlots = computed<ReadonlySet<string>>(
-    () => new Set(this.slots().filter((s) => s.className).map((s) => s.roleSlot)),
-  );
+  /** Rating rows of the equipped armour — null until the SQL function answers (an honest gap in the card). */
+  readonly ratingRows = signal<ArmorRatingRow[] | null>(null);
+  readonly ratingLoading = signal(false);
 
-  readonly roleLabel = computed(() => {
-    const set = this.activeSet();
-    return set ? this.t.instant('hangar.roles.' + set.role) : '';
-  });
-
-  readonly equipSuffix = computed(
-    () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.filledSlots().size, total: 6 }),
-  );
+  /** The Einsatz lens, remembered per set. */
+  readonly lens = signal<SetLensId>('all');
 
   readonly setPickerItems = computed<HangarPickerItem[]>(() => {
     const current = this.activeSet()?.id ?? null;
@@ -287,6 +255,14 @@ export class CodexSetComponent implements OnInit {
    * so a snapshot read leaves the new URL over the old set. The first emission
    * is synchronous, so a deep link loads exactly as before.
    */
+  constructor() {
+    // Each set remembers its own lens; a set switch reads that set's choice.
+    effect(() => {
+      const id = this.activeSet()?.id ?? null;
+      untracked(() => this.lens.set(readLens(id)));
+    });
+  }
+
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       void this.load(params.get('id'));
@@ -328,11 +304,14 @@ export class CodexSetComponent implements OnInit {
       this.resolvedArmor.set(new Map());
       this.archiveDepth.set(new Map());
       this.armorPayloads.set(new Map());
+      this.ratingRows.set(null);
+      this.ratingLoading.set(false);
       return;
     }
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
     const slots = armorSlotsFromLoadout(active.items);
     const emptySlots = slots.filter((s) => !s.className);
+    const armorClassNames = slots.map((s) => s.className).filter((c): c is string => !!c);
     // Each answer lands as it arrives — unless the page has moved on to
     // another set meanwhile, then it is dropped.
     const land = <T>(state: WritableSignal<T>, value: T) => {
@@ -354,6 +333,18 @@ export class CodexSetComponent implements OnInit {
         .countItemsByAttachType(emptySlots.map((s) => s.attachType))
         .then((m) => land(this.archiveDepth, m))
         .catch(() => land(this.archiveDepth, new Map())),
+      // Rating of the equipped armour (card + lens readouts). null = the SQL
+      // function is not deployed yet — the card names that gap.
+      (async () => {
+        land(this.ratingLoading, true);
+        try {
+          land(this.ratingRows, await this.svc.armorRating(armorClassNames));
+        } catch {
+          land(this.ratingRows, null);
+        } finally {
+          land(this.ratingLoading, false);
+        }
+      })(),
     ]);
   }
 
@@ -368,5 +359,29 @@ export class CodexSetComponent implements OnInit {
 
   onHangarOpen(): void {
     void this.router.navigateByUrl('/hangar');
+  }
+
+  /** The Einsatz strip's choice — kept per set in localStorage. */
+  setLens(lens: SetLensId): void {
+    this.lens.set(lens);
+    const id = this.activeSet()?.id;
+    if (!id) return;
+    try {
+      localStorage.setItem(setLensStorageKey(id), lens);
+    } catch {
+      // Private mode / storage full: the lens still applies for this visit.
+    }
+  }
+}
+
+/** The stored lens for a set, if it is still a known, enabled lens; else 'all'. */
+function readLens(setId: string | null): SetLensId {
+  if (!setId) return 'all';
+  try {
+    const raw = localStorage.getItem(setLensStorageKey(setId));
+    const def = SET_LENSES.find((l) => l.id === raw);
+    return def && !def.disabled ? def.id : 'all';
+  } catch {
+    return 'all';
   }
 }

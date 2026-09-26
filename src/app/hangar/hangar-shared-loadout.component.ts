@@ -11,13 +11,14 @@ import { humanizeClassName } from '../codex/codex-format';
 import { AuthService } from '../auth/auth.service';
 import { HangarService } from './hangar.service';
 import { PeekedSharedLoadout } from './hangar.types';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 type LandingState = 'loading' | 'available' | 'unavailable';
 
 @Component({
   selector: 'sc-hangar-shared-loadout',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -54,7 +55,7 @@ type LandingState = 'loading' | 'available' | 'unavailable';
 
             @if (auth.isAuthenticated()) {
               <button type="button" class="sc-btn adopt" [disabled]="adopting()" (click)="adopt(p)"
-                      [attr.title]="'hangar.shared.adoptHint' | translate">
+                      [scTooltip]="'hangar.shared.adoptHint' | translate">
                 {{ (adopting() ? 'hangar.shared.adopting' : 'hangar.shared.adopt') | translate }}
               </button>
               @if (adoptError()) {

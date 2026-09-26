@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import {
@@ -8,6 +9,7 @@ import {
   LayoutSlot,
   LayoutTarget,
 } from './codex-hardpoint-layout.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 // Renders the real component, so these guard the *structure* the reference
 // layout asked for — the mounted item's name as the headline, its size class
@@ -200,7 +202,10 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(el.querySelector('.fig .u')?.textContent?.trim()).toBe('codex.equipped.tractorRange');
     const rows = Array.from(el.querySelectorAll('.slot-stats .stat'));
     const force = rows.find((r) => r.textContent?.includes('codex.equipped.tractorForce'))!;
-    expect(force.getAttribute('title')).toBe('codex.equipped.tractorForceHint');
+    const forceDebugEl = fixture.debugElement
+      .queryAll(By.css('.slot-stats .stat'))
+      .find((de) => de.nativeElement === force)!;
+    expect(forceDebugEl.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.equipped.tractorForceHint');
     expect(force.querySelector('dd')?.textContent?.trim()).toBe('500 kN');
     expect(force.querySelector('.hint')).toBeTruthy();
     // nothing on the row claims a mass, and no gap note fires when the numbers are there

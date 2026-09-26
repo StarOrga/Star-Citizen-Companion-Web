@@ -64,6 +64,7 @@ import {
 } from '../codex-power';
 import { RankResult } from '../codex-rank';
 import type { SummaryOccupant } from '../ship-summary-panels';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 const GROUP_ICON: Readonly<Record<PowerGroup, string>> = {
   weapons: 'weapon',
@@ -104,7 +105,7 @@ let uidSeq = 0;
 @Component({
   selector: 'sc-codex-holo-strip',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="holo-strip" [class.open]="expanded()">
@@ -138,7 +139,7 @@ let uidSeq = 0;
               } @empty {
                 <!-- Nothing in this perspective has a value for this hull — say
                      so instead of leaving a label over an empty cell. -->
-                <span class="tv none" [attr.title]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
+                <span class="tv none" [scTooltip]="'codex.kpi.gap' | translate" scTooltipTier="label" [attr.aria-label]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
               }
             </div>
           </div>
@@ -187,7 +188,8 @@ let uidSeq = 0;
           class="hs-toggle"
           [attr.aria-expanded]="expanded()"
           [attr.aria-controls]="panelId"
-          [title]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+          [scTooltip]="(expanded() ? 'codex.holo.strip.collapse' : 'codex.holo.strip.expand') | translate"
+          scTooltipTier="label"
           (click)="toggleExpanded()"
         >
           <span class="chev" [class.open]="expanded()" aria-hidden="true">▴</span>
@@ -284,7 +286,7 @@ let uidSeq = 0;
             <div class="hp-summary">
               @if (sheet().available) {
                 <span class="v">{{ sheet().budgetUsed }}&nbsp;/&nbsp;{{ sheet().budgetTotal }} <small>{{ 'codex.energy.unit.segments' | translate }}</small></span>
-                <span class="ok" [class.no]="!sheet().ready" [attr.title]="(sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate">
+                <span class="ok" [class.no]="!sheet().ready">
                   {{ sheet().ready ? '✓' : '✕' }} {{ (sheet().ready ? 'codex.energy.readiness.shortOk' : 'codex.energy.readiness.shortNo') | translate }}
                 </span>
               } @else {

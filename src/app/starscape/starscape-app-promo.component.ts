@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** Permanent opt-out — only the ✕ writes this (admin feedback eb9c6ec3). */
 const DISMISS_KEY = 'sc.starscapePromo.dismissed';
@@ -41,7 +42,7 @@ const ROTATE_MS = 2600;
 @Component({
   selector: 'sc-starscape-app-promo',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
@@ -71,7 +72,7 @@ const ROTATE_MS = 2600;
 
         <button type="button" class="x" (click)="dismissForever()"
                 [attr.aria-label]="'starscape.promo.dismiss' | translate"
-                [title]="'starscape.promo.dismiss' | translate">✕</button>
+                [scTooltip]="'starscape.promo.dismiss' | translate">✕</button>
       </aside>
     }
   `,

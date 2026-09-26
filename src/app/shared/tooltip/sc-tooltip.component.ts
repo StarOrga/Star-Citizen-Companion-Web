@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
  * The floating bubble portaled by `ScTooltipDirective` through CDK's
- * `Overlay`. Visual contract lifted verbatim from the only app-styled
- * tooltip that existed before this component (`.share-tip` in
- * `codex-set.component.ts`): `--sc-bg-0` surface, 1px `--sc-border`, 4px
- * radius, `5px 9px` padding, a font-size floor via `max()`, a 120ms fade.
+ * `Overlay`. Visual contract lifted from the set page's former CSS-only
+ * share tooltip, the app's first styled one: `--sc-bg-0` surface, 1px
+ * `--sc-border`, 4px radius, `5px 9px` padding, a font-size floor via
+ * `max()`, a 120ms fade.
  * Kept as its own component (rather than inline in the directive) so the
  * directive only ever has to manage an `OverlayRef` + `ComponentRef`, never
  * template wiring.

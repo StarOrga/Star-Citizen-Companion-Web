@@ -15,6 +15,7 @@ import { fromEvent } from 'rxjs';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScColumnMenuComponent } from '../shared/column-menu.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
 import { ammoClassNameFor, ammoClassNamesFor, formatEquippedStat } from './codex-equipped-stats';
 import {
@@ -171,11 +172,11 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent],
+  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
-      <div class="pick-veil" [attr.title]="'codex.picker.hint' | translate" (click)="closed.emit()">
+      <div class="pick-veil" (click)="closed.emit()">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
         <article #dialog class="pick-win" role="dialog" aria-modal="true"
                  aria-labelledby="pick-title"
@@ -285,7 +286,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                 <table class="wt" role="grid">
                   <thead>
                     <tr>
-                      <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)" [attr.title]="sortRankTitle(NAME_KEY)">
+                      <th scope="col" class="c-name" [attr.aria-sort]="ariaSort(NAME_KEY)" [scTooltip]="sortRankTitle(NAME_KEY)" scTooltipTier="label">
                         <sc-column-menu
                           [label]="('codex.picker.col.name' | translate)"
                           kind="categorical"
@@ -307,7 +308,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                           (secondarySortToggle)="onSecondarySortToggle(NAME_KEY)" />
                       </th>
                       @for (col of displayColumns(); track col.key) {
-                        <th scope="col" class="c-num" [attr.aria-sort]="ariaSort(col.key)" [attr.title]="sortRankTitle(col.key)">
+                        <th scope="col" class="c-num" [attr.aria-sort]="ariaSort(col.key)" [scTooltip]="sortRankTitle(col.key)" scTooltipTier="label">
                           <sc-column-menu
                             [label]="colLabel(col)"
                             [unit]="colUnit(col)"
@@ -356,13 +357,14 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                         </td>
                         @for (col of displayColumns(); track col.key) {
                           <td class="c-num" [class.gapc]="cellState(c, col.key) === 'notApplicable'"
-                              [attr.title]="cellState(c, col.key) === 'notApplicable' ? ('codex.picker.dashCellTitle' | translate) : null">
+                              [scTooltip]="cellState(c, col.key) === 'notApplicable' ? ('codex.picker.dashCellTitle' | translate) : null"
+                              scTooltipTier="label">
                             @if (barKeys.has(col.key)) {
                               @if (barOf(col.key, c); as bar) {
                                 @if (bar.percent !== null) {
                                   <span class="bar" [style.width.%]="bar.percent" aria-hidden="true"></span>
                                 }
-                                @if (bar.optimum) { <span class="opt" [attr.title]="'codex.picker.optimum' | translate" aria-hidden="true"></span> }
+                                @if (bar.optimum) { <span class="opt" [scTooltip]="'codex.picker.optimum' | translate" scTooltipTier="label" aria-hidden="true"></span> }
                               }
                             }
                             @if (col.key === DELTA_KEY) {

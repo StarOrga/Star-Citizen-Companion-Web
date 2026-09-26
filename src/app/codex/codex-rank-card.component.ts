@@ -6,6 +6,8 @@ import {
   RankResult,
   RankScope,
 } from './codex-rank';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * "Einordnung" — the right half of the masthead (MASTER §3). Purely
@@ -23,7 +25,7 @@ import {
 @Component({
   selector: 'sc-codex-rank-card',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.holo]': 'holo()' },
   template: `
@@ -99,7 +101,7 @@ import {
             </p>
             <p class="cohort holo-cohort">
               {{ 'codex.holo.stage.against' | translate }}
-              <button type="button" class="scope-link" (click)="cycleScope()" [attr.title]="'codex.rank.scopeLabel' | translate">{{ scopeLineKey() | translate: { n: result()!.cohortSize } }}</button>
+              <button type="button" class="scope-link" (click)="cycleScope()" [scTooltip]="'codex.rank.scopeLabel' | translate">{{ scopeLineKey() | translate: { n: result()!.cohortSize } }}</button>
               ·
               <button
                 type="button"
@@ -125,34 +127,40 @@ import {
       @if (!holo()) {
       <div class="profile-row" role="radiogroup" [attr.aria-label]="'codex.rank.profileLabel' | translate">
         @for (p of profiles; track p.id) {
-          <button
-            type="button"
-            role="radio"
-            class="profile-chip"
-            [class.active]="profile() === p.id"
-            [disabled]="disabledReason(p.id)"
-            [attr.aria-checked]="profile() === p.id"
-            [attr.aria-describedby]="disabledReason(p.id) ? ('rank-reason-' + p.id) : null"
-            [attr.title]="disabledReason(p.id) ? (disabledReason(p.id)! | translate) : (p.labelKey | translate)"
-            (click)="profileChange.emit(p.id)"
+          <span
+            class="chip-wrap"
+            [scTooltip]="disabledReason(p.id) ? (disabledReason(p.id)! | translate) : null"
+            scTooltipTier="label"
           >
-            <span aria-hidden="true">{{ profile() === p.id ? '◈' : '◇' }}</span>
-            {{ p.labelKey | translate }}
-          </button>
+            <button
+              type="button"
+              role="radio"
+              class="profile-chip"
+              [class.active]="profile() === p.id"
+              [disabled]="disabledReason(p.id)"
+              [attr.aria-checked]="profile() === p.id"
+              [attr.aria-describedby]="disabledReason(p.id) ? ('rank-reason-' + p.id) : null"
+              (click)="profileChange.emit(p.id)"
+            >
+              <span aria-hidden="true">{{ profile() === p.id ? '◈' : '◇' }}</span>
+              {{ p.labelKey | translate }}
+            </button>
+          </span>
           @if (disabledReason(p.id)) {
             <span [id]="'rank-reason-' + p.id" class="sr-only">{{ disabledReason(p.id)! | translate }}</span>
           }
         }
-        <label class="scope-select">
-          <span class="sr-only">{{ 'codex.rank.scopeLabel' | translate }}</span>
-          <select [value]="scope()" (change)="onScopeChange($event)">
-            <option value="sizeClass" disabled>
-              {{ 'codex.rank.scope.sizeClass' | translate }}
-            </option>
-            <option value="all">{{ 'codex.rank.scope.all' | translate }}</option>
-            <option value="career">{{ 'codex.rank.scope.career' | translate }}</option>
-          </select>
-        </label>
+        <!-- A div, not a label: a label forwards clicks on the listbox's
+             options to the trigger and would snap the list shut again. -->
+        <div class="scope-select">
+          <sc-select
+            [options]="scopeOptions()"
+            [value]="scope()"
+            [allowEmpty]="false"
+            [ariaLabel]="'codex.rank.scopeLabel' | translate"
+            (valueChange)="onScopeChange($event)"
+          />
+        </div>
         <span class="scope-hint">{{ 'codex.rank.disabled.noSizeClass' | translate }}</span>
       </div>
       }
@@ -173,7 +181,10 @@ import {
                   @if (a.percentile != null) {
                     {{ a.percentile }}%
                   } @else {
-                    <span class="gap-dash" [attr.title]="a.gapKey ? (a.gapKey | translate) : null">—</span>
+                    <span class="gap-dash"
+                          [scTooltip]="a.gapKey ? (a.gapKey | translate) : null"
+                          scTooltipTier="label"
+                          [attr.aria-label]="a.gapKey ? (a.gapKey | translate) : null">—</span>
                   }
                 </span>
               </li>
@@ -229,11 +240,14 @@ import {
     .profile-chip.active { border-color: var(--sc-accent); color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 14%, var(--sc-bg-2)); }
     .profile-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+    /* Wrapper carries the tooltip: a disabled button gets no pointer events,
+       so the "why disabled" hover must land on the span around it. */
+    .chip-wrap { display: inline-flex; }
     .scope-select { margin-left: auto; }
     .scope-hint { flex-basis: 100%; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor));
       color: var(--sc-fg-2); font-style: italic; }
-    .scope-select select { padding: 5px 8px; border-radius: 6px; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(0.7rem, var(--sc-fs-floor)); }
+    /* The themed select (shared/sc-select) draws itself; this only sizes it. */
+    .scope-select sc-select { min-width: 130px; font-size: max(0.7rem, var(--sc-fs-floor)); }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
     .rank-skel { height: 220px; border-radius: 8px; }
@@ -264,10 +278,10 @@ import {
     .radar .median { fill: none; stroke: var(--sc-fg-2); stroke-width: 1; stroke-dasharray: 3 3; }
     .radar .ship { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke: var(--sc-accent); stroke-width: 1.5; }
     /* Weakest ranked axis (Holotable "Einordnung" ask): a stroke-only ring,
-       no fill, no coloured text — CLAUDE.md reserves --sc-danger for errors/
-       destructive actions, so this is a deliberate one-off "warning-class
-       highlight" on the vertex itself, not a navigation or status colour. */
-    .radar .weak-axis { fill: none; stroke: var(--sc-danger); stroke-width: 2; }
+       no fill, no coloured text. --sc-warning, not --sc-danger: a weak axis is
+       neither an error nor a destructive action (CLAUDE.md), and the set
+       page's rating card marks its weak axes the same way. */
+    .radar .weak-axis { fill: none; stroke: var(--sc-warning); stroke-width: 2; }
     .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .legend .ship { color: var(--sc-accent); }
@@ -305,7 +319,7 @@ import {
       background: color-mix(in srgb, var(--sc-fg-2) 16%, transparent); }
     .bar-fill { display: block; height: 100%; background: var(--sc-accent);
       transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1); animation: bar-grow 700ms cubic-bezier(0.2, 0.7, 0.2, 1) 180ms backwards; }
-    .bar-fill.weak { background: var(--sc-danger); }
+    .bar-fill.weak { background: var(--sc-warning); }
     /* The card fills in: the bars grow from zero, the ship's polygon opens
        out of the radar's centre. A later re-rank eases between values. */
     @keyframes bar-grow { from { width: 0; } }
@@ -417,7 +431,7 @@ export class CodexRankCardComponent {
 
   /**
    * Vertex of the single weakest ranked axis (lowest percentile), for the
-   * Holotable "Einordnung" panel's danger-stroke marker. Ties keep the first
+   * Holotable "Einordnung" panel's warning-stroke marker. Ties keep the first
    * axis in profile order. `null` when nothing is ranked yet.
    */
   readonly weakestAxisVertex = computed<{ x: number; y: number } | null>(() => {
@@ -459,12 +473,23 @@ export class CodexRankCardComponent {
     });
   });
 
+  /**
+   * The scope select's choices. `sizeClass` is listed but not pickable, as it
+   * was in the native `<select>`: the same-size-class cohort is not wired yet
+   * (schema gap, #523) — the adjoining `.scope-hint` says so.
+   */
+  readonly scopeOptions = computed<ScSelectOption[]>(() => [
+    { value: 'sizeClass', labelKey: 'codex.rank.scope.sizeClass', disabled: true },
+    { value: 'all', labelKey: 'codex.rank.scope.all' },
+    { value: 'career', labelKey: 'codex.rank.scope.career' },
+  ]);
+
   disabledReason(id: RankProfileId): string | null {
     return this.disabledReasons()[id] ?? null;
   }
 
-  onScopeChange(ev: Event): void {
-    this.scopeChange.emit((ev.target as HTMLSelectElement).value as RankScope);
+  onScopeChange(value: string | null): void {
+    if (value) this.scopeChange.emit(value as RankScope);
   }
 
   ringPoints(ring: number, n: number): string {

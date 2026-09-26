@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { FEEDBACK_COUNTER_WARN_AT, FEEDBACK_MAX_CHARS } from './feedback-limits';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Where the readout sits relative to the field it belongs to.
@@ -32,7 +33,7 @@ export type CharCounterPlacement = 'inside' | 'below';
 @Component({
   selector: 'sc-char-counter',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     'aria-hidden': 'true',
@@ -40,7 +41,7 @@ export type CharCounterPlacement = 'inside' | 'below';
     '[class.over]': 'atLimit()',
     '[class.below]': "placement() === 'below'",
   },
-  template: `<span [title]="titleKey() | translate: titleParams()">{{ used() }} / {{ max() }}</span>`,
+  template: `<span [scTooltip]="titleKey() | translate: titleParams()">{{ used() }} / {{ max() }}</span>`,
   styles: [`
     :host {
       position: absolute;

@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexKpiBandComponent } from './codex-kpi-band.component';
 import { KpiCell } from './codex-loadout-stats';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 describe('CodexKpiBandComponent', () => {
   let fixture: ComponentFixture<CodexKpiBandComponent>;
@@ -45,12 +47,13 @@ describe('CodexKpiBandComponent', () => {
     expect(accents[0].textContent).toContain('120');
   });
 
-  it('renders a gap dash with a title tooltip when the value is absent', () => {
+  it('renders a gap dash with a tooltip when the value is absent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const gapCell = el.querySelectorAll('.kpi-cell.gap')[0];
     const dash = gapCell.querySelector('.gap-dash')!;
     expect(dash.textContent?.trim()).toBe('—');
-    expect(dash.getAttribute('title')).toBe('codex.summary.gap.noFireRate');
+    const dashDebugEl = fixture.debugElement.queryAll(By.css('.gap-dash')).find((de) => de.nativeElement === dash)!;
+    expect(dashDebugEl.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.summary.gap.noFireRate');
   });
 
   it('shows the delta chip only for cells that have one', () => {
@@ -59,11 +62,12 @@ describe('CodexKpiBandComponent', () => {
     expect(el.querySelector('.kpi-delta.good')).toBeTruthy();
   });
 
-  it('renders the delta chip as the forced-sign absolute change, with the percentage only as the title', () => {
+  it('renders the delta chip as the forced-sign absolute change, with the percentage only as the tooltip', () => {
     const el: HTMLElement = fixture.nativeElement;
     const chip = el.querySelector('.kpi-delta')!;
     expect(chip.textContent?.trim()).toBe('+200');
-    expect(chip.getAttribute('title')).toBe('+20%');
+    const chipDebugEl = fixture.debugElement.queryAll(By.css('.kpi-delta')).find((de) => de.nativeElement === chip)!;
+    expect(chipDebugEl.injector.get(ScTooltipDirective).scTooltip()).toBe('+20%');
   });
 
   it('renders a negative delta with a minus sign', () => {

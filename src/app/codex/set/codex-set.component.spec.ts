@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, input, signal } from '@angular/core';
-import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { provideLocationMocks } from '@angular/common/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
 import { CodexSetComponent } from './codex-set.component';
@@ -9,6 +10,7 @@ import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
+import { ArmorRatingRow, setLensStorageKey } from './set-rating';
 
 /** Stands in for the real share panel, which pulls friends + share RPCs. */
 @Component({ selector: 'sc-loadout-share-panel', standalone: true, template: '<p class="share-stub">{{ loadoutId() }}</p>' })
@@ -46,6 +48,7 @@ function makeCodexServiceStub(): Partial<CodexService> {
     getEntityPayloads: async () => new Map(),
     listByKind: async () => ({ rows: [], count: 0 }) as never,
     countItemsByAttachType: async () => new Map(),
+    armorRating: async () => [],
   };
 }
 
@@ -71,6 +74,7 @@ async function setup(opts: {
     imports: [CodexSetComponent],
     providers: [
       provideRouter([]),
+      provideLocationMocks(),
       provideTranslateService({}),
       { provide: CodexService, useValue: opts.codex ?? makeCodexServiceStub() },
       {
@@ -127,19 +131,87 @@ async function navigateTo(fixture: ComponentFixture<CodexSetComponent>, id: stri
   fixture.detectChanges();
 }
 
+/** Lens keys this spec may have written — cleared around every spec. */
+function clearLenses(): void {
+  for (const id of ['set-a', 'set-b', 'set-m', 'set-new', 'missing']) localStorage.removeItem(setLensStorageKey(id));
+}
+
 describe('CodexSetComponent', () => {
-  it('resolves the requested set and renders its hero + six slots', async () => {
+  beforeEach(clearLenses);
+  afterEach(clearLenses);
+
+  it('resolves the requested set and renders one stage with six slot tiles — no second board', async () => {
     const fixture = await setup({ id: 'set-b', loadouts: [SET_A, SET_B] });
     const el: HTMLElement = fixture.nativeElement;
     expect(fixture.componentInstance.activeSet()?.id).toBe('set-b');
     expect(el.querySelector('sc-hangar-picker')).toBeTruthy();
-    expect(el.querySelectorAll('.board-slot').length).toBe(6);
+    expect(el.querySelectorAll('.set-hero a.tile').length).toBe(6);
+    expect(el.querySelectorAll('sc-codex-board-figure').length).toBe(1);
+    expect(el.querySelector('sc-codex-board-panel')).toBeNull();
+    expect(el.querySelector('.masthead sc-codex-set-rank-card')).not.toBeNull();
+    expect(el.querySelector('sc-codex-set-mission-bar')).not.toBeNull();
   });
 
-  it("renders the set's weapon/tool positions below the armour board", async () => {
+  it('switches sets through the stage picker', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    fixture.componentInstance.onSetPick('set-b');
+    expect(navigate).toHaveBeenCalledWith(['/codex', 'set', 'set-b']);
+  });
+
+  it('loads the rating of the equipped armour for the card and the lens', async () => {
+    // A complete row: the rank card and the lens read values and percentiles off it.
+    const rows: ArmorRatingRow[] = [
+      {
+        className: 'Test_Helmet',
+        slot: 'helmet',
+        itemType: 'Heavy Armor',
+        values: { damageReduction: 40, tempMin: -90, tempMax: 115, radCapacity: 26800, radRate: 145.8, gForce: -0.125, mass: 5, carryMicroScu: null },
+        pct: { protection: 72, mobility: 1, gForce: 0, heat: 89, cold: 91, radiation: 70, scrub: 16, carry: null },
+      },
+    ];
+    const armorRating = jasmine.createSpy('armorRating').and.resolveTo(rows);
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A], codex: { ...makeCodexServiceStub(), armorRating } });
+    expect(armorRating).toHaveBeenCalledWith(jasmine.arrayWithExactContents(['Test_Helmet', 'Test_Torso']));
+    expect(fixture.componentInstance.ratingRows()).toBe(rows);
+    expect(fixture.componentInstance.ratingLoading()).toBe(false);
+  });
+
+  it('keeps an honest gap when the rating function is not there yet', async () => {
+    const fixture = await setup({
+      id: 'set-a',
+      loadouts: [SET_A],
+      codex: { ...makeCodexServiceStub(), armorRating: async () => null },
+    });
+    expect(fixture.componentInstance.ratingRows()).toBeNull();
+    expect(fixture.componentInstance.ratingLoading()).toBe(false);
+  });
+
+  it('remembers the chosen lens per set', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const page = fixture.componentInstance;
+    expect(page.lens()).toBe('all');
+
+    page.setLens('env');
+    expect(localStorage.getItem(setLensStorageKey('set-a'))).toBe('env');
+
+    await navigateTo(fixture, 'set-b');
+    expect(page.lens()).toBe('all');
+
+    await navigateTo(fixture, 'set-a');
+    expect(page.lens()).toBe('env');
+  });
+
+  it('ignores a stored lens that is unknown or disabled', async () => {
+    localStorage.setItem(setLensStorageKey('set-a'), 'stealth');
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A] });
+    expect(fixture.componentInstance.lens()).toBe('all');
+  });
+
+  it("renders the set's weapon/tool positions below the masthead", async () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
     const el: HTMLElement = fixture.nativeElement;
-    const gear = el.querySelector('.board-wrap sc-codex-set-gear');
+    const gear = el.querySelector('.set-page > sc-codex-set-gear');
     expect(gear).not.toBeNull();
     // SET_A is an engineering set: multitool, repair attachment, tractor.
     const slots = Array.from(gear!.querySelectorAll<HTMLElement>('.gear-slot')).map((e) => e.dataset['slot']);
@@ -312,17 +384,17 @@ async function moveTo(fixture: ComponentFixture<CodexSetComponent>, id: string):
   await settle(fixture);
 }
 
-/** The hero title and the names on the board's filled slots. */
+/** The hero title and the names on the stage's filled slot tiles. */
 function shown(fixture: ComponentFixture<CodexSetComponent>): { title: string | null; slots: string[] } {
   const el: HTMLElement = fixture.nativeElement;
   return {
     title: el.querySelector('.set-hero .stage-title')?.textContent?.trim() ?? null,
-    slots: Array.from(el.querySelectorAll('.board-slot:not(.empty) .t-value')).map((s) => s.textContent!.trim()),
+    slots: Array.from(el.querySelectorAll('.set-hero a.tile:not(.open) .name')).map((s) => s.textContent!.trim()),
   };
 }
 
 describe('CodexSetComponent — switching sets', () => {
-  it('switches hero and board to the set the route moves on to', async () => {
+  it('switches hero and tiles to the set the route moves on to', async () => {
     const fixture = await setup({
       id: 'set-a',
       loadouts: [SET_A, SET_M],
