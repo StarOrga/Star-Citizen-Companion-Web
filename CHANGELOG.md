@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.103.1] - 2026-09-26
+
+### Fixed
+
+- **Die Einordnung auf der Set-Seite lädt schneller.** Die Datenbankfunktion
+  dahinter brauchte 1,6 Sekunden, bei kaltem Cache noch länger, und konnte die
+  Karte so leer lassen. Jetzt sind es rund 0,24 Sekunden, bei denselben Werten.
+
+### Notes
+
+- Migration `20260926150000` ersetzt `codex_armor_rating`.
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+
 ## [0.103.0] - 2026-09-26
 
 ### Added
