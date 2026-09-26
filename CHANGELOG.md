@@ -62,6 +62,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mobile-Gate: /about und /login grün; die angemeldeten Routen blieben
   ungeprüft (kein Test-Account eingerichtet).
 
+## [0.102.1] - 2026-09-26
+
+### Changed
+
+- **Gemeinsames Designsystem StarUI 0.2.0.** Web-App und Data Uploader beziehen
+  ihre Design-Tokens jetzt aus StarUI 0.2.0. Die gut lesbare Farbe für
+  Nebentext, die die Web-App bisher selbst gesetzt hat, kommt jetzt direkt aus
+  dem gemeinsamen StarOrga-Designsystem. Sichtbar ändert sich nichts.
+- **Data Uploader 0.38.2.** Neu gebaut auf StarUI 0.2.0; Oberfläche und
+  Funktionen bleiben gleich.
+
 ## [0.102.0] - 2026-09-26
 
 ### Added
