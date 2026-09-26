@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.103.0",
+  "current": "0.103.1",
   "releases": [
+    {
+      "version": "0.103.1",
+      "date": "2026-09-26",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Einordnung auf der Set-Seite lädt schneller.",
+              "text": "Die Datenbankfunktion dahinter brauchte 1,6 Sekunden, bei kaltem Cache noch länger, und konnte die Karte so leer lassen. Jetzt sind es rund 0,24 Sekunden, bei denselben Werten."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Migration 20260926150000 ersetzt codex_armor_rating."
+            },
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.103.0",
       "date": "2026-09-26",
