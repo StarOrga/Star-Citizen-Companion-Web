@@ -1,7 +1,139 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.100.2",
+  "current": "0.102.1",
   "releases": [
+    {
+      "version": "0.102.1",
+      "date": "2026-09-26",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Gemeinsames Designsystem StarUI 0.2.0.",
+              "text": "Web-App und Data Uploader beziehen ihre Design-Tokens jetzt aus StarUI 0.2.0. Die gut lesbare Farbe für Nebentext, die die Web-App bisher selbst gesetzt hat, kommt jetzt direkt aus dem gemeinsamen StarOrga-Designsystem. Sichtbar ändert sich nichts."
+            },
+            {
+              "title": "Data Uploader 0.38.2.",
+              "text": "Neu gebaut auf StarUI 0.2.0; Oberfläche und Funktionen bleiben gleich."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.102.0",
+      "date": "2026-09-26",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Set-Seite zeigt auch Waffen und Werkzeuge.",
+              "text": "Unter den sechs Rüstungsplätzen stehen jetzt die Plätze, die die Rolle trägt (Primär, Sekundär, Seitenwaffe, Multitool, Traktorstrahl …). Jeder Platz führt ins Archiv, das dann nur passende Teile anbietet und direkt ins Set ausrüstet."
+            },
+            {
+              "title": "FPS-Sets haben einen Nahkampf- und einen Wurfwaffenplatz",
+              "text": "(Messer, Granaten). Die Bereitschafts-Symbole zeigen nur noch, was die Rolle überhaupt tragen kann."
+            },
+            {
+              "title": "Rückgängig nach dem Leeren.",
+              "text": "Wer einen Platz leert, kann das fünf Sekunden lang zurücknehmen. Wurde der Platz inzwischen in einem anderen Tab geändert, löscht das Leeren nichts, und die Seite zeigt den aktuellen Stand."
+            },
+            {
+              "title": "Eigene Tooltips in den Archivansichten",
+              "text": "statt der Browser-Tooltips: kurze Verzögerung bei reinen Symbol-Knöpfen, lange bei Zusatzinfos, per Tastatur-Fokus sofort, auf Touch per langem Drücken."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Kategorie, Suche und Filter stehen in der Adresse.",
+              "text": "*Zurück* von einer Detailseite landet wieder in derselben Liste, und Kategorien sind echte Links (Mittelklick, neuer Tab). Eine Suche nennt außerdem die anderen Kategorien mit Treffern („Auch gefunden in: …“)."
+            },
+            {
+              "title": "FPS-Archiv aufgeräumt.",
+              "text": "Lackierungen falten in ihr Grundmodell (*+n Skins*), * wirkt in der Suche als Platzhalter, die Filter sind app-eigene Auswahllisten, und Plätze, Gewichtsklassen und Waffentypen heißen deutsch. Namenlose Platzhalter-Einträge sowie Wracks, Sonden und Wachgeschütze stehen nicht mehr in den Listen."
+            },
+            {
+              "title": "Hersteller- und Kategorie-Badges sind neutral",
+              "text": "statt rot — Rot bleibt Admin-Bereichen vorbehalten."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ausrüsten aus zwei Tabs",
+              "text": "überschreibt sich nicht mehr gegenseitig."
+            },
+            {
+              "title": "Set-Seite:",
+              "text": "offene Plätze sind wieder sichtbar (blaugrau statt weiß bzw. unsichtbar), Set-Wechsler, „Zurück zum Set“ und die Hangar-Karte führen auf die Set-Seite statt auf die Codex-Startseite, und ein Ladefehler bietet *Erneut versuchen*."
+            },
+            {
+              "title": "Handy:",
+              "text": "Tastenbelegung sowie Rüstungs- und Waffen-Detailseiten scrollen nicht mehr seitwärts."
+            },
+            {
+              "title": "Ein einzelner fehlgeschlagener Build-Abruf",
+              "text": "ließ alle Archivansichten bis zum Neuladen leer erscheinen."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Doku (readme.io): Set-Seite, Archiv-Adresse und FPS-Archiv beschrieben."
+            },
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            },
+            {
+              "title": "",
+              "text": "Mobile-Gate: /about und /login grün; die angemeldeten Routen blieben ungeprüft (kein Test-Account eingerichtet)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.101.0",
+      "date": "2026-09-25",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Schiffshüllen und Lackierungs-Vorschaubilder kommen jetzt aus Cloudflare R2.",
+              "text": "Sie laden über den eigenen Worker sc-assets.sc-assets-worker.workers.dev. Der Browser darf sie eine Stunde cachen, und bei R2 fallen keine Egress-Kosten an. Alle 445 vorhandenen Dateien (340 MB) liegen bereits dort. Was R2 noch nicht hat, streamt der Worker aus dem Supabase-Bucket, sodass keine Hülle fehlt. Das entlastet die 1 GB Speicher und das Egress-Kontingent von Supabase Free."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Codex-Review übersprungen (Usage-Limit bis 11.10.)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.100.2",
       "date": "2026-09-25",

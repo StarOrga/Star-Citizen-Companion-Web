@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.102.0",
+  "version": "0.102.1",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -67,7 +67,7 @@
     "@google/model-viewer": "^4.3.1",
     "@ngx-translate/core": "^18.0.0",
     "@ngx-translate/http-loader": "^18.0.0",
-    "@starorga/star-ui": "github:StarOrga/StarUI#v0.1.1",
+    "@starorga/star-ui": "github:StarOrga/StarUI#v0.2.0",
     "@supabase/supabase-js": "^2.116.0",
     "modern-screenshot": "^4.7.0",
     "posthog-js": "^1.433.9",
