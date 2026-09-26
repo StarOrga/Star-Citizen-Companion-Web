@@ -4,6 +4,64 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.103.0] - 2026-09-26
+
+### Added
+
+- **Die Set-Seite ist eine Bühne.** Eine Figur in der Mitte, sechs Kacheln
+  links und rechts, jede mit einer Linie zu ihrem Körperteil. Die Kachel zeigt
+  das Teil-Icon und das ausgerüstete Teil, der Platzname steht im Tooltip.
+  Überfahren oder Fokus hebt Kachel und Körperteil gemeinsam hervor, auch
+  umgekehrt. Auf dem Handy werden die Kacheln zu einer Liste mit Icons. Die
+  zweite Figur mit Name und Rolle darunter ist weg.
+- **Einordnung und Einsatz für Rüstungs-Sets**, wie auf der Schiffsseite:
+  Netzdiagramm und Balken gegen alle Rüstungsteile desselben Platzes, mit den
+  Profilen „CIG-Raster“ und „Umwelt & Traglast“. Bremst ein Teil das Set, sagt
+  die Karte, welches. Die Einsatz-Linsen Kampf, Pilot, Umwelt und Transport
+  schreiben ihren Wert an jede Kachel und werden pro Set gemerkt. Tarnung, EVA
+  und Scannen bleiben gesperrt, bis die Spieldaten sie hergeben.
+- **Ein offener Platz führt mit einem Übergang ins Arsenal.** Die Kachel wächst
+  zum Kopf des Arsenals („Beine für …“ mit Figur). Nach dem Ausrüsten eines
+  Rüstungsteils geht es auf demselben Weg zurück. Mit „Bewegung reduzieren“
+  läuft der Wechsel ohne Animation.
+- **Teil-Icons** für Helm, Torso, Arme, Beine, Rucksack und Unteranzug, auch
+  auf den Detailseiten und in den Listen.
+
+### Changed
+
+- **Aus „Archiv“ wird „Arsenal“**, in der ganzen App und in der Doku.
+- **App-eigene Tooltips überall** statt der Browser-Tooltips. Tooltips, die nur
+  den sichtbaren Text wiederholten, sind weg, und gesperrte Knöpfe sagen im
+  Tooltip, warum.
+- **Die Auswahllisten im Hangar** (Rolle, Pin, Vergleichsumfang der Einordnung)
+  sind app-eigene Auswahllisten.
+- **Ausrüsten nur im aktuellen Patch.** Auf einem älteren Patch sind die
+  Ausrüsten-Knöpfe gesperrt, mit Hinweis und einem Sprung zum aktuellen Patch.
+- **Die Blueprint-Liste steckt jetzt im Index.** `/codex/blueprint` führt zum
+  Index mit Blueprint-Filter, die Detailseiten bleiben.
+- **Codex-Details:** deutsche Bezeichnungen für Rüstung, Unteranzug, Schild,
+  Quantenantrieb und 29 häufige Werte; Engine-Interna sind ausgeblendet.
+- **Die Index-Filter** bieten alle Werte des Builds an, nicht nur die der
+  geladenen Zeilen.
+- **Die Waffenleiste eines Sets** ist nummeriert und hat eine feste Reihenfolge.
+- **Die Rüstungsfigur zeigt ihren Rucksack.** Er ist etwas größer und hat zwei
+  Finnen neben dem Helm; vorher verdeckte ihn die feste Kamera ganz.
+- **Schwache Achsen der Schiffs-Einordnung sind gelb statt rot.** Rot bleibt
+  Fehlern vorbehalten, wie schon auf der Set-Seite.
+
+### Fixed
+
+- **Der Teilen-Knopf der Set-Seite** zeigte beim Überfahren zwei Tooltips.
+- **Set-Seite:** Teilenamen folgen der eingestellten Sprache.
+
+### Notes
+
+- Neue Datenbankfunktionen `codex_facet_values` und `codex_armor_rating`
+  (Migrationen `20260926120000`, `20260926140000`).
+- Codex-Review übersprungen (Usage-Limit bis 11.10.).
+- Mobile-Gate: /about und /login grün; die angemeldeten Routen blieben
+  ungeprüft (kein Test-Account eingerichtet).
+
 ## [0.102.0] - 2026-09-26
 
 ### Added
