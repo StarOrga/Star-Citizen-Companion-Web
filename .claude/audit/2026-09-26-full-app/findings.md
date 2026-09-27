@@ -607,3 +607,19 @@ Red-team + smell pass over the diff (self-review, no agents — owner asked for 
 ## Polish pass
 
 R0–R6 over the changed files: colours only via tokens (`--sc-warning`, `--sc-accent`, `--sc-fg-0`), no new literals; every new string via ngx-translate (`nav.phaseBadge` in de + en, parity kept); tooltips via `[scTooltip]` with the Label tier on icon-only controls; reduced motion honoured (route reveal, patch rows, dossier scroll, thumbnail hover); font sizes clamped with `--sc-fs-floor`; no page-frame or anchor rule touched. Not polished on purpose: the dossier's remaining native `title` sites (ask list), the h1 on the set page (structural).
+
+## Addendum 2026-09-27 (after the ship)
+
+- **Release tag not set.** 0.104.0 is merged (`0bddf21`) and live, but `alpha/v0.104.0` is missing: the cloud session's git proxy only accepts pushes to the session branch and answered the tag push with HTTP 403 (git then printed "Everything up-to-date"). The owner sets it by hand as an **annotated** tag, like every earlier alpha tag:
+  ```
+  git fetch origin main
+  git tag -a alpha/v0.104.0 -m "alpha/v0.104.0" 0bddf2112036bb5a82a5e3d718a098e65531fc96
+  git push origin alpha/v0.104.0
+  git ls-remote --tags origin alpha/v0.104.0
+  ```
+  No workflow triggers on `alpha/*`; the tag only anchors the release history and later promotion.
+- **Merge style.** PR #671 was merged with a merge commit because the ship ran without the plugin's `ship_release`; the repo's convention is a squash merge. Not rewritten (main is protected).
+- **test:gate root cause corrected.** The failing `pre.ask.unattended` CLI test is a POSIX path bug in the hook's `isMain` check, not the container (see live-evidence.md).
+- **Decisions.** The open ask / issue / manual items are grouped into 19 decisions (D01–D19) with options and a recommendation on a private decision page for the owner; two findings were added after the audit (NEU-1 hook `isMain`, NEU-2 plugin not loaded in cloud sessions).
+- **Plugin learnings** filed upstream: Jerry0022/dotclaude#566 (tag/ref hand-off), #567 (manual ship checklist without the ship MCP), #568 (concept decisions without a localhost bridge).
+
