@@ -34,7 +34,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
       <sc-app-download-panel
         icon="⬆"
-        title="desktop.appTitle"
+        [title]="'desktop.appTitle'"
         desc="desktop.appDesc"
         [version]="release()?.version ?? null"
         [entries]="entries()"

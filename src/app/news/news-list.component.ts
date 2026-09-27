@@ -598,10 +598,13 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .card-link-touch-target { position: absolute; inset: 0; z-index: 5; }
     .card-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 3px; }
     .card:hover {
-      transform: translateY(-3px) scale(1.005);
       border-color: var(--sc-accent);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4),
                   0 0 18px color-mix(in srgb, var(--sc-accent) 35%, transparent);
+    }
+    /* The lift only where a hover pointer exists — on touch it would stick after a tap. */
+    @media (hover: hover) {
+      .card:hover { transform: translateY(-3px) scale(1.005); }
     }
     /* Videos are stream tiles now, not a rail — but they keep the distinct
        treatment that made them readable as videos (feedback 0a5268e7). */

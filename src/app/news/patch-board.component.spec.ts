@@ -213,6 +213,19 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
    * is not something anyone picks a patch by — and the dossier, which is
    * where it means something, still says it.
    */
+  it('keeps the loaded stack when a background refresh fails — the error card is for a cold failure only', async () => {
+    await render(FEED, ROADMAP);
+    const svc = TestBed.inject(NewsService);
+    svc.error.set('boom');
+    fixture.detectChanges();
+    expect(rows().length).toBe(3);
+    expect(root().querySelector('.sc-card.err')).toBeNull();
+    // Cold failure: nothing loaded yet → the error card shows the message.
+    svc.feed.set(null);
+    fixture.detectChanges();
+    expect(root().querySelector('.sc-card.err')?.textContent).toContain('boom');
+  });
+
   it('no longer counts the notes on the overview card', async () => {
     await render(FEED, ROADMAP);
     for (const row of rows()) {

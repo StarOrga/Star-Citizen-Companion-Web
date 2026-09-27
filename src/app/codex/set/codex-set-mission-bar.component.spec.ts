@@ -51,7 +51,7 @@ describe('CodexSetMissionBarComponent', () => {
       .queryAll(By.directive(ScTooltipDirective))
       .find((de) => de.nativeElement.contains(stealthChip));
     expect(wrap).toBeTruthy();
-    expect(wrap!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.setLens.tip.stealth');
+    expect(wrap!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.setLens.disabled.noSignature');
     expect(stealthChip.getAttribute('aria-disabled')).toBe('true');
   });
 

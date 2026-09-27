@@ -69,7 +69,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
         <p class="sub">{{ 'news.patch.board.sub' | translate }}</p>
       </header>
 
-      @if (svc.error(); as err) {
+      @if (!svc.feed() && svc.error(); as err) {
         <div class="sc-card err"><strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err }}</div>
       } @else if (svc.loading() && !svc.feed()) {
         <!-- The feed takes a moment often enough to be worth a shape rather
@@ -238,7 +238,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     }
     .skeleton .row:nth-child(2) .card { min-height: 132px; }
     @keyframes pb-shimmer { from { background-position: 140% 0; } to { background-position: -40% 0; } }
-    @media (prefers-reduced-motion: reduce) { .skeleton .card { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .skeleton .card, .row { animation: none; } }
     .err { color: var(--sc-danger); }
     .empty { color: var(--sc-fg-2); }
 

@@ -196,6 +196,7 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
                     [value]="usernameInput()"
                     (input)="usernameInput.set(asInput($event))"
                     [placeholder]="'settings.username.placeholder' | translate"
+                    [attr.aria-label]="'settings.username.label' | translate"
                     [disabled]="usernameSaving()"
                     maxlength="20"
                     autocomplete="off"

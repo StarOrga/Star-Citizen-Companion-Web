@@ -92,7 +92,8 @@ export class PatchStabilityService {
       this.now.set(new Date().toISOString());
       this._unavailable.set(false);
       this._loaded.set(true);
-    } catch {
+    } catch (err) {
+      console.warn('[news] stability tables unavailable', err);
       this._unavailable.set(true);
     }
   }

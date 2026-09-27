@@ -66,6 +66,18 @@ export class SwUpdateService {
       // signal write reliably schedules CD for the OnPush banner.
       .subscribe(() => this.zone.run(() => this.onVersionReady()));
 
+    // A cached asset whose hash no longer exists on the server leaves the
+    // shell broken until a full reload; the SW reports it once and never
+    // recovers by itself. One silent reload per session (same flag as the
+    // startup auto-reload) so a persistent state cannot loop the page.
+    this.swUpdate.unrecoverable.subscribe(() =>
+      this.zone.run(() => {
+        if (this.autoReloadedThisSession()) return;
+        this.markAutoReloaded();
+        this.document.location.reload();
+      }),
+    );
+
     // A long-open tab would otherwise only check on reload. Poll outside the
     // Angular zone so the timer never keeps the zone unstable (which would
     // delay `registerWhenStable` and CD).

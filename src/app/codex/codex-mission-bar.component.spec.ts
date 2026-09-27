@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { ShipCapabilities } from './codex-mission';
@@ -24,6 +26,12 @@ describe('CodexMissionBarComponent', () => {
     return Array.from(fixture.nativeElement.querySelectorAll('.mission-chip'));
   }
 
+  /** App tooltip text of a chip (REQ-8: the reason is never a native title). */
+  function tooltipOf(chip: HTMLElement): string | null | undefined {
+    const de = fixture.debugElement.queryAll(By.directive(ScTooltipDirective)).find((d) => d.nativeElement.contains(chip));
+    return de?.injector.get(ScTooltipDirective).scTooltip();
+  }
+
   it('renders one chip per mission, all enabled when the hull has every capability', async () => {
     await setup(fullCaps);
     const cs = chips();
@@ -31,11 +39,14 @@ describe('CodexMissionBarComponent', () => {
     expect(cs.every((c) => !c.disabled)).toBeTrue();
   });
 
-  it('disables a mission the hull cannot fly and names the reason via title', async () => {
+  it('disables a mission the hull cannot fly and names the reason as an app tooltip', async () => {
     await setup(bareCaps);
-    const mining = chips().find((c) => c.title === 'codex.mission.disabled.noMining')!;
+    const mining = chips().find((c) => tooltipOf(c) === 'codex.mission.disabled.noMining')!;
     expect(mining).toBeTruthy();
     expect(mining.disabled).toBeTrue();
+    expect(mining.getAttribute('title')).toBeNull();
+    // An enabled chip repeats nothing: its label is already on screen.
+    expect(chips().every((c) => c.disabled || !tooltipOf(c))).toBeTrue();
   });
 
   it('never disables all/combat/stealth regardless of capabilities', async () => {
@@ -51,7 +62,7 @@ describe('CodexMissionBarComponent', () => {
     fixture.componentInstance.missionChange.subscribe((id) => emitted.push(id));
     const cs = chips();
     cs[1].click(); // combat — enabled
-    const miningChip = cs.find((c) => c.title === 'codex.mission.disabled.noMining')!;
+    const miningChip = cs.find((c) => tooltipOf(c) === 'codex.mission.disabled.noMining')!;
     miningChip.click(); // disabled — no-op
     expect(emitted).toEqual(['combat']);
   });

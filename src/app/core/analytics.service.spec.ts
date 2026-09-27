@@ -85,6 +85,20 @@ describe('pageviewUrl', () => {
     expect(pageviewUrl('/', 'https://sc-companion.vercel.app')).toBe('https://sc-companion.vercel.app/');
   });
 
+  it('masks share-link bearer tokens so they never reach PostHog', () => {
+    const token = 'a'.repeat(64);
+    expect(pageviewUrl(`/shared/loadout/${token}?x=1#y`, 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/shared/loadout/:token',
+    );
+    expect(pageviewUrl(`/hangar/shared/${token}`, 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/hangar/shared/:token',
+    );
+    // Ordinary routes are untouched.
+    expect(pageviewUrl('/hangar/ship/42', 'https://sc-companion.vercel.app')).toBe(
+      'https://sc-companion.vercel.app/hangar/ship/42',
+    );
+  });
+
   it('produces a URL whose parsed host is non-empty (the actual regression)', () => {
     expect(new URL(pageviewUrl('/starscape', 'https://sc-companion.vercel.app')).host).toBe(
       'sc-companion.vercel.app',

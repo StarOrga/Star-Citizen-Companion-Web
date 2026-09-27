@@ -130,7 +130,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
       transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
     }
     .vs-chip:hover { border-color: var(--sc-accent); }
-    .vs-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35); }
+    .vs-chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     /* "Everything is fine" is the state you should be able to IGNORE, so the
        operational chip carries no ring and no glow — only a problem earns the
        eye (admin feedback 4e54ad2c round 3: "grüner punkt ... viel zu

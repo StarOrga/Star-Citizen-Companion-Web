@@ -292,7 +292,7 @@ interface Lane {
           </div>
           <div class="lane-actions">
             @if (inHangarSet().has(r.classNameSlug)) {
-              <span class="in-hangar" [attr.aria-label]="'codex.card.inHangar' | translate" [scTooltip]="'codex.card.inHangar' | translate">✓</span>
+              <span class="in-hangar" [attr.aria-label]="'codex.card.inHangar' | translate" [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
               <button type="button" class="chip-btn flag" [class.is-flagship]="isFlagship(r.classNameSlug)"
                       (click)="onToggleFlagship($event, r.classNameSlug)"
                       [attr.aria-pressed]="isFlagship(r.classNameSlug)"

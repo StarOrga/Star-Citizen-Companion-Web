@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   OnInit,
   computed,
   inject,
@@ -38,7 +39,7 @@ export interface PickedItem {
   imports: [FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="picker sc-card" (click)="$event.stopPropagation()">
+    <div class="picker sc-card" role="dialog" [attr.aria-label]="'hangar.picker.searchPlaceholder' | translate" (click)="$event.stopPropagation()">
       <div class="picker-head">
         <input
           class="search"
@@ -115,6 +116,12 @@ export class HangarItemPickerComponent implements OnInit {
 
   readonly picked = output<PickedItem>();
   readonly closed = output<void>();
+
+  /** Escape dismisses the popover like the backdrop click does. */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closed.emit();
+  }
 
   readonly query = signal('');
   readonly loading = signal(false);

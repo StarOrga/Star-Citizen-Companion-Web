@@ -71,7 +71,6 @@ import {
   timeOf,
   topicNumber,
   displayTitle,
-  turnLabelKey,
   turnOf,
   waitingSince,
 } from './feedback.types';
@@ -1419,9 +1418,7 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   /** Template aliases for the pure helpers. */
-  readonly isPlainLeftClick = isPlainLeftClick;
   readonly stationLabelKey = stationLabelKey;
-  readonly turnLabelKey = turnLabelKey;
   readonly stationIndex = stationIndex;
   readonly stationGlyphs = stationGlyphs;
   readonly stationGlyphLabelKey = stationGlyphLabelKey;
@@ -2644,13 +2641,21 @@ export class AdminFeedbackComponent implements OnInit {
       return false;
     }
     if (uid) {
-      await this.sb.client.from('feedback_author_messages').insert({
+      const { error: noteErr } = await this.sb.client.from('feedback_author_messages').insert({
         feedback_id: m.id,
         author_id: uid,
         from_admin: true,
         is_question: false,
         body: note,
       });
+      if (noteErr) {
+        // The status flipped but the author never got the explanation — say
+        // so and keep the sheet open for a retry instead of a silent half-success.
+        this.errorMsg.set(noteErr.message);
+        this.busy.set(false);
+        await this.refresh();
+        return false;
+      }
     }
     await this.refresh();
     return true;

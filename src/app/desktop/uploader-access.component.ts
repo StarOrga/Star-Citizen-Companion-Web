@@ -51,7 +51,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 
             <sc-app-download-panel
               icon="⬆"
-              title="desktop.appTitle"
+              [title]="'desktop.appTitle'"
               desc="desktop.appDesc"
               [version]="version()"
               [entries]="entries()"

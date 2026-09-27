@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 
 /**
@@ -28,7 +29,7 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
 @Component({
   selector: 'sc-codex-loadout-save-bar',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (changed() > 0) {
@@ -54,10 +55,11 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
             [disabled]="saving()"
             [attr.aria-disabled]="blocked() ? 'true' : null"
             [attr.aria-describedby]="partial() ? reasonId : null"
-            [attr.title]="partial()
+            [scTooltip]="partial()
               ? (('codex.loadout.changesSummary' | translate: { changed: changed(), saveable: saveable() })
                  + ' — ' + ('codex.loadout.unsaveableHint' | translate))
               : null"
+            scTooltipTier="label"
             (click)="onSave()"
           >
             {{ (saving() ? 'codex.loadout.saving' : 'codex.detail.draftApplyAndSave') | translate }}

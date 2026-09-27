@@ -84,6 +84,7 @@ const PER_KIND_LIMIT = 6;
             (keydown.enter)="onEnter($event)"
             (keydown.arrowdown)="moveActive($event, 1)"
             (keydown.arrowup)="moveActive($event, -1)"
+            [attr.aria-label]="'quickSearch.placeholder' | translate"
             [attr.placeholder]="'quickSearch.placeholder' | translate" />
 
           <div class="qs-cats" role="tablist" [attr.aria-label]="'quickSearch.category.groupAria' | translate">

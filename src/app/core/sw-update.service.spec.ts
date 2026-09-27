@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
-import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { SwUpdate, UnrecoverableStateEvent, VersionReadyEvent } from '@angular/service-worker';
 import { Subject } from 'rxjs';
 
 import { SwUpdateService } from './sw-update.service';
@@ -12,9 +12,11 @@ import { SwUpdateService } from './sw-update.service';
  */
 describe('SwUpdateService', () => {
   let versionUpdates: Subject<VersionReadyEvent>;
+  let unrecoverable: Subject<UnrecoverableStateEvent>;
   let swUpdate: {
     isEnabled: boolean;
     versionUpdates: Subject<VersionReadyEvent>;
+    unrecoverable: Subject<UnrecoverableStateEvent>;
     checkForUpdate: jasmine.Spy;
     activateUpdate: jasmine.Spy;
   };
@@ -36,9 +38,11 @@ describe('SwUpdateService', () => {
 
   beforeEach(() => {
     versionUpdates = new Subject<VersionReadyEvent>();
+    unrecoverable = new Subject<UnrecoverableStateEvent>();
     swUpdate = {
       isEnabled: true,
       versionUpdates,
+      unrecoverable,
       checkForUpdate: jasmine.createSpy('checkForUpdate').and.resolveTo(true),
       activateUpdate: jasmine.createSpy('activateUpdate').and.resolveTo(true),
     };
@@ -100,6 +104,16 @@ describe('SwUpdateService', () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
     expect(service.updateReady()).toBeTrue();
+  });
+
+  it('reloads once when the worker reports an unrecoverable state, then stops', () => {
+    service.init();
+    unrecoverable.next({ type: 'UNRECOVERABLE_STATE', reason: 'hash mismatch' });
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(sessionStore.get('sc.sw.autoReloaded')).toBe('1');
+    // A persistent broken state must not loop the page.
+    unrecoverable.next({ type: 'UNRECOVERABLE_STATE', reason: 'hash mismatch' });
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing when the service worker is disabled', () => {

@@ -187,7 +187,27 @@ export class AnalyticsService {
  * can carry tokens or search terms we have no reason to collect.
  */
 export function pageviewUrl(routerUrl: string, origin: string = location.origin): string {
-  return origin + routerUrl.split(/[?#]/)[0];
+  return origin + maskBearerSegments(routerUrl.split(/[?#]/)[0]);
+}
+
+/**
+ * Share links carry their whole authorisation in the path (`/shared/loadout/<token>`,
+ * `/hangar/shared/<token>`); a pageview must not ship that bearer to PostHog.
+ * The segment after these prefixes is replaced by a fixed placeholder so the
+ * route still groups in Web Analytics without the secret.
+ */
+const BEARER_PATH_PREFIXES = ['/shared/loadout/', '/hangar/shared/'] as const;
+
+export function maskBearerSegments(path: string): string {
+  for (const prefix of BEARER_PATH_PREFIXES) {
+    if (path.startsWith(prefix)) {
+      const rest = path.slice(prefix.length);
+      if (!rest) return path;
+      const slash = rest.indexOf('/');
+      return prefix + ':token' + (slash >= 0 ? rest.slice(slash) : '');
+    }
+  }
+  return path;
 }
 
 /**

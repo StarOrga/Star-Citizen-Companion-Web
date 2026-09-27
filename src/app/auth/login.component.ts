@@ -62,7 +62,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
               <h2>{{ 'auth.signIn' | translate }}</h2>
 
               @if (denied()) {
-                <div class="notice denied">{{ 'auth.deniedInvite' | translate }}</div>
+                <div class="notice denied" role="alert">{{ 'auth.deniedInvite' | translate }}</div>
               }
 
               <!--
@@ -118,7 +118,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                 </label>
 
                 @if (errorMsg()) {
-                  <div class="err">{{ errorMsg() }}</div>
+                  <div class="err" role="alert">{{ errorMsg() }}</div>
                 }
 
                 <div class="actions">
@@ -164,7 +164,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                   </label>
 
                   @if (resetError()) {
-                    <div class="err">{{ resetError() }}</div>
+                    <div class="err" role="alert">{{ resetError() }}</div>
                   }
 
                   <div class="actions">
@@ -208,7 +208,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                   </label>
 
                   @if (applyError()) {
-                    <div class="err">{{ applyError() }}</div>
+                    <div class="err" role="alert">{{ applyError() }}</div>
                   }
 
                   <div class="actions">

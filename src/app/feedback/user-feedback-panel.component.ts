@@ -309,7 +309,7 @@ type UserFeedbackTab = 'compose' | 'mine';
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: var(--sc-accent-hot);
+      background: var(--sc-warning);
     }
 
     .intro { margin: 0; font-size: 0.84rem; color: var(--sc-fg-2); line-height: 1.5; }
@@ -338,7 +338,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     .topic.has-news { border-color: var(--sc-accent); }
     /* Ordered after .has-news on purpose: an open question to the author is the
        stronger of the two states and keeps its own border when both apply. */
-    .topic.needs-answer { border-color: var(--sc-accent-hot); }
+    .topic.needs-answer { border-color: var(--sc-warning); }
     .topic-head {
       display: flex;
       align-items: flex-start;
@@ -377,7 +377,7 @@ type UserFeedbackTab = 'compose' | 'mine';
     /* Context, not state — dashed and grey so the status pill next to it stays
        the thing the eye lands on. */
     .status-pill.area { border-style: dashed; }
-    .status-pill.question { border-color: var(--sc-accent-hot); color: var(--sc-accent-hot); }
+    .status-pill.question { border-color: var(--sc-warning); color: var(--sc-warning); }
     /* Same accent as the FAB badge the user just clicked — the pill is the
        other half of that signal, not a status of its own. */
     .status-pill.new {
@@ -458,8 +458,8 @@ type UserFeedbackTab = 'compose' | 'mine';
     .reply-badge {
       padding: 1px 6px;
       border-radius: 999px;
-      border: 1px solid var(--sc-accent-hot);
-      color: var(--sc-accent-hot);
+      border: 1px solid var(--sc-warning);
+      color: var(--sc-warning);
     }
   `],
 })

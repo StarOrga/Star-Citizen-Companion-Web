@@ -1,7 +1,79 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.103.1",
+  "current": "0.104.0",
   "releases": [
+    {
+      "version": "0.104.0",
+      "date": "2026-09-27",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Audit-Dossier für die ganze App.",
+              "text": "Unter .claude/audit/2026-09-26-full-app/ liegen Anforderungen, Live-Evidenz und alle Befunde mit Bewertung — 24 statische Linsen, Karma-Suite, Mobile-Gate und ein Playwright-Rundgang über die öffentlichen Seiten; jeder Befund wurde von zwei unabhängigen Prüfern gegengelesen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Share-Links verraten ihr Token nicht mehr an die Statistik.",
+              "text": "Der Teil der Adresse, der einen geteilten Hangar oder ein geteiltes Loadout freischaltet, wird vor dem Zählen des Seitenaufrufs durch einen Platzhalter ersetzt."
+            },
+            {
+              "title": "Gesperrte Linsen auf der Set-Seite nennen im Tooltip den Grund",
+              "text": ", nicht mehr den allgemeinen Hinweis. Die Einordnung nennt das bremsende Teil mit seinem Namen statt mit dem internen Klassennamen."
+            },
+            {
+              "title": "Die Patch-Übersicht bleibt stehen, wenn eine Aktualisierung im Hintergrund scheitert.",
+              "text": "Bisher ersetzte die Fehlerkarte den ganzen Stapel. Feeds, Roadmap und Shop-Abfragen laufen jetzt in eine Zeitgrenze statt endlos zu laden; ein defekter Offline-Cache lädt die Seite einmal neu."
+            },
+            {
+              "title": "Tastatur und Vorlesen:",
+              "text": "Escape schließt den Hangar-Teile-Wähler, Fehler im Login werden angesagt, Notiz-, Nutzername- und Suchfeld haben einen Namen, die Kacheln des Zeichenbretts sind wieder echte Links im Vorlesebaum."
+            },
+            {
+              "title": "Keine Browser-Tooltips mehr",
+              "text": "auf Energie-Dock, Missionsleiste, Speichern-Leiste, Holotable-Pins und den Download-Panels; die Download-Panels zeigten den rohen Schlüssel desktop.appTitle."
+            },
+            {
+              "title": "Rot heißt weiter „erhöhter Zugriff“:",
+              "text": "Rückfrage-Markierungen im Feedback-Panel, die Warnung im Composer, das Tech-Preview-Etikett und der Link-Hover auf der Download-Seite tragen jetzt Warn- oder Textfarbe."
+            },
+            {
+              "title": "Bewegung reduzieren",
+              "text": "gilt jetzt auch für den Seitenwechsel im Rahmen, die Zeilen der Patch-Übersicht, das Scrollen im Dossier und die News-Thumbnails (kein Weichzeichner mehr, Hover-Zoom nur mit Maus). Das Dossier nutzt die echte Bildschirmhöhe auf dem Handy."
+            },
+            {
+              "title": "Schriftgrößen unter 12 px",
+              "text": "auf Handys in Schiffs- und Waffendetails und im Spaltenmenü angehoben; das Alpha-Etikett im Kopf ist übersetzt."
+            },
+            {
+              "title": "Admin-Feedback:",
+              "text": "ein fehlgeschlagener Ablehnungs-Hinweis wird gemeldet, große GIFs bekommen dieselbe Größenmeldung wie andere Dateien."
+            }
+          ]
+        },
+        {
+          "category": "Notes",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Toter Code entfernt (Holotable-Hangar-Reiter, Wisch-Direktive, ungenutzte Felder). npm run test:gate prüft jetzt auch den Build-Exit-Guard."
+            },
+            {
+              "title": "",
+              "text": "Offene Punkte (Ask/Issue) stehen im Dossier; nichts davon wurde ohne Rückfrage angewendet."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.103.1",
       "date": "2026-09-26",

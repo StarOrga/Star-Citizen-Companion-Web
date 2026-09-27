@@ -158,14 +158,14 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
       box-shadow: 0 10px 28px rgb(0 0 0 / .6); padding: 8px; display: flex; flex-direction: column; gap: 6px;
       text-transform: none; letter-spacing: normal; font-weight: 400; }
-    .cm-title { margin: 4px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+    .cm-title { margin: 4px 0 0; font-size: max(11px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
     .cm-sortrow { display: flex; gap: 4px; }
     .cm-sortbtn { flex: 1 1 0; padding: 4px 6px; border-radius: 4px; background: var(--sc-bg-1);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: 11px; cursor: pointer; }
+      border: 1px solid var(--sc-border); color: var(--sc-fg-1); font: inherit; font-size: max(11px, var(--sc-fs-floor)); cursor: pointer; }
     .cm-sortbtn.on { color: var(--sc-accent); border-color: var(--sc-accent); }
     .cm-range { display: flex; align-items: center; gap: 4px; }
     .cm-range input { width: 54px; padding: 3px 4px; border-radius: 4px; background: var(--sc-bg-1);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: 11px; }
+      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: max(11px, var(--sc-fs-floor)); }
     .cm-dash { color: var(--sc-fg-2); }
     .cm-facets { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
     .cm-facet { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 2px 0; }
@@ -173,7 +173,7 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
     .cm-facet-ct { color: var(--sc-fg-2); font-variant-numeric: tabular-nums; }
     .cm-foot { display: flex; justify-content: flex-end; padding-top: 2px; border-top: 1px solid var(--sc-border); }
     .cm-clear { padding: 3px 8px; border-radius: 4px; background: transparent; border: 1px solid var(--sc-border);
-      color: var(--sc-fg-2); font: inherit; font-size: 11px; cursor: pointer; }
+      color: var(--sc-fg-2); font: inherit; font-size: max(11px, var(--sc-fs-floor)); cursor: pointer; }
     .cm-clear:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
   `],
 })

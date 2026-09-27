@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { toLang } from '../codex.service';
+import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
+import { cleanLocaleValue, humanizeClassName } from '../codex-format';
 import { ArmorRatingRow, SET_RANK_PROFILES, SetRankAxis, SetRankProfileId, rankSet } from './set-rating';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
@@ -225,6 +226,9 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 export class CodexSetRankCardComponent {
   readonly rows = input<ArmorRatingRow[] | null>(null);
   readonly loading = input(false);
+  /** Resolved entities by class name — the limiting-piece note names the
+   * item the way the stage does (localized name, never the raw class). */
+  readonly names = input<ReadonlyMap<string, ResolvedEntity>>(new Map());
 
   private readonly t = inject(TranslateService);
   private readonly lang = signal(toLang(this.t.getCurrentLang()));
@@ -244,7 +248,13 @@ export class CodexSetRankCardComponent {
   readonly result = computed(() => {
     const rows = this.rows();
     if (this.loading() || rows == null || rows.length === 0) return null;
-    return rankSet(rows, this.profile(), this.lang());
+    const lang = this.lang();
+    const rank = rankSet(rows, this.profile(), lang);
+    const item = rank.noteParams['item'];
+    if (!item) return rank;
+    const entity = this.names().get(item);
+    const name = pickLocalized(entity?.name, lang) || cleanLocaleValue(entity?.nameLocalized) || humanizeClassName(item);
+    return { ...rank, noteParams: { ...rank.noteParams, item: name } };
   });
 
   readonly axisCaptions = computed(() => {

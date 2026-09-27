@@ -71,7 +71,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
         <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
           <span class="title">Star Citizen Companion</span>
-          <span class="alpha-badge">alpha</span>
+          <span class="alpha-badge">{{ 'nav.phaseBadge' | translate }}</span>
         </span>
       </a>
 
@@ -310,7 +310,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main class="content" [@routeReveal]="reveal()">
+    <main class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
       <router-outlet (activate)="onRouteActivate()" />
     </main>
 
@@ -774,6 +774,8 @@ export class ShellComponent implements AfterViewInit {
 
   // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
   readonly reveal = signal(0);
+  /** Angular animations ignore the CSS reduced-motion clamp; read the preference once. */
+  readonly reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Navigation "sensor sweep" state. Gated at 250ms so instant/cached routes
   // never flash a loader; escalates to a "weak signal" label past 3s.

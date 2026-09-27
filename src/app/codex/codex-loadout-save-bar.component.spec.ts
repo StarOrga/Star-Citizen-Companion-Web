@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
@@ -40,6 +42,12 @@ describe('CodexLoadoutSaveBarComponent', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
+  /** The app tooltip text on the save button (REQ-8: never a native title). */
+  function saveTooltip(): string | null | undefined {
+    const de = fixture.debugElement.query(By.css('.save'));
+    return de.injector.get(ScTooltipDirective).scTooltip();
+  }
+
   it('renders nothing when the draft has no changes', () => {
     const el = render({ changed: 0, saveable: 0 });
     expect(el.querySelector('.bar')).toBeNull();
@@ -57,8 +65,9 @@ describe('CodexLoadoutSaveBarComponent', () => {
   it('R8: an unsaveable draft says so on the button, not in the bar', () => {
     const el = render({ changed: 3, saveable: 1, inHangar: true });
     const btn = el.querySelector('.save') as HTMLButtonElement;
-    expect(btn.getAttribute('title')).toContain('codex.loadout.changesSummary');
-    expect(btn.getAttribute('title')).toContain('codex.loadout.unsaveableHint');
+    expect(btn.getAttribute('title')).toBeNull();
+    expect(saveTooltip()).toContain('codex.loadout.changesSummary');
+    expect(saveTooltip()).toContain('codex.loadout.unsaveableHint');
     // …and the same sentence is reachable without a hover, via the a11y tree.
     const described = btn.getAttribute('aria-describedby');
     expect(described).toBeTruthy();
@@ -105,7 +114,7 @@ describe('CodexLoadoutSaveBarComponent', () => {
     const el = render({ changed: 2, saveable: 0, inHangar: true }, false);
     const btn = el.querySelector('.save') as HTMLButtonElement;
     expect(btn.classList).toContain('dimmed');
-    expect(btn.getAttribute('title')).toContain('codex.loadout.unsaveableHint');
+    expect(saveTooltip()).toContain('codex.loadout.unsaveableHint');
   });
 
   it('emits discard/save', () => {

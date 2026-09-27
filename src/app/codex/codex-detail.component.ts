@@ -71,14 +71,12 @@ import {
   unescapeText,
 } from './codex-format';
 import {
-  EquippedStat,
   ammoClassNameFor,
   ammoClassNamesFor,
   damageChannelsOf,
   equippedStats,
   equippedStatsNoteKey,
   equippedTypeLabel,
-  formatEquippedStat,
   isWeaponMountPort,
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
@@ -262,11 +260,6 @@ interface LoadoutItem {
    */
   carried: ReadonlyMap<string, string>;
 }
-interface LoadoutGroup {
-  category: HardpointCategory;
-  items: LoadoutItem[];
-}
-
 // What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
 interface PortFit {
   attachType: string;
@@ -1480,7 +1473,7 @@ interface GearRecipe {
     .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     .crumb-spacer { flex: 1 1 auto; }
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: 999px; overflow: hidden; }
-    .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: 11px; }
+    .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor)); }
     .ht-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); }
     .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
     .back:hover, .back:focus-visible { color: var(--sc-accent); }
@@ -1685,7 +1678,7 @@ interface GearRecipe {
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
       background: var(--sc-bg-1, #14161b); color: var(--sc-fg-1); border: 1px solid var(--sc-accent);
-      border-radius: var(--radius-sm, 4px); padding: 2px 8px; font-size: 0.7rem; white-space: nowrap; pointer-events: none; }
+      border-radius: var(--radius-sm, 4px); padding: 2px 8px; font-size: max(0.7rem, var(--sc-fs-floor)); white-space: nowrap; pointer-events: none; }
     .add-hangar { color: var(--sc-accent); }
 
     .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
@@ -2109,6 +2102,7 @@ export class CodexDetailComponent implements OnInit {
   /** Copy-link toast state (MASTER §2 / R-t1): a plain timed signal, no shared toast service exists yet. */
   readonly linkCopied = signal(false);
   private linkCopiedTimer: ReturnType<typeof setTimeout> | null = null;
+  private cohortTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly myPledgeLink = computed(() => {
     const d = this.detail();
@@ -2203,6 +2197,10 @@ export class CodexDetailComponent implements OnInit {
   private readonly lang = signal<Lang>(toLang(this.t.getCurrentLang() || this.t.getFallbackLang()));
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.linkCopiedTimer) clearTimeout(this.linkCopiedTimer);
+      if (this.cohortTimer) clearTimeout(this.cohortTimer);
+    });
     this.t.onLangChange
       .pipe(takeUntilDestroyed())
       .subscribe((e) => this.lang.set(toLang(e.lang)));
@@ -2323,7 +2321,8 @@ export class CodexDetailComponent implements OnInit {
         // scores (see CodexService.getRankCohort). Measured live on
         // 2026-09-05: started inline it starved the page for tens of seconds.
         if (kind === 'ship') {
-          setTimeout(() => void this.loadRankCohort(), 0);
+          if (this.cohortTimer) clearTimeout(this.cohortTimer);
+          this.cohortTimer = setTimeout(() => void this.loadRankCohort(), 0);
         }
         // Holotable stage: the silhouette (Wave 2). Best-effort, current
         // build only — a missing/invalid row renders the §C3 placeholder,
@@ -3715,11 +3714,6 @@ export class CodexDetailComponent implements OnInit {
     return grouped;
   });
 
-  /** Total loadout slots (all sections) — kept for other consumers. */
-  readonly moduleSlotCount = computed(() =>
-    this.moduleSections().reduce((sum, s) => sum + s.slots.length, 0),
-  );
-
   /**
    * `moduleSections`, split into the two cards the ship page actually
    * renders: the main loadout card (everything a pilot can act on, the
@@ -4262,22 +4256,6 @@ export class CodexDetailComponent implements OnInit {
     this.inspected.set(null);
   }
 
-  /** Render one aggregated panel row with its unit. */
-  fmtSummary(stat: EquippedStat): string {
-    return formatEquippedStat(stat);
-  }
-
-  /**
-   * The patch the catalog was extracted from, as a parenthetical for gap notes
-   * that name it — empty when the build is not loaded yet, so the sentence
-   * still reads. Read from the build, never from the translation file: a
-   * version frozen into i18n keeps claiming the old patch after every upload.
-   */
-  readonly patchLabel = computed<string>(() => {
-    const patch = this.svc.build()?.patchVersion?.trim();
-    return patch ? ` (${patch})` : '';
-  });
-
   /**
    * How many of the ship's weapon mounts have NO stock item in this extract.
    * Used to be nearly every mount on every hull, because the extractor read only
@@ -4403,8 +4381,6 @@ export class CodexDetailComponent implements OnInit {
     });
   });
 
-  readonly emptyLoadoutCount = computed(() => this.loadoutAll().filter((l) => !l.className).length);
-
   /**
    * Empty ports the toggle would reveal. Only the FIXED block folds anything
    * away now — every configurable section shows all of its hardpoints — so
@@ -4414,28 +4390,6 @@ export class CodexDetailComponent implements OnInit {
     () =>
       this.resolvedLoadout().filter((r) => r.section === 'structure' && !r.item.className).length,
   );
-
-  /**
-   * Default loadout grouped by the generic hardpoint category. Still the source
-   * for the hero equipment summary; the ship's module list uses the richer
-   * `moduleSections` above.
-   */
-  readonly loadoutGroups = computed<LoadoutGroup[]>(() => {
-    const all = this.loadoutAll();
-    if (all.length === 0) return [];
-    const visible = this.showEmptyLoadout()
-      ? all
-      : all.filter((l) => l.className || isWeaponMountPort(l.port));
-    const buckets = new Map<HardpointCategory, LoadoutItem[]>();
-    for (const item of visible) {
-      const cat = categorizePort([], item.port);
-      (buckets.get(cat) ?? buckets.set(cat, []).get(cat)!).push(item);
-    }
-    return HARDPOINT_CATEGORY_ORDER.filter((c) => buckets.has(c)).map((c) => ({
-      category: c,
-      items: buckets.get(c)!,
-    }));
-  });
 
   readonly rawJson = computed(() => {
     const d = this.detail();

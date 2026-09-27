@@ -327,6 +327,7 @@ interface PortRow {
         <div class="sc-card notes">
           <h2>{{ 'hangar.detail.notes' | translate }}</h2>
           <textarea rows="3" [ngModel]="notesDraft()" (ngModelChange)="notesDraft.set($event)"
+                    [attr.aria-label]="'hangar.detail.notes' | translate"
                     [attr.placeholder]="'hangar.detail.notesPlaceholder' | translate"></textarea>
           @if (notesDraft() !== (s.notes ?? '')) {
             <button class="sc-btn small" type="button" (click)="saveNotes()">{{ 'hangar.detail.save' | translate }}</button>

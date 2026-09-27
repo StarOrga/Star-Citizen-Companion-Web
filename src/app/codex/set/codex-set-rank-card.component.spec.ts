@@ -111,6 +111,25 @@ describe('CodexSetRankCardComponent', () => {
     expect(el.querySelectorAll('.bar-row').length).toBe(5); // env profile has 5 axes
   });
 
+  it('names the limiting armour piece by its resolved name, not the raw class name', () => {
+    const rows: ArmorRatingRow[] = [
+      row({ className: 'Armor_TCS_Core', slot: 'core', values: { tempMax: 115 } as ArmorRatingRow['values'], pct: { heat: 70 } as ArmorRatingRow['pct'] }),
+      row({ className: 'Armor_TCS_Undersuit', slot: 'undersuit', values: { tempMax: 60 } as ArmorRatingRow['values'], pct: { heat: 20 } as ArmorRatingRow['pct'] }),
+    ];
+    fixture.componentRef.setInput('rows', rows);
+    fixture.componentRef.setInput('names', new Map([
+      ['Armor_TCS_Undersuit', { kind: 'item' as const, className: 'Armor_TCS_Undersuit', nameLocalized: 'TCS Undersuit', name: { en: 'TCS Undersuit', de: 'TCS-Unteranzug', key: 'item_Name_TCS' } }],
+    ]));
+    fixture.detectChanges();
+    fixture.componentInstance.profile.set('env');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.result()?.noteParams['item']).toBe('TCS Undersuit');
+    // Without a resolved entity the class name is at least humanized, never raw.
+    fixture.componentRef.setInput('names', new Map());
+    fixture.detectChanges();
+    expect(fixture.componentInstance.result()?.noteParams['item']).not.toBe('Armor_TCS_Undersuit');
+  });
+
   it('offers the gap reason as an app tooltip on a gap row, not a native title', () => {
     const rows: ArmorRatingRow[] = [row({ slot: 'core' })];
     fixture.componentRef.setInput('rows', rows);

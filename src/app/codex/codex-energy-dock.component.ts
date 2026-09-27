@@ -27,6 +27,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 import { ICON_PATHS } from './codex-category-icon.component';
 import { formatNumber } from './codex-format';
@@ -109,7 +110,7 @@ let uidSeq = 0;
 @Component({
   selector: 'sc-codex-energy-dock',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // The HOST is what sticks, so the chosen position has to live here and not
   // only on the inner .mini-dock — see the :host rules below for why.
@@ -151,7 +152,8 @@ let uidSeq = 0;
                 [class.on]="position() === pos"
                 role="radio"
                 [attr.aria-checked]="position() === pos"
-                [title]="'codex.energy.position.' + pos | translate"
+                [scTooltip]="'codex.energy.position.' + pos | translate"
+                scTooltipTier="label"
                 [attr.aria-label]="'codex.energy.position.' + pos | translate"
                 (click)="setPosition(pos)"
               >
