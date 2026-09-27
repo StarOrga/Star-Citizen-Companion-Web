@@ -499,8 +499,7 @@ export function isPixelReadable(url: string): boolean {
     .dot.on { background: var(--sc-accent); transform: scale(1.25); }
 
     @media (prefers-reduced-motion: reduce) {
-      .layer { transition: opacity 0.2s ease; filter: none; }
-      .layer.show { filter: none; }
+      .layer { transition: opacity 0.2s ease; }
       .skel { animation: none; background-position: 0 0; }
     }
   `],

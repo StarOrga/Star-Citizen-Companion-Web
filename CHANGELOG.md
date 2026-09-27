@@ -4,6 +4,53 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.104.0] - 2026-09-27
+
+### Added
+
+- **Audit-Dossier für die ganze App.** Unter `.claude/audit/2026-09-26-full-app/`
+  liegen Anforderungen, Live-Evidenz und alle Befunde mit Bewertung — 24
+  statische Linsen, Karma-Suite, Mobile-Gate und ein Playwright-Rundgang über
+  die öffentlichen Seiten; jeder Befund wurde von zwei unabhängigen Prüfern
+  gegengelesen.
+
+### Fixed
+
+- **Share-Links verraten ihr Token nicht mehr an die Statistik.** Der Teil der
+  Adresse, der einen geteilten Hangar oder ein geteiltes Loadout freischaltet,
+  wird vor dem Zählen des Seitenaufrufs durch einen Platzhalter ersetzt.
+- **Gesperrte Linsen auf der Set-Seite nennen im Tooltip den Grund**, nicht
+  mehr den allgemeinen Hinweis. Die Einordnung nennt das bremsende Teil mit
+  seinem Namen statt mit dem internen Klassennamen.
+- **Die Patch-Übersicht bleibt stehen, wenn eine Aktualisierung im Hintergrund
+  scheitert.** Bisher ersetzte die Fehlerkarte den ganzen Stapel. Feeds,
+  Roadmap und Shop-Abfragen laufen jetzt in eine Zeitgrenze statt endlos zu
+  laden; ein defekter Offline-Cache lädt die Seite einmal neu.
+- **Tastatur und Vorlesen:** Escape schließt den Hangar-Teile-Wähler, Fehler im
+  Login werden angesagt, Notiz-, Nutzername- und Suchfeld haben einen Namen,
+  die Kacheln des Zeichenbretts sind wieder echte Links im Vorlesebaum.
+- **Keine Browser-Tooltips mehr** auf Energie-Dock, Missionsleiste,
+  Speichern-Leiste, Holotable-Pins und den Download-Panels; die Download-Panels
+  zeigten den rohen Schlüssel `desktop.appTitle`.
+- **Rot heißt weiter „erhöhter Zugriff“:** Rückfrage-Markierungen im
+  Feedback-Panel, die Warnung im Composer, das Tech-Preview-Etikett und der
+  Link-Hover auf der Download-Seite tragen jetzt Warn- oder Textfarbe.
+- **Bewegung reduzieren** gilt jetzt auch für den Seitenwechsel im Rahmen, die
+  Zeilen der Patch-Übersicht, das Scrollen im Dossier und die News-Thumbnails
+  (kein Weichzeichner mehr, Hover-Zoom nur mit Maus). Das Dossier nutzt die
+  echte Bildschirmhöhe auf dem Handy.
+- **Schriftgrößen unter 12 px** auf Handys in Schiffs- und Waffendetails und im
+  Spaltenmenü angehoben; das Alpha-Etikett im Kopf ist übersetzt.
+- **Admin-Feedback:** ein fehlgeschlagener Ablehnungs-Hinweis wird gemeldet,
+  große GIFs bekommen dieselbe Größenmeldung wie andere Dateien.
+
+### Notes
+
+- Toter Code entfernt (Holotable-Hangar-Reiter, Wisch-Direktive, ungenutzte
+  Felder). `npm run test:gate` prüft jetzt auch den Build-Exit-Guard.
+- Offene Punkte (Ask/Issue) stehen im Dossier; nichts davon wurde ohne
+  Rückfrage angewendet.
+
 ## [0.103.1] - 2026-09-26
 
 ### Fixed
