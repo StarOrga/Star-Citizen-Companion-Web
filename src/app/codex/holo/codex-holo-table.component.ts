@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
@@ -30,7 +31,7 @@ const GENERIC_HULL_PATH =
 @Component({
   selector: 'sc-codex-holo-table',
   standalone: true,
-  imports: [TranslatePipe, ShipHardpointMapComponent, ShipSkinViewerComponent, FallbackImageComponent],
+  imports: [TranslatePipe, ShipHardpointMapComponent, ShipSkinViewerComponent, FallbackImageComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.ph-wait]': "phase() === 'wait'",
@@ -105,7 +106,8 @@ const GENERIC_HULL_PATH =
               [style.top.%]="pin.y"
               [style.--i]="pin.index"
               [attr.aria-pressed]="inspectedPort() === pin.portName"
-              [attr.title]="pin.resolved ? pin.label : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
+              [scTooltip]="pin.resolved ? null : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
+              scTooltipTier="label"
               (mouseenter)="hovered.emit([pin.portName])"
               (mouseleave)="hovered.emit(null)"
               (focus)="hovered.emit([pin.portName])"

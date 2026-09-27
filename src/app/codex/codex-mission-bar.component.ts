@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from './codex-mission';
 
 /**
@@ -23,7 +24,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
 @Component({
   selector: 'sc-codex-mission-bar',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mission-bar">
@@ -38,7 +39,8 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
             [disabled]="disabledReason(m.id)"
             [attr.aria-checked]="active() === m.id"
             [attr.aria-describedby]="disabledReason(m.id) ? ('mission-reason-' + m.id) : null"
-            [attr.title]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : (m.labelKey | translate)"
+            [scTooltip]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : null"
+            scTooltipTier="label"
             (click)="select(m.id)"
           >
             <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>

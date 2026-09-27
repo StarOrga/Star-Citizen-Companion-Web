@@ -153,18 +153,18 @@ const SEARCH_DEBOUNCE_MS = 250;
         @if (hangar.conceptShips().length === 0) {
           <p class="hint db-empty">{{ 'hangar.drawingBoard.empty' | translate }}</p>
         } @else {
-          <div class="db-scroll" role="list">
+          <div class="db-scroll">
             @for (c of hangar.conceptShips(); track c.id) {
               @if (announcedFor(c); as a) {
-                <a class="db-tile" role="listitem" [routerLink]="['/codex/upcoming', a.id]">
+                <a class="db-tile" [routerLink]="['/codex/upcoming', a.id]">
                   <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: conceptArt(c) }" />
                 </a>
               } @else if (c.rsiUrl) {
-                <a class="db-tile" role="listitem" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
+                <a class="db-tile" [href]="c.rsiUrl" target="_blank" rel="noopener noreferrer nofollow">
                   <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
                 </a>
               } @else {
-                <div class="db-tile is-static" role="listitem">
+                <div class="db-tile is-static">
                   <ng-container [ngTemplateOutlet]="dbBody" [ngTemplateOutletContext]="{ $implicit: c, art: [] }" />
                 </div>
               }

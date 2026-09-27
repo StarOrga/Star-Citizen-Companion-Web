@@ -432,7 +432,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       font-size: max(0.72rem, var(--sc-fs-floor));
       color: var(--sc-fg-2);
     }
-    .draft-flag.warn { color: var(--sc-accent-hot); }
+    .draft-flag.warn { color: var(--sc-warning); }
 
     /* The box and its readout, stacked. Normal flow on purpose: the counter
        is a sibling under the field, so no ancestor's overflow can cut it off
@@ -1188,7 +1188,8 @@ export class FeedbackComposerComponent implements OnDestroy {
         break;
       }
       const isImage = file.type.startsWith('image/');
-      if (!isImage && file.size > MAX_FILE_BYTES) {
+      // GIFs are passed through un-re-encoded, so they meet the bucket ceiling like any file.
+      if ((!isImage || file.type === 'image/gif') && file.size > MAX_FILE_BYTES) {
         this.errorMsg.set(
           this.translate.instant('adminFeedback.compose.fileTooLarge', {
             max: Math.round(MAX_FILE_BYTES / (1024 * 1024)),

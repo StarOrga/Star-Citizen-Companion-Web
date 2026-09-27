@@ -100,6 +100,11 @@ const SPY_CLEARANCE_PX = 24;
  * highlighted hits without retyping — and, since `fixed` can be the last
  * section, the dossier scrolls there on open when a query came along.
  */
+/** Smooth only when the user has not asked for reduced motion (the rest of the app switches to 'auto' too). */
+function scrollBehavior(): ScrollBehavior {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
 @Component({
   selector: 'sc-patch-dossier',
   standalone: true,
@@ -392,7 +397,7 @@ const SPY_CLEARANCE_PX = 24;
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); overflow: hidden;
     }
     .panel {
-      width: min(100%, 960px); max-height: calc(100vh - 48px); overflow-y: auto; overscroll-behavior: contain;
+      width: min(100%, 960px); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain;
       border: 1px solid var(--sc-border); border-radius: 12px; background: var(--sc-bg-0);
       box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); scrollbar-width: thin;
     }
@@ -561,7 +566,7 @@ const SPY_CLEARANCE_PX = 24;
 
     @media (max-width: 760px) {
       .scrim { padding: 0; align-items: flex-end; }
-      .panel { max-height: 100vh; height: 100vh; border-radius: 0; border: 0; }
+      .panel { max-height: 100vh; height: 100vh; max-height: 100dvh; height: 100dvh; border-radius: 0; border: 0; }
       .hero { padding: 14px 14px 10px; }
       .hero h2 { font-size: 1.3rem; }
       .body { grid-template-columns: minmax(0, 1fr); }
@@ -791,7 +796,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
       const el = Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('.fc'))
         .find((n) => n.dataset['card'] === id);
       if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
       if (this.cardFlashTimer !== null) clearTimeout(this.cardFlashTimer);
       this.flashCard.set(id);
       this.cardFlashTimer = setTimeout(() => this.flashCard.set(null), 1400);
@@ -859,7 +864,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (!target) return;
     ev.preventDefault();
     this.chosen.set(id);
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
     this.glow(id);
   }
 

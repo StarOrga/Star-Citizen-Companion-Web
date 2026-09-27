@@ -134,7 +134,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
             (pick)="onSetPick($event)"
             (open)="onHangarOpen()"
           />
-          <sc-codex-set-rank-card class="rank" [rows]="ratingRows()" [loading]="ratingLoading()" />
+          <sc-codex-set-rank-card class="rank" [rows]="ratingRows()" [loading]="ratingLoading()" [names]="resolvedArmor()" />
         </div>
 
         <sc-codex-set-mission-bar [lens]="lens()" (lensChange)="setLens($event)" />

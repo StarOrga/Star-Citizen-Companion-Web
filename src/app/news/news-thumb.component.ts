@@ -407,8 +407,8 @@ export function isPixelReadable(url: string): boolean {
              [style.--sc-thumb-zoom]="zoomFor(url)"
              alt="" decoding="async"
              [attr.crossorigin]="crossOriginFor(url)"
-             [attr.loading]="i === 0 ? 'eager' : 'lazy'"
-             [attr.fetchpriority]="i === 0 ? 'high' : null"
+             [attr.loading]="featured() && i === 0 ? 'eager' : 'lazy'"
+             [attr.fetchpriority]="featured() && i === 0 ? 'high' : null"
              scImgReady (ready)="onReady(url, $event)" (failed)="onError(url)"
              (load)="onReady(url, $any($event.target))" (error)="onError(url)" />
       }
@@ -455,17 +455,20 @@ export function isPixelReadable(url: string): boolean {
       position: absolute; inset: 0; z-index: 1;
       width: 100%; height: 100%;
       object-fit: cover; object-position: center;
-      opacity: 0; filter: blur(8px);
+      opacity: 0;
       /* --sc-thumb-zoom is 1 unless the image was measured as a framed subject
          (see detectFramePads) — then it scales past the baked-in margin. The
          crop stays centred and uniform, so the picture is never distorted. */
       transform: scale(var(--sc-thumb-zoom, 1));
-      transition: opacity 0.6s ease, filter 0.6s ease, transform 0.4s ease;
+      transition: opacity 0.6s ease, transform 0.4s ease;
     }
-    /* Blur-up reveal: the layer fades in and sharpens the moment it decodes. */
-    .layer.show { opacity: 1; filter: blur(0); }
-    :host-context(.card:hover) .layer.show,
-    :host-context(.vid-card:hover) .layer.show { transform: scale(calc(var(--sc-thumb-zoom, 1) * 1.04)); }
+    /* Fade-up reveal: the layer fades in the moment it decodes (no blur —
+       filter animations rasterise off the compositor, CHANGELOG 0.71.0). */
+    .layer.show { opacity: 1; }
+    @media (hover: hover) {
+      :host-context(.card:hover) .layer.show,
+      :host-context(.vid-card:hover) .layer.show { transform: scale(calc(var(--sc-thumb-zoom, 1) * 1.04)); }
+    }
 
     .ch-pill {
       position: absolute; top: 8px; left: 8px; z-index: 2;

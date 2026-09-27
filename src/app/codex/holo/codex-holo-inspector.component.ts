@@ -34,8 +34,7 @@ import { JournalEntry, PinGroup } from './codex-holo-model';
               <small>{{ meta(it.slot) }}</small>
             </div>
             <button type="button" class="inspector-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.swap.close' | translate"
-                    [title]="('codex.swap.close' | translate) + ' (Esc)'">✕</button>
+                    [attr.aria-label]="'codex.swap.close' | translate">✕</button>
           </div>
           @if (patchPin(); as pin) {
             <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->

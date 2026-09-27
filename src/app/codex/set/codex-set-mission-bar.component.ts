@@ -24,7 +24,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
         @for (l of lenses; track l.id) {
           <span
             class="chip-wrap"
-            [scTooltip]="l.tipKey | translate"
+            [scTooltip]="(l.disabled && l.disabledReasonKey ? l.disabledReasonKey : l.tipKey) | translate"
             [scTooltipTier]="l.disabled ? 'label' : 'info'"
           >
             <button

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 /**
@@ -305,7 +305,7 @@ export class UexShopService {
       for (const [k, v] of Object.entries(params)) {
         url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`;
       }
-      const res = await firstValueFrom(this.http.get<UexEnvelope<T>>(url));
+      const res = await firstValueFrom(this.http.get<UexEnvelope<T>>(url).pipe(timeout(15_000)));
       return Array.isArray(res?.data) ? res.data : [];
     } catch {
       return [];

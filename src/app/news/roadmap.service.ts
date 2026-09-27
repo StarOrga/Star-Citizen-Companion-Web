@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { RoadmapPayload, hasRoadmapContent } from './roadmap';
 import { PatchOutline } from './patch-outline';
@@ -102,11 +102,12 @@ export class RoadmapService {
   private async fetchRoadmap(): Promise<void> {
     this.loading.set(true);
     try {
-      const res = await firstValueFrom(this.http.get<RoadmapResponse>(this.endpoint));
+      const res = await firstValueFrom(this.http.get<RoadmapResponse>(this.endpoint).pipe(timeout(20_000)));
       const payload = res?.roadmap ?? null;
       this.roadmap.set(payload);
       this.unavailable.set(!hasRoadmapContent(payload));
-    } catch {
+    } catch (err) {
+      console.warn('[news] roadmap unavailable', err);
       this.unavailable.set(true);
     } finally {
       this.loading.set(false);
@@ -184,7 +185,7 @@ export class RoadmapService {
   private async fetchOutlines(slugs: string[]): Promise<void> {
     try {
       const url = `${this.endpoint}?notes=${encodeURIComponent(slugs.join(','))}`;
-      const res = await firstValueFrom(this.http.get<RoadmapResponse>(url));
+      const res = await firstValueFrom(this.http.get<RoadmapResponse>(url).pipe(timeout(20_000)));
       const received = res?.outlines ?? [];
       if (received.length > 0) {
         this.outlines.update((map) => {
@@ -203,7 +204,8 @@ export class RoadmapService {
           return next;
         });
       }
-    } catch {
+    } catch (err) {
+      console.warn('[news] note outlines failed', slugs, err);
       // A transport error is not a verdict about the notes — mark them missing
       // for THIS visit so the row stops spinning, but do not cache it further.
       this.missing.update((set) => {

@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
 import { PatchLineGroup, groupPatchNotes } from './patch-notes';
@@ -185,7 +185,7 @@ export class NewsService {
     if (!silent) this.loading.set(true);
     this.error.set(null);
     try {
-      const data = await firstValueFrom(this.http.get<VerseFeed>(this.endpoint));
+      const data = await firstValueFrom(this.http.get<VerseFeed>(this.endpoint).pipe(timeout(20_000)));
       if (seq !== this.refreshSeq) return;
       // Drop videos that fell out of the retention window before anything sees
       // them, so counts, buckets, the rail and deep-links all agree (e7082310).

@@ -127,7 +127,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
     .val-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sc-gap-2, 10px); }
     .val-card { background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: var(--radius-md, 4px);
       padding: 10px; display: grid; gap: 2px; align-content: start; }
-    .val-card h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent); }
+    .val-card h4 { margin: 0 0 4px; font-size: max(11px, var(--sc-fs-floor)); letter-spacing: 0.12em; text-transform: uppercase; color: var(--sc-accent); }
     .val-card.miss { border: 1px dashed color-mix(in srgb, var(--sc-warn) 40%, transparent);
       background: color-mix(in srgb, var(--sc-warn) 4%, transparent); }
     .val-card.miss h4 { color: var(--sc-warn); }
@@ -136,7 +136,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
     .row .v { font-size: 13px; color: var(--sc-fg-0); font-variant-numeric: tabular-nums; text-align: right; }
     .row .v.gapv { color: var(--sc-fg-2); }
     .val-card.miss .row .v { color: var(--sc-warn); }
-    .src { margin: 4px 0 0; font-size: 11px; color: var(--sc-fg-2); }
+    .src { margin: 4px 0 0; font-size: max(11px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .val-card.miss .src { color: var(--sc-warn); opacity: 0.8; }
 
     @media (max-width: 640px) {

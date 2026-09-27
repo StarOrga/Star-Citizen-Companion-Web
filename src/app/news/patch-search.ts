@@ -169,7 +169,18 @@ const MIN_VARIANT_LENGTH = 4;
  * itself is always first, and the list is deduplicated — a caller can treat it
  * as "match any of these".
  */
+const VARIANT_CACHE = new Map<string, string[]>();
+
 export function spellingVariants(token: string): string[] {
+  const hit = VARIANT_CACHE.get(token);
+  if (hit) return hit;
+  const out = computeSpellingVariants(token);
+  if (VARIANT_CACHE.size > 2000) VARIANT_CACHE.clear();
+  VARIANT_CACHE.set(token, out);
+  return out;
+}
+
+function computeSpellingVariants(token: string): string[] {
   const out = [token];
   if (token.length < MIN_VARIANT_LENGTH) return out;
   const add = (v: string) => {

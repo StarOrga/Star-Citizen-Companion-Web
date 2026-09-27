@@ -36,7 +36,7 @@ export interface ScSegmentOption {
   readonly label?: string;
   /** i18n key, translated by the control. Ignored when `label` is set. */
   readonly labelKey?: string;
-  /** Optional i18n key for the `title` tooltip — use for abbreviated labels. */
+  /** Optional i18n key for the app tooltip (`[scTooltip]`, label tier) — use for abbreviated labels. */
   readonly titleKey?: string;
   /** Turns this segment into a link. Set it on ALL options or on none. */
   readonly link?: ScSegmentLink;

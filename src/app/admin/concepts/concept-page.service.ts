@@ -53,6 +53,11 @@ export class ConceptPageService {
 
     const body = (await res.json().catch(() => null)) as Partial<ConceptTicket> | null;
     if (!body?.url || typeof body.url !== 'string') throw new ConceptTicketFailure('error');
+    // Defence in depth: the iframe src is marked trusted downstream, so only a
+    // page minted by our own concept-page function may ever land there.
+    if (!body.url.startsWith(`${environment.supabase.url}/functions/v1/concept-page/`)) {
+      throw new ConceptTicketFailure('error');
+    }
     return { url: body.url, title: body.title ?? '', expiresAt: body.expiresAt ?? '' };
   }
 }

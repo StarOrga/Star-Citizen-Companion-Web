@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
 import { rsiVariant } from '../news/news-image-variants';
@@ -458,7 +458,7 @@ export class UpcomingShipsService {
     if (!silent) this.loading.set(true);
     this.error.set(null);
     try {
-      const data = await firstValueFrom(this.http.get<UpcomingShipsFeed>(this.endpoint));
+      const data = await firstValueFrom(this.http.get<UpcomingShipsFeed>(this.endpoint).pipe(timeout(15_000)));
       if (seq !== this.refreshSeq) return;
       this.feed.set(data);
       // First feed ever seen on this device: seed the baseline silently so the
