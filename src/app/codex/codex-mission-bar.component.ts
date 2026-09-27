@@ -31,21 +31,27 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
       <span class="mission-label">{{ 'codex.mission.label' | translate }}</span>
       <div class="mission-chips" role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
         @for (m of missions; track m.id) {
-          <button
-            type="button"
-            role="radio"
-            class="mission-chip"
-            [class.active]="active() === m.id"
-            [disabled]="disabledReason(m.id)"
-            [attr.aria-checked]="active() === m.id"
-            [attr.aria-describedby]="disabledReason(m.id) ? ('mission-reason-' + m.id) : null"
+          <!-- A natively disabled button gets no pointer events, so the reason
+               tooltip lives on a wrapper (same pattern as the set mission bar). -->
+          <span
+            class="chip-wrap"
             [scTooltip]="disabledReason(m.id) ? (disabledReason(m.id)! | translate) : null"
             scTooltipTier="label"
-            (click)="select(m.id)"
           >
-            <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>
-            <span class="chip-label">{{ m.labelKey | translate }}</span>
-          </button>
+            <button
+              type="button"
+              role="radio"
+              class="mission-chip"
+              [class.active]="active() === m.id"
+              [disabled]="disabledReason(m.id)"
+              [attr.aria-checked]="active() === m.id"
+              [attr.aria-describedby]="disabledReason(m.id) ? ('mission-reason-' + m.id) : null"
+              (click)="select(m.id)"
+            >
+              <span class="chip-icon" aria-hidden="true">{{ active() === m.id ? '◈' : '◇' }}</span>
+              <span class="chip-label">{{ m.labelKey | translate }}</span>
+            </button>
+          </span>
           @if (disabledReason(m.id)) {
             <span [id]="'mission-reason-' + m.id" class="sr-only">{{ disabledReason(m.id)! | translate }}</span>
           }
@@ -100,6 +106,7 @@ import { MISSIONS, MissionId, ShipCapabilities, missionDisabledReasonKey } from 
        The 48px touch floor stays in this base rule; the concept's real, compact
        box lives in the pointer:fine block at the bottom, the same way
        .stage-actions .btn does it in codex-detail.component.ts. */
+    .chip-wrap { display: inline-flex; }
     .mission-chip {
       display: inline-flex;
       align-items: center;

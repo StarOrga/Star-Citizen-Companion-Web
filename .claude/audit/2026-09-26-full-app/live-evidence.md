@@ -19,6 +19,8 @@ lenses and the 3 167 Karma specs only.
 | `npm run gate:mobile` (dist, public routes) | GREEN, 8 page audits, 0 findings, 9 signed-in routes UNCHECKED; the first run showed 24 `network-error` warnings that were the proxy CA blocking `fonts.gstatic.com`, gone once the proxy CA was pinned | baseline/gate.log, gate2.log |
 | `gate:mobile --base-url=https://sc-companion.vercel.app` | GREEN, 8 audits, 0 findings | baseline/gate2.log |
 | `gate:mobile --selftest` | GREEN, 9 checks detect their fixture | baseline/gate.log |
+| `npm run test:gate` (after the fix round, now incl. the build exit-guard test) | 56 pass / 1 fail — `pre.ask.unattended.test.mjs` "CLI: exit 2 for a scheduled session" gets exit 0; **identical on the untouched base** (stash check), the spawned hook reads this cloud container's environment, not a regression of this branch | baseline/test-after-fixes.log |
+| Gates after the fix round | typecheck clean · build green (initial 696.93 kB, no budget warning) · `npm test` 3159 / 3159 · `gate:mobile` GREEN on the built dist (8 audits, 0 findings, 9 signed-in routes unchecked) | baseline/*-after-fixes.log |
 
 ## Production (https://sc-companion.vercel.app, 2026-09-26 21:4x UTC)
 

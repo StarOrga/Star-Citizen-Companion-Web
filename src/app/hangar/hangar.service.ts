@@ -986,9 +986,7 @@ export class HangarService {
    * and therefore a session.
    */
   async peekSharedLoadout(token: string): Promise<PeekedSharedLoadout | null> {
-    // `realClient`, like the public share page: an anonymous route must behave
-    // the same whether or not an admin is previewing as somebody else.
-    const { data, error } = await this.sb.realClient
+    const { data, error } = await this.sb.client
       .rpc('peek_shared_loadout', { p_token: token })
       .maybeSingle();
     if (error || !data) return null;

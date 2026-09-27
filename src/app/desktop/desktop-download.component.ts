@@ -140,7 +140,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       font: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-accent);
       text-decoration: underline; text-underline-offset: 2px;
     }
-    .link:hover { color: var(--sc-fg-0); }
+    .link:hover { color: var(--sc-accent-hot); }
 
     /* Admin-only inline promote row — compact, low-fanfare (feedback 446c245e). */
     .promote {

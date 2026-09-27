@@ -28,7 +28,7 @@ describe('CodexMissionBarComponent', () => {
 
   /** App tooltip text of a chip (REQ-8: the reason is never a native title). */
   function tooltipOf(chip: HTMLElement): string | null | undefined {
-    const de = fixture.debugElement.queryAll(By.directive(ScTooltipDirective)).find((d) => d.nativeElement === chip);
+    const de = fixture.debugElement.queryAll(By.directive(ScTooltipDirective)).find((d) => d.nativeElement.contains(chip));
     return de?.injector.get(ScTooltipDirective).scTooltip();
   }
 

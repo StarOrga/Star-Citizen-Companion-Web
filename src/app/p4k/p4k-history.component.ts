@@ -274,7 +274,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       &.live { background: rgba(0, 212, 255, 0.18); color: var(--sc-accent); }
       &.ptu { background: rgba(74, 222, 128, 0.18); color: var(--sc-success); }
       &.eptu { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
-      &.tech-preview { background: rgba(251, 191, 36, 0.18); color: var(--sc-warning); }
+      &.tech-preview { background: rgba(255, 87, 34, 0.18); color: var(--sc-accent-hot); }
       &.unknown { background: rgba(122, 134, 156, 0.18); color: var(--sc-fg-2); }
     }
     .badge {
