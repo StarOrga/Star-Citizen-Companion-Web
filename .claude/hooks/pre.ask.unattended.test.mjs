@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { decide, scheduledTaskOf } from './pre.ask.unattended.mjs';
 
 function withRoot(fn) {
@@ -38,7 +39,7 @@ test('decide: blocks only AskUserQuestion in a scheduled session', () => withRoo
 }));
 
 test('CLI: exit 2 + stderr for a scheduled session, exit 0 otherwise', () => withRoot((root) => {
-  const script = new URL('./pre.ask.unattended.mjs', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const script = fileURLToPath(new URL('./pre.ask.unattended.mjs', import.meta.url));
   const run = (input) => spawnSync(process.execPath, [script], { input: JSON.stringify(input), encoding: 'utf8', env: { ...process.env, CCD_SESSIONS_ROOT: root } });
   const blocked = run({ tool_name: 'AskUserQuestion', session_id: 'cli-sched' });
   assert.equal(blocked.status, 2);
