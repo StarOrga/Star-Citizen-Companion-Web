@@ -9,7 +9,14 @@ import { DesktopConnectionService } from './desktop-connection.service';
 import { isLoopbackCallback } from './loopback.util';
 import { mintDesktopSession } from './desktop-session.util';
 
-type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthorized' | 'error';
+type AuthStatus =
+  | 'authorizing'
+  | 'login_required'
+  | 'confirm'
+  | 'cancelled'
+  | 'redirecting'
+  | 'unauthorized'
+  | 'error';
 
 /**
  * Desktop-Tool OAuth callback endpoint.
@@ -21,7 +28,11 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthoriz
  *  1. Validates the callback URL is a 127.0.0.1 loopback in the expected port range.
  *  2. Ensures the user is signed in (else routes to /login with redirect=this).
  *  3. Ensures the user is collaborator+ (else surfaces the rejection).
- *  4. Reads the Supabase session access_token and POSTs it to the loopback as
+ *  4. Waits for an explicit "Connect" click (AUD-170). Without it, any page
+ *     that opened this URL with its own loopback listener would receive the
+ *     user's tokens silently. "Cancel" sends nothing, and no desktop session
+ *     is minted before the click.
+ *  5. Reads the Supabase session access_token and POSTs it to the loopback as
  *     `{state, token, email}` JSON body — NEVER as URL parameters. After the
  *     POST acknowledges, navigates the browser tab to `<cb>?state=<csrf>&ack=1`
  *     (no token in URL → no JWT in browser history). Hardening for Codex
@@ -44,6 +55,25 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthoriz
           @case ('authorizing') {
             <p>{{ 'desktopAuth.authorizing' | translate }}</p>
             <div class="dots"><span></span><span></span><span></span></div>
+          }
+          @case ('confirm') {
+            <p>{{ 'desktopAuth.confirmPrompt' | translate: { port: port() } }}</p>
+            <p class="hint">{{ 'desktopAuth.confirmHint' | translate }}</p>
+            <div class="actions">
+              <button
+                type="button"
+                class="sc-btn sc-btn-primary"
+                [disabled]="busy()"
+                (click)="confirm()">
+                {{ 'desktopAuth.confirm' | translate }}
+              </button>
+              <button type="button" class="sc-btn" [disabled]="busy()" (click)="cancel()">
+                {{ 'desktopAuth.cancel' | translate }}
+              </button>
+            </div>
+          }
+          @case ('cancelled') {
+            <p>{{ 'desktopAuth.cancelled' | translate }}</p>
           }
           @case ('login_required') {
             <p>{{ 'desktopAuth.loginRequired' | translate }}</p>
@@ -90,6 +120,7 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'unauthoriz
       40% { transform: scale(1); opacity: 1; }
     }
     .sc-btn { margin-top: 8px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
   `],
 })
 export class DesktopAuthComponent implements OnInit {
@@ -103,6 +134,10 @@ export class DesktopAuthComponent implements OnInit {
 
   readonly status = signal<AuthStatus>('authorizing');
   readonly errorMsg = signal<string | null>(null);
+  /** Loopback port of the tool asking for the hand-off, shown in the prompt. */
+  readonly port = signal('');
+  /** A Connect click is being processed — guards against a double submit. */
+  readonly busy = signal(false);
 
   cb = '';
   state = '';
@@ -169,6 +204,25 @@ export class DesktopAuthComponent implements OnInit {
       return;
     }
 
+    // AUD-170: nothing leaves the browser before the user says so.
+    this.port.set(new URL(this.cb).port);
+    this.status.set('confirm');
+  }
+
+  /** "Connect" — hand the tokens to the loopback (once). */
+  async confirm(): Promise<void> {
+    if (this.busy() || this.status() !== 'confirm') return;
+    this.busy.set(true);
+    await this.handOff();
+  }
+
+  /** "Cancel" — nothing is minted, nothing is sent. */
+  cancel(): void {
+    if (this.busy()) return;
+    this.status.set('cancelled');
+  }
+
+  private async handOff(): Promise<void> {
     const { data, error } = await this.sb.client.auth.getSession();
     const token = data.session?.access_token;
     if (error || !token) {

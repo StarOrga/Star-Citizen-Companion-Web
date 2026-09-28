@@ -2976,14 +2976,19 @@
   "desktopAuth": {
     "title": "Authorize Data Uploader",
     "authorizing": "Checking your session…",
-    "loginRequired": "Sign in first — we'll bounce you back here automatically.",
+    "loginRequired": "Sign in first, then confirm the connection.",
     "redirecting": "Authorized. Sending token to the app…",
     "redirectingHint": "You can close this window in a moment.",
     "unauthorized": "Your account can't use the Data Uploader.",
     "unauthorizedHint": "You need collaborator or admin role. Ask an admin.",
     "errorMissingParams": "Missing callback or state parameter.",
     "errorBadCallback": "Callback URL is not a 127.0.0.1 loopback in the expected port range.",
-    "errorNoToken": "No access token in session."
+    "errorNoToken": "No access token in session.",
+    "confirmPrompt": "Connect the Data Uploader on port {{port}} to your account?",
+    "confirmHint": "Only confirm if you just started the sign-in from the Data Uploader yourself.",
+    "confirm": "Connect",
+    "cancel": "Cancel",
+    "cancelled": "Cancelled — nothing was sent. You can close this window."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",
