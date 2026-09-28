@@ -28,7 +28,8 @@ built in by design.
   `codex_builds.finalized_at` is set by `set_current_codex_build` (ingest
   `finalize`), so a running or abandoned import never pushes the previous LIVE
   build out. Never-finalized, non-current builds are swept after 7 days. The
-  patch selector and the inline diff read finalized builds only.
+  app-side filter (patch selector and inline diff read finalized builds only)
+  ships separately on `fix/d02-finalized-filter`, after the migration is live.
 - **Deleting rows does not shrink `pg_database_size`.** Autovacuum makes the
   pages reusable for the next ingest, so steady state is about three builds'
   worth of disk (~480–510 MB). Only `VACUUM FULL` gives space back, and it takes
