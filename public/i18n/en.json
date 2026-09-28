@@ -3955,7 +3955,7 @@
       },
       "statistics": {
         "label": "Statistics",
-        "desc": "Anonymous usage statistics (PostHog, EU servers) to understand which areas get used. Off by default, no identification, no session recording. Turning this off deletes the stored values."
+        "desc": "Anonymous usage statistics and anonymous error reports (PostHog, EU servers) to understand which areas get used and where things break. Off by default, no identification, no session recording. Turning this off deletes the stored values."
       }
     }
   },

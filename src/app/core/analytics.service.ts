@@ -75,6 +75,17 @@ export class AnalyticsService {
   }
 
   /**
+   * Sends an already-redacted `$exception` (see `AppErrorHandler`). Same gate as
+   * `capture()`: nothing leaves the browser without statistics consent.
+   * PostHog's own `capture_exceptions` autocapture stays off on purpose — it
+   * would ship raw messages and URLs past the redaction.
+   */
+  captureException(error: Error, properties?: Record<string, unknown>): void {
+    if (!this.consent.statisticsAllowed()) return;
+    this.client?.captureException(error, properties);
+  }
+
+  /**
    * C7 — one-shot landing-page UTM capture. Called once from `AppComponent`
    * init (alongside `init()`). Reads `utm_source`/`utm_medium`/`utm_campaign`
    * from the CURRENT `location.search` at call time and, once `statistics`

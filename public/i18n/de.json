@@ -3955,7 +3955,7 @@
       },
       "statistics": {
         "label": "Statistik",
-        "desc": "Anonyme Nutzungsstatistiken (PostHog, EU-Server), um zu verstehen welche Bereiche genutzt werden. Standardmäßig aus, keine Identifizierung, keine Sitzungsaufzeichnung. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "Anonyme Nutzungsstatistiken und anonyme Fehlerberichte (PostHog, EU-Server), um zu verstehen welche Bereiche genutzt werden und wo etwas schiefgeht. Standardmäßig aus, keine Identifizierung, keine Sitzungsaufzeichnung. Beim Abschalten werden die gespeicherten Werte gelöscht."
       }
     }
   },

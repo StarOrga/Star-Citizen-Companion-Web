@@ -40,6 +40,14 @@ describe('AnalyticsService', () => {
     expect(Object.keys(localStorage).some((k) => k.startsWith('ph_'))).toBe(false);
   });
 
+  it('captureException() sends nothing without statistics consent', () => {
+    consent.essentialOnly();
+    const fake = jasmine.createSpyObj('PostHog', ['captureException']);
+    (svc as unknown as { client: unknown }).client = fake;
+    svc.captureException(new Error('probe'), { handled: false });
+    expect(fake.captureException).not.toHaveBeenCalled();
+  });
+
   it('init() stays inert without statistics consent, even with a key configured', () => {
     consent.essentialOnly();
     expect(() => svc.init()).not.toThrow();
