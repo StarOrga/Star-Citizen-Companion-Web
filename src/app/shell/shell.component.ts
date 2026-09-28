@@ -425,6 +425,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     }
     .nav-scan__bar {
       position: absolute; top: 0; left: 0; height: 100%; width: 38%;
+      /* Brand art, not a state: the hot accent in the scan gradient is deliberate (audit D10). */
       background: linear-gradient(90deg, transparent, var(--sc-accent) 45%, var(--sc-accent-hot) 55%, var(--sc-accent) 65%, transparent);
       box-shadow: 0 0 12px var(--sc-accent);
       animation: nav-scan-sweep 1.05s cubic-bezier(0.45, 0, 0.25, 1) infinite;
