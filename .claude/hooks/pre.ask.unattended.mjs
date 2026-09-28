@@ -13,10 +13,15 @@
  * block (exit 2, the stderr text reaches the model) and tell it to park the
  * item as needs_input in the feedback panel instead.
  *
+ * The CLI branch runs on every platform; scheduled sessions are recognised by the
+ * Desktop records under %APPDATA%Claudeclaude-code-sessions (Windows, where the
+ * routine runs). Without a record the hook is a no-op with exit 0.
+ *
  * Env: CCD_SESSIONS_ROOT overrides the records root (tests).
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export function sessionsRoot(env = process.env) {
   if (env.CCD_SESSIONS_ROOT) return env.CCD_SESSIONS_ROOT;
@@ -59,7 +64,7 @@ export function decide(input, env = process.env) {
   };
 }
 
-const isMain = process.argv[1] && import.meta.url === new URL(`file:///${process.argv[1].replace(/\\/g, '/')}`).href;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) {
   let raw = '';
   process.stdin.setEncoding('utf8');

@@ -22,6 +22,11 @@ Mechanical generation (DTOs, i18n stubs, simple test scaffolds > 20 lines) → d
 See `deep-knowledge/local-llm-delegation.md` in the devops plugin cache
 (`~/.claude/plugins/cache/dotclaude/devops/<version>/` — don't pin the version, it churns).
 
+## Cloud sessions
+
+- `.claude/settings.json` declares the `dotclaude` marketplace and enables `devops@dotclaude`, so claude.ai cloud sessions load the plugin (ship_release, ship guards, main guard). `local-llm@dotclaude` stays off — it needs a local AnythingLLM instance.
+- Tag pushes are still refused by the cloud git proxy (Jerry0022/dotclaude#566): the owner sets `alpha/vX.Y.Z` as an annotated tag on the squash commit from a local checkout.
+
 ## Token-config
 
 `token-config.json` mirrors the Hatchit setup for `/run-burn` budget tracking.

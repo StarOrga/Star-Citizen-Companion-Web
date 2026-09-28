@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.104.2] - 2026-09-28
+
+### Fixed
+
+- **Der Routine-Schutz gegen offene Fragen läuft jetzt auch auf Linux und
+  macOS.** Der Hook, der geplanten Sessions das Nachfragen verbietet, erkannte
+  seinen eigenen Aufruf nur unter Windows; `npm run test:gate` ist damit auch
+  in Linux-Umgebungen grün (Audit D19).
+
+### Changed
+
+- **Cloud-Sessions laden das devops-Plugin.** `.claude/settings.json` meldet
+  den `dotclaude`-Marketplace an und aktiviert `devops@dotclaude`, damit
+  claude.ai-Sessions `ship_release` und die Guards haben. Release-Tags setzt in
+  der Cloud weiter der Owner (dotclaude#566).
+
 ## [0.104.1] - 2026-09-28
 
 ### Changed
