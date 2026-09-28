@@ -37,6 +37,10 @@ describe('isVariant', () => {
     expect(isVariant('MASTER_Something')).toBe(true);
     expect(isVariant('AEGS_Gladius')).toBe(false);
   });
+
+  it('keeps the buyable Avenger Titan Renegade (not an NPC clone)', () => {
+    expect(isVariant('AEGS_Avenger_Titan_Renegade')).toBe(false);
+  });
 });
 
 describe('manuCode', () => {

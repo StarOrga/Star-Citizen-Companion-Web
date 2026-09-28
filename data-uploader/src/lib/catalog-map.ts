@@ -92,7 +92,9 @@ export function localizedName(name: unknown): string | null {
   return clean(n.en) || clean(n.de) || null;
 }
 
-const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_|_Renegade$)/i;
+// _Renegade is not a variant marker: the Aegis Avenger Titan Renegade is a real
+// pledge-store ship, not an NPC clone (checked against codex_ships 2026-09-28).
+const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_)/i;
 export const isVariant = (cn: string | undefined): boolean => VARIANT_RE.test(cn || '');
 
 export const manuCode = (e: { manufacturer?: unknown }): string | null =>
