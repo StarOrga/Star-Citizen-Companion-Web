@@ -212,3 +212,18 @@ below is canonical — external docs cite it.)
    test:gate` therefore runs through `scripts/run-gate-tests.mjs`, which
    rewrites that one line to `ℹ failures 0`; use the same wrapper for any new
    `node --test` script.
+
+8. **Cloud sessions: `ship_release` merges, the tag push does not.**
+   A claude.ai cloud session loads the devops plugin via `.claude/settings.json`,
+   so `ship_release` runs — but the cloud git proxy answers the tag push with
+   HTTP 403 (git may still print "Everything up-to-date"). Always squash-merge,
+   then hand the tag to the owner (Jerry0022/dotclaude#566/#567) with the exact
+   commands, as in the "Release tag not set" addendum of
+   `.claude/audit/2026-09-26-full-app/findings.md`:
+
+   ```
+   git fetch origin main
+   git tag -a alpha/vX.Y.Z -m "alpha/vX.Y.Z" <squash-commit-sha>
+   git push origin alpha/vX.Y.Z
+   git ls-remote --tags origin alpha/vX.Y.Z
+   ```
