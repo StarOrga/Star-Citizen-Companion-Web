@@ -331,3 +331,25 @@ select cron.schedule(
   '25 4 * * *',
   $job$ delete from public.telemetry_events where received_at < now() - interval '120 days'; $job$
 );
+
+-- ============================================================
+-- E. Indexes on the FK columns the delete paths walk (AUD-321)
+--
+-- The existing unique index hangar_ship_configs_user_source_unique
+-- (user_id, source_config_id) leads with user_id and does not help the FK
+-- action on source_config_id.
+--
+-- ROLLBACK: drop index if exists public.hangar_share_links_source_idx,
+--             public.hangar_ship_configs_source_idx,
+--             public.hangar_ship_configs_owner_user_idx,
+--             public.p4k_bundles_disabled_by_idx;
+-- ============================================================
+create index if not exists hangar_share_links_source_idx
+  on public.hangar_share_links (source_config_id) where source_config_id is not null;
+create index if not exists hangar_ship_configs_source_idx
+  on public.hangar_ship_configs (source_config_id) where source_config_id is not null;
+create index if not exists hangar_ship_configs_owner_user_idx
+  on public.hangar_ship_configs (owner_user_id) where owner_user_id is not null;
+-- Same reason for the FK re-added in section B (AUD-108).
+create index if not exists p4k_bundles_disabled_by_idx
+  on public.p4k_bundles (disabled_by) where disabled_by is not null;
