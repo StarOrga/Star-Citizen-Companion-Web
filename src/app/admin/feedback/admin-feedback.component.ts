@@ -15,6 +15,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { SupabaseClientProvider } from '../../core/supabase.client';
 import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
@@ -1358,6 +1359,7 @@ export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(ScConfirmService);
   private readonly locale = inject(LocaleService);
   private readonly consent = inject(ConsentService);
   private readonly panelNav = inject(PanelNavigationService);
@@ -2662,7 +2664,15 @@ export class AdminFeedbackComponent implements OnInit {
   }
 
   async remove(m: FeedbackRow) {
-    if (!window.confirm(this.translate.instant('adminFeedback.deleteConfirm'))) return;
+    // The confirm lives in the CDK overlay container, outside this sheet, so
+    // its Escape never reaches the sheet's own Escape handler.
+    const ok = await this.dialog.confirm({
+      titleKey: 'adminFeedback.deleteTitle',
+      messageKey: 'adminFeedback.deleteConfirm',
+      confirmKey: 'adminFeedback.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     this.busy.set(true);
     this.errorMsg.set(null);
     // Same exit as the sign-off: back to the stream, and the row folds away.

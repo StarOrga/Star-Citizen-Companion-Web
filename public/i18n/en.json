@@ -2764,7 +2764,8 @@
       "invitedTitle": "Pre-registered for sign-in — no account has used this address yet.",
       "withdraw": "Withdraw invitation",
       "withdrawTitle": "Only takes the pre-registration back — an account that already joined is never affected.",
-      "withdrawConfirm": "Withdraw the invitation for {{email}}? The address loses its pre-registered access and nobody is notified."
+      "withdrawConfirm": "Withdraw the invitation for {{email}}? The address loses its pre-registered access and nobody is notified.",
+      "withdrawConfirmTitle": "Withdraw invitation?"
     },
     "col": {
       "user": "User",
@@ -2787,7 +2788,8 @@
     "delete": {
       "confirmSelf": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
       "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
-      "failed": "Delete failed"
+      "failed": "Delete failed",
+      "title": "Delete account?"
     },
     "tokens": {
       "navLink": "Integrations",
@@ -2851,7 +2853,8 @@
         "copied": "Copied",
         "ack": "I have saved it",
         "tokenLabel": "Plaintext token"
-      }
+      },
+      "revokeTitle": "Revoke token?"
     },
     "filter": {
       "searchPlaceholder": "Search name, username or email…",
@@ -2871,7 +2874,8 @@
       "acceptedNoMail": "{{email}} accepted and approved. No invite mail was sent — an account already exists for that address, so they simply sign in. Best tell them yourself.",
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
-      "joined": "Already has an account"
+      "joined": "Already has an account",
+      "declineTitle": "Decline request?"
     },
     "reports": {
       "title": "Conspicuous accounts",
@@ -3790,7 +3794,8 @@
     "actions": {
       "viewInApp": "View in the app",
       "more": "More actions"
-    }
+    },
+    "deleteTitle": "Delete message?"
   },
   "feedbackFab": {
     "open": "Open feedback",

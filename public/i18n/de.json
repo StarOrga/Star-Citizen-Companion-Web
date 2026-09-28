@@ -2764,7 +2764,8 @@
       "invitedTitle": "Für den Login vorregistriert — bisher nutzt kein Account diese Adresse.",
       "withdraw": "Einladung zurückziehen",
       "withdrawTitle": "Nimmt nur die Vorregistrierung zurück — ein bereits beigetretener Account ist davon nie betroffen.",
-      "withdrawConfirm": "Einladung für {{email}} zurückziehen? Die Adresse verliert ihren vorregistrierten Zugang, benachrichtigt wird niemand."
+      "withdrawConfirm": "Einladung für {{email}} zurückziehen? Die Adresse verliert ihren vorregistrierten Zugang, benachrichtigt wird niemand.",
+      "withdrawConfirmTitle": "Einladung zurückziehen?"
     },
     "col": {
       "user": "User",
@@ -2787,7 +2788,8 @@
     "delete": {
       "confirmSelf": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
-      "failed": "Löschen fehlgeschlagen"
+      "failed": "Löschen fehlgeschlagen",
+      "title": "Account löschen?"
     },
     "tokens": {
       "navLink": "Integrationen",
@@ -2851,7 +2853,8 @@
         "copied": "Kopiert",
         "ack": "Ich hab's gesichert",
         "tokenLabel": "Klartext-Token"
-      }
+      },
+      "revokeTitle": "Token widerrufen?"
     },
     "filter": {
       "searchPlaceholder": "Name, Username oder E-Mail suchen…",
@@ -2871,7 +2874,8 @@
       "acceptedNoMail": "{{email}} angenommen und freigeschaltet. Es ging keine Einladungsmail raus — zu dieser Adresse gibt es schon ein Konto, die Person meldet sich einfach an. Sag ihr am besten selbst Bescheid.",
       "declined": "Anfrage von {{email}} abgelehnt.",
       "allowlisted": "Schon auf Allowlist",
-      "joined": "Hat schon Account"
+      "joined": "Hat schon Account",
+      "declineTitle": "Anfrage ablehnen?"
     },
     "reports": {
       "title": "Auffällige Konten",
@@ -3790,7 +3794,8 @@
     "actions": {
       "viewInApp": "Im App ansehen",
       "more": "Weitere Aktionen"
-    }
+    },
+    "deleteTitle": "Nachricht löschen?"
   },
   "feedbackFab": {
     "open": "Feedback öffnen",

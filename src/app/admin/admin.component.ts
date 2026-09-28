@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { Role, RoleService } from '../auth/role.service';
@@ -1046,6 +1047,7 @@ export class AdminComponent implements OnInit {
   private readonly roles = inject(RoleService);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(ScConfirmService);
 
   readonly users = signal<AdminUserRow[]>([]);
   readonly busy = signal(false);
@@ -1519,8 +1521,13 @@ export class AdminComponent implements OnInit {
    * address is still possible, since only *pending* rows are unique.
    */
   async declineRequest(row: AccessRequestRow) {
-    const msg = this.translate.instant('admin.requests.declineConfirm', { email: row.email });
-    if (!window.confirm(msg)) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'admin.requests.declineTitle',
+      messageKey: 'admin.requests.declineConfirm',
+      params: { email: row.email },
+      confirmKey: 'admin.requests.decline',
+    });
+    if (!ok) return;
     this.accessBusy.set(true);
     this.accessMsg.set(null);
     const { error } = await this.sb.client.rpc('decide_access_request', {
@@ -1657,8 +1664,14 @@ export class AdminComponent implements OnInit {
    * wording can promise plainly that nothing joined is affected.
    */
   async withdrawInvite(row: AllowedEmailRow) {
-    const msg = this.translate.instant('admin.people.withdrawConfirm', { email: row.email });
-    if (!window.confirm(msg)) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'admin.people.withdrawConfirmTitle',
+      messageKey: 'admin.people.withdrawConfirm',
+      params: { email: row.email },
+      confirmKey: 'admin.people.withdraw',
+      tone: 'danger',
+    });
+    if (!ok) return;
     this.allowlistBusy.set(true);
     this.allowlistErrorMsg.set(null);
     const { error } = await this.sb.client.rpc('remove_allowed_email', { target_email: row.email });
@@ -1672,10 +1685,14 @@ export class AdminComponent implements OnInit {
 
   async deleteUser(u: AdminUserRow) {
     const isSelf = u.id === this.selfId();
-    const msg = isSelf
-      ? this.translate.instant('admin.delete.confirmSelf', { email: u.email })
-      : this.translate.instant('admin.delete.confirmOther', { email: u.email });
-    if (!window.confirm(msg)) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'admin.delete.title',
+      messageKey: isSelf ? 'admin.delete.confirmSelf' : 'admin.delete.confirmOther',
+      params: { email: u.email },
+      confirmKey: isSelf ? 'admin.actions.leaveSelf' : 'admin.actions.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     this.busy.set(true);
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client.functions.invoke('delete-user', {
