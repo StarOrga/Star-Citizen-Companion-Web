@@ -1,0 +1,58 @@
+-- ============================================================
+-- 20260928231143_delete_paths_and_log_retention.sql
+-- Make the delete paths work again, count only finished codex builds for
+-- retention, and bound the two log tables (plan D02, option A).
+--
+-- WHY
+--   AUD-005: hangar_ship_configs.source_config_id and
+--     hangar_share_links.source_config_id reference hangar_ship_configs
+--     ON DELETE SET NULL, and hangar_ship_configs.owner_user_id references
+--     auth.users ON DELETE SET NULL. PostgreSQL runs those FK actions as
+--     ordinary UPDATEs that fire row triggers, and the share / revoke guards
+--     (20260920160000_hangar_loadout_sharing.sql) reject every change of those
+--     columns. So deleting a config somebody shared or adopted, removing its
+--     ship (cascade), and deleting an account that shared or follows a share
+--     all failed with 42501.
+--   AUD-108: p4k_bundles.disabled_by (00005_phase2_diff_disable_build.sql:11)
+--     is the only FK to auth.users without an ON DELETE action; every
+--     supersede writes the uploader into it, so deleting that collaborator
+--     failed with a FK violation.
+--   AUD-113: prune_codex_builds (20260925010000_codex_build_retention.sql)
+--     ranks every codex_builds row, so a running or abandoned import counts as
+--     one of the two kept builds and pushes the previous LIVE build out.
+--     entity_counts cannot serve as a "finished" marker: it is
+--     jsonb not null default '{}' and ingest-catalog already writes it at
+--     `init`. Hence the new column finalized_at, set by set_current_codex_build.
+--   AUD-319: api_request_log was promised an "autopurge cron"
+--     (20260529_public_api_tokens.sql) that was never created.
+--   AUD-344 (DB part): telemetry_events grows without bound.
+--   AUD-321: the FK columns touched above have no index, so every FK action
+--     scans the referencing table.
+--
+-- WHAT
+--   A. share guard + revoke guard allow the one-way null the FK actions write
+--      (a follower copy that loses its source forks irreversibly).
+--   B. p4k_bundles.disabled_by re-added ON DELETE SET NULL.
+--   C. codex_builds.finalized_at (+ one-time backfill), set_current_codex_build
+--      sets it, prune_codex_builds counts finalized builds only and sweeps
+--      never-finalized, non-current builds after 7 days.
+--   D. pg_cron jobs api-request-log-purge (1 day) and
+--      telemetry-events-retention (120 days) + api_request_log (ts) index.
+--   E. indexes on the sharing FKs and on p4k_bundles.disabled_by.
+--   The pin uniqueness of AUD-111 already exists (hangar_ships_pin_unique,
+--   20260613000000_hangar.sql) and is NOT re-created here.
+--
+-- Alpha data policy: this file deletes data only through the new cron jobs —
+--   api_request_log rows older than 1 day, telemetry_events rows older than
+--   120 days, and never-finalized codex builds older than 7 days (re-extractable
+--   catalog data). auth.users and profiles are untouched.
+--
+-- pg_cron is already enabled (20260906130000_patch_stability_cron.sql). Do NOT
+-- repeat `create extension pg_cron` here (2BP01, see 20260925010000).
+--
+-- IDEMPOTENT: safe to re-run (create or replace, if-not-exists guards, the
+--   finalized_at backfill runs only when the column is created, cron jobs are
+--   unscheduled before they are scheduled).
+--
+-- ROLLBACK: per section, see the ROLLBACK line at the top of each section.
+-- ============================================================
