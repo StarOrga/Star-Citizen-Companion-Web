@@ -3166,7 +3166,13 @@
       "openCodex": "Codex-Eintrag",
       "remove": "Entfernen",
       "notes": "Notizen",
-      "notesPlaceholder": "Notizen zu diesem Schiff…"
+      "notesPlaceholder": "Notizen zu diesem Schiff…",
+      "removeConfirm": {
+        "title": "{{name}} aus dem Hangar entfernen?",
+        "bodyNone": "Das lässt sich nicht rückgängig machen.",
+        "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
+        "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
+      }
     },
     "configs": {
       "title": "Konfigurationen",
@@ -3177,7 +3183,11 @@
       "saveLoadout": "Loadout speichern",
       "discard": "Verwerfen",
       "delete": "Löschen",
-      "roleLabel": "Rolle"
+      "roleLabel": "Rolle",
+      "deleteConfirm": {
+        "title": "Konfiguration „{{name}}“ löschen?",
+        "body": "Das lässt sich nicht rückgängig machen."
+      }
     },
     "standard": {
       "title": "Standard-Komponenten",

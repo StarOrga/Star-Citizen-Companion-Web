@@ -29,6 +29,7 @@ import { ShipSkinViewerComponent } from '../codex/ship-skin-viewer.component';
 import { HangarItemPickerComponent, PickedItem } from './hangar-item-picker.component';
 import { HangarService } from './hangar.service';
 import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import {
   ConfigLoadoutEntry,
   HangarShip,
@@ -447,6 +448,7 @@ export class HangarShipDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);
   private readonly forkGuard = inject(CodexHoloForkGuard);
+  private readonly dialog = inject(ScConfirmService);
   private readonly codex = inject(CodexService);
 
   readonly roles = SHIP_CONFIG_ROLES;
@@ -628,6 +630,14 @@ export class HangarShipDetailComponent implements OnInit {
   }
 
   async deleteConfig(cfg: HangarShipConfig): Promise<void> {
+    const ok = await this.dialog.confirm({
+      titleKey: 'hangar.configs.deleteConfirm.title',
+      messageKey: 'hangar.configs.deleteConfirm.body',
+      params: { name: cfg.name },
+      confirmKey: 'hangar.configs.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     if (await this.hangar.deleteConfig(cfg.id)) {
       const rest = this.configs().filter((c) => c.id !== cfg.id);
       this.configs.set(rest);
@@ -788,6 +798,22 @@ export class HangarShipDetailComponent implements OnInit {
   async remove(): Promise<void> {
     const ship = this.ship();
     if (!ship) return;
+    // Configurations hang off the ship with ON DELETE CASCADE, so the
+    // question names how many go with it.
+    const n = this.configs().length;
+    const ok = await this.dialog.confirm({
+      titleKey: 'hangar.detail.removeConfirm.title',
+      messageKey:
+        n === 0
+          ? 'hangar.detail.removeConfirm.bodyNone'
+          : n === 1
+            ? 'hangar.detail.removeConfirm.bodyOne'
+            : 'hangar.detail.removeConfirm.bodyMany',
+      params: { name: ship.customName || this.shipDisplayName(), count: n },
+      confirmKey: 'hangar.detail.remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
     if (await this.hangar.removeShip(ship.id)) {
       void this.router.navigate(['/hangar']);
     }

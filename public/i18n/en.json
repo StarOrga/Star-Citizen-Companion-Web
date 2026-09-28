@@ -3166,7 +3166,13 @@
       "openCodex": "Codex entry",
       "remove": "Remove",
       "notes": "Notes",
-      "notesPlaceholder": "Notes about this ship…"
+      "notesPlaceholder": "Notes about this ship…",
+      "removeConfirm": {
+        "title": "Remove {{name}} from the hangar?",
+        "bodyNone": "This cannot be undone.",
+        "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
+        "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
+      }
     },
     "configs": {
       "title": "Configurations",
@@ -3177,7 +3183,11 @@
       "saveLoadout": "Save loadout",
       "discard": "Discard",
       "delete": "Delete",
-      "roleLabel": "Role"
+      "roleLabel": "Role",
+      "deleteConfirm": {
+        "title": "Delete configuration “{{name}}”?",
+        "body": "This cannot be undone."
+      }
     },
     "standard": {
       "title": "Standard components",
