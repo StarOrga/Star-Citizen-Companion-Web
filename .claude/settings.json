@@ -34,5 +34,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "dotclaude": {
+      "source": {
+        "source": "github",
+        "repo": "Jerry0022/dotclaude"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "devops@dotclaude": true
   }
 }
