@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.105.2",
+  "current": "0.106.0",
   "releases": [
+    {
+      "version": "0.106.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Rückfragen im App-Stil statt Browser-Fenster.",
+              "text": "Alle zehn nativen Bestätigungs- und Eingabedialoge sind durch einen übersetzten, per Tastatur bedienbaren App-Dialog ersetzt; ein Build-Check verhindert neue."
+            },
+            {
+              "title": "Hangar fragt vor dem Löschen.",
+              "text": "Ein Schiff zu entfernen oder eine Konfiguration zu löschen braucht jetzt eine Bestätigung; die Frage nennt, wie viele Konfigurationen mit verschwinden."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ehrliches Konto-Löschen.",
+              "text": "Nicht-Admins sehen statt eines Knopfs, der nur scheitern konnte, den Weg über das Impressum; Fehler beim Löschen erscheinen als verständlicher Satz statt als Code."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.105.2",
       "date": "2026-09-29",
