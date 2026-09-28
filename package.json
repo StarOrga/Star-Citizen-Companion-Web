@@ -13,7 +13,7 @@
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs && node scripts/check-native-ui.mjs",
     "build": "node scripts/build-with-exit-guard.mjs",
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",
@@ -53,6 +53,7 @@
     "check:csp-index": "node scripts/check-index-csp.mjs",
     "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest",
     "check:emails": "node scripts/check-no-personal-emails.mjs",
+    "check:native-ui": "node scripts/check-native-ui.mjs",
     "check:emails:selftest": "node scripts/check-no-personal-emails.mjs --selftest",
     "gen:brand-icons": "node scripts/build-brand-icons.mjs",
     "check:brand-icons": "node scripts/build-brand-icons.mjs --check"
