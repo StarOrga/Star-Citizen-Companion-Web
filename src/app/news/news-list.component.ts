@@ -174,8 +174,9 @@ const SAFE_SVG = new Map<string, SafeHtml>();
           }
         </article>
       } @else if (svc.error(); as err) {
-        <div class="sc-card err">
-          <strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err }}
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="svc.loading()" (click)="retry()">{{ 'errors.retry' | translate }}</button>
         </div>
       }
 
@@ -745,7 +746,11 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 
 
     .empty { text-align: center; color: var(--sc-fg-2); padding: 36px; margin: 0; }
-    .err { color: var(--sc-danger); padding: 16px; }
+    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
 
     /* ---------- Detail overlay ----------
        Sized to the viewport, not to the picture: the panel can never be taller
@@ -864,6 +869,11 @@ const SAFE_SVG = new Map<string, SafeHtml>();
 })
 export class NewsListComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
+
+  /** The feed error card's retry — the service's own refresh. */
+  retry(): void {
+    void this.svc.refresh();
+  }
   private readonly t = inject(TranslateService);
   private readonly overlay = inject(Overlay);
   private readonly vcr = inject(ViewContainerRef);

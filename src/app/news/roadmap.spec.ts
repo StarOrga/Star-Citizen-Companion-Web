@@ -1,3 +1,7 @@
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { RoadmapService } from './roadmap.service';
 import {
   RoadmapCard,
   RoadmapPayload,
@@ -95,5 +99,45 @@ describe('hasRoadmapContent — the band shows itself only when it has something
   it('is true as soon as either release carries a card', () => {
     expect(hasRoadmapContent(payload({ current: release('4.9', [card('a', 'X')]) }))).toBe(true);
     expect(hasRoadmapContent(payload({ next: release('4.10', [card('b', 'X')]) }))).toBe(true);
+  });
+});
+
+describe('RoadmapService.requestOutlines — transport errors (AUD-096)', () => {
+  let svc: RoadmapService;
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    spyOn(console, 'warn');
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    svc = TestBed.inject(RoadmapService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    http.verify();
+    TestBed.resetTestingModule();
+  });
+
+  async function failOnce(): Promise<void> {
+    const req = http.expectOne((r) => r.url.includes('rsi-roadmap') && r.url.includes('notes='));
+    req.error(new ProgressEvent('error'), { status: 0 });
+    // Let the batch's finally() and pump() settle.
+    await new Promise((r) => setTimeout(r));
+  }
+
+  it('keeps a slug requestable after one transport error, files it as missing after the second', async () => {
+    svc.requestOutlines(['a']);
+    await failOnce();
+    expect(svc.isMissing('a')).toBeFalse();
+    expect(svc.pending().has('a')).toBeFalse();
+
+    // An explicit ask ("load the rest", opening the row) tries again.
+    svc.requestOutlines(['a']);
+    await failOnce();
+    expect(svc.isMissing('a')).toBeTrue();
+
+    // Now it stays quiet — no third request.
+    svc.requestOutlines(['a']);
+    http.expectNone((r) => r.url.includes('notes='));
   });
 });
