@@ -227,3 +227,7 @@ below is canonical — external docs cite it.)
    git push origin alpha/vX.Y.Z
    git ls-remote --tags origin alpha/vX.Y.Z
    ```
+
+9. **Edge-function diffs run `npm run test:functions`** (own Bash call, rule 7)
+   before merge. CI runs the same suite under Node and Deno in the
+   `edge-functions` workflow's `plan` job; a red test blocks the deploy.

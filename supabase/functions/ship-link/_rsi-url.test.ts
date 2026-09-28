@@ -1,13 +1,15 @@
-// Hostile-input tests for the server-side allowlist. Run with:
+// Hostile-input tests for the server-side allowlist. Pure logic, no Deno APIs —
+// runs under `node --test` and `deno test` alike:
+//   npm run test:functions        (every edge-function test under node --test)
 //   deno test supabase/functions/ship-link/
-// (Deno is not part of the npm test run; this mirrors
-// src/app/core/rsi-pledge-link.util.spec.ts, which does run under `npm test`.)
-import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+// Mirrors src/app/core/rsi-pledge-link.util.spec.ts, which runs under `npm test`.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import { normalizeRsiPledgeShipUrl, normalizeShipSlug } from './_rsi-url.ts';
 
 const CANONICAL = 'https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad';
 
-Deno.test('accepts and canonicalizes genuine pledge links', () => {
+test('accepts and canonicalizes genuine pledge links', () => {
   for (
     const input of [
       CANONICAL,
@@ -18,11 +20,11 @@ Deno.test('accepts and canonicalizes genuine pledge links', () => {
       'https://RobertsSpaceIndustries.com/en/pledge/ships/nomad/Nomad',
     ]
   ) {
-    assertEquals(normalizeRsiPledgeShipUrl(input), CANONICAL, input);
+    assert.equal(normalizeRsiPledgeShipUrl(input), CANONICAL, input);
   }
 });
 
-Deno.test('rejects hostile input', () => {
+test('rejects hostile input', () => {
   for (
     const input of [
       // dangerous schemes
@@ -65,18 +67,18 @@ Deno.test('rejects hostile input', () => {
       [CANONICAL],
     ]
   ) {
-    assertEquals(normalizeRsiPledgeShipUrl(input), null, JSON.stringify(input));
+    assert.equal(normalizeRsiPledgeShipUrl(input), null, JSON.stringify(input));
   }
 });
 
-Deno.test('rejects overlong input', () => {
+test('rejects overlong input', () => {
   const long = `https://robertsspaceindustries.com/en/pledge/ships/${'a'.repeat(400)}/Nomad`;
-  assertEquals(normalizeRsiPledgeShipUrl(long), null);
+  assert.equal(normalizeRsiPledgeShipUrl(long), null);
 });
 
-Deno.test('ship slug allowlist', () => {
-  assertEquals(normalizeShipSlug('AEGS_Gladius'), 'AEGS_Gladius');
-  assertEquals(normalizeShipSlug('  RSI_Polaris  '), 'RSI_Polaris');
+test('ship slug allowlist', () => {
+  assert.equal(normalizeShipSlug('AEGS_Gladius'), 'AEGS_Gladius');
+  assert.equal(normalizeShipSlug('  RSI_Polaris  '), 'RSI_Polaris');
   for (
     const bad of [
       '',
@@ -89,6 +91,6 @@ Deno.test('ship slug allowlist', () => {
       7,
     ]
   ) {
-    assertEquals(normalizeShipSlug(bad), null, JSON.stringify(bad));
+    assert.equal(normalizeShipSlug(bad), null, JSON.stringify(bad));
   }
 });
