@@ -26,6 +26,7 @@ npm start             # http://127.0.0.1:4200 — talks to the cloud Supabase pr
 npm run build         # production build into dist/sc-companion/browser
 npm run typecheck     # tsc --noEmit
 npm test              # Karma + Jasmine (ChromeHeadless)
+npm run lint          # ESLint via angular-eslint (ng lint)
 ```
 
 ### Supabase

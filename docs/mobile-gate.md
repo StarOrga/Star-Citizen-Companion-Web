@@ -209,6 +209,19 @@ change) — for those, the ship skill skips the gate automatically anyway.
 
 ---
 
+## CI
+
+- `.github/workflows/web-ci.yml` builds and gates `dist/` on every PR that
+  touches the web app (job `production build + mobile gate`), without
+  `--skip-if-unavailable`: a missing browser turns the job red.
+- The authenticated pass runs there only when the repo secrets
+  `SC_TEST_EMAIL` / `SC_TEST_PASSWORD` are set; otherwise the public pass runs
+  and the report lists the auth routes as unchecked.
+- On a red run, `mobile-gate.json` and the screenshots are attached to the
+  workflow run as the `mobile-gate-report` artifact (kept 7 days).
+
+---
+
 ## Self-test — who watches the watchman
 
 `npm run gate:mobile:selftest` serves
