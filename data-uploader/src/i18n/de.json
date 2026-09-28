@@ -92,7 +92,6 @@
     "title": "Auslesen — Spieldaten",
     "next": "Upload anbieten",
     "cancel": "Lauf abbrechen…",
-    "tempo": "Tempo",
     "logTitle": "Protokoll",
     "copyLog": "Kopieren",
     "copied": "Kopiert ✓",
@@ -335,6 +334,13 @@
     "skippedNoModel": "{{n}} übersprungen (kein Livery-Modell)",
     "failedCount": "{{n}} fehlgeschlagen",
     "partialStatus": "{{live}} / {{attempted}} Schiffe hochgeladen — {{failed}} fehlgeschlagen (siehe Protokoll)"
+  },
+  "silhouettes": {
+    "building": "Silhouetten werden gebaut",
+    "hint": "Der erste Build wandelt jede Hülle und jedes Bauteil einzeln um – das kann etwas dauern.",
+    "toolsFailed": "Build-Tools nicht verfügbar – Silhouetten übersprungen",
+    "buildFailed": "Silhouetten-Build fehlgeschlagen (Bundle ist hochgeladen)",
+    "done": "{{written}} Silhouetten erzeugt ({{cached}} zwischengespeichert, {{skipped}} ohne Geometrie)"
   },
   "progress": {
     "still": "arbeitet noch",

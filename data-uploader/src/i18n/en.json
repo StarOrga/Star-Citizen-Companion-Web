@@ -3,7 +3,6 @@
     "back": "Back",
     "next": "Next",
     "cancel": "Cancel",
-    "tempo": "Tempo",
     "ok": "OK",
     "dismiss": "Dismiss"
   },
@@ -335,6 +334,13 @@
     "skippedNoModel": "{{n}} skipped (no livery model)",
     "failedCount": "{{n}} failed",
     "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)"
+  },
+  "silhouettes": {
+    "building": "Building silhouettes",
+    "hint": "The first build converts every hull and part one by one — this can take a while.",
+    "toolsFailed": "Build tools unavailable — silhouettes skipped",
+    "buildFailed": "Silhouette build failed (bundle is uploaded)",
+    "done": "{{written}} silhouettes built ({{cached}} cached, {{skipped}} without geometry)"
   },
   "progress": {
     "still": "still working",
