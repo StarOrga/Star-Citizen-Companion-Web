@@ -21,7 +21,7 @@ export const SPEC = {
     license: { name: 'MIT' },
   },
   servers: [
-    { url: 'https://sc-companion.vercel.app', description: 'Production' },
+    { url: 'https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/api', description: 'Production' },
   ],
   security: [{ BearerAuth: [] }],
   components: {

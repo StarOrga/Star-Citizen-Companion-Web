@@ -86,7 +86,7 @@ const HTML = `<!DOCTYPE html>
       OpenAPI spec.
     </p>
     <div class="embed-row">
-      <pre id="embed-snippet">&lt;script id=&quot;api-reference&quot; data-url=&quot;https://sc-companion.vercel.app/openapi.json&quot;&gt;&lt;/script&gt;
+      <pre id="embed-snippet">&lt;script id=&quot;api-reference&quot; data-url=&quot;https://hcnqhvzlavdycidqyaai.supabase.co/functions/v1/api/openapi.json&quot;&gt;&lt;/script&gt;
 &lt;script src=&quot;https://cdn.jsdelivr.net/npm/@scalar/api-reference&quot;&gt;&lt;/script&gt;</pre>
       <button type="button" id="copy-embed">Copy snippet</button>
       <span class="ack" id="copy-ack" hidden>Copied</span>
@@ -95,7 +95,7 @@ const HTML = `<!DOCTYPE html>
 
   <script
     id="api-reference"
-    data-url="/openapi.json"
+    data-url="./openapi.json"
     data-configuration='{"theme":"deepSpace","darkMode":true,"hideClientButton":false,"layout":"modern","metaData":{"title":"SC Companion API","description":"Star Citizen Verse data — patches, news, ships, components"}}'>
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
