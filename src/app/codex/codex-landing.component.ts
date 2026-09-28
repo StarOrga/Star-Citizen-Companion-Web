@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -174,8 +175,8 @@ const SEARCH_DEBOUNCE_MS = 250;
       </header>
 
       @if (error(); as err) {
-        <div class="sc-card err">
-          <p>{{ 'codex.error.title' | translate }}</p>
+        <div class="sc-card err" role="alert">
+          <p>{{ 'codex.error.title' | translate }} — {{ err | translate }}</p>
           <button type="button" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       }
@@ -555,6 +556,7 @@ export class CodexLandingComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   // Archive Terminal (poly-search)
@@ -810,7 +812,7 @@ export class CodexLandingComponent implements OnInit {
       this.resolvePersonal();
       await this.resolveFleet();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'landing', err));
     } finally {
       this.loading.set(false);
     }

@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -400,7 +401,10 @@ export class CodexService {
    */
   readonly liveBuild = signal<CodexBuild | null>(null);
   readonly buildLoading = signal(false);
+  /** i18n key of the last failed build lookup (error flag only; never raw text). */
   readonly buildError = signal<string | null>(null);
+  /** The original failure behind `buildError` — `buildOrThrow` rethrows it so readers can classify it. */
+  private buildFailure: unknown = null;
 
   /**
    * Newest LIVE patch version anyone has uploaded (from the viewer-safe
@@ -477,14 +481,14 @@ export class CodexService {
    */
   private async buildOrThrow(): Promise<CodexBuild | null> {
     const build = await this.loadCurrentBuild();
-    const failed = this.buildError();
-    if (!build && failed) throw new Error(failed);
+    if (!build && this.buildError()) throw this.buildFailure ?? new Error('build lookup failed');
     return build;
   }
 
   private async fetchCurrentBuild(): Promise<CodexBuild | null> {
     this.buildLoading.set(true);
     this.buildError.set(null);
+    this.buildFailure = null;
     try {
       const { data, error } = await this.sb.client
         .from('codex_builds')
@@ -506,7 +510,8 @@ export class CodexService {
       void this.loadLatestLivePatch();
       return mapped;
     } catch (err) {
-      this.buildError.set((err as Error).message ?? 'Unknown error');
+      this.buildFailure = err;
+      this.buildError.set(toErrorKey('codex', 'build', err));
       return null;
     } finally {
       this.buildLoading.set(false);

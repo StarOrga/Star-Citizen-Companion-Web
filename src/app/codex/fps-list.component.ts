@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -241,8 +242,8 @@ interface FacetOption {
 
       <!-- Results -->
       @if (error(); as err) {
-        <div class="sc-card err">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
@@ -699,6 +700,7 @@ export class FpsListComponent {
   /** How many cards are on screen; "load more" raises it, any filter change resets it. */
   private readonly shown = signal(PAGE_SIZE);
   readonly loading = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private loadSeq = 0;
@@ -1272,7 +1274,7 @@ export class FpsListComponent {
       this.counts.update((c) => ({ ...c, [category]: this.fold(catalog, includeVariants).length }));
     } catch (err) {
       if (seq !== this.loadSeq) return;
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'fpsCatalog', err, { category }));
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
     }

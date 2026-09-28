@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -324,8 +325,8 @@ interface GearRecipe {
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
-        <div class="sc-card err">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
           @if (canRetry()) {
             <button type="button" class="retry" (click)="retryLoad()">{{ 'codex.error.retry' | translate }}</button>
           }
@@ -960,7 +961,7 @@ interface GearRecipe {
                             @if (c.loading) {
                               <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
                             } @else if (c.error) {
-                              <span class="err-inline">{{ c.error }}</span>
+                              <span class="err-inline">{{ c.error | translate }}</span>
                             } @else if (c.items.length === 0) {
                               <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
                             } @else {
@@ -1367,7 +1368,7 @@ interface GearRecipe {
                                 @if (c.loading) {
                                   <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
                                 } @else if (c.error) {
-                                  <span class="err-inline">{{ c.error }}</span>
+                                  <span class="err-inline">{{ c.error | translate }}</span>
                                 } @else if (c.items.length === 0) {
                                   <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
                                 } @else {
@@ -2075,6 +2076,7 @@ export class CodexDetailComponent implements OnInit {
   }
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
   readonly showEmptyLoadout = signal(false);
@@ -2222,7 +2224,7 @@ export class CodexDetailComponent implements OnInit {
       // "undefined" and print the raw database message.
       if (!kind || !className || !CODEX_KINDS.includes(kind)) {
         this.lastRequest = null;
-        this.error.set(this.t.instant('codex.detail.invalidRoute'));
+        this.error.set('codex.detail.invalidRoute');
         this.loading.set(false);
         return;
       }
@@ -2337,7 +2339,7 @@ export class CodexDetailComponent implements OnInit {
         }
       }
     } catch (err) {
-      if (seq === this.loadSeq) this.error.set((err as Error).message ?? 'Unknown error');
+      if (seq === this.loadSeq) this.error.set(toErrorKey('codex', 'detail', err, { ...this.lastRequest }));
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
     }
@@ -2387,7 +2389,7 @@ export class CodexDetailComponent implements OnInit {
     } catch (e) {
       this.setCompat(port.portIndex, {
         loading: false,
-        error: (e as Error).message ?? 'error',
+        error: toErrorKey('codex', 'compatible items', e, { port: port.portIndex }),
         items: [],
       });
     }

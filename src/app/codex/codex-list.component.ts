@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -307,8 +308,8 @@ export function blueprintCategoriesForGroup(
 
       <!-- Results -->
       @if (error(); as err) {
-        <div class="sc-card err">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
@@ -929,6 +930,7 @@ export class CodexListComponent implements OnInit {
   /** More pages left on the server — measured on the RAW rows, not the folded ones. */
   readonly hasMore = computed(() => this.rawRows().length < this.serverTotal());
   readonly loading = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   private offset = 0;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1521,7 +1523,7 @@ export class CodexListComponent implements OnInit {
       this.serverTotal.set(res.count);
     } catch (err) {
       if (seq !== this.loadSeq) return;
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'list', err));
       if (reset) {
         this.rawRows.set([]);
         this.serverTotal.set(0);

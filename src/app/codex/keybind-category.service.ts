@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
@@ -54,6 +55,7 @@ export class KeybindCategoryService {
   readonly byAction = this._byAction.asReadonly();
   readonly loaded = this._loaded.asReadonly();
   readonly saving = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   readonly assignedCount = computed(() => this._byAction().size);
 
@@ -91,7 +93,7 @@ export class KeybindCategoryService {
       this._byAction.set(next);
       this._loaded.set(true);
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('keybinds', 'categories load', err));
     }
   }
 
@@ -153,7 +155,7 @@ export class KeybindCategoryService {
       this._byAction.set(next);
       return true;
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('keybinds', 'category assign', err));
       return false;
     } finally {
       this.saving.set(false);

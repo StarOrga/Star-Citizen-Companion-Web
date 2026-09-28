@@ -452,7 +452,10 @@ describe('CodexService archive readers and the build lookup', () => {
     const calls: Calls = { builds: 0, filters: [] };
     const svc = make(calls, true);
 
+    spyOn(console, 'warn');
+    // The reader gets the ORIGINAL failure to classify; the service flag holds a key.
     await expectAsync(svc.listByKind('item')).toBeRejectedWithError('network down');
+    expect(svc.buildError()).toBe('errors.generic');
     await expectAsync(svc.listByKind('item')).toBeResolved();
     expect(calls.builds).toBe(2);
   });

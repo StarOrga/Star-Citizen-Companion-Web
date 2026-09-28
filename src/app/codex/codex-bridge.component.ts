@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -112,8 +113,8 @@ interface Lane {
       <sc-uploader-access />
 
       @if (error(); as err) {
-        <div class="sc-card err">
-          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+        <div class="sc-card err" role="alert">
+          <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}
           <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       }
@@ -500,6 +501,7 @@ export class CodexBridgeComponent implements OnInit {
   private searchSeq = 0;
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   // Ship catalog rows for the current build (lane + hero source).
@@ -612,7 +614,7 @@ export class CodexBridgeComponent implements OnInit {
       this.catalog.set(await this.svc.listBridgeShips(60));
       await this.resolveHangarRows();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'bridge', err));
     } finally {
       this.loading.set(false);
     }
