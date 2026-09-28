@@ -292,3 +292,42 @@ end
 $func$;
 
 revoke all on function public.prune_codex_builds(int) from public, anon, authenticated;
+
+-- ============================================================
+-- D. Log retention (AUD-319, AUD-344 DB part)
+--
+-- api_request_log: the rate limiter (supabase/functions/api/_rate-limit.ts)
+-- reads only the last minute; the "autopurge cron" promised in
+-- 20260529_public_api_tokens.sql was never created. Its only index leads with
+-- token_hash, so the purge gets its own index on ts.
+-- telemetry_events: 120 days — the admin dashboard's widest window is 90 days
+-- (telemetry-stats.component.ts WINDOWS), plus a 30-day buffer.
+-- telemetry_events_received_idx already exists (20260618120000_telemetry.sql).
+--
+-- ROLLBACK: select cron.unschedule('api-request-log-purge');
+--           select cron.unschedule('telemetry-events-retention');
+--           drop index if exists public.api_request_log_ts_idx;
+-- ============================================================
+create index if not exists api_request_log_ts_idx on public.api_request_log (ts);
+
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'api-request-log-purge') then
+    perform cron.unschedule('api-request-log-purge');
+  end if;
+  if exists (select 1 from cron.job where jobname = 'telemetry-events-retention') then
+    perform cron.unschedule('telemetry-events-retention');
+  end if;
+end $$;
+
+select cron.schedule(
+  'api-request-log-purge',
+  '15 4 * * *',
+  $job$ delete from public.api_request_log where ts < now() - interval '1 day'; $job$
+);
+
+select cron.schedule(
+  'telemetry-events-retention',
+  '25 4 * * *',
+  $job$ delete from public.telemetry_events where received_at < now() - interval '120 days'; $job$
+);
