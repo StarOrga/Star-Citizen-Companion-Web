@@ -12,7 +12,11 @@
 // AUTH — no JWT (verify_jwt = false). The desktop app is an unauthenticated
 // machine client; this function does its own HMAC auth:
 //   X-SCC-Signature = hex HMAC-SHA256 over `${X-SCC-Timestamp}.${rawBody}`
-//   key = env TELEMETRY_HMAC_KEY (dev fallback "scc-telemetry-dev-key-v1").
+//   key = env TELEMETRY_HMAC_KEY — no fallback (AUD-114): without it (or
+//   without TELEMETRY_HASH_SALT) every request gets 503. TELEMETRY_DEV=1 opts
+//   a local stack into the public dev key/salt; set it in
+//   supabase/functions/.env (gitignored), which `supabase functions serve`
+//   loads by itself — supabase/.env is NOT read by functions serve.
 // Replay guard: |now - timestamp| must be <= 10 min.
 //
 // PRIVACY — no PII is stored. installId/sessionId and the caller IP are stored
@@ -22,9 +26,11 @@
 // get_telemetry_stats RPC.
 //
 // Responses: 204 accepted · 400 bad payload · 401 bad/old signature ·
-//            429 rate-limited (Retry-After) · 500 server error.
+//            429 rate-limited (Retry-After) · 500 server error ·
+//            503 server misconfigured (secrets missing).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { resolveTelemetrySecrets } from './_config.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -43,8 +49,12 @@ const REPLAY_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_PER_IP = 1000; // events / 10 min / ip
 const RATE_WINDOW = "10 minutes";
 const MAX_BATCH = 200;
-const HMAC_KEY = Deno.env.get('TELEMETRY_HMAC_KEY') ?? 'scc-telemetry-dev-key-v1';
-const HASH_SALT = Deno.env.get('TELEMETRY_HASH_SALT') ?? 'scc-telemetry-salt-v1';
+const SECRETS = resolveTelemetrySecrets((k) => Deno.env.get(k));
+if (!SECRETS.ok) {
+  console.error(`[ingest-telemetry] missing secrets: ${SECRETS.missing.join(', ')}, refusing all events`);
+} else if (SECRETS.dev) {
+  console.warn('[ingest-telemetry] TELEMETRY_DEV=1 — dev key active');
+}
 
 const enc = new TextEncoder();
 
@@ -85,6 +95,7 @@ function clamp(s: unknown, n: number): string | null {
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (!SECRETS.ok) return json({ error: 'server_misconfigured' }, 503);
 
   // --- read RAW body first (HMAC must cover the exact bytes the client signed) ---
   const rawBody = await req.text();
@@ -98,7 +109,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   // --- HMAC verify ---
-  const expected = await hmacHex(HMAC_KEY, `${ts}.${rawBody}`);
+  const expected = await hmacHex(SECRETS.hmacKey, `${ts}.${rawBody}`);
   if (!sig || !safeEqual(expected, sig.toLowerCase())) {
     return json({ error: 'bad_signature' }, 401);
   }
@@ -128,9 +139,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // --- anonymous, salted identifiers ---
   const ipRaw = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
-  const ipHash = await sha256Hex(`${HASH_SALT}:ip:${ipRaw}`);
-  const sessionHash = body.sessionId ? await sha256Hex(`${HASH_SALT}:s:${body.sessionId}`) : null;
-  const installHash = body.installId ? await sha256Hex(`${HASH_SALT}:i:${body.installId}`) : null;
+  const ipHash = await sha256Hex(`${SECRETS.hashSalt}:ip:${ipRaw}`);
+  const sessionHash = body.sessionId ? await sha256Hex(`${SECRETS.hashSalt}:s:${body.sessionId}`) : null;
+  const installHash = body.installId ? await sha256Hex(`${SECRETS.hashSalt}:i:${body.installId}`) : null;
 
   // --- per-IP rate limit ---
   const { count } = await admin
