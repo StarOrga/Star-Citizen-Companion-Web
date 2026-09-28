@@ -10,8 +10,12 @@ import {
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
 import { NewsService, StatusLevel, effectivePlayability } from './news.service';
+
+/** Per-instance id for the chip -> panel aria-controls link. */
+let uid = 0;
 
 const RSI_STATUS_URL = 'https://status.robertsspaceindustries.com/';
 
@@ -48,7 +52,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
 @Component({
   selector: 'sc-verse-status-chip',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (status(); as st) {
@@ -59,6 +63,8 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
           class="vs-chip"
           [class]="'vs-chip status-' + eff"
           [attr.aria-expanded]="open()"
+          aria-haspopup="dialog"
+          [attr.aria-controls]="panelId"
           [attr.aria-label]="('news.status.title' | translate) + ': ' + (('news.status.' + eff) | translate)"
           (click)="toggle($event)">
           <span class="dot" [class]="'status-' + eff" aria-hidden="true"></span>
@@ -66,7 +72,9 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
         </button>
 
         @if (open()) {
-          <div class="vs-panel" role="dialog" [attr.aria-label]="'news.status.services' | translate">
+          <div class="vs-panel" role="dialog" [id]="panelId"
+               scDialog [scDialogModal]="false" scDialogInitialFocus="container" (scDialogEscape)="open.set(false)"
+               [attr.aria-label]="'news.status.services' | translate">
             <h3>{{ 'news.status.services' | translate }}</h3>
             @if (st.components.length > 0) {
               <ul class="svc-list">
@@ -227,6 +235,7 @@ export class VerseStatusChipComponent implements OnInit {
   /** Can this device install a downloaded Windows application at all? */
   readonly canInstall = this.device.canInstall;
   readonly open = signal(false);
+  readonly panelId = `vs-panel-${++uid}`;
 
   readonly status = computed(() => this.svc.feed()?.status ?? null);
   /**
@@ -288,6 +297,12 @@ export class VerseStatusChipComponent implements OnInit {
     if (el && !el.contains(event.target as Node)) this.open.set(false);
   }
 
+  /**
+   * Kept on purpose next to the panel's ScDialogDirective: the popover is not
+   * modal, so Tab can leave it while it stays open — Escape must still close
+   * it then. While focus is inside the panel the directive handles Escape and
+   * stops the event at the panel, so this never fires twice.
+   */
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.open()) this.open.set(false);
