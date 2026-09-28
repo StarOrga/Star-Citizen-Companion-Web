@@ -4,6 +4,9 @@
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 127.0.0.1 --port 4200",

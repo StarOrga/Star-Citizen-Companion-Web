@@ -18,6 +18,8 @@ A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Sp
 
 ## Quick start
 
+Requires **Node 24** (see `.nvmrc`, `nvm use`). Node 22 works from 22.22.3 on; older patches are refused by the Angular CLI.
+
 ```bash
 npm install
 npm start             # http://127.0.0.1:4200 — talks to the cloud Supabase project
