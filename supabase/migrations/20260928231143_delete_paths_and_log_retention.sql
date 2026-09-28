@@ -175,3 +175,35 @@ $func$;
 
 comment on function public.hangar_share_links_revoke_guard() is
   'Wave 1.5 (user decision 1): a share link is immutable except revoked_at (null -> timestamp, once). AUD-005: one-way null via FK action allowed (source_config_id only, nothing else on the row may change).';
+
+-- ============================================================
+-- B. p4k_bundles.disabled_by ON DELETE SET NULL (AUD-108)
+--
+-- The only FK to auth.users without an ON DELETE action. Every supersede
+-- writes disabled_by = uploader, so deleting that collaborator failed with a
+-- FK violation. Look the constraint up by definition (it is auto-named), drop
+-- it, re-add it with ON DELETE SET NULL. Re-runnable: the lookup also finds
+-- the constraint this block created. The column is already nullable.
+--
+-- ROLLBACK: alter table public.p4k_bundles drop constraint p4k_bundles_disabled_by_fkey;
+--           alter table public.p4k_bundles add constraint p4k_bundles_disabled_by_fkey
+--             foreign key (disabled_by) references auth.users (id);
+-- ============================================================
+do $$
+declare v_con text;
+begin
+  for v_con in
+    select c.conname
+    from pg_constraint c
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
+    where c.conrelid = 'public.p4k_bundles'::regclass
+      and c.contype = 'f'
+      and a.attname = 'disabled_by'
+  loop
+    execute format('alter table public.p4k_bundles drop constraint %I', v_con);
+  end loop;
+end $$;
+
+alter table public.p4k_bundles
+  add constraint p4k_bundles_disabled_by_fkey
+  foreign key (disabled_by) references auth.users (id) on delete set null;
