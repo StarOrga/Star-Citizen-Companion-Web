@@ -81,14 +81,16 @@ describe('LoginComponent — landing + apply', () => {
   it('surfaces a real failure instead of pretending it was sent', async () => {
     const fixture = setup();
     const comp = fixture.componentInstance;
-    submit.and.resolveTo({ kind: 'error', message: 'network down' });
+    spyOn(console, 'warn');
+    submit.and.resolveTo({ kind: 'error', error: new TypeError('Failed to fetch') });
 
     comp.showApply();
     comp.applyForm.patchValue({ email: 'pilot@example.com' });
     await comp.onApply();
 
     expect(comp.applyDone()).toBeFalse();
-    expect(comp.applyError()).toBe('network down');
+    // A key, never the raw transport text (ChromeHeadless is online).
+    expect(comp.applyError()).toBe('errors.network');
   });
 
   it('carries a half-typed sign-in email over into the apply form', () => {

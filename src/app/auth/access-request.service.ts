@@ -18,7 +18,7 @@ export type AccessRequestResult =
   | { kind: 'ok' }
   | { kind: 'duplicate' }
   | { kind: 'rate-limited' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; error: unknown };
 
 /** Postgres error codes the `access_requests_guard()` trigger raises. */
 const DUPLICATE = '23505';
@@ -44,6 +44,8 @@ export class AccessRequestService {
     if (!error) return { kind: 'ok' };
     if (error.code === DUPLICATE) return { kind: 'duplicate' };
     if (error.code === RATE_LIMITED) return { kind: 'rate-limited' };
-    return { kind: 'error', message: error.message };
+    // The error object itself: the caller classifies it (describeError) and
+    // shows a translated sentence, never the raw PostgREST text.
+    return { kind: 'error', error };
   }
 }

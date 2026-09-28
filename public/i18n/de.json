@@ -108,6 +108,15 @@
       "title": "Dieses Konto ist gesperrt",
       "until": "Die Sperre endet am {{date}}.",
       "indefinite": "Die Sperre gilt bis ein Administrator sie aufhebt."
+    },
+    "errors": {
+      "invalidCredentials": "E-Mail oder Passwort stimmt nicht.",
+      "emailNotConfirmed": "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Mail.",
+      "rateLimit": "Zu viele Versuche – bitte warte kurz und versuch es dann erneut.",
+      "weakPassword": "Das Passwort ist zu schwach. Nimm ein längeres oder weniger vorhersehbares.",
+      "samePassword": "Das neue Passwort muss sich vom bisherigen unterscheiden.",
+      "emailInvalid": "Diese E-Mail-Adresse ist ungültig.",
+      "linkExpired": "Der Link ist abgelaufen oder wurde schon benutzt. Fordere einen neuen an."
     }
   },
   "nav": {

@@ -1,3 +1,4 @@
+import { authErrorKey } from './auth-error-key';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
@@ -51,7 +52,7 @@ const MIN_LENGTH = 8;
       <p class="hint">{{ 'auth.setPassword.rule' | translate: { min: minLength } }}</p>
 
       @if (error(); as e) {
-        <div class="flash error" role="alert">{{ e }}</div>
+        <div class="flash error" role="alert">{{ e | translate }}</div>
       }
       @if (done()) {
         <div class="flash success" role="status">{{ 'auth.setPassword.saved' | translate }}</div>
@@ -91,6 +92,7 @@ export class PasswordFormComponent {
   readonly confirm = signal('');
   readonly busy = signal(false);
   readonly done = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   readonly valid = computed(
@@ -110,7 +112,7 @@ export class PasswordFormComponent {
     try {
       const { error } = await this.auth.updatePassword(this.password());
       if (error) {
-        this.error.set(error.message);
+        this.error.set(authErrorKey(error, 'password update'));
         return;
       }
       // Clear both fields on success — nothing keeps a password in memory for
@@ -120,7 +122,7 @@ export class PasswordFormComponent {
       this.done.set(true);
       this.saved.emit();
     } catch (err) {
-      this.error.set((err as Error).message);
+      this.error.set(authErrorKey(err, 'password update'));
     } finally {
       this.busy.set(false);
     }

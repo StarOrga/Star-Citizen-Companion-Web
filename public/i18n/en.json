@@ -108,6 +108,15 @@
       "title": "This account is suspended",
       "until": "The suspension ends on {{date}}.",
       "indefinite": "The suspension stays in place until an administrator lifts it."
+    },
+    "errors": {
+      "invalidCredentials": "Email or password is incorrect.",
+      "emailNotConfirmed": "Please confirm your email address first, using the link in the mail.",
+      "rateLimit": "Too many attempts — please wait a moment and try again.",
+      "weakPassword": "That password is too weak. Pick a longer or less predictable one.",
+      "samePassword": "The new password has to differ from the current one.",
+      "emailInvalid": "This email address is invalid.",
+      "linkExpired": "The link has expired or was already used. Request a new one."
     }
   },
   "nav": {
