@@ -3375,7 +3375,8 @@
       "ship": "Schiffe",
       "weapon": "Waffen",
       "component": "Komponenten"
-    }
+    },
+    "error": "Suche fehlgeschlagen"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",

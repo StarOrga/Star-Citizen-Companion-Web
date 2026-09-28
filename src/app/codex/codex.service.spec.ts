@@ -882,3 +882,62 @@ describe('CodexService.resolveEntities', () => {
     expect(resolved.get('LH86')?.name).toBeNull();
   });
 });
+
+describe('CodexService.getDetail', () => {
+  /**
+   * Every query is a chain that ends in a thenable; `maybeSingle()` answers the
+   * build lookup and the entity row, the chosen side read answers with an error.
+   */
+  function provider(failing: 'codex_item_ports' | 'codex_entity_strings'): SupabaseClientProvider {
+    const from = (table: string) => {
+      const result = () =>
+        table === failing
+          ? { data: null, error: { code: 'XX000', message: 'boom', details: '', hint: '' } }
+          : { data: [], error: null };
+      const chain: Record<string, unknown> = new Proxy(
+        {},
+        {
+          get: (_t, prop) => {
+            if (prop === 'then') {
+              return (ok: (v: unknown) => unknown, bad: (e: unknown) => unknown) =>
+                Promise.resolve(result()).then(ok, bad);
+            }
+            if (prop === 'maybeSingle') {
+              return () =>
+                Promise.resolve(
+                  table === 'codex_builds'
+                    ? {
+                        data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+                        error: null,
+                      }
+                    : { data: { class_name: 'AEGS_Gladius', payload: {} }, error: null },
+                );
+            }
+            return () => chain;
+          },
+        },
+      );
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  function make(failing: 'codex_item_ports' | 'codex_entity_strings'): CodexService {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(failing) }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('throws when the ports read fails, instead of rendering "no ports" (AUD-110)', async () => {
+    const svc = make('codex_item_ports');
+    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
+  });
+
+  it('throws when the strings read fails', async () => {
+    const svc = make('codex_entity_strings');
+    await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
+  });
+});

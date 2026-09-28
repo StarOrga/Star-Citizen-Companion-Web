@@ -3375,7 +3375,8 @@
       "ship": "Ships",
       "weapon": "Weapons",
       "component": "Components"
-    }
+    },
+    "error": "Search failed"
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",

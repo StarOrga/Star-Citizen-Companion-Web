@@ -109,6 +109,7 @@ describe('CodexLandingComponent', () => {
       liveBuild: signal(null) as never,
       viewingPastPatch: signal(false) as never,
       patchTimeline: signal([]) as never,
+      patchTimelineError: signal<string | null>(null) as never,
       loadPatchTimeline: jasmine.createSpy('loadPatchTimeline').and.resolveTo([]),
       selectBuild: jasmine.createSpy('selectBuild').and.returnValue(false),
       compareKeys: compareKeys.asReadonly(),

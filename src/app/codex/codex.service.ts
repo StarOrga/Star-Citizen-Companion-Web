@@ -440,6 +440,8 @@ export class CodexService {
    * nothing.
    */
   readonly patchTimeline = signal<readonly PatchTimelineEntry[]>([]);
+  /** i18n key of the last failed timeline read (never raw text); null when fine. */
+  readonly patchTimelineError = signal<string | null>(null);
 
   // Compare tray: pinned `${kind}:${className}` keys (max 4).
   private readonly _compare = signal<string[]>([]);
@@ -560,18 +562,31 @@ export class CodexService {
    */
   async loadPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
     if (this.timelinePromise) return this.timelinePromise;
-    this.timelinePromise = this.fetchPatchTimeline();
-    return this.timelinePromise;
+    const attempt = this.fetchPatchTimeline();
+    this.timelinePromise = attempt;
+    return attempt;
   }
 
+  /**
+   * Loads the timeline. A failed build read is NOT memoised and not shown as
+   * "no other patches": `patchTimelineError` holds its key and the next open
+   * of the switch (or its retry) reads again.
+   */
   private async fetchPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
-    const [builds, uploaded] = await Promise.all([
-      this.recentLiveBuilds(PATCH_TIMELINE_LIMIT),
-      this.uploadedLivePatches(),
-    ]);
-    const entries = buildPatchTimeline(builds, uploaded);
-    this.patchTimeline.set(entries);
-    return entries;
+    this.patchTimelineError.set(null);
+    try {
+      const [builds, uploaded] = await Promise.all([
+        this.recentLiveBuildsOrThrow(PATCH_TIMELINE_LIMIT),
+        this.uploadedLivePatches(),
+      ]);
+      const entries = buildPatchTimeline(builds, uploaded);
+      this.patchTimeline.set(entries);
+      return entries;
+    } catch (err) {
+      this.timelinePromise = null;
+      this.patchTimelineError.set(toErrorKey('codex', 'patch timeline', err));
+      return this.patchTimeline();
+    }
   }
 
   /**
@@ -1071,6 +1086,10 @@ export class CodexService {
     ]);
 
     if (rowRes.error) throw rowRes.error;
+    // A failed ports/strings read used to render as "no ports" (empty
+    // loadouts); it is a failed load and gets the detail page's error card.
+    if (portsRes.error) throw portsRes.error;
+    if (stringsRes.error) throw stringsRes.error;
     if (!rowRes.data) return null;
 
     const row = rowRes.data as Record<string, unknown>;
@@ -1090,10 +1109,12 @@ export class CodexService {
    * Every build the reader can pick from the patch selector, newest first
    * (concept decision 4). Defaults to the LIVE channel — same source
    * {@link recentLiveBuilds} reads, just with the selector's larger limit
-   * instead of the diff's fixed 2.
+   * instead of the diff's fixed 2. `failed` tells a failed read apart from an
+   * empty channel (same shape as `ShipSkinsService.listSkins`).
    */
-  async buildsForChannel(channel = 'LIVE', limit = 30): Promise<CodexBuild[]> {
+  async buildsForChannel(channel = 'LIVE', limit = 30): Promise<{ builds: CodexBuild[]; failed: boolean }> {
     try {
+      // finalized_at filter follows with fix/d02-finalized-filter
       const { data, error } = await this.sb.client
         .from('codex_builds')
         .select(
@@ -1102,10 +1123,11 @@ export class CodexService {
         .eq('channel', channel)
         .order('created_at', { ascending: false })
         .limit(limit);
-      if (error || !data) return [];
-      return (data as Record<string, unknown>[]).map(mapBuild);
-    } catch {
-      return [];
+      if (error) throw error;
+      return { builds: ((data ?? []) as Record<string, unknown>[]).map(mapBuild), failed: false };
+    } catch (err) {
+      logWarn('codex', 'builds for channel failed', { channel, error: err });
+      return { builds: [], failed: true };
     }
   }
 
@@ -1419,6 +1441,25 @@ export class CodexService {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Same read as {@link recentLiveBuilds}, but a failure throws — for the patch
+   * timeline, where "no other patches" and "could not load" must differ. The
+   * diff keeps the best-effort variant above.
+   */
+  private async recentLiveBuildsOrThrow(limit: number): Promise<CodexBuild[]> {
+    // finalized_at filter follows with fix/d02-finalized-filter
+    const { data, error } = await this.sb.client
+      .from('codex_builds')
+      .select(
+        'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+      )
+      .eq('channel', 'LIVE')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map(mapBuild);
   }
 
   /**
