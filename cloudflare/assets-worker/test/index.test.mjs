@@ -139,6 +139,57 @@ describe('fetch', () => {
     assert.equal(res.status, 404);
   });
 
+  it('404s on an upstream 404', async () => {
+    globalThis.fetch = async () => new Response('', { status: 404 });
+    const res = await worker.fetch(new Request(`https://w.dev/${GLB}`), env());
+    assert.equal(res.status, 404);
+  });
+
+  it('answers 502 no-store when the Supabase fallback throws', async () => {
+    globalThis.fetch = async () => {
+      throw new TypeError('network');
+    };
+    const res = await worker.fetch(new Request(`https://w.dev/${GLB}`), env());
+    assert.equal(res.status, 502);
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+  });
+
+  for (const status of [503, 429]) {
+    it(`answers 502 when the Supabase fallback answers ${status}`, async () => {
+      globalThis.fetch = async () => new Response('', { status });
+      const res = await worker.fetch(new Request(`https://w.dev/${GLB}`), env());
+      assert.equal(res.status, 502);
+      assert.equal(res.headers.get('cache-control'), 'no-store');
+    });
+  }
+
+  it('passes an upstream 304 through with its etag', async () => {
+    globalThis.fetch = async () => new Response(null, { status: 304, headers: { etag: '"s"' } });
+    const res = await worker.fetch(
+      new Request(`https://w.dev/${GLB}`, { headers: { 'if-none-match': '"s"' } }),
+      env(),
+    );
+    assert.equal(res.status, 304);
+    assert.equal(res.headers.get('etag'), '"s"');
+  });
+
+  it('forwards Range to the Supabase fallback and passes its 206 through', async () => {
+    let forwarded;
+    globalThis.fetch = async (_url, init) => {
+      forwarded = init.headers.range;
+      return new Response('le', { status: 206, headers: { 'content-range': 'bytes 0-1/6', 'content-length': '2' } });
+    };
+    const res = await worker.fetch(
+      new Request(`https://w.dev/${GLB}`, { headers: { range: 'bytes=0-1' } }),
+      env(),
+    );
+    assert.equal(forwarded, 'bytes=0-1');
+    assert.equal(res.status, 206);
+    assert.equal(res.headers.get('content-range'), 'bytes 0-1/6');
+    assert.equal(await res.text(), 'le');
+  });
+
   describe('Range', () => {
     const TEN = '0123456789';
     const get = (range) =>

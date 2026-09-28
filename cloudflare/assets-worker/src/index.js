@@ -11,7 +11,11 @@
 // Serves GET/HEAD for an allowlisted key shape only. Anything the bucket does
 // not hold yet is proxied (streamed, not copied) from the Supabase bucket it
 // is migrating away from, so the site can switch to this host before the bulk
-// copy (scripts/r2-migrate-ship-skins.mjs) has run.
+// copy (scripts/r2-migrate-ship-skins.mjs) has run. A 404 means "this key does
+// not exist"; a 502 (no-store) means "the source is unreachable right now", so
+// a client can tell a missing asset from an outage. The site does not use that
+// yet: src/app/codex/fallback-image.component.ts still switches to its
+// placeholder for good on any error (AUD-043).
 
 /** `ship-skins/<ship_id>/<skin_id>.<glb|webp>` — the exact paths ingest-skins derives. */
 const KEY_RE = /^ship-skins\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(glb|webp)$/;
@@ -105,23 +109,68 @@ function plain(status, text) {
   return new Response(text, { status, headers: { ...CORS, 'content-type': 'text/plain' } });
 }
 
+/** Upstream answers that mean "this key is not there". Anything else non-OK is an outage. */
+const UPSTREAM_MISSING = new Set([400, 403, 404, 410]);
+/** Deadline for the upstream's HEADERS only — a large hull's body must stream as long as the client needs. */
+const UPSTREAM_HEADERS_TIMEOUT_MS = 10_000;
+
+function unavailable() {
+  return new Response('upstream unavailable', {
+    status: 502,
+    headers: { ...CORS, 'content-type': 'text/plain', 'cache-control': 'no-store' },
+  });
+}
+
 async function fromSupabase(env, key, request) {
   const upstream = `${env.SUPABASE_URL}/storage/v1/object/public/${key}`;
-  const res = await fetch(upstream, {
-    method: request.method,
-    headers: request.headers.get('if-none-match')
-      ? { 'if-none-match': request.headers.get('if-none-match') }
-      : {},
-  });
-  if (res.status === 304) return new Response(null, { status: 304, headers: baseHeaders(key) });
-  if (!res.ok) return plain(404, 'not found');
+  // A plain object on purpose: the tests read init.headers.range directly.
+  const upstreamHeaders = {};
+  const inm = request.headers.get('if-none-match');
+  if (inm) upstreamHeaders['if-none-match'] = inm;
+  const range = request.headers.get('range');
+  if (range && request.method === 'GET') upstreamHeaders.range = range;
+
+  // Not AbortSignal.timeout: that signal stays attached to the body and would
+  // cut a slowly streamed 30 MB hull mid-transfer. The timer is cleared as soon
+  // as the headers are in (or fetch threw), so it never outlives the call.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_HEADERS_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(upstream, { method: request.method, headers: upstreamHeaders, signal: controller.signal });
+  } catch {
+    return unavailable();
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (res.status === 304) {
+    const headers = new Headers(baseHeaders(key));
+    const etag = res.headers.get('etag');
+    if (etag) headers.set('etag', etag);
+    return new Response(null, { status: 304, headers });
+  }
+  if (UPSTREAM_MISSING.has(res.status)) return plain(404, 'not found');
+  if (res.status === 416) {
+    const headers = { ...CORS, 'content-type': 'text/plain' };
+    const cr = res.headers.get('content-range');
+    if (cr) headers['content-range'] = cr;
+    return new Response('range not satisfiable', { status: 416, headers });
+  }
+  if (!res.ok) return unavailable();
+
   const headers = new Headers(baseHeaders(key));
   const etag = res.headers.get('etag');
   if (etag) headers.set('etag', etag);
   const len = res.headers.get('content-length');
   if (len) headers.set('content-length', len);
   headers.set('x-sc-origin', 'supabase');
-  return new Response(request.method === 'HEAD' ? null : res.body, { status: 200, headers });
+  const partial = res.status === 206;
+  if (partial) {
+    const cr = res.headers.get('content-range');
+    if (cr) headers.set('content-range', cr);
+  }
+  return new Response(request.method === 'HEAD' ? null : res.body, { status: partial ? 206 : 200, headers });
 }
 
 export default {

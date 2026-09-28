@@ -9,6 +9,9 @@ Why R2 behind a Worker, and what else is planned there, is in
   Everything else is a 404/405.
 - A key R2 does not hold yet is streamed from the Supabase `ship-skins` bucket,
   so the site can switch to this host before the bulk copy.
+- Single-range `Range` requests → 206/416 (multi-range and invalid ranges are
+  answered 200).
+- A failing Supabase fallback is a 502 with `no-store`, never a 404.
 - The Free plan stops the Worker at 100k requests/day (error 1027, no bill).
   That is the read-side cost guard for R2, which has no spending cap of its own.
 
