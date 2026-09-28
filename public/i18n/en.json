@@ -2967,7 +2967,7 @@
     "madeByCommunity": "Made by the Community",
     "badgeAlt": "Star Citizen — Made by the Community fan site badge",
     "disclaimer": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content not authored by this site's host or its users is the property of its respective owner.",
-    "trademarks": "Star Citizen, Roberts Space Industries and Cloud Imperium are trademarks of Cloud Imperium Rights LLC.",
+    "trademarks": "Cloud Imperium®, Roberts Space Industries®, RSI®, Star Citizen®, Squadron 42® and SQ42™ are trademarks of Cloud Imperium Rights LLC.",
     "disclaimerExpand": "Show full disclaimer",
     "disclaimerCollapse": "Collapse disclaimer",
     "legalNav": "Legal and project information",
@@ -3090,7 +3090,8 @@
         "p2": "External links lead to third-party content over which we have no control; at the time of linking no legal violations were apparent. If we become aware of violations, affected links will be removed."
       },
       "trademark": {
-        "title": "Trademarks"
+        "title": "Trademarks",
+        "youtube": "YouTube and the YouTube logo are trademarks of Google LLC."
       }
     }
   },

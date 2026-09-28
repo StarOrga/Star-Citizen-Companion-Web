@@ -97,7 +97,8 @@ const FACT_KPI_OVERLAP: Readonly<Partial<Record<PowerFactKey, 'ir' | 'crossSecti
 
 /** Inside the dock a rising value is bad when `lowerIsBetter`; falling is bad
  * otherwise. Returns the CSS-facing tone directly — `.d.up` is always
- * `--sc-success` and `.d.down` is always `--sc-danger` (UI spec §0), so "up"
+ * `--sc-success` and `.d.down` is always `--sc-warning` (CLAUDE.md: a worse
+ * value is a comparison, not an error), so "up"
  * here means "good outcome", not "the number went up". */
 function deltaTone(delta: number | null, lowerIsBetter: boolean): 'up' | 'down' | null {
   if (delta === null || delta === 0) return null;
@@ -712,7 +713,7 @@ let uidSeq = 0;
         color: var(--sc-success);
       }
       .d.down {
-        color: var(--sc-danger);
+        color: var(--sc-warning);
       }
       .md-heat {
         grid-column: 1 / -1;

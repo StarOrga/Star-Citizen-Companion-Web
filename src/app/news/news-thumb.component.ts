@@ -479,13 +479,20 @@ export function isPixelReadable(url: string): boolean {
       background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent);
       backdrop-filter: blur(6px);
       border: 1px solid var(--sc-border);
+      color: var(--sc-fg-1);
     }
     .ch-pill .ch-icon { width: 12px; height: 12px; display: inline-flex; }
     .ch-pill .ch-icon svg { width: 100%; height: 100%; }
-    .ch-pill.ch-comm-link { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .ch-pill.ch-spectrum { color: var(--sc-accent-hot); border-color: var(--sc-accent-hot); }
-    .ch-pill.ch-youtube { color: var(--sc-danger); border-color: var(--sc-danger); }
-    .ch-pill.ch-patch { color: var(--sc-warning); border-color: var(--sc-warning); }
+    /* Neutral label for every channel (owner, audit D10): a foreign brand shows
+       up as its unaltered logo (channel-icons.ts), never as a red label — red
+       means elevated access or an error here (CLAUDE.md). App glyphs keep their
+       own tint. */
+    /* YouTube brand terms: the icon renders at 20px minimum, never tinted,
+       clipped or animated; the wider gap keeps its clear space. */
+    .ch-pill.ch-youtube { gap: 6px; padding-block: 2px; }
+    .ch-pill.ch-youtube .ch-icon { width: 20px; height: 20px; flex: 0 0 auto; }
+    .ch-pill.ch-comm-link .ch-icon { color: var(--sc-accent); }
+    .ch-pill.ch-patch .ch-icon { color: var(--sc-warning); }
 
     .dots {
       position: absolute; bottom: 8px; right: 8px; z-index: 2;

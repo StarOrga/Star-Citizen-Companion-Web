@@ -52,6 +52,7 @@ import { TranslatePipe } from '@ngx-translate/core';
         <h2>{{ 'legal.imprint.trademark.title' | translate }}</h2>
         <p>{{ 'footer.disclaimer' | translate }}</p>
         <p class="disclaimer">{{ 'footer.trademarks' | translate }}</p>
+        <p class="disclaimer">{{ 'legal.imprint.trademark.youtube' | translate }}</p>
       </div>
     </section>
   `,

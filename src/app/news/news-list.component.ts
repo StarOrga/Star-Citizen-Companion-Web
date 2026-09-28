@@ -21,6 +21,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { NewsService, VerseNewsItem } from './news.service';
+import { channelIconSvg } from './channel-icons';
 import { nextPatchDistance } from './patch-stats';
 import { relativeTime } from './relative-time';
 import { NewsThumbComponent } from './news-thumb.component';
@@ -108,7 +109,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
           <span class="stage-scrim" aria-hidden="true"></span>
           <div class="stage-body">
             <p class="overline">
-              <span class="ch-icon" [innerHTML]="safeIcon(item.channel)"></span>
+              <span class="ch-icon" [class.brand-mark]="item.channel === 'youtube'" [innerHTML]="safeIcon(item.channel)"></span>
               <span>{{ ('news.channels.' + item.channel) | translate }}</span>
               <span class="dot-sep" aria-hidden="true">·</span>
               <time>{{ relTime(item.publishedAt) }}</time>
@@ -347,7 +348,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
             </div>
             <div class="nd-body">
               <div class="nd-chan">
-                <span class="ch-icon" [innerHTML]="safeIcon(item.channel)"></span>
+                <span class="ch-icon" [class.brand-mark]="item.channel === 'youtube'" [innerHTML]="safeIcon(item.channel)"></span>
                 <span>{{ ('news.channels.' + item.channel) | translate }}</span>
                 <span class="dot-sep">·</span>
                 <time>{{ relTime(item.publishedAt) }}</time>
@@ -606,10 +607,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     @media (hover: hover) {
       .card:hover { transform: translateY(-3px) scale(1.005); }
     }
-    /* Videos are stream tiles now, not a rail — but they keep the distinct
-       treatment that made them readable as videos (feedback 0a5268e7). */
-    .card.video { border-color: color-mix(in srgb, var(--sc-danger) 45%, var(--sc-border)); }
-    .card.video:hover { border-color: var(--sc-danger); }
+    /* Videos are stream tiles now, not a rail — they stay readable as videos
+       (feedback 0a5268e7), distinct via the YouTube mark in the pill, the play
+       disc and the VIDEO tag. The frame is the normal card frame: red is kept
+       for errors and elevated access (CLAUDE.md, audit D10). */
     .thumb-wrap { position: relative; display: flex; }
     .thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
     .play {
@@ -617,7 +618,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
       width: 44px; height: 44px; border-radius: 50%; z-index: 2;
       display: grid; place-items: center; pointer-events: none;
       background: color-mix(in srgb, var(--sc-bg-0) 58%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-danger) 70%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-fg-0) 45%, transparent);
       color: var(--sc-fg-0);
     }
     .play svg { width: 20px; height: 20px; }
@@ -642,8 +643,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .vid-tag {
       margin-right: 6px; padding: 1px 6px; border-radius: 4px;
       font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em; color: var(--sc-danger);
-      border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
+      letter-spacing: 0.08em; color: var(--sc-fg-1);
+      border: 1px solid var(--sc-border);
     }
     /* Same shape as the video badge, in the normal accent — it marks a place,
        not a problem, and nothing here is admin-only. */
@@ -798,7 +799,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .play-link svg { width: 26px; height: 26px; }
     .play-link:hover, .play-link:focus-visible {
       transform: translate(-50%, -50%) scale(1.1);
-      background: var(--sc-danger); outline: none;
+      background: var(--sc-accent); color: var(--sc-bg-0); outline: none;
     }
     .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
 
@@ -818,6 +819,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     }
     .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
     .nd-chan .ch-icon svg { width: 100%; height: 100%; display: block; }
+    /* YouTube brand terms: the icon never renders below 20px, unaltered and
+       unanimated, with clear space from the 8px row gap (channel-icons.ts). */
+    .overline .ch-icon.brand-mark,
+    .nd-chan .ch-icon.brand-mark { width: 20px; height: 20px; flex: 0 0 auto; }
     .nd-chan .dot-sep { opacity: 0.6; }
     .nd-body h2 {
       margin: 0; font-family: var(--sc-font-display);
@@ -1195,15 +1200,8 @@ export class NewsListComponent implements OnInit, OnDestroy {
     return this.safeSvg(this.iconFor(channel));
   }
 
-  /** Inline channel glyphs — no icon font, no sprite request. */
+  /** Inline channel glyphs — defined once in channel-icons.ts (brand marks in their own colours). */
   iconFor(channel: VerseNewsItem['channel']): string {
-    switch (channel) {
-      case 'youtube':
-        return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>';
-      case 'spectrum':
-        return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H5a7 7 0 0 1 14 0h-2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5a9 9 0 0 0-9-9z"/></svg>';
-      default:
-        return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 4h11a2 2 0 0 1 2 2v11a3 3 0 0 0 3 3H6a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2zm2 4v2h7V8H7zm0 4v2h7v-2H7zm0 4v2h5v-2H7z"/></svg>';
-    }
+    return channelIconSvg(channel);
   }
 }

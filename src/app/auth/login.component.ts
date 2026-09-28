@@ -270,6 +270,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
       margin: 0;
       font-size: clamp(1.7rem, 4vw, 2.6rem);
       line-height: 1.1;
+      /* Brand art, not a state: the hot accent in the hero gradient is deliberate (audit D10). */
       background: linear-gradient(90deg, var(--sc-accent), var(--sc-accent-hot));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;

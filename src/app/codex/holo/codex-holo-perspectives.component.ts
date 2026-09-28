@@ -151,11 +151,11 @@ export interface HoloPerspectiveView {
     .big small { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
     .big .d { font-family: var(--m); font-size: 11px; padding: 1px 6px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-1); }
     .big .d.up { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 18%, transparent); }
-    .big .d.down { color: var(--sc-danger); background: color-mix(in srgb, var(--sc-danger) 18%, transparent); }
+    .big .d.down { color: var(--sc-warning); background: color-mix(in srgb, var(--sc-warning) 18%, transparent); }
     .big.gap .num { color: var(--sc-fg-2); }
     .ghost { font-family: var(--m); font-size: 11px; padding: 1px 6px; border-radius: 2px; border: 1px dashed var(--l2); color: var(--sc-fg-1); }
     .ghost.up { color: var(--sc-success); border-color: color-mix(in srgb, var(--sc-success) 55%, transparent); }
-    .ghost.down { color: var(--sc-danger); border-color: color-mix(in srgb, var(--sc-danger) 55%, transparent); }
+    .ghost.down { color: var(--sc-warning); border-color: color-mix(in srgb, var(--sc-warning) 55%, transparent); }
     .say { margin: 0; font-size: max(11.5px, var(--f)); line-height: 1.45; color: var(--sc-fg-1); }
     .gauge svg { width: 84px; height: 84px; display: block; }
     .gauge .tr { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); stroke-width: 6; }
@@ -174,7 +174,7 @@ export interface HoloPerspectiveView {
     .sv .v { font-family: var(--m); font-size: 14px; color: var(--sc-fg-0); white-space: nowrap; }
     .sv .gv { font-family: var(--m); font-size: 10.5px; color: var(--sc-fg-2); }
     .sv .gv.up { color: var(--sc-success); }
-    .sv .gv.down { color: var(--sc-danger); }
+    .sv .gv.down { color: var(--sc-warning); }
     .sv.ghosted { border: 1px dashed var(--l2); }
     .tile-expand { justify-self: start; background: none; border: none; padding: 0; cursor: pointer; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); }
     .tile-expand:hover, .tile-expand[aria-expanded="true"] { color: var(--sc-accent); }
