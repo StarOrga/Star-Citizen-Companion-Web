@@ -2,6 +2,10 @@
   "common": {
     "select": {
       "none": "Keine Auswahl"
+    },
+    "dialog": {
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen"
     }
   },
   "date": {

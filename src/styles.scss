@@ -10,6 +10,13 @@
    quick-search modal is portaled into (outside the backdrop-filtered header). */
 @import '@angular/cdk/overlay-prebuilt.css';
 
+/* App dialogs (ScConfirmService). CDK 22 shows overlays as popover in the top
+   layer, where z-index does not apply. Only without the Popover API do they
+   land in the overlay container (CDK default z-index 1000) and would then sit
+   below the feedback panel (1400) and the bundle-history popups (1200). */
+.cdk-overlay-container { z-index: 1500; }
+.sc-dialog-backdrop { background: rgb(0 0 0 / 55%); }
+
 :root {
   --sc-bg-0: var(--surface-canvas);
   --sc-bg-1: var(--surface-panel);
