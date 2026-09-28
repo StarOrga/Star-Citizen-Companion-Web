@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Session, User } from '@supabase/supabase-js';
@@ -47,10 +48,17 @@ export class AuthService {
     // so auth state only drives the session signals — no identify()/reset().
     // Auth operations always run against the real client — never the anon
     // preview client — so sign-in/out/refresh works even mid-preview.
-    this.sb.realClient.auth.getSession().then(({ data }) => {
-      this._session.set(data.session);
-      this._ready.set(true);
-    });
+    this.sb.realClient.auth
+      .getSession()
+      .then(({ data }) => {
+        this._session.set(data.session);
+        this._ready.set(true);
+      })
+      .catch((e) => {
+        // A rejected read must not leave every authGuard waiting forever.
+        logWarn('auth', 'getSession failed', e);
+        this._ready.set(true);
+      });
 
     const linkType = capturedAuthLinkType();
     let linkHandled = false;

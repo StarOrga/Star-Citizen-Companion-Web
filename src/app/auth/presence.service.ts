@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { DestroyRef, Injectable, Injector, effect, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from './auth.service';
@@ -84,8 +85,12 @@ export class PresenceService {
         const { error } = await this.sb.realClient.rpc('touch_last_seen');
         // Let the next trigger retry instead of waiting out the floor: a
         // transient failure on boot would otherwise cost the whole interval.
-        if (error) this.lastTouchAt = 0;
-      } catch {
+        if (error) {
+          logWarn('presence', 'touch_last_seen failed', error);
+          this.lastTouchAt = 0;
+        }
+      } catch (error) {
+        logWarn('presence', 'touch_last_seen failed', error);
         this.lastTouchAt = 0;
       } finally {
         this.inflight = null;

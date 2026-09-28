@@ -754,7 +754,8 @@
         "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
         "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
         "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
-        "addToHangar": "Zum Hangar hinzufügen"
+        "addToHangar": "Zum Hangar hinzufügen",
+        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren."
       }
     },
     "empty": {

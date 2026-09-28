@@ -50,6 +50,7 @@ export class ShipLinkService {
       .select('ship_slug, url')
       .eq('ship_slug', slug)
       .maybeSingle();
+    if (globalRes.error) logWarn('ship-link', 'global link read failed', { slug, error: globalRes.error });
     this.mergeInto(this.globalLinks, slug, this.readUrl(globalRes.data));
 
     const userId = this.auth.user()?.id ?? null;
@@ -63,6 +64,7 @@ export class ShipLinkService {
       .eq('user_id', userId)
       .eq('ship_slug', slug)
       .maybeSingle();
+    if (ownRes.error) logWarn('ship-link', 'own link read failed', { slug, error: ownRes.error });
     this.mergeInto(this.myLinks, slug, this.readUrl(ownRes.data));
   }
 

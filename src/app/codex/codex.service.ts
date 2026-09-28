@@ -801,6 +801,7 @@ export class CodexService {
         p_build_id: buildId,
         p_kind: kind,
       });
+      if (error) logWarn('codex', 'facet values failed', { kind, error });
       if (error || !data) return null;
       const d = data as Record<string, unknown>;
       return {
@@ -809,7 +810,8 @@ export class CodexService {
         grades: ((d['grades'] as unknown[]) ?? []) as string[],
         componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
       };
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'facet values failed', { kind, error });
       return null;
     }
   }
@@ -850,9 +852,11 @@ export class CodexService {
         p_build_id: buildId,
         p_class_names: [...classNames],
       });
+      if (error) logWarn('codex', 'armor rating failed', { buildId, error });
       if (error || !data) return null;
       return data as ArmorRatingRow[];
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'armor rating failed', { buildId, error });
       return null;
     }
   }
@@ -1159,7 +1163,10 @@ export class CodexService {
     // hide a silhouette that is really just one flaky request away, for the
     // rest of this build's session. Only a genuine empty/invalid result gets
     // cached; an error is retried on the next call.
-    if (error) return null;
+    if (error) {
+      logWarn('codex', 'silhouette read failed', { kind, className, error });
+      return null;
+    }
     const parsed = data ? parseHoloSilhouette(data as Record<string, unknown>) : null;
     this.silhouetteCache.set(cacheKey, parsed);
     return parsed;
@@ -1205,7 +1212,11 @@ export class CodexService {
         .eq('build_id', build.id)
         .eq('kind', kind)
         .in('class_name', chunk);
-      if (error) continue; // transport error: leave this chunk's entries unmemoized, retryable later
+      if (error) {
+        // Transport error: leave this chunk's entries unmemoized, retryable later.
+        logWarn('codex', 'silhouette chunk failed', { kind, count: chunk.length, error });
+        continue;
+      }
 
       const seen = new Set<string>();
       for (const row of (data ?? []) as Record<string, unknown>[]) {

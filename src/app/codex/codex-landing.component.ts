@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -866,7 +867,8 @@ export class CodexLandingComponent implements OnInit {
           const clean = cleanLocaleValue(resolved.get(r.role));
           if (clean) labels.set(r.classNameSlug, clean);
         }
-      } catch {
+      } catch (error) {
+        logWarn('codex', 'role labels failed', error);
         /* leave the unresolved hulls in the "unknown" bucket */
       }
     }
@@ -888,7 +890,10 @@ export class CodexLandingComponent implements OnInit {
       roleTask = this.svc
         .resolveLocaleKeys([ship.role], this.lang())
         .then((m) => this.shipRoleResolved.set(cleanLocaleValue(m.get(ship.role!)) || null))
-        .catch(() => this.shipRoleResolved.set(null));
+        .catch((error) => {
+          logWarn('codex', 'ship role label failed', error);
+          this.shipRoleResolved.set(null);
+        });
     } else {
       this.shipRoleResolved.set(cleanLocaleValue(ship.role) || null);
     }
@@ -934,7 +939,8 @@ export class CodexLandingComponent implements OnInit {
       const hits = await this.svc.searchAll(term, 6);
       if (seq !== this.searchSeq) return; // a newer search superseded this one
       this.searchResults.set(hits);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'landing search failed', { term, error });
       if (seq === this.searchSeq) this.searchResults.set([]);
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);

@@ -86,7 +86,10 @@ export class StarscapeVotesService {
       const { data, error } = await this.sb.client.rpc('starscape_vote_state', {
         p_image_ids: ids,
       });
-      if (error) return;
+      if (error) {
+        logWarn('starscape', 'vote state failed', { ids: ids.length, error });
+        return;
+      }
       const rows = (Array.isArray(data) ? data : []) as VoteStateRow[];
       // Only the requested ids are replaced — a later page must not wipe the
       // counts an earlier one already resolved.
@@ -104,7 +107,8 @@ export class StarscapeVotesService {
       }
       this.counts.set(counts);
       this.mine.set(mine);
-    } catch {
+    } catch (error) {
+      logWarn('starscape', 'vote state failed', { ids: ids.length, error });
       /* the tiles simply keep whatever counts they had */
     }
   }
@@ -137,7 +141,8 @@ export class StarscapeVotesService {
         // state we optimistically painted, so it is a success, not a failure.
         if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
       }
-    } catch {
+    } catch (error) {
+      logWarn('starscape', 'vote write failed', { imageId, error });
       this.applyLocal(imageId, had);
     } finally {
       this.markBusy(imageId, false);
@@ -181,7 +186,10 @@ export class StarscapeVotesService {
       const { data, error } = await this.sb.client.rpc('starscape_top_wallpapers', {
         p_limit: TOP_LIMIT,
       });
-      if (error) return;
+      if (error) {
+        logWarn('starscape', 'top wallpapers failed', error);
+        return;
+      }
       const rows = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
       this.topWallpapers.set(rows.map(mapWallpaperRow));
       // The ranking already carries the counts — no second round trip.
@@ -196,7 +204,8 @@ export class StarscapeVotesService {
       }
       this.counts.set(counts);
       this.mine.set(mine);
-    } catch {
+    } catch (error) {
+      logWarn('starscape', 'top wallpapers failed', error);
       /* keep whatever ranking we had; the toggle stays usable */
     } finally {
       this.topLoading.set(false);
@@ -218,9 +227,11 @@ export class StarscapeVotesService {
         .select('starscape_top_only')
         .eq('id', user.id)
         .maybeSingle();
+      if (error) logWarn('starscape', 'top-only preference read failed', error);
       if (error || !data) return;
       this.topOnly.set(data['starscape_top_only'] === true);
-    } catch {
+    } catch (error) {
+      logWarn('starscape', 'top-only preference read failed', error);
       /* the local copy (or the default) stands */
     }
   }

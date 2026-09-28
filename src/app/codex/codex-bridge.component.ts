@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -657,7 +658,8 @@ export class CodexBridgeComponent implements OnInit {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
       this.searchResults.set(res.rows);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'bridge search failed', { term, error });
       if (seq === this.searchSeq) this.searchResults.set([]);
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);

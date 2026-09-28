@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
@@ -737,8 +738,10 @@ export class ShipSkinViewerComponent {
         if (seq !== this.headSeq || !buf) return; // stale — a newer model won
         this.nodePositions.set(parseGlbNodePositions(buf));
       })
-      .catch(() => {
-        /* markers are a bonus: a failed head read just means no markers */
+      .catch((e) => {
+        // Markers are a bonus: a failed head read just means no markers. An
+        // abort is a deliberate cancel (ship switch), not a failure.
+        if ((e as Error)?.name !== 'AbortError') logWarn('codex', 'glb head read failed', { url, error: e });
       });
   }
 

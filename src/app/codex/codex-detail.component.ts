@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -2473,7 +2474,8 @@ export class CodexDetailComponent implements OnInit {
         hydrogenCapacity: hydrogen,
         quantumFuelCapacity: qtFuel,
       });
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'ship tech failed', error);
       // tech chips are a bonus — never fail the detail page for them
     }
   }
@@ -2498,7 +2500,8 @@ export class CodexDetailComponent implements OnInit {
     try {
       const ammo = await this.svc.getAmmoPayloads(ammoNames);
       if (this.isCurrentLoad(seq)) this.ammoPayloads.set(ammo);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'ammo lookup failed', { ammo: ammoNames.length, error });
       // projectile stats are a bonus — a failed lookup just hides those rows
     }
   }
@@ -2517,7 +2520,8 @@ export class CodexDetailComponent implements OnInit {
       // answer must not paint the previous entity's family.
       if (this.detail()?.classNameSlug !== className) return;
       this.skinOptions.set(resolveSkinGroup(siblings, className) ?? []);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'skin group failed', { className, error });
       this.skinOptions.set([]);
     }
   }
@@ -2537,7 +2541,8 @@ export class CodexDetailComponent implements OnInit {
       // late answer must not paint the previous ship's family.
       if (this.detail()?.classNameSlug !== className) return;
       this.editionOptions.set(resolveEditionGroup(siblings, className) ?? []);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'edition group failed', { className, error });
       this.editionOptions.set([]);
     }
   }
@@ -2547,7 +2552,8 @@ export class CodexDetailComponent implements OnInit {
     let used: BlueprintRef[] = [];
     try {
       used = await this.svc.blueprintsUsingIngredient(className);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'used-in lookup failed', { className, error });
       // supplementary — a failed lookup just hides the list
     }
     if (this.isCurrentLoad(seq)) this.usedInBlueprints.set(used);
@@ -2563,7 +2569,8 @@ export class CodexDetailComponent implements OnInit {
         craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
         ingredients: bp.ingredients,
       } : null);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'recipe lookup failed', error);
       // Crafting data is supplementary — a failed lookup just hides the panel.
       if (this.isCurrentLoad(seq)) this.recipe.set(null);
     }
@@ -2594,7 +2601,8 @@ export class CodexDetailComponent implements OnInit {
       });
       if (seq !== this.buySeq) return;
       this.buyOptions.set(options);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'where to buy failed', error);
       if (seq !== this.buySeq) return;
       this.buyError.set(true);
     } finally {
@@ -3019,7 +3027,8 @@ export class CodexDetailComponent implements OnInit {
         this.draftResolved.update((m) => mergeMapInto(m, resolved, okMain));
       }
       if (okAmmo.length > 0) this.draftAmmoPayloads.update((m) => mergeMapInto(m, ammo, okAmmo));
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'draft hydration failed', error);
       // A failed hydration just leaves the row pending forever rather than
       // rendering wrong numbers — Falle 2: "a spinner beats a wrong number".
     } finally {
@@ -3091,7 +3100,8 @@ export class CodexDetailComponent implements OnInit {
       // The share popover snapshots `activeHangarConfig` — hand it the config
       // that was just written, not the one loaded at page open (wave 5 A1.4).
       this.activeHangarConfig.set(updated);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'loadout save failed', error);
       this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
     } finally {
       this.saving.set(false);
@@ -3139,7 +3149,8 @@ export class CodexDetailComponent implements OnInit {
         queryParamsHandling: 'merge',
         replaceUrl: true,
       });
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'draft url mirror failed', error);
       // Router navigation should not throw in practice — best-effort regardless.
     }
     try {
@@ -3535,7 +3546,8 @@ export class CodexDetailComponent implements OnInit {
         Object.values(ship.sheet).some((v) => v !== null && v !== undefined),
       );
       this.rankCohort.set(cohort.length > 0 && hasRealSheet ? cohort : null);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'rank cohort failed', error);
       this.rankCohort.set(null); // honest gap state — never a fake cohort of one.
     } finally {
       this.rankCohortLoading.set(false);

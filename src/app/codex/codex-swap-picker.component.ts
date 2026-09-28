@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -764,7 +765,8 @@ export class CodexSwapPickerComponent {
 
       if (token !== this.loadToken) return;
       this.candidates.set(rows);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'swap candidates failed', error);
       if (token === this.loadToken) this.error.set(true);
     } finally {
       if (token === this.loadToken) this.loading.set(false);

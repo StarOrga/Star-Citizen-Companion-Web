@@ -529,7 +529,8 @@ export class HangarService {
         this.writeFlagship(remote);
       }
       this.markFlagshipMigrated();
-    } catch {
+    } catch (error) {
+      logWarn('hangar', 'flagship read failed', error);
       // Offline / stubbed client — the local cache still drives this session.
       this.flagshipClassName.set(this.readFlagship());
     }
@@ -547,7 +548,8 @@ export class HangarService {
         .update({ flagship_ship_class: shipClassName })
         .eq('id', userId);
       if (error) this.error.set(toErrorKey('hangar', 'persistFlagshipRemote', error, { shipClassName }));
-    } catch {
+    } catch (error) {
+      logWarn('hangar', 'flagship pin write failed', { shipClassName, error });
       // Offline / stubbed client — localStorage keeps the pin; the next
       // syncFlagship() with a live client reconciles.
     }

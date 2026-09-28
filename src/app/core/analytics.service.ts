@@ -1,3 +1,4 @@
+import { logWarn } from './log';
 import { Injectable, Injector, effect, inject } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -152,9 +153,10 @@ export class AnalyticsService {
       this.client = posthog;
       this.bindRouter();
       this.applyPendingLandingUtm();
-    } catch {
+    } catch (error) {
       // Blocked by an ad-blocker, offline, or chunk load failure. Analytics is
       // strictly optional — never let it break the app.
+      logWarn('analytics', 'posthog load failed', error);
       this.client = null;
     } finally {
       this.loading = false;

@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, effect, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from './auth.service';
@@ -42,11 +43,12 @@ export class ProfileService {
       this._loaded.set(false);
       return;
     }
-    const { data } = await this.sb.client
+    const { data, error } = await this.sb.client
       .from('profiles')
       .select('username')
       .eq('id', user.id)
       .maybeSingle();
+    if (error) logWarn('profile', 'username read failed', error);
     this._username.set((data?.['username'] as string | null) ?? null);
     this._loaded.set(true);
   }

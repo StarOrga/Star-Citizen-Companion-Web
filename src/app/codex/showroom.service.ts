@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, Signal, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ShipSkinsService } from './ship-skins.service';
@@ -64,6 +65,7 @@ export class ShowroomService {
     this.loadInFlight = (async () => {
       const { entries, error } = await this.list();
       if (!error) this._entries.set(entries);
+      else logWarn('showroom', 'list failed', error);
     })().finally(() => {
       this.loadInFlight = null;
     });

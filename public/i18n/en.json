@@ -754,7 +754,8 @@
         "signInHint": "Sign in to share a hangar configuration as a link of its own.",
         "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
         "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
-        "addToHangar": "Add to hangar"
+        "addToHangar": "Add to hangar",
+        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand."
       }
     },
     "empty": {
