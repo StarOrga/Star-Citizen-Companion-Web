@@ -27,6 +27,8 @@
 
 const V2_BASE = 'https://api.readme.com/v2';
 const V1_BASE = 'https://dash.readme.com/api/v1';
+/** Per GET, headers and body: a hanging ReadMe must not stall the probe. */
+const README_FETCH_TIMEOUT_MS = 10_000;
 
 export type ApiVersion = 'v1' | 'v2';
 
@@ -73,8 +75,20 @@ export class ReadmeApi {
 
   /** GET only. There is deliberately no POST/PUT/PATCH/DELETE on this client. */
   async get<T>(path: string): Promise<ReadmeResult<T>> {
-    const res = await fetch(`${this.base}${path}`, { method: 'GET', headers: this.headers() });
-    const text = await res.text();
+    let res: Response;
+    let text: string;
+    try {
+      res = await fetch(`${this.base}${path}`, {
+        method: 'GET',
+        headers: this.headers(),
+        signal: AbortSignal.timeout(README_FETCH_TIMEOUT_MS),
+      });
+      text = await res.text();
+    } catch (err) {
+      // Timeout or network error: a normal not-ok result (status 0), so the
+      // caller reports it instead of ending in an uncaught 500.
+      return { ok: false, status: 0, body: null, raw: String(err).slice(0, 600) };
+    }
     try {
       return { ok: res.ok, status: res.status, body: text ? (JSON.parse(text) as T) : null };
     } catch {
