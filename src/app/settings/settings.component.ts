@@ -26,7 +26,9 @@ import { LocaleService } from '../core/locale/locale.service';
 import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
 import { PICKER_REGIONS } from '../core/locale/region.data';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { readErrorBody } from '../core/edge-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { memberSince } from './member-since';
 
@@ -72,6 +74,17 @@ const SPY_CLEARANCE_PX = 24;
  * breakpoint in this component's stylesheet — the two must move together.
  */
 const RAIL_STACK_QUERY = '(max-width: 1079px)';
+
+/** delete-user error codes → the settings page's own sentences. Anything
+ *  unmapped falls back to settings.danger.failed — never the raw code. */
+const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
+  forbidden: 'settings.danger.errors.forbidden',
+  unauthorized: 'settings.danger.errors.unauthorized',
+  protected_admin: 'settings.danger.errors.protectedAdmin',
+  cannot_delete_last_admin: 'settings.danger.errors.lastAdmin',
+  user_not_found: 'settings.danger.errors.notFound',
+  invalid_body: 'settings.danger.errors.invalidBody',
+};
 
 @Component({
   selector: 'sc-settings',
@@ -404,17 +417,25 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
             <div class="grid">
               <div class="sc-card danger-zone wide">
                 <h3>{{ 'settings.danger.title' | translate }}</h3>
-                <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
-                @if (deleteError(); as e) {
-                  <div class="flash error">{{ e }}</div>
+                <!-- delete-user is admin-only (the privacy policy says so);
+                     a viewer gets the honest route instead of a button that
+                     can only fail. roles.isAdmin() follows "view as". -->
+                @if (roles.isAdmin()) {
+                  <p class="hint">{{ 'settings.danger.warning' | translate }}</p>
+                  @if (deleteError(); as e) {
+                    <div class="flash error">{{ e | translate }}</div>
+                  }
+                  <button
+                    type="button"
+                    class="sc-btn danger-btn"
+                    [disabled]="deleting()"
+                    (click)="deleteAccount()">
+                    {{ (deleting() ? 'settings.danger.deleting' : 'settings.danger.deleteBtn') | translate }}
+                  </button>
+                } @else {
+                  <p class="hint">{{ 'settings.danger.viaAdmin' | translate }}</p>
+                  <a class="sc-btn" routerLink="/legal/imprint">{{ 'settings.danger.imprintLink' | translate }}</a>
                 }
-                <button
-                  type="button"
-                  class="sc-btn danger-btn"
-                  [disabled]="deleting()"
-                  (click)="deleteAccount()">
-                  {{ (deleting() ? 'settings.danger.deleting' : 'settings.danger.deleteBtn') | translate }}
-                </button>
               </div>
             </div>
           </section>
@@ -886,6 +907,7 @@ const RAIL_STACK_QUERY = '(max-width: 1079px)';
 export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
+  private readonly dialog = inject(ScConfirmService);
   readonly profile = inject(ProfileService);
   readonly consent = inject(ConsentService);
   readonly composerPrefs = inject(ComposerPrefsService);
@@ -1334,11 +1356,18 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   async deleteAccount() {
+    if (!this.roles.isAdmin()) return;
     if (this.deleting()) return;
     const user = this.auth.user();
     if (!user) return;
-    const msg = this.translate.instant('settings.danger.confirm', { email: user.email });
-    if (!window.confirm(msg)) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'settings.danger.title',
+      messageKey: 'settings.danger.confirm',
+      params: { email: user.email },
+      confirmKey: 'settings.danger.deleteBtn',
+      tone: 'danger',
+    });
+    if (!ok) return;
     this.deleting.set(true);
     this.deleteError.set(null);
     const { data, error } = await this.sb.client.functions.invoke('delete-user', {
@@ -1351,12 +1380,10 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
       deletedSelf?: boolean;
     };
     if (error || payload.error) {
-      this.deleteError.set(
-        payload.message ??
-          payload.error ??
-          error?.message ??
-          this.translate.instant('settings.danger.failed'),
-      );
+      // The signal holds an i18n KEY, the template translates. The function's
+      // `message` is German plain text and never shown (English UI).
+      const code = payload.error ?? (await readErrorBody(error)).error;
+      this.deleteError.set((code && DELETE_ACCOUNT_ERROR_KEYS[code]) ?? 'settings.danger.failed');
       this.deleting.set(false);
       return;
     }

@@ -12,8 +12,8 @@
 // before they write.
 
 import { Injectable, inject } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
 import { HangarService } from '../../hangar/hangar.service';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 
 /** Outcome of {@link CodexHoloForkGuard.ensureEditable}. */
@@ -26,9 +26,9 @@ export type ForkGuardResult = 'own' | 'forked' | 'cancelled';
  * - Not following anything (`followsOwner === false`, own or already-forked
  *   config) → resolves `'own'` immediately, no prompt.
  * - Following an owner (`followsOwner === true`) → shows the hv-s4 question
- *   ONCE per call ("Eigentümer werden? …", irreversible) via `window.confirm`
- *   (same confirmation idiom the rest of the app uses — see
- *   `admin.component.ts`/`p4k-history.component.ts`). Confirmed → calls
+ *   ONCE per call ("Eigentümer werden? …", irreversible) in the app dialog
+ *   (`ScConfirmService`, the one confirmation idiom of the app — no native
+ *   browser dialog). Confirmed → calls
  *   `HangarService.forkFollowedLoadout(config.id, {})` (no patch — the
  *   caller performs its own write immediately after) and resolves `'forked'`
  *   on success. Declined, or the fork write itself fails → `'cancelled'`,
@@ -37,12 +37,16 @@ export type ForkGuardResult = 'own' | 'forked' | 'cancelled';
 @Injectable({ providedIn: 'root' })
 export class CodexHoloForkGuard {
   private readonly hangar = inject(HangarService);
-  private readonly t = inject(TranslateService);
+  private readonly dialog = inject(ScConfirmService);
 
   async ensureEditable(config: Pick<HangarShipConfig, 'id' | 'followsOwner'>): Promise<ForkGuardResult> {
     if (!config.followsOwner) return 'own';
-    const question = this.t.instant('codex.holo.patch.forkGuard.question') as string;
-    if (!window.confirm(question)) return 'cancelled';
+    const ok = await this.dialog.confirm({
+      titleKey: 'codex.holo.patch.forkGuard.title',
+      messageKey: 'codex.holo.patch.forkGuard.body',
+      confirmKey: 'codex.holo.patch.forkGuard.confirm',
+    });
+    if (!ok) return 'cancelled';
     const forked = await this.hangar.forkFollowedLoadout(config.id, {});
     return forked ? 'forked' : 'cancelled';
   }

@@ -2,6 +2,10 @@
   "common": {
     "select": {
       "none": "No selection"
+    },
+    "dialog": {
+      "confirm": "Confirm",
+      "cancel": "Cancel"
     }
   },
   "date": {
@@ -713,7 +717,9 @@
           "reExtractPendingYes": "Yes"
         },
         "forkGuard": {
-          "question": "Become the owner? This splits the loadout from the original — cannot be undone."
+          "title": "Become the owner?",
+          "body": "This change splits the loadout from the original. It cannot be undone.",
+          "confirm": "Become owner"
         },
         "deltaShow": "Show changes",
         "deltaHide": "Hide changes",
@@ -2533,9 +2539,11 @@
       "noReason": "no reason given"
     },
     "prompts": {
-      "disable": "Disable bundle \"{{name}}\".\n\nReason (optional):",
       "reenable": "Re-enable bundle \"{{name}}\"?",
-      "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone."
+      "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone.",
+      "disableTitle": "Disable bundle “{{name}}”?",
+      "reasonLabel": "Reason (optional)",
+      "deleteTitle": "Delete bundle?"
     },
     "superseded": {
       "badge": "Superseded",
@@ -2706,7 +2714,17 @@
       "deleteBtn": "Delete my account",
       "deleting": "Deleting…",
       "confirm": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
-      "failed": "Delete failed"
+      "failed": "Delete failed",
+      "viaAdmin": "Account deletion is currently carried out by an administrator. Contact us through the routes in the site notice; we delete your account together with profile, hangar, loadouts and uploads.",
+      "imprintLink": "Go to site notice",
+      "errors": {
+        "forbidden": "Only administrators can delete accounts here.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "protectedAdmin": "This account is protected and cannot be deleted.",
+        "lastAdmin": "The last admin cannot be deleted. Promote another admin first.",
+        "notFound": "This account no longer exists.",
+        "invalidBody": "The request was invalid. Please reload the page."
+      }
     },
     "friends": {
       "title": "Friends",
@@ -2748,7 +2766,8 @@
       "invitedTitle": "Pre-registered for sign-in — no account has used this address yet.",
       "withdraw": "Withdraw invitation",
       "withdrawTitle": "Only takes the pre-registration back — an account that already joined is never affected.",
-      "withdrawConfirm": "Withdraw the invitation for {{email}}? The address loses its pre-registered access and nobody is notified."
+      "withdrawConfirm": "Withdraw the invitation for {{email}}? The address loses its pre-registered access and nobody is notified.",
+      "withdrawConfirmTitle": "Withdraw invitation?"
     },
     "col": {
       "user": "User",
@@ -2771,7 +2790,8 @@
     "delete": {
       "confirmSelf": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
       "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
-      "failed": "Delete failed"
+      "failed": "Delete failed",
+      "title": "Delete account?"
     },
     "tokens": {
       "navLink": "Integrations",
@@ -2835,7 +2855,8 @@
         "copied": "Copied",
         "ack": "I have saved it",
         "tokenLabel": "Plaintext token"
-      }
+      },
+      "revokeTitle": "Revoke token?"
     },
     "filter": {
       "searchPlaceholder": "Search name, username or email…",
@@ -2855,7 +2876,8 @@
       "acceptedNoMail": "{{email}} accepted and approved. No invite mail was sent — an account already exists for that address, so they simply sign in. Best tell them yourself.",
       "declined": "Request from {{email}} declined.",
       "allowlisted": "Already allowlisted",
-      "joined": "Already has an account"
+      "joined": "Already has an account",
+      "declineTitle": "Decline request?"
     },
     "reports": {
       "title": "Conspicuous accounts",
@@ -3160,7 +3182,13 @@
       "openCodex": "Codex entry",
       "remove": "Remove",
       "notes": "Notes",
-      "notesPlaceholder": "Notes about this ship…"
+      "notesPlaceholder": "Notes about this ship…",
+      "removeConfirm": {
+        "title": "Remove {{name}} from the hangar?",
+        "bodyNone": "This cannot be undone.",
+        "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
+        "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
+      }
     },
     "configs": {
       "title": "Configurations",
@@ -3171,7 +3199,11 @@
       "saveLoadout": "Save loadout",
       "discard": "Discard",
       "delete": "Delete",
-      "roleLabel": "Role"
+      "roleLabel": "Role",
+      "deleteConfirm": {
+        "title": "Delete configuration “{{name}}”?",
+        "body": "This cannot be undone."
+      }
     },
     "standard": {
       "title": "Standard components",
@@ -3764,7 +3796,8 @@
     "actions": {
       "viewInApp": "View in the app",
       "more": "More actions"
-    }
+    },
+    "deleteTitle": "Delete message?"
   },
   "feedbackFab": {
     "open": "Open feedback",

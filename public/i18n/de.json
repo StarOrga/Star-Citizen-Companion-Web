@@ -2,6 +2,10 @@
   "common": {
     "select": {
       "none": "Keine Auswahl"
+    },
+    "dialog": {
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen"
     }
   },
   "date": {
@@ -713,7 +717,9 @@
           "reExtractPendingYes": "Ja"
         },
         "forkGuard": {
-          "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
+          "title": "Eigentümer werden?",
+          "body": "Diese Änderung trennt das Loadout vom Original. Das lässt sich nicht umkehren.",
+          "confirm": "Eigentümer werden"
         },
         "deltaShow": "Änderungen zeigen",
         "deltaHide": "Änderungen ausblenden",
@@ -2533,9 +2539,11 @@
       "noReason": "kein Grund angegeben"
     },
     "prompts": {
-      "disable": "Bundle \"{{name}}\" deaktivieren.\n\nGrund (optional):",
       "reenable": "Bundle \"{{name}}\" wieder aktivieren?",
-      "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden."
+      "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden.",
+      "disableTitle": "Bundle „{{name}}“ deaktivieren?",
+      "reasonLabel": "Grund (optional)",
+      "deleteTitle": "Bundle löschen?"
     },
     "superseded": {
       "badge": "Ersetzt",
@@ -2706,7 +2714,17 @@
       "deleteBtn": "Meinen Account löschen",
       "deleting": "Lösche…",
       "confirm": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
-      "failed": "Löschen fehlgeschlagen"
+      "failed": "Löschen fehlgeschlagen",
+      "viaAdmin": "Die Löschung führt derzeit ein Administrator aus. Schreib uns über die Kontaktwege im Impressum; wir löschen dein Konto samt Profil, Hangar, Loadouts und Uploads.",
+      "imprintLink": "Zum Impressum",
+      "errors": {
+        "forbidden": "Nur Administratoren können hier Konten löschen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "protectedAdmin": "Dieser Account ist geschützt und kann nicht gelöscht werden.",
+        "lastAdmin": "Der letzte Admin kann nicht gelöscht werden. Ernenne vorher einen weiteren Admin.",
+        "notFound": "Dieses Konto gibt es nicht mehr.",
+        "invalidBody": "Die Anfrage war ungültig. Bitte lade die Seite neu."
+      }
     },
     "friends": {
       "title": "Freunde",
@@ -2748,7 +2766,8 @@
       "invitedTitle": "Für den Login vorregistriert — bisher nutzt kein Account diese Adresse.",
       "withdraw": "Einladung zurückziehen",
       "withdrawTitle": "Nimmt nur die Vorregistrierung zurück — ein bereits beigetretener Account ist davon nie betroffen.",
-      "withdrawConfirm": "Einladung für {{email}} zurückziehen? Die Adresse verliert ihren vorregistrierten Zugang, benachrichtigt wird niemand."
+      "withdrawConfirm": "Einladung für {{email}} zurückziehen? Die Adresse verliert ihren vorregistrierten Zugang, benachrichtigt wird niemand.",
+      "withdrawConfirmTitle": "Einladung zurückziehen?"
     },
     "col": {
       "user": "User",
@@ -2771,7 +2790,8 @@
     "delete": {
       "confirmSelf": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
-      "failed": "Löschen fehlgeschlagen"
+      "failed": "Löschen fehlgeschlagen",
+      "title": "Account löschen?"
     },
     "tokens": {
       "navLink": "Integrationen",
@@ -2835,7 +2855,8 @@
         "copied": "Kopiert",
         "ack": "Ich hab's gesichert",
         "tokenLabel": "Klartext-Token"
-      }
+      },
+      "revokeTitle": "Token widerrufen?"
     },
     "filter": {
       "searchPlaceholder": "Name, Username oder E-Mail suchen…",
@@ -2855,7 +2876,8 @@
       "acceptedNoMail": "{{email}} angenommen und freigeschaltet. Es ging keine Einladungsmail raus — zu dieser Adresse gibt es schon ein Konto, die Person meldet sich einfach an. Sag ihr am besten selbst Bescheid.",
       "declined": "Anfrage von {{email}} abgelehnt.",
       "allowlisted": "Schon auf Allowlist",
-      "joined": "Hat schon Account"
+      "joined": "Hat schon Account",
+      "declineTitle": "Anfrage ablehnen?"
     },
     "reports": {
       "title": "Auffällige Konten",
@@ -3160,7 +3182,13 @@
       "openCodex": "Codex-Eintrag",
       "remove": "Entfernen",
       "notes": "Notizen",
-      "notesPlaceholder": "Notizen zu diesem Schiff…"
+      "notesPlaceholder": "Notizen zu diesem Schiff…",
+      "removeConfirm": {
+        "title": "{{name}} aus dem Hangar entfernen?",
+        "bodyNone": "Das lässt sich nicht rückgängig machen.",
+        "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
+        "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
+      }
     },
     "configs": {
       "title": "Konfigurationen",
@@ -3171,7 +3199,11 @@
       "saveLoadout": "Loadout speichern",
       "discard": "Verwerfen",
       "delete": "Löschen",
-      "roleLabel": "Rolle"
+      "roleLabel": "Rolle",
+      "deleteConfirm": {
+        "title": "Konfiguration „{{name}}“ löschen?",
+        "body": "Das lässt sich nicht rückgängig machen."
+      }
     },
     "standard": {
       "title": "Standard-Komponenten",
@@ -3764,7 +3796,8 @@
     "actions": {
       "viewInApp": "Im App ansehen",
       "more": "Weitere Aktionen"
-    }
+    },
+    "deleteTitle": "Nachricht löschen?"
   },
   "feedbackFab": {
     "open": "Feedback öffnen",

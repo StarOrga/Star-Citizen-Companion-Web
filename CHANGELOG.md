@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.106.0] - 2026-09-29
+
+### Changed
+
+- **Rückfragen im App-Stil statt Browser-Fenster.** Alle zehn nativen
+  Bestätigungs- und Eingabedialoge sind durch einen übersetzten, per Tastatur
+  bedienbaren App-Dialog ersetzt; ein Build-Check verhindert neue.
+- **Hangar fragt vor dem Löschen.** Ein Schiff zu entfernen oder eine
+  Konfiguration zu löschen braucht jetzt eine Bestätigung; die Frage nennt, wie
+  viele Konfigurationen mit verschwinden.
+
+### Fixed
+
+- **Ehrliches Konto-Löschen.** Nicht-Admins sehen statt eines Knopfs, der nur
+  scheitern konnte, den Weg über das Impressum; Fehler beim Löschen erscheinen
+  als verständlicher Satz statt als Code.
+
 ## [0.105.2] - 2026-09-29
 
 ### Changed

@@ -16,6 +16,7 @@ import { LocaleService } from '../core/locale/locale.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { SettingsComponent } from './settings.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 
 /**
  * Layout + account-card contract of the settings page (feedback af058ca4).
@@ -44,7 +45,20 @@ describe('SettingsComponent layout', () => {
     } as unknown as User;
   }
 
-  function configure(user: User | null = makeUser()) {
+  interface ConfigureOpts {
+    isAdmin?: boolean;
+    invoke?: jasmine.Spy;
+    confirm?: jasmine.Spy;
+  }
+
+  function configure(
+    user: User | null = makeUser(),
+    {
+      isAdmin = true,
+      invoke = jasmine.createSpy('invoke').and.resolveTo({ data: {}, error: null }),
+      confirm = jasmine.createSpy('confirm').and.resolveTo(true),
+    }: ConfigureOpts = {},
+  ) {
     TestBed.configureTestingModule({
       imports: [SettingsComponent],
       providers: [
@@ -58,7 +72,11 @@ describe('SettingsComponent layout', () => {
           provide: AuthService,
           useValue: { user: signal(user), signOut: async () => undefined },
         },
-        { provide: RoleService, useValue: { role: signal('admin') } },
+        {
+          provide: RoleService,
+          useValue: { role: signal(isAdmin ? 'admin' : 'viewer'), isAdmin: signal(isAdmin) },
+        },
+        { provide: ScConfirmService, useValue: { confirm } },
         {
           provide: ProfileService,
           useValue: {
@@ -100,7 +118,7 @@ describe('SettingsComponent layout', () => {
           useValue: {
             client: {
               rpc: () => Promise.resolve({ error: null }),
-              functions: { invoke: () => Promise.resolve({ data: {}, error: null }) },
+              functions: { invoke },
             },
           },
         },
@@ -108,8 +126,8 @@ describe('SettingsComponent layout', () => {
     });
   }
 
-  function setup(user: User | null = makeUser(), width = '360px') {
-    configure(user);
+  function setup(user: User | null = makeUser(), width = '360px', opts: ConfigureOpts = {}) {
+    configure(user, opts);
     const fixture = TestBed.createComponent(SettingsComponent);
     (fixture.nativeElement as HTMLElement).style.width = width;
     (fixture.nativeElement as HTMLElement).style.display = 'block';
@@ -402,5 +420,60 @@ describe('SettingsComponent layout', () => {
       .find(({ de }) => !!de?.injector.get(ScTooltipDirective, null)?.scTooltip());
     expect(row).toBeTruthy();
     expect(row!.de!.injector.get(ScTooltipDirective).scTooltip()).toBeTruthy();
+  });
+
+  describe('danger zone (account deletion)', () => {
+    const zone = (fixture: { nativeElement: HTMLElement }) =>
+      fixture.nativeElement.querySelector('.danger-zone') as HTMLElement;
+
+    it('shows a viewer the imprint route instead of a delete button', () => {
+      const fixture = setup(makeUser(), '1100px', { isAdmin: false });
+      const el = zone(fixture);
+      expect(el.querySelector('.danger-btn')).toBeNull();
+      const link = el.querySelector<HTMLAnchorElement>('a[href="/legal/imprint"]');
+      expect(link).toBeTruthy();
+      expect(link!.textContent).toContain('settings.danger.imprintLink');
+    });
+
+    it('does nothing for a viewer even if deleteAccount() is called', async () => {
+      const invoke = jasmine.createSpy('invoke');
+      const confirm = jasmine.createSpy('confirm').and.resolveTo(true);
+      const fixture = setup(makeUser(), '1100px', { isAdmin: false, invoke, confirm });
+      await fixture.componentInstance.deleteAccount();
+      expect(confirm).not.toHaveBeenCalled();
+      expect(invoke).not.toHaveBeenCalled();
+    });
+
+    it('asks an admin in the app dialog and stops on cancel', async () => {
+      const invoke = jasmine.createSpy('invoke');
+      const confirm = jasmine.createSpy('confirm').and.resolveTo(false);
+      const fixture = setup(makeUser(), '1100px', { invoke, confirm });
+      zone(fixture).querySelector<HTMLButtonElement>('.danger-btn')!.click();
+      await fixture.whenStable();
+      expect(confirm).toHaveBeenCalledWith(
+        jasmine.objectContaining({ titleKey: 'settings.danger.title', tone: 'danger' }),
+      );
+      expect(invoke).not.toHaveBeenCalled();
+    });
+
+    it('translates a 403 from delete-user instead of showing the raw code', async () => {
+      const invoke = jasmine.createSpy('invoke').and.resolveTo({
+        data: null,
+        error: { context: new Response(JSON.stringify({ error: 'forbidden', message: 'Nur Admins' }), { status: 403 }) },
+      });
+      const fixture = setup(makeUser(), '1100px', { invoke });
+      await fixture.componentInstance.deleteAccount();
+      fixture.detectChanges();
+      const flash = zone(fixture).querySelector('.flash.error');
+      expect(flash?.textContent?.trim()).toBe('settings.danger.errors.forbidden');
+    });
+
+    it('falls back to the generic sentence for an unknown code', async () => {
+      const invoke = jasmine.createSpy('invoke').and.resolveTo({ data: { error: 'delete_failed' }, error: null });
+      const fixture = setup(makeUser(), '1100px', { invoke });
+      await fixture.componentInstance.deleteAccount();
+      fixture.detectChanges();
+      expect(zone(fixture).querySelector('.flash.error')?.textContent?.trim()).toBe('settings.danger.failed');
+    });
   });
 });

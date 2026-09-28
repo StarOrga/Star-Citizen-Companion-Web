@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { BundleDiffSummary, ChannelTag, P4kBundleRow, P4kService } from './p4k.service';
 import { RoleService } from '../auth/role.service';
 import { useAutoRefresh } from '../core/auto-refresh';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 @Component({
@@ -398,7 +399,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 export class P4kHistoryComponent implements OnInit {
   readonly svc = inject(P4kService);
   readonly roles = inject(RoleService);
-  private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(ScConfirmService);
 
   /** When embedded under the Data Upload page, the page title/subtitle chrome
    *  is dropped and the standalone card wrapper is skipped — the host panel
@@ -455,20 +456,38 @@ export class P4kHistoryComponent implements OnInit {
 
   async disable(b: P4kBundleRow): Promise<void> {
     const name = `${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}`;
-    const reason = window.prompt(this.translate.instant('p4k.prompts.disable', { name }), '');
+    const reason = await this.dialog.prompt({
+      titleKey: 'p4k.prompts.disableTitle',
+      params: { name },
+      inputLabelKey: 'p4k.prompts.reasonLabel',
+      confirmKey: 'p4k.actions.disable',
+      tone: 'danger',
+    });
     if (reason === null) return; // cancelled
     await this.svc.setDisabled(b.id, true, reason.trim() || null);
   }
 
   async reenable(b: P4kBundleRow): Promise<void> {
     const name = `${b.channel.toUpperCase()} ${b.patch_version}`;
-    if (!window.confirm(this.translate.instant('p4k.prompts.reenable', { name }))) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'p4k.prompts.reenable',
+      params: { name },
+      confirmKey: 'p4k.actions.reenable',
+    });
+    if (!ok) return;
     await this.svc.setDisabled(b.id, false, null);
   }
 
   async remove(b: P4kBundleRow): Promise<void> {
     const name = `${b.channel.toUpperCase()} ${b.patch_version} ${b.build_number}`;
-    if (!window.confirm(this.translate.instant('p4k.prompts.delete', { name }))) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'p4k.prompts.deleteTitle',
+      messageKey: 'p4k.prompts.delete',
+      params: { name },
+      confirmKey: 'p4k.actions.delete',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await this.svc.deleteBundle(b.id);
   }
 

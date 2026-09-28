@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import {
   API_TOKEN_SCOPES,
   ApiTokenRow,
@@ -523,6 +524,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 export class ApiTokensComponent implements OnInit {
   private readonly svc = inject(ApiTokensService);
   private readonly translate = inject(TranslateService);
+  private readonly dialog = inject(ScConfirmService);
 
   constructor() {
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
@@ -614,8 +616,14 @@ export class ApiTokensComponent implements OnInit {
   }
 
   async revoke(t: ApiTokenRow) {
-    const msg = this.translate.instant('admin.tokens.revokeConfirm', { name: t.name });
-    if (!window.confirm(msg)) return;
+    const ok = await this.dialog.confirm({
+      titleKey: 'admin.tokens.revokeTitle',
+      messageKey: 'admin.tokens.revokeConfirm',
+      params: { name: t.name },
+      confirmKey: 'admin.tokens.revoke',
+      tone: 'danger',
+    });
+    if (!ok) return;
     this.revokingId.set(t.id);
     this.flash.set(null);
     try {
