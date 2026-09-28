@@ -11,7 +11,10 @@ import { HangarShip } from './hangar.types';
 // resulting 23505 into one re-read + one retry instead of a raw error banner.
 describe('HangarService unique-slot retry', () => {
   const USER_ID = 'user-abc';
-  type Result = { data: unknown; error: { code?: string; message: string } | null };
+  interface Result {
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  }
 
   interface Call {
     table: string;
