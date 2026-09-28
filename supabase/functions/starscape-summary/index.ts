@@ -23,6 +23,7 @@ import {
   type ImageFetcher,
 } from './image-select.ts';
 import { Orbitron_700, Orbitron_500, Rajdhani_500, Rajdhani_600 } from './fonts.ts';
+import { onceUntilSuccess } from './once-until-success.ts';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -36,6 +37,8 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const RSI_REFERER = 'https://robertsspaceindustries.com/';
 const IMG_FETCH_TIMEOUT_MS = 6000;
+/** Deadline for the resvg .wasm download from jsDelivr; a stalled CDN must not hang the request. */
+const WASM_FETCH_TIMEOUT_MS = 10_000;
 // Budget for the whole news step, SHARED by both key attempts. It used to be a
 // per-attempt 8s, so one slow upstream burned 16s and the wallpaper app's 12s
 // boot gate had already given up — and because a timed-out fetch is
@@ -91,18 +94,18 @@ const FONT_BUFFERS: Uint8Array[] = [
 // from a CDN at cold start is the standard workaround for wasm bindings.
 // ---------------------------------------------------------------------
 const RESVG_WASM_URL = 'https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.6.2/index_bg.wasm';
-let wasmReady: Promise<void> | null = null;
-function ensureWasm(): Promise<void> {
-  if (!wasmReady) {
-    wasmReady = fetch(RESVG_WASM_URL)
-      .then((r) => {
-        if (!r.ok) throw new Error(`resvg wasm fetch HTTP ${r.status}`);
-        return r.arrayBuffer();
-      })
-      .then((buf) => initWasm(buf));
-  }
-  return wasmReady;
-}
+// A failed download is forgotten so the next request retries it; before, one
+// CDN hiccup at cold start broke every render of the warm isolate. Retrying
+// initWasm after a failed init is safe: resvg-wasm 2.6.2 sets its
+// `initialized` flag only after success.
+const ensureWasm = onceUntilSuccess(() =>
+  fetch(RESVG_WASM_URL, { signal: AbortSignal.timeout(WASM_FETCH_TIMEOUT_MS) })
+    .then((r) => {
+      if (!r.ok) throw new Error(`resvg wasm fetch HTTP ${r.status}`);
+      return r.arrayBuffer();
+    })
+    .then((buf) => initWasm(buf)),
+);
 
 // ---------------------------------------------------------------------
 // Verse news fetch + selection
@@ -363,7 +366,18 @@ Deno.serve(async (req: Request) => {
       return pngResponse(png);
     } catch (fallbackErr) {
       console.error('starscape-summary fallback render also failed:', fallbackErr);
-      return new Response('starscape-summary unavailable', { status: 200, headers: CORS_HEADERS });
+      // An honest 503: the wallpaper app (wallpaper-app/src/net.rs
+      // fetch_summary_image) treats any non-200 as "no image" and keeps the
+      // previous wallpaper, and no-store keeps a cache from pinning the outage.
+      return new Response('starscape-summary unavailable', {
+        status: 503,
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'text/plain',
+          'Retry-After': '60',
+          'Cache-Control': 'no-store',
+        },
+      });
     }
   }
 });
