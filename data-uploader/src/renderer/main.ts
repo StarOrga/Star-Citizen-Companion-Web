@@ -2709,7 +2709,9 @@ async function buildAndUploadSkins(
   // detail line. The old frame painted live over ships.length with a
   // hard-coded 100 % — "251 / 276 (100 %)" — and the status line that
   // explained the gap was overwritten by the cleanup message moments later.
-  const tally = tallySkinUpload(results);
+  // ships.length as the total: when the R2 cost gate stops the run, the
+  // ships it never reached are named as "not attempted".
+  const tally = tallySkinUpload(results, built.ships.length);
   // Repaint into a terminal state BEFORE the caller stops the clock: the card
   // freezes on whatever this last frame says, so it must not still read
   // "uploading" with a phantom ETA.

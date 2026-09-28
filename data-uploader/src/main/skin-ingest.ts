@@ -11,6 +11,7 @@ import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 import { fetchWithTimeout, isTimeout, putTimeoutMs } from '../lib/fetch-timeout.js';
+import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js';
 
 interface SkinCatalogEntry {
   id: string;
@@ -44,6 +45,12 @@ export interface SkinUploadResult {
    * anything with a hull and most of a whole-catalog run landed here.
    */
   empty?: boolean;
+  /**
+   * Set when `ingest-skins` refused to sign because the R2 cost gate is
+   * closed. The run stops at this ship: every later ship would be refused the
+   * same way, so continuing only floods the log with one failure per ship.
+   */
+  gate?: SkinGateCode;
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
@@ -205,6 +212,15 @@ export async function uploadSkins(
         if (s.icon) objects.push({ skin_id: s.id, ext: 'webp' });
       }
       const signed = await callIngest(getToken, { action: 'sign', ship_id: cat.ship, objects });
+      if (!signed.ok && isSkinGateCode(signed.error)) {
+        const code = signed.error;
+        onLog(
+          `R2 cost gate closed (${code}) — stopping the livery upload; ${ships.length - processed - 1} ship(s) not attempted`,
+          'error',
+        );
+        out.push({ ok: false, ship_id: shipId, error: code, gate: code });
+        break;
+      }
       if (!signed.ok) {
         onLog(`${shipId}: sign failed — ${signed.error}`, 'error');
         out.push({ ok: false, ship_id: shipId, error: signed.error });

@@ -333,7 +333,13 @@
     "stepUploadDonePartial": "Liveries uploaded — {{n}} failed",
     "skippedNoModel": "{{n}} skipped (no livery model)",
     "failedCount": "{{n}} failed",
-    "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)"
+    "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)",
+    "gate": {
+      "r2UsageUnknown": "Upload stopped: the R2 cost gate cannot read this month's usage right now. Ships already uploaded stay live — start again later.",
+      "r2FreeTierGuard": "Upload stopped: R2 has reached 80 % of a free monthly allowance. New hulls resume next month.",
+      "storageQuotaExceeded": "Upload stopped: R2 storage has reached its cap.",
+      "notAttempted": "{{n}} ship(s) not attempted"
+    }
   },
   "silhouettes": {
     "building": "Building silhouettes",

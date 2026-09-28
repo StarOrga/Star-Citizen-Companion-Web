@@ -333,7 +333,13 @@
     "stepUploadDonePartial": "Liveries hochgeladen — {{n}} fehlgeschlagen",
     "skippedNoModel": "{{n}} übersprungen (kein Livery-Modell)",
     "failedCount": "{{n}} fehlgeschlagen",
-    "partialStatus": "{{live}} / {{attempted}} Schiffe hochgeladen — {{failed}} fehlgeschlagen (siehe Protokoll)"
+    "partialStatus": "{{live}} / {{attempted}} Schiffe hochgeladen — {{failed}} fehlgeschlagen (siehe Protokoll)",
+    "gate": {
+      "r2UsageUnknown": "Upload angehalten: Die R2-Kostenbremse kann den Monatsverbrauch gerade nicht lesen. Bereits hochgeladene Schiffe bleiben erhalten – später erneut starten.",
+      "r2FreeTierGuard": "Upload angehalten: R2 hat 80 % eines kostenlosen Monatskontingents erreicht. Neue Hüllen erst wieder im nächsten Monat.",
+      "storageQuotaExceeded": "Upload angehalten: Der R2-Speicher hat seine Obergrenze erreicht.",
+      "notAttempted": "{{n}} Schiff(e) nicht versucht"
+    }
   },
   "silhouettes": {
     "building": "Silhouetten werden gebaut",

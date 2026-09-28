@@ -1020,7 +1020,12 @@ ipcMain.handle(
       );
       uploadJob.update((s) => ({ ...s, skins: { ...s.skins, status: 'done' } }));
       // Same tally the renderer paints, so main.log and the card agree.
-      const tally = tallySkinUpload(results);
+      const tally = tallySkinUpload(results, ships.length);
+      if (tally.gate) {
+        log.warn(
+          `[skin-upload] stopped by the R2 cost gate (${tally.gate}) — ${tally.notAttempted} ship(s) not attempted`,
+        );
+      }
       log.info(
         `[skin-upload] ${tally.total} ship(s): ${tally.live} live (${tally.fresh} uploaded, ${tally.cached} cached), ` +
           `${tally.empty} skipped without a built livery, ${tally.failed} failed — ${tally.live}/${tally.attempted} (${tally.pct} %)`,
