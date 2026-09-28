@@ -29,7 +29,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       </header>
 
       @if (errorMsg()) {
-        <div class="err">{{ errorMsg() }}</div>
+        <div class="err" role="alert">{{ errorMsg()! | translate }}</div>
       }
 
       <sc-app-download-panel
@@ -74,6 +74,7 @@ export class DownloadComponent {
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
 

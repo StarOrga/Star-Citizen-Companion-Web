@@ -189,7 +189,7 @@ let nextId = 0;
                 </a>
               </div>
             } @else if (errorMsg(); as e) {
-              <p class="pop-state err">{{ e }}</p>
+              <p class="pop-state err" role="alert">{{ e | translate }}</p>
             } @else {
               <p class="pop-state">{{ 'desktop.noRelease' | translate }}</p>
             }
@@ -403,6 +403,7 @@ export class AppDownloadMenuComponent {
 
   readonly open = signal(false);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly releases = signal<readonly RingRelease[]>([]);
   /** Re-read on every open so the "x days ago" copy is never stale. */

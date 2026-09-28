@@ -47,8 +47,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
 
         @if (svc.errorMsg(); as err) {
-          <div class="err">
-            <strong>{{ 'p4k.errorTitle' | translate }}:</strong> {{ err }}
+          <div class="err" role="alert">
+            <strong>{{ 'p4k.errorTitle' | translate }}:</strong> {{ err | translate }}
           </div>
         }
 

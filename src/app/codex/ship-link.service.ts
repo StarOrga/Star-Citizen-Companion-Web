@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
@@ -156,7 +157,8 @@ export class ShipLinkService {
     if (error && !payload.error) payload = await readErrorBody(error);
     if (error || payload.error) {
       const code = payload.error ?? 'unknown';
-      this.error.set(payload.message ?? error?.message ?? code);
+      logWarn('ship-link', 'invoke failed', { code, payload, error });
+      this.error.set(code);
       return this.errorKey(code);
     }
     return null;

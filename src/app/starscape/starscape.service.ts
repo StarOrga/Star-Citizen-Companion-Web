@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -134,6 +135,7 @@ export class StarscapeService {
   readonly wallpapers = signal<Wallpaper[]>([]);
   readonly total = signal(0);
   readonly loading = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   /** The last failure was our own {@link LOAD_TIMEOUT_MS} abort, not a server error. */
   readonly timedOut = signal(false);
@@ -318,13 +320,14 @@ export class StarscapeService {
         logWarn('starscape', 'variant columns not deployed yet, listing every row');
         ({ data, error, count } = await page(false));
       }
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       const mapped = (data ?? []).map(mapWallpaperRow);
       this.wallpapers.set(reset ? mapped : [...this.wallpapers(), ...mapped]);
       this.total.set(count ?? mapped.length);
     } catch (err) {
       this.timedOut.set(expired);
-      this.error.set(expired ? `timeout after ${LOAD_TIMEOUT_MS / 1000}s` : ((err as Error).message ?? 'load failed'));
+      const key = toErrorKey('starscape', 'load', err, { expired });
+      this.error.set(expired ? 'errors.timeout' : key);
     } finally {
       clearTimeout(deadline);
       this.loading.set(false);
