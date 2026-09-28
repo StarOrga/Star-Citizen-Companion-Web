@@ -28,7 +28,7 @@ const MAX_RETRIES = 5;
  * localStorage keys the two new-topic composers used before drafts moved to the
  * account. Imported once, then removed — see `importLegacyDrafts`.
  */
-const LEGACY_KEYS: ReadonlyArray<readonly [string, string]> = [
+const LEGACY_KEYS: readonly (readonly [string, string])[] = [
   ['sc.userFeedback.draft', draftScopes.userNew],
   ['sc.adminFeedback.draft', draftScopes.adminNew],
 ];

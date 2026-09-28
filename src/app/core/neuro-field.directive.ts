@@ -32,7 +32,7 @@ interface Blob {
 }
 
 interface Bolt {
-  pts: Array<{ x: number; y: number }>;
+  pts: { x: number; y: number }[];
   state: 'build' | 'hold' | 'fade';
   startedAt: number;
   buildMs: number; holdMs: number; fadeMs: number;
@@ -198,7 +198,7 @@ export class NeuroFieldDirective implements OnInit, OnDestroy {
     const b = this.blobs[di];
 
     const segments = 6 + Math.floor(this.rnd() * 5);
-    const pts: Array<{ x: number; y: number }> = [];
+    const pts: { x: number; y: number }[] = [];
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       const mx = a.x + (b.x - a.x) * t;

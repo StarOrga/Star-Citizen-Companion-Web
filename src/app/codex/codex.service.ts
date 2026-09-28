@@ -2089,7 +2089,7 @@ function escapeIlike(input: string): string {
  * select makes supabase-js parse it into a row type, and checking that builder
  * against `BrowseFilterable` hits TS2589 ("excessively deep").
  */
-const COUNT_ONLY_SELECT: string = 'class_name';
+const COUNT_ONLY_SELECT = 'class_name';
 
 /** The three filter calls the default browse filters need — every PostgREST filter builder has them. */
 interface BrowseFilterable {

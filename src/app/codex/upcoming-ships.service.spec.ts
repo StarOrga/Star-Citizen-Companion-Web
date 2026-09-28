@@ -7,7 +7,7 @@ import { ConsentService } from '../core/consent.service';
 const FAVORITES_KEY = 'sc-companion.upcoming.favorites';
 const BASELINE_KEY = 'sc-companion.upcoming.baseline';
 
-function feed(ships: Array<{ id: string; name: string; productionStatus?: string }>): UpcomingShipsFeed {
+function feed(ships: { id: string; name: string; productionStatus?: string }[]): UpcomingShipsFeed {
   return {
     ships: ships.map((s) => ({
       id: s.id,

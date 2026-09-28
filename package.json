@@ -31,7 +31,7 @@
     "gate:mobile:auth": "node scripts/mobile-gate.mjs --auth",
     "gate:mobile:selftest": "node scripts/mobile-gate.mjs --selftest",
     "test-account": "node scripts/test-account.mjs",
-    "lint": "echo 'no-op: add @angular-eslint and run ng lint'",
+    "lint": "ng lint",
     "stack:up": "supabase start",
     "stack:down": "supabase stop",
     "stack:status": "supabase status",
@@ -84,10 +84,13 @@
     "@angular/build": "^22.1.9",
     "@angular/cli": "^22.1.9",
     "@angular/compiler-cli": "^22.2.0",
+    "@eslint/js": "^10.0.1",
     "@resvg/resvg-js": "^2.6.2",
     "@types/jasmine": "~6.0.0",
     "@types/node": "^26.6.1",
     "@types/three": "^0.183.1",
+    "angular-eslint": "22.5.0",
+    "eslint": "^10.9.1",
     "istanbul-lib-instrument": "^6.0.3",
     "jasmine-core": "~6.3.0",
     "jpeg-js": "^0.4.4",
@@ -99,7 +102,8 @@
     "png-to-ico": "^3.0.2",
     "pngjs": "^7.0.0",
     "supabase": "^2.117.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.69.0"
   },
   "overrides": {
     "@babel/core": "^7.29.1"

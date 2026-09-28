@@ -245,7 +245,7 @@ describe('RoleService failure paths (transient read errors)', () => {
    */
   function fakeSupabaseQueued(
     first: FakeSession,
-    subsequent: Array<{ error: unknown } | 'reject'>,
+    subsequent: ({ error: unknown } | 'reject')[],
   ) {
     let call = 0;
     let authChangeCb: ((event: string, session: unknown) => void) | null = null;

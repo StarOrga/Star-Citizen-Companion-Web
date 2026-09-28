@@ -31,7 +31,7 @@ describe('buildVerdicts', () => {
   });
 });
 
-type Result = { data: unknown[] | null; error: { message: string } | null };
+interface Result { data: unknown[] | null; error: { message: string } | null }
 
 /** A query builder stub: every chained call returns itself; awaiting resolves the scripted result. */
 function stubClient(results: Record<string, Result | Error>, calls: string[]) {

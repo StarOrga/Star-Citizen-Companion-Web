@@ -157,7 +157,7 @@ export function buildDefencePanel(occupants: readonly SummaryOccupant[]): ShipSu
   let regenDelay = 0;
   let downedDelay = 0;
   let distortion = 0;
-  let hullHp = 0;
+  const hullHp = 0;
   let shieldCount = 0;
 
   for (const o of occupants) {

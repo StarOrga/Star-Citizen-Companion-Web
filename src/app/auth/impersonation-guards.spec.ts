@@ -183,7 +183,7 @@ describe('impersonation × guards (security invariants)', () => {
   });
 
   describe('SupabaseClientProvider.client swaps ONLY for the anon preview', () => {
-    const cases: Array<{ stored: ViewAs | null; expectAnon: boolean }> = [
+    const cases: { stored: ViewAs | null; expectAnon: boolean }[] = [
       { stored: null, expectAnon: false },
       { stored: 'viewer', expectAnon: false },
       { stored: 'collaborator', expectAnon: false },

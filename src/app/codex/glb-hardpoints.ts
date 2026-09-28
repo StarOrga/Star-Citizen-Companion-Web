@@ -164,7 +164,7 @@ export function parseGlbNodePositions(buffer: ArrayBuffer): Map<string, Vec3> {
   // LIFO pop visits them in declared order — that order is the export order,
   // and it is what makes "first occurrence of a name wins" mean anything.
   const seen = new Set<number>();
-  const stack: Array<{ index: number; parent: Mat4; depth: number }> = roots
+  const stack: { index: number; parent: Mat4; depth: number }[] = roots
     .map((index) => ({ index, parent: IDENTITY, depth: 0 }))
     .reverse();
 
@@ -283,7 +283,7 @@ export function hotspotPosition(position: Vec3): string {
  */
 export function resolveAnchors(
   positions: Map<string, Vec3>,
-  ports: ReadonlyArray<{ port: string; label: string; itemName: string | null }>,
+  ports: readonly { port: string; label: string; itemName: string | null }[],
 ): HardpointAnchor[] {
   const out: HardpointAnchor[] = [];
   const taken = new Set<string>();
