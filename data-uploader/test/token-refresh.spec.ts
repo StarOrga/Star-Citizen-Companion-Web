@@ -90,4 +90,14 @@ describe('refreshSession', () => {
     expect(r.ok).toBe(false);
     expect(r.error).toBe('network down');
   });
+
+  it('gives up on a hanging endpoint after its deadline', async () => {
+    const hanging = ((_url: string, init: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+      })) as unknown as typeof fetch;
+    const r = await refreshSession('https://api.test', 'anon-key', 'x', hanging, 20);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain('timeout');
+  });
 });

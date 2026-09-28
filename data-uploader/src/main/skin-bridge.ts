@@ -13,12 +13,13 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
-import { createWriteStream, existsSync, mkdirSync, renameSync, statSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { app } from 'electron';
 import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
+import { readWithStallTimeout } from '../lib/fetch-timeout.js';
 
 const CGF_CONVERTER_URL =
   'https://github.com/Markemp/Cryengine-Converter/releases/download/v2.0.0/cgf-converter.exe';
@@ -80,29 +81,51 @@ export function converterPath(): string {
   return resolve(app.getPath('userData'), 'tools', 'cgf-converter-2.exe');
 }
 
+const CGF_HEADER_TIMEOUT_MS = 30_000;
+const CGF_STALL_TIMEOUT_MS = 60_000;
+
 /** Download cgf-converter to userData/tools on first use; no-op if present. */
 export async function ensureConverter(onProgress: (pct: number) => void): Promise<string> {
   const dest = converterPath();
   if (existsSync(dest) && statSync(dest).size >= CGF_CONVERTER_MIN_BYTES) return dest;
   mkdirSync(resolve(dest, '..'), { recursive: true });
 
-  const res = await fetch(CGF_CONVERTER_URL);
+  // 30 s until the headers arrive, then a stall deadline on the body: the
+  // ~117 MB transfer may take minutes on a slow line, but never sits silent
+  // for 60 s. A whole-request deadline (fetchWithTimeout) would cut a slow
+  // but healthy download mid-transfer, hence the own controller here.
+  const ctrl = new AbortController();
+  const headerTimer = setTimeout(() => ctrl.abort(new Error('cgf-converter download: no response within 30 s')), CGF_HEADER_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(CGF_CONVERTER_URL, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(headerTimer);
+  }
   if (!res.ok || !res.body) throw new Error(`cgf-converter download failed: HTTP ${res.status}`);
   const total = Number(res.headers.get('content-length') ?? 0);
   const tmp = `${dest}.part`;
   const out = createWriteStream(tmp);
-  const reader = res.body.getReader();
   let got = 0;
+  let failed = false;
   try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      got += value.byteLength;
-      out.write(Buffer.from(value));
-      if (total) onProgress(Math.round((got / total) * 100));
-    }
+    await readWithStallTimeout(
+      res.body,
+      CGF_STALL_TIMEOUT_MS,
+      (value) => {
+        got += value.byteLength;
+        out.write(Buffer.from(value));
+        if (total) onProgress(Math.round((got / total) * 100));
+      },
+      CGF_CONVERTER_URL,
+    );
+  } catch (err) {
+    failed = true;
+    throw err;
   } finally {
     await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r())));
+    // An aborted download leaves no half-written .part behind.
+    if (failed) rmSync(tmp, { force: true });
   }
   if (statSync(tmp).size < CGF_CONVERTER_MIN_BYTES) {
     throw new Error('cgf-converter download too small — aborted');

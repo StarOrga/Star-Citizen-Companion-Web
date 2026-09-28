@@ -10,6 +10,8 @@
  * a dedicated paginated endpoint) plugs into the same progress + snapshot shape.
  */
 
+import { fetchWithTimeout, isTimeout } from './fetch-timeout.js';
+
 export type ChannelTag = 'live' | 'ptu' | 'eptu' | 'tech-preview' | 'unknown';
 
 export interface ChannelState {
@@ -56,6 +58,8 @@ export interface SyncOptions {
   accessToken: string;
   onProgress?: (p: SyncProgress) => void;
   fetchImpl?: FetchLike;
+  /** Deadline for the catalog RPC, in ms (default 30 s). */
+  timeoutMs?: number;
   /** Injectable clock (Unix seconds) for deterministic tests. */
   now?: () => number;
 }
@@ -79,7 +83,7 @@ export async function syncServerCatalog(opts: SyncOptions): Promise<SyncResult> 
   let res: Awaited<ReturnType<FetchLike>>;
   try {
     emit({ phase: 'fetching', pct: 20, message: 'catalog' });
-    res = await fetchImpl(endpoint, {
+    res = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -87,7 +91,7 @@ export async function syncServerCatalog(opts: SyncOptions): Promise<SyncResult> 
         authorization: `Bearer ${opts.accessToken}`,
       },
       body: JSON.stringify({ include_history: false, include_disabled: false }),
-    });
+    }, opts.timeoutMs ?? 30_000, fetchImpl);
   } catch (err) {
     const msg = (err as Error).message;
     emit({ phase: 'error', pct: 100, message: msg });
@@ -101,7 +105,19 @@ export async function syncServerCatalog(opts: SyncOptions): Promise<SyncResult> 
     return { ok: false, error: msg };
   }
 
-  const rows = (await res.json().catch(() => [])) as RawBundleRow[];
+  // A deadline hit while reading the rows is an error, never "a server
+  // without bundles". Only a real JSON error maps to [].
+  let rows: RawBundleRow[];
+  try {
+    rows = (await res.json().catch((e: unknown) => {
+      if (isTimeout(e)) throw e;
+      return [];
+    })) as RawBundleRow[];
+  } catch (err) {
+    const msg = `timeout: ${(err as Error).message}`;
+    emit({ phase: 'error', pct: 100, message: msg });
+    return { ok: false, error: msg };
+  }
   emit({ phase: 'processing', pct: 50, message: String(rows.length) });
 
   // Keep only the latest (most recent) bundle per channel — "nur die letzten

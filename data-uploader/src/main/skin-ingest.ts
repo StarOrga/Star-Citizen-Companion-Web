@@ -10,6 +10,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
+import { fetchWithTimeout, isTimeout, putTimeoutMs } from '../lib/fetch-timeout.js';
 
 interface SkinCatalogEntry {
   id: string;
@@ -88,12 +89,15 @@ interface SignedUpload {
   signedUrl: string;
 }
 
+/** Deadline for one ingest-skins sign/commit call. */
+const INGEST_TIMEOUT_MS = 60_000;
+
 async function callIngest(
   getToken: () => string | Promise<string>,
   body: unknown,
 ): Promise<{ ok: boolean; json: Record<string, unknown>; error?: string }> {
   const accessToken = await getToken();
-  const res = await fetch(fnUrl('ingest-skins'), {
+  const res = await fetchWithTimeout(fnUrl('ingest-skins'), {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -102,8 +106,13 @@ async function callIngest(
       'x-sc-tool-version': TOOL_VERSION,
     },
     body: JSON.stringify(body),
-  });
-  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  }, INGEST_TIMEOUT_MS);
+  // A deadline hit while reading the body is a failure of this ship (the
+  // per-ship catch reports it), never an empty reply.
+  const json = (await res.json().catch((e: unknown) => {
+    if (isTimeout(e)) throw e;
+    return {};
+  })) as Record<string, unknown>;
   return {
     ok: res.ok,
     json,
@@ -114,11 +123,13 @@ async function callIngest(
 async function putSigned(u: SignedUpload | undefined, file: string, contentType: string): Promise<void> {
   if (!u) throw new Error('no signed url for object');
   const url = u.signedUrl.startsWith('http') ? u.signedUrl : `${API_BASE}${u.signedUrl}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { 'content-type': contentType, 'x-upsert': 'true' },
-    body: readFileSync(file),
-  });
+  const bytes = readFileSync(file);
+  // Deadline scales with the object: 60 s + 1 s per 100 kB.
+  const res = await fetchWithTimeout(
+    url,
+    { method: 'PUT', headers: { 'content-type': contentType, 'x-upsert': 'true' }, body: bytes },
+    putTimeoutMs(bytes.byteLength),
+  );
   if (!res.ok) throw new Error(`PUT ${file} failed: HTTP ${res.status}`);
 }
 
