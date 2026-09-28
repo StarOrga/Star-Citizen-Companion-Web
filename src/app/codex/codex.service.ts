@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
@@ -938,7 +939,7 @@ export class CodexService {
       if ((first.count ?? 0) > FPS_CATALOG_HARD_CAP) {
         // Five times today's largest category — reaching it means the list
         // stopped early and its "exact" count is not. Loud, not silent.
-        console.error(`[codex] listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
+        logWarn('codex', `listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
       }
       return pages.flat().map((r) =>
         mapListRow(kind, {
@@ -1289,7 +1290,7 @@ export class CodexService {
             .eq('build_id', build.id)
             .in('class_name', slice);
           if (error || !data) {
-            console.error('[codex] getEntityPayloads chunk failed', kind, error);
+            logWarn('codex', 'getEntityPayloads chunk failed', { kind, error });
             return;
           }
           for (const r of data as unknown as Record<string, unknown>[]) {
@@ -1322,7 +1323,7 @@ export class CodexService {
           .eq('build_id', build.id)
           .in('class_name', slice);
         if (error || !data) {
-          console.error('[codex] getAmmoPayloads chunk failed', error);
+          logWarn('codex', 'getAmmoPayloads chunk failed', { error });
           return;
         }
         for (const r of data as unknown as Record<string, unknown>[]) {

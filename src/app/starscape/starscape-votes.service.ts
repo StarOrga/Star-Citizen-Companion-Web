@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
@@ -232,7 +233,7 @@ export class StarscapeVotesService {
     if (!this.auth.user()) return;
     try {
       const { error } = await this.sb.client.rpc('set_starscape_top_only', { enabled: on });
-      if (error) console.warn('[starscape] set_starscape_top_only failed:', error.message);
+      if (error) logWarn('starscape', 'set_starscape_top_only failed', error);
     } catch {
       /* the toggle still works for this session */
     }

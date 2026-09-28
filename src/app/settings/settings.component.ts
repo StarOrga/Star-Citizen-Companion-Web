@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -1319,7 +1320,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sb.client
       .rpc('set_preferred_lang', { lang: setting === 'auto' ? null : setting })
       .then(({ error }) => {
-        if (error) console.warn('[settings] set_preferred_lang failed:', error.message);
+        if (error) logWarn('settings', 'set_preferred_lang failed', error);
       });
   }
 
@@ -1332,7 +1333,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sb.client
       .rpc('set_preferred_region', { region: setting === 'auto' ? null : setting })
       .then(({ error }) => {
-        if (error) console.warn('[settings] set_preferred_region failed:', error.message);
+        if (error) logWarn('settings', 'set_preferred_region failed', error);
       });
   }
 

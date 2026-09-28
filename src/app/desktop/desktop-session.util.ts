@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -40,7 +41,7 @@ export async function mintDesktopSession(
       body: {},
     });
     if (error) {
-      console.warn('[desktop-session] mint failed, falling back to the browser session', error);
+      logWarn('desktop-session', 'mint failed, falling back to the browser session', error);
       return null;
     }
     const minted = data as Partial<Record<'access_token' | 'refresh_token', string>> & {
@@ -49,7 +50,7 @@ export async function mintDesktopSession(
     // A half-filled response is a failed mint: without the refresh token the
     // app would be signed out again in an hour, which is the bug we are fixing.
     if (!minted?.access_token || !minted?.refresh_token) {
-      console.warn('[desktop-session] mint returned no usable session — falling back');
+      logWarn('desktop-session', 'mint returned no usable session — falling back');
       return null;
     }
     return {
@@ -58,7 +59,7 @@ export async function mintDesktopSession(
       expires_at: minted.expires_at != null ? String(minted.expires_at) : '',
     };
   } catch (e) {
-    console.warn('[desktop-session] mint threw, falling back to the browser session', e);
+    logWarn('desktop-session', 'mint threw, falling back to the browser session', e);
     return null;
   }
 }

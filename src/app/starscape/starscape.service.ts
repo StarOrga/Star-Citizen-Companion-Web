@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
@@ -314,7 +315,7 @@ export class StarscapeService {
       // exist") and show an error page for the whole gap. Costs one retry, only
       // ever on that specific error, and disappears once the column is there.
       if (error && isMissingVariantColumn(error)) {
-        console.warn('starscape: variant columns not deployed yet, listing every row');
+        logWarn('starscape', 'variant columns not deployed yet, listing every row');
         ({ data, error, count } = await page(false));
       }
       if (error) throw new Error(error.message);

@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -107,7 +108,7 @@ export class RoadmapService {
       this.roadmap.set(payload);
       this.unavailable.set(!hasRoadmapContent(payload));
     } catch (err) {
-      console.warn('[news] roadmap unavailable', err);
+      logWarn('news', 'roadmap unavailable', err);
       this.unavailable.set(true);
     } finally {
       this.loading.set(false);
@@ -205,7 +206,7 @@ export class RoadmapService {
         });
       }
     } catch (err) {
-      console.warn('[news] note outlines failed', slugs, err);
+      logWarn('news', 'note outlines failed', { slugs, error: err });
       // A transport error is not a verdict about the notes — mark them missing
       // for THIS visit so the row stops spinning, but do not cache it further.
       this.missing.update((set) => {
