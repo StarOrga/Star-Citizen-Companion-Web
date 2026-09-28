@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.105.0",
+  "current": "0.105.1",
   "releases": [
+    {
+      "version": "0.105.1",
+      "date": "2026-09-28",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Schiffsmodelle laden zuverlässig in Teilen.",
+              "text": "Der Asset-Worker beantwortet Byte-Range-Anfragen korrekt mit 206/416 statt bytes NaN-NaN."
+            },
+            {
+              "title": "Ein Ausfall sieht nicht mehr aus wie ein fehlendes Asset.",
+              "text": "Ist der Supabase-Fallback nicht erreichbar, antwortet der Worker ungecacht mit 502 statt 404."
+            },
+            {
+              "title": "Feed, Wallpaper und Uploads hängen nicht mehr.",
+              "text": "News-Quellen, R2-Aufrufe, der ReadMe-Check und der Wasm-Download haben jetzt Zeitlimits; ein fehlgeschlagener Wasm-Download wird beim nächsten Aufruf neu versucht."
+            },
+            {
+              "title": "Die API-Doku zeigt auf den richtigen Server.",
+              "text": "OpenAPI-Spec und Einbettungs-Snippet nennen die Adresse der Edge Function."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.105.0",
       "date": "2026-09-28",
