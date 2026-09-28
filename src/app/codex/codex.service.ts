@@ -1084,8 +1084,7 @@ export class CodexService {
    * Every build the reader can pick from the patch selector, newest first
    * (concept decision 4). Defaults to the LIVE channel — same source
    * {@link recentLiveBuilds} reads, just with the selector's larger limit
-   * instead of the diff's fixed 2. Finalized builds only (AUD-113): a running
-   * or abandoned import has `finalized_at` null and is never offered.
+   * instead of the diff's fixed 2.
    */
   async buildsForChannel(channel = 'LIVE', limit = 30): Promise<CodexBuild[]> {
     try {
@@ -1095,7 +1094,6 @@ export class CodexService {
           'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
         )
         .eq('channel', channel)
-        .not('finalized_at', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error || !data) return [];
@@ -1395,13 +1393,10 @@ export class CodexService {
   }
 
   /**
-   * The most recent finalized LIVE codex builds, newest first (current build
-   * is index 0). prune_codex_builds keeps the two newest finalized builds per
-   * channel, so these are the current + previous patch — the free basis for
-   * the inline patch-diff. The `finalized_at` filter (AUD-113) keeps a running
-   * or abandoned import out, so the pair stays "current + previous" even while
-   * an import is in flight. Best-effort: any error yields an empty list (no
-   * diff, no thrown error).
+   * The most recent LIVE codex builds, newest first (current build is index 0).
+   * ingest-catalog never prunes old builds, so the two newest are the current +
+   * previous patch — the free basis for the inline patch-diff. Best-effort: any
+   * error yields an empty list (no diff, no thrown error).
    */
   async recentLiveBuilds(limit = 2): Promise<CodexBuild[]> {
     try {
@@ -1411,7 +1406,6 @@ export class CodexService {
           'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
         )
         .eq('channel', 'LIVE')
-        .not('finalized_at', 'is', null)
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error || !data) return [];
