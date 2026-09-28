@@ -4280,5 +4280,17 @@
     "forbidden": "This concept page is only available to admins.",
     "notFound": "This concept page does not exist (any more).",
     "error": "The concept page could not be loaded. Please try again later."
+  },
+  "errors": {
+    "offline": "You appear to be offline. Try again once the connection is back.",
+    "network": "The server can't be reached right now.",
+    "timeout": "This took too long.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "forbidden": "You don't have permission to do this.",
+    "notFound": "This doesn't exist (anymore).",
+    "rateLimit": "Too many requests — please wait a moment.",
+    "server": "The server reported an error.",
+    "generic": "Something went wrong.",
+    "retry": "Try again"
   }
 }
