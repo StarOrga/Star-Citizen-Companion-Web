@@ -207,3 +207,88 @@ end $$;
 alter table public.p4k_bundles
   add constraint p4k_bundles_disabled_by_fkey
   foreign key (disabled_by) references auth.users (id) on delete set null;
+
+-- ============================================================
+-- C. Codex retention counts finalized builds only (AUD-113)
+--
+-- finalized_at is set by set_current_codex_build (ingest-catalog op
+-- `finalize`, its only caller). NULL = import still running or abandoned.
+-- The backfill runs only in the same run that creates the column, so a re-run
+-- never marks a running import as finished.
+--
+-- ROLLBACK: re-run prune_codex_builds from 20260925010000 and
+--   set_current_codex_build from 00008_codex_catalog.sql:324-340, then
+--   alter table public.codex_builds drop column finalized_at;
+-- ============================================================
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'codex_builds' and column_name = 'finalized_at'
+  ) then
+    alter table public.codex_builds add column finalized_at timestamptz;
+    -- Every build that exists when this first runs counts as finished (see
+    -- the pre-check in the D02 plan for a build newer than the current one).
+    update public.codex_builds set finalized_at = coalesce(extracted_at, created_at);
+  end if;
+end $$;
+
+comment on column public.codex_builds.finalized_at is
+  'Set by set_current_codex_build (ingest-catalog finalize). NULL = import still running or abandoned — never counted by prune_codex_builds, swept after 7 days. A re-import of an already finalized build (init upserts on channel/patch_version/build_number) keeps its finalized_at: same data.';
+
+create or replace function public.set_current_codex_build(p_build_id uuid)
+returns void
+language plpgsql security definer set search_path = public as $func$
+declare
+  v_channel text;
+begin
+  select channel into v_channel from public.codex_builds where id = p_build_id;
+  if v_channel is null then
+    raise exception 'codex build % not found', p_build_id;
+  end if;
+  update public.codex_builds set is_current = false
+    where channel = v_channel and is_current and id <> p_build_id;
+  -- AUD-113: finalize marks the build as finished for prune_codex_builds.
+  update public.codex_builds
+    set is_current = true, finalized_at = coalesce(finalized_at, now())
+    where id = p_build_id;
+end
+$func$;
+
+revoke all on function public.set_current_codex_build(uuid) from public, anon, authenticated;
+
+-- Per channel, keeps the p_keep newest FINALIZED builds (plus the current
+-- one, whatever its age); an unfinished build never counts and so never
+-- pushes the previous LIVE build out. Never-finalized, non-current builds
+-- older than 7 days are swept as abandoned imports. Columns are qualified
+-- everywhere: channel / patch_version are also OUT parameters.
+create or replace function public.prune_codex_builds(p_keep int default 2)
+returns table (build_id uuid, channel text, patch_version text)
+language plpgsql security definer set search_path = public as $func$
+begin
+  if p_keep is null or p_keep < 1 then
+    raise exception 'prune_codex_builds: p_keep must be >= 1 (got %)', p_keep;
+  end if;
+
+  return query
+  with ranked as (
+    select b.id, b.is_current,
+           row_number() over (partition by b.channel order by b.created_at desc) as rn
+    from public.codex_builds b
+    where b.finalized_at is not null or b.is_current
+  ),
+  doomed as (
+    select r.id from ranked r where r.rn > p_keep and not r.is_current
+    union
+    select b.id from public.codex_builds b
+    where b.finalized_at is null and not b.is_current
+      and b.created_at < now() - interval '7 days'
+  )
+  delete from public.codex_builds d
+  using doomed x
+  where d.id = x.id
+  returning d.id, d.channel, d.patch_version;
+end
+$func$;
+
+revoke all on function public.prune_codex_builds(int) from public, anon, authenticated;
