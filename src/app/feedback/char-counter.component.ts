@@ -41,7 +41,7 @@ export type CharCounterPlacement = 'inside' | 'below';
     '[class.over]': 'atLimit()',
     '[class.below]': "placement() === 'below'",
   },
-  template: `<span [scTooltip]="titleKey() | translate: titleParams()">{{ used() }} / {{ max() }}</span>`,
+  template: `<span tabindex="0" [scTooltip]="titleKey() | translate: titleParams()">{{ used() }} / {{ max() }}</span>`,
   styles: [`
     :host {
       position: absolute;

@@ -55,7 +55,7 @@ export interface AppDownloadEntry {
           <span class="ap-desc">{{ desc() | translate }}</span>
         </span>
         @if (version(); as v) {
-          <span class="ap-ver" [scTooltip]="'appPanel.version' | translate">v{{ v }}</span>
+          <span class="ap-ver" tabindex="0" [scTooltip]="'appPanel.version' | translate">v{{ v }}</span>
         }
         <!-- The channel picker is part of the download ACTION: picking a ring
              only means anything if a download follows. Hidden (not removed) on

@@ -180,6 +180,11 @@ type Slide =
                         </span>
                       }
                     </div>
+                    <!-- The chart is one role=img; its columns are no Tab stops. The
+                         per-patch values live here for screen readers instead. -->
+                    <ul class="sc-sr-only">
+                      @for (p of s.kpi.points; track $index) { <li>{{ pointTitle(p) }}</li> }
+                    </ul>
                     <div class="chart-axis" aria-hidden="true">
                       <span>{{ axisFrom(s.kpi) }}</span>
                       <span>{{ axisTo(s.kpi) }}</span>

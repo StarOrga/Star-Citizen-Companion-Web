@@ -34,11 +34,15 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
           @if (c.value != null) {
             <span class="kpi-value">{{ fmt(c) }}</span>
           } @else {
-            <span class="kpi-value gap-dash" [scTooltip]="c.gapKey ? (c.gapKey | translate) : null" scTooltipTier="label">—</span>
+            <span class="kpi-value gap-dash"
+                  [attr.tabindex]="c.gapKey ? 0 : null"
+                  [attr.role]="c.gapKey ? 'img' : null"
+                  [attr.aria-label]="c.gapKey ? (c.gapKey | translate) : null"
+                  [scTooltip]="c.gapKey ? (c.gapKey | translate) : null" scTooltipTier="label">—</span>
           }
           @if (c.delta; as d) {
             @if (deltaText(c); as body) {
-              <span class="kpi-delta" [class.good]="d.good" [class.bad]="!d.good" [scTooltip]="d.pctText" scTooltipTier="label">{{ body }}</span>
+              <span class="kpi-delta" tabindex="0" [class.good]="d.good" [class.bad]="!d.good" [scTooltip]="d.pctText" scTooltipTier="label">{{ body }}</span>
             }
           }
         </div>

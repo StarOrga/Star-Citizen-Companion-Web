@@ -43,7 +43,7 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
                  with a minus and drawn in the warning colour so it can never
                  be misread as "more is better" like the headline figure. -->
             @for (k of compKeys; track k) {
-              <li class="comp" [scTooltip]="('news.patch.stability.componentHint.' + k) | translate">
+              <li class="comp" tabindex="0" [scTooltip]="('news.patch.stability.componentHint.' + k) | translate">
                 <span class="comp-name">{{ ('news.patch.stability.component.' + k) | translate }}</span>
                 <span class="comp-bar" aria-hidden="true">
                   @if (v.components[k] !== null) {
@@ -76,6 +76,11 @@ const COMP_KEYS: CompKey[] = ['community', 'service', 'cig'];
                   </span>
                 }
               </div>
+              <!-- The chart is one role=img; its columns are no Tab stops. The
+                   per-day values live here for screen readers instead. -->
+              <ul class="sc-sr-only">
+                @for (d of v.days; track d.date) { <li>{{ dayTitle(d) }}</li> }
+              </ul>
               <div class="chart-axis" aria-hidden="true">
                 <span>{{ v.days[0]?.date }}</span>
                 <span>{{ v.days[v.days.length - 1]?.date }}</span>

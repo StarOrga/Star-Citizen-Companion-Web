@@ -107,7 +107,7 @@ export interface AnnotationResult {
                   <span class="af-name">{{ img.alt }}</span>
                 </a>
               } @else {
-                <span class="att-thumb att-file" [scTooltip]="img.alt" scTooltipTier="label">
+                <span class="att-thumb att-file" tabindex="0" [scTooltip]="img.alt" scTooltipTier="label">
                   <span class="af-ext">{{ extOf(img.alt) }}</span>
                   <span class="af-name">{{ img.alt }}</span>
                 </span>

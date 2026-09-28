@@ -544,17 +544,17 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     {{ ('profile.roles.' + u.role) | translate }}
                   </span>
                   @if (u.role === 'admin' && adminCount() === 1) {
-                    <span class="role-pill last-admin" [scTooltip]="'admin.lastAdminTip' | translate">
+                    <span class="role-pill last-admin" tabindex="0" [scTooltip]="'admin.lastAdminTip' | translate">
                       {{ 'admin.lastAdmin' | translate }}
                     </span>
                   }
                   @if (isProtected(u)) {
-                    <span class="role-pill protected" [scTooltip]="'admin.protectedTip' | translate">
+                    <span class="role-pill protected" tabindex="0" [scTooltip]="'admin.protectedTip' | translate">
                       {{ 'admin.protected' | translate }}
                     </span>
                   }
                   @if (isUserSuspended(u)) {
-                    <span class="role-pill suspended" [scTooltip]="u.suspension_reason ?? ''" scTooltipTier="label">
+                    <span class="role-pill suspended" [attr.tabindex]="u.suspension_reason ? 0 : null" [scTooltip]="u.suspension_reason ?? ''" scTooltipTier="label">
                       {{ 'admin.moderation.suspendedPill' | translate }}
                     </span>
                   }
@@ -629,7 +629,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
               -->
               <tr class="invited-row">
                 <td>
-                  <span class="role-pill pending" [scTooltip]="'admin.people.invitedTitle' | translate">
+                  <span class="role-pill pending" tabindex="0" [scTooltip]="'admin.people.invitedTitle' | translate">
                     {{ 'admin.people.invitedPill' | translate }}
                   </span>
                   <span class="invite-age">{{ inviteAge(inv.created_at) }}</span>
@@ -644,7 +644,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                   </span>
                 </td>
                 <td><span class="muted-zero">—</span></td>
-                <td [scTooltip]="inv.created_at | scDate: 'datetime'" scTooltipTier="label">{{ inv.created_at | scDate }}</td>
+                <td tabindex="0" [scTooltip]="inv.created_at | scDate: 'datetime'" scTooltipTier="label">{{ inv.created_at | scDate }}</td>
                 <td><span class="muted-zero">—</span></td>
                 <td class="actions">
                   <!-- The old card said it in a subline nobody re-read; here the

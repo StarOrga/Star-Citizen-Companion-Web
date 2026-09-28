@@ -107,7 +107,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                         <div class="up-left">
                           <span class="ch-pill" [class]="b.channel">{{ b.channel.toUpperCase() }}</span>
                           @if (isSuperseded(b)) {
-                            <span class="badge" [scTooltip]="b.disabled_reason ?? ''" scTooltipTier="label">{{ 'p4k.superseded.badge' | translate }}</span>
+                            <span class="badge" [attr.tabindex]="b.disabled_reason ? 0 : null" [scTooltip]="b.disabled_reason ?? ''" scTooltipTier="label">{{ 'p4k.superseded.badge' | translate }}</span>
                           }
                           <span class="up-b mono">{{ b.build_number || '—' }}</span>
                           <div class="qbar">
@@ -120,7 +120,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                           </div>
                           <div class="up-ent">
                             @for (ent of entityKeys(b); track ent.key) {
-                              <span class="echip" [scTooltip]="ent.key" scTooltipTier="label">{{ ent.icon }} {{ ent.value | number }}</span>
+                              <span class="echip" tabindex="0" role="img" [attr.aria-label]="ent.key + ': ' + (ent.value | number)" [scTooltip]="ent.key" scTooltipTier="label">{{ ent.icon }} {{ ent.value | number }}</span>
                             }
                           </div>
                         </div>
@@ -134,7 +134,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                               <span class="small">—</span>
                             }
                           </span>
-                          <span class="up-tool mono small" [scTooltip]="'p4k.col.tool' | translate">{{ b.tool_version ?? '—' }}</span>
+                          <span class="up-tool mono small" tabindex="0" [scTooltip]="'p4k.col.tool' | translate">{{ b.tool_version ?? '—' }}</span>
                           <div class="uploader-cell">
                             <span class="n">{{ b.uploaded_by_name ?? '—' }}</span>
                             <span class="e mono">{{ b.uploaded_by_email }}</span>

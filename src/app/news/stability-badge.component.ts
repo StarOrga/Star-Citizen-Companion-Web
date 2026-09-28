@@ -27,7 +27,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     @if (shown(); as v) {
       <span class="badge" [attr.data-tone]="v.tone" [attr.data-size]="size()"
             [class.early]="v.early" [style.--fill]="v.stability + '%'"
-            [scTooltip]="hint()" scTooltipTier="label" [attr.aria-label]="hint()" role="img">
+            [scTooltip]="hint()" scTooltipTier="label" [attr.aria-label]="hint()" role="img" tabindex="0">
         <span class="ring" aria-hidden="true"></span>
         <span class="val" aria-hidden="true">{{ v.stability }}<i>%</i></span>
       </span>

@@ -101,11 +101,11 @@ export interface ComponentInspectEntry {
           @if (headline().length > 0) {
             <dl class="cm-headline">
               @for (st of headline(); track st.labelKey) {
-                <div class="hs" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
+                <div class="hs" [attr.tabindex]="st.hintKey ? 0 : null" [scTooltip]="st.hintKey ? (st.hintKey | translate) : null">
                   <dt>
                     {{ st.labelKey | translate }}
                     @if (st.derived) {
-                      <span class="derived" [scTooltip]="'codex.equipped.derivedHint' | translate" scTooltipTier="label">*</span>
+                      <span class="derived" tabindex="0" role="img" [attr.aria-label]="'codex.equipped.derivedHint' | translate" [scTooltip]="'codex.equipped.derivedHint' | translate" scTooltipTier="label">*</span>
                     }
                   </dt>
                   <dd>{{ fmtStat(st) }}</dd>

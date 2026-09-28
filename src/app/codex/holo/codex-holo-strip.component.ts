@@ -139,7 +139,7 @@ let uidSeq = 0;
               } @empty {
                 <!-- Nothing in this perspective has a value for this hull — say
                      so instead of leaving a label over an empty cell. -->
-                <span class="tv none" [scTooltip]="'codex.kpi.gap' | translate" scTooltipTier="label" [attr.aria-label]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
+                <span class="tv none" tabindex="0" role="img" [scTooltip]="'codex.kpi.gap' | translate" scTooltipTier="label" [attr.aria-label]="'codex.kpi.gap' | translate"><span class="k">&nbsp;</span><span class="v">—</span></span>
               }
             </div>
           </div>
