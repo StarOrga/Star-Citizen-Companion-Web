@@ -152,6 +152,11 @@ interface FacetOption {
             {{ 'fps.equip.backToSet' | translate }}
           </a>
         </div>
+      } @else if (equipTargetError(); as err) {
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'fps.equip.setLoadFailed' | translate }}</strong> — {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="equipTargetLoading()" (click)="retryTargetSet()">{{ 'errors.retry' | translate }}</button>
+        </div>
       } @else if (equipTargetMissing()) {
         <!-- A stale or foreign ?equipInto= used to drop the equip mode without
              a word — the reader clicked "put on" and landed in a plain list. -->
@@ -647,6 +652,10 @@ export class FpsListComponent {
   readonly equipFailed = signal<string | null>(null);
   /** `?equipInto=` named a set this reader cannot load — say so instead of silently browsing. */
   readonly equipTargetMissing = signal(false);
+  /** Loading the `?equipInto=` set failed (network, timeout). i18n key, never raw text. */
+  readonly equipTargetError = signal<string | null>(null);
+  /** The `?equipInto=` set is being read — disables the retry. */
+  readonly equipTargetLoading = signal(false);
   /** `<className>|<slot>` of a clear that met another tab's newer piece in the slot. */
   readonly equipConflict = signal<string | null>(null);
   /**
@@ -919,6 +928,7 @@ export class FpsListComponent {
     this.equipInto.set(null);
     this.equipSlot.set(null);
     this.equipTargetMissing.set(false);
+    this.equipTargetError.set(null);
     this.writeUrl({ equipInto: null, equipSlot: null });
   }
 
@@ -952,7 +962,8 @@ export class FpsListComponent {
    * Resolve `?equipInto=` into the actual set. Best-effort on purpose: a stale
    * id (deleted set, old bookmark) leaves `targetSet` null and says so in the
    * `equipTargetMissing` notice — the page is the ordinary archive again, never
-   * a broken editor.
+   * a broken editor. A failed read is a different state: `equipTargetError`
+   * with a retry, since the set may exist after all.
    */
   private async loadTargetSet(): Promise<void> {
     const id = this.equipInto();
@@ -960,14 +971,26 @@ export class FpsListComponent {
       this.targetSet.set(null);
       return;
     }
-    let set: HangarRoleLoadout | null = null;
+    this.equipTargetError.set(null);
+    this.equipTargetLoading.set(true);
     try {
-      set = await this.hangar.getRoleLoadout(id);
-    } catch {
-      set = null;
+      const set = await this.hangar.getRoleLoadout(id);
+      this.targetSet.set(set);
+      this.equipTargetMissing.set(set === null);
+    } catch (err) {
+      // A failed read is not "set unavailable": the set may well exist, the
+      // request just did not come through — offer a retry instead.
+      this.targetSet.set(null);
+      this.equipTargetMissing.set(false);
+      this.equipTargetError.set(toErrorKey('codex', 'equipTarget', err, { id }));
+    } finally {
+      this.equipTargetLoading.set(false);
     }
-    this.targetSet.set(set);
-    this.equipTargetMissing.set(set === null);
+  }
+
+  /** Retry button of the equip-target error card. */
+  retryTargetSet(): void {
+    void this.loadTargetSet();
   }
 
   /**

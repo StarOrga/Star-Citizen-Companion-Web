@@ -2017,7 +2017,8 @@
         "eyebrow": "Arsenal",
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} for {{name}}"
-      }
+      },
+      "setLoadFailed": "The set from the link could not be loaded"
     }
   },
   "news": {
@@ -3153,7 +3154,8 @@
       "noResults": "No ships found.",
       "already": "In hangar",
       "owned": "Owned",
-      "wishlist": "Wishlist"
+      "wishlist": "Wishlist",
+      "searchFailed": "Catalog search failed"
     },
     "fleet": {
       "title": "Fleet",
@@ -3202,7 +3204,8 @@
         "bodyNone": "This cannot be undone.",
         "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
         "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
-      }
+      },
+      "loadFailed": "Hangar entry could not be loaded"
     },
     "configs": {
       "title": "Configurations",
@@ -3253,7 +3256,8 @@
       "close": "Close",
       "loading": "Loading…",
       "empty": "Nothing found.",
-      "emptyPort": "No compatible items found in this catalog build (subset seeded)."
+      "emptyPort": "No compatible items found in this catalog build (subset seeded).",
+      "loadFailed": "Items could not be loaded"
     },
     "teaser": {
       "title": "Your personal hangar",
@@ -3350,6 +3354,9 @@
         "title": "This loadout is not available",
         "body": "The link is invalid, expired, or was revoked."
       }
+    },
+    "errors": {
+      "adoptFailed": "The shared loadout could not be adopted."
     }
   },
   "quickSearch": {

@@ -2017,7 +2017,8 @@
         "eyebrow": "Arsenal",
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} für {{name}}"
-      }
+      },
+      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden"
     }
   },
   "news": {
@@ -3153,7 +3154,8 @@
       "noResults": "Keine Schiffe gefunden.",
       "already": "Im Hangar",
       "owned": "Besitz",
-      "wishlist": "Wunschliste"
+      "wishlist": "Wunschliste",
+      "searchFailed": "Katalogsuche fehlgeschlagen"
     },
     "fleet": {
       "title": "Flotte",
@@ -3202,7 +3204,8 @@
         "bodyNone": "Das lässt sich nicht rückgängig machen.",
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
-      }
+      },
+      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden"
     },
     "configs": {
       "title": "Konfigurationen",
@@ -3253,7 +3256,8 @@
       "close": "Schließen",
       "loading": "Lädt…",
       "empty": "Nichts gefunden.",
-      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
+      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet).",
+      "loadFailed": "Items konnten nicht geladen werden"
     },
     "teaser": {
       "title": "Dein persönlicher Hangar",
@@ -3350,6 +3354,9 @@
         "title": "Dieses Loadout ist nicht verfügbar",
         "body": "Der Link ist ungültig, abgelaufen oder wurde deaktiviert."
       }
+    },
+    "errors": {
+      "adoptFailed": "Das geteilte Loadout konnte nicht übernommen werden."
     }
   },
   "quickSearch": {
