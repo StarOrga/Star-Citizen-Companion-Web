@@ -2,6 +2,7 @@ import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
+import { EdgeErrorBody, readErrorBody } from '../core/edge-error';
 import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 
 /**
@@ -20,27 +21,7 @@ import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
  * friendly message. The stored value is pure data: it is bound with
  * `[href]` on a plain anchor and never touches innerHTML or any LLM prompt.
  */
-interface ErrorPayload {
-  ok?: boolean;
-  error?: string;
-  message?: string;
-}
-
-/**
- * Pull our JSON error body off a FunctionsHttpError. `error.context` is the raw
- * `Response`; anything else (network error, relay error) yields an empty payload
- * so the caller falls back to the generic message.
- */
-async function readErrorBody(error: unknown): Promise<ErrorPayload> {
-  const ctx = (error as { context?: unknown } | null)?.context;
-  if (!(ctx instanceof Response)) return {};
-  try {
-    const parsed: unknown = await ctx.clone().json();
-    return parsed && typeof parsed === 'object' ? (parsed as ErrorPayload) : {};
-  } catch {
-    return {};
-  }
-}
+type ErrorPayload = EdgeErrorBody;
 
 @Injectable({ providedIn: 'root' })
 export class ShipLinkService {

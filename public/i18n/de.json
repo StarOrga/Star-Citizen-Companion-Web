@@ -2712,7 +2712,17 @@
       "deleteBtn": "Meinen Account löschen",
       "deleting": "Lösche…",
       "confirm": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
-      "failed": "Löschen fehlgeschlagen"
+      "failed": "Löschen fehlgeschlagen",
+      "viaAdmin": "Die Löschung führt derzeit ein Administrator aus. Schreib uns über die Kontaktwege im Impressum; wir löschen dein Konto samt Profil, Hangar, Loadouts und Uploads.",
+      "imprintLink": "Zum Impressum",
+      "errors": {
+        "forbidden": "Nur Administratoren können hier Konten löschen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "protectedAdmin": "Dieser Account ist geschützt und kann nicht gelöscht werden.",
+        "lastAdmin": "Der letzte Admin kann nicht gelöscht werden. Ernenne vorher einen weiteren Admin.",
+        "notFound": "Dieses Konto gibt es nicht mehr.",
+        "invalidBody": "Die Anfrage war ungültig. Bitte lade die Seite neu."
+      }
     },
     "friends": {
       "title": "Freunde",

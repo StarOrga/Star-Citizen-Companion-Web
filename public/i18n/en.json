@@ -2712,7 +2712,17 @@
       "deleteBtn": "Delete my account",
       "deleting": "Deleting…",
       "confirm": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
-      "failed": "Delete failed"
+      "failed": "Delete failed",
+      "viaAdmin": "Account deletion is currently carried out by an administrator. Contact us through the routes in the site notice; we delete your account together with profile, hangar, loadouts and uploads.",
+      "imprintLink": "Go to site notice",
+      "errors": {
+        "forbidden": "Only administrators can delete accounts here.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "protectedAdmin": "This account is protected and cannot be deleted.",
+        "lastAdmin": "The last admin cannot be deleted. Promote another admin first.",
+        "notFound": "This account no longer exists.",
+        "invalidBody": "The request was invalid. Please reload the page."
+      }
     },
     "friends": {
       "title": "Friends",
