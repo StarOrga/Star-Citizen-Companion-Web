@@ -120,8 +120,9 @@ export function drawShape(ctx: CanvasRenderingContext2D, shape: AnnotationShape)
  * `crossOrigin = 'anonymous'` is not optional: a restored draft's thumbnail is a
  * `https://…supabase.co/storage/…` URL, and drawing a plainly-loaded
  * cross-origin image into a canvas taints it, which makes the `toDataURL()`
- * export throw `SecurityError`. The bucket is public and serves permissive CORS
- * headers, so the anonymous request succeeds; a `data:` URI (everything just
+ * export throw `SecurityError`. The caller passes the signed Storage URL (the
+ * bucket is private), served with permissive CORS headers, so the anonymous
+ * request succeeds; a `data:` URI (everything just
  * pasted, dropped or captured) is same-origin anyway and unaffected.
  */
 export function loadAnnotatableImage(src: string): Promise<HTMLImageElement> {

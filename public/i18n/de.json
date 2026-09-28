@@ -4091,7 +4091,9 @@
       "rect": "Rechteck",
       "arrow": "Pfeil",
       "pen": "Freihand"
-    }
+    },
+    "loading": "Anhang wird geladen …",
+    "unavailable": "Anhang nicht verfügbar"
   },
   "appMenu": {
     "trigger": "{{app}} herunterladen",

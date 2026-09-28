@@ -4091,7 +4091,9 @@
       "rect": "Rectangle",
       "arrow": "Arrow",
       "pen": "Freehand"
-    }
+    },
+    "loading": "Loading attachment…",
+    "unavailable": "Attachment unavailable"
   },
   "appMenu": {
     "trigger": "Download {{app}}",

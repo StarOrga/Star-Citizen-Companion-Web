@@ -21,6 +21,8 @@ import { useAutoRefresh } from '../../core/auto-refresh';
 import { AuthService } from '../../auth/auth.service';
 import { ConsentService } from '../../core/consent.service';
 import { RenderedFeedbackBody, renderFeedbackBody } from './markdown.util';
+import { FeedbackAttachmentSignerService } from '../../feedback/feedback-attachment-signer.service';
+import { applySignedUrls, attachmentPathsOf } from '../../feedback/feedback-attachment-urls';
 import { FeedbackAttachmentsComponent } from './feedback-attachments.component';
 import { ComposerPayload, FeedbackComposerComponent, PendingImage } from './feedback-composer.component';
 import { CelebrationService } from './celebration.service';
@@ -1357,6 +1359,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 })
 export class AdminFeedbackComponent implements OnInit {
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly signer = inject(FeedbackAttachmentSignerService);
   private readonly auth = inject(AuthService);
   private readonly translate = inject(TranslateService);
   private readonly dialog = inject(ScConfirmService);
@@ -2064,8 +2067,14 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Misc template helpers --------------------------------------------------
 
+  /**
+   * Render a body with its file links pointing at SIGNED URLs — the bucket is
+   * private (AUD-115). Reads the signer's signal, so the OnPush view re-renders
+   * once the URLs arrive.
+   */
   render(body: string): RenderedFeedbackBody {
-    return renderFeedbackBody(body);
+    this.signer.request(attachmentPathsOf(body));
+    return applySignedUrls(renderFeedbackBody(body), this.signer.signed());
   }
 
   authorLabel(m: FeedbackRow): string {

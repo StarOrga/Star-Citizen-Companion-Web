@@ -14,6 +14,7 @@ import { FeedbackMotionService } from './feedback-motion.service';
 import { AdminFeedbackComponent } from './admin-feedback.component';
 import { PanelNavigationService } from '../../feedback/panel-navigation.service';
 import { FeedbackMessage, FeedbackRow, FeedbackStatus } from './feedback.types';
+import { provideFakeAttachmentSigner } from '../../feedback/testing/fake-attachment-signer';
 
 /**
  * The stream's state machine (concept 2026-09-04, direction E), rendered
@@ -126,6 +127,7 @@ async function mount(tables: Record<string, unknown[]>) {
       provideRouter([]),
       provideTranslateService({ fallbackLang: 'en' }),
       { provide: SupabaseClientProvider, useValue: sb.provider },
+      provideFakeAttachmentSigner(),
       { provide: AuthService, useValue: { user: signal({ id: SELF }), session: signal(null), ready: () => Promise.resolve(), realUser: () => null } },
       { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
       { provide: LocaleService, useValue: { language: () => 'de', region: () => 'DE' } },
