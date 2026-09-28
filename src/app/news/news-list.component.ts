@@ -607,10 +607,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     @media (hover: hover) {
       .card:hover { transform: translateY(-3px) scale(1.005); }
     }
-    /* Videos are stream tiles now, not a rail — but they keep the distinct
-       treatment that made them readable as videos (feedback 0a5268e7). */
-    .card.video { border-color: color-mix(in srgb, var(--sc-danger) 45%, var(--sc-border)); }
-    .card.video:hover { border-color: var(--sc-danger); }
+    /* Videos are stream tiles now, not a rail — they stay readable as videos
+       (feedback 0a5268e7), distinct via the YouTube mark in the pill, the play
+       disc and the VIDEO tag. The frame is the normal card frame: red is kept
+       for errors and elevated access (CLAUDE.md, audit D10). */
     .thumb-wrap { position: relative; display: flex; }
     .thumb-wrap > sc-news-thumb { flex: 1 1 auto; min-width: 0; }
     .play {
@@ -618,7 +618,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
       width: 44px; height: 44px; border-radius: 50%; z-index: 2;
       display: grid; place-items: center; pointer-events: none;
       background: color-mix(in srgb, var(--sc-bg-0) 58%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-danger) 70%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-fg-0) 45%, transparent);
       color: var(--sc-fg-0);
     }
     .play svg { width: 20px; height: 20px; }
@@ -643,8 +643,8 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .vid-tag {
       margin-right: 6px; padding: 1px 6px; border-radius: 4px;
       font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
-      letter-spacing: 0.08em; color: var(--sc-danger);
-      border: 1px solid color-mix(in srgb, var(--sc-danger) 55%, transparent);
+      letter-spacing: 0.08em; color: var(--sc-fg-1);
+      border: 1px solid var(--sc-border);
     }
     /* Same shape as the video badge, in the normal accent — it marks a place,
        not a problem, and nothing here is admin-only. */
@@ -799,7 +799,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     .play-link svg { width: 26px; height: 26px; }
     .play-link:hover, .play-link:focus-visible {
       transform: translate(-50%, -50%) scale(1.1);
-      background: var(--sc-danger); outline: none;
+      background: var(--sc-accent); color: var(--sc-bg-0); outline: none;
     }
     .play-link:focus-visible { outline: 2px solid var(--sc-fg-0); outline-offset: 3px; }
 
