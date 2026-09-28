@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  HostListener,
   OnInit,
   computed,
   effect,
@@ -11,6 +10,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
@@ -98,6 +98,7 @@ const RENDER_CHUNK = 24;
     StarscapeAppPromoComponent,
     StarscapeVoteButtonComponent,
     ScSegmentedComponent,
+    ScDialogDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -332,7 +333,10 @@ const RENDER_CHUNK = 24;
       [version]="promoVersion()" />
 
     @if (active(); as w) {
-      <div class="lightbox" role="dialog" aria-modal="true" (click)="close()">
+      <div class="lightbox" role="dialog" aria-modal="true"
+           scDialog scDialogInitialFocus="container" (scDialogEscape)="close()"
+           [attr.aria-label]="w.title || ('starscape.lightboxAria' | translate)"
+           (click)="close()">
         <figure (click)="$event.stopPropagation()">
           <!-- Phones get the 1140w cover rather than the untouched original: a
                375 px screen at DPR 3 can resolve 1125 px, so the cover is
@@ -1089,10 +1093,5 @@ export class StarscapeComponent implements OnInit {
     // notices first wins, the other is a no-op. A tile that already painted is
     // never demoted to "broken".
     this.tileState.markBroken(id);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    this.close();
   }
 }

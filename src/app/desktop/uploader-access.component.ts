@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
@@ -29,6 +30,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
     AppDownloadPanelComponent,
     ChannelPickerComponent,
     P4kHistoryComponent,
+    ScDialogDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -77,6 +79,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
             class="hx-dialog"
             role="dialog"
             aria-modal="true"
+            scDialog (scDialogEscape)="onEscape()"
             [attr.aria-label]="'desktop.bundleHistory' | translate"
             (click)="$event.stopPropagation()">
             <div class="hx-head">
@@ -207,7 +210,7 @@ export class UploaderAccessComponent {
     this.busy.set(false);
   }
 
-  @HostListener('document:keydown.escape')
+  /** Escape inside the bundle-history popup (ScDialogDirective). */
   onEscape(): void {
     if (this.historyOpen()) this.historyOpen.set(false);
   }
