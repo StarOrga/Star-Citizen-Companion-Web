@@ -1,3 +1,5 @@
+import { logWarn } from '../../core/log';
+import { toErrorKey } from '../../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -228,7 +230,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       }
 
       @if (errorMsg()) {
-        <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
+        <div class="err"><strong>{{ 'adminFeedback.errorTitle' | translate }}:</strong> {{ errorMsg()! | translate }}</div>
       }
 
       @if (view() === 'progress') {
@@ -337,6 +339,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             <span class="tb-label">{{ 'adminFeedback.stream.progress' | translate }}</span>
           </button>
         </div>
+        @if (threadsStale()) {
+          <p class="threads-stale" role="status">{{ 'adminFeedback.threadsStale' | translate }}</p>
+        }
 
         <div class="scroll stream">
           @if (busy() && messages().length === 0) {
@@ -1052,6 +1057,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
     /* ---- Controls at rest ---- */
     .topbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; container-type: inline-size; container-name: topbar; }
+    /* A hint, not the failure of an action: normal accent, never the danger red (AUD-022). */
+    .threads-stale { flex: 0 0 auto; margin: 6px 0 0; padding: 6px 10px; border-left: 2px solid var(--sc-accent); color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor)); }
     .tb-title { font-weight: 600; font-size: 0.9rem; }
     .search-box { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; }
     .search-box:focus-within, .search-box.active { border-color: var(--sc-accent); }
@@ -1382,7 +1389,16 @@ export class AdminFeedbackComponent implements OnInit {
 
   readonly messages = signal<FeedbackRow[]>([]);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
+  private readonly threadsFailed = signal(false);
+  private readonly authorThreadsFailed = signal(false);
+  /**
+   * The last thread load (admin or author channel) failed (AUD-022). The board
+   * keeps what it had — threads are additive — but the admin sees a calm hint
+   * that a card's replies, and so its band, may be out of date.
+   */
+  readonly threadsStale = computed(() => this.threadsFailed() || this.authorThreadsFailed());
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
 
   /** Draft scope handed to the new-topic composer for account-bound persistence. */
@@ -2149,7 +2165,7 @@ export class AdminFeedbackComponent implements OnInit {
       .select('id, seq, author_id, body, status, ship_ref, processing_note, created_at, updated_at, shipped_at, processed_at, reviewed_at, source, triaged, decision_note, area, summary, complex, author:profiles(display_name, username, role)')
       .order('created_at', { ascending: true });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'load board', error));
     } else {
       const rows = (data ?? []) as unknown as FeedbackRow[];
       this.messages.set(rows);
@@ -2164,6 +2180,7 @@ export class AdminFeedbackComponent implements OnInit {
   private async loadThreads(feedbackIds: string[]): Promise<void> {
     if (feedbackIds.length === 0) {
       this.threads.set(new Map());
+      this.threadsFailed.set(false);
       return;
     }
     const { data, error } = await this.sb.client
@@ -2171,8 +2188,14 @@ export class AdminFeedbackComponent implements OnInit {
       .select('id, feedback_id, author_id, is_system, body, created_at, author:profiles(display_name, username, role)')
       .in('feedback_id', feedbackIds)
       .order('created_at', { ascending: true });
-    // Threads are additive — a load failure must not blank the board.
-    if (error) return;
+    // Threads are additive — a load failure must not blank the board, but the
+    // admin is told the replies (and so a card's band) may be out of date.
+    if (error) {
+      this.threadsFailed.set(true);
+      logWarn('admin-feedback', 'threads load failed', { code: error.code });
+      return;
+    }
+    this.threadsFailed.set(false);
     const grouped = new Map<string, FeedbackMessage[]>();
     for (const row of (data ?? []) as unknown as FeedbackMessage[]) {
       const list = grouped.get(row.feedback_id) ?? [];
@@ -2210,6 +2233,7 @@ export class AdminFeedbackComponent implements OnInit {
   private async loadAuthorThreads(ids: string[]): Promise<void> {
     if (ids.length === 0) {
       this.authorThreads.set(new Map());
+      this.authorThreadsFailed.set(false);
       return;
     }
     const { data, error } = await this.sb.client
@@ -2217,7 +2241,12 @@ export class AdminFeedbackComponent implements OnInit {
       .select('id, feedback_id, author_id, from_admin, is_question, body, created_at')
       .in('feedback_id', ids)
       .order('created_at', { ascending: true });
-    if (error) return;
+    if (error) {
+      this.authorThreadsFailed.set(true);
+      logWarn('admin-feedback', 'threads load failed', { code: error.code });
+      return;
+    }
+    this.authorThreadsFailed.set(false);
     this.authorThreads.set(groupAuthorMessages((data ?? []) as unknown as AuthorFeedbackMessage[]));
   }
 
@@ -2272,8 +2301,9 @@ export class AdminFeedbackComponent implements OnInit {
     let body: string;
     try {
       body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
-    } catch {
-      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+    } catch (err) {
+      logWarn('admin-feedback', 'image upload failed', err);
+      this.errorMsg.set('adminFeedback.compose.uploadError');
       return false;
     }
     if (!body) return false;
@@ -2281,7 +2311,7 @@ export class AdminFeedbackComponent implements OnInit {
       .from('admin_feedback')
       .insert({ body, author_id: uid, area: payload.area ?? null, complex: payload.complex ?? false });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'create topic', error));
       return false;
     }
     await this.refresh();
@@ -2307,8 +2337,9 @@ export class AdminFeedbackComponent implements OnInit {
     let body: string;
     try {
       body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
-    } catch {
-      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+    } catch (err) {
+      logWarn('admin-feedback', 'image upload failed', err);
+      this.errorMsg.set('adminFeedback.compose.uploadError');
       return false;
     }
     if (!body) return false;
@@ -2316,7 +2347,7 @@ export class AdminFeedbackComponent implements OnInit {
       .from('admin_feedback_messages')
       .insert({ feedback_id: feedbackId, author_id: uid, is_system: false, body });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'send reply', error, { feedbackId }));
       return false;
     }
     await this.refresh();
@@ -2336,7 +2367,7 @@ export class AdminFeedbackComponent implements OnInit {
       .from('admin_feedback_messages')
       .insert({ feedback_id: m.id, author_id: uid, is_system: false, body });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'request issue', error, { feedbackId: m.id }));
       this.busy.set(false);
       return;
     }
@@ -2351,7 +2382,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { error } = await this.sb.client.from('admin_feedback_messages').delete().eq('id', msg.id);
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'undo issue request', error, { feedbackId: m.id }));
       this.busy.set(false);
       return;
     }
@@ -2397,7 +2428,7 @@ export class AdminFeedbackComponent implements OnInit {
     const [{ error }, el] = await Promise.all([write, this.foldOut(m.id)]);
     if (error) {
       this.motion.restore(el);
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'accept review', error, { feedbackId: m.id }));
       this.busy.set(false);
       return;
     }
@@ -2469,7 +2500,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { error } = await this.sb.client.from('admin_feedback').update(patch).eq('id', m.id);
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'write review', error, { feedbackId: m.id }));
       this.busy.set(false);
       return;
     }
@@ -2483,7 +2514,7 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     const { error } = await this.sb.client.from('admin_feedback').update({ triaged: true }).eq('id', m.id);
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'release to routine', error, { feedbackId: m.id }));
       this.busy.set(false);
       return;
     }
@@ -2536,8 +2567,9 @@ export class AdminFeedbackComponent implements OnInit {
     let body: string;
     try {
       body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
-    } catch {
-      this.errorMsg.set(this.translate.instant('adminFeedback.compose.uploadError'));
+    } catch (err) {
+      logWarn('admin-feedback', 'image upload failed', err);
+      this.errorMsg.set('adminFeedback.compose.uploadError');
       return false;
     }
     if (!body) return false;
@@ -2549,7 +2581,7 @@ export class AdminFeedbackComponent implements OnInit {
       body,
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'send author message', error, { feedbackId }));
       return false;
     }
     this.toggleAskAuthorOff(feedbackId);
@@ -2628,7 +2660,7 @@ export class AdminFeedbackComponent implements OnInit {
     ev.preventDefault();
     const note = this.declineNote().trim();
     if (!note) {
-      this.errorMsg.set(this.translate.instant('adminFeedback.decline.noteRequired'));
+      this.errorMsg.set('adminFeedback.decline.noteRequired');
       return;
     }
     if (await this.declineWithNote(m, note)) {
@@ -2647,7 +2679,7 @@ export class AdminFeedbackComponent implements OnInit {
       .update({ status: 'declined', decision_note: note, processed_at: new Date().toISOString() })
       .eq('id', m.id);
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('admin-feedback', 'decline', error, { feedbackId: m.id }));
       this.busy.set(false);
       return false;
     }
@@ -2662,9 +2694,9 @@ export class AdminFeedbackComponent implements OnInit {
       if (noteErr) {
         // The status flipped but the author never got the explanation — say
         // so and keep the sheet open for a retry instead of a silent half-success.
-        this.errorMsg.set(noteErr.message);
-        this.busy.set(false);
+        const key = toErrorKey('admin-feedback', 'decline note', noteErr, { feedbackId: m.id });
         await this.refresh();
+        this.errorMsg.set(key);
         return false;
       }
     }
@@ -2687,10 +2719,9 @@ export class AdminFeedbackComponent implements OnInit {
     // Same exit as the sign-off: back to the stream, and the row folds away.
     const del = this.sb.client.from('admin_feedback').delete().eq('id', m.id);
     const [{ error }, el] = await Promise.all([del, this.foldOut(m.id)]);
-    if (error) {
-      this.motion.restore(el);
-      this.errorMsg.set(error.message);
-    }
+    if (error) this.motion.restore(el);
     await this.refresh();
+    // refresh() clears errorMsg, so the failure is shown after it.
+    if (error) this.errorMsg.set(toErrorKey('admin-feedback', 'delete topic', error, { feedbackId: m.id }));
   }
 }

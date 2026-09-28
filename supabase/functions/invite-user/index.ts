@@ -12,13 +12,23 @@
 // Output: 200 { status: 'invited', ok: true, userId, email, role }
 //         200 { status: 'approved_existing', ok: true, userId, email, role }
 //         200 { status: 'allowlisted', ok: true, email, role }
-//         400 { error: <message> }
+//         Errors: `error` is always a stable snake_case code the client maps
+//         to a translated sentence; operator context (DB / Supabase text) goes
+//         to `message` and is never shown verbatim in the UI.
+//         405 { error: 'method_not_allowed' }
+//         500 { error: 'server_misconfigured' }
 //         401 { error: 'unauthorized' }
 //         403 { error: 'forbidden' }
-//         409 { error: 'user_exists', message: <string> }  -- sendInvite=true,
-//              account already exists; use approved_existing instead
-//         409 { error: <string> }  -- an existing account could not be updated
-//              in place (e.g. a protected admin); the email was still allowlisted
+//         400 { error: 'invalid_json' | 'invalid_email' | 'invalid_role' }
+//         500 { error: 'allowlist_write_failed', message }
+//         500 { error: 'user_lookup_failed', message }
+//         409 { error: 'existing_account_not_updated', message }  -- an existing
+//              account could not be updated in place (e.g. a protected admin);
+//              the email was still allowlisted
+//         409 { error: 'user_exists', message }  -- sendInvite=true, account
+//              already exists; use approved_existing instead
+//         400 { error: 'invite_failed', message }
+//         500 { error: 'role_assign_failed', message }
 //
 // Design doc: docs/superpowers/specs/2026-08-05-access-control-allowlist-design.md (C5)
 
@@ -65,7 +75,7 @@ function json(body: unknown, status = 200): Response {
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
-  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
 
   const authHeader = req.headers.get('authorization');
   if (!authHeader) return json({ error: 'unauthorized' }, 401);
@@ -74,7 +84,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   if (!supabaseUrl || !anonKey || !serviceKey) {
-    return json({ error: 'server misconfigured (missing env)' }, 500);
+    return json({ error: 'server_misconfigured' }, 500);
   }
 
   // 1. Verify caller is admin (using user JWT against anon client)
@@ -93,7 +103,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .eq('id', user.id)
     .maybeSingle();
   if (profErr || callerProfile?.role !== 'admin') {
-    return json({ error: 'forbidden — admin role required' }, 403);
+    return json({ error: 'forbidden' }, 403);
   }
 
   // 2. Parse + validate body
@@ -101,16 +111,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
   try {
     body = (await req.json()) as RegisterBody;
   } catch {
-    return json({ error: 'invalid json' }, 400);
+    return json({ error: 'invalid_json' }, 400);
   }
   const email = (body.email ?? '').trim().toLowerCase();
   const role = (body.role ?? 'viewer').trim().toLowerCase();
   const sendInvite = body.sendInvite === true;
   if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-    return json({ error: 'invalid email' }, 400);
+    return json({ error: 'invalid_email' }, 400);
   }
   if (!ALLOWED_ROLES.has(role)) {
-    return json({ error: 'invalid role' }, 400);
+    return json({ error: 'invalid_role' }, 400);
   }
 
   const adminClient = createClient(supabaseUrl, serviceKey, {
@@ -126,7 +136,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       { onConflict: 'email' },
     );
   if (allowErr) {
-    return json({ error: 'allowlist write failed: ' + allowErr.message }, 500);
+    return json({ error: 'allowlist_write_failed', message: allowErr.message }, 500);
   }
 
   // 4. If an auth.users account already exists for this email, approve it
@@ -139,7 +149,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     { target_email: email },
   );
   if (lookupErr) {
-    return json({ error: 'user lookup failed: ' + lookupErr.message }, 500);
+    return json({ error: 'user_lookup_failed', message: lookupErr.message }, 500);
   }
 
   if (existingUserId) {
@@ -166,7 +176,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // bare 500) so the admin knows the allowlist part landed.
         return json(
           {
-            error:
+            error: 'existing_account_not_updated',
+            message:
               'allowlisted, but the existing account was not updated (it may be a protected admin): ' +
               updErr.message,
           },
@@ -207,7 +218,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         409,
       );
     }
-    return json({ error: msg }, 400);
+    return json({ error: 'invite_failed', message: msg }, 400);
   }
 
   const newUserId = inviteData.user.id;
@@ -222,7 +233,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .update({ role, is_approved: true })
     .eq('id', newUserId);
   if (updErr) {
-    return json({ error: 'invited but role-assign failed: ' + updErr.message }, 500);
+    return json({ error: 'role_assign_failed', message: updErr.message }, 500);
   }
 
   return json({ status: 'invited', ok: true, userId: newUserId, email, role });

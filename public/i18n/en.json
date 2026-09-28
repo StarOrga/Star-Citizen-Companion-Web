@@ -2762,7 +2762,22 @@
         "approved_existing": "{{email}} already had an account — approved.",
         "invited": "{{email}} added to the allowlist and invited."
       },
-      "unknownError": "Unknown error"
+      "unknownError": "Registration failed.",
+      "err": {
+        "method_not_allowed": "The request was rejected (wrong method).",
+        "server_misconfigured": "The server is misconfigured — check the edge function's secrets.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "forbidden": "Only admins can register people.",
+        "invalid_json": "The request could not be read. Please try again.",
+        "invalid_email": "That is not a valid email address.",
+        "invalid_role": "That role does not exist.",
+        "allowlist_write_failed": "The email could not be added to the allowlist.",
+        "user_lookup_failed": "The allowlist was updated, but looking up an existing account failed.",
+        "invite_failed": "The email is on the allowlist, but the invite mail could not be sent.",
+        "role_assign_failed": "Invited, but the role could not be assigned.",
+        "existing_account_not_updated": "The email is on the allowlist, but the existing account was not changed — most likely a protected admin.",
+        "user_exists": "This email is already registered. The allowlist was updated anyway."
+      }
     },
     "share": {
       "button": "Copy share link",
@@ -2801,7 +2816,18 @@
       "confirmSelf": "Your account ({{email}}) will be permanently deleted. Your uploads + bundles go too. You'll be signed out afterwards. Sure?",
       "confirmOther": "Permanently delete {{email}}? Their uploads + bundles go too. This cannot be undone.",
       "failed": "Delete failed",
-      "title": "Delete account?"
+      "title": "Delete account?",
+      "err": {
+        "protected_admin": "This account is protected and can be neither changed nor deleted.",
+        "cannot_delete_last_admin": "The last admin cannot be deleted.",
+        "user_not_found": "This account doesn't exist (anymore).",
+        "forbidden": "Only admins can delete accounts.",
+        "unauthorized": "Your session has expired. Please sign in again.",
+        "invalid_body": "The request was incomplete. Reload the page and try again.",
+        "delete_failed": "The account could not be deleted.",
+        "server_misconfigured": "The server is misconfigured — check the edge function's secrets.",
+        "method_not_allowed": "The request was rejected (wrong method)."
+      }
     },
     "tokens": {
       "navLink": "Integrations",
@@ -3819,7 +3845,8 @@
       "viewInApp": "View in the app",
       "more": "More actions"
     },
-    "deleteTitle": "Delete message?"
+    "deleteTitle": "Delete message?",
+    "threadsStale": "Replies could not be loaded — some cards may be filed under an outdated state."
   },
   "feedbackFab": {
     "open": "Open feedback",

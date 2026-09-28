@@ -27,7 +27,7 @@ import { LocaleService } from '../core/locale/locale.service';
 import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
 import { PICKER_REGIONS } from '../core/locale/region.data';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
-import { readErrorBody } from '../core/edge-error';
+import { readEdgeErrorCode } from '../core/edge-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -1383,7 +1383,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     if (error || payload.error) {
       // The signal holds an i18n KEY, the template translates. The function's
       // `message` is German plain text and never shown (English UI).
-      const code = payload.error ?? (await readErrorBody(error)).error;
+      const code = await readEdgeErrorCode(error, data);
       this.deleteError.set((code && DELETE_ACCOUNT_ERROR_KEYS[code]) ?? 'settings.danger.failed');
       this.deleting.set(false);
       return;

@@ -2762,7 +2762,22 @@
         "approved_existing": "{{email}} hatte bereits einen Account — freigegeben.",
         "invited": "{{email}} zur Allowlist hinzugefügt und eingeladen."
       },
-      "unknownError": "Unbekannter Fehler"
+      "unknownError": "Registrieren fehlgeschlagen.",
+      "err": {
+        "method_not_allowed": "Die Anfrage wurde abgelehnt (falsche Methode).",
+        "server_misconfigured": "Der Server ist falsch konfiguriert — bitte die Secrets der Edge Function prüfen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "forbidden": "Nur Admins dürfen Personen registrieren.",
+        "invalid_json": "Die Anfrage war nicht lesbar. Bitte erneut versuchen.",
+        "invalid_email": "Das ist keine gültige E-Mail-Adresse.",
+        "invalid_role": "Diese Rolle gibt es nicht.",
+        "allowlist_write_failed": "Die E-Mail konnte nicht in die Allowlist eingetragen werden.",
+        "user_lookup_failed": "Die Allowlist ist aktualisiert, aber die Suche nach einem bestehenden Account ist fehlgeschlagen.",
+        "invite_failed": "Die E-Mail steht in der Allowlist, aber die Einladungsmail konnte nicht verschickt werden.",
+        "role_assign_failed": "Eingeladen, aber die Rolle konnte nicht gesetzt werden.",
+        "existing_account_not_updated": "Die E-Mail steht in der Allowlist, aber der bestehende Account wurde nicht geändert — vermutlich ein geschützter Admin.",
+        "user_exists": "Diese E-Mail ist bereits registriert. Die Allowlist wurde trotzdem aktualisiert."
+      }
     },
     "share": {
       "button": "Share-Link kopieren",
@@ -2801,7 +2816,18 @@
       "confirmSelf": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
       "failed": "Löschen fehlgeschlagen",
-      "title": "Account löschen?"
+      "title": "Account löschen?",
+      "err": {
+        "protected_admin": "Dieser Account ist geschützt und kann weder geändert noch gelöscht werden.",
+        "cannot_delete_last_admin": "Der letzte Admin kann nicht gelöscht werden.",
+        "user_not_found": "Diesen Account gibt es nicht (mehr).",
+        "forbidden": "Nur Admins dürfen Accounts löschen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "invalid_body": "Die Anfrage war unvollständig. Bitte lade die Seite neu und versuche es erneut.",
+        "delete_failed": "Der Account konnte nicht gelöscht werden.",
+        "server_misconfigured": "Der Server ist falsch konfiguriert — bitte die Secrets der Edge Function prüfen.",
+        "method_not_allowed": "Die Anfrage wurde abgelehnt (falsche Methode)."
+      }
     },
     "tokens": {
       "navLink": "Integrationen",
@@ -3819,7 +3845,8 @@
       "viewInApp": "Im App ansehen",
       "more": "Weitere Aktionen"
     },
-    "deleteTitle": "Nachricht löschen?"
+    "deleteTitle": "Nachricht löschen?",
+    "threadsStale": "Antworten konnten nicht geladen werden — die Einordnung einzelner Karten kann veraltet sein."
   },
   "feedbackFab": {
     "open": "Feedback öffnen",
