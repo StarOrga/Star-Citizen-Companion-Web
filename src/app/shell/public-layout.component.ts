@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { FooterComponent } from './footer.component';
+import { skipToMain } from './skip-link';
 
 /**
  * Bare chrome for the app's small public surface (`/about`, `/legal/privacy`,
@@ -33,6 +34,7 @@ import { FooterComponent } from './footer.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="public-shell">
+      <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
       <header class="public-topbar">
         <a class="home" routerLink="/">
           <span class="arrow" aria-hidden="true">←</span>
@@ -40,7 +42,7 @@ import { FooterComponent } from './footer.component';
           <span class="label">{{ 'nav.backToHome' | translate }}</span>
         </a>
       </header>
-      <main class="content">
+      <main id="sc-main" tabindex="-1" class="content">
         <router-outlet />
       </main>
       <sc-footer />
@@ -106,4 +108,6 @@ import { FooterComponent } from './footer.component';
     }
   `],
 })
-export class PublicLayoutComponent {}
+export class PublicLayoutComponent {
+  readonly skipToMain = skipToMain;
+}
