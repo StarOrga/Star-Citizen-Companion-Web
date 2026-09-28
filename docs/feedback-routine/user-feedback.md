@@ -114,14 +114,33 @@ authenticated` before every `grant`, on the view, on
 `feedback_author_messages` and on both helper functions. **Keep that pattern for
 anything new here** — it was a real, verified hole, not a theoretical one.
 
-### One thing that is NOT secret: attachments
+### Attachments: private bucket, signed at render time
 
-Screenshots go to the **public** `feedback-images` bucket (migration
-`20260713000000`), shared by the admin composer and the author channel. Public
-bucket objects are downloadable by URL and the bucket-wide read policy makes them
-listable, so image attachments — including those in admin replies — are not
-covered by the secrecy rule, which is about message *text*. Pre-existing, not
-introduced by the user channel, and worth its own item.
+Screenshots and files go to the `feedback-images` bucket (migration
+`20260713000000`), shared by the admin composer and the author channel. The
+bucket is **private** since `20260928211217_feedback_images_private.sql`
+(AUD-115/AUD-351): an object is readable only by its uploader, by admins, and by
+the author of a user topic whose author-channel messages reference it (an admin
+reply with a screenshot). The old bucket-wide public read policy is gone.
+
+The URL in a body is still the bucket's *public* object URL — but only as a
+stable **identifier**; nothing fetches it. The app signs it for display
+(`FeedbackAttachmentSignerService`, 1 h signed URLs, batched per tick), so
+thumbnails, the lightbox, file links and the annotation export all load a signed
+URL. Old bodies need no migration.
+
+**How the routine reads an attachment** (of ANY topic, admin or user): the public
+URL no longer serves anything, so download it through the gate and then open the
+printed file with the Read tool:
+
+```bash
+node scripts/routine-gate.mjs attachment --url "<the URL from the body>"
+# → {"path":"<uid>/<file>","file":"<tmp>/sc-feedback-attachments/<file>","bytes":…,"contentType":…}
+```
+
+The command fetches the project's service key via the Management API with the
+same token as every other gate call and keeps it in memory only — it is never
+logged, printed or written to disk.
 
 How they *render* (feedback a660536a): `renderFeedbackBody()` lifts every
 `![alt](src)` **out** of the markdown and returns it separately, so a body's HTML
