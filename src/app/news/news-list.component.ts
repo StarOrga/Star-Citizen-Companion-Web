@@ -109,7 +109,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
           <span class="stage-scrim" aria-hidden="true"></span>
           <div class="stage-body">
             <p class="overline">
-              <span class="ch-icon" [innerHTML]="safeIcon(item.channel)"></span>
+              <span class="ch-icon" [class.brand-mark]="item.channel === 'youtube'" [innerHTML]="safeIcon(item.channel)"></span>
               <span>{{ ('news.channels.' + item.channel) | translate }}</span>
               <span class="dot-sep" aria-hidden="true">·</span>
               <time>{{ relTime(item.publishedAt) }}</time>
@@ -348,7 +348,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
             </div>
             <div class="nd-body">
               <div class="nd-chan">
-                <span class="ch-icon" [innerHTML]="safeIcon(item.channel)"></span>
+                <span class="ch-icon" [class.brand-mark]="item.channel === 'youtube'" [innerHTML]="safeIcon(item.channel)"></span>
                 <span>{{ ('news.channels.' + item.channel) | translate }}</span>
                 <span class="dot-sep">·</span>
                 <time>{{ relTime(item.publishedAt) }}</time>
@@ -819,6 +819,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     }
     .nd-chan .ch-icon { display: inline-flex; width: 15px; height: 15px; }
     .nd-chan .ch-icon svg { width: 100%; height: 100%; display: block; }
+    /* YouTube brand terms: the icon never renders below 20px, unaltered and
+       unanimated, with clear space from the 8px row gap (channel-icons.ts). */
+    .overline .ch-icon.brand-mark,
+    .nd-chan .ch-icon.brand-mark { width: 20px; height: 20px; flex: 0 0 auto; }
     .nd-chan .dot-sep { opacity: 0.6; }
     .nd-body h2 {
       margin: 0; font-family: var(--sc-font-display);

@@ -487,6 +487,10 @@ export function isPixelReadable(url: string): boolean {
        up as its unaltered logo (channel-icons.ts), never as a red label — red
        means elevated access or an error here (CLAUDE.md). App glyphs keep their
        own tint. */
+    /* YouTube brand terms: the icon renders at 20px minimum, never tinted,
+       clipped or animated; the wider gap keeps its clear space. */
+    .ch-pill.ch-youtube { gap: 6px; padding-block: 2px; }
+    .ch-pill.ch-youtube .ch-icon { width: 20px; height: 20px; flex: 0 0 auto; }
     .ch-pill.ch-comm-link .ch-icon { color: var(--sc-accent); }
     .ch-pill.ch-patch .ch-icon { color: var(--sc-warning); }
 

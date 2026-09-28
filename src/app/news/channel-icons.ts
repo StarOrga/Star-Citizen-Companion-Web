@@ -7,9 +7,11 @@ import type { NewsChannel } from './news.service';
  * colours — the CLAUDE.md brand exception. App glyphs use currentColor, so the
  * surface that shows them decides their tint.
  *
- * Spectrum still uses the neutral headset glyph in currentColor: there is no
- * released RSI/Spectrum SVG to embed yet (owner step, audit D10). Once the
- * owner provides one, it replaces the glyph here in its original colours.
+ * YouTube brand terms (YouTube Brand Resources + API branding guidelines):
+ * red #FF0000 with a white #FFFFFF triangle, never recoloured, filtered,
+ * faded, animated or clipped, never below 20px, clear space around it at
+ * least the triangle's size. Every surface that shows it sizes it to 20px
+ * (news-thumb .ch-pill.ch-youtube, news-list .ch-icon.brand-mark).
  */
 export function channelIconSvg(channel: NewsChannel): string {
   switch (channel) {
@@ -20,6 +22,9 @@ export function channelIconSvg(channel: NewsChannel): string {
         + '<path fill="#FFFFFF" d="M10 15V9l5.2 3z"/>'
         + '</svg>';
     case 'spectrum':
+      // Placeholder: the official Spectrum mark goes here, in its original
+      // colours, once the owner supplies a licence-clean SVG (the RSI fankit
+      // needs a login). Until then a generic headset glyph in currentColor.
       return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H5a7 7 0 0 1 14 0h-2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5a9 9 0 0 0-9-9z"/></svg>';
     default:
       return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 4h11a2 2 0 0 1 2 2v11a3 3 0 0 0 3 3H6a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2zm2 4v2h7V8H7zm0 4v2h7v-2H7zm0 4v2h5v-2H7z"/></svg>';
