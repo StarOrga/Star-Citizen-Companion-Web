@@ -30,7 +30,8 @@
 //   403 forbidden | unknown_release_token | release_token_revoked
 //   426 uploader_outdated
 //   500 server_misconfigured | sign_failed | commit_failed | prune_failed
-//   503 r2_usage_unknown (R2 mode only: usage could not be read — fail closed)
+//   503 r2_usage_unknown (R2 mode only: usage could not be read — fail closed;
+//       a reading up to 24 h old (same month) bridges an Analytics outage)
 //   507 storage_quota_exceeded | r2_free_tier_guard (R2 mode only)
 //
 // STORAGE BACKEND (storage plan 2026-09-24): with the R2_* secrets set (see
@@ -46,12 +47,12 @@ import {
   SKINS_PREFIX,
   bucketBytes,
   deleteObject,
-  fetchUsage,
   listObjects,
   presignPut,
   r2FromEnv,
+  readUsage,
 } from './_r2.ts';
-import { overLimit } from './_r2-usage.ts';
+import { usageGate } from './_r2-usage.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -181,13 +182,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (r2) {
       // Cost kill-switch: no signature once this month's account-wide usage
       // reaches 80 % of any free allowance, or while usage cannot be read.
-      try {
-        const over = overLimit(await fetchUsage(r2));
-        if (over) {
-          return json({ error: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${over}` }, 507);
-        }
-      } catch (e) {
-        return json({ error: 'r2_usage_unknown', message: (e as Error).message }, 503);
+      // A reading up to 24 h old from the same month bridges an Analytics
+      // outage (usageGate); without one it stays fail-closed.
+      const { reading, error } = await readUsage(r2);
+      const gate = usageGate(reading, error, Date.now());
+      if (gate.kind === 'unknown') return json({ error: 'r2_usage_unknown', message: gate.reason }, 503);
+      if (gate.stale && reading) {
+        console.warn(
+          `ingest-skins: analytics unreadable (${error}); deciding on a reading ${Math.round((Date.now() - reading.at) / 60000)} min old`,
+        );
+      }
+      if (gate.kind === 'over') {
+        return json({ error: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${gate.over}` }, 507);
       }
       let used: number;
       try {

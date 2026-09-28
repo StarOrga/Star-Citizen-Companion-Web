@@ -62,7 +62,11 @@ built in by design.
   Class B) from the GraphQL Analytics API with `CF_ANALYTICS_TOKEN`, an
   Account Analytics Read token. At 80 % of any allowance it returns 507
   `r2_free_tier_guard`. If usage cannot be read it returns 503
-  `r2_usage_unknown`: it fails closed, and unknown is never zero.
+  `r2_usage_unknown`: it fails closed, and unknown is never zero. Exception
+  (D13): a good reading of the same calendar month, at most 24 h old, still
+  decides while Analytics is down (`usageGate`). That reading lives per warm
+  isolate only, so a cold start during an outage stays fail-closed. The
+  uploader stops the whole livery run at the first gate refusal.
   - Only the edge function holds the R2 secret, so "stop signing" works as
     "stop writing".
   - **Deliberately not a token-deleting switch.** Deleting or disabling a
