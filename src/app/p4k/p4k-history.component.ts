@@ -472,7 +472,7 @@ export class P4kHistoryComponent implements OnInit {
     await this.svc.deleteBundle(b.id);
   }
 
-  entityKeys(b: P4kBundleRow): Array<{ key: string; icon: string; value: number }> {
+  entityKeys(b: P4kBundleRow): { key: string; icon: string; value: number }[] {
     const icons: Record<string, string> = {
       ships: '🛸',
       weapons: '🔫',
@@ -493,7 +493,7 @@ export class P4kHistoryComponent implements OnInit {
       .slice(0, 5);
   }
 
-  diffEntries(diff: BundleDiffSummary): Array<{ key: string; prev: number; new: number; delta: number }> {
+  diffEntries(diff: BundleDiffSummary): { key: string; prev: number; new: number; delta: number }[] {
     const counts = diff.count_diffs ?? {};
     return Object.entries(counts)
       .map(([key, v]) => ({ key, prev: v.prev, new: v.new, delta: v.delta }))

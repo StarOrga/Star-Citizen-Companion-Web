@@ -8,9 +8,14 @@ Angular 22 PWA · Supabase · Vercel — live at `sc-companion.vercel.app` (the 
 - `npm run build` — production build → `dist/sc-companion/browser`
 - `npm run typecheck` — `tsc --noEmit -p tsconfig.app.json`
 - `npm test` — Karma + Jasmine (ChromeHeadless), no watch
+- `npm run lint` — ESLint via angular-eslint (`ng lint`)
+- `npm run test:functions` — every `supabase/functions/**/*.test.{ts,mjs}` under `node --test`
+- `npm run test:gate` — script/hook tests (node --test)
 - `npm run db:push` — apply `supabase/migrations/` to cloud project
 - `npm run db:reset` — local stack only, drops and re-applies
 - `npm run functions:deploy` — deploy all edge functions
+
+CI: `.github/workflows/web-ci.yml` runs typecheck, lint, Karma, gate scripts, build and the mobile gate on every PR; `edge-functions-deploy.yml` runs the function tests (Node + Deno) before it deploys. Node 24 (`.nvmrc`).
 
 ## Key Rules
 

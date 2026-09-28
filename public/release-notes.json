@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.104.2",
+  "current": "0.105.0",
   "releases": [
+    {
+      "version": "0.105.0",
+      "date": "2026-09-28",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Jeder Pull Request wird jetzt automatisch geprüft.",
+              "text": "Typecheck, Lint, alle Unit-Tests, der Produktions-Build und das Mobile-Gate laufen in GitHub Actions, bevor etwas nach main kommt (Audit D04)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Edge Functions werden erst nach grünen Tests deployt.",
+              "text": "Alle Funktions-Tests laufen unter Node und Deno, ein roter Test stoppt den Deploy."
+            },
+            {
+              "title": "Das Mobile-Gate läuft auch in Linux-Containern.",
+              "text": "Es findet Playwrights Chromium, startet als root ohne Sandbox und zeigt bei einem Absturz Chromes letzte Meldungen."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.104.2",
       "date": "2026-09-28",

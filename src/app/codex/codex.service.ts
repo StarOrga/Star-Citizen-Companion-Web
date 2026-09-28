@@ -2089,6 +2089,7 @@ function escapeIlike(input: string): string {
  * select makes supabase-js parse it into a row type, and checking that builder
  * against `BrowseFilterable` hits TS2589 ("excessively deep").
  */
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types -- the widening is the point, see above
 const COUNT_ONLY_SELECT: string = 'class_name';
 
 /** The three filter calls the default browse filters need — every PostgREST filter builder has them. */

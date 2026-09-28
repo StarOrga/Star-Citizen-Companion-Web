@@ -1,6 +1,6 @@
 # SC Companion
 
-**Version: 0.104.2**
+**Version: 0.105.0**
 
 > Star Citizen companion — Verse News, P4K analyzer, and more.
 > Built with Angular 22 PWA · Supabase (Auth + Postgres + Storage + Edge Functions) · Vercel.
@@ -18,12 +18,15 @@ A fan-made Star Citizen companion: log in, follow the Verse News (Comm-Link + Sp
 
 ## Quick start
 
+Requires **Node 24** (see `.nvmrc`, `nvm use`). Node 22 works from 22.22.3 on; older patches are refused by the Angular CLI.
+
 ```bash
 npm install
 npm start             # http://127.0.0.1:4200 — talks to the cloud Supabase project
 npm run build         # production build into dist/sc-companion/browser
 npm run typecheck     # tsc --noEmit
 npm test              # Karma + Jasmine (ChromeHeadless)
+npm run lint          # ESLint via angular-eslint (ng lint)
 ```
 
 ### Supabase

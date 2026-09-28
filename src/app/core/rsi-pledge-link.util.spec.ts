@@ -8,7 +8,7 @@ describe('rsi-pledge-link.util', () => {
   const CANONICAL = 'https://robertsspaceindustries.com/en/pledge/ships/nomad/Nomad';
 
   describe('accepts genuine RSI pledge-ship links', () => {
-    const accepted: Array<[string, string]> = [
+    const accepted: [string, string][] = [
       ['canonical', CANONICAL],
       ['no locale segment', 'https://robertsspaceindustries.com/pledge/ships/nomad/Nomad'],
       ['other locale is canonicalized to /en', 'https://robertsspaceindustries.com/de/pledge/ships/nomad/Nomad'],
@@ -30,7 +30,7 @@ describe('rsi-pledge-link.util', () => {
   });
 
   describe('rejects hostile input', () => {
-    const rejected: Array<[string, string | null | undefined]> = [
+    const rejected: [string, string | null | undefined][] = [
       // ── dangerous schemes ────────────────────────────────────────────────
       ['javascript: scheme', 'javascript:alert(1)'],
       ['javascript: dressed as a path', 'javascript:/en/pledge/ships/nomad/Nomad'],

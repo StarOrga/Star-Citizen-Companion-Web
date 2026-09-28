@@ -64,8 +64,23 @@ silently passes.
 
 ### Requirements
 
-Google Chrome or Edge installed (auto-discovered; override with `CHROME_BIN`
-or `MOBILE_GATE_CHROME`). No npm dependencies — the script uses `node:http`,
+A Chromium-family browser. Lookup order:
+
+1. `MOBILE_GATE_CHROME` / `CHROME_BIN` / `CHROME_PATH` (first one that exists).
+2. System Chrome / Edge / Chromium at the usual Windows, macOS and Linux paths
+   (`/usr/bin/google-chrome`, `google-chrome-stable`, `chromium`,
+   `chromium-browser`).
+3. Playwright's Chromium (`npx playwright install chromium`) under
+   `PLAYWRIGHT_BROWSERS_PATH` or `~/.cache/ms-playwright` (on Windows also
+   `%LOCALAPPDATA%\ms-playwright`), newest `chromium-<rev>` first.
+
+As root on Linux (Docker, cloud containers) the gate starts Chromium with
+`--no-sandbox`, which Chromium requires there; `MOBILE_GATE_NO_SANDBOX=1`
+forces the flag anywhere. If the browser fails to start, the error carries
+Chrome's last stderr lines, and a browser that exits early fails at once
+instead of after the 30 s DevTools-port timeout.
+
+No npm dependencies — the script uses `node:http`,
 the built-in `WebSocket` client and the Chrome DevTools Protocol directly, so
 it cannot rot with the Angular dependency tree.
 
@@ -191,6 +206,19 @@ is a silent quality regression.
 completion card, exactly like `SKIP-VERIFICATION`. Do it only when the ship
 cannot touch the frontend at all (e.g. a docs-only or edge-function-only
 change) — for those, the ship skill skips the gate automatically anyway.
+
+---
+
+## CI
+
+- `.github/workflows/web-ci.yml` builds and gates `dist/` on every PR that
+  touches the web app (job `production build + mobile gate`), without
+  `--skip-if-unavailable`: a missing browser turns the job red.
+- The authenticated pass runs there only when the repo secrets
+  `SC_TEST_EMAIL` / `SC_TEST_PASSWORD` are set; otherwise the public pass runs
+  and the report lists the auth routes as unchecked.
+- On a red run, `mobile-gate.json` and the screenshots are attached to the
+  workflow run as the `mobile-gate-report` artifact (kept 7 days).
 
 ---
 

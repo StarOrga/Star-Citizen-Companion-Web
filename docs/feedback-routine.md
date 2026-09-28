@@ -186,11 +186,11 @@ area has its own verify + release path; use the one(s) the change touches:
 
 | Area | Verify (the gate) | Release / deploy |
 |------|-------------------|------------------|
-| **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run build && npm test` | PR → squash-merge; Vercel auto-deploys on main-push — **5–10 min, and not guaranteed**: verify the Production deployment for the merge SHA before telling the admin it is live (step 5b) |
+| **Web app** (`src/`, `public/`) | root `npm run typecheck && npm run lint && npm run build && npm test`; the `web-ci` checks on the PR must be green before the merge | PR → squash-merge; Vercel auto-deploys on main-push — **5–10 min, and not guaranteed**: verify the Production deployment for the merge SHA before telling the admin it is live (step 5b) |
 | **Data-uploader** (`data-uploader/`, Electron) | `cd data-uploader && npm ci && npm run typecheck && npm run build && npm test` (nested project — needs its own `npm ci`) | after merge, tag `data-uploader-v<ver>` → `data-uploader-build.yml` builds the binary → register the `desktop_releases` row (`/ship` extension rule 6 + `.claude/deep-knowledge/data-uploader-release.md`) |
 | **Wallpaper-app / Starscape** (`wallpaper-app/`, Rust) | **no cargo in the routine env** — do NOT try `cargo build` locally; the gate is a **green CI build** | after merge: bump `wallpaper-app/Cargo.toml` + `Cargo.lock`, push the `wallpaper-app-v<ver>` tag → `wallpaper-app-build.yml` builds + publishes to the mirror + prints the register SQL, **THEN register the `desktop_releases` row (`product='starscape'`)** via the authenticated Supabase MCP — else `/starscape` stays on the old version. Full flow: `.claude/deep-knowledge/starscape-release.md` |
 | **Supabase migrations** (`supabase/migrations/`) | additive change → apply headless `npm run db:push`; a **destructive** migration (drop/rename/data-loss) is a review-hold, never an auto-apply | `db push` to the cloud project IS the deploy — run it after/with the merge |
-| **Supabase edge functions** (`supabase/functions/`) | deploy is the test: `npm run functions:deploy` (or `supabase functions deploy <name>`; CLI creds are stored) | the deploy after merge |
+| **Supabase edge functions** (`supabase/functions/`) | `npm run test:functions` (every function test under `node --test`), then the deploy is the test: `npm run functions:deploy` (or `supabase functions deploy <name>`; CLI creds are stored) | the deploy after merge |
 
 Three rules behind that table: **native builds go through CI**, never the
 routine's machine (no Rust toolchain here — a Rust/Starscape change is merged

@@ -8,7 +8,7 @@ import { ResolvedEntity } from '../codex.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout, RoleLoadoutItem, RoleLoadoutRole } from '../../hangar/hangar.types';
 
-let setSlotCalls: Array<[string, string, unknown, string | undefined]>;
+let setSlotCalls: [string, string, unknown, string | undefined][];
 let setSlotResult: HangarRoleLoadout | null;
 /** When set, `setRoleLoadoutSlot` waits on it — lets a spec look at the busy state. */
 let gate: Promise<void> | null;

@@ -17,6 +17,9 @@ name: edge-functions
 # personal access token (`sbp_…`, the same one `supabase login` stores).
 # Until it exists the deploy job fails LOUDLY rather than skipping — a silent
 # skip is exactly the failure mode this workflow was built to end.
+#
+# The plan job also runs every function test (Node and Deno); a red test
+# stops the deploy.
 
 on:
   push:
@@ -61,12 +64,30 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       # The resolver decides what reaches production, so a regression in it is
       # a deploy bug. Cheap to guard, so guard it on every run.
       - name: Selftest the resolver
         run: npm run check:edge-functions
+
+      # A red function test stops the deploy: `deploy` needs this job. Node
+      # runs the suite the way developers do (npm run test:functions); Deno
+      # proves it on the Edge runtime the functions actually ship to.
+      - name: Function tests (node --test)
+        run: npm run test:functions
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # --no-check: with no deno.json under supabase/, Deno 2 picks up the
+      # Angular tsconfig.json at the repo root (noPropertyAccessFromIndexSignature
+      # and friends) and reports 16 type errors in function modules that
+      # `supabase functions deploy` does not apply (Deno 2.9, 2026-09-28).
+      # The tests themselves run; type-checking the functions is a follow-up.
+      - name: Function tests (deno, Edge-runtime parity)
+        run: deno test --no-check --permit-no-files supabase/functions/
 
       - id: resolve
         name: Resolve affected functions

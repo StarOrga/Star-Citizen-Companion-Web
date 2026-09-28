@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.105.0] - 2026-09-28
+
+### Added
+
+- **Jeder Pull Request wird jetzt automatisch geprüft.** Typecheck, Lint, alle
+  Unit-Tests, der Produktions-Build und das Mobile-Gate laufen in GitHub
+  Actions, bevor etwas nach main kommt (Audit D04).
+
+### Changed
+
+- **Edge Functions werden erst nach grünen Tests deployt.** Alle
+  Funktions-Tests laufen unter Node und Deno, ein roter Test stoppt den Deploy.
+- **Das Mobile-Gate läuft auch in Linux-Containern.** Es findet Playwrights
+  Chromium, startet als root ohne Sandbox und zeigt bei einem Absturz Chromes
+  letzte Meldungen.
+
 ## [0.104.2] - 2026-09-28
 
 ### Fixed
