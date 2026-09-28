@@ -48,6 +48,7 @@ import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import testAccount from './lib/test-account.cjs';
+import { findPlaywrightChromium } from './lib/playwright-chromium.mjs';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const CONFIG_PATH = join(REPO_ROOT, 'scripts', 'mobile-gate.config.json');
@@ -176,18 +177,21 @@ function findBrowser() {
     'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
   ];
   for (const c of candidates) if (c && existsSync(c)) return c;
-  return null;
+  // Linux containers often carry only Playwright's browser cache (AUD-081).
+  return findPlaywrightChromium();
 }
 
 async function launchBrowser({ headless }) {
   const bin = findBrowser();
   if (!bin) {
     fail(
-      'No Chrome/Edge binary found. Install Google Chrome or set CHROME_BIN / MOBILE_GATE_CHROME to a Chromium binary.',
+      'No Chrome/Edge binary found. Install Google Chrome, install Playwright\'s Chromium (`npx playwright install chromium`), ' +
+        'or set CHROME_BIN / CHROME_PATH / MOBILE_GATE_CHROME to a Chromium binary.',
     );
   }
   const profileDir = join(tmpdir(), `mobile-gate-${process.pid}-${Date.now()}`);
@@ -207,8 +211,40 @@ async function launchBrowser({ headless }) {
     'about:blank',
   ];
   if (headless) flags.unshift('--headless=new', '--disable-gpu');
-  const proc = spawn(bin, flags, { stdio: 'ignore', windowsHide: true });
+  // Chromium refuses to start as root without --no-sandbox (Docker, cloud
+  // containers — AUD-082). GitHub runners are not root; the env var forces it.
+  const noSandbox =
+    process.env.MOBILE_GATE_NO_SANDBOX === '1' ||
+    (process.platform === 'linux' && typeof process.getuid === 'function' && process.getuid() === 0);
+  if (noSandbox) {
+    flags.unshift('--no-sandbox');
+    console.log('[mobile-gate] launching Chromium with --no-sandbox (root on Linux or MOBILE_GATE_NO_SANDBOX=1)');
+  }
+  const proc = spawn(bin, flags, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
   proc.on('error', (err) => fail(`Failed to launch browser: ${err.message}`));
+  // Keep reading stderr for the whole run: an undrained pipe fills up and
+  // blocks Chrome. Only the last lines are kept for the failure messages.
+  let stderrLines = [];
+  let partial = '';
+  proc.stderr.setEncoding('utf8');
+  proc.stderr.on('data', (chunk) => {
+    const lines = (partial + chunk).split(/\r?\n/);
+    partial = lines.pop() ?? '';
+    stderrLines.push(...lines.filter((l) => l.trim()));
+    if (stderrLines.length > 20) stderrLines = stderrLines.slice(-20);
+    if (partial.length > 8192) partial = partial.slice(-8192);
+  });
+  const stderrTail = () => {
+    const text = [...stderrLines, partial].filter((l) => l.trim()).join('\n').slice(-8192);
+    return text ? `\nLast Chrome stderr lines:\n${text}` : '';
+  };
+  // Armed only until the DevTools port exists: close() kills Chrome at the
+  // end of every normal run, and that exit must not turn a green run red.
+  let ready = false;
+  proc.on('exit', (code, signal) => {
+    if (ready) return;
+    fail(`Browser exited before exposing a DevTools port (exit ${code ?? signal}).${stderrTail()}`);
+  });
 
   const portFile = join(profileDir, 'DevToolsActivePort');
   const deadline = Date.now() + 30000;
@@ -216,6 +252,7 @@ async function launchBrowser({ headless }) {
     if (existsSync(portFile)) {
       const raw = readFileSync(portFile, 'utf8').split('\n');
       if (raw.length >= 2 && raw[0].trim()) {
+        ready = true;
         return {
           bin,
           proc,
@@ -229,7 +266,7 @@ async function launchBrowser({ headless }) {
     }
     await sleep(120);
   }
-  fail('Browser did not expose a DevTools port within 30s.');
+  fail(`Browser did not expose a DevTools port within 30s.${stderrTail()}`);
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
