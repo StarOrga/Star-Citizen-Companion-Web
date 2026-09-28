@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.105.2] - 2026-09-29
+
+### Changed
+
+- **Kanal-Pillen im News-Feed tragen eine neutrale Beschriftung.** YouTube
+  erscheint als Original-Logo in Rot/Weiß in der vorgeschriebenen
+  Mindestgröße, die Beschriftung bleibt neutral statt Warnrot.
+- **Video-Kacheln kommen ohne Gefahr-Rot aus.** Rahmen, Play-Scheibe und
+  „VIDEO“-Etikett nutzen die normalen App-Farben, der Play-Knopf leuchtet beim
+  Hover akzentblau.
+- **Schlechtere Vergleichswerte im Codex sind gelb statt rot.** Neun
+  Delta-Anzeigen von KPI-Band bis Holotable-Perspektiven nutzen die Warnfarbe,
+  denn ein Vergleich ist kein Fehler.
+- **Das Impressum nennt die Marken vollständig.** YouTube als Marke der Google
+  LLC und alle CIG-Marken im offiziellen Wortlaut des Fan-Site-Hinweises.
+
 ## [0.105.1] - 2026-09-28
 
 ### Fixed

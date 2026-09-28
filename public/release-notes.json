@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.105.1",
+  "current": "0.105.2",
   "releases": [
+    {
+      "version": "0.105.2",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Kanal-Pillen im News-Feed tragen eine neutrale Beschriftung.",
+              "text": "YouTube erscheint als Original-Logo in Rot/Weiß in der vorgeschriebenen Mindestgröße, die Beschriftung bleibt neutral statt Warnrot."
+            },
+            {
+              "title": "Video-Kacheln kommen ohne Gefahr-Rot aus.",
+              "text": "Rahmen, Play-Scheibe und „VIDEO“-Etikett nutzen die normalen App-Farben, der Play-Knopf leuchtet beim Hover akzentblau."
+            },
+            {
+              "title": "Schlechtere Vergleichswerte im Codex sind gelb statt rot.",
+              "text": "Neun Delta-Anzeigen von KPI-Band bis Holotable-Perspektiven nutzen die Warnfarbe, denn ein Vergleich ist kein Fehler."
+            },
+            {
+              "title": "Das Impressum nennt die Marken vollständig.",
+              "text": "YouTube als Marke der Google LLC und alle CIG-Marken im offiziellen Wortlaut des Fan-Site-Hinweises."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.105.1",
       "date": "2026-09-28",
