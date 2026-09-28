@@ -2,7 +2,7 @@
 // Exercises the Worker against an in-memory stand-in for the R2 binding.
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import worker, { keyFor } from '../src/index.js';
+import worker, { keyFor, parseRange } from '../src/index.js';
 
 const GLB = 'ship-skins/DRAK_Cutlass_Black/standard.glb';
 
@@ -23,11 +23,23 @@ function fakeBucket(objects) {
       return key in objects ? make(key) : null;
     },
     async get(key, opts = {}) {
+      // Real R2 would parse a Headers range itself; the Worker must hand over
+      // explicit numbers, so a regression to the old call fails loudly here.
+      if (opts.range instanceof Headers) throw new Error('fake R2: range must be explicit');
       if (!(key in objects)) return null;
       const meta = make(key);
       const inm = opts.onlyIf?.get?.('if-none-match');
       if (inm && inm === meta.httpEtag) return meta; // no body = precondition failed
-      return { ...meta, body: new Blob([objects[key]]).stream() };
+      let bytes = objects[key];
+      if (opts.range) {
+        const { offset, length, suffix } = opts.range;
+        const start = suffix !== undefined ? bytes.length - suffix : (offset ?? 0);
+        const len = suffix !== undefined ? suffix : (length ?? bytes.length - start);
+        bytes = bytes.slice(start, start + len);
+        // R2 echoes the range with the `suffix` key present but undefined.
+        return { ...meta, range: { offset: start, length: len, suffix: undefined }, body: new Blob([bytes]).stream() };
+      }
+      return { ...meta, body: new Blob([bytes]).stream() };
     },
   };
 }
@@ -54,6 +66,29 @@ describe('keyFor', () => {
     assert.equal(keyFor('/ship-skins/a/b.json'), null);
     assert.equal(keyFor('/ship-skins/a/b/c.glb'), null);
     assert.equal(keyFor('/%E0%A4%A'), null);
+  });
+});
+
+describe('parseRange', () => {
+  it('resolves single ranges against the size', () => {
+    assert.deepEqual(parseRange('bytes=0-3', 10), { offset: 0, length: 4 });
+    assert.deepEqual(parseRange('bytes=7-', 10), { offset: 7, length: 3 });
+    assert.deepEqual(parseRange('bytes=-2', 10), { offset: 8, length: 2 });
+    assert.deepEqual(parseRange('bytes=-20', 10), { offset: 0, length: 10 });
+    assert.deepEqual(parseRange('bytes=0-99', 10), { offset: 0, length: 10 });
+  });
+  it('marks ranges no byte can satisfy', () => {
+    assert.equal(parseRange('bytes=99-', 10), 'unsatisfiable');
+    assert.equal(parseRange('bytes=-0', 10), 'unsatisfiable');
+    assert.equal(parseRange('bytes=0-', 0), 'unsatisfiable');
+    assert.equal(parseRange('bytes=-5', 0), 'unsatisfiable');
+  });
+  it('ignores missing, multiple, foreign-unit and invalid ranges', () => {
+    assert.equal(parseRange(null, 10), null);
+    assert.equal(parseRange('bytes=5-2', 10), null);
+    assert.equal(parseRange('bytes=0-1,4-5', 10), null);
+    assert.equal(parseRange('items=0-3', 10), null);
+    assert.equal(parseRange('bytes=-', 10), null);
   });
 });
 
@@ -102,6 +137,61 @@ describe('fetch', () => {
     globalThis.fetch = async () => new Response('', { status: 400 });
     const res = await worker.fetch(new Request(`https://w.dev/${GLB}`), env());
     assert.equal(res.status, 404);
+  });
+
+  describe('Range', () => {
+    const TEN = '0123456789';
+    const get = (range) =>
+      worker.fetch(new Request(`https://w.dev/${GLB}`, { headers: { range } }), env({ [GLB]: TEN }));
+
+    for (const [range, contentRange, body] of [
+      ['bytes=0-3', 'bytes 0-3/10', '0123'],
+      ['bytes=7-', 'bytes 7-9/10', '789'],
+      ['bytes=-2', 'bytes 8-9/10', '89'],
+      ['bytes=-20', 'bytes 0-9/10', TEN],
+      ['bytes=0-99', 'bytes 0-9/10', TEN],
+    ]) {
+      it(`answers ${range} with 206 ${contentRange}`, async () => {
+        const res = await get(range);
+        assert.equal(res.status, 206);
+        assert.equal(res.headers.get('content-range'), contentRange);
+        assert.equal(res.headers.get('content-length'), String(body.length));
+        assert.equal(res.headers.get('accept-ranges'), 'bytes');
+        assert.equal(res.headers.get('content-type'), 'model/gltf-binary');
+        assert.equal(await res.text(), body);
+      });
+    }
+
+    it('answers a range past the end with 416 and CORS', async () => {
+      const res = await get('bytes=99-');
+      assert.equal(res.status, 416);
+      assert.equal(res.headers.get('content-range'), 'bytes */10');
+      assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    });
+
+    for (const range of ['bytes=5-2', 'bytes=0-1,4-5', 'items=0-3']) {
+      it(`ignores ${range} and serves the whole object`, async () => {
+        const res = await get(range);
+        assert.equal(res.status, 200);
+        assert.equal(res.headers.get('content-range'), null);
+        assert.equal(await res.text(), TEN);
+      });
+    }
+
+    it('advertises accept-ranges on 200 and HEAD', async () => {
+      const e = env({ [GLB]: TEN });
+      const full = await worker.fetch(new Request(`https://w.dev/${GLB}`), e);
+      const head = await worker.fetch(new Request(`https://w.dev/${GLB}`, { method: 'HEAD' }), e);
+      assert.equal(full.headers.get('accept-ranges'), 'bytes');
+      assert.equal(head.headers.get('accept-ranges'), 'bytes');
+    });
+  });
+
+  it('answers OPTIONS with 204 and CORS', async () => {
+    const res = await worker.fetch(new Request(`https://w.dev/${GLB}`, { method: 'OPTIONS' }), env());
+    assert.equal(res.status, 204);
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    assert.match(res.headers.get('access-control-allow-methods'), /GET/);
   });
 
   it('refuses writes and unknown paths', async () => {

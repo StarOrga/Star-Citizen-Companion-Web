@@ -28,7 +28,7 @@ const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
   'Access-Control-Allow-Headers': 'range, if-none-match, if-modified-since',
-  'Access-Control-Expose-Headers': 'etag, content-length, content-range',
+  'Access-Control-Expose-Headers': 'etag, content-length, content-range, accept-ranges',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -43,6 +43,31 @@ export function keyFor(pathname) {
   return KEY_RE.test(key) ? key : null;
 }
 
+/**
+ * One `bytes=` range against an object of `size` bytes (RFC 9110 §14).
+ * null            → serve the whole object (no header, other unit, several
+ *                   ranges, syntax error — a server may ignore Range);
+ * 'unsatisfiable' → answer 416;
+ * otherwise the exact slice to read.
+ */
+export function parseRange(header, size) {
+  if (!header) return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  if (m[1] === '') {
+    // suffix form: the last n bytes
+    const n = Number(m[2]);
+    if (n === 0 || size === 0) return 'unsatisfiable';
+    const length = Math.min(n, size);
+    return { offset: size - length, length };
+  }
+  const start = Number(m[1]);
+  if (m[2] !== '' && Number(m[2]) < start) return null; // invalid range → ignore the header
+  if (start >= size) return 'unsatisfiable';
+  const end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1);
+  return { offset: start, length: end - start + 1 };
+}
+
 function contentTypeFor(key) {
   return CONTENT_TYPES[key.slice(key.lastIndexOf('.') + 1)] ?? 'application/octet-stream';
 }
@@ -53,7 +78,27 @@ function baseHeaders(key) {
     'content-type': contentTypeFor(key),
     'cache-control': CACHE_CONTROL,
     'x-content-type-options': 'nosniff',
+    'accept-ranges': 'bytes',
   };
+}
+
+/** Headers for an object read from R2 — the 200, 206, 304 and HEAD paths share them. */
+function objectHeaders(key, object) {
+  const headers = new Headers(baseHeaders(key));
+  object.writeHttpMetadata(headers);
+  // writeHttpMetadata may carry an upload-time Content-Type; the key's
+  // extension is the contract, so it wins.
+  headers.set('content-type', contentTypeFor(key));
+  headers.set('cache-control', CACHE_CONTROL);
+  headers.set('etag', object.httpEtag);
+  return headers;
+}
+
+function unsatisfiable(size) {
+  return new Response('range not satisfiable', {
+    status: 416,
+    headers: { ...CORS, 'content-type': 'text/plain', 'content-range': `bytes */${size}` },
+  });
 }
 
 function plain(status, text) {
@@ -89,20 +134,37 @@ export default {
     const key = keyFor(new URL(request.url).pathname);
     if (!key) return plain(404, 'not found');
 
+    // A single Range is resolved here, against the object's size, and handed to
+    // R2 as an explicit { offset, length }, so Content-Range is built from our
+    // own numbers (R2 echoes its range with `suffix: undefined`, which once
+    // produced "bytes NaN-NaN"). The extra head() only happens for Range
+    // requests, which browsers do not send for .glb/.webp; the Free plan counts
+    // requests, not subrequests.
+    if (request.method === 'GET' && request.headers.has('range')) {
+      const meta = await env.ASSETS.head(key);
+      if (!meta) return fromSupabase(env, key, request);
+      const range = parseRange(request.headers.get('range'), meta.size);
+      if (range === 'unsatisfiable') return unsatisfiable(meta.size);
+      if (range) {
+        const part = await env.ASSETS.get(key, { onlyIf: request.headers, range });
+        if (!part) return fromSupabase(env, key, request);
+        const headers = objectHeaders(key, part);
+        if (!('body' in part)) return new Response(null, { status: 304, headers });
+        headers.set('content-range', `bytes ${range.offset}-${range.offset + range.length - 1}/${meta.size}`);
+        headers.set('content-length', String(range.length));
+        return new Response(part.body, { status: 206, headers });
+      }
+      // null: the header is ignored (several ranges, other unit, invalid) → 200 below.
+    }
+
     const object =
       request.method === 'HEAD'
         ? await env.ASSETS.head(key)
-        : await env.ASSETS.get(key, { onlyIf: request.headers, range: request.headers });
+        : await env.ASSETS.get(key, { onlyIf: request.headers });
 
     if (!object) return fromSupabase(env, key, request);
 
-    const headers = new Headers(baseHeaders(key));
-    object.writeHttpMetadata(headers);
-    // writeHttpMetadata may carry an upload-time Content-Type; the key's
-    // extension is the contract, so it wins.
-    headers.set('content-type', contentTypeFor(key));
-    headers.set('cache-control', CACHE_CONTROL);
-    headers.set('etag', object.httpEtag);
+    const headers = objectHeaders(key, object);
 
     // A conditional GET that matched: R2 returns the object without a body.
     if (request.method === 'GET' && !('body' in object)) {
@@ -111,14 +173,6 @@ export default {
     if (request.method === 'HEAD') {
       headers.set('content-length', String(object.size));
       return new Response(null, { status: 200, headers });
-    }
-    if (object.range && request.headers.has('range')) {
-      const r = object.range;
-      const offset = 'suffix' in r ? object.size - r.suffix : (r.offset ?? 0);
-      const length = 'suffix' in r ? r.suffix : (r.length ?? object.size - offset);
-      headers.set('content-range', `bytes ${offset}-${offset + length - 1}/${object.size}`);
-      headers.set('content-length', String(length));
-      return new Response(object.body, { status: 206, headers });
     }
     headers.set('content-length', String(object.size));
     return new Response(object.body, { status: 200, headers });
