@@ -278,6 +278,16 @@ describe('CodexSetComponent', () => {
     expect(title?.textContent).toContain('Medical Set');
   });
 
+  it('has exactly one h1, and it is the visible set name (AUD-187)', async () => {
+    const fixture = await setup({ id: 'set-b', loadouts: [SET_A, SET_B] });
+    const h1s = (fixture.nativeElement as HTMLElement).querySelectorAll('h1');
+    expect(h1s.length).toBe(1);
+    expect(h1s[0].classList).toContain('stage-title');
+    expect(h1s[0].textContent).toContain('Medical Set');
+    expect((fixture.nativeElement as HTMLElement).querySelector('sc-codex-stage[title]'))
+      .withContext('stageTitle, never a native title tooltip').toBeNull();
+  });
+
   it('drops the "not found" note once the page navigates to a set that exists', async () => {
     const fixture = await setup({ id: 'missing', loadouts: [SET_A, SET_B] });
     expect(fixture.componentInstance.notFound()).toBe(true);

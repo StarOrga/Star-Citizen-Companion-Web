@@ -105,7 +105,7 @@ export interface SetStageLine {
       kind="person"
       [eyebrow]="roleLabel()"
       [eyebrowSuffix]="equipSuffix()"
-      [title]="set().name"
+      [stageTitle]="set().name" titleAs="h1"
       pickerKind="set"
       [pickerItems]="pickerItems()"
       (pick)="pick.emit($event)"
