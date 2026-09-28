@@ -1,6 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { AttachmentChip, FeedbackAttachmentsComponent } from './feedback-attachments.component';
+import {
+  FakeAttachmentSigner,
+  provideFakeAttachmentSigner,
+} from '../../feedback/testing/fake-attachment-signer';
+import de from '../../../../public/i18n/de.json';
+import en from '../../../../public/i18n/en.json';
 
 const IMAGES: AttachmentChip[] = [
   { src: 'https://a.b/one.png', alt: 'first shot' },
@@ -19,10 +25,11 @@ describe('FeedbackAttachmentsComponent', () => {
     images: AttachmentChip[] = IMAGES,
     removable = false,
     extra: Record<string, unknown> = {},
+    signer: FakeAttachmentSigner = new FakeAttachmentSigner(),
   ) {
     await TestBed.configureTestingModule({
       imports: [FeedbackAttachmentsComponent],
-      providers: [provideTranslateService({ fallbackLang: 'en' })],
+      providers: [provideTranslateService({ fallbackLang: 'en' }), provideFakeAttachmentSigner(signer)],
     }).compileComponents();
 
     // No HTTP loader in the test — mirror the keys the component uses so the
@@ -51,6 +58,8 @@ describe('FeedbackAttachmentsComponent', () => {
         colorPick: 'Pick a colour',
         undo: 'Undo the last mark',
         tool: { rect: 'Rectangle', arrow: 'Arrow', pen: 'Freehand' },
+        loading: 'Loading attachment…',
+        unavailable: 'Attachment unavailable',
       },
     });
     translate.use('en');
@@ -437,5 +446,98 @@ describe('FeedbackAttachmentsComponent', () => {
       await cmp.saveAnnotation();
       expect(cmp.annotateError()).toBe('feedbackAttachments.annotateFailed');
     });
+  });
+  /**
+   * The bucket is private (AUD-115/AUD-351): a bucket URL in a body is only an
+   * identifier, and everything that loads it goes through the signer.
+   */
+  describe('signed URLs', () => {
+    const BUCKET = 'https://db.test/storage/v1/object/public/feedback-images';
+    const SHOT = `${BUCKET}/u1/shot.jpg`;
+    const LOG = `${BUCKET}/u1/crash.log`;
+    const SIGNED = new Map([
+      ['u1/shot.jpg', 'https://db.test/storage/v1/object/sign/feedback-images/u1/shot.jpg?token=t1'],
+      ['u1/crash.log', 'https://db.test/storage/v1/object/sign/feedback-images/u1/crash.log?token=t2'],
+    ]);
+
+    it('renders the signed URL in the thumbnail, the lightbox and the file chip', async () => {
+      await setup(
+        [{ src: SHOT, alt: 'shot' }, { src: LOG, alt: 'crash.log', kind: 'file' }],
+        false,
+        {},
+        new FakeAttachmentSigner(SIGNED),
+      );
+      const img = fixture.nativeElement.querySelector('.att-thumb img') as HTMLImageElement;
+      expect(img.getAttribute('src')).toBe(SIGNED.get('u1/shot.jpg')!);
+      const chip = fixture.nativeElement.querySelector('a.att-file') as HTMLAnchorElement;
+      expect(chip.getAttribute('href')).toBe(SIGNED.get('u1/crash.log')!);
+
+      thumbs()[0].click();
+      fixture.detectChanges();
+      const big = document.querySelector('.lb-img') as HTMLImageElement;
+      expect(big.getAttribute('src')).toBe(SIGNED.get('u1/shot.jpg')!);
+    });
+
+    it('shows a loading placeholder instead of an image while the URL is missing', async () => {
+      await setup(
+        [{ src: SHOT, alt: 'shot' }, { src: LOG, alt: 'crash.log', kind: 'file' }],
+        false,
+        {},
+        new FakeAttachmentSigner(new Map()),
+      );
+      expect(fixture.nativeElement.querySelector('.att-thumb img')).toBeNull();
+      const box = fixture.nativeElement.querySelector('.att-pending') as HTMLElement;
+      expect(box.getAttribute('aria-busy')).toBe('true');
+      expect(box.getAttribute('aria-label')).toBe('Loading attachment…');
+      // No target yet → the inert chip, not an anchor.
+      expect(fixture.nativeElement.querySelector('a.att-file')).toBeNull();
+      expect(fixture.nativeElement.querySelector('span.att-file')).not.toBeNull();
+
+      thumbs()[0].click();
+      fixture.detectChanges();
+      expect(document.querySelector('.lb-img')).toBeNull();
+      expect(document.querySelector('.lb-pending')?.textContent?.trim()).toBe('Loading attachment…');
+    });
+
+    it('says "unavailable" when signing failed', async () => {
+      await setup([{ src: SHOT, alt: 'shot' }], false, {}, new FakeAttachmentSigner(new Map(), new Set(['u1/shot.jpg'])));
+      const box = fixture.nativeElement.querySelector('.att-pending') as HTMLElement;
+      expect(box.getAttribute('aria-busy')).toBeNull();
+      expect(box.getAttribute('aria-label')).toBe('Attachment unavailable');
+    });
+
+    it('leaves data URIs and foreign URLs untouched', async () => {
+      const data = 'data:image/png;base64,AAAA';
+      await setup([{ src: data, alt: '' }, IMAGES[0]], false, {}, new FakeAttachmentSigner(SIGNED));
+      const imgs = Array.from(fixture.nativeElement.querySelectorAll('.att-thumb img')) as HTMLImageElement[];
+      expect(imgs.map((i) => i.getAttribute('src'))).toEqual([data, IMAGES[0].src]);
+    });
+
+    it('refuses to annotate a bucket image that is not signed yet', async () => {
+      await setup([{ src: SHOT, alt: 'shot' }], true, { editable: true }, new FakeAttachmentSigner(new Map()));
+      const results: unknown[] = [];
+      cmp.annotate.subscribe((r) => results.push(r));
+      thumbs()[0].click();
+      fixture.detectChanges();
+      cmp.startAnnotate();
+      cmp.shapes.set([
+        { tool: 'rect', color: '#ff0000', width: 1, points: [{ x: 0, y: 0 }, { x: 3, y: 3 }] },
+      ]);
+      await cmp.saveAnnotation();
+      expect(cmp.annotateError()).toBe('feedbackAttachments.annotateFailed');
+      expect(results).toEqual([]);
+    });
+  });
+
+  describe('i18n keys', () => {
+    for (const [lang, cat] of [['de', de], ['en', en]] as const) {
+      for (const key of ['loading', 'unavailable']) {
+        it(`${lang}: feedbackAttachments.${key} is a non-empty string`, () => {
+          const value = (cat as { feedbackAttachments: Record<string, unknown> }).feedbackAttachments[key];
+          expect(typeof value).toBe('string');
+          expect((value as string).length).toBeGreaterThan(0);
+        });
+      }
+    }
   });
 });

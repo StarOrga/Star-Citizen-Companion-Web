@@ -87,7 +87,9 @@ export async function reportCrash(crash: CrashInput): Promise<boolean> {
         signal: controller.signal,
       });
       if (!res.ok && res.status !== 204) {
-        log.debug(`[telemetry] ingest rejected: HTTP ${res.status}`);
+        // warn, not debug: the file transport writes from `info` up, and a
+        // 401/503 must show up in main.log (AUD-004).
+        log.warn(`[telemetry] ingest rejected: HTTP ${res.status}`);
         return false;
       }
       return true;

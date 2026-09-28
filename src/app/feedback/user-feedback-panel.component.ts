@@ -18,6 +18,8 @@ import {
 } from '../admin/feedback/feedback-composer.component';
 import { FeedbackAttachmentsComponent } from '../admin/feedback/feedback-attachments.component';
 import { RenderedFeedbackBody, renderFeedbackBody } from '../admin/feedback/markdown.util';
+import { FeedbackAttachmentSignerService } from './feedback-attachment-signer.service';
+import { applySignedUrls, attachmentPathsOf } from './feedback-attachment-urls';
 import { UserFeedbackService } from './user-feedback.service';
 import { PanelNavigationService } from './panel-navigation.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
@@ -466,6 +468,7 @@ type UserFeedbackTab = 'compose' | 'mine';
 export class UserFeedbackPanelComponent implements OnInit {
   readonly feedback = inject(UserFeedbackService);
   private readonly panelNav = inject(PanelNavigationService);
+  private readonly signer = inject(FeedbackAttachmentSignerService);
 
   /**
    * "Im App ansehen" routed the app underneath. On a phone this panel is a
@@ -540,8 +543,14 @@ export class UserFeedbackPanelComponent implements OnInit {
     return this.feedback.hasNewsSinceOpen(id);
   }
 
+  /**
+   * Render a body with its file links pointing at SIGNED URLs — the bucket is
+   * private (AUD-115). Reads the signer's signal, so the OnPush view re-renders
+   * once the URLs arrive.
+   */
   render(body: string): RenderedFeedbackBody {
-    return renderFeedbackBody(body);
+    this.signer.request(attachmentPathsOf(body));
+    return applySignedUrls(renderFeedbackBody(body), this.signer.signed());
   }
 
   /** One-line title derived from the body — the author never typed a subject. */

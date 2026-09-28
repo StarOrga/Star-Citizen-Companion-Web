@@ -11,6 +11,7 @@ import { FEEDBACK_AREAS } from '../../feedback/feedback-area.types';
 import { ComposerPayload, FeedbackComposerComponent } from './feedback-composer.component';
 import { FEEDBACK_MAX_CHARS } from '../../feedback/feedback-limits';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { provideFakeAttachmentSigner } from '../../feedback/testing/fake-attachment-signer';
 
 /** The app tooltip's text for a native element, via the directive that replaced `title`. */
 function tooltipOf(fixture: ComponentFixture<unknown>, native: Element): string | null {
@@ -106,6 +107,8 @@ describe('FeedbackComposerComponent — Enter sends', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: drafts },
       ],
     }).compileComponents();
@@ -291,6 +294,8 @@ describe('FeedbackComposerComponent — account-bound drafts', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: drafts },
       ],
     }).compileComponents();
@@ -449,6 +454,8 @@ describe('FeedbackComposerComponent — character limit', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: drafts },
       ],
     }).compileComponents();
@@ -609,6 +616,8 @@ describe('FeedbackComposerComponent — attachments', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: drafts },
         { provide: PageScreenshotService, useValue: screenshots },
       ],
@@ -777,6 +786,8 @@ describe('FeedbackComposerComponent - a field that grows with what is typed', ()
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: new FakeDraftStore() },
       ],
     }).compileComponents();
@@ -925,6 +936,8 @@ describe('FeedbackComposerComponent - the send row', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: store },
       ],
     }).compileComponents();
@@ -1096,6 +1109,8 @@ describe('FeedbackComposerComponent - the complex opt-in', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: new FakeDraftStore() },
       ],
     }).compileComponents();
@@ -1234,6 +1249,8 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
       imports: [FeedbackComposerComponent],
       providers: [
         provideTranslateService({ fallbackLang: 'en' }),
+        // Drafts carry bucket URLs — never sign against the real Storage API.
+        provideFakeAttachmentSigner(),
         { provide: FeedbackDraftService, useValue: drafts },
         // The box sits on /admin/telemetry: the router says "admin", the seed
         // says "desktop", and the seed has to win.

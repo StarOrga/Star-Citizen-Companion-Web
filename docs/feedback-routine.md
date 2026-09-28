@@ -29,6 +29,7 @@ situation.
 | An item just shipped, **(f)** owes a review reply, or **(d)**/**(e)** handed you a continuation | [`feedback-routine/continuation.md`](feedback-routine/continuation.md) |
 | An item has to be parked, or **(b)** returned an answered `needs_input` topic | [`feedback-routine/needs-input.md`](feedback-routine/needs-input.md) |
 | Any topic with `source = 'user'` — untriaged, author questions, attachments, declining | [`feedback-routine/user-feedback.md`](feedback-routine/user-feedback.md) |
+| Reading an attachment (screenshot or file) of ANY topic | [`feedback-routine/user-feedback.md`](feedback-routine/user-feedback.md) |
 | End of a working run: loose ends no query sees | [`feedback-routine/sweep.md`](feedback-routine/sweep.md) |
 | The admin asks about the board UI (stream, Fortschritt, `#42`, search) | [`feedback-routine/admin-panel.md`](feedback-routine/admin-panel.md) |
 | The admin asks for a concept page / a concept iteration, or answers one (`/konzept/<id>`) | [`feedback-routine/concepts.md`](feedback-routine/concepts.md) |

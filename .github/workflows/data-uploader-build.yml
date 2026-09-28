@@ -84,8 +84,19 @@ jobs:
       # Web app (OAuth callback page /uploader/auth). Vercel project is
       # `star-citizen-companion-web`, primary alias `sc-companion.vercel.app`.
       SC_WEB_BASE: https://sc-companion.vercel.app
+      # Shared anti-abuse signing key for the ingest-telemetry edge function
+      # (must equal the Supabase `TELEMETRY_HMAC_KEY` secret). NOT a credential
+      # to any user data. electron.vite.config.ts bakes it into the binary; the
+      # edge function has no fallback key (AUD-114), so a release without it
+      # would have every report rejected — the step below fails the build
+      # instead (AUD-004).
+      SC_TELEMETRY_HMAC_KEY: ${{ secrets.SC_TELEMETRY_HMAC_KEY }}
     steps:
       - uses: actions/checkout@v7
+      - name: Require telemetry signing key
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrEmpty($env:SC_TELEMETRY_HMAC_KEY)) { Write-Error 'SC_TELEMETRY_HMAC_KEY secret missing — release would ship the public dev key'; exit 1 }
       - uses: actions/setup-node@v7
         with:
           node-version: '20.10.0'

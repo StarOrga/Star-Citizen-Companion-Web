@@ -16,6 +16,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { FeedbackImage } from './markdown.util';
+import { FeedbackAttachmentSignerService } from '../../feedback/feedback-attachment-signer.service';
 import {
   ANNOTATION_COLORS,
   AnnotationPoint,
@@ -91,11 +92,12 @@ export interface AnnotationResult {
             @if (img.kind === 'file') {
               <!-- A file chip is a navigation (it opens the object), so it is a
                    real anchor when there is something to open, and an inert box
-                   while the upload is still in flight. -->
-              @if (img.src) {
+                   while the upload is still in flight or its signed URL is not
+                   there yet (the bucket is private, AUD-115). -->
+              @if (displaySrc(img); as href) {
                 <a
                   class="att-thumb att-file"
-                  [href]="img.src"
+                  [href]="href"
                   target="_blank"
                   rel="noopener noreferrer"
                   [scTooltip]="img.alt"
@@ -120,11 +122,23 @@ export interface AnnotationResult {
                     ? ('feedbackAttachments.enlargeNamed' | translate: { name: img.alt })
                     : ('feedbackAttachments.enlarge' | translate)
                 ">
-                <img
-                  [src]="img.src"
-                  [alt]="img.alt || ('feedbackAttachments.image' | translate)"
-                  loading="lazy"
-                  decoding="async" />
+                @if (displaySrc(img); as src) {
+                  <img
+                    [src]="src"
+                    [alt]="img.alt || ('feedbackAttachments.image' | translate)"
+                    loading="lazy"
+                    decoding="async" />
+                } @else {
+                  <!-- Signed URL still loading (or signing failed): an empty box
+                       of the same size instead of a broken image. -->
+                  <span
+                    class="att-pending"
+                    role="img"
+                    [attr.aria-busy]="failed(img) ? null : 'true'"
+                    [attr.aria-label]="pendingKey(img) | translate"
+                    [scTooltip]="pendingKey(img) | translate"
+                    scTooltipTier="label"></span>
+                }
               </button>
             }
             @if (removable()) {
@@ -200,11 +214,20 @@ export interface AnnotationResult {
               ✕
             </button>
             <div class="lb-stage">
-              <img
-                class="lb-img"
-                [src]="img.src"
-                [alt]="img.alt || ('feedbackAttachments.image' | translate)"
-                (load)="onImageLoad($event)" />
+              @if (displaySrc(img); as src) {
+                <img
+                  class="lb-img"
+                  [src]="src"
+                  [alt]="img.alt || ('feedbackAttachments.image' | translate)"
+                  (load)="onImageLoad($event)" />
+              } @else {
+                <p
+                  class="lb-pending"
+                  role="status"
+                  [attr.aria-busy]="failed(img) ? null : 'true'">
+                  {{ pendingKey(img) | translate }}
+                </p>
+              }
               @if (annotating()) {
                 <canvas
                   class="lb-draw"
@@ -366,6 +389,8 @@ export interface AnnotationResult {
     .att-thumb:hover { border-color: var(--sc-accent); }
     .att-thumb:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .att-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Placeholder while the signed URL loads: the empty thumbnail box itself. */
+    .att-pending { display: block; width: 100%; height: 100%; background: var(--sc-bg-1); }
 
     /* Non-image attachment (admins only, see the composer): same box, but it
        says what it is instead of showing a picture. */
@@ -452,6 +477,13 @@ export interface AnnotationResult {
       cursor: default;
     }
     .lb-stage { position: relative; line-height: 0; }
+    .lb-pending {
+      margin: 0;
+      padding: 48px 32px;
+      line-height: 1.4;
+      color: var(--sc-fg-2);
+      text-align: center;
+    }
     .lb-img {
       max-width: 90vw;
       max-height: 72vh;
@@ -591,6 +623,7 @@ export class FeedbackAttachmentsComponent {
   readonly annotate = output<AnnotationResult>();
 
   private readonly overlay = inject(Overlay);
+  private readonly signer = inject(FeedbackAttachmentSignerService);
   private readonly viewContainer = inject(ViewContainerRef);
   private readonly lightboxTpl = viewChild.required<TemplateRef<unknown>>('lightboxTpl');
 
@@ -772,14 +805,40 @@ export class FeedbackAttachmentsComponent {
     this.redraw();
   }
 
+  /**
+   * What to actually load for an attachment: a bucket URL is only an identifier
+   * (private bucket, AUD-115), so it maps to its signed URL — or null while
+   * that is still being signed. data: URIs and foreign URLs pass through.
+   */
+  displaySrc(img: FeedbackImage): string | null {
+    return img.src ? this.signer.urlFor(img.src) : null;
+  }
+
+  /** True when the signed URL for this attachment could not be obtained. */
+  failed(img: FeedbackImage): boolean {
+    return !!img.src && this.signer.failed(img.src);
+  }
+
+  /** Label for the empty box shown instead of an unsigned image. */
+  pendingKey(img: FeedbackImage): string {
+    return this.failed(img) ? 'feedbackAttachments.unavailable' : 'feedbackAttachments.loading';
+  }
+
   async saveAnnotation(): Promise<void> {
     const img = this.current();
     const i = this.index();
     if (!img || i === null || this.shapes().length === 0) return;
-    this.savingAnnotation.set(true);
     this.annotateError.set(null);
+    // A restored draft's image lives in the private bucket: the canvas has to
+    // load the SIGNED URL, never the stored public one.
+    const src = this.displaySrc(img);
+    if (!src) {
+      this.annotateError.set('feedbackAttachments.annotateFailed');
+      return;
+    }
+    this.savingAnnotation.set(true);
     try {
-      const dataUrl = await exportAnnotated(img.src, this.shapes());
+      const dataUrl = await exportAnnotated(src, this.shapes());
       this.annotate.emit({ index: i, dataUrl });
       this.annotating.set(false);
       this.shapes.set([]);

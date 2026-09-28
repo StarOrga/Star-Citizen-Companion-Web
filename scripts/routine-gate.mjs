@@ -56,11 +56,18 @@
  *     Prints { id, title, decisions, submitted_at, processed_at } — what the
  *     admin chose on the hosted page. --mark-processed stamps processed_at so
  *     the page's panel returns to "ready". See docs/feedback-routine/concepts.md.
+ *   attachment --url "<public attachment URL | <uid>/<file>>" [--out <dir>]
+ *     Downloads one feedback attachment (screenshot or file) from the PRIVATE
+ *     `feedback-images` bucket (AUD-115) to <out | tmpdir/sc-feedback-attachments>
+ *     and prints ONE JSON line { path, file, bytes, contentType } — then read
+ *     the file with the Read tool. The service key is fetched through the
+ *     Management API with the same token and stays in memory only: never
+ *     logged, printed or written. See docs/feedback-routine/user-feedback.md.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, fstatSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const PROJECT_REF = 'hcnqhvzlavdycidqyaai';
@@ -556,7 +563,69 @@ async function conceptRead() {
   emit(row);
 }
 
-const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead };
+// ---------------------------------------------------------------- attachments
+const FEEDBACK_BUCKET = 'feedback-images';
+/**
+ * Object path inside the `feedback-images` bucket for what a feedback body
+ * carries — the public object URL (the stable identifier the app stores) or a
+ * bare `<uid>/<name>.<ext>` path. Returns null for anything else: another
+ * bucket, a traversal (`..`), a leading slash, an empty input.
+ */
+export function feedbackObjectPath(input) {
+  let raw = String(input ?? '').trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) {
+    let url;
+    try { url = new URL(raw); } catch { return null; }
+    const marker = `/storage/v1/object/public/${FEEDBACK_BUCKET}/`;
+    if (!url.pathname.startsWith(marker)) return null;
+    raw = url.pathname.slice(marker.length);
+  } else {
+    raw = raw.split(/[?#]/)[0];
+  }
+  let path;
+  try { path = decodeURIComponent(raw); } catch { return null; }
+  if (!path || path.startsWith('/') || path.includes('\\')) return null;
+  const parts = path.split('/');
+  if (parts.length < 2 || parts.some((p) => p === '' || p === '.' || p === '..')) return null;
+  return path;
+}
+
+/** Service key from the Management API — kept in memory, never printed. */
+async function serviceKey() {
+  if (!TOKEN) TOKEN = resolveToken();
+  const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys?reveal=true`, {
+    headers: { Authorization: `Bearer ${TOKEN}` },
+  });
+  if (!res.ok) throw new Error(`api-keys HTTP ${res.status}`);
+  const keys = await res.json();
+  const list = Array.isArray(keys) ? keys : [];
+  const hit = list.find((k) => k?.name === 'service_role' && k?.api_key) ?? list.find((k) => k?.type === 'secret' && k?.api_key);
+  if (!hit) throw new Error('attachment: no service_role / secret key returned by the Management API');
+  return hit.api_key;
+}
+
+async function attachment() {
+  const input = flag('url');
+  const path = feedbackObjectPath(input);
+  if (!path) throw new Error('attachment: --url must be a feedback-images public URL or <uid>/<file>');
+  const key = await serviceKey();
+  const res = await fetch(
+    `https://${PROJECT_REF}.supabase.co/storage/v1/object/authenticated/${FEEDBACK_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`,
+    { headers: { Authorization: `Bearer ${key}`, apikey: key } },
+  );
+  if (!res.ok) throw new Error(`attachment: download HTTP ${res.status}`);
+  const bytes = Buffer.from(await res.arrayBuffer());
+  const dir = resolve(flag('out') || join(tmpdir(), 'sc-feedback-attachments'));
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, basename(path));
+  writeFileSync(file, bytes);
+  const contentType = res.headers.get('content-type') ?? null;
+  log(`attachment: ${path} → ${file} (${bytes.length} bytes)`);
+  emit({ path, file, bytes: bytes.length, contentType });
+}
+
+const handlers = { check, 'start-run': startRun, 'end-run': endRun, heartbeat, 'next-runs': nextRuns, sql: runSql, 'concept-publish': conceptPublish, 'concept-read': conceptRead, attachment };
 // Only dispatch when run as a script — the liveness helpers are imported by the tests.
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isMain) try {

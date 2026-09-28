@@ -2976,14 +2976,19 @@
   "desktopAuth": {
     "title": "Data Uploader autorisieren",
     "authorizing": "Prüfe deine Session…",
-    "loginRequired": "Bitte erst einloggen, dann gehts automatisch zurück zur App.",
+    "loginRequired": "Bitte erst einloggen, danach bestätigst du die Verbindung.",
     "redirecting": "Autorisiert. Schicke Token zur App…",
     "redirectingHint": "Dieses Fenster kann gleich geschlossen werden.",
     "unauthorized": "Dein Account darf den Data Uploader nicht nutzen.",
     "unauthorizedHint": "Du brauchst Collaborator- oder Admin-Rolle. Frag einen Admin.",
     "errorMissingParams": "Callback- oder State-Parameter fehlt.",
     "errorBadCallback": "Callback-URL ist kein 127.0.0.1-Loopback im erwarteten Portbereich.",
-    "errorNoToken": "Kein Access-Token in der Session."
+    "errorNoToken": "Kein Access-Token in der Session.",
+    "confirmPrompt": "Data Uploader auf Port {{port}} mit deinem Konto verbinden?",
+    "confirmHint": "Bestätige nur, wenn du die Anmeldung gerade selbst im Data Uploader gestartet hast.",
+    "confirm": "Verbinden",
+    "cancel": "Abbrechen",
+    "cancelled": "Abgebrochen – es wurde nichts übertragen. Du kannst dieses Fenster schließen."
   },
   "footer": {
     "madeByCommunity": "Made by the Community",
@@ -4091,7 +4096,9 @@
       "rect": "Rechteck",
       "arrow": "Pfeil",
       "pen": "Freihand"
-    }
+    },
+    "loading": "Anhang wird geladen …",
+    "unavailable": "Anhang nicht verfügbar"
   },
   "appMenu": {
     "trigger": "{{app}} herunterladen",

@@ -72,11 +72,13 @@ export default defineConfig({
       ),
       // Telemetry HMAC signing key — shared anti-abuse secret for the
       // ingest-telemetry edge function (NOT a user-data credential). Baked in
-      // like RELEASE_TOKEN. The dev fallback MUST match the edge function's own
-      // fallback ('scc-telemetry-dev-key-v1') so a local stack accepts reports;
-      // CI sets SC_TELEMETRY_HMAC_KEY to the real secret for release builds.
+      // like RELEASE_TOKEN. Local and dev builds get the public dev key, which
+      // a local stack accepts with TELEMETRY_DEV=1 (the deployed function has
+      // no fallback, AUD-114). Tag builds in CI set SC_TELEMETRY_HMAC_KEY to
+      // the real secret and fail when it is missing (AUD-004). `||`, not `??`:
+      // an unset GitHub secret expands to "", which must never become the key.
       __SC_TELEMETRY_HMAC_KEY__: JSON.stringify(
-        process.env['SC_TELEMETRY_HMAC_KEY'] ?? 'scc-telemetry-dev-key-v1',
+        process.env['SC_TELEMETRY_HMAC_KEY'] || 'scc-telemetry-dev-key-v1',
       ),
     },
   },

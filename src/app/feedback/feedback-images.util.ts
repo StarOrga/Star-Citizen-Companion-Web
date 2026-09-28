@@ -89,6 +89,9 @@ function dataUrlToBlob(dataUrl: string): Blob {
  * Upload the composer's queued images and return their public URLs, in order.
  * Throws on the first failure so the caller can keep the draft intact.
  *
+ * The public URL is an IDENTIFIER, never fetched directly: the bucket is private
+ * (AUD-115) and rendering signs it via `FeedbackAttachmentSignerService`.
+ *
  * An image that already carries a `url` was uploaded when it was attached to a
  * persisted draft (`FeedbackDraftService.uploadAttachment`) — it is passed
  * through instead of being stored a second time, so sending a restored draft
@@ -126,7 +129,8 @@ export async function uploadFeedbackImages(
 
 /**
  * Object path inside `feedback-images` for one of its public URLs, or null when
- * the URL points somewhere else — then it is not ours to delete.
+ * the URL points somewhere else — then it is not ours to delete or sign. The
+ * public URL is an identifier, never fetched directly — rendering signs it.
  */
 export function feedbackImagePath(url: string): string | null {
   const marker = `/object/public/${FEEDBACK_IMAGES_BUCKET}/`;
