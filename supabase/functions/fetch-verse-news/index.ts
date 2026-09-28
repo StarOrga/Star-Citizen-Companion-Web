@@ -114,7 +114,7 @@ function normalizeRsiUrl(raw: string | undefined, fallbackPath = ''): string {
 //   translations: { en_EN?: string, de_DE?: string, ... } — newline-joined body text.
 async function fetchCommLinks(): Promise<VerseNewsItem[]> {
   try {
-    const res = await fetch(COMM_LINK_API, { headers: { 'Accept': 'application/json' } });
+    const res = await fetch(COMM_LINK_API, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`comm-link HTTP ${res.status}`);
     const json = await res.json();
     const entries: Record<string, unknown>[] = Array.isArray(json?.data) ? json.data : [];
@@ -176,6 +176,13 @@ async function fetchCommLinks(): Promise<VerseNewsItem[]> {
  * changes, so a hit is free and correct).
  * ---------------------------------------------------------------- */
 const OG_FETCH_TIMEOUT_MS = 6000;
+// Per-request deadline (headers AND body) for the four sources on the response
+// path. Measured 2026-09-28: wiki API 1.1 s (646 kB), status page 0.4 s,
+// Spectrum 0.4 s. 6 s keeps the whole feed inside starscape-summary's 9 s
+// budget (NEWS_FETCH_BUDGET_MS) and the service worker's 10 s freshness timeout
+// (ngsw-config.json, dataGroup "verse-news"). A source that misses it degrades
+// to [] through its existing try/catch instead of stalling the feed.
+const UPSTREAM_FETCH_TIMEOUT_MS = 6_000;
 /** Newest entries whose hero is resolved from the page even if they have images. */
 const HERO_OG_LOOKAHEAD = 12;
 /** Additional older entries that have NO image at all (the historic fallback). */
@@ -353,7 +360,7 @@ function classifyCommLinkChannel(series: string): Channel {
 // --------------------- YouTube RSS ---------------------
 async function fetchYouTube(): Promise<VerseNewsItem[]> {
   try {
-    const res = await fetch(YT_FEED_URL, { headers: { 'Accept': 'application/atom+xml' } });
+    const res = await fetch(YT_FEED_URL, { headers: { 'Accept': 'application/atom+xml' }, signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`youtube HTTP ${res.status}`);
     const xml = await res.text();
     const entries = Array.from(xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)).slice(0, 15);
@@ -448,6 +455,7 @@ async function spectrumThreads(channelId: number, page: number): Promise<Record<
       'User-Agent': 'SC-Companion/0.3 (+https://sc-companion.vercel.app)',
     },
     body: JSON.stringify({ channel_id: channelId, page, sort: 'newest' }),
+    signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`spectrum HTTP ${res.status}`);
   const json = await res.json();
@@ -625,6 +633,7 @@ async function fetchStatus(): Promise<VerseStatus | null> {
   try {
     const res = await fetch(STATUS_PAGE_URL, {
       headers: { 'Accept': 'text/html', 'User-Agent': 'SC-Companion/0.3' },
+      signal: AbortSignal.timeout(UPSTREAM_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`status HTTP ${res.status}`);
     const html = await res.text();

@@ -35,6 +35,8 @@ const DEFAULT_BUCKET = 'sc-companion-assets';
 const DEFAULT_QUOTA_BYTES = 8 * 1024 ** 3;
 /** Presigned PUT lifetime. A ship's hull + icons upload well inside it. */
 const PUT_EXPIRES_SECONDS = 3600;
+/** Per request. aws4fetch reuses the same init — and signal — for its own retries, so this caps a whole retry storm too. */
+const R2_FETCH_TIMEOUT_MS = 10_000;
 
 export function r2FromEnv(get: (k: string) => string | undefined): R2Config | null {
   const accountId = (get('R2_ACCOUNT_ID') ?? '').trim();
@@ -109,7 +111,7 @@ export async function listObjects(cfg: R2Config, prefix: string): Promise<R2Obje
     url.searchParams.set('list-type', '2');
     url.searchParams.set('prefix', prefix);
     if (token) url.searchParams.set('continuation-token', token);
-    const res = await cfg.client.fetch(url.toString());
+    const res = await cfg.client.fetch(url.toString(), { signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`R2 list ${prefix} failed: HTTP ${res.status}`);
     const page = parseListPage(await res.text());
     all.push(...page.objects);
@@ -119,7 +121,7 @@ export async function listObjects(cfg: R2Config, prefix: string): Promise<R2Obje
 }
 
 export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
-  const res = await cfg.client.fetch(objectUrl(cfg, key), { method: 'DELETE' });
+  const res = await cfg.client.fetch(objectUrl(cfg, key), { method: 'DELETE', signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
   // 204 on success; a 404 means it is already gone, which is what we wanted.
   if (!res.ok && res.status !== 404) throw new Error(`R2 delete ${key} failed: HTTP ${res.status}`);
 }
@@ -149,6 +151,7 @@ export async function fetchUsage(cfg: R2Config, now = new Date()): Promise<R2Usa
       query: USAGE_QUERY,
       variables: { accountTag: cfg.accountId, start: monthStart(now), end: now.toISOString() },
     }),
+    signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`analytics HTTP ${res.status}`);
   const usage = parseUsage(await res.json());

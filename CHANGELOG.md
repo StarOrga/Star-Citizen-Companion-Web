@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.105.1] - 2026-09-28
+
+### Fixed
+
+- **Schiffsmodelle laden zuverlässig in Teilen.** Der Asset-Worker beantwortet
+  Byte-Range-Anfragen korrekt mit `206`/`416` statt `bytes NaN-NaN`.
+- **Ein Ausfall sieht nicht mehr aus wie ein fehlendes Asset.** Ist der
+  Supabase-Fallback nicht erreichbar, antwortet der Worker ungecacht mit `502`
+  statt `404`.
+- **Feed, Wallpaper und Uploads hängen nicht mehr.** News-Quellen, R2-Aufrufe,
+  der ReadMe-Check und der Wasm-Download haben jetzt Zeitlimits; ein
+  fehlgeschlagener Wasm-Download wird beim nächsten Aufruf neu versucht.
+- **Die API-Doku zeigt auf den richtigen Server.** OpenAPI-Spec und
+  Einbettungs-Snippet nennen die Adresse der Edge Function.
+
 ## [0.105.0] - 2026-09-28
 
 ### Added
