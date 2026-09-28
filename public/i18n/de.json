@@ -2539,9 +2539,11 @@
       "noReason": "kein Grund angegeben"
     },
     "prompts": {
-      "disable": "Bundle \"{{name}}\" deaktivieren.\n\nGrund (optional):",
       "reenable": "Bundle \"{{name}}\" wieder aktivieren?",
-      "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden."
+      "delete": "Bundle \"{{name}}\" endgültig löschen?\n\nDies kann nicht rückgängig gemacht werden.",
+      "disableTitle": "Bundle „{{name}}“ deaktivieren?",
+      "reasonLabel": "Grund (optional)",
+      "deleteTitle": "Bundle löschen?"
     },
     "superseded": {
       "badge": "Ersetzt",

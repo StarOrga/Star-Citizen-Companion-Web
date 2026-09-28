@@ -2539,9 +2539,11 @@
       "noReason": "no reason given"
     },
     "prompts": {
-      "disable": "Disable bundle \"{{name}}\".\n\nReason (optional):",
       "reenable": "Re-enable bundle \"{{name}}\"?",
-      "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone."
+      "delete": "Permanently delete bundle \"{{name}}\"?\n\nThis cannot be undone.",
+      "disableTitle": "Disable bundle “{{name}}”?",
+      "reasonLabel": "Reason (optional)",
+      "deleteTitle": "Delete bundle?"
     },
     "superseded": {
       "badge": "Superseded",
