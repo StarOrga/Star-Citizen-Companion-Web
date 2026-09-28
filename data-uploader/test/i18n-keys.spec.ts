@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LOCALES } from '../src/lib/i18n.js';
 
 /**
  * Guard for the renderer dictionaries: every static t('…') / tOr('…') key
- * used in src/renderer and src/lib exists in en.json AND de.json, and both
- * dictionaries carry the same key set. A missing key renders as the raw key
+ * used in src/renderer and src/lib exists in every offered locale, and every
+ * locale in LOCALES carries exactly the key set of en.json - a new language
+ * enters the picker only with a complete dictionary. A missing key renders as the raw key
  * (t() returns the key itself), so this catches what users would see as
  * "silhouettes.building" instead of a label.
  */
@@ -58,17 +60,24 @@ function usedKeys(): Map<string, string[]> {
 
 describe('renderer i18n keys', () => {
   const en = dict('en');
-  const de = dict('de');
+  const dicts = LOCALES.map((loc) => [loc, dict(loc)] as const);
 
-  it('en.json and de.json carry the same key set', () => {
-    expect([...de].filter((k) => !en.has(k)), 'only in de.json').toEqual([]);
-    expect([...en].filter((k) => !de.has(k)), 'only in en.json').toEqual([]);
+  it('offers German and English', () => {
+    expect(LOCALES).toContain('de');
+    expect(LOCALES).toContain('en');
   });
 
-  it('every static t()/tOr() key exists in en.json and de.json', () => {
+  for (const [loc, set] of dicts) {
+    it(`${loc}.json carries the same key set as en.json`, () => {
+      expect([...set].filter((k) => !en.has(k)), `only in ${loc}.json`).toEqual([]);
+      expect([...en].filter((k) => !set.has(k)), `missing in ${loc}.json`).toEqual([]);
+    });
+  }
+
+  it('every static t()/tOr() key exists in every offered locale', () => {
     const missing: string[] = [];
     for (const [key, files] of usedKeys()) {
-      for (const [loc, set] of [['en', en], ['de', de]] as const) {
+      for (const [loc, set] of dicts) {
         if (!set.has(key)) missing.push(`${loc}: ${key} (${[...new Set(files)].join(', ')})`);
       }
     }

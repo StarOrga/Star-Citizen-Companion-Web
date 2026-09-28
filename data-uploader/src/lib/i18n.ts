@@ -10,25 +10,21 @@
 
 import de from '../i18n/de.json';
 import en from '../i18n/en.json';
-import es from '../i18n/es.json';
-import fr from '../i18n/fr.json';
-import pt from '../i18n/pt.json';
-import ru from '../i18n/ru.json';
-import zh from '../i18n/zh.json';
 
-export type LocaleId = 'de' | 'en' | 'fr' | 'es' | 'pt' | 'ru' | 'zh';
-export const LOCALES: readonly LocaleId[] = ['de', 'en', 'fr', 'es', 'pt', 'ru', 'zh'];
+export type LocaleId = 'de' | 'en';
+/**
+ * Languages offered in the settings dialog. Add another one only together
+ * with a complete dictionary: test/i18n-keys.spec.ts fails when a locale in
+ * this list lacks a key that en.json has. A stored locale that is no longer
+ * listed (fr, es, ...) falls back to the browser language, else English.
+ */
+export const LOCALES: readonly LocaleId[] = ['de', 'en'];
 
 type Dict = Record<string, unknown>;
 
 const DICTS: Record<LocaleId, Dict> = {
   de: de as Dict,
   en: en as Dict,
-  fr: fr as Dict,
-  es: es as Dict,
-  pt: pt as Dict,
-  ru: ru as Dict,
-  zh: zh as Dict,
 };
 
 const FALLBACK: Dict = DICTS.en;
