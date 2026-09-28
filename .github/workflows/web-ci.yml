@@ -1,0 +1,168 @@
+name: web-ci
+
+# Why: nothing checked the Angular app on a PR; a red suite could merge and
+# Vercel would deploy it (audit 2026-09-26, AUD-101/112/343).
+#
+# No `paths:` filter on purpose: a workflow a path filter never starts reports
+# no status at all, so a required check would leave every docs-only PR on
+# "Expected — waiting" forever. Instead the `changes` job decides, and the
+# heavy jobs skip via `if:` — a skipped job counts as passed.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: does this touch the web app
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      web: ${{ steps.diff.outputs.web }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        name: Diff against the base
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            echo "web-app touched: true (workflow_dispatch)"
+            exit 0
+          fi
+          # Same base resolution as edge-functions-deploy.yml (plan job).
+          case "$EVENT" in
+            pull_request) BASE="$PR_BASE_SHA" ;;
+            *)            BASE="${PUSH_BEFORE:-}" ;;
+          esac
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+          # CHANGELOG.md feeds prebuild (gen-release-notes); .claude/hooks/ holds
+          # a test:gate test. Known gap, accepted: check-no-personal-emails scans
+          # every tracked file, but the Vercel preview build catches a docs-only
+          # PR there.
+          WEB_RE='^(src/|public/|scripts/|cloudflare/assets-worker/|supabase/functions/ingest-skins/|\.claude/hooks/|package\.json$|package-lock\.json$|angular\.json$|tsconfig[^/]*\.json$|ngsw-config\.json$|vercel\.json$|\.nvmrc$|eslint\.config\.[cm]?js$|CHANGELOG\.md$|\.github/workflows/web-ci\.yml$)'
+          # No `grep -q`: with pipefail an early grep exit SIGPIPEs git diff (141)
+          # and a real match would read as "false".
+          if git diff --name-only "$BASE" HEAD | grep -E "$WEB_RE" > /dev/null; then WEB=true; else WEB=false; fi
+          echo "web=$WEB" >> "$GITHUB_OUTPUT"
+          echo "web-app touched: $WEB (base $BASE)"
+
+  checks:
+    name: typecheck · lint · gate scripts · worker tests
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Gate script tests
+        run: npm run test:gate
+
+      - name: Assets worker tests
+        run: npm run test:assets-worker
+
+  unit:
+    name: unit tests (Karma)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor, and
+      # Chrome's sandbox then refuses to start ("No usable sandbox").
+      - name: Allow Chrome's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Karma (ChromeHeadless)
+        run: npm test
+
+  build-and-mobile-gate:
+    name: production build + mobile gate
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Optional. Without them the gate runs its public pass; Dependabot and
+      # fork PRs never get secrets and fall back to it automatically.
+      SC_TEST_EMAIL: ${{ secrets.SC_TEST_EMAIL }}
+      SC_TEST_PASSWORD: ${{ secrets.SC_TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Production build
+        run: npm run build
+
+      - name: Allow Chrome's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # Serves dist/sc-companion/browser itself (no dev server in CI). No
+      # --skip-if-unavailable: a missing browser must turn the job red.
+      - name: Mobile gate (public)
+        if: env.SC_TEST_EMAIL == ''
+        run: npm run gate:mobile -- --json=mobile-gate.json --screenshots=.mobile-gate
+
+      - name: Mobile gate (+ authenticated pass)
+        if: env.SC_TEST_EMAIL != ''
+        run: npm run gate:mobile:auth -- --json=mobile-gate.json --screenshots=.mobile-gate
+
+      - name: Upload the gate report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mobile-gate-report
+          path: |
+            mobile-gate.json
+            .mobile-gate/
+          retention-days: 7
+          if-no-files-found: ignore
