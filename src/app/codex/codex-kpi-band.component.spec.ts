@@ -70,6 +70,30 @@ describe('CodexKpiBandComponent', () => {
     expect(chipDebugEl.injector.get(ScTooltipDirective).scTooltip()).toBe('+20%');
   });
 
+  it('tints a worse delta in the warning colour, not danger (a comparison is not an error)', () => {
+    fixture.componentRef.setInput('cells', [
+      {
+        ...cells[4],
+        delta: { direction: 'down', good: false, pctText: '-10%', raw: -10 },
+      },
+    ]);
+    fixture.detectChanges();
+    // A token as the browser resolves it (styles.scss is part of the test build).
+    const resolved = (token: string): string => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${token})`;
+      document.body.appendChild(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    };
+    const warning = resolved('--sc-warning');
+    expect(warning).not.toBe(resolved('--sc-danger'));
+    const chip = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.kpi-delta.bad');
+    expect(chip).withContext('worse delta chip').toBeTruthy();
+    expect(getComputedStyle(chip!).color).toBe(warning);
+  });
+
   it('renders a negative delta with a minus sign', () => {
     fixture.componentRef.setInput('cells', [
       {

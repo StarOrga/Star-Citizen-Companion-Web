@@ -357,7 +357,7 @@ let uidSeq = 0;
         background: color-mix(in srgb, var(--sc-accent) 16%, transparent); } }
       .d { font-family: var(--hs-mono); font-size: max(9.5px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums; }
       .d.up { color: var(--sc-success); }
-      .d.down { color: var(--sc-danger); }
+      .d.down { color: var(--sc-warning); }
       /* the ring joint on the colour bridge — no label (concept it.8). */
       .joint { align-self: center; inline-size: 16px; block-size: 16px; border-radius: 50%; margin-inline: 6px;
         border: 2px solid var(--p-signature); flex: none;
@@ -436,6 +436,8 @@ let uidSeq = 0;
       .hp-cooling svg { width: 64px; height: 64px; display: block; }
       .hp-cooling .tr { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); stroke-width: 7; }
       .hp-cooling .va { fill: none; stroke: var(--sc-accent); stroke-width: 7; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+      /* Overload, not a comparison: the cooling cannot hold what is asked of it
+         — an error, not a hint (same rule as the energy dock). Stays danger red. */
       .hp-cooling .va.over { stroke: var(--sc-danger); }
       .hp-cooling text { font-family: var(--hs-mono); font-size: 12px; fill: var(--sc-fg-0); text-anchor: middle; }
       .hp-cooling text.l { font-family: var(--sc-font-display); font-size: 5.5px; letter-spacing: 0.12em; fill: var(--sc-fg-2); text-transform: uppercase; }

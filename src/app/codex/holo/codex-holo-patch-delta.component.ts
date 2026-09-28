@@ -95,7 +95,7 @@ const KPI_LABEL_KEYS: Record<string, string> = {
     .delta-table thead th { color: var(--sc-fg-2); font-weight: 500; font-size: max(0.7rem, var(--sc-fs-floor));
       text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--sc-border); }
     tr.good .pct { color: var(--sc-accent); }
-    tr.bad .pct { color: var(--sc-danger, #ff5252); }
+    tr.bad .pct { color: var(--sc-warning); }
   `],
 })
 export class CodexHoloPatchDeltaComponent {

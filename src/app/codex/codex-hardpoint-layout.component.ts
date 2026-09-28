@@ -878,8 +878,8 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       padding: 0 3.5px; border-radius: 2px; }
     .fig .dl.up { color: var(--sc-success, #4caf50);
       background: color-mix(in srgb, var(--sc-success, #4caf50) 12%, transparent); }
-    .fig .dl.down { color: var(--sc-danger, #ff5252);
-      background: color-mix(in srgb, var(--sc-danger, #ff5252) 12%, transparent); }
+    .fig .dl.down { color: var(--sc-warning);
+      background: color-mix(in srgb, var(--sc-warning) 12%, transparent); }
 
     /* Draft write-path: a row edited away from stock. */
     .tag.draft { align-self: center; text-transform: none; letter-spacing: 0; color: var(--sc-accent-gold, #c8a84b);

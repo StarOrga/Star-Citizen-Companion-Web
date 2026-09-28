@@ -101,7 +101,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .kpi-delta { font-size: max(10px, var(--sc-fs-floor)); font-variant-numeric: tabular-nums;
       padding: 1px 4px; border-radius: 2px; }
     .kpi-delta.good { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 12%, transparent); }
-    .kpi-delta.bad { color: var(--sc-danger); background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    /* --sc-warning, not --sc-danger: a worse value is a comparison, not an error (CLAUDE.md). */
+    .kpi-delta.bad { color: var(--sc-warning); background: color-mix(in srgb, var(--sc-warning) 12%, transparent); }
     .kpi-cell.from-power { border-bottom: 2px solid var(--sc-danger); }
     .kpi-info { position: relative; margin-left: 3px; cursor: help; color: var(--sc-fg-2); font-size: 10px;
       background: none; border: none; padding: 0; font-family: inherit; }

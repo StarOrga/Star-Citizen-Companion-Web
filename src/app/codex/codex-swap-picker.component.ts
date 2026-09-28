@@ -588,7 +588,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     td.c-num:not(:has(.bar)) > .opt { display: none; }
     .cell { position: relative; }
     .cell.d.up { color: var(--sc-success); }
-    .cell.d.down { color: var(--sc-danger); }
+    .cell.d.down { color: var(--sc-warning); }
 
     .pick-note { margin: 2px 0 0; font-size: 11px; color: var(--sc-fg-2); }
     .pick-note.baseline-note { color: var(--sc-warn); }
