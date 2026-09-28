@@ -1,7 +1,41 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.106.0",
+  "current": "0.107.0",
   "releases": [
+    {
+      "version": "0.107.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Security",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback-Anhänge sind privat.",
+              "text": "Screenshots und Dateien sieht nur noch, wer sie hochgeladen hat, Admins und die Autorin des Themas. Die App zeigt sie über kurzlebige signierte Links."
+            },
+            {
+              "title": "Telemetrie ohne öffentlichen Ersatzschlüssel.",
+              "text": "Ohne Server-Secrets lehnt der Empfang alles ab. Uploader-Releases bringen den echten Schlüssel mit."
+            },
+            {
+              "title": "Profile und Admin-Prüfung abgesichert.",
+              "text": "Ein eigenes Profil lässt sich nur mit Viewer-Werten anlegen, und is_admin(uuid) ist nicht mehr öffentlich aufrufbar."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Der Data Uploader verbindet sich erst nach deinem Klick.",
+              "text": "/uploader/auth fragt mit „Verbinden“/„Abbrechen“, bevor Zugangsdaten übergeben werden."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.106.0",
       "date": "2026-09-29",

@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.107.0] - 2026-09-29
+
+### Security
+
+- **Feedback-Anhänge sind privat.** Screenshots und Dateien sieht nur noch,
+  wer sie hochgeladen hat, Admins und die Autorin des Themas. Die App zeigt sie
+  über kurzlebige signierte Links.
+- **Telemetrie ohne öffentlichen Ersatzschlüssel.** Ohne Server-Secrets lehnt
+  der Empfang alles ab. Uploader-Releases bringen den echten Schlüssel mit.
+- **Profile und Admin-Prüfung abgesichert.** Ein eigenes Profil lässt sich nur
+  mit Viewer-Werten anlegen, und `is_admin(uuid)` ist nicht mehr öffentlich
+  aufrufbar.
+
+### Changed
+
+- **Der Data Uploader verbindet sich erst nach deinem Klick.** `/uploader/auth`
+  fragt mit „Verbinden“/„Abbrechen“, bevor Zugangsdaten übergeben werden.
+
 ## [0.106.0] - 2026-09-29
 
 ### Changed
