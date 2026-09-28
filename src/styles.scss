@@ -533,6 +533,12 @@ button {
   border-radius: 2px;
 }
 
+/* A dialog container (ScDialogDirective, tabindex="-1") is no Tab stop; its
+   focus is only the starting point for screen readers and the next Tab, so
+   no ring around the whole lightbox, panel or popover. Controls inside keep
+   their focus ring. */
+.sc-dialog:focus { outline: none; }
+
 /* Accessibility: honour the OS "reduce motion" setting — neutralises every
    looping animation (skeleton shimmers, pulses, slideshow) and long transition. */
 @media (prefers-reduced-motion: reduce) {
