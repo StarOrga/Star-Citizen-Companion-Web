@@ -717,7 +717,9 @@
           "reExtractPendingYes": "Ja"
         },
         "forkGuard": {
-          "question": "Eigentümer werden? Diese Änderung trennt das Loadout vom Original — nicht umkehrbar."
+          "title": "Eigentümer werden?",
+          "body": "Diese Änderung trennt das Loadout vom Original. Das lässt sich nicht umkehren.",
+          "confirm": "Eigentümer werden"
         },
         "deltaShow": "Änderungen zeigen",
         "deltaHide": "Änderungen ausblenden",

@@ -717,7 +717,9 @@
           "reExtractPendingYes": "Yes"
         },
         "forkGuard": {
-          "question": "Become the owner? This splits the loadout from the original — cannot be undone."
+          "title": "Become the owner?",
+          "body": "This change splits the loadout from the original. It cannot be undone.",
+          "confirm": "Become owner"
         },
         "deltaShow": "Show changes",
         "deltaHide": "Hide changes",

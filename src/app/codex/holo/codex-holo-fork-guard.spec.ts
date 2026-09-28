@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { CodexHoloForkGuard } from './codex-holo-fork-guard';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarShipConfig } from '../../hangar/hangar.types';
@@ -15,14 +15,14 @@ describe('CodexHoloForkGuard', () => {
 
   beforeEach(() => {
     forkFollowedLoadout = jasmine.createSpy('forkFollowedLoadout');
+    confirmSpy = jasmine.createSpy('confirm');
     TestBed.configureTestingModule({
       providers: [
-        provideTranslateService({}),
+        { provide: ScConfirmService, useValue: { confirm: confirmSpy } },
         { provide: HangarService, useValue: { forkFollowedLoadout } },
       ],
     });
     guard = TestBed.inject(CodexHoloForkGuard);
-    confirmSpy = spyOn(window, 'confirm');
   });
 
   it('resolves "own" without a prompt for a config that is not following anything', async () => {
@@ -33,23 +33,26 @@ describe('CodexHoloForkGuard', () => {
   });
 
   it('resolves "forked" after the hv-s4 question is confirmed and the fork write succeeds', async () => {
-    confirmSpy.and.returnValue(true);
+    confirmSpy.and.resolveTo(true);
     forkFollowedLoadout.and.returnValue(Promise.resolve({ id: 'cfg-1' } as HangarShipConfig));
     const result = await guard.ensureEditable(config(true));
     expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy.calls.mostRecent().args[0]).toEqual(
+      jasmine.objectContaining({ titleKey: 'codex.holo.patch.forkGuard.title' }),
+    );
     expect(forkFollowedLoadout).toHaveBeenCalledWith('cfg-1', {});
     expect(result).toBe('forked');
   });
 
   it('resolves "cancelled" when the hv-s4 question is declined', async () => {
-    confirmSpy.and.returnValue(false);
+    confirmSpy.and.resolveTo(false);
     const result = await guard.ensureEditable(config(true));
     expect(result).toBe('cancelled');
     expect(forkFollowedLoadout).not.toHaveBeenCalled();
   });
 
   it('resolves "cancelled" when the fork write itself fails', async () => {
-    confirmSpy.and.returnValue(true);
+    confirmSpy.and.resolveTo(true);
     forkFollowedLoadout.and.returnValue(Promise.resolve(null));
     const result = await guard.ensureEditable(config(true));
     expect(result).toBe('cancelled');
