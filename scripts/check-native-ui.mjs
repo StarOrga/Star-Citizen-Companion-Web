@@ -21,9 +21,23 @@
 // - HTML and JS comments are blanked before matching (comments often
 //   explain why something is NOT used); line numbers stay correct because
 //   every removed comment keeps its newlines. String literals are kept.
-// - PATTERNS is a list on purpose: audit plan D08 adds native title
-//   tooltips and native <select> here. A pattern that needs to see across
+// - PATTERNS is a list on purpose. A pattern that needs to see across
 //   lines can use the m flag; the scan runs over the whole file text.
+//
+// NATIVE TOOLTIPS AND SELECTS (audit plan D08)
+// --------------------------------------------
+// A native title tooltip is the browser's own box: no app look, a fixed
+// delay, nothing on touch and nothing on keyboard focus. The app has
+// ScTooltipDirective (src/app/shared/tooltip/) with an Info and a Label
+// tier. `[attr.title]=` and an SVG `<title>` child are flagged. A plain
+// `[title]=` is NOT: in this code base it is a component input
+// (sc-app-download-panel) or the a11y name of an iframe, neither of which
+// becomes a tooltip.
+// A native <select> opens a list the operating system draws (a full-screen
+// wheel on Android) — the app has ScSelectComponent. The pattern ends in
+// (\s|$) with the m flag because several templates break the line right
+// after "<select"; a comment like "native <select>" never matches, because
+// ">" follows the tag name there (and comments are blanked anyway).
 //
 // USAGE
 //   node scripts/check-native-ui.mjs            # scan src/app
@@ -43,6 +57,21 @@ export const PATTERNS = [
     id: 'native-dialog',
     re: /\b(?:window|globalThis)\.(?:confirm|prompt|alert)\s*\(/g,
     hint: 'use ScConfirmService (src/app/shared/dialog/sc-confirm.service.ts)',
+  },
+  {
+    id: 'native-title',
+    re: /\[attr\.title\]\s*=/g,
+    hint: 'use [scTooltip] (src/app/shared/tooltip/sc-tooltip.directive.ts)',
+  },
+  {
+    id: 'svg-title',
+    re: /<title>/g,
+    hint: 'use [scTooltip] plus an aria-label on the element',
+  },
+  {
+    id: 'native-select',
+    re: /<select(?:\s|$)/gm,
+    hint: 'use <sc-select> (src/app/shared/sc-select.component.ts)',
   },
 ];
 
@@ -125,7 +154,7 @@ function scan() {
     for (const hit of findNativeUi(readFileSync(file, 'utf8'))) findings.push({ rel, ...hit });
   }
   if (findings.length === 0) {
-    console.log('check-native-ui: no native browser dialogs in src/app.');
+    console.log('check-native-ui: no native browser dialogs, title tooltips or selects in src/app.');
     return;
   }
   console.error('check-native-ui: native browser UI found — the app has its own component for this:\n');
@@ -152,6 +181,20 @@ function selftest() {
     ["const u = 'https://example.com'; window.confirm(u);", [1]],
     // Strings are kept: a native call in a template string still counts.
     ['const t = `\n${window.confirm("x")}`;', [2]],
+    // Native title tooltip: the attribute binding counts, a component input does not.
+    ['<span [attr.title]="hint">x</span>', [1]],
+    ['<sc-app-download-panel [title]="appTitle" />', []],
+    ['<!-- no [attr.title]="x" here -->', []],
+    // SVG title child.
+    ['<g class="mk">\n  <title>{{ tip(m) }}</title>\n</g>', [2]],
+    ['<!-- an SVG <title> is not enough -->', []],
+    ['const pageTitle = "x";', []],
+    // Native select, also when the tag name ends the line.
+    ['<select class="x" [value]="v">', [1]],
+    ['<label>\n  <select\n    class="x">', [2]],
+    ['<sc-select [options]="o" />', []],
+    ['// A native <select> would open the OS list.\nfoo();', []],
+    ['<!-- not a native <select\n here -->', []],
   ];
   let failed = 0;
   for (const [src, expected] of cases) {
