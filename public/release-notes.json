@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.107.0",
+  "current": "0.107.1",
   "releases": [
+    {
+      "version": "0.107.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Geteilte Hangar-Konfigurationen und Konten lassen sich wieder löschen.",
+              "text": "Folge-Kopien werden dabei zu eigenständigen Kopien, statt das Löschen zu blockieren."
+            },
+            {
+              "title": "Gleichzeitiges Anpinnen auf zwei Geräten endet ohne rohe Fehlermeldung.",
+              "text": "Die App lädt neu und versucht es einmal erneut."
+            },
+            {
+              "title": "Log-Tabellen werden automatisch beschnitten.",
+              "text": "API-Log nach 1 Tag, Telemetrie nach 120 Tagen, Ereignisdetails höchstens 4 KiB."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.107.0",
       "date": "2026-09-29",

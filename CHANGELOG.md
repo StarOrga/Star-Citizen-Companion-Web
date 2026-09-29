@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.107.1] - 2026-09-29
+
+### Fixed
+
+- **Geteilte Hangar-Konfigurationen und Konten lassen sich wieder löschen.**
+  Folge-Kopien werden dabei zu eigenständigen Kopien, statt das Löschen zu
+  blockieren.
+- **Gleichzeitiges Anpinnen auf zwei Geräten endet ohne rohe Fehlermeldung.**
+  Die App lädt neu und versucht es einmal erneut.
+- **Log-Tabellen werden automatisch beschnitten.** API-Log nach 1 Tag,
+  Telemetrie nach 120 Tagen, Ereignisdetails höchstens 4 KiB.
+
 ## [0.107.0] - 2026-09-29
 
 ### Security
