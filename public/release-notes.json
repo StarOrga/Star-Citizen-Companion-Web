@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.111.0",
+  "current": "0.112.0",
   "releases": [
+    {
+      "version": "0.112.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "3D-Viewer lädt nur noch bei Schiffen.",
+              "text": "Waffen, Rüstungen, Komponenten und Items laden die rund 470 kB für model-viewer und three.js nicht mehr mit."
+            },
+            {
+              "title": "Feedback-Board lädt nur noch Änderungen.",
+              "text": "Jeder Poll ist ein einziger Request; ohne Änderung wird nichts neu berechnet, und die stille 1 000-Zeilen-Grenze ist weg (nach dem DB-Update)."
+            },
+            {
+              "title": "Tastenbelegung startet eingeklappt.",
+              "text": "Große Profile zeigen zuerst nur die erste Kategorie, dazu Auf-/Zuklappen je Kategorie und für alle; eine Suche klappt die Treffer auf."
+            },
+            {
+              "title": "Kleineres Favicon, eine Schriftquelle.",
+              "text": "Das Favicon schrumpft von 372 kB auf 15 kB, und jede Seite lädt rund 12,7 kB weniger HTML."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.111.0",
       "date": "2026-09-29",

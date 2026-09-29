@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.112.0] - 2026-09-29
+
+### Changed
+
+- **3D-Viewer lädt nur noch bei Schiffen.** Waffen, Rüstungen, Komponenten und
+  Items laden die rund 470 kB für model-viewer und three.js nicht mehr mit.
+- **Feedback-Board lädt nur noch Änderungen.** Jeder Poll ist ein einziger
+  Request; ohne Änderung wird nichts neu berechnet, und die stille
+  1 000-Zeilen-Grenze ist weg (nach dem DB-Update).
+- **Tastenbelegung startet eingeklappt.** Große Profile zeigen zuerst nur die
+  erste Kategorie, dazu Auf-/Zuklappen je Kategorie und für alle; eine Suche
+  klappt die Treffer auf.
+- **Kleineres Favicon, eine Schriftquelle.** Das Favicon schrumpft von 372 kB
+  auf 15 kB, und jede Seite lädt rund 12,7 kB weniger HTML.
+
 ## [0.111.0] - 2026-09-29
 
 ### Fixed
