@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, WritableSignal, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
@@ -49,6 +50,7 @@ export class ShipLinkService {
       .select('ship_slug, url')
       .eq('ship_slug', slug)
       .maybeSingle();
+    if (globalRes.error) logWarn('ship-link', 'global link read failed', { slug, error: globalRes.error });
     this.mergeInto(this.globalLinks, slug, this.readUrl(globalRes.data));
 
     const userId = this.auth.user()?.id ?? null;
@@ -62,6 +64,7 @@ export class ShipLinkService {
       .eq('user_id', userId)
       .eq('ship_slug', slug)
       .maybeSingle();
+    if (ownRes.error) logWarn('ship-link', 'own link read failed', { slug, error: ownRes.error });
     this.mergeInto(this.myLinks, slug, this.readUrl(ownRes.data));
   }
 
@@ -156,7 +159,8 @@ export class ShipLinkService {
     if (error && !payload.error) payload = await readErrorBody(error);
     if (error || payload.error) {
       const code = payload.error ?? 'unknown';
-      this.error.set(payload.message ?? error?.message ?? code);
+      logWarn('ship-link', 'invoke failed', { code, payload, error });
+      this.error.set(code);
       return this.errorKey(code);
     }
     return null;

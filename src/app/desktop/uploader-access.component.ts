@@ -51,7 +51,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
         @if (open()) {
           <div class="ua-body">
-            @if (errorMsg(); as e) { <p class="ua-err">{{ e }}</p> }
+            @if (errorMsg(); as e) { <p class="ua-err" role="alert">{{ e | translate }}</p> }
 
             <sc-app-download-panel
               icon="⬆"
@@ -175,6 +175,7 @@ export class UploaderAccessComponent {
   readonly historyOpen = signal(false);
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
 

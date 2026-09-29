@@ -1,3 +1,5 @@
+import { logWarn } from '../core/log';
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -324,8 +326,8 @@ interface GearRecipe {
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
-        <div class="sc-card err">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
           @if (canRetry()) {
             <button type="button" class="retry" (click)="retryLoad()">{{ 'codex.error.retry' | translate }}</button>
           }
@@ -960,7 +962,7 @@ interface GearRecipe {
                             @if (c.loading) {
                               <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
                             } @else if (c.error) {
-                              <span class="err-inline">{{ c.error }}</span>
+                              <span class="err-inline">{{ c.error | translate }}</span>
                             } @else if (c.items.length === 0) {
                               <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
                             } @else {
@@ -1367,7 +1369,7 @@ interface GearRecipe {
                                 @if (c.loading) {
                                   <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
                                 } @else if (c.error) {
-                                  <span class="err-inline">{{ c.error }}</span>
+                                  <span class="err-inline">{{ c.error | translate }}</span>
                                 } @else if (c.items.length === 0) {
                                   <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
                                 } @else {
@@ -2075,6 +2077,7 @@ export class CodexDetailComponent implements OnInit {
   }
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
   readonly showEmptyLoadout = signal(false);
@@ -2222,7 +2225,7 @@ export class CodexDetailComponent implements OnInit {
       // "undefined" and print the raw database message.
       if (!kind || !className || !CODEX_KINDS.includes(kind)) {
         this.lastRequest = null;
-        this.error.set(this.t.instant('codex.detail.invalidRoute'));
+        this.error.set('codex.detail.invalidRoute');
         this.loading.set(false);
         return;
       }
@@ -2337,7 +2340,7 @@ export class CodexDetailComponent implements OnInit {
         }
       }
     } catch (err) {
-      if (seq === this.loadSeq) this.error.set((err as Error).message ?? 'Unknown error');
+      if (seq === this.loadSeq) this.error.set(toErrorKey('codex', 'detail', err, { ...this.lastRequest }));
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
     }
@@ -2387,7 +2390,7 @@ export class CodexDetailComponent implements OnInit {
     } catch (e) {
       this.setCompat(port.portIndex, {
         loading: false,
-        error: (e as Error).message ?? 'error',
+        error: toErrorKey('codex', 'compatible items', e, { port: port.portIndex }),
         items: [],
       });
     }
@@ -2471,7 +2474,8 @@ export class CodexDetailComponent implements OnInit {
         hydrogenCapacity: hydrogen,
         quantumFuelCapacity: qtFuel,
       });
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'ship tech failed', error);
       // tech chips are a bonus — never fail the detail page for them
     }
   }
@@ -2496,7 +2500,8 @@ export class CodexDetailComponent implements OnInit {
     try {
       const ammo = await this.svc.getAmmoPayloads(ammoNames);
       if (this.isCurrentLoad(seq)) this.ammoPayloads.set(ammo);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'ammo lookup failed', { ammo: ammoNames.length, error });
       // projectile stats are a bonus — a failed lookup just hides those rows
     }
   }
@@ -2515,7 +2520,8 @@ export class CodexDetailComponent implements OnInit {
       // answer must not paint the previous entity's family.
       if (this.detail()?.classNameSlug !== className) return;
       this.skinOptions.set(resolveSkinGroup(siblings, className) ?? []);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'skin group failed', { className, error });
       this.skinOptions.set([]);
     }
   }
@@ -2535,7 +2541,8 @@ export class CodexDetailComponent implements OnInit {
       // late answer must not paint the previous ship's family.
       if (this.detail()?.classNameSlug !== className) return;
       this.editionOptions.set(resolveEditionGroup(siblings, className) ?? []);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'edition group failed', { className, error });
       this.editionOptions.set([]);
     }
   }
@@ -2545,7 +2552,8 @@ export class CodexDetailComponent implements OnInit {
     let used: BlueprintRef[] = [];
     try {
       used = await this.svc.blueprintsUsingIngredient(className);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'used-in lookup failed', { className, error });
       // supplementary — a failed lookup just hides the list
     }
     if (this.isCurrentLoad(seq)) this.usedInBlueprints.set(used);
@@ -2561,7 +2569,8 @@ export class CodexDetailComponent implements OnInit {
         craftTimeSec: (bp.row['craft_time_seconds'] as number | null) ?? null,
         ingredients: bp.ingredients,
       } : null);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'recipe lookup failed', error);
       // Crafting data is supplementary — a failed lookup just hides the panel.
       if (this.isCurrentLoad(seq)) this.recipe.set(null);
     }
@@ -2592,7 +2601,8 @@ export class CodexDetailComponent implements OnInit {
       });
       if (seq !== this.buySeq) return;
       this.buyOptions.set(options);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'where to buy failed', error);
       if (seq !== this.buySeq) return;
       this.buyError.set(true);
     } finally {
@@ -3017,7 +3027,8 @@ export class CodexDetailComponent implements OnInit {
         this.draftResolved.update((m) => mergeMapInto(m, resolved, okMain));
       }
       if (okAmmo.length > 0) this.draftAmmoPayloads.update((m) => mergeMapInto(m, ammo, okAmmo));
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'draft hydration failed', error);
       // A failed hydration just leaves the row pending forever rather than
       // rendering wrong numbers — Falle 2: "a spinner beats a wrong number".
     } finally {
@@ -3089,7 +3100,8 @@ export class CodexDetailComponent implements OnInit {
       // The share popover snapshots `activeHangarConfig` — hand it the config
       // that was just written, not the one loaded at page open (wave 5 A1.4).
       this.activeHangarConfig.set(updated);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'loadout save failed', error);
       this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
     } finally {
       this.saving.set(false);
@@ -3137,7 +3149,8 @@ export class CodexDetailComponent implements OnInit {
         queryParamsHandling: 'merge',
         replaceUrl: true,
       });
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'draft url mirror failed', error);
       // Router navigation should not throw in practice — best-effort regardless.
     }
     try {
@@ -3533,7 +3546,8 @@ export class CodexDetailComponent implements OnInit {
         Object.values(ship.sheet).some((v) => v !== null && v !== undefined),
       );
       this.rankCohort.set(cohort.length > 0 && hasRealSheet ? cohort : null);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'rank cohort failed', error);
       this.rankCohort.set(null); // honest gap state — never a fake cohort of one.
     } finally {
       this.rankCohortLoading.set(false);

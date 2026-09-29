@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, Injector, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -82,7 +83,11 @@ export class DesktopConnectionService {
     this._loading.set(true);
     try {
       const { data, error } = await this.sb.client.rpc('my_desktop_connections');
-      if (error) return; // silent — the menu simply shows "not connected yet"
+      if (error) {
+        // Quiet for the user — the menu simply shows "not connected yet".
+        logWarn('desktop', 'connections load failed', error);
+        return;
+      }
       const rows = (Array.isArray(data) ? data : []) as ConnectionRow[];
       this._connections.set(
         rows
@@ -96,7 +101,8 @@ export class DesktopConnectionService {
           })),
       );
       this.loadedForUser = userId;
-    } catch {
+    } catch (error) {
+      logWarn('desktop', 'connections load failed', error);
       /* offline / RPC missing — treat as "no check-in on record" */
     } finally {
       this._loading.set(false);
@@ -117,8 +123,9 @@ export class DesktopConnectionService {
         p_app_version: appVersion,
       });
       this.loadedForUser = null;
-    } catch {
-      /* ignore — see doc comment */
+    } catch (error) {
+      logWarn('desktop', 'connection touch failed', { product, error });
+      /* never breaks the handoff — see doc comment */
     }
   }
 }

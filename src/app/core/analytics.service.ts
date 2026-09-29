@@ -1,3 +1,4 @@
+import { logWarn } from './log';
 import { Injectable, Injector, effect, inject } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -75,6 +76,17 @@ export class AnalyticsService {
   }
 
   /**
+   * Sends an already-redacted `$exception` (see `AppErrorHandler`). Same gate as
+   * `capture()`: nothing leaves the browser without statistics consent.
+   * PostHog's own `capture_exceptions` autocapture stays off on purpose — it
+   * would ship raw messages and URLs past the redaction.
+   */
+  captureException(error: Error, properties?: Record<string, unknown>): void {
+    if (!this.consent.statisticsAllowed()) return;
+    this.client?.captureException(error, properties);
+  }
+
+  /**
    * C7 — one-shot landing-page UTM capture. Called once from `AppComponent`
    * init (alongside `init()`). Reads `utm_source`/`utm_medium`/`utm_campaign`
    * from the CURRENT `location.search` at call time and, once `statistics`
@@ -141,9 +153,10 @@ export class AnalyticsService {
       this.client = posthog;
       this.bindRouter();
       this.applyPendingLandingUtm();
-    } catch {
+    } catch (error) {
       // Blocked by an ad-blocker, offline, or chunk load failure. Analytics is
       // strictly optional — never let it break the app.
+      logWarn('analytics', 'posthog load failed', error);
       this.client = null;
     } finally {
       this.loading = false;

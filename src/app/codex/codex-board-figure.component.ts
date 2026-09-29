@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -490,7 +491,8 @@ export class CodexBoardFigureComponent {
 
       // Flipping this last runs the paint effect, which draws the first frame.
       this.ready.set(true);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'board figure boot failed', error);
       // No engine, no problem: the drawn suit is still on screen.
       this.teardown();
     }

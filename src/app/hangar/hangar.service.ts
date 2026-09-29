@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { AnalyticsService } from '../core/analytics.service';
+import { toErrorKey } from '../core/describe-error';
+import { logWarn } from '../core/log';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { normalizeRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 // One normalizer for "is this the same ship name", shared with the RSI
@@ -34,6 +36,9 @@ import {
 /** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
 const CONCEPT_NAME_MAX = 80;
 
+/** i18n key for an adopt RPC that answered without a usable config. */
+const ADOPT_FAILED = 'hangar.errors.adoptFailed';
+
 /** Postgres unique_violation — a concurrent device took the same slot. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -64,6 +69,7 @@ export class HangarService {
   // Concept-ship wishlist (#135) — separate table, no catalog linkage.
   readonly conceptShips = signal<ConceptShip[]>([]);
   readonly loading = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   // Concept-wishlist load state, so the Codex can ask for it standalone
@@ -220,7 +226,7 @@ export class HangarService {
       // constructor may have run before auth resolved). DB-first, see below.
       await this.syncFlagship();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('hangar', 'loadAll', err));
     } finally {
       this.loading.set(false);
     }
@@ -243,7 +249,7 @@ export class HangarService {
       // 23505 = duplicate (user_id, ship_class_name) — the ship is already in
       // the hangar; surface it as a no-op rather than an error.
       if ((error as { code?: string }).code === '23505') return this.shipByClassName(shipClassName);
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'addShip', error, { shipClassName }));
       return null;
     }
     const ship = mapHangarShip(data as HangarShipRow);
@@ -339,7 +345,7 @@ export class HangarService {
       if ((error as { code?: string }).code === '23505') {
         return this.conceptShips().find((c) => c.name === name) ?? this.conceptShipByName(name);
       }
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'addConceptShip', error, { name }));
       return null;
     }
     const concept = mapConceptShip(data as Record<string, unknown>);
@@ -353,7 +359,7 @@ export class HangarService {
   async removeConceptShip(id: string): Promise<boolean> {
     const { error } = await this.sb.client.from('hangar_concept_ships').delete().eq('id', id);
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'removeConceptShip', error, { id }));
       return false;
     }
     this.conceptShips.set(this.conceptShips().filter((c) => c.id !== id));
@@ -372,7 +378,10 @@ export class HangarService {
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    if (error || !data) return null;
+    // A failed read throws: "the ship does not exist" and "the read failed"
+    // are different states on the detail page (retry vs. not found).
+    if (error) throw error;
+    if (!data) return null;
     return mapHangarShip(data as HangarShipRow);
   }
 
@@ -397,7 +406,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'updateShip', error, { id }));
       return false;
     }
     this.replaceShip(mapHangarShip(data as HangarShipRow));
@@ -418,19 +427,19 @@ export class HangarService {
       if (!(await this.refreshPinnedRanks())) await this.loadAll();
       attempt = await this.pinShipOnce(id, rank);
     }
-    if (attempt.conflict !== null) this.error.set(attempt.conflict);
+    if (attempt.conflict !== null) this.error.set(toErrorKey('hangar', 'pinShip', attempt.conflict, { id, rank }));
     return attempt.ok;
   }
 
   /**
-   * One pin attempt. `conflict` carries the message of a unique-slot
+   * One pin attempt. `conflict` carries the error of a unique-slot
    * violation (23505) and leaves `error` untouched so the caller can retry;
    * every other failure sets `error` itself.
    */
   private async pinShipOnce(
     id: string,
     rank: 1 | 2 | 3 | null,
-  ): Promise<{ ok: boolean; conflict: string | null }> {
+  ): Promise<{ ok: boolean; conflict: unknown }> {
     if (rank !== null) {
       const occupant = this.ships().find((s) => s.pinnedRank === rank && s.id !== id);
       if (occupant) {
@@ -439,7 +448,7 @@ export class HangarService {
           .update({ pinned_rank: null })
           .eq('id', occupant.id);
         if (clearErr) {
-          this.error.set(clearErr.message);
+          this.error.set(toErrorKey('hangar', 'pinShip', clearErr, { id, rank }));
           return { ok: false, conflict: null };
         }
         this.replaceShip({ ...occupant, pinnedRank: null });
@@ -452,8 +461,8 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error.message };
-      this.error.set(error.message);
+      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error };
+      this.error.set(toErrorKey('hangar', 'pinShip', error, { id, rank }));
       return { ok: false, conflict: null };
     }
     this.replaceShip(mapHangarShip(data as HangarShipRow));
@@ -486,7 +495,7 @@ export class HangarService {
     const removed = this.shipById(id);
     const { error } = await this.sb.client.from('hangar_ships').delete().eq('id', id);
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'removeShip', error, { id }));
       return false;
     }
     this.ships.set(this.ships().filter((s) => s.id !== id));
@@ -566,7 +575,8 @@ export class HangarService {
         this.writeFlagship(remote);
       }
       this.markFlagshipMigrated();
-    } catch {
+    } catch (error) {
+      logWarn('hangar', 'flagship read failed', error);
       // Offline / stubbed client — the local cache still drives this session.
       this.flagshipClassName.set(this.readFlagship());
     }
@@ -583,8 +593,9 @@ export class HangarService {
         .from('profiles')
         .update({ flagship_ship_class: shipClassName })
         .eq('id', userId);
-      if (error) this.error.set(error.message);
-    } catch {
+      if (error) this.error.set(toErrorKey('hangar', 'persistFlagshipRemote', error, { shipClassName }));
+    } catch (error) {
+      logWarn('hangar', 'flagship pin write failed', { shipClassName, error });
       // Offline / stubbed client — localStorage keeps the pin; the next
       // syncFlagship() with a live client reconciles.
     }
@@ -655,7 +666,7 @@ export class HangarService {
       .eq('hangar_ship_id', hangarShipId)
       .order('updated_at', { ascending: false });
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'listConfigs', error, { hangarShipId }));
       return [];
     }
     return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
@@ -681,7 +692,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'createConfig', error, { hangarShipId }));
       return null;
     }
     return mapHangarShipConfig(data as HangarShipConfigRow);
@@ -702,7 +713,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'updateConfig', error, { id }));
       return null;
     }
     const config = mapHangarShipConfig(data as HangarShipConfigRow);
@@ -721,21 +732,23 @@ export class HangarService {
   async activateConfig(id: string, hangarShipId: string): Promise<boolean> {
     let attempt = await this.activateConfigOnce(id, hangarShipId);
     if (attempt.conflict !== null) attempt = await this.activateConfigOnce(id, hangarShipId);
-    if (attempt.conflict !== null) this.error.set(attempt.conflict);
+    if (attempt.conflict !== null) {
+      this.error.set(toErrorKey('hangar', 'activateConfig', attempt.conflict, { id, hangarShipId }));
+    }
     return attempt.ok;
   }
 
   private async activateConfigOnce(
     id: string,
     hangarShipId: string,
-  ): Promise<{ ok: boolean; conflict: string | null }> {
+  ): Promise<{ ok: boolean; conflict: unknown }> {
     const { error: clearErr } = await this.sb.client
       .from('hangar_ship_configs')
       .update({ is_active: false })
       .eq('hangar_ship_id', hangarShipId)
       .eq('is_active', true);
     if (clearErr) {
-      this.error.set(clearErr.message);
+      this.error.set(toErrorKey('hangar', 'activateConfig', clearErr, { id, hangarShipId }));
       return { ok: false, conflict: null };
     }
     const { error } = await this.sb.client
@@ -743,8 +756,8 @@ export class HangarService {
       .update({ is_active: true })
       .eq('id', id);
     if (error) {
-      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error.message };
-      this.error.set(error.message);
+      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error };
+      this.error.set(toErrorKey('hangar', 'activateConfig', error, { id, hangarShipId }));
       return { ok: false, conflict: null };
     }
     return { ok: true, conflict: null };
@@ -753,7 +766,7 @@ export class HangarService {
   async deleteConfig(id: string): Promise<boolean> {
     const { error } = await this.sb.client.from('hangar_ship_configs').delete().eq('id', id);
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'deleteConfig', error, { id }));
       return false;
     }
     return true;
@@ -774,7 +787,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'createRoleLoadout', error, { role }));
       return null;
     }
     const loadout = mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
@@ -791,7 +804,8 @@ export class HangarService {
       .select('*')
       .eq('id', id)
       .maybeSingle();
-    if (error || !data) return null;
+    if (error) throw error;
+    if (!data) return null;
     return mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
   }
 
@@ -809,7 +823,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'updateRoleLoadout', error, { id }));
       return null;
     }
     const loadout = mapHangarRoleLoadout(data as HangarRoleLoadoutRow);
@@ -835,7 +849,8 @@ export class HangarService {
    * put there since. The set then comes back unchanged and the caller shows
    * what is really in the slot.
    *
-   * A refused write returns null and leaves the shared `error` alone: both
+   * A refused write returns null, logs the refusal and leaves the shared
+   * `error` alone: both
    * callers report it inline at the control that was used, while `error`
    * drives the hangar banner and the set page's load-failure card.
    */
@@ -847,7 +862,11 @@ export class HangarService {
   ): Promise<HangarRoleLoadout | null> {
     for (let attempt = 0; attempt < 2; attempt++) {
       const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
-      if (read.error || !read.data) return null;
+      if (read.error) {
+        logWarn('hangar', 'slot write refused', { id, slot, error: read.error });
+        return null;
+      }
+      if (!read.data) return null;
       const row = read.data as HangarRoleLoadoutRow;
       const current = mapHangarRoleLoadout(row);
       if (expect !== undefined && current.items.find((i) => i.slot === slot)?.className !== expect) {
@@ -862,7 +881,10 @@ export class HangarService {
         .eq('id', id)
         .eq('updated_at', row.updated_at)
         .select('*');
-      if (write.error) return null;
+      if (write.error) {
+        logWarn('hangar', 'slot write refused', { id, slot, error: write.error });
+        return null;
+      }
       const saved = (write.data ?? [])[0] as HangarRoleLoadoutRow | undefined;
       if (!saved) continue; // written elsewhere in between — merge again on the new row
       const loadout = mapHangarRoleLoadout(saved);
@@ -886,7 +908,7 @@ export class HangarService {
   async deleteRoleLoadout(id: string): Promise<boolean> {
     const { error } = await this.sb.client.from('hangar_role_loadouts').delete().eq('id', id);
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'deleteRoleLoadout', error, { id }));
       return false;
     }
     this.roleLoadouts.set(this.roleLoadouts().filter((l) => l.id !== id));
@@ -927,7 +949,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'createShareLink', error, { configId: config.id }));
       return null;
     }
     return mapHangarShareLink(data as Record<string, unknown>);
@@ -946,7 +968,7 @@ export class HangarService {
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'revokeShareLink', error, { id }));
       return false;
     }
     return true;
@@ -965,7 +987,7 @@ export class HangarService {
   async adoptSharedLoadout(token: string): Promise<HangarShipConfig | null> {
     const { data, error } = await this.sb.client.rpc('adopt_shared_loadout', { p_token: token });
     if (error || !data) {
-      this.error.set(error?.message ?? 'adopt_failed');
+      this.error.set(error ? toErrorKey('hangar', 'adoptSharedLoadout', error) : ADOPT_FAILED);
       return null;
     }
     const result = data as {
@@ -977,7 +999,7 @@ export class HangarService {
       patchVersion: string | null;
     };
     if (!result.configId) {
-      this.error.set('adopt_failed');
+      this.error.set(ADOPT_FAILED);
       return null;
     }
     const { data: row, error: readErr } = await this.sb.client
@@ -986,7 +1008,9 @@ export class HangarService {
       .eq('id', result.configId)
       .maybeSingle();
     if (readErr || !row) {
-      this.error.set(readErr?.message ?? 'adopt_failed');
+      this.error.set(
+        readErr ? toErrorKey('hangar', 'adoptSharedLoadout', readErr, { configId: result.configId }) : ADOPT_FAILED,
+      );
       return null;
     }
     const config = mapHangarShipConfig(row as HangarShipConfigRow & Record<string, unknown>);
@@ -1075,7 +1099,7 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
-      this.error.set(error.message);
+      this.error.set(toErrorKey('hangar', 'forkFollowedLoadout', error, { id }));
       return null;
     }
     return mapHangarShipConfig(data as HangarShipConfigRow & Record<string, unknown>);

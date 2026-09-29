@@ -71,10 +71,12 @@ describe('NewsService.refresh coalescing', () => {
 
   it('releases the in-flight latch when the request fails', async () => {
     const failing = service.refresh();
-    responses.error(new Error('offline'));
+    spyOn(console, 'warn');
+    responses.error(new TypeError('Failed to fetch'));
     await failing;
 
-    expect(service.error()).toBe('offline');
+    // An i18n key, never the raw transport text (ChromeHeadless is online).
+    expect(service.error()).toBe('errors.network');
 
     responses = new Subject<VerseFeed>();
     get.and.returnValue(responses.asObservable());

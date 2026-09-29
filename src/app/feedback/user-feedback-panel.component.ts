@@ -90,7 +90,7 @@ type UserFeedbackTab = 'compose' | 'mine';
             @case ('rate') { {{ 'userFeedback.rateLimit' | translate }} }
             @case ('preview') { {{ 'userFeedback.impersonationBlocked' | translate }} }
             @case ('withdrawRefused') { {{ 'userFeedback.withdraw.refused' | translate }} }
-            @default { {{ err }} }
+            @default { {{ err | translate }} }
           }
         </div>
       }

@@ -1,6 +1,7 @@
+import { toErrorKey } from '../core/describe-error';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
@@ -58,7 +59,7 @@ type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
             <div class="dots"><span></span><span></span><span></span></div>
           }
           @case ('error') {
-            <p class="err">{{ errorMsg() }}</p>
+            <p class="err">{{ errorMsg()! | translate }}</p>
           }
         }
       </div>
@@ -92,10 +93,10 @@ export class DesktopReadAuthComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly conn = inject(DesktopConnectionService);
-  private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
 
   readonly status = signal<AuthStatus>('authorizing');
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
 
   cb = '';
@@ -134,12 +135,12 @@ export class DesktopReadAuthComponent implements OnInit {
 
     if (!this.cb || !this.state) {
       this.status.set('error');
-      this.errorMsg.set(this.translate.instant('desktopConnect.errorMissingParams'));
+      this.errorMsg.set('desktopConnect.errorMissingParams');
       return;
     }
     if (!isLoopbackCallback(this.cb)) {
       this.status.set('error');
-      this.errorMsg.set(this.translate.instant('desktopConnect.errorBadCallback'));
+      this.errorMsg.set('desktopConnect.errorBadCallback');
       return;
     }
 
@@ -157,7 +158,7 @@ export class DesktopReadAuthComponent implements OnInit {
     const token = data.session?.access_token;
     if (error || !token) {
       this.status.set('error');
-      this.errorMsg.set(error?.message ?? this.translate.instant('desktopConnect.errorNoToken'));
+      this.errorMsg.set(error ? toErrorKey('desktop', 'read auth', error) : 'desktopConnect.errorNoToken');
       return;
     }
 

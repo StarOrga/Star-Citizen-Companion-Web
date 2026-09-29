@@ -1109,6 +1109,7 @@ describe('AdminFeedbackComponent — motion', () => {
   });
 
   it('a failed sign-off puts the folded row back and shows the error', async () => {
+    spyOn(console, 'warn');
     const tables = fixtureTables();
     const { fixture, cmp, sb, motion } = await mount(tables);
     // The next update fails.
@@ -1132,8 +1133,46 @@ describe('AdminFeedbackComponent — motion', () => {
     fixture.detectChanges();
     expect(motion.folded).toEqual(['fb-card-r1']);
     expect(motion.restored).withContext('the row comes back').toEqual(['fb-card-r1']);
-    expect(cmp.errorMsg()).toBe('boom');
+    expect(cmp.errorMsg()).withContext('an i18n key, never the raw text').toBe('errors.generic');
     expect(cmp.yourTurn().map((m) => m.id)).withContext('still waiting for the sign-off').toContain('r1');
+  });
+
+  it('a failed thread load keeps the board and shows the calm threadsStale hint (AUD-022)', async () => {
+    const warn = spyOn(console, 'warn');
+    const tables = fixtureTables();
+    const { fixture, cmp, el, sb } = await mount(tables);
+    expect(cmp.threadsStale()).toBeFalse();
+    expect(el.querySelector('.threads-stale')).toBeNull();
+    const threadsBefore = cmp.threads();
+
+    const client = sb.provider.client as unknown as { from: (t: string) => Record<string, unknown> };
+    const from = client.from;
+    let failing = true;
+    client.from = (t: string) => {
+      const c = from(t);
+      if (t === 'admin_feedback_messages' && failing) {
+        c['then'] = (resolve: (v: unknown) => unknown) =>
+          resolve({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } });
+      }
+      return c;
+    };
+
+    await cmp.refresh();
+    fixture.detectChanges();
+    expect(cmp.threadsStale()).toBeTrue();
+    expect(cmp.errorMsg()).withContext('a hint, not an action error').toBeNull();
+    expect(cmp.messages().length).withContext('the board is not blanked').toBe(tables.admin_feedback.length);
+    expect(cmp.threads()).withContext('threads are additive, the old map stays').toBe(threadsBefore);
+    const hint = el.querySelector('.threads-stale');
+    expect(hint?.textContent?.trim()).toBe('adminFeedback.threadsStale');
+    expect(hint?.getAttribute('role')).toBe('status');
+    expect(warn).toHaveBeenCalledWith('[admin-feedback] threads load failed', { code: '57014' });
+
+    failing = false;
+    await cmp.refresh();
+    fixture.detectChanges();
+    expect(cmp.threadsStale()).withContext('a successful reload clears the hint').toBeFalse();
+    expect(el.querySelector('.threads-stale')).toBeNull();
   });
 
   it('a poll that moves a topic into another band marks it arrived, once', async () => {

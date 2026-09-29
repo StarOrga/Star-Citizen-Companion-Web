@@ -358,7 +358,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const buildId = String(body.build_id ?? '');
       if (!buildId) return json({ error: 'invalid_body' }, 400);
       if (body.entity_counts) {
-        await admin.from('codex_builds').update({ entity_counts: body.entity_counts }).eq('id', buildId);
+        // A failed counts write must stop the finalize: the build would
+        // otherwise go current without its entity counts (empty category
+        // badges, "no blueprints" gates). The outer catch maps it to
+        // 500 ingest_failed, or 503 on a statement timeout the uploader retries.
+        const { error: countsErr } = await admin
+          .from('codex_builds')
+          .update({ entity_counts: body.entity_counts })
+          .eq('id', buildId);
+        if (countsErr) throw countsErr;
       }
       const { error } = await admin.rpc('set_current_codex_build', { p_build_id: buildId });
       if (error) throw error;

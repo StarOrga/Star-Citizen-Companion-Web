@@ -1,4 +1,10 @@
-import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
+import {
+  ApplicationConfig,
+  ErrorHandler,
+  isDevMode,
+  provideBrowserGlobalErrorListeners,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { REMOVE_STYLES_ON_COMPONENT_DESTROY } from '@angular/platform-browser';
@@ -9,10 +15,16 @@ import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
 import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
+import { AppErrorHandler } from './core/app-error-handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
+    // Every uncaught error: console with route, and a redacted $exception to
+    // PostHog only with statistics consent (core/app-error-handler.ts). The
+    // global listeners also catch errors outside the zone; the handler dedupes.
+    { provide: ErrorHandler, useClass: AppErrorHandler },
+    provideBrowserGlobalErrorListeners(),
     provideRouter(
       routes,
       withComponentInputBinding(),

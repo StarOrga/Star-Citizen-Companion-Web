@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -312,7 +313,8 @@ export class HangarImportComponent {
             const res = await this.codex.listByKind('ship', { search: sourceName, limit: 1 });
             match = res.rows[0] ?? null;
             matchKind = match ? 'fuzzy' : null;
-          } catch {
+          } catch (error) {
+            logWarn('hangar', 'import match search failed', { sourceName, error });
             /* search unavailable → entry stays unmatched */
           }
         }

@@ -1,7 +1,9 @@
+import { toErrorKey } from '../core/describe-error';
+import { authErrorKey } from './auth-error-key';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from './auth.service';
 import { AccessRequestService } from './access-request.service';
 import { ImpersonationService } from './impersonation.service';
@@ -118,7 +120,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                 </label>
 
                 @if (errorMsg()) {
-                  <div class="err" role="alert">{{ errorMsg() }}</div>
+                  <div class="err" role="alert">{{ errorMsg()! | translate }}</div>
                 }
 
                 <div class="actions">
@@ -164,7 +166,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                   </label>
 
                   @if (resetError()) {
-                    <div class="err" role="alert">{{ resetError() }}</div>
+                    <div class="err" role="alert">{{ resetError()! | translate }}</div>
                   }
 
                   <div class="actions">
@@ -208,7 +210,7 @@ type Panel = 'signIn' | 'apply' | 'reset';
                   </label>
 
                   @if (applyError()) {
-                    <div class="err" role="alert">{{ applyError() }}</div>
+                    <div class="err" role="alert">{{ applyError()! | translate }}</div>
                   }
 
                   <div class="actions">
@@ -493,7 +495,6 @@ export class LoginComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly analytics = inject(AnalyticsService);
   private readonly accessRequests = inject(AccessRequestService);
-  private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
   private readonly account = inject(AccountStatusService);
 
@@ -509,6 +510,7 @@ export class LoginComponent {
   readonly previewLocked = computed(() => this.imp.viewAs() === 'anon');
 
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   /** Set when the approvedGuard bounced an un-invited account back here. */
   readonly denied = signal(this.route.snapshot.queryParamMap.get('denied') === 'invite');
@@ -544,10 +546,12 @@ export class LoginComponent {
 
   readonly applyBusy = signal(false);
   readonly applyDone = signal(false);
+  /** i18n key, never raw text. */
   readonly applyError = signal<string | null>(null);
 
   readonly resetBusy = signal(false);
   readonly resetDone = signal(false);
+  /** i18n key, never raw text. */
   readonly resetError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
@@ -601,12 +605,12 @@ export class LoginComponent {
     try {
       const { error } = await this.auth.sendPasswordReset(this.resetForm.getRawValue().email);
       if (error && error.status === 429) {
-        this.resetError.set(error.message);
+        this.resetError.set(authErrorKey(error, 'reset'));
         return;
       }
       this.resetDone.set(true);
     } catch (err) {
-      this.resetError.set((err as Error).message);
+      this.resetError.set(authErrorKey(err, 'reset'));
     } finally {
       this.resetBusy.set(false);
     }
@@ -634,7 +638,7 @@ export class LoginComponent {
       // but navigateByUrl would still be bounced by authGuard back to /login
       // (viewAs() === 'anon' shadows isAuthenticated()) — a silent loop with
       // no feedback. Refuse before attempting it at all.
-      this.errorMsg.set(this.translate.instant('auth.previewLocked.body'));
+      this.errorMsg.set('auth.previewLocked.body');
       return;
     }
     this.busy.set(true);
@@ -643,7 +647,7 @@ export class LoginComponent {
     try {
       const { error } = await this.auth.signInWithPassword(email, password);
       if (error) {
-        this.errorMsg.set(error.message);
+        this.errorMsg.set(authErrorKey(error, 'sign-in'));
       } else {
         this.analytics.capture('user_signed_in', { provider: 'email' });
         // navigateByUrl handles path + query string in one call
@@ -651,7 +655,7 @@ export class LoginComponent {
         await this.router.navigateByUrl(this.safeRedirectTarget());
       }
     } catch (err) {
-      this.errorMsg.set((err as Error).message);
+      this.errorMsg.set(authErrorKey(err, 'sign-in'));
     } finally {
       this.busy.set(false);
     }
@@ -676,9 +680,7 @@ export class LoginComponent {
       return;
     }
     this.applyError.set(
-      result.kind === 'rate-limited'
-        ? this.translate.instant('auth.apply.rateLimited')
-        : result.message,
+      result.kind === 'rate-limited' ? 'auth.apply.rateLimited' : toErrorKey('auth', 'apply', result.error),
     );
   }
 
@@ -686,7 +688,7 @@ export class LoginComponent {
     if (this.previewLocked()) {
       // Same reasoning as onSubmit(): sc.viewAs is sessionStorage, so it
       // survives the OAuth round trip and would loop back to /login too.
-      this.errorMsg.set(this.translate.instant('auth.previewLocked.body'));
+      this.errorMsg.set('auth.previewLocked.body');
       return;
     }
     this.busy.set(true);
@@ -709,7 +711,7 @@ export class LoginComponent {
     }
     const { error } = await this.auth.signInWithGoogle(target);
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(authErrorKey(error, 'google sign-in'));
       this.busy.set(false);
     } else {
       this.analytics.capture('user_signed_in_with_google', { provider: 'google' });

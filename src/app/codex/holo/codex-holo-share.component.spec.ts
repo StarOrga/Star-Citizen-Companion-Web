@@ -86,6 +86,29 @@ describe('CodexHoloShareComponent', () => {
     expect(fixture.nativeElement.querySelector('.link-url')?.textContent).toContain('tok123');
     expect(fixture.nativeElement.querySelector('.actions button.danger')).toBeTruthy();
   });
+
+  it('says so when the clipboard refuses the copy (AUD-312)', async () => {
+    spyOn(console, 'warn');
+    setup();
+    createShareLink.and.returnValue(Promise.resolve({
+      id: 'link-1', token: 'tok123', shipClassName: 'AEGS_Gladius', channel: 'LIVE', patchVersion: '4.10',
+      loadout: [], configName: 'Standard', role: 'multipurpose', sourceConfigId: 'cfg-1',
+      expiresAt: null, revokedAt: null, createdAt: '2026-09-01',
+    }));
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new DOMException('denied', 'NotAllowedError'));
+    fixture.componentRef.setInput('config', config({}));
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.hangar-share button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.copy-failed')).toBeNull();
+    (fixture.nativeElement.querySelector('.hangar-share .actions button:not(.danger)') as HTMLButtonElement).click();
+    // Not whenStable(): that would also wait out the 3 s hide timer.
+    await new Promise((r) => setTimeout(r));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.copy-failed')?.textContent).toContain('codex.holo.share.copyFailed');
+  });
 });
 
 describe('CodexHoloShareComponent — wave 5 states', () => {

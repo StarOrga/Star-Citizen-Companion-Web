@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -103,8 +104,11 @@ const SEARCH_DEBOUNCE_MS = 250;
       </header>
 
       @if (hangar.error(); as err) {
-        <!-- Through translate: service error keys resolve, raw backend messages pass through. -->
-        <div class="sc-card err">{{ err | translate }}</div>
+        <!-- hangar.error holds an i18n key (describe-error), never raw backend text. -->
+        <div class="sc-card err" role="alert">
+          <span>{{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="hangar.loading()" (click)="retryLoad()">{{ 'errors.retry' | translate }}</button>
+        </div>
       }
 
       <!-- Import from export file (#136) -->
@@ -199,6 +203,12 @@ const SEARCH_DEBOUNCE_MS = 250;
         </div>
         @if (searching()) {
           <p class="state">{{ 'hangar.picker.loading' | translate }}</p>
+        } @else if (searchError(); as err) {
+          <!-- A failed catalog search is not "no ship matches". -->
+          <div class="state search-err" role="alert">
+            <span>{{ 'hangar.add.searchFailed' | translate }} — {{ err | translate }}</span>
+            <button type="button" class="retry" (click)="retrySearch()">{{ 'errors.retry' | translate }}</button>
+          </div>
         } @else if (searchInput() && searchResults().length === 0) {
           <p class="state">{{ 'hangar.add.noResults' | translate }}</p>
         } @else if (searchResults().length > 0) {
@@ -697,7 +707,12 @@ const SEARCH_DEBOUNCE_MS = 250;
 
     .empty { text-align: center; padding: 36px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
-    .err { color: var(--sc-danger); padding: 14px 16px; }
+    .err { color: var(--sc-danger); padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .search-err { color: var(--sc-danger); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .err .retry, .search-err .retry { margin-left: auto; min-height: 44px; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled), .search-err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible, .search-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
     .hint { color: var(--sc-fg-2); font-size: 0.84rem; margin: 0; }
 
     @media (max-width: 720px) {
@@ -731,6 +746,8 @@ export class HangarDashboardComponent implements OnInit {
   readonly searchInput = signal('');
   readonly searching = signal(false);
   readonly searchResults = signal<CodexListRow[]>([]);
+  /** The catalog search failed. i18n key, never raw text; cleared by the next search. */
+  readonly searchError = signal<string | null>(null);
   readonly newLoadoutName = signal('');
   readonly newLoadoutRole = signal<RoleLoadoutRole>('fps');
 
@@ -837,7 +854,10 @@ export class HangarDashboardComponent implements OnInit {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
     if (!value.trim()) {
+      this.searchSeq++; // an in-flight search must not land on the cleared field
       this.searchResults.set([]);
+      this.searchError.set(null);
+      this.searching.set(false);
       return;
     }
     this.searchTimer = setTimeout(() => void this.runSearch(value.trim()), SEARCH_DEBOUNCE_MS);
@@ -959,15 +979,30 @@ export class HangarDashboardComponent implements OnInit {
     this.hangar.toggleFlagship(s.shipClassName);
   }
 
+  /** Retry of the banner card: loadAll() parks its failure in hangar.error again. */
+  retryLoad(): void {
+    void this.hangar.loadAll();
+  }
+
+  /** Retry of the catalog-search error row. */
+  retrySearch(): void {
+    const term = this.searchInput().trim();
+    if (term) void this.runSearch(term);
+  }
+
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
+    this.searchError.set(null);
     this.searching.set(true);
     try {
       const res = await this.codex.listByKind('ship', { search: term, limit: 8 });
       if (seq !== this.searchSeq) return;
       this.searchResults.set(res.rows);
-    } catch {
-      if (seq === this.searchSeq) this.searchResults.set([]);
+    } catch (err) {
+      if (seq === this.searchSeq) {
+        this.searchResults.set([]);
+        this.searchError.set(toErrorKey('hangar', 'catalogSearch', err, { term }));
+      }
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);
     }

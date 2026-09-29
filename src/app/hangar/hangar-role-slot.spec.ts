@@ -151,6 +151,43 @@ describe('HangarService.setRoleLoadoutSlot', () => {
     expect(svc.roleLoadouts()[0].items).toEqual([p4ar]);
   });
 
+  /** A client whose read answers `read` and whose write answers `write` (both `{ data, error }`). */
+  function failingClient(read: unknown, write: unknown = { data: [], error: null }) {
+    const from = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chain: any = {
+        select: () => chain,
+        eq: () => chain,
+        update: () => chain,
+        maybeSingle: () => Promise.resolve(read),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        then: (res: any, rej: any) => Promise.resolve(write).then(res, rej),
+      };
+      return chain;
+    };
+    return { from };
+  }
+
+  it('logs a refused read instead of failing silently (AUD-255), banner stays clear', async () => {
+    const warn = spyOn(console, 'warn');
+    const rlsError = { message: 'permission denied for table hangar_role_loadouts', code: '42501' };
+    const svc = makeService(failingClient({ data: null, error: rlsError }));
+
+    expect(await svc.setRoleLoadoutSlot('set-1', 'core', null)).toBeNull();
+    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', jasmine.objectContaining({ id: 'set-1', slot: 'core', error: rlsError }));
+    expect(svc.error()).toBeNull();
+  });
+
+  it('logs a refused write instead of failing silently (AUD-255)', async () => {
+    const warn = spyOn(console, 'warn');
+    const writeError = { message: 'new row violates row-level security policy', code: '42501' };
+    const svc = makeService(failingClient({ data: row('t1', []), error: null }, { data: null, error: writeError }));
+
+    expect(await svc.setRoleLoadoutSlot('set-1', 'core', { className: 'x', kind: 'item' })).toBeNull();
+    expect(warn).toHaveBeenCalledWith('[hangar] slot write refused', jasmine.objectContaining({ id: 'set-1', slot: 'core', error: writeError }));
+    expect(svc.error()).toBeNull();
+  });
+
   it('clears the slot while it still holds the piece the caller showed', async () => {
     const stub = makeClient(
       [row('t1', [{ slot: 'primary', className: 'gmni_smg_energy_01', kind: 'weapon' }])],
@@ -161,5 +198,47 @@ describe('HangarService.setRoleLoadoutSlot', () => {
     await svc.setRoleLoadoutSlot('set-1', 'primary', null, 'gmni_smg_energy_01');
 
     expect(stub.written).toEqual([{ items: [], guard: 't1' }]);
+  });
+});
+
+// getShip / getRoleLoadout (audit D05 step 7, AUD-050): a failed read throws so
+// the page can offer a retry; only a missing row is "not found" (null).
+describe('HangarService.getShip / getRoleLoadout', () => {
+  function serviceAnswering(answer: unknown): HangarService {
+    const from = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chain: any = {
+        select: () => chain,
+        eq: () => chain,
+        maybeSingle: () => Promise.resolve(answer),
+      };
+      return chain;
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        HangarService,
+        { provide: AuthService, useValue: { user: signal({ id: 'u1' }) } as unknown as AuthService },
+        { provide: SupabaseClientProvider, useValue: { client: { from } } as unknown as SupabaseClientProvider },
+      ],
+    });
+    return TestBed.inject(HangarService);
+  }
+
+  const fetchError = { message: 'TypeError: Failed to fetch', code: '' };
+
+  it('getShip throws a failed read instead of reporting "not found"', async () => {
+    const svc = serviceAnswering({ data: null, error: fetchError });
+    await expectAsync(svc.getShip('ship-1')).toBeRejectedWith(fetchError);
+  });
+
+  it('getShip returns null when no row exists', async () => {
+    const svc = serviceAnswering({ data: null, error: null });
+    expect(await svc.getShip('ship-1')).toBeNull();
+  });
+
+  it('getRoleLoadout throws a failed read and returns null for a missing row', async () => {
+    await expectAsync(serviceAnswering({ data: null, error: fetchError }).getRoleLoadout('set-1')).toBeRejectedWith(fetchError);
+    TestBed.resetTestingModule();
+    expect(await serviceAnswering({ data: null, error: null }).getRoleLoadout('set-1')).toBeNull();
   });
 });

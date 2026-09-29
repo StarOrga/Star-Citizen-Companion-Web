@@ -108,7 +108,7 @@ import {
             </p>
 
             @if (hangar.error(); as err) {
-              <p class="err" role="alert">{{ err }}</p>
+              <p class="err" role="alert">{{ err | translate }}</p>
             }
           </div>
         </article>

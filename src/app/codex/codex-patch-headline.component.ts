@@ -100,6 +100,11 @@ import { NewsService } from '../news/news.service';
 
           @if (loading()) {
             <p class="pop-state">{{ 'codex.landing.patchSwitch.loading' | translate }}</p>
+          } @else if (svc.patchTimelineError(); as e) {
+            <div class="pop-err" role="alert">
+              <p class="pop-state err">{{ 'codex.error.title' | translate }} — {{ e | translate }}</p>
+              <button type="button" class="patch-back" (click)="retryTimeline()">{{ 'codex.error.retry' | translate }}</button>
+            </div>
           } @else if (visible().length === 0) {
             <p class="pop-state">{{ 'codex.landing.patchSwitch.empty' | translate }}</p>
           } @else {
@@ -243,6 +248,8 @@ import { NewsService } from '../news/news.service';
         color: var(--sc-fg-2);
       }
       .pop-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .pop-state.err { color: var(--sc-danger); }
+      .pop-err { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
       .pop-note {
         margin: 0;
         font-size: max(0.66rem, var(--sc-fs-floor));
@@ -419,6 +426,11 @@ export class CodexPatchHeadlineComponent {
   /** Technical provenance belongs in the tooltip, not on the row. */
   rowTitle(e: PatchTimelineEntry): string | null {
     return e.extractedAt ? `${e.patchVersion} · ${e.extractedAt}` : null;
+  }
+
+  /** The popover's retry after a failed timeline read. */
+  retryTimeline(): void {
+    void this.loadOnce();
   }
 
   private async loadOnce(): Promise<void> {

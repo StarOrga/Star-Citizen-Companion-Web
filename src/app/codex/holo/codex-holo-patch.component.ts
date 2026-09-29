@@ -16,6 +16,7 @@
 // read, same shape as the host's own) the host supplies, generalised from its
 // own per-detail logic — see wave2-patch-share.md for the exact host signals
 // to adapt it from.
+import { toErrorKey } from '../../core/describe-error';
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
@@ -88,6 +89,11 @@ export interface HoloPatchComparisonSide {
 
           @if (loading()) {
             <p class="pop-state">{{ 'codex.holo.patch.loading' | translate }}</p>
+          } @else if (loadFailed()) {
+            <div class="pop-err" role="alert">
+              <p class="pop-state err">{{ 'codex.error.title' | translate }}</p>
+              <button type="button" class="patch-clear" (click)="retryBuilds()">{{ 'codex.error.retry' | translate }}</button>
+            </div>
           } @else if (builds().length === 0) {
             <p class="pop-state">{{ 'codex.holo.patch.empty' | translate }}</p>
           } @else {
@@ -134,6 +140,9 @@ export interface HoloPatchComparisonSide {
 
       @if (compareLoading()) {
         <p class="delta-state">{{ 'codex.holo.patch.comparing' | translate }}</p>
+      }
+      @if (compareError(); as e) {
+        <p class="delta-state err" role="alert">{{ e | translate }}</p>
       }
 
       <!-- The Δ tables live in an anchored panel, never in the top bar's
@@ -222,6 +231,8 @@ export interface HoloPatchComparisonSide {
     .pop-label { font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor));
       letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); }
     .pop-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .pop-state.err, .delta-state.err { color: var(--sc-danger); }
+    .pop-err { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 
     .build-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
     .build-row {
@@ -314,6 +325,10 @@ export class CodexHoloPatchComponent {
   readonly loading = signal(false);
   readonly compareLoading = signal(false);
   readonly builds = signal<CodexBuild[]>([]);
+  /** The build list could not be read — not the same as "no other patches". */
+  readonly loadFailed = signal(false);
+  /** i18n key of a failed comparison (never raw text). */
+  readonly compareError = signal<string | null>(null);
   readonly selected = signal<CodexBuild | null>(null);
   readonly perspectives = signal<ReturnType<typeof buildPerspectiveDeltas> | null>(null);
   /** The Δ panel under the trigger — opens with a pick, dismissable, reopenable. */
@@ -381,11 +396,20 @@ export class CodexHoloPatchComponent {
     this.open.set(false);
   }
 
+  /** The popover's retry after a failed build list. */
+  retryBuilds(): void {
+    this.builds.set([]);
+    void this.loadOnce();
+  }
+
   private async loadOnce(): Promise<void> {
     if (this.builds().length > 0) return;
     this.loading.set(true);
+    this.loadFailed.set(false);
     try {
-      this.builds.set(await this.svc.buildsForChannel(this.channel()));
+      const { builds, failed } = await this.svc.buildsForChannel(this.channel());
+      this.builds.set(builds);
+      this.loadFailed.set(failed);
     } finally {
       this.loading.set(false);
     }
@@ -395,6 +419,7 @@ export class CodexHoloPatchComponent {
     if (!this.isFinalised(build)) return;
     this.close();
     this.compareLoading.set(true);
+    this.compareError.set(null);
     try {
       const detail = await this.svc.shipDetailForBuild(this.className(), build.id);
       if (!detail) {
@@ -425,6 +450,10 @@ export class CodexHoloPatchComponent {
       this.kpiGhosts.emit({ toBuild: toRef, cells: kpiCells });
       this.portPins.emit(pins);
       this.comparisonBuild.emit(build);
+    } catch (err) {
+      // A click handler must not end in an unhandled rejection.
+      this.compareError.set(toErrorKey('codex', 'compare', err, { buildId: build.id }));
+      this.clear();
     } finally {
       this.compareLoading.set(false);
     }

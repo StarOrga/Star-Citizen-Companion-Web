@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -61,6 +62,9 @@ export function threadSlugOf(url: string): string {
  * removes itself; there is no error card, because "RSI's roadmap API is down"
  * is not something a reader of the patch board can act on.
  */
+/** Transport failures per slug before it is filed as missing for the visit. */
+const MAX_TRANSPORT_ATTEMPTS = 2;
+
 @Injectable({ providedIn: 'root' })
 export class RoadmapService {
   private readonly http = inject(HttpClient);
@@ -81,6 +85,13 @@ export class RoadmapService {
    * retry loop is the one failure mode a lazy loader must not have.
    */
   private readonly missing = signal<ReadonlySet<string>>(new Set());
+  /**
+   * Slugs whose request failed in TRANSPORT (offline, timeout, 5xx) — slug to
+   * the number of failed attempts. A transport error is not a verdict about the
+   * note, so the slug stays requestable ("load the rest", opening the row); only
+   * a second failure files it under `missing`, which keeps the loader bounded.
+   */
+  private readonly failed = signal<ReadonlyMap<string, number>>(new Map());
 
   readonly hasRoadmap = computed(() => hasRoadmapContent(this.roadmap()));
   /** How many notes' contents the client currently holds — shown next to the search. */
@@ -107,7 +118,7 @@ export class RoadmapService {
       this.roadmap.set(payload);
       this.unavailable.set(!hasRoadmapContent(payload));
     } catch (err) {
-      console.warn('[news] roadmap unavailable', err);
+      logWarn('news', 'roadmap unavailable', err);
       this.unavailable.set(true);
     } finally {
       this.loading.set(false);
@@ -205,14 +216,25 @@ export class RoadmapService {
         });
       }
     } catch (err) {
-      console.warn('[news] note outlines failed', slugs, err);
-      // A transport error is not a verdict about the notes — mark them missing
-      // for THIS visit so the row stops spinning, but do not cache it further.
-      this.missing.update((set) => {
-        const next = new Set(set);
-        for (const s of slugs) next.add(s);
-        return next;
-      });
+      logWarn('news', 'note outlines failed', { slugs, error: err });
+      // A transport error is not a verdict about the notes: the first one only
+      // counts the attempt (the slug stays requestable on an explicit ask), the
+      // second files the slug as missing for this visit so nothing loops.
+      const counts = new Map(this.failed());
+      const giveUp: string[] = [];
+      for (const s of slugs) {
+        const n = (counts.get(s) ?? 0) + 1;
+        counts.set(s, n);
+        if (n >= MAX_TRANSPORT_ATTEMPTS) giveUp.push(s);
+      }
+      this.failed.set(counts);
+      if (giveUp.length > 0) {
+        this.missing.update((set) => {
+          const next = new Set(set);
+          for (const s of giveUp) next.add(s);
+          return next;
+        });
+      }
     } finally {
       this.pending.update((set) => {
         const next = new Set(set);

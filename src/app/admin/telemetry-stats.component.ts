@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { draftScopes } from '../feedback/feedback-draft.types';
@@ -109,7 +110,7 @@ const WINDOWS = [7, 30, 90] as const;
       </header>
 
       @if (errorMsg()) {
-        <div class="err"><strong>{{ 'telemetry.errorTitle' | translate }}:</strong> {{ errorMsg() }}</div>
+        <div class="err"><strong>{{ 'telemetry.errorTitle' | translate }}:</strong> {{ errorMsg()! | translate }}</div>
       }
 
       @if (busy() && !stats()) {
@@ -549,6 +550,7 @@ export class TelemetryStatsComponent {
 
   readonly stats = signal<TelemetryStats | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
 
   /**
@@ -702,7 +704,7 @@ export class TelemetryStatsComponent {
       product_filter: product === ALL_PRODUCTS ? null : product,
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('telemetry', 'load stats', error, { days, product }));
       this.stats.set(null);
     } else {
       this.stats.set(data as TelemetryStats);
