@@ -120,6 +120,7 @@ const SEARCH_DEBOUNCE_MS = 250;
               type="button"
               (click)="clearSearch()"
               [attr.aria-label]="'codex.landing.terminal.clear' | translate"
+              [scTooltip]="'codex.landing.terminal.clear' | translate"
             >
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                    stroke-linecap="round" aria-hidden="true">
@@ -247,6 +248,13 @@ const SEARCH_DEBOUNCE_MS = 250;
                           : 'codex.compare.pin'
                         ) | translate
                       "
+                      [scTooltip]="
+                        (svc.isPinned(pinKind, hit.classNameSlug)
+                          ? 'codex.compare.pinned'
+                          : 'codex.compare.pin'
+                        ) | translate
+                      "
+                      scTooltipTier="label"
                     >
                       <svg class="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
                            stroke-linejoin="round" aria-hidden="true"

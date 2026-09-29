@@ -31,6 +31,7 @@ import { StabilityBadgeComponent } from './stability-badge.component';
 import { groupCardsByCategory, roadmapCardUrl, type RoadmapCard } from './roadmap';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 type SectionId = 'prep' | 'contents' | 'fixed' | 'next';
 
@@ -111,6 +112,7 @@ function scrollBehavior(): ScrollBehavior {
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
     PatchNoteDetailComponent, StabilityBadgeComponent, ScDialogDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -118,7 +120,7 @@ function scrollBehavior(): ScrollBehavior {
       <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
         @if (card(); as c) {
           <header class="hero" [attr.data-status]="c.status">
-            <a class="close" [routerLink]="['/news/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate">✕</a>
+            <a class="close" [routerLink]="['/news/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
             <div class="hero-row">
               <span class="status" [attr.data-status]="c.status">{{ ('news.patch.status.' + c.status) | translate }}</span>
               <h2>{{ title() }}</h2>
@@ -295,7 +297,7 @@ function scrollBehavior(): ScrollBehavior {
                            [attr.placeholder]="'news.patch.fixed.placeholder' | translate"
                            [value]="query()" (input)="onQuery($event)" (keydown.escape)="clearQuery()" />
                     @if (query()) {
-                      <button type="button" class="s-clear" [attr.aria-label]="'news.patch.search.clear' | translate" (click)="clearQuery()">×</button>
+                      <button type="button" class="s-clear" [attr.aria-label]="'news.patch.search.clear' | translate" [scTooltip]="'news.patch.search.clear' | translate" (click)="clearQuery()">×</button>
                     }
                   </div>
                   <p class="coverage" role="status">
@@ -381,7 +383,7 @@ function scrollBehavior(): ScrollBehavior {
           </div>
         } @else {
           <header class="hero">
-            <a class="close" routerLink="/news/patches" [attr.aria-label]="'news.patch.dossier.close' | translate">✕</a>
+            <a class="close" routerLink="/news/patches" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
             <h2>{{ 'news.patch.line' | translate:{ version: line() } }}</h2>
             <p class="state">{{ 'news.patch.dossier.unknown' | translate:{ line: line() } }}</p>
           </header>

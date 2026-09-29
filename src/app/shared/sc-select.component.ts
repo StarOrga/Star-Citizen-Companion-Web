@@ -22,6 +22,12 @@ export interface ScSelectOption {
    */
   readonly label?: string;
   /**
+   * Interpolation parameters for `labelKey` — e.g. `{ days: 7 }` for a key
+   * reading "{{days}} days". Only the translated branch uses them; a ready-made
+   * `label` still wins.
+   */
+  readonly labelParams?: Record<string, unknown>;
+  /**
    * Listed but not pickable — the native `<option disabled>`: a choice that
    * exists but has no data behind it yet. The trigger still shows it when it
    * is the current value; clicks, Enter and the arrow keys pass it by.
@@ -78,7 +84,7 @@ let uid = 0;
       (keydown)="onKeydown($event)"
     >
       <span class="value" [class.none]="value() === null">{{
-        valueLabel() ?? (valueLabelKey() | translate)
+        valueLabel() ?? (valueLabelKey() | translate: valueLabelParams())
       }}</span>
       <span class="chevron" aria-hidden="true"></span>
     </button>
@@ -99,7 +105,7 @@ let uid = 0;
             (click)="choose(i)"
           >
             <span class="tick" aria-hidden="true"></span>
-            <span class="label">{{ o.label ?? (o.labelKey | translate) }}</span>
+            <span class="label">{{ o.label ?? (o.labelKey | translate: o.labelParams) }}</span>
           </li>
         }
       </ul>
@@ -216,6 +222,9 @@ export class ScSelectComponent {
 
   readonly valueLabelKey = computed(() => this.currentChoice()?.labelKey ?? this.placeholderKey());
 
+  /** Interpolation parameters for the picked option's `labelKey`. */
+  readonly valueLabelParams = computed(() => this.currentChoice()?.labelParams);
+
   /** Pre-translated text for the picked option, when the caller supplied one. */
   readonly valueLabel = computed(() => this.currentChoice()?.label ?? null);
 
@@ -328,7 +337,7 @@ export class ScSelectComponent {
     for (let n = 0; n < items.length; n++) {
       const i = (from + n) % items.length;
       if (items[i].disabled) continue;
-      const label = items[i].label ?? String(this.i18n.instant(items[i].labelKey) ?? '');
+      const label = items[i].label ?? String(this.i18n.instant(items[i].labelKey, items[i].labelParams) ?? '');
       if (label.toLowerCase().startsWith(needle)) {
         ev.preventDefault();
         if (!this.open()) this.openList();

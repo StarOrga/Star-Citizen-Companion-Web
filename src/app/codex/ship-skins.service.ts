@@ -17,7 +17,21 @@ export interface ShipSkin {
   sort: number;
 }
 
-const SUPABASE_PUBLIC = `${environment.supabase.url}/storage/v1/object/public/ship-skins/`;
+/** The source tags the extractor writes into ship_skins.source. */
+export const KNOWN_SKIN_SOURCES = ['store', 'event', 'subscriber', 'factory', 'pu_npc'] as const;
+
+/**
+ * i18n key for a skin's source tag (AUD-188: never show the raw enum);
+ * unknown values fall back to "other". Lives here, not in the viewer, so
+ * i18n-keys.spec.ts can import it without loading the 3D component.
+ */
+export function skinSourceKey(source: string): string {
+  return (KNOWN_SKIN_SOURCES as readonly string[]).includes(source)
+    ? `codex.skins.sourceTag.${source}`
+    : 'codex.skins.sourceTag.other';
+}
+
+const SUPABASE_PUBLIC =`${environment.supabase.url}/storage/v1/object/public/ship-skins/`;
 
 /**
  * Where ship-skins objects are read from. The R2 Worker serves the same

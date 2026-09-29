@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { FriendsService } from './friends.service';
 import {
   FoundUser,
@@ -27,7 +28,7 @@ import {
 @Component({
   selector: 'sc-friends',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -247,18 +248,18 @@ import {
         <div class="sc-card section report-card">
           <h2>{{ 'friends.report.title' | translate: { name: labelOf(t) } }}</h2>
           <p class="hint">{{ 'friends.report.hint' | translate }}</p>
-          <label class="report-field">
+          <!-- A div, not a label: a label forwards clicks on the list options
+               to the trigger and snaps the list shut again. -->
+          <div class="report-field">
             <span class="inline-label">{{ 'friends.report.category' | translate }}</span>
-            <select
-              class="sc-select"
+            <sc-select
+              [options]="categoryOptions"
               [value]="reportCategory()"
-              (change)="onCategoryChange($event)"
-              [attr.aria-label]="'friends.report.category' | translate">
-              @for (c of categories; track c) {
-                <option [value]="c">{{ 'friends.report.categories.' + c | translate }}</option>
-              }
-            </select>
-          </label>
+              [allowEmpty]="false"
+              [ariaLabel]="'friends.report.category' | translate"
+              (valueChange)="onCategoryChange($event)"
+            />
+          </div>
           <label class="report-field">
             <span class="inline-label">{{ 'friends.report.reason' | translate }}</span>
             <textarea
@@ -326,19 +327,10 @@ import {
       font: inherit;
       font-size: 0.9rem;
     }
-    .text-input:focus, .sc-select:focus {
+    .text-input:focus {
       outline: none;
       border-color: var(--sc-accent);
       box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
-    }
-    .sc-select {
-      padding: 9px 12px;
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      font: inherit;
-      font-size: 0.9rem;
     }
 
     .found {
@@ -427,7 +419,10 @@ import {
 export class FriendsComponent implements OnInit {
   readonly friends = inject(FriendsService);
 
-  readonly categories = REPORT_CATEGORIES;
+  readonly categoryOptions: readonly ScSelectOption[] = REPORT_CATEGORIES.map((c) => ({
+    value: c,
+    labelKey: 'friends.report.categories.' + c,
+  }));
   readonly reasonMax = REPORT_REASON_MAX;
 
   readonly graph = this.friends.graph;
@@ -478,8 +473,8 @@ export class FriendsComponent implements OnInit {
     this.found.set(null);
   }
 
-  onCategoryChange(event: Event): void {
-    this.reportCategory.set((event.target as HTMLSelectElement).value as ReportCategory);
+  onCategoryChange(value: string | null): void {
+    this.reportCategory.set((value ?? 'other') as ReportCategory);
   }
 
   onReasonInput(event: Event): void {

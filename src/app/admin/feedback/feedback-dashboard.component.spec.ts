@@ -157,6 +157,16 @@ describe('FeedbackDashboardComponent (feedback a33ba528)', () => {
     }
   });
 
+  it('shows the week values as app tooltip and in the chart label, never as a native title', () => {
+    const fixture = render([row('a', 'shipped', at(0), { shipped_at: at(0, 10) })]);
+    const el = fixture.nativeElement as HTMLElement;
+    const firstWeek = el.querySelector('.wk')!;
+    expect(firstWeek.hasAttribute('title')).toBeFalse();
+    const cmp = fixture.componentInstance;
+    const label = el.querySelector('.spark')!.getAttribute('aria-label') ?? '';
+    expect(label).toContain(cmp.weekTitle(cmp.weeks()[0]));
+  });
+
   it('keeps the two catalogues in step on the dashboard block', () => {
     const keysOf = (cat: TranslationObject): string[] => Object.keys(block(cat, 'dashboard')).sort();
     expect(keysOf(de)).toEqual(keysOf(en));

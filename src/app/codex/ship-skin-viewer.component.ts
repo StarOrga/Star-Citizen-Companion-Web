@@ -14,7 +14,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ShipSkin, ShipSkinsService } from './ship-skins.service';
+import { ShipSkin, ShipSkinsService, skinSourceKey } from './ship-skins.service';
 import {
   Vec3,
   hotspotPosition,
@@ -213,7 +213,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                   <p>{{ c.description }}</p>
                 }
                 <span class="meta">
-                  {{ c.source }}
+                  {{ sourceKey(c.source) | translate }}
                   @if (c.nameVerified) {
                     · ✓ {{ 'codex.skins.verified' | translate }}
                   }
@@ -245,7 +245,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                     @if (s.nameVerified) {
                       <span class="tag v">{{ 'codex.skins.verified' | translate }}</span>
                     }
-                    <span class="tag s">{{ s.source }}</span>
+                    <span class="tag s">{{ sourceKey(s.source) | translate }}</span>
                   </span>
                 </div>
               </li>
@@ -625,6 +625,11 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
 })
 export class ShipSkinViewerComponent {
   readonly shipId = input.required<string>();
+
+  /** i18n key for a skin's source tag (AUD-188). */
+  sourceKey(source: string): string {
+    return skinSourceKey(source);
+  }
 
   /**
    * Ports the detail view would like located on the hull (#256).

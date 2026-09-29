@@ -1384,6 +1384,14 @@
     "skins": {
       "title": "Liveries",
       "source": "Hologram of the ship's shape · liveries as official store renders",
+      "sourceTag": {
+        "store": "Store",
+        "event": "Event",
+        "subscriber": "Subscriber",
+        "factory": "Factory",
+        "pu_npc": "NPC (PU)",
+        "other": "Other"
+      },
       "mode3d": "3D model",
       "modePaint": "Paint render",
       "no3d": "No 3D model available",
@@ -1665,7 +1673,9 @@
         "lockTime": "Lock time",
         "range": "Range",
         "targeting": "Targeting",
-        "slowestMissileNote": "Lock time of the slowest missile."
+        "slowestMissileNote": "Lock time of the slowest missile.",
+        "hintDps": "{{value}} DPS",
+        "hintAlpha": "{{value}} Alpha"
       },
       "defensive": {
         "title": "Defence",

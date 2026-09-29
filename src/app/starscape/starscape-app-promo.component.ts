@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 /** Permanent opt-out — only the ✕ writes this (admin feedback eb9c6ec3). */
 const DISMISS_KEY = 'sc.starscapePromo.dismissed';
@@ -63,7 +64,7 @@ const ROTATE_MS = 2600;
           <strong class="title">{{ 'starscape.promo.title' | translate }}</strong>
           <span class="desc">{{ 'starscape.promo.desc' | translate }}</span>
           <a class="cta" [href]="downloadUrl()" target="_blank" rel="noopener noreferrer" download
-             (click)="closeForSession()">
+             (click)="onCta($event)">
             ↓ {{ 'starscape.promo.cta' | translate }}
             @if (version(); as v) { <span class="cta-ver">v{{ v }}</span> }
           </a>
@@ -217,6 +218,12 @@ export class StarscapeAppPromoComponent implements OnInit {
   /** ✕ — the admin's explicit "never show this again". */
   dismissForever(): void {
     this.mark(localStorage, DISMISS_KEY);
+    this.closeForSession();
+  }
+
+  /** Following the CTA with a plain left click closes; a modified click opens its tab and keeps the promo. */
+  onCta(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
     this.closeForSession();
   }
 

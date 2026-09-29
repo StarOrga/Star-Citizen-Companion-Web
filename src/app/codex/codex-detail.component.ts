@@ -549,9 +549,13 @@ interface GearRecipe {
             <code class="cls">{{ detail()!.classNameSlug }}</code>
             <span class="tool-spacer"></span>
             @if (!inHangar()) {
-              <button type="button" class="btn add-hangar" (click)="addToHangar()">
+              <button type="button" class="btn add-hangar" (click)="addToHangar()"
+                      [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
                 {{ 'quickSearch.addToHangar' | translate }}
               </button>
+              @if (addFailed()) {
+                <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+              }
             }
             <!-- Deep-link out to the official RSI site. We have no reliable
                  per-ship RSI slug (our classNameSlug is not the RSI URL slug),
@@ -1143,6 +1147,8 @@ interface GearRecipe {
             (rankProfileChange)="rankProfile.set($event)"
             (rankScopeChange)="rankScope.set($event)"
             (addToHangar)="addToHangar()"
+            [addBusy]="addBusy()"
+            [addFailed]="addFailed()"
             (saveDraft)="saveLoadoutDraft()"
             (discardDraft)="discardLoadoutDraft()"
             (configRefreshed)="activeHangarConfig.set($event)"
@@ -1202,9 +1208,13 @@ interface GearRecipe {
               }
               <code class="cls">{{ detail()!.classNameSlug }}</code>
               @if (!inHangar()) {
-                <button type="button" class="btn add-hangar" (click)="addToHangar()">
+                <button type="button" class="btn add-hangar" (click)="addToHangar()"
+                        [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
                   {{ 'quickSearch.addToHangar' | translate }}
                 </button>
+                @if (addFailed()) {
+                  <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+                }
               }
               @if (pledgeLink(); as pledge) {
                 <a class="btn rsi-link" [href]="pledge" target="_blank" rel="noopener noreferrer nofollow">
@@ -2080,6 +2090,10 @@ export class CodexDetailComponent implements OnInit {
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   readonly showRaw = signal(false);
+  /** Add-to-hangar in flight (AUD-065): locks the buttons, blocks a double insert. */
+  readonly addBusy = signal(false);
+  /** The last add-to-hangar failed (AUD-268): shows the translated alert. */
+  readonly addFailed = signal(false);
   readonly showEmptyLoadout = signal(false);
 
   // ── mission profiles / analysis column (PR C) ───────────────────────────────
@@ -4507,9 +4521,20 @@ export class CodexDetailComponent implements OnInit {
   async addToHangar(): Promise<void> {
     const d = this.detail();
     if (d?.kind !== 'ship') return;
-    const ship = await this.hangar.addShip(d.classNameSlug, 'owned');
-    // UC-07: jump straight into the configurator instead of leaving a dead row.
-    if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
+    // A second click while the insert is in flight must not add the ship twice.
+    if (this.addBusy()) return;
+    this.addBusy.set(true);
+    this.addFailed.set(false);
+    try {
+      const ship = await this.hangar.addShip(d.classNameSlug, 'owned');
+      // UC-07: jump straight into the configurator instead of leaving a dead row.
+      if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
+      else this.addFailed.set(true);
+    } catch {
+      this.addFailed.set(true);
+    } finally {
+      this.addBusy.set(false);
+    }
   }
 
   toggleRaw(): void {

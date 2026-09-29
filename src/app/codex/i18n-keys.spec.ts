@@ -25,6 +25,7 @@ import type { ColumnDef, ColumnMenuState } from './table-column-menu';
 import type { KpiSheet } from './codex-loadout-stats';
 import { NOMAD_SHIP_STATS, nomadOccupants, NOMAD_REPEATERS, fixtureOccupant } from './testing/nomad-power.fixture';
 import type { ShipModuleSection } from './ship-module-sections';
+import { KNOWN_SKIN_SOURCES, skinSourceKey } from './ship-skins.service';
 
 type Catalogue = Record<string, unknown>;
 
@@ -181,6 +182,9 @@ describe('i18n keys emitted by the ship-page models', () => {
     collectFold();
     collectKpi();
     collectPicker();
+    // AUD-188: skin source tags and the offensive head's peek words.
+    take(...KNOWN_SKIN_SOURCES.map(skinSourceKey), skinSourceKey('unknown'));
+    take('codex.analysis.offensive.hintDps', 'codex.analysis.offensive.hintAlpha');
   });
 
   it('collects a non-trivial key set (guards against a silent no-op)', () => {

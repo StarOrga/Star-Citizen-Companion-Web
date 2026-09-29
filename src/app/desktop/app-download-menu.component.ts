@@ -28,6 +28,7 @@ import {
 import { DesktopConnectionService } from './desktop-connection.service';
 import { DesktopReleaseService, RingRelease } from './desktop-release.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { isPlainLeftClick } from '../core/modified-click.util';
 
 /** Per-product chrome — one place, so both mounts are visually identical. */
 const CHROME: Record<DesktopProduct, { icon: string; title: string; desc: string; note: string }> = {
@@ -123,7 +124,8 @@ let nextId = 0;
                 type="button"
                 class="pop-x"
                 (click)="close()"
-                [attr.aria-label]="'desktop.close' | translate">✕</button>
+                [attr.aria-label]="'desktop.close' | translate"
+                [scTooltip]="'desktop.close' | translate">✕</button>
             </div>
 
             @if (showConnection()) {
@@ -159,7 +161,7 @@ let nextId = 0;
                     target="_blank"
                     rel="noopener noreferrer"
                     download
-                    (click)="onDownload()">
+                    (click)="onDownload($event)">
                     <span class="dl-arrow" aria-hidden="true">↓</span>
                     <span class="dl-ring">{{ 'desktop.channel.' + r.ring | translate }}</span>
                     <span class="dl-ver">v{{ r.version }}</span>
@@ -183,7 +185,7 @@ let nextId = 0;
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  (click)="onDownload()">
+                  (click)="onDownload($event)">
                   <span class="dl-arrow" aria-hidden="true">↓</span>
                   <span class="dl-ring">{{ 'appMenu.fallback' | translate }}</span>
                 </a>
@@ -205,7 +207,7 @@ let nextId = 0;
             }
 
             @if (product() === 'uploader') {
-              <a class="pop-link" routerLink="/uploader" (click)="close(false)">
+              <a class="pop-link" routerLink="/uploader" (click)="onNavigate($event)">
                 {{ 'desktop.access.fullPage' | translate }}
               </a>
             }
@@ -490,10 +492,18 @@ export class AppDownloadMenuComponent {
   /**
    * The admin's explicit rule: once a download is under way, collapse. The
    * anchor itself is untouched (no preventDefault), so middle-click and "open
-   * in new tab" keep working and simply leave the menu closed behind them.
+   * in new tab" keep working. Only a plain left click collapses: a modified
+   * click (Ctrl/Cmd/Shift) opens its tab and leaves the menu open.
    */
-  onDownload(): void {
+  onDownload(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
     this.close();
+  }
+
+  /** The uploader link — same gate: a modified click keeps the menu open. */
+  onNavigate(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
+    this.close(false);
   }
 
   /**

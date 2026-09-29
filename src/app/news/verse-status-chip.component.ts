@@ -12,6 +12,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { DesktopCapabilityService } from '../core/desktop-capability.service';
+import { isPlainLeftClick } from '../core/modified-click.util';
 import { NewsService, StatusLevel, effectivePlayability } from './news.service';
 
 /** Per-instance id for the chip -> panel aria-controls link. */
@@ -110,7 +111,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
                 target="_blank"
                 rel="noopener noreferrer"
                 download
-                (click)="onDownload()">
+                (click)="onDownload($event)">
                 <span class="dl-arrow" aria-hidden="true">↓</span>
                 <span class="dl-text">
                   <strong>{{ 'news.status.appDownload.label' | translate }}</strong>
@@ -283,10 +284,11 @@ export class VerseStatusChipComponent implements OnInit {
   /**
    * Collapse once a download is under way — the app's rule for every download
    * control (see `AppDownloadMenuComponent.onDownload`). The anchor itself is
-   * untouched, so middle-click and "open in new tab" keep working and simply
-   * leave the panel closed behind them.
+   * untouched, so middle-click and "open in new tab" keep working; only a
+   * plain left click collapses, a modified click leaves the panel open.
    */
-  onDownload(): void {
+  onDownload(ev: MouseEvent): void {
+    if (!isPlainLeftClick(ev)) return;
     this.open.set(false);
   }
 

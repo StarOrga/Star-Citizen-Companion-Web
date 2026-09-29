@@ -132,6 +132,15 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(TestBed.inject(CodexService).loadPatchTimeline).not.toHaveBeenCalled();
   });
 
+  // AUD-188: the row title carries a localised stamp, not the raw ISO string.
+  it('titles a patch row with a localised date, never the raw ISO stamp', async () => {
+    const fixture = await setup();
+    const [entry] = buildPatchTimeline([build('4.2')], []);
+    const title = fixture.componentInstance.rowTitle(entry);
+    expect(title).toContain('4.2');
+    expect(title).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+  });
+
   it('loads the patch list on the FIRST open and caps it at the last three', async () => {
     const patches = ['4.9', '4.8', '4.7', '4.6', '4.5', '4.4', '4.3'];
     const fixture = await setup({ builds: patches.map((p) => build(p)) });
