@@ -52,6 +52,14 @@ describe('CodexHoloPatchComponent', () => {
     fixture.detectChanges();
   }
 
+  // AUD-188: the row tooltip names the build with a localised stamp, not ISO.
+  it('titles a build row with a localised date, never the raw ISO stamp', () => {
+    setup(false);
+    const title = fixture.componentInstance.rowTitle(build({ extractedAt: '2026-09-01T12:30:00Z' }));
+    expect(title).toContain('4.10');
+    expect(title).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+  });
+
   it('marks a never-finalised build (zero entity count) as disabled in the picker', async () => {
     setup(false);
     buildsForChannel.and.returnValue(Promise.resolve([

@@ -85,6 +85,20 @@ describe('ShipSkinViewerComponent', () => {
     expect(c.modelLoading()).toBeTrue(); // glb is loading until <model-viewer> fires (load)
   });
 
+  // AUD-188: the source tag is a translated word, never the raw enum.
+  it('renders the source tag through i18n, not the raw pu_npc enum', async () => {
+    // No 3D model on purpose: paint mode keeps <model-viewer> out of the DOM.
+    const fixture = await setup([
+      skin({ skinId: 'npc', source: 'pu_npc', modelPath: null }),
+      skin({ skinId: 'odd', source: 'mystery', modelPath: null, sort: 200 }),
+    ]);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('codex.skins.sourceTag.pu_npc');
+    expect(text).not.toMatch(/(^|\s)pu_npc(\s|$)/);
+    expect(fixture.componentInstance.sourceKey('mystery')).toBe('codex.skins.sourceTag.other');
+  });
+
   it('falls back to paint mode when no skin has a 3D model', async () => {
     const fixture = await setup([skin({ skinId: 'event_only', modelPath: null })]);
     expect(fixture.componentInstance.mode()).toBe('paint');

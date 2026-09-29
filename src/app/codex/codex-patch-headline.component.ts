@@ -20,6 +20,8 @@ import {
   mergePublishedPatches,
 } from './codex-patch-timeline';
 import { NewsService } from '../news/news.service';
+import { LocaleService } from '../core/locale/locale.service';
+import { formatScDate } from '../core/locale/date-format';
 
 /**
  * The Codex headline: "which patch am I looking at" (admin feedback 463872dd).
@@ -328,6 +330,7 @@ import { NewsService } from '../news/news.service';
 export class CodexPatchHeadlineComponent {
   readonly svc = inject(CodexService);
   private readonly news = inject(NewsService);
+  private readonly locale = inject(LocaleService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Fired after the active build changed, so the host can reload its data. */
@@ -417,7 +420,14 @@ export class CodexPatchHeadlineComponent {
 
   /** Technical provenance belongs in the tooltip, not on the row. */
   rowTitle(e: PatchTimelineEntry): string | null {
-    return e.extractedAt ? `${e.patchVersion} · ${e.extractedAt}` : null;
+    if (!e.extractedAt) return null;
+    // Localised date + time, never the raw ISO string (AUD-188).
+    const when = formatScDate(e.extractedAt, {
+      language: this.locale.language(),
+      region: this.locale.region(),
+      style: 'datetime',
+    });
+    return `${e.patchVersion} · ${when}`;
   }
 
   private async loadOnce(): Promise<void> {
