@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { StabilityVerdict } from './patch-stability';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -13,14 +14,15 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
  * 2026-09-05). Now the chart reads the way every chart reads: taller is
  * better, and a short red column is a bad patch.
  *
- * A column is a BUTTON because clicking it expands that line on this page (an
- * action), not a navigation. Hidden below two columns — a bar chart of one bar
+ * A column is a LINK to that line's dossier (RULE-B: middle click / new tab
+ * must work); the board passes its search term through so the dossier keeps
+ * the highlight. Hidden below two columns — a bar chart of one bar
  * compares nothing.
  */
 @Component({
   selector: 'sc-stability-history',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective],
+  imports: [TranslatePipe, ScTooltipDirective, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (shown().length >= 2) {
@@ -31,13 +33,13 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
         <div class="chart">
           @for (v of shown(); track v.line) {
-            <button type="button" class="col" [class.early]="v.early" [class.none]="v.level === null"
-                    [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [scTooltip]="colAria(v)" scTooltipTier="label"
-                    (click)="showLine.emit(v.line)">
+            <a class="col" [routerLink]="['/news/patches', v.line]" [queryParams]="queryParams()"
+               [class.early]="v.early" [class.none]="v.level === null"
+               [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [scTooltip]="colAria(v)" scTooltipTier="label">
               <span class="col-bar" [style.height.%]="v.stability ?? 8"></span>
               <span class="col-val">{{ v.stability === null ? '–' : v.stability }}</span>
               <span class="col-label">{{ v.line }}</span>
-            </button>
+            </a>
           }
         </div>
       </section>
@@ -53,7 +55,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .col {
       flex: 1 1 0; min-width: 28px; max-width: 56px; height: 100%;
       display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 3px;
-      padding: 0; background: transparent; border: 0; cursor: pointer; color: var(--sc-fg-2); font-family: inherit;
+      padding: 0; background: transparent; border: 0; cursor: pointer; color: var(--sc-fg-2); font-family: inherit; text-decoration: none;
     }
     .col:hover .col-bar { filter: brightness(1.15); }
     .col:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
@@ -78,7 +80,9 @@ export class StabilityHistoryComponent {
 
   /** Oldest first, as the service delivers them. */
   readonly verdicts = input<readonly StabilityVerdict[]>([]);
-  readonly showLine = output<string>();
+  /** The board's search term, carried into the dossier link as q. */
+  readonly query = input<string>('');
+  readonly queryParams = computed(() => (this.query() ? { q: this.query() } : null));
 
   /** Lines that have any verdict OR are the newest (which may still be insufficient). */
   readonly shown = computed(() => {
