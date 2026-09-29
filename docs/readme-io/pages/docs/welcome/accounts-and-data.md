@@ -13,7 +13,7 @@ account gets you and what the project keeps. The binding version is the
 |---|---|---|
 | Verse News, Starscape, Codex, release notes | ✅ full read access | ✅ |
 | Saved posts, news filters | — | ✅ |
-| Hangar, configurations, role loadouts, flagship | — | ✅ |
+| Hangar, configurations, role sets, flagship | — | ✅ |
 | Settings (callsign, language, region) | — | ✅ |
 | Data Uploader downloads, Bundle History | — | collaborator / admin |
 | Admin: users, API tokens, telemetry, feedback | — | admin |
