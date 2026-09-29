@@ -39,7 +39,11 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
         } @else if (!inHangar()) {
           <div class="hangar-share">
             <p class="hint-text state">{{ 'codex.holo.share.notInHangarHint' | translate }}</p>
-            <button type="button" (click)="addToHangar.emit()">{{ 'codex.holo.share.addToHangar' | translate }}</button>
+            <button type="button" (click)="addToHangar.emit()"
+                    [disabled]="addBusy()" [attr.aria-busy]="addBusy()">{{ 'codex.holo.share.addToHangar' | translate }}</button>
+            @if (addFailed()) {
+              <p class="hint-text add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
+            }
           </div>
         } @else {
           <p class="hint-text state">{{ 'codex.holo.share.noConfigHint' | translate }}</p>
@@ -109,6 +113,7 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
     .hint-text { margin: 0 0 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .link-hint, .state, .unsaved { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.35; }
     .unsaved { color: var(--sc-warning, #e0b040); }
+    .add-err { color: var(--sc-danger); font-size: 0.8rem; margin: 4px 0 0; }
     .share-row.done { border-color: var(--sc-success, #5fbf7a); color: var(--sc-success, #5fbf7a); }
     .dot { margin: 0 4px; }
     .refresh { min-height: 40px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--sc-accent);
@@ -141,6 +146,10 @@ export class CodexHoloShareComponent {
   readonly linkCopied = input(false);
   readonly signedIn = input(false);
   readonly inHangar = input(false);
+  /** Add-to-hangar in flight on the host — locks the button. */
+  readonly addBusy = input(false);
+  /** The host's last add-to-hangar failed — shows the alert under the button. */
+  readonly addFailed = input(false);
   /** Draft hardpoint changes not yet saved — a hangar link never carries them. */
   readonly unsavedChanges = input(0);
 

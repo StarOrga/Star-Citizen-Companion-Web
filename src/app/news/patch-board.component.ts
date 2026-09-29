@@ -9,7 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
 import { NewsService } from './news.service';
@@ -97,7 +97,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
           <sc-patch-monitor [stack]="stack()" [groups]="svc.patchLines()" [now]="now()" />
 
           @if (!stability.unavailable()) {
-            <sc-stability-history [verdicts]="stability.allTime()" (showLine)="openLine($event)" />
+            <sc-stability-history [verdicts]="stability.allTime()" [query]="query()" />
           }
         }
 
@@ -478,7 +478,6 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   readonly stability = inject(PatchStabilityService);
   private readonly t = inject(TranslateService);
   private readonly locale = inject(LocaleService);
-  private readonly router = inject(Router);
 
   readonly query = signal('');
   readonly tokens = computed(() => tokenizeQuery(this.query()));
@@ -589,11 +588,6 @@ export class PatchBoardComponent implements OnInit, OnDestroy {
   }
   toggleOlder(): void {
     this.olderOpen.update((v) => !v);
-  }
-
-  /** A chart column picks a line the same way a card does: into its dossier, query preserved. */
-  openLine(line: string): void {
-    void this.router.navigate(['/news/patches', line], this.query() ? { queryParams: { q: this.query() } } : {});
   }
 
   /**

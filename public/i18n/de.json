@@ -1382,6 +1382,14 @@
     "skins": {
       "title": "Lackierungen",
       "source": "Hologramm der Schiffsform · Lackierungen als offizielle Store-Renders",
+      "sourceTag": {
+        "store": "Store",
+        "event": "Event",
+        "subscriber": "Abo",
+        "factory": "Werk",
+        "pu_npc": "NPC (PU)",
+        "other": "Sonstige"
+      },
       "mode3d": "3D-Modell",
       "modePaint": "Paint-Render",
       "no3d": "Kein 3D-Modell verfügbar",
@@ -1663,7 +1671,9 @@
         "lockTime": "Lock-Zeit",
         "range": "Reichweite",
         "targeting": "Zielerfassung",
-        "slowestMissileNote": "Lock-Zeit der langsamsten Rakete."
+        "slowestMissileNote": "Lock-Zeit der langsamsten Rakete.",
+        "hintDps": "{{value}} DPS",
+        "hintAlpha": "{{value}} Alpha"
       },
       "defensive": {
         "title": "Verteidigung",

@@ -41,7 +41,12 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
           @if (patchPin(); as pin) {
             <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->
             <p class="inspector-patch-delta" [class.unresolved]="pin.unresolved">
-              {{ pin.fromClassName ?? '—' }} → {{ pin.unresolved ? ('codex.holo.pinUnresolved' | translate) : (pin.toClassName ?? '—') }}
+              <span [scTooltip]="pin.fromClassName ?? ''">{{ pinName(pin.fromClassName) }}</span> →
+              @if (pin.unresolved) {
+                {{ 'codex.holo.pinUnresolved' | translate }}
+              } @else {
+                <span [scTooltip]="pin.toClassName ?? ''">{{ pinName(pin.toClassName) }}</span>
+              }
             </p>
           }
           @if (stats(it.slot).length > 0) {
@@ -272,6 +277,11 @@ export class CodexHoloInspectorComponent {
 
   itemName(name: string): string {
     return displayItemName(name);
+  }
+
+  /** A patch pin's class id as a readable name (AUD-188); the raw id stays in the tooltip. */
+  pinName(cls: string | null | undefined): string {
+    return cls ? displayItemName(cls) : '—';
   }
 
   /** The same dotted `parent.child` target the ports list emits for a sub-slot. */

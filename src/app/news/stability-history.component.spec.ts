@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { StabilityHistoryComponent } from './stability-history.component';
 import { StabilityVerdict, stabilityPercent, toneOf } from './patch-stability';
@@ -14,20 +15,22 @@ function v(line: string, level: 1 | 2 | 3 | 4 | 5 | null, early = false): Stabil
 }
 
 describe('StabilityHistoryComponent', () => {
-  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityHistoryComponent], providers: [provideTranslateService()] }));
+  beforeEach(() => TestBed.configureTestingModule({ imports: [StabilityHistoryComponent], providers: [provideTranslateService(), provideRouter([])] }));
 
-  it('one button column per verdict, hatched when early, emits the line on click', () => {
+  // RULE-B: a column goes somewhere, so it is a real anchor — middle click,
+  // Ctrl/Cmd+click and "open in new tab" only work on an href.
+  it('one link column per verdict, hatched when early, href to the dossier keeps the search', () => {
     const f = TestBed.createComponent(StabilityHistoryComponent);
     f.componentRef.setInput('verdicts', [v('4.8', 4), v('4.9', 2), v('4.10', 3, true)]);
-    const emitted: string[] = [];
-    f.componentInstance.showLine.subscribe((l) => emitted.push(l));
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
-    const cols = el.querySelectorAll('button.col');
+    const cols = el.querySelectorAll('a.col');
     expect(cols.length).toBe(3);
     expect(cols[2].classList.contains('early')).toBeTrue();
-    (cols[0] as HTMLButtonElement).click();
-    expect(emitted).toEqual(['4.8']);
+    expect(cols[0].getAttribute('href')).toBe('/news/patches/4.8');
+    f.componentRef.setInput('query', 'crash');
+    f.detectChanges();
+    expect(el.querySelectorAll('a.col')[0].getAttribute('href')).toBe('/news/patches/4.8?q=crash');
   });
 
   // Taller = calmer. 4.8 is level 4 (penalty 0.8) and 4.9 level 2 (0.4), so the
@@ -39,7 +42,7 @@ describe('StabilityHistoryComponent', () => {
     const bars = (f.nativeElement as HTMLElement).querySelectorAll('.col-bar');
     expect((bars[0] as HTMLElement).style.height).toBe('20%');
     expect((bars[1] as HTMLElement).style.height).toBe('60%');
-    const cols = (f.nativeElement as HTMLElement).querySelectorAll('button.col');
+    const cols = (f.nativeElement as HTMLElement).querySelectorAll('a.col');
     expect(cols[0].getAttribute('data-tone')).toBe('red');
     expect(cols[1].getAttribute('data-tone')).toBe('green');
   });
@@ -51,7 +54,7 @@ describe('StabilityHistoryComponent', () => {
     const f = TestBed.createComponent(StabilityHistoryComponent);
     f.componentRef.setInput('verdicts', [v('4.9', 2), v('4.10', null, true)]);
     f.detectChanges();
-    const cols = (f.nativeElement as HTMLElement).querySelectorAll('button.col');
+    const cols = (f.nativeElement as HTMLElement).querySelectorAll('a.col');
     expect(cols.length).toBe(2);
     const newest = cols[1] as HTMLElement;
     expect(newest.classList.contains('none')).toBeTrue();
