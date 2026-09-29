@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
@@ -429,10 +429,15 @@ describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () =
     const el: HTMLElement = fixture.nativeElement;
     const switchEl = () => el.querySelector('.view-switch') as HTMLButtonElement;
 
-    // The skin catalog resolves in a floating promise inside the viewer, so
-    // give it one more turn than the shared setup does.
-    await fixture.whenStable();
-    fixture.detectChanges();
+    // Both viewer sites sit in @defer blocks (AUD-048), which resolve
+    // asynchronously; render them, then give the skin catalog (a floating
+    // promise inside the viewer) one more turn than the shared setup does.
+    const settle = async (): Promise<void> => {
+      for (const b of await fixture.getDeferBlocks()) await b.render(DeferBlockState.Complete);
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    await settle();
 
     // The catalog answered "there is a model", so the card offers the switch.
     expect(fixture.componentInstance.has3dView()).toBeTrue();
@@ -450,6 +455,7 @@ describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () =
 
     btn.click();
     fixture.detectChanges();
+    await settle();
     expect(fixture.componentInstance.heroView3d()).toBeTrue();
     expect(switchEl().getAttribute('aria-pressed')).toBe('true');
     expect(switchEl().getAttribute('aria-label')).toBe('codex.detail.heroSwitchTo2d');
@@ -460,6 +466,7 @@ describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () =
 
     switchEl().click();
     fixture.detectChanges();
+    await settle();
     expect(fixture.componentInstance.heroView3d()).toBeFalse();
     expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
     expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();

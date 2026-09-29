@@ -127,8 +127,11 @@ interface PortRow {
           </div>
         </header>
 
-        <!-- 3D / skins -->
-        <sc-ship-skin-viewer [shipId]="s.shipClassName" />
+        <!-- 3D / skins. @defer keeps the viewer (model-viewer + three) out of
+             this page's chunk (AUD-048); it renders nothing until its skins load. -->
+        @defer (on immediate) {
+          <sc-ship-skin-viewer [shipId]="s.shipClassName" />
+        }
 
         <!-- Configs -->
         <div class="sc-card configs">

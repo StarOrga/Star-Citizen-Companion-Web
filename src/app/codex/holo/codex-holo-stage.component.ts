@@ -40,7 +40,7 @@ import { KpiSheet, OffensivePanel, DefensivePanel } from '../codex-loadout-stats
 import { BuildRef, PERSPECTIVE_KPIS, PERSPECTIVES, Perspective, PortOccupantMap } from '../codex-build-compare';
 import { displayItemName, formatNumber, humanizeClassName } from '../codex-format';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
-import { HardpointPortRef } from '../ship-skin-viewer.component';
+import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { CodexHoloStripComponent } from './codex-holo-strip.component';
 import { HangarPickerComponent, HangarPickerItem } from '../stage/hangar-picker.component';
 import {
