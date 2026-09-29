@@ -1,7 +1,41 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.108.1",
+  "current": "0.109.0",
   "releases": [
+    {
+      "version": "0.109.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Fehlermeldungen sind jetzt verständlich.",
+              "text": "Statt „Failed to fetch“ oder Datenbanktext steht dort ein übersetzter Satz („Du bist offline …“), fast immer mit „Erneut versuchen“."
+            },
+            {
+              "title": "Anmeldung spricht Klartext.",
+              "text": "Falsches Passwort, Rate-Limit oder abgelaufener Link werden auf Deutsch und Englisch erklärt."
+            },
+            {
+              "title": "Anonyme Fehlerberichte nur mit Einwilligung.",
+              "text": "Unbehandelte Fehler gehen bereinigt an PostHog, und nur bei erlaubter Statistik."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Fehler sieht nicht mehr wie „leer“ aus.",
+              "text": "Schnellsuche, Hangar, Picker, Patch-Auswahl und Detailseiten zeigen bei einem Ladefehler einen Fehlerzustand statt „Keine Treffer“."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.108.1",
       "date": "2026-09-29",
