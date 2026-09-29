@@ -1,6 +1,6 @@
 ---
 title: Hangar
-excerpt: Your personal fleet — owned and wishlist ships, named configurations, component loadouts and role kits.
+excerpt: Your personal fleet — owned and wishlist ships, named configurations, component loadouts and role sets.
 ---
 
 The **Hangar** is your side of the Codex: the ships you own or want, and the
@@ -47,52 +47,52 @@ component loadout, and mark one **active**.
 Loadout stats are computed as you go: weapons, shield pool, quantum range, and
 how many of the ship's ports you have actually assigned.
 
-## Role loadouts
+## Role sets
 
-Role loadouts are ship-independent kits — the gear you take for a job rather
+Role sets are ship-independent — the gear you take for a job rather
 than the ship you take it in:
 
 `FPS` · `Mining` · `Salvage` · `Medical` · `Engineering` · `Combat` ·
 `Cargo` · `Exploration` · `Racing` · `Multipurpose`
 
-Each kit has slots (with custom slots if the defaults do not fit) and tracks
+Each set has slots (with custom slots if the defaults do not fit) and tracks
 how many items are equipped.
 
 ### The set page
 
-Every kit has its own page in the Codex, `/codex/set/<id>`; the set block on
-the Codex stage links there. The kit's figure stands in the middle of the
+Every set has its own page in the Codex, `/codex/set/<id>`; the set block on
+the Codex stage links there. The set's figure stands in the middle of the
 stage, and the six armour positions hang around it, each joined to its body
 part by a line: the tile shows the part's icon and the equipped piece, the
 position's name appears on hover. Hovering a tile lights its part on the
 figure, and hovering a part lights its tile. The readiness icons in the
-corner cover only what the role can hold: an FPS kit shows primary, secondary,
-melee and throwable, an engineering kit a single gadget icon.
+corner cover only what the role can hold: an FPS set shows primary, secondary,
+melee and throwable, an engineering set a single gadget icon.
 
-- **Einordnung (rating).** Next to the stage, the kit is placed against every
+- **Einordnung (rating).** Next to the stage, the set is placed against every
   armour piece of the same kind in the current build, in the categories CIG
   presented at CitizenCon 2954 (protection, mobility, stealth, active scan,
   g-force, EVA) and in a second profile for environment and carrying capacity
   (heat, cold, radiation, scrubbing, carrying capacity). The values come from
   the game files. A category the game files do not carry yet (stealth
   signatures, active scan, EVA mobility) is shown as a gap, never as a
-  guessed number. When one piece limits the whole kit — an undersuit that
+  guessed number. When one piece limits the whole set — an undersuit that
   only takes −30 to 60 °C under armour rated for −90 to 115 °C — the card
   says so.
 - **Einsatz (lens).** Below the stage a lens picks what matters for a job
   (combat, stealth, pilot, environment, transport) and writes the relevant
   value onto every tile. EVA and scanning stay disabled until the game files
-  carry their values. The lens is remembered per kit.
+  carry their values. The lens is remembered per set.
 - **Equip from the Arsenal.** Every position links into the on-foot Arsenal
-  (`/codex/fps`) with the kit attached; the tile grows into the Arsenal's
-  header, which shows the kit and the position. The list then offers only the
-  pieces that fit that position, each card equips straight into the kit, and
-  equipping an armour piece leads back to the kit the same way.
+  (`/codex/fps`) with the set attached; the tile grows into the Arsenal's
+  header, which shows the set and the position. The list then offers only the
+  pieces that fit that position, each card equips straight into the set, and
+  equipping an armour piece leads back to the set the same way.
 - **Weapons in a fixed order.** Weapons and tools sit in a numbered row in a
-  fixed order (for an FPS kit: 1 primary, 2 secondary, 3 sidearm, 4 melee,
+  fixed order (for an FPS set: 1 primary, 2 secondary, 3 sidearm, 4 melee,
   5 throwable), so a position is always where you expect it.
-- **FPS positions.** Next to primary, secondary and sidearm, an FPS kit has a
-  melee position (knives) and a throwable position (grenades). A medical kit's
+- **FPS positions.** Next to primary, secondary and sidearm, an FPS set has a
+  melee position (knives) and a throwable position (grenades). A medical set's
   medgun position takes the ParaMed.
 - **Clearing is safe.** Emptying a position offers *Undo* for five seconds. If
   the position was changed in another tab meanwhile, nothing is deleted: the

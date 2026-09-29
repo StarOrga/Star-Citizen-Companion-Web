@@ -3182,7 +3182,7 @@
   },
   "hangar": {
     "title": "Mein Hangar",
-    "subtitle": "Deine persönliche Flotte: Schiffskonfigurationen, Komponenten-Loadouts und Rollen-Ausrüstungen — auf Basis der Live-Spieldaten im Codex.",
+    "subtitle": "Deine persönliche Flotte: Schiffskonfigurationen, Komponenten-Loadouts und Rollen-Sets — auf Basis der Live-Spieldaten im Codex.",
     "counts": {
       "owned": "Im Besitz",
       "wishlist": "Wunschliste"
@@ -3223,10 +3223,10 @@
       "multipurpose": "Allzweck"
     },
     "roleLoadouts": {
-      "title": "Rollen-Loadouts",
-      "namePlaceholder": "Loadout-Name…",
+      "title": "Rollen-Sets",
+      "namePlaceholder": "Set-Name…",
       "create": "Erstellen",
-      "empty": "Noch keine Rollen-Loadouts — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
+      "empty": "Noch keine Rollen-Sets — erstelle oben ein FPS-, Bergbau- oder Bergungs-Set.",
       "itemCount": "{{count}} Gegenstände ausgerüstet",
       "rename": "Umbenennen",
       "cancel": "Abbrechen",
@@ -4281,8 +4281,8 @@
     }
   },
   "share": {
-    "title": "Loadout teilen",
-    "hint": "Teile dieses Loadout mit Freunden oder über einen Link.",
+    "title": "Set teilen",
+    "hint": "Teile dieses Set mit Freunden oder über einen Link.",
     "loading": "Wird geladen …",
     "revoke": "Freigabe aufheben",
     "friends": {
@@ -4291,11 +4291,11 @@
       "pick": "Freund auswählen …",
       "share": "Teilen",
       "noFriends": "Du hast noch keine Freunde hinzugefügt.",
-      "allShared": "Alle deine Freunde haben dieses Loadout bereits."
+      "allShared": "Alle deine Freunde haben dieses Set bereits."
     },
     "link": {
       "title": "Öffentlicher Link",
-      "warning": "Jede Person mit diesem Link kann das Loadout ansehen — auch ohne Konto. Der Link zeigt Name, Rolle und Ausrüstung, sonst nichts.",
+      "warning": "Jede Person mit diesem Link kann das Set ansehen — auch ohne Konto. Der Link zeigt Name, Rolle und Ausrüstung, sonst nichts.",
       "create": "Link erzeugen",
       "copy": "Kopieren",
       "copied": "Kopiert",
@@ -4306,32 +4306,32 @@
     },
     "sharedWithMe": {
       "title": "Von Freunden geteilt",
-      "hint": "Loadouts, die Freunde mit dir geteilt haben. Nur zum Ansehen.",
+      "hint": "Sets, die Freunde mit dir geteilt haben. Nur zum Ansehen.",
       "show": "Ausrüstung zeigen",
       "hide": "Ausblenden"
     },
     "view": {
-      "eyebrow": "Geteiltes Loadout",
+      "eyebrow": "Geteiltes Set",
       "loading": "Wird geladen …",
       "by": "von {{name}}",
       "updated": "zuletzt geändert {{date}}",
-      "emptyLoadout": "In diesem Loadout ist noch nichts eingetragen.",
+      "emptyLoadout": "In diesem Set ist noch nichts eingetragen.",
       "footnote": "Nur zum Ansehen. Änderungen kann ausschließlich der Besitzer vornehmen.",
       "aboutCta": "Was ist SC Companion?",
       "unavailable": {
-        "title": "Dieses Loadout ist nicht verfügbar",
+        "title": "Dieses Set ist nicht verfügbar",
         "body": "Der Link ist ungültig oder wurde deaktiviert."
       }
     },
     "flash": {
-      "shared": "Loadout geteilt.",
-      "alreadyShared": "Dieser Freund hat das Loadout bereits.",
+      "shared": "Set geteilt.",
+      "alreadyShared": "Dieser Freund hat das Set bereits.",
       "linkCreated": "Link erzeugt.",
       "revoked": "Freigabe aufgehoben."
     },
     "error": {
       "notFriends": "Ihr seid keine Freunde (mehr).",
-      "loadoutNotFound": "Loadout nicht gefunden.",
+      "loadoutNotFound": "Set nicht gefunden.",
       "shareNotFound": "Diese Freigabe gibt es nicht mehr.",
       "suspended": "Dein Konto ist gesperrt.",
       "invalidTarget": "Ungültige Auswahl.",

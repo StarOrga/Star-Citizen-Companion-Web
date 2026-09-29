@@ -3182,7 +3182,7 @@
   },
   "hangar": {
     "title": "My Hangar",
-    "subtitle": "Your personal fleet: ship configurations, component loadouts and role kits — built on the live game data in the Codex.",
+    "subtitle": "Your personal fleet: ship configurations, component loadouts and role sets — built on the live game data in the Codex.",
     "counts": {
       "owned": "Owned",
       "wishlist": "Wishlist"
@@ -3223,10 +3223,10 @@
       "multipurpose": "Multipurpose"
     },
     "roleLoadouts": {
-      "title": "Role loadouts",
-      "namePlaceholder": "Loadout name…",
+      "title": "Role sets",
+      "namePlaceholder": "Set name…",
       "create": "Create",
-      "empty": "No role loadouts yet — create an FPS, mining or salvage kit above.",
+      "empty": "No role sets yet — create an FPS, mining or salvage set above.",
       "itemCount": "{{count}} items equipped",
       "rename": "Rename",
       "cancel": "Cancel",
@@ -4281,8 +4281,8 @@
     }
   },
   "share": {
-    "title": "Share loadout",
-    "hint": "Share this loadout with friends, or behind a link.",
+    "title": "Share set",
+    "hint": "Share this set with friends, or behind a link.",
     "loading": "Loading …",
     "revoke": "Revoke",
     "friends": {
@@ -4291,11 +4291,11 @@
       "pick": "Pick a friend …",
       "share": "Share",
       "noFriends": "You have not added any friends yet.",
-      "allShared": "All of your friends already have this loadout."
+      "allShared": "All of your friends already have this set."
     },
     "link": {
       "title": "Public link",
-      "warning": "Anyone holding this link can view the loadout — no account needed. The link shows name, role and equipment, and nothing else.",
+      "warning": "Anyone holding this link can view the set — no account needed. The link shows name, role and equipment, and nothing else.",
       "create": "Create link",
       "copy": "Copy",
       "copied": "Copied",
@@ -4306,32 +4306,32 @@
     },
     "sharedWithMe": {
       "title": "Shared with me",
-      "hint": "Loadouts friends have shared with you. Read-only.",
+      "hint": "Sets friends have shared with you. Read-only.",
       "show": "Show equipment",
       "hide": "Hide"
     },
     "view": {
-      "eyebrow": "Shared loadout",
+      "eyebrow": "Shared set",
       "loading": "Loading …",
       "by": "by {{name}}",
       "updated": "last changed {{date}}",
-      "emptyLoadout": "Nothing has been added to this loadout yet.",
+      "emptyLoadout": "Nothing has been added to this set yet.",
       "footnote": "Read-only. Only the owner can change it.",
       "aboutCta": "What is SC Companion?",
       "unavailable": {
-        "title": "This loadout is not available",
+        "title": "This set is not available",
         "body": "The link is invalid or has been disabled."
       }
     },
     "flash": {
-      "shared": "Loadout shared.",
-      "alreadyShared": "That friend already has this loadout.",
+      "shared": "Set shared.",
+      "alreadyShared": "That friend already has this set.",
       "linkCreated": "Link created.",
       "revoked": "Share revoked."
     },
     "error": {
       "notFriends": "You are not friends (any more).",
-      "loadoutNotFound": "Loadout not found.",
+      "loadoutNotFound": "Set not found.",
       "shareNotFound": "That share no longer exists.",
       "suspended": "Your account is suspended.",
       "invalidTarget": "Invalid selection.",
