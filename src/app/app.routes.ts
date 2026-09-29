@@ -45,6 +45,14 @@ export function blueprintListRedirect({ queryParams }: { queryParams: Params }):
   return inject(Router).createUrlTree(['/codex/index'], { queryParams: params });
 }
 
+/**
+ * The string redirects below ('' → news, p4k / desktop → uploader,
+ * admin/integrations → admin/api-tokens, '**' → news) are RELATIVE on
+ * purpose: Angular keeps the incoming query + fragment for a relative
+ * `redirectTo` (`/?item=<id>` → `/news?item=<id>`). Never prefix the target
+ * with `/` — an absolute string redirect drops the query (see
+ * blueprintListRedirect). Pinned in app.routes.spec.ts (AUD-144).
+ */
 export const routes: Routes = [
   {
     path: '',

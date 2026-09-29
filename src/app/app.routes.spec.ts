@@ -1,3 +1,4 @@
+import { provideLocationMocks } from '@angular/common/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { blueprintListRedirect, hangarLoadoutRedirect, routes } from './app.routes';
@@ -74,4 +75,65 @@ describe('codex/blueprint bridge', () => {
     expect(detail).toBeDefined();
     expect(detail?.loadComponent).toBeDefined();
   });
+});
+
+/**
+ * AUD-144 claimed the string redirects drop the query. They do not: every one
+ * of them is RELATIVE, and Angular keeps the incoming query + fragment for a
+ * relative redirectTo (only an absolute '/…' target drops them). Pinned here
+ * with the real route entries so a later absolute rewrite fails at once.
+ */
+describe('string redirects keep the query (AUD-144)', () => {
+  const shell = routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'p4k'));
+  const child = (path: string) => shell?.children?.find((c) => c.path === path && c.redirectTo);
+  const rootRedirect = routes.find((r) => r.path === '' && typeof r.redirectTo === 'string');
+  const wildcard = routes.find((r) => r.path === '**');
+  const p4k = child('p4k');
+  const desktop = child('desktop');
+  const integrations = child('admin/integrations');
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          rootRedirect!,
+          {
+            path: '',
+            children: [
+              { path: 'news', children: [] },
+              { path: 'uploader', children: [] },
+              { path: 'admin/api-tokens', children: [] },
+              p4k!,
+              desktop!,
+              integrations!,
+            ],
+          },
+          wildcard!,
+        ]),
+        provideLocationMocks(),
+      ],
+    });
+  });
+
+  it('finds all five redirect entries, each a relative string', () => {
+    for (const r of [rootRedirect, p4k, desktop, integrations, wildcard]) {
+      expect(r).toBeDefined();
+      expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBeTrue();
+    }
+  });
+
+  const cases: [string, string][] = [
+    ['/?item=abc#x', '/news?item=abc#x'],
+    ['/p4k?x=1', '/uploader?x=1'],
+    ['/desktop?x=1', '/uploader?x=1'],
+    ['/admin/integrations?y=2', '/admin/api-tokens?y=2'],
+    ['/gibtsnicht?item=z', '/news?item=z'],
+  ];
+  for (const [from, to] of cases) {
+    it(`${from} lands on ${to}`, async () => {
+      const router = TestBed.inject(Router);
+      await router.navigateByUrl(from);
+      expect(router.url).toBe(to);
+    });
+  }
 });
