@@ -66,6 +66,11 @@
   /* Minimum hit area. 0 on a fine pointer, so mouse-precision layouts keep
      their compact controls. */
   --sc-tap-min: 0px;
+  /* Text-entry floor. iOS Safari zooms the whole page when a focused field
+     renders below 16px. 0 on a fine pointer = the design size wins; consumed
+     as font-size: max(<design size>, var(--sc-fs-input)) on every text
+     field (input, textarea, native select). */
+  --sc-fs-input: 0px;
 
   /* Optical head room, on top of `.content`'s 26px padding.
      Nearly every top-level page opens on an <h1>, and a heading's glyphs do NOT
@@ -345,6 +350,7 @@
        control sized at exactly 44px measures 43.5px mid-flight — below its own
        minimum. The extra 4px keeps the affordance true at every frame. */
     --sc-tap-min: 48px;
+    --sc-fs-input: 16px;
   }
 
   /* Interactive primitives grow to the full 44px hit area. `min-height` and
@@ -369,6 +375,15 @@
   /* Text inputs need the height but must keep their layout width. */
   input:not([type='hidden']):not([type='checkbox']):not([type='radio']) {
     min-height: var(--sc-tap-min);
+  }
+
+  /* Fields that set no size of their own fall back to the UA's ~13px.
+     :where() keeps this at zero specificity, so any component rule still
+     wins and brings its own max(..., var(--sc-fs-input)). */
+  :where(input:not([type='hidden']):not([type='checkbox']):not([type='radio']):not([type='range'])
+         :not([type='file']):not([type='color']):not([type='button']):not([type='submit'])
+         :not([type='reset']):not([type='image']), textarea, select) {
+    font-size: max(1em, var(--sc-fs-input));
   }
 
 }
@@ -710,6 +725,7 @@ button {
   border: 1px solid var(--sc-border);
   border-radius: 4px;
   font: inherit;
+  font-size: max(1em, var(--sc-fs-input));
   &:focus {
     outline: none;
     border-color: var(--sc-accent);
