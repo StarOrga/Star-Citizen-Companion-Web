@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { ShowroomService } from './showroom.service';
 
 /**
@@ -11,14 +12,17 @@ import { ShowroomService } from './showroom.service';
 @Component({
   selector: 'sc-holo-ready-badge',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isReady()) {
-      <span class="holo-badge" [attr.title]="'codex.skins.holoReady' | translate"
-            [attr.aria-label]="'codex.skins.holoReady' | translate">
+      <!-- No tabindex: the badge sits inside a card link. A name on a
+           role-less span is ignored by screen readers, so the full text
+           rides in a visually hidden span instead. -->
+      <span class="holo-badge" [scTooltip]="'codex.skins.holoReady' | translate">
         <span class="holo-glyph" aria-hidden="true">◈</span>
-        {{ 'codex.skins.holoReadyShort' | translate }}
+        <span aria-hidden="true">{{ 'codex.skins.holoReadyShort' | translate }}</span>
+        <span class="sc-sr-only">{{ 'codex.skins.holoReady' | translate }}</span>
       </span>
     }
   `,

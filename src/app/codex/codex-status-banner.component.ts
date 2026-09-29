@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CODEX_KINDS, CodexService } from './codex.service';
 import { RoleService } from '../auth/role.service';
 import { formatScDate } from '../core/locale/date-format';
@@ -23,7 +24,7 @@ interface CoverageRow {
 @Component({
   selector: 'sc-codex-status-banner',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (svc.build(); as b) {
@@ -32,7 +33,10 @@ interface CoverageRow {
           <span class="prov-label">{{ 'codex.provenance.label' | translate }}</span>
           <strong class="build">{{ 'codex.provenance.build' | translate: { channel: b.channel, patch: b.patchVersion, build: b.buildNumber } }}</strong>
           @if (b.qualityScore != null) {
-            <span class="prov-q" [attr.title]="'codex.status.qualityHint' | translate">
+            <!-- Info tier, no tabindex: the span sits inside the .bar button, so
+                 keyboard focus lands on the button; the same hint is in the
+                 expanded panel for keyboard users. -->
+            <span class="prov-q" [scTooltip]="'codex.status.qualityHint' | translate">
               {{ 'codex.provenance.quality' | translate: { score: b.qualityScore } }}
             </span>
           }
