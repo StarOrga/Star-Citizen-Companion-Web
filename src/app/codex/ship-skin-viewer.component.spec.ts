@@ -147,4 +147,38 @@ describe('ShipSkinViewerComponent', () => {
     expect(c.skins().length).toBe(1);
     expect(c.current()?.skinId).toBe('gladius_a');
   });
+
+  describe('glb head read', () => {
+    type Reader = { readLocators(url: string | null): void };
+    let fetchSpy: jasmine.Spy;
+
+    beforeEach(() => {
+      // Never answers — the read stays in flight until something aborts it.
+      fetchSpy = spyOn(window, 'fetch').and.callFake(() => new Promise<Response>(() => undefined));
+    });
+
+    function signalOf(call: number): AbortSignal {
+      return (fetchSpy.calls.argsFor(call)[1] as RequestInit).signal as AbortSignal;
+    }
+
+    it('aborts the running read when the model changes', async () => {
+      const fixture = await setup([]);
+      const reader = fixture.componentInstance as unknown as Reader;
+      fetchSpy.calls.reset();
+      reader.readLocators('http://assets/a.glb');
+      reader.readLocators('http://assets/b.glb');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(signalOf(0).aborted).toBeTrue();
+      expect(signalOf(1).aborted).toBeFalse();
+    });
+
+    it('aborts the running read on destroy', async () => {
+      const fixture = await setup([]);
+      const reader = fixture.componentInstance as unknown as Reader;
+      fetchSpy.calls.reset();
+      reader.readLocators('http://assets/a.glb');
+      fixture.destroy();
+      expect(signalOf(0).aborted).toBeTrue();
+    });
+  });
 });

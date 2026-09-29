@@ -1,4 +1,5 @@
 import { logWarn } from '../core/log';
+import { READ_TIMEOUT_MS } from '../core/deadline';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -39,6 +40,8 @@ export async function mintDesktopSession(
     const { data, error } = await client.functions.invoke('desktop-session', {
       method: 'POST',
       body: {},
+      // A hanging mint must not block the hand-off — the caller falls back.
+      timeout: READ_TIMEOUT_MS,
     });
     if (error) {
       logWarn('desktop-session', 'mint failed, falling back to the browser session', error);

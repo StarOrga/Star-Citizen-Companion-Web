@@ -1,8 +1,10 @@
 import { logWarn } from '../core/log';
+import { deadlineSignal } from '../core/deadline';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   ElementRef,
   computed,
   effect,
@@ -85,6 +87,8 @@ interface HotspotView {
 // which precedes the (draco-compressed) binary payload. One ranged request
 // keeps this off the ~3 MB the viewer itself streams.
 const GLB_HEAD_BYTES = 1_048_576;
+// A hanging head read ends here — markers are a bonus, not worth a stuck socket.
+const GLB_HEAD_TIMEOUT_MS = 10_000;
 
 /**
  * Per-ship livery selector with a lazy-loaded 3D <model-viewer>.
@@ -701,8 +705,12 @@ export class ShipSkinViewerComponent {
   private reqSeq = 0;
   // Same guard for the glb head reads, which race the same way.
   private headSeq = 0;
+  // The glb head read in flight — aborted when the model changes or the
+  // viewer goes away, so a stale read never keeps a connection open.
+  private headAbort: AbortController | null = null;
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.headAbort?.abort());
     // React to shipId changes (router navigation between ships reuses this
     // component, so the input value changes without a new constructor call).
     effect(() => this.load(this.shipId()));
@@ -730,9 +738,15 @@ export class ShipSkinViewerComponent {
    */
   private readLocators(url: string | null): void {
     const seq = ++this.headSeq;
+    this.headAbort?.abort();
+    this.headAbort = null;
     this.nodePositions.set(new Map());
     if (!url) return;
-    void fetch(url, { headers: { Range: `bytes=0-${GLB_HEAD_BYTES - 1}` } })
+    const ctrl = (this.headAbort = new AbortController());
+    void fetch(url, {
+      headers: { Range: `bytes=0-${GLB_HEAD_BYTES - 1}` },
+      signal: deadlineSignal(GLB_HEAD_TIMEOUT_MS, ctrl.signal),
+    })
       .then((res) => (res.ok ? res.arrayBuffer() : null))
       .then((buf) => {
         if (seq !== this.headSeq || !buf) return; // stale — a newer model won
@@ -740,8 +754,10 @@ export class ShipSkinViewerComponent {
       })
       .catch((e) => {
         // Markers are a bonus: a failed head read just means no markers. An
-        // abort is a deliberate cancel (ship switch), not a failure.
-        if ((e as Error)?.name !== 'AbortError') logWarn('codex', 'glb head read failed', { url, error: e });
+        // abort is a deliberate cancel (ship switch), not a failure — unless
+        // it is the read deadline.
+        const err = e as Error | null;
+        if (err?.name !== 'AbortError' || /TimeoutError/.test(err.message ?? '')) logWarn('codex', 'glb head read failed', { url, error: e });
       });
   }
 

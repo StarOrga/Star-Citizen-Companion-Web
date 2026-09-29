@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { deadlineSignal } from '../../core/deadline';
 
 /** Scopes the UI can pick. Mirrors VALID_SCOPES in supabase/functions/api/handlers/tokens.ts. */
 export const API_TOKEN_SCOPES = [
@@ -72,6 +73,9 @@ export class ApiTokensService {
     const res = await fetch(this.apiUrl('/v1/tokens'), {
       method: 'GET',
       headers: await this.authHeaders(),
+      // A read: ends after 20 s instead of leaving the list on "loading".
+      // create/revoke are writes and get no deadline.
+      signal: deadlineSignal(),
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw apiError(body, res.status, 'list_failed');
