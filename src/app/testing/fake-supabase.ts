@@ -71,9 +71,13 @@ export function fakeSupabase(opts: FakeSupabaseOptions = {}) {
 
   const resolve = (call: FakeCall): Promise<FakeResult> => {
     calls.push(call);
-    return Promise.resolve()
-      .then(() => answer(call))
-      .then((result) => ({ data: null, error: null, ...result }));
+    let result: FakeResult | Promise<FakeResult>;
+    try {
+      result = answer(call);
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    return Promise.resolve(result).then((r) => ({ data: null, error: null, ...r }));
   };
 
   /** A thenable builder: any method is recorded and chains; `then` answers. */
