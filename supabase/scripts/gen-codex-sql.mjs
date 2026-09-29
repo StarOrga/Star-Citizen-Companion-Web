@@ -64,7 +64,7 @@ const locName = (n) => {
   // en+de (SC names are usually identical → doubled strings).
   return (n.en || '').trim() || (n.de || '').trim() || null;
 };
-const VARIANT = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_|_Renegade$)/i;
+const VARIANT = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_)/i;
 const mc = (e) => (e.manufacturer && typeof e.manufacturer === 'object' ? e.manufacturer.code ?? null : null);
 
 function batched(rows, header, dest, file) {

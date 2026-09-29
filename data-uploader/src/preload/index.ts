@@ -7,6 +7,7 @@ import type { JobView } from '../main/upload-session.js';
 import type { ThrottleView, ThrottleSetResult } from '../main/throttle.js';
 import type { LiveProfileId } from '../lib/throttle-control.js';
 import type { AutoRunDecision } from '../lib/auto-run.js';
+import type { SkinGateCode } from '../lib/skin-upload-summary.js';
 
 /** The settings subset the UI is allowed to see (no installId). */
 export interface PublicSettings {
@@ -197,6 +198,8 @@ interface SkinUploadResult {
   cached?: boolean;
   /** Ship built no livery model — a successful no-op, not a failure. */
   empty?: boolean;
+  /** The R2 cost gate refused this ship; the run stopped here. */
+  gate?: SkinGateCode;
 }
 
 interface SilhouetteBuildRequest {

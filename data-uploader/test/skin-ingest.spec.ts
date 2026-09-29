@@ -157,6 +157,33 @@ describe('uploadSkins', () => {
     expect(await exists(join(dir, '.uploaded'))).toBe(false);
   });
 
+  it('stops at the first ship when the R2 cost gate is closed, with one log line', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'r2_usage_unknown' }) });
+    const a = await makeShip('SHIP_A', [{ id: 'standard', name: 'Standard', model: 'models/standard.glb' }]);
+    const b = await makeShip('SHIP_B', [{ id: 'standard', name: 'Standard', model: 'models/standard.glb' }]);
+    const logs: { message: string; level?: string }[] = [];
+
+    const res = await uploadSkins(
+      'jwt',
+      [
+        { shipId: 'SHIP_A', dir: a },
+        { shipId: 'SHIP_B', dir: b },
+      ],
+      (message, level) => logs.push({ message, level }),
+    );
+
+    const signCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('ingest-skins'));
+    expect(signCalls.length).toBe(1);
+    expect(res.length).toBe(1);
+    expect(res[0]).toMatchObject({ ok: false, ship_id: 'SHIP_A', gate: 'r2_usage_unknown' });
+    const errors = logs.filter((l) => l.level === 'error');
+    expect(errors.length).toBe(1);
+    expect(errors[0]?.message).toContain('r2_usage_unknown');
+    expect(errors[0]?.message).toContain('1 ship(s) not attempted');
+    expect(await exists(join(a, '.uploaded'))).toBe(false);
+    expect(await exists(join(b, '.uploaded'))).toBe(false);
+  });
+
   it('reports progress for every ship, whatever its outcome', async () => {
     stubHappyPath();
     const built = await makeShip('SHIP_A', [

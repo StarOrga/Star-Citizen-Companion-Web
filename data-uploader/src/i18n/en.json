@@ -3,7 +3,6 @@
     "back": "Back",
     "next": "Next",
     "cancel": "Cancel",
-    "tempo": "Tempo",
     "ok": "OK",
     "dismiss": "Dismiss"
   },
@@ -334,7 +333,20 @@
     "stepUploadDonePartial": "Liveries uploaded — {{n}} failed",
     "skippedNoModel": "{{n}} skipped (no livery model)",
     "failedCount": "{{n}} failed",
-    "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)"
+    "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)",
+    "gate": {
+      "r2UsageUnknown": "Upload stopped: the R2 cost gate cannot read this month's usage right now. Ships already uploaded stay live — start again later.",
+      "r2FreeTierGuard": "Upload stopped: R2 has reached 80 % of a free monthly allowance. New hulls resume next month.",
+      "storageQuotaExceeded": "Upload stopped: R2 storage has reached its cap.",
+      "notAttempted": "{{n}} ship(s) not attempted"
+    }
+  },
+  "silhouettes": {
+    "building": "Building silhouettes",
+    "hint": "The first build converts every hull and part one by one — this can take a while.",
+    "toolsFailed": "Build tools unavailable — silhouettes skipped",
+    "buildFailed": "Silhouette build failed (bundle is uploaded)",
+    "done": "{{written}} silhouettes built ({{cached}} cached, {{skipped}} without geometry)"
   },
   "progress": {
     "still": "still working",

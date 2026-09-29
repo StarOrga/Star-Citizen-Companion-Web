@@ -2080,7 +2080,7 @@ async function doUploadAfterAuth(): Promise<void> {
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('silhouettes.buildFailed', {}) || 'Silhouetten übersprungen'}: ${(err as Error).message}`,
+      `${t('silhouettes.buildFailed')}: ${(err as Error).message}`,
       'warn',
     );
   }
@@ -2478,7 +2478,7 @@ async function buildSilhouettes(
   if (!ch) return;
 
   const manifest = `${result.output_dir}/silhouettes/_build_manifest.json`;
-  const label = t('silhouettes.building', {}) || 'Silhouetten werden gebaut';
+  const label = t('silhouettes.building');
 
   // 1. ensure cgf-converter (shared with the skin build — see module docstring).
   const toolsLabel = t('skins.stepTools', {}) || 'Build-Tools werden geladen';
@@ -2492,7 +2492,7 @@ async function buildSilhouettes(
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
-      `${t('silhouettes.toolsFailed', {}) || 'Build-Tools nicht verfügbar — Silhouetten übersprungen'}: ${tools.error ?? '—'}`,
+      `${t('silhouettes.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
     return;
@@ -2504,8 +2504,7 @@ async function buildSilhouettes(
     phaseLabel: label,
     indeterminate: true,
     detail: '',
-    hint: t('silhouettes.hint', {}) ||
-      'Erst-Build wandelt jede Hülle/jedes Bauteil einzeln um — kann etwas dauern.',
+    hint: t('silhouettes.hint'),
   });
   const silhouetteCounters: Record<string, number> = {};
   const unsub = window.sc.silhouette.onEvent((ev) => {
@@ -2550,7 +2549,7 @@ async function buildSilhouettes(
   }
   if (!built.ok) {
     setAuthStatus(
-      tOr('silhouettes.buildFailed', 'Silhouetten-Build fehlgeschlagen (Bundle ist hochgeladen)'),
+      t('silhouettes.buildFailed'),
       'warn',
       { detail: built.error ?? undefined },
     );
@@ -2558,9 +2557,7 @@ async function buildSilhouettes(
   }
   const { written = 0, skipped = 0, cached = 0 } = built.result ?? {};
   setAuthStatus(
-    tOr('silhouettes.done', `${written} Silhouetten erzeugt (${cached} zwischengespeichert, ${skipped} ohne Geometrie)`, {
-      written: String(written), cached: String(cached), skipped: String(skipped),
-    }),
+    t('silhouettes.done', { written, cached, skipped }),
     'ok',
   );
 }
@@ -2712,7 +2709,9 @@ async function buildAndUploadSkins(
   // detail line. The old frame painted live over ships.length with a
   // hard-coded 100 % — "251 / 276 (100 %)" — and the status line that
   // explained the gap was overwritten by the cleanup message moments later.
-  const tally = tallySkinUpload(results);
+  // ships.length as the total: when the R2 cost gate stops the run, the
+  // ships it never reached are named as "not attempted".
+  const tally = tallySkinUpload(results, built.ships.length);
   // Repaint into a terminal state BEFORE the caller stops the clock: the card
   // freezes on whatever this last frame says, so it must not still read
   // "uploading" with a phantom ETA.

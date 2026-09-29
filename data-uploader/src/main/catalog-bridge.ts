@@ -21,6 +21,7 @@ import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 import { CATALOG_PHASE_ORDER } from '../lib/catalog-phases.js';
+import { FetchTimeoutError, fetchWithTimeout, isTimeout } from '../lib/fetch-timeout.js';
 import {
   makeTagger,
   collectStrings,
@@ -113,9 +114,20 @@ export class IngestHttpError extends Error {
   }
 }
 
+/**
+ * Deadline for one ingest-catalog request. Sits at the Edge Function's
+ * wall-clock limit: a request running longer ends server-side anyway, so
+ * waiting past it only hangs the run.
+ */
+export const CATALOG_REQUEST_TIMEOUT_MS = 150_000;
+
 /** A thrown non-HTTP failure (DNS, dropped socket, TLS) — always worth a retry. */
 function isTransientFailure(err: unknown): boolean {
   if (err instanceof IngestHttpError) return err.isTransient;
+  // A request that hit its deadline (stalled socket, silent server) is sent
+  // again like any other network failure. Named explicitly: it is also an
+  // Error below, but this is the case AUD-052 is about.
+  if (err instanceof FetchTimeoutError) return true;
   return err instanceof Error && !isInterrupt(err);
 }
 
@@ -199,6 +211,11 @@ export interface CatalogHooks {
    * omitting it uses {@link BACKOFF_MS}.
    */
   backoffMs?: (attempt: number) => number;
+  /**
+   * Deadline per ingest-catalog request, in ms. A seam for tests; production
+   * uses {@link CATALOG_REQUEST_TIMEOUT_MS}.
+   */
+  requestTimeoutMs?: number;
 }
 
 function endpoint(): string {
@@ -255,7 +272,9 @@ export async function uploadCatalog(
 
   const postOnce = async (op: string, extra: Record<string, unknown>): Promise<Record<string, unknown>> => {
     const token = await resolveToken();
-    const res = await fetch(endpoint(), {
+    const url = endpoint();
+    const timeoutMs = hooks.requestTimeoutMs ?? CATALOG_REQUEST_TIMEOUT_MS;
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -263,8 +282,14 @@ export async function uploadCatalog(
         'x-sc-release-token': RELEASE_TOKEN,
       },
       body: JSON.stringify({ op, ...extra }),
-    });
-    const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    }, timeoutMs);
+    // The deadline also covers the body: a timeout while reading it must reach
+    // the retry loop, not turn into an empty "success". Only real JSON errors
+    // map to {}.
+    const j = (await res.json().catch((e: unknown) => {
+      if (isTimeout(e)) throw new FetchTimeoutError(url, timeoutMs);
+      return {};
+    })) as Record<string, unknown>;
     if (!res.ok) {
       throw new IngestHttpError(
         op,

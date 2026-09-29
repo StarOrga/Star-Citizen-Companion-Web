@@ -20,11 +20,31 @@
  * failed ships are named separately instead of vanishing into the gap.
  */
 
+/**
+ * Refusals of the R2 cost gate in `ingest-skins` (sign step). They close the
+ * gate for every ship, so the upload stops at the first one. Lives here (pure,
+ * loaded by main AND renderer) so src/lib never imports from src/main.
+ */
+export const SKIN_GATE_CODES = ['r2_usage_unknown', 'r2_free_tier_guard', 'storage_quota_exceeded'] as const;
+export type SkinGateCode = (typeof SKIN_GATE_CODES)[number];
+
+export function isSkinGateCode(v: unknown): v is SkinGateCode {
+  return typeof v === 'string' && (SKIN_GATE_CODES as readonly string[]).includes(v);
+}
+
+/** One sentence per gate — fixed keys, so each one stays findable by grep. */
+const GATE_KEY: Record<SkinGateCode, string> = {
+  r2_usage_unknown: 'skins.gate.r2UsageUnknown',
+  r2_free_tier_guard: 'skins.gate.r2FreeTierGuard',
+  storage_quota_exceeded: 'skins.gate.storageQuotaExceeded',
+};
+
 /** The subset of `SkinUploadResult` the tally reads. */
 export interface SkinUploadTallyInput {
   ok: boolean;
   cached?: boolean;
   empty?: boolean;
+  gate?: SkinGateCode;
 }
 
 export interface SkinUploadTally {
@@ -42,14 +62,20 @@ export interface SkinUploadTally {
   failed: number;
   /** `live / attempted`, floored; 100 when nothing needed sending. */
   pct: number;
+  /** The R2 cost gate that stopped the run, if any (first one reported). */
+  gate: SkinGateCode | null;
+  /** Ships handed to the upload but never tried because the gate stopped it. */
+  notAttempted: number;
 }
 
-export function tallySkinUpload(results: readonly SkinUploadTallyInput[]): SkinUploadTally {
+export function tallySkinUpload(results: readonly SkinUploadTallyInput[], shipsTotal?: number): SkinUploadTally {
+  let gate: SkinGateCode | null = null;
   let fresh = 0;
   let cached = 0;
   let empty = 0;
   let failed = 0;
   for (const r of results) {
+    if (r.gate && !gate) gate = r.gate;
     if (!r.ok) failed++;
     else if (r.empty) empty++;
     else if (r.cached) cached++;
@@ -59,7 +85,8 @@ export function tallySkinUpload(results: readonly SkinUploadTallyInput[]): SkinU
   const attempted = total - empty;
   const live = fresh + cached;
   const pct = attempted > 0 ? Math.floor((live / attempted) * 100) : 100;
-  return { total, attempted, live, fresh, cached, empty, failed, pct };
+  const notAttempted = Math.max(0, (shipsTotal ?? results.length) - results.length);
+  return { total, attempted, live, fresh, cached, empty, failed, pct, gate, notAttempted };
 }
 
 /** Minimal translate signature — `lib/i18n.t` fits, tests pass a stub. */
@@ -85,6 +112,7 @@ export function skinUploadFrame(tally: SkinUploadTally, t: SkinUploadTranslate):
   const notes: string[] = [];
   if (tally.empty > 0) notes.push(t('skins.skippedNoModel', { n: tally.empty }));
   if (tally.failed > 0) notes.push(t('skins.failedCount', { n: tally.failed }));
+  if (tally.notAttempted > 0) notes.push(t('skins.gate.notAttempted', { n: tally.notAttempted }));
   return {
     phaseLabel:
       tally.failed > 0
@@ -106,6 +134,12 @@ export function skinUploadStatus(
   tally: SkinUploadTally,
   t: SkinUploadTranslate,
 ): { message: string; level: 'ok' | 'warn' } {
+  // The cost gate stopped the run: one sentence naming it, instead of a
+  // "sign failed" per ship.
+  if (tally.gate) {
+    const rest = tally.notAttempted > 0 ? ` · ${t('skins.gate.notAttempted', { n: tally.notAttempted })}` : '';
+    return { message: t(GATE_KEY[tally.gate]) + rest, level: 'warn' };
+  }
   const head =
     tally.failed > 0
       ? t('skins.partialStatus', { live: tally.live, attempted: tally.attempted, failed: tally.failed })

@@ -1,7 +1,41 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.108.0",
+  "current": "0.108.1",
   "releases": [
+    {
+      "version": "0.108.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Aegis Avenger Titan Renegade ist wieder im Arsenal.",
+              "text": "Der Uploader hielt sie für einen NPC-Klon; nach dem nächsten LIVE-Import erscheint sie in Liste, Herstellerfilter und Suche."
+            },
+            {
+              "title": "Der Data Uploader hängt nicht mehr bei stockender Verbindung.",
+              "text": "Jeder Upload- und Anmeldeaufruf hat jetzt eine Frist; hängt ein Katalog-Request, wird er automatisch wiederholt."
+            },
+            {
+              "title": "R2-Kostenbremse: eine klare Meldung statt Fehlerflut.",
+              "text": "Der Livery-Upload hält beim ersten Schiff an und nennt den Grund; ein kurzer Analytics-Ausfall blockiert nicht mehr, solange eine höchstens 24 h alte Messung aus demselben Monat vorliegt."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Nur noch Deutsch und Englisch.",
+              "text": "Uploader und Web-App bieten nur noch vollständig übersetzte Sprachen an, und der Silhouetten-Schritt zeigt echte Texte statt Rohschlüsseln."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.108.0",
       "date": "2026-09-29",

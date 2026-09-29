@@ -30,6 +30,8 @@ describe('tallySkinUpload', () => {
       empty: 4,
       failed: 1,
       pct: 83,
+      gate: null,
+      notAttempted: 0,
     });
   });
 
@@ -131,3 +133,43 @@ describe('with the shipped dictionaries', () => {
     });
   });
 });
+
+describe('R2 cost gate', () => {
+  const stopped: SkinUploadTallyInput[] = [...fresh(2), { ok: false, gate: 'r2_usage_unknown' }];
+
+  it('tallies the gate and the ships the run never reached', () => {
+    const tally = tallySkinUpload(stopped, 4);
+    expect(tally.gate).toBe('r2_usage_unknown');
+    expect(tally.notAttempted).toBe(1);
+    expect(tallySkinUpload(fresh(3)).notAttempted).toBe(0);
+    expect(tallySkinUpload(fresh(3)).gate).toBeNull();
+  });
+
+  it('names the gate in one German sentence', async () => {
+    await loadI18n('de');
+    const status = skinUploadStatus(tallySkinUpload(stopped, 4), t);
+    expect(status.level).toBe('warn');
+    expect(status.message).toContain('R2-Kostenbremse');
+    expect(status.message).toContain('1 Schiff(e) nicht versucht');
+    expect(skinUploadFrame(tallySkinUpload(stopped, 4), t).detail).toContain('1 Schiff(e) nicht versucht');
+  });
+
+  it('names the gate in one English sentence', async () => {
+    await loadI18n('en');
+    const status = skinUploadStatus(tallySkinUpload(stopped, 4), t);
+    expect(status.level).toBe('warn');
+    expect(status.message).toContain('R2 cost gate');
+    expect(status.message).toContain('1 ship(s) not attempted');
+  });
+
+  it('resolves every gate key in both shipped dictionaries', async () => {
+    for (const loc of ['en', 'de'] as const) {
+      await loadI18n(loc);
+      for (const gate of ['r2_usage_unknown', 'r2_free_tier_guard', 'storage_quota_exceeded'] as const) {
+        const { message } = skinUploadStatus(tallySkinUpload([{ ok: false, gate }], 3), t);
+        expect(message, `${loc}/${gate}`).not.toContain('skins.gate.');
+      }
+    }
+  });
+});
+
