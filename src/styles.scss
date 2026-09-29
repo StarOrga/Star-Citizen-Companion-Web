@@ -18,6 +18,9 @@
 .sc-dialog-backdrop { background: rgb(0 0 0 / 55%); }
 
 :root {
+  /* The app is dark-only (body.sc-theme-dark): native popups, spinners,
+     autofill and scrollbar corners must render in the dark platform look. */
+  color-scheme: dark;
   --sc-bg-0: var(--surface-canvas);
   --sc-bg-1: var(--surface-panel);
   --sc-bg-2: var(--surface-canvas-alt);
