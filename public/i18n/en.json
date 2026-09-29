@@ -896,7 +896,14 @@
           "communication": "Communication",
           "interaction": "Interaction"
         }
-      }
+      },
+      "group": {
+        "expand": "Expand {{group}}",
+        "collapse": "Collapse {{group}}",
+        "rows": "{{n}} actions"
+      },
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all"
     },
     "provenance": {
       "label": "Source",

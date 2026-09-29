@@ -896,7 +896,14 @@
           "communication": "Kommunikation",
           "interaction": "Interaktion"
         }
-      }
+      },
+      "group": {
+        "expand": "{{group}} aufklappen",
+        "collapse": "{{group}} zuklappen",
+        "rows": "{{n}} Aktionen"
+      },
+      "expandAll": "Alle aufklappen",
+      "collapseAll": "Alle zuklappen"
     },
     "provenance": {
       "label": "Quelle",
