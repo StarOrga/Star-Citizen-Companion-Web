@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
@@ -47,6 +48,8 @@ import { CodexVariantPickerComponent } from './detail/codex-variant-picker.compo
 import { CodexShipActionsComponent } from './detail/codex-ship-actions.component';
 import { CodexShipLinkFormComponent } from './detail/codex-ship-link-form.component';
 import { CodexPortListComponent } from './detail/codex-port-list.component';
+import { CodexSpecSheetComponent } from './detail/codex-spec-sheet.component';
+import { CodexRecipeCardComponent, RecipeView } from './detail/codex-recipe-card.component';
 import { ShipLinkFormStore } from './detail/ship-link-form.store';
 import {
   computeLoadoutStats,
@@ -232,7 +235,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet],
   providers: [ShipLinkFormStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -586,45 +589,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           }
         }
 
-        <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
-             the airframe is not a decision; see TAIL_SHIP_SECTIONS in
-             ship-module-sections.ts — the countermeasures moved back up into
-             the loadout card with #237, now that their rounds carry values).
-             Same layout component as the loadout card above, fed the tail
-             sections instead. -->
-        @if (tailModuleSections().length > 0) {
-          <section class="sc-card block col-loadout col-loadout-tail">
-            <h2 class="col-head">
-              <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
-              <span class="n">{{ tailModuleCount() }}</span>
-              <span class="rule" aria-hidden="true"></span>
-              @if (hiddenEmptyCount() > 0) {
-                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                </button>
-              }
-            </h2>
-            <sc-codex-hardpoint-layout
-              [sections]="tailModuleSections()"
-              [sectionOrder]="moduleSectionOrder()"
-              [foldedSections]="foldedModuleSections()"
-              [occupantsBySection]="occupantsBySection()"
-              [locatablePorts]="locatablePorts()"
-              [activePorts]="activePorts()"
-              (reverted)="onRevertPaths($event)"
-              (hovered)="setActivePorts($event)"
-              (inspected)="openInspect($event)"
-              (swapRequested)="openSwapPicker($event)" />
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="tailLoadout" />
 
         <!-- ── Description ───────────────────────────────────────── -->
-        @if (description(); as d) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.description' | translate }}</h2>
-            <p class="desc">{{ d }}</p>
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="descriptionCard" />
 
         <!-- ── Where to buy (#254/#255): UEX Corp purchase locations for FPS
              armor pieces and personal weapons. Best-effort — the section only
@@ -750,33 +718,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         }
 
         <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
-        @if (recipe(); as r) {
-          <section class="sc-card block">
-            <h2>
-              {{ 'codex.detail.craftedFrom' | translate }}
-              @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
-            </h2>
-            <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
-            @if (r.ingredients.length > 0) {
-              <ul class="compat-list">
-                @for (i of r.ingredients; track i.ingredientIndex) {
-                  <li>
-                    <span class="compat-link plain">{{ ingredientName(i) }}</span>
-                    <span class="compat-meta">
-                      @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
-                      @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
-                      @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
-                    </span>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
-            }
-            <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
-              {{ 'codex.detail.openBlueprint' | translate }}
-            </a>
-          </section>
+        @if (recipeView(); as rv) {
+          <sc-codex-recipe-card [recipe]="rv" />
         }
 
         <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
@@ -801,39 +744,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         }
 
         <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
-        <section class="sc-card block raw-block">
-          <div class="spec-toggles">
-            @if (specSections().length > 0) {
-              <button type="button" class="raw-toggle" (click)="toggleSpec()">
-                {{ (showSpec() ? 'codex.detail.hideFullSpec' : 'codex.detail.showFullSpec') | translate }}
-              </button>
-            }
-            <button type="button" class="raw-toggle" (click)="toggleRaw()">
-              {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
-            </button>
-          </div>
-          @if (showSpec()) {
-            <div class="spec">
-              @for (sec of specSections(); track sec.title) {
-                @if (sec.title) { <h3 class="sg-head">{{ sec.title }}</h3> }
-                <table class="spec-table">
-                  <tbody>
-                    @for (r of sec.rows; track r.key) {
-                      <tr>
-                        <td class="sp-key">{{ r.key }}</td>
-                        <td class="sp-val">{{ r.value }}@if (r.unit) {<span class="s-unit"> {{ r.unit }}</span>}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              }
-              @if (provenance(); as p) {
-                <p class="spec-prov">{{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}</p>
-              }
-            </div>
-          }
-          @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
-        </section>
+        <sc-codex-spec-sheet
+          [sections]="specSections()"
+          [showSpec]="showSpec()"
+          [showRaw]="showRaw()"
+          [rawJson]="rawJson()"
+          [provenance]="provenance()"
+          (toggleSpec)="toggleSpec()"
+          (toggleRaw)="toggleRaw()" />
         } @else {
           <sc-codex-holo-stage
             [detail]="detail()!"
@@ -931,64 +849,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             @if (shipLinkForm.open()) {
               <sc-codex-ship-link-form />
             }
-            @if (tailModuleSections().length > 0) {
-              <section class="sc-card block col-loadout col-loadout-tail">
-                <h2 class="col-head">
-                  <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
-                  <span class="n">{{ tailModuleCount() }}</span>
-                  <span class="rule" aria-hidden="true"></span>
-                  @if (hiddenEmptyCount() > 0) {
-                    <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                      {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                    </button>
-                  }
-                </h2>
-                <sc-codex-hardpoint-layout
-                  [sections]="tailModuleSections()"
-                  [sectionOrder]="moduleSectionOrder()"
-                  [foldedSections]="foldedModuleSections()"
-                  [occupantsBySection]="occupantsBySection()"
-                  [locatablePorts]="locatablePorts()"
-                  [activePorts]="activePorts()"
-                  (reverted)="onRevertPaths($event)"
-                  (hovered)="setActivePorts($event)"
-                  (inspected)="openInspect($event)"
-                  (swapRequested)="openSwapPicker($event)" />
-              </section>
-            }
-            @if (description(); as d) {
-              <section class="sc-card block">
-                <h2>{{ 'codex.detail.description' | translate }}</h2>
-                <p class="desc">{{ d }}</p>
-              </section>
-            }
-            @if (recipe(); as r) {
-              <section class="sc-card block">
-                <h2>
-                  {{ 'codex.detail.craftedFrom' | translate }}
-                  @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
-                </h2>
-                <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
-                @if (r.ingredients.length > 0) {
-                  <ul class="compat-list">
-                    @for (i of r.ingredients; track i.ingredientIndex) {
-                      <li>
-                        <span class="compat-link plain">{{ ingredientName(i) }}</span>
-                        <span class="compat-meta">
-                          @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
-                          @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
-                          @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                } @else {
-                  <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
-                }
-                <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
-                  {{ 'codex.detail.openBlueprint' | translate }}
-                </a>
-              </section>
+            <ng-container [ngTemplateOutlet]="tailLoadout" />
+            <ng-container [ngTemplateOutlet]="descriptionCard" />
+            @if (recipeView(); as rv) {
+              <sc-codex-recipe-card [recipe]="rv" />
             }
             @if (hardpointGroups().length > 0) {
               <section class="sc-card block">
@@ -1007,39 +871,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   (hovered)="setActivePorts($event)" />
               </section>
             }
-            <section class="sc-card block raw-block">
-              <div class="spec-toggles">
-                @if (specSections().length > 0) {
-                  <button type="button" class="raw-toggle" (click)="toggleSpec()">
-                    {{ (showSpec() ? 'codex.detail.hideFullSpec' : 'codex.detail.showFullSpec') | translate }}
-                  </button>
-                }
-                <button type="button" class="raw-toggle" (click)="toggleRaw()">
-                  {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
-                </button>
-              </div>
-              @if (showSpec()) {
-                <div class="spec">
-                  @for (sec of specSections(); track sec.title) {
-                    @if (sec.title) { <h3 class="sg-head">{{ sec.title }}</h3> }
-                    <table class="spec-table">
-                      <tbody>
-                        @for (r of sec.rows; track r.key) {
-                          <tr>
-                            <td class="sp-key">{{ r.key }}</td>
-                            <td class="sp-val">{{ r.value }}@if (r.unit) {<span class="s-unit"> {{ r.unit }}</span>}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  }
-                  @if (provenance(); as p) {
-                    <p class="spec-prov">{{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}</p>
-                  }
-                </div>
-              }
-              @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
-            </section>
+            <sc-codex-spec-sheet
+              [sections]="specSections()"
+              [showSpec]="showSpec()"
+              [showRaw]="showRaw()"
+              [rawJson]="rawJson()"
+              [provenance]="provenance()"
+              (toggleSpec)="toggleSpec()"
+              (toggleRaw)="toggleRaw()" />
           </sc-codex-holo-stage>
         }
         <!-- The dock is the LAST element, as the concept places it
@@ -1066,6 +905,51 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" (closed)="closeWeaponDetail()" />
+
+      <!-- Shared by the classic view and the Holotable drawer, which renders
+           them into its projected details (same view, so these rules stay
+           in this component's style block). -->
+      <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
+           the airframe is not a decision; see TAIL_SHIP_SECTIONS in
+           ship-module-sections.ts — the countermeasures moved back up into
+           the loadout card with #237, now that their rounds carry values).
+           Same layout component as the loadout card above, fed the tail
+           sections instead. -->
+      <ng-template #tailLoadout>
+        @if (tailModuleSections().length > 0) {
+          <section class="sc-card block col-loadout col-loadout-tail">
+            <h2 class="col-head">
+              <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
+              <span class="n">{{ tailModuleCount() }}</span>
+              <span class="rule" aria-hidden="true"></span>
+              @if (hiddenEmptyCount() > 0) {
+                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                </button>
+              }
+            </h2>
+            <sc-codex-hardpoint-layout
+              [sections]="tailModuleSections()"
+              [sectionOrder]="moduleSectionOrder()"
+              [foldedSections]="foldedModuleSections()"
+              [occupantsBySection]="occupantsBySection()"
+              [locatablePorts]="locatablePorts()"
+              [activePorts]="activePorts()"
+              (reverted)="onRevertPaths($event)"
+              (hovered)="setActivePorts($event)"
+              (inspected)="openInspect($event)"
+              (swapRequested)="openSwapPicker($event)" />
+          </section>
+        }
+      </ng-template>
+      <ng-template #descriptionCard>
+        @if (description(); as d) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.description' | translate }}</h2>
+            <p class="desc">{{ d }}</p>
+          </section>
+        }
+      </ng-template>
     </section>
   `,
   styles: [`
@@ -1324,30 +1208,14 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .compat-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--sc-bg-1); }
     .compat-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; }
     .compat-link:hover { text-decoration: underline; }
-    /* A raw resource has no codex page of its own, so it is listed as plain
-       text — a dead link would be worse than no link. */
-    .compat-link.plain { color: var(--sc-fg-0); }
-    .compat-link.plain:hover { text-decoration: none; }
-    /* The base chip lost its fill, so "subtle" now says what it always meant:
-       a muted token next to a full-strength one. */
-    .chip.subtle { color: var(--sc-fg-2); }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); font-family: inherit; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; cursor: pointer; }
     .ghost-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
-    .raw-block { padding-top: 14px; }
-    .spec-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-    .raw-toggle { padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
-    .raw-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .spec { margin-top: 12px; }
-    .spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 4px; }
-    .spec-table td { padding: 5px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
-    .sp-key { color: var(--sc-fg-2); width: 45%; overflow-wrap: anywhere; }
-    .sp-val { color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
-    .spec-prov { margin: 10px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
-    .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
+    /* Spec sheet + raw payload (.raw-block, .spec*, .sp-key/.sp-val, .raw):
+       sc-codex-spec-sheet. */
 
     .skel-card { height: 260px; }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
@@ -1686,6 +1554,26 @@ export class CodexDetailComponent implements OnInit {
   // codex can answer "which materials does this cost". Null for the vast
   // majority of catalog entries, which are not craftable.
   readonly recipe = signal<GearRecipe | null>(null);
+  /**
+   * The recipe, labelled for sc-codex-recipe-card. Reads lang() so a language
+   * switch relabels the material slots, as the template did before.
+   */
+  readonly recipeView = computed<RecipeView | null>(() => {
+    const r = this.recipe();
+    this.lang();
+    if (!r) return null;
+    return {
+      craftTime: r.craftTimeSec != null ? this.fmtCraft(r.craftTimeSec) : null,
+      blueprintSlug: r.classNameSlug,
+      rows: r.ingredients.map((i) => ({
+        key: i.ingredientIndex,
+        name: this.ingredientName(i),
+        role: this.ingredientRole(i) || null,
+        qty: i.quantity != null ? this.fmtQty(i.quantity) : null,
+        minQuality: this.needsQuality(i.minQuality) ? this.fmtQuality(i.minQuality) : null,
+      })),
+    };
+  });
 
   // Hardpoint slot-compatibility: which port is expanded + its lazy item list.
   readonly expandedPort = signal<number | null>(null);
