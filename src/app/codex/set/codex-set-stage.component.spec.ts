@@ -105,6 +105,18 @@ describe('CodexSetStageComponent', () => {
     expect(tile('helmet').querySelector('.name')?.textContent?.trim()).toBeTruthy();
   });
 
+  it('gives every readiness icon a keyboard-reachable, labelled image (AUD-119)', () => {
+    const items = Array.from(el.querySelectorAll<HTMLElement>('.rdy-ic'));
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(item.getAttribute('role')).toBe('listitem');
+      const img = item.querySelector<HTMLElement>('[role="img"]');
+      expect(img).not.toBeNull();
+      expect(img!.getAttribute('tabindex')).toBe('0');
+      expect(img!.getAttribute('aria-label')).toBeTruthy();
+    }
+  });
+
   it('shows an open slot as "Frei" with its archive depth and the arsenal call to action', () => {
     const arms = tile('arms');
     expect(arms.classList).toContain('open');

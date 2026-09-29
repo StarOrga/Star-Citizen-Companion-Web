@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.107.1",
+  "current": "0.108.0",
   "releases": [
+    {
+      "version": "0.108.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Alle Dialoge halten jetzt den Tastaturfokus.",
+              "text": "Artikel, Patch-Dossier, Schnellsuche, Status-Popover, Lightbox, Bundle-Historie und API-Token-Dialoge holen den Fokus beim Öffnen und halten Tab im Dialog. Escape schließt, danach steht der Fokus wieder auf dem Auslöser."
+            },
+            {
+              "title": "„Zum Inhalt springen“ als erster Tab-Stopp.",
+              "text": "Jede Seite bietet oben links einen Sprunglink direkt in den Seiteninhalt."
+            },
+            {
+              "title": "Hauptüberschriften auf Codex-Start und Set-Seite.",
+              "text": "Screenreader finden den Set-Namen jetzt als Überschrift der Ebene 1."
+            },
+            {
+              "title": "Tooltips sind per Tastatur erreichbar.",
+              "text": "Lücken-Striche, Rollen-Pillen, Versions- und Datumsangaben zeigen ihre Erklärung jetzt auch beim Tab-Fokus."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.107.1",
       "date": "2026-09-29",

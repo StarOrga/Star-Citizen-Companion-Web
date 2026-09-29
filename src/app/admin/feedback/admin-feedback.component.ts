@@ -601,8 +601,10 @@ type AvatarTone = 'adm' | 'col' | 'usr';
 
       <!-- Role-coloured avatar: admin red (elevated access), collaborator light
            blue, user grey-blue. Initials, never a photo. -->
-      <ng-template #avatar let-a let-self="self">
-        <span class="av" role="img" [class]="'av ' + toneOf(a)" [scTooltip]="roleTitle(a)" scTooltipTier="label" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
+      <ng-template #avatar let-a let-self="self" let-focusable="focusable">
+        <!-- Own Tab stop only outside the card-head button (no nested interaction);
+             inside it the aria-label already joins the button's name. -->
+        <span class="av" role="img" [attr.tabindex]="focusable ? 0 : null" [class]="'av ' + toneOf(a)" [scTooltip]="roleTitle(a)" scTooltipTier="label" [attr.aria-label]="roleTitle(a)">{{ initials(a, self) }}</span>
       </ng-template>
 
       <!-- The flight path: four stations, filled up to the current one; a
@@ -659,7 +661,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               <span class="who">{{ (msg.from_admin ? 'adminFeedback.userTopic.fromTeam' : 'adminFeedback.userTopic.fromAuthor') | translate }}</span>
               @if (msg.is_question) { <span class="chip">{{ 'adminFeedback.userTopic.questionBadge' | translate }}</span> }
             } @else {
-              <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: msg.author, self: msg.author_id === selfId() }"></ng-container>
+              <ng-container [ngTemplateOutlet]="avatar" [ngTemplateOutletContext]="{ $implicit: msg.author, self: msg.author_id === selfId(), focusable: true }"></ng-container>
               <span class="who">{{ authorLabelFor(msg) }}</span>
             }
             <span class="msg-ts">{{ msg.created_at | scDate: 'datetime' }}</span>

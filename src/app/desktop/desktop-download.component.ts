@@ -1,13 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  HostListener,
   computed,
   effect,
   inject,
   signal,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
@@ -34,6 +34,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
     P4kHistoryComponent,
     AppDownloadPanelComponent,
     ChannelPickerComponent,
+    ScDialogDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -103,6 +104,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
         <div class="hx-dialog"
              role="dialog"
              aria-modal="true"
+             scDialog (scDialogEscape)="historyOpen.set(false)"
              [attr.aria-label]="'desktop.bundleHistory' | translate"
              (click)="$event.stopPropagation()">
           <div class="hx-head">
@@ -276,10 +278,5 @@ export class DesktopDownloadComponent {
       await this.load(this.channel());
     }
     this.promoting.set(false);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.historyOpen()) this.historyOpen.set(false);
   }
 }

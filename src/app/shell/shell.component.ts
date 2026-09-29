@@ -33,6 +33,7 @@ import { SameRouteRefreshService } from '../core/same-route-refresh.service';
 import { RouteLoadRecoveryService } from '../core/route-load-recovery.service';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
+import { skipToMain } from './skip-link';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
@@ -55,6 +56,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     ]),
   ],
   template: `
+    <a class="sc-skip-link" href="#sc-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
     <header class="topbar">
       <!-- Wordmark: the "alpha" badge is CENTERED UNDER the title, not beside it
            (feedback #79). It is absolutely positioned on purpose — the title's
@@ -310,7 +312,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
          be standing. Renders nothing when there is nothing to say. -->
     <sc-account-notice />
 
-    <main class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
+    <main id="sc-main" tabindex="-1" class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
       <router-outlet (activate)="onRouteActivate()" />
     </main>
 
@@ -759,6 +761,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
   `],
 })
 export class ShellComponent implements AfterViewInit {
+  readonly skipToMain = skipToMain;
   readonly auth = inject(AuthService);
   readonly roles = inject(RoleService);
   readonly imp = inject(ImpersonationService);

@@ -353,6 +353,14 @@ describe('CodexLandingComponent', () => {
     );
   });
 
+  it('has exactly one h1 (AUD-187)', async () => {
+    const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelectorAll('h1').length).toBe(1);
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('codex.title');
+    expect(root.querySelector('sc-codex-stage[title]')).toBeNull();
+  });
+
   it('opening the picker (no overlay in this round) navigates to /hangar', async () => {
     const fixture = await setup({ hangar: [] });
     const router = TestBed.inject(Router);

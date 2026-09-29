@@ -174,6 +174,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                     <span class="label">{{ 'profile.created' | translate }}</span>
                     <span
                       class="value"
+                      tabindex="0"
                       scTooltipTier="label"
                       [scTooltip]="
                         'profile.memberSince.exact'

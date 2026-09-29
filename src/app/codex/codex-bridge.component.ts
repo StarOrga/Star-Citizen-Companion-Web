@@ -181,7 +181,7 @@ interface Lane {
                   </div>
                 }
                 @if (freshness(); as fresh) {
-                  <div class="hero-fresh" [scTooltip]="'codex.provenance.tooltip' | translate">
+                  <div class="hero-fresh" tabindex="0" [scTooltip]="'codex.provenance.tooltip' | translate">
                     <span class="fresh-dot" aria-hidden="true"></span>
                     <span>{{ fresh }}</span>
                   </div>

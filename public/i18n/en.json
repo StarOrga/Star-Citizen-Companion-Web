@@ -119,6 +119,7 @@
     "desktop": "Data Upload",
     "signOut": "Sign out",
     "backToHome": "Back to home",
+    "skipToContent": "Skip to content",
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "phaseBadge": "Alpha",
     "langAria": "Language",
@@ -3963,6 +3964,7 @@
     "title": "Starscape",
     "subtitle": "High-resolution artwork from RSI Comm-Links, collected from the news crawl. Every image links straight to the original on the RSI CDN — click a tile for full resolution and download.",
     "filterAll": "All",
+    "lightboxAria": "Wallpaper",
     "source": {
       "label": "Image source"
     },

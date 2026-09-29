@@ -83,7 +83,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
             (error)="onImageError()"
           />
         }
-        @if (title()) {
+        @if (stageTitle()) {
           @if (routerLinkTo(); as link) {
             <a class="stage-hit" [routerLink]="link">
               <span class="stage-eyebrow">
@@ -92,7 +92,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
                   <span class="stage-eyebrow__suffix">{{ eyebrowSuffix() }}</span>
                 }
               </span>
-              <span class="stage-title">{{ title() }}</span>
+              <span class="stage-title">{{ stageTitle() }}</span>
             </a>
           } @else {
             <div class="stage-hit static">
@@ -102,7 +102,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
                   <span class="stage-eyebrow__suffix">{{ eyebrowSuffix() }}</span>
                 }
               </span>
-              <span class="stage-title">{{ title() }}</span>
+              <span class="stage-title">{{ stageTitle() }}</span>
             </div>
           }
         }
@@ -121,7 +121,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
                 <span class="stage-eyebrow__suffix">{{ eyebrowSuffix() }}</span>
               }
             </span>
-            <span class="stage-title">{{ title() }}</span>
+            <span class="stage-title">{{ stageTitle() }}</span>
           </a>
         } @else {
           <div class="stage-text">
@@ -131,7 +131,11 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
                 <span class="stage-eyebrow__suffix">{{ eyebrowSuffix() }}</span>
               }
             </span>
-            <span class="stage-title">{{ title() }}</span>
+            @if (titleAs() === 'h1') {
+              <h1 class="stage-title">{{ stageTitle() }}</h1>
+            } @else {
+              <span class="stage-title">{{ stageTitle() }}</span>
+            }
           </div>
         }
       }
@@ -207,6 +211,8 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
         color: var(--sc-fg-0);
         text-shadow: 0 1px 2px rgba(0, 0, 0, .6), 0 0 14px rgba(0, 0, 0, .4);
       }
+      /* As the page heading (set page) it must look exactly like the span: no global h1 rules. */
+      h1.stage-title { margin: 0; font-family: inherit; letter-spacing: inherit; }
       .stage-hit:hover .stage-title, .stage-hit:focus-visible .stage-title { color: var(--sc-accent); }
 
       /* ── person ────────────────────────────────────────────────────── */
@@ -290,7 +296,10 @@ export class CodexStageComponent implements OnDestroy {
 
   readonly eyebrow = input<string | null>(null);
   readonly eyebrowSuffix = input<string | null>(null);
-  readonly title = input<string>('');
+  /** Named stageTitle, not title: a [title] binding on the element reads like a native browser tooltip (and silently becomes one if the input is missing). */
+  readonly stageTitle = input<string>('');
+  /** Person branch without a link only: render the title as the page h1 (the set page). */
+  readonly titleAs = input<'span' | 'h1'>('span');
   /** Ship only: the routerLink the whole picture becomes an anchor to. `null` while there is nothing to show yet. */
   readonly routerLinkTo = input<readonly unknown[] | null>(null);
 

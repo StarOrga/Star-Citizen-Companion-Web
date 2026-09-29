@@ -182,6 +182,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                     {{ a.percentile }}%
                   } @else {
                     <span class="gap-dash"
+                          [attr.tabindex]="a.gapKey ? 0 : null"
+                          [attr.role]="a.gapKey ? 'img' : null"
                           [scTooltip]="a.gapKey ? (a.gapKey | translate) : null"
                           scTooltipTier="label"
                           [attr.aria-label]="a.gapKey ? (a.gapKey | translate) : null">—</span>

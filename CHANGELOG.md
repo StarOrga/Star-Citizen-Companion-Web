@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.108.0] - 2026-09-29
+
+### Changed
+
+- **Alle Dialoge halten jetzt den Tastaturfokus.** Artikel, Patch-Dossier,
+  Schnellsuche, Status-Popover, Lightbox, Bundle-Historie und API-Token-Dialoge
+  holen den Fokus beim Öffnen und halten Tab im Dialog. Escape schließt, danach
+  steht der Fokus wieder auf dem Auslöser.
+- **„Zum Inhalt springen“ als erster Tab-Stopp.** Jede Seite bietet oben links
+  einen Sprunglink direkt in den Seiteninhalt.
+- **Hauptüberschriften auf Codex-Start und Set-Seite.** Screenreader finden den
+  Set-Namen jetzt als Überschrift der Ebene 1.
+- **Tooltips sind per Tastatur erreichbar.** Lücken-Striche, Rollen-Pillen,
+  Versions- und Datumsangaben zeigen ihre Erklärung jetzt auch beim Tab-Fokus.
+
 ## [0.107.1] - 2026-09-29
 
 ### Fixed

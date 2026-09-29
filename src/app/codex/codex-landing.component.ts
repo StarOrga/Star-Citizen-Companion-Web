@@ -95,6 +95,7 @@ const SEARCH_DEBOUNCE_MS = 250;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="landing">
+      <h1 class="sc-sr-only">{{ 'codex.title' | translate }}</h1>
       <!-- ── TOP: Archive Terminal + patch headline + app menu ──────────────── -->
       <header class="terminal">
         <div class="terminal-bar">
@@ -274,7 +275,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           [art]="stageShipArt()"
           [eyebrow]="stageShipRow() ? rowMfr(stageShipRow()!) : null"
           [eyebrowSuffix]="stageShipRoleSuffix()"
-          [title]="stageShipTitle()"
+          [stageTitle]="stageShipTitle()"
           [routerLinkTo]="stageShipRow() ? ['/codex', 'ship', stageShipRow()!.classNameSlug] : null"
           pickerKind="ship"
           [pickerItems]="shipPickerItems()"
@@ -307,7 +308,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           class="stage-person"
           [eyebrow]="stagePersonRoleLabel()"
           [eyebrowSuffix]="stagePersonEquipSuffix()"
-          [title]="stagePersonTitle()"
+          [stageTitle]="stagePersonTitle()"
           [routerLinkTo]="activeLoadout() ? ['/codex', 'set', activeLoadout()!.id] : null"
           pickerKind="set"
           [pickerItems]="setPickerItems()"
