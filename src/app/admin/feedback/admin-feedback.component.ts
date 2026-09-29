@@ -297,7 +297,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 type="button"
                 class="search-clear"
                 (click)="clearSearch(); searchInput.blur()"
-                [attr.aria-label]="'adminFeedback.search.clear' | translate">&times;</button>
+                [attr.aria-label]="'adminFeedback.search.clear' | translate"
+                [scTooltip]="'adminFeedback.search.clear' | translate">&times;</button>
             }
           </div>
           @if (isLarge()) {
@@ -483,7 +484,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                 type="button"
                 class="cs-close"
                 (click)="closeComposer()"
-                [attr.aria-label]="'adminFeedback.compose.collapse' | translate">✕</button>
+                [attr.aria-label]="'adminFeedback.compose.collapse' | translate"
+                [scTooltip]="'adminFeedback.compose.collapse' | translate">✕</button>
             </div>
             <sc-feedback-composer
               [draftScope]="draftScope"
@@ -741,7 +743,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       @if (openRow(); as m) {
         <div class="sheet topic" role="dialog" aria-modal="true" [attr.aria-label]="cardTitle(m, 96)" [attr.inert]="declineTopicRow() ? '' : null">
           <header class="sh-head">
-            <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate">←</button>
+            <button type="button" class="sh-btn" (click)="closeTopic()" [attr.aria-label]="'adminFeedback.sheet.close' | translate" [scTooltip]="'adminFeedback.sheet.close' | translate">←</button>
             @if (topicNo(m); as no) { <span class="topic-no">#{{ no }}</span> }
             <span class="sh-title">{{ cardTitle(m, 120) }}</span>
             <button
@@ -750,7 +752,8 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               (click)="toggleMore(m.id)"
               aria-haspopup="true"
               [attr.aria-expanded]="moreOpen(m.id)"
-              [attr.aria-label]="'adminFeedback.actions.more' | translate">⋯</button>
+              [attr.aria-label]="'adminFeedback.actions.more' | translate"
+              [scTooltip]="'adminFeedback.actions.more' | translate">⋯</button>
           </header>
 
           @if (moreOpen(m.id)) {
@@ -949,7 +952,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       @if (filtersOpen()) {
         <div class="sheet filters" role="dialog" aria-modal="true" [attr.aria-label]="'adminFeedback.filters.title' | translate">
           <header class="sh-head">
-            <button type="button" class="sh-btn" (click)="closeFilters()" [attr.aria-label]="'adminFeedback.filters.done' | translate">←</button>
+            <button type="button" class="sh-btn" (click)="closeFilters()" [attr.aria-label]="'adminFeedback.filters.done' | translate" [scTooltip]="'adminFeedback.filters.done' | translate">←</button>
             <span class="sh-title">{{ 'adminFeedback.filters.title' | translate }}</span>
             @if (filterCount() > 0) {
               <button type="button" class="sh-btn text" (click)="resetFilters()">{{ 'adminFeedback.filters.reset' | translate }}</button>
@@ -1003,7 +1006,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
       @if (declineTopicRow(); as m) {
         <div class="sheet decline" role="dialog" aria-modal="true" [attr.aria-label]="'adminFeedback.decline.mark' | translate">
           <header class="sh-head">
-            <button type="button" class="sh-btn" (click)="cancelDeclineForm()" [attr.aria-label]="'adminFeedback.decline.cancel' | translate">←</button>
+            <button type="button" class="sh-btn" (click)="cancelDeclineForm()" [attr.aria-label]="'adminFeedback.decline.cancel' | translate" [scTooltip]="'adminFeedback.decline.cancel' | translate">←</button>
             <span class="sh-title">{{ 'adminFeedback.decline.mark' | translate }}</span>
           </header>
           <form class="sh-body decline-form" (submit)="declineTopic(m, $event)">

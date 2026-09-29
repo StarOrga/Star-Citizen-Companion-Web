@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
+import { READ_TIMEOUT_MS } from '../core/deadline';
 
 /** One changelog bullet: an optional bold headline plus its description. */
 export interface ReleaseNoteItem {
@@ -45,7 +46,7 @@ export class ReleaseNotesService {
   async load(): Promise<ReleaseNotes | null> {
     if (this.notes()) return this.notes();
     if (this.inflight) return this.inflight;
-    this.inflight = firstValueFrom(this.http.get<ReleaseNotes>('release-notes.json'))
+    this.inflight = firstValueFrom(this.http.get<ReleaseNotes>('release-notes.json').pipe(timeout(READ_TIMEOUT_MS)))
       .then((data) => {
         this.notes.set(data);
         return data;

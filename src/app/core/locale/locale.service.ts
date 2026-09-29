@@ -126,10 +126,18 @@ export class LocaleService {
     }
   }
 
-  /** Drops the in-memory profile preferences (sign-out). */
+  /**
+   * Drops the in-memory profile preferences (sign-out / account switch).
+   * An account switch starts a new preference session: a choice made under
+   * account A must not override account B's profile. The localStorage mirror
+   * stays — it is the device default until B's profile arrives and keeps the
+   * browser language from flashing in between.
+   */
   clearProfile(): void {
     this.profileLanguage.set(null);
     this.profileRegion.set(null);
+    this.languageChosenThisSession = false;
+    this.regionChosenThisSession = false;
   }
 
   /** Test seam / re-read after a browser-side locale change. */

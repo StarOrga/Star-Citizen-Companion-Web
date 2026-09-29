@@ -388,6 +388,16 @@ export class CodexBoardFigureComponent {
   private camera: THREE.OrthographicCamera | null = null;
   private palette: SuitPalette = PALETTE_FALLBACK;
   private observer: ResizeObserver | null = null;
+  /** The GL context went away on its own (driver reset, GPU pressure, too many contexts). */
+  private contextLost = false;
+  private destroyed = false;
+  /**
+   * Two separate detachers on purpose: the `restored` listener must survive a
+   * natural loss — tearing both down on the loss would mean the restore never
+   * arrives and the 3D figure never comes back.
+   */
+  private detachLost: (() => void) | null = null;
+  private detachRestored: (() => void) | null = null;
 
   constructor() {
     afterNextRender(() => void this.boot());
@@ -408,7 +418,13 @@ export class CodexBoardFigureComponent {
       this.draw();
     });
 
-    this.destroyRef.onDestroy(() => this.teardown());
+    this.destroyRef.onDestroy(() => {
+      // A late `restored` must not boot a figure that is gone.
+      this.destroyed = true;
+      this.detachRestored?.();
+      this.detachRestored = null;
+      this.teardown();
+    });
   }
 
   /** Whether one position is equipped — the SVG fallback's only question. */
@@ -456,6 +472,7 @@ export class CodexBoardFigureComponent {
       renderer.toneMapping = T.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.05;
       this.renderer = renderer;
+      this.watchContext(canvas, renderer);
 
       const scene = new T.Scene();
       // One key from the upper left, one accent rim from behind right, and a
@@ -498,6 +515,32 @@ export class CodexBoardFigureComponent {
     }
   }
 
+  /**
+   * A lost GL context leaves an empty canvas over nothing: fall back to the
+   * drawn suit (`teardown` flips `ready` off), and boot the 3D figure again
+   * once the browser restores the context.
+   */
+  private watchContext(canvas: HTMLCanvasElement, renderer: THREE.WebGLRenderer): void {
+    this.detachRestored?.();
+    const onLost = (e: Event) => {
+      e.preventDefault(); // without it the browser never restores the context
+      if (this.renderer !== renderer) return;
+      this.contextLost = true;
+      this.teardown(); // drops only the lost listener — restored stays armed
+    };
+    const onRestored = () => {
+      if (!this.contextLost || this.destroyed) return;
+      this.contextLost = false;
+      this.detachRestored?.();
+      this.detachRestored = null; // boot() arms fresh listeners
+      void this.boot();
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    this.detachLost = () => canvas.removeEventListener('webglcontextlost', onLost);
+    this.detachRestored = () => canvas.removeEventListener('webglcontextrestored', onRestored);
+  }
+
   /** Fits the frustum to the canvas box; the suit is always 2.05 units tall. */
   private resize(): void {
     const canvas = this.stage().nativeElement;
@@ -525,6 +568,10 @@ export class CodexBoardFigureComponent {
   }
 
   private teardown(): void {
+    // First: forceContextLoss() below fires webglcontextlost itself, which must
+    // not run back into teardown.
+    this.detachLost?.();
+    this.detachLost = null;
     this.observer?.disconnect();
     this.observer = null;
     this.suit?.dispose();
@@ -532,8 +579,11 @@ export class CodexBoardFigureComponent {
     // dispose() frees three's resources but keeps the GL context alive until GC;
     // a page that mounts figures repeatedly (set ⇄ arsenal) runs into the browser's
     // context limit ("Context Lost") unless the context is handed back right away.
+    // On a natural loss the context is already gone — a second loseContext
+    // would only log a GL warning.
+    const alreadyLost = this.renderer?.getContext().isContextLost() ?? true;
     this.renderer?.dispose();
-    this.renderer?.forceContextLoss();
+    if (!alreadyLost) this.renderer?.forceContextLoss();
     this.renderer = null;
     this.scene = null;
     this.camera = null;

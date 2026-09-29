@@ -46,6 +46,7 @@ import {
   mergeLoadout,
 } from './loadout-stats';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 interface PortRow {
   port: CodexItemPort;
@@ -66,7 +67,7 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -93,7 +94,9 @@ interface PortRow {
               } @else {
                 <h1>{{ s.customName || shipDisplayName() }}</h1>
                 <button class="icon-btn" type="button" (click)="startEditName()"
-                        [attr.aria-label]="'hangar.detail.rename' | translate">✎</button>
+                        [attr.aria-label]="'hangar.detail.rename' | translate"
+                        [scTooltip]="'hangar.detail.rename' | translate"
+                        scTooltipTier="label">✎</button>
               }
             </div>
             @if (s.customName) { <p class="sub">{{ shipDisplayName() }}</p> }

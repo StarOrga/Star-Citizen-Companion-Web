@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexService } from './codex.service';
 import { formatNumber } from './codex-format';
 import {
@@ -20,6 +21,8 @@ import {
   mergePublishedPatches,
 } from './codex-patch-timeline';
 import { NewsService } from '../news/news.service';
+import { LocaleService } from '../core/locale/locale.service';
+import { formatScDate } from '../core/locale/date-format';
 
 /**
  * The Codex headline: "which patch am I looking at" (admin feedback 463872dd).
@@ -51,7 +54,7 @@ import { NewsService } from '../news/news.service';
 @Component({
   selector: 'sc-codex-patch-headline',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Class names kept from the retired inline pill: same slot, same weight
@@ -119,7 +122,7 @@ import { NewsService } from '../news/news.service';
                     [attr.aria-selected]="isSelected(e)"
                     [disabled]="!e.hasData"
                     [attr.aria-disabled]="!e.hasData"
-                    [attr.title]="rowTitle(e)"
+                    [scTooltip]="rowTitle(e)"
                     (click)="choose(e)"
                   >
                     <span class="row-ver mono">{{ e.patchVersion }}</span>
@@ -143,6 +146,23 @@ import { NewsService } from '../news/news.service';
         </div>
       }
     </div>
+
+    <!-- Said once when the service moved a live reader to a newer LIVE build
+         (tab left open across a data upload). -->
+    @if (svc.liveMovedNotice(); as patch) {
+      <p class="patch-notice" role="status">
+        <span>{{ 'codex.landing.patchSwitch.liveMoved' | translate: { patch } }}</span>
+        <button
+          type="button"
+          class="patch-notice-x"
+          (click)="svc.liveMovedNotice.set(null)"
+          [attr.aria-label]="'codex.landing.patchSwitch.liveMovedDismiss' | translate"
+          [scTooltip]="'codex.landing.patchSwitch.liveMovedDismiss' | translate"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      </p>
+    }
   `,
   styles: [
     `
@@ -178,6 +198,40 @@ import { NewsService } from '../news/news.service';
       }
 
       .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
+
+      /* one-off notice: the catalog moved to a newer LIVE build */
+      .patch-notice {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 0;
+        padding: 4px 4px 4px 10px;
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, var(--sc-border));
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--sc-accent) 8%, transparent);
+        color: var(--sc-fg-1);
+        font-size: max(0.78rem, var(--sc-fs-floor, 0.68rem));
+        overflow-wrap: anywhere;
+      }
+      .patch-notice > span { flex: 1 1 auto; min-width: 0; }
+      .patch-notice-x {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        min-width: 32px;
+        min-height: 32px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        background: transparent;
+        color: var(--sc-fg-2);
+        font: inherit;
+        cursor: pointer;
+      }
+      .patch-notice-x:hover { color: var(--sc-accent); border-color: var(--sc-border); }
+      .patch-notice-x:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      @media (pointer: coarse) {
+        .patch-notice-x { min-width: 48px; min-height: 48px; }
+      }
 
       /* ── the patch switch trigger ─────────────────────────────────────── */
       .patch-trigger {
@@ -335,6 +389,7 @@ import { NewsService } from '../news/news.service';
 export class CodexPatchHeadlineComponent {
   readonly svc = inject(CodexService);
   private readonly news = inject(NewsService);
+  private readonly locale = inject(LocaleService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** Fired after the active build changed, so the host can reload its data. */
@@ -424,7 +479,14 @@ export class CodexPatchHeadlineComponent {
 
   /** Technical provenance belongs in the tooltip, not on the row. */
   rowTitle(e: PatchTimelineEntry): string | null {
-    return e.extractedAt ? `${e.patchVersion} · ${e.extractedAt}` : null;
+    if (!e.extractedAt) return null;
+    // Localised date + time, never the raw ISO string (AUD-188).
+    const when = formatScDate(e.extractedAt, {
+      language: this.locale.language(),
+      region: this.locale.region(),
+      style: 'datetime',
+    });
+    return `${e.patchVersion} · ${when}`;
   }
 
   /** The popover's retry after a failed timeline read. */

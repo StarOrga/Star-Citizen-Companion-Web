@@ -19,7 +19,7 @@ export const approvedGuard: CanActivateFn = async (_route, state) => {
   const router = inject(Router);
 
   auth.init();
-  await waitForReady(auth);
+  await auth.whenReady();
 
   if (!auth.isAuthenticated()) {
     return router.createUrlTree(['/login'], { queryParams: { redirect: state.url } });
@@ -71,15 +71,3 @@ export const approvedGuard: CanActivateFn = async (_route, state) => {
   await auth.signOut(false);
   return router.createUrlTree(['/login'], { queryParams: { denied: 'invite' } });
 };
-
-function waitForReady(auth: AuthService): Promise<void> {
-  return new Promise((resolve) => {
-    if (auth.ready()) return resolve();
-    const interval = setInterval(() => {
-      if (auth.ready()) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 30);
-  });
-}

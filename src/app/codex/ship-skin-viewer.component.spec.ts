@@ -85,6 +85,20 @@ describe('ShipSkinViewerComponent', () => {
     expect(c.modelLoading()).toBeTrue(); // glb is loading until <model-viewer> fires (load)
   });
 
+  // AUD-188: the source tag is a translated word, never the raw enum.
+  it('renders the source tag through i18n, not the raw pu_npc enum', async () => {
+    // No 3D model on purpose: paint mode keeps <model-viewer> out of the DOM.
+    const fixture = await setup([
+      skin({ skinId: 'npc', source: 'pu_npc', modelPath: null }),
+      skin({ skinId: 'odd', source: 'mystery', modelPath: null, sort: 200 }),
+    ]);
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('codex.skins.sourceTag.pu_npc');
+    expect(text).not.toMatch(/(^|\s)pu_npc(\s|$)/);
+    expect(fixture.componentInstance.sourceKey('mystery')).toBe('codex.skins.sourceTag.other');
+  });
+
   it('falls back to paint mode when no skin has a 3D model', async () => {
     const fixture = await setup([skin({ skinId: 'event_only', modelPath: null })]);
     expect(fixture.componentInstance.mode()).toBe('paint');
@@ -146,5 +160,39 @@ describe('ShipSkinViewerComponent', () => {
     expect(listSkins).toHaveBeenCalledWith('AEGS_Gladius');
     expect(c.skins().length).toBe(1);
     expect(c.current()?.skinId).toBe('gladius_a');
+  });
+
+  describe('glb head read', () => {
+    interface Reader { readLocators(url: string | null): void }
+    let fetchSpy: jasmine.Spy;
+
+    beforeEach(() => {
+      // Never answers — the read stays in flight until something aborts it.
+      fetchSpy = spyOn(window, 'fetch').and.callFake(() => new Promise<Response>(() => undefined));
+    });
+
+    function signalOf(call: number): AbortSignal {
+      return (fetchSpy.calls.argsFor(call)[1] as RequestInit).signal as AbortSignal;
+    }
+
+    it('aborts the running read when the model changes', async () => {
+      const fixture = await setup([]);
+      const reader = fixture.componentInstance as unknown as Reader;
+      fetchSpy.calls.reset();
+      reader.readLocators('http://assets/a.glb');
+      reader.readLocators('http://assets/b.glb');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(signalOf(0).aborted).toBeTrue();
+      expect(signalOf(1).aborted).toBeFalse();
+    });
+
+    it('aborts the running read on destroy', async () => {
+      const fixture = await setup([]);
+      const reader = fixture.componentInstance as unknown as Reader;
+      fetchSpy.calls.reset();
+      reader.readLocators('http://assets/a.glb');
+      fixture.destroy();
+      expect(signalOf(0).aborted).toBeTrue();
+    });
   });
 });

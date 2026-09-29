@@ -48,7 +48,9 @@ function makeCodexServiceStub(): Partial<CodexService> {
     getEntityPayloads: async () => new Map(),
     listByKind: async () => ({ rows: [], count: 0 }) as never,
     countItemsByAttachType: async () => new Map(),
-    armorRating: async () => [],
+    armorRating: async () => ({ rows: [] }),
+    buildRefresh: signal(0),
+    liveMovedNotice: signal<string | null>(null),
   };
 }
 
@@ -170,21 +172,54 @@ describe('CodexSetComponent', () => {
         pct: { protection: 72, mobility: 1, gForce: 0, heat: 89, cold: 91, radiation: 70, scrub: 16, carry: null },
       },
     ];
-    const armorRating = jasmine.createSpy('armorRating').and.resolveTo(rows);
+    const armorRating = jasmine.createSpy('armorRating').and.resolveTo({ rows });
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A], codex: { ...makeCodexServiceStub(), armorRating } });
     expect(armorRating).toHaveBeenCalledWith(jasmine.arrayWithExactContents(['Test_Helmet', 'Test_Torso']));
     expect(fixture.componentInstance.ratingRows()).toBe(rows);
     expect(fixture.componentInstance.ratingLoading()).toBe(false);
+    expect(fixture.componentInstance.ratingFailed()).toBe(false);
   });
 
-  it('keeps an honest gap when the rating function is not there yet', async () => {
+  it('keeps an honest gap when there is no rating for the build', async () => {
     const fixture = await setup({
       id: 'set-a',
       loadouts: [SET_A],
-      codex: { ...makeCodexServiceStub(), armorRating: async () => null },
+      codex: { ...makeCodexServiceStub(), armorRating: async () => ({ rows: null }) },
     });
     expect(fixture.componentInstance.ratingRows()).toBeNull();
     expect(fixture.componentInstance.ratingLoading()).toBe(false);
+    expect(fixture.componentInstance.ratingFailed()).toBe(false);
+  });
+
+  it('shows a failed rating read as failed, and the retry reads only the rating again', async () => {
+    const armorRating = jasmine
+      .createSpy('armorRating')
+      .and.returnValues(Promise.resolve({ failed: true, error: new Error('timeout') }), Promise.resolve({ rows: [] }));
+    const resolveEntities = jasmine.createSpy('resolveEntities').and.resolveTo(new Map());
+    const fixture = await setup({
+      id: 'set-a',
+      loadouts: [SET_A],
+      codex: { ...makeCodexServiceStub(), armorRating, resolveEntities } as Partial<CodexService>,
+    });
+    const page = fixture.componentInstance;
+    expect(page.ratingFailed()).toBe(true);
+    expect(page.ratingRows()).toBeNull();
+
+    page.retryRating();
+    await fixture.whenStable();
+    expect(armorRating).toHaveBeenCalledTimes(2);
+    expect(resolveEntities).toHaveBeenCalledTimes(1);
+    expect(page.ratingFailed()).toBe(false);
+    expect(page.ratingRows()).toEqual([]);
+  });
+
+  it('marks the rating failed when the build lookup behind it throws', async () => {
+    const fixture = await setup({
+      id: 'set-a',
+      loadouts: [SET_A],
+      codex: { ...makeCodexServiceStub(), armorRating: () => Promise.reject(new Error('build lookup failed')) },
+    });
+    expect(fixture.componentInstance.ratingFailed()).toBe(true);
   });
 
   it('remembers the chosen lens per set', async () => {

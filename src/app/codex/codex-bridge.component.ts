@@ -94,7 +94,8 @@ interface Lane {
                    [attr.placeholder]="'codex.bridge.scannerPlaceholder' | translate" />
             @if (searchInput()) {
               <button class="scanner-clear" type="button" (click)="clearSearch()"
-                      [attr.aria-label]="'codex.search.clear' | translate">×</button>
+                      [attr.aria-label]="'codex.search.clear' | translate"
+                      [scTooltip]="'codex.search.clear' | translate">×</button>
             }
           </div>
           <a class="index-link" routerLink="/codex/index">{{ 'codex.bridge.indexMode' | translate }}</a>

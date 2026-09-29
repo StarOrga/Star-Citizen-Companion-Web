@@ -14,6 +14,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { CodexListRow, CodexService } from '../codex/codex.service';
 import { AnalyticsService } from '../core/analytics.service';
 import { HangarService } from './hangar.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Hangar import from a user-provided export file (#136, option 3).
@@ -47,7 +48,7 @@ const MAX_ENTRIES = 200;
 @Component({
   selector: 'sc-hangar-import',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="import sc-card"
@@ -60,7 +61,8 @@ const MAX_ENTRIES = 200;
         <div class="head">
           <h3>{{ 'hangar.import.title' | translate }}</h3>
           <button type="button" class="close" (click)="closed.emit()"
-                  [attr.aria-label]="'hangar.import.close' | translate">✕</button>
+                  [attr.aria-label]="'hangar.import.close' | translate"
+                  [scTooltip]="'hangar.import.close' | translate">✕</button>
         </div>
         <p class="hint">{{ 'hangar.import.hint' | translate }}</p>
         <!-- Discovery: the extension is the no-file path to the same screen -->

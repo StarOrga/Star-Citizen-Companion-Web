@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { ImpersonationService } from '../auth/impersonation.service';
+import { createReadDeadlineFetch } from './deadline';
 
 /**
  * In-memory, no-op storage for the anon preview client. It deliberately
@@ -24,6 +25,10 @@ class InMemoryNoopStorage {
   }
 }
 
+// PostgREST base of the project, with the trailing slash the deadline wrapper
+// matches against (`<url>/rest/v1/<table>` and `<url>/rest/v1/rpc/<name>`).
+const REST_BASE = `${environment.supabase.url.replace(/\/+$/, '')}/rest/v1/`;
+
 // Single-flight lock passthrough shared by both clients — see the comment
 // on `realClient` below for why Navigator-Lock is disabled entirely.
 function lockPassthrough<R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> {
@@ -34,7 +39,15 @@ function lockPassthrough<R>(_name: string, _acquireTimeout: number, fn: () => Pr
 export class SupabaseClientProvider {
   private readonly imp = inject(ImpersonationService);
 
-  /** The real, session-bearing client. All auth operations MUST use this one. */
+  /**
+   * The real, session-bearing client. All auth operations MUST use this one.
+   *
+   * Read deadline: `global.fetch` gives every PostgREST read (GET/HEAD and the
+   * read-only RPCs in `READ_RPCS`) a 20 s deadline, so a hanging read ends in
+   * the reader's error card instead of an endless skeleton. 20 s sits above the
+   * `authenticated` statement timeout (8 s) plus transfer. Writes, auth,
+   * storage and functions pass through untouched. See `./deadline.ts`.
+   */
   readonly realClient: SupabaseClient = createClient(
     environment.supabase.url,
     environment.supabase.publishableKey,
@@ -52,6 +65,7 @@ export class SupabaseClientProvider {
         // token rotation makes the lock redundant here.
         lock: lockPassthrough,
       },
+      global: { fetch: createReadDeadlineFetch(REST_BASE) },
     },
   );
 
@@ -73,6 +87,7 @@ export class SupabaseClientProvider {
           storage: new InMemoryNoopStorage(),
           lock: lockPassthrough,
         },
+        global: { fetch: createReadDeadlineFetch(REST_BASE) },
       });
     }
     return this._anonClient;

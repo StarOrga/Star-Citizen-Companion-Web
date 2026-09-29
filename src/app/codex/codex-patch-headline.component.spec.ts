@@ -60,6 +60,8 @@ describe('CodexPatchHeadlineComponent', () => {
     const codex: Partial<CodexService> = {
       build: active as never,
       liveBuild: signal(liveBuild) as never,
+      buildRefresh: signal(0) as never,
+      liveMovedNotice: signal<string | null>(null) as never,
       stale: signal(opts.stale ?? false) as never,
       viewingPastPatch: computed(() => !!liveBuild && active()?.id !== liveBuild.id) as never,
       patchTimeline: timeline as never,
@@ -128,6 +130,15 @@ describe('CodexPatchHeadlineComponent', () => {
     // Resting control: nothing loaded, nothing shown.
     expect(el.querySelector('.patch-pop')).toBeNull();
     expect(TestBed.inject(CodexService).loadPatchTimeline).not.toHaveBeenCalled();
+  });
+
+  // AUD-188: the row title carries a localised stamp, not the raw ISO string.
+  it('titles a patch row with a localised date, never the raw ISO stamp', async () => {
+    const fixture = await setup();
+    const [entry] = buildPatchTimeline([build('4.2')], []);
+    const title = fixture.componentInstance.rowTitle(entry);
+    expect(title).toContain('4.2');
+    expect(title).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
   });
 
   it('loads the patch list on the FIRST open and caps it at the last three', async () => {
@@ -278,5 +289,24 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(el.querySelector<HTMLAnchorElement>('.status-stale')?.getAttribute('href')).toContain(
       '/uploader',
     );
+  });
+
+  it('says once that the catalog moved to a newer LIVE build, and can be dismissed', async () => {
+    const fixture = await setup();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.patch-notice')).toBeNull();
+
+    const svc = TestBed.inject(CodexService);
+    svc.liveMovedNotice.set('4.3');
+    fixture.detectChanges();
+    const notice = el.querySelector('.patch-notice');
+    expect(notice).not.toBeNull();
+    expect(notice!.getAttribute('role')).toBe('status');
+    expect(notice!.textContent).toContain('codex.landing.patchSwitch.liveMoved');
+
+    el.querySelector<HTMLButtonElement>('.patch-notice-x')!.click();
+    fixture.detectChanges();
+    expect(svc.liveMovedNotice()).toBeNull();
+    expect(el.querySelector('.patch-notice')).toBeNull();
   });
 });

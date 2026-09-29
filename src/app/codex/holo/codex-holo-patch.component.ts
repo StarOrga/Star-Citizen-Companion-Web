@@ -20,6 +20,8 @@ import { toErrorKey } from '../../core/describe-error';
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../../auth/role.service';
+import { LocaleService } from '../../core/locale/locale.service';
+import { formatScDate } from '../../core/locale/date-format';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
 import { CodexService } from '../codex.service';
 import { CodexBuild, isReExtractPending } from '../codex.types';
@@ -318,6 +320,7 @@ export class CodexHoloPatchComponent {
 
   private readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
+  private readonly locale = inject(LocaleService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly panelId = 'codex-holo-patch-pop';
@@ -380,7 +383,12 @@ export class CodexHoloPatchComponent {
 
   rowTitle(b: CodexBuild): string | null {
     if (!this.isFinalised(b)) return null;
-    return b.extractedAt ? `${b.patchVersion} · ${b.extractedAt}` : null;
+    return b.extractedAt ? `${b.patchVersion} · ${this.stamp(b.extractedAt)}` : null;
+  }
+
+  /** Localised date + time for a build stamp — never the raw ISO string (AUD-188). */
+  private stamp(iso: string): string {
+    return formatScDate(iso, { language: this.locale.language(), region: this.locale.region(), style: 'datetime' });
   }
 
   toggle(): void {

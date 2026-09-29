@@ -1,7 +1,87 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.109.0",
+  "current": "0.111.0",
   "releases": [
+    {
+      "version": "0.111.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Hängende Ladevorgänge enden nach 20 Sekunden.",
+              "text": "Codex, Hangar, Admin-Listen, Token- und Konzeptseite zeigen dann ihre Fehlerkarte mit „Erneut versuchen“, statt endlos zu laden."
+            },
+            {
+              "title": "Der Login-Start kann die App nicht mehr blockieren.",
+              "text": "Hängt das Lesen der Sitzung, gilt der Besuch nach spätestens 10 Sekunden als abgemeldet."
+            },
+            {
+              "title": "Ein lange offener Codex-Tab bemerkt einen neuen Patch.",
+              "text": "Beim Zurückkehren in den Tab wechselt der Katalog auf den neuen LIVE-Build und sagt das einmal; wer bewusst einen alten Patch liest, bleibt dort."
+            },
+            {
+              "title": "Set-Einordnung und 3D-Figur sind robuster, die App startet offline mit Texten.",
+              "text": "Die Einordnung zeigt einen Fehler mit „Erneut versuchen“, die 3D-Figur fällt bei einem Grafikfehler auf die gezeichnete Figur zurück, und die installierte App lädt Übersetzungen aus dem Cache."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.110.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Säulen im Stabilitätsverlauf sind echte Links.",
+              "text": "Mittelklick, Strg-Klick und „In neuem Tab öffnen“ führen ins Patch-Dossier, ein aktiver Suchbegriff wird mitgenommen."
+            },
+            {
+              "title": "Strg-Klick lässt Download-Menüs offen.",
+              "text": "App-Menü, Verse-Status-Chip und Starscape-Hinweis schließen sich nur noch bei einem einfachen Klick."
+            },
+            {
+              "title": "„Zum Hangar hinzufügen“ zeigt Lade- und Fehlerzustand.",
+              "text": "Auf der Codex-Detailseite und in der Schnellsuche ist der Knopf während des Speicherns gesperrt, ein Fehlschlag wird gemeldet."
+            },
+            {
+              "title": "Sprache folgt dem Konto, Rohbezeichner sind weg.",
+              "text": "Nach einem Kontowechsel im selben Tab gilt die Sprache des neuen Profils; Inspector, Patch-Tooltips und Skin-Tags zeigen lesbare Namen und lokale Daten."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.110.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Auswahllisten öffnen überall im App-Look.",
+              "text": "Sprache, Region, Meldekategorie, Teilen mit Freund, Sperrdauer, Freigabe-Ring und Kanal nutzen jetzt die eigene Liste statt der Systemliste – auf Android kommt kein Vollbild-Rad mehr."
+            },
+            {
+              "title": "Keine Browser-Tooltips mehr.",
+              "text": "Status-Banner, Patch-Zeilen, Analyse-Lücken, Holo-Badge, Hardpoint-Karte und Wochenwerte zeigen ihren Hinweis im App-Tooltip; Analyse-Lücken und Hardpoint-Marker sind auch per Tastatur erreichbar."
+            },
+            {
+              "title": "Symbol-Knöpfe sagen, was sie tun.",
+              "text": "Rund 40 Knöpfe wie ✕, ✎ oder Minimieren zeigen ihren Namen als Tooltip; der Schließen-Knopf im Holo-Inspector nennt wieder die Esc-Taste."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.109.0",
       "date": "2026-09-29",

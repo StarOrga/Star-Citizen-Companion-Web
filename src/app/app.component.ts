@@ -112,26 +112,39 @@ export class AppComponent implements OnInit {
 
   /**
    * Guards the preference race: the profile's locale columns are applied only
-   * ONCE, on the first post-login load. Without this flag a language the user
-   * changes in the same session would be clobbered the next time the auth
-   * signal re-emits (e.g. token refresh).
+   * ONCE PER ACCOUNT, on its first post-login load. Without this a language the
+   * user changes in the same session would be clobbered the next time the auth
+   * signal re-emits (e.g. token refresh). Holding the account id (not a flag)
+   * lets a sign-out + sign-in as someone else in the same tab apply the new
+   * account's profile (AUD-198).
    */
-  private appliedProfileLocale = false;
+  private appliedProfileFor: string | null = null;
 
   constructor() {
     // After auth is ready and a user appears, load their stored locale
-    // preferences and apply them — but only on the initial post-login load, so
-    // a switch made in the current session is never overridden (see flag).
+    // preferences and apply them — once per account, so a switch made in the
+    // current session is never overridden (see appliedProfileFor).
     effect(() => {
       const user = this.auth.user();
-      if (!user || this.appliedProfileLocale) return;
-      this.appliedProfileLocale = true;
+      if (!user) {
+        // Only clean up after a profile was applied — the boot (user() starts
+        // null) stays untouched.
+        if (this.appliedProfileFor !== null) {
+          this.appliedProfileFor = null;
+          this.locale.clearProfile();
+        }
+        return;
+      }
+      if (this.appliedProfileFor === user.id) return;
+      this.appliedProfileFor = user.id;
       this.sb.client
         .from('profiles')
         .select('preferred_lang, preferred_region')
         .eq('id', user.id)
         .maybeSingle()
         .then(({ data }) => {
+          // A late answer for account A must not land after a switch to B.
+          if (this.appliedProfileFor !== user.id) return;
           // LocaleService ignores anything unusable — legacy languages
           // (fr/es/…) that have no real translation (issue #23), NULL columns,
           // and a `preferred_region` that is absent because the migration has

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, input, untracked, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { formatNumber } from './codex-format';
 import { DefensivePanel, OffensivePanel } from './codex-loadout-stats';
 
@@ -150,7 +151,13 @@ const PANEL_STYLES = `
              oben und der Alpha wert der steht unten auch! Also raus damit"*).
              It is a peek at what is folded away, so it belongs to the folded
              state only — open the panel and the table is the single source. -->
-        @if (!open() && hint(); as h) { <span class="head-peek">{{ h }}</span> }
+        @if (!open() && hintParts(); as h) {
+          <span class="head-peek">
+            @if (h.dps) { {{ 'codex.analysis.offensive.hintDps' | translate: { value: h.dps } }} }
+            @if (h.dps && h.alpha) { · }
+            @if (h.alpha) { {{ 'codex.analysis.offensive.hintAlpha' | translate: { value: h.alpha } }} }
+          </span>
+        }
         <span class="fold-hint">{{ 'codex.analysis.readHint' | translate }}</span>
         <span class="chev" [class.open]="open()" aria-hidden="true">›</span>
       </summary>
@@ -261,13 +268,16 @@ export class CodexOffensivePanelComponent {
   readonly startCollapsed = input<boolean>(false);
   readonly open = useCollapse(() => this.startCollapsed());
 
-  hint(): string | null {
+  /**
+   * The formatted numbers for the folded head's peek; the words around them
+   * come from i18n in the template (AUD-188), not from a TS string.
+   */
+  hintParts(): { dps: string | null; alpha: string | null } | null {
     const p = this.panel();
     if (!p || (p.footerDps == null && p.missileSalvoDamage == null)) return null;
-    const parts: string[] = [];
-    if (p.footerDps != null) parts.push(`${this.num(p.footerDps)} DPS`);
-    if (p.footerAlpha != null) parts.push(`${this.num(p.footerAlpha)} Alpha`);
-    return parts.join(' · ') || null;
+    const dps = p.footerDps != null ? this.num(p.footerDps) : null;
+    const alpha = p.footerAlpha != null ? this.num(p.footerAlpha) : null;
+    return dps || alpha ? { dps, alpha } : null;
   }
 
   num(v: number): string {
@@ -377,7 +387,7 @@ export interface ShipFactGroup {
 @Component({
   selector: 'sc-codex-ship-panel',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
@@ -392,7 +402,16 @@ export interface ShipFactGroup {
           <dl class="fact-grid">
             @for (r of g.rows; track r.labelKey) {
               <dt>{{ r.labelKey | translate }}</dt>
-              <dd [attr.title]="r.value == null && r.gapKey ? (r.gapKey | translate) : null">{{ r.value ?? '—' }}</dd>
+              <dd>
+                @if (r.value == null && r.gapKey) {
+                  <!-- Focusable anchor: the reason for the gap is the only
+                       content, so keyboard users must reach it too. -->
+                  <span class="gap-dash" tabindex="0" role="img" [attr.aria-label]="r.gapKey | translate"
+                        [scTooltip]="r.gapKey | translate" scTooltipTier="label">—</span>
+                } @else {
+                  {{ r.value ?? '—' }}
+                }
+              </dd>
             }
           </dl>
           @if (g.note) { <p class="note">{{ g.note }}</p> }

@@ -4,6 +4,55 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.111.0] - 2026-09-29
+
+### Fixed
+
+- **Hängende Ladevorgänge enden nach 20 Sekunden.** Codex, Hangar,
+  Admin-Listen, Token- und Konzeptseite zeigen dann ihre Fehlerkarte mit
+  „Erneut versuchen“, statt endlos zu laden.
+- **Der Login-Start kann die App nicht mehr blockieren.** Hängt das Lesen der
+  Sitzung, gilt der Besuch nach spätestens 10 Sekunden als abgemeldet.
+- **Ein lange offener Codex-Tab bemerkt einen neuen Patch.** Beim Zurückkehren
+  in den Tab wechselt der Katalog auf den neuen LIVE-Build und sagt das einmal;
+  wer bewusst einen alten Patch liest, bleibt dort.
+- **Set-Einordnung und 3D-Figur sind robuster, die App startet offline mit
+  Texten.** Die Einordnung zeigt einen Fehler mit „Erneut versuchen“, die
+  3D-Figur fällt bei einem Grafikfehler auf die gezeichnete Figur zurück, und
+  die installierte App lädt Übersetzungen aus dem Cache.
+
+## [0.110.1] - 2026-09-29
+
+### Fixed
+
+- **Säulen im Stabilitätsverlauf sind echte Links.** Mittelklick, Strg-Klick
+  und „In neuem Tab öffnen“ führen ins Patch-Dossier, ein aktiver Suchbegriff
+  wird mitgenommen.
+- **Strg-Klick lässt Download-Menüs offen.** App-Menü, Verse-Status-Chip und
+  Starscape-Hinweis schließen sich nur noch bei einem einfachen Klick.
+- **„Zum Hangar hinzufügen“ zeigt Lade- und Fehlerzustand.** Auf der
+  Codex-Detailseite und in der Schnellsuche ist der Knopf während des
+  Speicherns gesperrt, ein Fehlschlag wird gemeldet.
+- **Sprache folgt dem Konto, Rohbezeichner sind weg.** Nach einem Kontowechsel
+  im selben Tab gilt die Sprache des neuen Profils; Inspector, Patch-Tooltips
+  und Skin-Tags zeigen lesbare Namen und lokale Daten.
+
+## [0.110.0] - 2026-09-29
+
+### Changed
+
+- **Auswahllisten öffnen überall im App-Look.** Sprache, Region,
+  Meldekategorie, Teilen mit Freund, Sperrdauer, Freigabe-Ring und Kanal nutzen
+  jetzt die eigene Liste statt der Systemliste – auf Android kommt kein
+  Vollbild-Rad mehr.
+- **Keine Browser-Tooltips mehr.** Status-Banner, Patch-Zeilen, Analyse-Lücken,
+  Holo-Badge, Hardpoint-Karte und Wochenwerte zeigen ihren Hinweis im
+  App-Tooltip; Analyse-Lücken und Hardpoint-Marker sind auch per Tastatur
+  erreichbar.
+- **Symbol-Knöpfe sagen, was sie tun.** Rund 40 Knöpfe wie ✕, ✎ oder Minimieren
+  zeigen ihren Namen als Tooltip; der Schließen-Knopf im Holo-Inspector nennt
+  wieder die Esc-Taste.
+
 ## [0.109.0] - 2026-09-29
 
 ### Changed

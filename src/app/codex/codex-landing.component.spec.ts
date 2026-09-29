@@ -108,6 +108,8 @@ describe('CodexLandingComponent', () => {
       // assertions — the switch has its own spec.
       liveBuild: signal(null) as never,
       viewingPastPatch: signal(false) as never,
+      buildRefresh: signal(0) as never,
+      liveMovedNotice: signal<string | null>(null) as never,
       patchTimeline: signal([]) as never,
       patchTimelineError: signal<string | null>(null) as never,
       loadPatchTimeline: jasmine.createSpy('loadPatchTimeline').and.resolveTo([]),

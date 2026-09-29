@@ -1,6 +1,6 @@
 import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { ScSelectComponent, ScSelectOption } from './sc-select.component';
 
 const OPTIONS: readonly ScSelectOption[] = [
@@ -370,5 +370,70 @@ describe('ScSelectComponent — disabled options', () => {
     key('ArrowUp'); // nothing enabled above — stays on "all"
     key('Enter');
     expect(fixture.componentInstance.value()).toBe('all');
+  });
+});
+
+/**
+ * A translated label with interpolation — the suspension length reads
+ * "{{days}} days", so the option carries its parameters next to the key.
+ */
+@Component({
+  standalone: true,
+  imports: [ScSelectComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
+  template: `
+    <sc-select
+      [options]="options"
+      [value]="value()"
+      [allowEmpty]="false"
+      (valueChange)="value.set($event)"
+    />
+  `,
+})
+class ParamsHostComponent {
+  readonly options: readonly ScSelectOption[] = [
+    { value: 'x', labelKey: 'forever' },
+    { value: '7', labelKey: 'd', labelParams: { days: 7 } },
+  ];
+  readonly value = signal<string | null>('x');
+}
+
+describe('ScSelectComponent — labelParams', () => {
+  let fixture: ComponentFixture<ParamsHostComponent>;
+  const trigger = () => fixture.nativeElement.querySelector('.trigger') as HTMLButtonElement;
+  const key = (k: string) => {
+    trigger().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    fixture.detectChanges();
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ParamsHostComponent],
+      providers: [provideTranslateService()],
+    }).compileComponents();
+    const i18n = TestBed.inject(TranslateService);
+    i18n.setTranslation('en', { d: '{{days}} days', forever: 'Forever' });
+    i18n.use('en');
+    fixture = TestBed.createComponent(ParamsHostComponent);
+    fixture.detectChanges();
+  });
+
+  it('interpolates the parameters on the trigger and in the list', () => {
+    trigger().click();
+    fixture.detectChanges();
+    const labels = Array.from(
+      fixture.nativeElement.querySelectorAll('.option .label') as NodeListOf<HTMLElement>,
+    ).map((e) => e.textContent!.trim());
+    expect(labels).toEqual(['Forever', '7 days']);
+
+    fixture.componentInstance.value.set('7');
+    fixture.detectChanges();
+    expect(trigger().textContent!.trim()).toBe('7 days');
+  });
+
+  it('jumps to the interpolated text when typing', () => {
+    key('7');
+    key('Enter');
+    expect(fixture.componentInstance.value()).toBe('7');
   });
 });

@@ -353,22 +353,21 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                                   [placeholder]="'admin.moderation.reasonPlaceholder' | translate"></textarea>
                       </label>
                       @if (modMode() === 'suspend') {
-                        <label class="mod-field">
+                        <div class="mod-field">
                           <span class="inline-label">{{ 'admin.moderation.duration' | translate }}</span>
                           <!-- modDaysValue, not modDays(): "indefinite" is
-                               null in the model and '' in the DOM, and binding
-                               the null straight in leaves the select matching
-                               no option at all — visibly blank. -->
-                          <select class="sc-select" [value]="modDaysValue()" (change)="onModDays($event)">
-                            @for (d of durations; track d) {
-                              <option [value]="d === null ? '' : d">
-                                {{ d === null
-                                    ? ('admin.moderation.durations.indefinite' | translate)
-                                    : ('admin.moderation.durations.days' | translate: { days: d }) }}
-                              </option>
-                            }
-                          </select>
-                        </label>
+                               null in the model but the option value
+                               "indefinite" here — sc-select reserves the empty
+                               string for "nothing picked". A div, not a label:
+                               a label would snap the open list shut. -->
+                          <sc-select
+                            [options]="durationOptions"
+                            [allowEmpty]="false"
+                            [value]="modDaysValue()"
+                            [ariaLabel]="'admin.moderation.duration' | translate"
+                            (valueChange)="onModDays($event)"
+                          />
+                        </div>
                       }
                       <p class="hint small">{{ 'admin.moderation.reasonVisible' | translate }}</p>
                       @if (moderation.error(); as key) {
@@ -874,7 +873,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
-    .mod-field .text-input, .mod-field .sc-select {
+    .mod-field .text-input {
       padding: 8px 10px;
       background: var(--sc-bg-0);
       color: var(--sc-fg-0);
@@ -885,7 +884,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       width: 100%;
       box-sizing: border-box;
     }
-    .mod-field .text-input:focus, .mod-field .sc-select:focus {
+    .mod-field .text-input:focus {
       outline: none;
       border-color: var(--sc-accent);
     }
@@ -908,7 +907,6 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
        hair off every measured box, so a 44px target measures 43. */
     @media (pointer: coarse) {
       .mod-actions .sc-btn, .mod-form-actions .sc-btn { min-height: 48px; }
-      .mod-field .sc-select { min-height: 48px; }
     }
     @media (max-width: 560px) {
       .mod-actions .sc-btn, .mod-form-actions .sc-btn { flex: 1 1 100%; }
@@ -1075,7 +1073,11 @@ export class AdminComponent implements OnInit {
   // ── Moderation (feedback cf0ddf7d phase 2) ────────────────────────────────
 
   readonly moderation = inject(ModerationService);
-  readonly durations = SUSPENSION_DURATIONS;
+  readonly durationOptions: readonly ScSelectOption[] = SUSPENSION_DURATIONS.map((d) =>
+    d === null
+      ? { value: 'indefinite', labelKey: 'admin.moderation.durations.indefinite' }
+      : { value: String(d), labelKey: 'admin.moderation.durations.days', labelParams: { days: d } },
+  );
   readonly modReasonMax = MODERATION_REASON_MAX;
 
   /** Which account's moderation form is open, and in which mode. */
@@ -1088,10 +1090,10 @@ export class AdminComponent implements OnInit {
 
   readonly modReasonValid = computed(() => isValidModerationReason(this.modReason()));
 
-  /** `modDays()` as the `<option value>` strings — null (indefinite) is ''. */
+  /** `modDays()` as the list's option values — null (indefinite) is 'indefinite'. */
   readonly modDaysValue = computed(() => {
     const d = this.modDays();
-    return d === null ? '' : String(d);
+    return d === null ? 'indefinite' : String(d);
   });
 
   /**
@@ -1647,9 +1649,8 @@ export class AdminComponent implements OnInit {
     this.modReason.set((event.target as HTMLTextAreaElement).value);
   }
 
-  onModDays(event: Event): void {
-    const raw = (event.target as HTMLSelectElement).value;
-    this.modDays.set(raw === '' ? null : Number(raw));
+  onModDays(value: string | null): void {
+    this.modDays.set(value === null || value === 'indefinite' ? null : Number(value));
   }
 
   async submitModeration(u: AdminUserRow): Promise<void> {

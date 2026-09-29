@@ -1,6 +1,6 @@
 import { toErrorKey } from '../core/describe-error';
 import { logWarn } from '../core/log';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
@@ -115,6 +115,13 @@ export interface CodexFacetValues {
  * (migration 20260926140000_codex_armor_rating.sql) — see `set-rating.ts` for
  * the pure domain logic (`rankSet`/`lensValueFor`) this data feeds.
  */
+/**
+ * What `armorRating` answers. `rows: null` is "no rating for this build" (no
+ * LIVE row, an empty RPC answer) — retrying does not help there. `failed` is a
+ * read that went wrong (RPC error, timeout, network) — the card offers a retry.
+ */
+export type ArmorRatingResult = { rows: ArmorRatingRow[] | null } | { failed: true; error: unknown };
+
 export interface ArmorRatingRow {
   className: string;
   slot: 'helmet' | 'core' | 'arms' | 'legs' | 'undersuit' | 'backpack';
@@ -362,6 +369,11 @@ const COHORT_CHUNK = 25;
 /** Hand the event loop back so layout, paint and input can run. `setTimeout`
  * (not a microtask) is deliberate — a resolved promise would re-enter before
  * the browser gets to render. */
+/** Least time between two LIVE-build re-checks (tab focus is frequent). */
+export const REVALIDATE_MIN_GAP_MS = 5 * 60 * 1000;
+/** Re-check cadence for a tab that simply stays open and visible. */
+const REVALIDATE_INTERVAL_MS = 30 * 60 * 1000;
+
 function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -375,6 +387,7 @@ export class CodexService {
    * any build; it holds no reference back to this service, so there is no cycle.
    */
   private readonly upcoming = inject(UpcomingShipsService);
+  private readonly zone = inject(NgZone);
 
   /** Memoized {@link weaponFacets} read, invalidated by a change of build. */
   private weaponFacetCache: { buildId: string; rows: WeaponFacetRow[] } | null = null;
@@ -387,7 +400,7 @@ export class CodexService {
   /** `facetValues` answers, per build + kind (in flight or done) — see facetValues. */
   private readonly facetValuesCache = new Map<string, Promise<CodexFacetValues | null>>();
   /** `armorRating` answers, per build + class-name set (in flight or done) — see armorRating. */
-  private readonly armorRatingCache = new Map<string, Promise<ArmorRatingRow[] | null>>();
+  private readonly armorRatingCache = new Map<string, Promise<ArmorRatingResult>>();
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -405,6 +418,16 @@ export class CodexService {
   readonly buildError = signal<string | null>(null);
   /** The original failure behind `buildError` — `buildOrThrow` rethrows it so readers can classify it. */
   private buildFailure: unknown = null;
+
+  /**
+   * Bumped when the SERVICE moved the reader to another build (a new LIVE
+   * build replaced the one on screen); readers reload on it.
+   */
+  readonly buildRefresh = signal(0);
+  /** Patch version of a LIVE build the reader was just moved to — a one-off notice; null when none. */
+  readonly liveMovedNotice = signal<string | null>(null);
+  private lastRevalidation = 0;
+  private revalidationArmed = false;
 
   /**
    * Newest LIVE patch version anyone has uploaded (from the viewer-safe
@@ -492,24 +515,16 @@ export class CodexService {
     this.buildError.set(null);
     this.buildFailure = null;
     try {
-      const { data, error } = await this.sb.client
-        .from('codex_builds')
-        .select(
-          'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
-        )
-        .eq('channel', 'LIVE')
-        .eq('is_current', true)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) {
+      const mapped = await this.readCurrentLiveBuild();
+      if (!mapped) {
         this.build.set(null);
         return null;
       }
-      const mapped = mapBuild(data);
       this.build.set(mapped);
       this.liveBuild.set(mapped);
       // Fire-and-forget: freshness check must never block or fail the build load.
       void this.loadLatestLivePatch();
+      this.armRevalidation();
       return mapped;
     } catch (err) {
       this.buildFailure = err;
@@ -518,6 +533,95 @@ export class CodexService {
     } finally {
       this.buildLoading.set(false);
     }
+  }
+
+  /** The `is_current` LIVE row, or null when there is none. Throws on a failed read. */
+  private async readCurrentLiveBuild(): Promise<CodexBuild | null> {
+    const { data, error } = await this.sb.client
+      .from('codex_builds')
+      .select(
+        'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+      )
+      .eq('channel', 'LIVE')
+      .eq('is_current', true)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapBuild(data) : null;
+  }
+
+  /**
+   * Re-reads the LIVE build, so a tab left open for hours notices a new one
+   * (audit AUD-042). Throttled to once per {@link REVALIDATE_MIN_GAP_MS}.
+   *
+   * - A reader on live is moved to the new build: the lists reload
+   *   ({@link buildRefresh}) and the patch line says so once
+   *   ({@link liveMovedNotice}).
+   * - A reader who deliberately reads an older patch stays there —
+   *   `viewingPastPatch()` is now true and the equip lock applies — unless that
+   *   build was deleted; then they land on the new live build.
+   *
+   * Best-effort: a failed read is logged, never written to `buildError`.
+   */
+  async revalidateLiveBuild(): Promise<void> {
+    const live = this.liveBuild();
+    if (!live) return;
+    const now = Date.now();
+    if (now - this.lastRevalidation < REVALIDATE_MIN_GAP_MS) return;
+    this.lastRevalidation = now;
+    let fresh: CodexBuild | null;
+    try {
+      fresh = await this.readCurrentLiveBuild();
+    } catch (e) {
+      logWarn('codex', 'live build revalidation failed', e);
+      return;
+    }
+    if (!fresh || fresh.id === live.id) return;
+    const active = this.build();
+    const wasOnLive = active?.id === live.id;
+    this.liveBuild.set(fresh);
+    if (wasOnLive || !active) {
+      this.movedToLive(fresh);
+    } else if (!(await this.buildStillExists(active.id))) {
+      this.movedToLive(fresh);
+    }
+    void this.loadLatestLivePatch();
+  }
+
+  private movedToLive(fresh: CodexBuild): void {
+    this.selectBuild(null);
+    this.liveMovedNotice.set(fresh.patchVersion);
+    this.buildRefresh.update((n) => n + 1);
+  }
+
+  /** Whether an older build the reader picked is still there. A failed read answers true (stay put). */
+  private async buildStillExists(id: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.sb.client.from('codex_builds').select('id').eq('id', id).maybeSingle();
+      if (error) throw error;
+      return !!data;
+    } catch (e) {
+      logWarn('codex', 'past build check failed', e);
+      return true;
+    }
+  }
+
+  /**
+   * Arms the LIVE-build re-check once, in the browser only: on every return to
+   * the tab (visibilitychange → visible) and every 30 min while it stays open.
+   * The service is root-scoped and lives as long as the page, so neither the
+   * listener nor the interval is ever removed.
+   */
+  private armRevalidation(): void {
+    if (this.revalidationArmed || typeof document === 'undefined') return;
+    this.revalidationArmed = true;
+    this.lastRevalidation = Date.now();
+    const run = () => this.zone.run(() => void this.revalidateLiveBuild());
+    this.zone.runOutsideAngular(() => {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') run();
+      });
+      setInterval(run, REVALIDATE_INTERVAL_MS);
+    });
   }
 
   /**
@@ -821,12 +925,14 @@ export class CodexService {
    * radiation/scrub/carry percentiles) for exactly the given class names,
    * under the current build — the source for the set page's rating card
    * (`set-rating.ts` `rankSet`/`lensValueFor`). Cached per build + class-name
-   * set; a failed or not-yet-deployed RPC returns null so the caller can hide
-   * the rating card instead of breaking the page, same idiom as facetValues.
+   * set. A failed read answers `{ failed: true, error }` so the card can say so
+   * and offer a retry (AUD-016); it is never cached. A failed build lookup
+   * throws, like every other reader.
    */
-  async armorRating(classNames: readonly string[]): Promise<ArmorRatingRow[] | null> {
+  async armorRating(classNames: readonly string[]): Promise<ArmorRatingResult> {
     const build = await this.buildOrThrow();
-    if (!build || classNames.length === 0) return classNames.length === 0 ? [] : null;
+    if (classNames.length === 0) return { rows: [] };
+    if (!build) return { rows: null };
     const key = `${build.id}|${[...classNames].sort().join(',')}`;
     let pending = this.armorRatingCache.get(key);
     if (!pending) {
@@ -839,26 +945,35 @@ export class CodexService {
       this.armorRatingCache.set(key, pending);
     }
     const result = await pending;
-    if (result === null) this.armorRatingCache.delete(key); // a failed read is asked again next time
+    // A failed or empty read is asked again next time.
+    if ('failed' in result || result.rows === null) this.armorRatingCache.delete(key);
     return result;
   }
 
   private async fetchArmorRating(
     buildId: string,
     classNames: readonly string[],
-  ): Promise<ArmorRatingRow[] | null> {
-    try {
-      const { data, error } = await this.sb.client.rpc('codex_armor_rating', {
-        p_build_id: buildId,
-        p_class_names: [...classNames],
-      });
-      if (error) logWarn('codex', 'armor rating failed', { buildId, error });
-      if (error || !data) return null;
-      return data as ArmorRatingRow[];
-    } catch (error) {
-      logWarn('codex', 'armor rating failed', { buildId, error });
-      return null;
+  ): Promise<ArmorRatingResult> {
+    let lastError: unknown = null;
+    // A cold cache can run into the statement timeout (57014) or a 5xx; the
+    // second, warm call answers well under 2 s — so one automatic retry.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data, error, status } = await this.sb.client.rpc('codex_armor_rating', {
+          p_build_id: buildId,
+          p_class_names: [...classNames],
+        });
+        if (!error) return { rows: (data as ArmorRatingRow[] | null) ?? null };
+        lastError = error;
+        const transient = (error as { code?: string }).code === '57014' || (status ?? 0) >= 500;
+        if (!transient) break;
+      } catch (error) {
+        lastError = error;
+        break;
+      }
     }
+    logWarn('codex', 'armorRating failed', { buildId, error: lastError });
+    return { failed: true, error: lastError };
   }
 
   /**

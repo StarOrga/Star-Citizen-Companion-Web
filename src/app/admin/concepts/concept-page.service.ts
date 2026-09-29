@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { SupabaseClientProvider } from '../../core/supabase.client';
+import { deadlineSignal } from '../../core/deadline';
 
 /** What `POST concept-page/ticket` answers for an admin. */
 export interface ConceptTicket {
@@ -43,6 +44,8 @@ export class ConceptPageService {
         method: 'POST',
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id }),
+        // Minting a ticket is idempotent, so a deadline is safe here.
+        signal: deadlineSignal(),
       });
     } catch {
       throw new ConceptTicketFailure('error');

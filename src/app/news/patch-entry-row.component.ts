@@ -7,6 +7,7 @@ import { StabilityChipComponent } from './stability-chip.component';
 import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { outlineMatchCount } from './patch-outline';
 import { HighlightSegment, highlightSegments } from './patch-search';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * One patch note in the history — collapsed to a line, expandable to the note
@@ -28,7 +29,7 @@ import { HighlightSegment, highlightSegments } from './patch-search';
 @Component({
   selector: 'sc-patch-entry-row',
   standalone: true,
-  imports: [TranslatePipe, PatchNoteDetailComponent, StabilityChipComponent],
+  imports: [TranslatePipe, PatchNoteDetailComponent, StabilityChipComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="row" [class.open]="open()">
@@ -70,7 +71,8 @@ import { HighlightSegment, highlightSegments } from './patch-search';
         </span>
       </button>
       <a class="rsi" [href]="entry().item.url" target="_blank" rel="noopener noreferrer"
-         [attr.aria-label]="'news.patch.detail.openOnRsiAria' | translate:{ title: entry().item.title }">
+         [attr.aria-label]="'news.patch.detail.openOnRsiAria' | translate:{ title: entry().item.title }"
+         [scTooltip]="'news.patch.detail.openOnRsiAria' | translate:{ title: entry().item.title }">
         <span aria-hidden="true">↗</span>
       </a>
     </div>

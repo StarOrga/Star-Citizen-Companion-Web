@@ -153,7 +153,9 @@ const PER_KIND_LIMIT = 6;
                     @if (inHangar(r.row.classNameSlug)) {
                       <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
                     } @else {
-                      <button type="button" class="add-btn" (click)="addToHangar($event, r.row)">
+                      <button type="button" class="add-btn" (click)="addToHangar($event, r.row)"
+                              [disabled]="adding().has(r.row.classNameSlug)"
+                              [attr.aria-busy]="adding().has(r.row.classNameSlug)">
                         {{ 'quickSearch.addToHangar' | translate }}
                       </button>
                     }
@@ -161,6 +163,11 @@ const PER_KIND_LIMIT = 6;
                 </li>
               }
             </ul>
+          }
+          <!-- Outside the listbox: an alert inside a role="option" row would
+               break the combobox semantics. -->
+          @if (addFailed()) {
+            <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
           }
 
           <p class="qs-nav-hint">{{ 'quickSearch.navHint' | translate }}</p>
@@ -325,6 +332,10 @@ export class QuickSearchComponent {
   readonly activeIndex = signal(0);
   readonly category = signal<SearchCategory>('all');
   readonly categories = SEARCH_CATEGORIES;
+  /** Ship slugs whose add-to-hangar is in flight (AUD-065). */
+  readonly adding = signal<ReadonlySet<string>>(new Set());
+  /** Slug of the last add-to-hangar that failed (AUD-268); cleared by the next search. */
+  readonly addFailed = signal<string | null>(null);
 
   /**
    * Results ordered for the active category: 'all' keeps the merged order;
@@ -501,11 +512,27 @@ export class QuickSearchComponent {
 
   async addToHangar(ev: Event, row: CodexListRow): Promise<void> {
     ev.stopPropagation();
-    await this.hangar.addShip(row.classNameSlug, 'owned');
+    const slug = row.classNameSlug;
+    // A second click while the insert is in flight must not add the ship twice.
+    if (this.adding().has(slug)) return;
+    this.adding.update((s) => new Set(s).add(slug));
+    this.addFailed.set(null);
+    try {
+      if (!(await this.hangar.addShip(slug, 'owned'))) this.addFailed.set(slug);
+    } catch {
+      this.addFailed.set(slug);
+    } finally {
+      this.adding.update((s) => {
+        const next = new Set(s);
+        next.delete(slug);
+        return next;
+      });
+    }
   }
 
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
+    this.addFailed.set(null);
     this.loading.set(true);
     this.searchError.set(null);
     try {

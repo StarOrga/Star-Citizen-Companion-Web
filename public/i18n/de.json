@@ -203,7 +203,9 @@
         "backToCurrent": "Zurück zum aktuellen Patch",
         "loading": "Patches werden geladen …",
         "empty": "Keine weiteren Patches bekannt.",
-        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück.",
+        "liveMoved": "Katalog aktualisiert auf Patch {{patch}}.",
+        "liveMovedDismiss": "Hinweis schließen"
       },
       "patch": {
         "archive": "{{count}} Datensätze im Arsenal",
@@ -1389,6 +1391,14 @@
     "skins": {
       "title": "Lackierungen",
       "source": "Hologramm der Schiffsform · Lackierungen als offizielle Store-Renders",
+      "sourceTag": {
+        "store": "Store",
+        "event": "Event",
+        "subscriber": "Abo",
+        "factory": "Werk",
+        "pu_npc": "NPC (PU)",
+        "other": "Sonstige"
+      },
       "mode3d": "3D-Modell",
       "modePaint": "Paint-Render",
       "no3d": "Kein 3D-Modell verfügbar",
@@ -1670,7 +1680,9 @@
         "lockTime": "Lock-Zeit",
         "range": "Reichweite",
         "targeting": "Zielerfassung",
-        "slowestMissileNote": "Lock-Zeit der langsamsten Rakete."
+        "slowestMissileNote": "Lock-Zeit der langsamsten Rakete.",
+        "hintDps": "{{value}} DPS",
+        "hintAlpha": "{{value}} Alpha"
       },
       "defensive": {
         "title": "Verteidigung",
@@ -1897,6 +1909,7 @@
       },
       "loading": "Wird berechnet …",
       "unavailable": "Die Einordnung erscheint, sobald die Spielwerte geladen sind.",
+      "failed": "Die Einordnung konnte nicht geladen werden.",
       "empty": "Noch keine Rüstung ausgerüstet — die Einordnung erscheint mit dem ersten Teil."
     },
     "setLens": {

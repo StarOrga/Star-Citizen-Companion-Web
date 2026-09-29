@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { reloadOnBuildRefresh } from '../build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -135,7 +136,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
             (pick)="onSetPick($event)"
             (open)="onHangarOpen()"
           />
-          <sc-codex-set-rank-card class="rank" [rows]="ratingRows()" [loading]="ratingLoading()" [names]="resolvedArmor()" />
+          <sc-codex-set-rank-card class="rank" [rows]="ratingRows()" [loading]="ratingLoading()" [failed]="ratingFailed()" [names]="resolvedArmor()" (retry)="retryRating()" />
         </div>
 
         <sc-codex-set-mission-bar [lens]="lens()" (lensChange)="setLens($event)" />
@@ -240,6 +241,8 @@ export class CodexSetComponent implements OnInit {
   /** Rating rows of the equipped armour — null until the SQL function answers (an honest gap in the card). */
   readonly ratingRows = signal<ArmorRatingRow[] | null>(null);
   readonly ratingLoading = signal(false);
+  /** The rating read failed (not "no rating") — the rank card offers a retry. */
+  readonly ratingFailed = signal(false);
 
   /** The Einsatz lens, remembered per set. */
   readonly lens = signal<SetLensId>('all');
@@ -257,6 +260,8 @@ export class CodexSetComponent implements OnInit {
    * is synchronous, so a deep link loads exactly as before.
    */
   constructor() {
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => this.retry());
     // Each set remembers its own lens; a set switch reads that set's choice.
     effect(() => {
       const id = this.activeSet()?.id ?? null;
@@ -307,6 +312,7 @@ export class CodexSetComponent implements OnInit {
       this.armorPayloads.set(new Map());
       this.ratingRows.set(null);
       this.ratingLoading.set(false);
+      this.ratingFailed.set(false);
       return;
     }
     const classNames = active.items.map((i) => i.className).filter((c): c is string => !!c);
@@ -343,20 +349,43 @@ export class CodexSetComponent implements OnInit {
           logWarn('codex', 'set archive depth failed', { set: active.id, error: e });
           land(this.archiveDepth, new Map());
         }),
-      // Rating of the equipped armour (card + lens readouts). null = the SQL
-      // function is not deployed yet — the card names that gap.
-      (async () => {
-        land(this.ratingLoading, true);
-        try {
-          land(this.ratingRows, await this.svc.armorRating(armorClassNames));
-        } catch (e) {
-          logWarn('codex', 'set armor rating failed', { set: active.id, error: e });
-          land(this.ratingRows, null);
-        } finally {
-          land(this.ratingLoading, false);
-        }
-      })(),
+      this.loadRating(seq, active.id, armorClassNames),
     ]);
+  }
+
+  /**
+   * Rating of the equipped armour (card + lens readouts). `rows: null` = no
+   * rating for this build — the card names that gap; a failed read sets
+   * `ratingFailed` and the card offers a retry.
+   */
+  private async loadRating(seq: number, setId: string, armorClassNames: readonly string[]): Promise<void> {
+    const land = <T>(state: WritableSignal<T>, value: T) => {
+      if (seq === this.loadSeq) state.set(value);
+    };
+    land(this.ratingFailed, false);
+    land(this.ratingLoading, true);
+    try {
+      const res = await this.svc.armorRating(armorClassNames);
+      land(this.ratingRows, 'rows' in res ? res.rows : null);
+      land(this.ratingFailed, 'failed' in res);
+    } catch (e) {
+      // The build lookup itself failed.
+      logWarn('codex', 'set armor rating failed', { set: setId, error: e });
+      land(this.ratingRows, null);
+      land(this.ratingFailed, true);
+    } finally {
+      land(this.ratingLoading, false);
+    }
+  }
+
+  /** Reads only the rating of the open set again — the rest of the page stays. */
+  retryRating(): void {
+    const active = this.activeSet();
+    if (!active) return;
+    const armorClassNames = armorSlotsFromLoadout(active.items)
+      .map((s) => s.className)
+      .filter((c): c is string => !!c);
+    void this.loadRating(this.loadSeq, active.id, armorClassNames);
   }
 
   retry(): void {

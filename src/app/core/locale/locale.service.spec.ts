@@ -97,6 +97,16 @@ describe('LocaleService', () => {
     expect(svc.region()).toBe('AT');
   });
 
+  // AUD-198: an account switch in the same tab starts a new preference session.
+  it("applies the next account's profile after clearProfile(), even if the previous one chose a language", () => {
+    const svc = make();
+    svc.setBrowserSignals({ languages: ['en-US'] });
+    svc.setLanguage('de');
+    svc.clearProfile();
+    svc.hydrateFromProfile('en', 'US');
+    expect(svc.language()).toBe('en');
+  });
+
   it('survives junk in localStorage', () => {
     localStorage.setItem(LANG_STORAGE_KEY, 'zz');
     localStorage.setItem(REGION_STORAGE_KEY, 'garbage');

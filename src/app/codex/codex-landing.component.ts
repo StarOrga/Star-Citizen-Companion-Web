@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -119,6 +120,7 @@ const SEARCH_DEBOUNCE_MS = 250;
               type="button"
               (click)="clearSearch()"
               [attr.aria-label]="'codex.landing.terminal.clear' | translate"
+              [scTooltip]="'codex.landing.terminal.clear' | translate"
             >
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                    stroke-linecap="round" aria-hidden="true">
@@ -246,6 +248,13 @@ const SEARCH_DEBOUNCE_MS = 250;
                           : 'codex.compare.pin'
                         ) | translate
                       "
+                      [scTooltip]="
+                        (svc.isPinned(pinKind, hit.classNameSlug)
+                          ? 'codex.compare.pinned'
+                          : 'codex.compare.pin'
+                        ) | translate
+                      "
+                      scTooltipTier="label"
                     >
                       <svg class="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
                            stroke-linejoin="round" aria-hidden="true"
@@ -770,6 +779,9 @@ export class CodexLandingComponent implements OnInit {
   readonly archiveComponentCount = computed(() => this.archiveCount('components'));
 
   constructor() {
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => this.reload());
+
     // `?set=` comes from the URL, and it keeps coming: a bookmarked or
     // middle-clicked link into a specific set has to keep applying, not just
     // on the first load — a snapshot read would only ever catch that one.

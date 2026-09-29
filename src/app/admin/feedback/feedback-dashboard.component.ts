@@ -8,6 +8,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import {
   BoardWeek,
   FeedbackBucket,
@@ -123,7 +124,7 @@ const PACE_DAYS = 30;
 @Component({
   selector: 'sc-feedback-dashboard',
   standalone: true,
-  imports: [TranslatePipe, NgTemplateOutlet],
+  imports: [TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="dash" [class.compact]="compact()">
@@ -185,7 +186,9 @@ const PACE_DAYS = 30;
 
         <div class="spark" role="img" [attr.aria-label]="throughputLabel()">
           @for (w of weeks(); track w.start) {
-            <span class="wk" [class.now]="w.current" [attr.title]="weekTitle(w)">
+            <!-- Pointer-only tooltip, no tabindex per week: screen readers get
+                 every week through the chart's own label. -->
+            <span class="wk" [class.now]="w.current" [scTooltip]="weekTitle(w)" scTooltipTier="label">
               <span class="wk-raised" [style.height.%]="weekPct(w.raised)"></span>
               <span class="wk-shipped" [style.height.%]="weekPct(w.count)"></span>
             </span>
@@ -984,7 +987,10 @@ export class FeedbackDashboardComponent {
     });
   }
 
-  /** Text equivalent of the chart — both series, the peak and the running week. */
+  /**
+   * Text equivalent of the chart — both series, the peak and the running week,
+   * then every week's values (the bars' tooltips are pointer-only).
+   */
   throughputLabel(): string {
     const weeks = this.weeks();
     const shipped = weeks.reduce((sum, w) => sum + w.count, 0);
@@ -995,7 +1001,7 @@ export class FeedbackDashboardComponent {
       raised,
       max: Math.max(0, ...weeks.map((w) => w.count)),
       current: weeks[weeks.length - 1]?.count ?? 0,
-    });
+    }) + ' ' + weeks.map((w) => this.weekTitle(w)).join('; ');
   }
 
   /**
