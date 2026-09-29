@@ -66,9 +66,6 @@
       "sending": "Sending…",
       "resent": "If an account exists for that address, an email with a new link is on its way."
     },
-    "signUp": "Create account",
-    "needAccount": "Need an account?",
-    "haveAccount": "Have an account?",
     "or": "or",
     "continueGoogle": "Continue with Google",
     "inviteOnly": "Access is invite-only. Ask an admin to invite you.",
@@ -122,21 +119,16 @@
   "nav": {
     "news": "Verse News",
     "codex": "Codex",
-    "p4k": "Bundle History",
     "settings": "Settings",
     "admin": "Users",
-    "desktop": "Data Upload",
     "signOut": "Sign out",
     "backToHome": "Back to home",
     "skipToContent": "Skip to content",
     "brandAria": "Star Citizen Companion (SCC) — go to the home page (Verse News)",
     "phaseBadge": "Alpha",
-    "langAria": "Language",
     "accountMenu": "Account menu",
     "adminOnly": "Admin only",
     "telemetry": "Telemetry",
-    "feedback": "Feedback",
-    "signIn": "Sign in",
     "starscape": "Starscape",
     "viewAs": {
       "title": "View as",
@@ -185,7 +177,6 @@
         "label": "Arsenal",
         "armor": "Armour",
         "weapons": "Weapons",
-        "blueprints": "Blueprints",
         "ships": "Ships",
         "components": "Components"
       },
@@ -218,33 +209,12 @@
         "empty": "No matches for “{{term}}”.",
         "upcomingBadge": "Not in game yet"
       },
-      "surface": {
-        "expandBoard": "Expand On board",
-        "expandHangar": "Expand the hangar"
-      },
       "me": {
         "eyebrow": "On board",
         "uncommissioned": "Uncommissioned"
       },
       "fleet": {
-        "eyebrow": "In the hangar",
-        "title": "My Fleet",
-        "flagship": "Flagship",
-        "empty": "No ship claimed yet.",
-        "cta": "Claim your first ship",
-        "ctaGoal": "→ Flight-ready",
-        "open": "Open {{ship}}",
-        "compareHint": "Tip: pin 2+ ships to compare them.",
-        "laneTitle": "Fleet · {{count}} ships",
-        "sortLabel": "Sort the fleet",
-        "sortUnknown": "Unspecified",
-        "sort": {
-          "manufacturer": "Manufacturer",
-          "role": "Role",
-          "recent": "Recently edited"
-        },
-        "emptyLead": "The bay is ready — no hull in it yet.",
-        "emptyArt": "Empty hangar bay with a docking ring"
+        "empty": "No ship claimed yet."
       },
       "diff": {
         "scm": "SCM",
@@ -260,12 +230,6 @@
         "legs": "Legs",
         "undersuit": "Undersuit",
         "backpack": "Backpack"
-      },
-      "configs": {
-        "otherRoles": "Other saved role loadouts",
-        "otherShip": "Other configurations",
-        "active": "active",
-        "openDetail": "Open detail page \"{{name}}\" →"
       },
       "board": {
         "archiveCount": "{{count}} in the Arsenal",
@@ -317,9 +281,6 @@
     "upcoming": {
       "title": "Upcoming Ships",
       "subtitle": "Ships announced on the RSI ship-matrix that aren't in our datamined game data yet — the difference between what RSI lists and what the live build holds.",
-      "count": "{{count}} upcoming",
-      "updated": "Updated {{time}}",
-      "diffHint": "{{rsi}} ships on RSI · {{game}} in game data",
       "conceptTitle": "In concept",
       "conceptSub": "RSI is still building these — not flyable yet",
       "flightReadyTitle": "Flight-ready on RSI",
@@ -421,7 +382,6 @@
       "upcoming": "Announced"
     },
     "filters": {
-      "title": "Filters",
       "manufacturer": "Manufacturer",
       "size": "Size",
       "grade": "Grade",
@@ -468,7 +428,6 @@
     "weaponDetail": {
       "intro": "The picker's 17 columns are not everything. This is what a ship weapon really carries in the P4K — grouped by origin, with the struct named beside it. Cyan = present, gold dashed = not in the game files.",
       "close": "Close",
-      "notInGameFiles": "not in the game files",
       "card": {
         "damageChannels": "Damage per channel",
         "fireBallistics": "Fire & ballistics",
@@ -528,7 +487,6 @@
       },
       "value": {
         "none": "0 = none",
-        "empty": "empty",
         "dash": "—",
         "magazineEnergy": "— on energy weapons"
       }
@@ -585,9 +543,7 @@
       "toggle": {
         "group": "View",
         "classic": "Classic",
-        "classicHint": "Classic view",
-        "holo": "Holotable",
-        "holoHint": "Holotable view"
+        "holo": "Holotable"
       },
       "stage": {
         "railToggle": "Collapse/expand rail",
@@ -599,10 +555,8 @@
         "silhouetteAria": "Silhouette of {{name}}",
         "noGeometryReason": "No silhouette has been generated for this ship yet.",
         "inspector": "Inspector",
-        "ports": "Ports",
         "detailShow": "Detail ▾",
         "detailHide": "Detail ▴",
-        "density": "Compact",
         "allValues": "All values ▾",
         "allValuesHide": "All values ▴",
         "journal": "Change journal",
@@ -679,22 +633,6 @@
         "collapse": "Collapse strip",
         "presetTag": "preset"
       },
-      "hangar": {
-        "tab": "Hangar",
-        "signInHint": "Sign in to see your hangar.",
-        "search": "Search hangar",
-        "hall": "Hangar hall",
-        "hallTitle": "Hangar hall",
-        "close": "Close",
-        "noGeometry": "No silhouette available",
-        "savedToday": "saved today",
-        "savedYesterday": "saved yesterday",
-        "savedOn": "saved on {{date}}",
-        "managedBy": "managed by {{owner}}",
-        "variants": "{{n}} variants",
-        "unassigned": "No role",
-        "empty": "No ships in your hangar yet."
-      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -739,7 +677,6 @@
       },
       "share": {
         "copyLink": "Copy link",
-        "copyLinkHotkeyHint": "Copy the address of this view to the clipboard",
         "followedBy": "managed by {{owner}}",
         "followedSince": "as of {{date}}",
         "refresh": "Refresh",
@@ -948,8 +885,7 @@
       "disabled": {
         "noCargo": "This ship has no cargo hold",
         "noData": "This build carries no values for this profile",
-        "noSizeClass": "The game files carry no size class for this build",
-        "tooFewShips": "Too few ships in the comparison field"
+        "noSizeClass": "The game files carry no size class for this build"
       },
       "axis": {
         "alpha": "ALPHA",
@@ -971,13 +907,8 @@
     },
     "detail": {
       "back": "Back to codex",
-      "className": "Class name",
-      "guid": "GUID",
       "manufacturer": "Manufacturer",
       "description": "Description",
-      "noDescription": "No description in this build.",
-      "properties": "Properties",
-      "role": "Role",
       "crew": "Crew",
       "size": "Size",
       "grade": "Grade",
@@ -986,35 +917,19 @@
       "weaponClass": "Weapon class",
       "componentKind": "Component type",
       "dimensions": "Dimensions",
-      "length": "Length",
-      "width": "Width",
-      "height": "Height",
-      "tags": "Tags",
       "speed": "Speed",
-      "lifetime": "Lifetime",
       "range": "Range",
       "weaponParams": "Weapon parameters",
-      "stats": "Component stats",
       "damage": "Impact damage",
-      "raw": "Raw parameters",
       "hardpoints": "Hardpoints",
-      "hardpointsCount": "{{count}} hardpoints",
-      "port": "Port",
-      "sizeRange": "Size {{min}}–{{max}}",
-      "types": "Accepts",
-      "flags": "Flags",
       "hardpointsHint": "Click a hardpoint to see which items fit it.",
       "compatLoading": "Loading compatible items…",
       "compatNone": "No matching items in this build.",
       "usedInBlueprints": "Used in blueprints",
       "usedInBlueprintsHint": "Crafting recipes that require this item as an ingredient.",
       "compatCount": "{{count}} compatible items",
-      "noHardpoints": "No hardpoints in this build.",
-      "loadout": "Default loadout",
       "loadoutEmpty": "Empty (stock)",
-      "configureLoadout": "Configure loadout",
       "viewOnRsi": "View on RSI",
-      "noLoadout": "No default loadout recorded.",
       "notFound": "Entry not found in the current build.",
       "invalidRoute": "This address does not lead to a Codex category.",
       "noArtwork": "No artwork for this ship in this build yet.",
@@ -1026,7 +941,6 @@
       "showEmptyPorts": "Show {{count}} empty ports",
       "hideEmptyPorts": "Hide empty ports",
       "equipment": "Equipment",
-      "fullSpec": "Full spec sheet",
       "showFullSpec": "Show full spec sheet",
       "hideFullSpec": "Hide full spec sheet",
       "quantumRange": "Quantum range",
@@ -1050,7 +964,6 @@
       "whereToBuyAttribution": "Prices from UEX Corp — community-maintained, may not reflect live servers. Not affiliated with Cloud Imperium Games.",
       "moduleOrderHint": "Configurable modules come first — weapons and their mounts, turrets, ordnance, pods, shields, power plant, quantum drive, radar, coolers, life support. Everything fixed sits below. Click any module for its full stat table.",
       "loadoutEmptyWeaponMount": "Weapon mount — no stock weapon in this extract",
-      "chipSize": "Size {{n}}",
       "chipCrew": "{{n}} crew",
       "chipNoCargo": "No cargo hold",
       "actionCompare": "Compare",
@@ -1066,7 +979,6 @@
       "linkCopied": "Link copied",
       "dataPill": "DATA {{build}} · schema {{n}}",
       "dataPillPending": "Re-extract pending",
-      "dataPillAria": "Data state: build {{build}}, schema {{n}}",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analysis",
       "columnFixed": "Airframe & Fixed Systems",
@@ -1080,7 +992,6 @@
     },
     "energy": {
       "title": "Power",
-      "budget": "{{used}} / {{total}} seg",
       "budgetLabel": "Segments in use",
       "minimise": "minimise",
       "expand": "expand",
@@ -1169,8 +1080,7 @@
         "noSignatureData": "No signature data in this extract — re-extract pending."
       },
       "unit": {
-        "segments": "seg",
-        "coolant": "cooling seg"
+        "segments": "seg"
       },
       "tooltipTitle": {
         "ir": "Infrared",
@@ -1180,42 +1090,27 @@
     },
     "swap": {
       "open": "Swap component",
-      "pickerTitle": "Swap module",
-      "installed": "Installed",
       "equipped": "Equipped",
       "previewHint": "Compare, then Apply or Empty slot — the change stays a draft until you save it below.",
       "loading": "Scanning compatible items…",
       "failed": "Could not load the compatible items.",
       "none": "No compatible alternatives in this build.",
       "noMatch": "No item matches these filters.",
-      "delta": "Change vs. installed",
-      "noDelta": "No comparable stat changes.",
       "close": "Close",
-      "cancel": "Cancel",
-      "searchLabel": "Search compatible items",
-      "searchPlaceholder": "Search by name, manufacturer or type…",
-      "damageFilter": "Damage type",
       "typeFilter": "Item type",
       "filterAll": "All",
-      "colName": "Name",
       "appliesToOne": "Applies to the {{port}} hardpoint",
       "appliesToMany": "Applies to all {{count}} identical hardpoints",
-      "matched": "{{shown}} of {{total}} compatible items",
       "sortHint": "Click a column to sort, Ctrl-click to add a secondary sort.",
-      "missingColumns": "Not in this data extract, so not shown as a column: {{fields}}.",
       "installedNone": "Bay empty (stock)",
       "pickHere": "Pick one",
       "fitInferred": "This bay ships empty. The list comes from an identical, fitted bay on the same ship — not from this hardpoint’s own data.",
-      "clearSlot": "Empty slot",
-      "apply": "Apply"
+      "clearSlot": "Empty slot"
     },
     "loadout": {
       "changesSummary": "{{changed}} changes · {{saveable}} savable",
       "unsaveableHint": "Nested and emptied slots stay a draft — they cannot be saved yet.",
-      "discard": "Discard changes",
-      "save": "Save",
       "saving": "Saving…",
-      "addToHangarAndSave": "Add to hangar & save",
       "saveErrorHangar": "Could not reach your hangar right now — the draft is kept, try saving again.",
       "saveErrorGeneric": "Could not save the loadout right now — the draft is kept, try again.",
       "revert": "Revert to stock",
@@ -1248,12 +1143,9 @@
       "pin": "Compare",
       "pinned": "Pinned",
       "tray": "Compare ({{count}})",
-      "title": "Comparison",
       "open": "Open comparison",
       "clear": "Clear",
       "remove": "Remove",
-      "empty": "Pin 2–4 entries to compare them side by side.",
-      "full": "You can compare up to {{max}} entries.",
       "property": "Property",
       "close": "Close",
       "noCommon": "No comparable values for this mix of entries.",
@@ -1322,42 +1214,19 @@
       "col": {
         "name": "Component",
         "deltaSustained": "Δ sustained",
-        "dps": "DPS",
-        "alpha": "Alpha",
-        "pen": "PEN",
-        "fireRate": "Fire rate",
-        "range": "Range",
-        "speed": "Speed",
         "power": "Power",
         "em": "EM",
-        "hp": "HP",
-        "distortion": "Distortion",
         "mass": "Mass",
         "grade": "Grade",
         "manufacturer": "Manufacturer",
         "ammo": "Ammo",
         "spread": "Spread",
-        "burstDps": "Burst DPS",
         "ir": "IR",
         "size": "Size",
-        "itemClass": "Class",
-        "damagePhysical": "Physical",
-        "damageEnergy": "Energy",
-        "damageDistortion": "Distortion damage",
-        "damageThermal": "Thermal",
-        "damageBiochemical": "Biochemical",
-        "damageStun": "Stun",
         "projectilesPerShot": "Projectiles per shot",
         "lifetime": "Lifetime",
-        "distortionRegen": "Distortion regen",
-        "itemPorts": "Item ports",
-        "factoryFit": "Factory fit",
         "aimYaw": "Traverse",
         "aimRate": "Tracking rate",
-        "recoil": "Recoil",
-        "magazine": "Magazine",
-        "overheat": "Overheat",
-        "repair": "Repair",
         "damageType": "Damage type",
         "archetype": "Archetype",
         "heat": "Heat per shot",
@@ -1367,7 +1236,6 @@
       "unit": {
         "perMin": "/min",
         "mps": "m/s",
-        "m": "m",
         "s": "s",
         "kg": "kg",
         "seg": "seg",
@@ -1510,7 +1378,6 @@
     },
     "module": {
       "peekChange": "expand to change",
-      "peekRead": "expand to read",
       "caretExpand": "expand",
       "caretCollapse": "collapse",
       "census": "{{slots}} slots · {{active}} active · {{passive}} passive",
@@ -1524,14 +1391,7 @@
         "pool": "Pool"
       },
       "shieldNote": "All three are shield generators and all three can be swapped. The passive one costs no power and still counts fully towards the pool — but it hangs off the active ones: if they fail, the backup goes with them.",
-      "rowsSplit": "Individually",
-      "rowsGrouped": "Grouped",
-      "tuned": "Tuned",
-      "tunedHint": "This slot differs from the factory fit.",
-      "toolDetails": "View {{name}}'s values",
-      "toolSwap": "Swap {{name}}",
       "peek": {
-        "alphaTotal": "Total alpha",
         "sustainedDpsTotal": "Total sustained DPS",
         "missileTotal": "Full salvo",
         "budget": "Reactor budget",
@@ -1539,11 +1399,6 @@
       }
     },
     "summary": {
-      "title": "Combat readout",
-      "damage": "Damage",
-      "defence": "Defence",
-      "power": "Power management",
-      "noData": "The current extract carries no numbers for this panel.",
       "alphaDamage": "Alpha damage (all guns)",
       "dps": "Sustained DPS",
       "weaponMounts": "Weapon mounts",
@@ -1753,7 +1608,6 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} equipped",
       "armorEquipped": "Armour {{filled}} / {{total}}"
     },
     "hangarPicker": {
@@ -1985,9 +1839,7 @@
       "output": "Output",
       "qualitySummary": "Quality summary",
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
-      "primary": "Primary",
-      "usedIn": "Used in blueprints",
-      "usedInCount": "Used in {{count}} blueprint(s)"
+      "primary": "Primary"
     }
   },
   "fps": {
@@ -2044,13 +1896,8 @@
     }
   },
   "news": {
-    "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum, YouTube & patches",
     "loading": "Loading…",
-    "newPosts": "{{count}} new posts ↑",
-    "newPost": "1 new post ↑",
     "empty": "No news yet.",
-    "emptyFiltered": "No news for this selection.",
     "emptyFavorites": "No saved posts yet — tap ☆ on any post to collect it here.",
     "errorTitle": "Could not load news",
     "lastUpdated": "Updated {{rel}}",
@@ -2071,25 +1918,11 @@
       },
       "checkExternal": "RSI status page ↗"
     },
-    "buckets": {
-      "today": "Today",
-      "week": "This week",
-      "older": "Older",
-      "showMore": "Show {{count}} older",
-      "hideMore": "Hide",
-      "count": "{{count}} posts"
-    },
     "channels": {
-      "all": "All",
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
       "patch": "Patch notes"
-    },
-    "filter": {
-      "label": "Filter",
-      "clear": "Show all",
-      "groupAria": "Channel filter"
     },
     "favorite": {
       "save": "Save",
@@ -2101,21 +1934,13 @@
       "failed": "Couldn't copy link"
     },
     "videos": {
-      "title": "Recent Videos",
-      "watched": "Watched",
-      "retention": "Last {{days}} days only",
       "badge": "Video",
-      "play": "Play video",
-      "scrollPrev": "Previous videos",
-      "scrollNext": "More videos"
+      "play": "Play video"
     },
     "patch": {
-      "title": "Patch Notes",
-      "hint": "Grouped by main patch — newest first",
       "line": "Alpha {{version}}",
       "otherLine": "Without a version",
       "hotfix": "Hotfix",
-      "current": "Currently live",
       "stage": {
         "live": "Live",
         "ptu": "PTU",
@@ -2127,22 +1952,6 @@
         "ptu": "PTU",
         "evocati": "Evocati",
         "other": "Other"
-      },
-      "filter": {
-        "version": "Version",
-        "channel": "Channel",
-        "all": "All",
-        "versionAria": "Filter patch notes by version",
-        "channelAria": "Filter patch notes by channel",
-        "empty": "No patch notes match this selection.",
-        "reset": "Reset filters"
-      },
-      "latest": {
-        "title": "Newest per channel",
-        "hint": "At most one entry per channel"
-      },
-      "history": {
-        "title": "History"
       },
       "kpi": {
         "title": "Patch performance",
@@ -2212,25 +2021,14 @@
         "label": "Search patch contents",
         "placeholder": "e.g. Orison, hotfix, quantum drive",
         "clear": "Clear search",
-        "summary": "{{notes}} notes across {{lines}} patch lines",
-        "scope": "Searches every title and the bullet points of {{loaded}} loaded notes",
         "noHits": "Nothing found — not under another spelling either."
       },
       "roadmap": {
-        "title": "What's in it",
-        "hint": "Planned content per the RSI roadmap (Release View)",
         "expandAll": "Show all descriptions",
         "collapseAll": "Collapse descriptions",
         "source": "Roadmap on RSI ↗",
-        "showNotes": "Show patch notes for {{version}}",
         "uncategorized": "Uncategorized",
         "noDetail": "RSI published no description for this entry.",
-        "emptyRelease": "No roadmap entries for this search.",
-        "later": "Planned after that:",
-        "slot": {
-          "current": "Current patch",
-          "next": "Next patch"
-        },
         "status": {
           "released": "Released",
           "committed": "Committed",
@@ -2249,9 +2047,7 @@
         "openOnRsiAria": "Open {{title}} on RSI (new tab)",
         "truncated": "Very long note — the rest is on RSI.",
         "hits": "{{count}} hits",
-        "points": "{{count}} points",
-        "expandAll": "Expand all notes",
-        "collapseAll": "Collapse all notes"
+        "points": "{{count}} points"
       },
       "stability": {
         "title": "Stability",
@@ -2402,10 +2198,8 @@
         },
         "span": {
           "leadTime": "Test → Live: {{days}} days",
-          "cadence": "Live → Live: {{days}} days",
-          "subCadence": "Hotfix cadence: {{days}} days"
+          "cadence": "Live → Live: {{days}} days"
         },
-        "median": "Median {{n}} d · n = {{samples}}",
         "charts": "Detail charts (PTU → Live · cadence · sub-patches · schedule)",
         "status": {
           "live": "Alpha {{line}} has been live for {{days}} days — the usual is {{median}} days until the next one.",
@@ -2435,7 +2229,6 @@
         "title": "When is the next patch?",
         "infoLabel": "Where does this estimate come from?",
         "infoBasis": "Basis: median {{median}} days from n = {{n}} measured cycles.",
-        "days": "{{n}} d",
         "over": "{{n}} d over",
         "tile": {
           "live": "Live",
@@ -2462,7 +2255,6 @@
     "detail": {
       "back": "Back"
     },
-    "via": "via {{source}}",
     "openExternal": "Opens {{host}}",
     "relative": {
       "now": "just now",
@@ -2519,8 +2311,6 @@
   "p4k": {
     "title": "P4K Bundle History",
     "subtitle": "Pre-digested bundles from the Data Uploader. Uploads only happen via the tool, not from the website.",
-    "refresh": "Refresh",
-    "expand": "Show details",
     "loading": "Loading bundles…",
     "errorTitle": "Could not load bundles",
     "retentionHint": "Retention: the last 3 uploader versions per build, max. 20 bundles total — older ones are removed automatically.",
@@ -2529,29 +2319,12 @@
     },
     "empty": {
       "title": "No bundles yet",
-      "hint": "Once someone runs the Data Uploader and uploads, results show up here.",
-      "goDesktop": "Open the Data Uploader page"
-    },
-    "kpi": {
-      "total": "Total bundles",
-      "channels": "Channels",
-      "avgQuality": "Avg quality score",
-      "entitiesTotal": "Total entities",
-      "quality": "Quality score",
-      "latestPerChannel": "Latest patch per channel"
+      "hint": "Once someone runs the Data Uploader and uploads, results show up here."
     },
     "col": {
-      "channel": "Channel",
-      "version": "Patch",
-      "build": "Build",
-      "quality": "Quality",
       "entities": "Entities",
       "diff": "Diff vs prev",
       "tool": "Tool ver",
-      "uploader": "Uploader",
-      "when": "Uploaded",
-      "actions": "Actions",
-      "channels": "Channels",
       "uploads": "Uploads"
     },
     "actions": {
@@ -2580,13 +2353,9 @@
     "superseded": {
       "badge": "Superseded",
       "title": "Superseded by a newer upload"
-    },
-    "detail": {
-      "uploads": "Uploads in this patch"
     }
   },
   "profile": {
-    "title": "Profile",
     "email": "Email",
     "id": "User ID",
     "provider": "Provider",
@@ -2767,7 +2536,6 @@
   "admin": {
     "title": "Admin · User Management",
     "subtitle": "Only admins can change roles. The last admin cannot be demoted — promote another admin first.",
-    "refresh": "Refresh",
     "lastAdmin": "Last admin",
     "lastAdminTip": "Promote another admin first before changing this role — otherwise the system would be left without any admin.",
     "protected": "Protected",
@@ -2867,7 +2635,6 @@
           "desc": "Link the desktop app straight to your account so uploads and data are attributed automatically."
         }
       },
-      "refresh": "Refresh",
       "newToken": "New token",
       "loading": "Loading tokens…",
       "errorTitle": "Could not load tokens",
@@ -2989,14 +2756,9 @@
     "subtitle": "Download the Data Uploader for your local Star Citizen install. Admin + collaborator only.",
     "bundleHistory": "Bundle History",
     "loading": "Loading release…",
-    "currentVersion": "Current version",
     "released": "Released",
     "notes": "Release notes",
-    "downloadFor": "Download for {{platform}}",
     "noRelease": "No published release yet.",
-    "noReleaseHint": "Once the first CI build lands, it'll show up here.",
-    "size": "Size",
-    "hash": "SHA-256",
     "channel": {
       "label": "Channel",
       "alpha": "Alpha",
@@ -3603,7 +3365,6 @@
     },
     "thread": {
       "reply": "Reply",
-      "replyPlaceholder": "Write a reply… (Markdown supported)",
       "replyPlaceholderNo": "Reply to #{{no}} — “{{title}}”",
       "replyPlaceholderTopic": "Reply to “{{title}}”",
       "reopenHint": "Replying reopens this archived topic — it goes back to ToDo and the routine picks it up again."
@@ -3725,7 +3486,6 @@
       }
     },
     "userTopic": {
-      "untriaged": "Not released",
       "release": "Release to the routine",
       "channelTitle": "Channel to the user",
       "channelHint": "Everything here is visible to the user. The thread above (admin ↔ routine) is not.",
@@ -3872,7 +3632,6 @@
   },
   "feedbackFab": {
     "open": "Open feedback",
-    "close": "Close feedback",
     "minimize": "Minimize feedback",
     "maximize": "Maximize to full screen",
     "restore": "Restore window size",
