@@ -140,6 +140,41 @@ describe('SetArsenalTransition', () => {
     await expectAsync(svc.hop(target(), { slot: 'legs', direction: 'toArsenal' }, null)).toBeResolvedTo(false);
     expect(report).toHaveBeenCalledOnceWith(boom);
   });
+
+  // REQ-5 (AUD-203, AUD-287): reduced motion is forced here, so the case runs on
+  // every machine — the pending() branches above only cover the opposite setting.
+  it('only navigates under prefers-reduced-motion, even with a source to morph from', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('prefers-reduced-motion: reduce'),
+      media: query,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+      onchange: null,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const start = spyOn(document, 'startViewTransition').and.callThrough();
+      const tree = target();
+      await expectAsync(svc.hop(tree, { slot: 'legs', direction: 'toArsenal' }, el)).toBeResolvedTo(true);
+      expect(navigate).toHaveBeenCalledOnceWith(tree);
+      expect(start).not.toHaveBeenCalled();
+      expect(name()).toBe('');
+      expect(svc.active()).toBeNull();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it('leaves active() empty on an ordinary navigation', async () => {
+    navigate.and.callThrough();
+    router.resetConfig([{ path: 'codex', component: FromPage }]);
+    await expectAsync(router.navigateByUrl('/codex')).toBeResolvedTo(true);
+    expect(svc.active()).toBeNull();
+    expect(svc.isLandingOn('legs', 'toArsenal')).toBeFalse();
+  });
 });
 
 @Component({ template: '<div class="from-tile" style="display: block; width: 120px; height: 32px"></div>' })
