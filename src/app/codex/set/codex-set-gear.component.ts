@@ -1,3 +1,4 @@
+import { logWarn } from '../../core/log';
 import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -350,7 +351,8 @@ export class CodexSetGearComponent {
       if (!saved) this.failedSlot.set(slot);
       else if (saved.items.some((i) => i.slot === slot && i.className)) this.conflictSlot.set(slot);
       else if (shown && kind) this.offerUndo({ slot, className: shown, kind });
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'set slot clear failed', { set: this.setId(), slot, error });
       this.failedSlot.set(slot);
     } finally {
       this.busySlot.set(null);
@@ -369,7 +371,8 @@ export class CodexSetGearComponent {
         kind: last.kind,
       });
       if (!saved) this.undoFailedSlot.set(last.slot);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'set slot undo failed', { set: this.setId(), slot: last.slot, error });
       this.undoFailedSlot.set(last.slot);
     } finally {
       this.busySlot.set(null);

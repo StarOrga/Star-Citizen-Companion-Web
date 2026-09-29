@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { FEEDBACK_IMAGES_BUCKET, feedbackImagePath } from './feedback-images.util';
@@ -136,7 +137,7 @@ export class FeedbackAttachmentSignerService {
       set.add(p);
     }
     this.failedPaths.set(set);
-    console.warn('[feedback-attachments] sign failed', paths.length, reason);
+    logWarn('feedback-attachments', 'sign failed', { paths: paths.length, reason });
   }
 
   private clearFailed(paths: readonly string[]): void {

@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { StabilityPatchRow, StabilitySampleRow, StabilityVerdict, computeVerdict } from './patch-stability';
@@ -93,7 +94,7 @@ export class PatchStabilityService {
       this._unavailable.set(false);
       this._loaded.set(true);
     } catch (err) {
-      console.warn('[news] stability tables unavailable', err);
+      logWarn('news', 'stability tables unavailable', err);
       this._unavailable.set(true);
     }
   }

@@ -53,8 +53,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
 
     @if (error(); as err) {
-      <div class="sc-card err">
-        <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+      <div class="sc-card err" role="alert">
+        <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}
         <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
       </div>
     }

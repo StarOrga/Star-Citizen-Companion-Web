@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -45,7 +46,10 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (error(); as err) {
-        <div class="sc-card err"><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</div>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
+          <button type="button" class="retry" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
+        </div>
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
@@ -231,7 +235,10 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
 
     .muted { color: var(--sc-fg-2); }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
-    .err { color: var(--sc-danger); padding: 16px; }
+    .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
     @media (max-width: 680px) {
       .sc-card { padding: 14px 16px; }
@@ -247,6 +254,7 @@ export class BlueprintDetailComponent implements OnInit {
 
   readonly detail = signal<BlueprintDetail | null>(null);
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   /** Bumped per load, so a late answer for an earlier blueprint never lands on a newer one. */
   private loadSeq = 0;
@@ -373,7 +381,15 @@ export class BlueprintDetailComponent implements OnInit {
     });
   }
 
+  /** Loads the blueprint the route asked for last again — the error card's retry. */
+  retry(): void {
+    void this.load(this.lastClassName);
+  }
+
+  private lastClassName = '';
+
   private async load(className: string): Promise<void> {
+    this.lastClassName = className;
     const seq = ++this.loadSeq;
     this.detail.set(null);
     this.error.set(null);
@@ -384,7 +400,7 @@ export class BlueprintDetailComponent implements OnInit {
       this.detail.set(result);
     } catch (err) {
       if (seq !== this.loadSeq) return;
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'blueprint', err, { className }));
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
     }

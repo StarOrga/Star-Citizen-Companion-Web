@@ -312,8 +312,8 @@ describe('AppDownloadMenuComponent', () => {
   });
 
   it('surfaces the resolver error when every ring failed', async () => {
-    const { fixture, el } = setup({ role: 'admin', releases: [], error: 'boom' });
+    const { fixture, el } = setup({ role: 'admin', releases: [], error: 'errors.network' });
     await open(fixture, el);
-    expect(el.querySelector('.pop-state.err')?.textContent).toContain('boom');
+    expect(el.querySelector('.pop-state.err')?.textContent).toContain('errors.network');
   });
 });

@@ -139,7 +139,7 @@ describe('UserFeedbackService — withdraw (feedback 892013b6)', () => {
     await svc.refresh();
 
     await expectAsync(svc.withdraw(OPEN_TOPIC)).toBeResolvedTo(false);
-    expect(svc.error()).toBe('network down');
+    expect(svc.error()).toBe('errors.generic');
     expect(svc.topics().map((t) => t.id)).toEqual([OPEN_TOPIC]);
     expect(svc.busy()).toBeFalse();
   });

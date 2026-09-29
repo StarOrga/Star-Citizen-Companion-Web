@@ -216,14 +216,19 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
   it('keeps the loaded stack when a background refresh fails — the error card is for a cold failure only', async () => {
     await render(FEED, ROADMAP);
     const svc = TestBed.inject(NewsService);
-    svc.error.set('boom');
+    svc.error.set('errors.network');
     fixture.detectChanges();
     expect(rows().length).toBe(3);
     expect(root().querySelector('.sc-card.err')).toBeNull();
     // Cold failure: nothing loaded yet → the error card shows the message.
     svc.feed.set(null);
     fixture.detectChanges();
-    expect(root().querySelector('.sc-card.err')?.textContent).toContain('boom');
+    expect(root().querySelector('.sc-card.err')?.textContent).toContain('Der Server ist gerade nicht erreichbar');
+    const retry = root().querySelector<HTMLButtonElement>('.sc-card.err button.retry');
+    expect(retry).not.toBeNull();
+    const refresh = spyOn(svc, 'refresh').and.resolveTo();
+    retry!.click();
+    expect(refresh).toHaveBeenCalled();
   });
 
   it('no longer counts the notes on the overview card', async () => {

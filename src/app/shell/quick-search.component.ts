@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -103,6 +104,8 @@ const PER_KIND_LIMIT = 6;
 
           @if (loading()) {
             <p class="state">{{ 'quickSearch.searching' | translate }}</p>
+          } @else if (searchError(); as e) {
+            <p class="state err" role="alert">{{ 'quickSearch.error' | translate }} — {{ e | translate }}</p>
           } @else if (query() && displayResults().length === 0) {
             <p class="state">{{ 'quickSearch.noResults' | translate }}</p>
           } @else if (!query()) {
@@ -213,6 +216,7 @@ const PER_KIND_LIMIT = 6;
     .state.cat-empty { color: var(--sc-warning); font-style: italic; }
     .qs-divider { list-style: none; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); margin-top: 2px; }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; padding: 2px 4px; }
+    .state.err { color: var(--sc-danger); }
     .qs-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .qs-row {
       position: relative;
@@ -314,6 +318,8 @@ export class QuickSearchComponent {
   readonly visible = signal(false);
   readonly query = signal('');
   readonly loading = signal(false);
+  /** i18n key of a failed search — never raw text, and never shown as "no results". */
+  readonly searchError = signal<string | null>(null);
   /** Raw merged matches across all searchable kinds (unfiltered store). */
   readonly results = signal<QuickResult[]>([]);
   readonly activeIndex = signal(0);
@@ -501,6 +507,7 @@ export class QuickSearchComponent {
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.loading.set(true);
+    this.searchError.set(null);
     try {
       const kinds: CodexKind[] = ['ship', 'weapon', 'component'];
       const lists = await Promise.all(
@@ -513,10 +520,11 @@ export class QuickSearchComponent {
       });
       this.results.set(merged);
       this.activeIndex.set(0);
-    } catch {
+    } catch (err) {
       if (seq === this.searchSeq) {
         this.results.set([]);
         this.activeIndex.set(0);
+        this.searchError.set(toErrorKey('quick-search', 'search', err, { term }));
       }
     } finally {
       if (seq === this.searchSeq) this.loading.set(false);

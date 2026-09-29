@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -71,7 +72,12 @@ interface PortRow {
     <section class="page">
       <a class="back" routerLink="/hangar">← {{ 'hangar.detail.back' | translate }}</a>
 
-      @if (notFound()) {
+      @if (loadError(); as err) {
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'hangar.detail.loadFailed' | translate }}</strong> — {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="loadingShip()" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+        </div>
+      } @else if (notFound()) {
         <div class="sc-card empty">
           <strong>{{ 'hangar.detail.notFound' | translate }}</strong>
         </div>
@@ -380,6 +386,11 @@ interface PortRow {
     .sc-card h2 { margin: 0 0 12px; font-size: 1rem; }
     .hint { color: var(--sc-fg-2); font-size: 0.84rem; margin: 0; }
     .empty { text-align: center; padding: 28px; color: var(--sc-fg-2); }
+    .sc-card.err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; min-height: 44px; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
 
     .configs-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
     .new-config { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -464,6 +475,12 @@ export class HangarShipDetailComponent implements OnInit {
 
   readonly ship = signal<HangarShip | null>(null);
   readonly notFound = signal(false);
+  /** Reading the ship failed (network, timeout). i18n key, never raw text. */
+  readonly loadError = signal<string | null>(null);
+  /** The ship read is in flight — disables the retry. */
+  readonly loadingShip = signal(false);
+  /** Route id of this page, remembered for the retry. */
+  private shipId: string | null = null;
   readonly shipPayload = signal<ShipPayload | null>(null);
   readonly ports = signal<CodexItemPort[]>([]);
   readonly configs = signal<HangarShipConfig[]>([]);
@@ -567,8 +584,30 @@ export class HangarShipDetailComponent implements OnInit {
       this.notFound.set(true);
       return;
     }
-    if (this.hangar.ships().length === 0) await this.hangar.loadAll();
-    const ship = await this.hangar.getShip(id);
+    this.shipId = id;
+    await this.load(id);
+  }
+
+  /** Retry button of the load-error card: reads the remembered route id again. */
+  retry(): void {
+    if (this.shipId) void this.load(this.shipId);
+  }
+
+  protected async load(id: string): Promise<void> {
+    this.loadError.set(null);
+    this.notFound.set(false);
+    this.loadingShip.set(true);
+    let ship: HangarShip | null;
+    try {
+      if (this.hangar.ships().length === 0) await this.hangar.loadAll();
+      ship = await this.hangar.getShip(id);
+    } catch (err) {
+      // "Could not read" is not "does not exist" — offer a retry, not the dead end.
+      this.loadError.set(toErrorKey('hangar', 'getShip', err, { id }));
+      return;
+    } finally {
+      this.loadingShip.set(false);
+    }
     if (!ship) {
       this.notFound.set(true);
       return;

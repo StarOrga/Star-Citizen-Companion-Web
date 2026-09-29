@@ -51,6 +51,8 @@ describe('FpsListComponent (equip mode)', () => {
     /** True selects an older patch than the live one (CodexService.viewingPastPatch). */
     viewingPastPatch?: boolean;
     selectBuild?: jasmine.Spy;
+    /** Replaces the default getRoleLoadout (resolves `set`), e.g. to make the read fail. */
+    getRoleLoadout?: jasmine.Spy;
   }): Promise<{
     fixture: ComponentFixture<FpsListComponent>;
     el: HTMLElement;
@@ -83,7 +85,7 @@ describe('FpsListComponent (equip mode)', () => {
       selectBuild: selectBuild as never,
     };
     const hangar: Partial<HangarService> = {
-      getRoleLoadout: jasmine.createSpy('getRoleLoadout').and.resolveTo(opts.set ?? null),
+      getRoleLoadout: opts.getRoleLoadout ?? jasmine.createSpy('getRoleLoadout').and.resolveTo(opts.set ?? null),
       setRoleLoadoutSlot: update,
     };
 
@@ -166,6 +168,25 @@ describe('FpsListComponent (equip mode)', () => {
     expect(el.querySelector('.equip-band')).toBeNull();
     expect(el.querySelector('.equip-missing')).not.toBeNull();
     expect(el.querySelector('.equip-btn')).toBeNull();
+  });
+
+  it('tells a failed set read apart from a missing set and retries it', async () => {
+    spyOn(console, 'warn');
+    const getRoleLoadout = jasmine.createSpy('getRoleLoadout').and.rejectWith(new TypeError('Failed to fetch'));
+    const { el, fixture } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, getRoleLoadout });
+
+    const card = el.querySelector('.sc-card.err[role="alert"]');
+    expect(card?.textContent).toContain('errors.network');
+    expect(el.querySelector('.equip-missing')).toBeNull();
+
+    getRoleLoadout.and.resolveTo(SET);
+    (card!.querySelector('button.retry') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(getRoleLoadout).toHaveBeenCalledTimes(2);
+    expect(el.querySelector('.sc-card.err[role="alert"]')).toBeNull();
+    expect(el.querySelector('.equip-band')).not.toBeNull();
   });
 
   it('gives a missing set two ways on: my sets, or the archive without the set', async () => {

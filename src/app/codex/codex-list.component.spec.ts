@@ -137,6 +137,19 @@ describe('CodexListComponent (Index mode)', () => {
     return { fixture, cmp: fixture.componentInstance, listByKind, facetValues };
   }
 
+  it('shows a translated transport error with a retry, never the raw fetch text (AUD-038)', async () => {
+    spyOn(console, 'warn');
+    const { fixture, cmp, listByKind } = await setup({ item: 3 });
+    listByKind.and.rejectWith(new TypeError('Failed to fetch'));
+    cmp.reload();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const card: HTMLElement | null = fixture.nativeElement.querySelector('.sc-card.err');
+    expect(card?.textContent).toContain('errors.network');
+    expect(card?.textContent).not.toContain('Failed to fetch');
+    expect(card?.querySelector('button.retry')).not.toBeNull();
+  });
+
   it('offers the blueprint kind once the build actually carries blueprints', async () => {
     // Regression: `blueprint` was hardcoded as "coming soon", so 1595 ingested
     // blueprints were unreachable from Index mode — the tab was disabled and

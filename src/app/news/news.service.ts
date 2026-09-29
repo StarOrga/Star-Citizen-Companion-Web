@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -90,6 +91,7 @@ export class NewsService {
 
   readonly feed = signal<VerseFeed | null>(null);
   readonly loading = signal(false);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   // Saved ("Gemerkt") article ids, persisted in localStorage.
@@ -192,7 +194,7 @@ export class NewsService {
       this.feed.set({ ...data, news: pruneExpiredVideos(data?.news ?? []) });
     } catch (err) {
       if (seq !== this.refreshSeq) return;
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('news', 'feed', err));
     } finally {
       if (seq === this.refreshSeq) this.loading.set(false);
     }

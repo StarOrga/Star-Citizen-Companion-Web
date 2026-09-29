@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { Injectable, Injector, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ReleaseChannel } from './channel-picker.component';
@@ -60,7 +61,7 @@ export class DesktopReleaseService {
     const { data, error } = await this.sb.client.rpc('desktop_release_for_channel', {
       p_channel: channel,
     });
-    if (error) return { release: null, error: error.message };
+    if (error) return { release: null, error: toErrorKey('desktop', 'release', error, { channel }) };
     return { release: (data as unknown as ReleaseInfo[])?.[0] ?? null, error: null };
   }
 
@@ -89,7 +90,7 @@ export class DesktopReleaseService {
         try {
           const { data, error } = await this.sb.client.rpc(rpc, { p_channel: ring });
           if (error) {
-            firstError ??= error.message;
+            firstError ??= toErrorKey('desktop', 'release', error, { ring });
             return null;
           }
           const row = (Array.isArray(data) ? data[0] : data) as RingRpcRow | null | undefined;
@@ -105,7 +106,7 @@ export class DesktopReleaseService {
             notes: row.notes ?? null,
           };
         } catch (e) {
-          firstError ??= e instanceof Error ? e.message : String(e);
+          firstError ??= toErrorKey('desktop', 'release', e, { ring });
           return null;
         }
       }),

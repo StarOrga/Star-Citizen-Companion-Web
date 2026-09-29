@@ -1,3 +1,5 @@
+import { logWarn } from '../core/log';
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -175,8 +177,8 @@ const SEARCH_DEBOUNCE_MS = 250;
       </header>
 
       @if (error(); as err) {
-        <div class="sc-card err">
-          <p>{{ 'codex.error.title' | translate }}</p>
+        <div class="sc-card err" role="alert">
+          <p>{{ 'codex.error.title' | translate }} — {{ err | translate }}</p>
           <button type="button" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       }
@@ -556,6 +558,7 @@ export class CodexLandingComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
   // Archive Terminal (poly-search)
@@ -811,7 +814,7 @@ export class CodexLandingComponent implements OnInit {
       this.resolvePersonal();
       await this.resolveFleet();
     } catch (err) {
-      this.error.set((err as Error).message ?? 'Unknown error');
+      this.error.set(toErrorKey('codex', 'landing', err));
     } finally {
       this.loading.set(false);
     }
@@ -865,7 +868,8 @@ export class CodexLandingComponent implements OnInit {
           const clean = cleanLocaleValue(resolved.get(r.role));
           if (clean) labels.set(r.classNameSlug, clean);
         }
-      } catch {
+      } catch (error) {
+        logWarn('codex', 'role labels failed', error);
         /* leave the unresolved hulls in the "unknown" bucket */
       }
     }
@@ -887,7 +891,10 @@ export class CodexLandingComponent implements OnInit {
       roleTask = this.svc
         .resolveLocaleKeys([ship.role], this.lang())
         .then((m) => this.shipRoleResolved.set(cleanLocaleValue(m.get(ship.role!)) || null))
-        .catch(() => this.shipRoleResolved.set(null));
+        .catch((error) => {
+          logWarn('codex', 'ship role label failed', error);
+          this.shipRoleResolved.set(null);
+        });
     } else {
       this.shipRoleResolved.set(cleanLocaleValue(ship.role) || null);
     }
@@ -933,7 +940,8 @@ export class CodexLandingComponent implements OnInit {
       const hits = await this.svc.searchAll(term, 6);
       if (seq !== this.searchSeq) return; // a newer search superseded this one
       this.searchResults.set(hits);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'landing search failed', { term, error });
       if (seq === this.searchSeq) this.searchResults.set([]);
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);

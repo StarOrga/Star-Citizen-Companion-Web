@@ -28,3 +28,11 @@ export async function readErrorBody(error: unknown): Promise<EdgeErrorBody> {
     return {};
   }
 }
+
+/** The edge envelope's `error` code — from `data` on 2xx, from the Response body on non-2xx. */
+export async function readEdgeErrorCode(error: unknown, data: unknown): Promise<string | null> {
+  const fromData = (data as { error?: unknown } | null)?.error;
+  if (typeof fromData === 'string') return fromData;
+  const body = await readErrorBody(error);
+  return typeof body.error === 'string' ? body.error : null;
+}

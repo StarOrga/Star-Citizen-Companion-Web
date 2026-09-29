@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -125,8 +126,8 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
       </header>
 
       @if (error(); as err) {
-        <div class="sc-card err">
-          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}</span>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
           <button type="button" class="retry" (click)="reload()">
             {{ 'codex.error.retry' | translate }}
           </button>
@@ -277,7 +278,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
             </div>
 
             @if (cats.error(); as cerr) {
-              <p class="assign-error" role="alert">{{ cerr }}</p>
+              <p class="assign-error" role="alert">{{ cerr | translate }}</p>
             }
             @if (savedAt()) {
               <p class="assign-ok" role="status">{{ 'codex.keybinds.assign.saved' | translate }}</p>
@@ -635,6 +636,7 @@ export class KeybindsComponent implements OnInit {
   readonly actionGroups = KEYBIND_ACTION_GROUPS;
 
   readonly loading = signal(true);
+  /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
   readonly device = signal<KeybindDevice>('keyboard');
   readonly searchInput = signal('');
@@ -829,7 +831,7 @@ export class KeybindsComponent implements OnInit {
       // the chips are part of the reference, not of the admin tooling.
       await this.cats.load();
     } catch (err) {
-      if (current()) this.error.set((err as Error).message ?? 'Unknown error');
+      if (current()) this.error.set(toErrorKey('codex', 'keybinds', err));
     } finally {
       if (current()) this.loading.set(false);
     }

@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -45,7 +46,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       </header>
 
       @if (errorMsg()) {
-        <div class="err">{{ errorMsg() }}</div>
+        <div class="err" role="alert">{{ errorMsg()! | translate }}</div>
       }
 
       <sc-app-download-panel
@@ -92,7 +93,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
             {{ 'desktop.promote.action' | translate }}
           </button>
           @if (promoteMsg(); as m) {
-            <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text }}</span>
+            <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text | translate }}</span>
           }
         </div>
         }
@@ -206,6 +207,7 @@ export class DesktopDownloadComponent {
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
   readonly historyOpen = signal(false);
@@ -216,6 +218,7 @@ export class DesktopDownloadComponent {
   // Admin-only inline release promotion (feedback 446c245e).
   readonly promoteTarget = signal<ReleaseChannel>('beta');
   readonly promoting = signal(false);
+  /** `text`: an i18n key on error, the plain `vX → ring` line on success (the pipe passes it through). */
   readonly promoteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
 
   readonly entries = computed<AppDownloadEntry[]>(() =>
@@ -272,7 +275,7 @@ export class DesktopDownloadComponent {
       p_to_channel: to,
     });
     if (error) {
-      this.promoteMsg.set({ kind: 'error', text: error.message });
+      this.promoteMsg.set({ kind: 'error', text: toErrorKey('desktop', 'promote', error, { version, to }) });
     } else {
       this.promoteMsg.set({ kind: 'success', text: `v${version} → ${to}` });
       await this.load(this.channel());

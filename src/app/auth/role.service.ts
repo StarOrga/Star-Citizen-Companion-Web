@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from './auth.service';
@@ -215,7 +216,8 @@ export class RoleService {
         .select('role, is_approved')
         .eq('id', userId)
         .maybeSingle();
-    } catch {
+    } catch (error) {
+      logWarn('auth', 'profile role read failed', error);
       return null;
     }
   }

@@ -108,6 +108,15 @@
       "title": "Dieses Konto ist gesperrt",
       "until": "Die Sperre endet am {{date}}.",
       "indefinite": "Die Sperre gilt bis ein Administrator sie aufhebt."
+    },
+    "errors": {
+      "invalidCredentials": "E-Mail oder Passwort stimmt nicht.",
+      "emailNotConfirmed": "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Mail.",
+      "rateLimit": "Zu viele Versuche – bitte warte kurz und versuch es dann erneut.",
+      "weakPassword": "Das Passwort ist zu schwach. Nimm ein längeres oder weniger vorhersehbares.",
+      "samePassword": "Das neue Passwort muss sich vom bisherigen unterscheiden.",
+      "emailInvalid": "Diese E-Mail-Adresse ist ungültig.",
+      "linkExpired": "Der Link ist abgelaufen oder wurde schon benutzt. Fordere einen neuen an."
     }
   },
   "nav": {
@@ -746,7 +755,8 @@
         "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
         "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
         "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
-        "addToHangar": "Zum Hangar hinzufügen"
+        "addToHangar": "Zum Hangar hinzufügen",
+        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren."
       }
     },
     "empty": {
@@ -2009,7 +2019,8 @@
         "eyebrow": "Arsenal",
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} für {{name}}"
-      }
+      },
+      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden"
     }
   },
   "news": {
@@ -2753,7 +2764,22 @@
         "approved_existing": "{{email}} hatte bereits einen Account — freigegeben.",
         "invited": "{{email}} zur Allowlist hinzugefügt und eingeladen."
       },
-      "unknownError": "Unbekannter Fehler"
+      "unknownError": "Registrieren fehlgeschlagen.",
+      "err": {
+        "method_not_allowed": "Die Anfrage wurde abgelehnt (falsche Methode).",
+        "server_misconfigured": "Der Server ist falsch konfiguriert — bitte die Secrets der Edge Function prüfen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "forbidden": "Nur Admins dürfen Personen registrieren.",
+        "invalid_json": "Die Anfrage war nicht lesbar. Bitte erneut versuchen.",
+        "invalid_email": "Das ist keine gültige E-Mail-Adresse.",
+        "invalid_role": "Diese Rolle gibt es nicht.",
+        "allowlist_write_failed": "Die E-Mail konnte nicht in die Allowlist eingetragen werden.",
+        "user_lookup_failed": "Die Allowlist ist aktualisiert, aber die Suche nach einem bestehenden Account ist fehlgeschlagen.",
+        "invite_failed": "Die E-Mail steht in der Allowlist, aber die Einladungsmail konnte nicht verschickt werden.",
+        "role_assign_failed": "Eingeladen, aber die Rolle konnte nicht gesetzt werden.",
+        "existing_account_not_updated": "Die E-Mail steht in der Allowlist, aber der bestehende Account wurde nicht geändert — vermutlich ein geschützter Admin.",
+        "user_exists": "Diese E-Mail ist bereits registriert. Die Allowlist wurde trotzdem aktualisiert."
+      }
     },
     "share": {
       "button": "Share-Link kopieren",
@@ -2792,7 +2818,18 @@
       "confirmSelf": "Dein Account ({{email}}) wird endgültig gelöscht. Auch deine Uploads + Bundles verschwinden. Du wirst danach ausgeloggt. Sicher?",
       "confirmOther": "{{email}} wirklich endgültig löschen? Auch deren Uploads + Bundles verschwinden. Nicht rückgängig machbar.",
       "failed": "Löschen fehlgeschlagen",
-      "title": "Account löschen?"
+      "title": "Account löschen?",
+      "err": {
+        "protected_admin": "Dieser Account ist geschützt und kann weder geändert noch gelöscht werden.",
+        "cannot_delete_last_admin": "Der letzte Admin kann nicht gelöscht werden.",
+        "user_not_found": "Diesen Account gibt es nicht (mehr).",
+        "forbidden": "Nur Admins dürfen Accounts löschen.",
+        "unauthorized": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+        "invalid_body": "Die Anfrage war unvollständig. Bitte lade die Seite neu und versuche es erneut.",
+        "delete_failed": "Der Account konnte nicht gelöscht werden.",
+        "server_misconfigured": "Der Server ist falsch konfiguriert — bitte die Secrets der Edge Function prüfen.",
+        "method_not_allowed": "Die Anfrage wurde abgelehnt (falsche Methode)."
+      }
     },
     "tokens": {
       "navLink": "Integrationen",
@@ -3145,7 +3182,8 @@
       "noResults": "Keine Schiffe gefunden.",
       "already": "Im Hangar",
       "owned": "Besitz",
-      "wishlist": "Wunschliste"
+      "wishlist": "Wunschliste",
+      "searchFailed": "Katalogsuche fehlgeschlagen"
     },
     "fleet": {
       "title": "Flotte",
@@ -3194,7 +3232,8 @@
         "bodyNone": "Das lässt sich nicht rückgängig machen.",
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
-      }
+      },
+      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden"
     },
     "configs": {
       "title": "Konfigurationen",
@@ -3245,7 +3284,8 @@
       "close": "Schließen",
       "loading": "Lädt…",
       "empty": "Nichts gefunden.",
-      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet)."
+      "emptyPort": "Keine kompatiblen Items in diesem Katalog-Build gefunden (Teilmenge geseedet).",
+      "loadFailed": "Items konnten nicht geladen werden"
     },
     "teaser": {
       "title": "Dein persönlicher Hangar",
@@ -3342,6 +3382,9 @@
         "title": "Dieses Loadout ist nicht verfügbar",
         "body": "Der Link ist ungültig, abgelaufen oder wurde deaktiviert."
       }
+    },
+    "errors": {
+      "adoptFailed": "Das geteilte Loadout konnte nicht übernommen werden."
     }
   },
   "quickSearch": {
@@ -3360,7 +3403,8 @@
       "ship": "Schiffe",
       "weapon": "Waffen",
       "component": "Komponenten"
-    }
+    },
+    "error": "Suche fehlgeschlagen"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",
@@ -3803,7 +3847,8 @@
       "viewInApp": "Im App ansehen",
       "more": "Weitere Aktionen"
     },
-    "deleteTitle": "Nachricht löschen?"
+    "deleteTitle": "Nachricht löschen?",
+    "threadsStale": "Antworten konnten nicht geladen werden — die Einordnung einzelner Karten kann veraltet sein."
   },
   "feedbackFab": {
     "open": "Feedback öffnen",
@@ -3956,7 +4001,7 @@
       },
       "statistics": {
         "label": "Statistik",
-        "desc": "Anonyme Nutzungsstatistiken (PostHog, EU-Server), um zu verstehen welche Bereiche genutzt werden. Standardmäßig aus, keine Identifizierung, keine Sitzungsaufzeichnung. Beim Abschalten werden die gespeicherten Werte gelöscht."
+        "desc": "Anonyme Nutzungsstatistiken und anonyme Fehlerberichte (PostHog, EU-Server), um zu verstehen welche Bereiche genutzt werden und wo etwas schiefgeht. Standardmäßig aus, keine Identifizierung, keine Sitzungsaufzeichnung. Beim Abschalten werden die gespeicherten Werte gelöscht."
       }
     }
   },
@@ -4282,5 +4327,17 @@
     "forbidden": "Diese Konzeptseite ist nur für Admins erreichbar.",
     "notFound": "Diese Konzeptseite gibt es nicht (mehr).",
     "error": "Die Konzeptseite konnte nicht geladen werden. Bitte später noch einmal versuchen."
+  },
+  "errors": {
+    "offline": "Du bist offline. Sobald die Verbindung zurück ist, klappt „Erneut versuchen“.",
+    "network": "Der Server ist gerade nicht erreichbar.",
+    "timeout": "Das hat zu lange gedauert.",
+    "sessionExpired": "Deine Sitzung ist abgelaufen. Bitte melde dich neu an.",
+    "forbidden": "Dafür fehlen dir die Rechte.",
+    "notFound": "Das gibt es nicht (mehr).",
+    "rateLimit": "Zu viele Anfragen – bitte kurz warten.",
+    "server": "Der Server hat einen Fehler gemeldet.",
+    "generic": "Etwas ist schiefgelaufen.",
+    "retry": "Erneut versuchen"
   }
 }

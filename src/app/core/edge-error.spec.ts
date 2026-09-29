@@ -1,4 +1,4 @@
-import { readErrorBody } from './edge-error';
+import { readEdgeErrorCode, readErrorBody } from './edge-error';
 
 describe('readErrorBody', () => {
   it('reads the JSON body off a FunctionsHttpError-shaped error', async () => {
@@ -26,5 +26,21 @@ describe('readErrorBody', () => {
 
   it('returns {} for a JSON body that is not an object', async () => {
     expect(await readErrorBody({ context: new Response('42', { status: 500 }) })).toEqual({});
+  });
+});
+
+describe('readEdgeErrorCode', () => {
+  it('takes the code from data on a 2xx envelope', async () => {
+    expect(await readEdgeErrorCode(null, { error: 'x' })).toBe('x');
+  });
+
+  it('reads the code from the Response body on a non-2xx answer', async () => {
+    const error = { context: new Response(JSON.stringify({ error: 'invalid_email' }), { status: 400 }) };
+    expect(await readEdgeErrorCode(error, null)).toBe('invalid_email');
+  });
+
+  it('returns null for a body without JSON', async () => {
+    const error = { context: new Response('<html>502</html>', { status: 502 }) };
+    expect(await readEdgeErrorCode(error, null)).toBeNull();
   });
 });

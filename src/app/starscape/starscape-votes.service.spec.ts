@@ -86,11 +86,14 @@ describe('StarscapeVotesService', () => {
   });
 
   it('rolls the optimistic vote back when the write actually fails', async () => {
+    const warn = spyOn(console, 'warn');
     const svc = make();
     client.insertResult = { error: { message: 'denied', code: '42501' } };
     await svc.toggle('img-1');
     expect(svc.hasVoted('img-1')).toBeFalse();
     expect(svc.countFor('img-1')).toBe(0);
+    // The rollback is silent for the user, not for the console (AUD-255).
+    expect(warn).toHaveBeenCalledWith('[starscape] vote write failed', jasmine.objectContaining({ imageId: 'img-1' }));
   });
 
   it('treats a duplicate vote as the success it is', async () => {
