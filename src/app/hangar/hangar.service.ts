@@ -34,6 +34,9 @@ import {
 /** Mirrors the `hangar_concept_ships.name` length CHECK (migration 20260711001000). */
 const CONCEPT_NAME_MAX = 80;
 
+/** Postgres unique_violation — a concurrent device took the same slot. */
+const UNIQUE_VIOLATION = '23505';
+
 /**
  * "Recently chosen" facility (codex landing redesign, HangarPicker fly-out —
  * `implement-brief.md` §17): the top 3 ships/sets the user picked, most recent
@@ -404,10 +407,30 @@ export class HangarService {
   /**
    * Pin a ship to a top-3 slot (rank 1..3) or unpin (rank null).
    * The previous occupant of the slot is unpinned first — two sequential
-   * updates instead of a transaction; acceptable for single-user data
-   * (worst case on abort: one slot temporarily empty, never two occupants).
+   * updates instead of a transaction. The DB enforces one ship per slot
+   * (`hangar_ships_pin_unique`); when the cached occupant is stale (another
+   * device pinned meanwhile) the final update fails with 23505, and the pins
+   * are re-read and the pin retried exactly once (AUD-111).
    */
   async pinShip(id: string, rank: 1 | 2 | 3 | null): Promise<boolean> {
+    let attempt = await this.pinShipOnce(id, rank);
+    if (attempt.conflict !== null) {
+      if (!(await this.refreshPinnedRanks())) await this.loadAll();
+      attempt = await this.pinShipOnce(id, rank);
+    }
+    if (attempt.conflict !== null) this.error.set(attempt.conflict);
+    return attempt.ok;
+  }
+
+  /**
+   * One pin attempt. `conflict` carries the message of a unique-slot
+   * violation (23505) and leaves `error` untouched so the caller can retry;
+   * every other failure sets `error` itself.
+   */
+  private async pinShipOnce(
+    id: string,
+    rank: 1 | 2 | 3 | null,
+  ): Promise<{ ok: boolean; conflict: string | null }> {
     if (rank !== null) {
       const occupant = this.ships().find((s) => s.pinnedRank === rank && s.id !== id);
       if (occupant) {
@@ -417,7 +440,7 @@ export class HangarService {
           .eq('id', occupant.id);
         if (clearErr) {
           this.error.set(clearErr.message);
-          return false;
+          return { ok: false, conflict: null };
         }
         this.replaceShip({ ...occupant, pinnedRank: null });
       }
@@ -429,10 +452,33 @@ export class HangarService {
       .select('*')
       .single();
     if (error) {
+      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error.message };
       this.error.set(error.message);
-      return false;
+      return { ok: false, conflict: null };
     }
     this.replaceShip(mapHangarShip(data as HangarShipRow));
+    return { ok: true, conflict: null };
+  }
+
+  /**
+   * Re-read every pinned rank and reconcile the cache in both directions: a
+   * returned ship takes the read rank, a cached pin missing from the answer
+   * is cleared. No `loading` flip, so the page does not flicker. Returns
+   * false when the read fails (the caller then falls back to `loadAll`).
+   */
+  private async refreshPinnedRanks(): Promise<boolean> {
+    const { data, error } = await this.sb.client
+      .from('hangar_ships')
+      .select('id, pinned_rank')
+      .not('pinned_rank', 'is', null);
+    if (error) return false;
+    const ranks = new Map(
+      ((data ?? []) as { id: string; pinned_rank: number | null }[]).map((r) => [r.id, r.pinned_rank]),
+    );
+    for (const ship of this.ships()) {
+      const read = ranks.get(ship.id) ?? null;
+      if (read !== ship.pinnedRank) this.replaceShip({ ...ship, pinnedRank: read });
+    }
     return true;
   }
 
@@ -666,9 +712,23 @@ export class HangarService {
 
   /**
    * Activate one config of a ship (deactivates the previous active one first —
-   * required by the one-active partial unique index).
+   * required by the one-active partial unique index). If another device
+   * activated a config between the two updates, the second one fails with
+   * 23505 (`hangar_ship_configs_one_active`); clear + set are then retried
+   * exactly once — the server-side clear removes the foreign activation, so
+   * the last action wins, as on a single device (AUD-111).
    */
   async activateConfig(id: string, hangarShipId: string): Promise<boolean> {
+    let attempt = await this.activateConfigOnce(id, hangarShipId);
+    if (attempt.conflict !== null) attempt = await this.activateConfigOnce(id, hangarShipId);
+    if (attempt.conflict !== null) this.error.set(attempt.conflict);
+    return attempt.ok;
+  }
+
+  private async activateConfigOnce(
+    id: string,
+    hangarShipId: string,
+  ): Promise<{ ok: boolean; conflict: string | null }> {
     const { error: clearErr } = await this.sb.client
       .from('hangar_ship_configs')
       .update({ is_active: false })
@@ -676,17 +736,18 @@ export class HangarService {
       .eq('is_active', true);
     if (clearErr) {
       this.error.set(clearErr.message);
-      return false;
+      return { ok: false, conflict: null };
     }
     const { error } = await this.sb.client
       .from('hangar_ship_configs')
       .update({ is_active: true })
       .eq('id', id);
     if (error) {
+      if (error.code === UNIQUE_VIOLATION) return { ok: false, conflict: error.message };
       this.error.set(error.message);
-      return false;
+      return { ok: false, conflict: null };
     }
-    return true;
+    return { ok: true, conflict: null };
   }
 
   async deleteConfig(id: string): Promise<boolean> {
