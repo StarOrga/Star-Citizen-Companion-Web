@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ReleaseNotesService } from '../release-notes/release-notes.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Site-wide footer. Shown on both the public login page and inside the
@@ -12,7 +13,7 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
 @Component({
   selector: 'sc-footer',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="site-footer">
@@ -32,13 +33,17 @@ import { ReleaseNotesService } from '../release-notes/release-notes.service';
               {{ 'footer.trademarks' | translate }}
               <button type="button" class="disclaimer-toggle"
                       (click)="expanded.set(false)"
-                      [attr.aria-label]="'footer.disclaimerCollapse' | translate">▲</button>
+                      [attr.aria-label]="'footer.disclaimerCollapse' | translate"
+                      [scTooltip]="'footer.disclaimerCollapse' | translate"
+                      scTooltipTier="label">▲</button>
             </p>
           } @else {
             <p class="disclaimer">{{ disclaimerShort() }}<button
                       type="button" class="disclaimer-toggle"
                       (click)="expanded.set(true)"
-                      [attr.aria-label]="'footer.disclaimerExpand' | translate">…</button></p>
+                      [attr.aria-label]="'footer.disclaimerExpand' | translate"
+                      [scTooltip]="'footer.disclaimerExpand' | translate"
+                      scTooltipTier="label">…</button></p>
           }
         </div>
 

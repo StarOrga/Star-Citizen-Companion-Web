@@ -16,6 +16,7 @@ import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-pane
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Data Upload page (`/uploader`). Since admin feedback eb9c6ec3 it renders
@@ -37,6 +38,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
     ChannelPickerComponent,
     ScDialogDirective,
     ScSelectComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -112,7 +114,8 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
           <div class="hx-head">
             <span class="hx-t">{{ 'desktop.bundleHistory' | translate }}</span>
             <button type="button" class="hx-close" (click)="historyOpen.set(false)"
-                    [attr.aria-label]="'desktop.close' | translate">✕</button>
+                    [attr.aria-label]="'desktop.close' | translate"
+                    [scTooltip]="'desktop.close' | translate">✕</button>
           </div>
           <div class="hx-scroll">
             <sc-p4k-history [embedded]="true" />

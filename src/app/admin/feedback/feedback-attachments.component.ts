@@ -146,7 +146,8 @@ export interface AnnotationResult {
                 type="button"
                 class="att-remove"
                 (click)="remove.emit($index)"
-                [attr.aria-label]="'feedbackAttachments.remove' | translate">
+                [attr.aria-label]="'feedbackAttachments.remove' | translate"
+                [scTooltip]="'feedbackAttachments.remove' | translate">
                 ✕
               </button>
             }
@@ -210,7 +211,8 @@ export interface AnnotationResult {
               type="button"
               class="lb-close"
               (click)="close()"
-              [attr.aria-label]="'feedbackAttachments.close' | translate">
+              [attr.aria-label]="'feedbackAttachments.close' | translate"
+              [scTooltip]="'feedbackAttachments.close' | translate">
               ✕
             </button>
             <div class="lb-stage">
@@ -271,7 +273,9 @@ export interface AnnotationResult {
                     [style.background]="c"
                     (click)="color.set(c)"
                     [attr.aria-pressed]="color() === c"
-                    [attr.aria-label]="'feedbackAttachments.colorPick' | translate"></button>
+                    [attr.aria-label]="'feedbackAttachments.colorPick' | translate"
+                    [scTooltip]="'feedbackAttachments.colorPick' | translate"
+                    scTooltipTier="label"></button>
                 }
                 <span class="lb-sep"></span>
                 <button
@@ -314,7 +318,8 @@ export interface AnnotationResult {
                     type="button"
                     class="lb-step"
                     (click)="step(-1)"
-                    [attr.aria-label]="'feedbackAttachments.prev' | translate">
+                    [attr.aria-label]="'feedbackAttachments.prev' | translate"
+                    [scTooltip]="'feedbackAttachments.prev' | translate">
                     ‹
                   </button>
                   <span class="lb-count">
@@ -324,7 +329,8 @@ export interface AnnotationResult {
                     type="button"
                     class="lb-step"
                     (click)="step(1)"
-                    [attr.aria-label]="'feedbackAttachments.next' | translate">
+                    [attr.aria-label]="'feedbackAttachments.next' | translate"
+                    [scTooltip]="'feedbackAttachments.next' | translate">
                     ›
                   </button>
                 </div>

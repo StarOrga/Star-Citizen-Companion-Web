@@ -23,6 +23,7 @@ import { StarscapeTilesService } from './starscape-tiles.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 // Believable, varied masonry-tile shapes for the loading skeletons. The gallery
 // rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
@@ -99,6 +100,7 @@ const RENDER_CHUNK = 24;
     StarscapeVoteButtonComponent,
     ScSegmentedComponent,
     ScDialogDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -374,7 +376,7 @@ const RENDER_CHUNK = 24;
               <a class="lb-link" [href]="w.articleUrl" target="_blank" rel="noopener noreferrer">
                 {{ 'starscape.sourceArticle' | translate }}
               </a>
-              <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate">✕</button>
+              <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate" [scTooltip]="'starscape.close' | translate">✕</button>
             </div>
             @if (shareHint(); as hint) {
               <p class="lb-hint" role="status" aria-live="polite">{{ hint | translate }}</p>
