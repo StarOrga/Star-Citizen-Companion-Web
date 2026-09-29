@@ -11,7 +11,7 @@ const SRC_A = `${GIF}#a`;
 const SRC_B = `${GIF}#b`;
 const SRC_C = `${GIF}#c`;
 
-type IdleGlobal = { requestIdleCallback: (cb: () => void) => number };
+interface IdleGlobal { requestIdleCallback: (cb: () => void) => number }
 
 describe('CodexStageComponent', () => {
   function setup(kind: 'ship' | 'person' = 'ship'): ComponentFixture<CodexStageComponent> {

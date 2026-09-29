@@ -3,7 +3,7 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { FriendsService } from './friends.service';
 import { FriendEdgeRow } from './friends.types';
 
-type RpcResult = { data?: unknown; error?: { message: string } | null };
+interface RpcResult { data?: unknown; error?: { message: string } | null }
 
 /** Scriptable RPC fake: per-function result, everything else answers "ok, no data". */
 function setup(results: Record<string, RpcResult> = {}) {

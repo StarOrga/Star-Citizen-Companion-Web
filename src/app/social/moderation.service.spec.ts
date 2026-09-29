@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ModerationService } from './moderation.service';
 
-type RpcResult = { error?: { message: string } | null };
+interface RpcResult { error?: { message: string } | null }
 
 /** `client` and `realClient` are DISTINCT spies: the service must only touch realClient. */
 function setup(results: Record<string, RpcResult> = {}) {

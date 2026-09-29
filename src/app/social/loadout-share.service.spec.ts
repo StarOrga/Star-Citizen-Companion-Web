@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { LoadoutShareService } from './loadout-share.service';
 
-type RpcResult = { data?: unknown; error?: { message: string } | null };
+interface RpcResult { data?: unknown; error?: { message: string } | null }
 
 function setup(results: Record<string, RpcResult> = {}) {
   const make = (tag: string) =>
