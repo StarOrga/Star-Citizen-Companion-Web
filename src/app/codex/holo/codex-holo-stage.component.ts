@@ -663,7 +663,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* ── Below: calm ports list | perspectives (sticky beside the long list) ── */
   .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 14px; align-items: start; padding: 0 10px; }
   @media (min-width: 1181px) {
-  .below-persp { position: sticky; top: max(84px, calc(100vh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
+  .below-persp { position: sticky; top: max(84px, calc(100dvh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
   }
   .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }

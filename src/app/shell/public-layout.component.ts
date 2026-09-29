@@ -50,7 +50,7 @@ import { skipToMain } from './skip-link';
   `,
   styles: [`
     :host { display: block; }
-    .public-shell { display: flex; flex-direction: column; min-height: 100vh; }
+    .public-shell { display: flex; flex-direction: column; min-height: 100dvh; }
     .public-topbar {
       position: sticky;
       top: 0;

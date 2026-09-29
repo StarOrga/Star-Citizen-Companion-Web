@@ -325,7 +325,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     <sc-user-feedback-fab />
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; min-height: 100vh; }
+    :host { display: flex; flex-direction: column; min-height: 100dvh; }
     .topbar {
       display: flex;
       align-items: center;
