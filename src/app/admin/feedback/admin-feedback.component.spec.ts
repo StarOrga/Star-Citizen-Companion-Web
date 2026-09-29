@@ -66,7 +66,14 @@ function msg(id: string, feedbackId: string, isSystem: boolean, created: string,
  * yields the table's rows. Inserts are recorded so a test can assert what left
  * the panel — the only side effect the stream is allowed to have.
  */
-function fakeSupabase(tables: Record<string, unknown[]>) {
+interface FakeOpts {
+  /** What rpc('admin_feedback_board_delta') answers instead of data — PGRST202 = migration not pushed. */
+  rpcError?: { code: string; message: string } | null;
+}
+
+function fakeSupabase(tables: Record<string, unknown[]>, opts: FakeOpts = {}) {
+  const rpcCalls: { fn: string; args: { p_since: string | null } }[] = [];
+  const rpcError = opts.rpcError ?? null;
   const inserts: { table: string; row: unknown }[] = [];
   const updates: { table: string; patch: unknown }[] = [];
   function chain(table: string) {
@@ -91,9 +98,38 @@ function fakeSupabase(tables: Record<string, unknown[]>) {
     }),
   };
   return {
-    provider: { client: { from: (t: string) => chain(t), storage } } as unknown as SupabaseClientProvider,
+    provider: {
+      client: {
+        from: (t: string) => chain(t),
+        storage,
+        // The board's change-only read (plan D14). Always answers with the
+        // whole board as a fresh copy — like a real RPC, so a fixture row
+        // mutated in place later is a change, not the same object.
+        rpc: (fn: string, args: { p_since: string | null }) => {
+          rpcCalls.push({ fn, args });
+          if (rpcError) return Promise.resolve({ data: null, error: rpcError });
+          const topics = (tables['admin_feedback'] ?? []) as { id: string }[];
+          const messages = tables['admin_feedback_messages'] ?? [];
+          const authorMessages = tables['feedback_author_messages'] ?? [];
+          const data = JSON.parse(
+            JSON.stringify({
+              now: new Date().toISOString(),
+              full: true,
+              topics,
+              messages,
+              author_messages: authorMessages,
+              topic_ids: topics.map((r) => r.id),
+              message_count: messages.length,
+              author_message_count: authorMessages.length,
+            }),
+          );
+          return Promise.resolve({ data, error: null });
+        },
+      },
+    } as unknown as SupabaseClientProvider,
     inserts,
     updates,
+    rpcCalls,
   };
 }
 
@@ -118,8 +154,8 @@ function fakeMotion() {
   };
 }
 
-async function mount(tables: Record<string, unknown[]>) {
-  const sb = fakeSupabase(tables);
+async function mount(tables: Record<string, unknown[]>, opts: FakeOpts = {}) {
+  const sb = fakeSupabase(tables, opts);
   const motion = fakeMotion();
   await TestBed.configureTestingModule({
     imports: [AdminFeedbackComponent],
@@ -1140,7 +1176,9 @@ describe('AdminFeedbackComponent — motion', () => {
   it('a failed thread load keeps the board and shows the calm threadsStale hint (AUD-022)', async () => {
     const warn = spyOn(console, 'warn');
     const tables = fixtureTables();
-    const { fixture, cmp, el, sb } = await mount(tables);
+    // Separate thread loads exist only on the legacy path (plan D14) — the
+    // delta RPC reads topics and threads in one statement.
+    const { fixture, cmp, el, sb } = await mount(tables, { rpcError: MISSING_RPC });
     expect(cmp.threadsStale()).toBeFalse();
     expect(el.querySelector('.threads-stale')).toBeNull();
     const threadsBefore = cmp.threads();
@@ -1208,5 +1246,65 @@ describe('AdminFeedbackComponent — motion', () => {
     const yours = Array.from(el.querySelectorAll<HTMLElement>('.band.yours .card'));
     expect(yours.length).toBeGreaterThan(1);
     yours.forEach((card, i) => expect(card.style.getPropertyValue('--i')).toBe(String(i)));
+  });
+});
+
+const MISSING_RPC = { code: 'PGRST202', message: 'Could not find the function public.admin_feedback_board_delta' };
+
+describe('AdminFeedbackComponent — change-only polling (plan D14)', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('loads the board with ONE rpc, then polls with p_since set', async () => {
+    const tables = fixtureTables();
+    const { cmp, sb } = await mount(tables);
+    expect(sb.rpcCalls.length).toBe(1);
+    expect(sb.rpcCalls[0].fn).toBe('admin_feedback_board_delta');
+    expect(sb.rpcCalls[0].args.p_since).toBeNull();
+    expect(cmp.messages().length).toBe(tables.admin_feedback.length);
+
+    await cmp.refresh();
+    expect(sb.rpcCalls.length).toBe(2);
+    expect(typeof sb.rpcCalls[1].args.p_since).toBe('string');
+  });
+
+  it('a poll without changes writes no data signal', async () => {
+    const tables = fixtureTables();
+    const { cmp } = await mount(tables);
+    const before = { messages: cmp.messages(), threads: cmp.threads(), authorThreads: cmp.authorThreads() };
+    await cmp.refresh();
+    expect(cmp.messages()).toBe(before.messages);
+    expect(cmp.threads()).toBe(before.threads);
+    expect(cmp.authorThreads()).toBe(before.authorThreads);
+    expect(cmp.busy()).toBeFalse();
+  });
+
+  it('falls back to the legacy selects when the RPC is missing, and stops asking for it', async () => {
+    const warn = spyOn(console, 'warn');
+    const tables = fixtureTables();
+    const { fixture, cmp, el, sb } = await mount(tables, { rpcError: MISSING_RPC });
+    fixture.detectChanges();
+    expect(sb.rpcCalls.length).toBe(1);
+    expect(cmp.errorMsg()).withContext('a missing migration is no error for the admin').toBeNull();
+    expect(cmp.messages().length).withContext('the legacy path loaded the board').toBe(tables.admin_feedback.length);
+    expect(el.querySelector('#fb-card-o1')).not.toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    await cmp.refresh();
+    expect(sb.rpcCalls.length).withContext('no second attempt until the page reloads').toBe(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('another RPC error keeps the loaded board and shows the error key', async () => {
+    spyOn(console, 'warn');
+    spyOn(console, 'error');
+    const tables = fixtureTables();
+    const { cmp, sb } = await mount(tables);
+    const loaded = cmp.messages();
+    const client = sb.provider.client as unknown as { rpc: unknown };
+    client.rpc = () => Promise.resolve({ data: null, error: { code: '57014', message: 'statement timeout' } });
+    await cmp.refresh();
+    expect(cmp.errorMsg()).not.toBeNull();
+    expect(cmp.messages()).withContext('the board is not blanked').toBe(loaded);
+    expect(cmp.busy()).toBeFalse();
   });
 });
