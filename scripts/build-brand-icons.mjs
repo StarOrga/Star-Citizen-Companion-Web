@@ -65,6 +65,9 @@ const say = (msg) => {
 /** Windows packs these sizes into an .ico so Explorer/taskbar/Start all match. */
 const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256];
 
+/** The browser tab needs 16/32/48 only — the SVG icon covers everything larger (AUD-069: 372 kB → ~15 kB). */
+const WEB_ICO_SIZES = [16, 32, 48];
+
 function png(svg, size, { background } = {}) {
   return new Resvg(svg, {
     fitTo: { mode: 'width', value: size },
@@ -152,7 +155,7 @@ const markFor = (p, s) => (s <= 64 ? smallMark[p] : appMark[p]);
 if (want('scc')) {
 say(CHECK ? 'checking web rasters…' : 'writing web rasters…');
 
-emit(resolve(ROOT, 'public/favicon.ico'), await pngToIco(ICO_SIZES.map((s) => png(appMark.scc, s))));
+emit(resolve(ROOT, 'public/favicon.ico'), await pngToIco(WEB_ICO_SIZES.map((s) => png(appMark.scc, s))));
 
 // PWA install icons. New filenames on purpose: `public/icons/` is copied
 // unhashed and is not covered by any ngsw asset group, so overwriting the old
