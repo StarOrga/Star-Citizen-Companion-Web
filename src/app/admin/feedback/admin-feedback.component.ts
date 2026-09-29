@@ -98,6 +98,13 @@ import { ScDateRelativePipe } from '../../core/locale/sc-relative-date.pipe';
 import { formatScDate } from '../../core/locale/date-format';
 import { LocaleService } from '../../core/locale/locale.service';
 import {
+  BoardDelta,
+  BoardState,
+  FULL_RESYNC_MS,
+  applyBoardDelta,
+  sinceFrom,
+} from './feedback-delta';
+import {
   AuthorFeedbackMessage,
   AuthorFeedbackStatus,
   AuthorThreadMap,
@@ -2160,9 +2167,89 @@ export class AdminFeedbackComponent implements OnInit {
 
   // ---- Data --------------------------------------------------------------
 
+  // ---- Change-only polling (AUD-341, AUD-155; plan D14) --------------------
+
+  /** What the last delta answer left us with; null until the first one lands. */
+  private boardState: BoardState | null = null;
+  /** `p_since` for the next poll: server `now` of the last answer minus the overlap. */
+  private deltaSince: string | null = null;
+  /** When the last full snapshot landed (ms epoch) — the 10-min resync clock. */
+  private lastFullAt = 0;
+  /**
+   * The RPC does not exist yet (migration not pushed): this page load stays on
+   * the legacy three-select path instead of failing one extra request per poll.
+   */
+  private deltaMissing = false;
+
+  /**
+   * One poll. `busy` brackets it exactly like before: useAutoRefresh does not
+   * await the callback, so only its `enabled: () => !busy()` gate stops two
+   * polls from overlapping.
+   */
   async refresh() {
     this.busy.set(true);
     this.errorMsg.set(null);
+    try {
+      if (this.deltaMissing) {
+        await this.refreshLegacy();
+        return;
+      }
+      let full = !this.boardState || Date.now() - this.lastFullAt > FULL_RESYNC_MS;
+      // At most one immediate full re-read when a delta no longer adds up.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { data, error } = await this.sb.client.rpc('admin_feedback_board_delta', {
+          p_since: full ? null : this.deltaSince,
+        });
+        if (error) {
+          if (isMissingRpc(error)) {
+            this.deltaMissing = true;
+            logWarn('admin-feedback', 'admin_feedback_board_delta missing — legacy full load', { code: error.code });
+            await this.refreshLegacy();
+          } else {
+            // An already loaded board stays on screen; only the error shows.
+            this.errorMsg.set(toErrorKey('admin-feedback', 'load board', error));
+          }
+          return;
+        }
+        const delta = data as BoardDelta;
+        const { state, changed, consistent } = applyBoardDelta(this.boardState, delta);
+        if (!consistent && !full) {
+          full = true;
+          continue;
+        }
+        this.boardState = state;
+        this.deltaSince = sinceFrom(delta.now);
+        if (delta.full) this.lastFullAt = Date.now();
+        this.threadsFailed.set(false);
+        this.authorThreadsFailed.set(false);
+        // No change → no signal write: the board's computeds do not re-run.
+        if (changed) this.applyBoard(state);
+        return;
+      }
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private applyBoard(state: BoardState): void {
+    const rows = state.topics;
+    this.messages.set(rows);
+    this.threads.set(state.threads);
+    // Same scope as the legacy read: the author channel of user-submitted topics.
+    const userTopics = new Set(rows.filter(isUserSubmitted).map((r) => r.id));
+    this.authorThreads.set(
+      groupAuthorMessages(state.authorMessages.filter((m) => userTopics.has(m.feedback_id))),
+    );
+    this.detectShipped(rows);
+    this.detectArrivals(rows);
+  }
+
+  /**
+   * The pre-D14 load: three full selects. Used only while the
+   * admin_feedback_board_delta migration is not live; remove it (like the
+   * codex_facet_values fallback) once it is.
+   */
+  private async refreshLegacy(): Promise<void> {
     const { data, error } = await this.sb.client
       .from('admin_feedback')
       // `author.role` colours the avatar; admins may read every profile
@@ -2179,7 +2266,6 @@ export class AdminFeedbackComponent implements OnInit {
       this.detectShipped(rows);
       this.detectArrivals(rows);
     }
-    this.busy.set(false);
   }
 
   private async loadThreads(feedbackIds: string[]): Promise<void> {
@@ -2729,4 +2815,12 @@ export class AdminFeedbackComponent implements OnInit {
     // refresh() clears errorMsg, so the failure is shown after it.
     if (error) this.errorMsg.set(toErrorKey('admin-feedback', 'delete topic', error, { feedbackId: m.id }));
   }
+}
+
+/**
+ * PostgREST's "function not found" (PGRST202) — or Postgres' own 42883 when
+ * the schema cache already knows the name but the database does not.
+ */
+function isMissingRpc(error: { code?: string | null }): boolean {
+  return error.code === 'PGRST202' || error.code === '42883';
 }

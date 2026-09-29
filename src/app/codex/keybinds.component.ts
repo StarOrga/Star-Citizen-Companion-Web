@@ -58,6 +58,10 @@ interface KeybindRow {
   /** Curated hierarchy (L1–L5); all-null while unclassified. */
   assignment: KeybindAssignment;
   assigned: boolean;
+  /** Assigned layers as translate keys, parent-first — computed once per row, not per change detection. */
+  chips: { layer: KeybindLayer; key: string }[];
+  /** Tooltip: the localized description plus the programmatic key behind the row. */
+  tooltip: string;
 }
 
 interface KeybindGroup {
@@ -83,6 +87,12 @@ const FILTERS: readonly AssignFilter[] = ['all', 'unassigned', 'assigned'] as co
 const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
 
 /**
+ * Small profiles stay open; from here on only what someone expands renders
+ * (AUD-031: ~1 000 rows with a tooltip directive each).
+ */
+const COLLAPSE_MIN_ROWS = 150;
+
+/**
  * Codex Keybindings — a lean, searchable reference of the game's DEFAULT action
  * bindings for the current build (extracted from Data/Libs/Config/
  * defaultProfile.xml). Categories = actionmaps, in the profile's own order; each
@@ -104,6 +114,16 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
  * assignment UI is admin-gated; the resulting chips are public, like the rest
  * of the codex.
  */
+/** The assigned layers of an assignment, as translate keys, parent-first. */
+function chipsFor(a: KeybindAssignment): { layer: KeybindLayer; key: string }[] {
+  const out: { layer: KeybindLayer; key: string }[] = [];
+  for (const layer of KEYBIND_LAYERS) {
+    const v = a[layer];
+    if (v) out.push({ layer, key: taxonomyKey(layer, v) });
+  }
+  return out;
+}
+
 @Component({
   selector: 'sc-codex-keybinds',
   standalone: true,
@@ -292,7 +312,13 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
             <p>{{ 'codex.empty.filtered' | translate }}</p>
           </div>
         } @else {
-          <p class="count">{{ 'codex.keybinds.count' | translate: { shown: shownCount(), total: total() } }}</p>
+          <div class="count-bar">
+            <p class="count">{{ 'codex.keybinds.count' | translate: { shown: shownCount(), total: total() } }}</p>
+            @if (collapsible() && !searching()) {
+              <button type="button" class="fold-all" (click)="expandAll()">{{ 'codex.keybinds.expandAll' | translate }}</button>
+              <button type="button" class="fold-all" (click)="collapseAll()">{{ 'codex.keybinds.collapseAll' | translate }}</button>
+            }
+          </div>
           @for (g of groups(); track g.actionmap) {
             <section class="cat">
               <h2 class="cat-head">
@@ -311,11 +337,23 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
                 @if (g.context) {
                   <span class="ctx">{{ tx('codex.keybinds.contexts.' + g.context) }}</span>
                 }
+                <!-- A real action next to the selection label, never inside it:
+                     no nested interaction. Collapsed categories render no rows. -->
+                @if (collapsible() && !searching()) {
+                  <button type="button" class="cat-toggle" [attr.aria-expanded]="isOpen(g)"
+                          [attr.aria-controls]="'kb-' + g.actionmap"
+                          [attr.aria-label]="(isOpen(g) ? 'codex.keybinds.group.collapse' : 'codex.keybinds.group.expand') | translate: { group: g.category }"
+                          (click)="toggleOpen(g)">
+                    <span class="n">{{ 'codex.keybinds.group.rows' | translate: { n: g.rows.length } }}</span>
+                    <span class="chev" aria-hidden="true">▾</span>
+                  </button>
+                }
               </h2>
-              <ul class="rows">
+              @if (isOpen(g)) {
+              <ul class="rows" [id]="'kb-' + g.actionmap">
                 @for (r of g.rows; track r.key) {
                   <li class="row" [class.picked]="isSelected(r)"
-                      [class.selectable]="editing()" [scTooltip]="rowTitle(r)">
+                      [class.selectable]="editing()" [scTooltip]="r.tooltip">
                     @if (editing()) {
                       <!-- The checkbox lives in its own <label>, whose ::after
                            is stretched over the whole row (see .row-pick::after).
@@ -339,7 +377,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
                       </span>
                       @if (r.assigned) {
                         <span class="cats">
-                          @for (c of chips(r); track c.layer) {
+                          @for (c of r.chips; track c.layer) {
                             <span class="cat-chip" [class]="'cat-chip l-' + c.layer">
                               {{ tx(c.key) }}
                             </span>
@@ -364,6 +402,7 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
                   </li>
                 }
               </ul>
+              }
             </section>
           }
         }
@@ -511,6 +550,24 @@ const NAME_LANGS: readonly NameLang[] = ['ui', 'en'] as const;
     .assign-ok { margin: 0; color: var(--sc-accent); font-size: 0.82rem; }
 
     .count { margin: 0; color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .count-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .count-bar .count { margin-right: auto; }
+    .fold-all, .cat-toggle {
+      display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 10px;
+      border-radius: 6px; border: 1px solid var(--sc-border); background: transparent;
+      color: var(--sc-fg-2); font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor));
+      letter-spacing: inherit; text-transform: inherit; cursor: pointer;
+    }
+    .fold-all:hover, .cat-toggle:hover { color: var(--sc-fg-0); border-color: var(--sc-accent); }
+    .cat-toggle { margin-left: auto; color: var(--sc-accent); }
+    .cat-toggle .chev { display: inline-block; transition: transform 0.15s ease; transform: rotate(-90deg); }
+    .cat-toggle[aria-expanded='true'] .chev { transform: none; }
+    @media (pointer: coarse) {
+      .fold-all, .cat-toggle { min-height: 48px; padding: 4px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cat-toggle .chev { transition: none; }
+    }
 
     .cat { display: flex; flex-direction: column; gap: 6px; }
     .cat-head {
@@ -754,6 +811,7 @@ export class KeybindsComponent implements OnInit {
       // ~1.1k actions, so it filters this list instead of opening a second view.
       if (mode === 'unassigned' && assigned) continue;
       if (mode === 'assigned' && !assigned) continue;
+      const description = localized(b.descriptionKey) ?? lookup(b.descriptionKey, labelsEn);
       if (!current || current.actionmap !== b.actionmap) {
         current = {
           actionmap: b.actionmap,
@@ -773,11 +831,12 @@ export class KeybindsComponent implements OnInit {
         label: label.text,
         source: label.source,
         context: label.context,
-        description:
-          localized(b.descriptionKey) ?? lookup(b.descriptionKey, labelsEn),
+        description,
         binding: binding ?? null,
         assignment,
         assigned,
+        chips: chipsFor(assignment),
+        tooltip: description ? `${description}\n${b.actionName}` : b.actionName,
       });
     }
     // Hoist a context every row of a group shares onto the group header, so the
@@ -786,9 +845,37 @@ export class KeybindsComponent implements OnInit {
     return out;
   });
 
-  /** Tooltip: the localized description plus the programmatic key behind the row. */
-  rowTitle(r: KeybindRow): string {
-    return r.description ? `${r.description}\n${r.actionName}` : r.actionName;
+
+  // ── collapsed categories (AUD-031) ──────────────────────────────────────────
+  /** Actionmaps the user expanded; the first category is always open. */
+  private readonly openGroups = signal<ReadonlySet<string>>(new Set<string>());
+  /** Only a big profile collapses — a short list is quicker to scan open. */
+  readonly collapsible = computed(() => this.total() >= COLLAPSE_MIN_ROWS);
+  /** A search shows every hit, so it opens every category that has one. */
+  readonly searching = computed(() => this.searchInput().trim().length >= 2);
+
+  isOpen(g: KeybindGroup): boolean {
+    return (
+      !this.collapsible() ||
+      this.searching() ||
+      this.openGroups().has(g.actionmap) ||
+      g === this.groups()[0]
+    );
+  }
+
+  toggleOpen(g: KeybindGroup): void {
+    const next = new Set(this.openGroups());
+    if (next.has(g.actionmap)) next.delete(g.actionmap);
+    else next.add(g.actionmap);
+    this.openGroups.set(next);
+  }
+
+  expandAll(): void {
+    this.openGroups.set(new Set(this.groups().map((g) => g.actionmap)));
+  }
+
+  collapseAll(): void {
+    this.openGroups.set(new Set<string>());
   }
 
   readonly shownCount = computed(() => this.groups().reduce((n, g) => n + g.rows.length, 0));
@@ -971,16 +1058,6 @@ export class KeybindsComponent implements OnInit {
       if (sel.has(keybindKey(b.actionmap, b.actionName))) {
         out.push({ actionmap: b.actionmap, actionName: b.actionName });
       }
-    }
-    return out;
-  }
-
-  /** The assigned layers of a row, as translate keys, parent-first. */
-  chips(r: KeybindRow): { layer: KeybindLayer; key: string }[] {
-    const out: { layer: KeybindLayer; key: string }[] = [];
-    for (const layer of KEYBIND_LAYERS) {
-      const v = r.assignment[layer];
-      if (v) out.push({ layer, key: taxonomyKey(layer, v) });
     }
     return out;
   }

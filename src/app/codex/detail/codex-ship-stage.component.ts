@@ -3,7 +3,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { CodexKind } from '../codex.service';
 import { HangarPickerComponent, HangarPickerItem } from '../stage/hangar-picker.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
-import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { StageCountChip } from '../codex-detail.component';
@@ -50,15 +51,26 @@ export interface StageHeroChip {
     <div class="stage-art" [class.live]="heroView3d()"
          [attr.aria-hidden]="heroView3d() ? null : 'true'">
       @if (heroView3d() && shipClassName(); as cls) {
-        <sc-ship-skin-viewer
-          class="stage-viewer"
-          [shipId]="cls"
-          [embedded]="true"
-          [hardpointPorts]="hardpointPortRefs()"
-          [activePorts]="activePorts()"
-          (hovered)="hovered.emit($event)"
-          (locatable)="locatable.emit($event)"
-          (available)="artAvailable.emit($event)" />
+        <!-- @defer: the viewer chunk loads only once 3D is switched on (AUD-048);
+             until it lands the stage keeps showing the 2D art, never a blank box. -->
+        @defer (on immediate) {
+          <sc-ship-skin-viewer
+            class="stage-viewer"
+            [shipId]="cls"
+            [embedded]="true"
+            [hardpointPorts]="hardpointPortRefs()"
+            [activePorts]="activePorts()"
+            (hovered)="hovered.emit($event)"
+            (locatable)="locatable.emit($event)"
+            (available)="artAvailable.emit($event)" />
+        } @placeholder {
+          <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
+            <span class="art-fallback">
+              <sc-codex-icon class="hero-icon" [kind]="kind()" [sub]="heroSub()" />
+              <span class="art-note">{{ 'codex.detail.noArtwork' | translate }}</span>
+            </span>
+          </sc-fallback-image>
+        }
       } @else {
         <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
           <span class="art-fallback">

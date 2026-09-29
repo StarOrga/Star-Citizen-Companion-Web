@@ -1114,11 +1114,33 @@ export class AdminComponent implements OnInit {
       .sort((a, b) => b.count - a.count || a.user.created_at.localeCompare(b.user.created_at));
   });
 
+  /**
+   * True while one poll (all four reads) is in flight. useAutoRefresh does not
+   * await its callback, and refreshReports() sets no busy flag of its own, so
+   * without this gate a slow poll could overlap the next one (AUD-221).
+   */
+  private readonly pollBusy = signal(false);
+
   constructor() {
-    useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
-    useAutoRefresh(() => this.refreshAllowlist(), { enabled: () => !this.allowlistBusy() });
-    useAutoRefresh(() => this.refreshAccessRequests(), { enabled: () => !this.accessBusy() });
-    useAutoRefresh(() => this.refreshReports(), { enabled: () => !this.busy() });
+    // ONE poll loop for the page's four reads, fired together (AUD-221, plan
+    // D14) — before, four independent 20 s timers drifted apart.
+    useAutoRefresh(() => this.refreshAll(), {
+      enabled: () => !this.pollBusy() && !this.busy() && !this.allowlistBusy() && !this.accessBusy(),
+    });
+  }
+
+  private async refreshAll(): Promise<void> {
+    this.pollBusy.set(true);
+    try {
+      await Promise.all([
+        this.refresh(),
+        this.refreshAllowlist(),
+        this.refreshAccessRequests(),
+        this.refreshReports(),
+      ]);
+    } finally {
+      this.pollBusy.set(false);
+    }
   }
   readonly adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
 
@@ -1445,12 +1467,7 @@ export class AdminComponent implements OnInit {
   }
 
   async ngOnInit() {
-    await Promise.all([
-      this.refresh(),
-      this.refreshAllowlist(),
-      this.refreshAccessRequests(),
-      this.refreshReports(),
-    ]);
+    await this.refreshAll();
   }
 
   /** Open reports against `u`; 0 when the DB predates migration 20260901181500. */

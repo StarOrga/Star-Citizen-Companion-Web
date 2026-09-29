@@ -47,6 +47,7 @@ export const READ_RPCS: ReadonlySet<string> = new Set([
   'pending_access_requests',
   'list_p4k_bundles_for_collaborator',
   'find_user_by_username',
+  'admin_feedback_board_delta',
 ]);
 
 /**

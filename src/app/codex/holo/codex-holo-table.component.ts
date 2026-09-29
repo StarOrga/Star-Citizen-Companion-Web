@@ -4,7 +4,8 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
-import { HardpointPortRef, ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { HoloPhase, PinRing, StagePin } from './codex-holo-model';
@@ -46,9 +47,14 @@ const GENERIC_HULL_PATH =
         <img class="hero-art" [src]="src" alt="" aria-hidden="true" />
       }
       @if (viewMode() === '3d') {
-        <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
-          [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
-          (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
+        <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). -->
+        @defer (on immediate) {
+          <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
+            [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
+            (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
+        } @placeholder {
+          <div class="mode-viewer" aria-hidden="true"></div>
+        }
       } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
         <sc-ship-hardpoint-map class="mode-viewer" [markers]="hardpointMarkers()" [frame]="frame"
           [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />

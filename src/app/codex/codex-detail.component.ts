@@ -202,7 +202,8 @@ import {
   readHardpointFrame,
   readHardpointTransforms,
 } from './hardpoint-map';
-import { HardpointPortRef, ShipSkinViewerComponent } from './ship-skin-viewer.component';
+import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
+import type { HardpointPortRef } from './hardpoint-port-ref';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -770,15 +771,21 @@ interface GearRecipe {
              that moves it is the hero's own 2D/3D switch: while the stage shows
              the model, this section steps aside so the ~3 MB glb is never
              loaded twice, and it comes straight back on the way to 2D. -->
+        <!-- @defer makes the viewer (model-viewer + three, ~470 kB) its own
+             chunk that only a ship page loads (AUD-048). No sized placeholder:
+             the viewer itself renders nothing until its skin list arrives, so
+             a reserved height would only add a jump for a ship without skins. -->
         @if (shipClassName(); as cls) {
           @if (!heroView3d()) {
-            <sc-ship-skin-viewer
-              [shipId]="cls"
-              [hardpointPorts]="hardpointPortRefs()"
-              [activePorts]="activePorts()"
-              (hovered)="setActivePorts($event)"
-              (locatable)="glbLocatablePorts.set($event)"
-              (available)="onArtAvailable($event)" />
+            @defer (on immediate) {
+              <sc-ship-skin-viewer
+                [shipId]="cls"
+                [hardpointPorts]="hardpointPortRefs()"
+                [activePorts]="activePorts()"
+                (hovered)="setActivePorts($event)"
+                (locatable)="glbLocatablePorts.set($event)"
+                (available)="onArtAvailable($event)" />
+            }
           }
         }
 

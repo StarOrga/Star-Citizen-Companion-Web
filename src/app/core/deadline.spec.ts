@@ -27,6 +27,7 @@ describe('deadline', () => {
       ['DELETE', `${REST}codex_items?id=eq.1`, false],
       ['POST', `${REST}rpc/codex_armor_rating`, true],
       ['POST', `${REST}rpc/codex_armor_rating?x=1`, true],
+      ['POST', `${REST}rpc/admin_feedback_board_delta`, true],
       ['POST', `${REST}rpc/set_user_role`, false],
       ['POST', `${REST}rpc/hangar_follow_snapshot`, false],
       ['GET', 'https://other.example.com/rest/v1/codex_items', false],
@@ -42,7 +43,7 @@ describe('deadline', () => {
     it('keeps the read-only RPC list at its checked size', () => {
       // A change here means an RPC was added or removed — re-check that it
       // is stable / writes nothing (see the doc comment on READ_RPCS).
-      expect(READ_RPCS.size).toBe(22);
+      expect(READ_RPCS.size).toBe(23);
       expect(READ_RPCS.has('hangar_follow_snapshot')).toBeFalse();
     });
   });

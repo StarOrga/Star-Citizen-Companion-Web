@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ShipSkin, ShipSkinsService, skinSourceKey } from './ship-skins.service';
+import type { HardpointPortRef } from './hardpoint-port-ref';
 import {
   Vec3,
   hotspotPosition,
@@ -23,9 +24,11 @@ import {
 } from './glb-hardpoints';
 import { HOLO_FALLBACK_ACCENT, HoloMaterial, applyHologram, parseRgbToken } from './ship-hologram';
 
-// Side-effect import registers the <model-viewer> custom element. Because this
-// component is lazy-loaded inside the ship detail route, model-viewer (~1 MB)
-// only enters the bundle chunk for that route — never the initial bundle.
+// Side-effect import registers the <model-viewer> custom element. This component
+// (and with it model-viewer + three, ~470 kB) is its own chunk: every page that
+// shows it wraps it in a `@defer` block inside its ship-only branch, so weapon,
+// armour, component and item pages never load it (AUD-048). Keep it that way —
+// import HardpointPortRef from ./hardpoint-port-ref, never from this file.
 import '@google/model-viewer';
 
 /**
@@ -64,13 +67,6 @@ void customElements
 
 type ViewMode = '3d' | 'paint';
 
-/** A port the detail view wants located on the model. */
-export interface HardpointPortRef {
-  /** Raw port name — the key every hardpoint view highlights by. */
-  port: string;
-  label: string;
-  itemName: string | null;
-}
 
 /** One resolved hotspot, ready to hand to `<model-viewer>`. */
 interface HotspotView {

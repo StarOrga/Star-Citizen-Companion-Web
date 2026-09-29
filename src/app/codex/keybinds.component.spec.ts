@@ -250,7 +250,7 @@ describe('KeybindsComponent', () => {
     const fixture = await setup({ binds: SAMPLE, labels: LABELS });
     expect(fixture.nativeElement.querySelectorAll('.act-raw').length).toBe(0);
     const cmp = fixture.componentInstance;
-    expect(cmp.rowTitle(cmp.groups()[0].rows[0])).toContain('v_strafe_up');
+    expect(cmp.groups()[0].rows[0].tooltip).toContain('v_strafe_up');
   });
 
   it('still finds a row by its raw programmatic key', async () => {
@@ -437,7 +437,7 @@ describe('KeybindsComponent', () => {
     expect(cmp.selectedCount()).toBe(0);
     const rows = cmp.groups()[0].rows;
     expect(rows.every((r) => r.assigned)).toBeTrue();
-    expect(cmp.chips(rows[0]).map((c) => c.key))
+    expect(rows[0].chips.map((c) => c.key))
       .toEqual(['codex.keybinds.taxonomy.actionGroup.flight_control']);
     expect(cmp.assignedTotal()).toBe(2);
   });
@@ -604,5 +604,89 @@ describe('KeybindsComponent', () => {
     } finally {
       document.documentElement.style.removeProperty('--sc-imp-banner-h');
     }
+  });
+
+  // ── AUD-031: a real profile (~1 000 actions) renders collapsed ─────────────
+  describe('collapsed categories on a big profile', () => {
+    /** 200 actions in 4 actionmaps of 50 — above COLLAPSE_MIN_ROWS (150). */
+    const BIG: CodexKeybind[] = Array.from({ length: 200 }, (_, i) =>
+      bind({
+        actionmap: `map_${Math.floor(i / 50)}`,
+        actionName: `act_${String(i).padStart(3, '0')}`,
+        bindings: { keyboard: `k${i}`, mouse: null, gamepad: null, joystick: null },
+        sort: i,
+      }),
+    );
+    const rowsIn = (el: HTMLElement): number => el.querySelectorAll('.row').length;
+
+    it('renders only the first category, every category has a toggle', async () => {
+      const fixture = await setup({ binds: BIG });
+      const el: HTMLElement = fixture.nativeElement;
+      const cmp = fixture.componentInstance;
+      expect(rowsIn(el)).toBe(cmp.groups()[0].rows.length);
+      const toggles = el.querySelectorAll<HTMLButtonElement>('.cat-toggle');
+      expect(toggles.length).toBe(4);
+      toggles.forEach((b) => {
+        expect(b.tagName).toBe('BUTTON');
+        expect(b.getAttribute('type')).toBe('button');
+        expect(b.hasAttribute('aria-expanded')).toBeTrue();
+      });
+      expect(toggles[0].getAttribute('aria-expanded')).toBe('true');
+      expect(toggles[1].getAttribute('aria-expanded')).toBe('false');
+      expect(toggles[1].getAttribute('aria-controls')).toBe('kb-map_1');
+    });
+
+    it('expands a category on click', async () => {
+      const fixture = await setup({ binds: BIG });
+      const el: HTMLElement = fixture.nativeElement;
+      el.querySelectorAll<HTMLButtonElement>('.cat-toggle')[1].click();
+      fixture.detectChanges();
+      expect(rowsIn(el)).toBe(100);
+      expect(el.querySelectorAll('.cat-toggle')[1].getAttribute('aria-expanded')).toBe('true');
+      expect(el.querySelector('#kb-map_1')).not.toBeNull();
+    });
+
+    it('opens every hit while searching (2+ characters) and hides the toggles', async () => {
+      const fixture = await setup({ binds: BIG });
+      const el: HTMLElement = fixture.nativeElement;
+      const cmp = fixture.componentInstance;
+      // '_1' hits act_100–act_199: the last two actionmaps, both collapsed before.
+      cmp.onSearch('_1');
+      fixture.detectChanges();
+      expect(rowsIn(el)).toBe(cmp.shownCount());
+      expect(cmp.groups().length).toBeGreaterThan(1);
+      expect(el.querySelectorAll('.cat-toggle').length).toBe(0);
+    });
+
+    it('expands and collapses all categories', async () => {
+      const fixture = await setup({ binds: BIG });
+      const el: HTMLElement = fixture.nativeElement;
+      const [expand, collapse] = Array.from(el.querySelectorAll<HTMLButtonElement>('.fold-all'));
+      expand.click();
+      fixture.detectChanges();
+      expect(rowsIn(el)).toBe(200);
+      collapse.click();
+      fixture.detectChanges();
+      expect(rowsIn(el)).toBe(50);
+    });
+
+    it('builds the row tooltip from description and raw key', async () => {
+      const withDesc = BIG.map((b, i) => (i === 0 ? { ...b, descriptionKey: '@desc_0' } : b));
+      const fixture = await setup({
+        binds: withDesc,
+        labels: new Map([['@desc_0', 'Does the thing']]),
+      });
+      const rows = fixture.componentInstance.groups()[0].rows;
+      expect(rows[0].tooltip).toBe('Does the thing\nact_000');
+      expect(rows[1].tooltip).toBe('act_001');
+    });
+
+    it('keeps a small profile fully open without toggles', async () => {
+      const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelectorAll('.cat-toggle').length).toBe(0);
+      expect(el.querySelectorAll('.fold-all').length).toBe(0);
+      expect(rowsIn(el)).toBe(fixture.componentInstance.shownCount());
+    });
   });
 });

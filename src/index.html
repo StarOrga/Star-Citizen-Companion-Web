@@ -58,15 +58,14 @@
     <link rel="mask-icon" href="icons/brand/scc-mark-mono.svg" color="#52c1e6" />
     <link rel="apple-touch-icon" sizes="180x180" href="icons/brand/scc-apple-touch-180.png" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- RSI image CDNs — preconnect so news thumbnails start fetching sooner. -->
     <link rel="preconnect" href="https://media.robertsspaceindustries.com" crossorigin />
     <link rel="preconnect" href="https://robertsspaceindustries.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts come from @starorga/star-ui/lib/design-tokens.css (its @import of
+         Inter + Orbitron 400-700, inlined by the build into styles-*.css) - the
+         single font source (AUD-362). The former second link here only added
+         Inter 300 and Orbitron 900, which the app never uses. -->
     <!-- First-paint boot splash. Rendered instantly from static HTML/CSS so a
          cold visit never shows a blank page while the Angular bundle downloads
          and boots. Lives inside <sc-root>, so Angular removes it automatically
