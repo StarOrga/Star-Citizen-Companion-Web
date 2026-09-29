@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.112.4] - 2026-09-29
+
+### Changed
+
+- **Die Kodex-Detailseite ist in Bausteine zerlegt.** Auswahl für Ausführung und
+  Lackierung, Schiffsaktionen, RSI-Link-Formular, Hardpoints, Rezept und Datenblatt
+  stehen jetzt je einmal im Code statt doppelt für klassische Ansicht und Holotable;
+  für dich sieht alles gleich aus.
+- **Mehr Luft für kommende Feinarbeit.** Die Styles der Seite sind von fast 18 kB
+  auf 12 kB geschrumpft, so ist wieder Platz unter der Build-Grenze.
+
 ## [0.112.3] - 2026-09-29
 
 ### Changed

@@ -20,7 +20,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexDetail } from '../codex.service';
 import { CodexItemPort } from '../codex.types';
-import type { StageCountChip } from '../codex-detail.component';
+import type { StageCountChip } from '../detail/codex-detail.types';
 import { HoloSilhouette, SilhouetteAnchor } from '../holo-silhouette';
 import { MISSIONS, MissionId, missionDisabledReasonKey } from '../codex-mission';
 import type { ShipCapabilities } from '../codex-mission';

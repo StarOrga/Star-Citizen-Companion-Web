@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.112.3",
+  "current": "0.112.4",
   "releases": [
+    {
+      "version": "0.112.4",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Kodex-Detailseite ist in Bausteine zerlegt.",
+              "text": "Auswahl für Ausführung und Lackierung, Schiffsaktionen, RSI-Link-Formular, Hardpoints, Rezept und Datenblatt stehen jetzt je einmal im Code statt doppelt für klassische Ansicht und Holotable; für dich sieht alles gleich aus."
+            },
+            {
+              "title": "Mehr Luft für kommende Feinarbeit.",
+              "text": "Die Styles der Seite sind von fast 18 kB auf 12 kB geschrumpft, so ist wieder Platz unter der Build-Grenze."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.112.3",
       "date": "2026-09-29",

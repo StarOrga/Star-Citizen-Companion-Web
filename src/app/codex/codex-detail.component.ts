@@ -9,10 +9,10 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
-  AmmunitionPayload,
   BaseEntityPayload,
   CodexBlueprintIngredient,
   CodexItemPort,
@@ -32,7 +32,6 @@ import {
   CodexDetail,
   CodexKind,
   CodexService,
-  CompatibleItem,
   ResolvedEntity,
   pickLocalized,
   toLang,
@@ -43,10 +42,27 @@ import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
+import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
+import { CodexShipActionsComponent } from './detail/codex-ship-actions.component';
+import { CodexShipLinkFormComponent } from './detail/codex-ship-link-form.component';
+import { CodexPortListComponent } from './detail/codex-port-list.component';
+import { CodexSpecSheetComponent } from './detail/codex-spec-sheet.component';
+import { CodexRecipeCardComponent, RecipeView } from './detail/codex-recipe-card.component';
+import {
+  HeroChip,
+  Translate,
+  ammoRangeOf,
+  buildHeroChips,
+  buildHeroFacts,
+  buildShipFactGroups,
+  buildStageCounts,
+  fmtGm,
+} from './detail/codex-detail-facts';
+import { ShipLinkFormStore } from './detail/ship-link-form.store';
+import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
 import {
   computeLoadoutStats,
   findStat,
-  type QuantumStats,
   type ResolvedLoadoutLine,
 } from '../hangar/loadout-stats';
 import {
@@ -83,12 +99,9 @@ import {
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
 import {
-  SHIP_MODULE_SECTION_ORDER,
-  ShipModuleGroup,
   ShipModuleSection,
   TAIL_SHIP_SECTIONS,
   classifyShipModule,
-  shipModuleGroupLabelKey,
   shipModuleGroupOf,
   isConfigurableSection,
   isIndividualSection,
@@ -96,18 +109,20 @@ import {
   classNamePositionFamily,
 } from './ship-module-sections';
 
-/** One census chip on the stage: a loadout block, its count, an optional detail. */
-export interface StageCountChip {
-  group: ShipModuleGroup;
-  count: number;
-  labelKey: string;
-  /** i18n key taking `{ n: detailCount }`, or null when the count says it all. */
-  detailKey: string | null;
-  detailCount: number;
-}
+import {
+  EmptyFit,
+  Fact,
+  GearRecipe,
+  LoadoutItem,
+  PortCompat,
+  PortFit,
+  PortGroup,
+  ShipTechStats,
+  StageCountChip,
+} from './detail/codex-detail.types';
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { EditionOption, resolveEditionGroup } from './codex-edition-group';
-import { SummaryOccupant, equippedMass } from './ship-summary-panels';
+import { SummaryOccupant } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
 import {
@@ -120,10 +135,8 @@ import {
   storeMission,
 } from './codex-mission';
 import {
-  KpiCell,
   KpiShipInput,
   buildDefensivePanel,
-  buildKpiCells,
   buildOffensivePanel,
   computeKpiSheet,
   crossSectionAxes,
@@ -151,7 +164,6 @@ import {
   CodexOffensivePanelComponent,
   CodexShipPanelComponent,
   ShipFactGroup,
-  ShipFactRow,
 } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
@@ -168,30 +180,6 @@ import {
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexWeaponDetailComponent, WeaponDetailEntry } from './codex-weapon-detail.component';
-import {
-  DraftMap,
-  EMPTY_DRAFT,
-  HydrationEpoch,
-  acceptedClassNames,
-  beginHydration,
-  extendHydration,
-  changedCount as draftChangedCount,
-  decodeDraftParam,
-  deleteDraftPaths,
-  encodeDraftParam,
-  isNestedPath,
-  mergeMapInto,
-  mergeSavedLoadout,
-  newHydrationEpoch,
-  parseLocalDraft,
-  restoreDraft,
-  selectSaveableEntries,
-  serializeLocalDraft,
-  setDraftValueForPaths,
-  topSegment,
-  touchedTopPorts,
-  LOCAL_DRAFT_STORAGE_KEY,
-} from './codex-loadout-draft';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
   HardpointFrame,
@@ -209,88 +197,23 @@ import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
 import { AuthService } from '../auth/auth.service';
-import { RoleService } from '../auth/role.service';
 import { BuyOption, UexShopService } from './uex-shop.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
-import { CodexHoloForkGuard } from './holo/codex-holo-fork-guard';
 import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 
-// Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
-interface PortCompat {
-  loading: boolean;
-  error: string | null;
-  items: CompatibleItem[];
-}
-
-// A compact hero fact chip (manufacturer, role, crew, size, …).
-interface Fact {
-  label: string;
-  value: string;
-  accent?: boolean;
-}
-
-// Hardpoints grouped by functional category for display.
-interface PortGroup {
-  category: HardpointCategory;
-  ports: CodexItemPort[];
-}
-
-// Tech spec facts derived from the stock loadout's component payloads (#137):
-// quantum drive numbers plus summed hydrogen / quantum fuel tank capacities.
-interface ShipTechStats {
-  quantum: QuantumStats;
-  quantumDriveClassName: string | null;
-  hydrogenCapacity: number | null;
-  quantumFuelCapacity: number | null;
-}
-
-interface LoadoutItem {
-  port: string;
-  className: string | null;
-  kind: CodexKind | null;
-  name: string | null; // friendly name (falls back to className)
-  size: number | null;
-  grade: string | null;
-  manufacturerCode: string | null;
-  /**
-   * Sub-port name → the class the stock loadout installs there, for the item on
-   * THIS hardpoint. Empty when the extract carries no nested fit for it.
-   */
-  carried: ReadonlyMap<string, string>;
-}
-// What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
-interface PortFit {
-  attachType: string;
-  size: number | null;
-}
-
-// What may go into an UNFITTED hardpoint, and where that answer came from.
-interface EmptyFit {
-  types: string[];
-  size: number | null;
-  /** true = borrowed from an identical fitted bay, not read off this port. */
-  inferred: boolean;
-}
-
 // Engine placeholders that identify no attach type — never build a fit on them.
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
-
-// The recipe that PRODUCES this entity (#187: "which materials do I need").
-interface GearRecipe {
-  classNameSlug: string;
-  craftTimeSec: number | null;
-  ingredients: CodexBlueprintIngredient[];
-}
 
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet],
+  providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -336,11 +259,11 @@ interface GearRecipe {
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
-        <!-- Wave 2 (item A): today's stage/tool-row/columns/analysis/
-             fixed-systems/description/spec sections render UNCHANGED in this
-             branch — nothing here was touched, byte-for-byte, so the existing
-             codex-detail.component.spec.ts stays green untouched. The
-             Holotable view is a completely separate branch below. -->
+        <!-- Classic view. The Holotable view is the separate branch below;
+             whatever both show (pickers, ship actions, link form, fixed
+             systems, description, hardpoints, recipe, spec/raw) is a shared
+             sub-component in detail/ or a shared ng-template at the end of
+             this template, rendered in both branches (D17). -->
         @if (!(kind() === 'ship' && holoView())) {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         <div class="m-top" [class.ship-mode]="kind() === 'ship'">
@@ -403,49 +326,15 @@ interface GearRecipe {
                  anchor to that record's own detail route, so a livery keeps a
                  shareable URL and middle-click still opens a tab. -->
             @if (skinOptions().length > 1) {
-              <details class="picker skin-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of skinOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
 
             <!-- Edition picker (feedback 77ecad2a). Same shape as the skin
                  picker above: a native details, options are real anchors. -->
             @if (editionOptions().length > 1) {
-              <details class="picker edition-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of editionOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="editionPickerOptions()" [current]="currentEdition()" />
             }
 
             @if (facts().length > 0) {
@@ -506,134 +395,22 @@ interface GearRecipe {
                stage (feedback 140dfb7e). ── -->
           <div class="toolrow">
             @if (editionOptions().length > 1) {
-              <details class="picker edition-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of editionOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker class="in-toolrow" variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="editionPickerOptions()" [current]="currentEdition()" />
             }
             @if (skinOptions().length > 1) {
-              <details class="picker skin-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of skinOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker class="in-toolrow" variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
-            <code class="cls">{{ detail()!.classNameSlug }}</code>
-            <span class="tool-spacer"></span>
-            @if (!inHangar()) {
-              <button type="button" class="btn add-hangar" (click)="addToHangar()"
-                      [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
-                {{ 'quickSearch.addToHangar' | translate }}
-              </button>
-              @if (addFailed()) {
-                <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-              }
-            }
-            <!-- Deep-link out to the official RSI site. We have no reliable
-                 per-ship RSI slug (our classNameSlug is not the RSI URL slug),
-                 so without a pinned link this lands on the official ships
-                 listing rather than 404-ing on a guessed deeplink. A pinned
-                 value is attacker-controlled, so it is bound with [href] on a
-                 plain anchor and nothing else: no innerHTML, no LLM prompt. -->
-            @if (pledgeLink(); as pledge) {
-              <a class="btn rsi-link" [href]="pledge" target="_blank" rel="noopener noreferrer nofollow">
-                {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
-              </a>
-            } @else {
-              <a class="btn rsi-link"
-                 href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
-                 target="_blank" rel="noopener noreferrer">
-                {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
-              </a>
-            }
-            @if (auth.user()) {
-              <button type="button" class="btn quiet" (click)="toggleLinkForm()">
-                {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
-              </button>
-            }
+            <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" [spacer]="true"
+              [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
+              (addToHangar)="addToHangar()" />
           </div>
 
           <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
                you; an admin can publish one for everyone, never automatic. -->
-          @if (showLinkForm()) {
-            <form class="ship-link-form" (submit)="saveShipLink($event)">
-              <p class="sl-hint">{{ 'codex.shipLink.hint' | translate }}</p>
-              <div class="sl-row">
-                <input
-                  type="url"
-                  class="sl-input"
-                  [value]="shipLinkInput()"
-                  (input)="onShipLinkInput($event)"
-                  [attr.placeholder]="'codex.shipLink.placeholder' | translate"
-                  [attr.aria-label]="'codex.shipLink.label' | translate"
-                  [attr.aria-invalid]="shipLinkError() ? 'true' : null" />
-                <button type="submit" class="btn" [disabled]="shipLinks.saving()">
-                  {{ 'codex.shipLink.save' | translate }}
-                </button>
-                @if (myPledgeLink()) {
-                  <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                          (click)="removeShipLink()">
-                    {{ 'codex.shipLink.remove' | translate }}
-                  </button>
-                }
-                <button type="button" class="btn quiet" (click)="toggleLinkForm()">
-                  {{ 'codex.shipLink.cancel' | translate }}
-                </button>
-              </div>
-              @if (shipLinkError(); as errKey) {
-                <p class="sl-error" role="alert">
-                  {{ ('codex.shipLink.error.' + errKey) | translate }}
-                </p>
-              }
-              @if (shipLinkSaved()) {
-                <p class="sl-ok" role="status">{{ 'codex.shipLink.saved' | translate }}</p>
-              }
-              @if (role.isAdmin()) {
-                <div class="sl-admin">
-                  <span class="sl-admin-tag">{{ 'codex.shipLink.adminTitle' | translate }}</span>
-                  <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                          (click)="promoteShipLink()">
-                    {{ 'codex.shipLink.promote' | translate }}
-                  </button>
-                  @if (globalPledgeLink()) {
-                    <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                            (click)="unpromoteShipLink()">
-                      {{ 'codex.shipLink.unpromote' | translate }}
-                    </button>
-                  }
-                  <span class="sl-admin-hint">{{ 'codex.shipLink.adminHint' | translate }}</span>
-                </div>
-              }
-            </form>
+          @if (shipLinkForm.open()) {
+            <sc-codex-ship-link-form />
           }
         }
         </div>
@@ -789,45 +566,10 @@ interface GearRecipe {
           }
         }
 
-        <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
-             the airframe is not a decision; see TAIL_SHIP_SECTIONS in
-             ship-module-sections.ts — the countermeasures moved back up into
-             the loadout card with #237, now that their rounds carry values).
-             Same layout component as the loadout card above, fed the tail
-             sections instead. -->
-        @if (tailModuleSections().length > 0) {
-          <section class="sc-card block col-loadout col-loadout-tail">
-            <h2 class="col-head">
-              <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
-              <span class="n">{{ tailModuleCount() }}</span>
-              <span class="rule" aria-hidden="true"></span>
-              @if (hiddenEmptyCount() > 0) {
-                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                </button>
-              }
-            </h2>
-            <sc-codex-hardpoint-layout
-              [sections]="tailModuleSections()"
-              [sectionOrder]="moduleSectionOrder()"
-              [foldedSections]="foldedModuleSections()"
-              [occupantsBySection]="occupantsBySection()"
-              [locatablePorts]="locatablePorts()"
-              [activePorts]="activePorts()"
-              (reverted)="onRevertPaths($event)"
-              (hovered)="setActivePorts($event)"
-              (inspected)="openInspect($event)"
-              (swapRequested)="openSwapPicker($event)" />
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="tailLoadout" />
 
         <!-- ── Description ───────────────────────────────────────── -->
-        @if (description(); as d) {
-          <section class="sc-card block">
-            <h2>{{ 'codex.detail.description' | translate }}</h2>
-            <p class="desc">{{ d }}</p>
-          </section>
-        }
+        <ng-container [ngTemplateOutlet]="descriptionCard" />
 
         <!-- ── Where to buy (#254/#255): UEX Corp purchase locations for FPS
              armor pieces and personal weapons. Best-effort — the section only
@@ -938,100 +680,23 @@ interface GearRecipe {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
             <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
-            <!-- The hull map lives with the loadout list when there is one; a
-                 ship with only structural ports gets it here instead, so it is
-                 never shown twice and never withheld. -->
-            @if (!hasLoadoutSection() && hardpointFrame(); as frame) {
-              <sc-ship-hardpoint-map
-                [markers]="hardpointMarkers()"
-                [frame]="frame"
-                [activePorts]="activePorts()"
-                (hovered)="setActivePorts($event)" />
-            }
-            @for (g of hardpointGroups(); track g.category) {
-              <div class="hp-group">
-                <h3 class="hp-cat">
-                  {{ ('codex.portCategory.' + g.category) | translate }}
-                  <span class="hp-ct">{{ g.ports.length }}</span>
-                </h3>
-                <ul class="hp-list">
-                  @for (port of g.ports; track port.portIndex) {
-                    <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex"
-                        [class.located]="isPortLocated(port)" [class.on]="isPortActive(port)"
-                        (mouseenter)="hoverPort(port)" (mouseleave)="setActivePorts(null)">
-                      <button type="button" class="hp-head" (click)="togglePort(port)" [disabled]="port.types.length === 0">
-                        <span class="hp-caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '·' }}</span>
-                        <span class="hp-name">{{ humanizePort(port.portName) }}</span>
-                        <span class="hp-meta">
-                          <span class="hp-size">{{ sizeRange(port.minSize, port.maxSize) }}</span>
-                          @for (t of port.types; track t) { <span class="chip">{{ humanizeType(t) }}</span> }
-                        </span>
-                      </button>
-                      @if (expandedPort() === port.portIndex) {
-                        <div class="compat">
-                          @if (compat(port.portIndex); as c) {
-                            @if (c.loading) {
-                              <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
-                            } @else if (c.error) {
-                              <span class="err-inline">{{ c.error | translate }}</span>
-                            } @else if (c.items.length === 0) {
-                              <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
-                            } @else {
-                              <div class="compat-head">{{ 'codex.detail.compatCount' | translate: { count: c.items.length } }}</div>
-                              <ul class="compat-list">
-                                @for (it of c.items; track it.kind + it.classNameSlug) {
-                                  <li>
-                                    <a class="compat-link" [routerLink]="['/codex', it.kind, it.classNameSlug]">
-                                      {{ it.nameLocalized || it.classNameSlug }}
-                                    </a>
-                                    <span class="compat-meta">
-                                      @if (it.size != null) { <span class="chip">S{{ it.size }}</span> }
-                                      @if (it.grade) { <span class="chip">{{ it.grade }}</span> }
-                                      @if (it.manufacturerCode) { <span class="chip">{{ it.manufacturerCode }}</span> }
-                                    </span>
-                                  </li>
-                                }
-                              </ul>
-                            }
-                          }
-                        </div>
-                      }
-                    </li>
-                  }
-                </ul>
-              </div>
-            }
+            <sc-codex-port-list
+              [groups]="hardpointGroups()"
+              [frame]="hardpointFrame()"
+              [showMap]="!hasLoadoutSection()"
+              [markers]="hardpointMarkers()"
+              [activePorts]="activePorts()"
+              [locatablePorts]="locatablePorts()"
+              [expandedPort]="expandedPort()"
+              [compat]="compatByPort()"
+              (portToggle)="togglePort($event)"
+              (hovered)="setActivePorts($event)" />
           </section>
         }
 
         <!-- ── Crafting recipe: what this item costs to make (#187) ─ -->
-        @if (recipe(); as r) {
-          <section class="sc-card block">
-            <h2>
-              {{ 'codex.detail.craftedFrom' | translate }}
-              @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
-            </h2>
-            <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
-            @if (r.ingredients.length > 0) {
-              <ul class="compat-list">
-                @for (i of r.ingredients; track i.ingredientIndex) {
-                  <li>
-                    <span class="compat-link plain">{{ ingredientName(i) }}</span>
-                    <span class="compat-meta">
-                      @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
-                      @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
-                      @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
-                    </span>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
-            }
-            <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
-              {{ 'codex.detail.openBlueprint' | translate }}
-            </a>
-          </section>
+        @if (recipeView(); as rv) {
+          <sc-codex-recipe-card [recipe]="rv" />
         }
 
         <!-- ── Used in crafting blueprints (reverse ingredient lookup) ─ -->
@@ -1056,39 +721,14 @@ interface GearRecipe {
         }
 
         <!-- ── Full spec sheet (Manifest, collapsed) + raw payload ── -->
-        <section class="sc-card block raw-block">
-          <div class="spec-toggles">
-            @if (specSections().length > 0) {
-              <button type="button" class="raw-toggle" (click)="toggleSpec()">
-                {{ (showSpec() ? 'codex.detail.hideFullSpec' : 'codex.detail.showFullSpec') | translate }}
-              </button>
-            }
-            <button type="button" class="raw-toggle" (click)="toggleRaw()">
-              {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
-            </button>
-          </div>
-          @if (showSpec()) {
-            <div class="spec">
-              @for (sec of specSections(); track sec.title) {
-                @if (sec.title) { <h3 class="sg-head">{{ sec.title }}</h3> }
-                <table class="spec-table">
-                  <tbody>
-                    @for (r of sec.rows; track r.key) {
-                      <tr>
-                        <td class="sp-key">{{ r.key }}</td>
-                        <td class="sp-val">{{ r.value }}@if (r.unit) {<span class="s-unit"> {{ r.unit }}</span>}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              }
-              @if (provenance(); as p) {
-                <p class="spec-prov">{{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}</p>
-              }
-            </div>
-          }
-          @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
-        </section>
+        <sc-codex-spec-sheet
+          [sections]="specSections()"
+          [showSpec]="showSpec()"
+          [showRaw]="showRaw()"
+          [rawJson]="rawJson()"
+          [provenance]="provenance()"
+          (toggleSpec)="toggleSpec()"
+          (toggleRaw)="toggleRaw()" />
         } @else {
           <sc-codex-holo-stage
             [detail]="detail()!"
@@ -1164,291 +804,57 @@ interface GearRecipe {
             (arrivedShip)="onHoloArrived($event)"
             [linkCopied]="linkCopied()"
             (copyShareLink)="copyShareLink()">
-            <!-- Details drawer content — reused verbatim via content
-                 projection, so the ship-link form, edition/skin pickers,
-                 RSI link/add-to-hangar, fixed systems layout, description,
-                 structural hardpoints, crafting and spec/raw stay on the
-                 SAME signals/methods as the classic view (item B "present,
-                 not hidden behind a code path"). -->
+            <!-- Details drawer content, projected into the Holotable: the
+                 shared sub-components in detail/ and the shared ng-templates,
+                 rendered in both branches, on the SAME signals/methods as the
+                 classic view (item B "present, not hidden behind a code
+                 path"). -->
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
-                <details class="picker edition-picker">
-                  <summary>
-                    <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                    <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                    <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                  </summary>
-                  <ul class="sp-list">
-                    @for (o of editionOptions(); track o.classNameSlug) {
-                      <li>
-                        <a class="sp-opt"
-                           [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                           [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                           [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                          {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                        </a>
-                      </li>
-                    }
-                  </ul>
-                </details>
+                <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                  [options]="editionPickerOptions()" [current]="currentEdition()" />
               }
               @if (skinOptions().length > 1) {
-                <details class="picker skin-picker">
-                  <summary>
-                    <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                    <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                    <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                  </summary>
-                  <ul class="sp-list">
-                    @for (o of skinOptions(); track o.classNameSlug) {
-                      <li>
-                        <a class="sp-opt"
-                           [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                           [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                           [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                          {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                        </a>
-                      </li>
-                    }
-                  </ul>
-                </details>
+                <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                  [options]="skinPickerOptions()" [current]="currentLivery()" />
               }
-              <code class="cls">{{ detail()!.classNameSlug }}</code>
-              @if (!inHangar()) {
-                <button type="button" class="btn add-hangar" (click)="addToHangar()"
-                        [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
-                  {{ 'quickSearch.addToHangar' | translate }}
-                </button>
-                @if (addFailed()) {
-                  <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
-                }
-              }
-              @if (pledgeLink(); as pledge) {
-                <a class="btn rsi-link" [href]="pledge" target="_blank" rel="noopener noreferrer nofollow">
-                  {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
-                </a>
-              } @else {
-                <a class="btn rsi-link"
-                   href="https://robertsspaceindustries.com/en/pledge/ships?sortField=name&sortDirection=asc"
-                   target="_blank" rel="noopener noreferrer">
-                  {{ 'codex.detail.viewOnRsi' | translate }} <span aria-hidden="true">↗</span>
-                </a>
-              }
-              @if (auth.user()) {
-                <button type="button" class="btn quiet" (click)="toggleLinkForm()">
-                  {{ (myPledgeLink() ? 'codex.shipLink.edit' : 'codex.shipLink.add') | translate }}
-                </button>
-              }
+              <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug"
+                [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
+                (addToHangar)="addToHangar()" />
             </div>
-            @if (showLinkForm()) {
-              <form class="ship-link-form" (submit)="saveShipLink($event)">
-                <p class="sl-hint">{{ 'codex.shipLink.hint' | translate }}</p>
-                <div class="sl-row">
-                  <input
-                    type="url"
-                    class="sl-input"
-                    [value]="shipLinkInput()"
-                    (input)="onShipLinkInput($event)"
-                    [attr.placeholder]="'codex.shipLink.placeholder' | translate"
-                    [attr.aria-label]="'codex.shipLink.label' | translate"
-                    [attr.aria-invalid]="shipLinkError() ? 'true' : null" />
-                  <button type="submit" class="btn" [disabled]="shipLinks.saving()">
-                    {{ 'codex.shipLink.save' | translate }}
-                  </button>
-                  @if (myPledgeLink()) {
-                    <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                            (click)="removeShipLink()">
-                      {{ 'codex.shipLink.remove' | translate }}
-                    </button>
-                  }
-                  <button type="button" class="btn quiet" (click)="toggleLinkForm()">
-                    {{ 'codex.shipLink.cancel' | translate }}
-                  </button>
-                </div>
-                @if (shipLinkError(); as errKey) {
-                  <p class="sl-error" role="alert">
-                    {{ ('codex.shipLink.error.' + errKey) | translate }}
-                  </p>
-                }
-                @if (shipLinkSaved()) {
-                  <p class="sl-ok" role="status">{{ 'codex.shipLink.saved' | translate }}</p>
-                }
-                @if (role.isAdmin()) {
-                  <div class="sl-admin">
-                    <span class="sl-admin-tag">{{ 'codex.shipLink.adminTitle' | translate }}</span>
-                    <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                            (click)="promoteShipLink()">
-                      {{ 'codex.shipLink.promote' | translate }}
-                    </button>
-                    @if (globalPledgeLink()) {
-                      <button type="button" class="btn quiet" [disabled]="shipLinks.saving()"
-                              (click)="unpromoteShipLink()">
-                        {{ 'codex.shipLink.unpromote' | translate }}
-                      </button>
-                    }
-                    <span class="sl-admin-hint">{{ 'codex.shipLink.adminHint' | translate }}</span>
-                  </div>
-                }
-              </form>
+            @if (shipLinkForm.open()) {
+              <sc-codex-ship-link-form />
             }
-            @if (tailModuleSections().length > 0) {
-              <section class="sc-card block col-loadout col-loadout-tail">
-                <h2 class="col-head">
-                  <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
-                  <span class="n">{{ tailModuleCount() }}</span>
-                  <span class="rule" aria-hidden="true"></span>
-                  @if (hiddenEmptyCount() > 0) {
-                    <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
-                      {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
-                    </button>
-                  }
-                </h2>
-                <sc-codex-hardpoint-layout
-                  [sections]="tailModuleSections()"
-                  [sectionOrder]="moduleSectionOrder()"
-                  [foldedSections]="foldedModuleSections()"
-                  [occupantsBySection]="occupantsBySection()"
-                  [locatablePorts]="locatablePorts()"
-                  [activePorts]="activePorts()"
-                  (reverted)="onRevertPaths($event)"
-                  (hovered)="setActivePorts($event)"
-                  (inspected)="openInspect($event)"
-                  (swapRequested)="openSwapPicker($event)" />
-              </section>
-            }
-            @if (description(); as d) {
-              <section class="sc-card block">
-                <h2>{{ 'codex.detail.description' | translate }}</h2>
-                <p class="desc">{{ d }}</p>
-              </section>
-            }
-            @if (recipe(); as r) {
-              <section class="sc-card block">
-                <h2>
-                  {{ 'codex.detail.craftedFrom' | translate }}
-                  @if (r.craftTimeSec != null) { <span class="ct">{{ fmtCraft(r.craftTimeSec) }}</span> }
-                </h2>
-                <p class="hint">{{ 'codex.detail.craftedFromHint' | translate }}</p>
-                @if (r.ingredients.length > 0) {
-                  <ul class="compat-list">
-                    @for (i of r.ingredients; track i.ingredientIndex) {
-                      <li>
-                        <span class="compat-link plain">{{ ingredientName(i) }}</span>
-                        <span class="compat-meta">
-                          @if (ingredientRole(i); as role) { <span class="chip subtle">{{ role }}</span> }
-                          @if (i.quantity != null) { <span class="chip">{{ fmtQty(i.quantity) }} SCU</span> }
-                          @if (needsQuality(i.minQuality)) { <span class="chip subtle">{{ 'codex.detail.minQuality' | translate: { value: fmtQuality(i.minQuality) } }}</span> }
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                } @else {
-                  <p class="muted">{{ 'codex.detail.noIngredients' | translate }}</p>
-                }
-                <a class="compat-link" [routerLink]="['/codex', 'blueprint', r.classNameSlug]">
-                  {{ 'codex.detail.openBlueprint' | translate }}
-                </a>
-              </section>
+            <ng-container [ngTemplateOutlet]="tailLoadout" />
+            <ng-container [ngTemplateOutlet]="descriptionCard" />
+            @if (recipeView(); as rv) {
+              <sc-codex-recipe-card [recipe]="rv" />
             }
             @if (hardpointGroups().length > 0) {
               <section class="sc-card block">
                 <h2>{{ 'codex.detail.hardpoints' | translate }} <span class="ct">{{ detail()!.ports.length }}</span></h2>
                 <p class="hint">{{ 'codex.detail.hardpointsHint' | translate }}</p>
-                @if (!hasLoadoutSection() && hardpointFrame(); as frame) {
-                  <sc-ship-hardpoint-map
-                    [markers]="hardpointMarkers()"
-                    [frame]="frame"
-                    [activePorts]="activePorts()"
-                    (hovered)="setActivePorts($event)" />
-                }
-                @for (g of hardpointGroups(); track g.category) {
-                  <div class="hp-group">
-                    <h3 class="hp-cat">
-                      {{ ('codex.portCategory.' + g.category) | translate }}
-                      <span class="hp-ct">{{ g.ports.length }}</span>
-                    </h3>
-                    <ul class="hp-list">
-                      @for (port of g.ports; track port.portIndex) {
-                        <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex"
-                            [class.located]="isPortLocated(port)" [class.on]="isPortActive(port)"
-                            (mouseenter)="hoverPort(port)" (mouseleave)="setActivePorts(null)">
-                          <button type="button" class="hp-head" (click)="togglePort(port)" [disabled]="port.types.length === 0">
-                            <span class="hp-caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '·' }}</span>
-                            <span class="hp-name">{{ humanizePort(port.portName) }}</span>
-                            <span class="hp-meta">
-                              <span class="hp-size">{{ sizeRange(port.minSize, port.maxSize) }}</span>
-                              @for (t of port.types; track t) { <span class="chip">{{ humanizeType(t) }}</span> }
-                            </span>
-                          </button>
-                          @if (expandedPort() === port.portIndex) {
-                            <div class="compat">
-                              @if (compat(port.portIndex); as c) {
-                                @if (c.loading) {
-                                  <span class="muted">{{ 'codex.detail.compatLoading' | translate }}</span>
-                                } @else if (c.error) {
-                                  <span class="err-inline">{{ c.error | translate }}</span>
-                                } @else if (c.items.length === 0) {
-                                  <span class="muted">{{ 'codex.detail.compatNone' | translate }}</span>
-                                } @else {
-                                  <div class="compat-head">{{ 'codex.detail.compatCount' | translate: { count: c.items.length } }}</div>
-                                  <ul class="compat-list">
-                                    @for (it of c.items; track it.kind + it.classNameSlug) {
-                                      <li>
-                                        <a class="compat-link" [routerLink]="['/codex', it.kind, it.classNameSlug]">
-                                          {{ it.nameLocalized || it.classNameSlug }}
-                                        </a>
-                                        <span class="compat-meta">
-                                          @if (it.size != null) { <span class="chip">S{{ it.size }}</span> }
-                                          @if (it.grade) { <span class="chip">{{ it.grade }}</span> }
-                                          @if (it.manufacturerCode) { <span class="chip">{{ it.manufacturerCode }}</span> }
-                                        </span>
-                                      </li>
-                                    }
-                                  </ul>
-                                }
-                              }
-                            </div>
-                          }
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
+                <sc-codex-port-list
+                  [groups]="hardpointGroups()"
+                  [frame]="hardpointFrame()"
+                  [showMap]="!hasLoadoutSection()"
+                  [markers]="hardpointMarkers()"
+                  [activePorts]="activePorts()"
+                  [locatablePorts]="locatablePorts()"
+                  [expandedPort]="expandedPort()"
+                  [compat]="compatByPort()"
+                  (portToggle)="togglePort($event)"
+                  (hovered)="setActivePorts($event)" />
               </section>
             }
-            <section class="sc-card block raw-block">
-              <div class="spec-toggles">
-                @if (specSections().length > 0) {
-                  <button type="button" class="raw-toggle" (click)="toggleSpec()">
-                    {{ (showSpec() ? 'codex.detail.hideFullSpec' : 'codex.detail.showFullSpec') | translate }}
-                  </button>
-                }
-                <button type="button" class="raw-toggle" (click)="toggleRaw()">
-                  {{ (showRaw() ? 'codex.detail.hideRaw' : 'codex.detail.showRaw') | translate }}
-                </button>
-              </div>
-              @if (showSpec()) {
-                <div class="spec">
-                  @for (sec of specSections(); track sec.title) {
-                    @if (sec.title) { <h3 class="sg-head">{{ sec.title }}</h3> }
-                    <table class="spec-table">
-                      <tbody>
-                        @for (r of sec.rows; track r.key) {
-                          <tr>
-                            <td class="sp-key">{{ r.key }}</td>
-                            <td class="sp-val">{{ r.value }}@if (r.unit) {<span class="s-unit"> {{ r.unit }}</span>}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
-                  }
-                  @if (provenance(); as p) {
-                    <p class="spec-prov">{{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}</p>
-                  }
-                </div>
-              }
-              @if (showRaw()) { <pre class="raw">{{ rawJson() }}</pre> }
-            </section>
+            <sc-codex-spec-sheet
+              [sections]="specSections()"
+              [showSpec]="showSpec()"
+              [showRaw]="showRaw()"
+              [rawJson]="rawJson()"
+              [provenance]="provenance()"
+              (toggleSpec)="toggleSpec()"
+              (toggleRaw)="toggleRaw()" />
           </sc-codex-holo-stage>
         }
         <!-- The dock is the LAST element, as the concept places it
@@ -1475,6 +881,51 @@ interface GearRecipe {
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" (closed)="closeWeaponDetail()" />
+
+      <!-- Shared by the classic view and the Holotable drawer, which renders
+           them into its projected details (same view, so these rules stay
+           in this component's style block). -->
+      <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
+           the airframe is not a decision; see TAIL_SHIP_SECTIONS in
+           ship-module-sections.ts — the countermeasures moved back up into
+           the loadout card with #237, now that their rounds carry values).
+           Same layout component as the loadout card above, fed the tail
+           sections instead. -->
+      <ng-template #tailLoadout>
+        @if (tailModuleSections().length > 0) {
+          <section class="sc-card block col-loadout col-loadout-tail">
+            <h2 class="col-head">
+              <span class="label">{{ 'codex.detail.columnFixed' | translate }}</span>
+              <span class="n">{{ tailModuleCount() }}</span>
+              <span class="rule" aria-hidden="true"></span>
+              @if (hiddenEmptyCount() > 0) {
+                <button type="button" class="ghost-toggle" (click)="toggleEmptyLoadout()">
+                  {{ (showEmptyLoadout() ? 'codex.detail.hideEmptyPorts' : 'codex.detail.showEmptyPorts') | translate: { count: hiddenEmptyCount() } }}
+                </button>
+              }
+            </h2>
+            <sc-codex-hardpoint-layout
+              [sections]="tailModuleSections()"
+              [sectionOrder]="moduleSectionOrder()"
+              [foldedSections]="foldedModuleSections()"
+              [occupantsBySection]="occupantsBySection()"
+              [locatablePorts]="locatablePorts()"
+              [activePorts]="activePorts()"
+              (reverted)="onRevertPaths($event)"
+              (hovered)="setActivePorts($event)"
+              (inspected)="openInspect($event)"
+              (swapRequested)="openSwapPicker($event)" />
+          </section>
+        }
+      </ng-template>
+      <ng-template #descriptionCard>
+        @if (description(); as d) {
+          <section class="sc-card block">
+            <h2>{{ 'codex.detail.description' | translate }}</h2>
+            <p class="desc">{{ d }}</p>
+          </section>
+        }
+      </ng-template>
     </section>
   `,
   styles: [`
@@ -1604,20 +1055,10 @@ interface GearRecipe {
        pushed to the end (the module census sits on the stage now). */
     .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
       padding: 6px 2px; border-top: 1px solid var(--sc-border); }
-    .toolrow .tool-spacer { flex: 1 1 auto; }
-    .toolrow .picker { position: relative; margin-top: 0; max-width: 260px; }
-    /* The concept has no picker of its own; its dropdown vocabulary is the
-       mock select (part-02:193 select.m-sel): a 3px rectangle, 10.5px type,
-       .25rem/.4rem of padding. The 48px touch floor stays for coarse pointers
-       and only a mouse gets the drawn height. */
-    .toolrow .picker > summary { min-height: 48px; padding: 3px 6px; gap: 6px; border-radius: 3px; }
-    @media (pointer: fine) {
-      .toolrow .picker > summary { min-height: 24px; }
-    }
-    .toolrow .sp-label,
-    .toolrow .sp-current,
-    .toolrow .sp-count { font-size: max(10.5px, var(--sc-fs-floor)); }
-    .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
+    /* The spacer that pushes the rarer actions to the row's end lives in
+       sc-codex-ship-actions (display:contents keeps it in this flex row). */
+    /* The pickers' tool-row sizing lives in sc-codex-variant-picker
+       (:host(.in-toolrow)). */
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -1656,32 +1097,7 @@ interface GearRecipe {
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
     .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
 
-    /* Skin / edition picker — a native <details> dropdown, options are anchors. */
-    .picker { margin-top: 10px; max-width: 320px; }
-    .picker > summary {
-      display: flex; align-items: center; gap: 8px; cursor: pointer;
-      padding: 7px 12px; border-radius: 8px; list-style: none;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      transition: border-color 0.16s;
-    }
-    .picker > summary::-webkit-details-marker { display: none; }
-    .picker > summary::after { content: '▾'; margin-left: auto; color: var(--sc-fg-2); }
-    .picker[open] > summary::after { content: '▴'; }
-    .picker > summary:hover { border-color: var(--sc-accent); }
-    .picker > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .sp-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .sp-current { font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
-    .sp-count { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .sp-list {
-      list-style: none; margin: 4px 0 0; padding: 4px; max-height: 260px; overflow-y: auto;
-      border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-    }
-    .sp-opt {
-      display: block; padding: 7px 10px; border-radius: 6px;
-      color: var(--sc-fg-1); text-decoration: none; font-size: max(0.82rem, var(--sc-fs-floor));
-    }
-    .sp-opt:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); }
-    .sp-opt.current { color: var(--sc-accent); font-weight: 600; }
+    /* Skin / edition picker: sc-codex-variant-picker owns its rules. */
 
     .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
     .fact { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
@@ -1698,19 +1114,8 @@ interface GearRecipe {
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
       background: var(--sc-bg-1, #14161b); color: var(--sc-fg-1); border: 1px solid var(--sc-accent);
       border-radius: var(--radius-sm, 4px); padding: 2px 8px; font-size: max(0.7rem, var(--sc-fs-floor)); white-space: nowrap; pointer-events: none; }
-    .add-hangar { color: var(--sc-accent); }
 
-    .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
-    .sl-hint { margin: 0 0 8px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .sl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .sl-input { flex: 1 1 320px; min-width: 0; padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.82rem; }
-    .sl-input:focus { outline: none; border-color: var(--sc-accent); }
-    .sl-input[aria-invalid='true'] { border-color: var(--sc-danger); }
-    .sl-error { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-danger); }
-    .sl-ok { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-accent); }
-    .sl-admin { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--sc-border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .sl-admin-tag { font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
-    .sl-admin-hint { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); flex: 1 1 220px; }
+    /* .ship-link-form / .sl-*: sc-codex-ship-link-form. */
     .prov { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
 
     /* Generic block. The card title is the mock's .m-h2 (part-02:141):
@@ -1762,32 +1167,7 @@ interface GearRecipe {
     .dmg[data-ch="stun"] .dmg-fill { background: #f0c419; }
     .dmg-val { font-size: 0.84rem; text-align: right; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
 
-    /* Hardpoint / loadout groups */
-    .hp-group { margin-top: 12px; }
-    .hp-group:first-of-type { margin-top: 0; }
-    .hp-cat { margin: 0 0 6px; font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-1);
-      display: flex; align-items: center; gap: 6px; }
-    .hp-cat .hp-ct { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 0 6px; border-radius: 8px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-2); }
-    .hp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-
-    .hp { border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); overflow: hidden; }
-    .hp.open { border-color: color-mix(in srgb, var(--sc-accent) 45%, transparent); }
-    /* A port whose position on the hull is known gets a locator rail; hovering
-       it lights up its marker on the hull map (and vice versa). Ports without
-       coordinates look exactly as they did before. */
-    .hp.located { border-left: 2px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
-    .hp.located.on { border-left-color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-1)); }
-    .hp-head { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: transparent; border: none;
-      color: inherit; font: inherit; text-align: left; cursor: default; }
-    .hp.expandable .hp-head { cursor: pointer; }
-    .hp.expandable .hp-head:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
-    .hp-caret { width: 14px; color: var(--sc-fg-2); flex: 0 0 auto; }
-    .hp.open .hp-caret { color: var(--sc-accent); }
-    .hp-name { font-size: 0.82rem; color: var(--sc-fg-0); flex: 1 1 auto; overflow-wrap: anywhere; }
-    .hp-meta { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: flex-end; flex: 0 1 auto; }
-    .hp-size { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
-    .compat { padding: 4px 12px 12px 34px; background: var(--sc-bg-0); }
+    /* Hardpoint groups (.hp-*, .compat): sc-codex-port-list. */
 
     /* Size / grade / type tokens inside a slot row. The mock draws these as
        .sz and .gr (part-02:216-217): a bordered 2px box, 10px, no fill and no
@@ -1800,35 +1180,18 @@ interface GearRecipe {
     .hint.warn { border-left: 2px solid color-mix(in srgb, var(--sc-warn, #e8a33d) 60%, transparent);
       padding-left: 8px; }
     .err-inline { color: var(--sc-danger); font-size: 0.8rem; }
-    .compat-head { color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.06em; margin: 4px 0 8px; }
     .compat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
     .compat-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--sc-bg-1); }
     .compat-link { color: var(--sc-accent); text-decoration: none; font-size: 0.8rem; overflow-wrap: anywhere; }
     .compat-link:hover { text-decoration: underline; }
-    /* A raw resource has no codex page of its own, so it is listed as plain
-       text — a dead link would be worse than no link. */
-    .compat-link.plain { color: var(--sc-fg-0); }
-    .compat-link.plain:hover { text-decoration: none; }
-    /* The base chip lost its fill, so "subtle" now says what it always meant:
-       a muted token next to a full-strength one. */
-    .chip.subtle { color: var(--sc-fg-2); }
     .compat-meta { display: inline-flex; gap: 4px; flex-shrink: 0; }
 
     .ghost-toggle { margin-left: auto; padding: 3px 10px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border);
       color: var(--sc-fg-2); font-family: inherit; font-size: max(0.68rem, var(--sc-fs-floor)); text-transform: none; letter-spacing: 0; cursor: pointer; }
     .ghost-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
 
-    .raw-block { padding-top: 14px; }
-    .spec-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-    .raw-toggle { padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.76rem, var(--sc-fs-floor)); cursor: pointer; }
-    .raw-toggle:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
-    .spec { margin-top: 12px; }
-    .spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 4px; }
-    .spec-table td { padding: 5px 10px; border-bottom: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
-    .sp-key { color: var(--sc-fg-2); width: 45%; overflow-wrap: anywhere; }
-    .sp-val { color: var(--sc-fg-0); font-family: var(--sc-font-display); overflow-wrap: anywhere; }
-    .spec-prov { margin: 10px 0 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); }
-    .raw { margin: 12px 0 0; padding: 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); overflow: auto; max-height: 460px; }
+    /* Spec sheet + raw payload (.raw-block, .spec*, .sp-key/.sp-val, .raw):
+       sc-codex-spec-sheet. */
 
     .skel-card { height: 260px; }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
@@ -1859,9 +1222,27 @@ interface GearRecipe {
     }
   `],
 })
+/**
+ * The codex detail page (/codex/:kind/:className): every catalog kind, and for
+ * ships the classic view plus the Holotable.
+ *
+ * What lives where (D17, AUD-090):
+ * - detail/codex-detail.types.ts — the page's shared types (StageCountChip, …)
+ * - detail/codex-ship-stage.component.ts — the ship hero stage (AUD-062)
+ * - detail/codex-variant-picker.component.ts — skin and edition pickers
+ * - detail/codex-ship-actions.component.ts + codex-ship-link-form.component.ts
+ *   — tool-row actions and the RSI pledge-link form, state in
+ *   detail/ship-link-form.store.ts (provided here)
+ * - detail/codex-port-list.component.ts — the Hardpoints card body
+ * - detail/codex-spec-sheet.component.ts, codex-recipe-card.component.ts
+ * - detail/codex-detail-facts.ts — pure builders for facts, chips, the Schiff
+ *   panel and the stage census
+ * - detail/codex-loadout-draft.store.ts — the loadout draft: state, hydration,
+ *   URL/localStorage mirror, save (provided here)
+ * This component keeps loading, the derived loadout views and the wiring.
+ */
 export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
-  private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -1869,12 +1250,12 @@ export class CodexDetailComponent implements OnInit {
   private readonly hangar = inject(HangarService);
   // RSI ship-matrix artwork — the hero's primary art source for ships.
   private readonly rsi = inject(UpcomingShipsService);
-  // User-supplied RSI pledge links (feedback f7d3bd9a) — public members because
-  // the template reads `saving()` / `isAdmin()` / the signed-in user directly.
-  readonly shipLinks = inject(ShipLinkService);
-  readonly role = inject(RoleService);
-  readonly auth = inject(AuthService);
+  // User-supplied RSI pledge links (feedback f7d3bd9a): the page loads them per
+  // ship; the form and the actions read them through ShipLinkFormStore.
+  private readonly shipLinks = inject(ShipLinkService);
+  private readonly auth = inject(AuthService);
   private readonly uexShop = inject(UexShopService);
+  private readonly draftStore = inject(CodexLoadoutDraftStore);
 
   readonly detail = signal<CodexDetail | null>(null);
   readonly kind = computed(() => this.detail()?.kind ?? null);
@@ -2118,25 +1499,13 @@ export class CodexDetailComponent implements OnInit {
   // the real pledge page. Their link is PRIVATE (owner-only RLS); a globally
   // promoted link is admin-curated. Own link wins so a user's correction always
   // beats the catalog-wide one.
-  readonly showLinkForm = signal(false);
-  readonly shipLinkInput = signal('');
-  /** i18n key suffix under `codex.shipLink.error.*`, or null. */
-  readonly shipLinkError = signal<string | null>(null);
-  readonly shipLinkSaved = signal(false);
+  // State and actions live in ShipLinkFormStore (provided below, shared by
+  // the classic view and the Holotable drawer).
+  readonly shipLinkForm = inject(ShipLinkFormStore);
   /** Copy-link toast state (MASTER §2 / R-t1): a plain timed signal, no shared toast service exists yet. */
   readonly linkCopied = signal(false);
   private linkCopiedTimer: ReturnType<typeof setTimeout> | null = null;
   private cohortTimer: ReturnType<typeof setTimeout> | null = null;
-
-  readonly myPledgeLink = computed(() => {
-    const d = this.detail();
-    return d ? (this.shipLinks.myLinks().get(d.classNameSlug) ?? null) : null;
-  });
-  readonly globalPledgeLink = computed(() => {
-    const d = this.detail();
-    return d ? (this.shipLinks.globalLinks().get(d.classNameSlug) ?? null) : null;
-  });
-  readonly pledgeLink = computed(() => this.myPledgeLink() ?? this.globalPledgeLink());
 
   // The livery family of this entity, base record first (feedback d5e39f86).
   // Fewer than two entries means "nothing to pick" and hides the picker.
@@ -2158,6 +1527,14 @@ export class CodexDetailComponent implements OnInit {
         ?.editionName ?? null,
   );
 
+  /** Picker rows for sc-codex-variant-picker (skin / edition family). */
+  readonly skinPickerOptions = computed(() =>
+    this.skinOptions().map((o) => ({ classNameSlug: o.classNameSlug, label: o.liveryName })),
+  );
+  readonly editionPickerOptions = computed(() =>
+    this.editionOptions().map((o) => ({ classNameSlug: o.classNameSlug, label: o.editionName })),
+  );
+
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
 
@@ -2172,10 +1549,32 @@ export class CodexDetailComponent implements OnInit {
   // codex can answer "which materials does this cost". Null for the vast
   // majority of catalog entries, which are not craftable.
   readonly recipe = signal<GearRecipe | null>(null);
+  /**
+   * The recipe, labelled for sc-codex-recipe-card. Reads lang() so a language
+   * switch relabels the material slots, as the template did before.
+   */
+  readonly recipeView = computed<RecipeView | null>(() => {
+    const r = this.recipe();
+    this.lang();
+    if (!r) return null;
+    return {
+      craftTime: r.craftTimeSec != null ? this.fmtCraft(r.craftTimeSec) : null,
+      blueprintSlug: r.classNameSlug,
+      rows: r.ingredients.map((i) => ({
+        key: i.ingredientIndex,
+        name: this.ingredientName(i),
+        role: this.ingredientRole(i) || null,
+        qty: i.quantity != null ? this.fmtQty(i.quantity) : null,
+        minQuality: this.needsQuality(i.minQuality) ? this.fmtQuality(i.minQuality) : null,
+      })),
+    };
+  });
 
   // Hardpoint slot-compatibility: which port is expanded + its lazy item list.
   readonly expandedPort = signal<number | null>(null);
   private readonly compatMap = signal<Map<number, PortCompat>>(new Map());
+  /** Read-only view for sc-codex-port-list; togglePort/setCompat write it. */
+  readonly compatByPort = this.compatMap.asReadonly();
 
   // Resolved localized values for raw @-keys (ship role, …).
   private readonly localeMap = signal<Map<string, string>>(new Map());
@@ -2191,24 +1590,17 @@ export class CodexDetailComponent implements OnInit {
   );
   private readonly ammoPayloads = signal<Map<string, unknown>>(new Map());
 
-  // ── loadout draft write path (PR B — 06-fallen.md) ─────────────────────────
-  // Model per 03-rules §2.4: Map<rawPath, className|null>. `null` = emptied,
-  // distinct from "absent" = unchanged. Only mutated through the pure helpers
-  // in codex-loadout-draft.ts so the app/spec logic never drifts.
-  readonly draft = signal<DraftMap>(EMPTY_DRAFT);
-  /** Payloads for DRAFT-swapped classes — merged in, never a wholesale replace (R6). */
-  private readonly draftPayloads = signal<Map<string, { kind: CodexKind; payload: unknown }>>(new Map());
-  private readonly draftAmmoPayloads = signal<Map<string, unknown>>(new Map());
-  private readonly draftResolved = signal<Map<string, ResolvedEntity>>(new Map());
-  /** Classes currently being hydrated — rows render no numbers while pending (Falle 2). */
-  private readonly pendingClasses = signal<ReadonlySet<string>>(new Set());
-  /** Paths whose restored draft class does not resolve in the current build (R9). */
-  private readonly unresolvableDraftPaths = signal<ReadonlySet<string>>(new Set());
-  /** Paths whose current draft value is already reflected in the stored config. */
-  private readonly savedPaths = signal<ReadonlySet<string>>(new Set());
-  private readonly hydrationEpoch: HydrationEpoch = newHydrationEpoch();
-  readonly saving = signal(false);
-  readonly saveError = signal<string | null>(null);
+  // ── loadout draft (PR B — 06-fallen.md) ─────────────────────────────────────
+  // State and mutations live in CodexLoadoutDraftStore (provided below); the
+  // page reads them through these names, which the template, the Holotable
+  // bindings and the specs use.
+  readonly draft = this.draftStore.draft;
+  private readonly draftPayloads = this.draftStore.draftPayloads;
+  private readonly draftAmmoPayloads = this.draftStore.draftAmmoPayloads;
+  private readonly draftResolved = this.draftStore.draftResolved;
+  private readonly unresolvableDraftPaths = this.draftStore.unresolvableDraftPaths;
+  readonly saving = this.draftStore.saving;
+  readonly saveError = this.draftStore.saveError;
 
   // Ship tech stats derived from the stock loadout's component payloads (#137):
   // quantum range/speed + fuel capacities. Best-effort — null when unresolvable.
@@ -2221,6 +1613,19 @@ export class CodexDetailComponent implements OnInit {
   private readonly lang = signal<Lang>(toLang(this.t.getCurrentLang() || this.t.getFallbackLang()));
 
   constructor() {
+    this.draftStore.connect({
+      detail: this.detail,
+      loadoutEntities: this.loadoutEntities,
+      loadoutAll: this.loadoutAll,
+      joinablePorts: this.joinablePorts,
+      onSaved: (config) => this.activeHangarConfig.set(config),
+    });
+    this.shipLinkForm.connect(
+      computed(() => {
+        const d = this.detail();
+        return d?.kind === 'ship' ? d.classNameSlug : null;
+      }),
+    );
     this.destroyRef.onDestroy(() => {
       if (this.linkCopiedTimer) clearTimeout(this.linkCopiedTimer);
       if (this.cohortTimer) clearTimeout(this.cohortTimer);
@@ -2291,21 +1696,11 @@ export class CodexDetailComponent implements OnInit {
     this.usedInBlueprints.set([]);
     this.recipe.set(null);
     this.swapTarget.set(null);
-    this.showLinkForm.set(false);
-    this.shipLinkInput.set('');
-    this.shipLinkError.set(null);
-    this.shipLinkSaved.set(false);
+    this.shipLinkForm.reset();
     this.buyOptions.set([]);
     this.buyLoading.set(false);
     this.buyError.set(false);
-    this.draft.set(EMPTY_DRAFT);
-    this.draftPayloads.set(new Map());
-    this.draftAmmoPayloads.set(new Map());
-    this.draftResolved.set(new Map());
-    this.pendingClasses.set(new Set());
-    this.unresolvableDraftPaths.set(new Set());
-    this.savedPaths.set(new Set());
-    this.saveError.set(null);
+    this.draftStore.reset();
     this.activeMissionId.set('all');
     this.skinOptions.set([]);
     this.editionOptions.set([]);
@@ -2326,7 +1721,7 @@ export class CodexDetailComponent implements OnInit {
         if (kind === 'ship') {
           this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
         }
-        if (kind === 'ship') this.restoreDraftFromUrlOrStorage(className);
+        if (kind === 'ship') this.draftStore.restoreDraftFromUrlOrStorage(className);
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         void this.loadSkinGroup(kind, d.classNameSlug);
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
@@ -2388,9 +1783,6 @@ export class CodexDetailComponent implements OnInit {
   }
 
   // ── hardpoint slot compatibility ────────────────────────────────────────────
-  compat(portIndex: number): PortCompat | undefined {
-    return this.compatMap().get(portIndex);
-  }
 
   async togglePort(port: CodexItemPort): Promise<void> {
     if (port.types.length === 0) return;
@@ -2788,72 +2180,23 @@ export class CodexDetailComponent implements OnInit {
     return dim;
   });
 
-  /** Compact hero facts — kind-aware, only meaningful values. */
+  /** Compact hero facts — kind-aware, only meaningful values (buildHeroFacts). */
   readonly facts = computed<Fact[]>(() => {
     const d = this.detail();
     if (!d) return [];
-    const out: Fact[] = [];
-    const row = d.row;
-    const add = (label: string, value: unknown, accent = false) => {
-      if (value == null || value === '' || value === 0) return;
-      out.push({ label: this.t.instant(label), value: String(value), accent });
-    };
-
-    if (d.kind === 'ship') {
-      const dim = this.dimensions();
-      if (dim) {
-        out.push({
-          label: this.t.instant('codex.detail.dimensions'),
-          value: `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m`,
-        });
-      }
-      // Tech facts from the stock loadout (#137): quantum + fuel numbers.
-      const tech = this.techStats();
-      if (tech) {
-        if (tech.quantum.jumpRangeMm != null) {
-          add('codex.detail.quantumRange', this.fmtGm(tech.quantum.jumpRangeMm), true);
-        }
-        if (tech.quantum.driveSpeedMs != null) {
-          add('codex.detail.quantumSpeed', formatNumber(tech.quantum.driveSpeedMs / 1000) + ' km/s');
-        }
-        add('codex.detail.quantumFuel', tech.quantumFuelCapacity == null ? '' : formatNumber(tech.quantumFuelCapacity));
-        add('codex.detail.fuelCapacity', tech.hydrogenCapacity == null ? '' : formatNumber(tech.hydrogenCapacity));
-      }
-    } else if (d.kind === 'weapon') {
-      const wc = row['weapon_class'];
-      if (typeof wc === 'string') add('codex.detail.weaponClass', this.t.instant('codex.weaponClass.' + wc));
-      add('codex.detail.subType', row['sub_type']);
-      if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
-      add('codex.detail.grade', row['grade']);
-      add('codex.detail.attachType', row['attach_type']);
-    } else if (d.kind === 'component') {
-      const ck = row['kind'];
-      if (typeof ck === 'string') add('codex.detail.componentKind', this.t.instant('codex.componentKind.' + ck));
-      if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
-      add('codex.detail.grade', row['grade']);
-    } else if (d.kind === 'item') {
-      add('codex.detail.subType', row['sub_type']);
-      if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
-      add('codex.detail.grade', row['grade']);
-      add('codex.detail.attachType', row['attach_type']);
-    } else if (d.kind === 'ammunition') {
-      if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
-      const speed = row['speed'];
-      if (typeof speed === 'number' && speed > 0) add('codex.detail.speed', formatNumber(speed) + ' m/s');
-      const range = this.ammoRange();
-      if (range) add('codex.detail.range', formatNumber(range) + ' m');
-    }
-    return out;
+    return buildHeroFacts(
+      {
+        detail: d,
+        dimensions: d.kind === 'ship' ? this.dimensions() : null,
+        techStats: d.kind === 'ship' ? this.techStats() : null,
+        ammoRange: d.kind === 'ammunition' ? ammoRangeOf(d) : null,
+      },
+      this.translate,
+    );
   });
 
-  /** Effective ballistic range = speed × lifetime (when both present). */
-  private ammoRange(): number | null {
-    const p = this.detail()?.payload as AmmunitionPayload | undefined;
-    if (!p) return null;
-    const speed = p.speed ?? (p.raw?.['speed'] as number | undefined) ?? null;
-    const life = p.lifetime ?? (p.raw?.['lifetime'] as number | undefined) ?? null;
-    return speed && life ? speed * life : null;
-  }
+  /** TranslateService.instant as a plain function for the fact builders. */
+  private readonly translate: Translate = (key, params) => this.t.instant(key, params);
 
   readonly componentStats = computed<StatRow[]>(() => {
     const d = this.detail();
@@ -2933,7 +2276,7 @@ export class CodexDetailComponent implements OnInit {
         kind: null,
         name: null,
         size: fit.size,
-        factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
+        factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.draftStore.stockValueForPath(ev.rawPorts[0]) : null,
         attachTypes: fit.types,
         fitInferred: fit.inferred,
         rawPorts: ev.rawPorts,
@@ -2948,7 +2291,7 @@ export class CodexDetailComponent implements OnInit {
       kind: src.kind,
       name: src.name,
       size: src.size,
-      factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.stockValueForPath(ev.rawPorts[0]) : null,
+      factoryClassName: ev.rawPorts && ev.rawPorts.length > 0 ? this.draftStore.stockValueForPath(ev.rawPorts[0]) : null,
       rawPorts: ev.rawPorts,
       rawTypes: ev.child ? ev.child.rawTypes : (this.detail()?.ports.find((p) => p.portName === ev.slot.rawPort)?.types ?? []),
     });
@@ -2962,171 +2305,27 @@ export class CodexDetailComponent implements OnInit {
     return new Set((d?.ports ?? []).map((p) => p.portName).filter((p): p is string => !!p));
   });
 
-  readonly draftChangedCount = computed(() => draftChangedCount(this.draft()));
+  readonly draftChangedCount = this.draftStore.draftChangedCount;
+  readonly saveableEntries = this.draftStore.saveableEntries;
 
-  /** The mission bar's idle-state persistence preference (MASTER §5) — a pure
-   * UI choice for the NEXT edit; today's actual save path always writes to
-   * the hangar explicitly via the draft bar's own button, this only pre-sets
-   * which wording/expectation the idle controls show. */
-
-  private kindOfDraftClass(className: string): string {
-    return (
-      this.draftResolved().get(className)?.kind ??
-      this.loadoutEntities().get(className)?.kind ??
-      'component'
-    );
-  }
-
-  readonly saveableEntries = computed(() =>
-    selectSaveableEntries(this.draft(), this.joinablePorts(), (cn) => this.kindOfDraftClass(cn)),
-  );
-
-  /** "Übernehmen" / "Slot leeren" from the picker — applies to every covered path. */
+  /** "Übernehmen" / "Slot leeren" from the picker — closes it, then drafts every covered path. */
   onSwapPicked(pick: SwapPick): void {
-    const paths = pick.target.rawPorts && pick.target.rawPorts.length > 0 ? pick.target.rawPorts : [];
-    if (paths.length === 0) {
-      // No raw identity to write against — nothing we can do safely; close.
-      this.swapTarget.set(null);
-      return;
-    }
-    this.draft.update((d) =>
-      setDraftValueForPaths(d, paths, pick.className, (path) => this.stockValueForPath(path)),
-    );
-    this.unresolvableDraftPaths.update((s) => {
-      if (paths.every((p) => !s.has(p))) return s;
-      const next = new Set(s);
-      for (const p of paths) next.delete(p);
-      return next;
-    });
     this.swapTarget.set(null);
-    if (pick.className) void this.hydrateDraftClass(pick.className);
-    this.persistDraftMirror();
+    this.draftStore.applySwap(pick);
   }
 
   /** Revert the row's own draft entries (the ↺ button). */
   onRevertPaths(paths: string[]): void {
-    if (paths.length === 0) return;
-    this.draft.update((d) => deleteDraftPaths(d, paths));
-    this.persistDraftMirror();
-  }
-
-  /** The STOCK value at a dotted path — top-level className, or a carried sub-port's. */
-  private stockValueForPath(path: string): string | null {
-    const top = topSegment(path);
-    const item = this.loadoutAll().find((l) => l.port === top);
-    if (!item) return null;
-    if (!isNestedPath(path)) return item.className;
-    const childPort = path.slice(top.length + 1).toLowerCase();
-    for (const [k, v] of item.carried) {
-      if (k.toLowerCase() === childPort) return v;
-    }
-    return null;
-  }
-
-  /**
-   * Async stat hydration for a draft-swapped class, epoch-guarded (R6/Falle 2).
-   * The round is fetched AFTER the entity payload, because the payload is
-   * what names it (`weaponParams.ammoClassName`, schema 6) — a swapped-in
-   * launcher must show ITS round's values, not a name-convention guess.
-   */
-  private async hydrateDraftClass(className: string): Promise<void> {
-    this.pendingClasses.update((s) => new Set(s).add(className));
-    const epoch = beginHydration(this.hydrationEpoch, [className]);
-    try {
-      const [payloads, resolved] = await Promise.all([
-        this.svc.getEntityPayloads([className]),
-        this.svc.resolveEntities([className]),
-      ]);
-      const ammoNames = ammoClassNamesFor([className], (cn) => payloads.get(cn)?.payload);
-      extendHydration(this.hydrationEpoch, ammoNames, epoch);
-      const ammo =
-        ammoNames.length > 0 ? await this.svc.getAmmoPayloads(ammoNames) : new Map<string, unknown>();
-      const okMain = acceptedClassNames(this.hydrationEpoch, [className], epoch);
-      const okAmmo = acceptedClassNames(this.hydrationEpoch, ammoNames, epoch);
-      if (okMain.length > 0) {
-        this.draftPayloads.update((m) => mergeMapInto(m, payloads, okMain));
-        this.draftResolved.update((m) => mergeMapInto(m, resolved, okMain));
-      }
-      if (okAmmo.length > 0) this.draftAmmoPayloads.update((m) => mergeMapInto(m, ammo, okAmmo));
-    } catch (error) {
-      logWarn('codex', 'draft hydration failed', error);
-      // A failed hydration just leaves the row pending forever rather than
-      // rendering wrong numbers — Falle 2: "a spinner beats a wrong number".
-    } finally {
-      if (acceptedClassNames(this.hydrationEpoch, [className], epoch).length > 0) {
-        this.pendingClasses.update((s) => {
-          const next = new Set(s);
-          next.delete(className);
-          return next;
-        });
-      }
-    }
+    this.draftStore.onRevertPaths(paths);
   }
 
   isDraftClassPending(className: string | null): boolean {
-    return !!className && this.pendingClasses().has(className);
+    return this.draftStore.isDraftClassPending(className);
   }
 
-  // ── persistence (R1/R2) ──────────────────────────────────────────────────
-
-  /**
-   * Write the draft into the ship's ACTIVE hangar config (creating + activating
-   * one when it has none). Never a from-scratch array: only OUR joinable,
-   * top-level paths are upserted/removed; every other row the config already
-   * carries — including ones the hangar editor wrote — survives untouched.
-   */
-  async saveLoadoutDraft(): Promise<void> {
-    const d = this.detail();
-    if (d?.kind !== 'ship' || this.saveableEntries().length === 0) return;
-    this.saving.set(true);
-    this.saveError.set(null);
-    try {
-      const ship =
-        this.hangar.shipByClassName(d.classNameSlug) ?? (await this.hangar.addShip(d.classNameSlug, 'owned'));
-      if (!ship) {
-        this.saveError.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
-        return;
-      }
-      const configs = await this.hangar.listConfigs(ship.id);
-      let target: HangarShipConfig | null = configs.find((c) => c.isActive) ?? configs[0] ?? null;
-      if (!target) {
-        target = await this.hangar.createConfig(
-          ship.id,
-          this.t.instant('codex.loadout.defaultConfigName') as string,
-          'multipurpose',
-          [],
-        );
-        if (!target) {
-          this.saveError.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
-          return;
-        }
-        await this.hangar.activateConfig(target.id, ship.id);
-      }
-      const touched = touchedTopPorts(this.draft(), this.joinablePorts());
-      const merged = mergeSavedLoadout(target.loadout, this.saveableEntries(), touched);
-      // Wave 2.5 (fork guard, wave2-patch-share.md §D): a config the viewer
-      // only FOLLOWS may never be edited directly — offer the one-time fork
-      // before this write, abort silently on decline.
-      const guard = await this.forkGuard.ensureEditable(target);
-      if (guard === 'cancelled') return;
-      const updated =
-        guard === 'forked'
-          ? await this.hangar.forkFollowedLoadout(target.id, { loadout: merged })
-          : await this.hangar.updateConfig(target.id, { loadout: merged });
-      if (!updated) {
-        this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
-        return;
-      }
-      this.savedPaths.set(new Set(this.saveableEntries().map((e) => e.portName)));
-      // The share popover snapshots `activeHangarConfig` — hand it the config
-      // that was just written, not the one loaded at page open (wave 5 A1.4).
-      this.activeHangarConfig.set(updated);
-    } catch (error) {
-      logWarn('codex', 'loadout save failed', error);
-      this.saveError.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
-    } finally {
-      this.saving.set(false);
-    }
+  /** Write the draft into the ship's active hangar config (CodexLoadoutDraftStore). */
+  saveLoadoutDraft(): Promise<void> {
+    return this.draftStore.saveLoadoutDraft();
   }
 
   /** `codex.detail.actionCopyLink` (MASTER §2 / concept #t1): share the current
@@ -3144,82 +2343,7 @@ export class CodexDetailComponent implements OnInit {
   }
 
   discardLoadoutDraft(): void {
-    this.draft.set(EMPTY_DRAFT);
-    this.draftPayloads.set(new Map());
-    this.draftAmmoPayloads.set(new Map());
-    this.draftResolved.set(new Map());
-    this.pendingClasses.set(new Set());
-    this.unresolvableDraftPaths.set(new Set());
-    this.savedPaths.set(new Set());
-    this.saveError.set(null);
-    this.persistDraftMirror();
-  }
-
-  // ── URL + localStorage draft mirror (R9) ────────────────────────────────
-
-  /** Best-effort — try/catch throughout: private-mode localStorage still must not break the page. */
-  private persistDraftMirror(): void {
-    const d = this.detail();
-    const buildId = this.svc.build()?.id;
-    if (!d || d.kind !== 'ship' || !buildId) return;
-    try {
-      const param = encodeDraftParam(buildId, this.draft());
-      void this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { loadout: param },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      });
-    } catch (error) {
-      logWarn('codex', 'draft url mirror failed', error);
-      // Router navigation should not throw in practice — best-effort regardless.
-    }
-    try {
-      if (typeof localStorage === 'undefined') return;
-      if (this.draft().size === 0) localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY);
-      else localStorage.setItem(LOCAL_DRAFT_STORAGE_KEY, serializeLocalDraft(d.classNameSlug, buildId, this.draft()));
-    } catch {
-      // Private mode / quota — degrade to in-memory only.
-    }
-  }
-
-  /** URL wins over localStorage; both are ignored when the ship or build doesn't match (R9). */
-  private restoreDraftFromUrlOrStorage(classNameSlug: string): void {
-    const buildId = this.svc.build()?.id;
-    if (!buildId) return;
-    const fromUrl = decodeDraftParam(this.route.snapshot.queryParamMap.get('loadout'));
-    let entries: [string, string | null][] | null = null;
-    let sourceBuildId = buildId;
-    if (fromUrl) {
-      entries = fromUrl.entries;
-      sourceBuildId = fromUrl.buildId;
-    } else {
-      try {
-        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY);
-        const local = parseLocalDraft(raw);
-        if (local && local.shipClassName === classNameSlug) {
-          entries = local.entries;
-          sourceBuildId = local.buildId;
-        }
-      } catch {
-        // Private mode — no restore, page still works.
-      }
-    }
-    if (!entries || entries.length === 0) return;
-    const classResolves = (className: string): boolean =>
-      this.loadoutEntities().has(className) || stockLoadoutClassNames(
-        (this.detail()?.payload as ShipPayload | undefined)?.defaultLoadout ?? [],
-      ).includes(className);
-    const restored = restoreDraft({ version: 'v1', buildId: sourceBuildId, entries }, buildId, classResolves);
-    this.draft.set(restored.draft);
-    this.unresolvableDraftPaths.set(new Set(restored.unresolvable));
-    // A restored draft is UNSAVED by definition (R8) — savedPaths stays empty.
-    for (const [path, value] of restored.draft) {
-      if (value && !restored.unresolvable.includes(path)) void this.hydrateDraftClass(value);
-    }
-    // A draft that came back from localStorage is mirrored into the url so
-    // "Link kopieren" carries what the table shows (wave 5 A1.2).
-    if (!fromUrl) this.persistDraftMirror();
+    this.draftStore.discardLoadoutDraft();
   }
 
   // ── hardpoint positions on the hull (#137 part 3) ───────────────────────────
@@ -3325,16 +2449,6 @@ export class CodexDetailComponent implements OnInit {
 
   /** Whether the modules card renders (it hosts the hull map when it does). */
   readonly hasLoadoutSection = computed(() => this.moduleSections().length > 0);
-
-  isPortLocated(port: CodexItemPort): boolean {
-    return !!port.portName && this.locatablePorts().includes(port.portName);
-  }
-  isPortActive(port: CodexItemPort): boolean {
-    return !!port.portName && this.activePorts().includes(port.portName);
-  }
-  hoverPort(port: CodexItemPort): void {
-    this.setActivePorts(this.isPortLocated(port) ? [port.portName as string] : null);
-  }
 
   /**
    * The hardpoint(s) currently highlighted, hovered from either side (a loadout
@@ -3646,54 +2760,17 @@ export class CodexDetailComponent implements OnInit {
     return [mfr, role].filter(Boolean).join(' · ') || null;
   });
 
-  readonly heroChips = computed<{ key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[]>(() => {
-    const d = this.detail();
-    if (!d || d.kind !== 'ship') return [];
-    const p = d.payload as ShipPayload;
-    const out: { key: string; text: string; accent?: boolean; ghost?: boolean; gap?: boolean }[] = [];
-    const career = resolveCareerLabel(p.career ?? null);
-    if (career) {
-      const label = cleanLocaleValue(this.localeMap().get(career) ?? career);
-      if (label) out.push({ key: 'career', text: label });
-    }
-    // Role (concept order: career · role · size · crew · cargo · mass). No
-    // size-class field exists on ShipPayload/row today, so that chip is
-    // skipped entirely rather than guessed (MASTER gap rule).
-    const row = this.detail()?.row;
-    const roleRaw = row?.['role'];
-    if (typeof roleRaw === 'string' && roleRaw) {
-      const label = cleanLocaleValue(this.localeMap().get(roleRaw) ?? roleRaw);
-      if (label) out.push({ key: 'role', text: label });
-    }
-    const crew = row?.['crew_size'];
-    if (crew != null && crew !== '' && crew !== 0) {
-      out.push({ key: 'crew', text: this.t.instant('codex.detail.chipCrew', { n: crew }) });
-    }
-    // Three outcomes, not two. `cargoScu: null` covers both "this hull has no
-    // hold" (a Gladius) and "it hauls, the client files never size it" (the
-    // Nomad's open bed is a door entity — verified against LIVE 4.9.0), and
-    // printing "Kein Laderaum" on the second is a false statement. The
-    // extractor says which via `cargoStatus`; pre-schema-3 payloads have no
-    // such field, so fall back to the loadout-derived capability.
-    const cargo = p.cargoScu ?? null;
-    const cargoStatus = p.cargoStatus ?? null;
-    const hauls = cargoStatus ? cargoStatus !== 'none' : this.shipCapabilities().hasCargo;
-    if (cargo != null && cargo > 0) {
-      out.push({ key: 'cargo', text: `${formatNumber(cargo)} SCU`, accent: true });
-    } else if (hauls) {
-      out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipCargoUnknown'), gap: true });
-    } else {
-      out.push({ key: 'cargo', text: this.t.instant('codex.detail.chipNoCargo'), ghost: true });
-    }
-    const massKg = p.hull?.mass ?? null;
-    if (massKg != null && massKg > 0) {
-      // Hundredths of a tonne only mean something on a light hull; a capital
-      // ship's "37.854,32 t" was noise that no longer fit its chip.
-      const tonnes = massKg / 1000;
-      out.push({ key: 'mass', text: `${formatNumber(tonnes >= 100 ? Math.round(tonnes) : tonnes)} t` });
-    }
-    return out;
-  });
+  /** The ship stage's chips (buildHeroChips). */
+  readonly heroChips = computed<HeroChip[]>(() =>
+    buildHeroChips(
+      {
+        detail: this.detail(),
+        localeMap: this.localeMap(),
+        hasCargo: () => this.shipCapabilities().hasCargo,
+      },
+      this.translate,
+    ),
+  );
 
   /** Mount-chain sections (D11): the mount ITSELF (VariPuck gimbal, missile
    * rack, remote-turret base) carries no alpha and exists only to hold what's
@@ -3799,85 +2876,20 @@ export class CodexDetailComponent implements OnInit {
   readonly moduleSectionOrder = computed(() => this.activeMission().order);
   readonly offensiveStartsCollapsed = computed(() => this.foldedModuleSections().has('weapons'));
 
-  /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured. */
+  /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured (buildShipFactGroups). */
   readonly shipFactGroups = computed<ShipFactGroup[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ship') return [];
-    const p = d.payload as ShipPayload;
-    const flight = p.flight;
-    const dim = this.dimensions();
-    const mass = equippedMass(this.draftSummaryOccupants());
-    const sheet = this.currentKpiSheet();
-    const tech = this.techStats();
-    const num = (v: number | null | undefined, unit: string): string | null =>
-      v == null || !Number.isFinite(v) || v === 0 ? null : `${formatNumber(v)} ${unit}`;
-
-    const flightRows: ShipFactRow[] = [
-      { labelKey: 'codex.hull.scmSpeed', value: num(flight?.scmSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-      { labelKey: 'codex.hull.maxSpeed', value: num(flight?.maxSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-      { labelKey: 'codex.hull.boostSpeed', value: num(flight?.boostSpeed, 'm/s'), gapKey: 'codex.summary.gap.noFlight' },
-      { labelKey: 'codex.hull.pitch', value: num(flight?.pitch, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-      { labelKey: 'codex.hull.yaw', value: num(flight?.yaw, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-      { labelKey: 'codex.hull.roll', value: num(flight?.roll, '°/s'), gapKey: 'codex.summary.gap.noFlight' },
-    ];
-
-    // "6.604 / 3.302 / 9.712" — only axes that actually exist; null when none do.
-    const axes = crossSectionAxes(p.stats as Record<string, Record<string, unknown>> | undefined);
-    const axisParts = [axes.x, axes.y, axes.z].filter((v): v is number => v != null);
-    const crossSectionAxesLabel = axisParts.length > 0 ? axisParts.map((v) => formatNumber(v)).join(' / ') : null;
-
-    const groups: ShipFactGroup[] = [
+    return buildShipFactGroups(
       {
-        titleKey: 'codex.analysis.ship.flightPerformance',
-        rows: flightRows,
-        // The sentence the deleted "Rumpf & Flug" block used to carry: said
-        // once, where the empty rows are, and only when they are ALL empty.
-        note: flightRows.every((r) => r.value == null) ? this.t.instant('codex.hull.flightMissing') : null,
+        detail: d,
+        dimensions: this.dimensions(),
+        techStats: this.techStats(),
+        kpiSheet: this.currentKpiSheet(),
+        occupants: this.draftSummaryOccupants(),
       },
-      {
-        titleKey: 'codex.analysis.ship.mass',
-        rows: [{ labelKey: 'codex.hull.equippedMass', value: num(mass, 'kg'), gapKey: 'codex.summary.gap.noEquipmentMass' }],
-        note: this.t.instant('codex.analysis.ship.massEquipmentNote'),
-      },
-      {
-        titleKey: 'codex.analysis.ship.systems',
-        rows: [
-          { labelKey: 'codex.kpi.quantumSpeed', value: num(sheet.quantumSpeed, 'km/s'), gapKey: 'codex.summary.gap.noQuantum' },
-          { labelKey: 'codex.kpi.quantumRange', value: sheet.quantumRange != null ? `${formatNumber(sheet.quantumRange / 1_000_000)} Gm` : null, gapKey: 'codex.summary.gap.noQuantum' },
-          { labelKey: 'codex.kpi.spool', value: num(sheet.spool, 's'), gapKey: 'codex.summary.gap.noQuantum' },
-          // The two tank figures. They lived ONLY in the hero's fact tiles, so
-          // moving the tiles into this card had to bring them along or the
-          // page would simply stop knowing them (decision 1, hard constraint).
-          { labelKey: 'codex.detail.quantumFuel', value: tech?.quantumFuelCapacity != null ? formatNumber(tech.quantumFuelCapacity) : null, gapKey: 'codex.summary.gap.noQuantum' },
-          { labelKey: 'codex.detail.fuelCapacity', value: tech?.hydrogenCapacity != null ? formatNumber(tech.hydrogenCapacity) : null, gapKey: 'codex.summary.gap.noFlight' },
-        ],
-      },
-      {
-        titleKey: 'codex.analysis.ship.signature',
-        rows: [
-          // IR/EM: the game files carry no scalar fields at all (verified live
-          // Nomad) — distinct gap wording from the cross-section's "pending
-          // upload" one.
-          { labelKey: 'codex.kpi.ir', value: num(sheet.ir, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
-          { labelKey: 'codex.kpi.emIdle', value: num(sheet.emIdle, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
-          { labelKey: 'codex.kpi.emMax', value: num(sheet.emMax, ''), gapKey: 'codex.summary.gap.noEmissionModel' },
-          // The three cross-section axes shown honestly (x/y/z), not
-          // collapsed into one number — the KPI band uses the max of the
-          // three for its single comparable cell (see crossSectionMax()).
-          { labelKey: 'codex.kpi.crossSection', value: crossSectionAxesLabel, gapKey: 'codex.summary.gap.noSignature' },
-        ],
-        note: crossSectionAxesLabel != null ? this.t.instant('codex.analysis.ship.crossSectionNote') : null,
-      },
-      {
-        titleKey: 'codex.analysis.ship.hull',
-        rows: [
-          { labelKey: 'codex.hull.dimensions', value: dim ? `${formatNumber(dim.length)} × ${formatNumber(dim.width)} × ${formatNumber(dim.height)} m` : null },
-          { labelKey: 'codex.hull.crew', value: p.crew?.size ? String(p.crew.size) : null },
-          { labelKey: 'codex.hull.hullHp', value: null, gapKey: 'codex.summary.gap.noHullMass' },
-        ],
-      },
-    ];
-    return groups;
+      this.translate,
+    );
   });
 
   /**
@@ -4056,7 +3068,7 @@ export class CodexDetailComponent implements OnInit {
     const tech = this.techStats();
     const qdChip =
       tech?.quantumDriveClassName && tech.quantum.jumpRangeMm != null
-        ? this.fmtGm(tech.quantum.jumpRangeMm)
+        ? fmtGm(tech.quantum.jumpRangeMm)
         : null;
     const showEmpty = this.showEmptyLoadout();
 
@@ -4305,11 +3317,6 @@ export class CodexDetailComponent implements OnInit {
     return this.loadoutAll().filter((l) => isWeaponMountPort(l.port) && !l.className).length;
   });
 
-  /** jumpRange comes in metres → giga-metre display (Gm), same as the hangar. */
-  private fmtGm(v: number): string {
-    return `${formatNumber(Math.round(v / 1_000_000))} Gm`;
-  }
-
   readonly damage = computed<DamageRow[]>(() => {
     const d = this.detail();
     if (!d || d.kind !== 'ammunition') return [];
@@ -4325,61 +3332,10 @@ export class CodexDetailComponent implements OnInit {
     return max > 0 ? Math.max(4, Math.round((row.value / max) * 100)) : 0;
   }
 
-  /**
-   * Module census on the stage (feedback 140dfb7e). One chip per loadout BLOCK,
-   * in the loadout column's own order and with its own headings, counting the
-   * same hardpoints the block's "N Slots" census counts — `moduleSections` is
-   * the single source for both, so the two can never disagree again.
-   *
-   * It used to be `summarizePorts` over the generic `HardpointCategory`, a
-   * second classifier with its own opinion: the Nomad's tractor beam counted
-   * as a fourth "weapon" up here while the armament block listed three.
-   *
-   * Missiles are the one block where the slot is not the unit a pilot counts:
-   * a rack is a slot, the missiles are what it carries. The chip therefore
-   * reads "8 Raketen · 2 Werfer" — the stock missiles across every rack, with
-   * the rack count as the detail — and falls back to counting the racks alone
-   * when the extract names no missile on any of them.
-   */
-  readonly stageCounts = computed<StageCountChip[]>(() => {
-    if (this.kind() !== 'ship') return [];
-    const bySection = new Map(this.moduleSections().map((s) => [s.section, s] as const));
-    // Blocks in the order their first section appears — the loadout column's
-    // order. The airframe is the one block that is not a decision; it stays
-    // off the picture.
-    const groups = [...new Set(SHIP_MODULE_SECTION_ORDER.map((s) => shipModuleGroupOf(s)))];
-    const out: StageCountChip[] = [];
-    for (const group of groups) {
-      if (group === 'structure') continue;
-      const sections = SHIP_MODULE_SECTION_ORDER.filter((s) => shipModuleGroupOf(s) === group)
-        .map((s) => bySection.get(s))
-        .filter((s): s is LayoutSection => !!s && s.slots.length > 0);
-      const slots = sections.reduce((n, s) => n + s.slots.length, 0);
-      if (slots === 0) continue;
-      const labelKey = shipModuleGroupLabelKey(group);
-      if (group === 'missiles') {
-        const missiles = sections
-          .flatMap((s) => s.slots)
-          .flatMap((slot) => slot.children ?? [])
-          .filter((c) => !!c.className)
-          .reduce((n, c) => n + c.count, 0);
-        if (missiles > 0) {
-          out.push({
-            group,
-            count: missiles,
-            labelKey,
-            detailKey: 'codex.detail.stageLaunchers',
-            detailCount: slots,
-          });
-          continue;
-        }
-        out.push({ group, count: slots, labelKey: 'codex.detail.stageMissileRacks', detailKey: null, detailCount: 0 });
-        continue;
-      }
-      out.push({ group, count: slots, labelKey, detailKey: null, detailCount: 0 });
-    }
-    return out;
-  });
+  /** Module census on the stage (feedback 140dfb7e) — see buildStageCounts. */
+  readonly stageCounts = computed<StageCountChip[]>(() =>
+    this.kind() === 'ship' ? buildStageCounts(this.kind(), this.moduleSections()) : [],
+  );
 
   /** Hardpoints grouped into functional categories, in display order. */
   readonly hardpointGroups = computed<PortGroup[]>(() => {
@@ -4435,9 +3391,6 @@ export class CodexDetailComponent implements OnInit {
   humanizePort(name: string | null): string {
     return name ? humanizePortType(name) : '—';
   }
-  humanizeType(t: string): string {
-    return humanizePortType(t);
-  }
   fmt(n: number): string {
     return formatNumber(n);
   }
@@ -4466,63 +3419,9 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     if (d) this.svc.togglePin(d.kind, d.classNameSlug);
   }
-  // ── user-supplied RSI pledge link (feedback f7d3bd9a) ───────────────────────
-  // The typed value is validated client-side for a fast, friendly error, but
-  // the `ship-link` edge function is the authority and re-validates everything.
-
+  /** Opens / closes the RSI pledge-link form (ShipLinkFormStore). */
   toggleLinkForm(): void {
-    const next = !this.showLinkForm();
-    this.showLinkForm.set(next);
-    if (next) {
-      this.shipLinkInput.set(this.myPledgeLink() ?? '');
-      this.shipLinkError.set(null);
-      this.shipLinkSaved.set(false);
-    }
-  }
-
-  onShipLinkInput(e: Event): void {
-    this.shipLinkInput.set((e.target as HTMLInputElement).value);
-    if (this.shipLinkError()) this.shipLinkError.set(null);
-    if (this.shipLinkSaved()) this.shipLinkSaved.set(false);
-  }
-
-  async saveShipLink(e: Event): Promise<void> {
-    e.preventDefault();
-    const slug = this.shipSlug();
-    if (!slug) return;
-    this.applyLinkResult(await this.shipLinks.setMyLink(slug, this.shipLinkInput()));
-  }
-
-  async removeShipLink(): Promise<void> {
-    const slug = this.shipSlug();
-    if (!slug) return;
-    const err = await this.shipLinks.removeMyLink(slug);
-    this.applyLinkResult(err);
-    if (!err) this.shipLinkInput.set('');
-  }
-
-  /** ADMIN ONLY — publish the typed link for everyone. Server re-checks role. */
-  async promoteShipLink(): Promise<void> {
-    const slug = this.shipSlug();
-    if (!slug) return;
-    this.applyLinkResult(await this.shipLinks.promote(slug, this.shipLinkInput()));
-  }
-
-  /** ADMIN ONLY — withdraw the globally visible link. */
-  async unpromoteShipLink(): Promise<void> {
-    const slug = this.shipSlug();
-    if (!slug) return;
-    this.applyLinkResult(await this.shipLinks.unpromote(slug));
-  }
-
-  private shipSlug(): string | null {
-    const d = this.detail();
-    return d?.kind === 'ship' ? d.classNameSlug : null;
-  }
-
-  private applyLinkResult(err: string | null): void {
-    this.shipLinkError.set(err);
-    this.shipLinkSaved.set(err === null);
+    this.shipLinkForm.toggle();
   }
 
   async addToHangar(): Promise<void> {
@@ -4549,12 +3448,5 @@ export class CodexDetailComponent implements OnInit {
   }
   toggleEmptyLoadout(): void {
     this.showEmptyLoadout.update((v) => !v);
-  }
-
-  sizeRange(min: number | null, max: number | null): string {
-    if (min == null && max == null) return '—';
-    if (min === max || max == null) return 'S' + String(min ?? max);
-    if (min == null) return 'S' + String(max);
-    return `S${min}–${max}`;
   }
 }

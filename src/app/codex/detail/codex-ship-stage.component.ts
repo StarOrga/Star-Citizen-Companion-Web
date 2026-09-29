@@ -7,7 +7,7 @@ import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
-import { StageCountChip } from '../codex-detail.component';
+import type { StageCountChip } from './codex-detail.types';
 
 /** One hero chip on the ship stage — a career/role/crew/cargo/mass fact or a
  * disclosed gap. Mirrors the shape `codex-detail.component.ts` computes. */

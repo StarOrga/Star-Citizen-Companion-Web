@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexShipStageComponent } from './codex-ship-stage.component';
-import { StageCountChip } from '../codex-detail.component';
+import { StageCountChip } from './codex-detail.types';
 
 describe('CodexShipStageComponent', () => {
   let fixture: ComponentFixture<CodexShipStageComponent>;
