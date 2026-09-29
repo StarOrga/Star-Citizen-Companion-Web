@@ -150,7 +150,9 @@ const PER_KIND_LIMIT = 6;
                     @if (inHangar(r.row.classNameSlug)) {
                       <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
                     } @else {
-                      <button type="button" class="add-btn" (click)="addToHangar($event, r.row)">
+                      <button type="button" class="add-btn" (click)="addToHangar($event, r.row)"
+                              [disabled]="adding().has(r.row.classNameSlug)"
+                              [attr.aria-busy]="adding().has(r.row.classNameSlug)">
                         {{ 'quickSearch.addToHangar' | translate }}
                       </button>
                     }
@@ -158,6 +160,11 @@ const PER_KIND_LIMIT = 6;
                 </li>
               }
             </ul>
+          }
+          <!-- Outside the listbox: an alert inside a role="option" row would
+               break the combobox semantics. -->
+          @if (addFailed()) {
+            <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
           }
 
           <p class="qs-nav-hint">{{ 'quickSearch.navHint' | translate }}</p>
@@ -213,6 +220,7 @@ const PER_KIND_LIMIT = 6;
     .state.cat-empty { color: var(--sc-warning); font-style: italic; }
     .qs-divider { list-style: none; font-size: max(0.62rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); padding: 6px 4px 2px; border-top: 1px dashed color-mix(in srgb, var(--sc-border) 70%, transparent); margin-top: 2px; }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; padding: 2px 4px; }
+    .state.err { color: var(--sc-danger); }
     .qs-results { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .qs-row {
       position: relative;
@@ -319,6 +327,10 @@ export class QuickSearchComponent {
   readonly activeIndex = signal(0);
   readonly category = signal<SearchCategory>('all');
   readonly categories = SEARCH_CATEGORIES;
+  /** Ship slugs whose add-to-hangar is in flight (AUD-065). */
+  readonly adding = signal<ReadonlySet<string>>(new Set());
+  /** Slug of the last add-to-hangar that failed (AUD-268); cleared by the next search. */
+  readonly addFailed = signal<string | null>(null);
 
   /**
    * Results ordered for the active category: 'all' keeps the merged order;
@@ -495,11 +507,27 @@ export class QuickSearchComponent {
 
   async addToHangar(ev: Event, row: CodexListRow): Promise<void> {
     ev.stopPropagation();
-    await this.hangar.addShip(row.classNameSlug, 'owned');
+    const slug = row.classNameSlug;
+    // A second click while the insert is in flight must not add the ship twice.
+    if (this.adding().has(slug)) return;
+    this.adding.update((s) => new Set(s).add(slug));
+    this.addFailed.set(null);
+    try {
+      if (!(await this.hangar.addShip(slug, 'owned'))) this.addFailed.set(slug);
+    } catch {
+      this.addFailed.set(slug);
+    } finally {
+      this.adding.update((s) => {
+        const next = new Set(s);
+        next.delete(slug);
+        return next;
+      });
+    }
   }
 
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
+    this.addFailed.set(null);
     this.loading.set(true);
     try {
       const kinds: CodexKind[] = ['ship', 'weapon', 'component'];

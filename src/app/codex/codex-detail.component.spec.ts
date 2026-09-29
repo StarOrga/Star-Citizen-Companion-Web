@@ -222,6 +222,31 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.querySelector('sc-codex-rank-card')).toBeTruthy();
   });
 
+  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
+  it('locks "add to hangar" while the insert runs and alerts when it fails', async () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const hangar = TestBed.inject(HangarService);
+    let resolve!: (v: null) => void;
+    const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
+    const btn = el.querySelector('.add-hangar') as HTMLButtonElement;
+    expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
+
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeTrue();
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    void fixture.componentInstance.addToHangar();
+    expect(addShip).toHaveBeenCalledTimes(1);
+
+    resolve(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeFalse();
+    const alert = el.querySelector('.add-err[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
+  });
+
   it('renders the six-cell KPI band', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('sc-codex-kpi-band')).toBeTruthy();

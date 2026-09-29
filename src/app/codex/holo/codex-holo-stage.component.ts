@@ -333,6 +333,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                       [unsavedChanges]="draftChangedCount()"
                       (copyCurrentLink)="copyShareLink.emit()"
                       (addToHangar)="addToHangar.emit()"
+                      [addBusy]="addBusy()"
+                      [addFailed]="addFailed()"
                       (configRefreshed)="configRefreshed.emit($event)" />
                   }
                 </span>
@@ -796,6 +798,9 @@ export class CodexHoloStageComponent {
   readonly saving = input(false);
   readonly saveError = input<string | null>(null);
   readonly inHangar = input(false);
+  /** Add-to-hangar state of the host, passed on to the share popover. */
+  readonly addBusy = input(false);
+  readonly addFailed = input(false);
 
   // ── Rank / radar / top-3 (user decision 1) ─────────────────────────
   readonly rankResult = input<RankResult | null>(null);
