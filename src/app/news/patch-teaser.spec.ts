@@ -1,4 +1,6 @@
-import { TEASER_BOX, TEASER_FALLBACK, TEASER_MAX, TeaserBox, teaserFit } from './patch-teaser';
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { TEASER_BOX, TEASER_FALLBACK, TEASER_MAX, TeaserBox, TeaserStripDirective, teaserFit } from './patch-teaser';
 
 /**
  * The strip's arithmetic (feedback fdaad6b7): as many roadmap thumbnails as
@@ -107,5 +109,61 @@ describe('Patch board — the roadmap teaser strip', () => {
         expect(fit.visible).toBeGreaterThanOrEqual(1);
       }
     }
+  });
+});
+
+@Component({
+  standalone: true,
+  imports: [TeaserStripDirective],
+  template: `<div class="strip" (scTeaserStrip)="boxes.push($event)"
+                  style="display:flex; column-gap:4px; --tz-w:50px; --tz-rest:20px; --tz-rows:3;"
+                  [style.width.px]="width"></div>`,
+})
+class StripHostComponent {
+  width = 300;
+  readonly boxes: TeaserBox[] = [];
+}
+
+describe('TeaserStripDirective', () => {
+  /** A ResizeObserver reports on its own schedule — poll instead of a fixed wait. */
+  async function until(cond: () => boolean): Promise<void> {
+    for (let i = 0; i < 100 && !cond(); i++) await new Promise((r) => setTimeout(r, 20));
+  }
+
+  it('measures the strip and reads item, gap, rest and rows from its CSS', async () => {
+    const f = TestBed.createComponent(StripHostComponent);
+    f.detectChanges();
+    await until(() => f.componentInstance.boxes.length > 0);
+
+    expect(f.componentInstance.boxes[0]).toEqual({ width: 300, item: 50, gap: 4, rest: 20, rows: 3 });
+  });
+
+  it('emits again only when the measured box changes', async () => {
+    const f = TestBed.createComponent(StripHostComponent);
+    f.detectChanges();
+    await until(() => f.componentInstance.boxes.length > 0);
+
+    f.componentInstance.width = 200;
+    f.detectChanges();
+    await until(() => f.componentInstance.boxes.length > 1);
+
+    const { boxes } = f.componentInstance;
+    expect(boxes.length).toBe(2);
+    expect(boxes[1].width).toBe(200);
+    // A same-size re-render must not produce a third emission.
+    f.componentInstance.width = 200;
+    f.detectChanges();
+    await new Promise((r) => setTimeout(r, 60));
+    expect(boxes.length).toBe(2);
+  });
+
+  it('stops observing when destroyed', async () => {
+    const f = TestBed.createComponent(StripHostComponent);
+    f.detectChanges();
+    await until(() => f.componentInstance.boxes.length > 0);
+    const { boxes } = f.componentInstance;
+    f.destroy();
+    await new Promise((r) => setTimeout(r, 60));
+    expect(boxes.length).toBe(1);
   });
 });

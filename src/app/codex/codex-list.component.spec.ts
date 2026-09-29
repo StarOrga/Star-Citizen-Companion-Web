@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -684,6 +685,90 @@ describe('CodexListComponent (Index mode)', () => {
       await Promise.resolve();
 
       expect(cmp.gradeSelect().some((o) => o.value === 'Z')).toBeTrue();
+    });
+  });
+
+  // D16 Schritt 6 — REQ-20 (the list state lives in the URL) and
+  // AUD-225 / REQ-25 (the card's "+" locks while it runs and says when it failed).
+  describe('D16: URL mirror and add-to-hangar on the card', () => {
+    const shipRow = (className: string): CodexListRow => ({
+      ...blueprintRow(className, null),
+      blueprintTier: null,
+      craftTimeSec: null,
+    });
+
+    function lastReplacedUrl(spy: jasmine.Spy): string {
+      expect(spy).toHaveBeenCalled();
+      return spy.calls.mostRecent().args[0] as string;
+    }
+
+    it('mirrors category, search and manufacturer into the URL with replaceState (REQ-20)', async () => {
+      const { fixture, cmp } = await setup({ ships: 300, components: 2000 });
+      const replace = spyOn(TestBed.inject(Location), 'replaceState').and.callThrough();
+      const settle = async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+      };
+
+      // The category bar's entry point (setKind alone does not move the category).
+      cmp.setCategory('component');
+      await settle();
+      expect(lastReplacedUrl(replace)).toContain('kind=component');
+
+      jasmine.clock().install();
+      try {
+        cmp.onSearchInput('titan');
+        jasmine.clock().tick(1000);
+      } finally {
+        jasmine.clock().uninstall();
+      }
+      await settle();
+      expect(lastReplacedUrl(replace)).toContain('q=titan');
+
+      cmp.setManufacturer('AEG');
+      await settle();
+      const url = lastReplacedUrl(replace);
+      expect(url).toContain('kind=component');
+      expect(url).toContain('q=titan');
+      expect(url).toContain('mfr=AEG');
+    });
+
+    it('locks the "+" while the insert runs (REQ-25)', async () => {
+      const { fixture } = await setup({ ships: 300 }, { rows: [shipRow('AEGS_Avenger_Titan')] });
+      const hangar = TestBed.inject(HangarService) as unknown as { addShip: jasmine.Spy };
+      let resolve!: (v: null) => void;
+      hangar.addShip = jasmine.createSpy('addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
+      const el = fixture.nativeElement as HTMLElement;
+      const add = el.querySelector('.card-actions .hangar-add') as HTMLButtonElement;
+      expect(add).withContext('"+" rendered').not.toBeNull();
+      expect(add.disabled).toBeFalse();
+
+      add.click();
+      fixture.detectChanges();
+      expect(add.disabled).toBeTrue();
+      expect(add.getAttribute('aria-busy')).toBe('true');
+      expect(hangar.addShip).toHaveBeenCalledOnceWith('AEGS_Avenger_Titan', 'owned');
+
+      resolve(null);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(add.disabled).toBeFalse();
+    });
+
+    it('alerts on the card when the insert fails (AUD-225)', async () => {
+      const { fixture } = await setup({ ships: 300 }, { rows: [shipRow('AEGS_Avenger_Titan')] });
+      const hangar = TestBed.inject(HangarService) as unknown as { addShip: jasmine.Spy };
+      hangar.addShip = jasmine.createSpy('addShip').and.resolveTo(null);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('.card-err')).toBeNull();
+
+      (el.querySelector('.card-actions .hangar-add') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const err = el.querySelector('.card-err[role="alert"]');
+      expect(err).not.toBeNull();
+      expect(err!.textContent).toContain('codex.card.addToHangarFailed');
     });
   });
 });

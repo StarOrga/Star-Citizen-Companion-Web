@@ -1,6 +1,6 @@
-import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -20,8 +20,11 @@ import {
   fixtureOccupant,
   type OccupantFixture,
 } from './testing/nomad-power.fixture';
-import type { ShipPayload, LoadoutEntry } from './codex.types';
-import type { CodexKind } from './codex.service';
+import type { ShipPayload, LoadoutEntry, CodexItemPort } from './codex.types';
+import type { CodexKind, CodexListRow } from './codex.service';
+import { CodexHoloForkGuard } from './holo/codex-holo-fork-guard';
+import { LOCAL_DRAFT_STORAGE_KEY } from './codex-loadout-draft';
+import type { SwapPick, SwapTarget } from './codex-swap-picker.component';
 
 // Port names driving `classifyShipModule`'s pattern rules (ship-module-sections.ts).
 const PORT_BY_SECTION: Record<string, string> = {
@@ -768,5 +771,506 @@ describe('CodexDetailComponent — failed load (non-ship archive pages)', () => 
     expect(calls).toBe(2);
     expect(el.querySelector('.err')).toBeNull();
     expect(fixture.componentInstance.detail()?.classNameSlug).toBe('klwe_laserrepeater_s3');
+  });
+});
+
+// ── D16 Schritt 6 (AUD-062): characterisation of codex-detail ────────────────
+// These cases pin the page's CURRENT rendered behaviour through the DOM and
+// the public methods only, so D17 (splitting codex-detail.component.ts) can
+// prove the split changed nothing. Do not reach for private members here.
+
+const WEAPON_PORT: CodexItemPort = {
+  parentClassName: 'KLWE_LaserRepeater_S3_SCItem',
+  parentKind: 'weapon',
+  portName: 'magazine_attach',
+  minSize: 1,
+  maxSize: 2,
+  types: ['WeaponAttachment'],
+  flags: [],
+  portIndex: 0,
+  helperName: null,
+  position: null,
+  rotation: null,
+};
+
+/** The Nomad's first weapon hardpoint as a codex port, so a draft on it is saveable. */
+const NOMAD_GUN_PORT: CodexItemPort = {
+  ...WEAPON_PORT,
+  parentClassName: 'CNOU_Nomad',
+  parentKind: 'ship',
+  portName: 'hardpoint_weapon_top_left',
+  minSize: 3,
+  maxSize: 3,
+  types: ['WeaponGun'],
+};
+
+function skinRow(classNameSlug: string, nameLocalized: string): CodexListRow {
+  return {
+    classNameSlug,
+    nameLocalized,
+    manufacturerCode: null,
+    size: null,
+    grade: null,
+    role: null,
+    crewSize: null,
+    weaponClass: null,
+    componentKind: null,
+    subType: null,
+    attachType: null,
+    speed: null,
+    isVariant: false,
+    payload: null,
+    blueprintCategory: null,
+    blueprintTier: null,
+    craftTimeSec: null,
+  };
+}
+
+interface CharacterisationOpts {
+  params: { kind: string; className: string };
+  svc?: Partial<CodexService>;
+  hangar?: Partial<HangarService>;
+  user?: { id: string } | null;
+  shipLinks?: Partial<ShipLinkService>;
+  forkGuard?: Partial<CodexHoloForkGuard>;
+}
+
+async function setupCharacterisation(opts: CharacterisationOpts): Promise<ComponentFixture<CodexDetailComponent>> {
+  const params = convertToParamMap(opts.params);
+  await TestBed.configureTestingModule({
+    imports: [CodexDetailComponent],
+    providers: [
+      provideRouter([]),
+      provideTranslateService({}),
+      { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of(params),
+          snapshot: { paramMap: params, queryParamMap: convertToParamMap({}) },
+        },
+      },
+      {
+        provide: HangarService,
+        useValue: {
+          ships: signal([]),
+          loadAll: async () => undefined,
+          addShip: async () => null,
+          shipByClassName: () => null,
+          recentShips: signal([]),
+          markShipPicked: () => undefined,
+          ...opts.hangar,
+        } as Partial<HangarService>,
+      },
+      { provide: AuthService, useValue: { user: signal(opts.user ?? null) } as unknown as Partial<AuthService> },
+      {
+        provide: RoleService,
+        useValue: { isAdmin: signal(false), isCollaborator: signal(false) } as unknown as Partial<RoleService>,
+      },
+      {
+        provide: ShipSkinsService,
+        useValue: {
+          listSkins: async () => ({ skins: [], error: false }),
+          assetUrl: (path: string | null) => path,
+        } as Partial<ShipSkinsService>,
+      },
+      { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      {
+        provide: UpcomingShipsService,
+        useValue: { ensureLoaded: async () => undefined, heroArtFor: () => [] } as Partial<UpcomingShipsService>,
+      },
+      {
+        provide: ShipLinkService,
+        useValue: {
+          myLinks: signal(new Map()),
+          globalLinks: signal(new Map()),
+          saving: signal(false),
+          loadForShip: async () => undefined,
+          ...opts.shipLinks,
+        } as unknown as Partial<ShipLinkService>,
+      },
+      ...(opts.forkGuard ? [{ provide: CodexHoloForkGuard, useValue: opts.forkGuard }] : []),
+    ],
+  }).compileComponents();
+  const fixture = TestBed.createComponent(CodexDetailComponent);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  return fixture;
+}
+
+/** The weapon stub's detail, with one expandable port. */
+function weaponDetailWithPort(): CodexService['getDetail'] {
+  const base = makeCodexServiceStub(NOMAD_PAYLOAD).getDetail!;
+  return async (kind, className) => {
+    const d = await base(kind, className);
+    return d ? { ...d, ports: [WEAPON_PORT] } : d;
+  };
+}
+
+/** The ship stub's detail, with the first weapon hardpoint as a joinable port. */
+function shipDetailWithGunPort(): CodexService['getDetail'] {
+  const base = makeCodexServiceStub(NOMAD_PAYLOAD).getDetail!;
+  return async (kind, className) => {
+    const d = await base(kind, className);
+    return d ? { ...d, ports: [NOMAD_GUN_PORT] } : d;
+  };
+}
+
+describe('CodexDetailComponent — characterisation (D16 step 6, safety net for D17)', () => {
+  afterEach(() => {
+    // A draft on the ship mirrors itself into localStorage; never leak it into the next case.
+    localStorage.removeItem(LOCAL_DRAFT_STORAGE_KEY);
+  });
+
+  describe('invalid route', () => {
+    it('names an unknown category on the error card and offers no retry', async () => {
+      const getDetail = jasmine.createSpy('getDetail');
+      const fixture = await setupCharacterisation({
+        params: { kind: 'foo', className: 'x' },
+        svc: { getDetail },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      const err = el.querySelector('.err');
+      expect(err).withContext('error card rendered').not.toBeNull();
+      expect(err!.getAttribute('role')).toBe('alert');
+      expect(err!.textContent).toContain('codex.detail.invalidRoute');
+      expect(el.querySelector('.err .retry')).toBeNull();
+      expect(getDetail).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.canRetry()).toBeFalse();
+    });
+  });
+
+  describe('hardpoint compatibility (port fold-out)', () => {
+    it('loads the compatible items once on the first open and serves re-opens from the cache', async () => {
+      const getCompatibleItems = jasmine.createSpy('getCompatibleItems').and.resolveTo([
+        {
+          kind: 'item',
+          classNameSlug: 'mag_s1',
+          nameLocalized: 'Magazine S1',
+          manufacturerCode: 'KLWE',
+          size: 1,
+          grade: null,
+        },
+      ]);
+      const fixture = await setupCharacterisation({
+        params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
+        svc: { getDetail: weaponDetailWithPort(), getCompatibleItems },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      const head = el.querySelector('.hp-head') as HTMLButtonElement;
+      expect(head).withContext('expandable port rendered').not.toBeNull();
+      expect(head.disabled).toBeFalse();
+      expect(el.querySelector('.compat')).toBeNull();
+
+      head.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(getCompatibleItems).toHaveBeenCalledTimes(1);
+      expect(getCompatibleItems).toHaveBeenCalledWith({ types: ['WeaponAttachment'], minSize: 1, maxSize: 2 });
+      expect(el.querySelector('.hp')!.classList).toContain('open');
+      const link = el.querySelector('.compat a.compat-link') as HTMLAnchorElement;
+      expect(link).withContext('compatible item is an anchor').not.toBeNull();
+      expect(link.getAttribute('href')).toBe('/codex/item/mag_s1');
+      expect(el.querySelector('.compat-head')?.textContent).toContain('codex.detail.compatCount');
+
+      // Close, then open again: the answer is cached, no second read.
+      head.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.compat')).toBeNull();
+      head.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.compat')).not.toBeNull();
+      expect(getCompatibleItems).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows an error key inline when the compatible-items read fails', async () => {
+      const getCompatibleItems = jasmine.createSpy('getCompatibleItems').and.rejectWith(new Error('boom'));
+      const fixture = await setupCharacterisation({
+        params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
+        svc: { getDetail: weaponDetailWithPort(), getCompatibleItems },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      (el.querySelector('.hp-head') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const err = el.querySelector('.compat .err-inline');
+      expect(err).withContext('inline error rendered').not.toBeNull();
+      // A translated key, never the raw exception text (D05).
+      expect(err!.textContent).toContain('errors.generic');
+      expect(err!.textContent).not.toContain('boom');
+    });
+
+    it('shows the empty sentence when nothing fits', async () => {
+      const fixture = await setupCharacterisation({
+        params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
+        svc: { getDetail: weaponDetailWithPort(), getCompatibleItems: async () => [] },
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      (el.querySelector('.hp-head') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.compat')?.textContent).toContain('codex.detail.compatNone');
+    });
+  });
+
+  describe('saving the loadout draft', () => {
+    function hangarStubs(createResult: unknown) {
+      return {
+        shipByClassName: jasmine.createSpy('shipByClassName').and.returnValue({ id: 's1' }),
+        addShip: jasmine.createSpy('addShip').and.resolveTo(null),
+        listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
+        createConfig: jasmine.createSpy('createConfig').and.resolveTo(createResult),
+        activateConfig: jasmine.createSpy('activateConfig').and.resolveTo(true),
+        updateConfig: jasmine
+          .createSpy('updateConfig')
+          .and.callFake(async (id: string, patch: { loadout: unknown }) => ({ id, loadout: patch.loadout })),
+        forkFollowedLoadout: jasmine.createSpy('forkFollowedLoadout').and.resolveTo(null),
+      };
+    }
+
+    async function setupDraftPage(createResult: unknown) {
+      const hangar = hangarStubs(createResult);
+      const ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('own');
+      const fixture = await setupCharacterisation({
+        params: { kind: 'ship', className: 'cnou_nomad' },
+        svc: { getDetail: shipDetailWithGunPort() },
+        hangar: hangar as unknown as Partial<HangarService>,
+        forkGuard: { ensureEditable } as unknown as Partial<CodexHoloForkGuard>,
+      });
+      // The draft mirrors itself into the URL; keep the Karma page where it is.
+      spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      return { fixture, hangar, ensureEditable, cmp: fixture.componentInstance };
+    }
+
+    function pickNewGun(cmp: CodexDetailComponent): void {
+      const pick: SwapPick = {
+        className: 'BEHR_LaserCannon_S3',
+        target: {
+          port: 'Weapon Top Left',
+          count: 1,
+          className: 'KLWE_LaserRepeater_S3_SCItem',
+          kind: 'weapon',
+          name: null,
+          size: 3,
+          rawPorts: ['hardpoint_weapon_top_left'],
+        } as SwapTarget,
+      };
+      cmp.onSwapPicked(pick);
+    }
+
+    it('does nothing while there is nothing saveable', async () => {
+      const { cmp, hangar } = await setupDraftPage({ id: 'c1', loadout: [], isActive: false });
+      await cmp.saveLoadoutDraft();
+      expect(hangar.shipByClassName).not.toHaveBeenCalled();
+      expect(hangar.createConfig).not.toHaveBeenCalled();
+      expect(hangar.updateConfig).not.toHaveBeenCalled();
+    });
+
+    it('creates and activates a config when the ship has none, then writes the merged loadout', async () => {
+      const { fixture, cmp, hangar, ensureEditable } = await setupDraftPage({
+        id: 'c1',
+        loadout: [],
+        isActive: false,
+      });
+      pickNewGun(cmp);
+      await fixture.whenStable();
+      expect(cmp.saveableEntries().length).withContext('draft is saveable').toBe(1);
+
+      await cmp.saveLoadoutDraft();
+      fixture.detectChanges();
+
+      expect(hangar.shipByClassName).toHaveBeenCalledWith('cnou_nomad');
+      expect(hangar.addShip).not.toHaveBeenCalled();
+      expect(hangar.listConfigs).toHaveBeenCalledWith('s1');
+      expect(hangar.createConfig).toHaveBeenCalledTimes(1);
+      expect(hangar.createConfig.calls.mostRecent().args[0]).toBe('s1');
+      expect(hangar.activateConfig).toHaveBeenCalledWith('c1', 's1');
+      expect(ensureEditable).toHaveBeenCalledTimes(1);
+      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+      const [id, patch] = hangar.updateConfig.calls.mostRecent().args as [string, { loadout: unknown[] }];
+      expect(id).toBe('c1');
+      expect(patch.loadout).toEqual([
+        jasmine.objectContaining({ portName: 'hardpoint_weapon_top_left', className: 'BEHR_LaserCannon_S3' }),
+      ]);
+      expect(hangar.forkFollowedLoadout).not.toHaveBeenCalled();
+      expect(cmp.saveError()).toBeNull();
+    });
+
+    it('says the hangar was unreachable when the config cannot be created', async () => {
+      const { fixture, cmp, hangar } = await setupDraftPage(null);
+      pickNewGun(cmp);
+      await fixture.whenStable();
+
+      await cmp.saveLoadoutDraft();
+      fixture.detectChanges();
+
+      expect(hangar.createConfig).toHaveBeenCalledTimes(1);
+      expect(hangar.activateConfig).not.toHaveBeenCalled();
+      expect(hangar.updateConfig).not.toHaveBeenCalled();
+      // No translate loader in Karma: instant() hands back the key itself.
+      expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
+    });
+
+    it('closes the picker and drafts nothing when the pick carries no raw port', async () => {
+      const { cmp } = await setupDraftPage({ id: 'c1', loadout: [], isActive: false });
+      cmp.onSwapPicked({
+        className: 'BEHR_LaserCannon_S3',
+        target: { port: 'x', count: 1, className: null, kind: null, name: null, size: null, rawPorts: [] } as SwapTarget,
+      });
+      expect(cmp.saveableEntries().length).toBe(0);
+      expect(cmp.draftChangedCount()).toBe(0);
+    });
+  });
+
+  describe('copy link', () => {
+    let fixture: ComponentFixture<CodexDetailComponent>;
+    beforeEach(async () => {
+      fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+    });
+
+    it('flashes the toast for two seconds after the URL reached the clipboard', fakeAsync(() => {
+      const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+      const el: HTMLElement = fixture.nativeElement;
+      const btn = el.querySelector('.stage-actions .btn.copy') as HTMLButtonElement;
+      expect(btn).withContext('copy button rendered').not.toBeNull();
+      expect(el.querySelector('.copy-toast')).toBeNull();
+
+      btn.click();
+      flushMicrotasks();
+      fixture.detectChanges();
+      expect(write).toHaveBeenCalledOnceWith(location.href);
+      const toast = el.querySelector('.copy-toast');
+      expect(toast).not.toBeNull();
+      expect(toast!.getAttribute('role')).toBe('status');
+      expect(toast!.textContent).toContain('codex.detail.linkCopied');
+
+      tick(1999);
+      fixture.detectChanges();
+      expect(el.querySelector('.copy-toast')).withContext('still visible just before 2 s').not.toBeNull();
+      tick(1);
+      fixture.detectChanges();
+      expect(el.querySelector('.copy-toast')).toBeNull();
+    }));
+
+    it('shows no toast when the browser denies the clipboard', fakeAsync(() => {
+      spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+      const el: HTMLElement = fixture.nativeElement;
+      (el.querySelector('.stage-actions .btn.copy') as HTMLButtonElement).click();
+      flushMicrotasks();
+      fixture.detectChanges();
+      expect(el.querySelector('.copy-toast')).toBeNull();
+    }));
+  });
+
+  describe('livery picker', () => {
+    it('lists the livery family as anchors to their own routes and marks the open one', async () => {
+      const listSkinSiblings = jasmine.createSpy('listSkinSiblings').and.resolveTo([
+        skinRow('klwe_laserrepeater_s3', 'CF-337 Panther Repeater'),
+        skinRow('klwe_laserrepeater_s3_ice01', 'CF-337 "Ice" Panther Repeater'),
+      ]);
+      const fixture = await setupCharacterisation({
+        params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
+        svc: { listSkinSiblings },
+      });
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+
+      expect(listSkinSiblings).toHaveBeenCalledWith('weapon', 'klwe_laserrepeater_s3');
+      const opts = Array.from(el.querySelectorAll<HTMLElement>('.skin-picker .sp-opt'));
+      expect(opts.length).toBe(2);
+      expect(opts.every((o) => o.tagName === 'A')).toBeTrue();
+      expect(opts.map((o) => o.getAttribute('href'))).toEqual([
+        '/codex/weapon/klwe_laserrepeater_s3',
+        '/codex/weapon/klwe_laserrepeater_s3_ice01',
+      ]);
+      expect(opts[0].getAttribute('aria-current')).toBe('true');
+      expect(opts[0].classList).toContain('current');
+      expect(opts[1].hasAttribute('aria-current')).toBeFalse();
+      expect(opts[0].textContent).toContain('codex.skinPicker.standard');
+      expect(opts[1].textContent).toContain('Ice');
+    });
+
+    it('hides the picker for an entity without liveries', async () => {
+      const fixture = await setupCharacterisation({
+        params: { kind: 'weapon', className: 'klwe_laserrepeater_s3' },
+      });
+      expect((fixture.nativeElement as HTMLElement).querySelector('.skin-picker')).toBeNull();
+    });
+  });
+
+  describe('RSI pledge link', () => {
+    it('offers no link form to a signed-out reader', async () => {
+      const fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+      const el: HTMLElement = fixture.nativeElement;
+      const labels = Array.from(el.querySelectorAll('.toolrow button')).map((b) => b.textContent ?? '');
+      expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
+      // The RSI link itself stays: a plain anchor into a new tab.
+      const rsi = el.querySelector('a.rsi-link') as HTMLAnchorElement;
+      expect(rsi).not.toBeNull();
+      expect(rsi.target).toBe('_blank');
+      expect(rsi.rel).toContain('noopener');
+    });
+
+    it('opens the form for a signed-in reader and names a rejected URL', async () => {
+      const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
+      const fixture = await setupCharacterisation({
+        params: { kind: 'ship', className: 'cnou_nomad' },
+        user: { id: 'u1' },
+        hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+        shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
+      });
+      const el: HTMLElement = fixture.nativeElement;
+      const add = Array.from(el.querySelectorAll<HTMLButtonElement>('.toolrow button')).find((b) =>
+        (b.textContent ?? '').includes('codex.shipLink.add'),
+      );
+      expect(add).withContext('"add link" button rendered').toBeDefined();
+      expect(el.querySelector('.ship-link-form')).toBeNull();
+
+      add!.click();
+      fixture.detectChanges();
+      const form = el.querySelector('.ship-link-form') as HTMLFormElement;
+      expect(form).not.toBeNull();
+
+      const input = form.querySelector('input.sl-input') as HTMLInputElement;
+      input.value = 'not a url';
+      input.dispatchEvent(new Event('input'));
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
+      const err = el.querySelector('.sl-error');
+      expect(err).not.toBeNull();
+      expect(err!.getAttribute('role')).toBe('alert');
+      expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+      expect(el.querySelector('.sl-ok')).toBeNull();
+    });
+
+    it('confirms a saved link', async () => {
+      const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
+      const fixture = await setupCharacterisation({
+        params: { kind: 'ship', className: 'cnou_nomad' },
+        user: { id: 'u1' },
+        hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+        shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
+      });
+      const cmp = fixture.componentInstance;
+      cmp.toggleLinkForm();
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
+        new Event('submit', { cancelable: true }),
+      );
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('.sl-error')).toBeNull();
+      expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
+    });
   });
 });
