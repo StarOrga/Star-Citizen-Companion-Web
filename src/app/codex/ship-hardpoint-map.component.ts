@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-map';
 
 /**
@@ -21,7 +22,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
 @Component({
   selector: 'sc-ship-hardpoint-map',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (markers().length > 0) {
@@ -42,7 +43,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
             <span class="v-label">{{ 'codex.hardpointMap.viewTop' | translate }}</span>
             <svg
               [attr.viewBox]="'0 0 100 ' + box().top"
-              role="img"
+              role="group"
               [attr.aria-label]="'codex.hardpointMap.viewTopAria' | translate: { count: markers().length }"
             >
               <rect class="hull" x="1" y="1" [attr.width]="98" [attr.height]="box().top - 2" rx="6" />
@@ -56,13 +57,16 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
                   [class.on]="isActive(m)"
                   [class.edge]="m.clamped"
                   tabindex="0"
+                  role="img"
+                  [attr.aria-label]="tip(m)"
+                  [scTooltip]="tip(m)"
+                  scTooltipTier="label"
                   [attr.transform]="'translate(' + m.top.x * 100 + ',' + m.top.y * box().top + ')'"
                   (mouseenter)="hovered.emit([m.port])"
                   (mouseleave)="hovered.emit(null)"
                   (focus)="hovered.emit([m.port])"
                   (blur)="hovered.emit(null)"
                 >
-                  <title>{{ tip(m) }}</title>
                   <circle class="halo" r="5" />
                   <circle class="dot" r="2.2" />
                 </g>
@@ -75,7 +79,7 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
             <span class="v-label">{{ 'codex.hardpointMap.viewSide' | translate }}</span>
             <svg
               [attr.viewBox]="'0 0 100 ' + box().side"
-              role="img"
+              role="group"
               [attr.aria-label]="'codex.hardpointMap.viewSideAria' | translate: { count: markers().length }"
             >
               <rect class="hull" x="1" y="1" [attr.width]="98" [attr.height]="box().side - 2" rx="6" />
@@ -89,13 +93,16 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
                   [class.on]="isActive(m)"
                   [class.edge]="m.clamped"
                   tabindex="0"
+                  role="img"
+                  [attr.aria-label]="tip(m)"
+                  [scTooltip]="tip(m)"
+                  scTooltipTier="label"
                   [attr.transform]="'translate(' + m.side.x * 100 + ',' + m.side.y * box().side + ')'"
                   (mouseenter)="hovered.emit([m.port])"
                   (mouseleave)="hovered.emit(null)"
                   (focus)="hovered.emit([m.port])"
                   (blur)="hovered.emit(null)"
                 >
-                  <title>{{ tip(m) }}</title>
                   <circle class="halo" r="5" />
                   <circle class="dot" r="2.2" />
                 </g>
@@ -104,8 +111,8 @@ import { HardpointFrame, HardpointMarker, hardpointViewBox } from './hardpoint-m
           </div>
         </div>
 
-        <!-- The active hardpoint named in words: an SVG <title> is not enough
-             on touch, where there is no hover at all. -->
+        <!-- The active hardpoint named in words: the marker tooltip needs a
+             long press on touch, this line answers a plain tap too. -->
         <p class="readout" [class.empty]="!activeLabel()">
           {{ activeLabel() || ('codex.hardpointMap.readoutIdle' | translate) }}
         </p>

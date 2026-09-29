@@ -75,6 +75,21 @@ describe('ShipHardpointMapComponent', () => {
     expect(seen).toEqual([['hardpoint_weapon_left'], null]);
   });
 
+  it('names every marker for screen readers instead of an SVG title', () => {
+    const el = render(MARKERS);
+    const cmp = fixture.componentInstance;
+    expect(el.querySelector('title')).toBeNull();
+    const marks = Array.from(el.querySelectorAll('.mk'));
+    marks.forEach((mk, i) => {
+      expect(mk.getAttribute('role')).toBe('img');
+      expect(mk.getAttribute('aria-label')).toBe(cmp.tip(MARKERS[i % MARKERS.length]));
+    });
+    // An img parent would make the named markers presentational.
+    for (const svg of Array.from(el.querySelectorAll('svg'))) {
+      expect(svg.getAttribute('role')).toBe('group');
+    }
+  });
+
   it('says the extent is approximated when the frame came from the points', () => {
     const el = render(MARKERS, { ...FRAME, source: 'ports' });
     expect(el.querySelector('.hint')?.textContent).toContain('codex.hardpointMap.approximate');
