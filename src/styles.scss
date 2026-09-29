@@ -653,6 +653,24 @@ button {
   background: transparent;
 }
 
+/* Scroll hint — ScScrollHintDirective (src/app/shared/scroll-hint.directive.ts)
+   sets data-more-start / data-more-end on a sideways-scrolling strip; the
+   edge that has more content fades out. No attribute, no fade: at either end
+   of the strip the edge is hard again. */
+.sc-scroll-hint { --sc-scroll-fade: 24px; }
+.sc-scroll-hint[data-more-end] {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - var(--sc-scroll-fade)), transparent);
+          mask-image: linear-gradient(90deg, #000 calc(100% - var(--sc-scroll-fade)), transparent);
+}
+.sc-scroll-hint[data-more-start] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--sc-scroll-fade));
+          mask-image: linear-gradient(90deg, transparent, #000 var(--sc-scroll-fade));
+}
+.sc-scroll-hint[data-more-start][data-more-end] {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--sc-scroll-fade), #000 calc(100% - var(--sc-scroll-fade)), transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 var(--sc-scroll-fade), #000 calc(100% - var(--sc-scroll-fade)), transparent);
+}
+
 /* The app's one card surface. Its padding is the density scale's level 1, so
    every card in the app tightens together on a phone instead of each component
    having to remember to (admin feedback 3bc01a3d). 20px above 720px = exactly
