@@ -149,7 +149,7 @@ describe('ShipSkinViewerComponent', () => {
   });
 
   describe('glb head read', () => {
-    type Reader = { readLocators(url: string | null): void };
+    interface Reader { readLocators(url: string | null): void }
     let fetchSpy: jasmine.Spy;
 
     beforeEach(() => {

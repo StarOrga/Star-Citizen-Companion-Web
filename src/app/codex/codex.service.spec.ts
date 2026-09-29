@@ -1085,7 +1085,7 @@ describe('CodexService.revalidateLiveBuild', () => {
 });
 
 describe('CodexService.armorRating', () => {
-  type Answer = { data: unknown; error: unknown; status?: number };
+  interface Answer { data: unknown; error: unknown; status?: number }
 
   function make(answers: Answer[], opts: { noBuild?: boolean } = {}): { svc: CodexService; rpcCalls: () => number } {
     let calls = 0;
