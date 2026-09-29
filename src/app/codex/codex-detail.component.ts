@@ -96,15 +96,17 @@ import {
   classNamePositionFamily,
 } from './ship-module-sections';
 
-/** One census chip on the stage: a loadout block, its count, an optional detail. */
-export interface StageCountChip {
-  group: ShipModuleGroup;
-  count: number;
-  labelKey: string;
-  /** i18n key taking `{ n: detailCount }`, or null when the count says it all. */
-  detailKey: string | null;
-  detailCount: number;
-}
+import {
+  EmptyFit,
+  Fact,
+  GearRecipe,
+  LoadoutItem,
+  PortCompat,
+  PortFit,
+  PortGroup,
+  ShipTechStats,
+  StageCountChip,
+} from './detail/codex-detail.types';
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { EditionOption, resolveEditionGroup } from './codex-edition-group';
 import { SummaryOccupant, equippedMass } from './ship-summary-panels';
@@ -220,72 +222,8 @@ import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 
-// Lazy-loaded compatible-items state per hardpoint (keyed by port_index).
-interface PortCompat {
-  loading: boolean;
-  error: string | null;
-  items: CompatibleItem[];
-}
-
-// A compact hero fact chip (manufacturer, role, crew, size, …).
-interface Fact {
-  label: string;
-  value: string;
-  accent?: boolean;
-}
-
-// Hardpoints grouped by functional category for display.
-interface PortGroup {
-  category: HardpointCategory;
-  ports: CodexItemPort[];
-}
-
-// Tech spec facts derived from the stock loadout's component payloads (#137):
-// quantum drive numbers plus summed hydrogen / quantum fuel tank capacities.
-interface ShipTechStats {
-  quantum: QuantumStats;
-  quantumDriveClassName: string | null;
-  hydrogenCapacity: number | null;
-  quantumFuelCapacity: number | null;
-}
-
-interface LoadoutItem {
-  port: string;
-  className: string | null;
-  kind: CodexKind | null;
-  name: string | null; // friendly name (falls back to className)
-  size: number | null;
-  grade: string | null;
-  manufacturerCode: string | null;
-  /**
-   * Sub-port name → the class the stock loadout installs there, for the item on
-   * THIS hardpoint. Empty when the extract carries no nested fit for it.
-   */
-  carried: ReadonlyMap<string, string>;
-}
-// What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
-interface PortFit {
-  attachType: string;
-  size: number | null;
-}
-
-// What may go into an UNFITTED hardpoint, and where that answer came from.
-interface EmptyFit {
-  types: string[];
-  size: number | null;
-  /** true = borrowed from an identical fitted bay, not read off this port. */
-  inferred: boolean;
-}
-
 // Engine placeholders that identify no attach type — never build a fit on them.
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
-
-// The recipe that PRODUCES this entity (#187: "which materials do I need").
-interface GearRecipe {
-  classNameSlug: string;
-  craftTimeSec: number | null;
-  ingredients: CodexBlueprintIngredient[];
-}
 
 @Component({
   selector: 'sc-codex-detail',
