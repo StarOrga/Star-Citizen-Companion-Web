@@ -20,6 +20,7 @@ import {
   humanizeClassName,
   rowHasDifferences,
 } from './codex-format';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 interface PinnedRef {
   key: string;
@@ -37,7 +38,7 @@ interface PinnedRef {
 @Component({
   selector: 'sc-codex-compare-tray',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (refs().length > 0) {
@@ -49,7 +50,8 @@ interface PinnedRef {
               <li class="chip">
                 <a [routerLink]="['/codex', r.kind, r.className]" class="chip-link">{{ chipName(r) }}</a>
                 <button type="button" class="chip-x" (click)="remove(r.key)"
-                        [attr.aria-label]="'codex.compare.remove' | translate">×</button>
+                        [attr.aria-label]="'codex.compare.remove' | translate"
+                        [scTooltip]="'codex.compare.remove' | translate">×</button>
               </li>
             }
           </ul>

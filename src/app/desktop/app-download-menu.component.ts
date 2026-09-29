@@ -123,7 +123,8 @@ let nextId = 0;
                 type="button"
                 class="pop-x"
                 (click)="close()"
-                [attr.aria-label]="'desktop.close' | translate">✕</button>
+                [attr.aria-label]="'desktop.close' | translate"
+                [scTooltip]="'desktop.close' | translate">✕</button>
             </div>
 
             @if (showConnection()) {

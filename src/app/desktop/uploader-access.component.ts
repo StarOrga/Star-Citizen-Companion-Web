@@ -7,6 +7,7 @@ import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Data Uploader's home on the Codex Bridge (admin feedback eb9c6ec3). The
@@ -31,6 +32,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
     ChannelPickerComponent,
     P4kHistoryComponent,
     ScDialogDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -85,7 +87,8 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
             <div class="hx-head">
               <span class="hx-t">{{ 'desktop.bundleHistory' | translate }}</span>
               <button type="button" class="hx-close" (click)="historyOpen.set(false)"
-                      [attr.aria-label]="'desktop.close' | translate">✕</button>
+                      [attr.aria-label]="'desktop.close' | translate"
+                      [scTooltip]="'desktop.close' | translate">✕</button>
             </div>
             <div class="hx-scroll">
               <sc-p4k-history [embedded]="true" />

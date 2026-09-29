@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexService } from './codex.service';
 import { formatNumber } from './codex-format';
 import {
@@ -51,7 +52,7 @@ import { NewsService } from '../news/news.service';
 @Component({
   selector: 'sc-codex-patch-headline',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Class names kept from the retired inline pill: same slot, same weight
@@ -119,7 +120,7 @@ import { NewsService } from '../news/news.service';
                     [attr.aria-selected]="isSelected(e)"
                     [disabled]="!e.hasData"
                     [attr.aria-disabled]="!e.hasData"
-                    [attr.title]="rowTitle(e)"
+                    [scTooltip]="rowTitle(e)"
                     (click)="choose(e)"
                   >
                     <span class="row-ver mono">{{ e.patchVersion }}</span>

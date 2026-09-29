@@ -19,6 +19,7 @@ import {
   PortQuery,
 } from '../codex/codex.service';
 import { humanizeClassName } from '../codex/codex-format';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** What the picker hands back when the user chooses an entry. */
 export interface PickedItem {
@@ -37,7 +38,7 @@ export interface PickedItem {
 @Component({
   selector: 'sc-hangar-item-picker',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="picker sc-card" role="dialog" [attr.aria-label]="'hangar.picker.searchPlaceholder' | translate" (click)="$event.stopPropagation()">
@@ -50,7 +51,8 @@ export interface PickedItem {
           [attr.placeholder]="'hangar.picker.searchPlaceholder' | translate"
           [attr.aria-label]="'hangar.picker.searchPlaceholder' | translate" />
         <button type="button" class="close" (click)="closed.emit()"
-                [attr.aria-label]="'hangar.picker.close' | translate">×</button>
+                [attr.aria-label]="'hangar.picker.close' | translate"
+                [scTooltip]="'hangar.picker.close' | translate">×</button>
       </div>
 
       @if (loading()) {

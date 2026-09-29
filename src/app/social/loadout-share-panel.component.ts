@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { FriendsService } from './friends.service';
 import { edgeLabel } from './friends.types';
 import { LoadoutShareService } from './loadout-share.service';
@@ -28,7 +29,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
 @Component({
   selector: 'sc-loadout-share-panel',
   standalone: true,
-  imports: [TranslatePipe, ScDatePipe],
+  imports: [TranslatePipe, ScDatePipe, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="sc-card share-card">
@@ -72,19 +73,14 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
 
         @if (shareableFriends().length > 0) {
           <div class="pick-row">
-            <label class="sr-only" for="share-friend-select">
-              {{ 'share.friends.pick' | translate }}
-            </label>
-            <select
-              id="share-friend-select"
-              class="sc-select"
-              [value]="pickedFriend()"
-              (change)="onPick($event)">
-              <option value="">{{ 'share.friends.pick' | translate }}</option>
-              @for (f of shareableFriends(); track f.user_id) {
-                <option [value]="f.user_id">{{ labelOf(f) }}</option>
-              }
-            </select>
+            <sc-select
+              class="friend-select"
+              [options]="friendOptions()"
+              [value]="pickedFriend() || null"
+              placeholderKey="share.friends.pick"
+              [ariaLabel]="'share.friends.pick' | translate"
+              (valueChange)="pickedFriend.set($event ?? '')"
+            />
             <button
               type="button"
               class="sc-btn sc-btn-primary"
@@ -183,7 +179,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
     .share-meta { color: var(--sc-fg-2); font-size: max(0.74rem, var(--sc-fs-floor)); margin: 6px 0 0; }
 
     .pick-row, .link-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
-    .text-input, .sc-select {
+    .text-input {
       padding: 8px 10px;
       background: var(--sc-bg-0);
       color: var(--sc-fg-0);
@@ -194,7 +190,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
     }
     .text-input { flex: 1 1 260px; min-width: 0; }
     .sc-select { flex: 1 1 180px; min-width: 0; }
-    .text-input:focus, .sc-select:focus { outline: none; border-color: var(--sc-accent); }
+    .text-input:focus { outline: none; border-color: var(--sc-accent); }
 
     .sc-btn {
       padding: 8px 14px;
@@ -218,20 +214,10 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
     .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
     .sc-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
 
-    .sr-only {
-      position: absolute;
-      width: 1px; height: 1px;
-      padding: 0; margin: -1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
     /* 48px, not 44: two overlapping scale(0.994) shell animations shave a
        hair off every measured box, so a 44px target measures 43. */
     @media (pointer: coarse) {
-      .sc-btn, .text-input, .sc-select { min-height: 48px; }
+      .sc-btn, .text-input { min-height: 48px; }
     }
     @media (max-width: 560px) {
       .pick-row, .link-row { flex-direction: column; align-items: stretch; }
@@ -270,6 +256,11 @@ export class LoadoutSharePanelComponent implements OnInit {
     return this.friends.graph().friends.filter((f) => !taken.has(f.user_id));
   });
 
+  /** Names are data, not translations — so `label`, not a key. */
+  readonly friendOptions = computed<readonly ScSelectOption[]>(() =>
+    this.shareableFriends().map((f) => ({ value: f.user_id, labelKey: '', label: this.labelOf(f) })),
+  );
+
   async ngOnInit(): Promise<void> {
     // The friend graph may not have been loaded by this route; loading it here
     // is idempotent and keeps the picker from being empty on a deep link.
@@ -283,10 +274,6 @@ export class LoadoutSharePanelComponent implements OnInit {
 
   friendLabel(s: LoadoutShareRow): string {
     return edgeLabel({ display_name: s.friend_name, username: s.friend_handle });
-  }
-
-  onPick(event: Event): void {
-    this.pickedFriend.set((event.target as HTMLSelectElement).value);
   }
 
   selectAll(event: Event): void {

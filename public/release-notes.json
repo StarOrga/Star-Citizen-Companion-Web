@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.109.0",
+  "current": "0.110.0",
   "releases": [
+    {
+      "version": "0.110.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Auswahllisten öffnen überall im App-Look.",
+              "text": "Sprache, Region, Meldekategorie, Teilen mit Freund, Sperrdauer, Freigabe-Ring und Kanal nutzen jetzt die eigene Liste statt der Systemliste – auf Android kommt kein Vollbild-Rad mehr."
+            },
+            {
+              "title": "Keine Browser-Tooltips mehr.",
+              "text": "Status-Banner, Patch-Zeilen, Analyse-Lücken, Holo-Badge, Hardpoint-Karte und Wochenwerte zeigen ihren Hinweis im App-Tooltip; Analyse-Lücken und Hardpoint-Marker sind auch per Tastatur erreichbar."
+            },
+            {
+              "title": "Symbol-Knöpfe sagen, was sie tun.",
+              "text": "Rund 40 Knöpfe wie ✕, ✎ oder Minimieren zeigen ihren Namen als Tooltip; der Schließen-Knopf im Holo-Inspector nennt wieder die Esc-Taste."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.109.0",
       "date": "2026-09-29",

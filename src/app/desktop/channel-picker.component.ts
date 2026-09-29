@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 
 export type ReleaseChannel = 'alpha' | 'beta' | 'stable';
 
@@ -19,27 +20,27 @@ const ALLOWED: Record<string, ReleaseChannel[]> = {
 @Component({
   selector: 'sc-channel-picker',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (options().length > 1) {
-      <label class="chan">
-        <span>{{ 'desktop.channel.label' | translate }}</span>
-        <select [value]="channel()" (change)="pick($event)">
-          @for (c of options(); track c) {
-            <option [value]="c">{{ 'desktop.channel.' + c | translate }}</option>
-          }
-        </select>
-      </label>
+      <!-- A div, not a label: a label would forward the click on a list
+           option to the trigger and snap the list shut again. -->
+      <div class="chan">
+        <span aria-hidden="true">{{ 'desktop.channel.label' | translate }}</span>
+        <sc-select
+          [options]="channelOptions()"
+          [allowEmpty]="false"
+          [value]="channel()"
+          [ariaLabel]="'desktop.channel.label' | translate"
+          (valueChange)="pick($event)"
+        />
+      </div>
     }
   `,
   styles: [`
     .chan { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--sc-fg-2); }
-    .chan select {
-      background: var(--sc-bg-2); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 4px; padding: 4px 8px;
-      font-family: inherit; font-size: 0.8rem;
-    }
+    .chan sc-select { min-inline-size: 9rem; }
   `],
 })
 export class ChannelPickerComponent {
@@ -47,6 +48,10 @@ export class ChannelPickerComponent {
   readonly channel = model<ReleaseChannel>('stable');
   readonly options = computed<ReleaseChannel[]>(
     () => ALLOWED[this.roles.role() ?? 'viewer'] ?? ['stable'],
+  );
+
+  readonly channelOptions = computed<readonly ScSelectOption[]>(() =>
+    this.options().map((c) => ({ value: c, labelKey: 'desktop.channel.' + c })),
   );
 
   constructor() {
@@ -59,7 +64,7 @@ export class ChannelPickerComponent {
     });
   }
 
-  pick(ev: Event): void {
-    this.channel.set((ev.target as HTMLSelectElement).value as ReleaseChannel);
+  pick(value: string | null): void {
+    this.channel.set((value ?? this.options()[0]) as ReleaseChannel);
   }
 }
