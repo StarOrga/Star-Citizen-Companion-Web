@@ -74,7 +74,11 @@ describe('AppComponent — profile locale on account switch', () => {
         { provide: RoleService, useValue: { realRole: signal(null) } as unknown as RoleService },
         { provide: SupabaseClientProvider, useValue: sbStub as unknown as SupabaseClientProvider },
       ],
-    }).compileComponents();
+    })
+      // Only the constructor effect is under test — the shell chrome (outlet,
+      // banners) would pull in services this spec does not stub.
+      .overrideComponent(AppComponent, { set: { template: '', imports: [] } })
+      .compileComponents();
   });
 
   it('hydrates the profile per account and clears it on sign-out', async () => {
@@ -89,18 +93,18 @@ describe('AppComponent — profile locale on account switch', () => {
     expect(clear).not.toHaveBeenCalled();
 
     user.set({ id: 'a' } as User);
-    TestBed.tick();
+    fixture.detectChanges();
     await fixture.whenStable();
     expect(hydrate).toHaveBeenCalledTimes(1);
     expect(hydrate.calls.mostRecent().args[0]).toBe('de');
 
     user.set(null);
-    TestBed.tick();
+    fixture.detectChanges();
     await fixture.whenStable();
     expect(clear).toHaveBeenCalledTimes(1);
 
     user.set({ id: 'b' } as User);
-    TestBed.tick();
+    fixture.detectChanges();
     await fixture.whenStable();
     expect(hydrate).toHaveBeenCalledTimes(2);
     expect(hydrate.calls.mostRecent().args[0]).toBe('en');
