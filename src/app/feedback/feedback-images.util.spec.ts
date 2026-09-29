@@ -4,6 +4,7 @@ import {
   assertAttachmentsAllowed,
   buildFeedbackBody,
   feedbackImagePath,
+  uploadFeedbackImages,
 } from './feedback-images.util';
 
 const IMG: PendingImage = { id: '1', name: 'shot.jpg', dataUrl: 'data:image/jpeg;base64,AA' };
@@ -84,5 +85,49 @@ describe('feedback attachment rules', () => {
     it('returns null for a URL that is not ours to delete', () => {
       expect(feedbackImagePath('https://example.test/somewhere/else.jpg')).toBeNull();
     });
+  });
+});
+
+/** D16 step 10: the role gate is enforced in the upload itself, before any request. */
+describe('uploadFeedbackImages role gate', () => {
+  function fakeClient() {
+    const upload = jasmine.createSpy('upload').and.resolveTo({ error: null });
+    const getPublicUrl = jasmine.createSpy('getPublicUrl').and.callFake((path: string) => ({
+      data: { publicUrl: 'https://db.test/storage/v1/object/public/feedback-images/' + path },
+    }));
+    const from = jasmine.createSpy('from').and.returnValue({ upload, getPublicUrl });
+    const client = { storage: { from } } as unknown as Parameters<typeof uploadFeedbackImages>[0];
+    return { client, upload, from };
+  }
+  const FILE_LOG: PendingImage = { ...LOG, file: new File(['boom'], 'crash.log', { type: 'text/plain' }) };
+
+  it('rejects a non-image for a viewer without touching storage', async () => {
+    const { client, upload, from } = fakeClient();
+    await expectAsync(uploadFeedbackImages(client, 'uid-1', [IMG, FILE_LOG], false)).toBeRejectedWithError(
+      ATTACHMENT_TYPE_BLOCKED,
+    );
+    expect(from).not.toHaveBeenCalled();
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('uploads a non-image for the admin composer, keeping its extension', async () => {
+    const { client, upload } = fakeClient();
+    const urls = await uploadFeedbackImages(client, 'uid-1', [FILE_LOG], true);
+    expect(upload).toHaveBeenCalledTimes(1);
+    const path = upload.calls.mostRecent().args[0] as string;
+    expect(path.startsWith('uid-1/')).toBeTrue();
+    expect(path.endsWith('.log')).toBeTrue();
+    expect(urls.length).toBe(1);
+    expect(urls[0]).toContain('/object/public/feedback-images/uid-1/');
+  });
+
+  it('uploads plain images for a viewer under the uid folder', async () => {
+    const { client, upload } = fakeClient();
+    const urls = await uploadFeedbackImages(client, 'uid-1', [{ ...IMG, dataUrl: 'data:image/png;base64,AA==' }], false);
+    expect(upload).toHaveBeenCalledTimes(1);
+    const path = upload.calls.mostRecent().args[0] as string;
+    expect(path.startsWith('uid-1/')).toBeTrue();
+    expect(path.endsWith('.png')).toBeTrue();
+    expect(urls.length).toBe(1);
   });
 });

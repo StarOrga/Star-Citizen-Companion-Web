@@ -133,3 +133,82 @@ describe('DesktopAuthComponent', () => {
     }
   });
 });
+
+/** D16 step 10: callback validation and "token in the body, never the URL". */
+describe('DesktopAuthComponent — callback hardening', () => {
+  let submit: jasmine.Spy;
+  let invoke: jasmine.Spy;
+
+  function setup(params: Record<string, string>) {
+    invoke = jasmine.createSpy('invoke').and.resolveTo({ data: null, error: { message: 'no mint' } });
+    submit = spyOn(HTMLFormElement.prototype, 'submit');
+    const getSession = jasmine.createSpy('getSession').and.resolveTo({
+      data: { session: { access_token: 'browser-access', refresh_token: 'browser-refresh', expires_at: 99 } },
+      error: null,
+    });
+    TestBed.configureTestingModule({
+      imports: [DesktopAuthComponent],
+      providers: [
+        provideTranslateService(),
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(params) } } },
+        {
+          provide: AuthService,
+          useValue: {
+            init: () => undefined,
+            ready: () => true,
+            isAuthenticated: () => true,
+            user: signal({ email: 'pilot@example.com' }),
+          },
+        },
+        { provide: RoleService, useValue: { waitReady: () => Promise.resolve(), isCollaborator: () => true } },
+        { provide: ImpersonationService, useValue: { activeOrPending: () => false, exit: () => undefined } },
+        { provide: DesktopConnectionService, useValue: { touch: () => Promise.resolve() } },
+        {
+          provide: SupabaseClientProvider,
+          useValue: { client: { auth: { getSession } }, realClient: { functions: { invoke } } },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(DesktopAuthComponent);
+    return { fixture, cmp: fixture.componentInstance };
+  }
+
+  beforeEach(() => sessionStorage.removeItem('sc.oauth-redirect-qs'));
+  afterEach(() => document.querySelectorAll('body > form').forEach((f) => f.remove()));
+
+  it('a non-loopback cb ends in error and never submits a form', async () => {
+    const { fixture, cmp } = setup({ cb: 'https://evil.example/cb', state: 's' });
+    await cmp.ngOnInit();
+    fixture.detectChanges();
+    expect(cmp.status()).toBe('error');
+    expect(cmp.errorMsg()).toBe('desktopAuth.errorBadCallback');
+    await cmp.confirm();
+    expect(submit).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('button')).toBeNull();
+  });
+
+  it('missing cb/state ends in the missing-params error', async () => {
+    const { cmp } = setup({});
+    await cmp.ngOnInit();
+    expect(cmp.status()).toBe('error');
+    expect(cmp.errorMsg()).toBe('desktopAuth.errorMissingParams');
+  });
+
+  it('the token rides in the POST fields, not in the action URL', async () => {
+    const { cmp } = setup({ cb: 'http://127.0.0.1:46821/cb', state: 'st' });
+    await cmp.ngOnInit();
+    await cmp.confirm();
+    expect(submit).toHaveBeenCalledTimes(1);
+    const form = submit.calls.mostRecent().object as HTMLFormElement;
+    expect(form.method.toLowerCase()).toBe('post');
+    expect(form.action).not.toContain('browser-access');
+    expect(form.action).not.toContain('?');
+    const field = (n: string) => (form.querySelector(`input[name="${n}"]`) as HTMLInputElement | null)?.value;
+    // The mint failed, so the hand-off falls back to the browser session.
+    expect(field('token')).toBe('browser-access');
+    expect(field('email')).toBe('pilot@example.com');
+    expect(form.querySelector('input[name="token"]')?.getAttribute('type')).toBe('hidden');
+  });
+});
