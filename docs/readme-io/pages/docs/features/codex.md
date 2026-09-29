@@ -182,16 +182,19 @@ the UI already has a slot for each of them.
 
 ## Blueprints
 
-`/codex/blueprint` lists the game's **crafting blueprints** — the datamined
-recipes behind the crafting loop. Reach them from the Bridge link row, or as a
-kind tab in Index mode alongside ships, weapons and the rest.
+Blueprints are a kind tab of the Index (`/codex/index?kind=blueprint`),
+alongside ships, weapons and the rest; the old `/codex/blueprint` address
+redirects there and keeps a search term. They list the game's **crafting
+blueprints** — the datamined recipes behind the crafting loop. The Bridge link
+row opens the same tab.
 
 Each card carries its category (CIG's own buckets: FPS armor, FPS weapons,
 vehicle components and vehicle weapons by size class, mission items), its tier
 and its craft time. The category filter is built from the categories the current
 build actually contains, so it never offers a bucket that returns nothing.
 
-A blueprint page then shows the full recipe: tier, craft and dismantle time,
+A blueprint page (`/codex/blueprint/<id>`) then shows the full recipe: tier,
+craft and dismantle time,
 output quantity, and every ingredient with its quantity and the slot it fills,
 named as the game names it (Frame, Substrate, Barrel …). A slot that demands a
 minimum material quality says so on the game's 0–1000 scale ("900 / 1,000");
