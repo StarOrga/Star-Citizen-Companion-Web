@@ -11,12 +11,21 @@ import { PresenceService } from './auth/presence.service';
 import { RoleService } from './auth/role.service';
 import { LocaleService } from './core/locale/locale.service';
 import { SupabaseClientProvider } from './core/supabase.client';
+import { fakeSupabase } from './testing/fake-supabase';
 
 describe('AppComponent', () => {
+  let fake: ReturnType<typeof fakeSupabase>;
+
   beforeEach(async () => {
+    // AUD-314: without this, the real SupabaseClientProvider would call
+    // createClient — a real client with an auto-refresh timer and real
+    // network in the middle of the unit run. The fake keeps the real
+    // AuthService, PresenceService and friends, just off the wire.
+    fake = fakeSupabase();
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
+        fake.provider,
         provideRouter([]),
         provideHttpClient(withXhr()),
         provideTranslateService({ fallbackLang: 'en' }),
@@ -31,6 +40,12 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     expect(fixture.componentInstance).toBeTruthy();
   });
+
+  it('runs against the fake client, never a real one', () => {
+    TestBed.createComponent(AppComponent);
+    expect(TestBed.inject(SupabaseClientProvider).client).toBe(fake.client as never);
+    expect(TestBed.inject(SupabaseClientProvider).realClient).toBe(fake.client as never);
+  });
 });
 
 /**
@@ -43,19 +58,13 @@ describe('AppComponent — profile locale on account switch', () => {
   const user = signal<User | null>(null);
   const langs: Record<string, string> = { a: 'de', b: 'en' };
 
-  /** Just enough of the query chain the component walks: from().select().eq().maybeSingle(). */
-  const sbStub = {
-    client: {
-      from: () => ({
-        select: () => ({
-          eq: (_col: string, id: string) => ({
-            maybeSingle: () =>
-              Promise.resolve({ data: { preferred_lang: langs[id], preferred_region: null } }),
-          }),
-        }),
-      }),
+  /** The component reads from('profiles').select().eq('id', <user>).maybeSingle(). */
+  const fake = fakeSupabase({
+    answer: (call) => {
+      const id = call.chain.find(([m]) => m === 'eq')?.[1][1] as string;
+      return { data: { preferred_lang: langs[id], preferred_region: null } };
     },
-  };
+  });
 
   beforeEach(async () => {
     user.set(null);
@@ -72,7 +81,7 @@ describe('AppComponent — profile locale on account switch', () => {
         { provide: PresenceService, useValue: { init: () => undefined } as Partial<PresenceService> },
         // The impersonation banner reads the real role; keep it off the DB.
         { provide: RoleService, useValue: { realRole: signal(null) } as unknown as RoleService },
-        { provide: SupabaseClientProvider, useValue: sbStub as unknown as SupabaseClientProvider },
+        fake.provider,
       ],
     })
       // Only the constructor effect is under test — the shell chrome (outlet,

@@ -196,6 +196,30 @@ describe('ScTooltipDirective', () => {
     expect(bubble()).toBeNull();
   }));
 
+  // REQ-8: touch has no hover, so the tooltip opens on a long-press and a tap anywhere else closes it.
+  it('opens on a 500 ms touch long-press and closes on a tap outside', fakeAsync(() => {
+    btnB().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', clientX: 5, clientY: 5 }));
+    tick(499);
+    expect(bubble()).toBeNull();
+    tick(1);
+    expect(bubble()?.textContent?.trim()).toBe('Pin to compare');
+    btnB().dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }));
+    tick(0);
+    expect(bubble()).not.toBeNull();
+
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+    tick(0);
+    expect(bubble()).toBeNull();
+  }));
+
+  it('does not open when the finger lifts before the long-press', fakeAsync(() => {
+    btnB().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch' }));
+    tick(300);
+    btnB().dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }));
+    tick(1000);
+    expect(bubble()).toBeNull();
+  }));
+
   it('follows a text change while open, and Escape closes a hover-opened tooltip from anywhere', fakeAsync(() => {
     hoverIn(btnB());
     tick(500);

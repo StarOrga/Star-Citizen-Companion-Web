@@ -1051,20 +1051,29 @@ async function navigate(cdp, sessionId, url, state, cfg) {
 // Severity / ignore handling + reporting
 // ---------------------------------------------------------------------------
 
+/** A URL's path without query/hash and without a trailing slash (`/` stays `/`). */
+function routePath(url) {
+  const path = String(url).split(/[?#]/)[0];
+  return path.length > 1 ? path.replace(/\/+$/, '') : path;
+}
+
 /**
  * The route the page actually rendered, when a guard bounced us somewhere else.
- * Null when we landed where we asked to — including on /login itself, which is
- * a legitimate destination when /login is what was requested.
+ * Null when we landed where we asked to.
+ *
+ * ANY landing on another path counts, not only the login wall: `authGuard`
+ * sends a signed-out visitor to `/login?redirect=…`, `approvedGuard` sends a
+ * signed-in but not yet approved one to `/unavailable?redirect=…`
+ * (src/app/auth/approved.guard.ts), and `roleGuard` sends a missing role to
+ * `/news` (src/app/auth/role.guard.ts). Each of them renders a perfectly fine
+ * page that has nothing to do with the route under test (AUD-010). Only the
+ * query and a trailing slash may differ — `/hangar?tab=fleet` is still
+ * `/hangar`. /login itself stays a legitimate destination when /login is what
+ * was requested (its own `?redirect=` is only a query).
  */
 function authRedirect(requested, finalUrl) {
   if (!finalUrl) return null;
-  // Whole path segments, not a prefix: `/loginish` is its own route, not the
-  // login wall. (The selftest table pins that case.)
-  const isLogin = (path) => path === '/login' || path.startsWith('/login/');
-  const landedPath = String(finalUrl).split('?')[0];
-  const askedPath = String(requested).split('?')[0];
-  if (!isLogin(landedPath)) return null;
-  if (askedPath === landedPath || isLogin(askedPath)) return null;
+  if (routePath(finalUrl) === routePath(requested)) return null;
   return String(finalUrl);
 }
 
@@ -1096,7 +1105,7 @@ const CHECK_HELP = {
   'viewport-meta': 'the viewport meta tag is missing or blocks pinch-zoom',
   'console-error': 'the page logged an error or threw while rendering on this device',
   'network-error': 'a request failed or returned >= 400 on this device',
-  'auth-redirect': 'a guard bounced this route to /login — the audit was skipped, nothing on the route was measured',
+  'auth-redirect': 'a guard bounced this route to another page (/login, /unavailable, /news …) — the audit was skipped, nothing on the route was measured',
 };
 
 function report(results, cfg, ctx) {
@@ -1121,12 +1130,20 @@ function report(results, cfg, ctx) {
     const warns = r.findings.filter((f) => severityOf(f, cfg) === 'warn');
     errorCount += errs.length;
     warnCount += warns.length;
-    if (!errs.length && !warns.length) continue;
     const dev = DEVICES[r.device];
-    console.log('');
     // Against the requested PATH — `r.route` carries the " [panel]" label for
     // panel rows, so comparing to it flagged every one of them as redirected.
-    const redirected = r.finalUrl && r.finalUrl !== (r.path || r.route) ? `  (redirected → ${r.finalUrl})` : '';
+    // Decided BEFORE the "nothing to report" filter: a bounced row is always
+    // worth a line, even when the page it landed on had no findings.
+    const redirected = r.finalUrl && authRedirect(r.path || r.route, r.finalUrl) ? `  (redirected → ${r.finalUrl})` : '';
+    if (!errs.length && !warns.length) {
+      if (redirected) {
+        console.log('');
+        console.log(`note  ${dev.label} ${dev.width}×${dev.height} ${dev.os}   ${r.route}${redirected}`);
+      }
+      continue;
+    }
+    console.log('');
     console.log(`${errs.length ? 'FAIL' : 'warn'}  ${dev.label} ${dev.width}×${dev.height} ${dev.os}   ${r.route}${redirected}`);
     const shown = [...errs, ...warns];
     const limit = Number(args.opts['max-lines'] || 6);
@@ -1208,8 +1225,17 @@ const AUTH_REDIRECT_CASES = [
   { requested: '/login', finalUrl: '/login?redirect=%2Fnews', expect: false },
   { requested: '/about', finalUrl: '/about', expect: false },
   { requested: '/hangar', finalUrl: '/hangar?tab=fleet', expect: false },
-  { requested: '/admin/feedback', finalUrl: '/loginish', expect: false },
+  // Was `false` while only the login wall counted (`/loginish` is not
+  // /login). Since every path change counts, landing on any other route —
+  // this one included — means the requested page was never rendered.
+  { requested: '/admin/feedback', finalUrl: '/loginish', expect: true },
   { requested: '/news', finalUrl: null, expect: false },
+  // roleGuard: a signed-in non-admin asking for an admin page lands on /news.
+  { requested: '/admin/feedback', finalUrl: '/news', expect: true },
+  // approvedGuard: signed in, not yet approved.
+  { requested: '/codex', finalUrl: '/unavailable?redirect=%2Fcodex', expect: true },
+  // A trailing slash is the same route.
+  { requested: '/hangar/', finalUrl: '/hangar', expect: false },
 ];
 
 function selftestAuthRedirect() {

@@ -97,6 +97,32 @@ describe('CodexRankCardComponent', () => {
     expect(wrap).toBeTruthy();
     expect(wrap!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.rank.disabled.noCargo');
   });
+
+  // REQ-9 (AUD-267): themed select, no native one; the size-class scope is listed but not pickable.
+  it('offers the scope as a themed select with the size-class option disabled', () => {
+    const emitted: string[] = [];
+    fixture.componentInstance.scopeChange.subscribe((v) => emitted.push(v));
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.scope-select sc-select')).not.toBeNull();
+    expect(el.querySelector('select')).toBeNull();
+    expect(el.querySelector('.scope-hint')?.textContent).toContain('codex.rank.disabled.noSizeClass');
+
+    (el.querySelector('.scope-select .trigger') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const options = Array.from(el.querySelectorAll<HTMLElement>('.scope-select [role="option"]'));
+    expect(options.length).toBe(3);
+    const sizeClass = options.find((o) => o.textContent?.includes('codex.rank.scope.sizeClass'))!;
+    expect(sizeClass.getAttribute('aria-disabled')).toBe('true');
+    expect(options.filter((o) => o.getAttribute('aria-disabled') === 'true').length).toBe(1);
+
+    sizeClass.click();
+    fixture.detectChanges();
+    expect(emitted).toEqual([]);
+    const all = options.find((o) => o.textContent?.includes('codex.rank.scope.all'))!;
+    all.click();
+    expect(emitted).toEqual(['all']);
+  });
 });
 
 describe('CodexRankCardComponent - a gap axis is never invented', () => {
