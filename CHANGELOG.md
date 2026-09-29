@@ -4,6 +4,22 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.112.3] - 2026-09-29
+
+### Changed
+
+- **Die Codex-Detailseite hat ein Sicherheitsnetz aus Charakterisierungs-Tests.**
+  Port-Aufklappen, Entwurf speichern, Link kopieren, Lackierungen und RSI-Link
+  sind festgehalten, damit die geplante Zerlegung der Seite nachweisbar nichts
+  verändert.
+- **Viele bisher ungetestete Bereiche sind abgedeckt.** Codex-Dienste und
+  -Bausteine, Holotable, Social (Freunde, Teilen, Moderation, Kontostatus),
+  Desktop-Anmeldung, Starscape, Rechtliches und News (Roadmap-Warteschlange,
+  Polling).
+- **Listen-URL und „+“-Knopf auf der Karte sind abgesichert.** Kategorie, Suche
+  und Filter landen in der URL; der Knopf sperrt, solange er arbeitet, und
+  meldet einen Fehlschlag.
+
 ## [0.112.2] - 2026-09-29
 
 ### Changed

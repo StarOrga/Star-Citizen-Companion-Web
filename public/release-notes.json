@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.112.2",
+  "current": "0.112.3",
   "releases": [
+    {
+      "version": "0.112.3",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Codex-Detailseite hat ein Sicherheitsnetz aus Charakterisierungs-Tests.",
+              "text": "Port-Aufklappen, Entwurf speichern, Link kopieren, Lackierungen und RSI-Link sind festgehalten, damit die geplante Zerlegung der Seite nachweisbar nichts verändert."
+            },
+            {
+              "title": "Viele bisher ungetestete Bereiche sind abgedeckt.",
+              "text": "Codex-Dienste und -Bausteine, Holotable, Social (Freunde, Teilen, Moderation, Kontostatus), Desktop-Anmeldung, Starscape, Rechtliches und News (Roadmap-Warteschlange, Polling)."
+            },
+            {
+              "title": "Listen-URL und „+“-Knopf auf der Karte sind abgesichert.",
+              "text": "Kategorie, Suche und Filter landen in der URL; der Knopf sperrt, solange er arbeitet, und meldet einen Fehlschlag."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.112.2",
       "date": "2026-09-29",
