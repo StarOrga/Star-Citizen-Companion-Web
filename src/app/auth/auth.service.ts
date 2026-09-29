@@ -7,6 +7,12 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { capturedAuthLinkType } from './auth-link';
 import { ImpersonationService } from './impersonation.service';
 
+/**
+ * Upper bound for the session read at start-up. After it, the visit counts as
+ * signed out and the guards decide — no navigation stays on the boot splash.
+ */
+export const AUTH_READY_TIMEOUT_MS = 10_000;
+
 /** Where an invite / password-reset link is funnelled once it has a session. */
 export const SET_PASSWORD_PATH = '/set-password';
 
@@ -19,6 +25,8 @@ export class AuthService {
 
   private readonly _session = signal<Session | null>(null);
   private readonly _ready = signal(false);
+  private resolveReady!: () => void;
+  private readonly readyPromise = new Promise<void>((r) => (this.resolveReady = r));
 
   /** The real, untouched auth state — always reflects the actual Supabase session. */
   readonly realSession = this._session.asReadonly();
@@ -40,6 +48,34 @@ export class AuthService {
 
   private initialized = false;
 
+  private markReady(): void {
+    if (!this._ready()) this._ready.set(true);
+    this.resolveReady();
+  }
+
+  /**
+   * Resolves once the start-up session read has settled — or after
+   * `timeoutMs`, whichever comes first. A read that hangs (or never
+   * answers) then counts as signed out: `ready()` turns true with no
+   * session, so later guards do not wait again. Should the session still
+   * arrive, `getSession`/`onAuthStateChange` set it and the app signs in.
+   * Every route guard waits through this one promise.
+   */
+  whenReady(timeoutMs = AUTH_READY_TIMEOUT_MS): Promise<void> {
+    if (this._ready()) return Promise.resolve();
+    return new Promise((resolve) => {
+      const t = setTimeout(() => {
+        logWarn('auth', 'session read did not settle — continuing signed out', { timeoutMs });
+        this.markReady();
+        resolve();
+      }, timeoutMs);
+      void this.readyPromise.then(() => {
+        clearTimeout(t);
+        resolve();
+      });
+    });
+  }
+
   init(): void {
     if (this.initialized) return;
     this.initialized = true;
@@ -52,12 +88,12 @@ export class AuthService {
       .getSession()
       .then(({ data }) => {
         this._session.set(data.session);
-        this._ready.set(true);
+        this.markReady();
       })
       .catch((e) => {
         // A rejected read must not leave every authGuard waiting forever.
         logWarn('auth', 'getSession failed', e);
-        this._ready.set(true);
+        this.markReady();
       });
 
     const linkType = capturedAuthLinkType();
@@ -65,7 +101,7 @@ export class AuthService {
 
     this.sb.realClient.auth.onAuthStateChange((event, session) => {
       this._session.set(session);
-      this._ready.set(true);
+      this.markReady();
 
       // An invite or a password-reset mail is the ONE entry point where the
       // visitor has a session but (possibly) no password they know. Send them
