@@ -4,6 +4,23 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.111.0] - 2026-09-29
+
+### Fixed
+
+- **Hängende Ladevorgänge enden nach 20 Sekunden.** Codex, Hangar,
+  Admin-Listen, Token- und Konzeptseite zeigen dann ihre Fehlerkarte mit
+  „Erneut versuchen“, statt endlos zu laden.
+- **Der Login-Start kann die App nicht mehr blockieren.** Hängt das Lesen der
+  Sitzung, gilt der Besuch nach spätestens 10 Sekunden als abgemeldet.
+- **Ein lange offener Codex-Tab bemerkt einen neuen Patch.** Beim Zurückkehren
+  in den Tab wechselt der Katalog auf den neuen LIVE-Build und sagt das einmal;
+  wer bewusst einen alten Patch liest, bleibt dort.
+- **Set-Einordnung und 3D-Figur sind robuster, die App startet offline mit
+  Texten.** Die Einordnung zeigt einen Fehler mit „Erneut versuchen“, die
+  3D-Figur fällt bei einem Grafikfehler auf die gezeichnete Figur zurück, und
+  die installierte App lädt Übersetzungen aus dem Cache.
+
 ## [0.110.1] - 2026-09-29
 
 ### Fixed
