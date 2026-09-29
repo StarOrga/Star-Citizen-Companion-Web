@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flush, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHoloStageComponent } from './codex-holo-stage.component';
@@ -368,18 +368,27 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     expect(c.viewMode()).toBe('holo');
   });
 
-  it('the arrival re-plays for a new hull and reports the hull once it arrived', async () => {
-    const fixture = await setup({ reducedMotion: false });
+  // Fake clock (REQ-28): the fixture is built INSIDE fakeAsync, so the reveal
+  // timer the arrival effect starts lands on the fake queue, not on real time.
+  it('the arrival re-plays for a new hull and reports the hull once it arrived', fakeAsync(() => {
+    let fixture!: ComponentFixture<CodexHoloStageComponent>;
+    void setup({ reducedMotion: false }).then((f) => (fixture = f));
+    flushMicrotasks();
     const c = fixture.componentInstance;
     const arrived: string[] = [];
     c.arrivedShip.subscribe((slug) => arrived.push(slug));
-    await new Promise((r) => setTimeout(r, 1700));
+    // No hero art in the fixture: the reveal starts at once and ends after REVEAL_MS (1100).
+    tick(1099);
+    expect(c.arrived()).toBe(false);
+    tick(1);
     expect(c.arrived()).toBe(true);
     expect(arrived).toEqual(['cnou_nomad']);
     fixture.componentRef.setInput('detail', { ...detailWithPorts([]), classNameSlug: 'aegs_gladius' });
     fixture.detectChanges();
     expect(c.arrived()).toBe(false);
-  });
+    flush();
+    expect(arrived).toEqual(['cnou_nomad', 'aegs_gladius']);
+  }));
 
   it('a missile pin keeps its gold tone when its position is only estimated', async () => {
     const fixture = await setup({
