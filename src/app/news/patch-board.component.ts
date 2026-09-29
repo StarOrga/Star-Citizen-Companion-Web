@@ -27,6 +27,7 @@ import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { StabilityBadgeComponent } from './stability-badge.component';
 import { StabilityHistoryComponent } from './stability-history.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -59,6 +60,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     TranslatePipe, RouterLink, RouterOutlet, PatchMonitorComponent,
     StabilityHistoryComponent, StabilityBadgeComponent, PatchFindResultsComponent,
     TeaserStripDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -112,6 +114,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             @if (query()) {
               <button type="button" class="s-clear"
                       [attr.aria-label]="'news.patch.search.clear' | translate"
+                      [scTooltip]="'news.patch.search.clear' | translate"
                       (click)="clearQuery()">×</button>
             }
           </div>
@@ -182,7 +185,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                           @if (teaserRest(card); as rest) {
                             <a class="tz rest" [routerLink]="['/news/patches', card.line]"
                                [queryParams]="itemParams(firstHidden(card))"
-                               [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }">…</a>
+                               [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }"
+                               [scTooltip]="'news.patch.stack.moreItems' | translate:{ n: rest }"
+                               scTooltipTier="label">…</a>
                           }
                         </span>
                       }

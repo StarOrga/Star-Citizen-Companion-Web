@@ -322,7 +322,8 @@ const SEARCH_DEBOUNCE_MS = 250;
                     </a>
                   }
                   <button type="button" class="concept-remove" (click)="removeConcept(c.id)"
-                          [attr.aria-label]="'hangar.concept.remove' | translate">✕</button>
+                          [attr.aria-label]="'hangar.concept.remove' | translate"
+                          [scTooltip]="'hangar.concept.remove' | translate">✕</button>
                 </div>
               </li>
             }

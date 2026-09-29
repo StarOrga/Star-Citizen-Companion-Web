@@ -23,6 +23,7 @@ import {
 } from './codex-equipped-stats';
 import { toFiniteNumber } from '../hangar/loadout-stats';
 import { swapAimStats, swapResourceStats } from './swap-table';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** Everything the weapon detail window needs about one hardpoint occupant. */
 export interface WeaponDetailEntry {
@@ -77,7 +78,7 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
 @Component({
   selector: 'sc-codex-weapon-detail',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
@@ -87,7 +88,8 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
           <header class="wd-head">
             <h2 id="wd-title">{{ e.name }}{{ e.size != null ? ' · S' + e.size : '' }}</h2>
             <button type="button" class="wd-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.weaponDetail.close' | translate">✕</button>
+                    [attr.aria-label]="'codex.weaponDetail.close' | translate"
+                    [scTooltip]="'codex.weaponDetail.close' | translate">✕</button>
           </header>
           <p class="note info">{{ 'codex.weaponDetail.intro' | translate }}</p>
 
