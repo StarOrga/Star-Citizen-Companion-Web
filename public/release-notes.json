@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.112.1",
+  "current": "0.112.2",
   "releases": [
+    {
+      "version": "0.112.2",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Anmeldung, Admin-Bereich und Hangar-Speichern sind durch Tests abgesichert.",
+              "text": "Login-Wand, Token-Weitergabe, Weiterleitungsprüfung, Rollen- und Löschsperren sowie die Hangar-Schreibwege haben erstmals eigene Specs."
+            },
+            {
+              "title": "Die Unit-Tests bauen keinen echten Supabase-Client mehr.",
+              "text": "Ein gemeinsamer Test-Client ersetzt Netz und Auto-Refresh, auch in der App-Spec."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.112.1",
       "date": "2026-09-29",

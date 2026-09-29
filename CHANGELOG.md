@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.112.2] - 2026-09-29
+
+### Changed
+
+- **Anmeldung, Admin-Bereich und Hangar-Speichern sind durch Tests abgesichert.**
+  Login-Wand, Token-Weitergabe, Weiterleitungsprüfung, Rollen- und Löschsperren
+  sowie die Hangar-Schreibwege haben erstmals eigene Specs.
+- **Die Unit-Tests bauen keinen echten Supabase-Client mehr.** Ein gemeinsamer
+  Test-Client ersetzt Netz und Auto-Refresh, auch in der App-Spec.
+
 ## [0.112.1] - 2026-09-29
 
 ### Changed
