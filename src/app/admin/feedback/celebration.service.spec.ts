@@ -8,10 +8,10 @@ describe('CelebrationService', () => {
     window.matchMedia = ((query: string) => ({
       matches: reduce && query.includes('prefers-reduced-motion'),
       media: query,
-      addListener: () => {},
-      removeListener: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
       dispatchEvent: () => false,
       onchange: null,
     })) as unknown as typeof window.matchMedia;

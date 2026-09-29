@@ -3,7 +3,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
-import { FakeCall, FakeResult, chainArgs, fakeSupabase } from '../testing/fake-supabase';
+import { FakeCall, FakeResult, fakeSupabase } from '../testing/fake-supabase';
 import { AdminComponent } from './admin.component';
 
 const ME = 'user-me';
