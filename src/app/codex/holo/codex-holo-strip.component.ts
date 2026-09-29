@@ -313,6 +313,7 @@ let uidSeq = 0;
         --p-movement: var(--sc-success);
         --p-signature: var(--accent-gold, #c8a84b); }
       .holo-strip {
+        padding-block-end: env(safe-area-inset-bottom, 0px);
         background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
         backdrop-filter: blur(6px);
         border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0));
@@ -485,7 +486,8 @@ let uidSeq = 0;
         .tip-trigger { display: none; }
         .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
         .hs-toggle { min-inline-size: 36px; }
-        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; overflow-y: auto;
+        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70dvh; overflow-y: auto;
+          padding-block-end: env(safe-area-inset-bottom, 0px);
           background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -765,7 +767,7 @@ export class CodexHoloStripComponent {
     this.preset.set(draft.preset === 'stealth' ? 'stealth' : 'auto');
 
     // A remembered "open" never survives onto a phone: the expanded sheet
-    // covers 70vh there (concept mo5: the phone strip opens as a bottom
+    // covers 70dvh there (concept mo5: the phone strip opens as a bottom
     // sheet on demand), so the page must never load with the table hidden.
     const expKey = `${dockPositionStorageKey(this.userId())}:strip-open`;
     const phone = typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches;

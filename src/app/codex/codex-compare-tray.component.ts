@@ -129,7 +129,7 @@ interface PinnedRef {
   styles: [`
     .tray {
       position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 18px; z-index: 40;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 40;
       max-width: min(1100px, calc(100vw - 32px));
       border-radius: 12px;
       background: color-mix(in srgb, var(--sc-bg-2) 94%, transparent);

@@ -440,7 +440,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     /* Reassurance for genuinely slow loads (>3s) — a bottom-centre HUD toast,
        matching the app's existing toast placement so it never clashes with the header. */
     .nav-scan__label {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%);
       z-index: 50; pointer-events: none;
       padding: 4px 14px; border-radius: 999px;
       background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);

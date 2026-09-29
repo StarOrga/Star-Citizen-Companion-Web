@@ -1069,12 +1069,14 @@ export class CodexHoloStageComponent {
         for (const e of entries) {
           const el = e.target as HTMLElement;
           const h = Math.round(el.getBoundingClientRect().height);
-          if (el.matches('sc-codex-holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
+          if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
           else if (el.matches('.rolebar')) this.placeInk(el);
         }
       });
-      for (const sel of ['sc-codex-holo-strip', '.below-persp', '.rolebar']) {
+      // The strip's inner bar, not its host: on a phone the bar is position:
+      // fixed and the host collapses to 0px, which put the toast on the bar.
+      for (const sel of ['sc-codex-holo-strip .holo-strip', '.below-persp', '.rolebar']) {
         const el = root.querySelector(sel);
         if (el) ro.observe(el);
       }
