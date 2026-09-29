@@ -5,7 +5,6 @@ import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.componen
 import { formatEquippedStat } from '../codex-equipped-stats';
 import type { EquippedStat } from '../codex-equipped-stats';
 import { displayItemName } from '../codex-format';
-import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { JournalEntry, PinGroup } from './codex-holo-model';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
