@@ -1,5 +1,5 @@
 import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
 import { ImgReadyDirective } from './news-thumb.component';
 
 /**
@@ -9,11 +9,15 @@ import { ImgReadyDirective } from './news-thumb.component';
 const PIXEL =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
+/** The watchdog's first re-check rung (`READY_RECHECKS_MS[0]` in news-thumb.component.ts). */
+const FIRST_RECHECK_MS = 1200;
+
 /**
- * Past the watchdog's first re-check rung (1200 ms). Real time, not `fakeAsync`:
- * a faked clock freezes the browser's own decode work as well, so the element
- * never reaches the `complete` state the watchdog exists to observe — the test
- * would then be measuring the fake clock rather than the directive.
+ * Past the first re-check rung, in REAL time — only for the one spec that needs
+ * the browser's own decode: a faked clock freezes that work as well, so the
+ * element would never reach the `complete` state the watchdog observes. Every
+ * other spec stages the element's state by hand and runs on a fake clock
+ * (REQ-28: no real waiting where `fakeAsync`/`tick` does the job).
  */
 const PAST_FIRST_RECHECK_MS = 1500;
 
@@ -56,7 +60,7 @@ describe('ImgReadyDirective (decode watchdog)', () => {
    * on a bounded schedule instead of trusting `load`/`error` to arrive (admin
    * feedback 4e54ad2c — "ich sehe nur graue blaue balken").
    */
-  it('reports a decoded image even when no load event was delivered', async () => {
+  it('reports a decoded image even when no load event was delivered', fakeAsync(() => {
     // Deliberately started WITHOUT a src, so the browser never fetches anything
     // and therefore never fires `load` — the element is then dressed up as a
     // resource that finished decoding behind our back. That is the exact shape
@@ -68,13 +72,16 @@ describe('ImgReadyDirective (decode watchdog)', () => {
       configurable: true,
     });
     fakeDecodeState(img, true, 1);
-    await wait(PAST_FIRST_RECHECK_MS);
+    tick(FIRST_RECHECK_MS - 1);
+    expect(f.componentInstance.ready).toBe(0);
+    tick(1);
     expect(f.componentInstance.ready).toBe(1);
     expect(f.componentInstance.failed).toBe(0);
     f.destroy();
-  });
+    flush();
+  }));
 
-  it('reports a source that completed without pixels as failed', async () => {
+  it('reports a source that completed without pixels as failed', fakeAsync(() => {
     // Same staging as above (no real fetch, so no real event), but the element
     // reports zero pixels — a broken source whose `error` never reached us.
     const img = setup('');
@@ -83,11 +90,12 @@ describe('ImgReadyDirective (decode watchdog)', () => {
       configurable: true,
     });
     fakeDecodeState(img, true, 0);
-    await wait(PAST_FIRST_RECHECK_MS);
+    tick(FIRST_RECHECK_MS);
     expect(f.componentInstance.failed).toBe(1);
     expect(f.componentInstance.ready).toBe(0);
     f.destroy();
-  });
+    flush();
+  }));
 
   it('emits a verdict at most once for a source that really does load', async () => {
     setup(PIXEL);
@@ -99,27 +107,30 @@ describe('ImgReadyDirective (decode watchdog)', () => {
     f.destroy();
   });
 
-  it('stays silent for an <img> that carries no source at all', async () => {
+  it('stays silent for an <img> that carries no source at all', fakeAsync(() => {
     const img = setup('');
     // `complete` is true for a source-less image — treating that as a broken
     // picture would paint an error over an empty slot.
     fakeDecodeState(img, true, 0);
     img.removeAttribute('src');
-    await wait(PAST_FIRST_RECHECK_MS);
+    // Every rung of the watchdog, not only the first.
+    flush();
     expect(f.componentInstance.ready).toBe(0);
     expect(f.componentInstance.failed).toBe(0);
     f.destroy();
-  });
+  }));
 
-  it('keeps waiting while the picture is still on the wire', async () => {
+  it('keeps waiting while the picture is still on the wire', fakeAsync(() => {
     const img = setup(PIXEL);
     // Not complete = still in flight (or lazy, below the fold). The watchdog
     // exists to recover a MISSED event, not to declare a slow one dead.
     fakeDecodeState(img, false, 0);
     f.componentInstance.ready = 0;
-    await wait(PAST_FIRST_RECHECK_MS);
+    tick(FIRST_RECHECK_MS);
+    tick(4000 - FIRST_RECHECK_MS);
     expect(f.componentInstance.ready).toBe(0);
     expect(f.componentInstance.failed).toBe(0);
     f.destroy();
-  });
+    flush();
+  }));
 });

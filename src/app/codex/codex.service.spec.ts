@@ -1087,8 +1087,12 @@ describe('CodexService.revalidateLiveBuild', () => {
 describe('CodexService.armorRating', () => {
   interface Answer { data: unknown; error: unknown; status?: number }
 
-  function make(answers: Answer[], opts: { noBuild?: boolean } = {}): { svc: CodexService; rpcCalls: () => number } {
+  function make(
+    answers: Answer[],
+    opts: { noBuild?: boolean } = {},
+  ): { svc: CodexService; rpcCalls: () => number; rpcLog: [string, unknown][] } {
     let calls = 0;
+    const rpcLog: [string, unknown][] = [];
     const from = (table: string) => {
       const chain: Record<string, unknown> = {};
       Object.assign(chain, {
@@ -1102,7 +1106,8 @@ describe('CodexService.armorRating', () => {
       });
       return chain;
     };
-    const rpc = () => {
+    const rpc = (name: string, params: unknown) => {
+      rpcLog.push([name, params]);
       const a = answers[Math.min(calls, answers.length - 1)];
       calls++;
       return Promise.resolve({ status: 200, ...a });
@@ -1110,7 +1115,7 @@ describe('CodexService.armorRating', () => {
     TestBed.configureTestingModule({
       providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from, rpc } } }],
     });
-    return { svc: TestBed.inject(CodexService), rpcCalls: () => calls };
+    return { svc: TestBed.inject(CodexService), rpcCalls: () => calls, rpcLog };
   }
 
   beforeEach(() => spyOn(console, 'warn'));
@@ -1145,6 +1150,48 @@ describe('CodexService.armorRating', () => {
     expect(rpcCalls()).toBe(2);
     await svc.armorRating(['A']);
     expect(rpcCalls()).toBe(4);
+  });
+
+  // REQ-1 (AUD-117, AUD-202): the set rating reads one RPC, cached per build
+  // and per class-name SET — order must not matter, a patch switch must.
+  it('asks codex_armor_rating with the build id and the class names', async () => {
+    const rows = [{ className: 'A' }];
+    const { svc, rpcLog } = make([{ data: rows, error: null }]);
+    expect(await svc.armorRating(['B', 'A'])).toEqual({ rows } as never);
+    expect(rpcLog).toEqual([['codex_armor_rating', { p_build_id: BUILD_ID, p_class_names: ['B', 'A'] }]]);
+  });
+
+  it('serves the same class names in another order from the cache', async () => {
+    const { svc, rpcCalls } = make([{ data: [{ className: 'A' }], error: null }]);
+    await svc.armorRating(['A', 'B', 'C']);
+    await svc.armorRating(['C', 'A', 'B']);
+    expect(rpcCalls()).toBe(1);
+    await svc.armorRating(['A', 'B']);
+    expect(rpcCalls()).toBe(2);
+  });
+
+  it("drops the previous build's answers on a build switch", async () => {
+    const { svc, rpcCalls, rpcLog } = make([{ data: [{ className: 'A' }], error: null }]);
+    await svc.armorRating(['A']);
+    const first = svc.build();
+    expect(first).not.toBeNull();
+    svc.build.set({ ...first!, id: 'other-build' });
+    await svc.armorRating(['A']);
+    expect(rpcCalls()).toBe(2);
+    expect((rpcLog[1][1] as { p_build_id: string }).p_build_id).toBe('other-build');
+    // Back on the first build: its entry was pruned by the switch, so it reads again.
+    svc.build.set(first);
+    await svc.armorRating(['A']);
+    expect(rpcCalls()).toBe(3);
+  });
+
+  it('answers a thrown RPC with a failed result instead of throwing', async () => {
+    const { svc } = make([{ data: [], error: null }]);
+    const boom = new Error('network down');
+    (TestBed.inject(SupabaseClientProvider).client as unknown as { rpc: () => never }).rpc = () => {
+      throw boom;
+    };
+    await expectAsync(svc.armorRating(['A'])).toBeResolvedTo({ failed: true, error: boom });
   });
 
   it('does not retry a non-transient RPC error', async () => {

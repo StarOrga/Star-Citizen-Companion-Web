@@ -120,7 +120,7 @@ Every check is measured in-page, on every device × route combination. All are
 | Check | Fails when | Why |
 |-------|-----------|-----|
 | `horizontal-overflow` | the page can **actually** be dragged sideways — the check scrolls right and reads `scrollX` back, so a wide-but-clipped `scrollWidth` (horizontal carousels, `overflow-x: hidden` wrappers) does not false-positive | the page scrolls sideways — the #1 broken-mobile symptom. The report names the deepest elements that stick out un-clipped, and falls back to "possible cause: this box is N px wide" when everything is inside a clip/scroll container |
-| `auth-redirect` | a route was asked for and `/login` was rendered instead | the app is a login wall (`app.routes.ts` hangs `canActivateChild: [authGuard, approvedGuard]` on the shell), so an unauthenticated visit to a gated route does not fail — it silently becomes a perfectly fine login form that passes every other check. The gate checks where it landed **before** measuring and skips the audit entirely, because login-page findings filed under the ship page's name are worse than none |
+| `auth-redirect` | a route was asked for and a page on **another path** was rendered instead — `/login`, `/unavailable`, `/news` or anything else (query and trailing slash do not count) | the app is a login wall (`app.routes.ts` hangs `canActivateChild: [authGuard, approvedGuard]` on the shell), so an unauthenticated visit to a gated route does not fail — it silently becomes a perfectly fine login form that passes every other check. The other guards bounce the same way: `approvedGuard` sends a signed-in, not yet approved account to `/unavailable?redirect=…`, `roleGuard` sends a missing role (a non-admin on `/admin/feedback`) to `/news`. The gate checks where it landed **before** measuring and skips the audit entirely, because findings of the page it landed on, filed under the requested route's name, are worse than none. The report prints `(redirected → …)` on every bounced row, including one without findings |
 | `tap-target-too-small` | an interactive element's box is smaller than 44 × 44 px | Apple HIG 44pt / WCAG 2.5.8. Wrapper "touch-target" child elements count as the real hit area; inline links inside running prose are exempt; off-canvas (closed drawer) controls are skipped |
 | `text-too-small` | rendered text has `font-size < 12px` | below ~12px body text stops being comfortably readable at arm's length on a phone |
 | `content-clipped` | a box with `overflow: hidden/clip` has `scrollWidth`/`scrollHeight` beyond its client box **and** no `text-overflow: ellipsis` / `-webkit-line-clamp` | text silently cut in half. Deliberate truncation (ellipsis, line-clamp) passes |
@@ -229,7 +229,7 @@ change) — for those, the ship skill skips the gate automatically anyway.
 page that violates every rule on purpose — and asserts that **each check fires**.
 
 `auth-redirect` is the one check with no fixture entry: a static file cannot
-bounce you to a login form, so its decision is pinned by a case table in the
+bounce you to another page, so its decision is pinned by a case table in the
 script instead. It is checked in the same run and fails the same way.
 
 ```
@@ -241,7 +241,7 @@ script instead. It is checked in the same run and fails the same way.
    ok   overlapping-content
    ok   fixed-overlay-covers-control
    ok   console-error
-   ok   auth-redirect  (8 cases, no fixture — decided in code)
+   ok   auth-redirect  (11 cases, no fixture — decided in code)
   RESULT: GREEN — all checks detect their fixture violation.
 ```
 

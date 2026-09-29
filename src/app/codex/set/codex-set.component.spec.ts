@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, input, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, input, signal } from '@angular/core';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -11,6 +12,7 @@ import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { LoadoutSharePanelComponent } from '../../social/loadout-share-panel.component';
 import { ArmorRatingRow, setLensStorageKey } from './set-rating';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /** Stands in for the real share panel, which pulls friends + share RPCs. */
 @Component({ selector: 'sc-loadout-share-panel', standalone: true, template: '<p class="share-stub">{{ loadoutId() }}</p>' })
@@ -368,6 +370,40 @@ describe('CodexSetComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const link = el.querySelector('.hint a') as HTMLAnchorElement | null;
     expect(link?.getAttribute('href')).toContain('/login');
+  });
+
+  // REQ-27: the page outlives the URL it opened on (in-place set switches), so
+  // the way back after signing in must be read at render time, not captured once.
+  it('sends the sign-in hint back to the URL the page shows now', async () => {
+    const fixture = await setup({ id: null, signedIn: false, loadouts: [] });
+    let url = '/codex/set/a';
+    spyOnProperty(TestBed.inject(Router), 'url', 'get').and.callFake(() => url);
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    const link = () => (fixture.nativeElement as HTMLElement).querySelector('.hint a') as HTMLAnchorElement;
+    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fa');
+
+    url = '/codex/set/b';
+    fixture.componentRef.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    expect(link().getAttribute('href')).toContain('redirect=%2Fcodex%2Fset%2Fb');
+  });
+
+  // REQ-19 (AUD-205): the stage eyebrow carries the "n / 6 armour" count on the page itself.
+  it('renders the stage eyebrow with the armour count', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const suffix = (fixture.nativeElement as HTMLElement).querySelector('.set-hero .stage-eyebrow__suffix');
+    expect(suffix?.textContent).toContain('codex.stage.armorEquipped');
+  });
+
+  // REQ-15: one tooltip source per control — the themed [scTooltip], never a native title on top.
+  it('labels the share button with exactly one themed tooltip and no title', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
+    const btn = fixture.debugElement.query(By.css('button.share-btn'));
+    expect(btn).not.toBeNull();
+    expect(btn.injector.get(ScTooltipDirective, null)).not.toBeNull();
+    expect(btn.queryAll(By.directive(ScTooltipDirective)).length).toBe(0);
+    expect((btn.nativeElement as HTMLElement).hasAttribute('title')).toBeFalse();
   });
 });
 
