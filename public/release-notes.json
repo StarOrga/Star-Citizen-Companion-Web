@@ -1,7 +1,93 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.107.0",
+  "current": "0.108.1",
   "releases": [
+    {
+      "version": "0.108.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Aegis Avenger Titan Renegade ist wieder im Arsenal.",
+              "text": "Der Uploader hielt sie für einen NPC-Klon; nach dem nächsten LIVE-Import erscheint sie in Liste, Herstellerfilter und Suche."
+            },
+            {
+              "title": "Der Data Uploader hängt nicht mehr bei stockender Verbindung.",
+              "text": "Jeder Upload- und Anmeldeaufruf hat jetzt eine Frist; hängt ein Katalog-Request, wird er automatisch wiederholt."
+            },
+            {
+              "title": "R2-Kostenbremse: eine klare Meldung statt Fehlerflut.",
+              "text": "Der Livery-Upload hält beim ersten Schiff an und nennt den Grund; ein kurzer Analytics-Ausfall blockiert nicht mehr, solange eine höchstens 24 h alte Messung aus demselben Monat vorliegt."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Nur noch Deutsch und Englisch.",
+              "text": "Uploader und Web-App bieten nur noch vollständig übersetzte Sprachen an, und der Silhouetten-Schritt zeigt echte Texte statt Rohschlüsseln."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.108.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Alle Dialoge halten jetzt den Tastaturfokus.",
+              "text": "Artikel, Patch-Dossier, Schnellsuche, Status-Popover, Lightbox, Bundle-Historie und API-Token-Dialoge holen den Fokus beim Öffnen und halten Tab im Dialog. Escape schließt, danach steht der Fokus wieder auf dem Auslöser."
+            },
+            {
+              "title": "„Zum Inhalt springen“ als erster Tab-Stopp.",
+              "text": "Jede Seite bietet oben links einen Sprunglink direkt in den Seiteninhalt."
+            },
+            {
+              "title": "Hauptüberschriften auf Codex-Start und Set-Seite.",
+              "text": "Screenreader finden den Set-Namen jetzt als Überschrift der Ebene 1."
+            },
+            {
+              "title": "Tooltips sind per Tastatur erreichbar.",
+              "text": "Lücken-Striche, Rollen-Pillen, Versions- und Datumsangaben zeigen ihre Erklärung jetzt auch beim Tab-Fokus."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.107.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Geteilte Hangar-Konfigurationen und Konten lassen sich wieder löschen.",
+              "text": "Folge-Kopien werden dabei zu eigenständigen Kopien, statt das Löschen zu blockieren."
+            },
+            {
+              "title": "Gleichzeitiges Anpinnen auf zwei Geräten endet ohne rohe Fehlermeldung.",
+              "text": "Die App lädt neu und versucht es einmal erneut."
+            },
+            {
+              "title": "Log-Tabellen werden automatisch beschnitten.",
+              "text": "API-Log nach 1 Tag, Telemetrie nach 120 Tagen, Ereignisdetails höchstens 4 KiB."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.107.0",
       "date": "2026-09-29",

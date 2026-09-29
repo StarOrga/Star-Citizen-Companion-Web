@@ -424,7 +424,7 @@ export function blueprintCategoriesForGroup(
                 <div class="card-actions">
                   @if (kind() === 'ship') {
                     @if (inHangarSet().has(r.classNameSlug)) {
-                      <span class="hangar-chip" role="img"
+                      <span class="hangar-chip" role="img" tabindex="0"
                             [attr.aria-label]="'codex.card.inHangar' | translate"
                             [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
                     } @else {

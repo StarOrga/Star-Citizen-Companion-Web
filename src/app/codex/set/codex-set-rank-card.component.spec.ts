@@ -83,6 +83,12 @@ describe('CodexSetRankCardComponent', () => {
     gapRows.forEach((r) => {
       expect(r.querySelector('.bar-fill')).toBeNull();
       expect(r.querySelector('.bar-gap-hatch')).toBeTruthy();
+      // AUD-119: the hatch is decoration, the dash carries the reason and is keyboard-reachable.
+      expect(r.querySelector('.bar-gap-hatch')!.getAttribute('aria-hidden')).toBe('true');
+      const dash = r.querySelector('.gap-dash')!;
+      expect(dash.getAttribute('tabindex')).toBe('0');
+      expect(dash.getAttribute('role')).toBe('img');
+      expect(dash.getAttribute('aria-label')).toBe('codex.setRank.gap.noData');
     });
   });
 

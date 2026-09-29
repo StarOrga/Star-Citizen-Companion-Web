@@ -4,6 +4,54 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.108.1] - 2026-09-29
+
+### Fixed
+
+- **Die Aegis Avenger Titan Renegade ist wieder im Arsenal.** Der Uploader
+  hielt sie für einen NPC-Klon; nach dem nächsten LIVE-Import erscheint sie in
+  Liste, Herstellerfilter und Suche.
+- **Der Data Uploader hängt nicht mehr bei stockender Verbindung.** Jeder
+  Upload- und Anmeldeaufruf hat jetzt eine Frist; hängt ein Katalog-Request,
+  wird er automatisch wiederholt.
+- **R2-Kostenbremse: eine klare Meldung statt Fehlerflut.** Der Livery-Upload
+  hält beim ersten Schiff an und nennt den Grund; ein kurzer Analytics-Ausfall
+  blockiert nicht mehr, solange eine höchstens 24 h alte Messung aus demselben
+  Monat vorliegt.
+
+### Changed
+
+- **Nur noch Deutsch und Englisch.** Uploader und Web-App bieten nur noch
+  vollständig übersetzte Sprachen an, und der Silhouetten-Schritt zeigt echte
+  Texte statt Rohschlüsseln.
+
+## [0.108.0] - 2026-09-29
+
+### Changed
+
+- **Alle Dialoge halten jetzt den Tastaturfokus.** Artikel, Patch-Dossier,
+  Schnellsuche, Status-Popover, Lightbox, Bundle-Historie und API-Token-Dialoge
+  holen den Fokus beim Öffnen und halten Tab im Dialog. Escape schließt, danach
+  steht der Fokus wieder auf dem Auslöser.
+- **„Zum Inhalt springen“ als erster Tab-Stopp.** Jede Seite bietet oben links
+  einen Sprunglink direkt in den Seiteninhalt.
+- **Hauptüberschriften auf Codex-Start und Set-Seite.** Screenreader finden den
+  Set-Namen jetzt als Überschrift der Ebene 1.
+- **Tooltips sind per Tastatur erreichbar.** Lücken-Striche, Rollen-Pillen,
+  Versions- und Datumsangaben zeigen ihre Erklärung jetzt auch beim Tab-Fokus.
+
+## [0.107.1] - 2026-09-29
+
+### Fixed
+
+- **Geteilte Hangar-Konfigurationen und Konten lassen sich wieder löschen.**
+  Folge-Kopien werden dabei zu eigenständigen Kopien, statt das Löschen zu
+  blockieren.
+- **Gleichzeitiges Anpinnen auf zwei Geräten endet ohne rohe Fehlermeldung.**
+  Die App lädt neu und versucht es einmal erneut.
+- **Log-Tabellen werden automatisch beschnitten.** API-Log nach 1 Tag,
+  Telemetrie nach 120 Tagen, Ereignisdetails höchstens 4 KiB.
+
 ## [0.107.0] - 2026-09-29
 
 ### Security

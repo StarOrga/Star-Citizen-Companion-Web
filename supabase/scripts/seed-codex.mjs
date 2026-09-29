@@ -289,7 +289,7 @@ function localizedName(name) {
   return en || de || null;
 }
 
-const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_|_Renegade$)/i;
+const VARIANT_RE = /(_PU_AI_|_AI_|_Template$|^MASTER_|_Unmanned_)/i;
 const isVariant = (cn) => VARIANT_RE.test(cn || '');
 
 const manuCode = (e) =>

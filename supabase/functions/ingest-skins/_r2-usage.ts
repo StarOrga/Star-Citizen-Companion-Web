@@ -6,7 +6,9 @@
 // signing" works as a kill-switch. Before it signs, ingest-skins asks the
 // GraphQL Analytics API how much of the account's free tier this month has
 // used, and refuses at LIMIT_SHARE of any allowance. It fails closed: if usage
-// is unknown (no CF_ANALYTICS_TOKEN, API error), nothing is signed.
+// is unknown (no CF_ANALYTICS_TOKEN, API error), nothing is signed, unless a
+// good reading from the same month, at most 24 h old, bridges the outage
+// (usageGate below).
 //
 // Reads through cloudflare/assets-worker do not use the token. They are capped
 // by the Workers Free plan (100k requests/day ≈ 3.1M/month, below the 10M
@@ -129,4 +131,58 @@ export function overLimit(u: R2Usage): string | null {
   if (u.classA >= FREE_TIER.classA * LIMIT_SHARE) return `class A ${u.classA}`;
   if (u.classB >= FREE_TIER.classB * LIMIT_SHARE) return `class B ${u.classB}`;
   return null;
+}
+
+/** A reading is reused without asking Cloudflare again for this long (a catalog run signs ~150 ships). */
+export const USAGE_TTL_MS = 5 * 60 * 1000;
+/** When Cloudflare cannot be asked, a good reading this old still decides — never older, never from another month. */
+export const USAGE_STALE_MAX_MS = 24 * 60 * 60 * 1000;
+
+/** One good usage reading and when it was taken (epoch ms). */
+export interface UsageReading {
+  at: number;
+  usage: R2Usage;
+}
+
+/**
+ * What the sign step does with the usage it could (or could not) read:
+ *  - ok      → sign
+ *  - over    → 507 r2_free_tier_guard
+ *  - unknown → 503 r2_usage_unknown (fail closed)
+ * `stale` marks a decision taken on an older reading because Analytics failed.
+ */
+export type UsageGate =
+  | { kind: 'ok'; stale: boolean }
+  | { kind: 'over'; over: string; stale: boolean }
+  | { kind: 'unknown'; reason: string };
+
+/** A reading young enough to skip asking Cloudflare again. */
+export function isFresh(r: UsageReading | null, now: number): boolean {
+  return r !== null && now - r.at < USAGE_TTL_MS;
+}
+
+function decide(reading: UsageReading, stale: boolean): UsageGate {
+  const over = overLimit(reading.usage);
+  return over ? { kind: 'over', over, stale } : { kind: 'ok', stale };
+}
+
+/**
+ * The cost gate as one pure decision. Without a read error the reading
+ * decides. With one, the last good reading still decides when it is at most
+ * USAGE_STALE_MAX_MS old AND from the same calendar month (usage resets
+ * monthly, so last month's numbers say nothing about this one). Otherwise —
+ * including no reading at all — usage is unknown and nothing is signed.
+ */
+export function usageGate(reading: UsageReading | null, readError: string | null, now: number): UsageGate {
+  if (!readError) {
+    return reading ? decide(reading, false) : { kind: 'unknown', reason: 'no usage reading' };
+  }
+  if (
+    reading &&
+    now - reading.at <= USAGE_STALE_MAX_MS &&
+    monthStart(new Date(reading.at)) === monthStart(new Date(now))
+  ) {
+    return decide(reading, true);
+  }
+  return { kind: 'unknown', reason: readError };
 }

@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   TemplateRef,
@@ -20,6 +19,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { NewsService, VerseNewsItem } from './news.service';
 import { channelIconSvg } from './channel-icons';
 import { nextPatchDistance } from './patch-stats';
@@ -79,6 +79,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
     NewsThumbComponent,
     UpcomingShipsNoticeComponent,
     ScTooltipDirective,
+    ScDialogDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -320,6 +321,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
       <div class="nd-overlay" (click)="closeDetail()">
         @if (selected(); as item) {
           <article class="nd-panel sc-card" role="dialog" aria-modal="true"
+                   scDialog (scDialogEscape)="closeDetail()"
                    [attr.aria-label]="item.title" (click)="$event.stopPropagation()">
             <!-- Same back affordance as the patch board's "← Zurück zu Verse
                  News": a text link, not a floating ✕ disc. It is a real
@@ -1172,11 +1174,6 @@ export class NewsListComponent implements OnInit, OnDestroy {
     this.selected.set(null);
     this.overlayRef?.dispose();
     this.overlayRef = null;
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.selected()) this.closeDetail();
   }
 
   private safeSvg(svg: string): SafeHtml {

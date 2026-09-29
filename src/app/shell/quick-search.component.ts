@@ -15,6 +15,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import {
   CodexKind,
   CodexListRow,
@@ -48,7 +49,7 @@ const PER_KIND_LIMIT = 6;
 @Component({
   selector: 'sc-quick-search',
   standalone: true,
-  imports: [FormsModule, TranslatePipe, ScTooltipDirective],
+  imports: [FormsModule, TranslatePipe, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- The glyph is an inline SVG, not the ⌕ character it used to be: that
@@ -72,7 +73,8 @@ const PER_KIND_LIMIT = 6;
          backdrop would be clipped to the header instead of covering the viewport. -->
     <ng-template #overlayTpl>
       <div class="overlay" (click)="close()">
-        <div class="panel sc-card" role="dialog" [attr.aria-label]="'quickSearch.open' | translate" (click)="$event.stopPropagation()">
+        <div class="panel sc-card" role="dialog" aria-modal="true" scDialog (scDialogEscape)="close()"
+             [attr.aria-label]="'quickSearch.open' | translate" (click)="$event.stopPropagation()">
           <input
             class="qs-input"
             type="search"
@@ -380,14 +382,9 @@ export class QuickSearchComponent {
       this.visible() ? this.close() : this.open();
       return;
     }
-    // Escape closes from anywhere while open — handled on the document (not on
-    // the input) so it works regardless of focus, and pre-empts the native
+    // Escape is handled by ScDialogDirective on the panel: focus is trapped
+    // there while open, and its preventDefault also pre-empts the native
     // type="search" "clear field" default.
-    if (ev.key === 'Escape' && this.visible()) {
-      ev.preventDefault();
-      this.close();
-      return;
-    }
     if (ev.key === '/' && !this.visible() && !isEditableTarget(ev.target)) {
       ev.preventDefault();
       this.open();
@@ -405,10 +402,7 @@ export class QuickSearchComponent {
     this.overlayRef = overlayRef;
     // hangar list backs the "already in hangar" chips — load once, lazily.
     if (this.hangar.ships().length === 0) void this.hangar.loadAll();
-    setTimeout(
-      () => overlayRef.overlayElement.querySelector<HTMLInputElement>('.qs-input')?.focus(),
-      0,
-    );
+    // Focus: ScDialogDirective moves it to the first tabbable element (.qs-input).
   }
 
   close(): void {

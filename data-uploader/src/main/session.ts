@@ -19,6 +19,7 @@ import {
 } from '../lib/session-store.js';
 import { VersionStore, type TextIO } from '../lib/version-store.js';
 import { refreshSession } from '../lib/token-refresh.js';
+import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 import { API_BASE, SUPABASE_ANON_KEY } from '../lib/release-token.js';
 import {
   syncServerCatalog,
@@ -204,7 +205,7 @@ export async function fetchUserRole(): Promise<'admin' | 'collaborator' | 'viewe
   const { token } = await ensureAccessToken();
   if (!token) return 'viewer';
   try {
-    const res = await fetch(`${API_BASE}/rest/v1/rpc/current_user_role`, {
+    const res = await fetchWithTimeout(`${API_BASE}/rest/v1/rpc/current_user_role`, {
       method: 'POST',
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -212,7 +213,7 @@ export async function fetchUserRole(): Promise<'admin' | 'collaborator' | 'viewe
         'content-type': 'application/json',
       },
       body: '{}',
-    });
+    }, 15_000);
     if (!res.ok) return 'viewer';
     const role: unknown = await res.json();
     return role === 'admin' || role === 'collaborator' ? role : 'viewer';

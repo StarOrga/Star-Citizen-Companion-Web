@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  HostListener,
   OnDestroy,
   OnInit,
   computed,
@@ -14,6 +13,7 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { LocaleService } from '../core/locale/locale.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { NewsService } from './news.service';
@@ -110,12 +110,12 @@ function scrollBehavior(): ScrollBehavior {
   standalone: true,
   imports: [
     TranslatePipe, RouterLink, PatchCycleComponent, PatchEntryRowComponent,
-    PatchNoteDetailComponent, StabilityBadgeComponent,
+    PatchNoteDetailComponent, StabilityBadgeComponent, ScDialogDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="scrim" (click)="onScrim($event)">
-      <div class="panel" role="dialog" aria-modal="true" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
+      <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
         @if (card(); as c) {
           <header class="hero" [attr.data-status]="c.status">
             <a class="close" [routerLink]="['/news/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate">✕</a>
@@ -826,7 +826,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
     if (panel && this.scrollListener) panel.removeEventListener('scroll', this.scrollListener);
   }
 
-  @HostListener('document:keydown.escape')
+  /** Escape inside the panel (ScDialogDirective), the scrim and the ✕ all close. */
   onEscape(): void {
     void this.router.navigate(['/news/patches'], { queryParams: this.closeParams() });
   }

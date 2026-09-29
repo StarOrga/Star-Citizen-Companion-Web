@@ -185,7 +185,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         @for (name of [shortName()]; track name) {
           <div class="ht-title">
             @if (kicker(); as k) { <span class="ht-kicker">{{ k }}</span> }
-            <h1 class="ht-name" [scTooltip]="eyebrowTitle()">{{ name }}</h1>
+            <h1 class="ht-name" tabindex="0" [scTooltip]="eyebrowTitle()">{{ name }}</h1>
           </div>
         }
         <div class="ht-right">
@@ -233,7 +233,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               <div class="wm" aria-hidden="true">{{ ('codex.mission.' + activeMissionId()) | translate }}</div>
               <div class="statics">
                 @for (k of staticKeys; track k) {
-                  <div [scTooltip]="staticChipTitle(k)" scTooltipTier="label">
+                  <div tabindex="0" [scTooltip]="staticChipTitle(k)" scTooltipTier="label">
                     <span class="k">{{ staticLabelKey(k) | translate }}</span>
                     <span class="v" [class.mid]="staticChip(k).length > 6" [class.long]="staticChip(k).length > 8">{{ staticChip(k) }}</span>
                   </div>
@@ -304,7 +304,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               <p class="table-eyebrow">
                 {{ eyebrowKey() | translate: { n: pins().length } }}
                 @if (!silhouette() && viewMode() === 'holo') {
-                  <span class="no-geometry-badge" [scTooltip]="'codex.holo.stage.noGeometryReason' | translate" scTooltipTier="label">· {{ 'codex.holo.noGeometry' | translate }}</span>
+                  <span class="no-geometry-badge" tabindex="0" [scTooltip]="'codex.holo.stage.noGeometryReason' | translate" scTooltipTier="label">· {{ 'codex.holo.noGeometry' | translate }}</span>
                 }
               </p>
               <div class="tools5" [class.open]="sharePopoverOpen()">

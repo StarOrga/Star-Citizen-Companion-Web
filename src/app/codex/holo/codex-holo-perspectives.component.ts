@@ -66,7 +66,7 @@ export interface HoloPerspectiveView {
                 <small>{{ tile.leadLabelKey! | translate }}</small>
                 @if (tile.deltaText; as d) { <span class="d" [class.up]="tile.deltaTone === 'up'" [class.down]="tile.deltaTone === 'down'">{{ d }}</span> }
                 @if (tile.ghost; as g) {
-                  <span class="ghost" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'"
+                  <span class="ghost" tabindex="0" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'"
                         [scTooltip]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }" scTooltipTier="label">{{ g.patch }} · {{ g.text }}</span>
                 }
               </div>
@@ -95,7 +95,7 @@ export interface HoloPerspectiveView {
                 <span class="k">{{ c.shortKey | translate }}</span>
                 <span class="v">{{ c.text }}</span>
                 @if (c.ghost; as g) {
-                  <span class="gv" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'" [scTooltip]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }" scTooltipTier="label">{{ g.text }}</span>
+                  <span class="gv" tabindex="0" [class.up]="g.tone === 'up'" [class.down]="g.tone === 'down'" [scTooltip]="'codex.holo.stage.ghostTitle' | translate: { patch: g.patch }" scTooltipTier="label">{{ g.text }}</span>
                 }
               </div>
             }

@@ -12,6 +12,8 @@
  * the caller clears the session and surfaces a one-click reconnect.
  */
 
+import { fetchWithTimeout, isTimeout } from './fetch-timeout.js';
+
 export interface RefreshResult {
   ok: boolean;
   accessToken?: string;
@@ -31,11 +33,12 @@ export async function refreshSession(
   anonKey: string,
   refreshToken: string,
   fetchImpl: FetchLike = fetch,
+  timeoutMs = 30_000,
 ): Promise<RefreshResult> {
   const endpoint = `${apiBase}/auth/v1/token?grant_type=refresh_token`;
   let res: Awaited<ReturnType<FetchLike>>;
   try {
-    res = await fetchImpl(endpoint, {
+    res = await fetchWithTimeout(endpoint, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -43,12 +46,22 @@ export async function refreshSession(
         authorization: `Bearer ${anonKey}`,
       },
       body: JSON.stringify({ refresh_token: refreshToken }),
-    });
+    }, timeoutMs, fetchImpl);
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
 
-  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  // The deadline covers the body too: a timeout there is a failed refresh,
+  // not an empty reply. Only a real JSON error maps to {}.
+  let json: Record<string, unknown>;
+  try {
+    json = (await res.json().catch((e: unknown) => {
+      if (isTimeout(e)) throw e;
+      return {};
+    })) as Record<string, unknown>;
+  } catch (err) {
+    return { ok: false, error: `timeout: ${(err as Error).message}` };
+  }
   if (!res.ok) {
     // GoTrue answers 400/401 with error_description for a dead refresh token.
     const invalid = res.status === 400 || res.status === 401;

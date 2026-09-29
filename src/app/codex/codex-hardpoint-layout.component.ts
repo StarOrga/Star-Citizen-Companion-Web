@@ -543,7 +543,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                       <span class="slot-port">{{ portLabel(row) }}</span>
                     </button>
                   } @else {
-                    <span class="slot-btn static" [scTooltip]="portTitle(row)" scTooltipTier="label">
+                    <span class="slot-btn static" tabindex="0" [scTooltip]="portTitle(row)" scTooltipTier="label">
                       <span class="slot-head">
                         @if (emptyBadge(row); as b) { <span class="size-tag muted">{{ b }}</span> }
                         <span class="slot-ident">

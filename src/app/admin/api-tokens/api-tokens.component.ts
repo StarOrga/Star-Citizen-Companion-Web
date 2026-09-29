@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ScDialogDirective } from '../../shared/dialog/sc-dialog.directive';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import {
   API_TOKEN_SCOPES,
@@ -30,7 +31,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 @Component({
   selector: 'sc-api-tokens',
   standalone: true,
-  imports: [ScDatePipe, TranslatePipe],
+  imports: [ScDatePipe, TranslatePipe, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -71,6 +72,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
           </div>
           <div class="head-actions">
             <button
+              #newTokenBtn
               class="sc-btn sc-btn-primary"
               (click)="openCreateDialog()"
               [disabled]="busy() || dialogOpen() || revealedToken() !== null">
@@ -139,8 +141,9 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 
     @if (dialogOpen()) {
       <div class="dialog-backdrop" (click)="closeCreateDialog()"></div>
-      <div class="dialog sc-card" role="dialog" aria-modal="true">
-        <h2>{{ 'admin.tokens.dialog.title' | translate }}</h2>
+      <div class="dialog sc-card" role="dialog" aria-modal="true" aria-labelledby="tok-create-title"
+           scDialog [scDialogReturnFocus]="newTokenBtn" (scDialogEscape)="onCreateEscape()">
+        <h2 id="tok-create-title">{{ 'admin.tokens.dialog.title' | translate }}</h2>
         <p class="hint">{{ 'admin.tokens.dialog.subtitle' | translate }}</p>
 
         <form (submit)="onCreateSubmit($event)">
@@ -194,8 +197,9 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 
     @if (revealedToken(); as r) {
       <div class="dialog-backdrop reveal-backdrop"></div>
-      <div class="dialog reveal-dialog sc-card" role="dialog" aria-modal="true">
-        <h2 class="reveal-title">{{ 'admin.tokens.reveal.title' | translate }}</h2>
+      <div class="dialog reveal-dialog sc-card" role="dialog" aria-modal="true" aria-labelledby="tok-reveal-title"
+           scDialog [scDialogReturnFocus]="newTokenBtn" (scDialogEscape)="onRevealEscape()">
+        <h2 class="reveal-title" id="tok-reveal-title">{{ 'admin.tokens.reveal.title' | translate }}</h2>
         <div class="reveal-warning">
           <strong>!</strong>
           <span>{{ 'admin.tokens.reveal.warning' | translate }}</span>
@@ -550,6 +554,8 @@ export class ApiTokensComponent implements OnInit {
 
   readonly revealedToken = signal<CreatedToken | null>(null);
   readonly copied = signal(false);
+  /** Sticky "was copied at least once" for the revealed token; `copied` only drives the 2.5 s label. */
+  private readonly tokenCopied = signal(false);
 
   readonly canSubmit = computed(
     () => this.newName().trim().length > 0 && this.selectedScopes().length > 0,
@@ -591,6 +597,22 @@ export class ApiTokensComponent implements OnInit {
     this.dialogOpen.set(false);
   }
 
+  /** Escape in the create dialog — blocked while creating, like "Cancel". */
+  onCreateEscape() {
+    if (!this.creating()) this.closeCreateDialog();
+  }
+
+  /**
+   * Escape in the reveal dialog closes only once the token has been copied.
+   * The token is shown exactly once and the backdrop deliberately does not
+   * close this dialog, so a stray Escape before copying must not discard it
+   * either — a deliberate deviation from the AUD-068 fix text in favour of
+   * protecting against token loss.
+   */
+  onRevealEscape() {
+    if (this.tokenCopied()) this.acknowledgeReveal();
+  }
+
   toggleScope(scope: ApiTokenScope, on: boolean) {
     const current = this.selectedScopes();
     if (on && !current.includes(scope)) {
@@ -610,6 +632,7 @@ export class ApiTokensComponent implements OnInit {
       this.dialogOpen.set(false);
       this.revealedToken.set(created);
       this.copied.set(false);
+      this.tokenCopied.set(false);
       await this.refresh();
     } catch (err) {
       this.createError.set(toErrorKey('api-tokens', 'create', err));
@@ -650,6 +673,7 @@ export class ApiTokensComponent implements OnInit {
     try {
       await navigator.clipboard.writeText(text);
       this.copied.set(true);
+      this.tokenCopied.set(true);
       setTimeout(() => this.copied.set(false), 2500);
     } catch {
       // Fallback: select the text so the user can ctrl+c manually
@@ -667,5 +691,6 @@ export class ApiTokensComponent implements OnInit {
   acknowledgeReveal() {
     this.revealedToken.set(null);
     this.copied.set(false);
+    this.tokenCopied.set(false);
   }
 }

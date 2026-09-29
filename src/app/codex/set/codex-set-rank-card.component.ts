@@ -111,11 +111,9 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
                   @if (a.percentile != null) {
                     <span class="bar-fill" [class.weak]="a.weak" [style.width.%]="a.percentile"></span>
                   } @else {
-                    <span
-                      class="bar-gap-hatch"
-                      [scTooltip]="a.gapReasonKey ? (a.gapReasonKey | translate) : null"
-                      scTooltipTier="label"
-                    ></span>
+                    <!-- Decoration only: the same reason sits on the dash next to it,
+                         which is keyboard-reachable. -->
+                    <span class="bar-gap-hatch" aria-hidden="true"></span>
                   }
                 </span>
                 <span class="bar-value">
@@ -124,6 +122,8 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
                   } @else {
                     <span
                       class="gap-dash"
+                      [attr.tabindex]="a.gapReasonKey ? 0 : null"
+                      [attr.role]="a.gapReasonKey ? 'img' : null"
                       [scTooltip]="a.gapReasonKey ? (a.gapReasonKey | translate) : null"
                       scTooltipTier="label"
                       [attr.aria-label]="a.gapReasonKey ? (a.gapReasonKey | translate) : null"

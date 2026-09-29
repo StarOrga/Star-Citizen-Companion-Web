@@ -24,6 +24,12 @@ built in by design.
   migration `20260925010000`): per channel the two newest builds stay, the
   `is_current` one always stays. Two, because the Holotable patch selector and
   the inline patch diff read the previous build.
+- Since `20260928231143` (plan D02) only **finalized** builds count:
+  `codex_builds.finalized_at` is set by `set_current_codex_build` (ingest
+  `finalize`), so a running or abandoned import never pushes the previous LIVE
+  build out. Never-finalized, non-current builds are swept after 7 days. The
+  app-side filter (patch selector and inline diff read finalized builds only)
+  ships separately on `fix/d02-finalized-filter`, after the migration is live.
 - **Deleting rows does not shrink `pg_database_size`.** Autovacuum makes the
   pages reusable for the next ingest, so steady state is about three builds'
   worth of disk (~480–510 MB). Only `VACUUM FULL` gives space back, and it takes
@@ -32,6 +38,16 @@ built in by design.
 - The durable fix before the next big patch: move `codex_locale_strings`
   (pure key→value per build and language, read in batches by
   `CodexService.resolveLocaleKeys`) to R2 as one JSON per build and language.
+
+## Log retention
+
+- `api_request_log`: 1 day (pg_cron `api-request-log-purge`, 04:15 UTC). The
+  API rate limiter only reads the last minute.
+- `telemetry_events`: 120 days (pg_cron `telemetry-events-retention`, 04:25
+  UTC) — the admin telemetry dashboard's widest window is 90 days, plus a
+  30-day buffer. `ingest-telemetry` caps `detail` at 4 KiB (larger values
+  become `{ _truncated: true, bytes }`).
+- Both since `20260928231143_delete_paths_and_log_retention.sql` (plan D02).
 
 ## R2 cost guard (R2 has no hard spending cap)
 
@@ -46,7 +62,11 @@ built in by design.
   Class B) from the GraphQL Analytics API with `CF_ANALYTICS_TOKEN`, an
   Account Analytics Read token. At 80 % of any allowance it returns 507
   `r2_free_tier_guard`. If usage cannot be read it returns 503
-  `r2_usage_unknown`: it fails closed, and unknown is never zero.
+  `r2_usage_unknown`: it fails closed, and unknown is never zero. Exception
+  (D13): a good reading of the same calendar month, at most 24 h old, still
+  decides while Analytics is down (`usageGate`). That reading lives per warm
+  isolate only, so a cold start during an outage stays fail-closed. The
+  uploader stops the whole livery run at the first gate refusal.
   - Only the edge function holds the R2 secret, so "stop signing" works as
     "stop writing".
   - **Deliberately not a token-deleting switch.** Deleting or disabling a

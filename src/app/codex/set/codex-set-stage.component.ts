@@ -105,7 +105,7 @@ export interface SetStageLine {
       kind="person"
       [eyebrow]="roleLabel()"
       [eyebrowSuffix]="equipSuffix()"
-      [title]="set().name"
+      [stageTitle]="set().name" titleAs="h1"
       pickerKind="set"
       [pickerItems]="pickerItems()"
       (pick)="pick.emit($event)"
@@ -114,11 +114,15 @@ export interface SetStageLine {
       <div stageOverlay class="rig" #rig>
         <div class="rdy" role="list" [attr.aria-label]="'codex.set.stage.readinessAria' | translate">
           @for (r of readiness(); track r.key) {
-            <!-- role=img + label: the state must not live in a hover-only tooltip. -->
-            <span class="rdy-ic" role="listitem" [class.on]="r.ok"
-                  [attr.aria-label]="(r.labelKey | translate) + ' — ' + (r.stateKey | translate)"
-                  [scTooltip]="(r.labelKey | translate) + ' — ' + (r.stateKey | translate)" scTooltipTier="label">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="r.icon" /></svg>
+            <!-- The state must not live in a hover-only tooltip: the list item
+                 holds a focusable role=img with the label (few screen readers
+                 read an author name on a listitem itself). -->
+            <span class="rdy-ic" role="listitem" [class.on]="r.ok">
+              <span class="rdy-img" role="img" tabindex="0"
+                    [attr.aria-label]="(r.labelKey | translate) + ' — ' + (r.stateKey | translate)"
+                    [scTooltip]="(r.labelKey | translate) + ' — ' + (r.stateKey | translate)" scTooltipTier="label">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="r.icon" /></svg>
+              </span>
             </span>
           }
         </div>
@@ -236,6 +240,7 @@ export interface SetStageLine {
         display: flex; align-items: center; justify-content: center;
         border: 1px solid var(--idle); background: var(--idle-bg); color: var(--idle);
       }
+      .rdy-img { display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: 100%; border-radius: inherit; }
       .rdy-ic svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
       .rdy-ic.on {
         border-color: var(--tint);

@@ -31,6 +31,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import { resolveTelemetrySecrets } from './_config.ts';
+import { capDetail } from './_detail.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -184,7 +185,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       session_hash: sessionHash,
       install_hash: installHash,
       ip_hash: ipHash,
-      detail: (isCrash ? ev.extra : ev.detail) ?? null,
+      // AUD-344: at most 4 KiB, larger values become a marker (see _detail.ts).
+      detail: capDetail((isCrash ? ev.extra : ev.detail) ?? null),
     };
   });
 

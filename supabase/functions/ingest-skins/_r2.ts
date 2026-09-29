@@ -16,8 +16,8 @@
 // stops at 100k requests/day, which is below R2's free Class-B allowance.
 
 import { AwsClient } from 'https://esm.sh/aws4fetch@1.0.20';
-import { USAGE_QUERY, monthStart, parseUsage } from './_r2-usage.ts';
-import type { R2Usage } from './_r2-usage.ts';
+import { USAGE_QUERY, isFresh, monthStart, parseUsage } from './_r2-usage.ts';
+import type { UsageReading } from './_r2-usage.ts';
 
 export interface R2Config {
   accountId: string;
@@ -132,29 +132,40 @@ export async function bucketBytes(cfg: R2Config): Promise<number> {
   return objects.reduce((sum, o) => sum + o.size, 0);
 }
 
-/** Usage is re-read at most every 5 minutes per isolate — a catalog run signs ~150 ships. */
-const USAGE_TTL_MS = 5 * 60 * 1000;
-let usageCache: { at: number; usage: R2Usage } | null = null;
+/**
+ * The last good usage reading of this isolate. Honest limit: it lives per
+ * isolate, so it helps while the isolate is warm (typically within one upload
+ * run of ~150 sign calls). A cold start without a reading stays fail-closed;
+ * a persistent reading (DB) would be a separate decision.
+ */
+let lastReading: UsageReading | null = null;
 
 /**
  * This month's account-wide R2 usage from the GraphQL Analytics API (see
- * _r2-usage.ts). Throws when it cannot be known: no token, HTTP error, GraphQL
- * error. The caller treats that as "do not sign".
+ * _r2-usage.ts). Never throws: returns the reading to decide on (a fresh one,
+ * or the last good one when the read failed) plus the read error, if any.
+ * usageGate() in _r2-usage.ts turns that into sign / 507 / 503.
  */
-export async function fetchUsage(cfg: R2Config, now = new Date()): Promise<R2Usage> {
-  if (usageCache && now.getTime() - usageCache.at < USAGE_TTL_MS) return usageCache.usage;
-  if (!cfg.analyticsToken) throw new Error('CF_ANALYTICS_TOKEN is not set');
-  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${cfg.analyticsToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      query: USAGE_QUERY,
-      variables: { accountTag: cfg.accountId, start: monthStart(now), end: now.toISOString() },
-    }),
-    signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`analytics HTTP ${res.status}`);
-  const usage = parseUsage(await res.json());
-  usageCache = { at: now.getTime(), usage };
-  return usage;
+export async function readUsage(
+  cfg: R2Config,
+  now = new Date(),
+): Promise<{ reading: UsageReading | null; error: string | null }> {
+  if (isFresh(lastReading, now.getTime())) return { reading: lastReading, error: null };
+  if (!cfg.analyticsToken) return { reading: lastReading, error: 'CF_ANALYTICS_TOKEN is not set' };
+  try {
+    const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${cfg.analyticsToken}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        query: USAGE_QUERY,
+        variables: { accountTag: cfg.accountId, start: monthStart(now), end: now.toISOString() },
+      }),
+      signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`analytics HTTP ${res.status}`);
+    lastReading = { at: now.getTime(), usage: parseUsage(await res.json()) };
+    return { reading: lastReading, error: null };
+  } catch (e) {
+    return { reading: lastReading, error: (e as Error).message };
+  }
 }

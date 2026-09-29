@@ -93,4 +93,17 @@ describe('syncServerCatalog', () => {
     expect(r.ok).toBe(false);
     expect(r.error).toBe('offline');
   });
+
+  it('reports a deadline hit while reading the rows as an error, not an empty catalog', async () => {
+    const events: SyncProgress[] = [];
+    const bodyTimeout = (async () => ({
+      ok: true,
+      status: 200,
+      json: () => Promise.reject(new DOMException('t', 'TimeoutError')),
+    })) as unknown as typeof fetch;
+    const r = await syncServerCatalog({ ...base, fetchImpl: bodyTimeout, onProgress: (p) => events.push(p) });
+    expect(r.ok).toBe(false);
+    expect(r.snapshot).toBeUndefined();
+    expect(events[events.length - 1]?.phase).toBe('error');
+  });
 });

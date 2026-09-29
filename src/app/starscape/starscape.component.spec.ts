@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -15,6 +15,7 @@ import {
 import { StarscapeVotesService } from './starscape-votes.service';
 import { By } from '@angular/platform-browser';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { installFrameClock } from '../testing/frames';
 
 function wallpaper(id: string): Wallpaper {
   return {
@@ -314,6 +315,29 @@ describe('StarscapeComponent', () => {
   /* ---------------------------------------------------------------- *
    * Thumbs-up + "Top 7 only" (admin feedback 058468f7).
    * ---------------------------------------------------------------- */
+
+  it('moves focus into the lightbox and hands it back to the tile on close (AUD-156)', () => {
+    const clock = installFrameClock();
+    const f = setup();
+    const tile = f.nativeElement.querySelector('a.tile') as HTMLAnchorElement;
+    tile.focus();
+    expect(document.activeElement).toBe(tile);
+
+    f.componentInstance.open(first);
+    f.detectChanges();
+    // The page keeps timers running (fill, arrival watchdog), so whenStable never
+    // settles here; a tick runs the directive's afterNextRender directly.
+    TestBed.inject(ApplicationRef).tick();
+    const box = f.nativeElement.querySelector('.lightbox') as HTMLElement;
+    expect(document.activeElement).withContext('container focus, so the name is read first').toBe(box);
+    expect(box.getAttribute('aria-label')).toBeTruthy();
+
+    f.componentInstance.close();
+    f.detectChanges();
+    clock.runFrame();
+    expect(document.activeElement).toBe(tile);
+    f.destroy();
+  });
 
   it('puts the thumbs-up NEXT TO the tile link, never inside it', () => {
     const f = setup();

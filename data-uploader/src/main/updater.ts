@@ -25,6 +25,7 @@ import {
   TOOL_VERSION,
 } from '../lib/release-token.js';
 import { isNewerVersion } from '../lib/semver.js';
+import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 import { reportCrash } from './telemetry-reporter.js';
 
 // CommonJS interop — electron-updater's named exports aren't exposed via ESM.
@@ -118,13 +119,13 @@ export function getLastUpdateEvent(): UpdateEventPayload {
  */
 async function fetchLatestVersion(): Promise<string | null> {
   try {
-    const res = await fetch(`${FEED_URL}/${currentChannel}.yml`, {
+    const res = await fetchWithTimeout(`${FEED_URL}/${currentChannel}.yml`, {
       headers: {
         'X-SC-Release-Token': RELEASE_TOKEN,
         'X-SC-Tool-Version': TOOL_VERSION,
         Accept: 'application/yaml',
       },
-    });
+    }, 15_000);
     if (!res.ok) return null;
     const text = await res.text();
     const m = text.match(/^\s*version:\s*['"]?(\d+\.\d+\.\d+[^\s'"]*)/m);
