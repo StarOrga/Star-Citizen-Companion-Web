@@ -597,7 +597,7 @@ interface FacetOption {
     .search {
       flex: 1; padding: 10px 36px 10px 14px; border-radius: 8px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 0.92rem;
+      font-family: inherit; font-size: max(0.92rem, var(--sc-fs-input));
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
     /* The field has its own clear button; the browser's would be a second x (audit L16). */

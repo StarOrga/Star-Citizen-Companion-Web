@@ -186,7 +186,7 @@ import { LoadoutShareRow, isLinkShare, shareLinkFor } from './loadout-share.type
       border: 1px solid var(--sc-border);
       border-radius: 6px;
       font: inherit;
-      font-size: 0.84rem;
+      font-size: max(0.84rem, var(--sc-fs-input));
     }
     .text-input { flex: 1 1 260px; min-width: 0; }
     .sc-select { flex: 1 1 180px; min-width: 0; }

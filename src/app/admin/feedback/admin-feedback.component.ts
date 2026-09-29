@@ -1082,7 +1082,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .search-box { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; }
     .search-box:focus-within, .search-box.active { border-color: var(--sc-accent); }
     .search-icon { color: var(--sc-fg-2); flex: 0 0 auto; }
-    .search-box input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); outline: none; }
+    .search-box input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.86rem, var(--sc-fs-input)); outline: none; }
     .search-clear { flex: 0 0 auto; min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min)); background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1.1rem; cursor: pointer; }
     .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
@@ -1355,7 +1355,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .dot.hot { background: var(--sc-accent); }
     .decline-form { gap: 10px; }
     .decline-form .field { position: relative; }
-    .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px 22px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
+    .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px 22px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-input)); }
 
     /* ---- Composer bar ---- */
     .main-composer { position: sticky; bottom: calc(12px + var(--sc-safe-bottom)); z-index: 1; }
