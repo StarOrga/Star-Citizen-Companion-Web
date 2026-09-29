@@ -43,6 +43,7 @@ import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
 import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
+import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
 import {
   computeLoadoutStats,
   findStat,
@@ -228,7 +229,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -341,49 +342,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                  anchor to that record's own detail route, so a livery keeps a
                  shareable URL and middle-click still opens a tab. -->
             @if (skinOptions().length > 1) {
-              <details class="picker skin-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of skinOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
 
             <!-- Edition picker (feedback 77ecad2a). Same shape as the skin
                  picker above: a native details, options are real anchors. -->
             @if (editionOptions().length > 1) {
-              <details class="picker edition-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of editionOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="editionPickerOptions()" [current]="currentEdition()" />
             }
 
             @if (facts().length > 0) {
@@ -444,46 +411,12 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                stage (feedback 140dfb7e). ── -->
           <div class="toolrow">
             @if (editionOptions().length > 1) {
-              <details class="picker edition-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of editionOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker class="in-toolrow" variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="editionPickerOptions()" [current]="currentEdition()" />
             }
             @if (skinOptions().length > 1) {
-              <details class="picker skin-picker">
-                <summary>
-                  <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                  <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                  <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                </summary>
-                <ul class="sp-list">
-                  @for (o of skinOptions(); track o.classNameSlug) {
-                    <li>
-                      <a class="sp-opt"
-                         [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                         [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                         [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                        {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                      </a>
-                    </li>
-                  }
-                </ul>
-              </details>
+              <sc-codex-variant-picker class="in-toolrow" variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
             <code class="cls">{{ detail()!.classNameSlug }}</code>
             <span class="tool-spacer"></span>
@@ -1110,46 +1043,12 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                  not hidden behind a code path"). -->
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
-                <details class="picker edition-picker">
-                  <summary>
-                    <span class="sp-label">{{ 'codex.editionPicker.label' | translate }}</span>
-                    <span class="sp-current">{{ currentEdition() ?? ('codex.editionPicker.standard' | translate) }}</span>
-                    <span class="sp-count">{{ 'codex.editionPicker.count' | translate: { count: editionOptions().length } }}</span>
-                  </summary>
-                  <ul class="sp-list">
-                    @for (o of editionOptions(); track o.classNameSlug) {
-                      <li>
-                        <a class="sp-opt"
-                           [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                           [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                           [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                          {{ o.editionName ?? ('codex.editionPicker.standard' | translate) }}
-                        </a>
-                      </li>
-                    }
-                  </ul>
-                </details>
+                <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                  [options]="editionPickerOptions()" [current]="currentEdition()" />
               }
               @if (skinOptions().length > 1) {
-                <details class="picker skin-picker">
-                  <summary>
-                    <span class="sp-label">{{ 'codex.skinPicker.label' | translate }}</span>
-                    <span class="sp-current">{{ currentLivery() ?? ('codex.skinPicker.standard' | translate) }}</span>
-                    <span class="sp-count">{{ 'codex.skinPicker.count' | translate: { count: skinOptions().length } }}</span>
-                  </summary>
-                  <ul class="sp-list">
-                    @for (o of skinOptions(); track o.classNameSlug) {
-                      <li>
-                        <a class="sp-opt"
-                           [class.current]="o.classNameSlug === detail()!.classNameSlug"
-                           [attr.aria-current]="o.classNameSlug === detail()!.classNameSlug ? 'true' : null"
-                           [routerLink]="['/codex', detail()!.kind, o.classNameSlug]">
-                          {{ o.liveryName ?? ('codex.skinPicker.standard' | translate) }}
-                        </a>
-                      </li>
-                    }
-                  </ul>
-                </details>
+                <sc-codex-variant-picker variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
+                  [options]="skinPickerOptions()" [current]="currentLivery()" />
               }
               <code class="cls">{{ detail()!.classNameSlug }}</code>
               @if (!inHangar()) {
@@ -1543,19 +1442,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
       padding: 6px 2px; border-top: 1px solid var(--sc-border); }
     .toolrow .tool-spacer { flex: 1 1 auto; }
-    .toolrow .picker { position: relative; margin-top: 0; max-width: 260px; }
-    /* The concept has no picker of its own; its dropdown vocabulary is the
-       mock select (part-02:193 select.m-sel): a 3px rectangle, 10.5px type,
-       .25rem/.4rem of padding. The 48px touch floor stays for coarse pointers
-       and only a mouse gets the drawn height. */
-    .toolrow .picker > summary { min-height: 48px; padding: 3px 6px; gap: 6px; border-radius: 3px; }
-    @media (pointer: fine) {
-      .toolrow .picker > summary { min-height: 24px; }
-    }
-    .toolrow .sp-label,
-    .toolrow .sp-current,
-    .toolrow .sp-count { font-size: max(10.5px, var(--sc-fs-floor)); }
-    .toolrow .sp-list { position: absolute; z-index: 5; min-width: 240px; }
+    /* The pickers' tool-row sizing lives in sc-codex-variant-picker
+       (:host(.in-toolrow)). */
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -1594,32 +1482,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
     .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
 
-    /* Skin / edition picker — a native <details> dropdown, options are anchors. */
-    .picker { margin-top: 10px; max-width: 320px; }
-    .picker > summary {
-      display: flex; align-items: center; gap: 8px; cursor: pointer;
-      padding: 7px 12px; border-radius: 8px; list-style: none;
-      background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      transition: border-color 0.16s;
-    }
-    .picker > summary::-webkit-details-marker { display: none; }
-    .picker > summary::after { content: '▾'; margin-left: auto; color: var(--sc-fg-2); }
-    .picker[open] > summary::after { content: '▴'; }
-    .picker > summary:hover { border-color: var(--sc-accent); }
-    .picker > summary:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .sp-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
-    .sp-current { font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-0); }
-    .sp-count { font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .sp-list {
-      list-style: none; margin: 4px 0 0; padding: 4px; max-height: 260px; overflow-y: auto;
-      border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-    }
-    .sp-opt {
-      display: block; padding: 7px 10px; border-radius: 6px;
-      color: var(--sc-fg-1); text-decoration: none; font-size: max(0.82rem, var(--sc-fs-floor));
-    }
-    .sp-opt:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); }
-    .sp-opt.current { color: var(--sc-accent); font-weight: 600; }
+    /* Skin / edition picker: sc-codex-variant-picker owns its rules. */
 
     .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
     .fact { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
@@ -2094,6 +1957,14 @@ export class CodexDetailComponent implements OnInit {
     () =>
       this.editionOptions().find((o) => o.classNameSlug === this.detail()?.classNameSlug)
         ?.editionName ?? null,
+  );
+
+  /** Picker rows for sc-codex-variant-picker (skin / edition family). */
+  readonly skinPickerOptions = computed(() =>
+    this.skinOptions().map((o) => ({ classNameSlug: o.classNameSlug, label: o.liveryName })),
+  );
+  readonly editionPickerOptions = computed(() =>
+    this.editionOptions().map((o) => ({ classNameSlug: o.classNameSlug, label: o.editionName })),
   );
 
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
