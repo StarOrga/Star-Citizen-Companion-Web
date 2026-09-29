@@ -203,7 +203,9 @@
         "backToCurrent": "Back to the current patch",
         "loading": "Loading patches …",
         "empty": "No further patches known.",
-        "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch."
+        "note": "A patch without data cannot be opened. Reloading the page returns you to the current patch.",
+        "liveMoved": "Catalog updated to patch {{patch}}.",
+        "liveMovedDismiss": "Dismiss"
       },
       "patch": {
         "archive": "{{count}} records in the Arsenal",

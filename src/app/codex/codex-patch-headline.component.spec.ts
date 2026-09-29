@@ -60,6 +60,8 @@ describe('CodexPatchHeadlineComponent', () => {
     const codex: Partial<CodexService> = {
       build: active as never,
       liveBuild: signal(liveBuild) as never,
+      buildRefresh: signal(0) as never,
+      liveMovedNotice: signal<string | null>(null) as never,
       stale: signal(opts.stale ?? false) as never,
       viewingPastPatch: computed(() => !!liveBuild && active()?.id !== liveBuild.id) as never,
       patchTimeline: timeline as never,
@@ -278,5 +280,24 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(el.querySelector<HTMLAnchorElement>('.status-stale')?.getAttribute('href')).toContain(
       '/uploader',
     );
+  });
+
+  it('says once that the catalog moved to a newer LIVE build, and can be dismissed', async () => {
+    const fixture = await setup();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.patch-notice')).toBeNull();
+
+    const svc = TestBed.inject(CodexService);
+    svc.liveMovedNotice.set('4.3');
+    fixture.detectChanges();
+    const notice = el.querySelector('.patch-notice');
+    expect(notice).not.toBeNull();
+    expect(notice!.getAttribute('role')).toBe('status');
+    expect(notice!.textContent).toContain('codex.landing.patchSwitch.liveMoved');
+
+    el.querySelector<HTMLButtonElement>('.patch-notice-x')!.click();
+    fixture.detectChanges();
+    expect(svc.liveMovedNotice()).toBeNull();
+    expect(el.querySelector('.patch-notice')).toBeNull();
   });
 });

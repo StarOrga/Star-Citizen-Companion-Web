@@ -49,6 +49,8 @@ function makeCodexServiceStub(): Partial<CodexService> {
     listByKind: async () => ({ rows: [], count: 0 }) as never,
     countItemsByAttachType: async () => new Map(),
     armorRating: async () => [],
+    buildRefresh: signal(0),
+    liveMovedNotice: signal<string | null>(null),
   };
 }
 

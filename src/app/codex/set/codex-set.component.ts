@@ -11,6 +11,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { reloadOnBuildRefresh } from '../build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -257,6 +258,8 @@ export class CodexSetComponent implements OnInit {
    * is synchronous, so a deep link loads exactly as before.
    */
   constructor() {
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => this.retry());
     // Each set remembers its own lens; a set switch reads that set's choice.
     effect(() => {
       const id = this.activeSet()?.id ?? null;

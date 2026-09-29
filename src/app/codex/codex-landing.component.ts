@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -770,6 +771,9 @@ export class CodexLandingComponent implements OnInit {
   readonly archiveComponentCount = computed(() => this.archiveCount('components'));
 
   constructor() {
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => this.reload());
+
     // `?set=` comes from the URL, and it keeps coming: a bookmarked or
     // middle-clicked link into a specific set has to keep applying, not just
     // on the first load — a snapshot read would only ever catch that one.

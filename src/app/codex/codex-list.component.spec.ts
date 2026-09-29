@@ -66,6 +66,8 @@ describe('CodexListComponent (Index mode)', () => {
       stale: signal(false) as never,
       latestLivePatch: signal(null) as never,
       buildLoading: signal(false) as never,
+      buildRefresh: signal(0) as never,
+      liveMovedNotice: signal<string | null>(null) as never,
       buildError: signal(null) as never,
       compareKeys: signal<string[]>([]).asReadonly(),
       compareCount: signal(0) as never,

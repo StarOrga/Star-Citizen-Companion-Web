@@ -143,6 +143,22 @@ import { NewsService } from '../news/news.service';
         </div>
       }
     </div>
+
+    <!-- Said once when the service moved a live reader to a newer LIVE build
+         (tab left open across a data upload). -->
+    @if (svc.liveMovedNotice(); as patch) {
+      <p class="patch-notice" role="status">
+        <span>{{ 'codex.landing.patchSwitch.liveMoved' | translate: { patch } }}</span>
+        <button
+          type="button"
+          class="patch-notice-x"
+          (click)="svc.liveMovedNotice.set(null)"
+          [attr.aria-label]="'codex.landing.patchSwitch.liveMovedDismiss' | translate"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      </p>
+    }
   `,
   styles: [
     `
@@ -178,6 +194,40 @@ import { NewsService } from '../news/news.service';
       }
 
       .status-stale { color: var(--sc-warning, #ffc14d); text-decoration: underline; }
+
+      /* one-off notice: the catalog moved to a newer LIVE build */
+      .patch-notice {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 0;
+        padding: 4px 4px 4px 10px;
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, var(--sc-border));
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--sc-accent) 8%, transparent);
+        color: var(--sc-fg-1);
+        font-size: max(0.78rem, var(--sc-fs-floor, 0.68rem));
+        overflow-wrap: anywhere;
+      }
+      .patch-notice > span { flex: 1 1 auto; min-width: 0; }
+      .patch-notice-x {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        min-width: 32px;
+        min-height: 32px;
+        border: 1px solid transparent;
+        border-radius: 3px;
+        background: transparent;
+        color: var(--sc-fg-2);
+        font: inherit;
+        cursor: pointer;
+      }
+      .patch-notice-x:hover { color: var(--sc-accent); border-color: var(--sc-border); }
+      .patch-notice-x:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      @media (pointer: coarse) {
+        .patch-notice-x { min-width: 48px; min-height: 48px; }
+      }
 
       /* ── the patch switch trigger ─────────────────────────────────────── */
       .patch-trigger {

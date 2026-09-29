@@ -29,6 +29,7 @@ import {
 import { UpcomingGridComponent } from './upcoming-grid.component';
 import { FallbackImageComponent } from './fallback-image.component';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   cleanLocaleValue,
@@ -1082,6 +1083,8 @@ export class CodexListComponent implements OnInit {
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
     });
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => this.runQuery(true));
     // Keep the data language in sync with UI language switches. (#50)
     this.t.onLangChange
       .pipe(takeUntilDestroyed())

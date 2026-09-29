@@ -31,6 +31,7 @@ import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
+import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HangarService } from '../hangar/hangar.service';
@@ -834,6 +835,8 @@ export class FpsListComponent {
   );
 
   constructor() {
+    // A new LIVE build replaced the one on screen (tab came back): reload.
+    reloadOnBuildRefresh(this.svc, () => void this.loadCatalog(this.category(), this.includeVariants()));
     this.t.onLangChange
       .pipe(takeUntilDestroyed())
       .subscribe((e) => this.dataLang.set(toLang(e.lang)));
