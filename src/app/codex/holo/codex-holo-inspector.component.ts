@@ -8,6 +8,7 @@ import { displayItemName } from '../codex-format';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { JournalEntry, PinGroup } from './codex-holo-model';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Holotable's right panel body: the inspected hardpoint — occupant, its
@@ -35,7 +36,8 @@ import { JournalEntry, PinGroup } from './codex-holo-model';
               <small>{{ meta(it.slot) }}</small>
             </div>
             <button type="button" class="inspector-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.swap.close' | translate">✕</button>
+                    [attr.aria-label]="'codex.swap.close' | translate"
+                    [scTooltip]="('codex.swap.close' | translate) + ' (Esc)'">✕</button>
           </div>
           @if (patchPin(); as pin) {
             <!-- slot: patch-delta — the per-PORT occupant delta for the pin under inspection -->

@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { Injectable, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 
@@ -39,6 +40,7 @@ export class P4kService {
 
   readonly bundles = signal<P4kBundleRow[]>([]);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   // Default ON: the history view should show every upload (incl. superseded
   // ones) out of the box — a re-upload with a newer tool version supersedes the
@@ -54,7 +56,7 @@ export class P4kService {
       include_disabled: this.includeDisabled(),
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('p4k', 'list bundles', error));
     } else {
       this.bundles.set((data ?? []) as P4kBundleRow[]);
     }
@@ -70,7 +72,7 @@ export class P4kService {
       reason: reason,
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('p4k', 'set disabled', error, { bundleId }));
     } else {
       await this.listBundles();
     }
@@ -84,7 +86,7 @@ export class P4kService {
       bundle_id: bundleId,
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(toErrorKey('p4k', 'delete bundle', error, { bundleId }));
     } else {
       await this.listBundles();
     }

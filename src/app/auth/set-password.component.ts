@@ -1,3 +1,4 @@
+import { authErrorKey } from './auth-error-key';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -72,7 +73,7 @@ import { PasswordFormComponent } from './password-form.component';
                   required />
               </label>
               @if (resendError(); as e) {
-                <div class="flash error" role="alert">{{ e }}</div>
+                <div class="flash error" role="alert">{{ e | translate }}</div>
               }
               <button type="submit" class="sc-btn sc-btn-primary" [disabled]="resending() || !emailLooksValid()">
                 {{ (resending() ? 'auth.setPassword.sending' : 'auth.setPassword.sendLink') | translate }}
@@ -127,6 +128,7 @@ export class SetPasswordComponent {
   readonly email = signal('');
   readonly resending = signal(false);
   readonly resentTo = signal(false);
+  /** i18n key, never raw text. */
   readonly resendError = signal<string | null>(null);
 
   readonly emailLooksValid = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email().trim()));
@@ -145,12 +147,12 @@ export class SetPasswordComponent {
       // A rate limit is the one failure worth showing; anything else stays
       // generic so the form never reports whether the address exists.
       if (error && error.status === 429) {
-        this.resendError.set(error.message);
+        this.resendError.set(authErrorKey(error, 'resend'));
         return;
       }
       this.resentTo.set(true);
     } catch (err) {
-      this.resendError.set((err as Error).message);
+      this.resendError.set(authErrorKey(err, 'resend'));
     } finally {
       this.resending.set(false);
     }

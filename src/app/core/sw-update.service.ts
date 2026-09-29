@@ -1,3 +1,4 @@
+import { logWarn } from './log';
 import { DOCUMENT } from '@angular/common';
 import { Injectable, NgZone, inject, signal } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
@@ -81,9 +82,12 @@ export class SwUpdateService {
     // A long-open tab would otherwise only check on reload. Poll outside the
     // Angular zone so the timer never keeps the zone unstable (which would
     // delay `registerWhenStable` and CD).
-    void this.swUpdate.checkForUpdate();
+    this.swUpdate.checkForUpdate().catch((e) => logWarn('sw', 'checkForUpdate failed', e));
     this.zone.runOutsideAngular(() => {
-      setInterval(() => void this.swUpdate.checkForUpdate(), SwUpdateService.POLL_MS);
+      setInterval(
+        () => this.swUpdate.checkForUpdate().catch((e) => logWarn('sw', 'checkForUpdate failed', e)),
+        SwUpdateService.POLL_MS,
+      );
     });
   }
 

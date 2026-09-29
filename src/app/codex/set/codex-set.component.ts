@@ -1,3 +1,4 @@
+import { logWarn } from '../../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -322,24 +323,34 @@ export class CodexSetComponent implements OnInit {
       this.svc
         .resolveEntities(classNames)
         .then((m) => land(this.resolvedArmor, m))
-        .catch(() => land(this.resolvedArmor, new Map())),
+        .catch((e) => {
+          logWarn('codex', 'set armor resolve failed', { set: active.id, error: e });
+          land(this.resolvedArmor, new Map());
+        }),
       this.svc
         .getEntityPayloads(classNames)
         .then((m) => land(this.armorPayloads, m))
-        .catch(() => land(this.armorPayloads, new Map())),
+        .catch((e) => {
+          logWarn('codex', 'set armor payloads failed', { set: active.id, error: e });
+          land(this.armorPayloads, new Map());
+        }),
       // "N im Archiv" on the open positions: head-only counts, cached per build
       // (a set switch used to fetch one full payload row per open position).
       this.svc
         .countItemsByAttachType(emptySlots.map((s) => s.attachType))
         .then((m) => land(this.archiveDepth, m))
-        .catch(() => land(this.archiveDepth, new Map())),
+        .catch((e) => {
+          logWarn('codex', 'set archive depth failed', { set: active.id, error: e });
+          land(this.archiveDepth, new Map());
+        }),
       // Rating of the equipped armour (card + lens readouts). null = the SQL
       // function is not deployed yet — the card names that gap.
       (async () => {
         land(this.ratingLoading, true);
         try {
           land(this.ratingRows, await this.svc.armorRating(armorClassNames));
-        } catch {
+        } catch (e) {
+          logWarn('codex', 'set armor rating failed', { set: active.id, error: e });
           land(this.ratingRows, null);
         } finally {
           land(this.ratingLoading, false);

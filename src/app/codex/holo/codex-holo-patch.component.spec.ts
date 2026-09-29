@@ -21,6 +21,11 @@ function build(over: Partial<CodexBuild>): CodexBuild {
   };
 }
 
+/** `buildsForChannel` answer for a successful read. */
+function listed(builds: CodexBuild[]): Promise<{ builds: CodexBuild[]; failed: boolean }> {
+  return Promise.resolve({ builds, failed: false });
+}
+
 describe('CodexHoloPatchComponent', () => {
   let fixture: ComponentFixture<CodexHoloPatchComponent>;
   let buildsForChannel: jasmine.Spy;
@@ -62,7 +67,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('marks a never-finalised build (zero entity count) as disabled in the picker', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(Promise.resolve([
+    buildsForChannel.and.returnValue(listed([
       build({ id: 'finalised', patchVersion: '4.10', entityCounts: { ship: 5 } }),
       build({ id: 'draft', patchVersion: '4.11', entityCounts: {}, schemaVersion: 0 }),
     ]));
@@ -79,7 +84,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('lists the build on the table as current (never comparable) and tells same-named builds apart', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(Promise.resolve([
+    buildsForChannel.and.returnValue(listed([
       build({ id: 'active', patchVersion: '4.9' }),
       build({ id: 'x1', patchVersion: '4.x', buildNumber: 'live-a' }),
       build({ id: 'x2', patchVersion: '4.x', buildNumber: 'live-b' }),
@@ -99,7 +104,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('hides the admin schema row for a plain viewer and shows it, labelled, for a collaborator', async () => {
     setup(false);
-    buildsForChannel.and.returnValue(Promise.resolve([build({ id: 'finalised' })]));
+    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
     shipDetailForBuild.and.returnValue(Promise.resolve({
       classNameSlug: 'AEGS_Gladius',
       kind: 'ship',
@@ -121,7 +126,7 @@ describe('CodexHoloPatchComponent', () => {
 
   it('emits unresolved:true for a port that only exists on the active side', async () => {
     setup(true);
-    buildsForChannel.and.returnValue(Promise.resolve([build({ id: 'finalised' })]));
+    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
     shipDetailForBuild.and.returnValue(Promise.resolve({
       classNameSlug: 'AEGS_Gladius',
       kind: 'ship',
@@ -152,5 +157,44 @@ describe('CodexHoloPatchComponent', () => {
     // admin row appears for a collaborator once a build is picked
     expect(fixture.nativeElement.querySelector('.admin-schema-row')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.admin-flag')?.textContent).toContain('codex.holo.patch.adminOnly');
+  });
+
+  it('tells a failed build list apart from "no other patches" and retries it (AUD-056)', async () => {
+    setup(false);
+    buildsForChannel.and.returnValue(Promise.resolve({ builds: [], failed: true }));
+    fixture.nativeElement.querySelector('.patch-trigger').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const pop: HTMLElement = fixture.nativeElement.querySelector('.patch-pop');
+    expect(pop.textContent).toContain('codex.error.title');
+    expect(pop.textContent).not.toContain('codex.holo.patch.empty');
+
+    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
+    (pop.querySelector('.pop-err button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(buildsForChannel).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelectorAll('.build-row').length).toBe(1);
+  });
+
+  it('a throwing comparison sets compareError instead of an unhandled rejection', async () => {
+    spyOn(console, 'warn');
+    setup(false);
+    buildsForChannel.and.returnValue(listed([build({ id: 'finalised' })]));
+    shipDetailForBuild.and.returnValue(Promise.resolve({ classNameSlug: 'AEGS_Gladius', kind: 'ship', row: {}, payload: {}, ports: [], strings: [] }));
+    fixture.componentRef.setInput('resolveComparisonSide', () => {
+      throw new TypeError('Failed to fetch');
+    });
+    fixture.nativeElement.querySelector('.patch-trigger').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await expectAsync(fixture.componentInstance.pick(build({ id: 'finalised' }))).toBeResolved();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.compareError()).toBe('errors.network');
+    expect(fixture.nativeElement.querySelector('.delta-state.err')?.textContent).toContain('errors.network');
+    expect(fixture.componentInstance.selected()).toBeNull();
   });
 });

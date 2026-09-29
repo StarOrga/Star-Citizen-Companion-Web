@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexService } from './codex.service';
 import { formatNumber } from './codex-format';
 import {
@@ -53,7 +54,7 @@ import { formatScDate } from '../core/locale/date-format';
 @Component({
   selector: 'sc-codex-patch-headline',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Class names kept from the retired inline pill: same slot, same weight
@@ -101,6 +102,11 @@ import { formatScDate } from '../core/locale/date-format';
 
           @if (loading()) {
             <p class="pop-state">{{ 'codex.landing.patchSwitch.loading' | translate }}</p>
+          } @else if (svc.patchTimelineError(); as e) {
+            <div class="pop-err" role="alert">
+              <p class="pop-state err">{{ 'codex.error.title' | translate }} — {{ e | translate }}</p>
+              <button type="button" class="patch-back" (click)="retryTimeline()">{{ 'codex.error.retry' | translate }}</button>
+            </div>
           } @else if (visible().length === 0) {
             <p class="pop-state">{{ 'codex.landing.patchSwitch.empty' | translate }}</p>
           } @else {
@@ -116,7 +122,7 @@ import { formatScDate } from '../core/locale/date-format';
                     [attr.aria-selected]="isSelected(e)"
                     [disabled]="!e.hasData"
                     [attr.aria-disabled]="!e.hasData"
-                    [attr.title]="rowTitle(e)"
+                    [scTooltip]="rowTitle(e)"
                     (click)="choose(e)"
                   >
                     <span class="row-ver mono">{{ e.patchVersion }}</span>
@@ -244,6 +250,8 @@ import { formatScDate } from '../core/locale/date-format';
         color: var(--sc-fg-2);
       }
       .pop-state { margin: 0; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .pop-state.err { color: var(--sc-danger); }
+      .pop-err { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
       .pop-note {
         margin: 0;
         font-size: max(0.66rem, var(--sc-fs-floor));
@@ -428,6 +436,11 @@ export class CodexPatchHeadlineComponent {
       style: 'datetime',
     });
     return `${e.patchVersion} · ${when}`;
+  }
+
+  /** The popover's retry after a failed timeline read. */
+  retryTimeline(): void {
+    void this.loadOnce();
   }
 
   private async loadOnce(): Promise<void> {

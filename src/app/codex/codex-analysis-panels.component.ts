@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, input, untracked, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { formatNumber } from './codex-format';
 import { DefensivePanel, OffensivePanel } from './codex-loadout-stats';
 
@@ -386,7 +387,7 @@ export interface ShipFactGroup {
 @Component({
   selector: 'sc-codex-ship-panel',
   standalone: true,
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <details class="sc-card block" [open]="open()" (toggle)="open.set($any($event.target).open)">
@@ -401,7 +402,16 @@ export interface ShipFactGroup {
           <dl class="fact-grid">
             @for (r of g.rows; track r.labelKey) {
               <dt>{{ r.labelKey | translate }}</dt>
-              <dd [attr.title]="r.value == null && r.gapKey ? (r.gapKey | translate) : null">{{ r.value ?? '—' }}</dd>
+              <dd>
+                @if (r.value == null && r.gapKey) {
+                  <!-- Focusable anchor: the reason for the gap is the only
+                       content, so keyboard users must reach it too. -->
+                  <span class="gap-dash" tabindex="0" role="img" [attr.aria-label]="r.gapKey | translate"
+                        [scTooltip]="r.gapKey | translate" scTooltipTier="label">—</span>
+                } @else {
+                  {{ r.value ?? '—' }}
+                }
+              </dd>
             }
           </dl>
           @if (g.note) { <p class="note">{{ g.note }}</p> }

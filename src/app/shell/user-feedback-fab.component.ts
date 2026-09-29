@@ -17,6 +17,7 @@ import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
 import { unreadBadgeText } from '../feedback/user-feedback.types';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Feedback launcher for everyone who is NOT an admin (feedback 5920cf8c).
@@ -34,7 +35,7 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
 @Component({
   selector: 'sc-user-feedback-fab',
   standalone: true,
-  imports: [TranslatePipe, UserFeedbackPanelComponent],
+  imports: [TranslatePipe, UserFeedbackPanelComponent, ScTooltipDirective],
   // The feedback launcher and its panel are the one thing on screen *because*
   // the user is writing a report, so a page screenshot taken from inside it
   // leaves this whole subtree out (admin feedback 312a4acc, see
@@ -60,7 +61,9 @@ import { unreadBadgeText } from '../feedback/user-feedback.types';
                 type="button"
                 class="panel-min"
                 (click)="minimize()"
-                [attr.aria-label]="'feedbackFab.minimize' | translate">
+                [attr.aria-label]="'feedbackFab.minimize' | translate"
+                [scTooltip]="'feedbackFab.minimize' | translate"
+                scTooltipTier="label">
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                   <path d="M6 17h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>

@@ -38,7 +38,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             [attr.aria-label]="'codex.upcoming.searchAria' | translate" />
           @if (query()) {
             <button type="button" class="search-clear" (click)="clearQuery()"
-                    [attr.aria-label]="'codex.upcoming.searchClear' | translate">×</button>
+                    [attr.aria-label]="'codex.upcoming.searchClear' | translate"
+                    [scTooltip]="'codex.upcoming.searchClear' | translate">×</button>
           }
         </div>
         <button type="button" class="fav-chip"
@@ -53,8 +54,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
 
     @if (error(); as err) {
-      <div class="sc-card err">
-        <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err }}
+      <div class="sc-card err" role="alert">
+        <strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}
         <button type="button" class="retry" (click)="reload()">{{ 'codex.error.retry' | translate }}</button>
       </div>
     }

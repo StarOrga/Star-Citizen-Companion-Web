@@ -7,6 +7,7 @@ import { P4kHistoryComponent } from '../p4k/p4k-history.component';
 import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-panel.component';
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Data Uploader's home on the Codex Bridge (admin feedback eb9c6ec3). The
@@ -31,6 +32,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
     ChannelPickerComponent,
     P4kHistoryComponent,
     ScDialogDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -49,7 +51,7 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
 
         @if (open()) {
           <div class="ua-body">
-            @if (errorMsg(); as e) { <p class="ua-err">{{ e }}</p> }
+            @if (errorMsg(); as e) { <p class="ua-err" role="alert">{{ e | translate }}</p> }
 
             <sc-app-download-panel
               icon="⬆"
@@ -85,7 +87,8 @@ import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-r
             <div class="hx-head">
               <span class="hx-t">{{ 'desktop.bundleHistory' | translate }}</span>
               <button type="button" class="hx-close" (click)="historyOpen.set(false)"
-                      [attr.aria-label]="'desktop.close' | translate">✕</button>
+                      [attr.aria-label]="'desktop.close' | translate"
+                      [scTooltip]="'desktop.close' | translate">✕</button>
             </div>
             <div class="hx-scroll">
               <sc-p4k-history [embedded]="true" />
@@ -172,6 +175,7 @@ export class UploaderAccessComponent {
   readonly historyOpen = signal(false);
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
 

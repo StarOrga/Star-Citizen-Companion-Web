@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,6 +19,7 @@ import {
   PortQuery,
 } from '../codex/codex.service';
 import { humanizeClassName } from '../codex/codex-format';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** What the picker hands back when the user chooses an entry. */
 export interface PickedItem {
@@ -36,7 +38,7 @@ export interface PickedItem {
 @Component({
   selector: 'sc-hangar-item-picker',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="picker sc-card" role="dialog" [attr.aria-label]="'hangar.picker.searchPlaceholder' | translate" (click)="$event.stopPropagation()">
@@ -49,11 +51,18 @@ export interface PickedItem {
           [attr.placeholder]="'hangar.picker.searchPlaceholder' | translate"
           [attr.aria-label]="'hangar.picker.searchPlaceholder' | translate" />
         <button type="button" class="close" (click)="closed.emit()"
-                [attr.aria-label]="'hangar.picker.close' | translate">×</button>
+                [attr.aria-label]="'hangar.picker.close' | translate"
+                [scTooltip]="'hangar.picker.close' | translate">×</button>
       </div>
 
       @if (loading()) {
         <p class="state">{{ 'hangar.picker.loading' | translate }}</p>
+      } @else if (error(); as err) {
+        <!-- A failed read is not "nothing fits": say so and offer a retry. -->
+        <div class="state err" role="alert">
+          <span>{{ 'hangar.picker.loadFailed' | translate }} — {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="loading()" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+        </div>
       } @else if (results().length === 0) {
         <p class="state">
           {{ (port() ? 'hangar.picker.emptyPort' : 'hangar.picker.empty') | translate }}
@@ -90,6 +99,11 @@ export interface PickedItem {
     .close { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; line-height: 1; }
     .close:hover { color: var(--sc-danger); }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; padding: 6px 2px; }
+    .state.err { color: var(--sc-danger); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; min-height: 44px; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
     .results { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .result {
       width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -125,6 +139,8 @@ export class HangarItemPickerComponent implements OnInit {
 
   readonly query = signal('');
   readonly loading = signal(false);
+  /** The last port/search read failed. i18n key, never raw text; cleared by the next read. */
+  readonly error = signal<string | null>(null);
   private readonly compat = signal<CompatibleItem[]>([]);
   private readonly searchResults = signal<CompatibleItem[]>([]);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -148,17 +164,27 @@ export class HangarItemPickerComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const port = this.port();
-    if (port) {
-      this.loading.set(true);
-      try {
-        this.compat.set(await this.svc.getCompatibleItems(port));
-      } catch {
-        this.compat.set([]);
-      } finally {
-        this.loading.set(false);
-      }
-    } else {
-      await this.runSearch('');
+    if (port) await this.loadPort(port);
+    else await this.runSearch('');
+  }
+
+  /** Retry button of the error line: repeats whichever read failed. */
+  retry(): void {
+    const port = this.port();
+    if (port) void this.loadPort(port);
+    else void this.runSearch(this.query());
+  }
+
+  private async loadPort(port: PortQuery): Promise<void> {
+    this.error.set(null);
+    this.loading.set(true);
+    try {
+      this.compat.set(await this.svc.getCompatibleItems(port));
+    } catch (err) {
+      this.compat.set([]);
+      this.error.set(toErrorKey('hangar', 'pickerPort', err, { types: port.types }));
+    } finally {
+      this.loading.set(false);
     }
   }
 
@@ -183,6 +209,7 @@ export class HangarItemPickerComponent implements OnInit {
 
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
+    this.error.set(null);
     this.loading.set(true);
     try {
       const queries: Promise<CompatibleItem[]>[] = [
@@ -192,8 +219,11 @@ export class HangarItemPickerComponent implements OnInit {
       const [weapons, items] = await Promise.all(queries);
       if (seq !== this.searchSeq) return;
       this.searchResults.set([...weapons, ...items].slice(0, 40));
-    } catch {
-      if (seq === this.searchSeq) this.searchResults.set([]);
+    } catch (err) {
+      if (seq === this.searchSeq) {
+        this.searchResults.set([]);
+        this.error.set(toErrorKey('hangar', 'pickerSearch', err, { term }));
+      }
     } finally {
       if (seq === this.searchSeq) this.loading.set(false);
     }

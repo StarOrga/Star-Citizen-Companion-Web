@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
+import { describeError } from '../core/describe-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { HangarService } from './hangar.service';
 import { HangarShip } from './hangar.types';
@@ -142,7 +143,8 @@ describe('HangarService unique-slot retry', () => {
     const ok = await svc.pinShip('A', 1);
 
     expect(ok).toBeFalse();
-    expect(svc.error()).toContain('hangar_ships_pin_unique');
+    // The second failure is translated (D05): an i18n key, never the raw Postgres text.
+    expect(svc.error()).toBe(describeError(conflict.error).key);
     const pinAttempts = stub.calls.filter((c) => c.op === 'update' && c.values?.['pinned_rank'] === 1);
     expect(pinAttempts.length).toBe(2);
   });
@@ -155,7 +157,7 @@ describe('HangarService unique-slot retry', () => {
     svc.ships.set([ship('A', null)]);
 
     expect(await svc.pinShip('A', 1)).toBeFalse();
-    expect(svc.error()).toBe('denied');
+    expect(svc.error()).toBe(describeError({ code: '42501', message: 'denied' }).key);
     expect(stub.calls.length).toBe(1);
   });
 
@@ -191,7 +193,7 @@ describe('HangarService unique-slot retry', () => {
     const svc = makeService(stub.client);
 
     expect(await svc.activateConfig('cfg-1', 'ship-1')).toBeFalse();
-    expect(svc.error()).toBe('hangar_ship_configs_one_active');
+    expect(svc.error()).toBe(describeError(dup.error).key);
     expect(stub.calls.length).toBe(4);
   });
 });

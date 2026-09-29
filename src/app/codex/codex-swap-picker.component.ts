@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -199,7 +200,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
               {{ 'codex.swap.clearSlot' | translate }}
             </button>
             <button type="button" class="pick-close" (click)="closed.emit()"
-                    [attr.aria-label]="'codex.picker.close' | translate">✕</button>
+                    [attr.aria-label]="'codex.picker.close' | translate"
+                    [scTooltip]="'codex.picker.close' | translate">✕</button>
           </header>
 
           @if (t.fitInferred) {
@@ -391,21 +393,24 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
                     <li class="fc">
                       {{ sc.label }}
                       <button type="button" (click)="scope.set('allSize')"
-                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: sc.label }"
+                              [scTooltip]="'codex.picker.chipRemove' | translate: { label: sc.label }">✕</button>
                     </li>
                   }
                   @if (typeFilterChip(); as tf) {
                     <li class="fc">
                       {{ tf.label }}
                       <button type="button" (click)="typeFilter.set(TYPE_ALL)"
-                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: tf.label }">✕</button>
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: tf.label }"
+                              [scTooltip]="'codex.picker.chipRemove' | translate: { label: tf.label }">✕</button>
                     </li>
                   }
                   @for (chip of chips(); track chip.key) {
                     <li class="fc">
                       {{ chip.columnLabelKey | translate }}: {{ chip.textKey | translate: chip.params }}
                       <button type="button" (click)="onClearFilter(chip.key)"
-                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
+                              [attr.aria-label]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }"
+                              [scTooltip]="'codex.picker.chipRemove' | translate: { label: (chip.columnLabelKey | translate) }">✕</button>
                     </li>
                   }
                 </ul>
@@ -764,7 +769,8 @@ export class CodexSwapPickerComponent {
 
       if (token !== this.loadToken) return;
       this.candidates.set(rows);
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'swap candidates failed', error);
       if (token === this.loadToken) this.error.set(true);
     } finally {
       if (token === this.loadToken) this.loading.set(false);

@@ -14,6 +14,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 // news surfaces use (and the `news.relative.*` keys it is documented to read).
 import { relativeTime } from '../news/relative-time';
 import { ModerationService } from '../social/moderation.service';
+import { toErrorKey } from '../core/describe-error';
+import { readEdgeErrorCode } from '../core/edge-error';
+import { logWarn } from '../core/log';
+import { adminRpcErrorKey, deleteUserErrorKey, inviteErrorKey } from './admin-error-keys';
 import {
   MODERATION_REASON_MAX,
   SUSPENSION_DURATIONS,
@@ -122,6 +126,13 @@ type AdminPeopleRow = PeopleRow<AdminUserRow, AllowedEmailRow>;
 
 /** Register-form response contract (C5 — `invite-user` edge function). */
 type RegisterStatus = 'allowlisted' | 'approved_existing' | 'invited';
+/** A success/error line under a form: an i18n key the template translates. */
+interface AdminFlash {
+  kind: 'success' | 'error';
+  key: string;
+  params?: Record<string, unknown>;
+}
+
 interface RegisterResponse {
   status?: RegisterStatus;
   user_exists?: boolean;
@@ -167,7 +178,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
         @if (accessErrorMsg()) {
           <div class="err">
-            <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ accessErrorMsg() }}
+            <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ accessErrorMsg()! | translate }}
           </div>
         }
 
@@ -217,7 +228,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
         @if (accessMsg(); as m) {
           <div class="invite-msg" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'" role="status">
-            {{ m.text }}
+            {{ m.key | translate: m.params }}
           </div>
         }
       </div>
@@ -249,7 +260,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
           @if (reportsErrorMsg()) {
             <div class="err">
-              <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ reportsErrorMsg() }}
+              <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ reportsErrorMsg()! | translate }}
             </div>
           }
 
@@ -342,22 +353,21 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                                   [placeholder]="'admin.moderation.reasonPlaceholder' | translate"></textarea>
                       </label>
                       @if (modMode() === 'suspend') {
-                        <label class="mod-field">
+                        <div class="mod-field">
                           <span class="inline-label">{{ 'admin.moderation.duration' | translate }}</span>
                           <!-- modDaysValue, not modDays(): "indefinite" is
-                               null in the model and '' in the DOM, and binding
-                               the null straight in leaves the select matching
-                               no option at all — visibly blank. -->
-                          <select class="sc-select" [value]="modDaysValue()" (change)="onModDays($event)">
-                            @for (d of durations; track d) {
-                              <option [value]="d === null ? '' : d">
-                                {{ d === null
-                                    ? ('admin.moderation.durations.indefinite' | translate)
-                                    : ('admin.moderation.durations.days' | translate: { days: d }) }}
-                              </option>
-                            }
-                          </select>
-                        </label>
+                               null in the model but the option value
+                               "indefinite" here — sc-select reserves the empty
+                               string for "nothing picked". A div, not a label:
+                               a label would snap the open list shut. -->
+                          <sc-select
+                            [options]="durationOptions"
+                            [allowEmpty]="false"
+                            [value]="modDaysValue()"
+                            [ariaLabel]="'admin.moderation.duration' | translate"
+                            (valueChange)="onModDays($event)"
+                          />
+                        </div>
                       }
                       <p class="hint small">{{ 'admin.moderation.reasonVisible' | translate }}</p>
                       @if (moderation.error(); as key) {
@@ -427,7 +437,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         </form>
         @if (inviteMsg(); as m) {
           <div class="invite-msg" [class.error]="m.kind === 'error'" [class.success]="m.kind === 'success'">
-            {{ m.text }}
+            {{ m.key | translate: m.params }}
           </div>
         }
         @if (shareMsg(); as m) {
@@ -453,12 +463,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 
       @if (errorMsg()) {
         <div class="err">
-          <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ errorMsg() }}
+          <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ errorMsg()! | translate }}
         </div>
       }
       @if (allowlistErrorMsg()) {
         <div class="err">
-          <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ allowlistErrorMsg() }}
+          <strong>{{ 'admin.errorTitle' | translate }}:</strong> {{ allowlistErrorMsg()! | translate }}
         </div>
       }
 
@@ -863,7 +873,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
-    .mod-field .text-input, .mod-field .sc-select {
+    .mod-field .text-input {
       padding: 8px 10px;
       background: var(--sc-bg-0);
       color: var(--sc-fg-0);
@@ -874,7 +884,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       width: 100%;
       box-sizing: border-box;
     }
-    .mod-field .text-input:focus, .mod-field .sc-select:focus {
+    .mod-field .text-input:focus {
       outline: none;
       border-color: var(--sc-accent);
     }
@@ -897,7 +907,6 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
        hair off every measured box, so a 44px target measures 43. */
     @media (pointer: coarse) {
       .mod-actions .sc-btn, .mod-form-actions .sc-btn { min-height: 48px; }
-      .mod-field .sc-select { min-height: 48px; }
     }
     @media (max-width: 560px) {
       .mod-actions .sc-btn, .mod-form-actions .sc-btn { flex: 1 1 100%; }
@@ -1051,18 +1060,24 @@ export class AdminComponent implements OnInit {
 
   readonly users = signal<AdminUserRow[]>([]);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly selfId = computed(() => this.auth.user()?.id ?? null);
 
   // Open user reports (migration 20260903220000); the actions on them landed
   // with 20260904020000 — see `moderation` below.
   readonly reports = signal<UserReportRow[]>([]);
+  /** i18n key, never raw text. */
   readonly reportsErrorMsg = signal<string | null>(null);
 
   // ── Moderation (feedback cf0ddf7d phase 2) ────────────────────────────────
 
   readonly moderation = inject(ModerationService);
-  readonly durations = SUSPENSION_DURATIONS;
+  readonly durationOptions: readonly ScSelectOption[] = SUSPENSION_DURATIONS.map((d) =>
+    d === null
+      ? { value: 'indefinite', labelKey: 'admin.moderation.durations.indefinite' }
+      : { value: String(d), labelKey: 'admin.moderation.durations.days', labelParams: { days: d } },
+  );
   readonly modReasonMax = MODERATION_REASON_MAX;
 
   /** Which account's moderation form is open, and in which mode. */
@@ -1075,10 +1090,10 @@ export class AdminComponent implements OnInit {
 
   readonly modReasonValid = computed(() => isValidModerationReason(this.modReason()));
 
-  /** `modDays()` as the `<option value>` strings — null (indefinite) is ''. */
+  /** `modDays()` as the list's option values — null (indefinite) is 'indefinite'. */
   readonly modDaysValue = computed(() => {
     const d = this.modDays();
-    return d === null ? '' : String(d);
+    return d === null ? 'indefinite' : String(d);
   });
 
   /**
@@ -1205,7 +1220,8 @@ export class AdminComponent implements OnInit {
   readonly inviteRole = signal<Role>('collaborator');
   readonly sendInvite = signal(false);
   readonly inviteBusy = signal(false);
-  readonly inviteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  /** i18n key (+ params), never raw text. */
+  readonly inviteMsg = signal<AdminFlash | null>(null);
 
   // C7 — share-link copy state (separate toast so it doesn't clash with the
   // register form's own success/error message).
@@ -1214,8 +1230,10 @@ export class AdminComponent implements OnInit {
   // Access-request queue state (feedback 56f328ea).
   readonly accessRequests = signal<AccessRequestRow[]>([]);
   readonly accessBusy = signal(false);
+  /** i18n key, never raw text. */
   readonly accessErrorMsg = signal<string | null>(null);
-  readonly accessMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  /** i18n key (+ params), never raw text. */
+  readonly accessMsg = signal<AdminFlash | null>(null);
   /** Per-request role picker; absent = the `viewer` default. */
   private readonly requestRoles = signal<Record<string, Role>>({});
 
@@ -1223,7 +1241,17 @@ export class AdminComponent implements OnInit {
   // entries are rows of the people list, see people().
   readonly allowedEmails = signal<AllowedEmailRow[]>([]);
   readonly allowlistBusy = signal(false);
+  /** i18n key, never raw text. */
   readonly allowlistErrorMsg = signal<string | null>(null);
+
+  /**
+   * Admin RPC failure → i18n key. Logs through `toErrorKey`; the RPC's own
+   * prefix (`protected_admin: …`, `forbidden: …`) wins over the generic kind.
+   */
+  private rpcErrorKey(op: string, err: unknown, ctx?: Record<string, unknown>): string {
+    const key = toErrorKey('admin', op, err, ctx);
+    return adminRpcErrorKey(err) ?? key;
+  }
 
   asInput(e: Event): string {
     return (e.target as HTMLInputElement).value;
@@ -1302,20 +1330,17 @@ export class AdminComponent implements OnInit {
     const { data, error } = await this.sb.client.functions.invoke('invite-user', {
       body: { email, role, sendInvite: this.sendInvite() },
     });
-    this.inviteBusy.set(false);
     const payload = (data ?? {}) as RegisterResponse;
     if (error || payload.error) {
-      this.inviteMsg.set({
-        kind: 'error',
-        text: payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.register.unknownError'),
-      });
+      const code = await readEdgeErrorCode(error, data);
+      this.inviteBusy.set(false);
+      logWarn('admin', 'register failed', { code, error, payload });
+      this.inviteMsg.set({ kind: 'error', key: inviteErrorKey(code) });
       return;
     }
+    this.inviteBusy.set(false);
     const statusKey = payload.status ? `admin.register.status.${payload.status}` : 'admin.register.status.allowlisted';
-    this.inviteMsg.set({
-      kind: 'success',
-      text: this.translate.instant(statusKey, { email }),
-    });
+    this.inviteMsg.set({ kind: 'success', key: statusKey, params: { email } });
     this.inviteEmail.set('');
     this.sendInvite.set(false);
     await Promise.all([this.refresh(), this.refreshAllowlist()]);
@@ -1458,7 +1483,7 @@ export class AdminComponent implements OnInit {
     this.accessErrorMsg.set(null);
     const { data, error } = await this.sb.client.rpc('pending_access_requests');
     if (error) {
-      this.accessErrorMsg.set(error.message);
+      this.accessErrorMsg.set(this.rpcErrorKey('load access requests', error));
     } else {
       this.accessRequests.set((data ?? []) as AccessRequestRow[]);
     }
@@ -1487,12 +1512,10 @@ export class AdminComponent implements OnInit {
     });
     const payload = (data ?? {}) as RegisterResponse;
     if (error || payload.error) {
+      const code = await readEdgeErrorCode(error, data);
       this.accessBusy.set(false);
-      this.accessMsg.set({
-        kind: 'error',
-        text: payload.message ?? payload.error ?? error?.message
-          ?? this.translate.instant('admin.register.unknownError'),
-      });
+      logWarn('admin', 'accept request invite failed', { code, error, payload, requestId: row.id });
+      this.accessMsg.set({ kind: 'error', key: inviteErrorKey(code) });
       return;
     }
     const { error: decideErr } = await this.sb.client.rpc('decide_access_request', {
@@ -1501,15 +1524,16 @@ export class AdminComponent implements OnInit {
     });
     this.accessBusy.set(false);
     if (decideErr) {
-      this.accessMsg.set({ kind: 'error', text: decideErr.message });
+      this.accessMsg.set({
+        kind: 'error',
+        key: this.rpcErrorKey('accept request', decideErr, { requestId: row.id }),
+      });
       return;
     }
     this.accessMsg.set({
       kind: 'success',
-      text: this.translate.instant(
-        invited ? 'admin.requests.accepted' : 'admin.requests.acceptedNoMail',
-        { email: row.email },
-      ),
+      key: invited ? 'admin.requests.accepted' : 'admin.requests.acceptedNoMail',
+      params: { email: row.email },
     });
     await Promise.all([this.refreshAccessRequests(), this.refreshAllowlist(), this.refresh()]);
   }
@@ -1536,13 +1560,13 @@ export class AdminComponent implements OnInit {
     });
     this.accessBusy.set(false);
     if (error) {
-      this.accessMsg.set({ kind: 'error', text: error.message });
+      this.accessMsg.set({
+        kind: 'error',
+        key: this.rpcErrorKey('decline request', error, { requestId: row.id }),
+      });
       return;
     }
-    this.accessMsg.set({
-      kind: 'success',
-      text: this.translate.instant('admin.requests.declined', { email: row.email }),
-    });
+    this.accessMsg.set({ kind: 'success', key: 'admin.requests.declined', params: { email: row.email } });
     await this.refreshAccessRequests();
   }
 
@@ -1551,7 +1575,7 @@ export class AdminComponent implements OnInit {
     this.errorMsg.set(null);
     const { data, error } = await this.sb.client.rpc('list_users_for_admin');
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(this.rpcErrorKey('load users', error));
     } else {
       this.users.set(((data ?? []) as AdminUserRow[]));
     }
@@ -1562,7 +1586,7 @@ export class AdminComponent implements OnInit {
     this.reportsErrorMsg.set(null);
     const { data, error } = await this.sb.client.rpc('list_reports_for_admin');
     if (error) {
-      this.reportsErrorMsg.set(error.message);
+      this.reportsErrorMsg.set(this.rpcErrorKey('load reports', error));
       return;
     }
     this.reports.set((data ?? []) as UserReportRow[]);
@@ -1608,9 +1632,8 @@ export class AdminComponent implements OnInit {
     this.modReason.set((event.target as HTMLTextAreaElement).value);
   }
 
-  onModDays(event: Event): void {
-    const raw = (event.target as HTMLSelectElement).value;
-    this.modDays.set(raw === '' ? null : Number(raw));
+  onModDays(value: string | null): void {
+    this.modDays.set(value === null || value === 'indefinite' ? null : Number(value));
   }
 
   async submitModeration(u: AdminUserRow): Promise<void> {
@@ -1650,7 +1673,7 @@ export class AdminComponent implements OnInit {
     this.allowlistErrorMsg.set(null);
     const { data, error } = await this.sb.client.rpc('list_allowed_emails');
     if (error) {
-      this.allowlistErrorMsg.set(error.message);
+      this.allowlistErrorMsg.set(this.rpcErrorKey('load allowlist', error));
     } else {
       this.allowedEmails.set((data ?? []) as AllowedEmailRow[]);
     }
@@ -1676,7 +1699,7 @@ export class AdminComponent implements OnInit {
     this.allowlistErrorMsg.set(null);
     const { error } = await this.sb.client.rpc('remove_allowed_email', { target_email: row.email });
     if (error) {
-      this.allowlistErrorMsg.set(error.message);
+      this.allowlistErrorMsg.set(this.rpcErrorKey('withdraw invite', error));
       this.allowlistBusy.set(false);
       return;
     }
@@ -1700,7 +1723,9 @@ export class AdminComponent implements OnInit {
     });
     const payload = (data ?? {}) as { ok?: boolean; error?: string; message?: string; deletedSelf?: boolean };
     if (error || payload.error) {
-      this.errorMsg.set(payload.message ?? payload.error ?? error?.message ?? this.translate.instant('admin.delete.failed'));
+      const code = await readEdgeErrorCode(error, data);
+      logWarn('admin', 'delete user failed', { code, error, payload, userId: u.id });
+      this.errorMsg.set(deleteUserErrorKey(code));
       this.busy.set(false);
       return;
     }
@@ -1720,7 +1745,7 @@ export class AdminComponent implements OnInit {
       new_role: newRole,
     });
     if (error) {
-      this.errorMsg.set(error.message);
+      this.errorMsg.set(this.rpcErrorKey('set role', error, { userId, newRole }));
       this.busy.set(false);
     } else {
       // If we just changed our own role, refresh local role signal

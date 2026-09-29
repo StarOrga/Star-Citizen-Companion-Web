@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -103,6 +104,8 @@ const PER_KIND_LIMIT = 6;
 
           @if (loading()) {
             <p class="state">{{ 'quickSearch.searching' | translate }}</p>
+          } @else if (searchError(); as e) {
+            <p class="state err" role="alert">{{ 'quickSearch.error' | translate }} — {{ e | translate }}</p>
           } @else if (query() && displayResults().length === 0) {
             <p class="state">{{ 'quickSearch.noResults' | translate }}</p>
           } @else if (!query()) {
@@ -322,6 +325,8 @@ export class QuickSearchComponent {
   readonly visible = signal(false);
   readonly query = signal('');
   readonly loading = signal(false);
+  /** i18n key of a failed search — never raw text, and never shown as "no results". */
+  readonly searchError = signal<string | null>(null);
   /** Raw merged matches across all searchable kinds (unfiltered store). */
   readonly results = signal<QuickResult[]>([]);
   readonly activeIndex = signal(0);
@@ -529,6 +534,7 @@ export class QuickSearchComponent {
     const seq = ++this.searchSeq;
     this.addFailed.set(null);
     this.loading.set(true);
+    this.searchError.set(null);
     try {
       const kinds: CodexKind[] = ['ship', 'weapon', 'component'];
       const lists = await Promise.all(
@@ -541,10 +547,11 @@ export class QuickSearchComponent {
       });
       this.results.set(merged);
       this.activeIndex.set(0);
-    } catch {
+    } catch (err) {
       if (seq === this.searchSeq) {
         this.results.set([]);
         this.activeIndex.set(0);
+        this.searchError.set(toErrorKey('quick-search', 'search', err, { term }));
       }
     } finally {
       if (seq === this.searchSeq) this.loading.set(false);

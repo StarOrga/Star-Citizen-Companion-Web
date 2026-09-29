@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.110.0] - 2026-09-29
+
+### Changed
+
+- **Auswahllisten öffnen überall im App-Look.** Sprache, Region,
+  Meldekategorie, Teilen mit Freund, Sperrdauer, Freigabe-Ring und Kanal nutzen
+  jetzt die eigene Liste statt der Systemliste – auf Android kommt kein
+  Vollbild-Rad mehr.
+- **Keine Browser-Tooltips mehr.** Status-Banner, Patch-Zeilen, Analyse-Lücken,
+  Holo-Badge, Hardpoint-Karte und Wochenwerte zeigen ihren Hinweis im
+  App-Tooltip; Analyse-Lücken und Hardpoint-Marker sind auch per Tastatur
+  erreichbar.
+- **Symbol-Knöpfe sagen, was sie tun.** Rund 40 Knöpfe wie ✕, ✎ oder Minimieren
+  zeigen ihren Namen als Tooltip; der Schließen-Knopf im Holo-Inspector nennt
+  wieder die Esc-Taste.
+
+## [0.109.0] - 2026-09-29
+
+### Changed
+
+- **Fehlermeldungen sind jetzt verständlich.** Statt „Failed to fetch“ oder
+  Datenbanktext steht dort ein übersetzter Satz („Du bist offline …“), fast
+  immer mit „Erneut versuchen“.
+- **Anmeldung spricht Klartext.** Falsches Passwort, Rate-Limit oder
+  abgelaufener Link werden auf Deutsch und Englisch erklärt.
+- **Anonyme Fehlerberichte nur mit Einwilligung.** Unbehandelte Fehler gehen
+  bereinigt an PostHog, und nur bei erlaubter Statistik.
+
+### Fixed
+
+- **Fehler sieht nicht mehr wie „leer“ aus.** Schnellsuche, Hangar, Picker,
+  Patch-Auswahl und Detailseiten zeigen bei einem Ladefehler einen
+  Fehlerzustand statt „Keine Treffer“.
+
 ## [0.108.1] - 2026-09-29
 
 ### Fixed

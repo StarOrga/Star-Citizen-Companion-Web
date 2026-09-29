@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -26,10 +27,11 @@ import { LocaleService } from '../core/locale/locale.service';
 import type { AppLanguage, RegionCode } from '../core/locale/locale.types';
 import { PICKER_REGIONS } from '../core/locale/region.data';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
-import { readErrorBody } from '../core/edge-error';
+import { readEdgeErrorCode } from '../core/edge-error';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { memberSince } from './member-since';
 
 // Only languages with a real translation file are offered (issue #23) — the
@@ -89,7 +91,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
 @Component({
   selector: 'sc-settings',
   standalone: true,
-  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe, ScTooltipDirective],
+  imports: [PasswordFormComponent, RouterLink, ScDatePipe, TranslatePipe, ScTooltipDirective, ScSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -267,43 +269,37 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
                      cells, so they can never share a line partially and
                      collide, at any viewport (feedback af058ca4). -->
                 <div class="locale-grid">
-                  <label class="locale-field">
+                  <div class="locale-field">
                     <span class="inline-label">{{ 'settings.locale.language.label' | translate }}</span>
-                    <select
-                      class="sc-select"
+                    <sc-select
+                      [options]="languageOptions"
                       [value]="locale.languageSetting()"
-                      (change)="onLanguageChange($event)"
-                      [attr.aria-label]="'settings.locale.language.label' | translate">
-                      <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
-                      @for (l of languages; track l) {
-                        <option [value]="l">{{ 'settings.locale.languages.' + l | translate }}</option>
-                      }
-                    </select>
+                      [allowEmpty]="false"
+                      [ariaLabel]="'settings.locale.language.label' | translate"
+                      (valueChange)="onLanguageChange($event)"
+                    />
                     @if (locale.languageIsAuto()) {
                       <span class="field-note">
                         {{ 'settings.locale.detected' | translate: { value: languageLabel(locale.language()) } }}
                       </span>
                     }
-                  </label>
+                  </div>
 
-                  <label class="locale-field">
+                  <div class="locale-field">
                     <span class="inline-label">{{ 'settings.locale.region.label' | translate }}</span>
-                    <select
-                      class="sc-select"
+                    <sc-select
+                      [options]="regionOptions"
                       [value]="locale.regionSetting()"
-                      (change)="onRegionChange($event)"
-                      [attr.aria-label]="'settings.locale.region.label' | translate">
-                      <option value="auto">{{ 'settings.locale.auto' | translate }}</option>
-                      @for (r of regions; track r) {
-                        <option [value]="r">{{ 'settings.locale.regions.' + r | translate }}</option>
-                      }
-                    </select>
+                      [allowEmpty]="false"
+                      [ariaLabel]="'settings.locale.region.label' | translate"
+                      (valueChange)="onRegionChange($event)"
+                    />
                     @if (locale.regionIsAuto()) {
                       <span class="field-note">
                         {{ 'settings.locale.detected' | translate: { value: regionLabel(locale.region()) } }}
                       </span>
                     }
-                  </label>
+                  </div>
                 </div>
 
                 <div class="row">
@@ -746,27 +742,12 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       font-size: max(0.75rem, var(--sc-fs-floor));
       line-height: 1.4;
     }
+    /* Full cell width: a select that sizes itself to its widest option is
+       exactly what used to push it over its neighbour. Frame, font, focus and
+       the 48px touch height come from sc-select itself. */
     .sc-select {
-      background: var(--sc-bg-1);
-      color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border);
-      border-radius: 4px;
-      padding: 8px 12px;
-      font-family: var(--sc-font-display);
-      font-size: 0.85rem;
-      letter-spacing: 0.06em;
-      cursor: pointer;
-      /* Full cell width: a select that sizes itself to its widest option is
-         exactly what used to push it over its neighbour. */
       width: 100%;
       min-width: 0;
-      max-width: 100%;
-      min-height: 40px;
-    }
-    .sc-select:focus {
-      outline: none;
-      border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
     }
     .sc-btn-primary {
       background: var(--sc-accent);
@@ -886,7 +867,6 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
     /* Touch baseline: 44px is the project threshold, but the shell's loading
        scale animations shave a pixel off a measured target — so ask for 48. */
     @media (pointer: coarse) {
-      .sc-select { min-height: 48px; }
       .id-copy { min-height: 48px; padding: 8px 16px; }
       .toc-link { min-height: 48px; }
     }
@@ -972,6 +952,15 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly languages: readonly LangId[] = ['de', 'en'];
   readonly regions: readonly RegionCode[] = PICKER_REGIONS;
+  /** Declared below languages/regions: class fields initialise in order. */
+  readonly languageOptions: readonly ScSelectOption[] = [
+    { value: 'auto', labelKey: 'settings.locale.auto' },
+    ...this.languages.map((l) => ({ value: l, labelKey: 'settings.locale.languages.' + l })),
+  ];
+  readonly regionOptions: readonly ScSelectOption[] = [
+    { value: 'auto', labelKey: 'settings.locale.auto' },
+    ...this.regions.map((r) => ({ value: r, labelKey: 'settings.locale.regions.' + r })),
+  ];
   /** Stable reference so the live format preview does not re-render per tick. */
   readonly sampleDate = new Date();
   // Normalize legacy stored values (fr/es/pt/ru/zh from the old 7-language
@@ -1309,9 +1298,8 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
    * activation (the shell mirrors its resolved language), so this handler only
    * records the choice and syncs it to the account.
    */
-  onLanguageChange(e: Event) {
-    const value = (e.target as HTMLSelectElement).value;
-    const setting = value === 'auto' ? 'auto' : (value as LangId);
+  onLanguageChange(value: string | null) {
+    const setting = value === null || value === 'auto' ? 'auto' : (value as LangId);
     this.locale.setLanguage(setting);
     this.analytics.capture('settings_language_changed', { lang: setting });
     // Persist to the profile as the logged-in preference. Fire-and-forget:
@@ -1320,20 +1308,19 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     this.sb.client
       .rpc('set_preferred_lang', { lang: setting === 'auto' ? null : setting })
       .then(({ error }) => {
-        if (error) console.warn('[settings] set_preferred_lang failed:', error.message);
+        if (error) logWarn('settings', 'set_preferred_lang failed', error);
       });
   }
 
   /** Region choice — decides date field order and the clock convention. */
-  onRegionChange(e: Event) {
-    const value = (e.target as HTMLSelectElement).value;
-    const setting = value === 'auto' ? 'auto' : value.toUpperCase();
+  onRegionChange(value: string | null) {
+    const setting = value === null || value === 'auto' ? 'auto' : value.toUpperCase();
     this.locale.setRegion(setting);
     this.analytics.capture('settings_region_changed', { region: setting });
     this.sb.client
       .rpc('set_preferred_region', { region: setting === 'auto' ? null : setting })
       .then(({ error }) => {
-        if (error) console.warn('[settings] set_preferred_region failed:', error.message);
+        if (error) logWarn('settings', 'set_preferred_region failed', error);
       });
   }
 
@@ -1383,7 +1370,7 @@ export class SettingsComponent implements OnInit, AfterViewInit, OnDestroy {
     if (error || payload.error) {
       // The signal holds an i18n KEY, the template translates. The function's
       // `message` is German plain text and never shown (English UI).
-      const code = payload.error ?? (await readErrorBody(error)).error;
+      const code = await readEdgeErrorCode(error, data);
       this.deleteError.set((code && DELETE_ACCOUNT_ERROR_KEYS[code]) ?? 'settings.danger.failed');
       this.deleting.set(false);
       return;

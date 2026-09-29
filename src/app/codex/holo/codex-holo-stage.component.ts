@@ -1,3 +1,4 @@
+import { logWarn } from '../../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -1024,7 +1025,8 @@ export class CodexHoloStageComponent {
         const available = skins.some((s) => !!s.modelPath);
         this.has3d.set(available);
         if (available) this.artAvailable.emit(true);
-      }).catch(() => {
+      }).catch((error) => {
+        logWarn('codex', 'holo skin catalog failed', { shipId, error });
         /* catalog unreachable — the toggle simply stays hidden */
       });
     });

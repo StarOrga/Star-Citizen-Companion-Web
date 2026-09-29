@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
@@ -93,7 +94,7 @@ export class UserFeedbackService {
       .select('id, body, created_at, updated_at, decision_note, author_status, area, can_delete')
       .order('created_at', { ascending: false });
     if (error) {
-      this._error.set(error.message);
+      this._error.set(toErrorKey('feedback', 'list', error));
       this._busy.set(false);
       return;
     }
@@ -252,7 +253,7 @@ export class UserFeedbackService {
     if (error) {
       // 54000 = the per-author hourly topic cap raised by the DB guard. Worth its
       // own message: "rate limit reached" is actionable, a raw SQL error is not.
-      this._error.set(error.code === '54000' ? 'rate' : error.message);
+      this._error.set(error.code === '54000' ? 'rate' : toErrorKey('feedback', 'submit', error));
       return false;
     }
     await this.refresh();
@@ -288,7 +289,7 @@ export class UserFeedbackService {
       body,
     });
     if (error) {
-      this._error.set(error.message);
+      this._error.set(toErrorKey('feedback', 'reply', error));
       return false;
     }
     await this.refresh();
@@ -327,7 +328,7 @@ export class UserFeedbackService {
     const { error } = await this.sb.client.from('admin_feedback').delete().eq('id', feedbackId);
     this._busy.set(false);
     if (error) {
-      this._error.set(error.message);
+      this._error.set(toErrorKey('feedback', 'withdraw', error, { feedbackId }));
       return false;
     }
     await this.refresh();

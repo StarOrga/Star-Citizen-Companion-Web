@@ -752,7 +752,8 @@ describe('CodexDetailComponent — failed load (non-ship archive pages)', () => 
     const fixture = await setup('weapon', [], NOMAD_PAYLOAD, { getDetail });
     const el: HTMLElement = fixture.nativeElement;
 
-    expect(el.querySelector('.err')?.textContent).toContain('network down');
+    expect(el.querySelector('.err')?.textContent).toContain('errors.generic');
+    expect(el.querySelector('.err')?.textContent).not.toContain('network down');
     (el.querySelector('.err .retry') as HTMLButtonElement).click();
     await fixture.whenStable();
     fixture.detectChanges();

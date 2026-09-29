@@ -1,6 +1,7 @@
+import { toErrorKey } from '../core/describe-error';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { RoleService } from '../auth/role.service';
@@ -93,7 +94,7 @@ type AuthStatus =
             <p class="hint">{{ 'desktopAuth.unauthorizedHint' | translate }}</p>
           }
           @case ('error') {
-            <p class="err">{{ errorMsg() }}</p>
+            <p class="err">{{ errorMsg()! | translate }}</p>
           }
         }
       </div>
@@ -129,10 +130,10 @@ export class DesktopAuthComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sb = inject(SupabaseClientProvider);
   private readonly conn = inject(DesktopConnectionService);
-  private readonly translate = inject(TranslateService);
   private readonly imp = inject(ImpersonationService);
 
   readonly status = signal<AuthStatus>('authorizing');
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   /** Loopback port of the tool asking for the hand-off, shown in the prompt. */
   readonly port = signal('');
@@ -179,12 +180,12 @@ export class DesktopAuthComponent implements OnInit {
 
     if (!this.cb || !this.state) {
       this.status.set('error');
-      this.errorMsg.set(this.translate.instant('desktopAuth.errorMissingParams'));
+      this.errorMsg.set('desktopAuth.errorMissingParams');
       return;
     }
     if (!isLoopbackCallback(this.cb)) {
       this.status.set('error');
-      this.errorMsg.set(this.translate.instant('desktopAuth.errorBadCallback'));
+      this.errorMsg.set('desktopAuth.errorBadCallback');
       return;
     }
 
@@ -227,7 +228,7 @@ export class DesktopAuthComponent implements OnInit {
     const token = data.session?.access_token;
     if (error || !token) {
       this.status.set('error');
-      this.errorMsg.set(error?.message ?? this.translate.instant('desktopAuth.errorNoToken'));
+      this.errorMsg.set(error ? toErrorKey('desktop', 'auth', error) : 'desktopAuth.errorNoToken');
       return;
     }
     // Hand over a session that belongs to the TOOL, not the browser's own, so it

@@ -1,3 +1,4 @@
+import { toErrorKey } from '../../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -88,7 +89,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 
       @if (loadError(); as e) {
         <div class="err">
-          <strong>{{ 'admin.tokens.errorTitle' | translate }}:</strong> {{ e }}
+          <strong>{{ 'admin.tokens.errorTitle' | translate }}:</strong> {{ e | translate }}
         </div>
       }
 
@@ -175,7 +176,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
 
           @if (createError(); as e) {
             <div class="err">
-              <strong>{{ 'admin.tokens.dialog.errorTitle' | translate }}:</strong> {{ e }}
+              <strong>{{ 'admin.tokens.dialog.errorTitle' | translate }}:</strong> {{ e | translate }}
             </div>
           }
 
@@ -539,6 +540,7 @@ export class ApiTokensComponent implements OnInit {
 
   readonly tokens = signal<ApiTokenRow[]>([]);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly loadError = signal<string | null>(null);
   readonly flash = signal<FlashMessage | null>(null);
   readonly revokingId = signal<string | null>(null);
@@ -547,6 +549,7 @@ export class ApiTokensComponent implements OnInit {
   readonly newName = signal('');
   readonly selectedScopes = signal<ApiTokenScope[]>([]);
   readonly creating = signal(false);
+  /** i18n key, never raw text. */
   readonly createError = signal<string | null>(null);
 
   readonly revealedToken = signal<CreatedToken | null>(null);
@@ -576,7 +579,7 @@ export class ApiTokensComponent implements OnInit {
       const rows = await this.svc.list();
       this.tokens.set(rows);
     } catch (err) {
-      this.loadError.set((err as Error).message);
+      this.loadError.set(toErrorKey('api-tokens', 'list', err));
     } finally {
       this.busy.set(false);
     }
@@ -632,7 +635,7 @@ export class ApiTokensComponent implements OnInit {
       this.tokenCopied.set(false);
       await this.refresh();
     } catch (err) {
-      this.createError.set((err as Error).message);
+      this.createError.set(toErrorKey('api-tokens', 'create', err));
     } finally {
       this.creating.set(false);
     }
@@ -659,7 +662,7 @@ export class ApiTokensComponent implements OnInit {
     } catch (err) {
       this.flash.set({
         kind: 'error',
-        text: `${this.translate.instant('admin.tokens.revokeError')}: ${(err as Error).message}`,
+        text: `${this.translate.instant('admin.tokens.revokeError')}: ${this.translate.instant(toErrorKey('api-tokens', 'revoke', err, { tokenId: t.id }))}`,
       });
     } finally {
       this.revokingId.set(null);

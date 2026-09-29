@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, NgZone, computed, effect, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { AuthService } from '../auth/auth.service';
@@ -144,9 +145,10 @@ export class AccountStatusService {
       } else {
         this._notice.set(null);
       }
-    } catch {
+    } catch (error) {
       // Thrown fetch (offline, CSP, DNS): identical handling to a returned
-      // error — say nothing, deny nothing.
+      // error — say nothing, deny nothing. The console still hears about it.
+      logWarn('account-status', 'status read failed', error);
     }
   }
 
@@ -156,7 +158,8 @@ export class AccountStatusService {
     if (!w) return;
     try {
       await this.sb.realClient.rpc('acknowledge_warning', { action_id: w.id });
-    } catch {
+    } catch (error) {
+      logWarn('account-status', 'warning acknowledge failed', { id: w.id, error });
       // Best effort: the banner is dismissed locally either way, and the
       // next refresh re-surfaces it if the write did not land.
     }

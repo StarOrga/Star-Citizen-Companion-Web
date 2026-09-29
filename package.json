@@ -1,6 +1,6 @@
 {
   "name": "sc-companion",
-  "version": "0.108.1",
+  "version": "0.110.0",
   "description": "Star Citizen companion — auth, Verse News, P4K upload analyzer.",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "gen:release-notes": "node scripts/gen-release-notes.js",
     "gen:readme-content": "node scripts/gen-readme-content.mjs",
     "check:readme-docs": "node scripts/gen-readme-content.mjs --check",
-    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs && node scripts/check-native-ui.mjs",
+    "prebuild": "node scripts/gen-release-notes.js && node scripts/build-brand-icons.mjs --check && node scripts/check-csp-3d.mjs && node scripts/check-csp-connect-src.mjs && node scripts/check-no-personal-emails.mjs && node scripts/check-routine-prompts.mjs && node scripts/check-native-ui.mjs && node scripts/check-raw-errors.mjs",
     "build": "node scripts/build-with-exit-guard.mjs",
     "postbuild": "node scripts/stamp-index-version.mjs && node scripts/check-index-csp.mjs && node scripts/stamp-ngsw-worker.mjs",
     "watch": "ng build --watch --configuration development",
@@ -54,6 +54,8 @@
     "check:edge-functions": "node scripts/changed-edge-functions.mjs --selftest",
     "check:emails": "node scripts/check-no-personal-emails.mjs",
     "check:native-ui": "node scripts/check-native-ui.mjs",
+    "check:raw-errors": "node scripts/check-raw-errors.mjs",
+    "check:raw-errors:selftest": "node scripts/check-raw-errors.mjs --selftest",
     "check:emails:selftest": "node scripts/check-no-personal-emails.mjs --selftest",
     "gen:brand-icons": "node scripts/build-brand-icons.mjs",
     "check:brand-icons": "node scripts/build-brand-icons.mjs --check"

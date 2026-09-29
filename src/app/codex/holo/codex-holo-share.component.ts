@@ -2,6 +2,7 @@
 // model). Standalone content component — the host (codex-detail, Wave 2.5)
 // hosts it inside its own popover shell and wires `copyCurrentLink` to its
 // EXISTING `copyShareLink()` (inventory #14, unchanged).
+import { logWarn } from '../../core/log';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDatePipe } from '../../core/locale/sc-date.pipe';
@@ -77,6 +78,9 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
                   <button type="button" class="danger" (click)="revoke(l)">
                     {{ 'codex.holo.share.revoke' | translate }}
                   </button>
+                  @if (copyFailed()) {
+                    <span class="err copy-failed" role="alert">{{ 'codex.holo.share.copyFailed' | translate }}</span>
+                  }
                 </div>
                 <p class="revoke-note">{{ 'codex.holo.share.revokeNote' | translate }}</p>
               } @else {
@@ -123,7 +127,7 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
     .hangar-share > button:disabled { opacity: 0.6; cursor: not-allowed; }
     .link-url { margin: 0; padding: 6px 8px; border-radius: 4px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); font-size: max(0.74rem, var(--sc-fs-floor)); overflow-wrap: anywhere; }
-    .actions { display: flex; gap: 6px; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .actions button { min-height: 40px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--sc-border);
       background: var(--sc-bg-0); color: var(--sc-fg-1); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
     .actions button.danger:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
@@ -162,6 +166,8 @@ export class CodexHoloShareComponent {
   readonly creating = signal(false);
   readonly refreshing = signal(false);
   readonly copied = signal(false);
+  /** The clipboard refused the copy — shown for 3 s next to the button. */
+  readonly copyFailed = signal(false);
   readonly error = signal<string | null>(null);
 
   constructor() {
@@ -208,9 +214,15 @@ export class CodexHoloShareComponent {
   }
 
   async copyHangarLink(l: HangarShareLink): Promise<void> {
+    this.copyFailed.set(false);
     try {
       await navigator.clipboard.writeText(this.shareUrl(l));
-    } catch {
+    } catch (error) {
+      // Clipboard permission denied (or no clipboard API): say so, so the
+      // reader knows to copy the link by hand instead of trusting a no-op.
+      logWarn('codex', 'share link copy failed', error);
+      this.copyFailed.set(true);
+      setTimeout(() => this.copyFailed.set(false), 3000);
       return;
     }
     this.copied.set(true);

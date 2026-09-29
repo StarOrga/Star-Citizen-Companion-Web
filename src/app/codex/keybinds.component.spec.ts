@@ -269,7 +269,8 @@ describe('KeybindsComponent', () => {
   it('shows only the error card when the read fails, not "no build published" under it', async () => {
     const fixture = await setup({ binds: [], failList: true });
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.err')?.textContent).toContain('network down');
+    expect(el.querySelector('.err')?.textContent).toContain('errors.generic');
+    expect(el.querySelector('.err')?.textContent).not.toContain('network down');
     expect(el.querySelector('.err .retry')).not.toBeNull();
     expect(el.querySelector('.empty')).toBeNull();
   });

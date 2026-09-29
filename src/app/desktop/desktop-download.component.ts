@@ -1,3 +1,4 @@
+import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,6 +9,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { RoleService } from '../auth/role.service';
 import { P4kHistoryComponent } from '../p4k/p4k-history.component';
@@ -15,6 +17,7 @@ import { AppDownloadEntry, AppDownloadPanelComponent } from './app-download-pane
 import { ChannelPickerComponent, ReleaseChannel } from './channel-picker.component';
 import { DesktopReleaseService, ReleaseInfo, hashFingerprint } from './desktop-release.service';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * The Data Upload page (`/uploader`). Since admin feedback eb9c6ec3 it renders
@@ -35,6 +38,8 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
     AppDownloadPanelComponent,
     ChannelPickerComponent,
     ScDialogDirective,
+    ScSelectComponent,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -45,7 +50,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       </header>
 
       @if (errorMsg()) {
-        <div class="err">{{ errorMsg() }}</div>
+        <div class="err" role="alert">{{ errorMsg()! | translate }}</div>
       }
 
       <sc-app-download-panel
@@ -79,20 +84,20 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
         @if (release(); as r) {
         <div class="promote">
           <span class="pl">{{ 'desktop.promote.label' | translate }}</span>
-          <select class="psel"
-                  [value]="promoteTarget()"
-                  (change)="onPromoteTarget($event)"
-                  [disabled]="promoting()"
-                  [attr.aria-label]="'desktop.promote.label' | translate">
-            <option value="alpha">{{ 'desktop.channel.alpha' | translate }}</option>
-            <option value="beta">{{ 'desktop.channel.beta' | translate }}</option>
-            <option value="stable">{{ 'desktop.channel.stable' | translate }}</option>
-          </select>
+          <sc-select
+            class="psel"
+            [options]="promoteOptions"
+            [allowEmpty]="false"
+            [value]="promoteTarget()"
+            [disabled]="promoting()"
+            [ariaLabel]="'desktop.promote.label' | translate"
+            (valueChange)="onPromoteTarget($event)"
+          />
           <button class="sc-btn micro" [disabled]="promoting()" (click)="promote(r.version)">
             {{ 'desktop.promote.action' | translate }}
           </button>
           @if (promoteMsg(); as m) {
-            <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text }}</span>
+            <span class="pmsg" [class.err]="m.kind === 'error'">{{ m.text | translate }}</span>
           }
         </div>
         }
@@ -110,7 +115,8 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
           <div class="hx-head">
             <span class="hx-t">{{ 'desktop.bundleHistory' | translate }}</span>
             <button type="button" class="hx-close" (click)="historyOpen.set(false)"
-                    [attr.aria-label]="'desktop.close' | translate">✕</button>
+                    [attr.aria-label]="'desktop.close' | translate"
+                    [scTooltip]="'desktop.close' | translate">✕</button>
           </div>
           <div class="hx-scroll">
             <sc-p4k-history [embedded]="true" />
@@ -153,15 +159,7 @@ import { ScDatePipe } from '../core/locale/sc-date.pipe';
       color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase;
     }
-    .promote .psel {
-      background: var(--sc-bg-2); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 4px; padding: 5px 8px;
-      font: inherit; font-size: 0.82rem;
-    }
-    .promote .psel:focus {
-      outline: none; border-color: var(--sc-accent);
-      box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.25);
-    }
+    .promote .psel { min-inline-size: 9rem; }
     .promote .pmsg { font-size: 0.8rem; color: var(--sc-accent); }
     .promote .pmsg.err { color: var(--sc-danger); }
 
@@ -206,6 +204,7 @@ export class DesktopDownloadComponent {
 
   readonly release = signal<ReleaseInfo | null>(null);
   readonly busy = signal(false);
+  /** i18n key, never raw text. */
   readonly errorMsg = signal<string | null>(null);
   readonly channel = signal<ReleaseChannel>('stable');
   readonly historyOpen = signal(false);
@@ -216,7 +215,11 @@ export class DesktopDownloadComponent {
   // Admin-only inline release promotion (feedback 446c245e).
   readonly promoteTarget = signal<ReleaseChannel>('beta');
   readonly promoting = signal(false);
+  /** `text`: an i18n key on error, the plain `vX → ring` line on success (the pipe passes it through). */
   readonly promoteMsg = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  readonly promoteOptions: readonly ScSelectOption[] = (['alpha', 'beta', 'stable'] as const).map(
+    (c) => ({ value: c, labelKey: 'desktop.channel.' + c }),
+  );
 
   readonly entries = computed<AppDownloadEntry[]>(() =>
     Object.entries(this.release()?.platforms ?? {}).map(([key, value]) => ({
@@ -252,8 +255,9 @@ export class DesktopDownloadComponent {
     this.busy.set(false);
   }
 
-  onPromoteTarget(ev: Event): void {
-    this.promoteTarget.set((ev.target as HTMLSelectElement).value as ReleaseChannel);
+  onPromoteTarget(value: string | null): void {
+    if (value === null) return;
+    this.promoteTarget.set(value as ReleaseChannel);
     this.promoteMsg.set(null);
   }
 
@@ -272,7 +276,7 @@ export class DesktopDownloadComponent {
       p_to_channel: to,
     });
     if (error) {
-      this.promoteMsg.set({ kind: 'error', text: error.message });
+      this.promoteMsg.set({ kind: 'error', text: toErrorKey('desktop', 'promote', error, { version, to }) });
     } else {
       this.promoteMsg.set({ kind: 'success', text: `v${version} → ${to}` });
       await this.load(this.channel());

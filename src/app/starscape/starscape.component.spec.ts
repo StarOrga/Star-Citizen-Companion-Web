@@ -237,12 +237,12 @@ describe('StarscapeComponent', () => {
 
   it('offers a retry instead of leaving a failed page load as a dead end', () => {
     const svc = serviceStub([]);
-    svc.error.set('network unreachable');
+    svc.error.set('errors.network');
     const f = setup(svc);
     const card = f.nativeElement.querySelector('.err') as HTMLElement;
     expect(card).not.toBeNull();
-    // The server's own words survive as the small technical line.
-    expect(card.textContent).toContain('network unreachable');
+    // The translated kind of failure, never the raw message.
+    expect(card.querySelector('.err-detail')?.textContent).toContain('errors.network');
     (card.querySelector('button') as HTMLButtonElement).click();
     expect(svc.load).toHaveBeenCalledWith(true);
     f.destroy();
@@ -250,7 +250,7 @@ describe('StarscapeComponent', () => {
 
   it('does not print our own deadline marker as if it were a server message', () => {
     const svc = serviceStub([]);
-    svc.error.set('timeout after 15s');
+    svc.error.set('errors.timeout');
     svc.timedOut.set(true);
     const f = setup(svc);
     // The localized headline carries the meaning; an untranslated internal

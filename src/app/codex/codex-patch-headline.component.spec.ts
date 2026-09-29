@@ -37,6 +37,8 @@ describe('CodexPatchHeadlineComponent', () => {
     published?: string[];
     live?: string;
     stale?: boolean;
+    /** The timeline read fails the first time (sets patchTimelineError). */
+    failFirst?: boolean;
   } = {}): Promise<ComponentFixture<CodexPatchHeadlineComponent>> {
     const builds = opts.builds ?? [build('4.2'), build('4.1')];
     const livePatch = opts.live ?? builds[0]?.patchVersion ?? null;
@@ -44,6 +46,8 @@ describe('CodexPatchHeadlineComponent', () => {
 
     active = signal<CodexBuild | null>(liveBuild);
     timeline = signal<readonly PatchTimelineEntry[]>([]);
+    const timelineError = signal<string | null>(null);
+    let failNext = opts.failFirst ?? false;
     const entries = buildPatchTimeline(builds, opts.uploaded ?? []);
 
     selectSpy = jasmine.createSpy('selectBuild').and.callFake((b: CodexBuild | null) => {
@@ -59,9 +63,16 @@ describe('CodexPatchHeadlineComponent', () => {
       stale: signal(opts.stale ?? false) as never,
       viewingPastPatch: computed(() => !!liveBuild && active()?.id !== liveBuild.id) as never,
       patchTimeline: timeline as never,
+      patchTimelineError: timelineError as never,
       loadPatchTimeline: jasmine
         .createSpy('loadPatchTimeline')
         .and.callFake(async () => {
+          if (failNext) {
+            failNext = false;
+            timelineError.set('errors.network');
+            return [];
+          }
+          timelineError.set(null);
           timeline.set(entries);
           return entries;
         }),
@@ -139,6 +150,24 @@ describe('CodexPatchHeadlineComponent', () => {
     expect(rows.map((r) => r.textContent?.trim())).toEqual(['4.9', '4.8', '4.7']);
     // Three and only three: the pager went with the cap (f68c6c6b).
     expect(el.querySelector('.patch-more')).toBeNull();
+  });
+
+  it('shows a failed timeline read as an error with retry, not as "no patches" (AUD-056)', async () => {
+    const fixture = await setup({ failFirst: true });
+    await openSwitch(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    const pop = el.querySelector('.patch-pop')!;
+    expect(pop.querySelector('.pop-err')).not.toBeNull();
+    expect(pop.textContent).toContain('errors.network');
+    expect(pop.textContent).not.toContain('codex.landing.patchSwitch.empty');
+
+    pop.querySelector<HTMLButtonElement>('.pop-err button')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(TestBed.inject(CodexService).loadPatchTimeline).toHaveBeenCalledTimes(2);
+    expect(el.querySelector('.pop-err')).toBeNull();
+    expect(el.querySelectorAll('.patch-row').length).toBeGreaterThan(0);
   });
 
   it('lists a patch RSI shipped without a data upload, greyed out and inert', async () => {

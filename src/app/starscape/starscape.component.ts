@@ -23,6 +23,7 @@ import { StarscapeTilesService } from './starscape-tiles.service';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 // Believable, varied masonry-tile shapes for the loading skeletons. The gallery
 // rows carry no dimension metadata, so a fixed cycle of plausible shapes gives
@@ -99,6 +100,7 @@ const RENDER_CHUNK = 24;
     StarscapeVoteButtonComponent,
     ScSegmentedComponent,
     ScDialogDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -161,18 +163,17 @@ const RENDER_CHUNK = 24;
       <!-- A failed page load is a dead end without a way back in: the request is
            only ever fired on mount, so a phone that lost the connection for one
            second used to be stuck with whatever it got (admin feedback 4e54ad2c,
-           round 3). The raw message stays as a small technical line — the
-           headline and the action are localized. -->
+           round 3). Below the headline, the kind of failure in words (offline,
+           server, …) from describe-error — never the raw message. -->
       @if (svc.error(); as err) {
         <div class="sc-card err" role="alert">
           <p class="err-msg">
             {{ (svc.timedOut() ? 'starscape.errors.timeout' : 'starscape.errors.load') | translate }}
           </p>
-          <!-- Only a message that came from the SERVER earns the technical line;
-               our own deadline marker is not a diagnosis and the headline above
-               already says it in the user's language. -->
+          <!-- Our own deadline already reads as the headline above; any other
+               failure adds its translated kind. -->
           @if (!svc.timedOut()) {
-            <p class="err-detail">{{ err }}</p>
+            <p class="err-detail">{{ err | translate }}</p>
           }
           <button type="button" class="sc-btn" [disabled]="svc.loading()" (click)="reload()">
             {{ 'starscape.retry' | translate }}
@@ -374,7 +375,7 @@ const RENDER_CHUNK = 24;
               <a class="lb-link" [href]="w.articleUrl" target="_blank" rel="noopener noreferrer">
                 {{ 'starscape.sourceArticle' | translate }}
               </a>
-              <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate">✕</button>
+              <button type="button" class="lb-close" (click)="close()" [attr.aria-label]="'starscape.close' | translate" [scTooltip]="'starscape.close' | translate">✕</button>
             </div>
             @if (shareHint(); as hint) {
               <p class="lb-hint" role="status" aria-live="polite">{{ hint | translate }}</p>

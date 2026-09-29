@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
@@ -80,7 +81,10 @@ export class ShipSkinsService {
       )
       .eq('ship_id', shipId)
       .order('sort', { ascending: true });
-    if (error) return { skins: [], error: true };
+    if (error) {
+      logWarn('ship-skins', 'list failed', { shipId, error });
+      return { skins: [], error: true };
+    }
     const skins = (data ?? []).map((r) => ({
       shipId: r.ship_id,
       skinId: r.skin_id,

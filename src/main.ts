@@ -1,3 +1,4 @@
+import { logError } from './app/core/log';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { appConfig } from './app/app.config';
@@ -9,4 +10,4 @@ import { captureAuthLinkType } from './app/auth/auth-link';
 // auth-link.ts).
 captureAuthLinkType();
 
-bootstrapApplication(AppComponent, appConfig).catch((err) => console.error(err));
+bootstrapApplication(AppComponent, appConfig).catch((err) => logError('app', 'bootstrap failed', err));

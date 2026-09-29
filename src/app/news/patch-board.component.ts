@@ -27,6 +27,7 @@ import { RoadmapService, threadSlugOf } from './roadmap.service';
 import { relativeTime } from './relative-time';
 import { StabilityBadgeComponent } from './stability-badge.component';
 import { StabilityHistoryComponent } from './stability-history.component';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -59,6 +60,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     TranslatePipe, RouterLink, RouterOutlet, PatchMonitorComponent,
     StabilityHistoryComponent, StabilityBadgeComponent, PatchFindResultsComponent,
     TeaserStripDirective,
+    ScTooltipDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -70,7 +72,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       </header>
 
       @if (!svc.feed() && svc.error(); as err) {
-        <div class="sc-card err"><strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err }}</div>
+        <div class="sc-card err" role="alert">
+          <span><strong>{{ 'news.errorTitle' | translate }}:</strong> {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="svc.loading()" (click)="retry()">{{ 'errors.retry' | translate }}</button>
+        </div>
       } @else if (svc.loading() && !svc.feed()) {
         <!-- The feed takes a moment often enough to be worth a shape rather
              than a word (owner, 2026-09-05: "Die Patch notes laden manchmal").
@@ -112,6 +117,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
             @if (query()) {
               <button type="button" class="s-clear"
                       [attr.aria-label]="'news.patch.search.clear' | translate"
+                      [scTooltip]="'news.patch.search.clear' | translate"
                       (click)="clearQuery()">×</button>
             }
           </div>
@@ -182,7 +188,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                           @if (teaserRest(card); as rest) {
                             <a class="tz rest" [routerLink]="['/news/patches', card.line]"
                                [queryParams]="itemParams(firstHidden(card))"
-                               [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }">…</a>
+                               [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }"
+                               [scTooltip]="'news.patch.stack.moreItems' | translate:{ n: rest }"
+                               scTooltipTier="label">…</a>
                           }
                         </span>
                       }
@@ -239,7 +247,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .skeleton .row:nth-child(2) .card { min-height: 132px; }
     @keyframes pb-shimmer { from { background-position: 140% 0; } to { background-position: -40% 0; } }
     @media (prefers-reduced-motion: reduce) { .skeleton .card, .row { animation: none; } }
-    .err { color: var(--sc-danger); }
+    .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .err .retry:disabled { opacity: 0.5; cursor: default; }
     .empty { color: var(--sc-fg-2); }
 
     /* Sticky, because the field IS the page while a query runs: the results
@@ -457,6 +469,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 })
 export class PatchBoardComponent implements OnInit, OnDestroy {
   readonly svc = inject(NewsService);
+
+  /** The feed error card's retry — the service's own refresh. */
+  retry(): void {
+    void this.svc.refresh();
+  }
   readonly roadmap = inject(RoadmapService);
   readonly stability = inject(PatchStabilityService);
   private readonly t = inject(TranslateService);

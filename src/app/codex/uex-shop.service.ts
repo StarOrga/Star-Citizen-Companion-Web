@@ -1,3 +1,4 @@
+import { logWarn } from '../core/log';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -170,7 +171,8 @@ export class UexShopService {
 
       options.sort((a, b) => a.price - b.price);
       return options.slice(0, MAX_RESULTS);
-    } catch {
+    } catch (error) {
+      logWarn('uex-shop', 'where to buy failed', { query, error });
       return [];
     }
   }
@@ -307,7 +309,8 @@ export class UexShopService {
       }
       const res = await firstValueFrom(this.http.get<UexEnvelope<T>>(url).pipe(timeout(15_000)));
       return Array.isArray(res?.data) ? res.data : [];
-    } catch {
+    } catch (error) {
+      logWarn('uex-shop', 'fetch failed', { resource, error });
       return [];
     }
   }

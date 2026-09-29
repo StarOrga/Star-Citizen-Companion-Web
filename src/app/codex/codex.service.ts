@@ -1,3 +1,5 @@
+import { toErrorKey } from '../core/describe-error';
+import { logWarn } from '../core/log';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
@@ -399,7 +401,10 @@ export class CodexService {
    */
   readonly liveBuild = signal<CodexBuild | null>(null);
   readonly buildLoading = signal(false);
+  /** i18n key of the last failed build lookup (error flag only; never raw text). */
   readonly buildError = signal<string | null>(null);
+  /** The original failure behind `buildError` — `buildOrThrow` rethrows it so readers can classify it. */
+  private buildFailure: unknown = null;
 
   /**
    * Newest LIVE patch version anyone has uploaded (from the viewer-safe
@@ -435,6 +440,8 @@ export class CodexService {
    * nothing.
    */
   readonly patchTimeline = signal<readonly PatchTimelineEntry[]>([]);
+  /** i18n key of the last failed timeline read (never raw text); null when fine. */
+  readonly patchTimelineError = signal<string | null>(null);
 
   // Compare tray: pinned `${kind}:${className}` keys (max 4).
   private readonly _compare = signal<string[]>([]);
@@ -476,14 +483,14 @@ export class CodexService {
    */
   private async buildOrThrow(): Promise<CodexBuild | null> {
     const build = await this.loadCurrentBuild();
-    const failed = this.buildError();
-    if (!build && failed) throw new Error(failed);
+    if (!build && this.buildError()) throw this.buildFailure ?? new Error('build lookup failed');
     return build;
   }
 
   private async fetchCurrentBuild(): Promise<CodexBuild | null> {
     this.buildLoading.set(true);
     this.buildError.set(null);
+    this.buildFailure = null;
     try {
       const { data, error } = await this.sb.client
         .from('codex_builds')
@@ -505,7 +512,8 @@ export class CodexService {
       void this.loadLatestLivePatch();
       return mapped;
     } catch (err) {
-      this.buildError.set((err as Error).message ?? 'Unknown error');
+      this.buildFailure = err;
+      this.buildError.set(toErrorKey('codex', 'build', err));
       return null;
     } finally {
       this.buildLoading.set(false);
@@ -554,18 +562,31 @@ export class CodexService {
    */
   async loadPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
     if (this.timelinePromise) return this.timelinePromise;
-    this.timelinePromise = this.fetchPatchTimeline();
-    return this.timelinePromise;
+    const attempt = this.fetchPatchTimeline();
+    this.timelinePromise = attempt;
+    return attempt;
   }
 
+  /**
+   * Loads the timeline. A failed build read is NOT memoised and not shown as
+   * "no other patches": `patchTimelineError` holds its key and the next open
+   * of the switch (or its retry) reads again.
+   */
   private async fetchPatchTimeline(): Promise<readonly PatchTimelineEntry[]> {
-    const [builds, uploaded] = await Promise.all([
-      this.recentLiveBuilds(PATCH_TIMELINE_LIMIT),
-      this.uploadedLivePatches(),
-    ]);
-    const entries = buildPatchTimeline(builds, uploaded);
-    this.patchTimeline.set(entries);
-    return entries;
+    this.patchTimelineError.set(null);
+    try {
+      const [builds, uploaded] = await Promise.all([
+        this.recentLiveBuildsOrThrow(PATCH_TIMELINE_LIMIT),
+        this.uploadedLivePatches(),
+      ]);
+      const entries = buildPatchTimeline(builds, uploaded);
+      this.patchTimeline.set(entries);
+      return entries;
+    } catch (err) {
+      this.timelinePromise = null;
+      this.patchTimelineError.set(toErrorKey('codex', 'patch timeline', err));
+      return this.patchTimeline();
+    }
   }
 
   /**
@@ -780,6 +801,7 @@ export class CodexService {
         p_build_id: buildId,
         p_kind: kind,
       });
+      if (error) logWarn('codex', 'facet values failed', { kind, error });
       if (error || !data) return null;
       const d = data as Record<string, unknown>;
       return {
@@ -788,7 +810,8 @@ export class CodexService {
         grades: ((d['grades'] as unknown[]) ?? []) as string[],
         componentKinds: ((d['componentKinds'] as unknown[]) ?? []) as string[],
       };
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'facet values failed', { kind, error });
       return null;
     }
   }
@@ -829,9 +852,11 @@ export class CodexService {
         p_build_id: buildId,
         p_class_names: [...classNames],
       });
+      if (error) logWarn('codex', 'armor rating failed', { buildId, error });
       if (error || !data) return null;
       return data as ArmorRatingRow[];
-    } catch {
+    } catch (error) {
+      logWarn('codex', 'armor rating failed', { buildId, error });
       return null;
     }
   }
@@ -938,7 +963,7 @@ export class CodexService {
       if ((first.count ?? 0) > FPS_CATALOG_HARD_CAP) {
         // Five times today's largest category — reaching it means the list
         // stopped early and its "exact" count is not. Loud, not silent.
-        console.error(`[codex] listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
+        logWarn('codex', `listFpsCatalog(${category}) stopped at the ${FPS_CATALOG_HARD_CAP}-row cap`);
       }
       return pages.flat().map((r) =>
         mapListRow(kind, {
@@ -1065,6 +1090,10 @@ export class CodexService {
     ]);
 
     if (rowRes.error) throw rowRes.error;
+    // A failed ports/strings read used to render as "no ports" (empty
+    // loadouts); it is a failed load and gets the detail page's error card.
+    if (portsRes.error) throw portsRes.error;
+    if (stringsRes.error) throw stringsRes.error;
     if (!rowRes.data) return null;
 
     const row = rowRes.data as Record<string, unknown>;
@@ -1084,10 +1113,12 @@ export class CodexService {
    * Every build the reader can pick from the patch selector, newest first
    * (concept decision 4). Defaults to the LIVE channel — same source
    * {@link recentLiveBuilds} reads, just with the selector's larger limit
-   * instead of the diff's fixed 2.
+   * instead of the diff's fixed 2. `failed` tells a failed read apart from an
+   * empty channel (same shape as `ShipSkinsService.listSkins`).
    */
-  async buildsForChannel(channel = 'LIVE', limit = 30): Promise<CodexBuild[]> {
+  async buildsForChannel(channel = 'LIVE', limit = 30): Promise<{ builds: CodexBuild[]; failed: boolean }> {
     try {
+      // finalized_at filter follows with fix/d02-finalized-filter
       const { data, error } = await this.sb.client
         .from('codex_builds')
         .select(
@@ -1096,10 +1127,11 @@ export class CodexService {
         .eq('channel', channel)
         .order('created_at', { ascending: false })
         .limit(limit);
-      if (error || !data) return [];
-      return (data as Record<string, unknown>[]).map(mapBuild);
-    } catch {
-      return [];
+      if (error) throw error;
+      return { builds: ((data ?? []) as Record<string, unknown>[]).map(mapBuild), failed: false };
+    } catch (err) {
+      logWarn('codex', 'builds for channel failed', { channel, error: err });
+      return { builds: [], failed: true };
     }
   }
 
@@ -1131,7 +1163,10 @@ export class CodexService {
     // hide a silhouette that is really just one flaky request away, for the
     // rest of this build's session. Only a genuine empty/invalid result gets
     // cached; an error is retried on the next call.
-    if (error) return null;
+    if (error) {
+      logWarn('codex', 'silhouette read failed', { kind, className, error });
+      return null;
+    }
     const parsed = data ? parseHoloSilhouette(data as Record<string, unknown>) : null;
     this.silhouetteCache.set(cacheKey, parsed);
     return parsed;
@@ -1177,7 +1212,11 @@ export class CodexService {
         .eq('build_id', build.id)
         .eq('kind', kind)
         .in('class_name', chunk);
-      if (error) continue; // transport error: leave this chunk's entries unmemoized, retryable later
+      if (error) {
+        // Transport error: leave this chunk's entries unmemoized, retryable later.
+        logWarn('codex', 'silhouette chunk failed', { kind, count: chunk.length, error });
+        continue;
+      }
 
       const seen = new Set<string>();
       for (const row of (data ?? []) as Record<string, unknown>[]) {
@@ -1289,7 +1328,7 @@ export class CodexService {
             .eq('build_id', build.id)
             .in('class_name', slice);
           if (error || !data) {
-            console.error('[codex] getEntityPayloads chunk failed', kind, error);
+            logWarn('codex', 'getEntityPayloads chunk failed', { kind, error });
             return;
           }
           for (const r of data as unknown as Record<string, unknown>[]) {
@@ -1322,7 +1361,7 @@ export class CodexService {
           .eq('build_id', build.id)
           .in('class_name', slice);
         if (error || !data) {
-          console.error('[codex] getAmmoPayloads chunk failed', error);
+          logWarn('codex', 'getAmmoPayloads chunk failed', { error });
           return;
         }
         for (const r of data as unknown as Record<string, unknown>[]) {
@@ -1413,6 +1452,25 @@ export class CodexService {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Same read as {@link recentLiveBuilds}, but a failure throws — for the patch
+   * timeline, where "no other patches" and "could not load" must differ. The
+   * diff keeps the best-effort variant above.
+   */
+  private async recentLiveBuildsOrThrow(limit: number): Promise<CodexBuild[]> {
+    // finalized_at filter follows with fix/d02-finalized-filter
+    const { data, error } = await this.sb.client
+      .from('codex_builds')
+      .select(
+        'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
+      )
+      .eq('channel', 'LIVE')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map(mapBuild);
   }
 
   /**

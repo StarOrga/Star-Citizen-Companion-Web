@@ -15,6 +15,7 @@ import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { RoutineStatusDirective } from '../admin/feedback/routine-status.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Admin-only feedback launcher. Replaces the former `/admin/feedback` nav item
@@ -30,7 +31,7 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
 @Component({
   selector: 'sc-feedback-fab',
   standalone: true,
-  imports: [TranslatePipe, AdminFeedbackComponent, RoutineStatusDirective],
+  imports: [TranslatePipe, AdminFeedbackComponent, RoutineStatusDirective, ScTooltipDirective],
   // The feedback launcher and its panel are the one thing on screen *because*
   // the user is writing a report, so a page screenshot taken from inside it
   // leaves this whole subtree out (admin feedback 312a4acc, see
@@ -67,7 +68,9 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
                   class="panel-min panel-maximize"
                   (click)="toggleMaximize()"
                   [attr.aria-pressed]="maximized()"
-                  [attr.aria-label]="(maximized() ? 'feedbackFab.restore' : 'feedbackFab.maximize') | translate">
+                  [attr.aria-label]="(maximized() ? 'feedbackFab.restore' : 'feedbackFab.maximize') | translate"
+                  [scTooltip]="(maximized() ? 'feedbackFab.restore' : 'feedbackFab.maximize') | translate"
+                  scTooltipTier="label">
                   @if (maximized()) {
                     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                       <path
@@ -96,7 +99,9 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
                   type="button"
                   class="panel-min"
                   (click)="minimize()"
-                  [attr.aria-label]="'feedbackFab.minimize' | translate">
+                  [attr.aria-label]="'feedbackFab.minimize' | translate"
+                  [scTooltip]="'feedbackFab.minimize' | translate"
+                  scTooltipTier="label">
                   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                     <path
                       d="M6 17h12"
@@ -123,6 +128,8 @@ import { RoutineStatusDirective } from '../admin/feedback/routine-status.directi
           [class.is-open]="isOpen()"
           (click)="toggle($event)"
           [attr.aria-label]="(isOpen() ? 'feedbackFab.minimize' : 'feedbackFab.open') | translate"
+          [scTooltip]="(isOpen() ? 'feedbackFab.minimize' : 'feedbackFab.open') | translate"
+          scTooltipTier="label"
           aria-haspopup="dialog"
           [attr.aria-expanded]="isOpen()">
           @if (isOpen()) {

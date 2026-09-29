@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ExtensionBridgeService } from '../hangar/extension-bridge.service';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** Dismissal is a local preference, not account state — no round-trip needed. */
 const DISMISS_KEY = 'sc.extensionPromo.dismissed';
@@ -15,7 +16,7 @@ const DISMISS_KEY = 'sc.extensionPromo.dismissed';
 @Component({
   selector: 'sc-extension-promo',
   standalone: true,
-  imports: [TranslatePipe, RouterLink],
+  imports: [TranslatePipe, RouterLink, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
@@ -24,7 +25,8 @@ const DISMISS_KEY = 'sc.extensionPromo.dismissed';
         <span class="text">{{ 'extension.promo.text' | translate }}</span>
         <a class="cta" routerLink="/tools/extension">{{ 'extension.promo.cta' | translate }}</a>
         <button type="button" class="close" (click)="dismiss()"
-                [attr.aria-label]="'extension.promo.dismiss' | translate">✕</button>
+                [attr.aria-label]="'extension.promo.dismiss' | translate"
+                [scTooltip]="'extension.promo.dismiss' | translate">✕</button>
       </div>
     }
   `,

@@ -28,6 +28,20 @@ export interface CreatedToken {
   token: ApiTokenRow;
 }
 
+/**
+ * The `api` function's error envelope as a thrown Error the translator can
+ * read: the stable `code` (never the prose `message`) plus the HTTP status, so
+ * `describeError` maps 401/403/429/5xx to the matching `errors.*` sentence.
+ */
+function apiError(
+  body: { error?: { code?: string } } | null,
+  status: number,
+  fallback: string,
+): Error & { status: number; code?: string } {
+  const code = body?.error?.code;
+  return Object.assign(new Error(code ?? fallback), { status, code });
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiTokensService {
   private readonly sb = inject(SupabaseClientProvider);
@@ -60,7 +74,7 @@ export class ApiTokensService {
       headers: await this.authHeaders(),
     });
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.error?.message ?? `list_failed (${res.status})`);
+    if (!res.ok) throw apiError(body, res.status, 'list_failed');
     return (body?.data ?? []) as ApiTokenRow[];
   }
 
@@ -71,7 +85,7 @@ export class ApiTokensService {
       body: JSON.stringify({ name, scopes }),
     });
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.error?.message ?? `create_failed (${res.status})`);
+    if (!res.ok) throw apiError(body, res.status, 'create_failed');
     return body.data as CreatedToken;
   }
 
@@ -82,7 +96,7 @@ export class ApiTokensService {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      throw new Error(body?.error?.message ?? `revoke_failed (${res.status})`);
+      throw apiError(body, res.status, 'revoke_failed');
     }
   }
 }
