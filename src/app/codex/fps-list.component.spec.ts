@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -615,5 +616,77 @@ describe('FpsListComponent (whole catalog)', () => {
     const stale = await browse({ cat: 'weapon', size: 'abc', mfr: 'NOPE', grade: 'Z' }, guns);
     expect([stale.cmp.size(), stale.cmp.manufacturer(), stale.cmp.grade()]).toEqual(['', '', '']);
     expect(stale.names().length).toBe(2);
+  });
+});
+
+// D16 Schritt 6 — REQ-20: the FPS list keeps its state in the URL, so Back
+// from a detail page, a reload or a shared link lands on the same list.
+describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
+  async function setupRouted() {
+    await TestBed.configureTestingModule({
+      imports: [FpsListComponent],
+      providers: [
+        provideRouter([]),
+        provideLocationMocks(),
+        provideTranslateService({ fallbackLang: 'en' }),
+        {
+          provide: CodexService,
+          useValue: {
+            build: signal({ id: 'b1', entityCounts: {} }),
+            stale: signal(false),
+            latestLivePatch: signal(null),
+            buildLoading: signal(false),
+            buildRefresh: signal(0),
+            liveMovedNotice: signal<string | null>(null),
+            buildError: signal(null),
+            compareKeys: signal<string[]>([]).asReadonly(),
+            compareCount: signal(0),
+            compareRejectedKind: signal(null),
+            loadCurrentBuild: async () => null,
+            listFpsCatalog: async () => [HELMET],
+            isPinned: () => false,
+            previewUrl: () => null,
+            viewingPastPatch: signal(false),
+            selectBuild: () => true,
+          } as unknown as Partial<CodexService>,
+        },
+        { provide: HangarService, useValue: { getRoleLoadout: async () => null } as Partial<HangarService> },
+        { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        // No ActivatedRoute stub: the real root route, so the URL tree can be built.
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(FpsListComponent);
+    const replace = spyOn(TestBed.inject(Location), 'replaceState').and.callThrough();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return { fixture, cmp: fixture.componentInstance, replace };
+  }
+
+  it('writes cat, slot and q with replaceState', async () => {
+    const { fixture, cmp, replace } = await setupRouted();
+    expect(replace).toHaveBeenCalled();
+    expect(replace.calls.mostRecent().args[0]).toContain('cat=weapon');
+
+    cmp.setCategory('armor');
+    fixture.detectChanges();
+    expect(replace.calls.mostRecent().args[0]).toContain('cat=armor');
+
+    cmp.setSubType('Light');
+    fixture.detectChanges();
+    expect(replace.calls.mostRecent().args[0]).toContain('slot=Light');
+
+    jasmine.clock().install();
+    try {
+      cmp.onSearchInput('helm');
+      jasmine.clock().tick(1000);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+    fixture.detectChanges();
+    const url = replace.calls.mostRecent().args[0] as string;
+    expect(url).toContain('cat=armor');
+    expect(url).toContain('slot=Light');
+    expect(url).toContain('q=helm');
   });
 });
