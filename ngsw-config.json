@@ -22,7 +22,9 @@
       "resources": {
         "files": [
           "/icons/**",
-          "/assets/**",
+          "/i18n/*.json",
+          "/meshopt/**",
+          "/release-notes.json",
           "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2)"
         ]
       }
