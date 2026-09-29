@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex-format';
@@ -137,6 +137,12 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       } @else if (rows()?.length === 0) {
         <!-- An empty set is not a missing value: nothing is equipped yet. -->
         <p class="gap-note">{{ 'codex.setRank.empty' | translate }}</p>
+      } @else if (failed()) {
+        <!-- A failed read is not "no rating yet": say so and offer the retry. -->
+        <div class="rank-failed">
+          <p class="gap-note" role="alert">{{ 'codex.setRank.failed' | translate }}</p>
+          <button type="button" class="sc-btn rank-retry" (click)="retry.emit()">{{ 'errors.retry' | translate }}</button>
+        </div>
       } @else {
         <p class="gap-note">{{ 'codex.setRank.unavailable' | translate }}</p>
       }
@@ -170,6 +176,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .rank-skel { height: 220px; border-radius: 8px; grid-column: 1 / -1; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .gap-note { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    .rank-failed { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
     .rank-col-radar { display: flex; flex-direction: column; gap: 8px; }
     .rank-col-bars { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
@@ -226,6 +233,10 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 export class CodexSetRankCardComponent {
   readonly rows = input<ArmorRatingRow[] | null>(null);
   readonly loading = input(false);
+  /** The rating read failed (network, timeout, RPC error) — shows an error with retry. */
+  readonly failed = input(false);
+  /** The reader asked to read the rating again. */
+  readonly retry = output<void>();
   /** Resolved entities by class name — the limiting-piece note names the
    * item the way the stage does (localized name, never the raw class). */
   readonly names = input<ReadonlyMap<string, ResolvedEntity>>(new Map());

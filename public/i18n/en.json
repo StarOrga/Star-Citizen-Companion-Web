@@ -1892,6 +1892,7 @@
       },
       "loading": "Calculating …",
       "unavailable": "Standing appears once the in-game figures have loaded.",
+      "failed": "The rating could not be loaded.",
       "empty": "No armour equipped yet — the rating appears with the first piece."
     },
     "setLens": {

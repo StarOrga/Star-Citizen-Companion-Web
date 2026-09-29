@@ -52,6 +52,21 @@ describe('CodexSetRankCardComponent', () => {
     expect(el.querySelector('.radar')).toBeNull();
   });
 
+  it('says a failed read out loud and offers a retry that emits', () => {
+    fixture.componentRef.setInput('rows', null);
+    fixture.componentRef.setInput('failed', true);
+    let retried = 0;
+    fixture.componentInstance.retry.subscribe(() => retried++);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain('codex.setRank.failed');
+    expect(el.textContent).not.toContain('codex.setRank.unavailable');
+    const btn = el.querySelector<HTMLButtonElement>('button.rank-retry');
+    expect(btn?.textContent).toContain('errors.retry');
+    btn!.click();
+    expect(retried).toBe(1);
+  });
+
   it('tells an empty set apart from missing values: nothing is equipped yet', () => {
     fixture.componentRef.setInput('rows', []);
     fixture.detectChanges();

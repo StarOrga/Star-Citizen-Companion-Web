@@ -1892,6 +1892,7 @@
       },
       "loading": "Wird berechnet …",
       "unavailable": "Die Einordnung erscheint, sobald die Spielwerte geladen sind.",
+      "failed": "Die Einordnung konnte nicht geladen werden.",
       "empty": "Noch keine Rüstung ausgerüstet — die Einordnung erscheint mit dem ersten Teil."
     },
     "setLens": {

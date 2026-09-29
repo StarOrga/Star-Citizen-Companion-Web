@@ -115,6 +115,13 @@ export interface CodexFacetValues {
  * (migration 20260926140000_codex_armor_rating.sql) — see `set-rating.ts` for
  * the pure domain logic (`rankSet`/`lensValueFor`) this data feeds.
  */
+/**
+ * What `armorRating` answers. `rows: null` is "no rating for this build" (no
+ * LIVE row, an empty RPC answer) — retrying does not help there. `failed` is a
+ * read that went wrong (RPC error, timeout, network) — the card offers a retry.
+ */
+export type ArmorRatingResult = { rows: ArmorRatingRow[] | null } | { failed: true; error: unknown };
+
 export interface ArmorRatingRow {
   className: string;
   slot: 'helmet' | 'core' | 'arms' | 'legs' | 'undersuit' | 'backpack';
@@ -393,7 +400,7 @@ export class CodexService {
   /** `facetValues` answers, per build + kind (in flight or done) — see facetValues. */
   private readonly facetValuesCache = new Map<string, Promise<CodexFacetValues | null>>();
   /** `armorRating` answers, per build + class-name set (in flight or done) — see armorRating. */
-  private readonly armorRatingCache = new Map<string, Promise<ArmorRatingRow[] | null>>();
+  private readonly armorRatingCache = new Map<string, Promise<ArmorRatingResult>>();
 
   /**
    * The build every codex query reads from — the LIVE one by default, or the
@@ -918,12 +925,14 @@ export class CodexService {
    * radiation/scrub/carry percentiles) for exactly the given class names,
    * under the current build — the source for the set page's rating card
    * (`set-rating.ts` `rankSet`/`lensValueFor`). Cached per build + class-name
-   * set; a failed or not-yet-deployed RPC returns null so the caller can hide
-   * the rating card instead of breaking the page, same idiom as facetValues.
+   * set. A failed read answers `{ failed: true, error }` so the card can say so
+   * and offer a retry (AUD-016); it is never cached. A failed build lookup
+   * throws, like every other reader.
    */
-  async armorRating(classNames: readonly string[]): Promise<ArmorRatingRow[] | null> {
+  async armorRating(classNames: readonly string[]): Promise<ArmorRatingResult> {
     const build = await this.buildOrThrow();
-    if (!build || classNames.length === 0) return classNames.length === 0 ? [] : null;
+    if (classNames.length === 0) return { rows: [] };
+    if (!build) return { rows: null };
     const key = `${build.id}|${[...classNames].sort().join(',')}`;
     let pending = this.armorRatingCache.get(key);
     if (!pending) {
@@ -936,26 +945,35 @@ export class CodexService {
       this.armorRatingCache.set(key, pending);
     }
     const result = await pending;
-    if (result === null) this.armorRatingCache.delete(key); // a failed read is asked again next time
+    // A failed or empty read is asked again next time.
+    if ('failed' in result || result.rows === null) this.armorRatingCache.delete(key);
     return result;
   }
 
   private async fetchArmorRating(
     buildId: string,
     classNames: readonly string[],
-  ): Promise<ArmorRatingRow[] | null> {
-    try {
-      const { data, error } = await this.sb.client.rpc('codex_armor_rating', {
-        p_build_id: buildId,
-        p_class_names: [...classNames],
-      });
-      if (error) logWarn('codex', 'armor rating failed', { buildId, error });
-      if (error || !data) return null;
-      return data as ArmorRatingRow[];
-    } catch (error) {
-      logWarn('codex', 'armor rating failed', { buildId, error });
-      return null;
+  ): Promise<ArmorRatingResult> {
+    let lastError: unknown = null;
+    // A cold cache can run into the statement timeout (57014) or a 5xx; the
+    // second, warm call answers well under 2 s — so one automatic retry.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data, error, status } = await this.sb.client.rpc('codex_armor_rating', {
+          p_build_id: buildId,
+          p_class_names: [...classNames],
+        });
+        if (!error) return { rows: (data as ArmorRatingRow[] | null) ?? null };
+        lastError = error;
+        const transient = (error as { code?: string }).code === '57014' || (status ?? 0) >= 500;
+        if (!transient) break;
+      } catch (error) {
+        lastError = error;
+        break;
+      }
     }
+    logWarn('codex', 'armorRating failed', { buildId, error: lastError });
+    return { failed: true, error: lastError };
   }
 
   /**

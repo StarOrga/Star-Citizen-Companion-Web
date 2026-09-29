@@ -1083,3 +1083,74 @@ describe('CodexService.revalidateLiveBuild', () => {
     expect(w.liveReads).toBe(2);
   });
 });
+
+describe('CodexService.armorRating', () => {
+  type Answer = { data: unknown; error: unknown; status?: number };
+
+  function make(answers: Answer[], opts: { noBuild?: boolean } = {}): { svc: CodexService; rpcCalls: () => number } {
+    let calls = 0;
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => (table === 'p4k_bundles_public_stats' ? Promise.resolve({ data: [], error: null }) : chain),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: opts.noBuild ? null : { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    const rpc = () => {
+      const a = answers[Math.min(calls, answers.length - 1)];
+      calls++;
+      return Promise.resolve({ status: 200, ...a });
+    };
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from, rpc } } }],
+    });
+    return { svc: TestBed.inject(CodexService), rpcCalls: () => calls };
+  }
+
+  beforeEach(() => spyOn(console, 'warn'));
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('answers an empty name list with no rows, without a read', async () => {
+    const { svc, rpcCalls } = make([{ data: [], error: null }]);
+    expect(await svc.armorRating([])).toEqual({ rows: [] });
+    expect(rpcCalls()).toBe(0);
+  });
+
+  it('answers "no rating" when there is no LIVE build', async () => {
+    const { svc } = make([{ data: [], error: null }], { noBuild: true });
+    expect(await svc.armorRating(['A'])).toEqual({ rows: null });
+  });
+
+  it('retries a statement timeout (57014) once and returns the warm answer', async () => {
+    const rows = [{ className: 'A' }];
+    const { svc, rpcCalls } = make([
+      { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' }, status: 500 },
+      { data: rows, error: null },
+    ]);
+    expect(await svc.armorRating(['A'])).toEqual({ rows } as never);
+    expect(rpcCalls()).toBe(2);
+  });
+
+  it('gives up after one retry with a failed result that is not cached', async () => {
+    const err = { code: '57014', message: 'canceling statement due to statement timeout' };
+    const { svc, rpcCalls } = make([{ data: null, error: err }]);
+    const res = await svc.armorRating(['A']);
+    expect(res).toEqual({ failed: true, error: err });
+    expect(rpcCalls()).toBe(2);
+    await svc.armorRating(['A']);
+    expect(rpcCalls()).toBe(4);
+  });
+
+  it('does not retry a non-transient RPC error', async () => {
+    const err = { code: '42883', message: 'function does not exist' };
+    const { svc, rpcCalls } = make([{ data: null, error: err, status: 404 }]);
+    expect(await svc.armorRating(['A'])).toEqual({ failed: true, error: err });
+    expect(rpcCalls()).toBe(1);
+  });
+});
