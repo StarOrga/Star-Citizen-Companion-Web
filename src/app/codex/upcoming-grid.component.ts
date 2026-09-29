@@ -151,7 +151,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .search-input {
       width: 100%; padding: 9px 30px 9px 30px; border-radius: 8px;
       border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 0.86rem;
+      font-family: inherit; font-size: max(0.86rem, var(--sc-fs-input));
     }
     .search-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 24%, transparent); }
     .search-input::-webkit-search-cancel-button { display: none; }

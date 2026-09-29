@@ -339,7 +339,7 @@ interface Lane {
     .scanner-input {
       flex: 1; min-width: 0; padding: 13px 14px 13px 40px; border-radius: 10px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 1rem;
+      font-family: inherit; font-size: max(1rem, var(--sc-fs-input));
     }
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }

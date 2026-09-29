@@ -275,7 +275,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
     .s-input {
       flex: 1 1 auto; min-height: var(--sc-tap-min); padding: 10px 40px 10px 12px;
       border: 1px solid var(--sc-border); border-radius: 8px; background: var(--sc-bg-0);
-      color: var(--sc-fg-0); font: inherit; font-size: max(0.9rem, var(--sc-fs-floor));
+      color: var(--sc-fg-0); font: inherit; font-size: max(0.9rem, var(--sc-fs-input));
     }
     .s-input::placeholder { color: var(--sc-fg-2); }
     .s-input:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }

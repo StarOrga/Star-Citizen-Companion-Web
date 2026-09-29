@@ -387,7 +387,7 @@ const SEARCH_DEBOUNCE_MS = 250;
         border: none;
         outline: none;
         color: var(--sc-fg-0);
-        font-size: max(0.95rem, var(--sc-fs-floor, 0.9rem));
+        font-size: max(0.95rem, var(--sc-fs-input));
         padding: 10px 0;
       }
       .terminal-bar:focus-within {

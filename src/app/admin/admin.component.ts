@@ -708,7 +708,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.88rem;
+      font-size: max(0.88rem, var(--sc-fs-input));
     }
     /* The pickers are sc-select components, not native selects — a native one
        draws its OPEN list through the OS, which lands as a bright system menu
@@ -880,7 +880,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.88rem;
+      font-size: max(0.88rem, var(--sc-fs-input));
       width: 100%;
       box-sizing: border-box;
     }
@@ -1008,7 +1008,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.88rem;
+      font-size: max(0.88rem, var(--sc-fs-input));
     }
     .invite-form input[type=email] { flex: 1 1 220px; min-width: 180px; }
     .send-invite {

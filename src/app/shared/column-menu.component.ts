@@ -165,7 +165,7 @@ const PANEL_POSITIONS: ConnectedPosition[] = [
     .cm-sortbtn.on { color: var(--sc-accent); border-color: var(--sc-accent); }
     .cm-range { display: flex; align-items: center; gap: 4px; }
     .cm-range input { width: 54px; padding: 3px 4px; border-radius: 4px; background: var(--sc-bg-1);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: max(11px, var(--sc-fs-floor)); }
+      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: max(11px, var(--sc-fs-input)); }
     .cm-dash { color: var(--sc-fg-2); }
     .cm-facets { list-style: none; margin: 0; padding: 0; max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
     .cm-facet { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; padding: 2px 0; }

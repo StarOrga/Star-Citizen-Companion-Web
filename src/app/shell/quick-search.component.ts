@@ -205,7 +205,7 @@ const PER_KIND_LIMIT = 6;
     .qs-input {
       padding: 12px 16px; border-radius: 8px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-accent); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 1rem;
+      font-family: inherit; font-size: max(1rem, var(--sc-fs-input));
     }
     .qs-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(0,212,255,0.25); }
     .qs-cats { display: flex; gap: 6px; flex-wrap: wrap; }

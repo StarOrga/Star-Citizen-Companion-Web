@@ -523,7 +523,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-2); min-height: max(40px, var(--sc-tap-min, 0px)); transition: border-color 160ms ease, box-shadow 160ms ease; }
   .ht-search:focus-within { border-color: var(--sc-accent); box-shadow: 0 0 0 3px var(--a12); }
   .ht-icon { width: 15px; height: 15px; flex: none; }
-  .ht-input { flex: 1; min-width: 0; background: none; border: none; color: var(--sc-fg-0); font: inherit; font-size: max(12px, var(--f)); padding: 7px 0; outline: none; }
+  .ht-input { flex: 1; min-width: 0; background: none; border: none; color: var(--sc-fg-0); font: inherit; font-size: max(12px, var(--f), var(--sc-fs-input)); padding: 7px 0; outline: none; }
   .ht-input::placeholder { color: var(--sc-fg-2); }
   .ht-search kbd { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); padding: 0 5px; border-radius: 2px; }
   /* Capped: a long variant name ("… Wikelo War Special") ellipsizes instead

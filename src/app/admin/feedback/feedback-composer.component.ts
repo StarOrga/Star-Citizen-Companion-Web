@@ -467,7 +467,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: var(--sc-field-fs);
+      font-size: max(var(--sc-field-fs), var(--sc-fs-input));
       line-height: 1.5;
       letter-spacing: inherit;
     }

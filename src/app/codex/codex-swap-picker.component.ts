@@ -482,7 +482,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
       padding: 6px 1px 8px; font-size: max(11px, var(--sc-fs-floor)); }
     .pick-search { flex: 1 1 200px; min-width: 160px; }
     .pick-search input { width: 100%; padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0);
-      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: 0.8rem; }
+      border: 1px solid var(--sc-border); color: var(--sc-fg-0); font: inherit; font-size: max(0.8rem, var(--sc-fs-input)); }
     .pick-seg { display: flex; flex-direction: row; align-items: center; gap: 6px; }
     .pick-seg-label { font-size: max(9.5px, var(--sc-fs-floor)); letter-spacing: 0.12em;
       text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }

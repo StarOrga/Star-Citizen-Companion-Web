@@ -400,7 +400,7 @@ interface PortRow {
 
     .configs-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
     .new-config { display: flex; gap: 8px; flex-wrap: wrap; }
-    .cfg-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.84rem; }
+    .cfg-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.84rem, var(--sc-fs-input)); }
     .cfg-name:focus { outline: none; border-color: var(--sc-accent); }
     .config-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
     .cfg-tab { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1); cursor: pointer; font-family: inherit; font-size: 0.8rem; }
@@ -447,7 +447,7 @@ interface PortRow {
     .std-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .std-port { font-family: var(--sc-font-mono, monospace); font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); overflow-wrap: anywhere; }
 
-    .notes textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.86rem; resize: vertical; margin-bottom: 8px; }
+    .notes textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.86rem, var(--sc-fs-input)); resize: vertical; margin-bottom: 8px; }
     .notes textarea:focus { outline: none; border-color: var(--sc-accent); }
 
     @media (max-width: 720px) {
