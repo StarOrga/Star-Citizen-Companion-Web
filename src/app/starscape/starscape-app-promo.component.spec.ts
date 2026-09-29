@@ -84,6 +84,28 @@ describe('StarscapeAppPromoComponent', () => {
     later.destroy();
   }));
 
+  // AUD-193: a Ctrl/Cmd+click on the CTA opens its tab; the promo stays put.
+  it('keeps the promo on a modified CTA click, closes it on a plain one', fakeAsync(() => {
+    const f = setup();
+    tick(3000);
+    f.detectChanges();
+    const cta = f.nativeElement.querySelector('a.cta') as HTMLAnchorElement;
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener('click', stop, true);
+    try {
+      cta.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+      f.detectChanges();
+      expect(f.componentInstance.visible()).toBeTrue();
+
+      cta.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      f.detectChanges();
+      expect(f.componentInstance.visible()).toBeFalse();
+    } finally {
+      document.removeEventListener('click', stop, true);
+    }
+    f.destroy();
+  }));
+
   it('does not pitch a Windows tray app on a narrow viewport', fakeAsync(() => {
     Object.defineProperty(window, 'innerWidth', { value: 720, configurable: true });
     const f = setup();

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { computed, signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { Role, RoleService } from '../auth/role.service';
@@ -27,10 +27,10 @@ function ring(r: RingRelease['ring'], version: string): RingRelease {
 
 describe('AppDownloadMenuComponent', () => {
   /** Clicks an element with navigation defused — the entries are real anchors. */
-  function clickNoNav(el: HTMLElement): void {
+  function clickNoNav(el: HTMLElement, init: MouseEventInit = {}): void {
     const stop = (e: Event) => e.preventDefault();
     document.addEventListener('click', stop, true);
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ...init }));
     document.removeEventListener('click', stop, true);
   }
 
@@ -221,6 +221,34 @@ describe('AppDownloadMenuComponent', () => {
     expect(el.querySelector('.dlm-pop')).toBeNull();
     expect(el.querySelector('.dlm-trigger')?.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(el.querySelector('.dlm-trigger'));
+  });
+
+  // AUD-193: Ctrl/Cmd/Shift+click opens a new tab — the menu must stay where it was.
+  it('stays open on a modified click on a download, closes on a plain one', async () => {
+    const { fixture, el } = setup({ role: 'admin' });
+    await open(fixture, el);
+
+    clickNoNav(el.querySelector('a.pop-dl') as HTMLElement, { ctrlKey: true });
+    fixture.detectChanges();
+    expect(el.querySelector('.dlm-pop')).not.toBeNull();
+
+    clickNoNav(el.querySelector('a.pop-dl') as HTMLElement);
+    fixture.detectChanges();
+    expect(el.querySelector('.dlm-pop')).toBeNull();
+  });
+
+  it('stays open on a modified click on the uploader page link, closes on a plain one', async () => {
+    const { fixture, el } = setup({ product: 'uploader', role: 'admin' });
+    spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+    await open(fixture, el);
+
+    clickNoNav(el.querySelector('a.pop-link') as HTMLElement, { ctrlKey: true });
+    fixture.detectChanges();
+    expect(el.querySelector('.dlm-pop')).not.toBeNull();
+
+    clickNoNav(el.querySelector('a.pop-link') as HTMLElement);
+    fixture.detectChanges();
+    expect(el.querySelector('.dlm-pop')).toBeNull();
   });
 
   it('closes on Escape and on a pointerdown outside, and toggles shut again', async () => {

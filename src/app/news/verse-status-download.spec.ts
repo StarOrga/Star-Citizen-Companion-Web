@@ -78,6 +78,18 @@ describe('VerseStatusChipComponent — Companion app download', () => {
     expect(fixture.nativeElement.querySelector('.vs-panel')).toBeNull();
   });
 
+  // AUD-193: a Ctrl/Cmd+click opens its own tab and must not fold the panel away.
+  it('keeps the panel open on a modified click', () => {
+    setup(true);
+    const link = openPanel().querySelector('a.app-dl') as HTMLAnchorElement;
+    const stop = (e: Event) => e.preventDefault();
+    document.addEventListener('click', stop, true);
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    document.removeEventListener('click', stop, true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.vs-panel')).not.toBeNull();
+  });
+
   it('says nothing about a desktop installer on a device that cannot install one', () => {
     setup(false);
     const root = openPanel();
