@@ -1,9 +1,9 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 
-import { CodexSetGearComponent } from './codex-set-gear.component';
+import { CodexSetGearComponent, UNDO_WINDOW_MS } from './codex-set-gear.component';
 import { ResolvedEntity } from '../codex.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout, RoleLoadoutItem, RoleLoadoutRole } from '../../hangar/hangar.types';
@@ -249,6 +249,29 @@ describe('CodexSetGearComponent', () => {
     expect(setSlotCalls[1]).toEqual(['set-1', 'primary', { className: 'behr_rifle_ballistic_01', kind: 'weapon' }, undefined]);
     expect(slotEl(fixture, 'primary').querySelector('.gear-note')).toBeNull();
   });
+
+  // REQ-18: the undo offer is transient — it goes after UNDO_WINDOW_MS, on a fake clock.
+  it('withdraws the undo offer once the undo window has passed', fakeAsync(() => {
+    let fixture!: ComponentFixture<CodexSetGearComponent>;
+    void setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+    }).then((f) => (fixture = f));
+    flushMicrotasks();
+    (slotEl(fixture, 'primary').querySelector('button.gear-clear') as HTMLButtonElement).click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(slotEl(fixture, 'primary').querySelector('button.gear-undo')).not.toBeNull();
+
+    tick(UNDO_WINDOW_MS - 1);
+    fixture.detectChanges();
+    expect(slotEl(fixture, 'primary').querySelector('button.gear-undo')).not.toBeNull();
+
+    tick(1);
+    fixture.detectChanges();
+    expect(slotEl(fixture, 'primary').querySelector('button.gear-undo')).toBeNull();
+    expect(slotEl(fixture, 'primary').querySelector('.gear-note')).toBeNull();
+  }));
 
   it('says so when a clear met a newer piece from another tab — no undo for that', async () => {
     const fixture = await setup({

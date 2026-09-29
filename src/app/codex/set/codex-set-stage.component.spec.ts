@@ -3,12 +3,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 
 import { CodexSetStageComponent } from './codex-set-stage.component';
 import { CodexBoardFigureComponent } from '../codex-board-figure.component';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
+import { ResolvedEntity } from '../codex.service';
 import { ArmorRatingRow, SetLensId } from './set-rating';
 import { SetArsenalTransition } from './set-arsenal-transition';
 
@@ -202,5 +203,74 @@ describe('CodexSetStageComponent', () => {
     fixture.detectChanges();
     expect(tile('legs').style.getPropertyValue('view-transition-name')).toBe('set-slot');
     expect(tile('helmet').style.getPropertyValue('view-transition-name')).toBe('');
+  });
+});
+
+@Component({
+  standalone: true,
+  imports: [CodexSetStageComponent],
+  template: `<sc-codex-set-stage [set]="set" [resolved]="resolved" />`,
+})
+class LocalizedHostComponent {
+  readonly set = SET;
+  readonly resolved = new Map<string, ResolvedEntity>([
+    [
+      'Test_Helmet',
+      {
+        kind: 'item',
+        className: 'Test_Helmet',
+        nameLocalized: null,
+        name: { en: 'Field Helmet', de: 'Feldhelm', key: '@item_Name_Test_Helmet' },
+        manufacturerCode: null,
+        size: null,
+      } as ResolvedEntity,
+    ],
+  ]);
+}
+
+describe('CodexSetStageComponent language and eyebrow (REQ-15, REQ-19)', () => {
+  let fixture: ComponentFixture<LocalizedHostComponent>;
+  let el: HTMLElement;
+  let t: TranslateService;
+  let instant: jasmine.Spy;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [LocalizedHostComponent],
+      providers: [
+        provideRouter([{ path: 'codex/fps', component: ArsenalStub }]),
+        provideLocationMocks(),
+        provideTranslateService({ fallbackLang: 'en', lang: 'en' }),
+      ],
+    }).compileComponents();
+    t = TestBed.inject(TranslateService);
+    instant = spyOn(t, 'instant').and.callThrough();
+    fixture = TestBed.createComponent(LocalizedHostComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    el = fixture.nativeElement;
+  });
+
+  const helmetName = () => el.querySelector('a.tile[data-slot="helmet"] .name')?.textContent?.trim();
+
+  // AUD-118: the tile names followed the language only on a reload.
+  it('re-renders the tile names on a language switch', async () => {
+    expect(helmetName()).toBe('Field Helmet');
+    t.use('de');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(helmetName()).toBe('Feldhelm');
+    t.use('en');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(helmetName()).toBe('Field Helmet');
+  });
+
+  // AUD-228: "2 / 6 armour" — the count comes from the filled slots, the total is the six armour slots.
+  it('says how many of the six armour slots are filled in the eyebrow', () => {
+    expect(instant).toHaveBeenCalledWith('codex.stage.armorEquipped', { filled: 2, total: 6 });
+    const suffix = el.querySelector('.stage-eyebrow__suffix');
+    expect(suffix?.textContent).toContain('codex.stage.armorEquipped');
   });
 });
