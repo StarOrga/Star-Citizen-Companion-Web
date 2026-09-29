@@ -157,6 +157,7 @@ import { formatScDate } from '../core/locale/date-format';
           class="patch-notice-x"
           (click)="svc.liveMovedNotice.set(null)"
           [attr.aria-label]="'codex.landing.patchSwitch.liveMovedDismiss' | translate"
+          [scTooltip]="'codex.landing.patchSwitch.liveMovedDismiss' | translate"
         >
           <span aria-hidden="true">✕</span>
         </button>
