@@ -20,7 +20,8 @@ describe('ChannelPickerComponent', () => {
     const f = setup('admin');
     expect(f.componentInstance.options()).toEqual(['alpha', 'beta', 'stable']);
     expect(f.componentInstance.channel()).toBe('alpha');
-    expect(f.nativeElement.querySelector('select')).not.toBeNull();
+    expect(f.nativeElement.querySelector('sc-select')).not.toBeNull();
+    expect(f.nativeElement.querySelector('select')).toBeNull();
   });
 
   it('offers beta/stable and defaults beta for collaborator', () => {
@@ -32,6 +33,18 @@ describe('ChannelPickerComponent', () => {
   it('renders no picker for viewer (stable only)', () => {
     const f = setup('viewer');
     expect(f.componentInstance.options()).toEqual(['stable']);
-    expect(f.nativeElement.querySelector('select')).toBeNull();
+    expect(f.nativeElement.querySelector('sc-select')).toBeNull();
+  });
+
+  it('sets the channel from the themed list', () => {
+    const f = setup('admin');
+    const el = f.nativeElement as HTMLElement;
+    el.querySelector<HTMLButtonElement>('sc-select .trigger')!.click();
+    f.detectChanges();
+    const options = Array.from(el.querySelectorAll<HTMLElement>('.option'));
+    expect(options.length).toBe(3);
+    options[2].click();
+    f.detectChanges();
+    expect(f.componentInstance.channel()).toBe('stable');
   });
 });
