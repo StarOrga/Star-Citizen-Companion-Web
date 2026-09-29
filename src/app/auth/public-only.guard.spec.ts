@@ -29,6 +29,7 @@ describe('publicOnlyGuard', () => {
           useValue: {
             init: () => {},
             ready: () => true,
+            whenReady: () => Promise.resolve(),
             isAuthenticated: () => isAuthenticated,
           },
         },

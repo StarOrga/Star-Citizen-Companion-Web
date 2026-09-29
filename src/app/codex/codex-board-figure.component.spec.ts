@@ -81,6 +81,69 @@ describe('CodexBoardFigureComponent', () => {
 
 // Concept C1 (2026-09-26): the set page hangs its slot tiles around the figure,
 // lights a part per tile and reads leader-line end points off the figure.
+describe('CodexBoardFigureComponent — WebGL context loss', () => {
+  /** Waits for the 3D figure; false when ChromeHeadless has no engine. */
+  async function booted(fixture: ComponentFixture<CodexBoardFigureComponent>): Promise<boolean> {
+    for (let i = 0; i < 100 && !fixture.componentInstance.ready(); i++) {
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    fixture.detectChanges();
+    return fixture.componentInstance.ready();
+  }
+
+  function canvasOf(fixture: ComponentFixture<CodexBoardFigureComponent>): HTMLCanvasElement {
+    return (fixture.nativeElement as HTMLElement).querySelector('canvas.board-stage')!;
+  }
+
+  function lose(fixture: ComponentFixture<CodexBoardFigureComponent>): Event {
+    const lost = new Event('webglcontextlost', { cancelable: true });
+    canvasOf(fixture).dispatchEvent(lost);
+    fixture.detectChanges();
+    return lost;
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('falls back to the drawn suit when the context is lost', async () => {
+    const fixture = await setup(['helmet']);
+    if (!(await booted(fixture))) {
+      pending('no WebGL engine in this browser');
+      return;
+    }
+    const lost = lose(fixture);
+    expect(lost.defaultPrevented).toBeTrue();
+    expect(fixture.componentInstance.ready()).toBeFalse();
+    expect(canvasOf(fixture).classList).not.toContain('on');
+    expect((fixture.nativeElement as HTMLElement).querySelector('svg.board-doll')).not.toBeNull();
+  });
+
+  it('boots the 3D figure again once the context is restored', async () => {
+    const fixture = await setup([]);
+    if (!(await booted(fixture))) {
+      pending('no WebGL engine in this browser');
+      return;
+    }
+    lose(fixture);
+    const boot = spyOn<any>(fixture.componentInstance, 'boot').and.resolveTo(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    canvasOf(fixture).dispatchEvent(new Event('webglcontextrestored'));
+    expect(boot).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not boot again when the figure was destroyed after the loss', async () => {
+    const fixture = await setup([]);
+    if (!(await booted(fixture))) {
+      pending('no WebGL engine in this browser');
+      return;
+    }
+    const canvas = canvasOf(fixture);
+    lose(fixture);
+    const boot = spyOn<any>(fixture.componentInstance, 'boot').and.resolveTo(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    fixture.destroy();
+    canvas.dispatchEvent(new Event('webglcontextrestored'));
+    expect(boot).not.toHaveBeenCalled();
+  });
+});
+
 describe('CodexBoardFigureComponent — set page API', () => {
   it('lights exactly the highlighted part and steps the rest back', async () => {
     const fixture = await setup(['core'], false, { highlight: 'legs' });

@@ -18,7 +18,7 @@ export function roleGuard(...allowed: Role[]): CanActivateFn {
     const router = inject(Router);
 
     auth.init();
-    await waitForAuth(auth);
+    await auth.whenReady();
     if (!auth.isAuthenticated()) {
       return router.createUrlTree(['/login'], { queryParams: { redirect: state.url } });
     }
@@ -28,16 +28,4 @@ export function roleGuard(...allowed: Role[]): CanActivateFn {
     if (r && allowed.includes(r)) return true;
     return router.createUrlTree(['/news']);
   };
-}
-
-function waitForAuth(auth: AuthService): Promise<void> {
-  if (auth.ready()) return Promise.resolve();
-  return new Promise((resolve) => {
-    const id = setInterval(() => {
-      if (auth.ready()) {
-        clearInterval(id);
-        resolve();
-      }
-    }, 30);
-  });
 }

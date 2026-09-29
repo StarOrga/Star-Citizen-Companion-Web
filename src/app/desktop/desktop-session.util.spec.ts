@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { mintDesktopSession } from './desktop-session.util';
+import { READ_TIMEOUT_MS } from '../core/deadline';
 
 /** Minimal stand-in for the one client surface this util touches. */
 function clientReturning(result: unknown | Error): SupabaseClient {
@@ -34,7 +35,18 @@ describe('mintDesktopSession', () => {
     expect(client.functions.invoke).toHaveBeenCalledWith('desktop-session', {
       method: 'POST',
       body: {},
+      timeout: READ_TIMEOUT_MS,
     });
+  });
+
+  it('bounds the mint with the read deadline, so a hanging function cannot block the hand-off', async () => {
+    const client = clientReturning({
+      data: { access_token: 'a', refresh_token: 'b', expires_at: 1 },
+      error: null,
+    });
+    await mintDesktopSession(client);
+    const [, options] = (client.functions.invoke as jasmine.Spy).calls.mostRecent().args;
+    expect(options.timeout).toBe(READ_TIMEOUT_MS);
   });
 
   it('POSTs no identity of its own — the edge function reads it off the JWT', async () => {

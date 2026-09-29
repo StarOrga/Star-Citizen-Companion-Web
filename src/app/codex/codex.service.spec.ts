@@ -941,3 +941,216 @@ describe('CodexService.getDetail', () => {
     await expectAsync(svc.getDetail('ship', 'AEGS_Gladius')).toBeRejected();
   });
 });
+
+describe('CodexService.revalidateLiveBuild', () => {
+  const T0 = new Date('2026-09-29T12:00:00Z').getTime();
+  const GAP = 5 * 60 * 1000 + 1;
+
+  interface World {
+    /** The `is_current` LIVE row the next read answers with; an Error fails the read. */
+    live: { id: string; patch_version: string } | Error;
+    /** Build ids that still exist in `codex_builds`. */
+    existing: Set<string>;
+    liveReads: number;
+  }
+
+  function provider(world: World): SupabaseClientProvider {
+    const from = (table: string) => {
+      const filters: Record<string, unknown> = {};
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: (col: string, value: unknown) => {
+          if (table === 'p4k_bundles_public_stats') return Promise.resolve({ data: [], error: null });
+          filters[col] = value;
+          return chain;
+        },
+        maybeSingle: () => {
+          if ('id' in filters) {
+            const id = String(filters['id']);
+            return Promise.resolve({ data: world.existing.has(id) ? { id } : null, error: null });
+          }
+          world.liveReads++;
+          if (world.live instanceof Error) return Promise.resolve({ data: null, error: world.live });
+          return Promise.resolve({
+            data: { ...world.live, channel: 'LIVE', build_number: '1', is_current: true },
+            error: null,
+          });
+        },
+      });
+      return chain;
+    };
+    return { client: { from } } as unknown as SupabaseClientProvider;
+  }
+
+  async function make(world: World): Promise<CodexService> {
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: provider(world) }],
+    });
+    const svc = TestBed.inject(CodexService);
+    await svc.loadCurrentBuild();
+    return svc;
+  }
+
+  function world(): World {
+    return { live: { id: 'b1', patch_version: '4.3.0' }, existing: new Set(['b1', 'b0']), liveReads: 0 };
+  }
+
+  beforeEach(() => {
+    jasmine.clock().install();
+    jasmine.clock().mockDate(new Date(T0));
+    spyOn(console, 'warn');
+  });
+  afterEach(() => {
+    jasmine.clock().uninstall();
+    TestBed.resetTestingModule();
+  });
+
+  function later(ms = GAP): void {
+    jasmine.clock().mockDate(new Date(Date.now() + ms));
+  }
+
+  it('does nothing when the LIVE build is unchanged', async () => {
+    const w = world();
+    const svc = await make(w);
+    later();
+    await svc.revalidateLiveBuild();
+    expect(w.liveReads).toBe(2);
+    expect(svc.build()?.id).toBe('b1');
+    expect(svc.buildRefresh()).toBe(0);
+    expect(svc.liveMovedNotice()).toBeNull();
+  });
+
+  it('moves a reader on live to the new LIVE build and says so once', async () => {
+    const w = world();
+    const svc = await make(w);
+    w.live = { id: 'b2', patch_version: '4.3.1' };
+    later();
+    await svc.revalidateLiveBuild();
+    expect(svc.build()?.id).toBe('b2');
+    expect(svc.liveBuild()?.id).toBe('b2');
+    expect(svc.buildRefresh()).toBe(1);
+    expect(svc.liveMovedNotice()).toBe('4.3.1');
+    expect(svc.viewingPastPatch()).toBeFalse();
+  });
+
+  it('keeps a reader on an older patch that still exists', async () => {
+    const w = world();
+    const svc = await make(w);
+    svc.selectBuild({ ...svc.build()!, id: 'b0', patchVersion: '4.2.0', isCurrent: false });
+    w.live = { id: 'b2', patch_version: '4.3.1' };
+    later();
+    await svc.revalidateLiveBuild();
+    expect(svc.build()?.id).toBe('b0');
+    expect(svc.liveBuild()?.id).toBe('b2');
+    expect(svc.viewingPastPatch()).toBeTrue();
+    expect(svc.buildRefresh()).toBe(0);
+    expect(svc.liveMovedNotice()).toBeNull();
+  });
+
+  it('moves a reader whose older patch was deleted to the new LIVE build', async () => {
+    const w = world();
+    const svc = await make(w);
+    svc.selectBuild({ ...svc.build()!, id: 'gone', patchVersion: '4.1.0', isCurrent: false });
+    w.live = { id: 'b2', patch_version: '4.3.1' };
+    later();
+    await svc.revalidateLiveBuild();
+    expect(svc.build()?.id).toBe('b2');
+    expect(svc.buildRefresh()).toBe(1);
+    expect(svc.liveMovedNotice()).toBe('4.3.1');
+  });
+
+  it('only logs a failed read — buildError stays clear', async () => {
+    const w = world();
+    const svc = await make(w);
+    w.live = new Error('network down');
+    later();
+    await svc.revalidateLiveBuild();
+    expect(svc.buildError()).toBeNull();
+    expect(svc.build()?.id).toBe('b1');
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it('reads at most once per five minutes', async () => {
+    const w = world();
+    const svc = await make(w);
+    await svc.revalidateLiveBuild(); // right after the load — throttled
+    expect(w.liveReads).toBe(1);
+    later();
+    await svc.revalidateLiveBuild();
+    later(60_000);
+    await svc.revalidateLiveBuild();
+    expect(w.liveReads).toBe(2);
+  });
+});
+
+describe('CodexService.armorRating', () => {
+  interface Answer { data: unknown; error: unknown; status?: number }
+
+  function make(answers: Answer[], opts: { noBuild?: boolean } = {}): { svc: CodexService; rpcCalls: () => number } {
+    let calls = 0;
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => (table === 'p4k_bundles_public_stats' ? Promise.resolve({ data: [], error: null }) : chain),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: opts.noBuild ? null : { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    const rpc = () => {
+      const a = answers[Math.min(calls, answers.length - 1)];
+      calls++;
+      return Promise.resolve({ status: 200, ...a });
+    };
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from, rpc } } }],
+    });
+    return { svc: TestBed.inject(CodexService), rpcCalls: () => calls };
+  }
+
+  beforeEach(() => spyOn(console, 'warn'));
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('answers an empty name list with no rows, without a read', async () => {
+    const { svc, rpcCalls } = make([{ data: [], error: null }]);
+    expect(await svc.armorRating([])).toEqual({ rows: [] });
+    expect(rpcCalls()).toBe(0);
+  });
+
+  it('answers "no rating" when there is no LIVE build', async () => {
+    const { svc } = make([{ data: [], error: null }], { noBuild: true });
+    expect(await svc.armorRating(['A'])).toEqual({ rows: null });
+  });
+
+  it('retries a statement timeout (57014) once and returns the warm answer', async () => {
+    const rows = [{ className: 'A' }];
+    const { svc, rpcCalls } = make([
+      { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' }, status: 500 },
+      { data: rows, error: null },
+    ]);
+    expect(await svc.armorRating(['A'])).toEqual({ rows } as never);
+    expect(rpcCalls()).toBe(2);
+  });
+
+  it('gives up after one retry with a failed result that is not cached', async () => {
+    const err = { code: '57014', message: 'canceling statement due to statement timeout' };
+    const { svc, rpcCalls } = make([{ data: null, error: err }]);
+    const res = await svc.armorRating(['A']);
+    expect(res).toEqual({ failed: true, error: err });
+    expect(rpcCalls()).toBe(2);
+    await svc.armorRating(['A']);
+    expect(rpcCalls()).toBe(4);
+  });
+
+  it('does not retry a non-transient RPC error', async () => {
+    const err = { code: '42883', message: 'function does not exist' };
+    const { svc, rpcCalls } = make([{ data: null, error: err, status: 404 }]);
+    expect(await svc.armorRating(['A'])).toEqual({ failed: true, error: err });
+    expect(rpcCalls()).toBe(1);
+  });
+});

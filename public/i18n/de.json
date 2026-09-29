@@ -203,7 +203,9 @@
         "backToCurrent": "Zurück zum aktuellen Patch",
         "loading": "Patches werden geladen …",
         "empty": "Keine weiteren Patches bekannt.",
-        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück."
+        "note": "Ohne Daten lässt sich ein Patch nicht öffnen. Ein Neuladen der Seite kehrt zum aktuellen Patch zurück.",
+        "liveMoved": "Katalog aktualisiert auf Patch {{patch}}.",
+        "liveMovedDismiss": "Hinweis schließen"
       },
       "patch": {
         "archive": "{{count}} Datensätze im Arsenal",
@@ -1900,6 +1902,7 @@
       },
       "loading": "Wird berechnet …",
       "unavailable": "Die Einordnung erscheint, sobald die Spielwerte geladen sind.",
+      "failed": "Die Einordnung konnte nicht geladen werden.",
       "empty": "Noch keine Rüstung ausgerüstet — die Einordnung erscheint mit dem ersten Teil."
     },
     "setLens": {

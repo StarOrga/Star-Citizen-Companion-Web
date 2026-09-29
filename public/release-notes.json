@@ -1,7 +1,35 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.110.1",
+  "current": "0.111.0",
   "releases": [
+    {
+      "version": "0.111.0",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Hängende Ladevorgänge enden nach 20 Sekunden.",
+              "text": "Codex, Hangar, Admin-Listen, Token- und Konzeptseite zeigen dann ihre Fehlerkarte mit „Erneut versuchen“, statt endlos zu laden."
+            },
+            {
+              "title": "Der Login-Start kann die App nicht mehr blockieren.",
+              "text": "Hängt das Lesen der Sitzung, gilt der Besuch nach spätestens 10 Sekunden als abgemeldet."
+            },
+            {
+              "title": "Ein lange offener Codex-Tab bemerkt einen neuen Patch.",
+              "text": "Beim Zurückkehren in den Tab wechselt der Katalog auf den neuen LIVE-Build und sagt das einmal; wer bewusst einen alten Patch liest, bleibt dort."
+            },
+            {
+              "title": "Set-Einordnung und 3D-Figur sind robuster, die App startet offline mit Texten.",
+              "text": "Die Einordnung zeigt einen Fehler mit „Erneut versuchen“, die 3D-Figur fällt bei einem Grafikfehler auf die gezeichnete Figur zurück, und die installierte App lädt Übersetzungen aus dem Cache."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.110.1",
       "date": "2026-09-29",

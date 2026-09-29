@@ -24,7 +24,7 @@ export const publicOrApprovedGuard: CanActivateFn = async () => {
   const router = inject(Router);
 
   auth.init();
-  await waitForReady(auth);
+  await auth.whenReady();
   if (!auth.isAuthenticated()) return true; // anon → component shows the teaser
 
   await roles.waitReady();
@@ -45,15 +45,3 @@ export const publicOrApprovedGuard: CanActivateFn = async () => {
   await auth.signOut(false);
   return router.createUrlTree(['/login'], { queryParams: { denied: 'invite' } });
 };
-
-function waitForReady(auth: AuthService): Promise<void> {
-  return new Promise((resolve) => {
-    if (auth.ready()) return resolve();
-    const interval = setInterval(() => {
-      if (auth.ready()) {
-        clearInterval(interval);
-        resolve();
-      }
-    }, 30);
-  });
-}
