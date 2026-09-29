@@ -15,7 +15,7 @@ import type { PortCompat, PortGroup } from './codex-detail.types';
  *
  * State stays in the parent (which port is open, the lazily loaded compatible
  * items), so switching classic and Holotable keeps an open port open. This
- * component renders and reports: toggle when a port head is pressed, hovered
+ * component renders and reports: portToggle when a port head is pressed, hovered
  * when a located port lights up its marker on the hull map.
  */
 @Component({
@@ -45,7 +45,7 @@ import type { PortCompat, PortGroup } from './codex-detail.types';
             <li class="hp" [class.expandable]="port.types.length > 0" [class.open]="expandedPort() === port.portIndex"
                 [class.located]="isPortLocated(port)" [class.on]="isPortActive(port)"
                 (mouseenter)="hoverPort(port)" (mouseleave)="hovered.emit(null)">
-              <button type="button" class="hp-head" (click)="toggle.emit(port)" [disabled]="port.types.length === 0">
+              <button type="button" class="hp-head" (click)="portToggle.emit(port)" [disabled]="port.types.length === 0">
                 <span class="hp-caret">{{ port.types.length ? (expandedPort() === port.portIndex ? '▾' : '▸') : '·' }}</span>
                 <span class="hp-name">{{ humanizePort(port.portName) }}</span>
                 <span class="hp-meta">
@@ -140,7 +140,7 @@ export class CodexPortListComponent {
   readonly expandedPort = input<number | null>(null);
   readonly compat = input<ReadonlyMap<number, PortCompat>>(new Map());
 
-  readonly toggle = output<CodexItemPort>();
+  readonly portToggle = output<CodexItemPort>();
   readonly hovered = output<string[] | null>();
 
   protected isPortLocated(port: CodexItemPort): boolean {

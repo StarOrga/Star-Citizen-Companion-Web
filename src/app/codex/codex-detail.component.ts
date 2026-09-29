@@ -13,7 +13,6 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
-  AmmunitionPayload,
   BaseEntityPayload,
   CodexBlueprintIngredient,
   CodexItemPort,
@@ -33,7 +32,6 @@ import {
   CodexDetail,
   CodexKind,
   CodexService,
-  CompatibleItem,
   ResolvedEntity,
   pickLocalized,
   toLang,
@@ -65,7 +63,6 @@ import { CodexLoadoutDraftStore } from './detail/codex-loadout-draft.store';
 import {
   computeLoadoutStats,
   findStat,
-  type QuantumStats,
   type ResolvedLoadoutLine,
 } from '../hangar/loadout-stats';
 import {
@@ -102,12 +99,9 @@ import {
   weaponStatsUnavailable,
 } from './codex-equipped-stats';
 import {
-  SHIP_MODULE_SECTION_ORDER,
-  ShipModuleGroup,
   ShipModuleSection,
   TAIL_SHIP_SECTIONS,
   classifyShipModule,
-  shipModuleGroupLabelKey,
   shipModuleGroupOf,
   isConfigurableSection,
   isIndividualSection,
@@ -128,7 +122,7 @@ import {
 } from './detail/codex-detail.types';
 import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { EditionOption, resolveEditionGroup } from './codex-edition-group';
-import { SummaryOccupant, equippedMass } from './ship-summary-panels';
+import { SummaryOccupant } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
 import {
@@ -141,10 +135,8 @@ import {
   storeMission,
 } from './codex-mission';
 import {
-  KpiCell,
   KpiShipInput,
   buildDefensivePanel,
-  buildKpiCells,
   buildOffensivePanel,
   computeKpiSheet,
   crossSectionAxes,
@@ -172,7 +164,6 @@ import {
   CodexOffensivePanelComponent,
   CodexShipPanelComponent,
   ShipFactGroup,
-  ShipFactRow,
 } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
@@ -189,30 +180,6 @@ import {
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
 import { CodexWeaponDetailComponent, WeaponDetailEntry } from './codex-weapon-detail.component';
-import {
-  DraftMap,
-  EMPTY_DRAFT,
-  HydrationEpoch,
-  acceptedClassNames,
-  beginHydration,
-  extendHydration,
-  changedCount as draftChangedCount,
-  decodeDraftParam,
-  deleteDraftPaths,
-  encodeDraftParam,
-  isNestedPath,
-  mergeMapInto,
-  mergeSavedLoadout,
-  newHydrationEpoch,
-  parseLocalDraft,
-  restoreDraft,
-  selectSaveableEntries,
-  serializeLocalDraft,
-  setDraftValueForPaths,
-  topSegment,
-  touchedTopPorts,
-  LOCAL_DRAFT_STORAGE_KEY,
-} from './codex-loadout-draft';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
   HardpointFrame,
@@ -235,7 +202,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
-import { CodexHoloForkGuard } from './holo/codex-holo-fork-guard';
 import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
@@ -293,11 +259,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
-        <!-- Wave 2 (item A): today's stage/tool-row/columns/analysis/
-             fixed-systems/description/spec sections render UNCHANGED in this
-             branch — nothing here was touched, byte-for-byte, so the existing
-             codex-detail.component.spec.ts stays green untouched. The
-             Holotable view is a completely separate branch below. -->
+        <!-- Classic view. The Holotable view is the separate branch below;
+             whatever both show (pickers, ship actions, link form, fixed
+             systems, description, hardpoints, recipe, spec/raw) is a shared
+             sub-component in detail/ or a shared ng-template at the end of
+             this template, rendered in both branches (D17). -->
         @if (!(kind() === 'ship' && holoView())) {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         <div class="m-top" [class.ship-mode]="kind() === 'ship'">
@@ -723,7 +689,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [locatablePorts]="locatablePorts()"
               [expandedPort]="expandedPort()"
               [compat]="compatByPort()"
-              (toggle)="togglePort($event)"
+              (portToggle)="togglePort($event)"
               (hovered)="setActivePorts($event)" />
           </section>
         }
@@ -838,12 +804,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (arrivedShip)="onHoloArrived($event)"
             [linkCopied]="linkCopied()"
             (copyShareLink)="copyShareLink()">
-            <!-- Details drawer content — reused verbatim via content
-                 projection, so the ship-link form, edition/skin pickers,
-                 RSI link/add-to-hangar, fixed systems layout, description,
-                 structural hardpoints, crafting and spec/raw stay on the
-                 SAME signals/methods as the classic view (item B "present,
-                 not hidden behind a code path"). -->
+            <!-- Details drawer content, projected into the Holotable: the
+                 shared sub-components in detail/ and the shared ng-templates,
+                 rendered in both branches, on the SAME signals/methods as the
+                 classic view (item B "present, not hidden behind a code
+                 path"). -->
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
                 <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
@@ -878,7 +843,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   [locatablePorts]="locatablePorts()"
                   [expandedPort]="expandedPort()"
                   [compat]="compatByPort()"
-                  (toggle)="togglePort($event)"
+                  (portToggle)="togglePort($event)"
                   (hovered)="setActivePorts($event)" />
               </section>
             }
@@ -1257,9 +1222,27 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     }
   `],
 })
+/**
+ * The codex detail page (/codex/:kind/:className): every catalog kind, and for
+ * ships the classic view plus the Holotable.
+ *
+ * What lives where (D17, AUD-090):
+ * - detail/codex-detail.types.ts — the page's shared types (StageCountChip, …)
+ * - detail/codex-ship-stage.component.ts — the ship hero stage (AUD-062)
+ * - detail/codex-variant-picker.component.ts — skin and edition pickers
+ * - detail/codex-ship-actions.component.ts + codex-ship-link-form.component.ts
+ *   — tool-row actions and the RSI pledge-link form, state in
+ *   detail/ship-link-form.store.ts (provided here)
+ * - detail/codex-port-list.component.ts — the Hardpoints card body
+ * - detail/codex-spec-sheet.component.ts, codex-recipe-card.component.ts
+ * - detail/codex-detail-facts.ts — pure builders for facts, chips, the Schiff
+ *   panel and the stage census
+ * - detail/codex-loadout-draft.store.ts — the loadout draft: state, hydration,
+ *   URL/localStorage mirror, save (provided here)
+ * This component keeps loading, the derived loadout views and the wiring.
+ */
 export class CodexDetailComponent implements OnInit {
   private readonly svc = inject(CodexService);
-  private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
