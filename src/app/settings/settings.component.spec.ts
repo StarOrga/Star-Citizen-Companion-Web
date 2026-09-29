@@ -180,7 +180,7 @@ describe('SettingsComponent layout', () => {
 
   it('never lets the language and region selects overlap on a phone width', () => {
     const fixture = setup(makeUser(), '360px');
-    const selects: HTMLSelectElement[] = Array.from(
+    const selects: HTMLElement[] = Array.from(
       fixture.nativeElement.querySelectorAll('.locale-field .sc-select'),
     );
     expect(selects.length).toBe(2);
@@ -191,7 +191,7 @@ describe('SettingsComponent layout', () => {
 
   it('never lets the language and region selects overlap on a desktop width', () => {
     const fixture = setup(makeUser(), '1100px');
-    const selects: HTMLSelectElement[] = Array.from(
+    const selects: HTMLElement[] = Array.from(
       fixture.nativeElement.querySelectorAll('.locale-field .sc-select'),
     );
     expect(
@@ -204,12 +204,31 @@ describe('SettingsComponent layout', () => {
     const grid = fixture.nativeElement.querySelector('.locale-grid') as HTMLElement;
     const gridRect = grid.getBoundingClientRect();
     for (const select of Array.from(
-      grid.querySelectorAll<HTMLSelectElement>('.sc-select'),
+      grid.querySelectorAll<HTMLElement>('.sc-select'),
     )) {
       const rect = select.getBoundingClientRect();
       expect(rect.right).toBeLessThanOrEqual(gridRect.right + 1);
       expect(rect.left).toBeGreaterThanOrEqual(gridRect.left - 1);
     }
+  });
+
+  it('picks the language from the themed list, not a native select', () => {
+    const fixture = setup(makeUser(), '1100px');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('select')).toBeNull();
+    const locale = TestBed.inject(LocaleService);
+    const setLanguage = spyOn(locale, 'setLanguage');
+
+    const trigger = el.querySelectorAll<HTMLButtonElement>('.locale-field sc-select .trigger')[0];
+    trigger.click();
+    fixture.detectChanges();
+    const options = Array.from(el.querySelectorAll<HTMLElement>('.locale-field .option'));
+    // auto, de, en — no empty row on a required picker.
+    expect(options.length).toBe(3);
+    options[2].click();
+    fixture.detectChanges();
+
+    expect(setLanguage).toHaveBeenCalledWith('en');
   });
 
   it('does not cap the page below the shell width any more', () => {
