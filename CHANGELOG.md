@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.112.1] - 2026-09-29
+
+### Changed
+
+- **Das Mobile-Gate erkennt jetzt jede Umleitung.** Landet eine Route statt auf
+  der angefragten Seite auf `/unavailable`, `/news` oder einer anderen Seite,
+  meldet das Gate `auth-redirect`, statt die falsche Seite als grün zu werten.
+- **Neue Prüfungen für zentrale Anforderungen.** Rüstungswertung, reduzierte
+  Bewegung, Sprachwechsel der Set-Bühne, Anmelde-Rücksprung, Touch-Tooltips,
+  Rang-Auswahl und die Tastenbelegung auf 375 px sind durch Tests abgesichert.
+- **Datenbank-Regeln als SQL-Tests.** `npm run test:db` prüft Leserechte,
+  Teilen-Schutz, Build-Aufräumen und Rollenschutz gegen den lokalen Stack.
+
 ## [0.112.0] - 2026-09-29
 
 ### Changed

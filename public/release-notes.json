@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.112.0",
+  "current": "0.112.1",
   "releases": [
+    {
+      "version": "0.112.1",
+      "date": "2026-09-29",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Das Mobile-Gate erkennt jetzt jede Umleitung.",
+              "text": "Landet eine Route statt auf der angefragten Seite auf /unavailable, /news oder einer anderen Seite, meldet das Gate auth-redirect, statt die falsche Seite als grün zu werten."
+            },
+            {
+              "title": "Neue Prüfungen für zentrale Anforderungen.",
+              "text": "Rüstungswertung, reduzierte Bewegung, Sprachwechsel der Set-Bühne, Anmelde-Rücksprung, Touch-Tooltips, Rang-Auswahl und die Tastenbelegung auf 375 px sind durch Tests abgesichert."
+            },
+            {
+              "title": "Datenbank-Regeln als SQL-Tests.",
+              "text": "npm run test:db prüft Leserechte, Teilen-Schutz, Build-Aufräumen und Rollenschutz gegen den lokalen Stack."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.112.0",
       "date": "2026-09-29",
