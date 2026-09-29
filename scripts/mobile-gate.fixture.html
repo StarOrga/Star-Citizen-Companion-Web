@@ -19,6 +19,9 @@
       /* → text-too-small */
       .tiny-text { font-size: 9px; }
 
+      /* → input-zoom (iOS focus zoom below 16px) */
+      .zoom-bait { font-size: 13px; }
+
       /* → content-clipped (overflow hidden, no ellipsis/line-clamp) */
       .clipped { width: 120px; overflow: hidden; white-space: nowrap; font-size: 16px; }
 
@@ -72,6 +75,8 @@
         console.error('mobile-gate self-test: synthetic console error');
       </script>
     </section>
+
+    <section><h2>6b — text field below 16px</h2><input class="zoom-bait" type="search" aria-label="zoom bait" /></section>
 
     <div class="spacer">scroll area — the sticky bar below must be caught covering the button at the end</div>
 

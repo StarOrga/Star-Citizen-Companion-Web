@@ -43,6 +43,7 @@
   "thresholds": {
     "minTapTargetPx": 44,
     "minFontSizePx": 12,
+    "minInputFontSizePx": 16,
     "overflowTolerancePx": 1,
     "maxFindingsPerCheck": 8
   },
@@ -50,6 +51,7 @@
     "horizontal-overflow": "error",
     "tap-target-too-small": "error",
     "text-too-small": "error",
+    "input-zoom": "error",
     "content-clipped": "error",
     "overlapping-content": "error",
     "fixed-overlay-covers-control": "error",

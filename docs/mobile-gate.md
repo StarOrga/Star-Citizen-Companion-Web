@@ -123,6 +123,7 @@ Every check is measured in-page, on every device × route combination. All are
 | `auth-redirect` | a route was asked for and a page on **another path** was rendered instead — `/login`, `/unavailable`, `/news` or anything else (query and trailing slash do not count) | the app is a login wall (`app.routes.ts` hangs `canActivateChild: [authGuard, approvedGuard]` on the shell), so an unauthenticated visit to a gated route does not fail — it silently becomes a perfectly fine login form that passes every other check. The other guards bounce the same way: `approvedGuard` sends a signed-in, not yet approved account to `/unavailable?redirect=…`, `roleGuard` sends a missing role (a non-admin on `/admin/feedback`) to `/news`. The gate checks where it landed **before** measuring and skips the audit entirely, because findings of the page it landed on, filed under the requested route's name, are worse than none. The report prints `(redirected → …)` on every bounced row, including one without findings |
 | `tap-target-too-small` | an interactive element's box is smaller than 44 × 44 px | Apple HIG 44pt / WCAG 2.5.8. Wrapper "touch-target" child elements count as the real hit area; inline links inside running prose are exempt; off-canvas (closed drawer) controls are skipped |
 | `text-too-small` | rendered text has `font-size < 12px` | below ~12px body text stops being comfortably readable at arm's length on a phone |
+| `input-zoom` | a text-entry field (`input` other than checkbox/radio/range/file/color/button types, `textarea`, native `select`) renders below 16px on an **iOS** device | iOS Safari zooms the whole page when such a field takes focus. Fix via `--sc-fs-input` (`src/styles.scss`): `font-size: max(<design size>, var(--sc-fs-input))`. Only fields rendered on load are measured — closed panels and unlisted routes are not |
 | `content-clipped` | a box with `overflow: hidden/clip` has `scrollWidth`/`scrollHeight` beyond its client box **and** no `text-overflow: ellipsis` / `-webkit-line-clamp` | text silently cut in half. Deliberate truncation (ellipsis, line-clamp) passes |
 | `overlapping-content` | the center point of a control hit-tests to a foreign element | the tap does not reach the control |
 | `fixed-overlay-covers-control` | the covering element (or an ancestor) is `position: fixed`/`sticky` | sticky headers/bottom bars swallowing buttons — checked at every scroll step, not only at the top of the page |
@@ -237,6 +238,7 @@ script instead. It is checked in the same run and fails the same way.
    ok   horizontal-overflow
    ok   tap-target-too-small
    ok   text-too-small
+   ok   input-zoom
    ok   content-clipped
    ok   overlapping-content
    ok   fixed-overlay-covers-control
