@@ -25,7 +25,7 @@ export interface ThrottleChipCtx {
 
 export function throttleChipHtml(profile: LiveProfile): string {
   const label = profile.charAt(0).toUpperCase() + profile.slice(1);
-  return `<button type="button" id="throttle-chip" class="throttle-chip" title="${escapeHtml(t('run.tempo'))} (T)">⚡ ${label} ▾ <kbd class="sc-kbd">T</kbd></button>`;
+  return `<button type="button" id="throttle-chip" class="throttle-chip" data-tip="${escapeHtml(t('run.tempo'))}" data-tip-key="T">⚡ ${label} ▾</button>`;
 }
 
 /** Hotkey entry point (T): same as clicking the chip; no-op when no chip is mounted. */

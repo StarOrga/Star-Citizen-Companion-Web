@@ -304,7 +304,31 @@ kbd.sc-kbd {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.btn-primary kbd.sc-kbd { background: rgba(0, 0, 0, 0.3); border-color: rgba(0, 0, 0, 0.35); color: var(--sc-bg-0); }
+
+/* ------- tooltip (tooltip.ts) — the app's own, never the native title -------
+   An elevated surface like the popovers; a hotkey rides in it as a key badge. */
+.sc-tooltip {
+  position: fixed;
+  z-index: 2000; /* above modals (1000) — a tip inside the settings dialog must show */
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--sc-bg-2);
+  color: var(--sc-fg-0);
+  border: 1px solid var(--sc-border-ui);
+  border-radius: var(--sc-radius);
+  box-shadow: var(--sc-shadow);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  pointer-events: auto;
+  user-select: none;
+  animation: sc-tip-in var(--sc-transition-overlay) ease;
+}
+.sc-tooltip .sc-tip-text { overflow-wrap: anywhere; }
+.sc-tooltip .sc-tip-text:empty { display: none; }
+@keyframes sc-tip-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* ===================================================================
    One-screen shell: top strip (brand · step rail · connection chip ·
@@ -965,7 +989,6 @@ kbd.sc-kbd {
   transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 .throttle-chip:hover { border-color: var(--sc-accent); color: var(--sc-accent); background: var(--sc-bg-2); }
-.throttle-chip kbd.sc-kbd { margin-left: 2px; }
 
 /* Category bars — one per entity family. They only ever know a running count
    (no per-category total), so the bar states are honest: empty until the

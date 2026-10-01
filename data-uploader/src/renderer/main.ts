@@ -11,6 +11,7 @@
 import '@starorga/star-ui/lib/design-tokens.css';
 import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
 import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
@@ -289,6 +290,7 @@ export const state = {
 
 async function init(): Promise<void> {
   await loadI18n();
+  initTooltips();
   applyBranding();
   const env = await window.sc.env();
   paintEnv(env);
@@ -303,9 +305,10 @@ async function init(): Promise<void> {
   // calls `setLocale` + repaints directly — no topbar select to wire here.
   const gear = $('#btn-settings-gear') as HTMLButtonElement | null;
   if (gear) {
-    const label = `${t('settings.title')} (Ctrl+,)`;
-    gear.title = label;
-    gear.setAttribute('aria-label', label);
+    gear.dataset.tip = t('settings.title');
+    gear.dataset.tipKey = 'Ctrl+,';
+    gear.dataset.tipTier = 'label';
+    gear.setAttribute('aria-label', t('settings.title'));
     gear.addEventListener('click', () => openAppSettingsDialog());
   }
   document.addEventListener('keydown', (e) => {
@@ -323,7 +326,9 @@ async function init(): Promise<void> {
   for (const [id, key, hk] of [['#chevron-prev', 'common.back', '←'], ['#chevron-next', 'common.next', '→']] as const) {
     const el = $(id);
     if (!el) continue;
-    el.title = `${t(key)} (${hk})`;
+    el.dataset.tip = t(key);
+    el.dataset.tipKey = hk;
+    el.dataset.tipTier = 'label';
     el.setAttribute('aria-label', t(key));
   }
 
@@ -837,7 +842,7 @@ function paintConnection(): void {
   // Left cluster: email when signed in, otherwise a short state + connect CTA.
   let idBlock: string;
   if (s?.connected) {
-    idBlock = `<span class="conn-email" title="${escapeHtml(s.email ?? '')}">${escapeHtml(s.email ?? '')}</span>`;
+    idBlock = `<span class="conn-email" data-tip="${escapeHtml(s.email ?? '')}" data-tip-tier="label">${escapeHtml(s.email ?? '')}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
       ? t('session.reconnect')
@@ -875,8 +880,8 @@ function paintConnection(): void {
   let actions = '';
   if (s?.connected) {
     actions = `
-      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh')}" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
-      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut')}" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
+      <button id="conn-sync" type="button" class="conn-icon-btn" data-tip="${t('sync.refresh')}" data-tip-tier="label" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
+      <button id="conn-signout" type="button" class="conn-icon-btn" data-tip="${t('session.signOut')}" data-tip-tier="label" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
   }
 
   // A running sync replaces the middle with a thin labelled progress bar.
@@ -896,7 +901,7 @@ function paintConnection(): void {
   mount.innerHTML = `
     <div class="conn-card conn-card--${pillCls}">
       <div class="conn-bar">
-        <span class="conn-dot conn-dot--${pillCls}" title="${escapeHtml(pillText)}"></span>
+        <span class="conn-dot conn-dot--${pillCls}" data-tip="${escapeHtml(pillText)}" data-tip-tier="label"></span>
         <div class="conn-idwrap">${idBlock}</div>
         ${serverBlock}
         <span class="conn-spacer"></span>
@@ -974,7 +979,7 @@ export function renderDiscoverUpdateBanner(): string {
     <div class="discover-update" id="discover-update">
       <span class="discover-update-text">${escapeHtml(msg)}</span>
       <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload')}</button>
-      <button id="du-dismiss" type="button" class="discover-update-close" title="${t('common.dismiss')}" aria-label="${t('common.dismiss')}">✕</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" data-tip="${t('common.dismiss')}" data-tip-tier="label" aria-label="${t('common.dismiss')}">✕</button>
     </div>`;
 }
 
@@ -1214,9 +1219,9 @@ export function armedChipHtml(): string {
   const wd = state.runPlan?.whenDone ?? state.whenDone;
   if (wd === 'nothing') return '';
   return `
-    <span class="armed-chip" id="armed-chip" title="${t('run.whenDone.' + wd)}">
+    <span class="armed-chip" id="armed-chip" data-tip="${t('run.whenDone.' + wd)}">
       ⏻ ${t('run.whenDone.' + wd)}
-      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" title="${t('run.whenDone.disarm')}">✕</button>
+      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" data-tip="${t('run.whenDone.disarm')}" data-tip-tier="label">✕</button>
     </span>`;
 }
 
@@ -1317,7 +1322,7 @@ function renderRun(): string {
         ${categoryBarsHtml()}
         <div class="log-line-row">
           <div class="log-lastline" id="log-lastline"></div>
-          <button type="button" id="log-drawer-toggle" class="btn-link" title="${t('run.logTitle')} (Ctrl+L)">${t('run.logTitle')} <kbd class="sc-kbd">Ctrl+L</kbd></button>
+          <button type="button" id="log-drawer-toggle" class="btn-link" data-tip="${t('run.logTitle')}" data-tip-key="Ctrl+L">${t('run.logTitle')}</button>
         </div>
         <div class="log-drawer" id="log-drawer" hidden>
           <div class="log-drawer-head">
@@ -1329,7 +1334,7 @@ function renderRun(): string {
       </section>
       <p id="run-ready-note" class="run-ready-note" hidden></p>
       <div class="btn-row view-footer" id="run-footer">
-        <button id="btn-cancel-extract" class="btn btn-danger-ghost" title="${t('run.cancel')} (Esc)">${t('run.cancel')} <kbd class="sc-kbd">Esc</kbd></button>
+        <button id="btn-cancel-extract" class="btn btn-danger-ghost" data-tip="${t('run.cancel')}" data-tip-key="Esc">${t('run.cancel')}</button>
       </div>
     </div>
   `;
@@ -1351,8 +1356,9 @@ function markBundleReady(): void {
   // finished card no longer offers a destructive action next to its CTA.
   const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
   if (cancel) {
-    cancel.innerHTML = `${escapeHtml(t('common.back'))} <kbd class="sc-kbd">Esc</kbd>`;
-    cancel.title = `${t('common.back')} (Esc)`;
+    cancel.textContent = t('common.back');
+    cancel.dataset.tip = t('common.back');
+    cancel.dataset.tipKey = 'Esc';
     cancel.classList.remove('btn-danger-ghost');
   }
   if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
@@ -1362,7 +1368,9 @@ function markBundleReady(): void {
   btn.id = 'btn-upload-now';
   btn.type = 'button';
   btn.className = 'btn btn-primary btn-ready';
-  btn.innerHTML = `✓ ${t('run.bundleReadyCta')} <kbd class="sc-kbd">Enter</kbd>`;
+  btn.textContent = `✓ ${t('run.bundleReadyCta')}`;
+  btn.dataset.tip = t('run.bundleReadyCta');
+  btn.dataset.tipKey = 'Enter';
   btn.addEventListener('click', () => void goToUploadNow());
   footer.appendChild(btn);
 }
@@ -1658,8 +1666,8 @@ function renderAuthUpload(): string {
       </section>
       <div class="btn-row view-footer" id="upload-footer">
         <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
-        <button type="button" id="btn-pause-upload" class="btn" hidden title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
+        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
+        <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
         <button id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
       </div>
       <div id="upload-bundle-details"></div>
@@ -1775,7 +1783,7 @@ function paintJobNotice(): void {
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
-    pauseBtn.innerHTML = `⏸ ${escapeHtml(tOr('upload.job.pause', 'Pause'))} <kbd class="sc-kbd">Space</kbd>`;
+    pauseBtn.textContent = `⏸ ${tOr('upload.job.pause', 'Pause')}`;
   }
   resumeBtn.hidden = !(!running && resumable);
   discardBtn.hidden = !(!running && resumable);

@@ -91,8 +91,8 @@ export function renderInstall(): string {
     state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
   const connected = isConnected();
   const primary = connected
-    ? `<button id="btn-to-setup" type="button" class="btn btn-primary">${t('discover.next')} <kbd class="sc-kbd">Enter</kbd></button>`
-    : `<button id="btn-connect-continue" type="button" class="btn btn-primary">${t('session.connect')} <kbd class="sc-kbd">Enter</kbd></button>
+    ? `<button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
+    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('session.connect')}" data-tip-key="Enter">${t('session.connect')}</button>
        <button id="btn-to-setup" type="button" class="btn">${t('install.extractOnly')}</button>`;
   return `
     <div class="view step-install">
@@ -157,7 +157,7 @@ function paintChannels(): void {
           <input type="radio" name="install-pick" data-idx="${i}" ${c.selected ? 'checked' : ''} />
         </div>
         <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
+        <span class="channel-path" data-tip="${escapeHtml(c.installPath)}" data-tip-tier="label">${escapeHtml(c.installPath)}</span>
         <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
         ${comparisonLine(c.version, c.channel)}
         ${lastUploadedLine(c.channel)}
@@ -197,5 +197,7 @@ function syncNextButton(): void {
   if (!next) return;
   const picked = state.channels.some((c) => c.selected);
   next.disabled = !picked;
-  next.title = picked ? '' : t('discover.pickOne');
+  // Says why the button is disabled — a label-tier tip by the tooltip rules.
+  next.dataset.tip = picked ? t('discover.next') : t('discover.pickOne');
+  next.dataset.tipTier = picked ? 'info' : 'label';
 }
