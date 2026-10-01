@@ -195,7 +195,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
       .stage-eyebrow {
         display: block;
         font-family: var(--font-display, 'Orbitron', sans-serif);
-        font-size: 10px;
+        font-size: max(10px, var(--sc-fs-floor));
         letter-spacing: .08em;
         text-transform: uppercase;
         color: color-mix(in srgb, var(--sc-accent) 78%, var(--sc-fg-0));
@@ -280,7 +280,7 @@ function centeredFallback(stageW: number, stageH: number, imgW: number, imgH: nu
         gap: 10px;
         align-items: center;
         font-family: var(--font-display, 'Orbitron', sans-serif);
-        font-size: 9px;
+        font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: .08em;
         text-transform: uppercase;
         color: rgba(242, 247, 251, .45);

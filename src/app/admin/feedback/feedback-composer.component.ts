@@ -520,8 +520,9 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
       user-select: none;
     }
     .complex input {
-      width: 16px;
-      height: 16px;
+      /* 16px box for the mouse; the full touch target on a coarse pointer. */
+      width: max(16px, var(--sc-tap-min));
+      height: max(16px, var(--sc-tap-min));
       margin: 0;
       accent-color: var(--sc-accent);
       cursor: pointer;

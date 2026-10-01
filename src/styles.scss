@@ -398,6 +398,20 @@
     min-height: var(--sc-tap-min);
   }
 
+  /* A focusable gap dash ("—" with the reason as its tooltip, codex KPI band,
+     rank card, fact grids) is the only way to read that reason on touch, so it
+     is a control and gets the full hit area. The negative block margin keeps
+     the row height of the surrounding text unchanged; the dash stays centred. */
+  .gap-dash[tabindex='0'] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--sc-tap-min);
+    min-height: var(--sc-tap-min);
+    margin-block: calc((var(--sc-tap-min) - 1lh) / -2);
+    vertical-align: middle;
+  }
+
 }
 
 /* Native checkboxes/radios cannot carry a hit area larger than their own box,

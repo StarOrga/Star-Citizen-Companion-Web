@@ -519,7 +519,7 @@ const SEARCH_DEBOUNCE_MS = 250;
       .archive-line { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; }
       .archive-line__eyebrow {
         font-family: var(--sc-font-display);
-        font-size: 9px;
+        font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: rgba(242, 247, 251, 0.32);
@@ -529,7 +529,7 @@ const SEARCH_DEBOUNCE_MS = 250;
         align-items: baseline;
         gap: 4px;
         font-family: var(--sc-font-display);
-        font-size: 9px;
+        font-size: max(9px, var(--sc-fs-floor));
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
