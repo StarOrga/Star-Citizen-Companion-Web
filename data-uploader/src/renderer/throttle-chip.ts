@@ -5,6 +5,9 @@
  * reported to the caller so it can be routed to the bottom-strip snackbar.
  */
 
+import { t } from '../lib/i18n.js';
+import { escapeHtml } from './dom.js';
+
 export type LiveProfile = 'minimal' | 'standard' | 'maximum' | 'auto';
 
 interface ProfileDefLike {
@@ -22,7 +25,7 @@ export interface ThrottleChipCtx {
 
 export function throttleChipHtml(profile: LiveProfile): string {
   const label = profile.charAt(0).toUpperCase() + profile.slice(1);
-  return `<button type="button" id="throttle-chip" class="throttle-chip" title="Tempo (T)">⚡ ${label} ▾ <kbd class="sc-kbd">T</kbd></button>`;
+  return `<button type="button" id="throttle-chip" class="throttle-chip" title="${escapeHtml(t('run.tempo'))} (T)">⚡ ${label} ▾ <kbd class="sc-kbd">T</kbd></button>`;
 }
 
 /** Hotkey entry point (T): same as clicking the chip; no-op when no chip is mounted. */

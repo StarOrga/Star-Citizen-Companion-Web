@@ -218,6 +218,14 @@ function tOr(key: string, fallback: string, params: Record<string, string | numb
 const phaseLabel = (p: string): string => tOr(`run.phase.${p}`, p);
 const stageLabel = (s: string): string => tOr(`run.stage.${s}`, s);
 const counterLabel = (k: string): string => tOr(`run.counter.${k}`, k);
+/** Silhouette build counter keys (singular entity kinds) → extract counter keys. */
+const SILHOUETTE_KIND_COUNTER: Record<string, string> = {
+  ship: 'ships',
+  vehicle: 'vehicles',
+  component: 'components',
+  weapon: 'weapons',
+  item: 'items',
+};
 
 function fmtElapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -308,6 +316,8 @@ async function init(): Promise<void> {
     }
     if (e.key === 'Escape') closeSettingsDialogIfOpen();
   });
+
+  $('#step-rail')?.setAttribute('aria-label', t('steprail.ariaLabel'));
 
   // Edge chevrons: label them (icon-only controls) — ←/→ are their hotkeys.
   for (const [id, key, hk] of [['#chevron-prev', 'common.back', '←'], ['#chevron-next', 'common.next', '→']] as const) {
@@ -998,7 +1008,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   const action = $('#update-banner-action') as HTMLButtonElement | null;
   if (!banner || !text || !action) return;
   banner.classList.remove('update-banner-error');
-  action.style.display = 'none';
+  action.hidden = true;
   action.onclick = null;
 
   switch (ev.type) {
@@ -1020,7 +1030,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
     case 'downloaded':
       text.textContent = t('update.downloaded', { version: ev.version });
       action.textContent = t('update.install');
-      action.style.display = 'inline-flex';
+      action.hidden = false;
       action.onclick = () => void window.sc.update.install();
       banner.classList.remove('hidden');
       return;
@@ -1317,7 +1327,7 @@ function renderRun(): string {
           <div class="log-stream" id="log-drawer-body"></div>
         </div>
       </section>
-      <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
+      <p id="run-ready-note" class="run-ready-note" hidden></p>
       <div class="btn-row view-footer" id="run-footer">
         <button id="btn-cancel-extract" class="btn btn-danger-ghost" title="${t('run.cancel')} (Esc)">${t('run.cancel')} <kbd class="sc-kbd">Esc</kbd></button>
       </div>
@@ -1334,7 +1344,7 @@ function markBundleReady(): void {
   const note = $('#run-ready-note');
   if (note) {
     note.textContent = t('run.bundleReady');
-    note.style.display = 'block';
+    note.hidden = false;
   }
   markCategoriesComplete();
   // Nothing left to abort: the red "cancel" becomes a plain "back" so the
@@ -1376,11 +1386,17 @@ function wireRun(): void {
     applyProfile: (next) => applyProfile(next),
     onMessage: (msg) => showSnackbar(msg),
   });
-  $('#btn-cancel-extract')?.addEventListener('click', () => {
+  $('#btn-cancel-extract')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
     void (async () => {
+      if (btn.disabled) return;
       const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
       if (!ok) return;
       if (currentExtractJobId) {
+        // The abort can take a moment to land — say so and take the button
+        // out of reach so a second click (or Esc) cannot fire it again.
+        btn.disabled = true;
+        btn.textContent = t('run.cancelling');
         try {
           await window.sc.extract.cancel(currentExtractJobId);
         } catch {
@@ -1412,7 +1428,7 @@ async function runRealExtract(): Promise<void> {
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
-    appendLog('Kein Channel ausgewählt — zurück zum Setup.', 'error');
+    appendLog(t('run.noChannel'), 'error');
     return;
   }
   // Started only past the early return above: that return sits outside the
@@ -1479,7 +1495,7 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? '', ev.level ?? 'info');
         return;
       case 'warning':
-        appendLog(ev.message ?? 'warning', 'warn');
+        appendLog(ev.message ?? t('run.warningFallback'), 'warn');
         return;
       case 'done':
         progress.setStep(5); // past the last phase → all step chips 'done'
@@ -1488,7 +1504,7 @@ async function runRealExtract(): Promise<void> {
         return;
       case 'error':
         progress.update({ indeterminate: false });
-        appendLog(ev.message ?? 'extraction error', 'error');
+        appendLog(ev.message ?? t('run.errorFallback'), 'error');
         return;
     }
   });
@@ -1538,7 +1554,7 @@ async function runRealExtract(): Promise<void> {
         void doStartUpload();
       }
     } else {
-      appendLog(final.error ?? 'unknown extraction failure', 'error');
+      appendLog(final.error ?? t('run.failedUnknown'), 'error');
     }
   } finally {
     extractRunning = false;
@@ -1633,8 +1649,8 @@ function renderAuthUpload(): string {
           <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
         </div>
         <p id="upload-intro">${t('upload.intro')}</p>
-        <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
-        <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
+        <div id="reconnect-notice" class="reconnect-notice" hidden></div>
+        <div id="resume-notice" class="reconnect-notice" hidden></div>
         ${progressCardHtml('upload-progress', uploadSteps())}
         ${categoryBarsHtml()}
         <div id="auth-status" class="upload-status" hidden></div>
@@ -1642,9 +1658,9 @@ function renderAuthUpload(): string {
       </section>
       <div class="btn-row view-footer" id="upload-footer">
         <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-        <button type="button" id="btn-resume-upload" class="btn btn-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
-        <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
-        <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
+        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
+        <button type="button" id="btn-pause-upload" class="btn" hidden title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
+        <button id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
       </div>
       <div id="upload-bundle-details"></div>
     </div>
@@ -1755,27 +1771,27 @@ function paintJobNotice(): void {
   const resumable = Boolean(job?.resumable);
   const running = uploadRunning;
 
-  pauseBtn.style.display = running ? '' : 'none';
+  pauseBtn.hidden = !running;
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
     pauseBtn.innerHTML = `⏸ ${escapeHtml(tOr('upload.job.pause', 'Pause'))} <kbd class="sc-kbd">Space</kbd>`;
   }
-  resumeBtn.style.display = !running && resumable ? '' : 'none';
-  discardBtn.style.display = !running && resumable ? '' : 'none';
+  resumeBtn.hidden = !(!running && resumable);
+  discardBtn.hidden = !(!running && resumable);
   // A resumable job makes "start over" the wrong default — hide it so the
   // operator resumes rather than silently re-uploading everything.
-  startBtn.style.display = !running && resumable ? 'none' : '';
+  startBtn.hidden = !running && resumable;
 
   if (!running && resumable && job?.resumeSummary) {
     notice.textContent = formatResumeBanner(job.resumeSummary);
-    notice.style.display = 'block';
+    notice.hidden = false;
   } else if (!running && resumable && job?.resumeHint) {
     // Fallback for an older main process that predates the structured summary.
     notice.textContent = t('upload.job.resumeBanner', { hint: job.resumeHint });
-    notice.style.display = 'block';
+    notice.hidden = false;
   } else {
-    notice.style.display = 'none';
+    notice.hidden = true;
   }
 }
 
@@ -1870,6 +1886,7 @@ async function doPauseUpload(): Promise<void> {
   // otherwise the operator clicks it, sees a card that keeps ticking, and
   // concludes it is broken.
   const btn = $('#btn-pause-upload') as HTMLButtonElement | null;
+  if (btn?.disabled) return; // a pause is already on its way
   if (btn) {
     btn.disabled = true;
     btn.textContent = tOr('upload.job.pausingShort', 'Pausiere…');
@@ -1920,11 +1937,25 @@ async function ensureResultForResume(): Promise<boolean> {
   return false;
 }
 
+/** Set while a resume is being set up, so a double click / Space cannot start it twice. */
+let resumeInFlight = false;
+
 async function doResumeUpload(): Promise<void> {
-  if (!(await ensureResultForResume())) return;
-  await window.sc.uploadJob.resume();
-  setAuthStatus(t('upload.job.resumed'), 'ok');
-  await doStartUpload();
+  if (resumeInFlight) return;
+  resumeInFlight = true;
+  const btn = $('#btn-resume-upload') as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+  try {
+    if (!(await ensureResultForResume())) return;
+    await window.sc.uploadJob.resume();
+    setAuthStatus(t('upload.job.resumed'), 'ok');
+    await doStartUpload();
+  } finally {
+    resumeInFlight = false;
+    // Re-query: the view may have been re-rendered while the upload ran.
+    const live = $('#btn-resume-upload') as HTMLButtonElement | null;
+    if (live) live.disabled = false;
+  }
 }
 
 async function doDiscardUpload(): Promise<void> {
@@ -1946,9 +1977,9 @@ function paintReconnectNotice(): void {
       ? t('upload.reconnectExpired')
       : t('upload.reconnectOffline');
     el.textContent = msg;
-    el.style.display = 'block';
+    el.hidden = false;
   } else {
-    el.style.display = 'none';
+    el.hidden = true;
   }
 }
 
@@ -2574,8 +2605,10 @@ async function buildSilhouettes(
         detail: ev.detail,
       });
     } else if (ev.type === 'count' && ev.counter) {
-      silhouetteCounters[ev.counter.key] = ev.counter.value;
-      progress?.update({ counters: silhouetteCounters });
+      // The build counts per entity kind (`ship`, `component`, …); show them
+      // under the same plural labels the extract uses.
+      silhouetteCounters[SILHOUETTE_KIND_COUNTER[ev.counter.key] ?? ev.counter.key] = ev.counter.value;
+      progress?.update({ counters: { ...silhouetteCounters } });
     } else if (ev.type === 'log' && ev.level === 'error') {
       progress?.update({ detail: ev.message ?? '' });
     }
@@ -2690,8 +2723,12 @@ async function buildAndUploadSkins(
         detail: ev.detail,
       });
     } else if (ev.type === 'count' && ev.counter) {
+      // One count per ship id — hundreds of keys. Shown as two totals.
       skinCounters[ev.counter.key] = ev.counter.value;
-      progress?.update({ counters: skinCounters });
+      const perShip = Object.values(skinCounters);
+      progress?.update({
+        counters: { ships: perShip.length, skins: perShip.reduce((a, b) => a + b, 0) },
+      });
     } else if (ev.type === 'log' && ev.level === 'error') {
       progress?.update({ detail: ev.message ?? '' });
     }

@@ -101,7 +101,7 @@ export function renderInstall(): string {
       <p class="view-intro">${t('discover.subtitle')}</p>
       ${resumeBannerHtml()}
       <div id="channels-mount" class="view-body"></div>
-      <div class="btn-row view-footer" id="discover-next" style="display:none;">
+      <div class="btn-row view-footer" id="discover-next" hidden>
         ${primary}
       </div>
     </div>
@@ -143,7 +143,7 @@ function paintChannels(): void {
         <span class="spinner" aria-hidden="true"></span>
         <span>${t('discover.scanning')}</span>
       </div>`;
-    if (nextRow) nextRow.style.display = 'none';
+    if (nextRow) nextRow.hidden = true;
     return;
   }
 
@@ -187,7 +187,7 @@ function paintChannels(): void {
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
 
-  if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
+  if (nextRow) nextRow.hidden = !hasChannels;
   syncNextButton();
 }
 
