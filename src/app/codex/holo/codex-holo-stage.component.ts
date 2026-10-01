@@ -14,6 +14,7 @@ import {
   signal,
   untracked,
   viewChild,
+  type WritableSignal,
 } from '@angular/core';
 import { ShipSkinsService } from '../ship-skins.service';
 import { Router, RouterLink } from '@angular/router';
@@ -102,7 +103,7 @@ const UNDO_TOAST_MS = 6000;
  * and the reveal itself — every entrance animation of the reveal ends inside it. */
 const HERO_WAIT_MS = 450;
 const HERO_HOLD_MS = 520;
-const REVEAL_MS = 1100;
+const REVEAL_MS = 1300;
 /** Above this many pins the labels leave the canvas for the numbered key —
  * on a ring of ~250 px radius, 8 labels of 120–220 px is the most that
  * stays legible without collisions (wave 5 A2.4). */
@@ -165,9 +166,9 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()"
+    <section class="holo-stage" [class.reduced-motion]="reducedMotion()" [class.arrived]="arrived()" [class.first]="!hadBody()"
              [class.ph-wait]="phase() === 'wait'" [class.ph-hero]="phase() === 'hero'" [class.ph-reveal]="phase() === 'reveal'"
-             [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()">
+             [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()" [class.rail-moving]="railMoving()">
 
       <!-- ── Top bar: search | the ship | patch ─────────────────────── -->
       <div class="holo-topbar">
@@ -221,7 +222,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
             <span class="ph-title">{{ 'codex.holo.stage.einordnung' | translate }}</span>
             @if (rankResult(); as r) { <span class="n">{{ r.cohortSize }}</span> }
             <span class="sp"></span>
-            <button type="button" class="ic" (click)="leftCollapsed.set(!leftCollapsed())"
+            <button type="button" class="ic" (click)="toggleRail(leftCollapsed)"
                     [attr.aria-expanded]="!leftCollapsed()"
                     [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
                     [scTooltip]="'codex.holo.stage.railToggle' | translate" scTooltipTier="label">{{ leftCollapsed() ? '⟩' : '⟨' }}</button>
@@ -377,7 +378,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
             <span class="ph-title">{{ 'codex.holo.stage.inspector' | translate }}</span>
             <span class="n">{{ inspectedIndex() }} / {{ pins().length }}</span>
             <span class="sp"></span>
-            <button type="button" class="ic" (click)="rightCollapsed.set(!rightCollapsed())"
+            <button type="button" class="ic" (click)="toggleRail(rightCollapsed)"
                     [attr.aria-expanded]="!rightCollapsed()"
                     [attr.aria-label]="'codex.holo.stage.railToggle' | translate"
                     [scTooltip]="'codex.holo.stage.railToggle' | translate" scTooltipTier="label">{{ rightCollapsed() ? '⟨' : '⟩' }}</button>
@@ -502,7 +503,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   --glass: color-mix(in srgb, var(--sc-bg-1) 55%, transparent); --ink: color-mix(in srgb, var(--sc-bg-0) 78%, transparent);
   --holo-gold: var(--accent-gold, #c8a84b); --holo-gold-rgb: var(--accent-gold-rgb, 200, 168, 75);
   --a4: color-mix(in srgb, var(--sc-accent) 4%, transparent); --a5: color-mix(in srgb, var(--sc-accent) 5%, transparent); --a7: color-mix(in srgb, var(--sc-accent) 7%, transparent); --a10: color-mix(in srgb, var(--sc-accent) 10%, transparent); --a12: color-mix(in srgb, var(--sc-accent) 12%, transparent); --a14: color-mix(in srgb, var(--sc-accent) 14%, transparent); --a22: color-mix(in srgb, var(--sc-accent) 22%, transparent); --a28: color-mix(in srgb, var(--sc-accent) 28%, transparent); --a40: color-mix(in srgb, var(--sc-accent) 40%, transparent); --a50: color-mix(in srgb, var(--sc-accent) 50%, transparent); --a55: color-mix(in srgb, var(--sc-accent) 55%, transparent); --a80: color-mix(in srgb, var(--sc-accent) 80%, transparent);
-  --e-out: cubic-bezier(0.2, 0.7, 0.2, 1); --e-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --e-out: var(--holo-e-out); --e-io: var(--holo-e-io);
   --rail: 300px;
   display: flex; flex-direction: column; gap: 10px;
   }
@@ -514,7 +515,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   color: var(--sc-fg-0); cursor: pointer; font-size: max(11px, var(--f)); letter-spacing: 0.08em; transition: border-color 160ms ease, color 160ms ease; }
   .btn.quiet { background: none; border-color: var(--l1); color: var(--sc-fg-1); }
   .btn:hover, .btn:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); }
-  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  @keyframes rise { from { opacity: 0; transform: translateY(var(--holo-rise)); } }
   @keyframes fade-in { from { opacity: 0; } }
 
   /* ── Top bar: search | the ship (the page's h1) | patch ── */
@@ -532,8 +533,10 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .ht-kicker { max-width: 100%; font-size: max(9px, var(--f)); letter-spacing: 0.2em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   animation: fade-in 480ms ease-out 120ms backwards; }
   .ht-name { margin: 0; max-width: 100%; font-weight: 500; font-size: clamp(16px, 1.55vw, 22px); line-height: 1.15; letter-spacing: 0.12em; color: var(--sc-fg-0);
-  text-shadow: 0 0 18px var(--a40); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: name-in 640ms var(--e-out) backwards; }
-  @keyframes name-in { from { opacity: 0; letter-spacing: 0.32em; filter: blur(3px); } }
+  text-shadow: 0 0 18px var(--a40); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: name-in 520ms var(--e-out) backwards; }
+  /* Opens from the centre like a projected line — clip-path only, so the
+     top bar's grid never re-lays out while the name arrives. */
+  @keyframes name-in { from { opacity: 0; clip-path: inset(0 50% 0 50%); } }
   .ht-right { grid-area: patch; display: flex; justify-content: flex-end; align-items: center; gap: 10px; min-width: 0; }
   .mobile-tabs { display: none; gap: 6px; }
   .mobile-tabs button { flex: 1; min-height: var(--sc-tap-min, 32px); padding: 6px 10px; border-radius: 3px; border: 1px solid var(--l2); background: var(--glass); color: var(--sc-fg-1); cursor: pointer;
@@ -542,12 +545,17 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
   /* ── The frame: Einordnung | Tisch | Inspektor ── */
   .holo-body { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr) var(--rail); gap: 10px; align-items: stretch;
-  padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: 4px; transition: grid-template-columns 360ms var(--e-io); }
+  padding: 10px; background: color-mix(in srgb, var(--sc-bg-0) 50%, transparent); border-radius: var(--holo-r); transition: grid-template-columns var(--holo-t-base) var(--e-io); }
   .left-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) var(--rail); }
   .right-collapsed .holo-body { grid-template-columns: var(--rail) minmax(0, 1fr) 44px; }
   .left-collapsed.right-collapsed .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
-  .holo-panel { border: 1px solid var(--l2); border-radius: 4px; background: var(--glass);
+  .holo-panel { border: 1px solid var(--l2); border-radius: var(--holo-r); background: var(--glass);
   display: grid; grid-template-rows: auto 1fr; min-height: 520px; min-width: 0; position: relative; }
+  /* While a rail moves the body keeps its full width and is clipped by the
+     panel — the text never reflows into a column that is still moving. Only
+     during the move: at rest a select menu inside a panel must overflow it. */
+  .rail-moving .holo-panel { overflow: hidden; }
+  @media (min-width: 1001px) { .holo-left > .pb:not(.rail-min), .holo-right > .pb:not(.rail-min) { min-width: calc(var(--rail) - 2px); } }
   .holo-panel > .ph { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--l2);
   background: var(--ink); font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); min-height: 38px; }
   .ph-glyph { font-size: 11px; }
@@ -562,8 +570,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
      after the table began to materialise (same keyframes, slower timing). */
   .ph-reveal .holo-left > .pb { --rise-dur: 560ms; --rise-delay: 260ms; }
   .ph-reveal .holo-right > .pb { --rise-dur: 560ms; --rise-delay: 380ms; }
-  .holo-stage:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
-  .ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
+  .holo-stage.first:is(.ph-wait, .ph-hero) .holo-below { opacity: 0; }
+  .first.ph-reveal .holo-below { animation: rise 600ms var(--e-out) 440ms backwards; }
+  /* A hull switch never empties the stage: the old values dim while the next
+     hull arrives, then come back up as the new ones land. */
+  .holo-below, .holo-panel > .pb { transition: opacity var(--holo-t-fast) var(--e-io); }
+  .holo-stage:not(.first):is(.ph-wait, .ph-hero) :is(.holo-below, .holo-panel > .pb) { opacity: 0.35; }
   .holo-panel > .pb.rail-min { padding: 10px 4px; justify-items: center; }
   /* The inspector never decides the frame's height: a capital ship's
      hardpoint list is 40 rows long — it scrolls inside its panel instead of
@@ -572,7 +584,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-right { height: 0; min-height: 100%; }
   .holo-right > .pb:not(.rail-min) { overflow-y: auto; overscroll-behavior: contain; }
   }
-  .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2); }
+  .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2);
+  animation: fade-in var(--holo-t-fast) ease-out 120ms backwards; }
   .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .n, .holo-panel.collapsed > .ph .ph-glyph { display: none; }
   .holo-panel.collapsed > .ph { padding: 7px 4px; justify-content: center; }
   .frame { position: relative; }
@@ -625,7 +638,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .rolebar .r:hover:not(.dim):not(.on) { color: var(--sc-fg-0); background: var(--a4); }
   .rolebar .r:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
   .rolebar .ink { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--ink-w, 0px); translate: var(--ink-x, 0px) 0; pointer-events: none;
-  background: var(--sc-accent); box-shadow: 0 0 10px var(--a55); transition: translate 340ms var(--e-io), width 340ms var(--e-io); }
+  background: var(--sc-accent); box-shadow: 0 0 10px var(--a55); transition: translate var(--holo-t-base) var(--e-io), width var(--holo-t-base) var(--e-io); }
+  .rolebar:not([data-ink-ready]) .ink { transition: none; }
 
   /* ── Table head: hangar | what the surface shows | view tools ── */
   .holo-table > .pb { padding: 0 0 8px; position: relative; display: flex; flex-direction: column; min-height: 480px; }
@@ -645,23 +659,14 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .tt:disabled { opacity: 0.4; cursor: not-allowed; }
   .tt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .share-wrap { position: relative; display: inline-flex; }
-  /* The share popover is a real surface: background, frame, shadow, a notch
-     pointing at "Teilen" — never floating text over the table. */
-  .share-popover { position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(340px, calc(100vw - 32px));
-  padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-  box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px var(--a10); transform-origin: calc(100% - 22px) -6px; }
-  .share-popover::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg; background: var(--sc-bg-1);
-  border-top: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-left: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); }
-  .pop-enter { animation: pop-in 200ms var(--e-out); }
-  .pop-leave { animation: pop-out 140ms ease-in forwards; }
-  @keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
-  @keyframes pop-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+  /* The popover surface (frame, notch, enter/leave) lives in the share
+     component's own :host styles. */
   /* On a desktop with the inspector open, its hardpoint list replaces the
      dense key under the table — one list, not two. */
   @media (min-width: 1001px) { .holo-stage:not(.right-collapsed) ::ng-deep .pin-key { display: none; } }
 
   /* ── Below: calm ports list | perspectives (sticky beside the long list) ── */
-  .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 14px; align-items: start; padding: 0 10px; }
+  .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 10px; align-items: start; padding: 0 10px; }
   @media (min-width: 1181px) {
   .below-persp { position: sticky; top: max(84px, calc(100vh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
   }
@@ -672,7 +677,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
   font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; transition: color 160ms ease, border-color 160ms ease; }
   .details-toggle:hover, .details-toggle[aria-expanded="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
-  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; animation: rise 320ms var(--e-out) backwards; }
+  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; animation: rise var(--holo-t-base) var(--e-out) backwards; }
   .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); white-space: nowrap; }
   .switch.mobile-only { display: none; }
   .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -685,8 +690,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .undo-toast { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
-  .toast-enter { animation: toast-in 240ms var(--e-out); }
-  .toast-leave { animation: toast-out 160ms ease-in forwards; }
+  .toast-enter { animation: toast-in var(--holo-t-base) var(--e-out); }
+  .toast-leave { animation: toast-out var(--holo-t-fast) var(--e-io) forwards; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
   @keyframes toast-out { to { opacity: 0; transform: translateY(8px); } }
 
@@ -699,9 +704,11 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .ht-search { max-width: none; }
   .ht-title { max-width: 100%; justify-self: center; }
   .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
-  .holo-left.collapsed { order: 0; }
-  .holo-table { order: 1; }
-  .holo-right.collapsed { order: 2; }
+  /* Explicit columns: with a rail expanded below, nothing else claims column 1,
+     and auto-placement used to drop the table into that 0px track. */
+  .holo-left.collapsed { order: 0; grid-column: 1; }
+  .holo-table { order: 1; grid-column: 2; }
+  .holo-right.collapsed { order: 2; grid-column: 3; }
   .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: 1 / -1; min-height: 0; }
   .holo-panel:not(.collapsed).holo-left { order: 3; }
   .holo-panel:not(.collapsed).holo-right { order: 4; }
@@ -724,6 +731,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-body:has(.holo-left:not(.collapsed)):has(.holo-right:not(.collapsed)) { grid-template-columns: 1fr; gap: 10px; padding: 6px; }
   .holo-panel, .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: auto; order: initial; min-height: 0; margin-top: 0; }
   .holo-table { order: -1; }
+  .holo-left.collapsed, .holo-table, .holo-right.collapsed { grid-column: auto; }
   .holo-table > .ph.role { max-width: 100%; }
   .holo-table > .pb { min-height: 360px; }
   /* A collapsed panel on a phone is its header — no vertical rail label. */
@@ -889,6 +897,9 @@ export class CodexHoloStageComponent {
   readonly leftCollapsed = signal(CodexHoloStageComponent.tabletStart());
   readonly rightCollapsed = signal(CodexHoloStageComponent.tabletStart());
   readonly viewMode = signal<'holo' | '3d' | 'schema'>('holo');
+  /** True while a rail's width transition runs (clips the panels meanwhile). */
+  readonly railMoving = signal(false);
+  private railTimer: ReturnType<typeof setTimeout> | undefined;
   readonly detailsOpen = signal(false);
   readonly inspectedPort = signal<string | null>(null);
   readonly sharePopoverOpen = signal(false);
@@ -916,8 +927,12 @@ export class CodexHoloStageComponent {
   readonly has3d = signal(false);
   private skinsSeq = 0;
 
+  /** Set once the panels first had a body: a hull switch never empties them
+   * again (the next ship's values simply replace the last one's), only a
+   * first visit starts from an empty stage. */
+  readonly hadBody = signal(false);
   /** The panels' bodies exist from the reveal on, so they rise WITH it. */
-  readonly bodyReady = computed(() => this.phase() === 'reveal' || this.phase() === 'done');
+  readonly bodyReady = computed(() => this.phase() === 'reveal' || this.phase() === 'done' || this.hadBody());
 
   readonly staticKeys: readonly StaticKey[] = ['crew', 'mass', 'cargo'];
 
@@ -939,6 +954,7 @@ export class CodexHoloStageComponent {
         this.heroSrc.set(null);
         if (this.reducedMotion() || this.seenThisSession()) {
           this.phase.set('done');
+          this.hadBody.set(true);
           this.arrived.set(true);
           return;
         }
@@ -947,6 +963,7 @@ export class CodexHoloStageComponent {
           untracked(() => {
             if (cancelled) return;
             this.phase.set('reveal');
+            this.hadBody.set(true);
             this.startCountUp();
             timers.push(
               setTimeout(() => {
@@ -1083,6 +1100,7 @@ export class CodexHoloStageComponent {
 
     this.destroyRef.onDestroy(() => {
       if (this.pulseTimer) clearTimeout(this.pulseTimer);
+      if (this.railTimer) clearTimeout(this.railTimer);
       if (this.countUpRaf) cancelAnimationFrame(this.countUpRaf);
       void this.audioCtx?.close().catch(() => undefined);
     });
@@ -1134,6 +1152,15 @@ export class CodexHoloStageComponent {
     this.undoToast.set(null);
   }
 
+  /** Collapses / expands one rail; the panels clip while the column moves. */
+  toggleRail(rail: WritableSignal<boolean>): void {
+    rail.set(!rail());
+    if (this.reducedMotion()) return;
+    this.railMoving.set(true);
+    if (this.railTimer) clearTimeout(this.railTimer);
+    this.railTimer = setTimeout(() => this.railMoving.set(false), 320);
+  }
+
   /** Slides the Einsatz bar's ink under the active segment; keeps that
    * segment in view when the bar scrolls (narrow tables, phones). */
   private placeInk(bar: HTMLElement): void {
@@ -1144,6 +1171,10 @@ export class CodexHoloStageComponent {
     }
     bar.style.setProperty('--ink-x', `${on.offsetLeft}px`);
     bar.style.setProperty('--ink-w', `${on.offsetWidth}px`);
+    // The first placement lands without a glide; only later moves animate.
+    if (!bar.hasAttribute('data-ink-ready') && typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => bar.setAttribute('data-ink-ready', ''));
+    }
     const scroller = bar.parentElement;
     if (scroller && scroller.scrollWidth > scroller.clientWidth + 1) {
       const left = Math.max(0, on.offsetLeft - (scroller.clientWidth - on.offsetWidth) / 2);
@@ -1553,8 +1584,15 @@ export class CodexHoloStageComponent {
         : section === 'quantum' ? 'movement'
         : section === 'coolers' || section === 'radar' ? 'signature'
         : null;
-      this.pulseTile.set(tile);
       if (this.pulseTimer) clearTimeout(this.pulseTimer);
+      // A second pick inside the same tile must pulse again: drop the class
+      // for one frame so the animation restarts instead of being swallowed.
+      if (tile && this.pulseTile() === tile && typeof requestAnimationFrame === 'function') {
+        this.pulseTile.set(null);
+        requestAnimationFrame(() => this.pulseTile.set(tile));
+      } else {
+        this.pulseTile.set(tile);
+      }
       this.pulseTimer = setTimeout(() => this.pulseTile.set(null), 900);
     }
   }

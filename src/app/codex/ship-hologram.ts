@@ -81,10 +81,12 @@ export function applyHologram(materials: readonly HoloMaterial[], accent: Rgb): 
     if (!hidden) m.setAlphaMode('OPAQUE');
     const glow = GLOW_HINTS.some((h) => m.name.toLowerCase().includes(h));
     pbr.setBaseColorFactor([r * 0.2, g * 0.2, b * 0.2, hidden ? alpha : 1]);
-    pbr.setMetallicFactor(0.5);
-    pbr.setRoughnessFactor(0.35);
-    // Low self-glow on the hull: the environment reflections carry the shape.
-    const e = glow ? 0.9 : 0.08;
+    // Highly metallic and smooth: the environment reflections draw a bright,
+    // fresnel-like rim along the silhouette — light on the edges, not plastic.
+    pbr.setMetallicFactor(0.9);
+    pbr.setRoughnessFactor(0.2);
+    // Low self-glow on the hull: the reflections carry the shape.
+    const e = glow ? 0.9 : 0.12;
     m.setEmissiveFactor([r * e, g * e, b * e]);
   }
 }

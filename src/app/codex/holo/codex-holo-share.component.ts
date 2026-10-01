@@ -101,39 +101,53 @@ import { HangarShareLink, HangarShipConfig, loadoutVariantHint } from '../../han
   `,
   styles: [`
     :host { display: block; }
+    /* Opened from the holo stage as its popover: a real surface — background,
+       frame, shadow, a notch pointing at "Teilen" — never floating text over
+       the table. The stage adds the class and the enter/leave classes. */
+    :host(.share-popover) { --pop-line: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
+      position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(340px, calc(100vw - 32px));
+      padding: 12px 14px; border-radius: var(--holo-r); background: var(--sc-bg-1); border: 1px solid var(--pop-line);
+      box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px color-mix(in srgb, var(--sc-accent) 10%, transparent); transform-origin: calc(100% - 22px) -6px; }
+    :host(.share-popover)::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg;
+      background: var(--sc-bg-1); border-top: 1px solid var(--pop-line); border-left: 1px solid var(--pop-line); }
+    :host(.pop-enter) { animation: pop-in var(--holo-t-base) var(--holo-e-out); }
+    :host(.pop-leave) { animation: pop-out var(--holo-t-fast) var(--holo-e-io) forwards; }
+    @keyframes pop-in { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))) scale(0.97); } }
+    @keyframes pop-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+    @media (prefers-reduced-motion: reduce) { :host(.pop-enter), :host(.pop-leave) { animation: none; } }
     .holo-share { display: flex; flex-direction: column; gap: 10px; min-width: 220px; }
     .share-row {
-      min-height: 44px; padding: 8px 12px; border-radius: 6px;
+      min-height: 44px; padding: 8px 12px; border-radius: var(--holo-r);
       border: 1px solid var(--sc-border); background: var(--sc-bg-0); color: var(--sc-fg-1);
       font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; text-align: left;
     }
     .share-row:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
-    .follow-hint { padding: 8px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
+    .follow-hint { padding: 8px 10px; border-radius: var(--holo-r); background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .hint-text { margin: 0 0 6px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .link-hint, .state, .unsaved { margin: 0; font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.35; }
-    .unsaved { color: var(--sc-warning, #e0b040); }
+    .unsaved { color: var(--sc-warning); }
     .add-err { color: var(--sc-danger); font-size: 0.8rem; margin: 4px 0 0; }
-    .share-row.done { border-color: var(--sc-success, #5fbf7a); color: var(--sc-success, #5fbf7a); }
+    .share-row.done { border-color: var(--sc-success); color: var(--sc-success); }
     .dot { margin: 0 4px; }
-    .refresh { min-height: 40px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--sc-accent);
+    .refresh { min-height: 40px; padding: 5px 10px; border-radius: var(--holo-r); border: 1px solid var(--sc-accent);
       background: transparent; color: var(--sc-accent); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
     .refresh:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .hangar-share { display: flex; flex-direction: column; gap: 6px; }
-    .hangar-share > button { min-height: 44px; padding: 7px 12px; border-radius: 6px;
+    .hangar-share > button { min-height: 44px; padding: 7px 12px; border-radius: var(--holo-r);
       border: 1px solid var(--sc-accent); background: var(--sc-accent); color: var(--sc-bg-0);
       font: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; cursor: pointer; }
     .hangar-share > button:disabled { opacity: 0.6; cursor: not-allowed; }
     .link-url { margin: 0; padding: 6px 8px; border-radius: 4px; background: var(--sc-bg-0);
       border: 1px solid var(--sc-border); font-size: max(0.74rem, var(--sc-fs-floor)); overflow-wrap: anywhere; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .actions button { min-height: 40px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--sc-border);
+    .actions button { min-height: 40px; padding: 5px 10px; border-radius: var(--holo-r); border: 1px solid var(--sc-border);
       background: var(--sc-bg-0); color: var(--sc-fg-1); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
-    .actions button.danger:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
+    .actions button.danger:hover { border-color: var(--sc-danger); color: var(--sc-danger); }
     .revoke-note { margin: 0; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
     .revoked { margin: 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .err { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger, #ff5252); }
+    .err { margin: 0; font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-danger); }
   `],
 })
 export class CodexHoloShareComponent {

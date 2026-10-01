@@ -730,7 +730,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           (toggleSpec)="toggleSpec()"
           (toggleRaw)="toggleRaw()" />
         } @else {
-          <sc-codex-holo-stage
+          <sc-codex-holo-stage animate.enter="view-in"
             [detail]="detail()!"
             [displayName]="displayName()"
             [manufacturerName]="manufacturerName()"
@@ -942,9 +942,16 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     .crumb-spacer { flex: 1 1 auto; }
-    .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: 999px; overflow: hidden; }
-    .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor)); }
+    .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: var(--holo-r); overflow: hidden; }
+    .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor));
+      transition: background var(--holo-t-fast) ease, color var(--holo-t-fast) ease; }
+    .ht-btn:not(.active):hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-2)); }
+    .ht-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .ht-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); }
+    /* Switching into the Holotable fades it in — never a hard cut. */
+    .view-in { animation: view-in var(--holo-t-base) var(--holo-e-out); }
+    @keyframes view-in { from { opacity: 0; transform: translateY(var(--holo-rise)); } }
+    @media (prefers-reduced-motion: reduce) { .view-in { animation: none; } .ht-btn { transition: none; } }
     .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
     .back:hover, .back:focus-visible { color: var(--sc-accent); }
 

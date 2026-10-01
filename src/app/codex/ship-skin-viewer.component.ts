@@ -101,6 +101,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  host: { '[class.holo]': 'holo()', '[class.still]': 'still()' },
   template: `
     @if (skins().length) {
       <section class="skins" [class.embedded]="embedded()">
@@ -144,12 +145,20 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                    can never mutate the new skin's loading/error state. -->
               @for (sid of [current()?.skinId]; track sid) {
                 <model-viewer
+                  [class.materialised]="!modelLoading()"
                   [attr.src]="modelUrl()"
                   camera-controls
-                  [attr.auto-rotate]="hotspots().length && activePorts().length ? null : ''"
-                  shadow-intensity="1"
-                  exposure="1.0"
+                  [attr.auto-rotate]="still() || (hotspots().length && activePorts().length) ? null : ''"
+                  [attr.auto-rotate-delay]="holo() ? 2200 : null"
+                  [attr.rotation-per-second]="holo() ? '14deg' : null"
+                  [attr.interpolation-decay]="holo() ? 140 : null"
+                  [attr.shadow-intensity]="holo() ? 0 : 1"
+                  [attr.exposure]="holo() ? 1.15 : 1.0"
                   environment-image="neutral"
+                  [attr.tone-mapping]="holo() ? 'neutral' : null"
+                  [attr.min-camera-orbit]="holo() ? 'auto 15deg 70%' : null"
+                  [attr.max-camera-orbit]="holo() ? 'auto 115deg 180%' : null"
+                  [attr.disable-pan]="holo() ? '' : null"
                   camera-orbit="35deg 75deg 105%"
                   interaction-prompt="none"
                   (load)="onModelLoad($event)"
@@ -183,11 +192,23 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                   }
                 </model-viewer>
               }
+              @if (holo()) {
+                <!-- Projection layer: scanlines and a slow interference band
+                     over the hull — the model reads as light, not as a plastic toy. -->
+                <div class="holo-scan" aria-hidden="true"><i class="band"></i></div>
+              }
               @if (modelLoading()) {
-                <div class="overlay" role="status">
-                  <span class="spinner" aria-hidden="true"></span>
-                  {{ 'codex.skins.loading' | translate }}
-                </div>
+                @if (holo()) {
+                  <div class="overlay holo-loading" role="status" animate.leave="holo-loading-leave">
+                    <span class="holo-reticle" aria-hidden="true"><i></i><i></i><b></b></span>
+                    <span class="holo-loading-label">{{ 'codex.skins.loading' | translate }}</span>
+                  </div>
+                } @else {
+                  <div class="overlay" role="status">
+                    <span class="spinner" aria-hidden="true"></span>
+                    {{ 'codex.skins.loading' | translate }}
+                  </div>
+                }
               }
               @if (hotspots().length > 0) {
                 <p class="hp-hint">
@@ -195,7 +216,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                 </p>
               }
             } @else if (mode() === '3d' && modelError()) {
-              <div class="empty error">{{ 'codex.skins.loadError' | translate }}</div>
+              <div class="empty error" role="alert">{{ 'codex.skins.loadError' | translate }}</div>
             } @else if (iconUrl()) {
               <img class="paint-render" [src]="iconUrl()" [alt]="current()?.name || ''" />
             } @else {
@@ -316,7 +337,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         border: 0;
         cursor: pointer;
         font: inherit;
-        color: var(--accent, #f0c420);
+        color: var(--sc-accent);
       }
       .head-toggle .ttl {
         font-size: 1rem;
@@ -331,7 +352,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         transform: rotate(90deg);
       }
       .head-toggle:focus-visible {
-        outline: 2px solid var(--accent, #f0c420);
+        outline: 2px solid var(--sc-accent);
         outline-offset: 2px;
         border-radius: 4px;
       }
@@ -378,7 +399,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         padding: 1rem;
       }
       .empty.error {
-        color: #e88;
+        color: var(--sc-danger);
       }
       .catalog-error {
         display: flex;
@@ -399,7 +420,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         font: inherit;
       }
       .catalog-error button:hover {
-        border-color: var(--accent, #f0c420);
+        border-color: var(--sc-accent);
       }
       .overlay {
         position: absolute;
@@ -416,7 +437,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         width: 26px;
         height: 26px;
         border: 3px solid #ffffff22;
-        border-top-color: var(--accent, #f0c420);
+        border-top-color: var(--sc-accent);
         border-radius: 50%;
         animation: sc-spin 0.8s linear infinite;
       }
@@ -449,7 +470,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         font: inherit;
       }
       .modes button.on {
-        background: var(--accent, #f0c420);
+        background: var(--sc-accent);
         color: #111;
         font-weight: 600;
       }
@@ -468,7 +489,7 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         padding: 0.5rem 0.75rem;
       }
       .badge strong {
-        color: var(--accent, #f0c420);
+        color: var(--sc-accent);
       }
       .badge p {
         margin: 0.2rem 0 0;
@@ -498,14 +519,14 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         cursor: pointer;
       }
       .list li.on {
-        border-color: var(--accent, #f0c420);
-        box-shadow: inset 0 0 0 1px var(--accent, #f0c420);
+        border-color: var(--sc-accent);
+        box-shadow: inset 0 0 0 1px var(--sc-accent);
       }
       .list li:hover {
         border-color: #3a4150;
       }
       .list li:focus-visible {
-        outline: 2px solid var(--accent, #f0c420);
+        outline: 2px solid var(--sc-accent);
         outline-offset: 1px;
       }
       .list li.no3d {
@@ -616,6 +637,159 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
       .hp-dot.on .hp-tip {
         display: block;
       }
+
+      /* ── Holotable treatment (input holo) ─────────────────────────────
+         The hull is projected light: it materialises with a scan front once
+         the glb is in and recoloured (never a flash of the untreated model),
+         a scanline layer and a slow interference band ride over it, and the
+         loader is a reticle on the table rather than a dark box with a spinner. */
+      :host(.holo) .stage {
+        overflow: hidden;
+      }
+      :host(.holo) model-viewer {
+        --poster-color: transparent;
+        --progress-bar-height: 0px;
+        /* Hidden by opacity only, never by clip-path: model-viewer's
+           visibility observer reads a fully clipped element as off screen
+           and would never start downloading the glb. */
+        opacity: 0;
+      }
+      :host(.holo) model-viewer.materialised {
+        opacity: 1;
+        transition: opacity var(--holo-t-base) var(--holo-e-out);
+        /* The scan front runs once the model is in; then one gentle settle —
+           no luminance swings (photosensitivity), and no filter at rest: a
+           filter on a turning WebGL canvas would be re-rasterised every frame. */
+        animation:
+          holo-materialise var(--holo-t-slow) var(--holo-e-io),
+          holo-settle 600ms var(--holo-e-out) 700ms backwards;
+      }
+      @keyframes holo-materialise {
+        from { clip-path: inset(0 0 100% 0); }
+        to { clip-path: inset(0 0 0 0); }
+      }
+      @keyframes holo-settle {
+        from { filter: brightness(1.2); }
+        to { filter: none; }
+      }
+      :host(.holo) .holo-scan {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+        overflow: hidden;
+        background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--sc-accent) 6%, transparent) 0, transparent 1.5px 4px);
+        -webkit-mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 40%, transparent 100%);
+        mask-image: radial-gradient(ellipse 62% 58% at 50% 50%, #000 40%, transparent 100%);
+      }
+      /* The interference band moves by transform only; the scanlines stay put. */
+      :host(.holo) .holo-scan .band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 22%;
+        will-change: transform;
+        background: linear-gradient(180deg, transparent 0, color-mix(in srgb, var(--sc-accent) 9%, transparent) 50%, transparent 100%);
+        animation: holo-band 7s linear infinite;
+      }
+      @keyframes holo-band {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(460%); }
+      }
+      :host(.holo) .holo-loading {
+        background: none;
+        gap: 14px;
+        align-content: center;
+        color: var(--sc-fg-2);
+        font-family: var(--sc-font-display);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: max(10px, var(--sc-fs-floor));
+        animation: holo-fade-in var(--holo-t-base) var(--holo-e-out) 120ms backwards;
+      }
+      .holo-loading-leave {
+        animation: holo-fade-out var(--holo-t-fast) var(--holo-e-io) forwards;
+      }
+      @keyframes holo-fade-in { from { opacity: 0; } }
+      @keyframes holo-fade-out { to { opacity: 0; } }
+      .holo-reticle {
+        position: relative;
+        width: 64px;
+        height: 64px;
+        display: grid;
+        place-items: center;
+      }
+      .holo-reticle i {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent);
+        border-top-color: var(--sc-accent);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--sc-accent) 30%, transparent);
+        animation: sc-spin 1.4s var(--holo-e-io) infinite;
+      }
+      .holo-reticle i + i {
+        inset: 12px;
+        border-top-color: color-mix(in srgb, var(--sc-accent) 30%, transparent);
+        border-bottom-color: var(--sc-accent);
+        animation-duration: 2.1s;
+        animation-direction: reverse;
+      }
+      .holo-reticle b {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--sc-accent);
+        box-shadow: 0 0 10px var(--sc-accent);
+        animation: holo-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes holo-pulse { 50% { opacity: 0.35; scale: 0.7; } }
+      :host(.holo) .empty.error {
+        color: var(--sc-danger);
+        font-family: var(--sc-font-display);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: max(10px, var(--sc-fs-floor));
+      }
+      :host(.holo) .hp-dot {
+        border-color: var(--sc-accent);
+        background: color-mix(in srgb, var(--sc-bg-0) 80%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc-accent) 14%, transparent), 0 0 10px color-mix(in srgb, var(--sc-accent) 45%, transparent);
+        transition: transform var(--holo-t-fast) var(--holo-e-out), opacity var(--holo-t-fast) ease, background var(--holo-t-fast) ease, box-shadow var(--holo-t-fast) ease;
+      }
+      :host(.holo) .hp-tip {
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--sc-bg-0) 92%, transparent);
+        border-color: var(--sc-accent);
+        color: var(--sc-fg-0);
+        font-family: var(--sc-font-display);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      :host(.holo) .hp-tip em {
+        color: var(--sc-fg-1);
+        font-family: var(--font-monospace, monospace);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      :host(.holo) .hp-hint {
+        color: var(--sc-fg-2);
+      }
+      /* Reduced motion: the model is simply there, nothing loops. */
+      :host(.holo.still) model-viewer.materialised { transition: none; animation: none; }
+      :host(.holo.still) .holo-scan .band,
+      :host(.holo.still) .holo-reticle i,
+      :host(.holo.still) .holo-reticle b,
+      :host(.holo.still) .holo-loading { animation: none; }
+      @media (prefers-reduced-motion: reduce) {
+        :host(.holo) model-viewer.materialised { transition: none; animation: none; }
+        :host(.holo) .holo-scan .band,
+        :host(.holo) .holo-reticle i,
+        :host(.holo) .holo-reticle b,
+        :host(.holo) .holo-loading,
+        .holo-loading-leave { animation: none; }
+      }
     `,
   ],
 })
@@ -648,6 +822,14 @@ export class ShipSkinViewerComponent {
    * already owns the decision this component's chrome would duplicate.
    */
   readonly embedded = input(false);
+  /**
+   * Holotable treatment (the holo stage's 3D view): no ground shadow under a
+   * projection, a slower turntable, softer camera damping, a scanline layer
+   * and a materialise-in instead of a spinner. Off everywhere else.
+   */
+  readonly holo = input(false);
+  /** Reduced motion: no turntable, no scan loops, the model simply appears. */
+  readonly still = input(false);
   /**
    * Whether this ship has an interactive model at all. The hero switch is only
    * offered when the answer is yes, and only this component can answer it: the

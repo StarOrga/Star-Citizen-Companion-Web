@@ -208,7 +208,7 @@ export interface HoloPatchComparisonSide {
       outline: none; color: var(--sc-fg-0);
       border-color: color-mix(in srgb, var(--sc-accent) 60%, var(--sc-border));
     }
-    .patch-trigger:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .patch-trigger:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--sc-accent); }
     .patch-trigger.active { border-color: var(--sc-accent); color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-0)); }
     .chev { font-size: 0.62rem; transition: transform 0.2s ease; }
     .chev.on { transform: rotate(180deg); }
@@ -219,15 +219,15 @@ export interface HoloPatchComparisonSide {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
       width: min(320px, calc(100vw - 32px));
       display: flex; flex-direction: column; gap: 8px;
-      padding: 12px 14px; border-radius: 8px;
+      padding: 12px 14px; border-radius: var(--holo-r);
       background: var(--sc-bg-1);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
       transform-origin: calc(100% - 24px) 0;
     }
-    .pp-enter { animation: pp-in 200ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-    .pp-leave { animation: pp-out 140ms ease-in forwards; }
-    @keyframes pp-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+    .pp-enter { animation: pp-in var(--holo-t-base) var(--holo-e-out); }
+    .pp-leave { animation: pp-out var(--holo-t-fast) var(--holo-e-io) forwards; }
+    @keyframes pp-in { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))) scale(0.97); } }
     @keyframes pp-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
     .patch-pop:focus { outline: none; }
     .pop-label { font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor));
@@ -243,7 +243,7 @@ export interface HoloPatchComparisonSide {
       border: 1px solid transparent; background: transparent; color: var(--sc-fg-1);
       font: inherit; cursor: pointer; text-align: left;
       transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
-      animation: row-in 260ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards; animation-delay: calc(min(var(--r, 0), 10) * 22ms);
+      animation: row-in 260ms var(--holo-e-out) backwards; animation-delay: calc(min(var(--r, 0), 10) * 22ms);
     }
     @keyframes row-in { from { opacity: 0; transform: translateX(6px); } }
     .build-row:hover:not(:disabled), .build-row.selected {
@@ -254,25 +254,27 @@ export interface HoloPatchComparisonSide {
     .build-row:disabled { opacity: 0.5; cursor: not-allowed; }
     .build-row.current:disabled { opacity: 1; cursor: default; color: var(--sc-fg-0); }
     .row-build { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-warn, #ffc14d); }
+    .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-warning); }
     .row-flag.cur { color: var(--sc-accent); font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.12em; }
     .row-date { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
 
     .patch-clear { align-self: flex-start; min-height: 40px; padding: 5px 10px;
-      border-radius: 6px; border: 1px solid var(--sc-border); background: var(--sc-bg-0);
+      border-radius: var(--holo-r); border: 1px solid var(--sc-border); background: var(--sc-bg-0);
       color: var(--sc-fg-2); font: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }
-    .patch-clear:hover { border-color: var(--sc-danger, #ff5252); color: var(--sc-danger, #ff5252); }
+    /* Clearing a comparison is not destructive — accent, never danger. */
+    .patch-clear:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
     .delta-state { margin: 0; white-space: nowrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .delta-reopen { min-height: max(40px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 4px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: var(--sc-bg-1); color: var(--sc-accent);
       font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; transition: border-color 0.16s ease, color 0.16s ease; }
-    .delta-reopen:hover, .delta-reopen:focus-visible { border-color: var(--sc-accent); outline: none; color: var(--sc-fg-0); }
+    .delta-reopen:hover, .delta-reopen:focus-visible { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .delta-reopen:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .delta-panel {
       position: absolute; top: calc(100% + 8px); right: 0; z-index: 70;
       width: min(420px, calc(100vw - 32px)); max-height: min(70vh, 640px); overflow: auto;
       display: flex; flex-direction: column; gap: 8px;
-      padding: 12px 14px; border-radius: 8px;
+      padding: 12px 14px; border-radius: var(--holo-r);
       background: var(--sc-bg-1);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
@@ -289,7 +291,7 @@ export interface HoloPatchComparisonSide {
 
     /* --sc-accent-hot: admin/collaborator-only info, marked in words too. */
     .admin-schema-row {
-      margin-top: 10px; padding: 8px 10px; border-radius: 6px;
+      margin-top: 10px; padding: 8px 10px; border-radius: var(--holo-r);
       border: 1px solid color-mix(in srgb, var(--sc-accent-hot) 45%, var(--sc-border));
       background: color-mix(in srgb, var(--sc-accent-hot) 8%, transparent);
     }

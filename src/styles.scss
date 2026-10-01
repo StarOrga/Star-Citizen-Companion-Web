@@ -119,6 +119,33 @@
 @media (max-width: 720px) {
   :root { --sc-page-gutter: 16px; }
 }
+
+/* ============================================================
+   HOLODECK MOTION — one system for every holo surface
+   (codex/holo/*, the 3D viewer's holo treatment).
+     fast  hover, colour, focus, press, every leave
+     base  popovers, inspector card, tiles, view swap, rail collapse
+     slow  the arrival choreography only (scan, materialise)
+   e-out for what arrives or settles, e-io for moves between two
+   states and every leave. One entrance distance.
+   ============================================================ */
+:root {
+  --holo-t-fast: 160ms;
+  --holo-t-base: 280ms;
+  --holo-t-slow: 900ms;
+  --holo-e-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --holo-e-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --holo-rise: 6px;
+  --holo-r-xs: 2px;
+  --holo-r: 4px;
+  /* Perspective hues (tiles, strip). Movement is violet, not green: green
+     already means "better" in the deltas inside the same tile. */
+  --holo-p-offensive: var(--sc-accent);
+  --holo-p-defensive: var(--cat-game);
+  --holo-p-movement: var(--cat-ai);
+  --holo-p-signature: var(--accent-gold);
+  --holo-gold: var(--accent-gold);
+}
 /* Last step of the gutter: on a 360-375px handset every one of these 4px is
    a word (admin feedback 3bc01a3d). */
 @media (max-width: 400px) {

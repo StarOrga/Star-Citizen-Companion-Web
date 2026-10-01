@@ -4,6 +4,37 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.114.0] - 2026-10-01
+
+### Changed
+
+- **Codex-Holodeck: ein Bewegungssystem, ein Projektionsbild.** Alle
+  Holo-Bausteine (Bühne, Holotisch, Inspektor, Perspektiven, Leiste,
+  Patch, Teilen, 3D-Ansicht) bewegen sich jetzt mit denselben Zeiten,
+  Kurven und Radien. Der Holotisch bekommt eine Projektionsschicht mit
+  Scanlinien und Interferenzband, eine gefüllte Rumpfsilhouette und einen
+  ruhig atmenden Halo; der Wechsel Holo/3D/Schema blendet über statt hart
+  zu schneiden, Pins erscheinen ohne Überschwingen, der Ping des gewählten
+  Pins läuft dreimal statt endlos, und Animationen pausieren, sobald der
+  Tisch aus dem Bild gescrollt ist. Die Bewegungs-Perspektive ist jetzt
+  violett statt grün, damit sie nicht mit grünen „besser“-Werten
+  verwechselt wird.
+- **Das 3D-Hologramm materialisiert sich.** Statt eines dunklen
+  Ladekastens mit Spinner baut sich das Modell nach dem Laden mit einer
+  Scan-Front auf, ohne Bodenschatten, mit ruhigerer Drehung, begrenztem
+  Orbit und einem metallischen Randlicht.
+- **Rumpfwechsel ohne leere Panels.** Beim Wechsel des Schiffs dimmen die
+  Panels kurz ab, statt zu verschwinden; der Titel blendet per Maske ein,
+  und keine Ankunftsanimation läuft länger als die Ankunft selbst. Hinweise
+  in der Leiste nutzen die App-Tooltips. Bei reduzierter Bewegung schneidet
+  alles hart.
+
+### Fixed
+
+- **Tablet: Seitenleiste ausklappen schiebt den Holotisch nicht mehr weg.**
+  Zwischen 641 und 1000 px rutschte der Tisch beim Ausklappen einer
+  Seitenleiste in eine 0 px breite Spalte.
+
 ## [0.113.0] - 2026-10-01
 
 ### Added
