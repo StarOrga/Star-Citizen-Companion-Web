@@ -472,7 +472,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           </label>
         </div>
         @if (detailsOpen()) {
-          <div class="details-body">
+          <div class="details-body" animate.leave="fold-leave">
             <ng-content></ng-content>
           </div>
         }
@@ -557,7 +557,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .rail-moving .holo-panel { overflow: hidden; }
   @media (min-width: 1001px) { .holo-left > .pb:not(.rail-min), .holo-right > .pb:not(.rail-min) { min-width: calc(var(--rail) - 2px); } }
   .holo-panel > .ph { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--l2);
-  background: var(--ink); font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); min-height: 38px; }
+  background: var(--ink); font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); min-height: 38px; }
   .ph-glyph { font-size: 11px; }
   /* --sc-tap-min is 0 on a mouse desktop: without the max() the rail toggle
      shrank to its 5px glyph. */
@@ -584,7 +584,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-right { height: 0; min-height: 100%; }
   .holo-right > .pb:not(.rail-min) { overflow-y: auto; overscroll-behavior: contain; }
   }
-  .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.18em; color: var(--sc-fg-2);
+  .rail-min .vi { writing-mode: vertical-rl; transform: rotate(180deg); font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2);
   animation: fade-in var(--holo-t-fast) ease-out 120ms backwards; }
   .holo-panel.collapsed > .ph .ph-title, .holo-panel.collapsed > .ph .n, .holo-panel.collapsed > .ph .ph-glyph { display: none; }
   .holo-panel.collapsed > .ph { padding: 7px 4px; justify-content: center; }
@@ -645,13 +645,13 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-table > .pb { padding: 0 0 8px; position: relative; display: flex; flex-direction: column; min-height: 480px; }
   .table-head { position: relative; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 12px 0; min-height: 44px; }
   .hangar-dock { flex: none; display: flex; align-items: center; }
-  .table-eyebrow { flex: 1; min-width: 0; margin: 0; font-size: max(9px, var(--f)); color: var(--sc-fg-2); letter-spacing: 0.16em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .table-eyebrow { flex: 1; min-width: 0; margin: 0; font-size: max(9px, var(--f)); color: var(--sc-fg-2); letter-spacing: 0.14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .no-geometry-badge { cursor: help; }
   .tools5 { flex: none; display: flex; gap: 14px; align-items: center; opacity: 0.8; transition: opacity 160ms ease; }
   .holo-table:hover .tools5, .holo-table:focus-within .tools5, .tools5:has(.on), .tools5.open { opacity: 1; }
   @media (hover: none) { .tools5 { opacity: 1; } }
   .tt { position: relative; background: none; border: none; padding: 4px 2px; cursor: pointer; font-size: max(8.5px, var(--f));
-  letter-spacing: 0.16em; color: var(--sc-fg-1); min-height: var(--sc-tap-min, 24px); transition: color 160ms ease, text-shadow 160ms ease; }
+  letter-spacing: 0.14em; color: var(--sc-fg-1); min-height: var(--sc-tap-min, 24px); transition: color 160ms ease, text-shadow 160ms ease; }
   .tt::after { content: ''; position: absolute; left: 2px; right: 2px; bottom: 1px; height: 1px; background: currentColor; scale: 0 1; transition: scale 220ms var(--e-out); }
   .tt:hover:not(:disabled) { color: var(--sc-fg-0); }
   .tt:hover:not(:disabled)::after, .tt.on::after { scale: 1 1; }
@@ -670,15 +670,23 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   @media (min-width: 1181px) {
   .below-persp { position: sticky; top: max(84px, calc(100vh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
   }
-  .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
+  .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
   .holo-details { padding: 0 10px; }
   .holo-details .sh { margin-bottom: 0; flex-wrap: wrap; }
   .details-toggle { background: none; border: 1px solid var(--l2); border-radius: 3px; color: var(--sc-fg-1); cursor: pointer; padding: 5px 12px; min-height: var(--sc-tap-min, 32px);
   font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; transition: color 160ms ease, border-color 160ms ease; }
   .details-toggle:hover, .details-toggle[aria-expanded="true"] { color: var(--sc-accent); border-color: var(--sc-accent); }
-  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; animation: rise var(--holo-t-base) var(--e-out) backwards; }
-  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); white-space: nowrap; }
+  /* The drawer unfolds to its own height and folds back — the content below
+     glides instead of jumping. Clipped only while it moves: at rest a select
+     menu inside must still overflow it. Without interpolate-size support the
+     height step is skipped and only the fade remains. */
+  .details-body { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; interpolate-size: allow-keywords;
+  animation: unfold var(--holo-t-base) var(--e-out) backwards; }
+  .fold-leave { animation: fold var(--holo-t-fast) var(--e-io) forwards; }
+  @keyframes unfold { from { height: 0; margin-top: 0; opacity: 0; overflow: clip; } to { overflow: clip; } }
+  @keyframes fold { from { overflow: clip; } to { height: 0; margin-top: 0; opacity: 0; overflow: clip; } }
+  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); white-space: nowrap; }
   .switch.mobile-only { display: none; }
   .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
   .switch .track { width: 28px; height: 14px; border-radius: 7px; border: 1px solid var(--l2); background: var(--sc-bg-0); position: relative; transition: background 160ms ease, border-color 160ms ease; }
@@ -1755,6 +1763,7 @@ export class CodexHoloStageComponent {
         titleKey: t.titleKey,
         pct: t.pct,
         leadText: t.lead ? this.countUpText(t.lead) : null,
+        leadFinalText: t.lead ? this.fmtCell(t.lead) : null,
         leadLabelKey: t.lead?.labelKey ?? null,
         leadShortKey: t.lead ? `codex.kpi.short.${t.lead.key}` : null,
         deltaText: t.lead ? this.deltaText(t.lead) : null,
