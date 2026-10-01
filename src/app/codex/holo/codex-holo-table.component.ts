@@ -15,6 +15,8 @@ import { HoloPhase, PinRing, StagePin } from './codex-holo-model';
 const GENERIC_HULL_PATH =
   'M50 4 L56 18 L58 34 L74 46 L90 52 L90 58 L72 58 L64 66 L66 82 L60 88 L54 78 L50 90 L46 78 L40 88 L34 82 L36 66 L28 58 L10 58 L10 52 L26 46 L42 34 L44 18 Z';
 
+let hullFillSeq = 0;
+
 /**
  * The Holotable's projection surface: rings, the hull (traced outline, the
  * game's own icon, the artwork, or a generic glyph — never two empty rings),
@@ -43,13 +45,16 @@ const GENERIC_HULL_PATH =
   template: `
     <div class="silhouette-frame" [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
       <div class="rings" aria-hidden="true"><i class="sweep"></i></div>
+      <!-- Projection layer over everything on the surface: scanlines and a
+           slow interference band, masked to the table's light cone. -->
+      <div class="projection" aria-hidden="true"></div>
       @if (heroSrc(); as src) {
         <img class="hero-art" [src]="src" alt="" aria-hidden="true" />
       }
       @if (viewMode() === '3d') {
         <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). -->
         @defer (on immediate) {
-          <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true"
+          <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
             [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
             (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
         } @placeholder {
@@ -69,8 +74,17 @@ const GENERIC_HULL_PATH =
           @if (silhouette(); as s) {
             <svg class="silhouette" [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" role="img"
                  [attr.aria-label]="'codex.holo.stage.silhouetteAria' | translate: { name: displayName() }">
+              <defs>
+                <!-- Projected light falls off toward the stern; the gradient is
+                     per instance (ids are document-global). -->
+                <linearGradient [attr.id]="hullFillId" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" class="hf-a" />
+                  <stop offset="0.55" class="hf-b" />
+                  <stop offset="1" class="hf-c" />
+                </linearGradient>
+              </defs>
               <path class="glow" [attr.d]="s.path" fill-rule="evenodd" />
-              <path class="hull" [attr.d]="s.path" fill-rule="evenodd" />
+              <path class="hull" [attr.d]="s.path" fill-rule="evenodd" [attr.fill]="'url(#' + hullFillId + ')'" />
             </svg>
           } @else {
             <!-- No traced silhouette for this hull (wave 5 A3.2): the default
@@ -199,10 +213,30 @@ const GENERIC_HULL_PATH =
     /* ── The hull ── a scan front materialises it top to bottom. */
     .silhouette { width: 100%; height: 100%; display: block; overflow: visible;
       animation: sil-scan var(--sil-dur) var(--e-io) var(--sil-delay) backwards; }
+    /* The glow breathes slowly once the hull stands — an instrument at rest,
+       never a blink (5.6 s, opacity only, so it stays on the compositor). */
     .silhouette .glow { fill: none; stroke: var(--sc-accent); stroke-width: 10; opacity: 0.16; filter: blur(6px);
-      animation: fade-in 460ms ease-out var(--glow-delay) backwards; }
-    .silhouette .hull { fill: var(--a10); stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke;
+      animation: fade-in 460ms ease-out var(--glow-delay) backwards, glow-breathe 5.6s ease-in-out calc(var(--glow-delay) + 460ms) infinite; }
+    @keyframes glow-breathe { 50% { opacity: 0.26; } }
+    .silhouette .hull { stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round;
       filter: drop-shadow(0 0 6px var(--a55)); }
+    .silhouette .hf-a { stop-color: var(--sc-accent); stop-opacity: 0.2; }
+    .silhouette .hf-b { stop-color: var(--sc-accent); stop-opacity: 0.1; }
+    .silhouette .hf-c { stop-color: var(--sc-accent); stop-opacity: 0.04; }
+    /* Scanlines + a slow interference band over the whole surface, masked to
+       the light cone so the frame's edges stay clean. Screen blend: it only
+       ever adds light. */
+    .projection { position: absolute; inset: 0; z-index: 1; pointer-events: none; mix-blend-mode: screen; transition: opacity 420ms ease;
+      background:
+        linear-gradient(180deg, transparent 0, var(--a7) 50%, transparent 100%) 0 0 / 100% 18% no-repeat,
+        repeating-linear-gradient(180deg, var(--a5) 0 1px, transparent 1px 3px);
+      -webkit-mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, #000 35%, transparent 100%);
+      mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, #000 35%, transparent 100%);
+      animation: projection-band 8s linear infinite; }
+    @keyframes projection-band { from { background-position: 0 -25%, 0 0; } to { background-position: 0 125%, 0 0; } }
+    /* The 3D view brings its own projection layer; the schema map is a plan, not light. */
+    .silhouette-frame:is(.mode-3d, .mode-schema) .projection { display: none; }
+    :host(.ph-wait) .projection, :host(.ph-hero) .projection { opacity: 0; }
     @keyframes sil-scan { from { clip-path: inset(0 0 100% 0); } }
     .silhouette-placeholder { position: absolute; inset: 0; display: grid; place-items: center; }
     .silhouette-placeholder > * { animation: ghost-in var(--sil-dur) var(--e-out) var(--sil-delay) backwards; }
@@ -342,6 +376,8 @@ const GENERIC_HULL_PATH =
 })
 export class CodexHoloTableComponent {
   readonly GENERIC_HULL = GENERIC_HULL_PATH;
+  /** Document-unique id of this table's hull gradient. */
+  readonly hullFillId = `holo-hull-fill-${++hullFillSeq}`;
 
   readonly pins = input<readonly StagePin[]>([]);
   /** The fallback ring the estimated pins ride on; null = every pin anchored. */
