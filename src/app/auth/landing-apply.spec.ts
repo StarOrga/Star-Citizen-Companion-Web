@@ -99,4 +99,16 @@ describe('LoginComponent — landing + apply', () => {
     comp.showApply();
     expect(comp.applyForm.getRawValue().email).toBe('pilot@example.com');
   });
+
+  // A length rule on SIGN-IN locked out every account whose password Supabase
+  // accepted shorter (its minimum is 6) — the submit simply stayed disabled.
+  it('lets a short but existing password sign in (no length rule on sign-in)', () => {
+    const fixture = setup();
+    const comp = fixture.componentInstance;
+    comp.form.setValue({ email: 'pilot@example.com', password: 'abc123' });
+    fixture.detectChanges();
+    expect(comp.form.valid).toBeTrue();
+    const submitBtn: HTMLButtonElement = fixture.nativeElement.querySelector('form button[type="submit"]');
+    expect(submitBtn.disabled).toBeFalse();
+  });
 });

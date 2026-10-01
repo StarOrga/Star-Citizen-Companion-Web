@@ -788,7 +788,15 @@ async function signIn(cdp, sessionId, baseUrl, creds, state, cfg) {
 
   // Angular keeps submit disabled until the form is valid; give it a tick.
   await sleep(cfg.timing.scrollSettleMs);
-  await evaluate(cdp, sessionId, `document.querySelector('form button[type="submit"]').click()`, true);
+  // A submit that stays disabled means the form rejected the input — say so
+  // instead of waiting out the navigation timeout on a click that did nothing.
+  const clicked = await evaluate(cdp, sessionId, `(() => {
+    const b = document.querySelector('form button[type="submit"]');
+    if (b.disabled) return false;
+    b.click();
+    return true;
+  })()`, true);
+  if (!clicked) throw new Error('sign-in submit stayed disabled — the login form rejects the test credentials');
 
   const deadline = Date.now() + cfg.timing.navigationTimeoutMs;
   for (;;) {
