@@ -659,17 +659,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .tt:disabled { opacity: 0.4; cursor: not-allowed; }
   .tt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   .share-wrap { position: relative; display: inline-flex; }
-  /* The share popover is a real surface: background, frame, shadow, a notch
-     pointing at "Teilen" — never floating text over the table. */
-  .share-popover { position: absolute; top: calc(100% + 12px); inset-inline-end: -8px; z-index: 30; width: min(340px, calc(100vw - 32px));
-  padding: 12px 14px; border-radius: var(--holo-r); background: var(--sc-bg-1); border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-  box-shadow: 0 18px 48px rgb(0 0 0 / 0.55), 0 0 0 1px var(--a10); transform-origin: calc(100% - 22px) -6px; }
-  .share-popover::before { content: ''; position: absolute; top: -6px; inset-inline-end: 18px; width: 10px; height: 10px; rotate: 45deg; background: var(--sc-bg-1);
-  border-top: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); border-left: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); }
-  .pop-enter { animation: pop-in var(--holo-t-base) var(--e-out); }
-  .pop-leave { animation: pop-out var(--holo-t-fast) var(--e-io) forwards; }
-  @keyframes pop-in { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))) scale(0.97); } }
-  @keyframes pop-out { to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+  /* The popover surface (frame, notch, enter/leave) lives in the share
+     component's own :host styles. */
   /* On a desktop with the inspector open, its hardpoint list replaces the
      dense key under the table — one list, not two. */
   @media (min-width: 1001px) { .holo-stage:not(.right-collapsed) ::ng-deep .pin-key { display: none; } }
