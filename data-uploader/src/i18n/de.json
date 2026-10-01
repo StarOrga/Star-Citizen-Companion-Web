@@ -21,7 +21,8 @@
     "setup": "Einrichtung",
     "extract": "Extraktion",
     "upload": "Upload",
-    "done": "Fertig"
+    "done": "Fertig",
+    "ariaLabel": "Fortschritt"
   },
   "install": {
     "cmp": {
@@ -142,7 +143,13 @@
     "hint": {
       "open": "Öffne das ~157-GB-Archiv — das dauert einen Moment.",
       "datacore": "DataCore wird dekomprimiert — kann etwas dauern."
-    }
+    },
+    "cancelling": "Breche ab…",
+    "noChannel": "Kein Channel ausgewählt — zurück zum Setup.",
+    "warningFallback": "Warnung",
+    "errorFallback": "Fehler bei der Extraktion",
+    "failedUnknown": "Die Extraktion ist aus unbekanntem Grund fehlgeschlagen.",
+    "tempo": "Tempo"
   },
   "upload": {
     "title": "Upload",
@@ -151,6 +158,12 @@
     "intro": "Beim Upload-Start öffnet sich der Browser zum Anmelden. Nach erfolgreichem Login wird das Bundle automatisch hochgeladen.",
     "start": "Upload starten",
     "bundle": "Bundle-Zusammenfassung",
+    "meta": {
+      "channel": "Kanal",
+      "patch": "Patch",
+      "build": "Build",
+      "quality": "Qualität"
+    },
     "signingIn": "Im Browser anmelden…",
     "signedIn": "Angemeldet als {{email}} — lade Bundle hoch…",
     "signInFailed": "Anmeldung fehlgeschlagen",
@@ -374,6 +387,7 @@
     "toggle": "Bei neuer data.p4k-Version automatisch komplett durchlaufen",
     "hint": "Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.",
     "starting": "Neue Version erkannt ({{channel}}: {{local}} vs. {{server}}) — starte automatisch.",
-    "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen."
+    "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen.",
+    "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt."
   }
 }

@@ -36,7 +36,7 @@ export function renderDone(): string {
       ${countdown}
       <div class="btn-row view-footer">
         <button type="button" id="done-open-web" class="btn">${t('done.openWeb')} ↗</button>
-        <button type="button" id="done-new-run" class="btn btn-primary">${t('done.newRun')} <kbd class="sc-kbd">Enter</kbd></button>
+        <button type="button" id="done-new-run" class="btn btn-primary" data-tip="${t('done.newRun')}" data-tip-key="Enter">${t('done.newRun')}</button>
       </div>
     </div>
   `;

@@ -10,7 +10,8 @@
 // build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
 import '@starorga/star-ui/lib/design-tokens.css';
 import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
-import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
@@ -218,6 +219,14 @@ function tOr(key: string, fallback: string, params: Record<string, string | numb
 const phaseLabel = (p: string): string => tOr(`run.phase.${p}`, p);
 const stageLabel = (s: string): string => tOr(`run.stage.${s}`, s);
 const counterLabel = (k: string): string => tOr(`run.counter.${k}`, k);
+/** Silhouette build counter keys (singular entity kinds) → extract counter keys. */
+const SILHOUETTE_KIND_COUNTER: Record<string, string> = {
+  ship: 'ships',
+  vehicle: 'vehicles',
+  component: 'components',
+  weapon: 'weapons',
+  item: 'items',
+};
 
 function fmtElapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -281,6 +290,7 @@ export const state = {
 
 async function init(): Promise<void> {
   await loadI18n();
+  initTooltips();
   applyBranding();
   const env = await window.sc.env();
   paintEnv(env);
@@ -295,9 +305,10 @@ async function init(): Promise<void> {
   // calls `setLocale` + repaints directly — no topbar select to wire here.
   const gear = $('#btn-settings-gear') as HTMLButtonElement | null;
   if (gear) {
-    const label = `${t('settings.title')} (Ctrl+,)`;
-    gear.title = label;
-    gear.setAttribute('aria-label', label);
+    gear.dataset.tip = t('settings.title');
+    gear.dataset.tipKey = 'Ctrl+,';
+    gear.dataset.tipTier = 'label';
+    gear.setAttribute('aria-label', t('settings.title'));
     gear.addEventListener('click', () => openAppSettingsDialog());
   }
   document.addEventListener('keydown', (e) => {
@@ -309,11 +320,15 @@ async function init(): Promise<void> {
     if (e.key === 'Escape') closeSettingsDialogIfOpen();
   });
 
+  $('#step-rail')?.setAttribute('aria-label', t('steprail.ariaLabel'));
+
   // Edge chevrons: label them (icon-only controls) — ←/→ are their hotkeys.
   for (const [id, key, hk] of [['#chevron-prev', 'common.back', '←'], ['#chevron-next', 'common.next', '→']] as const) {
     const el = $(id);
     if (!el) continue;
-    el.title = `${t(key)} (${hk})`;
+    el.dataset.tip = t(key);
+    el.dataset.tipKey = hk;
+    el.dataset.tipTier = 'label';
     el.setAttribute('aria-label', t(key));
   }
 
@@ -414,7 +429,7 @@ async function init(): Promise<void> {
   void window.sc.update.status().then(onUpdateEvent);
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
-  void initConnectionTile();
+  connectionReady = initConnectionTile();
 
   // Re-validate the session whenever the operator returns to the window — the
   // web app may have been redeployed in the background, invalidating the login.
@@ -462,10 +477,29 @@ async function maybeAutoRun(): Promise<void> {
   // A job left over from a kill outranks starting a brand-new extraction: it is
   // already paid for, and re-running would duplicate the work.
   await refreshJobView();
+  // Both decisions below need to know whether a session exists, and the
+  // persisted one is restored by the connection tile — wait for it, or a fresh
+  // launch always looks signed out and never runs anything unattended.
+  await connectionReady.catch(() => undefined);
   if (state.resumableJob?.resumable) {
-    setStatus(t('autorun.resumeFirst'));
     state.view = 'auth-upload';
     render();
+    const status = state.resumableJob.state?.status;
+    const resume = shouldAutoResume({
+      enabled: Boolean(state.settings?.autoRunOnNewVersion),
+      signedIn: Boolean(state.authToken),
+      startedHidden,
+      status:
+        status === 'running' || status === 'paused' || status === 'done' || status === 'error'
+          ? status
+          : null,
+    });
+    if (!resume) {
+      setStatus(t('autorun.resumeFirst'));
+      return;
+    }
+    setStatus(t('autorun.resuming'));
+    await doResumeUpload();
     return;
   }
 
@@ -566,6 +600,9 @@ const conn = {
  * never closed out from under them.
  */
 let startedHidden = false;
+
+/** Settles once the persisted session has been restored (or found missing). */
+let connectionReady: Promise<void> = Promise.resolve();
 
 async function initConnectionTile(): Promise<void> {
   // 1. Instant paint from the remembered snapshot — no network ("Fortschritt gemerkt").
@@ -805,7 +842,7 @@ function paintConnection(): void {
   // Left cluster: email when signed in, otherwise a short state + connect CTA.
   let idBlock: string;
   if (s?.connected) {
-    idBlock = `<span class="conn-email" title="${escapeHtml(s.email ?? '')}">${escapeHtml(s.email ?? '')}</span>`;
+    idBlock = `<span class="conn-email" data-tip="${escapeHtml(s.email ?? '')}" data-tip-tier="label">${escapeHtml(s.email ?? '')}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
       ? t('session.reconnect')
@@ -843,8 +880,8 @@ function paintConnection(): void {
   let actions = '';
   if (s?.connected) {
     actions = `
-      <button id="conn-sync" type="button" class="conn-icon-btn" title="${t('sync.refresh')}" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
-      <button id="conn-signout" type="button" class="conn-icon-btn" title="${t('session.signOut')}" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
+      <button id="conn-sync" type="button" class="conn-icon-btn" data-tip="${t('sync.refresh')}" data-tip-tier="label" aria-label="${t('sync.refresh')}">${IC_REFRESH}</button>
+      <button id="conn-signout" type="button" class="conn-icon-btn" data-tip="${t('session.signOut')}" data-tip-tier="label" aria-label="${t('session.signOut')}">${IC_LOGOUT}</button>`;
   }
 
   // A running sync replaces the middle with a thin labelled progress bar.
@@ -864,7 +901,7 @@ function paintConnection(): void {
   mount.innerHTML = `
     <div class="conn-card conn-card--${pillCls}">
       <div class="conn-bar">
-        <span class="conn-dot conn-dot--${pillCls}" title="${escapeHtml(pillText)}"></span>
+        <span class="conn-dot conn-dot--${pillCls}" data-tip="${escapeHtml(pillText)}" data-tip-tier="label"></span>
         <div class="conn-idwrap">${idBlock}</div>
         ${serverBlock}
         <span class="conn-spacer"></span>
@@ -942,7 +979,7 @@ export function renderDiscoverUpdateBanner(): string {
     <div class="discover-update" id="discover-update">
       <span class="discover-update-text">${escapeHtml(msg)}</span>
       <button id="du-download" type="button" class="btn btn-sm">${t('update.openDownload')}</button>
-      <button id="du-dismiss" type="button" class="discover-update-close" title="${t('common.dismiss')}" aria-label="${t('common.dismiss')}">✕</button>
+      <button id="du-dismiss" type="button" class="discover-update-close" data-tip="${t('common.dismiss')}" data-tip-tier="label" aria-label="${t('common.dismiss')}">✕</button>
     </div>`;
 }
 
@@ -976,7 +1013,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
   const action = $('#update-banner-action') as HTMLButtonElement | null;
   if (!banner || !text || !action) return;
   banner.classList.remove('update-banner-error');
-  action.style.display = 'none';
+  action.hidden = true;
   action.onclick = null;
 
   switch (ev.type) {
@@ -998,7 +1035,7 @@ function paintUpdateBanner(ev: UpdateEvent): void {
     case 'downloaded':
       text.textContent = t('update.downloaded', { version: ev.version });
       action.textContent = t('update.install');
-      action.style.display = 'inline-flex';
+      action.hidden = false;
       action.onclick = () => void window.sc.update.install();
       banner.classList.remove('hidden');
       return;
@@ -1182,9 +1219,9 @@ export function armedChipHtml(): string {
   const wd = state.runPlan?.whenDone ?? state.whenDone;
   if (wd === 'nothing') return '';
   return `
-    <span class="armed-chip" id="armed-chip" title="${t('run.whenDone.' + wd)}">
+    <span class="armed-chip" id="armed-chip" data-tip="${t('run.whenDone.' + wd)}">
       ⏻ ${t('run.whenDone.' + wd)}
-      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" title="${t('run.whenDone.disarm')}">✕</button>
+      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" data-tip="${t('run.whenDone.disarm')}" data-tip-tier="label">✕</button>
     </span>`;
 }
 
@@ -1285,7 +1322,7 @@ function renderRun(): string {
         ${categoryBarsHtml()}
         <div class="log-line-row">
           <div class="log-lastline" id="log-lastline"></div>
-          <button type="button" id="log-drawer-toggle" class="btn-link" title="${t('run.logTitle')} (Ctrl+L)">${t('run.logTitle')} <kbd class="sc-kbd">Ctrl+L</kbd></button>
+          <button type="button" id="log-drawer-toggle" class="btn-link" data-tip="${t('run.logTitle')}" data-tip-key="Ctrl+L">${t('run.logTitle')}</button>
         </div>
         <div class="log-drawer" id="log-drawer" hidden>
           <div class="log-drawer-head">
@@ -1295,9 +1332,9 @@ function renderRun(): string {
           <div class="log-stream" id="log-drawer-body"></div>
         </div>
       </section>
-      <p id="run-ready-note" class="run-ready-note" style="display:none;"></p>
+      <p id="run-ready-note" class="run-ready-note" hidden></p>
       <div class="btn-row view-footer" id="run-footer">
-        <button id="btn-cancel-extract" class="btn btn-danger-ghost" title="${t('run.cancel')} (Esc)">${t('run.cancel')} <kbd class="sc-kbd">Esc</kbd></button>
+        <button id="btn-cancel-extract" class="btn btn-danger-ghost" data-tip="${t('run.cancel')}" data-tip-key="Esc">${t('run.cancel')}</button>
       </div>
     </div>
   `;
@@ -1312,15 +1349,16 @@ function markBundleReady(): void {
   const note = $('#run-ready-note');
   if (note) {
     note.textContent = t('run.bundleReady');
-    note.style.display = 'block';
+    note.hidden = false;
   }
   markCategoriesComplete();
   // Nothing left to abort: the red "cancel" becomes a plain "back" so the
   // finished card no longer offers a destructive action next to its CTA.
   const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
   if (cancel) {
-    cancel.innerHTML = `${escapeHtml(t('common.back'))} <kbd class="sc-kbd">Esc</kbd>`;
-    cancel.title = `${t('common.back')} (Esc)`;
+    cancel.textContent = t('common.back');
+    cancel.dataset.tip = t('common.back');
+    cancel.dataset.tipKey = 'Esc';
     cancel.classList.remove('btn-danger-ghost');
   }
   if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
@@ -1330,7 +1368,9 @@ function markBundleReady(): void {
   btn.id = 'btn-upload-now';
   btn.type = 'button';
   btn.className = 'btn btn-primary btn-ready';
-  btn.innerHTML = `✓ ${t('run.bundleReadyCta')} <kbd class="sc-kbd">Enter</kbd>`;
+  btn.textContent = `✓ ${t('run.bundleReadyCta')}`;
+  btn.dataset.tip = t('run.bundleReadyCta');
+  btn.dataset.tipKey = 'Enter';
   btn.addEventListener('click', () => void goToUploadNow());
   footer.appendChild(btn);
 }
@@ -1354,11 +1394,17 @@ function wireRun(): void {
     applyProfile: (next) => applyProfile(next),
     onMessage: (msg) => showSnackbar(msg),
   });
-  $('#btn-cancel-extract')?.addEventListener('click', () => {
+  $('#btn-cancel-extract')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
     void (async () => {
+      if (btn.disabled) return;
       const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
       if (!ok) return;
       if (currentExtractJobId) {
+        // The abort can take a moment to land — say so and take the button
+        // out of reach so a second click (or Esc) cannot fire it again.
+        btn.disabled = true;
+        btn.textContent = t('run.cancelling');
         try {
           await window.sc.extract.cancel(currentExtractJobId);
         } catch {
@@ -1390,7 +1436,7 @@ async function runRealExtract(): Promise<void> {
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
-    appendLog('Kein Channel ausgewählt — zurück zum Setup.', 'error');
+    appendLog(t('run.noChannel'), 'error');
     return;
   }
   // Started only past the early return above: that return sits outside the
@@ -1457,7 +1503,7 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? '', ev.level ?? 'info');
         return;
       case 'warning':
-        appendLog(ev.message ?? 'warning', 'warn');
+        appendLog(ev.message ?? t('run.warningFallback'), 'warn');
         return;
       case 'done':
         progress.setStep(5); // past the last phase → all step chips 'done'
@@ -1466,7 +1512,7 @@ async function runRealExtract(): Promise<void> {
         return;
       case 'error':
         progress.update({ indeterminate: false });
-        appendLog(ev.message ?? 'extraction error', 'error');
+        appendLog(ev.message ?? t('run.errorFallback'), 'error');
         return;
     }
   });
@@ -1516,7 +1562,7 @@ async function runRealExtract(): Promise<void> {
         void doStartUpload();
       }
     } else {
-      appendLog(final.error ?? 'unknown extraction failure', 'error');
+      appendLog(final.error ?? t('run.failedUnknown'), 'error');
     }
   } finally {
     extractRunning = false;
@@ -1569,14 +1615,40 @@ function stepCounterLabel(step: number, total: number): string {
   return tOr('progress.step', `Schritt ${step}/${total}`, { n: step, total });
 }
 
+/**
+ * The collapsible summary of the bundle being uploaded. Painted separately so a
+ * resume after a restart — where the extraction result is rebuilt from the job
+ * file only after the view is already on screen — fills it in instead of
+ * leaving a "no extraction yet" placeholder under a running upload. With no
+ * result there is nothing to summarise, so the block is simply absent.
+ */
+function paintBundleDetails(): void {
+  const host = $('#upload-bundle-details');
+  if (!host) return;
+  const result = state.lastResult;
+  if (!result) {
+    host.innerHTML = '';
+    return;
+  }
+  const counts = orderedCounts(result.entity_counts)
+    .map(([k, v]) => `<li><strong>${counterLabel(k)}</strong> ${v.toLocaleString()}</li>`)
+    .join('');
+  host.innerHTML = `
+    <details class="upload-bundle-details">
+      <summary>${t('upload.bundle')}</summary>
+      <ul class="bundle-meta">
+        <li><strong>${t('upload.meta.channel')}</strong> ${result.channel}</li>
+        <li><strong>${t('upload.meta.patch')}</strong> ${result.patch_version}</li>
+        <li><strong>${t('upload.meta.build')}</strong> ${result.build_number || '—'}</li>
+        <li><strong>${t('upload.meta.quality')}</strong> ${result.quality_score.toFixed(0)}/100</li>
+      </ul>
+      <ul class="entity-strip">${counts}</ul>
+    </details>`;
+}
+
 function renderAuthUpload(): string {
   const result = state.lastResult;
   const hasResult = result !== null;
-  const counts = hasResult
-    ? orderedCounts(result!.entity_counts)
-        .map(([k, v]) => `<li><strong>${k}:</strong> ${v.toLocaleString()}</li>`)
-        .join('')
-    : '<li><em>no extraction yet</em></li>';
   return `
     <div class="view step-upload">
       <section class="card upload-card">
@@ -1585,8 +1657,8 @@ function renderAuthUpload(): string {
           <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
         </div>
         <p id="upload-intro">${t('upload.intro')}</p>
-        <div id="reconnect-notice" class="reconnect-notice" style="display:none;"></div>
-        <div id="resume-notice" class="reconnect-notice" style="display:none;"></div>
+        <div id="reconnect-notice" class="reconnect-notice" hidden></div>
+        <div id="resume-notice" class="reconnect-notice" hidden></div>
         ${progressCardHtml('upload-progress', uploadSteps())}
         ${categoryBarsHtml()}
         <div id="auth-status" class="upload-status" hidden></div>
@@ -1594,24 +1666,11 @@ function renderAuthUpload(): string {
       </section>
       <div class="btn-row view-footer" id="upload-footer">
         <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-        <button type="button" id="btn-resume-upload" class="btn btn-primary" style="display:none;" title="${t('upload.job.resumeAction')} (Space)">▶ ${t('upload.job.resumeAction')} <kbd class="sc-kbd">Space</kbd></button>
-        <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
-        <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
+        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
+        <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
+        <button id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
       </div>
-      <details class="upload-bundle-details">
-        <summary>${t('upload.bundle')}</summary>
-        ${hasResult
-          ? `
-          <ul class="bundle-meta">
-            <li><strong>channel:</strong> ${result!.channel}</li>
-            <li><strong>patch:</strong> ${result!.patch_version}</li>
-            <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-            <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-          </ul>
-          <ul class="entity-strip">${counts}</ul>
-        `
-          : '<p class="warn">No extraction result yet.</p>'}
-      </details>
+      <div id="upload-bundle-details"></div>
     </div>
   `;
 }
@@ -1633,6 +1692,7 @@ function wireAuthUpload(): void {
     onOverallPct: noteOverallPct,
   });
   resetUploadCategories();
+  paintBundleDetails();
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
@@ -1719,27 +1779,27 @@ function paintJobNotice(): void {
   const resumable = Boolean(job?.resumable);
   const running = uploadRunning;
 
-  pauseBtn.style.display = running ? '' : 'none';
+  pauseBtn.hidden = !running;
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
-    pauseBtn.innerHTML = `⏸ ${escapeHtml(tOr('upload.job.pause', 'Pause'))} <kbd class="sc-kbd">Space</kbd>`;
+    pauseBtn.textContent = `⏸ ${tOr('upload.job.pause', 'Pause')}`;
   }
-  resumeBtn.style.display = !running && resumable ? '' : 'none';
-  discardBtn.style.display = !running && resumable ? '' : 'none';
+  resumeBtn.hidden = !(!running && resumable);
+  discardBtn.hidden = !(!running && resumable);
   // A resumable job makes "start over" the wrong default — hide it so the
   // operator resumes rather than silently re-uploading everything.
-  startBtn.style.display = !running && resumable ? 'none' : '';
+  startBtn.hidden = !running && resumable;
 
   if (!running && resumable && job?.resumeSummary) {
     notice.textContent = formatResumeBanner(job.resumeSummary);
-    notice.style.display = 'block';
+    notice.hidden = false;
   } else if (!running && resumable && job?.resumeHint) {
     // Fallback for an older main process that predates the structured summary.
     notice.textContent = t('upload.job.resumeBanner', { hint: job.resumeHint });
-    notice.style.display = 'block';
+    notice.hidden = false;
   } else {
-    notice.style.display = 'none';
+    notice.hidden = true;
   }
 }
 
@@ -1834,6 +1894,7 @@ async function doPauseUpload(): Promise<void> {
   // otherwise the operator clicks it, sees a card that keeps ticking, and
   // concludes it is broken.
   const btn = $('#btn-pause-upload') as HTMLButtonElement | null;
+  if (btn?.disabled) return; // a pause is already on its way
   if (btn) {
     btn.disabled = true;
     btn.textContent = tOr('upload.job.pausingShort', 'Pausiere…');
@@ -1859,6 +1920,11 @@ async function ensureResultForResume(): Promise<boolean> {
   const r = await window.sc.uploadJob.rehydrate();
   if (r.ok) {
     state.lastResult = r.result;
+    paintBundleDetails();
+    // The view mounted before this result existed, so its bars were seeded
+    // with no planned totals — every one stayed an unmeasured "0" for the
+    // whole resumed upload. Re-seed them now that the counts are known.
+    resetUploadCategories();
     return true;
   }
   if (r.error === 'no_job') return false;
@@ -1879,11 +1945,25 @@ async function ensureResultForResume(): Promise<boolean> {
   return false;
 }
 
+/** Set while a resume is being set up, so a double click / Space cannot start it twice. */
+let resumeInFlight = false;
+
 async function doResumeUpload(): Promise<void> {
-  if (!(await ensureResultForResume())) return;
-  await window.sc.uploadJob.resume();
-  setAuthStatus(t('upload.job.resumed'), 'ok');
-  await doStartUpload();
+  if (resumeInFlight) return;
+  resumeInFlight = true;
+  const btn = $('#btn-resume-upload') as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+  try {
+    if (!(await ensureResultForResume())) return;
+    await window.sc.uploadJob.resume();
+    setAuthStatus(t('upload.job.resumed'), 'ok');
+    await doStartUpload();
+  } finally {
+    resumeInFlight = false;
+    // Re-query: the view may have been re-rendered while the upload ran.
+    const live = $('#btn-resume-upload') as HTMLButtonElement | null;
+    if (live) live.disabled = false;
+  }
 }
 
 async function doDiscardUpload(): Promise<void> {
@@ -1905,9 +1985,9 @@ function paintReconnectNotice(): void {
       ? t('upload.reconnectExpired')
       : t('upload.reconnectOffline');
     el.textContent = msg;
-    el.style.display = 'block';
+    el.hidden = false;
   } else {
-    el.style.display = 'none';
+    el.hidden = true;
   }
 }
 
@@ -2257,6 +2337,19 @@ let uploadExpected: Record<string, number> = {};
 function resetUploadCategories(): void {
   for (const k of Object.keys(uploadCounts)) delete uploadCounts[k];
   uploadExpected = uploadExpectedFromCounts(state.lastResult?.entity_counts ?? {});
+  // A resumed job skips the phases it already sent, and a skipped phase only
+  // reports itself once the catalog stage reaches it — after a silhouette build
+  // that can run for an hour. Show what is already on the server from the job
+  // file right away instead of a row of empty bars.
+  const jobState = state.resumableJob?.state as { catalog?: { donePhases?: unknown } } | null | undefined;
+  const donePhases = jobState?.catalog?.donePhases;
+  if (Array.isArray(donePhases)) {
+    for (const phase of donePhases) {
+      if (typeof phase === 'string' && typeof uploadExpected[phase] === 'number') {
+        uploadCounts[phase] = uploadExpected[phase];
+      }
+    }
+  }
   resetCategoryBars();
   updateCategoryBars(uploadCounts, uploadExpected, 'upload');
 }
@@ -2520,8 +2613,10 @@ async function buildSilhouettes(
         detail: ev.detail,
       });
     } else if (ev.type === 'count' && ev.counter) {
-      silhouetteCounters[ev.counter.key] = ev.counter.value;
-      progress?.update({ counters: silhouetteCounters });
+      // The build counts per entity kind (`ship`, `component`, …); show them
+      // under the same plural labels the extract uses.
+      silhouetteCounters[SILHOUETTE_KIND_COUNTER[ev.counter.key] ?? ev.counter.key] = ev.counter.value;
+      progress?.update({ counters: { ...silhouetteCounters } });
     } else if (ev.type === 'log' && ev.level === 'error') {
       progress?.update({ detail: ev.message ?? '' });
     }
@@ -2636,8 +2731,12 @@ async function buildAndUploadSkins(
         detail: ev.detail,
       });
     } else if (ev.type === 'count' && ev.counter) {
+      // One count per ship id — hundreds of keys. Shown as two totals.
       skinCounters[ev.counter.key] = ev.counter.value;
-      progress?.update({ counters: skinCounters });
+      const perShip = Object.values(skinCounters);
+      progress?.update({
+        counters: { ships: perShip.length, skins: perShip.reduce((a, b) => a + b, 0) },
+      });
     } else if (ev.type === 'log' && ev.level === 'error') {
       progress?.update({ detail: ev.message ?? '' });
     }

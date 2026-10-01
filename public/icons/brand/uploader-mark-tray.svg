@@ -130,9 +130,9 @@
 
 <!-- ===== PRODUCT GLYPH: Data Uploader, small tier (laid over the untouched master) ===== -->
 <g><defs><linearGradient id="uploader-glyph-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eaf7fd"/><stop offset="100%" stop-color="#a0dcf0"/></linearGradient></defs>
-  <path d="M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-linejoin="round" stroke-opacity=".85"/>
-  <rect x="90" y="238" width="120" height="24" rx="12" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-opacity=".85"/>
-  <path d="M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z" fill="url(#uploader-glyph-ink)" stroke="#7dd5f0" stroke-width="4" stroke-linejoin="round"/>
-  <rect x="90" y="238" width="120" height="24" rx="12" fill="#7dd5f0"/>
+  <path d="M150,54 L238,136 L186,136 L186,214 L114,214 L114,136 L62,136 Z" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-linejoin="round" stroke-opacity=".85"/>
+  <rect x="94" y="226" width="112" height="22" rx="11" fill="#0d2635" stroke="#0d2635" stroke-width="18" stroke-opacity=".85"/>
+  <path d="M150,54 L238,136 L186,136 L186,214 L114,214 L114,136 L62,136 Z" fill="url(#uploader-glyph-ink)" stroke="#7dd5f0" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="94" y="226" width="112" height="22" rx="11" fill="#7dd5f0"/>
 </g>
 </svg>

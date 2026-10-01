@@ -1,7 +1,55 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.112.4",
+  "current": "0.113.0",
   "releases": [
+    {
+      "version": "0.113.0",
+      "date": "2026-10-01",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.39.0: eigene Tooltips mit Tastenkürzeln.",
+              "text": "Alle Hinweise im Uploader erscheinen jetzt im App-Stil statt als Windows-Tooltip: kurze Beschriftungen nach einer halben Sekunde, längere Erklärungen nach anderthalb, per Tastatur sofort, mit Escape weg. Die Tastenkürzel stehen jetzt im Tooltip statt dauerhaft neben den Knöpfen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ein unterbrochener Upload läuft beim Windows-Start von selbst weiter.",
+              "text": "Bisher las der Auto-Lauf die Anmeldung, bevor die gespeicherte Sitzung wiederhergestellt war, und übersprang einen fortsetzbaren Upload. Jetzt setzt der Uploader ihn fort, genau wie er einen neuen Build automatisch extrahiert (bei aktiviertem Auto-Lauf und Anmeldung)."
+            },
+            {
+              "title": "Die Unterbalken im Upload-Schritt füllen sich.",
+              "text": "Nach einem fortgesetzten Upload starteten sie ohne Gesamtmenge und blieben leer; bereits erledigte Bereiche erscheinen jetzt sofort gefüllt."
+            },
+            {
+              "title": "Die Bundle-Zusammenfassung zeigt keinen Platzhalter mehr.",
+              "text": "Statt eines unübersetzten „no extraction yet“ erscheint sie erst, wenn ein Ergebnis da ist, mit übersetzten Beschriftungen."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Ruhigere, schärfere Schrift im Uploader.",
+              "text": "Feste Rollen für Überschriften, Beschriftungen, Zahlen und Pfade; die verschwommene Schrift im Fortschrittsbalken ist weg. Die Zähl-Kacheln, deren Animation abgeschnitten wurde, sind einer schlichten Zeile gewichen."
+            },
+            {
+              "title": "Kleinerer Pfeil im Tray- und Taskleisten-Symbol",
+              "text": "des Uploaders."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.112.4",
       "date": "2026-09-29",

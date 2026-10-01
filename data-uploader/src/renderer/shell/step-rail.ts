@@ -46,7 +46,7 @@ export function paintStepRail(s: StepRailState): void {
       i > 0
         ? `<span class="step-rail-seg ${i <= curIdx ? 'filled' : ''}">${fill}</span>`
         : '';
-    return `${segment}<span class="step-rail-node step-rail-node--${state}" data-step="${step}" title="${labelFor(step)}">
+    return `${segment}<span class="step-rail-node step-rail-node--${state}" data-step="${step}">
         <span class="step-rail-dot"></span>
         <span class="step-rail-label">${labelFor(step)}</span>
       </span>`;

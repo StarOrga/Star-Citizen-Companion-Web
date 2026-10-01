@@ -335,7 +335,7 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     countersEl.innerHTML = Object.entries(vm.counters)
       .map(([k, v]) => {
         const bumped = prevCounters[k] !== undefined && prevCounters[k] !== v ? ' bumped' : '';
-        return `<div class="counter${bumped}"><div class="label">${escapeHtml(labelFn(k))}</div><div class="value">${v.toLocaleString()}</div></div>`;
+        return `<span class="counter${bumped}"><span class="label">${escapeHtml(labelFn(k))}</span><span class="value">${v.toLocaleString()}</span></span>`;
       })
       .join('');
     prevCounters = { ...vm.counters };

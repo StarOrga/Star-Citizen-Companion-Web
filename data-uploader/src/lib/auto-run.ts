@@ -122,3 +122,32 @@ export function shouldQuitAfterAutoRun(input: {
   if (!input.startedHidden || !input.enabled) return false;
   return input.reason === 'already-uploaded';
 }
+
+/**
+ * Should a launch pick a leftover upload job back up on its own?
+ *
+ * A resumable job outranks a new extraction (it is already paid for), and it
+ * deserves the same treatment a new build gets: when auto-run is on and a
+ * session exists, it continues without a click. Before this, an autostart that
+ * found an interrupted upload only printed "skipped the automatic run" and sat
+ * in the tray until someone noticed.
+ *
+ * `paused` is the one status that needs care: the operator stopped it on
+ * purpose. A foreground launch respects that and leaves the Resume button to
+ * them; the login-item launch resumes it, because that is the "the PC restarted
+ * overnight, carry on" case the autostart exists for. A `running` job on disk
+ * was killed mid-stage, so it resumes on every launch.
+ */
+export function shouldAutoResume(input: {
+  /** The `autoRunOnNewVersion` preference — the one switch for unattended work. */
+  enabled: boolean;
+  signedIn: boolean;
+  startedHidden: boolean;
+  /** Persisted job status; null when there is no resumable job. */
+  status: 'running' | 'paused' | 'done' | 'error' | null;
+}): boolean {
+  if (!input.enabled || !input.signedIn || !input.status) return false;
+  if (input.status === 'done') return false;
+  if (input.status === 'paused') return input.startedHidden;
+  return true;
+}

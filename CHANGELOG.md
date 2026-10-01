@@ -4,6 +4,38 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.113.0] - 2026-10-01
+
+### Added
+
+- **Data Uploader 0.39.0: eigene Tooltips mit Tastenkürzeln.** Alle Hinweise
+  im Uploader erscheinen jetzt im App-Stil statt als Windows-Tooltip: kurze
+  Beschriftungen nach einer halben Sekunde, längere Erklärungen nach
+  anderthalb, per Tastatur sofort, mit Escape weg. Die Tastenkürzel stehen
+  jetzt im Tooltip statt dauerhaft neben den Knöpfen.
+
+### Fixed
+
+- **Ein unterbrochener Upload läuft beim Windows-Start von selbst weiter.**
+  Bisher las der Auto-Lauf die Anmeldung, bevor die gespeicherte Sitzung
+  wiederhergestellt war, und übersprang einen fortsetzbaren Upload. Jetzt
+  setzt der Uploader ihn fort, genau wie er einen neuen Build automatisch
+  extrahiert (bei aktiviertem Auto-Lauf und Anmeldung).
+- **Die Unterbalken im Upload-Schritt füllen sich.** Nach einem fortgesetzten
+  Upload starteten sie ohne Gesamtmenge und blieben leer; bereits erledigte
+  Bereiche erscheinen jetzt sofort gefüllt.
+- **Die Bundle-Zusammenfassung zeigt keinen Platzhalter mehr.** Statt eines
+  unübersetzten „no extraction yet“ erscheint sie erst, wenn ein Ergebnis da
+  ist, mit übersetzten Beschriftungen.
+
+### Changed
+
+- **Ruhigere, schärfere Schrift im Uploader.** Feste Rollen für Überschriften,
+  Beschriftungen, Zahlen und Pfade; die verschwommene Schrift im
+  Fortschrittsbalken ist weg. Die Zähl-Kacheln, deren Animation abgeschnitten
+  wurde, sind einer schlichten Zeile gewichen.
+- **Kleinerer Pfeil im Tray- und Taskleisten-Symbol** des Uploaders.
+
 ## [0.112.4] - 2026-09-29
 
 ### Changed

@@ -21,7 +21,8 @@
     "setup": "Setup",
     "extract": "Extract",
     "upload": "Upload",
-    "done": "Done"
+    "done": "Done",
+    "ariaLabel": "Progress"
   },
   "install": {
     "cmp": {
@@ -142,7 +143,13 @@
     "hint": {
       "open": "Opening the ~157 GB archive — this takes a moment.",
       "datacore": "Decompressing the DataCore — this can take a while."
-    }
+    },
+    "cancelling": "Cancelling…",
+    "noChannel": "No channel selected — back to Setup.",
+    "warningFallback": "Warning",
+    "errorFallback": "Extraction error",
+    "failedUnknown": "Extraction failed for an unknown reason.",
+    "tempo": "Speed"
   },
   "upload": {
     "title": "Upload",
@@ -151,6 +158,12 @@
     "intro": "Starting the upload opens your browser for sign-in. After a successful login, the bundle is uploaded automatically.",
     "start": "Start upload",
     "bundle": "Bundle summary",
+    "meta": {
+      "channel": "Channel",
+      "patch": "Patch",
+      "build": "Build",
+      "quality": "Quality"
+    },
     "signingIn": "Signing in via browser…",
     "signedIn": "Signed in as {{email}} — uploading bundle…",
     "signInFailed": "Sign-in failed",
@@ -374,6 +387,7 @@
     "toggle": "Run the whole pipeline automatically on a new data.p4k",
     "hint": "On launch, checks whether the local data.p4k is newer than what's uploaded — and runs the whole process automatically.",
     "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
-    "resumeFirst": "Found an interrupted upload — skipped the automatic run."
+    "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
+    "resuming": "Found an interrupted upload — resuming it automatically."
   }
 }

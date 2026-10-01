@@ -67,24 +67,24 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
     <div class="sc-modal sc-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="sc-settings-title">
       <div class="sc-settings-head">
         <h2 class="sc-modal-title" id="sc-settings-title">${t('settings.title')}</h2>
-        <button type="button" class="sc-icon-btn" id="set-close" title="${t('common.dismiss')} (Esc)" aria-label="${t('common.dismiss')}">✕</button>
+        <button type="button" class="sc-icon-btn" id="set-close" data-tip="${t('common.dismiss')}" data-tip-key="Esc" data-tip-tier="label" aria-label="${t('common.dismiss')}">✕</button>
       </div>
 
-      <label class="sc-toggle settings-master" title="${t('settings.unattended.hint')}">
+      <label class="sc-toggle settings-master" data-tip="${t('settings.unattended.hint')}">
         <input type="checkbox" id="set-unattended" ${s.autoStart && s.autoRunOnNewVersion ? 'checked' : ''} />
         <span>${t('settings.unattended.label')}</span>
       </label>
 
       <div class="settings-group">
-        <label class="sc-toggle" title="${t('tray.autoStartHint')}">
+        <label class="sc-toggle" data-tip="${t('tray.autoStartHint')}">
           <input type="checkbox" id="set-autostart" ${s.autoStart ? 'checked' : ''} />
           <span>${t('tray.autoStart')}</span>
         </label>
-        <label class="sc-toggle" title="${t('autorun.hint')}">
+        <label class="sc-toggle" data-tip="${t('autorun.hint')}">
           <input type="checkbox" id="set-autorun" ${s.autoRunOnNewVersion ? 'checked' : ''} />
           <span>${t('autorun.toggle')}</span>
         </label>
-        <label class="sc-toggle" title="${t('tray.quitAfterAutoRunHint')}">
+        <label class="sc-toggle" data-tip="${t('tray.quitAfterAutoRunHint')}">
           <input type="checkbox" id="set-quitafter" ${s.quitAfterAutoRun ? 'checked' : ''} />
           <span>${t('tray.quitAfterAutoRun')}</span>
         </label>
@@ -99,7 +99,7 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
         </div>
       </div>
 
-      <label class="sc-toggle" title="${t('tray.minimizeHint')}">
+      <label class="sc-toggle" data-tip="${t('tray.minimizeHint')}">
         <input type="checkbox" id="set-minimize" ${s.minimizeToTray ? 'checked' : ''} />
         <span>${t('tray.minimize')}</span>
       </label>
@@ -111,7 +111,7 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
         <div class="segment-group" id="set-lang" role="radiogroup" aria-label="${t('settings.language')}">${langSegment}</div>
       </div>
 
-      <label class="sc-toggle" title="${t('telemetry.hint')}">
+      <label class="sc-toggle" data-tip="${t('telemetry.hint')}">
         <input type="checkbox" id="set-telemetry" ${s.telemetryEnabled ? 'checked' : ''} />
         <span>${t('telemetry.toggle')}</span>
       </label>

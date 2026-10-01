@@ -52,8 +52,8 @@ export function renderSetup(): string {
       <div class="scope-pills view-body" id="scope-pills-mount"></div>
       <div class="btn-row view-footer">
         <button id="btn-run-options" type="button" class="btn">${t('sheet.title')}</button>
-        <button id="btn-open-settings" class="btn" title="${t('settings.title')} (Ctrl+,)">⚙ ${t('settings.title')}</button>
-        <button id="btn-start-run" class="btn btn-primary">${t('configure.start')} <kbd class="sc-kbd">Enter</kbd></button>
+        <button id="btn-open-settings" class="btn" data-tip="${t('settings.title')}" data-tip-key="Ctrl+,">⚙ ${t('settings.title')}</button>
+        <button id="btn-start-run" class="btn btn-primary" data-tip="${t('configure.start')}" data-tip-key="Enter">${t('configure.start')}</button>
       </div>
     </div>
   `;

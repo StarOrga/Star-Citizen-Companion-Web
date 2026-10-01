@@ -91,8 +91,8 @@ export function renderInstall(): string {
     state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
   const connected = isConnected();
   const primary = connected
-    ? `<button id="btn-to-setup" type="button" class="btn btn-primary">${t('discover.next')} <kbd class="sc-kbd">Enter</kbd></button>`
-    : `<button id="btn-connect-continue" type="button" class="btn btn-primary">${t('session.connect')} <kbd class="sc-kbd">Enter</kbd></button>
+    ? `<button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
+    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('session.connect')}" data-tip-key="Enter">${t('session.connect')}</button>
        <button id="btn-to-setup" type="button" class="btn">${t('install.extractOnly')}</button>`;
   return `
     <div class="view step-install">
@@ -101,7 +101,7 @@ export function renderInstall(): string {
       <p class="view-intro">${t('discover.subtitle')}</p>
       ${resumeBannerHtml()}
       <div id="channels-mount" class="view-body"></div>
-      <div class="btn-row view-footer" id="discover-next" style="display:none;">
+      <div class="btn-row view-footer" id="discover-next" hidden>
         ${primary}
       </div>
     </div>
@@ -143,7 +143,7 @@ function paintChannels(): void {
         <span class="spinner" aria-hidden="true"></span>
         <span>${t('discover.scanning')}</span>
       </div>`;
-    if (nextRow) nextRow.style.display = 'none';
+    if (nextRow) nextRow.hidden = true;
     return;
   }
 
@@ -157,7 +157,7 @@ function paintChannels(): void {
           <input type="radio" name="install-pick" data-idx="${i}" ${c.selected ? 'checked' : ''} />
         </div>
         <span class="channel-name">${c.version ? 'v' + c.version : c.channel + ' (no version)'}</span>
-        <span class="channel-path" title="${escapeHtml(c.installPath)}">${escapeHtml(c.installPath)}</span>
+        <span class="channel-path" data-tip="${escapeHtml(c.installPath)}" data-tip-tier="label">${escapeHtml(c.installPath)}</span>
         <span class="channel-size">${(c.sizeBytes / 1024 ** 3).toFixed(1)} GB</span>
         ${comparisonLine(c.version, c.channel)}
         ${lastUploadedLine(c.channel)}
@@ -187,7 +187,7 @@ function paintChannels(): void {
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
 
-  if (nextRow) nextRow.style.display = hasChannels ? 'flex' : 'none';
+  if (nextRow) nextRow.hidden = !hasChannels;
   syncNextButton();
 }
 
@@ -197,5 +197,7 @@ function syncNextButton(): void {
   if (!next) return;
   const picked = state.channels.some((c) => c.selected);
   next.disabled = !picked;
-  next.title = picked ? '' : t('discover.pickOne');
+  // Says why the button is disabled — a label-tier tip by the tooltip rules.
+  next.dataset.tip = picked ? t('discover.next') : t('discover.pickOne');
+  next.dataset.tipTier = picked ? 'info' : 'label';
 }
