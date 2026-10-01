@@ -713,9 +713,11 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .ht-search { max-width: none; }
   .ht-title { max-width: 100%; justify-self: center; }
   .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
-  .holo-left.collapsed { order: 0; }
-  .holo-table { order: 1; }
-  .holo-right.collapsed { order: 2; }
+  /* Explicit columns: with a rail expanded below, nothing else claims column 1,
+     and auto-placement used to drop the table into that 0px track. */
+  .holo-left.collapsed { order: 0; grid-column: 1; }
+  .holo-table { order: 1; grid-column: 2; }
+  .holo-right.collapsed { order: 2; grid-column: 3; }
   .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: 1 / -1; min-height: 0; }
   .holo-panel:not(.collapsed).holo-left { order: 3; }
   .holo-panel:not(.collapsed).holo-right { order: 4; }
@@ -738,6 +740,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-body:has(.holo-left:not(.collapsed)):has(.holo-right:not(.collapsed)) { grid-template-columns: 1fr; gap: 10px; padding: 6px; }
   .holo-panel, .holo-panel:not(.collapsed).holo-left, .holo-panel:not(.collapsed).holo-right { grid-column: auto; order: initial; min-height: 0; margin-top: 0; }
   .holo-table { order: -1; }
+  .holo-left.collapsed, .holo-table, .holo-right.collapsed { grid-column: auto; }
   .holo-table > .ph.role { max-width: 100%; }
   .holo-table > .pb { min-height: 360px; }
   /* A collapsed panel on a phone is its header — no vertical rail label. */
