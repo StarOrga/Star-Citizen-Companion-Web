@@ -61,6 +61,16 @@
   --sc-font-display: var(--font-heading-category);
   --sc-font-body: var(--font-body-text);
   --sc-font-mono: var(--font-monospace);
+  /* Type roles — each face has ONE job, so nothing is picked per selector:
+       display  Orbitron, headings and names at >= 1rem only. Below that its
+                wide, thin strokes fall apart on a 1x Windows screen.
+       label    Inter 600 uppercase, tracked — buttons, chips, step pills,
+                small section titles: the "UI caps" voice at small sizes.
+       body     Inter — prose, hints and every number (tabular-nums).
+       mono     Share Tech Mono — machine text only: paths, log lines, the
+                version, error detail. It ships one weight (400); never bold it,
+                the synthetic bold is what made readouts look frayed. */
+  --sc-font-label: var(--sc-font-body);
 
   /* Radius — the shared system is sharp-edged (≤4px); pills stay round. */
   --sc-radius: var(--radius-md);
@@ -166,7 +176,8 @@ h3 { font-size: 0.9rem; }
   color: var(--sc-accent);
   border: 1px solid var(--sc-accent);
   border-radius: var(--sc-radius);
-  font-family: var(--sc-font-display);
+  font-family: var(--sc-font-label);
+  font-weight: 600;
   font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -425,7 +436,7 @@ kbd.sc-kbd {
   border-top: 1px solid var(--sc-border-ui);
   font-size: var(--fs-sm);
   color: var(--sc-fg-1);
-  font-family: var(--sc-font-mono);
+  font-variant-numeric: tabular-nums;
   flex: none;
 }
 .bottom-strip[hidden] { display: none; }
@@ -554,7 +565,8 @@ kbd.sc-kbd {
   border-radius: var(--sc-radius);
   background: transparent;
   color: var(--sc-fg-1);
-  font-family: var(--sc-font-display);
+  font-family: var(--sc-font-label);
+  font-weight: 600;
   font-size: var(--fs-sm);
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -562,7 +574,8 @@ kbd.sc-kbd {
 }
 .channel-add-card:hover { border-color: var(--sc-accent); color: var(--sc-accent); background: rgba(var(--accent-primary-rgb), 0.05); }
 .channel-pill {
-  font-family: var(--sc-font-display);
+  font-family: var(--sc-font-label);
+  font-weight: 600;
   font-size: var(--fs-xs);
   padding: 2px 8px;
   border-radius: 999px;
@@ -665,8 +678,8 @@ kbd.sc-kbd {
   border-color: var(--sc-accent);
   box-shadow: var(--sc-glow);
 }
-.profile-pill .name { font-family: var(--sc-font-display); font-size: var(--fs-md); letter-spacing: 0.06em; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.profile-pill .eta { font-family: var(--sc-font-mono); font-size: var(--fs-sm); color: var(--sc-accent); }
+.profile-pill .name { font-family: var(--sc-font-label); font-weight: 600; text-transform: uppercase; font-size: var(--fs-md); letter-spacing: 0.06em; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.profile-pill .eta { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); color: var(--sc-accent); }
 .profile-pill.compact { padding: 7px 12px; gap: 0; align-items: center; justify-content: center; min-width: 110px; }
 .scope-recommended {
   font-family: var(--sc-font-body);
@@ -746,19 +759,21 @@ kbd.sc-kbd {
   align-items: center;
   justify-content: space-between;
   padding: 0 9px;
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.03em;
   line-height: 1;
-  color: var(--sc-fg-2);
+  color: var(--sc-fg-1);
   pointer-events: none;
+  /* Each copy shows only on its own side of the fill edge. Without this the
+     track copy kept painting under the dark one, and two anti-aliased layers
+     of the same glyph is what read as fuzzy text on the bar. */
+  clip-path: inset(0 0 0 var(--sc-fill, 0%));
+  transition: clip-path 0.25s ease;
 }
 .sc-progress-clocks--on-fill {
   color: #062234;
-  font-weight: 600;
   clip-path: inset(0 calc(100% - var(--sc-fill, 0%)) 0 0);
-  transition: clip-path 0.25s ease;
 }
 
 /* Activity: current arcs surge from the left end of the fill to its head,
@@ -837,8 +852,8 @@ kbd.sc-kbd {
   flex-wrap: wrap;
 }
 .sc-progress-stepcount {
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--sc-accent);
@@ -846,7 +861,8 @@ kbd.sc-kbd {
 }
 .sc-progress-stepcount:empty { display: none; }
 .sc-progress-step {
-  font-family: var(--sc-font-display);
+  font-family: var(--sc-font-label);
+  font-weight: 600;
   font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -877,8 +893,8 @@ kbd.sc-kbd {
 }
 /* Throughput rides after the percentage, quieter than the numbers it rates. */
 .sc-progress-rate {
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--sc-fg-2);
   white-space: nowrap;
 }
@@ -886,7 +902,6 @@ kbd.sc-kbd {
 .sc-progress-meta {
   min-height: 1.05em;
   margin-top: 2px;
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
   color: var(--sc-fg-2);
   font-variant-numeric: tabular-nums;
@@ -1021,7 +1036,8 @@ kbd.sc-kbd {
 .log-drawer[hidden] { display: none; }
 .log-drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .log-title {
-  font-family: var(--sc-font-display);
+  font-family: var(--sc-font-label);
+  font-weight: 600;
   font-size: var(--fs-xs);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1061,7 +1077,6 @@ kbd.sc-kbd {
   border-radius: 999px;
   background: var(--sc-bg-1);
   color: var(--sc-fg-1);
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
 }
 /* Diff vs. the previous bundle: one quiet line like the Extract card's log
@@ -1069,7 +1084,6 @@ kbd.sc-kbd {
 .upload-diff-line {
   margin: 0;
   color: var(--sc-fg-2);
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
 }
@@ -1163,7 +1177,6 @@ summary.upload-diff-line:hover { color: var(--sc-fg-1); }
   padding: 0;
   border: 0;
   color: var(--sc-fg-2);
-  font-family: var(--sc-font-mono);
   font-size: var(--fs-sm);
 }
 .upload-status.ok .upload-status-msg { font-weight: 400; }
@@ -1308,7 +1321,7 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
   background: var(--sc-well); border: 1px solid var(--sc-border-ui);
   color: var(--sc-fg-1); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.conn-chip strong { color: var(--sc-accent); font-family: var(--sc-font-display); letter-spacing: 0.04em; margin-right: 4px; }
+.conn-chip strong { color: var(--sc-accent); font-family: var(--sc-font-label); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
 .conn-chip.PTU strong, .conn-chip.ptu strong { color: var(--sc-success); }
 .conn-chip.EPTU strong, .conn-chip.eptu strong { color: var(--sc-warning); }
 .conn-chip.TECH-PREVIEW strong, .conn-chip.tech-preview strong { color: var(--sc-accent-hot); }
@@ -1319,7 +1332,7 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
 
 .conn-syncbar { display: flex; flex-direction: column; gap: 5px; }
 .conn-syncbar-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--fs-sm); color: var(--sc-fg-1); }
-.conn-pct { font-family: var(--sc-font-mono); color: var(--sc-accent); font-variant-numeric: tabular-nums; }
+.conn-pct { font-weight: 600; color: var(--sc-accent); font-variant-numeric: tabular-nums; }
 .conn-persist-note { font-size: var(--fs-xs); color: var(--sc-warning); }
 .conn-error {
   font-size: var(--fs-sm);

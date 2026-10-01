@@ -163,8 +163,8 @@ const GLYPH_INK = (product) =>
 
 /** Upward arrow over a landing bar, in the master's 300-unit space. */
 const UPLOADER_BIG = {
-  arrow: 'M150,34 L246,132 L188,132 L188,224 L112,224 L112,132 L54,132 Z',
-  bar: { x: 90, y: 238, w: 120, h: 24 },
+  arrow: 'M150,54 L238,136 L186,136 L186,214 L114,214 L114,136 L62,136 Z',
+  bar: { x: 94, y: 226, w: 112, h: 22 },
 };
 
 const uploaderGlyph = () => {

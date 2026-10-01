@@ -10,7 +10,7 @@
 // build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
 import '@starorga/star-ui/lib/design-tokens.css';
 import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
-import { shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
@@ -414,7 +414,7 @@ async function init(): Promise<void> {
   void window.sc.update.status().then(onUpdateEvent);
 
   // Web-connection tile — auto-connect (persisted session) + auto-sync.
-  void initConnectionTile();
+  connectionReady = initConnectionTile();
 
   // Re-validate the session whenever the operator returns to the window — the
   // web app may have been redeployed in the background, invalidating the login.
@@ -462,10 +462,29 @@ async function maybeAutoRun(): Promise<void> {
   // A job left over from a kill outranks starting a brand-new extraction: it is
   // already paid for, and re-running would duplicate the work.
   await refreshJobView();
+  // Both decisions below need to know whether a session exists, and the
+  // persisted one is restored by the connection tile — wait for it, or a fresh
+  // launch always looks signed out and never runs anything unattended.
+  await connectionReady.catch(() => undefined);
   if (state.resumableJob?.resumable) {
-    setStatus(t('autorun.resumeFirst'));
     state.view = 'auth-upload';
     render();
+    const status = state.resumableJob.state?.status;
+    const resume = shouldAutoResume({
+      enabled: Boolean(state.settings?.autoRunOnNewVersion),
+      signedIn: Boolean(state.authToken),
+      startedHidden,
+      status:
+        status === 'running' || status === 'paused' || status === 'done' || status === 'error'
+          ? status
+          : null,
+    });
+    if (!resume) {
+      setStatus(t('autorun.resumeFirst'));
+      return;
+    }
+    setStatus(t('autorun.resuming'));
+    await doResumeUpload();
     return;
   }
 
@@ -566,6 +585,9 @@ const conn = {
  * never closed out from under them.
  */
 let startedHidden = false;
+
+/** Settles once the persisted session has been restored (or found missing). */
+let connectionReady: Promise<void> = Promise.resolve();
 
 async function initConnectionTile(): Promise<void> {
   // 1. Instant paint from the remembered snapshot — no network ("Fortschritt gemerkt").
@@ -1569,14 +1591,40 @@ function stepCounterLabel(step: number, total: number): string {
   return tOr('progress.step', `Schritt ${step}/${total}`, { n: step, total });
 }
 
+/**
+ * The collapsible summary of the bundle being uploaded. Painted separately so a
+ * resume after a restart — where the extraction result is rebuilt from the job
+ * file only after the view is already on screen — fills it in instead of
+ * leaving a "no extraction yet" placeholder under a running upload. With no
+ * result there is nothing to summarise, so the block is simply absent.
+ */
+function paintBundleDetails(): void {
+  const host = $('#upload-bundle-details');
+  if (!host) return;
+  const result = state.lastResult;
+  if (!result) {
+    host.innerHTML = '';
+    return;
+  }
+  const counts = orderedCounts(result.entity_counts)
+    .map(([k, v]) => `<li><strong>${counterLabel(k)}</strong> ${v.toLocaleString()}</li>`)
+    .join('');
+  host.innerHTML = `
+    <details class="upload-bundle-details">
+      <summary>${t('upload.bundle')}</summary>
+      <ul class="bundle-meta">
+        <li><strong>${t('upload.meta.channel')}</strong> ${result.channel}</li>
+        <li><strong>${t('upload.meta.patch')}</strong> ${result.patch_version}</li>
+        <li><strong>${t('upload.meta.build')}</strong> ${result.build_number || '—'}</li>
+        <li><strong>${t('upload.meta.quality')}</strong> ${result.quality_score.toFixed(0)}/100</li>
+      </ul>
+      <ul class="entity-strip">${counts}</ul>
+    </details>`;
+}
+
 function renderAuthUpload(): string {
   const result = state.lastResult;
   const hasResult = result !== null;
-  const counts = hasResult
-    ? orderedCounts(result!.entity_counts)
-        .map(([k, v]) => `<li><strong>${k}:</strong> ${v.toLocaleString()}</li>`)
-        .join('')
-    : '<li><em>no extraction yet</em></li>';
   return `
     <div class="view step-upload">
       <section class="card upload-card">
@@ -1598,20 +1646,7 @@ function renderAuthUpload(): string {
         <button type="button" id="btn-pause-upload" class="btn" style="display:none;" title="${t('upload.job.pause')} (Space)">⏸ ${t('upload.job.pause')} <kbd class="sc-kbd">Space</kbd></button>
         <button id="btn-discard-upload" class="btn btn-danger-ghost" style="display:none;">${t('upload.job.discard')}</button>
       </div>
-      <details class="upload-bundle-details">
-        <summary>${t('upload.bundle')}</summary>
-        ${hasResult
-          ? `
-          <ul class="bundle-meta">
-            <li><strong>channel:</strong> ${result!.channel}</li>
-            <li><strong>patch:</strong> ${result!.patch_version}</li>
-            <li><strong>build:</strong> ${result!.build_number || '<em>n/a</em>'}</li>
-            <li><strong>quality:</strong> ${result!.quality_score.toFixed(0)}/100</li>
-          </ul>
-          <ul class="entity-strip">${counts}</ul>
-        `
-          : '<p class="warn">No extraction result yet.</p>'}
-      </details>
+      <div id="upload-bundle-details"></div>
     </div>
   `;
 }
@@ -1633,6 +1668,7 @@ function wireAuthUpload(): void {
     onOverallPct: noteOverallPct,
   });
   resetUploadCategories();
+  paintBundleDetails();
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
@@ -1859,6 +1895,11 @@ async function ensureResultForResume(): Promise<boolean> {
   const r = await window.sc.uploadJob.rehydrate();
   if (r.ok) {
     state.lastResult = r.result;
+    paintBundleDetails();
+    // The view mounted before this result existed, so its bars were seeded
+    // with no planned totals — every one stayed an unmeasured "0" for the
+    // whole resumed upload. Re-seed them now that the counts are known.
+    resetUploadCategories();
     return true;
   }
   if (r.error === 'no_job') return false;
@@ -2257,6 +2298,19 @@ let uploadExpected: Record<string, number> = {};
 function resetUploadCategories(): void {
   for (const k of Object.keys(uploadCounts)) delete uploadCounts[k];
   uploadExpected = uploadExpectedFromCounts(state.lastResult?.entity_counts ?? {});
+  // A resumed job skips the phases it already sent, and a skipped phase only
+  // reports itself once the catalog stage reaches it — after a silhouette build
+  // that can run for an hour. Show what is already on the server from the job
+  // file right away instead of a row of empty bars.
+  const jobState = state.resumableJob?.state as { catalog?: { donePhases?: unknown } } | null | undefined;
+  const donePhases = jobState?.catalog?.donePhases;
+  if (Array.isArray(donePhases)) {
+    for (const phase of donePhases) {
+      if (typeof phase === 'string' && typeof uploadExpected[phase] === 'number') {
+        uploadCounts[phase] = uploadExpected[phase];
+      }
+    }
+  }
   resetCategoryBars();
   updateCategoryBars(uploadCounts, uploadExpected, 'upload');
 }

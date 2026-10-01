@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   decideAutoRun,
   describeDecision,
+  shouldAutoResume,
   shouldQuitAfterAutoRun,
   type AutoRunInputs,
 } from '../src/lib/auto-run.js';
@@ -179,5 +180,26 @@ describe('shouldQuitAfterAutoRun', () => {
     expect(
       shouldQuitAfterAutoRun({ startedHidden: true, enabled: false, reason: 'already-uploaded' }),
     ).toBe(false);
+  });
+});
+
+describe('shouldAutoResume', () => {
+  const on = { enabled: true, signedIn: true, startedHidden: false } as const;
+
+  it('resumes a job killed mid-stage on any launch', () => {
+    expect(shouldAutoResume({ ...on, status: 'running' })).toBe(true);
+    expect(shouldAutoResume({ ...on, status: 'error' })).toBe(true);
+  });
+
+  it('resumes an operator-paused job only on the autostart launch', () => {
+    expect(shouldAutoResume({ ...on, status: 'paused' })).toBe(false);
+    expect(shouldAutoResume({ ...on, startedHidden: true, status: 'paused' })).toBe(true);
+  });
+
+  it('never resumes without auto-run, a session or a job', () => {
+    expect(shouldAutoResume({ ...on, enabled: false, status: 'running' })).toBe(false);
+    expect(shouldAutoResume({ ...on, signedIn: false, status: 'running' })).toBe(false);
+    expect(shouldAutoResume({ ...on, status: null })).toBe(false);
+    expect(shouldAutoResume({ ...on, status: 'done' })).toBe(false);
   });
 });
