@@ -1275,6 +1275,12 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .answer-options { display: flex; flex-wrap: wrap; gap: 8px; }
     .sc-btn.micro { padding: 6px 12px; min-height: 40px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.option { min-height: 44px; }
+    /* Touch: links and micro buttons reach the 48px touch minimum; the dense
+       36/40px rows stay for mouse users. */
+    @media (pointer: coarse) {
+      .link-btn, .sc-btn.micro, .sc-btn.micro.option { min-height: var(--sc-tap-min); }
+      .link-btn.ref { min-width: var(--sc-tap-min); }
+    }
     .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
     .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
     .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }

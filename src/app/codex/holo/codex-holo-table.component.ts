@@ -358,7 +358,7 @@ let hullFillSeq = 0;
     .pin.patched i { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 3px var(--sc-accent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent); }
     .pin:focus-visible { outline: none; }
     .pin:focus-visible i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .pin-label { font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-1);
+    .pin-label { font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-1);
       background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent); padding: 2px 6px; border: 1px solid var(--l1); border-radius: 2px;
       white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis;
       transition: border-color 160ms ease, color 160ms ease, opacity 160ms ease, visibility 160ms;
@@ -391,7 +391,7 @@ let hullFillSeq = 0;
     .pk.sel { border-color: var(--pc); color: var(--pc); }
     .pk.sel i { background: var(--pc); color: var(--sc-bg-0); }
     .legend { position: relative; z-index: 2; padding: 8px 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
-      font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-2); }
+      font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
     .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--sc-accent); vertical-align: middle; margin-right: 4px; }
     .legend i.g { border-color: var(--holo-gold); }
     .legend i.u { border-style: dashed; border-color: var(--sc-fg-2); }

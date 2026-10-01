@@ -556,7 +556,11 @@ export class LoginComponent {
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
+    // Sign-in only needs *a* password: the length rule belongs to setting one.
+    // A minLength here locked out every account whose password Supabase had
+    // accepted with fewer characters (its own minimum is 6) — and the signed-in
+    // mobile gate with it, whose submit stayed disabled.
+    password: ['', [Validators.required]],
   });
 
   readonly applyForm = this.fb.nonNullable.group({

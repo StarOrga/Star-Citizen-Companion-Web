@@ -373,7 +373,7 @@ import { formatScDate } from '../core/locale/date-format';
       }
 
       @media (pointer: coarse) {
-        .patch-trigger { min-height: 40px; }
+        .patch-trigger { min-height: var(--sc-tap-min); }
         .patch-row, .patch-back { min-height: 48px; }
       }
       @media (max-width: 420px) {

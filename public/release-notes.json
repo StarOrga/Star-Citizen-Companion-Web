@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.114.0",
+  "current": "0.114.1",
   "releases": [
+    {
+      "version": "0.114.1",
+      "date": "2026-10-01",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex-Holodeck: Schubladen klappen auf statt zu springen.",
+              "text": "Die Detail-Schublade und „Alle Werte“ in den Perspektiven öffnen und schließen sich jetzt über ihre Höhe. Beschriftungen haben einen einheitlichen Buchstabenabstand, und die hochzählende Kennzahl reserviert ihre Endbreite, sodass Nachbarn beim Zählen nicht mehr verrutschen."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Anmelden mit kurzem Passwort.",
+              "text": "Das Anmeldeformular verlangte mindestens 8 Zeichen, obwohl Konten mit 6 Zeichen erlaubt sind – solche Konten konnten sich nicht anmelden. Die Längenregel gilt nur noch dort, wo ein Passwort gesetzt wird."
+            },
+            {
+              "title": "Handy und Tablet, angemeldet.",
+              "text": "Größere Tippflächen und lesbare Schriftgrößen im Codex (Patch-Überschrift, Hangar-Auswahl, Bühne, Startseite), auf der Schiffsseite (Profil-Chips, Radar-Beschriftungen, „Einzeln“-Schalter, Lücken-Markierungen) und im Admin-Feedback samt Feedback-Panel. Der Mobil-Check prüft jetzt auch die angemeldeten Seiten auf allen vier Geräten."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.114.0",
       "date": "2026-10-01",

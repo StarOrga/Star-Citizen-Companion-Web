@@ -813,6 +813,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
       font: inherit; font-size: max(0.6rem, var(--sc-fs-floor)); font-weight: 400; letter-spacing: 0.05em;
       text-transform: uppercase; }
     .sec-btn + .sec-btn { margin-left: 0; }
+    @media (pointer: coarse) { .sec-btn { min-height: var(--sc-tap-min); } }
     .sec-btn:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
     .sec-btn .chev { display: inline-block; font-size: 0.85rem; line-height: 1;
       transition: transform 140ms ease; }

@@ -337,6 +337,22 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        a caption, not an aside, so it carries no italic there. */
     .lens-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
+    /* Touch: the radar labels are 6 user units in a 200-unit viewBox, i.e.
+       6px at the desktop 210px column. On a coarse pointer the radar gets a
+       320px column (the whole card once it stacks below 560px) and 7.6-unit
+       labels — 1.6 × 7.6 ≈ 12px on screen, the readability floor — and the
+       profile chips reach the touch minimum. Desktop density is untouched. */
+    @media (pointer: coarse) {
+      .rank-card { grid-template-columns: 320px 1fr; }
+      .radar { max-width: 320px; overflow: visible; }
+      .radar text { font-size: 7.6px; }
+      .profile-chip { min-height: var(--sc-tap-min); }
+    }
+    @media (pointer: coarse) and (max-width: 560px) {
+      .rank-card { grid-template-columns: 1fr; }
+      .radar { margin-inline: auto; }
+    }
+
     /* ── Holotable variant (concept round 4–6 "Einordnung" panel): one calm
        column inside the panel's own frame — no card chrome, no header, the
        profile as a note (never a second selector), the cohort as a link. ── */

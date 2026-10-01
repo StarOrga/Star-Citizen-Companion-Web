@@ -133,6 +133,7 @@ const COLLAPSE_DELAY_MS = 150;
         background: rgba(2, 8, 14, .55);
         backdrop-filter: blur(6px);
         font: 600 9px/1 var(--font-display, 'Orbitron', sans-serif);
+        font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: .08em;
         text-transform: uppercase;
         color: var(--sc-fg-0);

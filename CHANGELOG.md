@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.114.1] - 2026-10-01
+
+### Changed
+
+- **Codex-Holodeck: Schubladen klappen auf statt zu springen.** Die
+  Detail-Schublade und „Alle Werte“ in den Perspektiven öffnen und schließen
+  sich jetzt über ihre Höhe. Beschriftungen haben einen einheitlichen
+  Buchstabenabstand, und die hochzählende Kennzahl reserviert ihre
+  Endbreite, sodass Nachbarn beim Zählen nicht mehr verrutschen.
+
+### Fixed
+
+- **Anmelden mit kurzem Passwort.** Das Anmeldeformular verlangte
+  mindestens 8 Zeichen, obwohl Konten mit 6 Zeichen erlaubt sind – solche
+  Konten konnten sich nicht anmelden. Die Längenregel gilt nur noch dort, wo
+  ein Passwort gesetzt wird.
+- **Handy und Tablet, angemeldet.** Größere Tippflächen und lesbare
+  Schriftgrößen im Codex (Patch-Überschrift, Hangar-Auswahl, Bühne,
+  Startseite), auf der Schiffsseite (Profil-Chips, Radar-Beschriftungen,
+  „Einzeln“-Schalter, Lücken-Markierungen) und im Admin-Feedback samt
+  Feedback-Panel. Der Mobil-Check prüft jetzt auch die angemeldeten Seiten
+  auf allen vier Geräten.
+
 ## [0.114.0] - 2026-10-01
 
 ### Changed

@@ -329,7 +329,7 @@ let uidSeq = 0;
       .seg[data-p="movement"] { border-block-start-color: var(--p-movement); }
       .seg[data-p="signature"] { border-block-start-color: var(--p-signature); }
       .seg .lab { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor));
-        letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
+        letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); white-space: nowrap; }
       .einsatz { background: color-mix(in srgb, var(--sc-accent) 7%, transparent); min-inline-size: 132px; }
       .einsatz .val { font-family: var(--sc-font-display); font-size: max(11.5px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
       .einsatz .sub { font-family: var(--hs-mono); font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -341,7 +341,7 @@ let uidSeq = 0;
       .arrow { align-self: center; color: var(--sc-fg-2); flex: none; padding: 0 6px; }
       .tile-vals { display: flex; gap: 10px; flex-wrap: nowrap; }
       .tv { display: flex; flex-direction: column; gap: 1px; }
-      .tv .k { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; }
+      .tv .k { font-family: var(--sc-font-display); font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; white-space: nowrap; }
       .tv .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; color: var(--sc-fg-0); white-space: nowrap;
         border-radius: 2px; transition: color 0.4s ease; }
       .tv.none .v { color: var(--sc-fg-2); }
@@ -369,7 +369,7 @@ let uidSeq = 0;
       .fact[tabindex] { cursor: help; border-radius: var(--holo-r-xs); }
       .fact[tabindex]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
       .tip-trigger { font-family: var(--sc-font-display);
-        font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; }
+        font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; }
       .hs-toggle {
         align-self: stretch; margin-inline-start: auto; flex: none;
         min-inline-size: var(--sc-tap-min, 44px); min-block-size: var(--sc-tap-min);
@@ -430,14 +430,14 @@ let uidSeq = 0;
          — an error, not a hint (same rule as the energy dock). Stays danger red. */
       .hp-cooling .va.over { stroke: var(--sc-danger); }
       .hp-cooling text { font-family: var(--hs-mono); font-size: 12px; fill: var(--sc-fg-0); text-anchor: middle; }
-      .hp-cooling text.l { font-family: var(--sc-font-display); font-size: 5.5px; letter-spacing: 0.12em; fill: var(--sc-fg-2); text-transform: uppercase; }
+      .hp-cooling text.l { font-family: var(--sc-font-display); font-size: 5.5px; letter-spacing: 0.14em; fill: var(--sc-fg-2); text-transform: uppercase; }
       .hp-cool-txt { display: grid; gap: 1px; }
       .hp-cool-txt .v { font-family: var(--hs-mono); font-size: 14px; color: var(--sc-fg-0); }
-      .hp-cool-txt .k { font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor)); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sc-fg-2); }
+      .hp-cool-txt .k { font-family: var(--sc-font-display); font-size: max(8px, var(--sc-fs-floor)); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-fg-2); }
       .hp-summary { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-variant-numeric: tabular-nums; color: var(--sc-fg-1); }
       .hp-summary .v { font-family: var(--hs-mono); font-size: 13px; color: var(--sc-fg-0); }
       .hp-summary .v small { font-size: 10px; color: var(--sc-fg-2); }
-      .hp-summary .mode { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.12em; font-size: max(8.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+      .hp-summary .mode { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.14em; font-size: max(8.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
       .hp-summary .ok { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-success); }
       .hp-summary .ok.no { color: var(--sc-danger); }
       .draft-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }

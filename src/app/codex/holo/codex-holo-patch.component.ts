@@ -255,7 +255,7 @@ export interface HoloPatchComparisonSide {
     .build-row.current:disabled { opacity: 1; cursor: default; color: var(--sc-fg-0); }
     .row-build { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .row-flag { margin-left: auto; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-warning); }
-    .row-flag.cur { color: var(--sc-accent); font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.12em; }
+    .row-flag.cur { color: var(--sc-accent); font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.14em; }
     .row-date { margin-left: auto; font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); white-space: nowrap; }
 
     .patch-clear { align-self: flex-start; min-height: 40px; padding: 5px 10px;

@@ -523,7 +523,13 @@ function pageAudit(opts) {
       if (!p) continue;
       if (p.tagName === 'SCRIPT' || p.tagName === 'STYLE' || p.tagName === 'NOSCRIPT' || p.tagName === 'TEMPLATE') continue;
       if (!rendered(p)) continue;
-      const fs = parseFloat(getComputedStyle(p).fontSize);
+      let fs = parseFloat(getComputedStyle(p).fontSize);
+      // SVG text: the computed font-size is in user units, the eye sees it
+      // after the viewBox scale — measure the rendered size, not the number.
+      if (p.ownerSVGElement && typeof p.getScreenCTM === 'function') {
+        const m = p.getScreenCTM();
+        if (m) fs = Math.round(fs * Math.hypot(m.a, m.b) * 100) / 100;
+      }
       if (!(fs < MIN_FS - 0.01)) continue;
       add('text-too-small', 'font-size ' + fs + 'px is below the ' + MIN_FS + 'px readable minimum', p, {
         detail: String(fs), measured: fs, limit: MIN_FS, text: txt.slice(0, 40),
@@ -542,6 +548,9 @@ function pageAudit(opts) {
       if (node.nodeType === 3) ownText += node.nodeValue;
     }
     if (ownText.trim().length < 2) continue;
+    // The visually-hidden idiom (.sc-sr-only and friends: a 1×1px box with
+    // overflow hidden) hides text from sight on purpose — nothing is "cut off".
+    if (el.clientWidth <= 1 && el.clientHeight <= 1) continue;
     const cs = getComputedStyle(el);
     const clipX = cs.overflowX === 'hidden' || cs.overflowX === 'clip';
     const clipY = cs.overflowY === 'hidden' || cs.overflowY === 'clip';
@@ -769,6 +778,15 @@ async function resolveTarget(cfg) {
  */
 async function signIn(cdp, sessionId, baseUrl, creds, state, cfg) {
   await navigate(cdp, sessionId, baseUrl + '/login', state, cfg);
+  // The login route is lazy and the shell first awaits auth.ready(): with four
+  // devices signing in at once against a dev server, the form can take longer
+  // than the settle delay to mount. Poll for it instead of failing the pass.
+  const formDeadline = Date.now() + cfg.timing.navigationTimeoutMs;
+  while (Date.now() < formDeadline) {
+    const found = await evaluate(cdp, sessionId, `!!(document.querySelector('input[type="email"]') && document.querySelector('input[type="password"]') && document.querySelector('form button[type="submit"]'))`, true);
+    if (found) break;
+    await sleep(250);
+  }
   const pre = await evaluate(cdp, sessionId, `(() => {
     const email = document.querySelector('input[type="email"]');
     const pass = document.querySelector('input[type="password"]');
@@ -788,7 +806,15 @@ async function signIn(cdp, sessionId, baseUrl, creds, state, cfg) {
 
   // Angular keeps submit disabled until the form is valid; give it a tick.
   await sleep(cfg.timing.scrollSettleMs);
-  await evaluate(cdp, sessionId, `document.querySelector('form button[type="submit"]').click()`, true);
+  // A submit that stays disabled means the form rejected the input — say so
+  // instead of waiting out the navigation timeout on a click that did nothing.
+  const clicked = await evaluate(cdp, sessionId, `(() => {
+    const b = document.querySelector('form button[type="submit"]');
+    if (b.disabled) return false;
+    b.click();
+    return true;
+  })()`, true);
+  if (!clicked) throw new Error('sign-in submit stayed disabled — the login form rejects the test credentials');
 
   const deadline = Date.now() + cfg.timing.navigationTimeoutMs;
   for (;;) {
@@ -819,7 +845,12 @@ async function openFeedbackPanel(cdp, sessionId, cfg) {
 }
 
 async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth = null) {
-  const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+  // One browser context per device: the devices share one Chrome, and in a
+  // shared context the first device's sign-in lands in the others' storage —
+  // the next device's /login then redirects away before its form exists, and
+  // two tabs rotating one Supabase refresh token sign each other out.
+  const { browserContextId } = await cdp.send('Target.createBrowserContext', {});
+  const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank', browserContextId });
   const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
   const state = { console: [], network: [], inflight: 0, lastActivity: Date.now() };
@@ -991,6 +1022,7 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth 
   }
 
   await cdp.send('Target.closeTarget', { targetId }).catch(() => {});
+  await cdp.send('Target.disposeBrowserContext', { browserContextId }).catch(() => {});
   return results;
 }
 
