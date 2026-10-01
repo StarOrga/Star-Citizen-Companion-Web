@@ -158,23 +158,20 @@ let uidSeq = 0;
               }
             </span>
           }
-          <span class="tipw fact">
-            <button type="button" class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</button>
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(irFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.ir' | translate }}</span>
             <span class="v pulse">{{ fmtKm($safeNavigationMigration(irFact()?.value)) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(irFact()?.value)) }}&nbsp;m</span>
           </span>
-          <span class="tipw fact">
-            <button type="button" class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</button>
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(emFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.em' | translate }}</span>
             <span class="v pulse">{{ fmtKm($safeNavigationMigration(emFact()?.value)) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(emFact()?.value)) }}&nbsp;m</span>
           </span>
-          <span class="tipw fact">
-            <button type="button" class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</button>
+          <span class="fact" tabindex="0" [scTooltip]="fmtM($safeNavigationMigration(csFact()?.value)) + '\u00a0m'" scTooltipTier="label">
+            <span class="tip-trigger">{{ 'codex.energy.fact.crossSection' | translate }}</span>
             <span class="v pulse">{{ fmtKm($safeNavigationMigration(csFact()?.value)) }}<small>km</small></span>
-            <span class="tipbox" role="tooltip">{{ fmtM($safeNavigationMigration(csFact()?.value)) }}&nbsp;m</span>
           </span>
-          <span class="tipw fact">
-            <button type="button" class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</button>
+          <span class="fact">
+            <span class="tip-trigger">{{ 'codex.holo.strip.cooling' | translate }}</span>
             <span class="v pulse">{{
               sheet().coolant.used == null
                 ? '—'
@@ -245,16 +242,14 @@ let uidSeq = 0;
                       <span class="pip ghost" aria-hidden="true"></span>
                     }
                   </div>
-                  <div class="tipw">
-                    <button type="button" class="grp-btn" [attr.aria-pressed]="row.cut" [attr.aria-label]="(row.cut ? 'codex.energy.toggleOn' : 'codex.energy.toggleOff') | translate: { group: row.labelKey | translate: row.labelParams }" (click)="toggleGroup(row.key)">
+                  <div>
+                    <button type="button" class="grp-btn"
+                            [scTooltip]="(row.tooltipTitleKey | translate: row.labelParams) + ' · ' + (row.tooltipBodyKey | translate)" scTooltipTier="label"
+                            [attr.aria-pressed]="row.cut" [attr.aria-label]="(row.cut ? 'codex.energy.toggleOn' : 'codex.energy.toggleOff') | translate: { group: row.labelKey | translate: row.labelParams }" (click)="toggleGroup(row.key)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ico" aria-hidden="true">
                         <path [attr.d]="iconPath(row.group)" />
                       </svg>
                     </button>
-                    <div class="tipbox" role="tooltip">
-                      <b>{{ row.tooltipTitleKey | translate: row.labelParams }}</b>
-                      <p>{{ row.tooltipBodyKey | translate }}</p>
-                    </div>
                   </div>
                 </div>
               }
@@ -264,7 +259,7 @@ let uidSeq = 0;
           }
 
           <div class="hp-right">
-            <div class="hp-cooling tipw">
+            <div class="hp-cooling">
               <svg viewBox="0 0 64 64" aria-hidden="true">
                 <circle class="tr" cx="32" cy="32" r="26" />
                 @if (sheet().coolant.percent !== null) {
@@ -306,15 +301,14 @@ let uidSeq = 0;
   styles: [
     `
       :host { display: block; position: sticky; inset-block-end: 0; z-index: 14;
-        --e-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+        --e-out: var(--holo-e-out);
         --hs-mono: var(--font-monospace, 'Share Tech Mono', monospace);
-        --p-offensive: var(--sc-accent);
-        --p-defensive: var(--cat-game, #c07888);
-        --p-movement: var(--sc-success);
-        --p-signature: var(--accent-gold, #c8a84b); }
+        --p-offensive: var(--holo-p-offensive);
+        --p-defensive: var(--holo-p-defensive);
+        --p-movement: var(--holo-p-movement);
+        --p-signature: var(--holo-p-signature); }
       .holo-strip {
         background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
-        backdrop-filter: blur(6px);
         border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0));
         border-block-end: 0;
         border-radius: 4px 4px 0 0;
@@ -372,7 +366,9 @@ let uidSeq = 0;
       .fact { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
       .fact .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; white-space: nowrap; }
       .fact .v small { color: var(--sc-fg-2); margin-inline-start: 3px; font-size: 10px; }
-      .tip-trigger { border: none; background: transparent; padding: 0; margin: 0; font: inherit; cursor: help; font-family: var(--sc-font-display);
+      .fact[tabindex] { cursor: help; border-radius: var(--holo-r-xs); }
+      .fact[tabindex]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      .tip-trigger { font-family: var(--sc-font-display);
         font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.12em; }
       .hs-toggle {
         align-self: stretch; margin-inline-start: auto; flex: none;
@@ -382,16 +378,10 @@ let uidSeq = 0;
       }
       .hs-toggle:hover { background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
       .hs-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-      .hs-toggle .chev { display: inline-block; transition: transform 260ms var(--e-out); }
+      .hs-toggle { transition: background var(--holo-t-fast) ease; }
+      .hs-toggle .chev { display: inline-block; transition: transform var(--holo-t-base) var(--e-out); }
       .hs-toggle .chev.open { transform: rotate(180deg); }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-      .tipw { position: relative; }
-      .tipbox { display: block; visibility: hidden; opacity: 0; transition: opacity 0.12s ease;
-        position: absolute; inset-block-end: calc(100% + 8px); inset-inline-start: 50%; transform: translateX(-50%);
-        inline-size: max-content; max-inline-size: 180px; padding: 6px 8px; background: var(--sc-bg-2);
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); border-radius: 4px;
-        font-size: max(11px, var(--sc-fs-floor)); z-index: 20; }
-      .tipw:hover .tipbox, .tipw:focus-within .tipbox { visibility: visible; opacity: 1; }
       .gapv { color: var(--sc-fg-2); }
 
       /* Expanded: modes | pips | cooling (concept round 6 "Energie-Zeile":
@@ -423,7 +413,7 @@ let uidSeq = 0;
       .stack .pip:not(:disabled):hover { transform: scaleX(1.08); box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-accent) 55%, transparent); }
       .stack .pip.on { box-shadow: 0 0 6px color-mix(in srgb, var(--sc-accent) 45%, transparent); }
       .stack .pip.on { background: var(--sc-accent); }
-      .stack .pip.min { background: var(--sc-warn); }
+      .stack .pip.min { background: var(--sc-warning); }
       .hp-col.off .stack .pip { background: color-mix(in srgb, var(--sc-fg-2) 12%, transparent); }
       .hp-col.absent .stack .pip { background: color-mix(in srgb, var(--sc-fg-2) 8%, transparent); border: 1px dashed color-mix(in srgb, var(--sc-fg-2) 30%, transparent); }
       .grp-btn { min-inline-size: var(--sc-tap-min); min-block-size: var(--sc-tap-min); border: 1px solid transparent;
@@ -448,8 +438,8 @@ let uidSeq = 0;
       .hp-summary .v { font-family: var(--hs-mono); font-size: 13px; color: var(--sc-fg-0); }
       .hp-summary .v small { font-size: 10px; color: var(--sc-fg-2); }
       .hp-summary .mode { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.12em; font-size: max(8.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-      .hp-summary .ok { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-success, #4caf50); }
-      .hp-summary .ok.no { color: var(--sc-danger, #ff5252); }
+      .hp-summary .ok { font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-success); }
+      .hp-summary .ok.no { color: var(--sc-danger); }
       .draft-note { margin: 0; font-size: max(10px, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
       @media (max-width: 1100px) {
         .hs-panel { grid-template-columns: 1fr; gap: 12px; }
@@ -617,7 +607,7 @@ export class CodexHoloStripComponent {
   });
 
   // ── Rolling values: a changed number runs from where it stood to where it
-  // lands (~650 ms) — a hull switch shows WHICH numbers moved, a swap lights
+  // lands (~700 ms) — a hull switch shows WHICH numbers moved, a swap lights
   // the values it touched. The very first paint is a plain render; reduced
   // motion never rolls. ──
   private readonly still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -647,7 +637,7 @@ export class CodexHoloStripComponent {
     if (first || this.still || changed.size === 0 || typeof requestAnimationFrame !== 'function') return;
     this.rollFrom = from;
     const start = performance.now();
-    const ms = 650;
+    const ms = 700;
     if (this.rollRaf) cancelAnimationFrame(this.rollRaf);
     this.rollProgress.set(0);
     const tick = (now: number) => {

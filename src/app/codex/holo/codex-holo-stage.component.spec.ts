@@ -377,8 +377,8 @@ describe('CodexHoloStageComponent — wave 5 fixes', () => {
     const c = fixture.componentInstance;
     const arrived: string[] = [];
     c.arrivedShip.subscribe((slug) => arrived.push(slug));
-    // No hero art in the fixture: the reveal starts at once and ends after REVEAL_MS (1100).
-    tick(1099);
+    // No hero art in the fixture: the reveal starts at once and ends after REVEAL_MS (1300).
+    tick(1299);
     expect(c.arrived()).toBe(false);
     tick(1);
     expect(c.arrived()).toBe(true);

@@ -122,24 +122,28 @@ export interface HoloPerspectiveView {
     :host { display: grid; gap: 10px; align-content: start; min-width: 0;
       --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, 'Share Tech Mono', monospace);
       --l1: var(--sc-border); --l2: var(--border-default, color-mix(in srgb, var(--sc-accent) 30%, transparent));
-      --p-offensive: var(--sc-accent); --p-defensive: var(--cat-game, #c07888); --p-movement: var(--sc-success); --p-signature: var(--accent-gold, #c8a84b); }
+      --p-offensive: var(--holo-p-offensive); --p-defensive: var(--holo-p-defensive); --p-movement: var(--holo-p-movement); --p-signature: var(--holo-p-signature); }
     .sh, .pt-head, .big small, .gauge text.l, .sv .k, .tile-expand { font-family: var(--d); text-transform: uppercase; }
     .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-accent); min-height: 28px; }
     .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
     .sh .n { font-family: var(--m); font-size: max(10px, var(--f)); color: var(--sc-fg-1); background: var(--sc-bg-2); padding: 0 6px; border-radius: 2px; letter-spacing: 0; }
     .sh .ctx { font-family: var(--m); font-size: max(10px, var(--f)); letter-spacing: 0; text-transform: none; color: var(--sc-fg-1); }
     .rule { flex: 1; height: 1px; background: var(--l1); }
-    .ptile { position: relative; display: grid; gap: 10px; padding: 12px 14px 10px 16px; border: 1px solid var(--l2); border-radius: 4px; overflow: hidden;
+    .ptile { position: relative; display: grid; gap: 10px; padding: 12px 14px 10px 16px; border: 1px solid var(--l2); border-radius: var(--holo-r); overflow: hidden;
       background: linear-gradient(180deg, color-mix(in srgb, var(--sc-bg-1) 70%, transparent), color-mix(in srgb, var(--sc-bg-0) 60%, transparent));
-      transition: border-color 200ms ease; }
+      transition: border-color var(--holo-t-fast) ease; }
     .ptile:hover { border-color: color-mix(in srgb, var(--p) 55%, var(--l2)); }
     .ptile::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--p); box-shadow: 0 0 10px color-mix(in srgb, var(--p) 45%, transparent); }
     .ptile[data-p="offensive"] { --p: var(--p-offensive); }
     .ptile[data-p="defensive"] { --p: var(--p-defensive); }
     .ptile[data-p="movement"] { --p: var(--p-movement); }
     .ptile[data-p="signature"] { --p: var(--p-signature); }
-    .ptile.pulse { animation: holo-pulse 900ms ease-out; }
-    @keyframes holo-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--p) 55%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
+    /* The pulse after a port selection: an inner ring that swells and fades —
+       transform + opacity only, never an animated box-shadow. */
+    .ptile::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--p); border-radius: inherit; pointer-events: none; opacity: 0;
+      box-shadow: inset 0 0 18px color-mix(in srgb, var(--p) 35%, transparent); }
+    .ptile.pulse::after { animation: holo-pulse 900ms var(--holo-e-out); }
+    @keyframes holo-pulse { 0% { opacity: 1; transform: scale(0.985); } 100% { opacity: 0; transform: scale(1); } }
     .pt-head { display: flex; align-items: baseline; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.16em; color: var(--sc-fg-0); }
     .pt-head .pp { font-family: var(--m); letter-spacing: 0; color: var(--p); font-size: max(10px, var(--f)); }
     .pt-head .prof { font-size: max(8.5px, var(--f)); color: var(--sc-fg-2); }
@@ -147,7 +151,8 @@ export interface HoloPerspectiveView {
     .pt-main.no-gauge { grid-template-columns: 1fr; }
     .pt-lead { display: grid; gap: 6px; min-width: 0; }
     .big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-    .big .num { font-family: var(--m); font-size: 28px; line-height: 1; color: var(--sc-fg-0); }
+    /* Tabular figures: a count-up never makes its neighbours jitter. */
+    .big .num { font-family: var(--m); font-size: 28px; line-height: 1; color: var(--sc-fg-0); font-variant-numeric: tabular-nums; }
     .big small { font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); }
     .big .d { font-family: var(--m); font-size: 11px; padding: 1px 6px; border-radius: 2px; background: color-mix(in srgb, var(--sc-fg-2) 18%, transparent); color: var(--sc-fg-1); }
     .big .d.up { color: var(--sc-success); background: color-mix(in srgb, var(--sc-success) 18%, transparent); }
@@ -161,7 +166,7 @@ export interface HoloPerspectiveView {
     .gauge .tr { fill: none; stroke: color-mix(in srgb, var(--sc-fg-2) 22%, transparent); stroke-width: 6; }
     .gauge .va { fill: none; stroke: var(--p); stroke-width: 6; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%;
       filter: drop-shadow(0 0 4px color-mix(in srgb, var(--p) 55%, transparent));
-      transition: stroke-dasharray 600ms cubic-bezier(0.2, 0.7, 0.2, 1); animation: gauge-draw 900ms cubic-bezier(0.2, 0.7, 0.2, 1) 200ms backwards; }
+      transition: stroke-dasharray 600ms var(--holo-e-out); animation: gauge-draw var(--holo-t-slow) var(--holo-e-out) 200ms backwards; }
     @keyframes gauge-draw { from { stroke-dasharray: 0 227; } }
     .gauge text.p { animation: gauge-num 500ms ease-out 400ms backwards; }
     @keyframes gauge-num { from { opacity: 0; } }
@@ -169,17 +174,19 @@ export interface HoloPerspectiveView {
     .gauge text.l { font-size: 6px; letter-spacing: 0.12em; fill: var(--sc-fg-2); }
     /* auto-fit: two sub-values share the row instead of leaving a hole. */
     .subs { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
-    .sv { display: grid; gap: 2px; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: 3px; min-width: 0; }
+    .sv { display: grid; gap: 2px; padding: 6px 8px; background: color-mix(in srgb, var(--sc-bg-0) 60%, transparent); border-radius: var(--holo-r-xs); min-width: 0; }
     .sv .k { font-size: max(8px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sv .v { font-family: var(--m); font-size: 14px; color: var(--sc-fg-0); white-space: nowrap; }
+    .sv .v { font-family: var(--m); font-size: 14px; color: var(--sc-fg-0); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .sv .gv { font-family: var(--m); font-size: 10.5px; color: var(--sc-fg-2); }
     .sv .gv.up { color: var(--sc-success); }
     .sv .gv.down { color: var(--sc-warning); }
     .sv.ghosted { border: 1px dashed var(--l2); }
     .tile-expand { justify-self: start; background: none; border: none; padding: 0; cursor: pointer; font-size: max(8.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-fg-2); min-height: var(--sc-tap-min, 24px); }
+    .tile-expand { transition: color var(--holo-t-fast) ease; }
     .tile-expand:hover, .tile-expand[aria-expanded="true"] { color: var(--sc-accent); }
-    .tile-full { border-top: 1px solid var(--l1); padding-top: 10px; animation: tile-open 280ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
-    @keyframes tile-open { from { opacity: 0; transform: translateY(-4px); } }
+    .tile-expand:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--holo-r-xs); }
+    .tile-full { border-top: 1px solid var(--l1); padding-top: 10px; animation: tile-open var(--holo-t-base) var(--holo-e-out) backwards; }
+    @keyframes tile-open { from { opacity: 0; transform: translateY(calc(-1 * var(--holo-rise))); } }
     @media (max-width: 640px) { .big .num { font-size: 22px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   `],

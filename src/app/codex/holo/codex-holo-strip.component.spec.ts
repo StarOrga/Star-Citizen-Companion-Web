@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
@@ -79,8 +81,10 @@ describe('CodexHoloStripComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     const km = el.querySelector('.sig .fact .v')!.textContent!.trim();
     expect(/^\d+(\.\d)?km$/.test(km.replace(/\s/g, ''))).toBeTrue();
-    const tip = el.querySelector('.sig .fact .tipbox')!.textContent!;
-    expect(tip).toContain('m');
+    // The exact value rides on the app's tooltip, not a CSS hover box.
+    const factDe = fixture.debugElement.query(By.css('.sig .fact[tabindex]'));
+    const tip = factDe.injector.get(ScTooltipDirective).scTooltip()!;
+    expect(tip).toMatch(/\u00a0m$/);
   });
 
   it('groups the mirrored cells into the three mini perspective tiles', async () => {

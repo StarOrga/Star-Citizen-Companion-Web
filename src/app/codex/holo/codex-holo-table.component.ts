@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  afterNextRender,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
@@ -41,30 +52,35 @@ let hullFillSeq = 0;
     '[class.ph-hero]': "phase() === 'hero'",
     '[class.ph-reveal]': "phase() === 'reveal'",
     '[class.still]': 'still()',
+    '[class.offscreen]': 'offscreen()',
   },
   template: `
     <div class="silhouette-frame" [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
       <div class="rings" aria-hidden="true"><i class="sweep"></i></div>
       <!-- Projection layer over everything on the surface: scanlines and a
            slow interference band, masked to the table's light cone. -->
-      <div class="projection" aria-hidden="true"></div>
+      <div class="projection" aria-hidden="true"><i class="band"></i></div>
+      @if (phase() === 'reveal') {
+        <!-- The arrival's scan front: one bright line crossing the table. -->
+        <i class="reveal-scan" aria-hidden="true"></i>
+      }
       @if (heroSrc(); as src) {
         <img class="hero-art" [src]="src" alt="" aria-hidden="true" />
       }
       @if (viewMode() === '3d') {
         <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). -->
         @defer (on immediate) {
-          <sc-ship-skin-viewer class="mode-viewer" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
+          <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
             [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
             (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
         } @placeholder {
-          <div class="mode-viewer" aria-hidden="true"></div>
+          <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
         }
       } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
-        <sc-ship-hardpoint-map class="mode-viewer" [markers]="hardpointMarkers()" [frame]="frame"
+        <sc-ship-hardpoint-map class="mode-viewer" animate.leave="surface-leave" [markers]="hardpointMarkers()" [frame]="frame"
           [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
       } @else if (showCanvas()) {
-        <div class="shipwrap" [class.no-geometry]="!silhouette()" [class.dense]="dense()"
+        <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="dense()"
              [class.empty]="pins().length === 0" [class.has-orbit]="!!orbit()">
           @if (orbit(); as o) {
             <svg class="orbit" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -72,6 +88,9 @@ let hullFillSeq = 0;
             </svg>
           }
           @if (silhouette(); as s) {
+            <!-- The breathing light behind the hull: its own layer, so the
+                 loop only ever changes one composited opacity. -->
+            <i class="hull-halo" aria-hidden="true"></i>
             <svg class="silhouette" [attr.viewBox]="s.viewBox" preserveAspectRatio="xMidYMid meet" role="img"
                  [attr.aria-label]="'codex.holo.stage.silhouetteAria' | translate: { name: displayName() }">
               <defs>
@@ -83,7 +102,6 @@ let hullFillSeq = 0;
                   <stop offset="1" class="hf-c" />
                 </linearGradient>
               </defs>
-              <path class="glow" [attr.d]="s.path" fill-rule="evenodd" />
               <path class="hull" [attr.d]="s.path" fill-rule="evenodd" [attr.fill]="'url(#' + hullFillId + ')'" />
             </svg>
           } @else {
@@ -136,7 +154,9 @@ let hullFillSeq = 0;
               <i aria-hidden="true">{{ pin.index }}</i>
               <span class="pin-label">
                 {{ pin.label }}
-                @if (pin.short && (activePorts().includes(pin.portName) || inspectedPort() === pin.portName)) {
+                @if (pin.short) {
+                  <!-- Always in the DOM, revealed by width: the label grows
+                       smoothly instead of jumping when the stat appears. -->
                   <em>· {{ pin.short }}</em>
                 }
               </span>
@@ -185,7 +205,7 @@ let hullFillSeq = 0;
   styles: [`
     :host { display: flex; flex-direction: column; flex: 1; min-height: 0; position: relative;
       --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
-      --e-out: cubic-bezier(0.2, 0.7, 0.2, 1); --e-io: cubic-bezier(0.65, 0, 0.35, 1); --e-back: cubic-bezier(0.34, 1.5, 0.64, 1);
+      --e-out: var(--holo-e-out); --e-io: var(--holo-e-io);
       --sil-dur: 420ms; --sil-delay: 0ms; --glow-delay: 220ms; --orbit-dur: 520ms; --orbit-delay: 0ms;
       --pin-dur: 260ms; --pin-delay: 60ms; --pin-step: 12ms; }
     /* The arrival's slow timing — the SAME animations, only later and longer. */
@@ -197,15 +217,21 @@ let hullFillSeq = 0;
     /* Rings + grid + a slow sweep: the table is a live instrument even at rest. */
     .rings { position: absolute; inset: 0; pointer-events: none; z-index: 0; transition: opacity 420ms ease;
       background:
-        repeating-radial-gradient(circle at 50% 50%, transparent 0 58px, var(--a7) 59px 60px),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0 58px, var(--a7) 59px, transparent 60.5px),
         linear-gradient(var(--a5) 1px, transparent 1px) 0 0 / 100% 40px,
         linear-gradient(90deg, var(--a5) 1px, transparent 1px) 0 0 / 40px 100%; }
     .sweep { position: absolute; left: 50%; top: 50%; width: 150cqmax; aspect-ratio: 1; border-radius: 50%; translate: -50% -50%;
       background: conic-gradient(from 0deg, transparent 0 310deg, var(--a5) 350deg, var(--a7) 358deg, transparent 360deg);
       animation: holo-sweep 12s linear infinite; will-change: rotate; }
     @keyframes holo-sweep { to { rotate: 1turn; } }
+    .silhouette-frame:is(.mode-3d, .mode-schema) .sweep { display: none; }
     :host(.ph-wait) .rings, :host(.ph-hero) .rings { opacity: 0.4; }
-    .mode-viewer { width: 100%; height: 100%; min-height: 480px; position: relative; z-index: 1; animation: fade-in 320ms ease-out backwards; }
+    /* Surfaces stack on one spot, so a view swap crossfades (the outgoing
+       one leaves while the next enters) instead of cutting to bare rings. */
+    .mode-viewer { position: absolute; inset: 0; z-index: 1; animation: fade-in var(--holo-t-base) var(--holo-e-out) backwards; }
+    .mode-viewer.is-placeholder { animation: none; }
+    .surface-leave { animation: surface-out var(--holo-t-fast) var(--holo-e-io) forwards; pointer-events: none; }
+    @keyframes surface-out { to { opacity: 0; } }
     .shipwrap { position: absolute; left: 50%; top: 50%; aspect-ratio: 1 / 1; transform: translate(-50%, -50%);
       width: min(560px, 100cqw - 2 * var(--pin-inset), 100cqh - 2 * var(--pin-inset)); }
     .shipwrap.no-geometry { width: min(440px, 100cqw - 2 * var(--pin-inset), 100cqh - 2 * var(--pin-inset)); }
@@ -213,27 +239,31 @@ let hullFillSeq = 0;
     /* ── The hull ── a scan front materialises it top to bottom. */
     .silhouette { width: 100%; height: 100%; display: block; overflow: visible;
       animation: sil-scan var(--sil-dur) var(--e-io) var(--sil-delay) backwards; }
-    /* The glow breathes slowly once the hull stands — an instrument at rest,
-       never a blink (5.6 s, opacity only, so it stays on the compositor). */
-    .silhouette .glow { fill: none; stroke: var(--sc-accent); stroke-width: 10; opacity: 0.16; filter: blur(6px);
-      animation: fade-in 460ms ease-out var(--glow-delay) backwards, glow-breathe 5.6s ease-in-out calc(var(--glow-delay) + 460ms) infinite; }
-    @keyframes glow-breathe { 50% { opacity: 0.26; } }
-    .silhouette .hull { stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round;
-      filter: drop-shadow(0 0 6px var(--a55)); }
+    /* One filter for the whole hull, on the svg (the scan clips a composited
+       layer, never re-rasterises two filters per frame). */
+    .silhouette { filter: drop-shadow(0 0 4px var(--a55)) drop-shadow(0 0 14px var(--a28)); will-change: transform; }
+    .silhouette .hull { stroke: var(--sc-accent); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+    /* The light behind the hull breathes slowly once it stands — an instrument
+       at rest, never a blink. Its own layer: the loop changes one opacity. */
+    .hull-halo { position: absolute; inset: 6%; border-radius: 50%; pointer-events: none; will-change: opacity;
+      background: radial-gradient(closest-side, var(--a14), transparent 70%); opacity: 0.7;
+      animation: fade-in 460ms ease-out var(--glow-delay) backwards, halo-breathe 5.6s ease-in-out calc(var(--glow-delay) + 460ms) infinite; }
+    @keyframes halo-breathe { 50% { opacity: 1; } }
     .silhouette .hf-a { stop-color: var(--sc-accent); stop-opacity: 0.2; }
     .silhouette .hf-b { stop-color: var(--sc-accent); stop-opacity: 0.1; }
     .silhouette .hf-c { stop-color: var(--sc-accent); stop-opacity: 0.04; }
     /* Scanlines + a slow interference band over the whole surface, masked to
        the light cone so the frame's edges stay clean. Screen blend: it only
        ever adds light. */
-    .projection { position: absolute; inset: 0; z-index: 1; pointer-events: none; mix-blend-mode: screen; transition: opacity 420ms ease;
-      background:
-        linear-gradient(180deg, transparent 0, var(--a7) 50%, transparent 100%) 0 0 / 100% 18% no-repeat,
-        repeating-linear-gradient(180deg, var(--a5) 0 1px, transparent 1px 3px);
+    .projection { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; transition: opacity 420ms ease;
+      background: repeating-linear-gradient(180deg, var(--a5) 0, transparent 1.5px 4px);
       -webkit-mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, #000 35%, transparent 100%);
-      mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, #000 35%, transparent 100%);
+      mask-image: radial-gradient(ellipse 58% 62% at 50% 50%, #000 35%, transparent 100%); }
+    /* The interference band moves by transform only — the scanlines stay put. */
+    .projection .band { position: absolute; left: 0; right: 0; top: 0; height: 18%; will-change: transform;
+      background: linear-gradient(180deg, transparent 0, var(--a7) 50%, transparent 100%);
       animation: projection-band 8s linear infinite; }
-    @keyframes projection-band { from { background-position: 0 -25%, 0 0; } to { background-position: 0 125%, 0 0; } }
+    @keyframes projection-band { from { transform: translateY(-100%); } to { transform: translateY(560%); } }
     /* The 3D view brings its own projection layer; the schema map is a plan, not light. */
     .silhouette-frame:is(.mode-3d, .mode-schema) .projection { display: none; }
     :host(.ph-wait) .projection, :host(.ph-hero) .projection { opacity: 0; }
@@ -282,11 +312,16 @@ let hullFillSeq = 0;
     :host(.ph-hero) .hero-art { animation: hero-in 380ms var(--e-out) backwards; }
     :host(.ph-reveal) .hero-art { animation: hero-out 640ms var(--e-io) forwards; }
     @keyframes hero-in { from { opacity: 0; transform: scale(1.05); } }
-    @keyframes hero-out { to { opacity: 0; transform: scale(0.8); filter: saturate(0) brightness(1.8) blur(2px); } }
-    :host(.ph-reveal) .silhouette-frame::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
-      background: linear-gradient(180deg, transparent 0, var(--a28) 45%, var(--a55) 50%, transparent 100%) 0 0 / 100% 14% no-repeat;
+    @keyframes hero-out { to { opacity: 0; transform: scale(0.92); } }
+    /* The "bleach" of the dissolving art: an accent wash that only fades. */
+    :host(.ph-reveal) .silhouette-frame::before { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+      background: radial-gradient(ellipse 60% 60% at center, var(--a22), transparent 75%);
+      animation: wash 640ms var(--e-io) both; }
+    @keyframes wash { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; } }
+    .reveal-scan { position: absolute; left: 0; right: 0; top: 0; height: 14%; z-index: 4; pointer-events: none; will-change: transform, opacity;
+      background: linear-gradient(180deg, transparent 0, var(--a28) 45%, var(--a55) 50%, transparent 100%);
       animation: holo-scan 980ms var(--e-io) 60ms both; }
-    @keyframes holo-scan { from { background-position: 0 -20%; } to { background-position: 0 120%; opacity: 0; } }
+    @keyframes holo-scan { from { transform: translateY(-100%); } 85% { opacity: 1; } to { transform: translateY(720%); opacity: 0; } }
     @keyframes fade-in { from { opacity: 0; } }
 
     /* ── Pins. The pin keeps its 20px box so the dot stays ON its anchor even
@@ -305,11 +340,11 @@ let hullFillSeq = 0;
     .pin i { position: relative; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--pc); background: var(--ink);
       color: var(--pc); font-family: var(--m); font-style: normal; font-size: 10px; display: grid; place-items: center; flex: none;
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 12%, transparent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent);
-      transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease, scale 200ms var(--e-back);
-      animation: pin-dot var(--pin-dur) var(--e-back) backwards;
-      animation-delay: calc(var(--pin-delay) + min(var(--i, 1), 22) * var(--pin-step)); }
+      transition: background var(--holo-t-fast) ease, color var(--holo-t-fast) ease, box-shadow var(--holo-t-fast) ease, scale var(--holo-t-fast) var(--e-out);
+      animation: pin-dot var(--pin-dur) var(--e-out) backwards;
+      animation-delay: calc(var(--pin-delay) + min(var(--i, 1), 16) * var(--pin-step)); }
     .pin i::after { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
-    @keyframes pin-dot { from { opacity: 0; transform: scale(0.2); } }
+    @keyframes pin-dot { from { opacity: 0; transform: scale(0.6); } }
     .pin.unresolved i { border-style: dashed; background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
       color: color-mix(in srgb, var(--pc) 78%, var(--sc-fg-1)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc) 8%, transparent); }
     .pin:is(.active, :hover, :focus-visible) i { scale: 1.14; border-style: solid;
@@ -317,9 +352,10 @@ let hullFillSeq = 0;
     .pin.sel i { background: var(--pc); color: var(--sc-bg-0); border-style: solid; }
     /* The selected pin pings like a contact on a scope. */
     .pin.sel i::before { content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid var(--pc); pointer-events: none;
-      animation: pin-ping 1.6s var(--e-out) infinite; }
+      animation: pin-ping 1.6s var(--e-out) 3; }
     @keyframes pin-ping { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }
-    .pin.patched i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    /* Patched draws a second ring with box-shadow — outline is the focus ring's. */
+    .pin.patched i { box-shadow: 0 0 0 2px var(--sc-bg-0), 0 0 0 3px var(--sc-accent), 0 0 12px color-mix(in srgb, var(--pc) 45%, transparent); }
     .pin:focus-visible { outline: none; }
     .pin:focus-visible i { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .pin-label { font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.1em; color: var(--sc-fg-1);
@@ -327,9 +363,13 @@ let hullFillSeq = 0;
       white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis;
       transition: border-color 160ms ease, color 160ms ease, opacity 160ms ease, visibility 160ms;
       animation: pin-label calc(var(--pin-dur) + 80ms) var(--e-out) backwards;
-      animation-delay: calc(var(--pin-delay) + 90ms + min(var(--i, 1), 22) * var(--pin-step)); }
+      animation-delay: calc(var(--pin-delay) + 90ms + min(var(--i, 1), 16) * var(--pin-step)); }
     @keyframes pin-label { from { opacity: 0; translate: 0 4px; } }
-    .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none; }
+    .pin-label em { font-style: normal; color: var(--sc-fg-0); font-family: var(--m); letter-spacing: 0; text-transform: none;
+      display: inline-block; vertical-align: bottom; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+      transition: max-width var(--holo-t-base) var(--e-out), opacity var(--holo-t-fast) ease; }
+    .pin:is(.active, .sel) .pin-label em { max-width: 12em; opacity: 1; }
+    .pin:is(.active, .sel) .pin-label { max-width: 260px; }
     .pin:is(.active, :hover) .pin-label { border-color: var(--pc); color: var(--sc-fg-0); }
     .pin.sel .pin-label { color: var(--pc); border-color: var(--pc); }
     /* Dense tables keep the labels off the canvas — the key (or the
@@ -367,6 +407,8 @@ let hullFillSeq = 0;
       .pin:is(.sel, .active) .pin-label { display: inline; }
       .legend-hint { display: none; }
     }
+    /* Off screen (scrolled to the ports list, the drawer): the loops rest. */
+    :host(.offscreen) *, :host(.offscreen) *::before, :host(.offscreen) *::after { animation-play-state: paused !important; }
     /* Reduced motion = a hard cut: nothing moves, nothing loops. */
     :host(.still) *, :host(.still) *::before, :host(.still) *::after { animation: none !important; transition: none !important; }
     @media (prefers-reduced-motion: reduce) {
@@ -410,5 +452,18 @@ export class CodexHoloTableComponent {
 
   /** The hull, the orbit and the pins exist from the reveal on — see the class comment. */
   readonly showCanvas = computed(() => this.phase() === 'reveal' || this.phase() === 'done');
+  /** The table is scrolled out of view — its loops (sweep, band, halo, ping) pause. */
+  readonly offscreen = signal(false);
+
+  constructor() {
+    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
+    const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      if (typeof IntersectionObserver !== 'function') return;
+      const io = new IntersectionObserver(([entry]) => this.offscreen.set(!entry.isIntersecting));
+      io.observe(host);
+      destroyRef.onDestroy(() => io.disconnect());
+    });
+  }
   readonly hasGold = computed(() => this.pins().some((p) => p.tone === 'gold'));
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutChild, LayoutSlot, LayoutTarget } from '../codex-hardpoint-layout.component';
 import { CodexLoadoutSaveBarComponent } from '../codex-loadout-save-bar.component';
@@ -105,7 +105,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     } @else if (pinGroups().length > 0) {
       <!-- Nothing inspected: the table's hardpoints as a list — the same
            numbers, hover lights the pin, a click inspects it. -->
-      <div class="plist" role="region" [attr.aria-label]="'codex.holo.stage.pinListTitle' | translate">
+      <div class="plist" [class.stagger]="!listSeen()" role="region" [attr.aria-label]="'codex.holo.stage.pinListTitle' | translate">
         <p class="plist-hint">{{ 'codex.holo.stage.inspectorEmptyBody' | translate: { n: hotkeyPinCount() } }}</p>
         @for (g of pinGroups(); track g.key) {
           <div class="pgroup">
@@ -168,7 +168,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
   styles: [`
     :host { display: grid; gap: 10px; align-content: start; padding: 12px; min-width: 0;
       --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
-      --e-out: cubic-bezier(0.2, 0.7, 0.2, 1); }
+      --e-out: var(--holo-e-out); }
     .btn, .empty b, .insp-stats dt, .h2, .pg-head { font-family: var(--d); text-transform: uppercase; }
     .rule { flex: 1; height: 1px; background: var(--l1); }
     .lnk { background: none; border: none; padding: 0; color: var(--sc-accent); cursor: pointer; font: inherit;
@@ -186,8 +186,8 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     /* ── The inspected hardpoint ── */
     .inspector { display: grid; gap: 10px; padding: 10px 12px; border: 1px solid var(--sc-accent); border-radius: 4px; background: var(--ink);
       min-width: 0; box-shadow: 0 0 0 1px var(--a10), 0 8px 24px rgb(0 0 0 / 0.25);
-      animation: insp-in 260ms var(--e-out) backwards; }
-    @keyframes insp-in { from { opacity: 0; transform: translateY(6px); } }
+      animation: insp-in var(--holo-t-base) var(--e-out) backwards; }
+    @keyframes insp-in { from { opacity: 0; transform: translateY(var(--holo-rise)); } }
     .insp-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
     .size-tag { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); border-radius: 2px; padding: 1px 5px; flex: none; margin-top: 2px; }
     .insp-ident { display: grid; gap: 2px; min-width: 0; flex: 1; }
@@ -196,6 +196,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .inspector-close { background: none; border: none; color: var(--sc-fg-2); cursor: pointer; min-height: var(--sc-tap-min, 24px); min-width: 24px;
       padding: 0; flex: none; transition: color 160ms ease; }
     .inspector-close:hover { color: var(--sc-fg-0); }
+    .inspector-close:focus-visible, .lnk:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: var(--holo-r-xs); }
     .inspector-patch-delta { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-accent); font-family: var(--m); overflow-wrap: anywhere; }
     .inspector-patch-delta.unresolved { color: var(--sc-fg-2); font-style: italic; }
     /* minmax(0,1fr): a long label ("Geschossgeschwindigkeit") wraps inside its
@@ -216,7 +217,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .insp-kid .btn { padding: 3px 8px; min-height: var(--sc-tap-min, 26px); font-size: max(9.5px, var(--f)); }
 
     /* ── The hardpoint list (nothing inspected) ── */
-    .plist { display: grid; gap: 10px; animation: list-in 280ms var(--e-out) backwards; }
+    .plist { display: grid; gap: 10px; animation: list-in var(--holo-t-base) var(--e-out) backwards; }
     @keyframes list-in { from { opacity: 0; } }
     .plist-hint { margin: 0; font-size: max(11px, var(--f)); color: var(--sc-fg-2); line-height: 1.4; }
     .pgroup { display: grid; gap: 2px; }
@@ -226,15 +227,18 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
     .prow { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 4px 6px; border: 1px solid transparent; border-radius: 3px;
       background: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11.5px, var(--f)); text-align: start;
       min-height: var(--sc-tap-min, 28px); --pc: var(--sc-accent);
-      transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
-      animation: row-in 300ms var(--e-out) backwards; animation-delay: calc(min(var(--r, 0), 12) * 18ms); }
+      transition: background var(--holo-t-fast) ease, border-color var(--holo-t-fast) ease, color var(--holo-t-fast) ease; }
+    /* The rows cascade in once; returning to the list (Esc) just fades it. */
+    .plist.stagger .prow { animation: row-in 300ms var(--e-out) backwards; animation-delay: calc(min(var(--r, 0), 12) * 18ms); }
     @keyframes row-in { from { opacity: 0; transform: translateX(6px); } }
     .prow.gold { --pc: var(--holo-gold); }
     .prow i { width: 18px; height: 18px; flex: none; border-radius: 50%; border: 1px solid var(--pc); color: var(--pc); font-family: var(--m);
       font-style: normal; font-size: 9.5px; display: grid; place-items: center; transition: background 160ms ease, color 160ms ease; }
     .pr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sc-fg-0); }
     .prow em { font-style: normal; font-family: var(--m); font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); white-space: nowrap; }
-    .prow:hover, .prow:focus-visible, .prow.active { background: color-mix(in srgb, var(--pc) 8%, transparent); border-color: color-mix(in srgb, var(--pc) 40%, transparent); outline: none; }
+    .prow:hover, .prow:focus-visible, .prow.active { background: color-mix(in srgb, var(--pc) 8%, transparent); border-color: color-mix(in srgb, var(--pc) 40%, transparent); }
+    /* Focus must read differently from hover / hover-sync. */
+    .prow:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .prow:hover i, .prow:focus-visible i, .prow.active i { background: var(--pc); color: var(--sc-bg-0); }
 
     /* ── Journal ── */
@@ -252,6 +256,15 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 })
 export class CodexHoloInspectorComponent {
   readonly target = input<LayoutTarget | null>(null);
+  /** Once a pin was inspected, a return to the list (Esc, close) just fades
+   * it in — the row cascade belongs to the first appearance only. */
+  readonly listSeen = signal(false);
+
+  constructor() {
+    effect(() => {
+      if (this.target()) this.listSeen.set(true);
+    });
+  }
   /** The inspected pin has no loadout slot behind it — nothing to swap or open. */
   readonly isRawPort = input(false);
   readonly patchPin = input<PortPinBadge | null>(null);
