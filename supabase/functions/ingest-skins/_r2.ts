@@ -120,6 +120,20 @@ export async function listObjects(cfg: R2Config, prefix: string): Promise<R2Obje
   return all;
 }
 
+/**
+ * Object bytes. A body declared larger than `maxBytes` is not downloaded: the
+ * caller gets a `maxBytes + 1` placeholder so its own size check refuses it.
+ */
+export async function getObject(cfg: R2Config, key: string, maxBytes: number): Promise<Uint8Array> {
+  const res = await cfg.client.fetch(objectUrl(cfg, key), { signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS * 3) });
+  if (!res.ok) throw new Error(`R2 get ${key} failed: HTTP ${res.status}`);
+  if (Number(res.headers.get('content-length') ?? '0') > maxBytes) {
+    await res.body?.cancel();
+    return new Uint8Array(maxBytes + 1);
+  }
+  return new Uint8Array(await res.arrayBuffer());
+}
+
 export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
   const res = await cfg.client.fetch(objectUrl(cfg, key), { method: 'DELETE', signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
   // 204 on success; a 404 means it is already gone, which is what we wanted.

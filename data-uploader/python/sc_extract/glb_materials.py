@@ -67,6 +67,8 @@ from __future__ import annotations
 
 import io
 import json
+import math
+import re
 import struct
 from dataclasses import dataclass
 from pathlib import Path
@@ -263,6 +265,63 @@ def _global_matrices(gltf: dict) -> List[List[float]]:
         for child in nodes[idx].get("children", []):
             stack.append((child, world))
     return out
+
+
+# ---- hardpoint locators ---------------------------------------------------
+# The converter keeps CIG's empty locator nodes (`hardpoint_weapon_left`,
+# `helper_seat`, ...) but `gltf-transform optimize` (flatten + join + prune)
+# removes every node without a mesh, so the published hull would lose them. They
+# are read from the raw glb and written back as scene extras afterwards.
+HARDPOINT_NAME = re.compile(r"^(hardpoint|helper|hp)[_.]", re.IGNORECASE)
+MAX_HARDPOINTS = 2000
+
+
+def collect_hardpoints(gltf: dict, limit: int = MAX_HARDPOINTS) -> Dict[str, List[float]]:
+    """World position (glb space, metres, 4 decimals) of every locator node.
+
+    Only nodes reachable from the active scene count; the first node wins on a
+    duplicate name; a non-finite position is skipped; at most `limit` entries.
+    """
+    worlds = _global_matrices(gltf)
+    scenes = gltf.get("scenes") or [{}]
+    reachable = set()
+    stack = list(scenes[gltf.get("scene", 0)].get("nodes", []))
+    nodes = gltf.get("nodes", [])
+    while stack:
+        idx = stack.pop()
+        if idx in reachable or not isinstance(idx, int) or idx >= len(nodes):
+            continue
+        reachable.add(idx)
+        stack.extend(nodes[idx].get("children", []))
+    out: Dict[str, List[float]] = {}
+    for idx in sorted(reachable):
+        name = nodes[idx].get("name")
+        if not isinstance(name, str) or not HARDPOINT_NAME.match(name) or name in out:
+            continue
+        pos = worlds[idx][12:15]
+        if not all(math.isfinite(v) for v in pos):
+            continue
+        out[name] = [round(v, 4) + 0.0 for v in pos]
+        if len(out) >= limit:
+            break
+    return out
+
+
+def embed_hardpoints(glb: Path, hardpoints: Dict[str, List[float]]) -> None:
+    """Write `scenes[scene].extras.hardpoints` into a glb; the BIN chunk is untouched."""
+    gltf, binary = read_glb(glb)
+    scenes = gltf.setdefault("scenes", [])
+    si = gltf.get("scene", 0)
+    if not scenes:
+        scenes.append({"nodes": []})
+        si = 0
+        gltf["scene"] = 0
+    extras = scenes[si].get("extras")
+    if not isinstance(extras, dict):
+        extras = {}
+    extras["hardpoints"] = hardpoints
+    scenes[si]["extras"] = extras
+    write_glb(glb, gltf, binary)
 
 
 def _read_mat4(gltf: dict, binary: bytes, accessor: int) -> List[List[float]]:

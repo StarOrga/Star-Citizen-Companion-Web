@@ -23,8 +23,8 @@ material at all — the converter's submaterial mapping against a *paint* `.mtl`
 is not reliable enough to publish textures from.
 
 Enforced on three levels: `strip_to_geometry` raises instead of letting a
-texture through, `skins.json` carries `"format": "geometry-v1"` so a cached
-textured build is rebuilt, and `ingest-skins` signs no glb for an uploader
+texture through, `skins.json` carries `"format"` (`geometry-v2` since the
+hardpoint extras, see below) so a cached build of an older pipeline is rebuilt, and `ingest-skins` signs no glb for an uploader
 older than 0.37.0 and prunes every row/object a ship's commit no longer lists.
 
 ## Pipeline
@@ -157,7 +157,7 @@ python -m sc_extract.cutlass_pilot \
 Output:
 ```
 out/DRAK_Cutlass_Black/
-  ├─ models/DRAK_Cutlass_Black_<skin>.glb   (~0.6 MB each, lazy-load these)
+  ├─ models/DRAK_Cutlass_Black_<skin>.glb   (ONE geometry-only hull per ship)
   ├─ icons/<skin>.webp
   └─ skins.json                             (name · desc · source · model · icon)
 ```
@@ -167,54 +167,66 @@ out/DRAK_Cutlass_Black/
 - **Generalised**: `ship_discovery.py` pattern-matches the P4K layout to build a
   `ShipSpec` for **any** ship (hull `.cga` + paint `.mtl` + icons). Run it via
   `python -m sc_extract.ship_export --ship <id:MFR:Ship:SeriesToken>` (or the
-  events-emitting `skin_export_app`, which the desktop "3D-Skins" view spawns).
+  events-emitting `skin_export_app`, which the desktop "3D-Modelle" step spawns).
 - **Reference pilot**: `cutlass_pilot.py` keeps the original Cutlass Black wiring
   with skin locations hand-checked — useful as a known-good baseline.
 
 ## Cost / knobs
 
-- ~155 MB intermediate glb per skin (scratch, auto-deleted unless `--keep-work`).
-- `--texture-size` (default 512) and `simplify_error` (0.002) trade size vs. fidelity.
-- One skin ≈ texture-extract (~2–3 min) + convert + repair + optimize, serial.
-  Measured end-to-end on the LIVE `DRAK_Cutlass_Black` standard finish: 189 s.
+- ~155 MB intermediate glb per ship (scratch, auto-deleted unless `--keep-work`).
+- `simplify_error` (0.002) trades size vs. fidelity; `--texture-size` is inert
+  since the hull carries no texture.
+- One hull = convert + repair + geometry strip + optimize, serial; no DDS is
+  extracted any more.
 
 ## Size budget (`--max-model-mb`, default 0.6)
 
-The whole livery catalog has to fit the Supabase storage quota, so each web glb
-carries a **per-skin size budget**. A skin that lands over budget is re-optimized
-down a quality ladder — texture halves, `simplify_error` doubles — until it fits:
+Each web glb carries a size budget. A hull over budget is re-optimized down the
+quality ladder (`simplify_error` doubles per step; the texture-size half of the
+ladder is a no-op without textures) until it fits. If even the last step is over
+budget the hull is still exported (a too-big model beats a missing one) and a
+`warn` is logged. `--max-model-mb 0` disables the budget. Each retry is one more
+`gltf-transform optimize` pass over the raw glb; the cgf-converter step is not
+repeated.
+
+Storage: hulls live in Cloudflare R2 (`ship-skins/` prefix, served by
+`cloudflare/assets-worker`), not in the 1 GB Supabase quota the textured era was
+sized against. One geometry-only hull per ship plus ~11 kB WebP store icons.
+
+## Hardpoints (`geometry-v2`)
+
+`optimize` (flatten + join + prune) removes every node without a mesh, so the
+converter's locator nodes would not reach the web. `_collect_hardpoints` reads
+them from the raw glb right after the un-rig, and every optimize attempt gets
+them written back into its JSON chunk (BIN chunk untouched):
 
 ```
-512 / 0.002  →  256 / 0.004   (floor: MIN_TEXTURE_SIZE)
+scenes[scene].extras.hardpoints = { "<node name as-is>": [x, y, z], ... }
 ```
 
-How big is "the whole catalog"? Measured against the live `codex_ships` rows of
-the current build (`payload->'skins'`), not estimated: **314 ships, 302 of them
-with at least one livery, 1729 liveries listed, 391 of those material-backed**
-— i.e. ~391 glbs is a full build.
+- Nodes whose name matches `^(hardpoint|helper|hp)[_.]` (case-insensitive),
+  reachable from the active scene; first wins on a duplicate name; at most 2000.
+- World position in glb model space: metres, glTF Y-up, rounded to 4 decimals,
+  non-finite skipped. This is the space `<model-viewer>` hotspots use.
+- Valid after optimize because optimize never moves the scene: `flatten` bakes
+  parent transforms into the mesh nodes and quantization only adds a dequantize
+  transform on them. Checked with the real CLI on a rotated/translated
+  hierarchy: the world bounding box before and after was identical.
 
-The Supabase free plan gives 1 GB of file storage *in total*, and the other
-buckets already hold ~831 MB (news-images 809 MB, codex-previews 2.1 MB,
-feedback-images 0.3 MB), so **ship-skins has ~150 MB to work with**:
+## Shared hulls (`_hulls/<sha256>.glb`)
 
-| per-skin glb | full catalog (391 skins) | fits ~150 MB? |
-| --- | --- | --- |
-| 3.01 MB — shipped, 1024 px, spec-gloss kept | ~1.18 GB | no, by 8× |
-| 2.11 MB — after the spec-gloss strip alone | ~825 MB | no |
-| 0.64 MB — + 512 px + interior strip | ~250 MB | no |
-| **0.39 MB — + the 256 px ladder step (current default)** | **~151 MB** | **yes** |
+Variants often carry a byte-identical hull (8x `DRAK_Cutlass_Black_*`, 5x
+`ANVL_Valkyrie_*`). The uploader sends each glb's SHA-256; `ingest-skins` (R2
+mode) stores it once at `ship-skins/_hulls/<sha256>.glb` and points every
+variant's `ship_skins.model_path` there. An existing shared object is never
+re-signed or overwritten (`exists: true`), a commit is refused while its shared
+hull is missing (409 `hull_missing`), a shared hull no row references yet
+(= uploaded by this run) is read back and its SHA-256 checked against the path,
+max 20 MB (409 `hull_hash_mismatch` / `hull_too_large`, object deleted), the per-ship prune only lists
+`<ship_id>/`, and a shared hull is deleted only once no `ship_skins` row of any
+ship references it. Ship ids starting with `_` are refused. Older uploaders (no
+hash) keep the per-ship `<ship_id>/<skin_id>.glb` path.
 
-All four rows are measured on the LIVE `DRAK_Cutlass_Black` standard finish, not
-modelled. The quality cost of the last row is texture resolution (256 px) and
-~51 k triangles instead of 273 k — acceptable for a 320 px-tall viewer stage,
-and the ladder still lets a light ship keep 512 px.
-
-Icons are noise by comparison (~11 kB WebP each, ~4 MB for the catalog).
-
-Most skins pass at step 0, so **only the heavy ones lose fidelity** rather than
-the whole catalog being exported at a blanket-low resolution. If even the last
-step is over budget the skin is still exported (a too-big skin beats a missing
-one) and a `warn` is logged. `--max-model-mb 0` disables the budget entirely.
-
-Each retry costs one more `gltf-transform optimize` pass over the ~155 MB raw
-glb — the P4K texture extract and cgf-converter step are *not* repeated.
+**Deploy order:** deploy `ingest-skins` before releasing an uploader that sends
+hashes. The reverse order is safe but dedups nothing: the old function ignores
+`sha256` and answers with the per-ship path, which the new uploader falls back to.

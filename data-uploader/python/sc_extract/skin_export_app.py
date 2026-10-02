@@ -178,7 +178,8 @@ def main() -> int:
                 "export_dir": str((cfg.out_dir / ref.ship_id).resolve()),
                 "skins": skins,
             })
-            log("info", f"{ref.ship_id}: {n_ok}/{len(skins)} skins exported")
+            log("info", f"{ref.ship_id}: 3D model {'exported' if n_ok else 'missing'} "
+                        f"({len(skins)} paint(s) listed)")
             if n_ok == 0:
                 # Per-skin reasons are already in skins.json; nothing used to
                 # aggregate them, so a whole-catalog run reported "done" while

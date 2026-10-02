@@ -138,10 +138,11 @@ class HullExportConfig:
     keep_work: bool = False       # keep scratch for debugging
 
 
-# Written into skins.json. A cached ship built by an older pipeline (the textured
-# one-glb-per-skin export) carries no or another format and must be rebuilt —
-# `skin_export_app --skip-existing` compares against this.
-EXPORT_FORMAT = "geometry-v1"
+# Written into skins.json. A cached ship built by an older pipeline carries no or
+# another format and must be rebuilt — `skin_export_app --skip-existing`
+# compares against this. geometry-v1: one texture-free hull per ship.
+# geometry-v2: + `scenes[scene].extras.hardpoints` (the locators optimize drops).
+EXPORT_FORMAT = "geometry-v2"
 
 
 def hull_paint(paints: List[Paint]) -> Optional[Paint]:
@@ -292,17 +293,23 @@ class Hull3DExporter:
             steps.append((ts, err))
         return steps
 
-    def _optimize_to_budget(self, in_glb: Path, out_glb: Path, skin_id: str) -> int:
+    def _optimize_to_budget(self, in_glb: Path, out_glb: Path, skin_id: str,
+                            hardpoints: Optional[Dict[str, List[float]]] = None) -> int:
         """Optimize, retrying at lower quality while the glb exceeds the budget.
 
         Returns the final size in bytes. The last ladder step is kept even if it
-        is still over budget — a slightly-too-big skin beats no skin at all.
+        is still over budget — a slightly-too-big model beats no model at all.
+        `hardpoints` go into every attempt's JSON chunk before it is measured,
+        so whichever attempt is kept carries them and the budget counts them.
         """
+        from . import glb_materials
         budget = self.cfg.max_model_bytes
         ladder = self.quality_ladder()
         size = 0
         for i, (ts, err) in enumerate(ladder):
             self._optimize(in_glb, out_glb, ts, err)
+            if hardpoints:
+                glb_materials.embed_hardpoints(out_glb, hardpoints)
             size = out_glb.stat().st_size
             if budget <= 0 or size <= budget:
                 return size
@@ -402,13 +409,19 @@ class Hull3DExporter:
         # a ship whose paint .mtl will not parse must still get a correctly
         # PLACED hull (white beats collapsed). See HULL3D.md for the numbers.
         self._unrig_hull(paint, raw_glb)
+        # 3a'. remember the locator nodes before optimize prunes them (empty
+        # nodes do not survive flatten/join/prune). World positions, so they
+        # need no hierarchy: optimize flattens but never moves the scene (no
+        # --center), and meshopt's quantization only puts a dequantize
+        # transform on mesh nodes, which keeps their world placement.
+        hardpoints = self._collect_hardpoints(paint, raw_glb)
         # 3b. shape only: drop the interior and every texture/UV. NOT
         # best-effort like the un-rig — a hull that still carries CIG's
         # textures must never be published, so a failure here costs the model.
         self._reduce_to_geometry(raw_glb)
         # 4. optimize -> web glb (within the per-model size budget)
         web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
-        size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id)
+        size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id, hardpoints)
         return {"model": f"models/{web_glb.name}", "model_mb": round(size_bytes / 1e6, 2)}
 
     def _unrig_hull(self, paint: Paint, raw_glb: Path) -> None:
@@ -426,6 +439,19 @@ class Hull3DExporter:
         except Exception as exc:  # noqa: BLE001 — never lose a model over rigging
             self.log("warn", f"  {paint.id}: un-rigging failed "
                              f"({type(exc).__name__}: {exc}) — hull may render collapsed")
+
+    def _collect_hardpoints(self, paint: Paint, raw_glb: Path) -> Dict[str, List[float]]:
+        """Locator world positions; best-effort — a hull without them still ships."""
+        try:
+            from . import glb_materials
+            gltf, _ = glb_materials.read_glb(raw_glb)
+            hardpoints = glb_materials.collect_hardpoints(gltf)
+            self.log("info", f"  {paint.id}: {len(hardpoints)} hardpoint locator(s)")
+            return hardpoints
+        except Exception as exc:  # noqa: BLE001 — never lose a model over locators
+            self.log("warn", f"  {paint.id}: reading hardpoints failed "
+                             f"({type(exc).__name__}: {exc}) — model ships without them")
+            return {}
 
     def _reduce_to_geometry(self, raw_glb: Path) -> None:
         """Interior strip + texture strip; raises instead of shipping textures."""

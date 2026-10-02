@@ -6,6 +6,7 @@
  * catalog rows. Auth mirrors the bundle upload (user JWT + release token).
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
@@ -94,6 +95,18 @@ interface SignedUpload {
   path: string;
   token: string;
   signedUrl: string;
+  /** Shared hull already stored under this content address — nothing to PUT. */
+  exists?: boolean;
+}
+
+/**
+ * Hex SHA-256 of a hull glb. Variants of a ship often carry byte-identical
+ * hulls; with the hash, `ingest-skins` (R2 mode) stores the hull once under
+ * `_hulls/<sha256>.glb` and points every variant at it. A function without
+ * that support ignores the field and answers with the per-ship path.
+ */
+function sha256Of(file: string): string {
+  return createHash('sha256').update(readFileSync(file)).digest('hex');
 }
 
 /** Deadline for one ingest-skins sign/commit call. */
@@ -206,16 +219,21 @@ export async function uploadSkins(
       }
 
       // 1. ask the function for signed upload URLs
-      const objects: { skin_id: string; ext: 'glb' | 'webp' }[] = [];
+      const objects: { skin_id: string; ext: 'glb' | 'webp'; sha256?: string }[] = [];
+      const shas = new Map<string, string>();
       for (const s of built) {
-        if (s.model) objects.push({ skin_id: s.id, ext: 'glb' });
+        if (s.model) {
+          const sha = sha256Of(resolve(dir, s.model));
+          shas.set(s.id, sha);
+          objects.push({ skin_id: s.id, ext: 'glb', sha256: sha });
+        }
         if (s.icon) objects.push({ skin_id: s.id, ext: 'webp' });
       }
       const signed = await callIngest(getToken, { action: 'sign', ship_id: cat.ship, objects });
       if (!signed.ok && isSkinGateCode(signed.error)) {
         const code = signed.error;
         onLog(
-          `R2 cost gate closed (${code}) — stopping the livery upload; ${ships.length - processed - 1} ship(s) not attempted`,
+          `R2 cost gate closed (${code}) — stopping the 3D model upload; ${ships.length - processed - 1} ship(s) not attempted`,
           'error',
         );
         out.push({ ok: false, ship_id: shipId, error: code, gate: code });
@@ -231,6 +249,7 @@ export async function uploadSkins(
 
       // 2. PUT each object straight to storage
       let n = 0;
+      let shared = 0;
       for (const s of built) {
         // Pause between assets keeps a multi-GB ship responsive. Resume replays
         // the whole ship (the marker is only written after `commit`), which is
@@ -238,8 +257,13 @@ export async function uploadSkins(
         hooks.control?.checkpoint();
         await hooks.pace?.();
         if (s.model) {
-          await putSigned(byPath.get(`${cat.ship}/${s.id}.glb`), resolve(dir, s.model), 'model/gltf-binary');
-          n++;
+          const u = byPath.get(`_hulls/${shas.get(s.id)}.glb`) ?? byPath.get(`${cat.ship}/${s.id}.glb`);
+          if (u?.exists) {
+            shared++; // identical hull already stored for another variant
+          } else {
+            await putSigned(u, resolve(dir, s.model), 'model/gltf-binary');
+            n++;
+          }
         }
         if (s.icon) {
           await putSigned(byPath.get(`${cat.ship}/${s.id}.webp`), resolve(dir, s.icon), 'image/webp');
@@ -257,6 +281,7 @@ export async function uploadSkins(
         has_model: !!s.model,
         has_icon: !!s.icon,
         model_bytes: s.model_mb ? Math.round(s.model_mb * 1e6) : null,
+        ...(s.model && shas.has(s.id) ? { model_sha256: shas.get(s.id) } : {}),
       }));
       const committed = await callIngest(getToken, { action: 'commit', ship_id: cat.ship, skins });
       if (!committed.ok) {
@@ -268,7 +293,10 @@ export async function uploadSkins(
       // Mark shipped so a re-run's upload-cache skips this ship.
       markShipped(marker, `${cat.ship} ${count} rows`);
       hooks.onShipDone?.(shipId);
-      onLog(`${shipId}: uploaded ${n} objects, committed ${count} rows`, 'info');
+      onLog(
+        `${shipId}: uploaded ${n} objects${shared ? `, reused ${shared} shared 3D model(s)` : ''}, committed ${count} rows`,
+        'info',
+      );
       out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count });
     } catch (err) {
       // Pause/cancel is control flow — unwind to the caller instead of being

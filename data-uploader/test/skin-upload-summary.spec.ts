@@ -64,7 +64,7 @@ describe('tallySkinUpload', () => {
 });
 
 describe('the 251 / 276 run (admin feedback 59853b44)', () => {
-  it('25 ships without a livery model: 251 / 251 (100 %), and the 25 are named as skipped', () => {
+  it('25 ships without a 3D model: 251 / 251 (100 %), and the 25 are named as skipped', () => {
     const tally = tallySkinUpload([...fresh(240), ...cached(11), ...empty(25)]);
     const frame = skinUploadFrame(tally, echo);
     expect(frame.current).toBe(251);
@@ -114,10 +114,10 @@ describe('with the shipped dictionaries', () => {
     await loadI18n('de');
     const tally = tallySkinUpload([...fresh(251), ...empty(20), ...failed(5)]);
     const frame = skinUploadFrame(tally, t);
-    expect(frame.phaseLabel).toBe('Liveries hochgeladen — 5 fehlgeschlagen');
-    expect(frame.detail).toBe('20 übersprungen (kein Livery-Modell) · 5 fehlgeschlagen');
+    expect(frame.phaseLabel).toBe('3D-Modelle hochgeladen — 5 fehlgeschlagen');
+    expect(frame.detail).toBe('20 übersprungen (kein 3D-Modell) · 5 fehlgeschlagen');
     expect(skinUploadStatus(tally, t).message).toBe(
-      '251 / 256 Schiffe hochgeladen — 5 fehlgeschlagen (siehe Protokoll) · 20 Schiff(e) ohne baubare Livery',
+      '251 / 256 Schiffe hochgeladen — 5 fehlgeschlagen (siehe Protokoll) · 20 Schiff(e) ohne baubares 3D-Modell',
     );
   });
 
@@ -125,11 +125,11 @@ describe('with the shipped dictionaries', () => {
     await loadI18n('en');
     const tally = tallySkinUpload([...fresh(251), ...empty(25)]);
     const frame = skinUploadFrame(tally, t);
-    expect(frame.phaseLabel).toBe('Liveries uploaded');
-    expect(frame.detail).toBe('25 skipped (no livery model)');
+    expect(frame.phaseLabel).toBe('3D models uploaded');
+    expect(frame.detail).toBe('25 skipped (no 3D model)');
     expect(skinUploadStatus(tally, t)).toEqual({
       level: 'ok',
-      message: '3D skins done — 251 ship(s) live. · 25 ship(s) without a buildable livery',
+      message: '3D models done — 251 ship(s) live. · 25 ship(s) without a buildable 3D model',
     });
   });
 });

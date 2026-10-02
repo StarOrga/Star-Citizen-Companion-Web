@@ -138,7 +138,7 @@
       "blueprints": "Baupläne",
       "records_total": "Datensätze gesamt",
       "previews": "Vorschaubilder",
-      "skins": "Skins"
+      "skins": "3D-Modelle"
     },
     "hint": {
       "open": "Öffne das ~157-GB-Archiv — das dauert einen Moment.",
@@ -182,7 +182,7 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D-Skins"
+      "skins": "3D-Modelle"
     },
     "err": {
       "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
@@ -332,19 +332,19 @@
     "toolsFailed": "Tool-Download fehlgeschlagen",
     "buildFailed": "Build fehlgeschlagen",
     "uploading": "Upload läuft…",
-    "done": "3D-Skins fertig — {{n}} Schiff(e) live.",
-    "building": "3D-Skins werden gebaut",
-    "none": "Keine baubaren 3D-Skins gefunden.",
+    "done": "3D-Modelle fertig — {{n}} Schiff(e) live.",
+    "building": "3D-Modelle werden gebaut",
+    "none": "Keine baubaren 3D-Modelle gefunden.",
     "stepTools": "Build-Tools werden vorbereitet",
-    "stepBuild": "Liveries werden gebaut",
-    "stepUpload": "Liveries werden hochgeladen",
+    "stepBuild": "3D-Modelle werden gebaut",
+    "stepUpload": "3D-Modelle werden hochgeladen",
     "shipProgress": "Schiff {{current}} / {{total}}",
     "hintBuild": "Erst-Build baut jedes Schiff einzeln — kann pro Schiff einige Minuten dauern.",
-    "hintUpload": "Große Livery-Dateien werden übertragen — je nach Größe dauert das.",
-    "stepUploadDone": "Liveries hochgeladen",
-    "noModels": "{{n}} Schiff(e) ohne baubare Livery",
-    "stepUploadDonePartial": "Liveries hochgeladen — {{n}} fehlgeschlagen",
-    "skippedNoModel": "{{n}} übersprungen (kein Livery-Modell)",
+    "hintUpload": "Die 3D-Modelle werden übertragen — die Dauer hängt von ihrer Größe ab.",
+    "stepUploadDone": "3D-Modelle hochgeladen",
+    "noModels": "{{n}} Schiff(e) ohne baubares 3D-Modell",
+    "stepUploadDonePartial": "3D-Modelle hochgeladen — {{n}} fehlgeschlagen",
+    "skippedNoModel": "{{n}} übersprungen (kein 3D-Modell)",
     "failedCount": "{{n}} fehlgeschlagen",
     "partialStatus": "{{live}} / {{attempted}} Schiffe hochgeladen — {{failed}} fehlgeschlagen (siehe Protokoll)",
     "gate": {

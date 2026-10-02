@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { uploadSkins, type SkinUploadResult } from '../src/main/skin-ingest.js';
 
@@ -33,6 +34,8 @@ const exists = async (path: string): Promise<boolean> => {
 };
 
 const fetchMock = vi.fn();
+/** SHA-256 of the stand-in glb bytes `makeShip` writes. */
+const GLB_SHA = createHash('sha256').update('glb-bytes').digest('hex');
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -131,7 +134,7 @@ describe('uploadSkins', () => {
 
     expect(res[0]).toMatchObject({ ok: true, uploaded: 2, committed: 2 });
     expect(bodies[0]['objects']).toEqual([
-      { skin_id: 'standard', ext: 'glb' },
+      { skin_id: 'standard', ext: 'glb', sha256: GLB_SHA },
       { skin_id: 'pirate', ext: 'webp' },
     ]);
     const rows = bodies[1]['skins'] as { skin_id: string; has_model: boolean; has_icon: boolean }[];
@@ -182,6 +185,36 @@ describe('uploadSkins', () => {
     expect(errors[0]?.message).toContain('1 ship(s) not attempted');
     expect(await exists(join(a, '.uploaded'))).toBe(false);
     expect(await exists(join(b, '.uploaded'))).toBe(false);
+  });
+
+  it('reuses a shared hull the function already stores: no PUT, hash on the commit row', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const puts: string[] = [];
+    fetchMock.mockImplementation(async (url: string | URL, init?: { method?: string; body?: unknown }) => {
+      const href = String(url);
+      if (href.includes('ingest-skins')) {
+        bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return {
+          ok: true,
+          json: async () => ({
+            uploads: [{ path: `_hulls/${GLB_SHA}.glb`, token: '', signedUrl: '', exists: true }],
+            count: 1,
+          }),
+        };
+      }
+      if (init?.method === 'PUT') puts.push(href);
+      return { ok: true, json: async () => ({}) };
+    });
+    const dir = await makeShip('SHIP_B', [{ id: 'standard', name: 'Standard', model: 'models/standard.glb' }]);
+    const logs: string[] = [];
+
+    const res = await uploadSkins('jwt', [{ shipId: 'SHIP_B', dir }], (m) => logs.push(m));
+
+    expect(res[0]).toMatchObject({ ok: true, uploaded: 0, committed: 1 });
+    expect(puts).toEqual([]);
+    const rows = bodies[1]['skins'] as { skin_id: string; model_sha256?: string }[];
+    expect(rows[0]).toMatchObject({ skin_id: 'standard', model_sha256: GLB_SHA });
+    expect(logs.some((m) => m.includes('reused 1 shared 3D model'))).toBe(true);
   });
 
   it('reports progress for every ship, whatever its outcome', async () => {
