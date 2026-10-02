@@ -9,26 +9,33 @@
 # archive. Opening the live P4K additionally requires the runtime patch in
 # sc_extract/p4k_compat.py (imported before constructing P4KFile).
 
-scdatatools==1.0.4
-
-# scdatatools imports these at module load even on the leaf p4k/forge path, so
-# they must be installed for `from scdatatools.p4k import P4KFile` to succeed.
+# scdatatools 1.0.4 itself lives in requirements-nodeps.txt and is installed
+# with --no-deps AFTER this file: its metadata pins pycryptodome, sentry-sdk and
+# numpy to versions with security advisories, and 1.0.4 is the newest release.
 #
-# ⚠ TRANSITIVE deps below: their versions are dictated by scdatatools 1.0.4's own
-# metadata (scdatatools.egg-info/requires.txt), NOT free to pick. #200 blanket-
-# pinned them to latest, violating scdatatools's `~=` ranges → `pip install -r
-# requirements.txt` became unsolvable and every data-uploader-v* tag build failed
-# at fetch-embedded-python (the CI test jobs never install requirements.txt, so
-# it stayed invisible). Keep each within scdatatools 1.0.4's range; to lift any,
-# bump scdatatools. Embedded Python is 3.10.x. See
-# .claude/deep-knowledge/data-uploader-python.md.
+# scdatatools imports the deps below at module load even on the leaf p4k/forge
+# path, so they must be installed for `from scdatatools.p4k import P4KFile` to
+# succeed. The three marked PATCHED deliberately leave scdatatools's ranges
+# (only possible because of --no-deps - a plain resolve would be unsolvable, as
+# #200 learned); the rest stay inside them. Every pin needs a cp310 win wheel:
+# embedded Python is 3.10.x. See .claude/deep-knowledge/data-uploader-python.md.
 python-nubia==0.2b5    # scdatatools: python_nubia~=0.2b2
 pyquaternion==0.9.9    # scdatatools: pyquaternion~=0.9.9
-pycryptodome==3.12.0   # scdatatools: pycryptodome~=3.12.0 — Crypto.Cipher.AES
+pycryptodome==3.23.0   # PATCHED (scdatatools wants ~=3.12.0) — only Crypto.Cipher.AES is used
 xxhash==2.0.2          # scdatatools: xxhash~=2.0.2
-sentry-sdk==1.5.8      # scdatatools: sentry-sdk==1.5.8 (exact)
+sentry-sdk==1.45.1     # PATCHED (scdatatools wants ==1.5.8) — only set_tag / set_context, stable in 1.x
 zstandard==0.12.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
-numpy==1.21.6          # scdatatools: numpy~=1.21.5; last 1.21.x with a cp310 wheel
+# The rest of scdatatools 1.0.4's requires.txt — with --no-deps nothing pulls
+# them in any more, so each is pinned here to what the old full resolve chose
+# (the newest release inside scdatatools's range).
+fnvhash==0.1.0         # scdatatools: fnvhash~=0.1.0
+hexdump==3.3           # scdatatools: hexdump~=3.3
+humanize==3.13.1       # scdatatools: humanize~=3.13.1
+packaging==21.3        # scdatatools: packaging~=21.3
+pyrsi==0.1.19          # scdatatools: pyrsi~=0.1.19
+rich==12.4.4           # scdatatools: rich~=12.4.4
+tqdm==4.62.3           # scdatatools: tqdm~=4.62.3
+numpy==1.26.4          # PATCHED (scdatatools wants ~=1.21.5) — last 1.x, cp310 wheel; also sc_extract/silhouette.py
 
 # Our own direct deps — NOT required by scdatatools, so free to pin/update:
 rsa==4.9.1

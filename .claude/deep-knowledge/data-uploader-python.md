@@ -39,6 +39,27 @@ cleanly.
 - To lift the embedded Python in the future, EITHER bump scdatatools to a
   2.x version that allows modern numpy, OR keep 1.0.4 and stay on 3.10.
 
+## scdatatools installs with `--no-deps` (since 2026-10-02)
+
+scdatatools 1.0.4 is the newest release and its metadata pins three deps that
+carry security advisories (`pycryptodome~=3.12.0`, `sentry-sdk==1.5.8`,
+`numpy~=1.21.5`). So it lives alone in `python/requirements-nodeps.txt` and
+`fetch-embedded-python.js` installs it with `--no-deps` **after**
+`requirements.txt`, which pins every runtime dep of scdatatools itself — the
+three patched ones deliberately outside its ranges, the rest at what the old
+full resolve picked. Consequences:
+
+- `pip check` in the embedded Python reports exactly those three "has
+  requirement … but you have …" lines. That is expected; any OTHER line (a
+  "requires X, which is not installed") means a dep went missing from
+  `requirements.txt`.
+- A new scdatatools version must have its `scdatatools.egg-info/requires.txt`
+  mirrored into `requirements.txt` — `--no-deps` pulls in nothing on its own.
+- Verified on 2026-10-02 with the live `Data.p4k`: 1.37M entries listed,
+  encrypted entries decrypted (pycryptodome 3.23 AES), all sidecar tests green.
+- numpy 1.26.4 still has cp310 wheels, so the Python 3.10 pin above stands; it
+  is now set by our own `requirements.txt`, not by scdatatools.
+
 ## Local-dev fallback
 
 The bridge (`src/main/python-bridge.ts`) looks for the interpreter in

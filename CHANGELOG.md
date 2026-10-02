@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.114.3] - 2026-10-02
+
+### Security
+
+- **Data Uploader 0.39.1: Python-Sicherheitslücken geschlossen.** Eine neuere
+  scdatatools-Version gibt es nicht (1.0.4 ist aktuell), ihre festen
+  Versionsbereiche sind aber reine Metadaten. scdatatools wird deshalb mit
+  `pip install --no-deps` nach den übrigen Paketen installiert
+  (`requirements-nodeps.txt`), und die eingebettete Python-Laufzeit bekommt
+  pycryptodome 3.23.0, sentry-sdk 1.45.1 und numpy 1.26.4. Geprüft gegen
+  eine echte Data.p4k (Auflisten, verschlüsselte Einträge lesen, Game2.dcb)
+  und mit 380 Sidecar-Tests. Der Fix erreicht Nutzer mit dem neuen
+  Uploader-Build.
+
 ## [0.114.2] - 2026-10-02
 
 ### Security
