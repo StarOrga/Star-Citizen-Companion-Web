@@ -365,9 +365,11 @@ let uidSeq = 0;
       .rankpips i.on { background: var(--p-signature); }
       .fact { display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
       .fact .v { font-family: var(--hs-mono); font-variant-numeric: tabular-nums; font-size: 14px; line-height: 1.1; white-space: nowrap; }
-      .fact .v small { color: var(--sc-fg-2); margin-inline-start: 3px; font-size: 10px; }
+      .fact .v small { color: var(--sc-fg-2); margin-inline-start: 3px; font-size: max(10px, var(--sc-fs-floor)); }
       .fact[tabindex] { cursor: help; border-radius: var(--holo-r-xs); }
       .fact[tabindex]:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      /* Touch: a focusable fact (tooltip in metres) reaches the tap minimum. */
+      @media (pointer: coarse) { .fact[tabindex] { min-block-size: var(--sc-tap-min); justify-content: center; } }
       .tip-trigger { font-family: var(--sc-font-display);
         font-size: max(7.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.14em; }
       .hs-toggle {
@@ -474,7 +476,7 @@ let uidSeq = 0;
         .sig .lab { max-inline-size: none; }
         .tip-trigger { display: none; }
         .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
-        .hs-toggle { min-inline-size: 36px; }
+        .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
         .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; overflow-y: auto;
           background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
       }

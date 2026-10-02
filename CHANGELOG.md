@@ -4,6 +4,35 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.115.0] - 2026-10-02
+
+### Changed
+
+- **Codex: Das Holodeck ist die einzige Schiffsansicht.** Der Umschalter
+  zwischen klassischer Ansicht und Holodeck ist weg, die klassische
+  Schiffsansicht wurde entfernt. Hat ein Schiff ein 3D-Modell, öffnet die
+  Detailseite direkt das 3D-Hologramm; alte Links mit `?view=holo` laden
+  weiterhin. Auf Handy und Tablet erreichen die Bedienelemente des Holodecks
+  jetzt die Mindestgröße für Touch und die Mindestschriftgröße.
+- **Data Uploader 0.40.0: „3D-Modelle“ statt „Skins“, effizienterer Export.**
+  Der Uploader nennt die Schiffsrümpfe jetzt 3D-Modelle. Der Export bleibt
+  reine Geometrie ohne CIG-Texturen (das blaue Hologramm braucht keine), hebt
+  aber die Andockpunkte der Komponenten (Hardpoints) mit ihrer Position im
+  Schiff auf. Identische Rümpfe mehrerer Schiffsvarianten werden nur einmal
+  gespeichert (per Inhalts-Hash, vom Server geprüft, max. 20 MB). Das
+  Exportformat ist auf `geometry-v2` gestiegen, der Uploader exportiert daher
+  alle Schiffe einmal neu.
+
+### Added
+
+- **Codex-Holodeck: Komponenten im 3D-Modell zeigen.** Unter dem Modell
+  stehen die verbauten Komponenten, gruppiert und mit Zählern („N verbaut ·
+  M im Modell“). Überfahren oder Fokussieren lässt den passenden Punkt im
+  Modell leuchten, Klick oder Tippen hält ihn fest (Esc löst). Komponenten
+  ohne bekannte Position sagen „Position im Modell unbekannt“ – es wird nie
+  geraten. Sichtbar wird das, sobald die 3D-Modelle mit dem neuen Uploader
+  neu exportiert sind.
+
 ## [0.114.3] - 2026-10-02
 
 ### Security

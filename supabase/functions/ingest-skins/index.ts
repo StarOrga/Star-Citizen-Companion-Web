@@ -8,15 +8,29 @@
 // service-role secret — the service role lives only here, server-side.
 //
 // Two actions:
-//   POST { action:'sign',   ship_id, objects:[{skin_id, ext:'glb'|'webp'}] }
-//        -> 200 { uploads:[{path, token, signedUrl}] }
+//   POST { action:'sign',   ship_id, objects:[{skin_id, ext:'glb'|'webp', sha256?}] }
+//        -> 200 { uploads:[{path, token, signedUrl, exists?}] }
 //   POST { action:'commit', ship_id, skins:[{skin_id, name, description?,
-//          source?, name_verified?, has_model, has_icon, model_bytes?, sort?}] }
+//          source?, name_verified?, has_model, has_icon, model_bytes?, sort?,
+//          model_sha256?}] }
 //        -> 200 { ok:true, count }
 //
 // Object paths are ALWAYS derived server-side from validated ids
 // (`<ship_id>/<skin_id>.<ext>`) — the client never supplies a storage path,
 // so a malicious client can't traverse the bucket.
+//
+// SHARED HULLS (R2 mode, see _hulls.ts): a glb sent with its lowercase hex
+// `sha256` lives once at `_hulls/<sha256>.glb`, shared by every variant with
+// the same bytes. Sign answers `exists: true` (no URL) when that object is
+// already there, so it is never overwritten; commit refuses a hashed model
+// whose object is missing (409 hull_missing), and reads back + hashes a
+// shared hull no row references yet (= uploaded by this upload): over
+// MAX_HULL_BYTES or a SHA-256 that differs from its path, the object is
+// deleted and the commit refused (409 hull_too_large | hull_hash_mismatch).
+// Prune only touches `<ship_id>/`;
+// a shared hull this ship stopped using is deleted only once no ship_skins row
+// references it. Without `sha256` (older uploaders) or without R2, the
+// per-ship path stays — both shapes coexist during the transition.
 //
 // A commit REPLACES the ship: rows and objects it no longer lists are removed.
 // That is how the textured one-glb-per-skin export leaves the public bucket —
@@ -26,6 +40,8 @@
 // newer: an older binary would publish textured hulls again.
 //
 //   400 invalid_json | invalid_body | unsafe_id
+//   409 hull_missing | hull_hash_mismatch | hull_too_large (shared hull not
+//       committable; a fresh object that failed the check is deleted)
 //   401 unauthorized
 //   403 forbidden | unknown_release_token | release_token_revoked
 //   426 uploader_outdated
@@ -47,12 +63,23 @@ import {
   SKINS_PREFIX,
   bucketBytes,
   deleteObject,
+  getObject,
   listObjects,
   presignPut,
   r2FromEnv,
   readUsage,
 } from './_r2.ts';
 import { usageGate } from './_r2-usage.ts';
+import {
+  MAX_HULL_BYTES,
+  checkHull,
+  droppedHulls,
+  hullSha,
+  isHullPath,
+  isReservedShipId,
+  modelPathFor,
+  needsVerification,
+} from './_hulls.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -95,12 +122,13 @@ interface SkinRowIn {
   has_icon?: boolean;
   model_bytes?: number;
   sort?: number;
+  model_sha256?: string;
 }
 
 interface Body {
   action?: 'sign' | 'commit';
   ship_id?: string;
-  objects?: { skin_id?: string; ext?: string }[];
+  objects?: { skin_id?: string; ext?: string; sha256?: string }[];
   skins?: SkinRowIn[];
 }
 
@@ -168,8 +196,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const shipId = (body.ship_id ?? '').trim();
-  if (!SAFE_ID.test(shipId)) {
-    return json({ error: 'unsafe_id', message: `ship_id must match ${SAFE_ID}` }, 400);
+  if (!SAFE_ID.test(shipId) || isReservedShipId(shipId)) {
+    return json({ error: 'unsafe_id', message: `ship_id must match ${SAFE_ID} and not start with _` }, 400);
   }
 
   const r2 = r2FromEnv((k) => Deno.env.get(k));
@@ -209,7 +237,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    const uploads: { path: string; token: string; signedUrl: string }[] = [];
+    const uploads: { path: string; token: string; signedUrl: string; exists?: boolean }[] = [];
     for (const o of objects) {
       const skinId = (o.skin_id ?? '').trim();
       const ext = (o.ext ?? '').trim().toLowerCase();
@@ -228,9 +256,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
           426,
         );
       }
-      const path = `${shipId}/${skinId}.${ext}`;
+      const sha = r2 && ext === 'glb' ? hullSha(o.sha256) : null;
+      const path = ext === 'glb' ? modelPathFor(shipId, skinId, sha, !!r2) : `${shipId}/${skinId}.${ext}`;
       if (r2) {
         try {
+          if (sha) {
+            // Content-addressed: the bytes behind this key are final.
+            const key = SKINS_PREFIX + path;
+            if ((await listObjects(r2, key)).some((x) => x.key === key)) {
+              uploads.push({ path, token: '', signedUrl: '', exists: true });
+              continue;
+            }
+          }
           uploads.push({ path, token: '', signedUrl: await presignPut(r2, SKINS_PREFIX + path) });
         } catch (e) {
           return json({ error: 'sign_failed', message: (e as Error).message, path }, 500);
@@ -270,12 +307,48 @@ Deno.serve(async (req: Request): Promise<Response> => {
         description: s.description ?? '',
         source,
         name_verified: !!s.name_verified,
-        model_path: s.has_model ? `${shipId}/${skinId}.glb` : null,
+        model_path: s.has_model ? modelPathFor(shipId, skinId, r2 ? hullSha(s.model_sha256) : null, !!r2) : null,
         icon_path: s.has_icon ? `${shipId}/${skinId}.webp` : null,
         model_bytes: typeof s.model_bytes === 'number' ? Math.round(s.model_bytes) : null,
         sort: typeof s.sort === 'number' ? s.sort : skinId === 'standard' ? 10 : 100,
       });
     }
+
+    // A shared hull must exist before a row points at it — otherwise a variant
+    // could go live with a 404 model (e.g. its PUT failed, or the object was
+    // collected between sign and commit). The uploader retries the ship.
+    if (r2) {
+      for (const p of new Set(rows.map((r) => r.model_path).filter(isHullPath))) {
+        const key = SKINS_PREFIX + p;
+        let verdict: 'ok' | 'missing' | 'too_large' | 'hash_mismatch' = 'ok';
+        try {
+          const obj = (await listObjects(r2, key)).find((x) => x.key === key);
+          if (!obj) {
+            verdict = 'missing';
+          } else {
+            const { count, error: refErr } = await adminClient
+              .from('ship_skins')
+              .select('ship_id', { count: 'exact', head: true })
+              .eq('model_path', p);
+            if (refErr) throw new Error(refErr.message);
+            if (needsVerification(p, count)) {
+              verdict = await checkHull(p, obj.size, () => getObject(r2, key, MAX_HULL_BYTES));
+              // Unreferenced, so no other ship can be using these wrong bytes.
+              if (verdict !== 'ok') await deleteObject(r2, key);
+            }
+          }
+        } catch (e) {
+          return json({ error: 'commit_failed', message: (e as Error).message }, 500);
+        }
+        if (verdict !== 'ok') return json({ error: `hull_${verdict}`, message: p }, 409);
+      }
+    }
+    // The shared hulls this ship used before the commit — GC candidates below.
+    const { data: before, error: beforeErr } = await adminClient
+      .from('ship_skins')
+      .select('model_path')
+      .eq('ship_id', shipId);
+    if (beforeErr) return json({ error: 'commit_failed', message: beforeErr.message }, 500);
 
     const { error } = await adminClient
       .from('ship_skins')
@@ -301,6 +374,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         for (const o of listedR2) {
           if (keepPaths.has(o.key.slice(SKINS_PREFIX.length))) continue;
           await deleteObject(r2, o.key);
+          prunedR2++;
+        }
+        // Shared hulls: delete one only when NO row (of any ship) references
+        // it any more. Accepted race: a concurrent commit that passed its
+        // existence check just before this delete ends up with a 404 model. This ship's rows are already upserted/pruned above.
+        const prev = ((before ?? []) as { model_path: string | null }[]).map((r) => r.model_path);
+        for (const p of droppedHulls(prev, keepPaths)) {
+          const { count, error: refErr } = await adminClient
+            .from('ship_skins')
+            .select('ship_id', { count: 'exact', head: true })
+            .eq('model_path', p);
+          if (refErr) throw new Error(refErr.message);
+          if (count !== 0) continue; // still shared (or unknown) — keep it
+          await deleteObject(r2, SKINS_PREFIX + p);
           prunedR2++;
         }
       } catch (e) {

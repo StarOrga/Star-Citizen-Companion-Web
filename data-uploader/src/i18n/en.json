@@ -138,7 +138,7 @@
       "blueprints": "Blueprints",
       "records_total": "Records total",
       "previews": "Previews",
-      "skins": "Skins"
+      "skins": "3D models"
     },
     "hint": {
       "open": "Opening the ~157 GB archive — this takes a moment.",
@@ -182,7 +182,7 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D Skins"
+      "skins": "3D models"
     },
     "err": {
       "unauthorized": "Not signed in or your session is invalid — please reconnect.",
@@ -332,19 +332,19 @@
     "toolsFailed": "Tool download failed",
     "buildFailed": "Build failed",
     "uploading": "Uploading…",
-    "done": "3D skins done — {{n}} ship(s) live.",
-    "building": "Building 3D skins",
-    "none": "No buildable 3D skins found.",
+    "done": "3D models done — {{n}} ship(s) live.",
+    "building": "Building 3D models",
+    "none": "No buildable 3D models found.",
     "stepTools": "Preparing build tools",
-    "stepBuild": "Building liveries",
-    "stepUpload": "Uploading liveries",
+    "stepBuild": "Building 3D models",
+    "stepUpload": "Uploading 3D models",
     "shipProgress": "Ship {{current}} / {{total}}",
     "hintBuild": "First build assembles each ship one by one — can take a few minutes per ship.",
-    "hintUpload": "Transferring large livery files — this depends on their size.",
-    "stepUploadDone": "Liveries uploaded",
-    "noModels": "{{n}} ship(s) without a buildable livery",
-    "stepUploadDonePartial": "Liveries uploaded — {{n}} failed",
-    "skippedNoModel": "{{n}} skipped (no livery model)",
+    "hintUpload": "Transferring the 3D model files — this depends on their size.",
+    "stepUploadDone": "3D models uploaded",
+    "noModels": "{{n}} ship(s) without a buildable 3D model",
+    "stepUploadDonePartial": "3D models uploaded — {{n}} failed",
+    "skippedNoModel": "{{n}} skipped (no 3D model)",
     "failedCount": "{{n}} failed",
     "partialStatus": "{{live}} / {{attempted}} ships uploaded — {{failed}} failed (see log)",
     "gate": {

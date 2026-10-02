@@ -1,4 +1,6 @@
-import { ComponentFixture, DeferBlockState, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
@@ -133,20 +135,6 @@ function makeCodexServiceStub(payload: ShipPayload = NOMAD_PAYLOAD): Partial<Cod
   };
 }
 
-/** One livery with a real glb — enough for the hero to offer its 3D switch. */
-const NOMAD_SKIN: ShipSkin = {
-  shipId: 'CNOU_Nomad',
-  skinId: 'default',
-  name: 'Standard',
-  description: '',
-  source: 'factory',
-  nameVerified: true,
-  modelPath: 'cnou_nomad/default.glb',
-  iconPath: null,
-  modelBytes: 1,
-  sort: 1,
-};
-
 async function setup(
   kind: 'ship' | 'weapon',
   skins: ShipSkin[] = [],
@@ -219,133 +207,6 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     fixture = await setup('ship');
   });
 
-  it('renders the masthead and Einordnung rank card', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.m-top')).toBeTruthy();
-    expect(el.querySelector('sc-codex-rank-card')).toBeTruthy();
-  });
-
-  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
-  it('locks "add to hangar" while the insert runs and alerts when it fails', async () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const hangar = TestBed.inject(HangarService);
-    let resolve!: (v: null) => void;
-    const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
-    const btn = el.querySelector('.add-hangar') as HTMLButtonElement;
-    expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
-
-    btn.click();
-    fixture.detectChanges();
-    expect(btn.disabled).toBeTrue();
-    expect(btn.getAttribute('aria-busy')).toBe('true');
-    void fixture.componentInstance.addToHangar();
-    expect(addShip).toHaveBeenCalledTimes(1);
-
-    resolve(null);
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(btn.disabled).toBeFalse();
-    const alert = el.querySelector('.add-err[role="alert"]');
-    expect(alert).not.toBeNull();
-    expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
-  });
-
-  it('renders the six-cell KPI band', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('sc-codex-kpi-band')).toBeTruthy();
-  });
-
-  it('renders three column heads (Loadout / Analyse / Zelle & feste Systeme)', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    // Loadout + Analyse sit in the m-cols split; a third head belongs to the
-    // tail card that carries the airframe below the paints block (feedback
-    // #236; the countermeasures moved back up with #237).
-    const heads = el.querySelectorAll('.col-head');
-    expect(heads.length).toBe(3);
-  });
-
-  it('renders the mission/draft bar', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.mission-draft-bar')).toBeTruthy();
-    expect(el.querySelector('sc-codex-mission-bar')).toBeTruthy();
-  });
-
-  it('renders the hardpoint layout, energy dock, swap picker and weapon detail window', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('sc-codex-hardpoint-layout')).toBeTruthy();
-    expect(el.querySelector('sc-codex-energy-dock')).toBeTruthy();
-    expect(el.querySelector('sc-codex-swap-picker')).toBeTruthy();
-    expect(el.querySelector('sc-codex-weapon-detail')).toBeTruthy();
-  });
-
-  it('the Loadout head counts BLOCKS, the way a reader counts headings', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const sections = fixture.componentInstance.moduleSections().filter((s) => s.slots.length > 0);
-    const blocks = fixture.componentInstance.moduleCount();
-    // The Nomad fixture has more sections than blocks — that is the whole point.
-    expect(blocks).toBeLessThan(sections.length);
-    // Scoped to the PRIMARY loadout card: the tail card (feedback #236) has
-    // its own sc-codex-hardpoint-layout with the airframe's own .mod-sec.
-    const rendered = el.querySelectorAll('.col-loadout:not(.col-loadout-tail) .mod-sec').length;
-    expect(rendered).toBe(blocks);
-    expect(el.querySelector('.col-loadout:not(.col-loadout-tail) .col-head .n')?.textContent?.trim()).toBe(String(blocks));
-  });
-
-  // ── decision 1: the BÜHNE and the tool row under it ──────────────────────
-
-  it('draws the hero as a stage with the name on it and the actions beneath', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const hero = el.querySelector('.hero') as HTMLElement;
-    expect(hero.classList).toContain('stage');
-    // Identity sits in the bottom band with the chips and the module census,
-    // the way a codex fleet tile captions the same ship.
-    const foot = hero.querySelector('.stage-foot') as HTMLElement;
-    expect(foot).toBeTruthy();
-    expect(foot.querySelector('.stage-ident h1')).toBeTruthy();
-    expect(foot.querySelector('.stage-counts')).toBeTruthy();
-    // …and the census is the LAST thing in the band: bottom-right of the art.
-    expect(foot.lastElementChild?.classList).toContain('stage-counts');
-    // Nothing clickable is left on the art (feedback 140dfb7e) — the 2D/3D
-    // switch is the one exception and it is not part of the foot.
-    expect(foot.querySelector('a, button')).toBeNull();
-    // The fact tiles left the hero (they live in the Analyse card now).
-    expect(hero.querySelector('.facts')).toBeNull();
-    // The four frequent actions sit in their own row directly under the card…
-    const actions = el.querySelector('.stage-actions') as HTMLElement;
-    expect(actions).toBeTruthy();
-    expect(hero.contains(actions)).toBeFalse();
-    expect(hero.nextElementSibling).toBe(actions);
-    expect(actions.querySelectorAll('.btn').length).toBe(4);
-    // …and the rarer things in the flat row below that, without the census.
-    const toolrow = el.querySelector('.toolrow') as HTMLElement;
-    expect(toolrow).toBeTruthy();
-    expect(actions.nextElementSibling).toBe(toolrow);
-    expect(toolrow.querySelector('.loadout-summary')).toBeNull();
-    expect(toolrow.querySelector('.rsi-link')).toBeTruthy();
-  });
-
-  it('counts the census on the stage from the loadout blocks themselves', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const chips = fixture.componentInstance.stageCounts();
-    const sections = fixture.componentInstance.moduleSections();
-    // One chip per rendered block, the airframe excluded, each carrying the
-    // very slot count the block's own "N Slots" heading prints.
-    // moduleCount() now counts only the PRIMARY card's blocks (feedback
-    // #236 moved the airframe into a tail card below the paints block); the
-    // airframe group stageCounts always excludes now lives in that tail
-    // count, so add it back in.
-    expect(chips.length).toBe(
-      fixture.componentInstance.moduleCount() + fixture.componentInstance.tailModuleCount() - 1,
-    );
-    expect(chips.find((c) => c.group === 'structure')).toBeUndefined();
-    const weapons = chips.find((c) => c.group === 'weapons');
-    expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);
-    expect(weapons?.labelKey).toBe('codex.moduleSection.weapons');
-    const rendered = Array.from(
-      el.querySelectorAll('.hero.stage .stage-counts .ls-item .ls-count'),
-    ).map((n) => n.textContent?.trim());
-    expect(rendered).toEqual(chips.map((c) => String(c.count)));
-  });
 
   it('states the role once — in the eyebrow beside the maker, not also as a chip', () => {
     const el: HTMLElement = fixture.nativeElement;
@@ -361,13 +222,6 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     }
   });
 
-  it('"Schiff wechseln" navigates, so it is an anchor and not a button', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const acts = el.querySelector('.stage-actions') as HTMLElement;
-    const anchor = acts.querySelector('a[href]') as HTMLAnchorElement;
-    expect(anchor).toBeTruthy();
-    expect(anchor.getAttribute('href')).toContain('/codex');
-  });
 
   // ── decision 1 (hard constraint): the two tank figures survived the move ──
 
@@ -387,14 +241,6 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(el.textContent).not.toContain('codex.hull.title');
   });
 
-  it('has exactly one source for the equipped mass', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const massRows = Array.from(el.querySelectorAll('dt')).filter((dt) =>
-      dt.textContent?.includes('codex.hull.equippedMass'),
-    );
-    expect(massRows.length).toBe(1);
-  });
-
   it('keeps the "no flight data at all" sentence the deleted block owned', () => {
     const groups = fixture.componentInstance.shipFactGroups();
     const flight = groups.find((g) => g.titleKey === 'codex.analysis.ship.flightPerformance');
@@ -403,102 +249,12 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     expect(flight?.rows.length).toBe(6);
   });
 
-  // ── decision 4: the 2D/3D switch on the hero card ────────────────────────
-
-  it('offers no view switch while the ship has no 3D model', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(fixture.componentInstance.has3dView()).toBeFalse();
-    expect(el.querySelector('.view-switch')).toBeNull();
-  });
-
   // ── the concept's page skeleton ──────────────────────────────────────────
   // #t1 draws crumbrow > m-top > m-kpis > m-mission > m-cols, and #f1/#h1
   // close m-wrap with the dock. Nothing may wedge between the masthead and
   // the KPI strip: the strip is the sticky one, and every block placed above
   // it pushes the page's only live feedback channel further down. Anything
   // this app adds beyond the concept goes BELOW m-cols.
-  it('lays the page out in the concept order, extras below the skeleton', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const page = el.querySelector('.detail-page');
-    expect(page).toBeTruthy();
-
-    // Direct children only — a nested match (the hero's own stage art is a
-    // skin viewer too) would make this assertion pass for the wrong reason.
-    const at = (sel: string): number =>
-      Array.from(page!.children).findIndex((c) => c.matches(sel));
-
-    const crumbs = at('.crumbrow');
-    const top = at('.m-top');
-    const kpis = at('sc-codex-kpi-band');
-    const mission = at('.mission-draft-bar');
-    const cols = at('.m-cols');
-
-    expect(crumbs).toBeGreaterThanOrEqual(0);
-    expect(top).toBeGreaterThan(crumbs);
-    expect(kpis).toBe(top + 1); // nothing wedged in between
-    expect(mission).toBe(kpis + 1);
-    expect(cols).toBe(mission + 1);
-
-    // The standalone livery viewer is an addition the concept never draws, so
-    // it belongs after the columns, not in the masthead seam.
-    const viewer = at('sc-ship-skin-viewer');
-    if (viewer >= 0) expect(viewer).toBeGreaterThan(cols);
-  });
-});
-
-describe('CodexDetailComponent — hero 2D/3D switch (ship with a livery)', () => {
-  let fixture: ComponentFixture<CodexDetailComponent>;
-
-  beforeEach(async () => {
-    fixture = await setup('ship', [NOMAD_SKIN]);
-  });
-
-  it('swaps the stage art for the 3D view and back', async () => {
-    const el: HTMLElement = fixture.nativeElement;
-    const switchEl = () => el.querySelector('.view-switch') as HTMLButtonElement;
-
-    // Both viewer sites sit in @defer blocks (AUD-048), which resolve
-    // asynchronously; render them, then give the skin catalog (a floating
-    // promise inside the viewer) one more turn than the shared setup does.
-    const settle = async (): Promise<void> => {
-      for (const b of await fixture.getDeferBlocks()) await b.render(DeferBlockState.Complete);
-      await fixture.whenStable();
-      fixture.detectChanges();
-    };
-    await settle();
-
-    // The catalog answered "there is a model", so the card offers the switch.
-    expect(fixture.componentInstance.has3dView()).toBeTrue();
-    const btn = switchEl();
-    expect(btn).toBeTruthy();
-    expect(btn.tagName).toBe('BUTTON');
-    expect(btn.getAttribute('type')).toBe('button');
-    // Reachable by keyboard with a name that says what pressing it does.
-    expect(btn.getAttribute('aria-pressed')).toBe('false');
-    expect(btn.getAttribute('aria-label')).toBe('codex.detail.heroSwitchTo3d');
-    expect(btn.textContent?.trim()).toBe('codex.detail.heroView3d');
-    // 2D: the picture is on the stage, the livery section owns the model.
-    expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
-    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();
-
-    btn.click();
-    fixture.detectChanges();
-    await settle();
-    expect(fixture.componentInstance.heroView3d()).toBeTrue();
-    expect(switchEl().getAttribute('aria-pressed')).toBe('true');
-    expect(switchEl().getAttribute('aria-label')).toBe('codex.detail.heroSwitchTo2d');
-    expect(switchEl().textContent?.trim()).toBe('codex.detail.heroView2d');
-    // The model is on the stage now — and only there, never twice.
-    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeTruthy();
-    expect(el.querySelectorAll('sc-ship-skin-viewer').length).toBe(1);
-
-    switchEl().click();
-    fixture.detectChanges();
-    await settle();
-    expect(fixture.componentInstance.heroView3d()).toBeFalse();
-    expect(el.querySelector('.stage-art sc-fallback-image')).toBeTruthy();
-    expect(el.querySelector('.stage-art sc-ship-skin-viewer')).toBeNull();
-  });
 });
 
 // ── feedback 140dfb7e: the census must agree with the loadout column ───────
@@ -548,11 +304,9 @@ describe('CodexDetailComponent — stage census (feedback 140dfb7e)', () => {
     expect(missiles?.labelKey).toBe('codex.moduleSection.missiles');
     expect(missiles?.detailKey).toBe('codex.detail.stageLaunchers');
     expect(missiles?.detailCount).toBe(2);
-    const el: HTMLElement = fixture.nativeElement;
-    const chip = el.querySelector('.hero.stage .stage-counts .ls-item[data-cat="missiles"]') as HTMLElement;
-    expect(chip.querySelector('.ls-count')?.textContent?.trim()).toBe('8');
-    expect(chip.querySelector('.ls-detail')).toBeTruthy();
+    expect(holoStage(fixture).stageCounts()).toEqual(fixture.componentInstance.stageCounts());
   });
+
 });
 
 describe('CodexDetailComponent — stage census, racks without a nested fit', () => {
@@ -1112,6 +866,7 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(hangar.updateConfig).not.toHaveBeenCalled();
       // No translate loader in Karma: instant() hands back the key itself.
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
+      // Visible without waiting for the arrival or opening the right rail.
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
     });
 
@@ -1124,46 +879,6 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(cmp.saveableEntries().length).toBe(0);
       expect(cmp.draftChangedCount()).toBe(0);
     });
-  });
-
-  describe('copy link', () => {
-    let fixture: ComponentFixture<CodexDetailComponent>;
-    beforeEach(async () => {
-      fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
-    });
-
-    it('flashes the toast for two seconds after the URL reached the clipboard', fakeAsync(() => {
-      const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
-      const el: HTMLElement = fixture.nativeElement;
-      const btn = el.querySelector('.stage-actions .btn.copy') as HTMLButtonElement;
-      expect(btn).withContext('copy button rendered').not.toBeNull();
-      expect(el.querySelector('.copy-toast')).toBeNull();
-
-      btn.click();
-      flushMicrotasks();
-      fixture.detectChanges();
-      expect(write).toHaveBeenCalledOnceWith(location.href);
-      const toast = el.querySelector('.copy-toast');
-      expect(toast).not.toBeNull();
-      expect(toast!.getAttribute('role')).toBe('status');
-      expect(toast!.textContent).toContain('codex.detail.linkCopied');
-
-      tick(1999);
-      fixture.detectChanges();
-      expect(el.querySelector('.copy-toast')).withContext('still visible just before 2 s').not.toBeNull();
-      tick(1);
-      fixture.detectChanges();
-      expect(el.querySelector('.copy-toast')).toBeNull();
-    }));
-
-    it('shows no toast when the browser denies the clipboard', fakeAsync(() => {
-      spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
-      const el: HTMLElement = fixture.nativeElement;
-      (el.querySelector('.stage-actions .btn.copy') as HTMLButtonElement).click();
-      flushMicrotasks();
-      fixture.detectChanges();
-      expect(el.querySelector('.copy-toast')).toBeNull();
-    }));
   });
 
   describe('livery picker', () => {
@@ -1203,74 +918,223 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
     });
   });
 
-  describe('RSI pledge link', () => {
-    it('offers no link form to a signed-out reader', async () => {
-      const fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
-      const el: HTMLElement = fixture.nativeElement;
-      const labels = Array.from(el.querySelectorAll('.toolrow button')).map((b) => b.textContent ?? '');
-      expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
-      // The RSI link itself stays: a plain anchor into a new tab.
-      const rsi = el.querySelector('a.rsi-link') as HTMLAnchorElement;
-      expect(rsi).not.toBeNull();
-      expect(rsi.target).toBe('_blank');
-      expect(rsi.rel).toContain('noopener');
+});
+
+// ── Holotable helpers ───────────────────────────────────────────────────────
+
+function holoStage(fixture: ComponentFixture<CodexDetailComponent>): CodexHoloStageComponent {
+  const de = fixture.debugElement.query(By.directive(CodexHoloStageComponent));
+  expect(de).withContext('Holotable rendered').not.toBeNull();
+  return de.componentInstance as CodexHoloStageComponent;
+}
+
+/** Runs the arrival to its end (what reduced motion or a repeat visit does). */
+function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
+  holoStage(fixture).phase.set('done');
+  fixture.detectChanges();
+}
+
+function openDetails(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
+  const el: HTMLElement = fixture.nativeElement;
+  (el.querySelector('.details-toggle') as HTMLButtonElement).click();
+  fixture.detectChanges();
+  const body = el.querySelector('.details-body') as HTMLElement;
+  expect(body).withContext('details drawer open').not.toBeNull();
+  return body;
+}
+
+describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+
+  beforeEach(async () => {
+    fixture = await setup('ship');
+  });
+
+  it('hands the census, counted from the loadout blocks themselves, to the Holotable', () => {
+    const cmp = fixture.componentInstance;
+    const chips = cmp.stageCounts();
+    const sections = cmp.moduleSections();
+    // One chip per block, the airframe excluded.
+    expect(chips.length).toBe(cmp.moduleCount() + cmp.tailModuleCount() - 1);
+    expect(chips.find((c) => c.group === 'structure')).toBeUndefined();
+    const weapons = chips.find((c) => c.group === 'weapons');
+    expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);
+    expect(weapons?.labelKey).toBe('codex.moduleSection.weapons');
+    expect(holoStage(fixture).stageCounts()).toEqual(chips);
+  });
+
+  it('has exactly one source for the equipped mass', () => {
+    arrive(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    // Every perspective tile unfolded — the ship panel is one of them.
+    el.querySelectorAll<HTMLButtonElement>('.tile-expand').forEach((b) => b.click());
+    fixture.detectChanges();
+    const massRows = Array.from(el.querySelectorAll('dt')).filter((dt) =>
+      dt.textContent?.includes('codex.hull.equippedMass'),
+    );
+    // Two perspective tiles unfold the same ship panel, so the row may show
+    // twice — but always from the one source (the draft), never two values.
+    expect(massRows.length).toBeGreaterThan(0);
+    const values = new Set(massRows.map((dt) => dt.nextElementSibling?.textContent?.trim()));
+    expect(values.size).toBe(1);
+  });
+
+  it('lists every loadout block once in the ports list, and the airframe card counts its blocks', () => {
+    const cmp = fixture.componentInstance;
+    const el: HTMLElement = fixture.nativeElement;
+    // The Nomad fixture has more sections than blocks — that is the whole point.
+    const sections = cmp.moduleSections().filter((s) => s.slots.length > 0);
+    expect(cmp.moduleCount()).toBeLessThan(sections.length);
+    const listed = el.querySelectorAll('.below-ports .mod-sec').length;
+    expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
+    const body = openDetails(fixture);
+    expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
+  });
+
+  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
+  it('locks "add to hangar" while the insert runs and alerts when it fails', async () => {
+    const hangar = TestBed.inject(HangarService);
+    let resolve!: (v: null) => void;
+    const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
+    const body = openDetails(fixture);
+    const btn = body.querySelector('.add-hangar') as HTMLButtonElement;
+    expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
+
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeTrue();
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    void fixture.componentInstance.addToHangar();
+    expect(addShip).toHaveBeenCalledTimes(1);
+
+    resolve(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeFalse();
+    const alert = body.querySelector('.add-err[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
+  });
+});
+
+describe('CodexDetailComponent — Holotable copy link', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+  beforeEach(async () => {
+    fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+  });
+
+  function openShareCopy(): HTMLButtonElement {
+    const el: HTMLElement = fixture.nativeElement;
+    const share = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).find((b) =>
+      (b.textContent ?? '').includes('codex.holo.stage.viewShare'),
+    );
+    expect(share).withContext('share button rendered').toBeDefined();
+    share!.click();
+    fixture.detectChanges();
+    const copy = el.querySelector('.link-copy') as HTMLButtonElement;
+    expect(copy).withContext('copy row rendered').not.toBeNull();
+    return copy;
+  }
+
+  it('confirms for two seconds after the URL reached the clipboard', fakeAsync(() => {
+    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const copy = openShareCopy();
+    expect(copy.classList).not.toContain('done');
+
+    copy.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(write).toHaveBeenCalledOnceWith(location.href);
+    expect(copy.classList).toContain('done');
+    expect(copy.textContent).toContain('codex.holo.share.copied');
+
+    tick(1999);
+    fixture.detectChanges();
+    expect(copy.classList).withContext('still confirmed just before 2 s').toContain('done');
+    tick(1);
+    fixture.detectChanges();
+    expect(copy.classList).not.toContain('done');
+  }));
+
+  it('confirms nothing when the browser denies the clipboard', fakeAsync(() => {
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+    const copy = openShareCopy();
+    copy.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(copy.classList).not.toContain('done');
+  }));
+});
+
+describe('CodexDetailComponent — Holotable RSI pledge link', () => {
+  it('offers no link form to a signed-out reader', async () => {
+    const fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+    const body = openDetails(fixture);
+    const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
+    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
+    // The RSI link itself stays: a plain anchor into a new tab.
+    const rsi = body.querySelector('a.rsi-link') as HTMLAnchorElement;
+    expect(rsi).not.toBeNull();
+    expect(rsi.target).toBe('_blank');
+    expect(rsi.rel).toContain('noopener');
+  });
+
+  it('opens the form for a signed-in reader and names a rejected URL', async () => {
+    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
+    const fixture = await setupCharacterisation({
+      params: { kind: 'ship', className: 'cnou_nomad' },
+      user: { id: 'u1' },
+      hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
     });
+    const el: HTMLElement = fixture.nativeElement;
+    const body = openDetails(fixture);
+    const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
+      (b.textContent ?? '').includes('codex.shipLink.add'),
+    );
+    expect(add).withContext('"add link" button rendered').toBeDefined();
+    expect(el.querySelector('.ship-link-form')).toBeNull();
 
-    it('opens the form for a signed-in reader and names a rejected URL', async () => {
-      const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
-      const fixture = await setupCharacterisation({
-        params: { kind: 'ship', className: 'cnou_nomad' },
-        user: { id: 'u1' },
-        hangar: { listConfigs: async () => [] } as Partial<HangarService>,
-        shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
-      });
-      const el: HTMLElement = fixture.nativeElement;
-      const add = Array.from(el.querySelectorAll<HTMLButtonElement>('.toolrow button')).find((b) =>
-        (b.textContent ?? '').includes('codex.shipLink.add'),
-      );
-      expect(add).withContext('"add link" button rendered').toBeDefined();
-      expect(el.querySelector('.ship-link-form')).toBeNull();
+    add!.click();
+    fixture.detectChanges();
+    const form = el.querySelector('.ship-link-form') as HTMLFormElement;
+    expect(form).not.toBeNull();
 
-      add!.click();
-      fixture.detectChanges();
-      const form = el.querySelector('.ship-link-form') as HTMLFormElement;
-      expect(form).not.toBeNull();
+    const input = form.querySelector('input.sl-input') as HTMLInputElement;
+    input.value = 'not a url';
+    input.dispatchEvent(new Event('input'));
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-      const input = form.querySelector('input.sl-input') as HTMLInputElement;
-      input.value = 'not a url';
-      input.dispatchEvent(new Event('input'));
-      form.dispatchEvent(new Event('submit', { cancelable: true }));
-      await fixture.whenStable();
-      fixture.detectChanges();
+    expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
+    const err = el.querySelector('.sl-error');
+    expect(err).not.toBeNull();
+    expect(err!.getAttribute('role')).toBe('alert');
+    expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(el.querySelector('.sl-ok')).toBeNull();
+  });
 
-      expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
-      const err = el.querySelector('.sl-error');
-      expect(err).not.toBeNull();
-      expect(err!.getAttribute('role')).toBe('alert');
-      expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
-      expect(input.getAttribute('aria-invalid')).toBe('true');
-      expect(el.querySelector('.sl-ok')).toBeNull();
+  it('confirms a saved link', async () => {
+    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
+    const fixture = await setupCharacterisation({
+      params: { kind: 'ship', className: 'cnou_nomad' },
+      user: { id: 'u1' },
+      hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
     });
-
-    it('confirms a saved link', async () => {
-      const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
-      const fixture = await setupCharacterisation({
-        params: { kind: 'ship', className: 'cnou_nomad' },
-        user: { id: 'u1' },
-        hangar: { listConfigs: async () => [] } as Partial<HangarService>,
-        shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
-      });
-      const cmp = fixture.componentInstance;
-      cmp.toggleLinkForm();
-      fixture.detectChanges();
-      const el: HTMLElement = fixture.nativeElement;
-      (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
-        new Event('submit', { cancelable: true }),
-      );
-      await fixture.whenStable();
-      fixture.detectChanges();
-      expect(el.querySelector('.sl-error')).toBeNull();
-      expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
-    });
+    const cmp = fixture.componentInstance;
+    openDetails(fixture);
+    cmp.toggleLinkForm();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
+      new Event('submit', { cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.sl-error')).toBeNull();
+    expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
   });
 });

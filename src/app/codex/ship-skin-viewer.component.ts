@@ -612,6 +612,13 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
         transform: scale(1.45);
         outline: none;
       }
+      /* A highlighted hotspot (list hover / pinned component) pulses. */
+      .hp-dot.on { animation: hp-pulse 1.4s ease-in-out infinite; }
+      @keyframes hp-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--sc-accent, #4da3ff) 70%, transparent); }
+        50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--sc-accent, #4da3ff) 0%, transparent); }
+      }
+      @media (prefers-reduced-motion: reduce) { .hp-dot.on { animation: none; } }
       .hp-tip {
         position: absolute;
         left: 50%;

@@ -142,7 +142,7 @@ export class HangarSharedLoadoutComponent implements OnInit {
         this.adoptError.set(true);
         return;
       }
-      void this.router.navigate(['/codex', 'ship', p.shipClassName], { queryParams: { view: 'holo' } });
+      void this.router.navigate(['/codex', 'ship', p.shipClassName]);
     } finally {
       this.adopting.set(false);
     }

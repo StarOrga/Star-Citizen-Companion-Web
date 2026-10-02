@@ -366,6 +366,9 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        wide column, so they may use the margin. */
     :host(.holo) .radar { max-width: 230px; overflow: visible; }
     :host(.holo) .radar text { font-size: 7px; }
+    /* Touch: the holo radar is capped at 230px (scale 1.15), so 10.5-unit
+       labels land on the 12px readability floor. */
+    @media (pointer: coarse) { :host(.holo) .radar text { font-size: 10.5px; } }
     :host(.holo) .radar text.gap { fill: color-mix(in srgb, var(--sc-fg-2) 60%, transparent); }
     :host(.holo) .legend { display: none; }
     :host(.holo) .rank-col-bars { gap: 8px; }

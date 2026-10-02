@@ -5,6 +5,7 @@ import {
   parseGlbNodePositions,
   positionForPort,
   readGlbJson,
+  readSceneExtrasHardpoints,
   resolveAnchors,
 } from './glb-hardpoints';
 
@@ -336,5 +337,79 @@ describe('resolveAnchors', () => {
 describe('hotspotPosition', () => {
   it('formats as three space-separated fixed-4-decimal numbers', () => {
     expect(hotspotPosition([1, -2.5, 3.14159])).toBe('1.0000 -2.5000 3.1416');
+  });
+});
+
+describe('scene extras hardpoints (geometry-v2)', () => {
+  it('reads extras.hardpoints of the default scene before the node tree', () => {
+    const buffer = encodeGlb({
+      scene: 0,
+      scenes: [{ nodes: [0], extras: { hardpoints: { hardpoint_a: [4, 5, 6] } } }],
+      nodes: [{ name: 'hardpoint_a', translation: [1, 2, 3] }],
+    });
+    const positions = parseGlbNodePositions(buffer);
+    expect(positions.get('hardpoint_a')).toEqual([4, 5, 6]);
+  });
+
+  it('honours a non-zero default scene index', () => {
+    const buffer = encodeGlb({
+      scene: 1,
+      scenes: [{ nodes: [] }, { nodes: [], extras: { hardpoints: { hp_b: [0, 1, 0] } } }],
+      nodes: [{ name: 'x' }],
+    });
+    expect(parseGlbNodePositions(buffer).get('hp_b')).toEqual([0, 1, 0]);
+  });
+
+  it('falls back to the node walk when extras carry no hardpoints block', () => {
+    const buffer = encodeGlb({
+      scene: 0,
+      scenes: [{ nodes: [0], extras: { other: 1 } }],
+      nodes: [{ name: 'hardpoint_a', translation: [1, 2, 3] }],
+    });
+    expect(parseGlbNodePositions(buffer).get('hardpoint_a')).toEqual([1, 2, 3]);
+  });
+
+  it('drops every malformed entry instead of guessing a position', () => {
+    const gltf = {
+      scenes: [{
+        extras: {
+          hardpoints: {
+            ok: [1, 2, 3],
+            short: [1, 2],
+            long: [1, 2, 3, 4],
+            text: ['1', 2, 3],
+            nan: [null, 2, 3],
+            huge: [1e9, 0, 0],
+            notArray: { x: 1 },
+            '': [0, 0, 0],
+          },
+        },
+      }],
+    };
+    const map = readSceneExtrasHardpoints(gltf)!;
+    expect([...map.keys()]).toEqual(['ok']);
+    expect(map.get('ok')).toEqual([1, 2, 3]);
+  });
+
+  it('returns null for an array or a missing block', () => {
+    expect(readSceneExtrasHardpoints({ scenes: [{ extras: { hardpoints: [[1, 2, 3]] } }] })).toBeNull();
+    expect(readSceneExtrasHardpoints({ scenes: [] })).toBeNull();
+    expect(readSceneExtrasHardpoints({})).toBeNull();
+  });
+
+  it('caps the number of entries', () => {
+    const hardpoints: Record<string, number[]> = {};
+    for (let i = 0; i < 20_010; i++) hardpoints[`hp_${i}`] = [0, 0, 0];
+    const map = readSceneExtrasHardpoints({ scenes: [{ extras: { hardpoints } }] })!;
+    expect(map.size).toBe(20_000);
+  });
+
+  it('feeds resolveAnchors like node-derived positions', () => {
+    const buffer = encodeGlb({ scenes: [{ extras: { hardpoints: { hardpoint_qd: [0, 1, 2] } } }], nodes: [] });
+    const anchors = resolveAnchors(parseGlbNodePositions(buffer), [
+      { port: 'hardpoint_qd', label: 'QD', itemName: null },
+      { port: 'hardpoint_missing', label: 'X', itemName: null },
+    ]);
+    expect(anchors.map((a) => a.port)).toEqual(['hardpoint_qd']);
   });
 });
