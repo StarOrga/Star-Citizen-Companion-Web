@@ -152,6 +152,11 @@ export function parseGlbNodePositions(buffer: ArrayBuffer): Map<string, Vec3> {
   const out = new Map<string, Vec3>();
   if (!gltf || typeof gltf !== 'object') return out;
 
+  // geometry-v2: the uploader writes the resolved locator positions into the
+  // default scene's extras. Present → it is the source; absent → node walk.
+  const fromExtras = readSceneExtrasHardpoints(gltf);
+  if (fromExtras) return fromExtras;
+
   const nodes = Array.isArray(gltf.nodes) ? (gltf.nodes as GltfNode[]) : [];
   if (nodes.length === 0 || nodes.length > MAX_NODES) return out;
 
@@ -197,6 +202,41 @@ export function parseGlbNodePositions(buffer: ArrayBuffer): Map<string, Vec3> {
     }
   }
 
+  return out;
+}
+
+/** Longest locator name accepted from `extras.hardpoints`. */
+const MAX_NAME_LENGTH = 256;
+/** Largest coordinate (metres) accepted — a ship is not 10 km long. */
+const MAX_ABS_COORD = 10_000;
+
+/**
+ * `scenes[scene ?? 0].extras.hardpoints` (uploader geometry-v2): a map of node
+ * name → world position `[x, y, z]` in metres, glTF Y-up glb space — the same
+ * space the node walk produces. Returns null when the block is absent (or not
+ * an object), so the caller falls back to the node tree. Validation is hard:
+ * an entry that is not exactly three finite, plausible numbers under a sane
+ * name yields no anchor at all; never a marker at a guessed spot. Capped at
+ * MAX_NODES entries.
+ */
+export function readSceneExtrasHardpoints(gltf: { scenes?: unknown; scene?: unknown }): Map<string, Vec3> | null {
+  const scenes = Array.isArray(gltf.scenes) ? gltf.scenes : [];
+  const index = isFiniteNumber(gltf.scene) && Number.isInteger(gltf.scene) ? gltf.scene : 0;
+  const scene = scenes[index] as { extras?: unknown } | undefined;
+  const extras = scene && typeof scene === 'object' ? scene.extras : undefined;
+  if (!extras || typeof extras !== 'object') return null;
+  const raw = (extras as { hardpoints?: unknown }).hardpoints;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+
+  const out = new Map<string, Vec3>();
+  let seen = 0;
+  for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (++seen > MAX_NODES) break;
+    if (!name || name.length > MAX_NAME_LENGTH) continue;
+    if (!Array.isArray(value) || value.length !== 3) continue;
+    if (!value.every((v) => isFiniteNumber(v) && Math.abs(v) <= MAX_ABS_COORD)) continue;
+    out.set(name, [value[0], value[1], value[2]] as Vec3);
+  }
   return out;
 }
 

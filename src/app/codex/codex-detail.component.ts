@@ -41,7 +41,6 @@ import { HangarShipConfig } from '../hangar/hangar.types';
 import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
-import { CodexShipStageComponent } from './detail/codex-ship-stage.component';
 import { CodexVariantPickerComponent } from './detail/codex-variant-picker.component';
 import { CodexShipActionsComponent } from './detail/codex-ship-actions.component';
 import { CodexShipLinkFormComponent } from './detail/codex-ship-link-form.component';
@@ -124,7 +123,6 @@ import { SkinOption, resolveSkinGroup } from './codex-skin-group';
 import { EditionOption, resolveEditionGroup } from './codex-edition-group';
 import { SummaryOccupant } from './ship-summary-panels';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
-import { CodexLoadoutSaveBarComponent } from './codex-loadout-save-bar.component';
 import {
   CapabilityPort,
   MissionId,
@@ -142,14 +140,10 @@ import {
   crossSectionAxes,
   findArmorPayload,
 } from './codex-loadout-stats';
-import { CodexKpiBandComponent } from './codex-kpi-band.component';
-import { CodexMissionBarComponent } from './codex-mission-bar.component';
 import { buildKpiStrip, buildKpiStripForKeys, KpiStripCell } from './codex-kpi-sets';
 import { isPassiveShield } from './codex-power';
 import { groupOccupants } from './codex-fold-preview';
 import type { PowerSheet } from './codex-power';
-import { CodexEnergyDockComponent } from './codex-energy-dock.component';
-import { CodexRankCardComponent } from './codex-rank-card.component';
 import {
   RankProfileId,
   RankResult,
@@ -159,12 +153,7 @@ import {
   rankShip,
   resolveCareerLabel,
 } from './codex-rank';
-import {
-  CodexDefensivePanelComponent,
-  CodexOffensivePanelComponent,
-  CodexShipPanelComponent,
-  ShipFactGroup,
-} from './codex-analysis-panels.component';
+import { ShipFactGroup } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
 import {
   CodexHardpointLayoutComponent,
@@ -190,7 +179,6 @@ import {
   readHardpointFrame,
   readHardpointTransforms,
 } from './hardpoint-map';
-import { ShipSkinViewerComponent } from './ship-skin-viewer.component';
 import type { HardpointPortRef } from './hardpoint-port-ref';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
@@ -212,7 +200,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, CodexCategoryIconComponent, FallbackImageComponent, InfoNoteComponent, CodexHoloStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -229,21 +217,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <span class="prov">
             {{ 'codex.provenance.build' | translate: { channel: p.channel, patch: p.patch, build: p.build } }}
           </span>
-        }
-        @if (kind() === 'ship') {
-          <span class="crumb-spacer"></span>
-          <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
-            <button type="button" class="ht-btn" [class.active]="!holoView()"
-                    [attr.aria-pressed]="!holoView()"
-                    (click)="holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.classic' | translate }}
-            </button>
-            <button type="button" class="ht-btn" [class.active]="holoView()"
-                    [attr.aria-pressed]="holoView()"
-                    (click)="!holoView() && toggleHoloView()">
-              {{ 'codex.holo.toggle.holo' | translate }}
-            </button>
-          </div>
         }
       </div>
 
@@ -264,7 +237,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              systems, description, hardpoints, recipe, spec/raw) is a shared
              sub-component in detail/ or a shared ng-template at the end of
              this template, rendered in both branches (D17). -->
-        @if (!(kind() === 'ship' && holoView())) {
+        @if (kind() !== 'ship') {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
         <div class="m-top" [class.ship-mode]="kind() === 'ship'">
         <div class="hero-stack">
@@ -278,33 +251,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              included (they existed nowhere else on the page).
              Every other codex kind keeps the two-column hero it always had: it
              has no analysis card to move its facts into. ── -->
-        <header class="hero sc-card" [class.bay]="kind() === 'ship'" [class.stage]="kind() === 'ship'">
-          @if (kind() === 'ship') {
-            <!-- Extracted to keep this file's component-style budget under the
-                 Angular build budget (AUD-062) — same DOM, classes and
-                 bindings as before, now behind sc-codex-ship-stage's own
-                 inputs/outputs (see that component for detail). -->
-            <sc-codex-ship-stage
-              [kind]="detail()!.kind"
-              [heroSub]="heroSub()"
-              [heroArt]="heroArt()"
-              [displayName]="displayName()"
-              [heroView3d]="heroView3d()"
-              [shipClassName]="shipClassName()"
-              [hardpointPortRefs]="hardpointPortRefs()"
-              [activePorts]="activePorts()"
-              [has3dView]="has3dView()"
-              [heroEyebrow]="heroEyebrow()"
-              [heroChips]="heroChips()"
-              [stageCounts]="stageCounts()"
-              [shipPickerItems]="shipPickerItems()"
-              (hovered)="setActivePorts($event)"
-              (locatable)="glbLocatablePorts.set($event)"
-              (artAvailable)="onArtAvailable($event)"
-              (viewToggle)="toggleHeroView()"
-              (hangarPick)="onShipPickerPick($event)"
-              (hangarOpen)="onHangarPickerOpen()" />
-          } @else {
+        <header class="hero sc-card">
           <figure class="hero-art" [class.icon-only]="heroArt().length === 0">
             <div class="art">
               <sc-fallback-image [candidates]="heroArt()" [alt]="displayName()" [eager]="true">
@@ -360,102 +307,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               </button>
             </div>
           </div>
-          }
         </header>
 
-        @if (kind() === 'ship') {
-          <!-- ── The four frequent actions, directly under the picture ─────
-               They sat on the art until feedback 140dfb7e asked for every
-               clickable thing except the 2D/3D switch to leave the image.
-               One row, wraps on a phone. ── -->
-          <div class="stage-actions">
-            <button type="button" class="btn" [class.on]="isPinned()" (click)="togglePin()">
-              <span aria-hidden="true">{{ isPinned() ? '★' : '☆' }}</span>
-              {{ (isPinned() ? 'codex.compare.pinned' : 'codex.detail.actionCompare') | translate }}
-            </button>
-            <button type="button" class="btn" (click)="discardLoadoutDraft()">
-              {{ 'codex.detail.actionFactoryLoadout' | translate }}
-            </button>
-            <button type="button" class="btn copy" (click)="copyShareLink()">
-              {{ 'codex.detail.actionCopyLink' | translate }}
-              @if (linkCopied()) {
-                <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
-              }
-            </button>
-            <!-- Navigates, so it is an anchor and never a button (§2). -->
-            <a class="btn on" [routerLink]="['/codex']" [queryParams]="{ kind: 'ship' }">
-              {{ 'codex.detail.actionSwitchShip' | translate }} <span aria-hidden="true">⇄</span>
-            </a>
-          </div>
-
-          <!-- ── WERKZEUGZEILE (decision 1, Variante B) ──────────────────
-               One flat row under the actions: Ausführung, Lackierung and the
-               rarer actions. Both pickers stay a single click away and their
-               options are real anchors. The port overview moved up onto the
-               stage (feedback 140dfb7e). ── -->
-          <div class="toolrow">
-            @if (editionOptions().length > 1) {
-              <sc-codex-variant-picker class="in-toolrow" variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                [options]="editionPickerOptions()" [current]="currentEdition()" />
-            }
-            @if (skinOptions().length > 1) {
-              <sc-codex-variant-picker class="in-toolrow" variant="skin" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
-                [options]="skinPickerOptions()" [current]="currentLivery()" />
-            }
-            <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" [spacer]="true"
-              [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
-              (addToHangar)="addToHangar()" />
-          </div>
-
-          <!-- Pin your own RSI pledge link (feedback f7d3bd9a). Private to
-               you; an admin can publish one for everyone, never automatic. -->
-          @if (shipLinkForm.open()) {
-            <sc-codex-ship-link-form />
-          }
-        }
         </div>
 
-        @if (kind() === 'ship') {
-          <sc-codex-rank-card
-            [shipName]="displayName()"
-            [sizeClass]="null"
-            [result]="rankResult()"
-            [loading]="rankCohortLoading()"
-            [profile]="rankProfile()"
-            [scope]="rankScope()"
-            [disabledReasons]="rankDisabledReasons()"
-            (profileChange)="rankProfile.set($event)"
-            (scopeChange)="rankScope.set($event)" />
-        }
         </div>
 
 
-        <!-- ── Ships: KPI band + mission bar (PR C) ─────────────────
-             Six headline numbers for the active mission, plus the profile
-             chips that reorder/fold the loadout and analysis columns below.
-             Supersedes the old three-panel "Kampfübersicht" (461288f9) — the
-             new analysis column says the same things without duplicating
-             the page. ───────────────────────────────────────────── -->
-        @if (kind() === 'ship') {
-          <sc-codex-kpi-band [cells]="kpiCells()" />
-          <div class="mission-draft-bar">
-            <sc-codex-mission-bar
-              [active]="activeMissionId()"
-              [capabilities]="shipCapabilities()"
-              [changed]="draftChangedCount()"
-              (missionChange)="setMission($event)" />
-            <sc-codex-loadout-save-bar
-              class="draft-controls"
-              [changed]="draftChangedCount()"
-              [saveable]="saveableEntries().length"
-              [saving]="saving()"
-              [error]="saveError()"
-              [inHangar]="inHangar()"
-              (save)="saveLoadoutDraft()"
-              (discard)="discardLoadoutDraft()"
-              (addAndSave)="saveLoadoutDraft()" />
-          </div>
-        }
 
         <!-- The old "Rumpf, Groesse und Flugeigenschaften" block stood here
              and is gone (decision 3, Variante A). It was a strict subset of the
@@ -513,20 +371,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 (swapRequested)="openSwapPicker($event)" />
             </section>
           }
-
-          <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
-          @if (kind() === 'ship') {
-            <div class="analysis-col col-analyse">
-              <h2 class="col-head">
-                <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
-                <span class="n">3</span>
-                <span class="rule" aria-hidden="true"></span>
-              </h2>
-              <sc-codex-offensive-panel [panel]="offensivePanel()" [startCollapsed]="offensiveStartsCollapsed()" />
-              <sc-codex-defensive-panel [panel]="defensivePanel()" />
-              <sc-codex-ship-panel [groups]="shipFactGroups()" />
-            </div>
-          }
         </div>
 
         <!-- ── Below the concept skeleton ─────────────────────────
@@ -535,37 +379,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              Everything this app adds on top lives BELOW that skeleton,
              so the KPI strip is the third block on the page and starts
              sticking near the top instead of a thousand pixels down. -->
-        <!-- ── Ship liveries — always-on 3D view at hero level (#137 part 2) ──
-             Moved directly beneath the hero so the interactive 3D model stays
-             on-screen (RSI-site feel) instead of being buried below the spec
-             sheet. The viewer itself keeps its deliberate lazy-load: expanded
-             by default on desktop (the ~3 MB glb loads immediately), collapsed
-             by default on mobile (opened on demand to spare cellular data).
-             Comparison is intentionally NOT duplicated here — the existing
-             floating compare tray (<sc-codex-compare-tray/>, pinned via the hero
-             ★ action) is the single comparison surface.
-             Placement is unchanged (decision 4, Variante C). The one thing
-             that moves it is the hero's own 2D/3D switch: while the stage shows
-             the model, this section steps aside so the ~3 MB glb is never
-             loaded twice, and it comes straight back on the way to 2D. -->
-        <!-- @defer makes the viewer (model-viewer + three, ~470 kB) its own
-             chunk that only a ship page loads (AUD-048). No sized placeholder:
-             the viewer itself renders nothing until its skin list arrives, so
-             a reserved height would only add a jump for a ship without skins. -->
-        @if (shipClassName(); as cls) {
-          @if (!heroView3d()) {
-            @defer (on immediate) {
-              <sc-ship-skin-viewer
-                [shipId]="cls"
-                [hardpointPorts]="hardpointPortRefs()"
-                [activePorts]="activePorts()"
-                (hovered)="setActivePorts($event)"
-                (locatable)="glbLocatablePorts.set($event)"
-                (available)="onArtAvailable($event)" />
-            }
-          }
-        }
-
         <ng-container [ngTemplateOutlet]="tailLoadout" />
 
         <!-- ── Description ───────────────────────────────────────── -->
@@ -787,6 +600,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [heroArt]="heroArt()"
             [previewSilhouette]="previewSilhouetteUrl()"
             (hovered)="setActivePorts($event)"
+            (locatable)="glbLocatablePorts.set($event)"
             (inspected)="openInspect($event)"
             (swapRequested)="openSwapPicker($event)"
             (reverted)="onRevertPaths($event)"
@@ -821,6 +635,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug"
                 [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
                 (addToHangar)="addToHangar()" />
+              <!-- Pin to the compare tray (moved over from the retired classic stage). -->
+              <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
+                {{ isPinned() ? '★' : '☆' }} {{ (isPinned() ? 'codex.compare.pinned' : 'codex.compare.pin') | translate }}
+              </button>
             </div>
             @if (shipLinkForm.open()) {
               <sc-codex-ship-link-form />
@@ -856,21 +674,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               (toggleSpec)="toggleSpec()"
               (toggleRaw)="toggleRaw()" />
           </sc-codex-holo-stage>
-        }
-        <!-- The dock is the LAST element, as the concept places it
-             (#f1/#h1: mini-dock closes m-wrap). It is position:sticky,
-             so wherever it sits it keeps that much space in the flow —
-             placed early that space is a hole between the mission bar
-             and the columns; placed last there is nothing to hollow. -->
-        @if (kind() === 'ship' && !holoView()) {
-            <sc-codex-energy-dock
-              [occupants]="draftSummaryOccupants()"
-              [shipStats]="shipPayload()?.stats ?? null"
-              [shipClassName]="shipClassName()"
-              [schemaVersion]="build()?.schemaVersion ?? null"
-              [userId]="currentUserId()"
-              [crossSection]="crossSectionMax()"
-              (sheetChange)="powerSheet.set($event)" />
         }
       }
 
@@ -942,16 +745,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
     .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
     .crumb-spacer { flex: 1 1 auto; }
-    .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: var(--holo-r); overflow: hidden; }
-    .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor));
       transition: background var(--holo-t-fast) ease, color var(--holo-t-fast) ease; }
-    .ht-btn:not(.active):hover { color: var(--sc-fg-0); background: color-mix(in srgb, var(--sc-accent) 10%, var(--sc-bg-2)); }
-    .ht-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
-    .ht-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); }
     /* Switching into the Holotable fades it in — never a hard cut. */
     .view-in { animation: view-in var(--holo-t-base) var(--holo-e-out); }
     @keyframes view-in { from { opacity: 0; transform: translateY(var(--holo-rise)); } }
-    @media (prefers-reduced-motion: reduce) { .view-in { animation: none; } .ht-btn { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .view-in { animation: none; } }
     .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
     .back:hover, .back:focus-visible { color: var(--sc-accent); }
 
@@ -1271,19 +1069,8 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     return !!d && this.hangar.ships().some((s) => s.shipClassName === d.classNameSlug);
   });
-  /**
-   * Which view the hero stage shows. 2D is the default — the store render is
-   * the picture of the ship, and it costs nothing. The switch on the card
-   * swaps in the interactive model, and the standalone livery section below
-   * steps aside while it does, so only one glb is ever live (see the template).
-   */
-  readonly heroView3d = signal(false);
   /** The skin catalog actually has a 3D model — no model, no switch. */
   readonly has3dView = signal(false);
-
-  toggleHeroView(): void {
-    this.heroView3d.update((v) => !v);
-  }
 
   /**
    * Availability LATCHES. A freshly mounted viewer reports "no model" for one
@@ -1297,45 +1084,14 @@ export class CodexDetailComponent implements OnInit {
     if (available) this.has3dView.set(true);
   }
 
-  /**
-   * The Holotable view toggle (Wave 2, item A). Default = today's (classic)
-   * view. Persisted per user in localStorage; the URL `?view=holo` mirrors it
-   * and WINS on load, so a shared holo deep-link always lands in holo even
-   * if the visitor's stored preference says classic. Ship kind only — every
-   * other codex kind never reads or writes this at all, so their pages stay
-   * byte-for-byte unaffected regardless of what is in storage.
-   */
-  readonly holoView = signal(false);
-  private static readonly HOLO_VIEW_STORAGE_KEY = 'sc.codex.holoView';
   /** Wave 2 arrival animation: cut to "already arrived" on a repeat visit
    * within the same tab session (concept: "repeat visit in the session =
    * cut only"). */
   private readonly holoSeenShips = signal<ReadonlySet<string>>(new Set<string>());
 
-  private initHoloView(className: string): void {
-    const fromUrl = this.route.snapshot.queryParamMap.get('view');
-    if (fromUrl === 'holo') {
-      this.holoView.set(true);
-    } else if (fromUrl === 'classic') {
-      this.holoView.set(false);
-    } else {
-      try {
-        this.holoView.set(localStorage.getItem(CodexDetailComponent.HOLO_VIEW_STORAGE_KEY) === 'holo');
-      } catch {
-        this.holoView.set(false);
-      }
-      // The stored preference is mirrored INTO the url (wave 5 A1.2): what
-      // the visitor sees is what "Link kopieren" hands on — a recipient with
-      // no stored preference must land in the same view.
-      if (this.holoView()) {
-        void this.router.navigate([], {
-          relativeTo: this.route,
-          queryParams: { view: 'holo' },
-          queryParamsHandling: 'merge',
-          replaceUrl: true,
-        });
-      }
-    }
+  /** The Holotable is the only ship view (2026-10-02); an old `?view=holo`
+   * link is simply ignored. */
+  private initHoloView(_className: string): void {
     // "Seen this session" is recorded by the stage once its arrival played
     // (`onHoloArrived`) — never here, or the arrival would be cut on the very
     // first visit (wave 5 A3.1).
@@ -1421,22 +1177,6 @@ export class CodexDetailComponent implements OnInit {
     const configs = await this.hangar.listConfigs(ship.id);
     if (this.detail()?.classNameSlug !== classNameSlug) return;
     this.activeHangarConfig.set(configs.find((c) => c.isActive) ?? configs[0] ?? null);
-  }
-
-  toggleHoloView(): void {
-    const next = !this.holoView();
-    this.holoView.set(next);
-    try {
-      localStorage.setItem(CodexDetailComponent.HOLO_VIEW_STORAGE_KEY, next ? 'holo' : 'classic');
-    } catch {
-      /* localStorage unavailable — the toggle still works for this tab */
-    }
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { view: next ? 'holo' : null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
   }
 
   readonly holoSeenThisSession = computed(() => {
@@ -1690,7 +1430,6 @@ export class CodexDetailComponent implements OnInit {
     if (kind === 'ship') this.initHoloView(className);
     // A new ship is a new answer to "is there a model?" — see onArtAvailable.
     this.has3dView.set(false);
-    this.heroView3d.set(false);
     this.loading.set(true);
     this.error.set(null);
     this.expandedPort.set(null);
@@ -2165,11 +1904,7 @@ export class CodexDetailComponent implements OnInit {
   /** HangarPicker `pick` (N4/M6): switch to the picked hull and record it as recently chosen. */
   onShipPickerPick(classNameSlug: string): void {
     this.hangar.markShipPicked(classNameSlug);
-    // Stay in the view the user is in (wave 5 A1.2): a pick from the
-    // Holotable's dock lands on the next hull's Holotable.
-    void this.router.navigate(['/codex', 'ship', classNameSlug], {
-      queryParams: this.holoView() ? { view: 'holo' } : {},
-    });
+    void this.router.navigate(['/codex', 'ship', classNameSlug]);
   }
 
   /** HangarPicker `open` — neither the classic hero nor the Holotable dock has

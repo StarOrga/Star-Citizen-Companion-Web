@@ -17,6 +17,7 @@ import {
   type WritableSignal,
 } from '@angular/core';
 import { ShipSkinsService } from '../ship-skins.service';
+import { CodexHoloComponentsComponent } from './codex-holo-components.component';
 import { Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexDetail } from '../codex.service';
@@ -150,7 +151,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 @Component({
   selector: 'sc-codex-holo-stage',
   standalone: true,
-  imports: [
+  imports: [CodexHoloComponentsComponent, 
     TranslatePipe,
     RouterLink,
     CodexRankCardComponent,
@@ -255,7 +256,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                 <div class="sub"><span>{{ 'codex.holo.stage.top3' | translate }}</span><i></i></div>
                 <ol class="top3">
                   @for (s of topCohortShips(); track s.className) {
-                    <li><a [routerLink]="['/codex', 'ship', s.className]" [queryParams]="{ view: 'holo' }">{{ s.displayName }}</a></li>
+                    <li><a [routerLink]="['/codex', 'ship', s.className]">{{ s.displayName }}</a></li>
                   }
                 </ol>
               }
@@ -298,7 +299,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                   kind="ship"
                   [docked]="true"
                   [items]="hangarPickerItems()"
-                  [linkQueryParams]="{ view: 'holo' }"
                   (pick)="hangarPick.emit($event)"
                   (open)="hangarOpen.emit()" />
               </div>
@@ -356,7 +356,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               [hardpointPortRefs]="hardpointPortRefs()"
               [hardpointFrame]="hardpointFrame()"
               [hardpointMarkers]="hardpointMarkersMutable()"
-              [activePorts]="activePorts()"
+              [activePorts]="tableActivePorts()"
               [inspectedPort]="inspectedPort()"
               [patchPortPins]="patchPortPins()"
               [displayName]="displayName()"
@@ -367,7 +367,16 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               (hovered)="hovered.emit($event)"
               (pinInspect)="inspectPin($event)"
               (artAvailable)="artAvailable.emit($event)"
-              (previewError)="previewFailed.set(true)" />
+              (previewError)="previewFailed.set(true)"
+              (locatable)="onModelLocatable($event)" />
+            @if (viewMode() === '3d') {
+              <!-- Installed components → glowing hotspot on the 3D hull. -->
+              <sc-codex-holo-components class="holo-components"
+                [sections]="allSections()"
+                [modelPorts]="modelPorts()"
+                (hovered)="hovered.emit($event)"
+                (pinned)="pinnedPorts.set($event)" />
+            }
           </div>
         </section>
 
@@ -496,6 +505,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   `,
   styles: [
 `
+  .holo-components { display: block; margin-top: 10px; }
   :host { display: block; }
   .holo-stage {
   --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
@@ -887,6 +897,25 @@ export class CodexHoloStageComponent {
   /** The embedded 3D viewer's catalog answer, forwarded so the host's latch
    * (`has3dView`) learns about a model from the holo view too. */
   readonly artAvailable = output<boolean>();
+  /** Ports the 3D model resolved (forwarded to the page's locatable set). */
+  readonly locatable = output<string[]>();
+  /** Ports the 3D model resolved — the component list's "has a position" test. */
+  readonly modelPorts = signal<readonly string[]>([]);
+  /** The component list's pinned highlight; survives hover-outs elsewhere. */
+  readonly pinnedPorts = signal<readonly string[]>([]);
+  /** What the table lights up: the shared hover plus the pinned component. */
+  readonly tableActivePorts = computed<readonly string[]>(() => {
+    const pinned = this.pinnedPorts();
+    if (pinned.length === 0) return this.activePorts();
+    return [...new Set([...this.activePorts(), ...pinned])];
+  });
+  /** The user picked a view for this hull — the 3D default no longer applies. */
+  private viewModeTouched = false;
+
+  onModelLocatable(ports: string[]): void {
+    this.modelPorts.set(ports);
+    this.locatable.emit(ports);
+  }
   /** The arrival transformation finished for this hull (slug) — the host
    * records it as "seen this session" so a return visit cuts straight in. */
   readonly arrivedShip = output<string>();
@@ -1030,6 +1059,9 @@ export class CodexHoloStageComponent {
         this.inspectedPort.set(null);
         this.sharePopoverOpen.set(false);
         this.viewMode.set('holo');
+        this.viewModeTouched = false;
+        this.modelPorts.set([]);
+        this.pinnedPorts.set([]);
         this.undoToast.set(null);
         this.pulseTile.set(null);
         this.patchGhosts.set(null);
@@ -1053,6 +1085,15 @@ export class CodexHoloStageComponent {
       }).catch((error) => {
         logWarn('codex', 'holo skin catalog failed', { shipId, error });
         /* catalog unreachable — the toggle simply stays hidden */
+      });
+    });
+
+    // The 3D hologram leads (2026-10-02): a hull with a model opens in 3D once
+    // its arrival played, unless the user already picked a view for it.
+    effect(() => {
+      if (!this.has3d() || this.phase() !== 'done') return;
+      untracked(() => {
+        if (!this.viewModeTouched && this.viewMode() === 'holo') this.viewMode.set('3d');
       });
     });
 
@@ -1265,6 +1306,7 @@ export class CodexHoloStageComponent {
   }
 
   toggleViewMode(mode: '3d' | 'schema'): void {
+    this.viewModeTouched = true;
     this.viewMode.set(this.viewMode() === mode ? 'holo' : mode);
   }
 

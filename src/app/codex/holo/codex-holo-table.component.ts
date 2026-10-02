@@ -72,7 +72,7 @@ let hullFillSeq = 0;
         @defer (on immediate) {
           <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
             [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
-            (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" />
+            (hovered)="hovered.emit($event)" (available)="artAvailable.emit($event)" (locatable)="locatable.emit($event)" />
         } @placeholder {
           <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
         }
@@ -448,6 +448,8 @@ export class CodexHoloTableComponent {
   readonly hovered = output<string[] | null>();
   readonly pinInspect = output<string>();
   readonly artAvailable = output<boolean>();
+  /** Ports the 3D model resolved to a hotspot (the viewer's `locatable`). */
+  readonly locatable = output<string[]>();
   readonly previewError = output<void>();
 
   /** The hull, the orbit and the pins exist from the reveal on — see the class comment. */
