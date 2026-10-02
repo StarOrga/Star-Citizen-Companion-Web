@@ -52,8 +52,29 @@ def ports_from_components(comps: List[Dict[str, Any]]) -> List[PortDef]:
             continue
         out.append(PortDef(name=name, helper_name=port_helper_name(p),
                            min_size=_to_int(p.get("MinSize")), max_size=_to_int(p.get("MaxSize")),
-                           types=_port_types(p), flags=_as_list(p.get("Flags"))))
+                           types=port_types_with_subtypes(p), flags=_as_list(p.get("Flags"))))
     return out
+
+
+def port_types_with_subtypes(p: Dict[str, Any]) -> List[str]:
+    """Accepted types as ``Type.SubType`` (one per subtype, bare ``Type`` when
+    none) — the format :func:`~.ships.vehicle_ports` already emits. The codex's
+    ``_port_types`` drops subtypes, which loses e.g. optic vs. magazine on an
+    FPS weapon (every one of those ports is ``WeaponAttachment``)."""
+    out: List[str] = []
+    types = p.get("Types") or p.get("types")
+    for t in types if isinstance(types, list) else []:
+        if not isinstance(t, dict):
+            continue
+        ty = t.get("Type") or t.get("type")
+        if not ty:
+            continue
+        subs = t.get("SubTypes") or t.get("subTypes") or []
+        subs = subs.split(",") if isinstance(subs, str) else subs
+        subs = [x.strip() for x in subs if isinstance(x, str) and x.strip()
+                and x.strip().upper() != "UNDEFINED"]
+        out += [f"{ty}.{x}" for x in subs] or [str(ty)]
+    return out or _port_types(p)
 
 
 def geometry_of(comps: List[Dict[str, Any]]) -> tuple:

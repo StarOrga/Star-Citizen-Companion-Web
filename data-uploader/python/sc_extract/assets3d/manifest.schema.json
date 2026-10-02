@@ -36,7 +36,7 @@
   },
   "properties": {
     "schemaVersion": { "const": 1 },
-    "kind": { "enum": ["ship", "fps_weapon"] },
+    "kind": { "enum": ["ship", "fps_weapon", "item"] },
     "coordinateSystem": { "const": "gltf-y-up-metres" },
     "entity": {
       "type": "object",

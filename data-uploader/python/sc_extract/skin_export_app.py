@@ -18,10 +18,16 @@ CLI:
     python -m sc_extract.skin_export_app --p4k <Data.p4k> --out <skins-cache> \\
         --converter <cgf-converter.exe> --manifest <out>/skins/_build_manifest.json \\
         [--skip-existing]
+
+    # standalone packages (docs/asset-package.md), with or without ships:
+    python -m sc_extract.skin_export_app --p4k <Data.p4k> --out <dir> \
+        --converter <cgf-converter.exe> --fps [--weapon <class|glob>] \
+        --items [--item <class|glob>] [--max-packages N]
 """
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import sys
 from pathlib import Path
@@ -125,6 +131,69 @@ class _PackageBuilder:
                     f"max {loc.get('max_error_m')} m)")
         return {k: v for k, v in row.items() if k != "parts"}
 
+    def standalone(self, kind: str, patterns: list[str], limit) -> list[dict]:
+        """--fps / --items: one package per class into <out>/_fps|_items/<class>/.
+        ``patterns`` = exact class names or fnmatch globs (empty = every class
+        the kind's enumeration rule admits). A failure skips the class."""
+        from .assets3d import fps as fps_mod
+        from .assets3d import items as items_mod
+        if kind == "fps":
+            src = getattr(self, "_fps_source", None) or fps_mod.FpsSource(self.source, self.reader)
+            self._fps_source = src
+            enumerate_all = lambda: fps_mod.fps_weapon_classes(src)  # noqa: E731
+            build = lambda c: fps_mod.build_fps_package(c, src, self.store, self.out)  # noqa: E731
+            folder = fps_mod.FPS_DIR
+        else:
+            src = self.source
+            enumerate_all = lambda: items_mod.item_classes(src)  # noqa: E731
+            build = lambda c: items_mod.build_item_package(c, src, self.store, self.out)  # noqa: E731
+            folder = items_mod.ITEMS_DIR
+        phase(f"package-{kind}")
+        globs = [p for p in patterns if any(ch in p for ch in "*?[")]
+        classes = [p for p in patterns if p not in globs]
+        if globs or not patterns:
+            log("info", f"{kind}: enumerating classes")
+            pool = enumerate_all()
+            if not patterns:
+                classes = pool[: limit or None]
+            for g in globs:  # the cap applies per glob, so every pattern is represented
+                hits = [c for c in pool if fnmatch.fnmatch(c.lower(), g.lower())]
+                classes += hits[: limit or None]
+        classes = list(dict.fromkeys(classes))
+        log("info", f"{kind}: {len(classes)} package(s) to build")
+        rows: list[dict] = []
+        for i, cls in enumerate(classes):
+            progress(f"{kind}-packages", current=i + 1, total=len(classes))
+            try:
+                res = build(cls)
+                self.store.save_index()
+            except Exception as exc:  # noqa: BLE001 — one class never costs the run
+                log("warn", f"{cls}: {kind} package failed: {type(exc).__name__}: {exc}")
+                continue
+            if res is None:
+                log("warn", f"{cls}: {kind} package skipped — no record or no geometry")
+                continue
+            m = res.manifest
+            pl = m["placements"]
+            row = {
+                "className": m["entity"]["className"],
+                "manifestPath": f"{folder}/{m['entity']['className']}/package.json",
+                "bytes": res.manifest_bytes,
+                "rootSha256": (m["root"] or {}).get("sha256"),
+                "rootBytes": res.root_bytes,
+                "partBytes": res.unique_part_bytes,
+                "parts": len(m["parts"]),
+                "placements": len(pl),
+                "withPart": sum(1 for x in pl if x["partSha256"]),
+            }
+            rows.append(row)
+            self.rows.append({"parts": sorted(m["parts"]) + ([row["rootSha256"]]
+                              if row["rootSha256"] else [])})
+            log("info", f"{cls}: {kind} package root {row['rootBytes'] / 1e3:.0f} kB, "
+                        f"{row['parts']} part(s), {row['withPart']}/{len(pl)} placements "
+                        f"with geometry")
+        return rows
+
     def summary(self) -> dict:
         """Dedup across the run: bytes if every ship stored its own parts vs. stored once."""
         unique = {sha for r in self.rows for sha in r["parts"]}
@@ -133,7 +202,8 @@ class _PackageBuilder:
         naive = sum(sizes[sha] for r in self.rows for sha in r["parts"])
         stored = sum(sizes.values())
         return {
-            "ships": len(self.rows),
+            "ships": sum(1 for r in self.rows if "ship_id" in r),
+            "entities": len(self.rows),
             "part_refs": sum(len(r["parts"]) for r in self.rows), "unique_parts": len(unique),
             "part_bytes_naive": naive, "part_bytes_deduped": stored,
             "dedup_ratio": round(naive / max(1, stored), 2),
@@ -165,9 +235,20 @@ def main() -> int:
                          "additive — the hull output contract is unchanged")
     ap.add_argument("--interior", action="store_true",
                     help="with --package: export the interior layer into <out>/_interiors")
+    ap.add_argument("--fps", action="store_true",
+                    help="build FPS weapon packages into <out>/_fps/<class>/package.json")
+    ap.add_argument("--weapon", action="append", default=[],
+                    help="with --fps: weapon class or glob (repeatable; default = all)")
+    ap.add_argument("--items", action="store_true",
+                    help="build standalone ship-item packages into <out>/_items/<class>/package.json")
+    ap.add_argument("--item", action="append", default=[],
+                    help="with --items: item class or glob (repeatable; default = all)")
+    ap.add_argument("--max-packages", type=int, default=None,
+                    help="cap for --fps / --items: per glob pattern, or overall "
+                         "when no class filter is given")
     args = ap.parse_args()
-    if not args.ship and not args.manifest:
-        ap.error("provide --ship (repeatable) or --manifest")
+    if not args.ship and not args.manifest and not (args.fps or args.items):
+        ap.error("provide --ship (repeatable), --manifest, --fps or --items")
 
     # UTF-8 stdout is forced centrally in events.py (imported above) for every
     # sidecar entrypoint — the host launches us with `-E`, so PYTHONIOENCODING
@@ -204,7 +285,8 @@ def main() -> int:
         log("info", f"{len(refs)} ship(s) to build"
                     f"{' (manifest)' if args.manifest else ''}")
 
-        pkg = _PackageBuilder(p4k, args, exporter, on_log) if args.package else None
+        pkg = _PackageBuilder(p4k, args, exporter, on_log) \
+            if (args.package or args.fps or args.items) else None
 
         ships_out: list[dict] = []
         # Ships that were admitted to the manifest but wrote no model (#512).
@@ -237,7 +319,7 @@ def main() -> int:
                         "export_dir": str((cfg.out_dir / ref.ship_id).resolve()),
                         "skins": [], "cached": True,
                     }
-                    if pkg and not (cfg.out_dir / ref.ship_id / "package.json").exists():
+                    if pkg and args.package and not (cfg.out_dir / ref.ship_id / "package.json").exists():
                         model = next((s.get("model") for s in prev.get("skins", [])
                                       if s.get("model")), None)
                         entry["package"] = pkg.build(
@@ -273,7 +355,7 @@ def main() -> int:
                 "export_dir": str((cfg.out_dir / ref.ship_id).resolve()),
                 "skins": skins,
             }
-            if pkg:
+            if pkg and args.package:
                 model = next((s.get("model") for s in result["skins"] if s.get("model")), None)
                 entry["package"] = pkg.build(
                     ref.ship_id, spec, cfg.out_dir / ref.ship_id / model if model else None)
@@ -292,7 +374,7 @@ def main() -> int:
                               else ("no paints discovered" if not skins else "no model written"),
                 })
 
-        if not ships_out:
+        if refs and not ships_out:
             error("no ships exported (no hull mesh found for any requested ship)")
             return 1
 
@@ -317,6 +399,10 @@ def main() -> int:
                 head = ", ".join(ids[:5]) + (f" … +{len(ids) - 5}" if len(ids) > 5 else "")
                 log("warn", f"  {len(ids)}x {reason}: {head}")
         run_result = {"ships": ships_out, "verdict": verdict}
+        if pkg and args.fps:
+            run_result["fpsPackages"] = pkg.standalone("fps", args.weapon, args.max_packages)
+        if pkg and args.items:
+            run_result["itemPackages"] = pkg.standalone("items", args.item, args.max_packages)
         if pkg:
             run_result["packages"] = pkg.summary()
         done(result=run_result)
