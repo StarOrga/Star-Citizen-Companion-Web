@@ -806,6 +806,8 @@ export class CodexLandingComponent implements OnInit {
     effect(() => {
       const term = this.searchTerm().trim();
       if (!term) {
+        // Invalidate a search still in flight, or its hits land after the clear.
+        this.searchSeq++;
         this.searchResults.set([]);
         this.searching.set(false);
         return;
