@@ -1929,6 +1929,25 @@
         "noSignature": "Signature values (EM/IR) are not in the game data yet",
         "noData": "This value is not in the game data yet"
       }
+    },
+    "assetPackage": {
+      "title": "3D model",
+      "loading": "Loading 3D model…",
+      "retry": "Try again",
+      "groupsAria": "Show or hide part groups",
+      "groups": {
+        "weapons": "Weapons",
+        "missiles": "Missiles",
+        "components": "Components",
+        "attachments": "Attachments",
+        "interior": "Interior",
+        "other": "Other"
+      },
+      "parts": "Parts ({{count}})",
+      "show": "Show {{name}}",
+      "hide": "Hide {{name}}",
+      "hotspotTip": "{{name}} · {{type}} · size {{size}}",
+      "freeSlot": "Free slot, accepts {{types}}"
     }
   },
   "blueprint": {
