@@ -560,6 +560,8 @@ export function blueprintCategoriesForGroup(
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    /* The field has its own clear button; the browser's would be a second x (audit L16). */
+    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
     .search-clear {
       position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
       display: inline-flex; align-items: center; justify-content: center;

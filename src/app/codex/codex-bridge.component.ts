@@ -352,6 +352,8 @@ interface Lane {
       font-family: inherit; font-size: 1rem;
     }
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    /* The field has its own clear button; the browser's would be a second x (audit L16). */
+    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
     .scanner-clear:hover { color: var(--sc-accent); }
     .index-link {
