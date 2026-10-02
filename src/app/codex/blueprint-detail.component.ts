@@ -87,7 +87,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                   @for (ing of ingredients(); track ing.ingredientIndex) {
                     <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
                       <!-- Ingredient amounts are SCU in the recipe data (audit L29). -->
-                      <div class="ing-qty"><span class="q">{{ formatQuantity(ing.quantity) }}</span> <span class="ing-unit">{{ 'blueprint.detail.unitScu' | translate }}</span></div>
+                      <div class="ing-qty"><span class="q">{{ formatQuantity(ing.quantity) }}</span><span class="ing-unit"> {{ 'blueprint.detail.unitScu' | translate }}</span></div>
                       <div class="ing-info">
                         @if (ing.ingredientClassName && ing.entityKind) {
                           <a class="ing-name link"

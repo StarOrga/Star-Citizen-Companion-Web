@@ -267,13 +267,14 @@ describe('CodexLandingComponent', () => {
     expect(anchor?.querySelector('.stage-title')?.textContent?.trim()).toBe('AEGS_Gladius');
   });
 
-  it('the ship stage falls back honestly when the hangar is empty — text, but no anchor into nothing', async () => {
+  it('the ship stage with an empty hangar leads to the hangar, never into nothing (audit L24)', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     const hit = el.querySelector('.stage-ship .stage-hit');
     expect(hit).not.toBeNull();
-    expect(hit?.tagName.toLowerCase()).toBe('div');
-    expect(hit?.hasAttribute('href')).toBeFalse();
+    // The empty stage is a way forward now: a real anchor to where a ship is claimed.
+    expect(hit?.tagName.toLowerCase()).toBe('a');
+    expect(hit?.getAttribute('href')).toBe('/hangar');
   });
 
   it('the person stage shows the "uncommissioned" fallback and the figure when no personal loadout exists', async () => {

@@ -643,6 +643,13 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
       flex: 0 0 auto; font-family: var(--sc-font-mono, ui-monospace, monospace); font-size: 0.8rem;
       padding: 4px 10px; border-radius: 6px; background: var(--sc-bg-2);
       border: 1px solid var(--sc-border); color: var(--sc-fg-0); white-space: nowrap;
+      max-width: 100%;
+    }
+    /* Readable chords ("Rechte Strg + Linke Umschalt + ...") are longer than the
+       raw tokens were: on a phone they wrap at the joiners instead of pushing
+       the row sideways (REQ-24). */
+    @media (max-width: 640px) {
+      .bind { white-space: normal; overflow-wrap: anywhere; flex-shrink: 1; min-width: 0; }
     }
     .bind.unbound { background: transparent; color: var(--sc-fg-2); border-style: dashed; }
 
