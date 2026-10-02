@@ -822,11 +822,12 @@ export class FpsListComponent {
   readonly rows = computed<FpsGridRow[]>(() =>
     // A search puts exact and prefix name matches first; the catalog order
     // breaks ties (shared Codex search dialect, codex-search.ts).
-    rankBySearch(this.searchTerm(), this.fold(this.filtered(), this.includeVariants()), (r) => [
-      this.cardName(r),
-      r.nameLocalized,
-      r.classNameSlug,
-    ]),
+    rankBySearch(
+      this.searchTerm(),
+      this.fold(this.filtered(), this.includeVariants()),
+      (r) => [this.cardName(r), r.nameLocalized],
+      (r) => [r.classNameSlug],
+    ),
   );
 
   /**

@@ -664,7 +664,7 @@ export class CodexBridgeComponent implements OnInit {
     try {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
-      this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized, r.classNameSlug]));
+      this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug]));
     } catch (error) {
       logWarn('codex', 'bridge search failed', { term, error });
       if (seq === this.searchSeq) this.searchResults.set([]);

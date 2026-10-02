@@ -21,7 +21,7 @@ export function normalizeSearch(value: string): string {
   return value
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/\p{M}/gu, '')
     .replace(/ß/g, 'ss')
     .replace(/\s+/g, ' ')
     .trim();
@@ -93,21 +93,43 @@ export function searchScore(term: string, ...names: (string | null | undefined)[
     const compactN = n.replace(/[\s\-_/.]+/g, '');
     if (n === q || compactN === compactQ) return 4;
     if (n.startsWith(q) || compactN.startsWith(compactQ)) best = Math.max(best, 3);
-    else if (n.split(/[\s\-_/.]+/).some((w) => w.startsWith(q))) best = Math.max(best, 2);
+    // A word (or a run of words — "cutlass black") of the name starts with the term.
+    else if ((' ' + n.replace(/[\-_/.]+/g, ' ')).includes(' ' + q.replace(/[\-_/.]+/g, ' '))) best = Math.max(best, 2);
     else if (n.includes(q) || compactN.includes(compactQ)) best = Math.max(best, 1);
   }
   return best;
 }
 
 /**
- * Stable relevance sort: better name score first, the incoming order (the
+ * Score for a record: its display names count fully; its technical ids
+ * (class names) only for an exact or prefix hit ("aegs_gladius", "aegs_") —
+ * a word in the middle of a class name counts as a plain substring, otherwise "DRAK_Cutlass_Black_BIS2949" would tie with the
+ * ship actually called "Cutlass Black".
+ */
+export function recordScore(
+  term: string,
+  names: readonly (string | null | undefined)[],
+  ids: readonly (string | null | undefined)[] = [],
+): number {
+  const byName = searchScore(term, ...names);
+  const byId = searchScore(term, ...ids);
+  return Math.max(byName, byId >= 3 ? byId : Math.min(byId, 1));
+}
+
+/**
+ * Stable relevance sort: better score first, the incoming order (the
  * server's alphabetical order) as the tiebreak. Returns a copy unchanged for
  * an empty term.
  */
-export function rankBySearch<T>(term: string, rows: readonly T[], names: (row: T) => (string | null | undefined)[]): T[] {
+export function rankBySearch<T>(
+  term: string,
+  rows: readonly T[],
+  names: (row: T) => (string | null | undefined)[],
+  ids: (row: T) => (string | null | undefined)[] = () => [],
+): T[] {
   if (!normalizeSearch(term).replace(/\*/g, '')) return [...rows];
   return rows
-    .map((row, i) => ({ row, i, s: searchScore(term, ...names(row)) }))
+    .map((row, i) => ({ row, i, s: recordScore(term, names(row), ids(row)) }))
     .sort((a, b) => b.s - a.s || a.i - b.i)
     .map((x) => x.row);
 }

@@ -11,7 +11,7 @@
 
 import type { CodexKind, CodexListRow, LocalizedText } from './codex.service';
 import type { UpcomingShip } from './upcoming-ships.service';
-import { searchScore } from './codex-search';
+import { recordScore } from './codex-search';
 
 /**
  * Pseudo-kind for a ship RSI has ANNOUNCED but that the datamined game data
@@ -182,10 +182,10 @@ export function polyMatchScore(query: string, hit: PolySearchHit): number {
   if (!query.trim()) return 1;
   // For announced ships the slug is an opaque feed id, not a class name — never
   // score against it, or a short query could "substring match" a random id.
-  const scorable = isUpcomingHit(hit) ? [hit.nameLocalized] : [hit.nameLocalized, hit.classNameSlug];
+  const ids = isUpcomingHit(hit) ? [] : [hit.classNameSlug];
   // Shared Codex dialect (codex-search): case, diacritics and separators never
   // matter, so "p4ar" scores the "P4-AR" exact match like "p4-ar" does.
-  const s = searchScore(query, ...scorable);
+  const s = recordScore(query, [hit.nameLocalized], ids);
   return s >= 3 ? s : s >= 1 ? 2 : 1;
 }
 

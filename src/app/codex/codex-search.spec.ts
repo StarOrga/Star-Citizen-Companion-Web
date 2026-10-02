@@ -2,6 +2,7 @@ import {
   ilikeTokenPatterns,
   normalizeSearch,
   rankBySearch,
+  recordScore,
   searchMatcher,
   searchScore,
   searchTokens,
@@ -99,6 +100,29 @@ describe('codex-search (shared Codex search dialect)', () => {
       expect(searchScore('gladius', 'Aegis Gladius Pirate')).toBe(2);
       expect(searchScore('ladius', 'Aegis Gladius')).toBe(1);
       expect(searchScore('behring', 'P4-AR Rifle')).toBe(0);
+    });
+
+    it('scores a multi-word term matching a run of words above a class-name-only hit', () => {
+      // Live finding: "cutlass black" listed the Best-in-Show edition first.
+      expect(searchScore('cutlass black', 'Drake Cutlass Black')).toBe(2);
+      expect(recordScore('cutlass black', ['Drake Cutlass Best In Show 2949 Edition'], ['DRAK_Cutlass_Black_BIS2949'])).toBe(1);
+      expect(
+        rankBySearch(
+          'cutlass black',
+          [
+            { n: 'Drake Cutlass Best In Show 2949 Edition', id: 'DRAK_Cutlass_Black_BIS2949' },
+            { n: 'Drake Cutlass Black', id: 'DRAK_Cutlass_Black' },
+          ],
+          (r) => [r.n],
+          (r) => [r.id],
+        ).map((r) => r.n),
+      ).toEqual(['Drake Cutlass Black', 'Drake Cutlass Best In Show 2949 Edition']);
+    });
+
+    it('lets a class name count only for an exact or prefix hit', () => {
+      expect(recordScore('aegs_gladius', ['Aegis Gladius'], ['AEGS_Gladius'])).toBe(4);
+      expect(recordScore('aegs_', [null], ['AEGS_Gladius'])).toBe(3);
+      expect(recordScore('gladius', ['Something'], ['AEGS_Gladius'])).toBe(1);
     });
 
     it('takes the best of several names and ignores empty ones', () => {

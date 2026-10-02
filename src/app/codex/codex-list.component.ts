@@ -913,7 +913,7 @@ export class CodexListComponent implements OnInit {
         skinVariants: [] as readonly SkinVariantRef[],
         editions: [] as readonly EditionRef[],
       }));
-      return rankBySearch(this.searchTerm(), raw, (r) => [this.cardName(r), r.nameLocalized, r.classNameSlug]);
+      return rankBySearch(this.searchTerm(), raw, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]);
     }
     const grouped = groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r)));
     // Edition grouping reads a class-name lineage only the vehicle catalog
@@ -925,7 +925,7 @@ export class CodexListComponent implements OnInit {
     // The server answers alphabetically; a search puts the exact and prefix
     // matches first ("gladius" → Gladius before Gladius Valiant before a
     // Pirate edition), the server order breaking ties.
-    return rankBySearch(this.searchTerm(), rows, (r) => [this.cardName(r), r.nameLocalized, r.classNameSlug]);
+    return rankBySearch(this.searchTerm(), rows, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]);
   });
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
