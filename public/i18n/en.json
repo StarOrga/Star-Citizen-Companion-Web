@@ -309,7 +309,10 @@
         "freshSub": "Ships in the current live build",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
-      }
+      },
+      "scannerPlaceholderShort": "Scan a ship or class…",
+      "scannerEmpty": "No ship matches “{{term}}”.",
+      "searchIndex": "Search the index"
     },
     "index": {
       "title": "Codex — Index mode"
@@ -806,7 +809,8 @@
       "kind": "No {{kind}} in this build.",
       "noBuild": "No catalog build is published yet.",
       "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded.",
-      "resetAll": "Reset search & filters"
+      "resetAll": "Reset search & filters",
+      "foundElsewhere": "No {{kind}} for “{{term}}” — found in:"
     },
     "error": {
       "title": "Could not load the codex",
@@ -2070,7 +2074,9 @@
     "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
     "empty": {
       "weapon": "No FPS weapons in this build.",
-      "armor": "No armor in this build."
+      "armor": "No armor in this build.",
+      "nothingIn": "Nothing under {{cat}} —",
+      "searchIn": "search {{cat}}"
     },
     "equip": {
       "targetSet": "Equipping: {{name}}",
@@ -2093,7 +2099,8 @@
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} for {{name}}"
       },
-      "setLoadFailed": "The set from the link could not be loaded"
+      "setLoadFailed": "The set from the link could not be loaded",
+      "equipAs": "Equip as {{slot}}"
     }
   },
   "news": {

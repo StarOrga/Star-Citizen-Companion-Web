@@ -309,7 +309,10 @@
         "freshSub": "Schiffe im aktuellen Live-Build",
         "role": "Nach Hersteller entdecken",
         "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
-      }
+      },
+      "scannerPlaceholderShort": "Schiff oder Klasse scannen…",
+      "scannerEmpty": "Kein Schiff passt zu „{{term}}“.",
+      "searchIndex": "Im Index suchen"
     },
     "index": {
       "title": "Codex — Index-Modus"
@@ -806,7 +809,8 @@
       "kind": "Keine {{kind}} in diesem Build.",
       "noBuild": "Es ist noch kein Katalog-Build veröffentlicht.",
       "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider.",
-      "resetAll": "Suche & Filter zurücksetzen"
+      "resetAll": "Suche & Filter zurücksetzen",
+      "foundElsewhere": "Keine {{kind}} für „{{term}}“ — gefunden in:"
     },
     "error": {
       "title": "Codex konnte nicht geladen werden",
@@ -2070,7 +2074,9 @@
     "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
     "empty": {
       "weapon": "Keine FPS-Waffen in diesem Build.",
-      "armor": "Keine Rüstung in diesem Build."
+      "armor": "Keine Rüstung in diesem Build.",
+      "nothingIn": "Nichts unter {{cat}} —",
+      "searchIn": "in {{cat}} suchen"
     },
     "equip": {
       "targetSet": "Ausrüsten für: {{name}}",
@@ -2093,7 +2099,8 @@
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} für {{name}}"
       },
-      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden"
+      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden",
+      "equipAs": "Als {{slot}} ausrüsten"
     }
   },
   "news": {

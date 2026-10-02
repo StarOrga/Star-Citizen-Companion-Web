@@ -98,7 +98,12 @@ interface FacetOption {
         <div class="title-block">
           <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
           <h1>{{ 'fps.title' | translate }}</h1>
-          <p class="hint">{{ 'fps.subtitle' | translate }}</p>
+          <!-- Equip mode drops the subtitle: the band says why the reader is
+               here, and the first card's equip button has to stay above the
+               fold on a 1440x900 desktop (L11). -->
+          @if (!targetSet()) {
+            <p class="hint">{{ 'fps.subtitle' | translate }}</p>
+          }
         </div>
         <sc-codex-status-banner />
       </header>
@@ -268,7 +273,7 @@ interface FacetOption {
           }
         </div>
 
-        @if (category() === 'armor') {
+        @if (category() === 'armor' && !targetSet()) {
           <p class="partial-note">{{ 'fps.armorStatsHint' | translate }}</p>
         }
 
@@ -281,6 +286,18 @@ interface FacetOption {
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
+            @if (searchInput().trim()) {
+              <!-- The other tab may hold it (L08): point there with the same
+                   search instead of only offering to throw the search away. -->
+              @for (c of otherCategories(); track c) {
+                <p class="empty-elsewhere">
+                  <span>{{ 'fps.empty.nothingIn' | translate: { cat: ('fps.category.' + category()) | translate } }}</span>
+                  <a class="try-other" [attr.href]="categoryHref(c)" (click)="onCategoryClick($event, c)">
+                    {{ 'fps.empty.searchIn' | translate: { cat: ('fps.category.' + c) | translate } }}
+                  </a>
+                </p>
+              }
+            }
             @if (hasActiveFilters() || searchInput()) {
               <p>{{ 'codex.empty.filtered' | translate }}</p>
               <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
@@ -347,7 +364,6 @@ interface FacetOption {
                     <!-- Armour offers its one anatomical home; a weapon or tool
                          the set's positions it honestly fills. -->
                     <div class="equip-row">
-                      <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
                       @for (slot of slots; track slot) {
                         <span class="tip-wrap" [scTooltip]="svc.viewingPastPatch() ? ('fps.equip.pastPatch' | translate) : null" scTooltipTier="label">
                           <!-- The label says what a click DOES: an equipped slot's
@@ -357,6 +373,7 @@ interface FacetOption {
                           @let on = isEquipped(r, slot);
                           <button type="button" class="equip-btn"
                                   [class.on]="on"
+                                  [attr.data-slot]="slot"
                                   [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
                                   [disabled]="equipBusy() !== null || svc.viewingPastPatch()"
                                   (click)="equip($event, r, slot)">
@@ -365,7 +382,7 @@ interface FacetOption {
                             } @else if (on) {
                               <span class="equip-x" aria-hidden="true">✕</span> {{ 'fps.equip.removeFrom' | translate: { slot: slotLabel(slot) } }}
                             } @else {
-                              {{ slotLabel(slot) }}
+                              {{ 'fps.equip.equipAs' | translate: { slot: slotLabel(slot) } }}
                             }
                           </button>
                         </span>
@@ -440,9 +457,9 @@ interface FacetOption {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
       background: var(--field, #071520);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      padding: 14px 16px;
+      padding: 10px 16px;
     }
-    .band-figure { flex: 0 0 auto; width: 64px; }
+    .band-figure { flex: 0 0 auto; width: 40px; }
     .band-body { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 200px; }
     .band-eyebrow {
       font-family: var(--sc-font-display); text-transform: uppercase;
@@ -490,19 +507,22 @@ interface FacetOption {
     .tip-wrap { display: contents; }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 14px 14px; }
-    .equip-label {
-      font-family: var(--sc-font-display); text-transform: uppercase;
-      letter-spacing: 0.1em; font-size: max(0.6rem, var(--sc-fs-floor));
-      color: var(--sc-fg-2);
-    }
     .equip-btn {
       padding: 6px 10px; border-radius: 999px; cursor: pointer;
       border: 1px solid var(--sc-border); background: var(--sc-bg-1);
       color: var(--sc-fg-1); font-family: var(--sc-font-display);
       font-size: max(0.62rem, var(--sc-fs-floor));
-      letter-spacing: 0.06em; text-transform: uppercase;
+      letter-spacing: 0.02em;
       min-height: max(32px, var(--sc-tap-min));
     }
+    /* Touch (L11/L31): every way in or out of this page reaches 44px. */
+    @media (pointer: coarse) {
+      .equip-btn, .equip-back, .try-other, .empty .reset-all { min-height: max(44px, var(--sc-tap-min)); }
+      .equip-back, .try-other { display: inline-flex; align-items: center; }
+    }
+    .empty .empty-elsewhere { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; color: var(--sc-fg-1); }
+    .try-other { color: var(--sc-accent); text-decoration: none; }
+    .try-other:hover, .try-other:focus-visible { text-decoration: underline; }
     .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
     .equip-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn:disabled { opacity: 0.5; cursor: default; }
@@ -917,12 +937,24 @@ export class FpsListComponent {
     this.gradeOptions().map((g) => ({ value: g, labelKey: '', label: g })),
   );
 
+  /** The slot facet the equip link set (`?slot=` / `?equipSlot=`), kept by every reset; '' outside equip mode. */
+  private readonly linkedSubType = signal('');
+  readonly pinnedSubType = computed(() => {
+    const linked = this.equipInto() ? this.linkedSubType() : '';
+    // Only while the active tab carries it: the weapon facet must not be
+    // forced onto the armour list after a tab switch.
+    return linked && this.subTypeOptions().some((o) => o.value === linked) ? linked : '';
+  });
+
+  /** The tabs other than the active one — the empty state's "search there instead". */
+  readonly otherCategories = computed(() => this.categories.filter((c) => c !== this.category()));
+
   readonly hasActiveFilters = computed(
     () =>
       !!this.manufacturer() ||
       !!this.size() ||
       !!this.grade() ||
-      !!this.subType() ||
+      this.subType() !== this.pinnedSubType() ||
       this.includeVariants(),
   );
 
@@ -1106,7 +1138,7 @@ export class FpsListComponent {
     // filter the list down to zero rows.
     const slot = q.get('slot');
     if (slot) this.subType.set(slot);
-    const term = q.get('q');
+    const term = q.get('q')?.trim();
     if (term) {
       this.searchInput.set(term);
       this.searchTerm.set(term);
@@ -1123,6 +1155,7 @@ export class FpsListComponent {
     if (equipSlot && this.category() === 'weapon' && !slot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
       this.subType.set(SLOT_WEAPON_FACET[equipSlot]);
     }
+    if (this.equipInto()) this.linkedSubType.set(this.subType());
   }
 
   /**
@@ -1331,7 +1364,7 @@ export class FpsListComponent {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {
@@ -1349,7 +1382,9 @@ export class FpsListComponent {
     this.manufacturer.set('');
     this.size.set('');
     this.grade.set('');
-    this.subType.set('');
+    // Equip mode (L12): the slot the set page sent the reader to fill is the
+    // page's purpose, not a filter — a reset returns to it, never drops it.
+    this.subType.set(this.pinnedSubType());
     this.includeVariants.set(false);
   }
 

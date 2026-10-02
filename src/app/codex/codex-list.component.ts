@@ -302,7 +302,7 @@ export function blueprintCategoriesForGroup(
           <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
           <span>{{ 'codex.search.upcomingHint' | translate: { names } }}</span>
           <a class="upcoming-link" [routerLink]="['/codex', 'upcoming']"
-             [queryParams]="{ q: searchInput() }">
+             [queryParams]="{ q: searchInput().trim() }">
             {{ 'codex.search.upcomingLink' | translate }}
           </a>
         </p>
@@ -362,7 +362,20 @@ export function blueprintCategoriesForGroup(
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            @if (hasActiveFilters() || searchInput()) {
+            @if (searchInput().trim() && crossHits().length > 0) {
+              <!-- Nothing here, but the term matches elsewhere (L07): lead with
+                   where it IS before offering to throw the search away. -->
+              <p class="empty-elsewhere">
+                <span>{{ 'codex.empty.foundElsewhere' | translate: { kind: ('codex.kinds.' + kind()) | translate, term: searchInput().trim() } }}</span>
+                @for (h of crossHits(); track h.kind) {
+                  <a class="cross-hit" [attr.href]="categoryHrefs().get(h.kind)"
+                     (click)="onCategoryClick($event, h.kind)">
+                    {{ ('codex.kinds.' + h.kind) | translate }}
+                  </a>
+                }
+              </p>
+              <button type="button" class="reset-all secondary" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+            } @else if (hasActiveFilters() || searchInput()) {
               <p>{{ 'codex.empty.filtered' | translate }}</p>
               <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
               <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
@@ -663,6 +676,13 @@ export function blueprintCategoriesForGroup(
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
     .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
     .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .empty .empty-elsewhere { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; margin-top: 10px; color: var(--sc-fg-1); }
+    .empty .reset-all.secondary { border-color: transparent; color: var(--sc-fg-2); }
+    /* Touch (L31): the back link and the ways out reach the 44px target. */
+    @media (pointer: coarse) {
+      .back { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }
+      .empty .reset-all, .cross-hit { min-height: max(44px, var(--sc-tap-min)); }
+    }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
     .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
@@ -1402,7 +1422,9 @@ export class CodexListComponent implements OnInit {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    // Trimmed once here (L28): the URL's q, the ranking and the cross-category
+    // counts all read the term, and a stray space must not become "%20" or a miss.
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {
