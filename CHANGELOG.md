@@ -4,6 +4,45 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.116.0] - 2026-10-03
+
+### Changed
+
+- **Codex: Jede Suche sucht jetzt gleich.** Scanner, Index, Archiv-Terminal,
+  Ctrl+K-Schnellsuche, Arsenal, Keybinds, Tausch-Auswahl und Upcoming Ships
+  folgen denselben Regeln. Vorher hatten fünf Suchfelder fünf verschiedene
+  Regeln. Groß-/Kleinschreibung, Akzente und Leerzeichen spielen keine Rolle
+  mehr, Trennzeichen sind optional (`p4ar`, `p4 ar` und `P4_AR` finden das
+  P4-AR), und mehrere Wörter müssen alle passen. Deutsche Suchwörter finden die
+  Gegenstandsart (*Gewehr* → Gewehre, *Helm* → Helme, *Rüstung* → Rüstungen).
+  `*` ist ein Platzhalter. Treffer sind nach Relevanz sortiert statt
+  alphabetisch: genauer Name vor Namensanfang vor Wortanfang vor Teilstück.
+  Schiffe zählen nach Modellname, ein Grundgegenstand steht vor seinen Skins.
+  Die Landing-Seite kürzt erst nach dem Sortieren, sodass der beste Treffer
+  nicht mehr wegfällt. Schlägt eine Suche fehl, erscheint eine Fehlermeldung
+  mit „Erneut versuchen“ statt einer leeren Liste. Tippfehler werden noch nicht
+  korrigiert.
+- **Codex: Ausrüstung für ein FPS-Set auswählen.** Jede Kachel auf der
+  Set-Seite zeigt den Namen des Slots und „+ Auswählen“ bzw. „Ändern“. Das
+  öffnet das Arsenal im Ausrüst-Modus: „Als Helm ausrüsten“ bzw. „Aus Helm
+  entfernen“ und eine Leiste mit Bestätigung und Link zurück zum Set.
+  Rüstungs-Slots lassen sich leeren und sofort wiederherstellen. Ein leeres Set
+  zeigt, wo man anfängt, und „Zurück zum Hangar“ führt zurück.
+
+### Fixed
+
+- **Codex-Landing: Trefferkarten sind wieder lesbar.** Ein ungestylter
+  Vergleichs-Pin lag über den Karten.
+- **Codex: leere Ergebnisse helfen weiter.** Findet der Index oder das Arsenal
+  nichts, verweist die Meldung auf die andere Kategorie mit demselben Suchwort.
+- **Codex: kleinere Korrekturen.** Die Bridge scrollt nicht mehr seitlich.
+  Waffen- und Rüstungsdetails zeigen lesbare Wörter statt Spiel-Kennungen
+  (`WeaponPersonal`, `Medium`). Rollen bei Upcoming Ships sind übersetzt, jedes
+  Feld hat genau ein ×. Touch-Ziele sind mindestens 44 px groß, auch die
+  Set-Auswahl im Hangar-Picker.
+- **Codex: 104 neue Tests (1666 → 1770),** darunter erste Specs für sieben
+  Komponenten, die bisher keine hatten.
+
 ## [0.115.1] - 2026-10-02
 
 ### Fixed
