@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { provideTranslateService } from '@ngx-translate/core';
 import { AssetPackageViewerComponent } from './asset-package-viewer.component';
 import { AssetPackageService } from './asset-package.service';
 import { CodexService } from '../codex.service';
@@ -15,9 +15,10 @@ const ROW: AssetPackageRow = {
 describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
   function create() {
     TestBed.configureTestingModule({
-      imports: [AssetPackageViewerComponent, TranslateModule.forRoot()],
+      imports: [AssetPackageViewerComponent],
       providers: [
         provideRouter([]),
+        provideTranslateService({ fallbackLang: 'en' }),
         // The manifest never arrives: the spec drives the state directly and no
         // three.js scene (WebGL) is ever created.
         { provide: AssetPackageService, useValue: { manifest: () => new Promise(() => undefined), urls: {} } },
