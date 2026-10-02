@@ -40,10 +40,18 @@ from typing import Callable, Dict, List, Optional
 
 LogFn = Callable[[str, str], None]
 
-# Adaptive size-budget floors: how far the retry ladder may degrade a skin that
-# blows the per-model budget before we give up and keep the smallest attempt.
+# Adaptive size budget: the simplify errors the retry ladder walks through when
+# a hull blows the per-model budget. Step 0 is NO simplification. CIG hulls are
+# hundreds of open, overlapping panels, and meshoptimizer tears them into
+# see-through cracks long before it saves much: measured on LIVE through this
+# pipeline (hole ratio = visible exterior lost vs. the raw mesh, see
+# mesh_integrity), simplify 0.002 left 0.31 % / 0.43 % / 1.05 % of the visible
+# skin open on the Avenger Stalker / Gladius / Cutlass Black (worst single view
+# 2.2 % / 5.8 % / 4.1 %); the old ladder floor 0.01 more still. Every rung is
+# gated by the hole check, so the ladder stops at the first error that tears.
+SIMPLIFY_LADDER = (0.0, 0.0005, 0.001, 0.002)
+MAX_SIMPLIFY_ERROR = SIMPLIFY_LADDER[-1]
 MIN_TEXTURE_SIZE = 256
-MAX_SIMPLIFY_ERROR = 0.01
 
 # Identifiers that flow into filenames, storage object paths, and (on Windows)
 # a shell=True command line MUST be restricted to a safe charset — no path
@@ -118,7 +126,7 @@ class HullExportConfig:
     # glb, and the Supabase free plan leaves ~150 MB for the whole ship-skins
     # bucket. See the "Storage budget" section of HULL3D.md for the arithmetic.
     texture_size: int = 512
-    simplify_error: float = 0.002
+    simplify_error: float = 0.0   # first ladder rung; 0 = no simplification
     # Per-model size budget. A skin over budget is re-optimized down the quality
     # ladder (halve textures, coarsen simplify) until it fits — so only the heavy
     # skins lose fidelity, not the whole catalog. 0 disables the budget.
@@ -134,6 +142,9 @@ class HullExportConfig:
     # viewer; the interior is a quarter of the triangles and the bulk of the
     # texture payload, and is never visible in the viewer.
     strip_interior: bool = True
+    # Hole gate (mesh_integrity): refuse a hull whose optimized mesh lost more
+    # of the visible exterior than this vs. the raw converter output.
+    max_hole_ratio: float = 0.002
     on_log: LogFn = _noop
     keep_work: bool = False       # keep scratch for debugging
 
@@ -217,35 +228,11 @@ class Hull3DExporter:
                 f"cgf-converter produced no usable glb for {cga_disk.name} (rc={r.returncode})")
         produced.replace(out_glb)
 
-    def _optimize(self, in_glb: Path, out_glb: Path,
-                  texture_size: Optional[int] = None,
-                  simplify_error: Optional[float] = None) -> None:
+    def _gltf_transform(self, args: List[str]) -> subprocess.CompletedProcess:
+        """Run one @gltf-transform/cli command (bundled Node, or npx in dev)."""
         import json as _json
         import os
         import sys
-        ts = self.cfg.texture_size if texture_size is None else texture_size
-        err = self.cfg.simplify_error if simplify_error is None else simplify_error
-        flags = ["optimize", str(in_glb.resolve()), str(out_glb.resolve()),
-                 "--texture-compress", "webp", "--texture-size", str(ts),
-                 "--simplify", "true", "--simplify-error", str(err),
-                 # `palette` merges materials that have no texture into one
-                 # shared palette material. The hull's paint layers are exactly
-                 # that kind of material, so with palette on, every panel colour
-                 # we just resolved from the .mtl collapsed into a single
-                 # `PaletteMaterial001` covering ~42 % of the Cutlass — the white
-                 # blob of feedback d7f44a41. Keep the materials distinct.
-                 "--palette", "false",
-                 # meshopt, not draco (#305). Both keep the mesh compressed on
-                 # disk, so both need a client-side decoder — the difference is
-                 # WHERE that decoder comes from. model-viewer hardcodes Draco's
-                 # to `https://www.gstatic.com/draco/...` and resets any override
-                 # while loading, so a Draco hull cannot be decoded without
-                 # reaching Google. Its meshopt decoder is bundled and merely
-                 # needs `meshoptDecoderLocation` pointed at a same-origin copy,
-                 # which sticks. Measured cost of the swap on the Cutlass hull
-                 # through this exact pipeline: 1.97 MB -> 3.09 MB (1.56x), and
-                 # the rendered model is dimensionally identical (delta < 1 mm).
-                 "--compress", "meshopt"]
         host_argv = os.environ.get("SC_GLTF_TRANSFORM_ARGV")
         if host_argv:
             # Host (Electron) provides the runtime: a JSON argv prefix that runs
@@ -254,73 +241,159 @@ class Hull3DExporter:
             # the Electron binary behave as a plain Node interpreter.
             prefix = _json.loads(host_argv)
             env = {**os.environ, "ELECTRON_RUN_AS_NODE": "1"}
-            r = subprocess.run([*prefix, *flags], capture_output=True,
-                               encoding="utf-8", errors="replace", timeout=900, env=env)
-        else:
-            # Dev fallback: pull the CLI on demand via npx (Node required).
-            npx = shutil.which("npx") or "npx"
-            cmd = [npx, "--yes", "@gltf-transform/cli@latest", *flags]
-            # Windows npx is a .CMD shim → must go through the shell with quoting.
-            if sys.platform == "win32":
-                # npx is a .CMD shim, so this dev-only branch must go through
-                # cmd.exe; list2cmdline quoting is NOT a boundary against cmd.exe
-                # metacharacter parsing, so refuse hostile paths outright. Prod
-                # never reaches here — the packaged app supplies
-                # SC_GLTF_TRANSFORM_ARGV and takes the shell-free path above.
-                _reject_shell_meta(cmd)
-                r = subprocess.run(subprocess.list2cmdline(cmd), shell=True,
-                                   capture_output=True, encoding="utf-8",
-                                   errors="replace", timeout=900)
-            else:
-                r = subprocess.run(cmd, capture_output=True, encoding="utf-8",
-                                   errors="replace", timeout=900)
+            return subprocess.run([*prefix, *args], capture_output=True,
+                                  encoding="utf-8", errors="replace", timeout=900, env=env)
+        # Dev fallback: pull the CLI on demand via npx (Node required).
+        npx = shutil.which("npx") or "npx"
+        cmd = [npx, "--yes", "@gltf-transform/cli@latest", *args]
+        if sys.platform == "win32":
+            # npx is a .CMD shim, so this dev-only branch must go through
+            # cmd.exe; list2cmdline quoting is NOT a boundary against cmd.exe
+            # metacharacter parsing, so refuse hostile paths outright. Prod
+            # never reaches here — the packaged app supplies
+            # SC_GLTF_TRANSFORM_ARGV and takes the shell-free path above.
+            _reject_shell_meta(cmd)
+            return subprocess.run(subprocess.list2cmdline(cmd), shell=True,
+                                  capture_output=True, encoding="utf-8",
+                                  errors="replace", timeout=900)
+        return subprocess.run(cmd, capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=900)
+
+    def _gltf_step(self, args: List[str], out_glb: Path) -> None:
+        out_glb.unlink(missing_ok=True)  # never mistake a stale file for success
+        r = self._gltf_transform(args)
         if not out_glb.exists():
-            raise RuntimeError(
-                f"gltf-transform failed (rc={r.returncode}): {(r.stderr or '')[-400:]}")
+            raise RuntimeError(f"gltf-transform {args[0]} failed (rc={r.returncode}): "
+                               f"{(r.stderr or '')[-400:]}")
+
+    def optimize(self, in_glb: Path, out_glb: Path,
+                 texture_size: Optional[int] = None,
+                 simplify_error: Optional[float] = None,
+                 compress: bool = True) -> None:
+        """raw glb -> web glb: optimize, border-locked simplify, meshopt.
+
+        Public for the asset-package pipeline (assets3d). ``simplify_error`` 0
+        skips simplification; ``compress=False`` leaves the mesh uncompressed
+        so `mesh_integrity` can read it (it cannot decode meshopt buffers).
+        """
+        ts = self.cfg.texture_size if texture_size is None else texture_size
+        err = self.cfg.simplify_error if simplify_error is None else simplify_error
+        stage = out_glb.with_name(out_glb.stem + ".stage.glb")
+        self._gltf_step(["optimize", str(in_glb.resolve()), str(stage.resolve()),
+                         "--texture-compress", "webp", "--texture-size", str(ts),
+                         # Simplification runs as its own step below: only the
+                         # `simplify` command can lock the mesh borders.
+                         "--simplify", "false",
+                         # `palette` merges materials that have no texture into
+                         # one shared palette material — it collapsed every
+                         # panel colour into one (feedback d7f44a41) and would
+                         # merge the hull/glass/glow classes. Keep them distinct.
+                         "--palette", "false",
+                         "--compress", "false"], stage)
+        try:
+            if err and err > 0:
+                # --lock-border: a hull is hundreds of open panels; an unlocked
+                # simplifier pulls their edges apart into see-through seams.
+                simp = out_glb.with_name(out_glb.stem + ".simp.glb")
+                self._gltf_step(["simplify", str(stage.resolve()), str(simp.resolve()),
+                                 "--error", str(err), "--ratio", "0",
+                                 "--lock-border", "true"], simp)
+                simp.replace(stage)
+            if compress:
+                self.compress(stage, out_glb)
+            else:
+                stage.replace(out_glb)
+        finally:
+            stage.unlink(missing_ok=True)
+
+    # Pre-gate name; the budget tests patch it and older callers borrow it.
+    _optimize = optimize
+
+    def compress(self, in_glb: Path, out_glb: Path) -> None:
+        """meshopt-compress an uncompressed optimize output.
+
+        meshopt, not draco (#305): model-viewer hardcodes Draco's decoder to
+        gstatic.com, while its meshopt decoder is bundled and only needs a
+        same-origin `meshoptDecoderLocation`. Lossless apart from quantization
+        (measured on the Cutlass: rendered model dimensionally identical).
+        """
+        self._gltf_step(["meshopt", str(in_glb.resolve()), str(out_glb.resolve())], out_glb)
 
     def quality_ladder(self) -> List[tuple]:
         """(texture_size, simplify_error) attempts, best first.
 
-        Step 0 is the configured quality — the vast majority of skins stop there.
-        Each further step halves the texture and doubles the simplify error,
-        down to MIN_TEXTURE_SIZE.
+        Geometry-only hulls carry no texture, so only the simplify error moves:
+        from the configured error up SIMPLIFY_LADDER. Each rung is still
+        subject to the hole gate in `_optimize_to_budget`.
         """
-        steps = [(self.cfg.texture_size, self.cfg.simplify_error)]
-        ts, err = self.cfg.texture_size, self.cfg.simplify_error
-        while ts > MIN_TEXTURE_SIZE:
-            ts //= 2
-            err = min(err * 2, MAX_SIMPLIFY_ERROR)
-            steps.append((ts, err))
-        return steps
+        start = self.cfg.simplify_error
+        errs = [start] + [e for e in SIMPLIFY_LADDER if e > start]
+        return [(self.cfg.texture_size, e) for e in errs]
 
     def _optimize_to_budget(self, in_glb: Path, out_glb: Path, skin_id: str,
-                            hardpoints: Optional[Dict[str, List[float]]] = None) -> int:
-        """Optimize, retrying at lower quality while the glb exceeds the budget.
+                            hardpoints: Optional[Dict[str, List[float]]] = None,
+                            reference=None) -> int:
+        """Optimize, retrying with more simplification while over the budget.
 
-        Returns the final size in bytes. The last ladder step is kept even if it
-        is still over budget — a slightly-too-big model beats no model at all.
-        `hardpoints` go into every attempt's JSON chunk before it is measured,
-        so whichever attempt is kept carries them and the budget counts them.
+        Without a ``reference`` this is the plain size ladder: the last rung is
+        kept even if still over budget. With one (raw triangles, see
+        `raw_reference`) every rung is measured by `mesh_integrity` before it
+        is compressed. A rung that tears the skin ends the ladder — more
+        simplification only tears more — and the last rung that passed is kept
+        even over budget: a big hull beats a gappy one. If the first rung
+        already fails, HullIntegrityError is raised and no hull is exported.
         """
         from . import glb_materials
         budget = self.cfg.max_model_bytes
         ladder = self.quality_ladder()
         size = 0
-        for i, (ts, err) in enumerate(ladder):
-            self._optimize(in_glb, out_glb, ts, err)
-            if hardpoints:
-                glb_materials.embed_hardpoints(out_glb, hardpoints)
-            size = out_glb.stat().st_size
-            if budget <= 0 or size <= budget:
-                return size
-            if i == len(ladder) - 1:
-                self.log("warn", f"  {skin_id}: {size/1e6:.2f} MB still over the "
-                                 f"{budget/1e6:.2f} MB budget at texture {ts} — keeping it")
-                return size
-            self.log("info", f"  {skin_id}: {size/1e6:.2f} MB over the "
-                             f"{budget/1e6:.2f} MB budget — retrying at texture "
-                             f"{ladder[i+1][0]}")
-        return size
+        kept = out_glb.with_name(out_glb.stem + ".kept.glb")
+        have_kept = False
+        try:
+            for i, (ts, err) in enumerate(ladder):
+                if reference is None:
+                    self._optimize(in_glb, out_glb, ts, err)
+                else:
+                    from . import mesh_integrity
+                    check = out_glb.with_name(out_glb.stem + ".check.glb")
+                    try:
+                        self._optimize(in_glb, check, ts, err, compress=False)
+                        report = mesh_integrity.check_hull(reference, check,
+                                                           self.cfg.max_hole_ratio)
+                        self.last_integrity = report
+                        self.log("info" if report.ok else "warn",
+                                 f"  {skin_id}: simplify {err}: {report.summary()}")
+                        if not report.ok:
+                            if not have_kept:
+                                raise mesh_integrity.HullIntegrityError(
+                                    f"{skin_id}: exterior has holes — {report.summary()}")
+                            kept.replace(out_glb)
+                            size = out_glb.stat().st_size
+                            self.log("warn", f"  {skin_id}: keeping the last gap-free "
+                                             f"attempt ({size/1e6:.2f} MB, over the "
+                                             f"{budget/1e6:.2f} MB budget)")
+                            return size
+                        self.compress(check, out_glb)
+                    finally:
+                        check.unlink(missing_ok=True)
+                if hardpoints:
+                    glb_materials.embed_hardpoints(out_glb, hardpoints)
+                size = out_glb.stat().st_size
+                if budget <= 0 or size <= budget:
+                    return size
+                if i == len(ladder) - 1:
+                    self.log("warn", f"  {skin_id}: {size/1e6:.2f} MB still over the "
+                                     f"{budget/1e6:.2f} MB budget at simplify {err} — keeping it")
+                    return size
+                if reference is not None:
+                    shutil.copyfile(out_glb, kept)
+                    have_kept = True
+                self.log("info", f"  {skin_id}: {size/1e6:.2f} MB over the "
+                                 f"{budget/1e6:.2f} MB budget — retrying at simplify "
+                                 f"{ladder[i+1][1]}")
+            return size
+        finally:
+            kept.unlink(missing_ok=True)
 
     # ---- public API --------------------------------------------------------
     def export_ship(self, spec: ShipSpec) -> dict:
@@ -415,14 +488,26 @@ class Hull3DExporter:
         # --center), and meshopt's quantization only puts a dequantize
         # transform on mesh nodes, which keeps their world placement.
         hardpoints = self._collect_hardpoints(paint, raw_glb)
+        # 3a''. the hole gate's reference: the raw, unsimplified, unstripped
+        # mesh minus the never-drawn proxies, read BEFORE anything is dropped.
+        reference = self.raw_reference(raw_glb)
         # 3b. shape only: drop the interior and every texture/UV. NOT
         # best-effort like the un-rig — a hull that still carries CIG's
         # textures must never be published, so a failure here costs the model.
-        self._reduce_to_geometry(raw_glb)
-        # 4. optimize -> web glb (within the per-model size budget)
+        self.reduce_to_geometry(raw_glb)
+        # 4. optimize -> web glb (within the per-model size budget, hole-gated)
         web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
-        size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id, hardpoints)
+        size_bytes = self._optimize_to_budget(raw_glb, web_glb, paint.id, hardpoints,
+                                              reference=reference)
         return {"model": f"models/{web_glb.name}", "model_mb": round(size_bytes / 1e6, 2)}
+
+    @staticmethod
+    def raw_reference(raw_glb: Path):
+        """World-space triangles (numpy ``(N, 3, 3)``) of a raw converter glb,
+        proxies excluded: the reference `mesh_integrity.check_hull` measures an
+        optimized glb against. Public for the asset-package pipeline."""
+        from . import mesh_integrity
+        return mesh_integrity.load_triangles(raw_glb, mesh_integrity.visible_reference_filter)
 
     def _unrig_hull(self, paint: Paint, raw_glb: Path) -> None:
         """Drop the converter's no-op skin so the hull's parts stay in place.
@@ -453,12 +538,19 @@ class Hull3DExporter:
                              f"({type(exc).__name__}: {exc}) — model ships without them")
             return {}
 
-    def _reduce_to_geometry(self, raw_glb: Path) -> None:
-        """Interior strip + texture strip; raises instead of shipping textures."""
+    def reduce_to_geometry(self, raw_glb: Path, strip_interior: Optional[bool] = None) -> None:
+        """Interior strip + texture strip; raises instead of shipping textures.
+
+        The interior strip only drops interior-named geometry that no outside
+        view can see (`drop_interior_geometry(keep_visible=True)`). Pass
+        ``strip_interior=False`` for an interior part.
+        """
         from . import glb_materials
-        if self.cfg.strip_interior:
+        if self.cfg.strip_interior if strip_interior is None else strip_interior:
             glb_materials.drop_interior_geometry(raw_glb, self.log)
         glb_materials.strip_to_geometry(raw_glb, self.log)
+
+    _reduce_to_geometry = reduce_to_geometry
 
     def _export_icon(self, paint: Paint, ship_out: Path) -> Optional[str]:
         from scdatatools.engine.textures import dds as ddsmod

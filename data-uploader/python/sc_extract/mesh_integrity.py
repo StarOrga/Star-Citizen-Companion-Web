@@ -40,13 +40,13 @@ MaterialFilter = Callable[[str], bool]
 # integrity"): a clean export stays far below 0.5 %, the gappy hulls of the
 # feedback screenshot were well above 2 %.
 DEFAULT_MAX_HOLE_RATIO = 0.01
-DEFAULT_RESOLUTION = 256
+DEFAULT_RESOLUTION = 384
 # A candidate surface may sit this far (fraction of the bbox diagonal) behind
 # the reference before the pixel counts as a hole: simplification moves
 # vertices by up to its error budget, a missing panel exposes the interior.
 DEFAULT_DEPTH_TOL = 0.01
-SAMPLES_PER_PIXEL = 6.0
-MAX_SAMPLES = 4_000_000
+SAMPLES_PER_PIXEL = 12.0
+MAX_SAMPLES = 6_000_000
 
 _COMPONENTS = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4, "MAT4": 16}
 _DTYPES = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16,
@@ -162,12 +162,17 @@ def _prim_indices(gltf: dict, binary: bytes, prim: dict, nverts: int) -> Optiona
     return None  # points / lines carry no surface
 
 
-def load_triangles(glb: Path, include_material: Optional[MaterialFilter] = None) -> np.ndarray:
+def load_triangles(glb: Path, include_material: Optional[MaterialFilter] = None,
+                   with_materials: bool = False):
     """All triangles of the active scene in world space, shape ``(N, 3, 3)``.
 
     ``include_material(name)`` filters primitives by material name (a primitive
     without a material is passed ``""``). Degenerate triangles are kept — they
-    have zero area and never splat.
+    have zero area and never splat. A node whose world transform mirrors
+    (negative determinant) gets its winding reversed, as glTF 2.0 §3.7.4
+    requires of a renderer — so the winding here is the one a viewer culls by.
+    ``with_materials=True`` also returns the material index per triangle (-1
+    for a primitive without one).
     """
     gltf, binary = glb_materials.read_glb(Path(glb))
     worlds = glb_materials._global_matrices(gltf)
@@ -183,6 +188,7 @@ def load_triangles(glb: Path, include_material: Optional[MaterialFilter] = None)
         stack.extend(nodes[i].get("children", []))
 
     parts: List[np.ndarray] = []
+    owners: List[np.ndarray] = []
     for ni in sorted(reachable):
         node = nodes[ni]
         if "mesh" not in node:
@@ -205,8 +211,13 @@ def load_triangles(glb: Path, include_material: Optional[MaterialFilter] = None)
             homo = np.c_[pos, np.ones(len(pos))]
             for xf in xforms:
                 wp = (homo @ xf.T)[:, :3]
-                parts.append(wp[tri])
-    return np.concatenate(parts) if parts else np.zeros((0, 3, 3))
+                t = tri[:, [0, 2, 1]] if np.linalg.det(xf[:3, :3]) < 0 else tri
+                parts.append(wp[t])
+                owners.append(np.full(len(t), prim.get("material", -1), dtype=np.int64))
+    tris = np.concatenate(parts) if parts else np.zeros((0, 3, 3))
+    if with_materials:
+        return tris, (np.concatenate(owners) if owners else np.zeros(0, dtype=np.int64))
+    return tris
 
 
 # ---- topology ---------------------------------------------------------------
@@ -284,7 +295,7 @@ def _depth_map(pts: np.ndarray, d, u, v, origin, pix: float, res: int) -> np.nda
 
 
 def _erode(mask: np.ndarray) -> np.ndarray:
-    """Keep a pixel only if it and its 4 neighbours are set (kills 1-px rings)."""
+    """Keep a pixel only if it and its 4 neighbours are set."""
     m = mask.copy()
     m[1:, :] &= mask[:-1, :]; m[:-1, :] &= mask[1:, :]
     m[:, 1:] &= mask[:, :-1]; m[:, :-1] &= mask[:, 1:]
@@ -325,11 +336,75 @@ def coverage_loss(reference: np.ndarray, candidate: np.ndarray,
         rd = _depth_map(ref_pts, d, u, v, origin, pix, resolution)
         cd = _depth_map(cand_pts, d, u, v, origin, pix, resolution)
         ref_hit = np.isfinite(rd)
-        hole = _erode(ref_hit & (cd > rd + tol))
+        # Only pixels inside the reference silhouette count: simplification
+        # moves the outline by a pixel, a crack or missing panel sits inside it.
+        hole = _erode(ref_hit) & (cd > rd + tol)
         h, r = int(hole.sum()), int(ref_hit.sum())
         holes += h; refs += r
         per_view.append(h / r if r else 0.0)
     return CoverageReport(holes / refs if refs else 0.0, holes, refs, per_view)
+
+
+def _sample_owned(tris: np.ndarray, density: float, rng: np.random.Generator):
+    areas = 0.5 * np.linalg.norm(np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0]), axis=1)
+    expect = areas * density
+    n = np.floor(expect).astype(np.int64)
+    n += rng.random(len(n)) < (expect - n)
+    owner = np.concatenate([np.repeat(np.arange(len(tris)), n), np.arange(len(tris))])
+    r1, r2 = rng.random(len(owner)), rng.random(len(owner))
+    flip = r1 + r2 > 1
+    r1[flip], r2[flip] = 1 - r1[flip], 1 - r2[flip]
+    r1[-len(tris):] = r2[-len(tris):] = 1 / 3  # centroids
+    t = tris[owner]
+    return t[:, 0] + r1[:, None] * (t[:, 1] - t[:, 0]) + r2[:, None] * (t[:, 2] - t[:, 0]), owner
+
+
+def first_hits(tris: np.ndarray, resolution: int = 256, seed: int = 0,
+               samples_per_pixel: float = 4.0, max_samples: int = 3_000_000):
+    """Yield ``(view direction, triangle index of the first hit per covered pixel)``."""
+    if not len(tris):
+        return
+    flat = tris.reshape(-1, 3)
+    lo, hi = flat.min(axis=0), flat.max(axis=0)
+    center, diag = (lo + hi) / 2, float(np.linalg.norm(hi - lo)) or 1.0
+    pix = diag / resolution
+    area = 0.5 * np.linalg.norm(np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0]), axis=1).sum()
+    density = min(samples_per_pixel / (pix * pix), max_samples / max(area, 1e-9))
+    pts, owner = _sample_owned(tris, density, np.random.default_rng(seed))
+    for d in view_directions():
+        u, v = _basis(d)
+        rel = pts - (center - (u + v) * diag / 2 - d * diag)
+        x = np.floor(rel @ u / pix).astype(np.int64)
+        y = np.floor(rel @ v / pix).astype(np.int64)
+        ok = np.nonzero((x >= 0) & (x < resolution) & (y >= 0) & (y < resolution))[0]
+        key = y[ok] * resolution + x[ok]
+        order = np.lexsort((rel[ok] @ d, key))
+        ks = key[order]
+        yield d, owner[ok[order]][np.r_[True, ks[1:] != ks[:-1]]]
+
+
+def backface_ratio(tris: np.ndarray, **kw) -> float:
+    """Share of visible pixels whose first surface faces AWAY from the viewer.
+
+    A single-sided renderer culls exactly those: the viewer sees through them
+    to whatever lies behind — the dark "holes" of a hull with flipped panels.
+    """
+    normals = np.cross(tris[:, 1] - tris[:, 0], tris[:, 2] - tris[:, 0]) if len(tris) else None
+    back = total = 0
+    for d, hit in first_hits(tris, **kw):
+        back += int((normals[hit] @ d > 0).sum())
+        total += len(hit)
+    return back / total if total else 0.0
+
+
+def visible_pixels_by_group(tris: np.ndarray, groups: np.ndarray, **kw) -> Dict[int, int]:
+    """First-hit pixel count per group id, summed over all outside views."""
+    out: Dict[int, int] = {}
+    for _, hit in first_hits(tris, **kw):
+        ids, counts = np.unique(groups[hit], return_counts=True)
+        for i, c in zip(ids.tolist(), counts.tolist()):
+            out[i] = out.get(i, 0) + c
+    return out
 
 
 # ---- the gate -----------------------------------------------------------------

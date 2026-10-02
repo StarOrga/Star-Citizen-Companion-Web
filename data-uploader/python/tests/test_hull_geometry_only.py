@@ -68,7 +68,8 @@ def test_strip_leaves_no_texture_image_or_uv(tmp_path: Path) -> None:
         assert key not in gltf
     assert gltf["extensionsUsed"] == ["KHR_mesh_quantization"]
     for mat in gltf["materials"]:
-        assert set(mat) == {"name", "pbrMetallicRoughness"}
+        assert set(mat) == {"name", "pbrMetallicRoughness", "doubleSided"}
+        assert mat["doubleSided"] is True  # inward-wound panels must not cull away
         assert "baseColorTexture" not in mat["pbrMetallicRoughness"]
     for mesh in gltf["meshes"]:
         for prim in mesh["primitives"]:
