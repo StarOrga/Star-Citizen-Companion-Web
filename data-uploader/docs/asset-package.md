@@ -109,6 +109,33 @@ Every build checks root-level placements against the hull GLB's own locators
 they must coincide within 1 cm (`package.check_locators`, reported per ship).
 LIVE 4.x: Gladius 61, Cutlass Black 113, Arrow 57 locators, max error 0.1 mm.
 
+## Upload (Wave 2b)
+
+Code: `src/main/asset-package-ingest.ts` (transport), `src/lib/asset-package.ts`
+(planning, retry, concurrency), edge function `ingest-skins` actions
+`package_sign` / `package_commit` (`supabase/functions/ingest-skins/_packages.ts`).
+`skin_export_app` is always spawned with `--package --interior`; `--fps` only
+when the request sets `fps` (off until the extractor flag is on the release).
+
+R2 keys (under `ship-skins/`): `_parts/<sha>.glb`, `_interiors/<sha>.glb`,
+`_manifests/<sha256 of the manifest bytes>.json`; a ship's hull stays in
+`_hulls/<sha>.glb` (hull flow, uploaded before its package). Manifests are plain
+JSON: the Worker streams R2 bytes as stored and a presigned PUT does not carry a
+`Content-Encoding`, so compression is left to the edge.
+
+Per entity: skip when `.package-uploaded` holds the manifest sha, or when the
+server says `unchanged` (the `asset_packages` row already names it); otherwise
+`package_sign` (<= 200 objects, hex sha256 + exact bytes, per-kind size limits)
+-> `exists` objects are not PUT, the rest go with 4 parallel PUTs and 3 retries
+(500 ms, 1 s, 2 s) -> `package_commit`, which re-reads the manifest, checks its
+hash, derives every column from it and verifies each object it names is stored
+at the declared size (409 `package_object_missing` / `_size_mismatch` /
+`manifest_*`). `known` shares stored shas across entities of one run. Needs
+uploader >= 0.41.0 (426 otherwise) and R2 mode (501 `r2_required`). FPS
+packages are picked up from `<out>/_fps/<className>/package.json`.
+
+Orphan parts after a manifest change are left in place (see storage.md).
+
 ## Policy
 
 Geometry only — no CIG texture ever leaves the P4K (RSI Fankit FAQ);

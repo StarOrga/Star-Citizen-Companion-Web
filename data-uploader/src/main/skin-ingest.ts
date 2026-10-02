@@ -7,12 +7,14 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { API_BASE, RELEASE_TOKEN, TOOL_VERSION } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
 import { fetchWithTimeout, isTimeout, putTimeoutMs } from '../lib/fetch-timeout.js';
 import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js';
+import { isShipFolder } from '../lib/asset-package.js';
+import { exportRootOf, uploadPackage, type PackageUploadResult } from './asset-package-ingest.js';
 
 interface SkinCatalogEntry {
   id: string;
@@ -52,6 +54,12 @@ export interface SkinUploadResult {
    * same way, so continuing only floods the log with one failure per ship.
    */
   gate?: SkinGateCode;
+  /**
+   * Outcome of the 3D asset package upload for this ship (absent when the
+   * export carries no package.json). A failed package never fails the ship:
+   * the hull and liveries are already live, the next run retries the package.
+   */
+  package?: PackageUploadResult;
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
@@ -161,6 +169,24 @@ export async function uploadSkins(
   hooks: SkinUploadHooks = {},
 ): Promise<SkinUploadResult[]> {
   const out: SkinUploadResult[] = [];
+  // Parts shared across ships are PUT once per run: `type:sha` keys known stored.
+  const knownObjects = new Set<string>();
+  let packageGate = false;
+  /** Ships' 3D package, after the hull is in storage. Never throws except pause. */
+  const uploadShipPackage = async (shipId: string, dir: string): Promise<PackageUploadResult | undefined> => {
+    if (packageGate || !existsSync(resolve(dir, 'package.json'))) return undefined;
+    const r = await uploadPackage(
+      { kind: 'ship', dir, outRoot: exportRootOf(dir), shipId },
+      {
+        call: (body) => callIngest(getToken, body),
+        onLog,
+        control: hooks.control,
+        known: knownObjects,
+      },
+    );
+    if (r.gate) packageGate = true;
+    return r;
+  };
   const done = new Set(hooks.doneShips ?? []);
   // Resolved per call so a multi-hour run refreshes the JWT instead of reusing
   // the one captured at stage start.
@@ -174,7 +200,8 @@ export async function uploadSkins(
     }
   };
   let processed = 0;
-  for (const { shipId, dir } of ships) {
+  // The exporter's shared/scratch folders (`_parts`, `_interiors`, �) are not ships.
+  for (const { shipId, dir } of ships.filter((x) => isShipFolder(x.shipId))) {
     try {
       // Safe boundary between ships — a pause here costs nothing to replay.
       hooks.control?.checkpoint();
@@ -183,7 +210,7 @@ export async function uploadSkins(
       // on-disk marker below, which also survives a *new* job over the same dir.
       if (done.has(shipId)) {
         onLog(`${shipId}: already uploaded in this job — skipping`, 'info');
-        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true });
+        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true, package: await uploadShipPackage(shipId, dir) });
         continue;
       }
       // Upload-cache: a ship uploaded in a prior run carries a .uploaded marker
@@ -297,7 +324,7 @@ export async function uploadSkins(
         `${shipId}: uploaded ${n} objects${shared ? `, reused ${shared} shared 3D model(s)` : ''}, committed ${count} rows`,
         'info',
       );
-      out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count });
+      out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count, package: await uploadShipPackage(shipId, dir) });
     } catch (err) {
       // Pause/cancel is control flow — unwind to the caller instead of being
       // recorded as a per-ship upload failure.
@@ -309,6 +336,25 @@ export async function uploadSkins(
       // move the bar, otherwise "no visible progress" reads as "hung".
       hooks.onProgress?.(++processed, ships.length, shipId);
     }
+  }
+  // FPS weapon packages (`<out>/_fps/<className>/package.json`) share the export
+  // root with the ships and ride the same run; they need no ship hull.
+  if (!packageGate && ships.length > 0) {
+    const root = exportRootOf(ships[0].dir);
+    const fpsDir = resolve(root, '_fps');
+    const classes = existsSync(fpsDir)
+      ? readdirSync(fpsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+      : [];
+    let ok = 0;
+    for (const className of classes) {
+      const r = await uploadPackage(
+        { kind: 'fps_weapon', dir: resolve(fpsDir, className), outRoot: root },
+        { call: (body) => callIngest(getToken, body), onLog, control: hooks.control, known: knownObjects },
+      );
+      if (r.ok) ok++;
+      if (r.gate) break;
+    }
+    if (classes.length) onLog(`FPS weapon packages: ${ok}/${classes.length} live`, ok === classes.length ? 'info' : 'warn');
   }
   return out;
 }
