@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.115.1] - 2026-10-02
+
+### Fixed
+
+- **Data Uploader 0.40.1: Verbindungs-Popover ohne überlappenden Text.** Der
+  Server-Chip (z. B. „LIVE v4.10.0…“) steht jetzt in einer eigenen Zeile unter
+  der E-Mail-Adresse und schiebt sich nicht mehr über „aktualisiert gerade
+  eben“.
+- **Data Uploader: neue Versionen kommen auch während eines Uploads an.** Der
+  Uploader sucht alle 30 Minuten statt alle 6 Stunden nach Updates. Die
+  Upload-Ansicht löst beim Arbeiten keinen Check aus, deshalb blieb eine am
+  Abend veröffentlichte Version bis zum nächsten Neustart unbemerkt. Das Update
+  lädt still im Hintergrund und installiert sich beim Beenden.
+
 ## [0.115.0] - 2026-10-02
 
 ### Changed
