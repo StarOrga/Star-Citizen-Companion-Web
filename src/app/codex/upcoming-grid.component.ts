@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { FallbackImageComponent } from './fallback-image.component';
-import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
+import { UpcomingShip, UpcomingShipsService, thumbnailCandidates, upcomingRoleLabel } from './upcoming-ships.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
@@ -125,8 +125,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             @if (ship.manufacturer) { <span class="mfr">{{ ship.manufacturer }}</span> }
             <div class="badges">
               @if (isNew(ship)) { <span class="badge new">{{ 'codex.upcoming.newBadge' | translate }}</span> }
-              @if (ship.focus) { <span class="badge">{{ ship.focus }}</span> }
-              @else if (ship.type) { <span class="badge">{{ ship.type }}</span> }
+              @if (ship.focus) { <span class="badge">{{ roleLabel(ship.focus) }}</span> }
+              @else if (ship.type) { <span class="badge">{{ roleLabel(ship.type) }}</span> }
               @if (ship.productionStatus) {
                 <span class="badge status" [class.concept]="!ship.flightReadyButMissing">{{ statusLabel(ship) | translate }}</span>
               }
@@ -222,6 +222,12 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 })
 export class UpcomingGridComponent implements OnInit, OnDestroy {
   private readonly svc = inject(UpcomingShipsService);
+  private readonly translate = inject(TranslateService);
+
+  /** RSI role/type in the reader's language (see upcomingRoleLabel). */
+  roleLabel(value: string | null): string {
+    return upcomingRoleLabel(value, (k) => this.translate.instant(k));
+  }
 
   readonly feed = this.svc.feed;
   readonly loading = this.svc.loading;

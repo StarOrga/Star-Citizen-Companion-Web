@@ -131,12 +131,41 @@ describe('CodexSetGearComponent', () => {
     expect(slotEl(fixture, 'sidearm').querySelector('.t-value')?.textContent?.trim()).toBe('KSAR Pistol Energy 01');
   });
 
-  it('shows an open position with the open label and no clear button', async () => {
+  it('shows an open position with an explicit "+ Choose" call to action and no clear button', async () => {
     const fixture = await setup({ role: 'fps', items: [{ slot: 'secondary', className: null, kind: null }] });
     const secondary = slotEl(fixture, 'secondary');
     expect(secondary.classList).toContain('empty');
-    expect(secondary.querySelector('.t-value')?.textContent?.trim()).toBe('codex.set.gear.open');
+    const cta = secondary.querySelector('a.gear-tile .t-value.t-cta');
+    expect(cta?.textContent?.replace(/\s+/g, ' ').trim()).toBe('+ codex.set.gear.choose');
+    // The CTA is the anchor's own text — the tile stays one real link.
+    expect(secondary.querySelector('a.gear-tile')).not.toBeNull();
+    expect(secondary.querySelector('.t-change')).toBeNull();
     expect(secondary.querySelector('button.gear-clear')).toBeNull();
+  });
+
+  it('gives a filled position a secondary "Change" hint inside its link, not the choose CTA', async () => {
+    const fixture = await setup({
+      role: 'fps',
+      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
+      resolved: new Map([['behr_rifle_ballistic_01', RIFLE]]),
+    });
+    const primary = slotEl(fixture, 'primary');
+    expect(primary.querySelector('a.gear-tile .t-change')?.textContent?.trim()).toBe('codex.set.gear.change');
+    expect(primary.querySelector('.t-cta')).toBeNull();
+  });
+
+  it('keeps the "open" wording on a position the Arsenal cannot fill (no link, nothing to choose)', async () => {
+    const fixture = await setup({ role: 'medical' });
+    const medpen = slotEl(fixture, 'medpen');
+    expect(medpen.querySelector('a')).toBeNull();
+    expect(medpen.querySelector('.t-value')?.textContent?.trim()).toBe('codex.set.gear.open');
+    expect(medpen.querySelector('.t-cta')).toBeNull();
+  });
+
+  // The "how to fill" hint is the set page's one shared line now (armour + weapons).
+  it('carries no hint of its own — the set page explains the flow once', async () => {
+    const fixture = await setup({ role: 'fps' });
+    expect((fixture.nativeElement as HTMLElement).querySelector('.gear-hint')).toBeNull();
   });
 
   it('links each archive-backed position to the FPS archive narrowed to that slot', async () => {

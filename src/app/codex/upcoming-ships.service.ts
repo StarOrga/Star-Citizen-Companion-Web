@@ -1,3 +1,4 @@
+import { searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -242,14 +243,9 @@ export function diffUpcoming(
  * of widening. Case- and diacritic-insensitive.
  */
 export function matchesUpcomingQuery(ship: UpcomingShip, query: string): boolean {
-  const tokens = normalize(query).split(' ').filter(Boolean);
-  if (tokens.length === 0) return true;
-  const haystack = normalize(
-    [ship.name, ship.manufacturer, ship.manufacturerCode, ship.type, ship.focus, ship.productionStatus]
-      .filter(Boolean)
-      .join(' '),
-  );
-  return tokens.every((t) => haystack.includes(t));
+  const matches = searchMatcher(query);
+  if (!matches) return true;
+  return matches(ship.name, ship.manufacturer, ship.manufacturerCode, ship.type, ship.focus, ship.productionStatus);
 }
 
 function normalize(value: string): string {
@@ -554,4 +550,20 @@ export class UpcomingShipsService {
       localStorage.setItem(BASELINE_STORAGE_KEY, JSON.stringify(baseline));
     } catch { /* quota / private mode */ }
   }
+}
+
+/**
+ * An RSI matrix value ("industrial", "MINING / REFINING", "Heavy Repair") in
+ * the reader's language: `codex.upcoming.role.<slug>` when we have it, else the
+ * value in Title Case — never the feed's raw lower/upper case in a German UI
+ * (Codex UX audit L30).
+ */
+export function upcomingRoleLabel(value: string | null | undefined, t: (key: string) => string): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  const slug = normalize(raw).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const key = `codex.upcoming.role.${slug}`;
+  const hit = t(key);
+  if (hit && hit !== key) return hit;
+  return raw.toLowerCase().replace(/(^|[\s/(-])(\p{L})/gu, (_m, pre: string, ch: string) => pre + ch.toUpperCase());
 }

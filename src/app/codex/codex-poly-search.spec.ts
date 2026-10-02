@@ -1,6 +1,8 @@
 import type { CodexKind, CodexListRow } from './codex.service';
 import {
   PolySearchHit,
+  dedupePolyHits,
+  withoutMaker,
   UPCOMING_HIT_KIND,
   isUpcomingHit,
   polyHitIconKind,
@@ -227,5 +229,46 @@ describe('codex-poly-search', () => {
       ]);
       expect(ranked.map((h) => h.kind)).toEqual(['ship', UPCOMING_HIT_KIND]);
     });
+  });
+});
+
+describe('codex-poly-search — audit ranking fixes (L02, L03)', () => {
+  const base = (over: Partial<PolySearchHit>): PolySearchHit => ({
+    kind: 'item',
+    classNameSlug: 'x',
+    nameLocalized: 'x',
+    manufacturerCode: null,
+    manufacturerName: null,
+    size: null,
+    grade: null,
+    scope: 'equipment',
+    ...over,
+  });
+
+  it('ranks the ship "Aegis Gladius" above "Gladius … Livery" items for "gladius"', () => {
+    const ship = base({ kind: 'ship', classNameSlug: 'AEGS_Gladius', nameLocalized: 'Aegis Gladius', manufacturerName: { de: 'Aegis Dynamics', en: 'Aegis Dynamics', key: '' } });
+    const livery = base({ classNameSlug: 'Paint_Gladius_Mosaic', nameLocalized: 'Gladius Mosaic Livery' });
+    expect(rankPolyHits('gladius', [livery, ship])[0]).toBe(ship);
+    expect(polyMatchScore('gladius', ship)).toBe(4);
+  });
+
+  it('puts the base record before its skins for an equal match', () => {
+    const skin = base({ kind: 'weapon', classNameSlug: 'behr_rifle_ballistic_01_green01', nameLocalized: 'P4-AR "Warhawk" Rifle' });
+    const rifle = base({ kind: 'weapon', classNameSlug: 'behr_rifle_ballistic_01', nameLocalized: 'P4-AR Rifle' });
+    expect(rankPolyHits('P4-AR', [skin, rifle])[0]).toBe(rifle);
+  });
+
+  it('strips only a leading maker word', () => {
+    expect(withoutMaker('Aegis Gladius', 'Aegis Dynamics')).toBe('Gladius');
+    expect(withoutMaker('Gladius Mosaic Livery', 'Aegis Dynamics')).toBeNull();
+    expect(withoutMaker('Aegis', 'Aegis Dynamics')).toBeNull();
+    expect(withoutMaker(null, 'Aegis')).toBeNull();
+  });
+
+  it('drops a second card with the same kind and name, keeping the first', () => {
+    const a = base({ classNameSlug: 'armor_a', nameLocalized: 'Cutlass Black Ship Armor' });
+    const b = base({ classNameSlug: 'armor_b', nameLocalized: 'Cutlass  black ship armor' });
+    const c = base({ kind: 'ship', classNameSlug: 'DRAK_Cutlass_Black', nameLocalized: 'Cutlass Black Ship Armor' });
+    expect(dedupePolyHits([a, b, c])).toEqual([a, c]);
   });
 });

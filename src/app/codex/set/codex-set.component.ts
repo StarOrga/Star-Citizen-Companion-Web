@@ -69,7 +69,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
   template: `
     <section class="set-page">
       <div class="top-row">
-        <a class="back" routerLink="/codex">{{ 'codex.set.back' | translate }}</a>
+        <a class="back" [routerLink]="backLink().path">{{ backLink().key | translate }}</a>
         @if (!loading() && auth.user() && activeSet()) {
           <span class="share-wrap">
             <button
@@ -123,6 +123,12 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
           <p class="hint note">{{ 'codex.set.notFound' | translate }}</p>
         }
 
+        <!-- A brand-new set: one line says the tiles — armour around the figure,
+             weapons in the hotbar — are how gear gets picked. -->
+        @if (setIsEmpty()) {
+          <p class="flow-hint">{{ 'codex.set.flowHint' | translate }}</p>
+        }
+
         <div class="masthead">
           <sc-codex-set-stage
             class="set-hero"
@@ -157,7 +163,11 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
          padding of its own. */
       .set-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 96px; }
       .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
-      .back { color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none; }
+      .back {
+        display: inline-flex; align-items: center; min-height: var(--sc-tap-min, 0px);
+        color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none;
+      }
+      .flow-hint { margin: 0; font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.4; }
       .back:hover, .back:focus-visible { color: var(--sc-accent); }
       /* Share is a set action: an icon button beside the back link. Its label
          is the app tooltip ([scTooltip], Label tier: the icon is its only
@@ -230,6 +240,16 @@ export class CodexSetComponent implements OnInit {
   );
 
   readonly activeSet = computed<HangarRoleLoadout | null>(() => this.orderedLoadouts()[0] ?? null);
+
+  /** Nothing in the set yet — no armour, no weapon: the page explains the flow in one line. */
+  readonly setIsEmpty = computed(() => !(this.activeSet()?.items ?? []).some((i) => !!i.className));
+
+  /**
+   * Back goes where the user came from: the Hangar when the page was opened
+   * from there, else the Codex. Read once — the page is reused across set
+   * switches, which must not turn "back to the Hangar" into "back to set A".
+   */
+  readonly backLink = signal(backLinkFor(this.router));
 
   /** True once loadouts exist but the requested `:id` isn't among them — the fallback is showing set [0] instead. */
   readonly notFound = computed(() => {
@@ -424,4 +444,24 @@ function readLens(setId: string | null): SetLensId {
   } catch {
     return 'all';
   }
+}
+
+/** The back link's target and label. */
+export interface SetBackLink {
+  path: '/hangar' | '/codex';
+  key: 'codex.set.backToHangar' | 'codex.set.back';
+}
+
+/**
+ * The page the user came from, read off the router: while the navigation onto
+ * this page is still running (component construction) it is that navigation's
+ * `previousNavigation`; outside a navigation, the last successful one's.
+ */
+export function backLinkFor(router: Router): SetBackLink {
+  const nav = router.currentNavigation() ?? router.lastSuccessfulNavigation();
+  const prev = nav?.previousNavigation;
+  const url = prev ? router.serializeUrl(prev.finalUrl ?? prev.extractedUrl) : '';
+  return /^\/hangar(?:[/?#]|$)/.test(url)
+    ? { path: '/hangar', key: 'codex.set.backToHangar' }
+    : { path: '/codex', key: 'codex.set.back' };
 }

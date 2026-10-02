@@ -1,4 +1,4 @@
-import { logWarn } from '../core/log';
+import { rankBySearch } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -91,7 +91,7 @@ interface Lane {
                    (ngModelChange)="onSearchInput($event)"
                    (keydown.enter)="openFirstResult()"
                    [attr.aria-label]="'codex.search.label' | translate"
-                   [attr.placeholder]="'codex.bridge.scannerPlaceholder' | translate" />
+                   [attr.placeholder]="'codex.bridge.scannerPlaceholderShort' | translate" />
             @if (searchInput()) {
               <button class="scanner-clear" type="button" (click)="clearSearch()"
                       [attr.aria-label]="'codex.search.clear' | translate"
@@ -132,10 +132,21 @@ interface Lane {
               <div class="lane-card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
             }
           </div>
+        } @else if (searchError(); as err) {
+          <!-- A failed read is an error with a way forward, never "no ship matches". -->
+          <div class="sc-card empty" role="alert">
+            <p class="err">{{ err | translate }}</p>
+            <button type="button" class="scan-retry" (click)="retrySearch()">{{ 'codex.error.retry' | translate }}</button>
+          </div>
         } @else if (searchResults().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            <p>{{ 'codex.empty.filtered' | translate }}</p>
+            <!-- The Bridge has no filters to loosen (L27): the scanner looks at
+                 ships only, so the way on is the full index with the same term. -->
+            <p>{{ 'codex.bridge.scannerEmpty' | translate: { term: searchTerm() } }}</p>
+            <a class="index-search" routerLink="/codex/index" [queryParams]="{ kind: 'ship', q: searchTerm() }">
+              {{ 'codex.bridge.searchIndex' | translate }} <span aria-hidden="true">&rarr;</span>
+            </a>
           </div>
         } @else {
           <div class="lane-track">
@@ -324,8 +335,12 @@ interface Lane {
     </section>
   `,
   styles: [`
-    :host { display: block; }
-    .bridge { display: flex; flex-direction: column; gap: 24px; padding-bottom: 90px; }
+    /* No sideways page scroll (L13): the lanes scroll inside themselves, so
+       nothing on the way up may take their summed card width as its own
+       min-content size. */
+    :host { display: block; min-width: 0; max-width: 100%; }
+    .bridge { display: flex; flex-direction: column; gap: 24px; padding-bottom: 90px; min-width: 0; }
+    .lane { min-width: 0; }
 
     /* Scanner */
     .scanner { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
@@ -342,8 +357,15 @@ interface Lane {
       font-family: inherit; font-size: 1rem;
     }
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
+    /* The field has its own clear button; the browser's would be a second x (audit L16). */
+    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+    .empty .err { color: var(--sc-danger); margin: 0 0 8px; }
+    .scan-retry { padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: inherit; cursor: pointer; }
+    .scan-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .scan-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) { .scan-retry { min-height: 44px; } }
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
-    .scanner-clear:hover { color: var(--sc-danger); }
+    .scanner-clear:hover { color: var(--sc-accent); }
     .index-link {
       display: inline-flex; align-items: center;
       padding: 6px 12px; border-radius: 8px;
@@ -427,6 +449,7 @@ interface Lane {
       display: grid; grid-auto-flow: column; grid-auto-columns: 216px; gap: 12px;
       overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 2px 10px;
       scrollbar-width: thin;
+      min-width: 0; max-width: 100%; contain: inline-size;
     }
     .lane-track::-webkit-scrollbar { height: 8px; }
     .lane-track::-webkit-scrollbar-thumb { background: var(--sc-border); border-radius: 999px; }
@@ -466,6 +489,13 @@ interface Lane {
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
+    .empty .index-search { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--sc-accent); text-decoration: none; }
+    .empty .index-search:hover, .empty .index-search:focus-visible { text-decoration: underline; }
+    .empty .index-search:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
+    /* Touch (L31): the bridge's ways on reach 44px. */
+    @media (pointer: coarse) {
+      .index-link, .lane-more, .empty .index-search { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }
+    }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
 
@@ -499,6 +529,8 @@ export class CodexBridgeComponent implements OnInit {
   readonly searchTerm = signal('');
   readonly searching = signal(false);
   readonly searchResults = signal<CodexListRow[]>([]);
+  /** i18n key of a failed scanner search; null while the last search answered. */
+  readonly searchError = signal<string | null>(null);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
@@ -644,24 +676,39 @@ export class CodexBridgeComponent implements OnInit {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {
+    // A pending debounce or an in-flight search must not repaint results
+    // after the reader cleared the box.
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchSeq++;
+    this.searching.set(false);
+    this.searchError.set(null);
     this.searchInput.set('');
     this.searchTerm.set('');
+  }
+
+  /** Run the current scanner search again after a failure. */
+  retrySearch(): void {
+    const term = this.searchTerm().trim();
+    if (term) void this.runSearch(term);
   }
 
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
+    this.searchError.set(null);
     try {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
-      this.searchResults.set(res.rows);
+      this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug]));
     } catch (error) {
-      logWarn('codex', 'bridge search failed', { term, error });
-      if (seq === this.searchSeq) this.searchResults.set([]);
+      if (seq === this.searchSeq) {
+        this.searchResults.set([]);
+        this.searchError.set(toErrorKey('codex', 'bridgeSearch', error, { term }));
+      }
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);
     }

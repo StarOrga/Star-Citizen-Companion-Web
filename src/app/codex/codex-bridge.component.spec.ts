@@ -292,4 +292,69 @@ describe('CodexBridgeComponent', () => {
     expect(cmp.isFlagship('AEGS_Gladius')).toBeTrue();
     expect(cmp.heroFromFlagship()).toBeTrue();
   });
+
+  it('scrolls a lane inside itself, never the page sideways (L13)', async () => {
+    const ships = Array.from({ length: 12 }, (_, i) =>
+      shipRow({ classNameSlug: `AEGS_Ship_${i}`, manufacturerCode: 'AEGS' }),
+    );
+    const fixture = await setup({ catalog: ships, hangar: [] });
+    const host = fixture.nativeElement as HTMLElement;
+    const track = host.querySelector('.lane .lane-track') as HTMLElement;
+    expect(track).not.toBeNull();
+    const style = getComputedStyle(track);
+    expect(style.overflowX).toBe('auto');
+    expect(style.minWidth).toBe('0px');
+    // Twelve 216px cards overflow the track, not the component.
+    expect(track.scrollWidth).toBeGreaterThan(track.clientWidth);
+    expect(host.getBoundingClientRect().width).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    expect(host.scrollWidth).toBeLessThanOrEqual(host.clientWidth + 1);
+  });
+
+  it('points an empty scan at the index with the same term instead of filters it does not have (L27)', async () => {
+    const fixture = await setup({ catalog: [], hangar: [] });
+    fixture.componentInstance.searchTerm.set('Arrowhead');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const empty = el.querySelector('.empty') as HTMLElement;
+    expect(empty.textContent).toContain('codex.bridge.scannerEmpty');
+    expect(empty.textContent).not.toContain('codex.empty.filtered');
+    const link = empty.querySelector('a.index-search') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/codex/index?kind=ship&q=Arrowhead');
+  });
+
+  it('shows a failed scan as an error with retry, never as "no ship matches"', async () => {
+    const fixture = await setup({ catalog: [], hangar: [] });
+    const svc = TestBed.inject(CodexService) as unknown as { listByKind: jasmine.Spy };
+    svc.listByKind.and.rejectWith(new Error('network down'));
+    fixture.componentInstance.searchTerm.set('Arrowhead');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.empty[role="alert"]')).not.toBeNull();
+    expect(el.textContent).not.toContain('codex.bridge.scannerEmpty');
+
+    svc.listByKind.and.resolveTo({ rows: [], count: 0 });
+    (el.querySelector('.scan-retry') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.empty[role="alert"]')).toBeNull();
+    expect(el.textContent).toContain('codex.bridge.scannerEmpty');
+  });
+
+  it('uses the short scanner placeholder and trims the term (L27 / L28)', async () => {
+    const fixture = await setup({ catalog: [], hangar: [] });
+    const input = (fixture.nativeElement as HTMLElement).querySelector('.scanner-input') as HTMLInputElement;
+    expect(input.getAttribute('placeholder')).toBe('codex.bridge.scannerPlaceholderShort');
+    jasmine.clock().install();
+    try {
+      fixture.componentInstance.onSearchInput('  Gladius  ');
+      jasmine.clock().tick(1000);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+    expect(fixture.componentInstance.searchTerm()).toBe('Gladius');
+  });
 });

@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { FpsListComponent } from './fps-list.component';
 import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -164,6 +164,62 @@ describe('FpsListComponent (equip mode)', () => {
   it('leads "back to the set" to the set page, not the landing', async () => {
     const { el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
     expect(el.querySelector('.equip-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('confirms a landed equip in a sticky, polite bar that links back to the set', async () => {
+    const saved: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(saved);
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
+    const live = el.querySelector('.equip-confirm-live')!;
+    // The live region is there before anything lands, so the message gets announced.
+    expect(live.getAttribute('aria-live')).toBe('polite');
+    expect(el.querySelector('.equip-confirm')).toBeNull();
+
+    (el.querySelector('.equip-btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const bar = el.querySelector('.equip-confirm-live .equip-confirm')!;
+    expect(bar).not.toBeNull();
+    expect(bar.classList).not.toContain('removed');
+    expect(bar.textContent).toContain('fps.equip.confirmEquipped');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('confirms a cleared slot as "removed" in the same bar', async () => {
+    const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(SET);
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
+
+    (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const bar = el.querySelector('.equip-confirm')!;
+    expect(bar.classList).toContain('removed');
+    expect(bar.textContent).toContain('fps.equip.confirmRemoved');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('shows no confirmation when the write is refused', async () => {
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
+    (el.querySelector('.equip-btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.equip-confirm')).toBeNull();
+  });
+
+  it('labels an equipped slot\'s button with what a click does: "Remove from <slot>"', async () => {
+    const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying });
+    const t = TestBed.inject(TranslateService);
+    t.setTranslation('en', { fps: { equip: { removeFrom: 'Remove from {{slot}}' } }, hangar: { slots: { helmet: 'Helmet' } } });
+    t.use('en');
+    fixture.detectChanges();
+
+    const btn = el.querySelector('.equip-btn.on') as HTMLButtonElement;
+    expect(btn.textContent!.replace(/\s+/g, ' ').trim()).toBe('✕ Remove from Helmet');
+    expect(btn.hasAttribute('aria-pressed')).toBeFalse();
   });
 
   it('tells the reader when the linked set cannot be loaded', async () => {
@@ -379,7 +435,7 @@ describe('FpsListComponent (honest slot fitting)', () => {
     const buttonsOf = (name: string): string[] => {
       // The equip buttons sit next to the card link, inside the card's wrapper.
       const wrap = Array.from(el.querySelectorAll('.card-wrap')).find((w) => w.querySelector('a.card .name')?.textContent?.trim() === name);
-      return Array.from(wrap?.querySelectorAll('.equip-btn') ?? []).map((b) => b.textContent!.trim());
+      return Array.from(wrap?.querySelectorAll('.equip-btn') ?? []).map((b) => b.getAttribute('data-slot')!);
     };
     return { fixture, el, setSlot, buttonsOf };
   }
@@ -445,7 +501,8 @@ describe('FpsListComponent (honest slot fitting)', () => {
     };
     const { el, fixture, setSlot } = await render({ cat: 'weapon', equipInto: 'set-1' }, carrying, [base, livery]);
 
-    const primary = Array.from(el.querySelectorAll('.equip-btn')).find((b) => b.textContent!.trim() === 'primary') as HTMLButtonElement;
+    // Equipped, so its label is the "remove from" action rather than the slot name.
+    const primary = el.querySelector('.equip-btn.on') as HTMLButtonElement;
     expect(el.querySelectorAll('a.card').length).toBe(1);
     expect(primary.classList).toContain('on');
 
@@ -583,7 +640,7 @@ describe('FpsListComponent (whole catalog)', () => {
     // Wildcards alone narrow nothing; regex characters stay literal.
     expect((await browse({ cat: 'weapon', q: '*' }, guns)).names().length).toBe(2);
     TestBed.resetTestingModule();
-    expect((await browse({ cat: 'weapon', q: 'p4-ar (*' }, guns)).names()).toEqual([]);
+    expect((await browse({ cat: 'weapon', q: 'p4-ar [*' }, guns)).names()).toEqual([]);
   });
 
   it('keeps the category\'s own size on its tab after the reader switches tabs', async () => {
@@ -688,5 +745,130 @@ describe('FpsListComponent — URL mirror (D16, REQ-20)', () => {
     expect(url).toContain('cat=armor');
     expect(url).toContain('slot=Light');
     expect(url).toContain('q=helm');
+  });
+
+  async function searchFor(term: string) {
+    const ctx = await setupRouted();
+    jasmine.clock().install();
+    try {
+      ctx.cmp.onSearchInput(term);
+      jasmine.clock().tick(1000);
+    } finally {
+      jasmine.clock().uninstall();
+    }
+    ctx.fixture.detectChanges();
+    await ctx.fixture.whenStable();
+    ctx.fixture.detectChanges();
+    return { ...ctx, el: ctx.fixture.nativeElement as HTMLElement };
+  }
+
+  it('trims the search before it reaches the URL (L28)', async () => {
+    const { replace } = await searchFor('  helm  ');
+    const url = replace.calls.mostRecent().args[0] as string;
+    expect(url).toContain('q=helm');
+    expect(url).not.toMatch(/q=(%20|\+)/);
+  });
+
+  it('points an empty tab at the other one with the same search, as a real link (L08)', async () => {
+    const { el, cmp } = await searchFor('zzz');
+    expect(el.querySelector('a.card')).toBeNull();
+    const hint = el.querySelector('.empty .empty-elsewhere');
+    expect(hint).not.toBeNull();
+    expect(hint!.textContent).toContain('fps.empty.nothingIn');
+    const link = hint!.querySelector('a.try-other') as HTMLAnchorElement;
+    expect(link.textContent).toContain('fps.empty.searchIn');
+    expect(link.getAttribute('href')).toContain('cat=armor');
+    expect(link.getAttribute('href')).toContain('q=zzz');
+
+    const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+    link.dispatchEvent(plain);
+    expect(plain.defaultPrevented).toBeTrue();
+    expect(cmp.category()).toBe('armor');
+  });
+
+  it('offers no other tab while the search box is empty', async () => {
+    const { el } = await searchFor('');
+    expect(el.querySelector('.empty-elsewhere')).toBeNull();
+  });
+});
+
+describe('FpsListComponent — equip button and slot-keeping reset (L11 / L12)', () => {
+  async function equipMode() {
+    await TestBed.configureTestingModule({
+      imports: [FpsListComponent],
+      providers: [
+        provideRouter([]),
+        provideLocationMocks(),
+        provideTranslateService({ fallbackLang: 'en' }),
+        {
+          provide: CodexService,
+          useValue: {
+            build: signal({ id: 'b1', entityCounts: {} }),
+            stale: signal(false),
+            latestLivePatch: signal(null),
+            buildLoading: signal(false),
+            buildRefresh: signal(0),
+            liveMovedNotice: signal<string | null>(null),
+            buildError: signal(null),
+            compareKeys: signal<string[]>([]).asReadonly(),
+            compareCount: signal(0),
+            compareRejectedKind: signal(null),
+            loadCurrentBuild: async () => null,
+            listFpsCatalog: async () => [HELMET],
+            isPinned: () => false,
+            previewUrl: () => null,
+            viewingPastPatch: signal(false),
+            selectBuild: () => true,
+          } as unknown as Partial<CodexService>,
+        },
+        { provide: HangarService, useValue: { getRoleLoadout: async () => SET } as Partial<HangarService> },
+        { provide: RoleService, useValue: { isCollaborator: signal(false) } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: convertToParamMap({ cat: 'armor', slot: 'Helmet', equipInto: 'set-1' }) } },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(FpsListComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return { fixture, cmp: fixture.componentInstance, el: fixture.nativeElement as HTMLElement };
+  }
+
+  it('labels the equip button with the action, "Equip as Helmet", not a bare "In slot: Helmet"', async () => {
+    const { fixture, el } = await equipMode();
+    const t = TestBed.inject(TranslateService);
+    t.setTranslation('en', { fps: { equip: { equipAs: 'Equip as {{slot}}' } }, hangar: { slots: { helmet: 'Helmet' } } });
+    t.use('en');
+    fixture.detectChanges();
+    const btn = el.querySelector('.equip-btn') as HTMLButtonElement;
+    expect(btn.textContent!.replace(/\s+/g, ' ').trim()).toBe('Equip as Helmet');
+    expect(el.querySelector('.equip-label')).toBeNull();
+  });
+
+  it('"reset search & filters" keeps the slot the set page sent the reader to fill', async () => {
+    const { fixture, cmp, el } = await equipMode();
+    cmp.setManufacturer('RSI');
+    cmp.setGrade('A');
+    cmp.searchInput.set('x');
+    fixture.detectChanges();
+    expect(cmp.hasActiveFilters()).toBeTrue();
+
+    cmp.resetAll();
+    fixture.detectChanges();
+    expect(cmp.subType()).toBe('Helmet');
+    expect(cmp.manufacturer()).toBe('');
+    expect(cmp.grade()).toBe('');
+    expect(cmp.searchInput()).toBe('');
+    // Only the pinned slot left: nothing for the toolbar reset to do.
+    expect(cmp.hasActiveFilters()).toBeFalse();
+    expect(el.querySelector('.toolbar .reset, button.reset')).toBeNull();
+  });
+
+  it('drops the subtitle and the armour stats note in equip mode, so the first card stays in view', async () => {
+    const { el } = await equipMode();
+    expect(el.querySelector('header .hint')).toBeNull();
+    expect(el.querySelector('.partial-note')).toBeNull();
   });
 });

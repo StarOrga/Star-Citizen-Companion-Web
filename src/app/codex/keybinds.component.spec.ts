@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { KeybindsComponent } from './keybinds.component';
 import { CodexService } from './codex.service';
@@ -195,6 +195,39 @@ describe('KeybindsComponent', () => {
     expect(groups[0].rows.map((r) => r.label)).toEqual(['Strafe Up', 'Strafe Down']);
   });
 
+  it('keeps the search term in ?q= and restores it on a fresh visit (audit L17)', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+    const router = TestBed.inject(Router);
+    fixture.componentInstance.onSearch('  str');
+    fixture.componentInstance.onSearch('  strafe ');
+    expect(router.url).not.toContain('q='); // debounced: no navigation per keystroke
+    await new Promise((r) => setTimeout(r, 350));
+    await fixture.whenStable();
+    expect(router.url).toContain('q=strafe');
+
+    const again = TestBed.createComponent(KeybindsComponent);
+    again.detectChanges();
+    await again.whenStable();
+    expect(again.componentInstance.searchInput()).toBe('strafe');
+
+    fixture.componentInstance.onSearch('');
+    await new Promise((r) => setTimeout(r, 350));
+    await fixture.whenStable();
+    expect(router.url).not.toContain('q=');
+  });
+
+  it('searches label, action id and key with the shared Codex dialect', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS })).componentInstance;
+    const labels = (): string[] => cmp.groups().flatMap((g) => g.rows.map((r) => r.label));
+
+    cmp.onSearch('space'); // the bound key
+    expect(labels()).toEqual(['Strafe Up']);
+    cmp.onSearch('down strafe'); // tokens in any order narrow
+    expect(labels()).toEqual(['Strafe Down']);
+    cmp.onSearch('ui_back'); // the raw action id, separator-tolerant
+    expect(labels()).toEqual(['Back']);
+  });
+
   it('shows the selected device binding (keyboard default → gamepad)', async () => {
     const cmp = (await setup({ binds: SAMPLE, labels: LABELS })).componentInstance;
     expect(cmp.groups()[0].rows[0].binding).toBe('space');
@@ -212,6 +245,53 @@ describe('KeybindsComponent', () => {
     expect(cmp.groups()[0].rows[0].label).toBe('Strafe Down');
     cmp.onSearch('nomatch-xyz');
     expect(cmp.groups().length).toBe(0);
+  });
+
+  describe('search box (real DOM)', () => {
+    async function type(fixture: ComponentFixture<KeybindsComponent>, value: string): Promise<HTMLElement> {
+      const el: HTMLElement = fixture.nativeElement;
+      const input = el.querySelector('input.search') as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return el;
+    }
+
+    function shownLabels(el: HTMLElement): string[] {
+      return Array.from(el.querySelectorAll<HTMLElement>('.act-label')).map(
+        (n) => n.firstChild?.textContent?.trim() ?? '',
+      );
+    }
+
+    it('renders the filtered empty state for a term with no hit, and the rows return once it is cleared', async () => {
+      const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+      let el = await type(fixture, 'zzqx');
+
+      expect(el.querySelector('.act-label')).toBeNull();
+      expect(el.querySelector('.count-bar')).toBeNull();
+      expect(el.querySelector('.empty p')?.textContent).toContain('codex.empty.filtered');
+
+      el = await type(fixture, '');
+      expect(el.querySelector('.empty')).toBeNull();
+      expect(shownLabels(el)).toEqual(['Strafe Up', 'Strafe Down', 'Back']);
+    });
+
+    it('finds an action by its English label once names are switched to English', async () => {
+      const labelsEn = new Map(LABELS);
+      labelsEn.set('@ui_back', 'Return To Menu');
+      const fixture = await setup({ binds: SAMPLE, labels: LABELS_DE, labelsEn, lang: 'de' });
+
+      // German names on screen: the English-only word finds nothing.
+      let el = await type(fixture, 'return menu');
+      expect(shownLabels(el)).toEqual([]);
+
+      fixture.componentInstance.setNameLang('en');
+      fixture.detectChanges();
+      el = await type(fixture, 'return menu');
+      expect(shownLabels(el)).toEqual(['Return To Menu']);
+    });
   });
 
   it('derives a clean name when the label key resolves in no language', async () => {
