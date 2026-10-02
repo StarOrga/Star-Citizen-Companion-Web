@@ -551,3 +551,19 @@ export class UpcomingShipsService {
     } catch { /* quota / private mode */ }
   }
 }
+
+/**
+ * An RSI matrix value ("industrial", "MINING / REFINING", "Heavy Repair") in
+ * the reader's language: `codex.upcoming.role.<slug>` when we have it, else the
+ * value in Title Case — never the feed's raw lower/upper case in a German UI
+ * (Codex UX audit L30).
+ */
+export function upcomingRoleLabel(value: string | null | undefined, t: (key: string) => string): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  const slug = normalize(raw).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const key = `codex.upcoming.role.${slug}`;
+  const hit = t(key);
+  if (hit && hit !== key) return hit;
+  return raw.toLowerCase().replace(/(^|[\s/(-])(\p{L})/gu, (_m, pre: string, ch: string) => pre + ch.toUpperCase());
+}

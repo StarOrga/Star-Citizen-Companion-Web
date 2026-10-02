@@ -17,6 +17,7 @@ import {
   UpcomingShipsService,
   heroArtOrder,
   thumbnailCandidates,
+  upcomingRoleLabel,
 } from './upcoming-ships.service';
 
 /**
@@ -71,8 +72,8 @@ import {
               <span class="badge status" [class.concept]="isConcept()">
                 {{ statusKey() | translate }}
               </span>
-              @if (s.focus) { <span class="badge">{{ s.focus }}</span> }
-              @else if (s.type) { <span class="badge">{{ s.type }}</span> }
+              @if (s.focus) { <span class="badge">{{ roleLabel(s.focus) }}</span> }
+              @else if (s.type) { <span class="badge">{{ roleLabel(s.type) }}</span> }
             </div>
 
             <p class="notice">{{ noticeKey() | translate }}</p>
@@ -219,6 +220,11 @@ export class UpcomingDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly rsi = inject(UpcomingShipsService);
   private readonly translate = inject(TranslateService);
+
+  /** RSI role/type in the reader's language (see upcomingRoleLabel). */
+  roleLabel(value: string | null): string {
+    return upcomingRoleLabel(value, (k) => this.translate.instant(k));
+  }
   readonly hangar = inject(HangarService);
 
   readonly loading = signal(true);
@@ -260,8 +266,8 @@ export class UpcomingDetailComponent implements OnInit {
     const t = (key: string) => this.translate.instant(key);
     const out: { label: string; value: string }[] = [];
     if (s.manufacturer) out.push({ label: t('codex.upcomingDetail.fact.manufacturer'), value: s.manufacturer });
-    if (s.type) out.push({ label: t('codex.upcomingDetail.fact.type'), value: s.type });
-    if (s.focus) out.push({ label: t('codex.upcomingDetail.fact.focus'), value: s.focus });
+    if (s.type) out.push({ label: t('codex.upcomingDetail.fact.type'), value: upcomingRoleLabel(s.type, t) });
+    if (s.focus) out.push({ label: t('codex.upcomingDetail.fact.focus'), value: upcomingRoleLabel(s.focus, t) });
     if (s.productionStatus) {
       out.push({ label: t('codex.upcomingDetail.fact.status'), value: t(this.statusKey()) });
     }
