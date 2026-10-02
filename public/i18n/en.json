@@ -282,7 +282,6 @@
       }
     },
     "bridge": {
-      "scannerPlaceholder": "Scan the codex — type a ship name or class (e.g. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
       "indexMode": "Index mode",
       "keybinds": "Keybinds",
@@ -2083,7 +2082,6 @@
       "removeFrom": "Remove from {{slot}}",
       "confirmEquipped": "{{item}} equipped in {{slot}}",
       "confirmRemoved": "{{item}} removed from {{slot}}",
-      "into": "Into slot:",
       "failed": "Not saved — the set did not accept the change. Please try again.",
       "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped.",
       "mySets": "My sets",

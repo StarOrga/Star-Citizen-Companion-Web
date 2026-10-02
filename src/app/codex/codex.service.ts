@@ -789,8 +789,11 @@ export class CodexService {
     const out = new Map<CodexKind, number>();
     // Three searchable characters must survive the tokenizing: `(((` yields
     // nothing, and an empty pattern would count every record of every kind.
-    const safe = ilikeTokenPatterns(search).join(' ');
-    if (safe.replace(/[*\s]/g, '').length < 3) return out;
+    // Every token is AND-ed, so one token of three characters is enough to keep
+    // the count narrow; tokens like "p 4" alone would scan whole tables.
+    const patterns = ilikeTokenPatterns(search);
+    if (!patterns.some((p) => p.replace(/\*/g, '').length >= 3)) return out;
+    const safe = patterns.join(' ');
     const term = search.trim();
     const build = await this.loadCurrentBuild();
     if (!build) return out;

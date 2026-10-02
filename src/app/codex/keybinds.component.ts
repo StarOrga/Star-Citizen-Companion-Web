@@ -753,7 +753,7 @@ export class KeybindsComponent implements OnInit {
     this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => void this.ngOnInit());
     // Every other Codex search keeps its term in `?q=`; reload and Back used to
     // lose it here (Codex UX audit L17).
-    const q = this.route.snapshot.queryParamMap.get('q');
+    const q = this.route.snapshot.queryParamMap.get('q')?.trim();
     if (q) this.searchInput.set(q);
   }
 

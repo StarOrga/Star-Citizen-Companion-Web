@@ -1,5 +1,4 @@
 import { rankBySearch } from './codex-search';
-import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -132,6 +131,12 @@ interface Lane {
             @for (s of skeletons; track s; let i = $index) {
               <div class="lane-card skel sc-skel-field" scNeuroField [neuroIndex]="i" [style.--sc-skel-i]="i"></div>
             }
+          </div>
+        } @else if (searchError(); as err) {
+          <!-- A failed read is an error with a way forward, never "no ship matches". -->
+          <div class="sc-card empty" role="alert">
+            <p class="err">{{ err | translate }}</p>
+            <button type="button" class="scan-retry" (click)="retrySearch()">{{ 'codex.error.retry' | translate }}</button>
           </div>
         } @else if (searchResults().length === 0) {
           <div class="sc-card empty">
@@ -354,6 +359,11 @@ interface Lane {
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
     /* The field has its own clear button; the browser's would be a second x (audit L16). */
     input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+    .empty .err { color: var(--sc-danger); margin: 0 0 8px; }
+    .scan-retry { padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: inherit; cursor: pointer; }
+    .scan-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .scan-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    @media (pointer: coarse) { .scan-retry { min-height: 44px; } }
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
     .scanner-clear:hover { color: var(--sc-accent); }
     .index-link {
@@ -518,6 +528,8 @@ export class CodexBridgeComponent implements OnInit {
   readonly searchTerm = signal('');
   readonly searching = signal(false);
   readonly searchResults = signal<CodexListRow[]>([]);
+  /** i18n key of a failed scanner search; null while the last search answered. */
+  readonly searchError = signal<string | null>(null);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
@@ -672,20 +684,30 @@ export class CodexBridgeComponent implements OnInit {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchSeq++;
     this.searching.set(false);
+    this.searchError.set(null);
     this.searchInput.set('');
     this.searchTerm.set('');
+  }
+
+  /** Run the current scanner search again after a failure. */
+  retrySearch(): void {
+    const term = this.searchTerm().trim();
+    if (term) void this.runSearch(term);
   }
 
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
+    this.searchError.set(null);
     try {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
       this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug]));
     } catch (error) {
-      logWarn('codex', 'bridge search failed', { term, error });
-      if (seq === this.searchSeq) this.searchResults.set([]);
+      if (seq === this.searchSeq) {
+        this.searchResults.set([]);
+        this.searchError.set(toErrorKey('codex', 'bridgeSearch', error, { term }));
+      }
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);
     }

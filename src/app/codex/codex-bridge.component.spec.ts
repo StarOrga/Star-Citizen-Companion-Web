@@ -324,6 +324,26 @@ describe('CodexBridgeComponent', () => {
     expect(link.getAttribute('href')).toBe('/codex/index?kind=ship&q=Arrowhead');
   });
 
+  it('shows a failed scan as an error with retry, never as "no ship matches"', async () => {
+    const fixture = await setup({ catalog: [], hangar: [] });
+    const svc = TestBed.inject(CodexService) as unknown as { listByKind: jasmine.Spy };
+    svc.listByKind.and.rejectWith(new Error('network down'));
+    fixture.componentInstance.searchTerm.set('Arrowhead');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.empty[role="alert"]')).not.toBeNull();
+    expect(el.textContent).not.toContain('codex.bridge.scannerEmpty');
+
+    svc.listByKind.and.resolveTo({ rows: [], count: 0 });
+    (el.querySelector('.scan-retry') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.empty[role="alert"]')).toBeNull();
+    expect(el.textContent).toContain('codex.bridge.scannerEmpty');
+  });
+
   it('uses the short scanner placeholder and trims the term (L27 / L28)', async () => {
     const fixture = await setup({ catalog: [], hangar: [] });
     const input = (fixture.nativeElement as HTMLElement).querySelector('.scanner-input') as HTMLInputElement;
