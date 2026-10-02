@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
-import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { FpsListComponent } from './fps-list.component';
 import { CodexListRow, CodexService } from './codex.service';
@@ -152,13 +152,55 @@ describe('FpsListComponent (equip mode)', () => {
 
     expect(el.querySelector('.equip-err')).toBeNull();
     expect(el.querySelector('.equip-btn')!.classList).toContain('on');
-    // A successful armour equip (not a clear) hops back into the set page —
-    // the band shrinks into the same slot tile the reader arrived from.
-    expect(hopSpy).toHaveBeenCalledTimes(1);
-    const [tree, landing, source] = hopSpy.calls.mostRecent().args;
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/set/set-1');
-    expect(landing).toEqual({ slot: 'helmet', direction: 'toSet' });
-    expect(source).toBe(el.querySelector('.equip-band'));
+    // L20: armour behaves like a weapon — the reader stays on the list and the
+    // sticky bar confirms with the way back, instead of a hop to the set page.
+    expect(hopSpy).not.toHaveBeenCalled();
+    expect(el.querySelector('.equip-confirm')).not.toBeNull();
+    expect(el.querySelector('.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('reads the one equip param for armour too: equipSlot=helmet narrows to helmets (L20)', async () => {
+    const { fixture } = await setup({ query: { cat: 'armor', equipInto: 'set-1', equipSlot: 'helmet' }, set: SET });
+    const cmp = fixture.componentInstance;
+    expect(cmp.subType()).toBe('Helmet');
+    expect(cmp.armorFittingRoleSlot()).toBe('helmet');
+    // An armour position never narrows the weapon list to nothing.
+    expect(cmp.fittingSlot()).toBeNull();
+  });
+
+  it('still honours the old armour link shape slot=Helmet', async () => {
+    const { fixture } = await setup({ query: { cat: 'armor', slot: 'Helmet', equipInto: 'set-1' }, set: SET });
+    expect(fixture.componentInstance.armorFittingRoleSlot()).toBe('helmet');
+  });
+
+  it('does not offer "add to set" inside equip mode', async () => {
+    const { el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
+    expect(el.querySelector('sc-add-to-set')).toBeNull();
+  });
+
+  it('folds the facets behind a "Filter (n)" toggle on phones only (L14)', async () => {
+    const { fixture, el } = await setup({ query: { cat: 'armor' }, set: null });
+    const cmp = fixture.componentInstance;
+    cmp.isPhone.set(false);
+    fixture.detectChanges();
+    expect(el.querySelector('.filters-toggle')).toBeNull();
+    expect(el.querySelector('.controls')!.classList).not.toContain('collapsed');
+
+    cmp.isPhone.set(true);
+    cmp.setManufacturer('RSI');
+    fixture.detectChanges();
+    const toggle = el.querySelector<HTMLButtonElement>('.filters-toggle')!;
+    expect(el.querySelector('.controls')!.classList).toContain('collapsed');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.getAttribute('aria-controls')).toBe('fps-facets');
+    expect(cmp.activeFilterCount()).toBe(1);
+    // The search stays reachable while the facets are folded.
+    expect(el.querySelector('.search')).not.toBeNull();
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.controls')!.classList).not.toContain('collapsed');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('leads "back to the set" to the set page, not the landing', async () => {
@@ -597,6 +639,12 @@ describe('FpsListComponent (whole catalog)', () => {
     const { el } = await browse({ cat: 'weapon' }, [weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small')]);
     expect(el.querySelector('a.card button')).toBeNull();
     expect(el.querySelector('.card-wrap > .pin')).not.toBeNull();
+  });
+
+  it('offers "add to set" on every card of the plain archive, next to the link (L09)', async () => {
+    const { el } = await browse({ cat: 'weapon' }, [weapon('klwe_pistol_energy_01', 'Arclight Pistol', 'Small')]);
+    expect(el.querySelector('.card-wrap > .ats-row sc-add-to-set')).not.toBeNull();
+    expect(el.querySelector('a.card sc-add-to-set')).toBeNull();
   });
 
   it('offers its facets as themed selects, and picking one filters the list', async () => {

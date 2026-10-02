@@ -4,13 +4,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  ElementRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -22,12 +20,10 @@ import {
   fpsArmorSlot,
   manufacturerFacetOptions,
   manufacturerLabel,
-  pickLocalizedDistinct,
   toLang,
 } from './codex.service';
-import { cleanLocaleValue, humanizeClassName } from './codex-format';
-import { FoldedRow, foldVariantRows } from './codex-variant-fold';
-import { SkinGroupedRow, SkinVariantRef, groupSkinRows } from './codex-skin-group';
+import { FoldedRow } from './codex-variant-fold';
+import { SkinGroupedRow } from './codex-skin-group';
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
 import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
@@ -36,13 +32,10 @@ import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HangarService } from '../hangar/hangar.service';
-import {
-  HangarRoleLoadout,
-  ROLE_SLOT_SUGGESTIONS,
-  SLOT_WEAPON_FACET,
-  slotAccepts,
-} from '../hangar/hangar.types';
+import { HangarRoleLoadout, SLOT_WEAPON_FACET, slotAccepts } from '../hangar/hangar.types';
 import { ARMOR_SLOT_SPECS, armorSlotsFromLoadout, roleSlotForAttachType } from './codex-landing-kpi';
+import { fittingSlots, foldFpsCards, fpsCardName, isArmorRoleSlot } from './set/fps-set-fit';
+import { AddToSetComponent } from './set/add-to-set.component';
 import { mirrorQueryParams } from './codex-url-state';
 import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
@@ -90,7 +83,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -120,7 +113,7 @@ interface FacetOption {
              card. The board figure is decorative and mirrors the set page's
              AN BORD figure; only ONE may ever be in this page's DOM (shared
              gradient ids in codex-board-figure.component.ts). -->
-        <div class="sc-card equip-band" #band
+        <div class="sc-card equip-band"
              [style.view-transition-name]="isBandTransitionTarget() ? SET_SLOT_TRANSITION_NAME : null">
           @if (armorFittingRoleSlot(); as roleSlot) {
             <sc-codex-board-figure class="band-figure" [filled]="targetFilledSlots()" [highlight]="roleSlot" [decorative]="true" />
@@ -194,7 +187,7 @@ interface FacetOption {
       </nav>
 
       <!-- Search + facets -->
-      <div class="controls sc-card">
+      <div class="controls sc-card" [class.collapsed]="filtersCollapsed()">
         <div class="search-row">
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
@@ -207,7 +200,20 @@ interface FacetOption {
           }
         </div>
 
-        <div class="facets">
+        <!-- Phones (L14): the facets fold behind one toggle so the first
+             screen shows results, not five full-width selects. The search
+             stays open — it is what most visits start with. -->
+        @if (isPhone()) {
+          <button type="button" class="filters-toggle"
+                  aria-controls="fps-facets"
+                  [attr.aria-expanded]="!filtersCollapsed()"
+                  (click)="toggleFilters()">
+            {{ 'fps.filters.toggle' | translate: { count: activeFilterCount() } }}
+            <span class="filters-caret" aria-hidden="true">{{ filtersCollapsed() ? '▾' : '▴' }}</span>
+          </button>
+        }
+
+        <div class="facets" id="fps-facets">
           @if (subTypeOptions().length > 0) {
             <!-- A div, not a label: a label forwards clicks on the listbox's
                  options to the trigger and would snap the list shut again. -->
@@ -359,6 +365,13 @@ interface FacetOption {
                         scTooltipTier="label">
                   {{ isPinned(r) ? '★' : '☆' }}
                 </button>
+                @if (!equipInto()) {
+                  <!-- L09: ordinary browsing can put a piece into a set too. -->
+                  <div class="ats-row">
+                    <sc-add-to-set [className]="r.classNameSlug" [kind]="r.detailKind" [subType]="r.subType"
+                                   [attachType]="r.attachType" [itemName]="cardName(r)" />
+                  </div>
+                }
                 @if (equipSlots(r); as slots) {
                   @if (slots.length > 0) {
                     <!-- Armour offers its one anatomical home; a weapon or tool
@@ -598,6 +611,16 @@ interface FacetOption {
     .search-clear:hover { color: var(--sc-accent); }
     .search-clear:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
 
+    .filters-toggle {
+      display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 14px; border-radius: 8px; cursor: pointer;
+      border: 1px solid var(--sc-border); background: var(--sc-bg-0); color: var(--sc-fg-1);
+      font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.74rem, var(--sc-fs-floor)); min-height: max(44px, var(--sc-tap-min));
+    }
+    .filters-toggle:hover, .filters-toggle[aria-expanded='true'] { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .filters-toggle:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .controls.collapsed .facets { display: none; }
     .facets { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
     .facet > span { font-size: max(0.66rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
@@ -677,6 +700,9 @@ interface FacetOption {
     .size-tag { font-size: max(0.64rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); flex: 0 0 auto; }
 
     .card-wrap.skel { min-height: 116px; }
+    .ats-row { display: flex; padding: 0 14px 14px; }
+    /* An open popover rides above the neighbouring cards (the hover lift makes each card its own stacking context). */
+    .card-wrap:has(.sc-add-to-set.open) { z-index: 6; }
 
     .more-row { display: flex; justify-content: center; }
     .load-more { padding: 10px 24px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
@@ -716,7 +742,6 @@ export class FpsListComponent {
   private readonly transition = inject(SetArsenalTransition);
   /** Exposed for the template — a bound constant reads better than a re-import there. */
   readonly SET_SLOT_TRANSITION_NAME = SET_SLOT_TRANSITION_NAME;
-  private readonly bandRef = viewChild<ElementRef<HTMLElement>>('band');
 
   private readonly dataLang = signal(toLang(this.t.getCurrentLang()));
 
@@ -752,7 +777,28 @@ export class FpsListComponent {
    * is loaded, the weapon list shows only what fits it. A link from the
    * primary slot used to list knives and pistols too — without an equip button.
    */
-  readonly fittingSlot = computed(() => (this.targetSet() && this.category() === 'weapon' ? this.equipSlot() : null));
+  readonly fittingSlot = computed(() => (this.targetSet() && this.category() === 'weapon' ? this.weaponEquipSlot() : null));
+  /** `equipSlot` when it names a weapon/tool position — an armour one (`helmet`) narrows the armour list instead. */
+  private readonly weaponEquipSlot = computed(() => {
+    const slot = this.equipSlot();
+    return slot && !isArmorRoleSlot(slot) ? slot : null;
+  });
+
+  /** Phone width (< 640px): the facets fold behind the "Filter (n)" toggle (L14). */
+  readonly isPhone = signal(matchPhone());
+  /** The reader opened the folded facets on a phone. */
+  readonly filtersOpen = signal(false);
+  readonly filtersCollapsed = computed(() => this.isPhone() && !this.filtersOpen());
+  /** How many facets narrow the list — the toggle's "(n)". The equip slot is the page's purpose, not a filter. */
+  readonly activeFilterCount = computed(
+    () =>
+      [this.manufacturer(), this.size(), this.grade()].filter(Boolean).length +
+      (this.subType() && this.subType() !== this.pinnedSubType() ? 1 : 0) +
+      (this.includeVariants() ? 1 : 0),
+  );
+  toggleFilters(): void {
+    this.filtersOpen.update((v) => !v);
+  }
   /**
    * The one anatomical position the equip band is dressed for — the same
    * role-slot key the AN BORD figure and `equip()` use (helmet/core/arms/
@@ -1001,8 +1047,12 @@ export class FpsListComponent {
 
     void this.svc.loadCurrentBuild();
     void this.loadTargetSet();
+    const phoneQuery = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(PHONE_QUERY) : null;
+    const onPhoneChange = (e: MediaQueryListEvent) => this.isPhone.set(e.matches);
+    phoneQuery?.addEventListener?.('change', onPhoneChange);
     inject(DestroyRef).onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
+      phoneQuery?.removeEventListener?.('change', onPhoneChange);
     });
   }
 
@@ -1064,13 +1114,7 @@ export class FpsListComponent {
 
   /** Both display passes of `rows` — or neither, when the raw records are asked for. */
   private fold(rows: FpsRow[], raw: boolean): FpsGridRow[] {
-    return raw
-      ? rows.map((r) => ({
-          ...r,
-          foldedClassNames: [] as readonly string[],
-          skinVariants: [] as readonly SkinVariantRef[],
-        }))
-      : groupSkinRows(foldVariantRows(rows, (r) => this.cardName(r)));
+    return foldFpsCards(rows, raw, this.dataLang());
   }
 
   /**
@@ -1153,9 +1197,16 @@ export class FpsListComponent {
     this.equipInto.set(q.get('equipInto'));
     // The set page links one gear slot at a time: narrow the list to the
     // weapon type that slot takes, unless the link already named a facet.
+    // ONE equip param for armour and weapons (L20): `equipSlot` names the
+    // set's position (`helmet`, `primary`). An armour position narrows the
+    // armour list to its attach type; links of older builds that sent the
+    // armour facet as `slot=Helmet` still work through the facet above.
     const equipSlot = q.get('equipSlot');
     this.equipSlot.set(equipSlot);
-    if (equipSlot && this.category() === 'weapon' && !slot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
+    const armorSpec = ARMOR_SLOT_SPECS.find((s) => s.roleSlot === equipSlot);
+    if (armorSpec && this.category() === 'armor' && !slot) {
+      this.subType.set(fpsArmorSlot(armorSpec.attachType) ?? '');
+    } else if (equipSlot && this.category() === 'weapon' && !slot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
       this.subType.set(SLOT_WEAPON_FACET[equipSlot]);
     }
     if (this.equipInto()) this.linkedSubType.set(this.subType());
@@ -1183,14 +1234,7 @@ export class FpsListComponent {
       const slot = roleSlotForAttachType(r.attachType);
       return slot ? [slot] : [];
     }
-    const anatomical = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
-    const only = this.equipSlot();
-    return (ROLE_SLOT_SUGGESTIONS[set.role] ?? []).filter(
-      (s) =>
-        !anatomical.has(s) &&
-        (!only || s === only) &&
-        slotAccepts(s, { className: r.classNameSlug, subType: r.subType }),
-    );
+    return fittingSlots(set, { className: r.classNameSlug, subType: r.subType, attachType: null }, this.weaponEquipSlot());
   }
 
   /** True when this card's last equip write was refused. */
@@ -1264,28 +1308,15 @@ export class FpsListComponent {
         } else {
           this.equipConfirm.set({ item: this.cardName(r), slot: this.slotLabel(slot), removed: clearing });
         }
-        if (!clearing && this.category() === 'armor' && !this.equipConflict()) {
-          // Armour has exactly one home: once it's on, the reader is done here
-          // and the hop back into the set page (reversing the slot tile's grow
-          // animation) is the natural next step. A weapon slot stays on the
-          // list — a role loadout usually needs several of those in one visit.
-          this.returnToSet(slot, set.id);
-        }
+        // Armour and weapons behave alike (L20): the reader stays on the list,
+        // the sticky bar confirms and carries the way back to the set. Armour
+        // used to hop straight back, weapons stayed — two rules for one click.
       } else {
         this.equipFailed.set(key);
       }
     } finally {
       this.equipBusy.set(null);
     }
-  }
-
-  /** The arsenal → set hop: the band shrinks back into the slot tile it grew from. */
-  private returnToSet(slot: string, setId: string): void {
-    void this.transition.hop(
-      this.router.createUrlTree(['/codex', 'set', setId]),
-      { slot, direction: 'toSet' },
-      this.bandRef()?.nativeElement ?? null,
-    );
   }
 
   categoryCount(c: FpsCategory): number | null {
@@ -1315,9 +1346,7 @@ export class FpsListComponent {
   }
 
   cardName(r: FpsRow): string {
-    const p = r.payload as { name?: { de: string; en: string; key: string } } | undefined;
-    const localized = p?.name ? pickLocalizedDistinct(p.name, this.dataLang()) : '';
-    return localized || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
+    return fpsCardName(r, this.dataLang());
   }
 
   private readonly brokenThumbs = signal<ReadonlySet<string>>(new Set<string>());
@@ -1439,6 +1468,12 @@ export class FpsListComponent {
       if (seq === this.loadSeq) this.loading.set(false);
     }
   }
+}
+
+const PHONE_QUERY = '(max-width: 640px)';
+
+function matchPhone(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(PHONE_QUERY).matches;
 }
 
 function uniqSorted(values: (string | null)[]): string[] {
