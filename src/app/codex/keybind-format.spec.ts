@@ -1,7 +1,7 @@
 import {
   deriveActionName,
   resolveKeybindLabel,
-  sharedContext,, formatKeyCombo, formatKeyToken } from './keybind-format';
+  sharedContext, formatKeyCombo, formatKeyToken } from './keybind-format';
 
 describe('deriveActionName', () => {
   it('strips the vehicle prefix and title-cases the remainder', () => {
