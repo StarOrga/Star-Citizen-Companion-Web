@@ -92,7 +92,7 @@ interface Lane {
                    (ngModelChange)="onSearchInput($event)"
                    (keydown.enter)="openFirstResult()"
                    [attr.aria-label]="'codex.search.label' | translate"
-                   [attr.placeholder]="'codex.bridge.scannerPlaceholder' | translate" />
+                   [attr.placeholder]="'codex.bridge.scannerPlaceholderShort' | translate" />
             @if (searchInput()) {
               <button class="scanner-clear" type="button" (click)="clearSearch()"
                       [attr.aria-label]="'codex.search.clear' | translate"
@@ -136,7 +136,12 @@ interface Lane {
         } @else if (searchResults().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            <p>{{ 'codex.empty.filtered' | translate }}</p>
+            <!-- The Bridge has no filters to loosen (L27): the scanner looks at
+                 ships only, so the way on is the full index with the same term. -->
+            <p>{{ 'codex.bridge.scannerEmpty' | translate: { term: searchTerm() } }}</p>
+            <a class="index-search" routerLink="/codex/index" [queryParams]="{ kind: 'ship', q: searchTerm() }">
+              {{ 'codex.bridge.searchIndex' | translate }} <span aria-hidden="true">&rarr;</span>
+            </a>
           </div>
         } @else {
           <div class="lane-track">
@@ -325,8 +330,12 @@ interface Lane {
     </section>
   `,
   styles: [`
-    :host { display: block; }
-    .bridge { display: flex; flex-direction: column; gap: 24px; padding-bottom: 90px; }
+    /* No sideways page scroll (L13): the lanes scroll inside themselves, so
+       nothing on the way up may take their summed card width as its own
+       min-content size. */
+    :host { display: block; min-width: 0; max-width: 100%; }
+    .bridge { display: flex; flex-direction: column; gap: 24px; padding-bottom: 90px; min-width: 0; }
+    .lane { min-width: 0; }
 
     /* Scanner */
     .scanner { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
@@ -428,6 +437,7 @@ interface Lane {
       display: grid; grid-auto-flow: column; grid-auto-columns: 216px; gap: 12px;
       overflow-x: auto; scroll-snap-type: x proximity; padding: 4px 2px 10px;
       scrollbar-width: thin;
+      min-width: 0; max-width: 100%; contain: inline-size;
     }
     .lane-track::-webkit-scrollbar { height: 8px; }
     .lane-track::-webkit-scrollbar-thumb { background: var(--sc-border); border-radius: 999px; }
@@ -467,6 +477,12 @@ interface Lane {
 
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); }
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
+    .empty .index-search { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--sc-accent); text-decoration: none; }
+    .empty .index-search:hover, .empty .index-search:focus-visible { text-decoration: underline; }
+    /* Touch (L31): the bridge's ways on reach 44px. */
+    @media (pointer: coarse) {
+      .index-link, .lane-more, .empty .index-search { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }
+    }
     .err { color: var(--sc-danger); padding: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
 
@@ -645,7 +661,7 @@ export class CodexBridgeComponent implements OnInit {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {
