@@ -243,6 +243,53 @@ describe('KeybindsComponent', () => {
     expect(cmp.groups().length).toBe(0);
   });
 
+  describe('search box (real DOM)', () => {
+    async function type(fixture: ComponentFixture<KeybindsComponent>, value: string): Promise<HTMLElement> {
+      const el: HTMLElement = fixture.nativeElement;
+      const input = el.querySelector('input.search') as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return el;
+    }
+
+    function shownLabels(el: HTMLElement): string[] {
+      return Array.from(el.querySelectorAll<HTMLElement>('.act-label')).map(
+        (n) => n.firstChild?.textContent?.trim() ?? '',
+      );
+    }
+
+    it('renders the filtered empty state for a term with no hit, and the rows return once it is cleared', async () => {
+      const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+      let el = await type(fixture, 'zzqx');
+
+      expect(el.querySelector('.act-label')).toBeNull();
+      expect(el.querySelector('.count-bar')).toBeNull();
+      expect(el.querySelector('.empty p')?.textContent).toContain('codex.empty.filtered');
+
+      el = await type(fixture, '');
+      expect(el.querySelector('.empty')).toBeNull();
+      expect(shownLabels(el)).toEqual(['Strafe Up', 'Strafe Down', 'Back']);
+    });
+
+    it('finds an action by its English label once names are switched to English', async () => {
+      const labelsEn = new Map(LABELS);
+      labelsEn.set('@ui_back', 'Return To Menu');
+      const fixture = await setup({ binds: SAMPLE, labels: LABELS_DE, labelsEn, lang: 'de' });
+
+      // German names on screen: the English-only word finds nothing.
+      let el = await type(fixture, 'return menu');
+      expect(shownLabels(el)).toEqual([]);
+
+      fixture.componentInstance.setNameLang('en');
+      fixture.detectChanges();
+      el = await type(fixture, 'return menu');
+      expect(shownLabels(el)).toEqual(['Return To Menu']);
+    });
+  });
+
   it('derives a clean name when the label key resolves in no language', async () => {
     const cmp = (await setup({ binds: SAMPLE, labels: new Map() })).componentInstance;
     const row = cmp.groups()[0].rows[0];
