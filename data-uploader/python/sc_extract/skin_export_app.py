@@ -61,6 +61,86 @@ def _refs_from_manifest(path: Path) -> list[ShipRef]:
     return out
 
 
+class _PackageBuilder:
+    """--package: the entity package per ship (sc_extract.assets3d). Loads the
+    DataCore once; parts dedup across every ship of the run (and across runs,
+    via <out>/_parts/index.json). A package failure never costs the hull."""
+
+    def __init__(self, p4k, args, exporter, on_log) -> None:
+        from .assets3d.datacore import DataCoreSource, P4KReader, load_datacore
+        from .assets3d.parts import PartStore
+        phase("datacore")
+        self.reader = P4KReader(p4k)
+        log("info", "package: parsing DataCore")
+        self.optimize = exporter._optimize
+        self.out = args.out.resolve()
+        self.interior = args.interior
+        self.store = PartStore(self.out / "_parts", self.reader.read, self.reader.exists,
+                               args.converter, self.optimize, self.out / "_work_parts",
+                               on_log=on_log)
+        self.source = DataCoreSource(load_datacore(self.reader), self.reader,
+                                     node_helpers=self.store.helpers)
+        self.rows: list[dict] = []
+
+    def build(self, ship_id: str, spec, hull_glb):
+        from .assets3d.ships import build_ship_package, export_interior
+        from .hull3d import hull_paint
+        try:
+            interior = None
+            if self.interior and spec is not None:
+                paint = hull_paint(spec.paints)
+                interior = export_interior(self.store, spec.hull_cga,
+                                           paint.mtl if paint else None,
+                                           self.out / "_interiors", self.optimize)
+            res = build_ship_package(ship_id, self.source, self.reader, self.store,
+                                     hull_glb, self.out / ship_id, interior)
+            self.store.save_index()
+        except Exception as exc:  # noqa: BLE001 — the hull still ships
+            log("warn", f"{ship_id}: package failed: {type(exc).__name__}: {exc}")
+            return {"error": str(exc)[:300]}
+        if res is None:
+            log("warn", f"{ship_id}: package skipped — no DataCore entity")
+            return {"error": "no DataCore entity"}
+        pl = res.manifest["placements"]
+        row = {
+            "ship_id": ship_id,
+            "manifest": f"{ship_id}/package.json",
+            "manifest_bytes": res.manifest_bytes,
+            "root_bytes": res.root_bytes,
+            "interior_bytes": res.interior_bytes,
+            "part_bytes": res.unique_part_bytes,
+            "parts": sorted(res.manifest["parts"]),
+            "placements": len(pl),
+            "placed": sum(1 for p in pl if p["position"] is not None),
+            "with_part": sum(1 for p in pl if p["partSha256"]),
+            "locators": res.locators,
+        }
+        row["total_bytes"] = (row["manifest_bytes"] + row["root_bytes"]
+                              + row["interior_bytes"] + row["part_bytes"])
+        self.rows.append(row)
+        loc = res.locators or {}
+        log("info", f"{ship_id}: package {row['total_bytes'] / 1e6:.2f} MB "
+                    f"({len(row['parts'])} part(s), {row['with_part']}/{len(pl)} placements "
+                    f"with geometry; locators {loc.get('checked', 0)} checked, "
+                    f"max {loc.get('max_error_m')} m)")
+        return {k: v for k, v in row.items() if k != "parts"}
+
+    def summary(self) -> dict:
+        """Dedup across the run: bytes if every ship stored its own parts vs. stored once."""
+        unique = {sha for r in self.rows for sha in r["parts"]}
+        sizes = {sha: (self.store.path_of(sha).stat().st_size
+                       if self.store.path_of(sha).exists() else 0) for sha in unique}
+        naive = sum(sizes[sha] for r in self.rows for sha in r["parts"])
+        stored = sum(sizes.values())
+        return {
+            "ships": len(self.rows),
+            "part_refs": sum(len(r["parts"]) for r in self.rows), "unique_parts": len(unique),
+            "part_bytes_naive": naive, "part_bytes_deduped": stored,
+            "dedup_ratio": round(naive / max(1, stored), 2),
+            "cache_hits": self.store.hits, "cache_misses": self.store.misses,
+        }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Events-emitting 3D ship-skin exporter")
     ap.add_argument("--p4k", required=True, type=Path)
@@ -79,6 +159,12 @@ def main() -> int:
                     help="per-skin glb size budget; over-budget skins are re-optimized "
                          "at lower texture size (0 disables)")
     ap.add_argument("--limit-skins", type=int, default=None)
+    ap.add_argument("--package", action="store_true",
+                    help="also build the 3D entity package: shared part glbs in "
+                         "<out>/_parts + <out>/<ship>/package.json (docs/asset-package.md); "
+                         "additive — the hull output contract is unchanged")
+    ap.add_argument("--interior", action="store_true",
+                    help="with --package: export the interior layer into <out>/_interiors")
     args = ap.parse_args()
     if not args.ship and not args.manifest:
         ap.error("provide --ship (repeatable) or --manifest")
@@ -118,6 +204,8 @@ def main() -> int:
         log("info", f"{len(refs)} ship(s) to build"
                     f"{' (manifest)' if args.manifest else ''}")
 
+        pkg = _PackageBuilder(p4k, args, exporter, on_log) if args.package else None
+
         ships_out: list[dict] = []
         # Ships that were admitted to the manifest but wrote no model (#512).
         barren: list[dict] = []
@@ -144,11 +232,18 @@ def main() -> int:
                     n_prev = sum(1 for s in prev.get("skins", [])
                                  if s.get("model") or s.get("has_model"))
                     count(ref.ship_id, n_prev)
-                    ships_out.append({
+                    entry = {
                         "ship_id": ref.ship_id,
                         "export_dir": str((cfg.out_dir / ref.ship_id).resolve()),
                         "skins": [], "cached": True,
-                    })
+                    }
+                    if pkg and not (cfg.out_dir / ref.ship_id / "package.json").exists():
+                        model = next((s.get("model") for s in prev.get("skins", [])
+                                      if s.get("model")), None)
+                        entry["package"] = pkg.build(
+                            ref.ship_id, None,
+                            cfg.out_dir / ref.ship_id / model if model else None)
+                    ships_out.append(entry)
                     continue
             spec = disco.discover(ref)
             if args.limit_skins:
@@ -173,11 +268,16 @@ def main() -> int:
                     "model_bytes": int((s.get("model_mb") or 0) * 1e6) or None,
                 })
             count(ref.ship_id, n_ok)
-            ships_out.append({
+            entry = {
                 "ship_id": ref.ship_id,
                 "export_dir": str((cfg.out_dir / ref.ship_id).resolve()),
                 "skins": skins,
-            })
+            }
+            if pkg:
+                model = next((s.get("model") for s in result["skins"] if s.get("model")), None)
+                entry["package"] = pkg.build(
+                    ref.ship_id, spec, cfg.out_dir / ref.ship_id / model if model else None)
+            ships_out.append(entry)
             log("info", f"{ref.ship_id}: 3D model {'exported' if n_ok else 'missing'} "
                         f"({len(skins)} paint(s) listed)")
             if n_ok == 0:
@@ -216,7 +316,10 @@ def main() -> int:
             for reason, ids in verdict["reasons"].items():
                 head = ", ".join(ids[:5]) + (f" … +{len(ids) - 5}" if len(ids) > 5 else "")
                 log("warn", f"  {len(ids)}x {reason}: {head}")
-        done(result={"ships": ships_out, "verdict": verdict})
+        run_result = {"ships": ships_out, "verdict": verdict}
+        if pkg:
+            run_result["packages"] = pkg.summary()
+        done(result=run_result)
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")
