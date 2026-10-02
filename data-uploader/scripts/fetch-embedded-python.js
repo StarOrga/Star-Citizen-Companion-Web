@@ -24,7 +24,7 @@
  */
 
 import { createWriteStream, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
-import { dirname, relative, resolve, sep } from 'node:path';
+import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
@@ -58,6 +58,7 @@ const ARCHIVE = resolve(DOWNLOADS, ASSET);
 const SIDECAR_SRC = resolve(ROOT, 'python');
 const SIDECAR_DEST = resolve(OUT_DIR, 'sc_extract');
 const REQUIREMENTS = resolve(SIDECAR_SRC, 'requirements.txt');
+const REQUIREMENTS_NODEPS = resolve(SIDECAR_SRC, 'requirements-nodeps.txt');
 
 // Retry policy for the GitHub release download. CI has seen the very first
 // `fetch()` die with a bare `fetch failed` 300 ms in (2026-09-04, the
@@ -165,6 +166,12 @@ async function installRequirements() {
   if (!existsSync(exe)) throw new Error(`python.exe not found at ${exe}`);
   log(`installing requirements via embedded pip`);
   await spawnP(exe, ['-m', 'pip', 'install', '--no-warn-script-location', '-r', REQUIREMENTS]);
+  // scdatatools pins patched-away versions of its deps in its metadata;
+  // requirements.txt pins them itself, so it goes in without resolution.
+  if (existsSync(REQUIREMENTS_NODEPS)) {
+    log(`installing ${basename(REQUIREMENTS_NODEPS)} with --no-deps`);
+    await spawnP(exe, ['-m', 'pip', 'install', '--no-warn-script-location', '--no-deps', '-r', REQUIREMENTS_NODEPS]);
+  }
 }
 
 async function copySidecar() {
