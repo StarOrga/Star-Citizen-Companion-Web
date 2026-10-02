@@ -2103,7 +2103,8 @@
     },
     "filters": {
       "weaponType": "Weapon type",
-      "armorSlot": "Armor slot"
+      "armorSlot": "Armor slot",
+      "toggle": "Filters ({{count}})"
     },
     "weaponType": {
       "sidearm": "Sidearm",
@@ -2147,6 +2148,21 @@
       },
       "setLoadFailed": "The set from the link could not be loaded",
       "equipAs": "Equip as {{slot}}"
+    },
+    "addToSet": {
+      "trigger": "Add to set",
+      "dialogAria": "Add {{item}} to a set",
+      "signedOut": "Sign in and create a set to collect gear.",
+      "createSet": "Create a set",
+      "loading": "Loading sets …",
+      "noSet": "You have no set yet.",
+      "noFit": "None of your sets has a slot for this piece.",
+      "pickSet": "Which set?",
+      "pickSlot": "Slot in {{set}}",
+      "replaces": "Replaces the current piece",
+      "done": "{{item}} is now in {{slot}} of {{set}}",
+      "toSet": "To the set",
+      "close": "Close"
     }
   },
   "news": {

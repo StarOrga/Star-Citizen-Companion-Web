@@ -2103,7 +2103,8 @@
     },
     "filters": {
       "weaponType": "Waffentyp",
-      "armorSlot": "Rüstungsslot"
+      "armorSlot": "Rüstungsslot",
+      "toggle": "Filter ({{count}})"
     },
     "weaponType": {
       "sidearm": "Einhandwaffe",
@@ -2147,6 +2148,21 @@
       },
       "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden",
       "equipAs": "Als {{slot}} ausrüsten"
+    },
+    "addToSet": {
+      "trigger": "Zum Set",
+      "dialogAria": "{{item}} zu einem Set hinzufügen",
+      "signedOut": "Melde dich an und leg ein Set an, um Ausrüstung zu sammeln.",
+      "createSet": "Set anlegen",
+      "loading": "Sets werden geladen …",
+      "noSet": "Du hast noch kein Set.",
+      "noFit": "Keines deiner Sets hat einen Platz für dieses Teil.",
+      "pickSet": "In welches Set?",
+      "pickSlot": "Platz in {{set}}",
+      "replaces": "Ersetzt das aktuelle Teil",
+      "done": "{{item}} liegt jetzt in {{slot}} von {{set}}",
+      "toSet": "Zum Set",
+      "close": "Schließen"
     }
   },
   "news": {
