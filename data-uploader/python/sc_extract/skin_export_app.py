@@ -225,7 +225,7 @@ def main() -> int:
                     help="patch-version cache: skip ships already built into --out "
                          "(a non-empty <out>/<ship_id>/skins.json exists)")
     ap.add_argument("--texture-size", type=int, default=1024)
-    ap.add_argument("--max-model-mb", type=float, default=1.0,
+    ap.add_argument("--max-model-mb", type=float, default=1.5,
                     help="per-skin glb size budget; over-budget skins are re-optimized "
                          "at lower texture size (0 disables)")
     ap.add_argument("--limit-skins", type=int, default=None)

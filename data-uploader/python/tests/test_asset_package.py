@@ -217,6 +217,24 @@ def test_glb_bounds_through_node_transform(tmp_path):
     assert glb_bounds(p) == {"min": [9.0, -2.0, -3.0], "max": [11.0, 2.0, 3.0]}
 
 
+def test_glb_bounds_dequantizes_meshopt_positions(tmp_path):
+    """KHR_mesh_quantization (what `meshopt` writes): int16 normalized positions,
+    min/max stored raw, the node scale/translation dequantizes. A 20 m hull
+    must come out in metres, not ~±327 670 (the manifest bug)."""
+    gltf = {"asset": {"version": "2.0"}, "scene": 0, "scenes": [{"nodes": [0]}],
+            "extensionsUsed": ["KHR_mesh_quantization"],
+            "nodes": [{"mesh": 0, "translation": [0, 1, 0], "scale": [10, 10, 10]}],
+            "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+            "accessors": [{"min": [-32767, -16384, -32767], "max": [32767, 16384, 32767],
+                           "count": 0, "componentType": 5122, "normalized": True,
+                           "type": "VEC3"}]}
+    p = tmp_path / "q.glb"
+    glb_materials.write_glb(p, gltf, b"")
+    b = glb_bounds(p)
+    assert b["min"] == pytest.approx([-10.0, 1 - 5.0, -10.0], abs=1e-3)
+    assert b["max"] == pytest.approx([10.0, 1 + 5.0, 10.0], abs=1e-3)
+
+
 def test_part_store_dedups_by_path_and_content(tmp_path, monkeypatch):
     built = []
 
