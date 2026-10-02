@@ -19,7 +19,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from .. import glb_materials
 
@@ -238,6 +238,72 @@ class PartStore:
             glb_materials.write_glb(produced, gltf, binary)
         return produced
 
+    def export_composite(self, key: str,
+                         sources: Sequence[Tuple[str, Optional[str], Optional[list]]],
+                         extra_files: Sequence[str] = ()) -> PartRef:
+        """One part merged from several meshes — an FPS weapon body is a
+        ``.cdf`` of skins + bone-attached ``.cgf`` s. ``sources`` =
+        ``(geometry_path, material_path, matrix)``; ``matrix`` is a row-major
+        glTF-space 4x4 (``None`` = identity). ``extra_files`` (e.g. the
+        skeleton ``.chr``) are written next to every mesh before conversion.
+        Cached under ``key`` (normally the ``.cdf`` path) exactly like
+        :meth:`export`, deduped by content into the same store."""
+        k = key.lower()
+        row = self.index.get(k)
+        if isinstance(row, dict) and (row.get("sha256") is None
+                                      or self.path_of(row["sha256"]).exists()):
+            self.hits += 1
+            return PartRef(sha256=row.get("sha256"), bytes=row.get("bytes", 0),
+                           geometry_path=key, bounds=row.get("bounds"),
+                           error=row.get("error"), cached=True)
+        self.misses += 1
+        scratch = self.work / f"comp_{hashlib.sha1(k.encode()).hexdigest()[:12]}"
+        shutil.rmtree(scratch, ignore_errors=True)
+        try:
+            from ..hull3d import _safe_join
+            raws = []
+            for i, (geo, mtl, matrix) in enumerate(sources):
+                sub = scratch / f"s{i}"
+                for extra in extra_files:
+                    if self.exists(extra):
+                        dst = _safe_join(sub, extra)
+                        dst.parent.mkdir(parents=True, exist_ok=True)
+                        dst.write_bytes(self.read(extra))
+                try:
+                    raws.append((self.convert_raw(geo, mtl, sub), matrix))
+                except Exception as exc:  # noqa: BLE001 — one missing piece != no body
+                    self.log("warn", f"  part {key}: {geo}: {type(exc).__name__}: {exc}")
+            if not raws:
+                raise RuntimeError("no source converted")
+            gltf, binary = merge_glbs(raws)
+            raw = scratch / "merged.glb"
+            glb_materials.write_glb(raw, gltf, binary)
+            ref = self._publish(raw, scratch, key)
+        except Exception as exc:  # noqa: BLE001 — a part failure never costs the package
+            ref = PartRef(sha256=None, geometry_path=key, error=f"{type(exc).__name__}: {exc}"[:300])
+            self.log("warn", f"  part {key}: {ref.error}")
+        finally:
+            if not self.keep_work:
+                shutil.rmtree(scratch, ignore_errors=True)
+        self.index[k] = {"sha256": ref.sha256, "bytes": ref.bytes,
+                         "bounds": ref.bounds, "error": ref.error}
+        return ref
+
+    def _publish(self, raw: Path, scratch: Path, geometry_path: str) -> PartRef:
+        """Raw converter GLB -> geometry-only, optimized, content-addressed part."""
+        glb_materials.strip_to_geometry(raw, self.log)
+        out = scratch / "opt.glb"
+        self.optimize(raw, out, 256, self.simplify_error)
+        gltf, _ = glb_materials.read_glb(out)
+        if not any(m.get("primitives") for m in gltf.get("meshes", [])):
+            return PartRef(sha256=None, geometry_path=geometry_path, error="no geometry")
+        sha = sha256_file(out)
+        dest = self.path_of(sha)
+        if not dest.exists():
+            shutil.move(str(out), dest)
+        return PartRef(sha256=sha, bytes=dest.stat().st_size, geometry_path=geometry_path,
+                       bounds=glb_bounds(dest))
+
     def _build(self, geometry_path: str, material_path: Optional[str]) -> PartRef:
         scratch = self.work / f"part_{hashlib.sha1(geometry_path.lower().encode()).hexdigest()[:12]}"
         shutil.rmtree(scratch, ignore_errors=True)
@@ -245,21 +311,77 @@ class PartStore:
             raw = self.convert_raw(geometry_path, material_path, scratch)
             self.index.setdefault("helpers:" + geometry_path.lower(),
                                   glb_node_transforms(glb_materials.read_glb(raw)[0]))
-            glb_materials.strip_to_geometry(raw, self.log)
-            out = scratch / "opt.glb"
-            self.optimize(raw, out, 256, self.simplify_error)
-            gltf, _ = glb_materials.read_glb(out)
-            if not any(m.get("primitives") for m in gltf.get("meshes", [])):
-                return PartRef(sha256=None, geometry_path=geometry_path, error="no geometry")
-            sha = sha256_file(out)
-            dest = self.path_of(sha)
-            if not dest.exists():
-                shutil.move(str(out), dest)
-            return PartRef(sha256=sha, bytes=dest.stat().st_size, geometry_path=geometry_path,
-                           bounds=glb_bounds(dest))
+            return self._publish(raw, scratch, geometry_path)
         finally:
             if not self.keep_work:
                 shutil.rmtree(scratch, ignore_errors=True)
+
+
+def merge_glbs(sources: Sequence[Tuple[Path, Optional[list]]]) -> Tuple[dict, bytes]:
+    """Merge converter GLBs into one document. Each source's scene roots go
+    under a new node carrying its ``matrix`` (row-major glTF 4x4, ``None`` =
+    identity). Textures, images, skins, morph targets and animations are
+    dropped — the part is geometry-only anyway (``strip_to_geometry`` runs
+    afterwards)."""
+    out: dict = {"asset": {"version": "2.0", "generator": "sc_extract.assets3d.merge_glbs"},
+                 "buffers": [{"byteLength": 0}], "bufferViews": [], "accessors": [],
+                 "meshes": [], "materials": [], "nodes": [], "scenes": [{"nodes": []}],
+                 "scene": 0}
+    blob = bytearray()
+    for path, matrix in sources:
+        gltf, binary = glb_materials.read_glb(Path(path))
+        bv0, acc0, mesh0, mat0, node0 = (len(out[k]) for k in
+                                         ("bufferViews", "accessors", "meshes", "materials", "nodes"))
+        blob += b"\0" * (-len(blob) % 8)
+        base = len(blob)
+        blob += binary
+        for bv in gltf.get("bufferViews", []):
+            out["bufferViews"].append({**bv, "buffer": 0, "byteOffset": base + bv.get("byteOffset", 0)})
+        for acc in gltf.get("accessors", []):
+            a = {k: v for k, v in acc.items() if k != "sparse"}
+            if "bufferView" in a:
+                a["bufferView"] += bv0
+            out["accessors"].append(a)
+        for mat in gltf.get("materials", []):
+            m = {k: v for k, v in mat.items() if not k.endswith("Texture") and k != "extensions"}
+            pbr = {k: v for k, v in (mat.get("pbrMetallicRoughness") or {}).items()
+                   if not k.endswith("Texture")}
+            m.pop("pbrMetallicRoughness", None)
+            if pbr:
+                m["pbrMetallicRoughness"] = pbr
+            out["materials"].append(m)
+        for mesh in gltf.get("meshes", []):
+            prims = []
+            for prim in mesh.get("primitives", []):
+                pr = {k: v for k, v in prim.items() if k not in ("targets", "extensions")}
+                pr["attributes"] = {k: v + acc0 for k, v in prim.get("attributes", {}).items()
+                                    if not k.startswith(("JOINTS_", "WEIGHTS_"))}
+                if "indices" in pr:
+                    pr["indices"] += acc0
+                if "material" in pr:
+                    pr["material"] += mat0
+                prims.append(pr)
+            out["meshes"].append({**{k: v for k, v in mesh.items() if k != "weights"},
+                                  "primitives": prims})
+        for node in gltf.get("nodes", []):
+            n = {k: v for k, v in node.items() if k not in ("skin", "camera", "weights")}
+            if "mesh" in n:
+                n["mesh"] += mesh0
+            if "children" in n:
+                n["children"] = [c + node0 for c in n["children"]]
+            out["nodes"].append(n)
+        scenes = gltf.get("scenes") or [{"nodes": list(range(len(gltf.get("nodes", []))))}]
+        roots = [r + node0 for r in scenes[gltf.get("scene", 0)].get("nodes", [])]
+        wrapper: dict = {"name": Path(path).stem, "children": roots}
+        if matrix is not None:
+            wrapper["matrix"] = [float(matrix[r][c]) for c in range(4) for r in range(4)]
+        out["nodes"].append(wrapper)
+        out["scenes"][0]["nodes"].append(len(out["nodes"]) - 1)
+    blob += b"\0" * (-len(blob) % 4)
+    out["buffers"][0]["byteLength"] = len(blob)
+    if not out["materials"]:
+        out.pop("materials")
+    return out, bytes(blob)
 
 
 def unique_bytes(refs: List[PartRef]) -> int:
