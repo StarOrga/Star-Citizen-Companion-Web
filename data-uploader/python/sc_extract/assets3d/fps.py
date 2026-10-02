@@ -305,7 +305,11 @@ def build_fps_package(class_name: str, source: FpsSource, store, out_dir: Path,
     if weapon is None:
         return None
     body = export_body(source, store, weapon)
-    root_glb = store.path_of(body.sha256) if body is not None and body.sha256 else None
+    if body is None or not body.sha256:
+        # A weapon without a body is not displayable; LIVE 4.x: 27 of 387
+        # (.cdf with no CA_SKIN/CA_BONE mesh we can convert).
+        return None
+    root_glb = store.path_of(body.sha256)
     res = build_package("fps_weapon", weapon, source.default_loadout(class_name), source,
                         store, root_glb, generator=generator)
     # The root GLB carries no independent locator set (hull3d writes those for
