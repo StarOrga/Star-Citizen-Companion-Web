@@ -20,13 +20,28 @@
 /** `ship-skins/<ship_id>/<skin_id>.<glb|webp>` — the exact paths ingest-skins derives. */
 const KEY_RE = /^ship-skins\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(glb|webp)$/;
 
-const CONTENT_TYPES = { glb: 'model/gltf-binary', webp: 'image/webp' };
+/**
+ * Content-addressed 3D package objects (ingest-skins package_sign): the sha256
+ * of the bytes IS the name, so a key never changes content. `_hulls` is the same
+ * kind of key and matches KEY_RE already; `_manifests/<sha>.json` is the one
+ * shape KEY_RE cannot express (json).
+ */
+const MANIFEST_RE = /^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
+const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
+
+const CONTENT_TYPES = { glb: 'model/gltf-binary', webp: 'image/webp', json: 'application/json' };
 
 /**
  * Paths are NOT versioned — a re-upload overwrites the same key — so the cache
  * lifetime stays short and revalidation goes through the ETag.
  */
 const CACHE_CONTROL = 'public, max-age=3600, stale-while-revalidate=86400';
+/** Content-addressed keys can be cached for good. */
+const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+function cacheControlFor(key) {
+  return IMMUTABLE_RE.test(key) ? IMMUTABLE_CACHE_CONTROL : CACHE_CONTROL;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +59,7 @@ export function keyFor(pathname) {
   } catch {
     return null;
   }
-  return KEY_RE.test(key) ? key : null;
+  return KEY_RE.test(key) || MANIFEST_RE.test(key) ? key : null;
 }
 
 /**
@@ -80,7 +95,7 @@ function baseHeaders(key) {
   return {
     ...CORS,
     'content-type': contentTypeFor(key),
-    'cache-control': CACHE_CONTROL,
+    'cache-control': cacheControlFor(key),
     'x-content-type-options': 'nosniff',
     'accept-ranges': 'bytes',
   };
@@ -93,7 +108,7 @@ function objectHeaders(key, object) {
   // writeHttpMetadata may carry an upload-time Content-Type; the key's
   // extension is the contract, so it wins.
   headers.set('content-type', contentTypeFor(key));
-  headers.set('cache-control', CACHE_CONTROL);
+  headers.set('cache-control', cacheControlFor(key));
   headers.set('etag', object.httpEtag);
   return headers;
 }

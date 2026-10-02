@@ -103,6 +103,30 @@ describe('fetch', () => {
     assert.equal(await res.text(), 'glTF');
   });
 
+  it('serves content-addressed package objects immutable with the right type', async () => {
+    const sha = 'ab'.repeat(32);
+    const cases = [
+      [`ship-skins/_parts/${sha}.glb`, 'model/gltf-binary'],
+      [`ship-skins/_interiors/${sha}.glb`, 'model/gltf-binary'],
+      [`ship-skins/_hulls/${sha}.glb`, 'model/gltf-binary'],
+      [`ship-skins/_manifests/${sha}.json`, 'application/json'],
+    ];
+    for (const [key, type] of cases) {
+      const res = await worker.fetch(new Request(`https://w.dev/${key}`), env({ [key]: 'x' }));
+      assert.equal(res.status, 200, key);
+      assert.equal(res.headers.get('content-type'), type);
+      assert.equal(res.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+      assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    }
+  });
+
+  it('only exposes manifests under a sha256 name', () => {
+    assert.equal(keyFor('/ship-skins/_manifests/' + 'ab'.repeat(32) + '.json'), 'ship-skins/_manifests/' + 'ab'.repeat(32) + '.json');
+    assert.equal(keyFor('/ship-skins/_manifests/index.json'), null);
+    assert.equal(keyFor('/ship-skins/DRAK/standard.json'), null);
+    assert.equal(keyFor('/ship-skins/_parts/index.json'), null);
+  });
+
   it('answers a matching If-None-Match with 304', async () => {
     const e = env({ [GLB]: 'glTF' });
     const etag = (await worker.fetch(new Request(`https://w.dev/${GLB}`), e)).headers.get('etag');

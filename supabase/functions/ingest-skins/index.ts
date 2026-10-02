@@ -80,6 +80,17 @@ import {
   modelPathFor,
   needsVerification,
 } from './_hulls.ts';
+import {
+  CLASS_NAME,
+  MAX_BYTES,
+  MAX_OBJECTS_PER_SIGN,
+  MIN_PACKAGE_TOOL_VERSION,
+  checkManifestBytes,
+  isPackageKind,
+  packagePath,
+  parseObject,
+} from './_packages.ts';
+import type { ManifestRefs, ObjectOk } from './_packages.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -126,10 +137,199 @@ interface SkinRowIn {
 }
 
 interface Body {
-  action?: 'sign' | 'commit';
+  action?: 'sign' | 'commit' | 'package_sign' | 'package_commit';
   ship_id?: string;
   objects?: { skin_id?: string; ext?: string; sha256?: string }[];
   skins?: SkinRowIn[];
+}
+
+type R2 = NonNullable<ReturnType<typeof r2FromEnv>>;
+
+/**
+ * Cost kill-switch: no signature once this month's account-wide usage reaches
+ * 80 % of any free allowance, or while usage cannot be read. A reading up to
+ * 24 h old from the same month bridges an Analytics outage (usageGate); without
+ * one it stays fail-closed. Also refuses past the bucket quota. null = go on.
+ */
+async function r2Gate(r2: R2): Promise<Response | null> {
+  const { reading, error } = await readUsage(r2);
+  const gate = usageGate(reading, error, Date.now());
+  if (gate.kind === 'unknown') return json({ error: 'r2_usage_unknown', message: gate.reason }, 503);
+  if (gate.stale && reading) {
+    console.warn(
+      `ingest-skins: analytics unreadable (${error}); deciding on a reading ${Math.round((Date.now() - reading.at) / 60000)} min old`,
+    );
+  }
+  if (gate.kind === 'over') {
+    return json({ error: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${gate.over}` }, 507);
+  }
+  let used: number;
+  try {
+    used = await bucketBytes(r2);
+  } catch (e) {
+    return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+  }
+  if (used >= r2.quotaBytes) {
+    return json({ error: 'storage_quota_exceeded', message: `R2 holds ${used} of ${r2.quotaBytes} bytes` }, 507);
+  }
+  return null;
+}
+
+/** Runs `fn` over `items` with at most `n` in flight; results keep the input order. */
+async function mapLimit<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(n, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]);
+      }
+    }),
+  );
+  return out;
+}
+
+/** Stored size of one object below `ship-skins/`, or null when it is not there. */
+async function sizeOf(r2: R2, path: string): Promise<number | null> {
+  const key = SKINS_PREFIX + path;
+  return (await listObjects(r2, key)).find((x) => x.key === key)?.size ?? null;
+}
+
+interface PackageBody {
+  action?: string;
+  kind?: unknown;
+  entity_class?: unknown;
+  ship_id?: unknown;
+  manifest_sha256?: unknown;
+  objects?: { type?: unknown; sha256?: unknown; bytes?: unknown }[];
+}
+
+/**
+ * Package actions (data-uploader/docs/asset-package.md):
+ *   package_sign   { kind, entity_class, manifest_sha256, objects:[{type, sha256, bytes}] }
+ *                  -> { ok, unchanged:true }   the row already names this manifest
+ *                  -> { ok, uploads:[{type, sha256, path, signedUrl, exists?}] }
+ *   package_commit { kind, entity_class, manifest_sha256, ship_id? }
+ *                  -> { ok, entity_class, part_count, total_bytes }
+ * R2 only: packages have no Supabase-bucket fallback. Commit re-reads the
+ * manifest, checks its hash, derives every row field from it and verifies each
+ * object it names is stored at the declared size.
+ */
+async function handlePackage(
+  body: PackageBody,
+  adminClient: ReturnType<typeof createClient>,
+  uploaderVersion: string,
+): Promise<Response> {
+  const r2 = r2FromEnv((k) => Deno.env.get(k));
+  if (!r2) return json({ error: 'r2_required', message: 'asset packages need R2' }, 501);
+  if (!toolVersionAtLeast(uploaderVersion, MIN_PACKAGE_TOOL_VERSION)) {
+    return json(
+      { error: 'uploader_outdated', message: `3D packages need uploader ${MIN_PACKAGE_TOOL_VERSION.join('.')} or newer` },
+      426,
+    );
+  }
+  const kind = body.kind;
+  if (!isPackageKind(kind)) return json({ error: 'invalid_body', message: 'kind must be ship|fps_weapon' }, 400);
+  const entityClass = typeof body.entity_class === 'string' ? body.entity_class.trim() : '';
+  if (!CLASS_NAME.test(entityClass)) {
+    return json({ error: 'unsafe_id', message: 'entity_class is not a safe class name' }, 400);
+  }
+  const manifestSha = hullSha(body.manifest_sha256);
+  if (!manifestSha) return json({ error: 'invalid_body', message: 'manifest_sha256 must be lowercase hex sha256' }, 400);
+
+  const { data: current, error: curErr } = await adminClient
+    .from('asset_packages')
+    .select('manifest_sha256')
+    .eq('kind', kind)
+    .eq('entity_class', entityClass)
+    .maybeSingle();
+  if (curErr) return json({ error: 'sign_failed', message: curErr.message }, 500);
+  const unchanged = (current as { manifest_sha256?: string } | null)?.manifest_sha256 === manifestSha;
+
+  if (body.action === 'package_sign') {
+    if (unchanged) return json({ ok: true, unchanged: true });
+    const objects = Array.isArray(body.objects) ? body.objects : [];
+    if (!objects.length || objects.length > MAX_OBJECTS_PER_SIGN) {
+      return json({ error: 'invalid_body', message: `objects must hold 1-${MAX_OBJECTS_PER_SIGN} entries` }, 400);
+    }
+    const parsed: ObjectOk[] = [];
+    for (const o of objects) {
+      const p = parseObject(o);
+      if (typeof p === 'string') return json({ error: 'invalid_body', message: p }, 400);
+      parsed.push(p);
+    }
+    const unique = [...new Map(parsed.map((p) => [p.path, p])).values()];
+    const refused = await r2Gate(r2);
+    if (refused) return refused;
+    try {
+      const uploads = await mapLimit(unique, 8, async (o) => {
+        const base = { type: o.type, sha256: o.sha, path: o.path };
+        if ((await sizeOf(r2, o.path)) !== null) return { ...base, signedUrl: '', exists: true };
+        return { ...base, signedUrl: await presignPut(r2, SKINS_PREFIX + o.path) };
+      });
+      return json({ ok: true, uploads });
+    } catch (e) {
+      return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+    }
+  }
+
+  // ---- package_commit ----
+  const shipId = typeof body.ship_id === 'string' ? body.ship_id.trim() : '';
+  if (shipId && (!SAFE_ID.test(shipId) || isReservedShipId(shipId))) {
+    return json({ error: 'unsafe_id', message: 'ship_id is not a safe id' }, 400);
+  }
+  const manifestPath = packagePath('manifest', manifestSha);
+  const manifestKey = SKINS_PREFIX + manifestPath;
+  let refs: ManifestRefs;
+  let manifestBytes: number;
+  try {
+    if ((await sizeOf(r2, manifestPath)) === null) return json({ error: 'manifest_missing', message: manifestPath }, 409);
+    const bytes = await getObject(r2, manifestKey, MAX_BYTES.manifest);
+    const check = await checkManifestBytes(bytes, manifestSha, kind, entityClass);
+    if (!check.ok) {
+      // A wrong manifest no row references yet must not stay under its address.
+      if (!unchanged) await deleteObject(r2, manifestKey);
+      return json({ error: check.error, message: check.message }, 409);
+    }
+    refs = check.refs;
+    manifestBytes = bytes.byteLength;
+    // Everything the manifest names must be stored at the declared size — a
+    // truncated PUT would otherwise go live as a broken model.
+    const needed = refs.parts.map((p) => ({ path: packagePath('part', p.sha), bytes: p.bytes }));
+    if (refs.interiorSha) needed.push({ path: packagePath('interior', refs.interiorSha), bytes: refs.interiorBytes ?? 0 });
+    if (kind === 'ship' && refs.rootSha) needed.push({ path: packagePath('hull', refs.rootSha), bytes: -1 });
+    const sizes = await mapLimit(needed, 8, async (n) => ({ n, size: await sizeOf(r2, n.path) }));
+    const bad = sizes.find((x) => x.size === null || (x.n.bytes >= 0 && x.size !== x.n.bytes));
+    if (bad) {
+      return json(
+        { error: bad.size === null ? 'package_object_missing' : 'package_object_size_mismatch', message: bad.n.path },
+        409,
+      );
+    }
+  } catch (e) {
+    return json({ error: 'commit_failed', message: (e as Error).message }, 500);
+  }
+
+  const { error } = await adminClient.from('asset_packages').upsert(
+    {
+      kind,
+      entity_class: entityClass,
+      ship_id: kind === 'ship' ? shipId || entityClass : null,
+      manifest_sha256: manifestSha,
+      manifest_bytes: manifestBytes,
+      root_sha256: refs.rootSha,
+      interior_sha256: refs.interiorSha,
+      part_count: refs.partCount,
+      total_bytes: refs.totalBytes,
+      schema_version: refs.schemaVersion,
+      uploader_version: uploaderVersion.slice(0, 32),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'kind,entity_class' },
+  );
+  if (error) return json({ error: 'commit_failed', message: error.message }, 500);
+  return json({ ok: true, entity_class: entityClass, part_count: refs.partCount, total_bytes: refs.totalBytes });
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -195,6 +395,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ error: 'invalid_json' }, 400);
   }
 
+  if (body.action === 'package_sign' || body.action === 'package_commit') {
+    return handlePackage(body as PackageBody, adminClient, req.headers.get('x-sc-tool-version') ?? '');
+  }
+
   const shipId = (body.ship_id ?? '').trim();
   if (!SAFE_ID.test(shipId) || isReservedShipId(shipId)) {
     return json({ error: 'unsafe_id', message: `ship_id must match ${SAFE_ID} and not start with _` }, 400);
@@ -208,33 +412,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!objects.length) return json({ error: 'invalid_body', message: 'objects required' }, 400);
 
     if (r2) {
-      // Cost kill-switch: no signature once this month's account-wide usage
-      // reaches 80 % of any free allowance, or while usage cannot be read.
-      // A reading up to 24 h old from the same month bridges an Analytics
-      // outage (usageGate); without one it stays fail-closed.
-      const { reading, error } = await readUsage(r2);
-      const gate = usageGate(reading, error, Date.now());
-      if (gate.kind === 'unknown') return json({ error: 'r2_usage_unknown', message: gate.reason }, 503);
-      if (gate.stale && reading) {
-        console.warn(
-          `ingest-skins: analytics unreadable (${error}); deciding on a reading ${Math.round((Date.now() - reading.at) / 60000)} min old`,
-        );
-      }
-      if (gate.kind === 'over') {
-        return json({ error: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${gate.over}` }, 507);
-      }
-      let used: number;
-      try {
-        used = await bucketBytes(r2);
-      } catch (e) {
-        return json({ error: 'sign_failed', message: (e as Error).message }, 500);
-      }
-      if (used >= r2.quotaBytes) {
-        return json(
-          { error: 'storage_quota_exceeded', message: `R2 holds ${used} of ${r2.quotaBytes} bytes` },
-          507,
-        );
-      }
+      const refused = await r2Gate(r2);
+      if (refused) return refused;
     }
 
     const uploads: { path: string; token: string; signedUrl: string; exists?: boolean }[] = [];
