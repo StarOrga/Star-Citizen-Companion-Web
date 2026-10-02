@@ -39,6 +39,33 @@ the page returns you to the live patch.
   "featured ships" list anywhere in the app.
 - **Compare** — add ships to a comparison tray and view them side by side.
 
+### How search works
+
+Every Codex search box — the Scanner, the index, the archive terminal on the
+landing page, the Ctrl+K quick search, the Arsenal, keybinds, the swap picker
+and Upcoming Ships — follows the same rules:
+
+- Case, accents and extra spaces don't matter.
+- Separators are optional and words combine: `p4ar`, `p4 ar` and `P4_AR` all
+  find the P4-AR; `gladius blade` needs both words.
+- German search words work for item types: *Gewehr* finds rifles, *Helm*
+  helmets, *Rüstung* armour.
+- `*` is a wildcard (`klwe_*`).
+- Results are ranked: exact name, then names that start with the term, then
+  word matches, then anything containing it. Ships rank by model name, and a
+  base item comes before its skins.
+
+A search that fails shows an error with a retry button instead of an empty
+result. Typos are not corrected yet.
+
+### Picking gear for an FPS set
+
+A set's page shows one tile per slot with the slot's name and an
+**+ Choose** / **Change** action. That action opens the Arsenal in equip mode
+(*Equip as helmet* / *Remove from helmet*), with a bar that leads back to the
+set. You can clear an armour slot and undo it right away. An empty set says
+where to start, and a back link returns to the hangar.
+
 ### Index mode
 
 `/codex/index` is the power-user escape hatch: the full filter list with kind
