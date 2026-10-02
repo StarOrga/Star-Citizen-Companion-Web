@@ -1,4 +1,4 @@
-# 3D asset package (ships, FPS weapons)
+# 3D asset package (ships, FPS weapons, ship items)
 
 A **ready-to-display** 3D package per entity, built at upload time by the
 Python extractor (`data-uploader/python/sc_extract/assets3d/`). The web only
@@ -19,6 +19,8 @@ root GLB (hull / weapon body) + shared part GLBs + optional interior GLB
 | `_parts/index.json` | cache: geometry path → sha/bytes/bounds/error (`_format: part-geometry-v1`) | geometry path |
 | `_interiors/<sha256>.glb` | optional interior layer (`--interior`) | content sha256 |
 | `<ship_id>/package.json` | the manifest | ship |
+| `_fps/<WeaponClassName>/package.json` | FPS weapon manifest (root = weapon body in `_parts/`) | weapon class |
+| `_items/<ItemClassName>/package.json` | standalone ship-item manifest (root = the item's part in `_parts/`) | item class |
 
 Uploaders (Wave 2) store blobs by sha256 and rewrite nothing: the manifest
 already refers to every GLB by sha256 (`root.sha256`, `interior.sha256`,
@@ -40,28 +42,69 @@ sizes/types from the vehicle implementation XML, `export_interior`,
 [--interior]`; the `done` event gains `ships[].package` (bytes, placements,
 locator check) and a run-level `packages` summary (dedup ratio, cache hits).
 
-### FPS weapons (Wave 2) — the intended call
+### FPS weapons (`kind: "fps_weapon"`, `assets3d/fps.py`)
 
-```python
-from sc_extract.assets3d.datacore import DataCoreSource, P4KReader, load_datacore
-from sc_extract.assets3d.parts import PartStore
-from sc_extract.assets3d.package import build_package
-from sc_extract.assets3d.manifest import write_manifest
+A personal weapon's `SGeometryResourceParams` points at a **`.cdf`**
+(CharacterDefinition), not a `.cga`: skeleton `.chr` + `CA_SKIN` meshes (the
+body) + `CA_BONE` `.cgf`s hung on bones. So:
 
-reader = P4KReader(p4k); src = DataCoreSource(load_datacore(reader), reader)
-store = PartStore(out / "_parts", reader.read, reader.exists, converter, optimize, out / "_work_parts")
-weapon = src.entity("behr_rifle_ballistic_01")
-body = store.export(weapon.geometry_path, weapon.material_path)      # root GLB, deduped
-res = build_package("fps_weapon", weapon, src.default_loadout(weapon.class_name),
-                    src, store, store.path_of(body.sha256) if body.sha256 else None)
-write_manifest(res.manifest, out / weapon.class_name / "package.json")
-store.save_index()
+| Piece | Source |
+|---|---|
+| root GLB (weapon body) | every `CA_SKIN` `.skin` (model space) + every `CA_BONE` mesh at bone × `RelPosition/RelRotation`, merged into ONE part by `PartStore.export_composite(cdf, …)` → `_parts/<sha>.glb`, cached under the `.cdf` path in `_parts/index.json`. Ammo/shell bindings (`…/ammo/`, `…/shells/`) are skipped. Single-mesh weapons (`.cga`/`.cgf`) use `PartStore.export`. |
+| port helpers | the **bones** of the `.chr` (`#ivo` `CompiledBones` chunk `0xC2011111`, 68-byte records, world pose; `fps.bones_from_chr`) — `sight_attachment`, `magAttach`, `barrel_attachment`, `underbarrel_attachment`. The converter's `.skin` node tree only carries deforming bones, so it cannot supply them. |
+| attachments | ordinary `.cgf` parts via `PartStore.export` — one GLB per attachment geometry, shared by every weapon (and every tint). Their origin is the attach point, so the bone transform places them directly. |
+| ports | `SItemPortContainerComponentParams.Ports`, minus interaction helpers (`item_grab`: no types, size 0). Every slot is listed: the default attachment where the loadout has one, otherwise `itemClass: null`, `loadout: "empty"` with `port.types` (e.g. `WeaponAttachment.IronSight`), `minSize`/`maxSize`, flags. Compatible attachments are NOT pre-placed. |
+
+Codex refs: `entity.className`/`guid` = `codex_weapons.class_name`/`guid`
+(`weapon_class = 'FPS'`); an attachment placement's `itemClass`/`itemGuid` =
+`codex_items.class_name`/`guid`, `itemType`/`itemSubType`/`itemSize` =
+`codex_items.attach_type`/`sub_type`/`size` (e.g. `WeaponAttachment` /
+`IronSight` / 3).
+
+Which weapons (`fps.fps_weapon_classes`, default of `--fps`): records under
+`scitem/weapons/fps_weapons/` (not `…/dev/`; melee/throwables/mines live in
+sibling folders), class name passing the codex's `_is_catalog_entity`
+(drops template/test/placeholder/AI/NPC tokens), `AttachDef.Type ==
+WeaponPersonal`, body geometry present in the P4K. Tint/paint variants are
+their own classes; their geometry dedups in `_parts`.
+
+No locator cross-check for FPS (`locators: null`): the bones ARE the
+placement source and the body GLB carries no independent locator set.
+
+### Standalone ship items (`kind: "item"`, `assets3d/items.py`)
+
+Components, ship weapons, missiles, racks and gimbals on their own (item
+detail page). The root is the item's OWN part — `PartStore.export(item
+geometry)`, i.e. the very `_parts/<sha>.glb` a ship package's placement for
+that item references (`partSha256`), so nothing is stored twice and the web
+links "docked in ship" ↔ item page via `partSha256` / `itemClass`; per-part
+`bounds` (for hover highlight) sit in the ship manifest's `parts{}`.
+Placements are the item's own ports (rack → missiles, gimbal → gun), same
+enrichment as everywhere. Default set (`items.item_classes`): records under
+`scitem/ships/`, `_is_catalog_entity`, `AttachDef.Type` in `items.ITEM_TYPES`
+(WeaponGun, WeaponMining, WeaponDefensive, Turret, TurretBase,
+MissileLauncher, Missile, Torpedo, Bomb, BombLauncher, Shield, PowerPlant,
+Cooler, QuantumDrive, JumpDrive, Radar, QuantumInterdictionGenerator, EMP,
+TractorBeam, TowingBeam, SalvageHead, MiningModifier), geometry present.
+
+### CLI
+
+```
+python -m sc_extract.skin_export_app --p4k … --out … --converter … \
+    --fps [--weapon <class|glob> …] --items [--item <class|glob> …] [--max-packages N]
 ```
 
-`optimize` is any `(in_glb, out_glb, texture_size, simplify_error) -> None`
-that runs `gltf-transform optimize` (today `Hull3DExporter._optimize`).
-Attachments (optics, barrels, underbarrels, magazines) land in group
-`attachments` via their `AttachDef.Type`.
+Ship flags are independent (`--ship`/`--manifest` may be omitted). `--max-packages`
+caps each glob (or the whole kind when no filter is given). The `done` event
+gains `fpsPackages` / `itemPackages`: `[{className, manifestPath (relative to
+--out), bytes (manifest), rootSha256, rootBytes, partBytes, parts, placements,
+withPart}]`; `packages` (dedup summary) counts every entity of the run.
+
+Generic changes made for FPS (backwards compatible): `PartStore.export_composite`
++ `parts.merge_glbs` (multi-mesh part), `PartStore._publish` (shared tail of
+`_build`), `datacore.port_types_with_subtypes` (port `types` now
+`Type.SubType` — ships' DataCore ports gain subtypes too, matching the
+vehicle-XML ports), manifest kind `item`.
 
 ## Manifest (`schemaVersion: 1`)
 
@@ -71,9 +114,9 @@ both in step.
 
 | Field | Meaning |
 |---|---|
-| `kind` | `ship` \| `fps_weapon` |
+| `kind` | `ship` \| `fps_weapon` \| `item` |
 | `coordinateSystem` | always `gltf-y-up-metres` |
-| `entity` | `{className, guid}` — `codex_items.class_name` + DataCore GUID |
+| `entity` | `{className, guid}` — DataCore class name + GUID: `codex_ships` / `codex_weapons` (FPS + ship guns) / `codex_components` / `codex_items` `.class_name` + `.guid` |
 | `root` | `{sha256, bytes, bounds{min,max}}` or null |
 | `interior` | `{sha256, bytes}` or null (lazy layer, same space as root) |
 | `parts` | `{sha256: {bytes, geometryPath, bounds}}` — only parts this entity places |
@@ -84,7 +127,8 @@ Placement: `id` (port path `a/b`, unique), `portName`, `helperName`,
 (`weapons|missiles|components|attachments|interior|other`), `itemClass`,
 `itemGuid`, `itemType`, `itemSubType`, `itemSize`, `parentClass`
 (`codex_item_ports.parent_class_name`), `port` (`{minSize, maxSize, types,
-flags, editable}` or null — `types` is the compatible set), `loadout`
+flags, editable}` or null — `types` is the compatible set, `Type.SubType` per accepted
+subtype, e.g. `WeaponAttachment.IronSight`), `loadout`
 (`default` \| `empty`), `partSha256` (or null), `position` `[x,y,z]`,
 `rotation` `[x,y,z,w]` (both null = not placeable).
 
