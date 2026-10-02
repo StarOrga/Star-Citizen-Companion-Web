@@ -935,7 +935,7 @@ export class CodexListComponent implements OnInit {
         skinVariants: [] as readonly SkinVariantRef[],
         editions: [] as readonly EditionRef[],
       }));
-      return rankBySearch(this.searchTerm(), raw, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]);
+      return this.rankFirstPage(raw);
     }
     const grouped = groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r)));
     // Edition grouping reads a class-name lineage only the vehicle catalog
@@ -947,8 +947,22 @@ export class CodexListComponent implements OnInit {
     // The server answers alphabetically; a search puts the exact and prefix
     // matches first ("gladius" → Gladius before Gladius Valiant before a
     // Pirate edition), the server order breaking ties.
-    return rankBySearch(this.searchTerm(), rows, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]);
+    return this.rankFirstPage(rows);
   });
+
+  /**
+   * Relevance order for the FIRST page only; later pages append in server
+   * order. Re-ranking everything on "load more" made a page-2 match jump above
+   * cards the reader had already scrolled past (redteam R6).
+   */
+  private rankFirstPage<T extends CodexGridRow>(rows: T[]): T[] {
+    const term = this.searchTerm();
+    if (!term) return rows;
+    const firstPage = new Set(this.rawRows().slice(0, PAGE_SIZE).map((r) => r.classNameSlug));
+    const head = rows.filter((r) => firstPage.has(r.classNameSlug));
+    const tail = rows.filter((r) => !firstPage.has(r.classNameSlug));
+    return [...rankBySearch(term, head, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]), ...tail];
+  }
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
    * pages can be folded, so this is a lower bound on the server count, never

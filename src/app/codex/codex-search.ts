@@ -31,11 +31,16 @@ export function normalizeSearch(value: string): string {
 // `+` is deliberately not one: it is the keybind chord joiner ("alt+f").
 const SEPARATORS = /[\s\-_/.,;:()'"]+/;
 
+/** Longest term and most tokens a search honours — a pasted paragraph must not build an unbounded query. */
+const MAX_TERM_LENGTH = 120;
+const MAX_TOKENS = 8;
+
 /** The normalized tokens of a search term; `*` survives as a wildcard. */
 export function searchTokens(term: string): string[] {
-  return normalizeSearch(term)
+  return normalizeSearch(term.slice(0, MAX_TERM_LENGTH))
     .split(SEPARATORS)
-    .filter((t) => t.replace(/\*/g, '') !== '');
+    .filter((t) => t.replace(/\*/g, '') !== '')
+    .slice(0, MAX_TOKENS);
 }
 
 /** A token's letter/digit runs: "p4ar" → ["p", "4", "ar"], "gladius" → ["gladius"]. */
@@ -52,7 +57,9 @@ function escapeRegExp(s: string): string {
  * separator run, `*` as "anything". Matches against a NORMALIZED haystack.
  */
 function tokenRegExp(token: string): RegExp {
-  const pieces = token.split('*').map((chunk) =>
+  // Empty chunks are dropped: "a***z" must stay one `.*`, never `(.*){k}`,
+  // which backtracks exponentially on every non-matching row.
+  const pieces = token.split('*').filter(Boolean).map((chunk) =>
     boundaryParts(chunk)
       .filter(Boolean)
       .map(escapeRegExp)
@@ -193,39 +200,61 @@ export function rankBySearch<T>(
  * Server-side counterpart: per token, the PostgREST ILIKE patterns that may
  * match it — the token itself plus its English synonyms (`*` is PostgREST's
  * wildcard). The caller ANDs the groups and ORs the patterns within one.
- * A letter/digit boundary inside a token becomes `*` so "p4ar" matches
- * "P4-AR" — a superset ("p…4…ar"), so the caller re-checks the rows with
- * {@link searchMatcher}. `_` (an ILIKE single-character wildcard) never
- * reaches a pattern because it is a separator, and characters that break the
- * `or=(…)` grammar are dropped. Case is handled by ILIKE. The column has no
- * unaccent, so the term keeps its diacritics here — but a non-ASCII letter
- * becomes `*`, so "kühl" still finds "Kühl"; a plain "kuhl" cannot find
- * "Kühl" server-side.
+ *
+ * The patterns stay tight, so a page of server rows is (almost) a page of
+ * real matches and paging, counts and `limit: 1` callers keep working: a
+ * letter/digit boundary inside a token becomes an optional single character
+ * (`_`), i.e. "p4ar" asks for `*p4ar*` OR `*p_4ar*` OR `*p4_ar*` OR
+ * `*p_4_ar*` — "P4-AR" yes, "Caterpillar BIS 2949" no. A non-ASCII letter is
+ * one `_` too, so "kühl" finds "Kühl" and "Kuhl". The few rows an `_` still
+ * lets through are dropped by the caller's {@link searchMatcher} re-check.
+ * Only `[a-z0-9_*]` ever reaches the `or=(…)` string.
  */
 export function ilikeTokenGroups(term: string): string[][] {
   return term
+    .slice(0, MAX_TERM_LENGTH)
     .toLowerCase()
     .split(SEPARATORS)
     .filter((t) => t.replace(/\*/g, '') !== '')
+    .slice(0, MAX_TOKENS)
     .map((raw) => {
-      const own = toIlikePattern(raw);
       const syn = SEARCH_SYNONYMS[normalizeSearch(raw)] ?? [];
-      return [own, ...syn.map(toIlikePattern)].filter((p): p is string => p !== null);
+      return [...toIlikePatterns(raw), ...syn.flatMap(toIlikePatterns)];
     })
     .filter((g) => g.length > 0);
 }
 
-/** One token (or synonym) as a PostgREST ILIKE pattern, or null when nothing searchable is left. */
-function toIlikePattern(token: string): string | null {
-  const body = token
-    .split('*')
-    .map((chunk) => boundaryParts(chunk).filter((p) => /[a-z0-9]/.test(p)).join('*'))
-    .join('*');
-  if (body.replace(/\*/g, '') === '') return null;
-  return `*${body}*`.replace(/\*+/g, '*');
+/** At most this many boundary variants per token (2^3). */
+const MAX_BOUNDARY_VARIANTS = 8;
+
+/** One token (or synonym) as PostgREST ILIKE patterns; empty when nothing searchable is left. */
+function toIlikePatterns(token: string): string[] {
+  const chunks = token.split('*').filter(Boolean).map(chunkVariants).filter((v) => v.length > 0);
+  if (chunks.length === 0) return [];
+  let out = [''];
+  for (const variants of chunks) {
+    out = out.flatMap((head) => variants.map((v) => (head ? `${head}*${v}` : v))).slice(0, MAX_BOUNDARY_VARIANTS);
+  }
+  return out.map((body) => `*${body}*`);
 }
 
-/** Flat list of every token's own pattern — kept for callers that need a cache key. */
+/** The ILIKE spellings of one wildcard-free chunk: letter/digit boundaries with and without one `_`. */
+function chunkVariants(chunk: string): string[] {
+  // Letters and digits stay; any other letter (ü, é, ß) is one `_`; the rest goes.
+  const runs = (chunk.match(/[a-z]+|[0-9]+|\p{L}/gu) ?? []).map((r) => (/^[a-z0-9]+$/.test(r) ? r : '_'));
+  if (runs.length === 0 || runs.every((r) => r === '_')) return [];
+  let out = [runs[0]];
+  for (let i = 1; i < runs.length; i++) {
+    const boundary = runs[i] !== '_' && runs[i - 1] !== '_';
+    const next = runs[i];
+    out = boundary && out.length * 2 <= MAX_BOUNDARY_VARIANTS
+      ? out.flatMap((h) => [h + next, `${h}_${next}`])
+      : out.map((h) => h + next);
+  }
+  return out;
+}
+
+/** Flat list of every token's own (first) pattern — kept for callers that need a cache key. */
 export function ilikeTokenPatterns(term: string): string[] {
   return ilikeTokenGroups(term).map((g) => g[0]);
 }

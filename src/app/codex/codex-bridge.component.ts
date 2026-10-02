@@ -491,6 +491,7 @@ interface Lane {
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
     .empty .index-search { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--sc-accent); text-decoration: none; }
     .empty .index-search:hover, .empty .index-search:focus-visible { text-decoration: underline; }
+    .empty .index-search:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     /* Touch (L31): the bridge's ways on reach 44px. */
     @media (pointer: coarse) {
       .index-link, .lane-more, .empty .index-search { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }

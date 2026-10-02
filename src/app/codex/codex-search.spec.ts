@@ -155,23 +155,25 @@ describe('codex-search (shared Codex search dialect)', () => {
   describe('ilikeTokenPatterns (server side)', () => {
     it('emits one PostgREST pattern per token', () => {
       expect(ilikeTokenPatterns('Cutlass Black')).toEqual(['*cutlass*', '*black*']);
-      expect(ilikeTokenPatterns('P4-AR')).toEqual(['*p*4*', '*ar*']);
+      expect(ilikeTokenPatterns('P4-AR')).toEqual(['*p4*', '*ar*']);
     });
 
-    it('tolerates a separator at a letter/digit boundary', () => {
-      expect(ilikeTokenPatterns('p4ar')).toEqual(['*p*4*ar*']);
+    it('tolerates one separator at a letter/digit boundary, and nothing looser', () => {
+      // Never "p…anything…4": that returned a Caterpillar BIS 2949 for "P4-AR".
+      expect(ilikeTokenGroups('p4ar')).toEqual([['*p4ar*', '*p4_ar*', '*p_4ar*', '*p_4_ar*']]);
+      expect(ilikeTokenGroups('c2')).toEqual([['*c2*', '*c_2*']]);
     });
 
-    it('never lets `_` or `%` act as ILIKE wildcards and drops or() grammar chars', () => {
+    it('sends only [a-z0-9_*] and drops or() grammar chars', () => {
       expect(ilikeTokenPatterns('AEGS_*')).toEqual(['*aegs*']);
       expect(ilikeTokenPatterns('100%')).toEqual(['*100*']);
       expect(ilikeTokenPatterns('a,b(c)')).toEqual(['*a*', '*b*', '*c*']);
-      for (const p of ilikeTokenPatterns('x"y\\z')) expect(p).not.toMatch(/[%,()"\\_]/);
+      for (const g of ilikeTokenGroups('x"y\\z%(a),b[c]')) for (const p of g) expect(p).toMatch(/^[a-z0-9_*]+$/);
     });
 
     it('keeps diacritics searchable without unaccent', () => {
-      // A non-ASCII letter becomes a wildcard, so "kühl" still finds "Kühl".
-      expect(ilikeTokenPatterns('Kühl')).toEqual(['*k*hl*']);
+      // A non-ASCII letter is one `_`, so "kühl" finds "Kühl" and "Kuhl".
+      expect(ilikeTokenPatterns('Kühl')).toEqual(['*k_hl*']);
     });
 
     it('yields nothing for an empty or separator-only term', () => {
@@ -195,13 +197,27 @@ describe('codex-search (shared Codex search dialect)', () => {
     });
 
     it('sends the synonyms to the server as alternatives of one AND group', () => {
-      expect(ilikeTokenGroups('Gewehr P4')).toEqual([['*gewehr*', '*rifle*'], ['*p*4*']]);
-      expect(ilikeTokenGroups('Rüstung')).toEqual([['*r*stung*', '*armor*']]);
+      expect(ilikeTokenGroups('Gewehr P4')).toEqual([['*gewehr*', '*rifle*'], ['*p4*', '*p_4*']]);
+      expect(ilikeTokenGroups('Rüstung')).toEqual([['*r_stung*', '*armor*']]);
     });
 
     it('expands only whole words, not a word being typed', () => {
       expect(ilikeTokenGroups('gewe')).toEqual([['*gewe*']]);
     });
   });
-});
+  describe('bounded work (redteam R4/R8)', () => {
+    it('keeps a wildcard-heavy term linear', () => {
+      const m = searchMatcher('a' + '*'.repeat(30) + 'z')!;
+      const rows = Array.from({ length: 2000 }, (_, i) => `abcdefghijklmnopqrstuvwxy row ${i}`);
+      const t0 = performance.now();
+      for (const r of rows) m(r);
+      expect(performance.now() - t0).toBeLessThan(200);
+    });
 
+    it('caps the tokens and the term length', () => {
+      expect(searchTokens(Array.from({ length: 20 }, (_, i) => `w${i}`).join(' ')).length).toBe(8);
+      expect(ilikeTokenGroups(Array.from({ length: 20 }, (_, i) => `word${i}`).join(' ')).length).toBe(8);
+      expect(searchTokens('x'.repeat(500))[0].length).toBe(120);
+    });
+  });
+});

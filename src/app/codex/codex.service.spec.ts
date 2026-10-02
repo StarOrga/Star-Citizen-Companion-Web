@@ -475,11 +475,22 @@ describe('CodexService archive readers and the build lookup', () => {
 
     // "p4ar" must find "P4-AR": the letter/digit boundary becomes a wildcard,
     // and every token is its own AND-ed or() group.
-    expect(calls.filters).toContain('codex_weapons:or:name_localized.ilike.*p*4*ar*,class_name.ilike.*p*4*ar*');
+    expect(calls.filters).toContain(
+      'codex_weapons:or:name_localized.ilike.*p4ar*,class_name.ilike.*p4ar*,name_localized.ilike.*p4_ar*,class_name.ilike.*p4_ar*,' +
+        'name_localized.ilike.*p_4ar*,class_name.ilike.*p_4ar*,name_localized.ilike.*p_4_ar*,class_name.ilike.*p_4_ar*',
+    );
     expect(calls.filters).toContain('codex_weapons:or:name_localized.ilike.*rifle*,class_name.ilike.*rifle*');
   });
 
-  it('never sends an ILIKE single-character wildcard or or() grammar characters', async () => {
+  it('asks the server nothing for a term it cannot match (no ASCII letter or digit)', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls);
+    const res = await svc.listByKind('item', { search: '\u00df \u0440\u0443\u0441' });
+    expect(res).toEqual({ rows: [], count: 0 });
+    expect(calls.filters.some((f) => f.startsWith('codex_items:'))).toBeFalse();
+  });
+
+  it('never sends or() grammar characters from the term', async () => {
     const calls: Calls = { builds: 0, filters: [] };
     const svc = make(calls);
 

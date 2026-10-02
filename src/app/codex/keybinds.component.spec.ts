@@ -198,7 +198,10 @@ describe('KeybindsComponent', () => {
   it('keeps the search term in ?q= and restores it on a fresh visit (audit L17)', async () => {
     const fixture = await setup({ binds: SAMPLE, labels: LABELS });
     const router = TestBed.inject(Router);
+    fixture.componentInstance.onSearch('  str');
     fixture.componentInstance.onSearch('  strafe ');
+    expect(router.url).not.toContain('q='); // debounced: no navigation per keystroke
+    await new Promise((r) => setTimeout(r, 350));
     await fixture.whenStable();
     expect(router.url).toContain('q=strafe');
 
@@ -208,6 +211,7 @@ describe('KeybindsComponent', () => {
     expect(again.componentInstance.searchInput()).toBe('strafe');
 
     fixture.componentInstance.onSearch('');
+    await new Promise((r) => setTimeout(r, 350));
     await fixture.whenStable();
     expect(router.url).not.toContain('q=');
   });

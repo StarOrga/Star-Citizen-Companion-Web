@@ -523,6 +523,7 @@ interface FacetOption {
     .empty .empty-elsewhere { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; color: var(--sc-fg-1); }
     .try-other { color: var(--sc-accent); text-decoration: none; }
     .try-other:hover, .try-other:focus-visible { text-decoration: underline; }
+    .try-other:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
     .equip-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn:disabled { opacity: 0.5; cursor: default; }

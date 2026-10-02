@@ -726,6 +726,11 @@ export class CodexService {
     const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
+    // A term made only of characters the server cannot match (no ASCII letter
+    // or digit: "ß", "рус") would otherwise run unfiltered over the whole kind.
+    if (filters.search && ilikeTokenGroups(filters.search).length === 0 && searchMatcher(filters.search)) {
+      return { rows: [], count: 0 };
+    }
     const table = CODEX_ENTITY_TABLES[kind];
     const limit = filters.limit ?? PAGE_SIZE;
     const offset = filters.offset ?? 0;

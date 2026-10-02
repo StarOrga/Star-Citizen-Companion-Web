@@ -2,6 +2,7 @@ import { searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
+  DestroyRef,
   Component,
   OnInit,
   Signal,
@@ -124,6 +125,9 @@ function chipsFor(a: KeybindAssignment): { layer: KeybindLayer; key: string }[] 
   }
   return out;
 }
+
+/** Pause after the last keystroke before the search term is written to `?q=`. */
+const KEYBIND_URL_DEBOUNCE_MS = 300;
 
 @Component({
   selector: 'sc-codex-keybinds',
@@ -753,6 +757,9 @@ export class KeybindsComponent implements OnInit {
     this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => void this.ngOnInit());
     // Every other Codex search keeps its term in `?q=`; reload and Back used to
     // lose it here (Codex UX audit L17).
+    inject(DestroyRef).onDestroy(() => {
+      if (this.urlTimer) clearTimeout(this.urlTimer);
+    });
     const q = this.route.snapshot.queryParamMap.get('q')?.trim();
     if (q) this.searchInput.set(q);
   }
@@ -941,13 +948,19 @@ export class KeybindsComponent implements OnInit {
 
   onSearch(v: string): void {
     this.searchInput.set(v);
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { q: v.trim() || null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
+    // The URL follows the term once typing pauses — not one navigation per key.
+    if (this.urlTimer) clearTimeout(this.urlTimer);
+    this.urlTimer = setTimeout(() => {
+      this.urlTimer = null;
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { q: v.trim() || null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }, KEYBIND_URL_DEBOUNCE_MS);
   }
+  private urlTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── name language ──────────────────────────────────────────────────────────
 
