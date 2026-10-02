@@ -1932,6 +1932,23 @@
         "noSignature": "Signaturwerte (EM/IR) stehen noch nicht in den Spieldaten",
         "noData": "Dieser Wert steht noch nicht in den Spieldaten"
       }
+    },
+    "attachType": {
+      "WeaponPersonal": "Handwaffe",
+      "WeaponGun": "Schiffswaffe",
+      "WeaponMining": "Bergbaulaser",
+      "Missile": "Rakete",
+      "MissileLauncher": "Raketenwerfer",
+      "Turret": "Geschützturm",
+      "Char_Armor_Helmet": "Helm",
+      "Char_Armor_Torso": "Oberkörper",
+      "Char_Armor_Arms": "Arme",
+      "Char_Armor_Legs": "Beine",
+      "Char_Armor_Undersuit": "Unterkleidung",
+      "Char_Armor_Backpack": "Rucksack",
+      "WeaponAttachment": "Waffenaufsatz",
+      "Gadget": "Gadget",
+      "FPS_Consumable": "Verbrauchsgut"
     }
   },
   "blueprint": {

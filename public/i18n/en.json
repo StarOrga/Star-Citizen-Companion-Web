@@ -1932,6 +1932,23 @@
         "noSignature": "Signature values (EM/IR) are not in the game data yet",
         "noData": "This value is not in the game data yet"
       }
+    },
+    "attachType": {
+      "WeaponPersonal": "Personal weapon",
+      "WeaponGun": "Ship weapon",
+      "WeaponMining": "Mining laser",
+      "Missile": "Missile",
+      "MissileLauncher": "Missile rack",
+      "Turret": "Turret",
+      "Char_Armor_Helmet": "Helmet",
+      "Char_Armor_Torso": "Torso",
+      "Char_Armor_Arms": "Arms",
+      "Char_Armor_Legs": "Legs",
+      "Char_Armor_Undersuit": "Undersuit",
+      "Char_Armor_Backpack": "Backpack",
+      "WeaponAttachment": "Weapon attachment",
+      "Gadget": "Gadget",
+      "FPS_Consumable": "Consumable"
     }
   },
   "blueprint": {
