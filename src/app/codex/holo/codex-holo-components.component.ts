@@ -81,7 +81,10 @@ export function buildHoloComponentGroups(
         </p>
         @for (g of groups(); track g.section) {
           <div class="hc-sec">
-            <span class="hc-sec-label">{{ ('codex.moduleSection.' + g.section) | translate }}</span>
+            <p class="hc-sec-head">
+              <span class="hc-sec-label">{{ ('codex.moduleSection.' + g.section) | translate }}</span>
+              <span class="hc-sec-count">{{ 'codex.holo.components.groupCount' | translate: { count: g.entries.length, located: locatedCount(g) } }}</span>
+            </p>
             <ul class="hc-list">
               @for (e of g.entries; track e.key) {
                 <li>
@@ -116,6 +119,8 @@ export function buildHoloComponentGroups(
     .hc-title { color: var(--sc-fg-0); font-weight: 600; }
     .hc-hint { color: var(--sc-fg-2); font-size: max(11px, var(--sc-fs-floor, 11px)); }
     .hc-sec { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .hc-sec-head { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+    .hc-sec-count { color: var(--sc-fg-2); font-size: max(11px, var(--sc-fs-floor, 11px)); font-variant-numeric: tabular-nums; }
     .hc-sec-label { color: var(--sc-fg-2); font-size: max(11px, var(--sc-fs-floor, 11px)); text-transform: uppercase; letter-spacing: 0.06em; }
     .hc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
     .hc-list li { min-width: 0; max-width: 100%; }
@@ -147,6 +152,11 @@ export class CodexHoloComponentsComponent {
   readonly pinnedKey = signal<string | null>(null);
 
   readonly groups = computed(() => buildHoloComponentGroups(this.sections(), new Set(this.modelPorts())));
+
+  /** Entries of a group the model can place — the counter next to its heading. */
+  locatedCount(g: HoloComponentGroup): number {
+    return g.entries.filter((e) => e.located.length > 0).length;
+  }
 
   constructor() {
     // A pin whose entry vanished (new ship, model lost the port) is dropped.

@@ -65,6 +65,18 @@ describe('CodexHoloComponentsComponent', () => {
     expect(unknown.textContent).toContain('codex.holo.components.unknownPosition');
   });
 
+  it('heads every group with its installed and located counts', () => {
+    const { fixture, buttons } = setup();
+    const counts = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.hc-sec-count'));
+    expect(counts.length).toBeGreaterThan(0);
+    const located = buttons.filter((b) => !b.classList.contains('unknown')).length;
+    const component = fixture.componentInstance;
+    const groups = component.groups();
+    expect(groups.reduce((n, g) => n + g.entries.length, 0)).toBe(buttons.length);
+    expect(groups.reduce((n, g) => n + component.locatedCount(g), 0)).toBe(located);
+    expect(counts[0].textContent).toContain('codex.holo.components.groupCount');
+  });
+
   it('previews on hover and never highlights an unlocated entry', () => {
     const { buttons, hovered } = setup();
     buttons[0].dispatchEvent(new Event('mouseenter'));

@@ -760,7 +760,8 @@
       "components": {
         "title": "Components in the model",
         "hint": "Tap or click to mark · Esc clears",
-        "unknownPosition": "Position in model unknown"
+        "unknownPosition": "Position in model unknown",
+        "groupCount": "{{count}} installed · {{located}} in model"
       }
     },
     "empty": {

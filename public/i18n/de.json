@@ -760,7 +760,8 @@
       "components": {
         "title": "Komponenten im Modell",
         "hint": "Antippen oder klicken markiert · Esc löst",
-        "unknownPosition": "Position im Modell unbekannt"
+        "unknownPosition": "Position im Modell unbekannt",
+        "groupCount": "{{count}} verbaut · {{located}} im Modell"
       }
     },
     "empty": {
