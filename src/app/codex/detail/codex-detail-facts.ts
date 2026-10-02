@@ -8,6 +8,7 @@
 import type { AmmunitionPayload, Dimensions, ShipPayload } from '../codex.types';
 import type { CodexDetail } from '../codex.service';
 import { cleanLocaleValue, formatNumber } from '../codex-format';
+import { fpsArmorWeightKey, fpsWeaponTypeKey } from '../fps-labels';
 import { crossSectionAxes, type computeKpiSheet } from '../codex-loadout-stats';
 import type { ShipFactGroup, ShipFactRow } from '../codex-analysis-panels.component';
 import type { LayoutSection } from '../codex-hardpoint-layout.component';
@@ -86,20 +87,25 @@ export function buildHeroFacts(
   } else if (d.kind === 'weapon') {
     const wc = row['weapon_class'];
     if (typeof wc === 'string') add('codex.detail.weaponClass', t('codex.weaponClass.' + wc));
-    add('codex.detail.subType', row['sub_type']);
+    // On-foot weapons carry the archive's size tokens (Small/Medium/Large) as
+    // sub_type — say "Primärwaffe", not "Medium" (Codex UX audit L25).
+    const personal = row['attach_type'] === 'WeaponPersonal';
+    const fpsType = personal ? fpsWeaponTypeKey(row['sub_type'] as string | null) : null;
+    add('codex.detail.subType', fpsType ? t(fpsType) : row['sub_type']);
     if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
     add('codex.detail.grade', row['grade']);
-    add('codex.detail.attachType', row['attach_type']);
+    add('codex.detail.attachType', attachTypeLabel(row['attach_type'], t));
   } else if (d.kind === 'component') {
     const ck = row['kind'];
     if (typeof ck === 'string') add('codex.detail.componentKind', t('codex.componentKind.' + ck));
     if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
     add('codex.detail.grade', row['grade']);
   } else if (d.kind === 'item') {
-    add('codex.detail.subType', row['sub_type']);
+    const weight = fpsArmorWeightKey(row['sub_type'] as string | null);
+    add('codex.detail.subType', weight ? t(weight) : row['sub_type']);
     if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
     add('codex.detail.grade', row['grade']);
-    add('codex.detail.attachType', row['attach_type']);
+    add('codex.detail.attachType', attachTypeLabel(row['attach_type'], t));
   } else if (d.kind === 'ammunition') {
     if (row['size'] != null) add('codex.detail.size', 'S' + row['size']);
     const speed = row['speed'];
@@ -313,4 +319,15 @@ export function buildStageCounts(
     out.push({ group, count: slots, labelKey, detailKey: null, detailCount: 0 });
   }
   return out;
+}
+
+/**
+ * A game attach-type token in words when we have a translation
+ * (`codex.attachType.<token>`), else the raw token — power users search by it.
+ */
+export function attachTypeLabel(token: unknown, t: Translate): string | null {
+  if (typeof token !== 'string' || !token) return null;
+  const key = `codex.attachType.${token}`;
+  const label = t(key);
+  return label && label !== key ? label : token;
 }

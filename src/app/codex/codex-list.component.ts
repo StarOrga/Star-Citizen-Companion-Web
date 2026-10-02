@@ -1,3 +1,4 @@
+import { rankBySearch } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -301,7 +302,7 @@ export function blueprintCategoriesForGroup(
           <span class="soon-badge">{{ 'codex.upcoming.badge' | translate }}</span>
           <span>{{ 'codex.search.upcomingHint' | translate: { names } }}</span>
           <a class="upcoming-link" [routerLink]="['/codex', 'upcoming']"
-             [queryParams]="{ q: searchInput() }">
+             [queryParams]="{ q: searchInput().trim() }">
             {{ 'codex.search.upcomingLink' | translate }}
           </a>
         </p>
@@ -361,7 +362,20 @@ export function blueprintCategoriesForGroup(
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
-            @if (hasActiveFilters() || searchInput()) {
+            @if (searchInput().trim() && crossHits().length > 0) {
+              <!-- Nothing here, but the term matches elsewhere (L07): lead with
+                   where it IS before offering to throw the search away. -->
+              <p class="empty-elsewhere">
+                <span>{{ 'codex.empty.foundElsewhere' | translate: { kind: ('codex.kinds.' + kind()) | translate, term: searchInput().trim() } }}</span>
+                @for (h of crossHits(); track h.kind) {
+                  <a class="cross-hit" [attr.href]="categoryHrefs().get(h.kind)"
+                     (click)="onCategoryClick($event, h.kind)">
+                    {{ ('codex.kinds.' + h.kind) | translate }}
+                  </a>
+                }
+              </p>
+              <button type="button" class="reset-all secondary" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
+            } @else if (hasActiveFilters() || searchInput()) {
               <p>{{ 'codex.empty.filtered' | translate }}</p>
               <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
               <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
@@ -546,6 +560,8 @@ export function blueprintCategoriesForGroup(
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    /* The field has its own clear button; the browser's would be a second x (audit L16). */
+    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
     .search-clear {
       position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
       display: inline-flex; align-items: center; justify-content: center;
@@ -662,6 +678,13 @@ export function blueprintCategoriesForGroup(
     .empty p { color: var(--sc-fg-2); margin: 6px 0 0; }
     .empty .reset-all { margin-top: 12px; padding: 7px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-1); font-family: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
     .empty .reset-all:hover, .empty .reset-all:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .empty .empty-elsewhere { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 8px; margin-top: 10px; color: var(--sc-fg-1); }
+    .empty .reset-all.secondary { border-color: transparent; color: var(--sc-fg-2); }
+    /* Touch (L31): the back link and the ways out reach the 44px target. */
+    @media (pointer: coarse) {
+      .back { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }
+      .empty .reset-all, .cross-hit { min-height: max(44px, var(--sc-tap-min)); }
+    }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
     .err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .err .retry { margin-left: auto; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
@@ -906,20 +929,40 @@ export class CodexListComponent implements OnInit {
    */
   readonly rows = computed<CodexGridRow[]>(() => {
     if (this.includeVariants()) {
-      return this.rawRows().map((r) => ({
+      const raw = this.rawRows().map((r) => ({
         ...r,
         foldedClassNames: [] as readonly string[],
         skinVariants: [] as readonly SkinVariantRef[],
         editions: [] as readonly EditionRef[],
       }));
+      return this.rankFirstPage(raw);
     }
     const grouped = groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r)));
     // Edition grouping reads a class-name lineage only the vehicle catalog
     // carries, so it stays off every other kind.
-    return this.kind() === 'ship'
-      ? groupEditionRows(grouped)
-      : grouped.map((r) => ({ ...r, editions: [] as readonly EditionRef[] }));
+    const rows: CodexGridRow[] =
+      this.kind() === 'ship'
+        ? groupEditionRows(grouped)
+        : grouped.map((r) => ({ ...r, editions: [] as readonly EditionRef[] }));
+    // The server answers alphabetically; a search puts the exact and prefix
+    // matches first ("gladius" → Gladius before Gladius Valiant before a
+    // Pirate edition), the server order breaking ties.
+    return this.rankFirstPage(rows);
   });
+
+  /**
+   * Relevance order for the FIRST page only; later pages append in server
+   * order. Re-ranking everything on "load more" made a page-2 match jump above
+   * cards the reader had already scrolled past (redteam R6).
+   */
+  private rankFirstPage<T extends CodexGridRow>(rows: T[]): T[] {
+    const term = this.searchTerm();
+    if (!term) return rows;
+    const firstPage = new Set(this.rawRows().slice(0, PAGE_SIZE).map((r) => r.classNameSlug));
+    const head = rows.filter((r) => firstPage.has(r.classNameSlug));
+    const tail = rows.filter((r) => !firstPage.has(r.classNameSlug));
+    return [...rankBySearch(term, head, (r) => [this.cardName(r), r.nameLocalized], (r) => [r.classNameSlug]), ...tail];
+  }
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded
    * pages can be folded, so this is a lower bound on the server count, never
@@ -1395,7 +1438,9 @@ export class CodexListComponent implements OnInit {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    // Trimmed once here (L28): the URL's q, the ranking and the cross-category
+    // counts all read the term, and a stray space must not become "%20" or a miss.
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {

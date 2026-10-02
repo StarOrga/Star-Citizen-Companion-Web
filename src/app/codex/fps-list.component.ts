@@ -1,3 +1,4 @@
+import { rankBySearch, searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -97,7 +98,12 @@ interface FacetOption {
         <div class="title-block">
           <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
           <h1>{{ 'fps.title' | translate }}</h1>
-          <p class="hint">{{ 'fps.subtitle' | translate }}</p>
+          <!-- Equip mode drops the subtitle: the band says why the reader is
+               here, and the first card's equip button has to stay above the
+               fold on a 1440x900 desktop (L11). -->
+          @if (!targetSet()) {
+            <p class="hint">{{ 'fps.subtitle' | translate }}</p>
+          }
         </div>
         <sc-codex-status-banner />
       </header>
@@ -267,7 +273,7 @@ interface FacetOption {
           }
         </div>
 
-        @if (category() === 'armor') {
+        @if (category() === 'armor' && !targetSet()) {
           <p class="partial-note">{{ 'fps.armorStatsHint' | translate }}</p>
         }
 
@@ -280,6 +286,18 @@ interface FacetOption {
         } @else if (rows().length === 0) {
           <div class="sc-card empty">
             <strong>{{ 'codex.empty.title' | translate }}</strong>
+            @if (searchInput().trim()) {
+              <!-- The other tab may hold it (L08): point there with the same
+                   search instead of only offering to throw the search away. -->
+              @for (c of otherCategories(); track c) {
+                <p class="empty-elsewhere">
+                  <span>{{ 'fps.empty.nothingIn' | translate: { cat: ('fps.category.' + category()) | translate } }}</span>
+                  <a class="try-other" [attr.href]="categoryHref(c)" (click)="onCategoryClick($event, c)">
+                    {{ 'fps.empty.searchIn' | translate: { cat: ('fps.category.' + c) | translate } }}
+                  </a>
+                </p>
+              }
+            }
             @if (hasActiveFilters() || searchInput()) {
               <p>{{ 'codex.empty.filtered' | translate }}</p>
               <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
@@ -346,16 +364,26 @@ interface FacetOption {
                     <!-- Armour offers its one anatomical home; a weapon or tool
                          the set's positions it honestly fills. -->
                     <div class="equip-row">
-                      <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
                       @for (slot of slots; track slot) {
                         <span class="tip-wrap" [scTooltip]="svc.viewingPastPatch() ? ('fps.equip.pastPatch' | translate) : null" scTooltipTier="label">
+                          <!-- The label says what a click DOES: an equipped slot's
+                               button removes the piece, so it reads "Remove from …"
+                               rather than repeating the slot name (no aria-pressed:
+                               a toggle whose label changes would announce twice). -->
+                          @let on = isEquipped(r, slot);
                           <button type="button" class="equip-btn"
-                                  [class.on]="isEquipped(r, slot)"
-                                  [attr.aria-pressed]="isEquipped(r, slot)"
+                                  [class.on]="on"
+                                  [attr.data-slot]="slot"
                                   [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
                                   [disabled]="equipBusy() !== null || svc.viewingPastPatch()"
                                   (click)="equip($event, r, slot)">
-                            {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
+                            @if (equipBusy() === r.classNameSlug + '|' + slot) {
+                              {{ 'fps.equip.saving' | translate }}
+                            } @else if (on) {
+                              <span class="equip-x" aria-hidden="true">✕</span> {{ 'fps.equip.removeFrom' | translate: { slot: slotLabel(slot) } }}
+                            } @else {
+                              {{ 'fps.equip.equipAs' | translate: { slot: slotLabel(slot) } }}
+                            }
                           </button>
                         </span>
                       }
@@ -384,6 +412,25 @@ interface FacetOption {
       }
 
       <sc-codex-compare-tray />
+      <!-- Equip confirmation: the reader has usually scrolled far below the band's
+           "back to the set" link, so the result of a click and the way back
+           stick to the bottom of the viewport. The live region exists for the
+           whole equip mode so screen readers announce each new message. -->
+      @if (targetSet(); as set) {
+        <div class="equip-confirm-live" aria-live="polite" aria-atomic="true">
+          @if (equipConfirm(); as c) {
+            <div class="sc-card equip-confirm" [class.removed]="c.removed">
+              <span class="equip-confirm-msg">
+                <span class="equip-confirm-mark" aria-hidden="true">{{ c.removed ? '–' : '✓' }}</span>
+                {{ (c.removed ? 'fps.equip.confirmRemoved' : 'fps.equip.confirmEquipped') | translate: { item: c.item, slot: c.slot } }}
+              </span>
+              <a class="equip-confirm-back" [routerLink]="['/codex', 'set', set.id]">
+                {{ 'fps.equip.backToSet' | translate }} <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          }
+        </div>
+      }
     </section>
   `,
   styles: [`
@@ -410,9 +457,9 @@ interface FacetOption {
       display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
       background: var(--field, #071520);
       border-color: color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border));
-      padding: 14px 16px;
+      padding: 10px 16px;
     }
-    .band-figure { flex: 0 0 auto; width: 64px; }
+    .band-figure { flex: 0 0 auto; width: 40px; }
     .band-body { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 200px; }
     .band-eyebrow {
       font-family: var(--sc-font-display); text-transform: uppercase;
@@ -460,22 +507,56 @@ interface FacetOption {
     .tip-wrap { display: contents; }
 
     .equip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 14px 14px; }
-    .equip-label {
-      font-family: var(--sc-font-display); text-transform: uppercase;
-      letter-spacing: 0.1em; font-size: max(0.6rem, var(--sc-fs-floor));
-      color: var(--sc-fg-2);
-    }
     .equip-btn {
       padding: 6px 10px; border-radius: 999px; cursor: pointer;
       border: 1px solid var(--sc-border); background: var(--sc-bg-1);
       color: var(--sc-fg-1); font-family: var(--sc-font-display);
       font-size: max(0.62rem, var(--sc-fs-floor));
-      letter-spacing: 0.06em; text-transform: uppercase;
+      letter-spacing: 0.02em;
       min-height: max(32px, var(--sc-tap-min));
     }
+    /* Touch (L11/L31): every way in or out of this page reaches 44px. */
+    @media (pointer: coarse) {
+      .equip-btn, .equip-back, .try-other, .empty .reset-all { min-height: max(44px, var(--sc-tap-min)); }
+      .equip-back, .try-other { display: inline-flex; align-items: center; }
+    }
+    .empty .empty-elsewhere { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 8px; color: var(--sc-fg-1); }
+    .try-other { color: var(--sc-accent); text-decoration: none; }
+    .try-other:hover, .try-other:focus-visible { text-decoration: underline; }
+    .try-other:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
     .equip-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn:disabled { opacity: 0.5; cursor: default; }
+    .equip-x { font-size: 0.9em; }
+    /* Sticky equip confirmation (see template). Above the page content, below
+       overlays; the safe-area inset keeps it clear of a phone's home bar. */
+    .equip-confirm-live {
+      position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+      display: flex; justify-content: center; pointer-events: none;
+    }
+    .equip-confirm-live:empty { display: none; }
+    .equip-confirm {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 4px 16px; flex-wrap: wrap;
+      max-width: 100%; box-sizing: border-box;
+      padding: 6px 14px; margin: 0;
+      background: var(--sc-bg-1);
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 6px 24px color-mix(in srgb, black 45%, transparent);
+      color: var(--sc-fg-0); font-size: max(0.84rem, var(--sc-fs-floor));
+    }
+    .equip-confirm.removed { border-color: var(--sc-border); }
+    .equip-confirm-msg { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+    .equip-confirm-mark { color: var(--sc-accent); font-weight: 700; }
+    .equip-confirm.removed .equip-confirm-mark { color: var(--sc-fg-2); }
+    .equip-confirm-back {
+      display: inline-flex; align-items: center; gap: 4px;
+      min-height: var(--sc-tap-min); color: var(--sc-accent); text-decoration: none;
+      font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.7rem, var(--sc-fs-floor));
+    }
+    .equip-confirm-back:hover, .equip-confirm-back:focus-visible { text-decoration: underline; }
+    .equip-confirm-back:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn.on {
       border-color: var(--sc-accent); color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
@@ -505,6 +586,8 @@ interface FacetOption {
       font-family: inherit; font-size: 0.92rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    /* The field has its own clear button; the browser's would be a second x (audit L16). */
+    input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
     .search-clear {
       position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
       display: inline-flex; align-items: center; justify-content: center;
@@ -660,6 +743,11 @@ export class FpsListComponent {
   /** `<className>|<slot>` of a clear that met another tab's newer piece in the slot. */
   readonly equipConflict = signal<string | null>(null);
   /**
+   * The last equip write that landed — drives the sticky confirmation bar
+   * (`item` / `slot` are display names). Reset by the next click.
+   */
+  readonly equipConfirm = signal<{ item: string; slot: string; removed: boolean } | null>(null);
+  /**
    * The weapon/tool slot the set page sent the reader to fill: while its set
    * is loaded, the weapon list shows only what fits it. A link from the
    * primary slot used to list knives and pistols too — without an equip button.
@@ -730,10 +818,7 @@ export class FpsListComponent {
     return this.catalog().filter(
       (r) =>
         (!fitting || slotAccepts(fitting, { className: r.classNameSlug, subType: r.subType })) &&
-        (!matches ||
-          matches(this.cardName(r)) ||
-          matches(r.nameLocalized ?? '') ||
-          matches(r.classNameSlug)) &&
+        (!matches || matches(...this.searchFields(r))) &&
         (!mfr || r.manufacturerCode === mfr) &&
         (!size || String(r.size) === size) &&
         (!grade || r.grade === grade) &&
@@ -757,7 +842,37 @@ export class FpsListComponent {
    * until pass 1 has folded them. Ticking "include variants" — the control that
    * already means "show me the raw records" — turns BOTH off.
    */
-  readonly rows = computed<FpsGridRow[]>(() => this.fold(this.filtered(), this.includeVariants()));
+  readonly rows = computed<FpsGridRow[]>(() =>
+    // A search puts exact and prefix name matches first; the catalog order
+    // breaks ties (shared Codex search dialect, codex-search.ts).
+    rankBySearch(
+      this.searchTerm(),
+      this.fold(this.filtered(), this.includeVariants()),
+      (r) => [this.cardName(r), r.nameLocalized],
+      (r) => [r.classNameSlug],
+    ),
+  );
+
+  /**
+   * Everything a player may type to find a piece: both language names (the
+   * UI language is not the language a player thinks in), the class name, and
+   * the manufacturer as code and spelled out ("behring", "BEHR").
+   */
+  private searchFields(r: FpsRow): (string | null | undefined)[] {
+    const p = r.payload as
+      | { name?: { de?: string; en?: string }; manufacturer?: { name?: { de?: string; en?: string } } }
+      | undefined;
+    return [
+      this.cardName(r),
+      r.nameLocalized,
+      r.classNameSlug,
+      r.manufacturerCode,
+      p?.name?.de,
+      p?.name?.en,
+      p?.manufacturer?.name?.en,
+      // CIG's "TRANSLATION NOT FOUND FOR LOCID …" placeholder is no name.
+    ].filter((f) => !f?.includes('TRANSLATION NOT FOUND'));
+  }
   readonly visibleRows = computed(() => this.rows().slice(0, this.shown()));
   /** Exact: the whole category is folded, so this is the number of cards there are. */
   readonly total = computed(() => this.rows().length);
@@ -825,12 +940,24 @@ export class FpsListComponent {
     this.gradeOptions().map((g) => ({ value: g, labelKey: '', label: g })),
   );
 
+  /** The slot facet the equip link set (`?slot=` / `?equipSlot=`), kept by every reset; '' outside equip mode. */
+  private readonly linkedSubType = signal('');
+  readonly pinnedSubType = computed(() => {
+    const linked = this.equipInto() ? this.linkedSubType() : '';
+    // Only while the active tab carries it: the weapon facet must not be
+    // forced onto the armour list after a tab switch.
+    return linked && this.subTypeOptions().some((o) => o.value === linked) ? linked : '';
+  });
+
+  /** The tabs other than the active one — the empty state's "search there instead". */
+  readonly otherCategories = computed(() => this.categories.filter((c) => c !== this.category()));
+
   readonly hasActiveFilters = computed(
     () =>
       !!this.manufacturer() ||
       !!this.size() ||
       !!this.grade() ||
-      !!this.subType() ||
+      this.subType() !== this.pinnedSubType() ||
       this.includeVariants(),
   );
 
@@ -1014,7 +1141,7 @@ export class FpsListComponent {
     // filter the list down to zero rows.
     const slot = q.get('slot');
     if (slot) this.subType.set(slot);
-    const term = q.get('q');
+    const term = q.get('q')?.trim();
     if (term) {
       this.searchInput.set(term);
       this.searchTerm.set(term);
@@ -1031,6 +1158,7 @@ export class FpsListComponent {
     if (equipSlot && this.category() === 'weapon' && !slot && Object.hasOwn(SLOT_WEAPON_FACET, equipSlot)) {
       this.subType.set(SLOT_WEAPON_FACET[equipSlot]);
     }
+    if (this.equipInto()) this.linkedSubType.set(this.subType());
   }
 
   /**
@@ -1120,6 +1248,7 @@ export class FpsListComponent {
     this.equipBusy.set(key);
     this.equipFailed.set(null);
     this.equipConflict.set(null);
+    this.equipConfirm.set(null);
     try {
       // The service reports a refused write as null (and never throws for it);
       // a thrown error is the transport failing. Both used to look exactly
@@ -1132,7 +1261,10 @@ export class FpsListComponent {
         // A clear that met another tab's newer piece leaves it there — say so.
         if (clearing && updated.items.some((i) => i.slot === slot && i.className)) {
           this.equipConflict.set(key);
-        } else if (!clearing && this.category() === 'armor') {
+        } else {
+          this.equipConfirm.set({ item: this.cardName(r), slot: this.slotLabel(slot), removed: clearing });
+        }
+        if (!clearing && this.category() === 'armor' && !this.equipConflict()) {
           // Armour has exactly one home: once it's on, the reader is done here
           // and the hop back into the set page (reversing the slot tile's grow
           // animation) is the natural next step. A weapon slot stays on the
@@ -1235,7 +1367,7 @@ export class FpsListComponent {
   onSearchInput(value: string): void {
     this.searchInput.set(value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
+    this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
   }
 
   clearSearch(): void {
@@ -1253,7 +1385,9 @@ export class FpsListComponent {
     this.manufacturer.set('');
     this.size.set('');
     this.grade.set('');
-    this.subType.set('');
+    // Equip mode (L12): the slot the set page sent the reader to fill is the
+    // page's purpose, not a filter — a reset returns to it, never drops it.
+    this.subType.set(this.pinnedSubType());
     this.includeVariants.set(false);
   }
 
@@ -1305,21 +1439,6 @@ export class FpsListComponent {
       if (seq === this.loadSeq) this.loading.set(false);
     }
   }
-}
-
-/**
- * Case-insensitive "contains" test for the list search, with `*` as a
- * wildcard the way the index search's ILIKE reads it — the placeholder's own
- * example `klwe_*` found nothing while `*` was compared literally. Null for a
- * term that filters nothing (empty, or only wildcards).
- */
-function searchMatcher(raw: string): ((text: string) => boolean) | null {
-  const term = raw.trim().toLowerCase();
-  if (!term.includes('*')) return term ? (text) => text.toLowerCase().includes(term) : null;
-  const parts = term.split('*').filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (parts.length === 0) return null;
-  const pattern = new RegExp(parts.join('.*'));
-  return (text) => pattern.test(text.toLowerCase());
 }
 
 function uniqSorted(values: (string | null)[]): string[] {

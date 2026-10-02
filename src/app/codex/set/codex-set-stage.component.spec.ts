@@ -12,6 +12,20 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { ResolvedEntity } from '../codex.service';
 import { ArmorRatingRow, SetLensId } from './set-rating';
 import { SetArsenalTransition } from './set-arsenal-transition';
+import { HangarService } from '../../hangar/hangar.service';
+import { RoleLoadoutItem } from '../../hangar/hangar.types';
+
+let setSlotCalls: [string, string, unknown, string | undefined][] = [];
+let setSlotResult: HangarRoleLoadout | null = null;
+const hangarStub = {
+  provide: HangarService,
+  useValue: {
+    setRoleLoadoutSlot: async (id: string, slot: string, piece: unknown, expect?: string) => {
+      setSlotCalls.push([id, slot, piece, expect]);
+      return setSlotResult;
+    },
+  } as Partial<HangarService>,
+};
 
 const SET: HangarRoleLoadout = {
   id: 'set-a',
@@ -68,6 +82,7 @@ describe('CodexSetStageComponent', () => {
         provideRouter([{ path: 'codex/fps', component: ArsenalStub }]),
         provideLocationMocks(),
         provideTranslateService({}),
+        hangarStub,
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(HostComponent);
@@ -97,13 +112,65 @@ describe('CodexSetStageComponent', () => {
     }
   });
 
-  it('names the slot only in the tooltip (label tier), with the part icon before the item name', () => {
-    const de = fixture.debugElement.query(By.css('a.tile[data-slot="helmet"]'));
-    const tip = de.injector.get(ScTooltipDirective);
-    expect(tip.scTooltip()).toBe('codex.landing.paperdoll.helmet');
-    expect(tip.scTooltipTier()).toBe('label');
+  // L10: the slot's name is visible on every tile, not only a tooltip / sr-only text.
+  it('shows the slot name visibly on every armour tile', () => {
+    const keys: Record<string, string> = {
+      helmet: 'codex.landing.paperdoll.helmet', core: 'codex.landing.paperdoll.torso',
+      arms: 'codex.landing.paperdoll.arms', legs: 'codex.landing.paperdoll.legs',
+    };
+    for (const slot of ['helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack']) {
+      const lbl = tile(slot).querySelector<HTMLElement>('.lbl');
+      expect(lbl).withContext(slot).not.toBeNull();
+      expect(lbl!.classList).not.toContain('sr');
+      if (keys[slot]) expect(lbl!.textContent?.trim()).toBe(keys[slot]);
+      else expect(lbl!.textContent?.trim()).toBeTruthy();
+    }
     expect(tile('helmet').querySelector('.ic sc-codex-icon')).not.toBeNull();
-    expect(tile('helmet').querySelector('.name')?.textContent?.trim()).toBeTruthy();
+  });
+
+  it('gives a filled tile its name (full name as label-tier tooltip) and "Change", an empty one "+ Choose"', () => {
+    const helmet = tile('helmet');
+    expect(helmet.querySelector('.name')?.textContent?.trim()).toBeTruthy();
+    expect(helmet.querySelector('.change')?.textContent?.trim()).toBe('codex.set.gear.change');
+    expect(helmet.querySelector('.cta')).toBeNull();
+    const tip = fixture.debugElement.query(By.css('a.tile[data-slot="helmet"]')).injector.get(ScTooltipDirective);
+    expect(tip.scTooltip()).toBe(helmet.querySelector('.name')!.textContent!.trim());
+    expect(tip.scTooltipTier()).toBe('label');
+
+    const arms = tile('arms');
+    expect(arms.querySelector('.cta')?.textContent).toContain('codex.set.gear.choose');
+    expect(arms.querySelector('.change')).toBeNull();
+    expect(arms.querySelector('.name')).toBeNull();
+  });
+
+  it('never cuts a filled name to one line: it wraps to at most two', () => {
+    const name = tile('helmet').querySelector<HTMLElement>('.name')!;
+    const cs = getComputedStyle(name);
+    expect(cs.whiteSpace).not.toBe('nowrap');
+    expect(cs.webkitLineClamp).toBe('2');
+  });
+
+  // L21: armour gets the same clear + undo as the weapon tiles.
+  it('offers a clear button beside a filled armour tile only — never inside the anchor', () => {
+    const btn = el.querySelector<HTMLButtonElement>('.slot[data-slot="helmet"] button.clear');
+    expect(btn).not.toBeNull();
+    expect(btn!.closest('a')).toBeNull();
+    expect(btn!.getAttribute('aria-label')).toBe('codex.set.gear.clearAria');
+    expect(el.querySelector('.slot[data-slot="arms"] button.clear')).toBeNull();
+  });
+
+  it('clears an armour slot through the hangar service and offers undo, which puts it back', async () => {
+    setSlotCalls = [];
+    setSlotResult = { ...SET, items: SET.items.map((i) => (i.slot === 'helmet' ? { ...i, className: null } : i)) as RoleLoadoutItem[] };
+    el.querySelector<HTMLButtonElement>('.slot[data-slot="helmet"] button.clear')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(setSlotCalls[0]).toEqual(['set-a', 'helmet', null, 'Test_Helmet']);
+    const note = el.querySelector<HTMLElement>('.slot[data-slot="helmet"] .note[role="status"]');
+    expect(note?.textContent).toContain('codex.set.gear.cleared');
+    note!.querySelector<HTMLButtonElement>('button.undo')!.click();
+    await fixture.whenStable();
+    expect(setSlotCalls[1]).toEqual(['set-a', 'helmet', { className: 'Test_Helmet', kind: 'item' }, undefined]);
   });
 
   it('gives every readiness icon a keyboard-reachable, labelled image (AUD-119)', () => {
@@ -118,12 +185,11 @@ describe('CodexSetStageComponent', () => {
     }
   });
 
-  it('shows an open slot as "Frei" with its archive depth and the arsenal call to action', () => {
+  it('shows an open slot with its archive depth and the choose call to action', () => {
     const arms = tile('arms');
     expect(arms.classList).toContain('open');
-    expect(arms.textContent).toContain('codex.set.stage.free');
     expect(arms.textContent).toContain('codex.landing.board.archiveCount');
-    expect(arms.querySelector('.cta')?.textContent).toContain('codex.set.equipInArchive');
+    expect(arms.querySelector('.cta')?.textContent).toContain('codex.set.gear.choose');
   });
 
   it('lights figure part, tile and line while a tile is hovered', () => {
@@ -241,6 +307,7 @@ describe('CodexSetStageComponent language and eyebrow (REQ-15, REQ-19)', () => {
         provideRouter([{ path: 'codex/fps', component: ArsenalStub }]),
         provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en', lang: 'en' }),
+        hangarStub,
       ],
     }).compileComponents();
     t = TestBed.inject(TranslateService);

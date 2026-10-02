@@ -1,3 +1,6 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ConsentService } from '../core/consent.service';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { computed, signal } from '@angular/core';
@@ -111,5 +114,113 @@ describe('UpcomingGridComponent', () => {
     const { el } = mount({ ships: [], counts: null, fetchedAt: '2026-09-01T00:00:00Z' });
     expect(el.querySelector('.empty')?.textContent).toContain('codex.upcoming.empty.title');
     expect(el.querySelectorAll('a.card').length).toBe(0);
+  });
+});
+
+// Codex UX audit 2026-10-02 (P0): the upcoming grid's search, driven through
+// the real <input> against the real service, so a broken template binding fails.
+describe('UpcomingGridComponent search (real input, real service)', () => {
+  function upShip(id: string, name: string, manufacturer: string, code: string): UpcomingShip {
+    return {
+      id,
+      name,
+      manufacturer,
+      manufacturerCode: code,
+      productionStatus: 'in-concept',
+      type: 'combat',
+      focus: null,
+      rsiUrl: null,
+      thumbnail: null,
+      flightReadyButMissing: false,
+    };
+  }
+
+  const SEARCH_FEED: UpcomingShipsFeed = {
+    ships: [
+      upShip('a', 'Ironclad', 'Drake Interplanetary', 'DRAK'),
+      upShip('b', 'Golem OX', 'Drake Interplanetary', 'DRAK'),
+      upShip('c', 'Kühlschrank Hauler', 'Consolidated Outland', 'CNOU'),
+      upShip('d', 'Concord Ranger', 'Anvil Aerospace', 'ANVL'),
+    ],
+    counts: null,
+    fetchedAt: '2026-09-01T00:00:00Z',
+  };
+
+  function mountReal() {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideTranslateService({}),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ConsentService, useValue: { preferencesAllowed: () => false } },
+      ],
+    });
+    const svc = TestBed.inject(UpcomingShipsService);
+    svc.query.set('');
+    svc.feed.set(SEARCH_FEED);
+    const fixture = TestBed.createComponent(UpcomingGridComponent);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const input = el.querySelector('input.search-input') as HTMLInputElement;
+    const type = (value: string) => {
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+    const cardIds = () =>
+      Array.from(el.querySelectorAll('a.card')).map((a) => a.getAttribute('href')!.split('/').pop());
+    return { fixture, el, svc, input, type, cardIds };
+  }
+
+  it('filters the grid by the typed term', () => {
+    const { type, cardIds } = mountReal();
+    expect(cardIds().length).toBe(4);
+    type('golem');
+    expect(cardIds()).toEqual(['b']);
+  });
+
+  it('AND-s tokens so more words narrow ("drake conc" is not "drake OR conc")', () => {
+    const { type, cardIds } = mountReal();
+    type('drake');
+    expect(cardIds()).toEqual(['a', 'b']);
+    // "conc" alone hits every ship (status in-concept); AND with "drake"
+    // must keep only the Drake ships, never widen to the Anvil Concord.
+    type('drake conc');
+    expect(cardIds()).toEqual(['a', 'b']);
+    type('drake golem');
+    expect(cardIds()).toEqual(['b']);
+    type('anvil concord');
+    expect(cardIds()).toEqual(['d']);
+  });
+
+  it('ignores case and diacritics in both directions', () => {
+    const { type, cardIds } = mountReal();
+    type('KUHLSCHRANK');
+    expect(cardIds()).toEqual(['c']);
+    type('kühl');
+    expect(cardIds()).toEqual(['c']);
+  });
+
+  it('the clear button appears with a term and restores every ship', () => {
+    const { el, type, cardIds, svc, fixture } = mountReal();
+    expect(el.querySelector('button.search-clear')).toBeNull();
+    type('golem');
+    const clear = el.querySelector('button.search-clear') as HTMLButtonElement;
+    expect(clear).not.toBeNull();
+    clear.click();
+    fixture.detectChanges();
+    expect(svc.query()).toBe('');
+    expect((el.querySelector('input.search-input') as HTMLInputElement).value).toBe('');
+    expect(cardIds().length).toBe(4);
+    expect(el.querySelector('button.search-clear')).toBeNull();
+  });
+
+  it('a term without hits shows the no-matches state, not the empty-feed state', () => {
+    const { el, type, cardIds } = mountReal();
+    type('zzz-nothing');
+    expect(cardIds()).toEqual([]);
+    expect(el.textContent).toContain('codex.upcoming.noMatches.title');
+    expect(el.textContent).not.toContain('codex.upcoming.empty.title');
   });
 });

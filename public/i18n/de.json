@@ -282,7 +282,6 @@
       }
     },
     "bridge": {
-      "scannerPlaceholder": "Codex scannen — Schiffsname oder Klasse eingeben (z. B. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
       "indexMode": "Index-Modus",
       "keybinds": "Keybinds",
@@ -309,7 +308,10 @@
         "freshSub": "Schiffe im aktuellen Live-Build",
         "role": "Nach Hersteller entdecken",
         "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
-      }
+      },
+      "scannerPlaceholderShort": "Schiff oder Klasse scannen…",
+      "scannerEmpty": "Kein Schiff passt zu „{{term}}“.",
+      "searchIndex": "Im Index suchen"
     },
     "index": {
       "title": "Codex — Index-Modus"
@@ -349,7 +351,43 @@
       "laneSub": "Von RSI angekündigt, in unseren Spieldaten noch ohne Eintrag",
       "laneAll": "Alle {{count}} ansehen",
       "conceptBadge": "Konzept",
-      "notFlightReady": "Noch nicht flugfähig"
+      "notFlightReady": "Noch nicht flugfähig",
+      "role": {
+        "combat": "Kampf",
+        "exploration": "Erkundung",
+        "industrial": "Industrie",
+        "transport": "Transport",
+        "support": "Unterstützung",
+        "competition": "Rennsport",
+        "multi": "Mehrzweck",
+        "ground": "Bodenfahrzeug",
+        "mining": "Bergbau",
+        "mining_refining": "Bergbau / Raffinerie",
+        "refining": "Raffinerie",
+        "salvage": "Bergung",
+        "medical": "Medizin",
+        "refueling": "Betankung",
+        "repair": "Reparatur",
+        "heavy_repair": "Schwere Reparatur",
+        "passenger": "Passagiere",
+        "cargo": "Fracht",
+        "heavy_fighter": "Schwerer Jäger",
+        "medium_fighter": "Mittlerer Jäger",
+        "light_fighter": "Leichter Jäger",
+        "bomber": "Bomber",
+        "gunship": "Kanonenboot",
+        "racing": "Rennen",
+        "starter": "Einsteiger",
+        "luxury": "Luxus",
+        "interdiction": "Abfangen",
+        "data_running": "Datentransport",
+        "pathfinder": "Pfadfinder",
+        "expedition": "Expedition",
+        "touring": "Reisen",
+        "construction": "Bau",
+        "military_transport": "Militärtransport",
+        "heavy_freight": "Schwerfracht"
+      }
     },
     "upcomingDetail": {
       "back": "Zurück zum Codex",
@@ -770,7 +808,8 @@
       "kind": "Keine {{kind}} in diesem Build.",
       "noBuild": "Es ist noch kein Katalog-Build veröffentlicht.",
       "partial": "Dieser Build enthält für diese Kategorie eine repräsentative Teilmenge — die Zähler spiegeln das Geladene wider.",
-      "resetAll": "Suche & Filter zurücksetzen"
+      "resetAll": "Suche & Filter zurücksetzen",
+      "foundElsewhere": "Keine {{kind}} für „{{term}}“ — gefunden in:"
     },
     "error": {
       "title": "Codex konnte nicht geladen werden",
@@ -1758,6 +1797,8 @@
     },
     "set": {
       "back": "← Zurück zum Codex",
+      "backToHangar": "← Zurück zum Hangar",
+      "flowHint": "Tippe einen Slot an — Rüstung am Körper, Waffen in der Leiste darunter —, um ihn im Arsenal zu befüllen.",
       "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
       "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
       "noSets": "Noch kein Set kommissioniert.",
@@ -1767,6 +1808,8 @@
       "share": "Set teilen",
       "gear": {
         "eyebrow": "Waffen & Werkzeug",
+        "choose": "Auswählen",
+        "change": "Ändern",
         "open": "offen",
         "clear": "Leeren",
         "clearAria": "{{slot}} leeren",
@@ -1779,9 +1822,7 @@
         "undoFailed": "{{slot}} konnte nicht zurückgelegt werden. Bitte erneut ausrüsten.",
         "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
       },
-      "equipInArchive": "Im Arsenal ausrüsten",
       "stage": {
-        "free": "Frei",
         "slotsAria": "Rüstungsteile",
         "readinessAria": "Einsatzbereitschaft",
         "lensLimits": "begrenzt das Set in diesem Einsatz"
@@ -1948,6 +1989,23 @@
       "hide": "{{name}} ausblenden",
       "hotspotTip": "{{name}} · {{type}} · Größe {{size}}",
       "freeSlot": "Freier Platz, nimmt {{types}} auf"
+    },
+    "attachType": {
+      "WeaponPersonal": "Handwaffe",
+      "WeaponGun": "Schiffswaffe",
+      "WeaponMining": "Bergbaulaser",
+      "Missile": "Rakete",
+      "MissileLauncher": "Raketenwerfer",
+      "Turret": "Geschützturm",
+      "Char_Armor_Helmet": "Helm",
+      "Char_Armor_Torso": "Oberkörper",
+      "Char_Armor_Arms": "Arme",
+      "Char_Armor_Legs": "Beine",
+      "Char_Armor_Undersuit": "Unterkleidung",
+      "Char_Armor_Backpack": "Rucksack",
+      "WeaponAttachment": "Waffenaufsatz",
+      "Gadget": "Gadget",
+      "FPS_Consumable": "Verbrauchsgut"
     }
   },
   "blueprint": {
@@ -2033,12 +2091,16 @@
     "armorStatsHint": "Rüstung hat in diesem Build noch keinen detaillierten Statistikblock — nur Name, Grad, Größe und Hersteller.",
     "empty": {
       "weapon": "Keine FPS-Waffen in diesem Build.",
-      "armor": "Keine Rüstung in diesem Build."
+      "armor": "Keine Rüstung in diesem Build.",
+      "nothingIn": "Nichts unter {{cat}} —",
+      "searchIn": "in {{cat}} suchen"
     },
     "equip": {
       "targetSet": "Ausrüsten für: {{name}}",
       "backToSet": "Zurück zum Set",
-      "into": "In Slot:",
+      "removeFrom": "Aus {{slot}} entfernen",
+      "confirmEquipped": "{{item}} ausgerüstet in {{slot}}",
+      "confirmRemoved": "{{item}} aus {{slot}} entfernt",
       "failed": "Nicht gespeichert — das Set hat die Änderung nicht angenommen. Bitte erneut versuchen.",
       "setUnavailable": "Das Set aus dem Link gibt es nicht (mehr) oder es gehört dir nicht — hier wird nur gestöbert, nichts ausgerüstet.",
       "mySets": "Meine Sets",
@@ -2053,7 +2115,8 @@
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} für {{name}}"
       },
-      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden"
+      "setLoadFailed": "Das Set aus dem Link konnte nicht geladen werden",
+      "equipAs": "Als {{slot}} ausrüsten"
     }
   },
   "news": {

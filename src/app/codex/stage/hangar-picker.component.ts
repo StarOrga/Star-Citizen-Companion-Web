@@ -103,7 +103,9 @@ const COLLAPSE_DELAY_MS = 150;
         z-index: 4;
         display: flex;
         align-items: stretch;
-        height: 30px;
+        /* min, not fixed: the 48px touch button/chips (--sc-tap-min) must not
+           overflow a 30px row on coarse pointers. Desktop stays 30px. */
+        min-height: 30px;
       }
       /* Holotable dock (docked=true): the wrapper (.hangar-dock) already
          positions this control — rendering it absolute again on top of that
@@ -165,7 +167,13 @@ const COLLAPSE_DELAY_MS = 150;
         all: unset;
         box-sizing: border-box;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        /* all:unset drops the global touch minimum — restore it like .picker-btn
+           (48px tap / 12px text floor on coarse pointers, desktop unchanged). */
+        min-height: max(28px, var(--sc-tap-min, 0px));
         font: 600 9px/28px var(--font-display, 'Orbitron', sans-serif);
+        font-size: max(9px, var(--sc-fs-floor));
         letter-spacing: .08em;
         text-transform: uppercase;
         padding: 0 12px;

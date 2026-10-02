@@ -559,7 +559,7 @@ describe('CodexListComponent (Index mode)', () => {
       );
       await fixture.whenStable();
       fixture.detectChanges();
-      const hits = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.cross-hit')).map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
+      const hits = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.cross-hits .cross-hit')).map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
       // No number: the server counts raw records, the target list folds variants.
       expect(hits).toEqual(['codex.kinds.component']);
     });
@@ -769,6 +769,65 @@ describe('CodexListComponent (Index mode)', () => {
       const err = el.querySelector('.card-err[role="alert"]');
       expect(err).not.toBeNull();
       expect(err!.textContent).toContain('codex.card.addToHangarFailed');
+    });
+  });
+
+  describe('empty search, hits elsewhere (L07 / L28)', () => {
+    async function searchFor(term: string) {
+      const ctx = await setup(
+        { ships: 300, weapons: 900, components: 2000 },
+        { crossCounts: new Map([['weapon', 3]]) },
+      );
+      const replace = spyOn(TestBed.inject(Location), 'replaceState').and.callThrough();
+      jasmine.clock().install();
+      try {
+        ctx.cmp.onSearchInput(term);
+        jasmine.clock().tick(1000);
+      } finally {
+        jasmine.clock().uninstall();
+      }
+      for (let i = 0; i < 3; i++) {
+        ctx.fixture.detectChanges();
+        await ctx.fixture.whenStable();
+      }
+      ctx.fixture.detectChanges();
+      return { ...ctx, replace, el: ctx.fixture.nativeElement as HTMLElement };
+    }
+
+    it('leads the empty state with the categories that do match, as real links', async () => {
+      const { el, cmp } = await searchFor('Arrowhead');
+      const lead = el.querySelector('.empty .empty-elsewhere');
+      expect(lead).not.toBeNull();
+      expect(lead!.textContent).toContain('codex.empty.foundElsewhere');
+      const links = Array.from(lead!.querySelectorAll('a.cross-hit')) as HTMLAnchorElement[];
+      expect(links.length).toBe(1);
+      expect(links[0].getAttribute('href')).toContain('kind=weapon');
+      expect(links[0].getAttribute('href')).toContain('q=Arrowhead');
+      // The reset stays — but after the way to the hit, not instead of it.
+      const reset = el.querySelector('.empty .reset-all.secondary');
+      expect(reset).not.toBeNull();
+      expect(lead!.compareDocumentPosition(reset!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      links[0].dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(cmp.kind()).toBe('weapon');
+    });
+
+    it('keeps the "also found in" chips above the grid as anchors', async () => {
+      const { el } = await searchFor('Arrowhead');
+      const chip = el.querySelector('.cross-hits a.cross-hit') as HTMLAnchorElement | null;
+      expect(chip).not.toBeNull();
+      expect(chip!.getAttribute('href')).toContain('kind=weapon');
+    });
+
+    it('trims the term before it reaches the URL and the category links', async () => {
+      const { el, replace } = await searchFor('  Arrowhead  ');
+      const url = replace.calls.mostRecent().args[0] as string;
+      expect(url).toContain('q=Arrowhead');
+      expect(url).not.toMatch(/q=(%20|\+)/);
+      const link = el.querySelector('.empty a.cross-hit') as HTMLAnchorElement;
+      expect(link.getAttribute('href')).toMatch(/q=Arrowhead(&|$)/);
     });
   });
 });

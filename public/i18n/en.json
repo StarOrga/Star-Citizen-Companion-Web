@@ -282,7 +282,6 @@
       }
     },
     "bridge": {
-      "scannerPlaceholder": "Scan the codex — type a ship name or class (e.g. Gladius, AEGS_*)…",
       "scannerResults": "Scanner · \"{{term}}\"",
       "indexMode": "Index mode",
       "keybinds": "Keybinds",
@@ -309,7 +308,10 @@
         "freshSub": "Ships in the current live build",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
-      }
+      },
+      "scannerPlaceholderShort": "Scan a ship or class…",
+      "scannerEmpty": "No ship matches “{{term}}”.",
+      "searchIndex": "Search the index"
     },
     "index": {
       "title": "Codex — Index mode"
@@ -349,7 +351,43 @@
       "laneSub": "Announced by RSI, with no entry in our game data yet",
       "laneAll": "View all {{count}}",
       "conceptBadge": "Concept",
-      "notFlightReady": "Not flight-ready yet"
+      "notFlightReady": "Not flight-ready yet",
+      "role": {
+        "combat": "Combat",
+        "exploration": "Exploration",
+        "industrial": "Industrial",
+        "transport": "Transport",
+        "support": "Support",
+        "competition": "Competition",
+        "multi": "Multi-role",
+        "ground": "Ground vehicle",
+        "mining": "Mining",
+        "mining_refining": "Mining / Refining",
+        "refining": "Refining",
+        "salvage": "Salvage",
+        "medical": "Medical",
+        "refueling": "Refueling",
+        "repair": "Repair",
+        "heavy_repair": "Heavy Repair",
+        "passenger": "Passenger",
+        "cargo": "Cargo",
+        "heavy_fighter": "Heavy Fighter",
+        "medium_fighter": "Medium Fighter",
+        "light_fighter": "Light Fighter",
+        "bomber": "Bomber",
+        "gunship": "Gunship",
+        "racing": "Racing",
+        "starter": "Starter",
+        "luxury": "Luxury",
+        "interdiction": "Interdiction",
+        "data_running": "Data Running",
+        "pathfinder": "Pathfinder",
+        "expedition": "Expedition",
+        "touring": "Touring",
+        "construction": "Construction",
+        "military_transport": "Military Transport",
+        "heavy_freight": "Heavy Freight"
+      }
     },
     "upcomingDetail": {
       "back": "Back to the Codex",
@@ -770,7 +808,8 @@
       "kind": "No {{kind}} in this build.",
       "noBuild": "No catalog build is published yet.",
       "partial": "This build holds a representative subset for this category — counts shown reflect what is loaded.",
-      "resetAll": "Reset search & filters"
+      "resetAll": "Reset search & filters",
+      "foundElsewhere": "No {{kind}} for “{{term}}” — found in:"
     },
     "error": {
       "title": "Could not load the codex",
@@ -1758,6 +1797,8 @@
     },
     "set": {
       "back": "← Back to Codex",
+      "backToHangar": "← Back to Hangar",
+      "flowHint": "Tap a slot — armour around the figure, weapons in the bar below — to fill it from the Arsenal.",
       "notFound": "That set was not found — showing the first set from your hangar.",
       "signInHint": "Sign in to view and edit your sets.",
       "noSets": "No set commissioned yet.",
@@ -1767,6 +1808,8 @@
       "share": "Share set",
       "gear": {
         "eyebrow": "Weapons & tools",
+        "choose": "Choose",
+        "change": "Change",
         "open": "open",
         "clear": "Clear",
         "clearAria": "Clear {{slot}}",
@@ -1779,9 +1822,7 @@
         "undoFailed": "{{slot}} couldn't be put back. Please equip it again.",
         "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
       },
-      "equipInArchive": "Equip from the Arsenal",
       "stage": {
-        "free": "Free",
         "slotsAria": "Armour pieces",
         "readinessAria": "Readiness",
         "lensLimits": "limits the set for this mission"
@@ -1948,6 +1989,23 @@
       "hide": "Hide {{name}}",
       "hotspotTip": "{{name}} · {{type}} · size {{size}}",
       "freeSlot": "Free slot, accepts {{types}}"
+    },
+    "attachType": {
+      "WeaponPersonal": "Personal weapon",
+      "WeaponGun": "Ship weapon",
+      "WeaponMining": "Mining laser",
+      "Missile": "Missile",
+      "MissileLauncher": "Missile rack",
+      "Turret": "Turret",
+      "Char_Armor_Helmet": "Helmet",
+      "Char_Armor_Torso": "Torso",
+      "Char_Armor_Arms": "Arms",
+      "Char_Armor_Legs": "Legs",
+      "Char_Armor_Undersuit": "Undersuit",
+      "Char_Armor_Backpack": "Backpack",
+      "WeaponAttachment": "Weapon attachment",
+      "Gadget": "Gadget",
+      "FPS_Consumable": "Consumable"
     }
   },
   "blueprint": {
@@ -2033,12 +2091,16 @@
     "armorStatsHint": "Armor has no detailed stat block in this build yet — name, grade, size and manufacturer only.",
     "empty": {
       "weapon": "No FPS weapons in this build.",
-      "armor": "No armor in this build."
+      "armor": "No armor in this build.",
+      "nothingIn": "Nothing under {{cat}} —",
+      "searchIn": "search {{cat}}"
     },
     "equip": {
       "targetSet": "Equipping: {{name}}",
       "backToSet": "Back to the set",
-      "into": "Into slot:",
+      "removeFrom": "Remove from {{slot}}",
+      "confirmEquipped": "{{item}} equipped in {{slot}}",
+      "confirmRemoved": "{{item}} removed from {{slot}}",
       "failed": "Not saved — the set did not accept the change. Please try again.",
       "setUnavailable": "The set in this link doesn't exist (any more) or isn't yours — you're browsing here, nothing gets equipped.",
       "mySets": "My sets",
@@ -2053,7 +2115,8 @@
         "eyebrowSlot": "Arsenal · {{slot}}",
         "titleSlot": "{{slot}} for {{name}}"
       },
-      "setLoadFailed": "The set from the link could not be loaded"
+      "setLoadFailed": "The set from the link could not be loaded",
+      "equipAs": "Equip as {{slot}}"
     }
   },
   "news": {

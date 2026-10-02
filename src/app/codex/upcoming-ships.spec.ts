@@ -9,6 +9,7 @@ import {
   stageArtCandidates,
   stageArtOrder,
   thumbnailCandidates,
+  upcomingRoleLabel,
 } from './upcoming-ships.service';
 
 function ship(partial: Partial<UpcomingShip> & { id: string; name: string }): UpcomingShip {
@@ -320,5 +321,25 @@ describe('upcoming ships — ranked search (Codex cross-entity search)', () => {
 
   it('survives a feed that is empty, still loading or errored', () => {
     expect(searchUpcoming([], 'Arrastra')).toEqual([]);
+  });
+});
+
+describe('upcomingRoleLabel (audit L30)', () => {
+  const t = (key: string) =>
+    ({ 'codex.upcoming.role.industrial': 'Industrie', 'codex.upcoming.role.mining_refining': 'Bergbau / Raffinerie' })[key] ?? key;
+
+  it('translates known RSI types and roles whatever their case', () => {
+    expect(upcomingRoleLabel('industrial', t)).toBe('Industrie');
+    expect(upcomingRoleLabel('MINING / REFINING', t)).toBe('Bergbau / Raffinerie');
+  });
+
+  it('falls back to Title Case, never the raw feed case', () => {
+    expect(upcomingRoleLabel('HEAVY REPAIR', t)).toBe('Heavy Repair');
+    expect(upcomingRoleLabel('data running', t)).toBe('Data Running');
+  });
+
+  it('is empty for no value', () => {
+    expect(upcomingRoleLabel(null, t)).toBe('');
+    expect(upcomingRoleLabel('  ', t)).toBe('');
   });
 });

@@ -5,6 +5,7 @@ import type { LayoutSection, LayoutSlot } from '../codex-hardpoint-layout.compon
 import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture';
 import {
   ammoRangeOf,
+  attachTypeLabel,
   buildHeroChips,
   buildHeroFacts,
   buildShipFactGroups,
@@ -59,6 +60,45 @@ describe('codex-detail facts', () => {
       expect(facts.map((f) => f.label)).toEqual(['codex.detail.dimensions', 'codex.detail.quantumRange']);
       expect(facts[1].value).toBe(fmtGm(12_000_000_000));
       expect(facts[1].accent).toBeTrue();
+    });
+
+    it('words the on-foot weapon type and attach type instead of raw game tokens (audit L25)', () => {
+      const known = (key: string) => (key === 'codex.attachType.WeaponPersonal' ? 'Handwaffe' : key);
+      const facts = buildHeroFacts(
+        {
+          detail: detail('weapon', { sub_type: 'Medium', attach_type: 'WeaponPersonal', size: 1 }),
+          dimensions: null,
+          techStats: null,
+          ammoRange: null,
+        },
+        known,
+      );
+      expect(facts.find((f) => f.label === 'codex.detail.subType')?.value).toBe('fps.weaponType.primary');
+      expect(facts.find((f) => f.label === 'codex.detail.attachType')?.value).toBe('Handwaffe');
+    });
+
+    it('keeps an untranslated attach type and a ship weapon sub type as they are', () => {
+      const facts = buildHeroFacts(
+        {
+          detail: detail('weapon', { sub_type: 'Gun', attach_type: 'WeaponOdd' }),
+          dimensions: null,
+          techStats: null,
+          ammoRange: null,
+        },
+        t,
+      );
+      expect(facts.find((f) => f.label === 'codex.detail.subType')?.value).toBe('Gun');
+      expect(facts.find((f) => f.label === 'codex.detail.attachType')?.value).toBe('WeaponOdd');
+    });
+
+    it('words an armour piece weight class', () => {
+      const facts = buildHeroFacts(
+        { detail: detail('item', { sub_type: 'Heavy', attach_type: 'Char_Armor_Torso' }), dimensions: null, techStats: null, ammoRange: null },
+        t,
+      );
+      expect(facts.find((f) => f.label === 'codex.detail.subType')?.value).toBe('fps.weight.heavy');
+      expect(attachTypeLabel('Char_Armor_Torso', t)).toBe('Char_Armor_Torso');
+      expect(attachTypeLabel(null, t)).toBeNull();
     });
 
     it('returns nothing without a detail', () => {

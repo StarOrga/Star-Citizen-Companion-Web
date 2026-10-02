@@ -1,3 +1,4 @@
+import { normalizeSearch, rankBySearch } from '../codex/codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -543,7 +544,15 @@ export class QuickSearchComponent {
       if (seq !== this.searchSeq) return;
       const merged: QuickResult[] = [];
       kinds.forEach((kind, i) => {
-        for (const row of lists[i].rows) merged.push({ kind, row });
+        // Codex search dialect: exact/prefix names first, and one row per
+        // name — three identical "Gladius Decoy Launcher" records read as a bug.
+        const seen = new Set<string>();
+        for (const row of rankBySearch(term, lists[i].rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug])) {
+          const key = normalizeSearch(row.nameLocalized ?? row.classNameSlug);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push({ kind, row });
+        }
       });
       this.results.set(merged);
       this.activeIndex.set(0);

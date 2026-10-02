@@ -4,7 +4,8 @@ import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { PolySearchHit, dedupePolyHits, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { ilikeTokenGroups, ilikeTokenPatterns, searchMatcher } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
@@ -271,6 +272,8 @@ const NON_SHIP_VEHICLE_PREFIXES = ['SalvageableDebris', 'Orbital_Sentry', 'probe
 /** Guard for listFpsCatalog's paging loop — ~5× today's largest on-foot category. */
 const FPS_CATALOG_HARD_CAP = 12000;
 /** Search-count cache bound: a session types a few dozen terms, not thousands. */
+/** How many rows per kind `searchAll` reads before ranking and truncating. */
+const SEARCH_OVERFETCH = 4;
 const SEARCH_COUNT_CACHE_MAX = 200;
 // Ceiling for the livery-/edition-sibling reads. The largest family in build
 // 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
@@ -723,6 +726,11 @@ export class CodexService {
     const build = await this.buildOrThrow();
     if (!build) return { rows: [], count: 0 };
 
+    // A term made only of characters the server cannot match (no ASCII letter
+    // or digit: "ß", "рус") would otherwise run unfiltered over the whole kind.
+    if (filters.search && ilikeTokenGroups(filters.search).length === 0 && searchMatcher(filters.search)) {
+      return { rows: [], count: 0 };
+    }
     const table = CODEX_ENTITY_TABLES[kind];
     const limit = filters.limit ?? PAGE_SIZE;
     const offset = filters.offset ?? 0;
@@ -756,12 +764,8 @@ export class CodexService {
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
 
-    const q = filters.search?.trim();
-    if (q) {
-      const safe = escapeIlike(q);
-      // manufacturer/ammunition still have name_localized + class_name.
-      query = query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
-    }
+    // manufacturer/ammunition still have name_localized + class_name.
+    if (filters.search) query = applySearchTokens(query, filters.search);
 
     query = query
       .order('name_localized', { ascending: true, nullsFirst: false })
@@ -771,8 +775,12 @@ export class CodexService {
     const { data, count, error } = await query;
     if (error) throw error;
 
-    const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
-    return { rows, count: count ?? rows.length };
+    const mapped = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+    // The server patterns are a superset ("p4ar" → `*p*4*ar*` also hits a
+    // "Caterpillar BIS 2949"); the shared matcher drops those false hits.
+    const matches = filters.search ? searchMatcher(filters.search) : null;
+    const rows = matches ? mapped.filter((r) => matches(r.nameLocalized, r.classNameSlug)) : mapped;
+    return { rows, count: Math.max(rows.length, (count ?? mapped.length) - (mapped.length - rows.length)) };
   }
 
   /**
@@ -784,10 +792,14 @@ export class CodexService {
    */
   async countSearchMatches(search: string, kinds: readonly CodexKind[]): Promise<Map<CodexKind, number>> {
     const out = new Map<CodexKind, number>();
-    // Three characters must survive the escaping: `(((` escapes to nothing,
-    // and an empty pattern would count every record of every kind.
-    const safe = escapeIlike(search);
-    if (safe.length < 3) return out;
+    // Three searchable characters must survive the tokenizing: `(((` yields
+    // nothing, and an empty pattern would count every record of every kind.
+    // Every token is AND-ed, so one token of three characters is enough to keep
+    // the count narrow; tokens like "p 4" alone would scan whole tables.
+    const patterns = ilikeTokenPatterns(search);
+    if (!patterns.some((p) => p.replace(/\*/g, '').length >= 3)) return out;
+    const safe = patterns.join(' ');
+    const term = search.trim();
     const build = await this.loadCurrentBuild();
     if (!build) return out;
     await Promise.all(
@@ -797,7 +809,7 @@ export class CodexService {
         const key = `${build.id}|${safe.toLowerCase()}|${kind}`;
         let pending = this.searchCountCache.get(key);
         if (!pending) {
-          pending = this.countOneKind(build.id, kind, safe);
+          pending = this.countOneKind(build.id, kind, term);
           this.searchCountCache.set(key, pending);
           if (this.searchCountCache.size > SEARCH_COUNT_CACHE_MAX) {
             this.searchCountCache.delete(this.searchCountCache.keys().next().value!);
@@ -812,7 +824,7 @@ export class CodexService {
   }
 
   /** One head-only count for `countSearchMatches`; null when the query failed. */
-  private async countOneKind(buildId: string, kind: CodexKind, safe: string): Promise<number | null> {
+  private async countOneKind(buildId: string, kind: CodexKind, term: string): Promise<number | null> {
     const query = applyDefaultBrowseFilters(
       this.sb.client
         .from(CODEX_ENTITY_TABLES[kind])
@@ -820,7 +832,7 @@ export class CodexService {
         .eq('build_id', buildId),
       kind,
     );
-    const { count, error } = await query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
+    const { count, error } = await applySearchTokens(query, term);
     return error ? null : (count ?? 0);
   }
 
@@ -1527,8 +1539,11 @@ export class CodexService {
     if (!q) return [];
     const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
       try {
-        const res = await this.listByKind(kind, { search: q, limit: perKindLimit });
-        return res.rows.map((r) => toPolyHit(kind, r));
+        // Over-fetch: the server orders alphabetically, so the best match of a
+        // short term ("p4", "ar") can sit behind `perKindLimit` weaker ones.
+        // Rank first, then keep the top `perKindLimit` of each kind.
+        const res = await this.listByKind(kind, { search: q, limit: perKindLimit * SEARCH_OVERFETCH });
+        return dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r)))).slice(0, perKindLimit);
       } catch {
         return [] as PolySearchHit[];
       }
@@ -2025,11 +2040,7 @@ export class CodexService {
       query = query.eq('category', filters.category);
     }
 
-    const q = filters.search?.trim();
-    if (q) {
-      const safe = escapeIlike(q);
-      query = query.or(`name_localized.ilike.%${safe}%,class_name.ilike.%${safe}%`);
-    }
+    if (filters.search) query = applySearchTokens(query, filters.search);
 
     query = query
       .order('name_localized', { ascending: true, nullsFirst: false })
@@ -2250,6 +2261,19 @@ function mapString(s: Record<string, unknown>): CodexEntityString {
     value: (s['value'] as string | null) ?? null,
     locKey: (s['loc_key'] as string | null) ?? null,
   };
+}
+
+/**
+ * AND one `or(name ILIKE …, class_name ILIKE …)` group per search token onto a
+ * PostgREST query — the shared Codex search dialect (see codex-search.ts), so
+ * "p4 ar", "p4ar" and "black cutlass" find what a contiguous ILIKE missed.
+ */
+function applySearchTokens<Q extends { or(filters: string): Q }>(query: Q, term: string): Q {
+  let out = query;
+  for (const group of ilikeTokenGroups(term)) {
+    out = out.or(group.flatMap((p) => [`name_localized.ilike.${p}`, `class_name.ilike.${p}`]).join(','));
+  }
+  return out;
 }
 
 /** PostgREST `or=ilike` is comma/paren-delimited — neutralise those chars. */
