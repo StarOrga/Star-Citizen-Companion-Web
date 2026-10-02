@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { provideLocationMocks } from '@angular/common/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { FpsListComponent } from './fps-list.component';
 import { CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
@@ -164,6 +164,62 @@ describe('FpsListComponent (equip mode)', () => {
   it('leads "back to the set" to the set page, not the landing', async () => {
     const { el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
     expect(el.querySelector('.equip-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('confirms a landed equip in a sticky, polite bar that links back to the set', async () => {
+    const saved: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(saved);
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET, update });
+    const live = el.querySelector('.equip-confirm-live')!;
+    // The live region is there before anything lands, so the message gets announced.
+    expect(live.getAttribute('aria-live')).toBe('polite');
+    expect(el.querySelector('.equip-confirm')).toBeNull();
+
+    (el.querySelector('.equip-btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const bar = el.querySelector('.equip-confirm-live .equip-confirm')!;
+    expect(bar).not.toBeNull();
+    expect(bar.classList).not.toContain('removed');
+    expect(bar.textContent).toContain('fps.equip.confirmEquipped');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('confirms a cleared slot as "removed" in the same bar', async () => {
+    const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const update = jasmine.createSpy('setRoleLoadoutSlot').and.resolveTo(SET);
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying, update });
+
+    (el.querySelector('.equip-btn.on') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const bar = el.querySelector('.equip-confirm')!;
+    expect(bar.classList).toContain('removed');
+    expect(bar.textContent).toContain('fps.equip.confirmRemoved');
+    expect(bar.querySelector('a.equip-confirm-back')!.getAttribute('href')).toBe('/codex/set/set-1');
+  });
+
+  it('shows no confirmation when the write is refused', async () => {
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: SET });
+    (el.querySelector('.equip-btn') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.equip-confirm')).toBeNull();
+  });
+
+  it('labels an equipped slot\'s button with what a click does: "Remove from <slot>"', async () => {
+    const carrying: HangarRoleLoadout = { ...SET, items: [{ slot: 'helmet', className: 'rsi_helmet_01', kind: 'item' }] };
+    const { fixture, el } = await setup({ query: { cat: 'armor', equipInto: 'set-1' }, set: carrying });
+    const t = TestBed.inject(TranslateService);
+    t.setTranslation('en', { fps: { equip: { removeFrom: 'Remove from {{slot}}' } }, hangar: { slots: { helmet: 'Helmet' } } });
+    t.use('en');
+    fixture.detectChanges();
+
+    const btn = el.querySelector('.equip-btn.on') as HTMLButtonElement;
+    expect(btn.textContent!.replace(/\s+/g, ' ').trim()).toBe('✕ Remove from Helmet');
+    expect(btn.hasAttribute('aria-pressed')).toBeFalse();
   });
 
   it('tells the reader when the linked set cannot be loaded', async () => {
@@ -445,7 +501,8 @@ describe('FpsListComponent (honest slot fitting)', () => {
     };
     const { el, fixture, setSlot } = await render({ cat: 'weapon', equipInto: 'set-1' }, carrying, [base, livery]);
 
-    const primary = Array.from(el.querySelectorAll('.equip-btn')).find((b) => b.textContent!.trim() === 'primary') as HTMLButtonElement;
+    // Equipped, so its label is the "remove from" action rather than the slot name.
+    const primary = el.querySelector('.equip-btn.on') as HTMLButtonElement;
     expect(el.querySelectorAll('a.card').length).toBe(1);
     expect(primary.classList).toContain('on');
 

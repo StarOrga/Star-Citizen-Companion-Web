@@ -349,13 +349,23 @@ interface FacetOption {
                       <span class="equip-label">{{ 'fps.equip.into' | translate }}</span>
                       @for (slot of slots; track slot) {
                         <span class="tip-wrap" [scTooltip]="svc.viewingPastPatch() ? ('fps.equip.pastPatch' | translate) : null" scTooltipTier="label">
+                          <!-- The label says what a click DOES: an equipped slot's
+                               button removes the piece, so it reads "Remove from …"
+                               rather than repeating the slot name (no aria-pressed:
+                               a toggle whose label changes would announce twice). -->
+                          @let on = isEquipped(r, slot);
                           <button type="button" class="equip-btn"
-                                  [class.on]="isEquipped(r, slot)"
-                                  [attr.aria-pressed]="isEquipped(r, slot)"
+                                  [class.on]="on"
                                   [attr.aria-busy]="equipBusy() === r.classNameSlug + '|' + slot"
                                   [disabled]="equipBusy() !== null || svc.viewingPastPatch()"
                                   (click)="equip($event, r, slot)">
-                            {{ equipBusy() === r.classNameSlug + '|' + slot ? ('fps.equip.saving' | translate) : slotLabel(slot) }}
+                            @if (equipBusy() === r.classNameSlug + '|' + slot) {
+                              {{ 'fps.equip.saving' | translate }}
+                            } @else if (on) {
+                              <span class="equip-x" aria-hidden="true">✕</span> {{ 'fps.equip.removeFrom' | translate: { slot: slotLabel(slot) } }}
+                            } @else {
+                              {{ slotLabel(slot) }}
+                            }
                           </button>
                         </span>
                       }
@@ -384,6 +394,25 @@ interface FacetOption {
       }
 
       <sc-codex-compare-tray />
+      <!-- Equip confirmation: the reader has usually scrolled far below the band's
+           "back to the set" link, so the result of a click and the way back
+           stick to the bottom of the viewport. The live region exists for the
+           whole equip mode so screen readers announce each new message. -->
+      @if (targetSet(); as set) {
+        <div class="equip-confirm-live" aria-live="polite" aria-atomic="true">
+          @if (equipConfirm(); as c) {
+            <div class="sc-card equip-confirm" [class.removed]="c.removed">
+              <span class="equip-confirm-msg">
+                <span class="equip-confirm-mark" aria-hidden="true">{{ c.removed ? '–' : '✓' }}</span>
+                {{ (c.removed ? 'fps.equip.confirmRemoved' : 'fps.equip.confirmEquipped') | translate: { item: c.item, slot: c.slot } }}
+              </span>
+              <a class="equip-confirm-back" [routerLink]="['/codex', 'set', set.id]">
+                {{ 'fps.equip.backToSet' | translate }} <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          }
+        </div>
+      }
     </section>
   `,
   styles: [`
@@ -476,6 +505,36 @@ interface FacetOption {
     .equip-btn:hover:not(:disabled) { border-color: var(--sc-accent); color: var(--sc-accent); }
     .equip-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn:disabled { opacity: 0.5; cursor: default; }
+    .equip-x { font-size: 0.9em; }
+    /* Sticky equip confirmation (see template). Above the page content, below
+       overlays; the safe-area inset keeps it clear of a phone's home bar. */
+    .equip-confirm-live {
+      position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+      display: flex; justify-content: center; pointer-events: none;
+    }
+    .equip-confirm-live:empty { display: none; }
+    .equip-confirm {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 4px 16px; flex-wrap: wrap;
+      max-width: 100%; box-sizing: border-box;
+      padding: 6px 14px; margin: 0;
+      background: var(--sc-bg-1);
+      border-color: color-mix(in srgb, var(--sc-accent) 55%, var(--sc-border));
+      box-shadow: 0 6px 24px color-mix(in srgb, black 45%, transparent);
+      color: var(--sc-fg-0); font-size: max(0.84rem, var(--sc-fs-floor));
+    }
+    .equip-confirm.removed { border-color: var(--sc-border); }
+    .equip-confirm-msg { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+    .equip-confirm-mark { color: var(--sc-accent); font-weight: 700; }
+    .equip-confirm.removed .equip-confirm-mark { color: var(--sc-fg-2); }
+    .equip-confirm-back {
+      display: inline-flex; align-items: center; gap: 4px;
+      min-height: var(--sc-tap-min); color: var(--sc-accent); text-decoration: none;
+      font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.06em;
+      font-size: max(0.7rem, var(--sc-fs-floor));
+    }
+    .equip-confirm-back:hover, .equip-confirm-back:focus-visible { text-decoration: underline; }
+    .equip-confirm-back:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .equip-btn.on {
       border-color: var(--sc-accent); color: var(--sc-accent);
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
@@ -659,6 +718,11 @@ export class FpsListComponent {
   readonly equipTargetLoading = signal(false);
   /** `<className>|<slot>` of a clear that met another tab's newer piece in the slot. */
   readonly equipConflict = signal<string | null>(null);
+  /**
+   * The last equip write that landed — drives the sticky confirmation bar
+   * (`item` / `slot` are display names). Reset by the next click.
+   */
+  readonly equipConfirm = signal<{ item: string; slot: string; removed: boolean } | null>(null);
   /**
    * The weapon/tool slot the set page sent the reader to fill: while its set
    * is loaded, the weapon list shows only what fits it. A link from the
@@ -1120,6 +1184,7 @@ export class FpsListComponent {
     this.equipBusy.set(key);
     this.equipFailed.set(null);
     this.equipConflict.set(null);
+    this.equipConfirm.set(null);
     try {
       // The service reports a refused write as null (and never throws for it);
       // a thrown error is the transport failing. Both used to look exactly
@@ -1132,7 +1197,10 @@ export class FpsListComponent {
         // A clear that met another tab's newer piece leaves it there — say so.
         if (clearing && updated.items.some((i) => i.slot === slot && i.className)) {
           this.equipConflict.set(key);
-        } else if (!clearing && this.category() === 'armor') {
+        } else {
+          this.equipConfirm.set({ item: this.cardName(r), slot: this.slotLabel(slot), removed: clearing });
+        }
+        if (!clearing && this.category() === 'armor' && !this.equipConflict()) {
           // Armour has exactly one home: once it's on, the reader is done here
           // and the hop back into the set page (reversing the slot tile's grow
           // animation) is the natural next step. A weapon slot stays on the
