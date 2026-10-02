@@ -151,7 +151,7 @@ interface PinnedRef {
     .chip-link { color: var(--sc-fg-0); text-decoration: none; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .chip-link:hover { color: var(--sc-accent); }
     .chip-x { border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 4px; border-radius: 50%; }
-    .chip-x:hover { color: var(--sc-danger); }
+    .chip-x:hover { color: var(--sc-accent); }
     .toggle { padding: 5px 14px; border-radius: 6px; background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
     .toggle:hover { background: color-mix(in srgb, var(--sc-accent) 26%, transparent); }
     .clear { margin-left: auto; padding: 5px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: inherit; font-size: max(0.74rem, var(--sc-fs-floor)); cursor: pointer; }

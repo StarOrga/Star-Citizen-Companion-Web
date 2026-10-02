@@ -344,7 +344,7 @@ interface Lane {
     }
     .scanner-input:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
     .scanner-clear { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
-    .scanner-clear:hover { color: var(--sc-danger); }
+    .scanner-clear:hover { color: var(--sc-accent); }
     .index-link {
       display: inline-flex; align-items: center;
       padding: 6px 12px; border-radius: 8px;

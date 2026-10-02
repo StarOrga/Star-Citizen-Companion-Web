@@ -213,6 +213,8 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
             <p class="pick-msg">{{ 'codex.swap.loading' | translate }}</p>
           } @else if (error()) {
             <p class="pick-msg err">{{ 'codex.swap.failed' | translate }}</p>
+            <!-- A load failure is never a dead end (CLAUDE.md: error state with retry). -->
+            <button type="button" class="pick-retry" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
           } @else if (candidates().length === 0) {
             <p class="pick-msg">{{ 'codex.swap.none' | translate }}</p>
           } @else {
@@ -474,6 +476,9 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
     .pick-close:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
     .pick-msg { margin: 6px 0; font-size: 0.8rem; color: var(--sc-fg-2); }
     .pick-msg.err { color: var(--sc-danger); }
+    .pick-retry { align-self: flex-start; padding: 5px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: inherit; font-size: max(0.78rem, var(--sc-fs-floor)); cursor: pointer; }
+    .pick-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+    .pick-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
 
     /* Concept .scope-bar (part-01:632-634): ONE centred row - label, chips,
        label, chips, count pushed right - at gap .5rem / padding .45rem .1rem
@@ -713,6 +718,15 @@ export class CodexSwapPickerComponent {
   }
 
   // ── data ───────────────────────────────────────────────────────────────────
+
+  /** Load the candidates for the open target again after a failure. */
+  retry(): void {
+    const t = this.target();
+    if (!t) return;
+    this.loadToken += 1;
+    this.error.set(false);
+    void this.load(t, this.loadToken);
+  }
 
   private async load(t: SwapTarget, token: number): Promise<void> {
     this.loading.set(true);
