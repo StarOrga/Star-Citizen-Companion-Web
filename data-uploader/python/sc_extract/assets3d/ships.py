@@ -73,7 +73,7 @@ def _int(v: Any) -> Optional[int]:
 
 
 def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
-                    out_dir: Path, optimize, simplify_error: float = 0.004) -> Optional[Path]:
+                    out_dir: Path, optimize, simplify_error: float = 0.0) -> Optional[Path]:
     """The geometry hull3d strips (interior materials), as its own GLB.
     Content-addressed into ``out_dir/<sha>.glb``; ``None`` when the ship has
     no interior geometry."""

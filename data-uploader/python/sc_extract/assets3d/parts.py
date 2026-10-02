@@ -49,6 +49,9 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+_NORM_DIV = {5120: 127.0, 5121: 255.0, 5122: 32767.0, 5123: 65535.0}
+
+
 def glb_bounds(path: Path) -> Optional[dict]:
     """World-space AABB (glTF space) of every mesh in a GLB, from accessor
     min/max through the node hierarchy — no vertex decoding, so it works on
@@ -68,6 +71,14 @@ def glb_bounds(path: Path) -> Optional[dict]:
             amin, amax = acc.get("min"), acc.get("max")
             if not (isinstance(amin, list) and isinstance(amax, list) and len(amin) == 3):
                 continue
+            # meshopt output is KHR_mesh_quantization: positions are normalized
+            # integers whose min/max are stored RAW (e.g. 32767); the node's
+            # dequantize scale expects the normalized value. Skipping this put
+            # the manifest bounds at ~±300 000 instead of metres.
+            div = _NORM_DIV.get(acc.get("componentType")) if acc.get("normalized") else None
+            if div:
+                amin = [max(v / div, -1.0) for v in amin]
+                amax = [max(v / div, -1.0) for v in amax]
             for cx in (amin[0], amax[0]):
                 for cy in (amin[1], amax[1]):
                     for cz in (amin[2], amax[2]):
@@ -140,7 +151,7 @@ class PartStore:
 
     def __init__(self, store_dir: Path, read: Callable[[str], bytes], exists: Callable[[str], bool],
                  converter: Path, optimize: OptimizeFn, work_dir: Path,
-                 on_log: LogFn = lambda lvl, m: None, simplify_error: float = 0.002,
+                 on_log: LogFn = lambda lvl, m: None, simplify_error: float = 0.0,
                  keep_work: bool = False) -> None:
         self.dir = store_dir.resolve()
         self.dir.mkdir(parents=True, exist_ok=True)
