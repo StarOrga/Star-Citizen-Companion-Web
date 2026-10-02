@@ -194,6 +194,10 @@ const SEARCH_DEBOUNCE_MS = 250;
           </header>
           @if (searching()) {
             <p class="results-note">{{ 'codex.landing.results.searching' | translate }}</p>
+          } @else if (searchError(); as err) {
+            <!-- A failed archive read is an error with a way forward, never "no results". -->
+            <p class="results-note err" role="alert">{{ err | translate }}</p>
+            <button type="button" class="results-retry" (click)="retrySearch()">{{ 'codex.error.retry' | translate }}</button>
           } @else if (searchResults().length === 0) {
             <p class="results-note">{{
               'codex.landing.results.empty' | translate: { term: searchTerm() }
@@ -445,6 +449,11 @@ const SEARCH_DEBOUNCE_MS = 250;
       .results-head h2 { margin: 0; font-size: 1.05rem; }
       .results-term { color: var(--sc-accent); font-family: var(--sc-font-display); }
       .results-note { color: var(--sc-fg-2); }
+      .results-note.err { color: var(--sc-danger); }
+      .results-retry { align-self: flex-start; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: inherit; cursor: pointer; }
+      .results-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
+      .results-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      @media (pointer: coarse) { .results-retry { min-height: 44px; } }
       .hit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
       .hit {
         display: flex;
@@ -589,6 +598,8 @@ export class CodexLandingComponent implements OnInit {
   readonly searchTerm = signal('');
   readonly searching = signal(false);
   readonly searchResults = signal<PolySearchHit[]>([]);
+  /** i18n key of a failed terminal search; null while the last search answered. */
+  readonly searchError = signal<string | null>(null);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private searchSeq = 0;
 
@@ -822,6 +833,7 @@ export class CodexLandingComponent implements OnInit {
       if (!term) {
         // Invalidate a search still in flight, or its hits land after the clear.
         this.searchSeq++;
+        this.searchError.set(null);
         this.searchResults.set([]);
         this.searching.set(false);
         return;
@@ -961,16 +973,25 @@ export class CodexLandingComponent implements OnInit {
     this.searchTerm.set('');
   }
 
+  /** Run the current terminal search again after a failure. */
+  retrySearch(): void {
+    const term = this.searchTerm().trim();
+    if (term) void this.runSearch(term);
+  }
+
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
+    this.searchError.set(null);
     try {
       const hits = await this.svc.searchAll(term, 6);
       if (seq !== this.searchSeq) return; // a newer search superseded this one
       this.searchResults.set(hits);
     } catch (error) {
-      logWarn('codex', 'landing search failed', { term, error });
-      if (seq === this.searchSeq) this.searchResults.set([]);
+      if (seq === this.searchSeq) {
+        this.searchResults.set([]);
+        this.searchError.set(toErrorKey('codex', 'landingSearch', error, { term }));
+      }
     } finally {
       if (seq === this.searchSeq) this.searching.set(false);
     }

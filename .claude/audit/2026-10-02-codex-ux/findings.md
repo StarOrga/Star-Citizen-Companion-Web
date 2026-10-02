@@ -61,4 +61,4 @@ Sources: lens-static.md (S), lens-live.md (L), lens-tests.md (T). Status: **fixe
 
 ## Tests (REQ-4)
 
-Codex specs: 1666 → see final count in the run report. New: shared search dialect, service token/synonym/post-filter, poly ranking, landing pin + clear race, keybinds URL/dialect, picker retry, upcoming roles, detail facts, upcoming-grid search, index/FPS/bridge empty states, set page tiles/clear/back link.
+Codex specs: 1666 → 1763 (all green, 0 skipped). Full app suite green. New: shared search dialect, service token/synonym/post-filter, poly ranking, landing pin + clear race, keybinds URL/dialect, picker retry, upcoming roles, detail facts, upcoming-grid search, index/FPS/bridge empty states, set page tiles/clear/back link.

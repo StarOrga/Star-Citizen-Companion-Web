@@ -624,11 +624,9 @@ describe('CodexLandingComponent', () => {
       expect(searchSpy()).not.toHaveBeenCalled();
     });
 
-    // BUG: a rejected searchAll is caught in runSearch (codex-landing.component.ts:971-973)
-    // and turned into `searchResults = []`, so the terminal tells the reader
-    // "no results for <term>" when the archive was in fact unreachable. CLAUDE.md:
-    // "a load failure renders an error state with retry, never the empty state".
-    xit('a failed search shows an error state, not "no results"', async () => {
+    // Was a BUG (audit wave 3): a rejected searchAll rendered "no results".
+    // CLAUDE.md: a load failure renders an error state with retry.
+    it('a failed search shows an error state with retry, not "no results"', async () => {
       const fixture = await setup({});
       jasmine.clock().install();
       searchSpy().and.rejectWith(new Error('network down'));
@@ -640,6 +638,13 @@ describe('CodexLandingComponent', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.results-note')?.textContent ?? '').not.toContain('codex.landing.results.empty');
       expect(el.querySelector('.results [role="alert"], .results .err')).not.toBeNull();
+
+      // Retry runs the same term again and clears the error once it answers.
+      searchSpy().and.resolveTo([]);
+      (el.querySelector('.results-retry') as HTMLButtonElement).click();
+      await settle(fixture);
+      expect(searchSpy()).toHaveBeenCalledTimes(2);
+      expect(el.querySelector('.results [role="alert"]')).toBeNull();
     });
   });
 
