@@ -86,7 +86,8 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                 <div class="ingredient-list">
                   @for (ing of ingredients(); track ing.ingredientIndex) {
                     <div class="ingredient-row" [class.unresolved]="!ing.ingredientClassName">
-                      <div class="ing-qty">× {{ formatQuantity(ing.quantity) }}</div>
+                      <!-- Ingredient amounts are SCU in the recipe data (audit L29). -->
+                      <div class="ing-qty"><span class="q">{{ formatQuantity(ing.quantity) }}</span> <span class="ing-unit">{{ 'blueprint.detail.unitScu' | translate }}</span></div>
                       <div class="ing-info">
                         @if (ing.ingredientClassName && ing.entityKind) {
                           <a class="ing-name link"
@@ -98,7 +99,9 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
                         } @else {
                           <span class="ing-name muted">{{ 'blueprint.detail.unresolved' | translate }}</span>
                         }
-                        @if (ing.ingredientClassName) {
+                        <!-- The class name is a secondary line, and only when it says
+                             something the name does not ("Agricium Agricium", L29). -->
+                        @if (showClassLine(ing)) {
                           <code class="ing-cls">{{ ing.ingredientClassName }}</code>
                         }
                         <div class="ing-meta">
@@ -201,6 +204,7 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
     .section-title { margin: 0 0 14px; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); padding-bottom: 8px; }
 
     .ingredient-list { display: flex; flex-direction: column; gap: 8px; }
+    .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
     .ingredient-row, .output-row {
       display: flex; gap: 14px; align-items: flex-start;
       padding: 10px 12px; border-radius: 8px;
@@ -361,6 +365,14 @@ export class BlueprintDetailComponent implements OnInit {
       cleanLocaleValue(ing.nameLocalized) ||
       humanizeClassName(ing.ingredientClassName)
     );
+  }
+
+  /** Whether the raw class name adds anything below the display name. */
+  showClassLine(ing: CodexBlueprintIngredient): boolean {
+    const cls = ing.ingredientClassName;
+    if (!cls) return false;
+    const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return norm(cls) !== norm(this.ingredientName(ing));
   }
 
   /** The slot badge — CIG's slot name, readable; '' when the row names none. */

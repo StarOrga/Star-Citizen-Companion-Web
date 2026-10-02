@@ -82,10 +82,29 @@ async function settle(fixture: ComponentFixture<BlueprintDetailComponent>): Prom
 /** The "× n" read-outs of every row matching `rowSelector`, in page order. */
 function quantities(fixture: ComponentFixture<BlueprintDetailComponent>, rowSelector: string): string[] {
   const el: HTMLElement = fixture.nativeElement;
-  return Array.from(el.querySelectorAll(`${rowSelector} .ing-qty`)).map((q) => q.textContent!.trim());
+  return Array.from(el.querySelectorAll(`${rowSelector} .ing-qty`)).map((q) =>
+    (q.querySelector('.q') ?? q).textContent!.trim(),
+  );
 }
 
 describe('BlueprintDetailComponent — quantities', () => {
+  it('names an ingredient once and puts the SCU unit on its amount (audit L29)', async () => {
+    const fixture = await setup(
+      blueprint([
+        ingredient(0, 'Agricium', 0.36),
+        { ...ingredient(1, 'RAW_Quant_01', 1), nameLocalized: 'Quantanium' },
+      ]),
+      { blueprint: { detail: { unitScu: 'SCU' } } },
+    );
+    const el: HTMLElement = fixture.nativeElement;
+    const rows = Array.from(el.querySelectorAll('.ingredient-row'));
+    expect(rows[0].querySelector('.ing-cls')).toBeNull();
+    expect(rows[0].textContent).not.toMatch(/Agricium\s+Agricium/);
+    expect(rows[1].querySelector('.ing-cls')?.textContent?.trim()).toBe('RAW_Quant_01');
+    expect(rows[0].querySelector('.ing-qty')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('0.36 SCU');
+  });
+
+
   it('prints a stored float32 SCU amount without its noise (Microsatellite: 0.2 Aluminum + 0.2 Silicon)', async () => {
     const fixture = await setup(
       blueprint([
@@ -93,7 +112,7 @@ describe('BlueprintDetailComponent — quantities', () => {
         ingredient(1, 'Silicon', 0.20000000298023224),
       ]),
     );
-    expect(quantities(fixture, '.ingredient-row')).toEqual(['× 0.2', '× 0.2']);
+    expect(quantities(fixture, '.ingredient-row')).toEqual(['0.2', '0.2']);
   });
 
   it('keeps the 0.015 SCU step and whole amounts as they are', async () => {
@@ -104,7 +123,7 @@ describe('BlueprintDetailComponent — quantities', () => {
         ingredient(2, 'Copper', 12.5),
       ]),
     );
-    expect(quantities(fixture, '.ingredient-row')).toEqual(['× 0.015', '× 15', '× 12.5']);
+    expect(quantities(fixture, '.ingredient-row')).toEqual(['0.015', '15', '12.5']);
   });
 
   it('prints the output count as a whole number', async () => {
@@ -215,10 +234,10 @@ async function moveTo(fixture: ComponentFixture<BlueprintDetailComponent>, class
   await settle(fixture);
 }
 
-/** The class names of the ingredient rows, in page order. */
+/** The ingredient names of the rows, in page order (fixtures name them by class). */
 function ingredientClasses(fixture: ComponentFixture<BlueprintDetailComponent>): string[] {
   const el: HTMLElement = fixture.nativeElement;
-  return Array.from(el.querySelectorAll('.ingredient-row .ing-cls')).map((c) => c.textContent!.trim());
+  return Array.from(el.querySelectorAll('.ingredient-row .ing-name')).map((c) => c.textContent!.trim());
 }
 
 /** The class name the hero shows, or null while there is no hero. */

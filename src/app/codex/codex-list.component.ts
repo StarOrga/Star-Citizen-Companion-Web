@@ -72,6 +72,8 @@ type CodexGridRow = EditionGroupedRow<SkinGroupedRow<FoldedRow<CodexListRow>>>;
 
 const PAGE_SIZE = 60;
 const SEARCH_DEBOUNCE_MS = 250;
+/** Idle time after which a typed search counts as committed (history entry, L33). */
+export const SEARCH_COMMIT_MS = 1000;
 
 // Component kinds (from codex.types ComponentKind) used to build a facet when
 // the active kind is `component`. Options shown are intersected with the data
@@ -216,6 +218,7 @@ export function blueprintCategoriesForGroup(
         <div class="search-row">
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
+                 (keydown.enter)="commitSearch()"
                  [attr.aria-label]="'codex.search.label' | translate"
                  [attr.placeholder]="'codex.search.placeholder' | translate" />
           @if (searchInput()) {
@@ -1234,7 +1237,32 @@ export class CodexListComponent implements OnInit {
   }
 
   private writeUrl(queryParams: Record<string, string | null>): void {
-    mirrorQueryParams(this.router, this.route, this.location, queryParams);
+    // The first q change after a committed search opens a new history entry,
+    // so Back returns to the committed query; keystrokes replace it (L33).
+    const push = this.pushNextQuery && (queryParams['q'] ?? null) !== this.committedQuery;
+    if (push) this.pushNextQuery = false;
+    mirrorQueryParams(this.router, this.route, this.location, queryParams, push);
+  }
+
+  /** The last search the user committed (Enter or ~1 s idle), null for none. */
+  private committedQuery: string | null = null;
+  private pushNextQuery = false;
+  private commitTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Commit the typed search (Enter, or the idle timer): the term applies now,
+   * and the NEXT different query gets its own history entry (audit L33).
+   */
+  commitSearch(): void {
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    this.commitTimer = null;
+    const term = this.searchInput().trim();
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTerm.set(term);
+    const q = term || null;
+    if (q === this.committedQuery) return;
+    this.committedQuery = q;
+    this.pushNextQuery = q !== null;
   }
 
   async ngOnInit(): Promise<void> {
@@ -1441,6 +1469,8 @@ export class CodexListComponent implements OnInit {
     // Trimmed once here (L28): the URL's q, the ranking and the cross-category
     // counts all read the term, and a stray space must not become "%20" or a miss.
     this.searchTimer = setTimeout(() => this.searchTerm.set(value.trim()), SEARCH_DEBOUNCE_MS);
+    if (this.commitTimer) clearTimeout(this.commitTimer);
+    this.commitTimer = setTimeout(() => this.commitSearch(), SEARCH_COMMIT_MS);
   }
 
   clearSearch(): void {

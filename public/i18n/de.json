@@ -279,6 +279,11 @@
           "gadget": "Gadget",
           "medical": "Medizin"
         }
+      },
+      "cta": {
+        "setupHangar": "Hangar einrichten",
+        "searchShip": "Schiff im Codex suchen",
+        "createSet": "FPS-Set anlegen"
       }
     },
     "bridge": {
@@ -305,7 +310,7 @@
         "hangar": "Dein Hangar",
         "hangarSub": "Schiffe in deinem Besitz",
         "fresh": "Frisch in diesem Patch",
-        "freshSub": "Schiffe im aktuellen Live-Build",
+        "freshSub": "Werte gegenüber dem vorigen Build verändert",
         "role": "Nach Hersteller entdecken",
         "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
       },
@@ -947,7 +952,50 @@
         "rows": "{{n}} Aktionen"
       },
       "expandAll": "Alle aufklappen",
-      "collapseAll": "Alle zuklappen"
+      "collapseAll": "Alle zuklappen",
+      "keys": {
+        "lshift": "Linke Umschalt",
+        "rshift": "Rechte Umschalt",
+        "lalt": "Linke Alt",
+        "ralt": "Rechte Alt",
+        "lctrl": "Linke Strg",
+        "rctrl": "Rechte Strg",
+        "space": "Leertaste",
+        "enter": "Eingabe",
+        "escape": "Esc",
+        "tab": "Tab",
+        "backspace": "Rücktaste",
+        "capslock": "Feststell",
+        "comma": "Komma",
+        "period": "Punkt",
+        "minus": "Minus",
+        "equals": "Gleich",
+        "semicolon": "Semikolon",
+        "apostrophe": "Apostroph",
+        "slash": "Schrägstrich",
+        "backslash": "Backslash",
+        "lbracket": "Eckige Klammer auf",
+        "rbracket": "Eckige Klammer zu",
+        "grave": "Zirkumflex",
+        "up": "Pfeil hoch",
+        "down": "Pfeil runter",
+        "left": "Pfeil links",
+        "right": "Pfeil rechts",
+        "insert": "Einfg",
+        "delete": "Entf",
+        "home": "Pos1",
+        "end": "Ende",
+        "pgup": "Bild auf",
+        "pgdn": "Bild ab",
+        "multiply": "Mal",
+        "add": "Plus",
+        "subtract": "Minus",
+        "divide": "Geteilt",
+        "mwheel_up": "Mausrad hoch",
+        "mwheel_down": "Mausrad runter",
+        "mouseN": "Maustaste {{n}}",
+        "numpad": "Ziffernblock {{key}}"
+      }
     },
     "provenance": {
       "label": "Quelle",
@@ -2039,7 +2087,8 @@
       "qualityNote": "Statische Basisqualitätswerte — interaktive Qualitätssimulation folgt in einem späteren Update.",
       "primary": "Primär",
       "usedIn": "In Bauplänen verwendet",
-      "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet"
+      "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet",
+      "unitScu": "SCU"
     }
   },
   "fps": {

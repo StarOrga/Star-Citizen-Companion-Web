@@ -990,7 +990,8 @@ export function flattenSpec(payload: unknown): SpecSection[] {
 
 /**
  * Format a craft/dismantle duration in seconds to a human-readable string.
- * Examples: 0 → "0 s", 45 → "45 s", 90 → "1 m 30 s", 3600 → "1 h", 3661 → "1 h 1 m 1 s".
+ * Examples: 0 → "0 s", 45 → "45 s", 90 → "1 min 30 s", 3600 → "1 h", 3661 → "1 h 1 min 1 s".
+ * Minutes read "min", never "m" — "9 m" reads as metres (audit L29).
  * Nullish or negative input → null (caller shows "n/a").
  */
 export function formatCraftTime(seconds: number | null | undefined): string | null {
@@ -1002,7 +1003,7 @@ export function formatCraftTime(seconds: number | null | undefined): string | nu
   const sec = s % 60;
   const parts: string[] = [];
   if (h > 0) parts.push(`${h} h`);
-  if (m > 0) parts.push(`${m} m`);
+  if (m > 0) parts.push(`${m} min`);
   if (sec > 0) parts.push(`${sec} s`);
   return parts.join(' ');
 }

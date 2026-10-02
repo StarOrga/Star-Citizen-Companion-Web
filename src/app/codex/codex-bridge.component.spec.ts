@@ -9,6 +9,7 @@ import { UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
 import { ShowroomService } from './showroom.service';
+import { ShipStatDelta } from './codex-build-diff';
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -52,6 +53,7 @@ describe('CodexBridgeComponent', () => {
     hangar: HangarShip[];
     byClassName?: Map<string, CodexListRow>;
     flagship?: string | null;
+    deltas?: Map<string, ShipStatDelta[]>;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -64,6 +66,9 @@ describe('CodexBridgeComponent', () => {
       compareKeys: compareKeys.asReadonly(),
       loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
       listBridgeShips: jasmine.createSpy('listBridgeShips').and.resolveTo(opts.catalog),
+      ownedFleetDeltas: jasmine
+        .createSpy('ownedFleetDeltas')
+        .and.resolveTo(opts.deltas ?? new Map<string, ShipStatDelta[]>()),
       listByKind: jasmine.createSpy('listByKind').and.resolveTo({ rows: [], count: 0 }),
       getShipsByClassNames: jasmine
         .createSpy('getShipsByClassNames')
@@ -184,6 +189,31 @@ describe('CodexBridgeComponent', () => {
     for (const id of ids) {
       expect(id === 'hangar' || id === 'fresh' || id.startsWith('role-')).toBeTrue();
     }
+  });
+
+  it('feeds "Fresh this patch" from the build diff, most-changed first (audit L23)', async () => {
+    const delta = (field: string): ShipStatDelta => ({ labelKey: field, from: 1, to: 2, delta: 1, direction: 'up' });
+    const fixture = await setup({
+      catalog: [
+        shipRow({ classNameSlug: 'AEGS_Avenger' }),
+        shipRow({ classNameSlug: 'AEGS_Gladius' }),
+        shipRow({ classNameSlug: 'ANVL_Arrow' }),
+      ],
+      hangar: [],
+      deltas: new Map([
+        ['ANVL_Arrow', [delta('a')]],
+        ['AEGS_Gladius', [delta('a'), delta('b')]],
+      ]),
+    });
+    await fixture.whenStable();
+    const fresh = fixture.componentInstance.lanes().find((l) => l.id === 'fresh');
+    expect(fresh?.rows.map((r) => r.classNameSlug)).toEqual(['AEGS_Gladius', 'ANVL_Arrow']);
+  });
+
+  it('hides "Fresh this patch" when the build diff has nothing (no alphabetical stand-in)', async () => {
+    const fixture = await setup({ catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })], hangar: [] });
+    await fixture.whenStable();
+    expect(fixture.componentInstance.lanes().some((l) => l.id === 'fresh')).toBeFalse();
   });
 
   it('exposes an Index-mode escape hatch link', async () => {

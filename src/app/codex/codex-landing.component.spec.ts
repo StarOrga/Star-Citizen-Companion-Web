@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { CodexLandingComponent } from './codex-landing.component';
+import { CodexLandingComponent, gridColumns } from './codex-landing.component';
 import { CodexListRow, CodexService, ResolvedEntity } from './codex.service';
 import { PolySearchHit, scopeForKind } from './codex-poly-search';
 import { ShipStatDelta } from './codex-build-diff';
@@ -730,5 +730,85 @@ describe('CodexLandingComponent', () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.cycle-report')).toBeNull();
+  });
+
+  // ── Archive Terminal keyboard (audit L15) ───────────────────────────────
+
+  async function withHits(fixture: ComponentFixture<CodexLandingComponent>): Promise<HTMLElement> {
+    fixture.componentInstance.onSearchInput('a');
+    fixture.componentInstance.searchTerm.set('a');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+  const key = (el: Element, k: string) =>
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+
+  it('ArrowDown moves from the terminal into the hits, arrows walk them, ArrowUp from the first row returns', async () => {
+    const fixture = await setup({
+      searchResults: [hit('ship', 'AEGS_Gladius'), hit('ship', 'AEGS_Avenger'), hit('ship', 'AEGS_Sabre')],
+    });
+    const el = await withHits(fixture);
+    const input = el.querySelector('.terminal-input') as HTMLInputElement;
+    const hits = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.hit'));
+    input.focus();
+    key(input, 'ArrowDown');
+    expect(document.activeElement).toBe(hits[0]);
+    key(hits[0], 'ArrowRight');
+    expect(document.activeElement).toBe(hits[1]);
+    key(hits[1], 'End');
+    expect(document.activeElement).toBe(hits[2]);
+    key(hits[2], 'Home');
+    key(hits[0], 'ArrowUp');
+    expect(document.activeElement).toBe(input);
+    // The hits stay real anchors in the Tab order.
+    expect(hits.every((a) => a.getAttribute('href') && a.tabIndex === 0)).toBeTrue();
+  });
+
+  it('Enter in the terminal opens the first hit the way its anchor does', async () => {
+    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius'), hit('ship', 'AEGS_Avenger')] });
+    const el = await withHits(fixture);
+    const router = TestBed.inject(Router);
+    const nav = spyOn(router, 'navigate').and.resolveTo(true);
+    key(el.querySelector('.terminal-input')!, 'Enter');
+    expect(nav).toHaveBeenCalledTimes(1);
+    expect(nav.calls.mostRecent().args[0]).toEqual(fixture.componentInstance.hitLink(hit('ship', 'AEGS_Gladius')));
+  });
+
+  it('Escape clears the terminal', async () => {
+    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
+    const el = await withHits(fixture);
+    key(el.querySelector('.terminal-input')!, 'Escape');
+    expect(fixture.componentInstance.searchInput()).toBe('');
+    expect(fixture.componentInstance.searchTerm()).toBe('');
+  });
+
+  it('reads the column count of the hit grid from the layout', () => {
+    const at = (top: number) => ({ offsetTop: top }) as HTMLElement;
+    expect(gridColumns([at(0), at(0), at(0), at(60), at(60)])).toBe(3);
+    expect(gridColumns([at(0), at(50)])).toBe(1);
+    expect(gridColumns([])).toBe(1);
+  });
+
+  // ── empty landing (audit L24) ───────────────────────────────────────────
+
+  it('gives an empty hangar and a set-less person stage real ways forward', async () => {
+    const fixture = await setup({ hangar: [], roleLoadouts: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    const shipCta = el.querySelector<HTMLAnchorElement>('.stage-ship a.stage-cta');
+    expect(shipCta?.getAttribute('href')).toBe('/hangar');
+    expect(el.querySelector('.stage-ship button.stage-cta')).not.toBeNull();
+    const setCta = el.querySelector<HTMLAnchorElement>('.stage-person a.stage-cta');
+    expect(setCta?.getAttribute('href')).toBe('/hangar');
+    // "Unkommissioniert" itself leads somewhere now.
+    expect(el.querySelector('.stage-person a.stage-hit, .stage-person a.stage-text--link')).not.toBeNull();
+  });
+
+  it('the "search a ship" CTA focuses the terminal', async () => {
+    const fixture = await setup({ hangar: [] });
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.stage-ship button.stage-cta') as HTMLButtonElement).click();
+    expect(document.activeElement).toBe(el.querySelector('.terminal-input'));
   });
 });

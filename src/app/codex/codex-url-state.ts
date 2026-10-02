@@ -24,12 +24,16 @@ export function mirrorQueryParams(
   route: ActivatedRoute,
   location: Location,
   params: Record<string, string | null>,
+  /** true: a NEW history entry (a committed search, audit L33); default replaces. */
+  push = false,
 ): void {
   try {
     const current = router.parseUrl(location.path()).queryParams;
     const tree = router.createUrlTree([], { relativeTo: route, queryParams: { ...current, ...params } });
     const url = router.serializeUrl(tree);
-    if (url !== location.path()) location.replaceState(url, '', location.getState());
+    if (url === location.path()) return;
+    if (push) location.go(url, '', location.getState());
+    else location.replaceState(url, '', location.getState());
   } catch {
     // A detached route (tests, a view outside the router): the list works, the URL stays as it was.
   }

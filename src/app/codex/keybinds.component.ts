@@ -19,6 +19,7 @@ import { cleanLocaleValue } from './codex-format';
 import {
   KeybindContext,
   KeybindLabelSource,
+  formatKeyCombo,
   humanizeKeybindName,
   resolveKeybindLabel,
   sharedContext,
@@ -400,7 +401,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
                       </button>
                     }
                     @if (r.binding) {
-                      <kbd class="bind">{{ r.binding }}</kbd>
+                      <kbd class="bind">{{ keyLabel(r.binding) }}</kbd>
                     } @else {
                       <span class="bind unbound">{{ 'codex.keybinds.unbound' | translate }}</span>
                     }
@@ -987,6 +988,19 @@ export class KeybindsComponent implements OnInit {
    */
   tx(key: string): string {
     return this.enText(key) ?? String(this.t.instant(key) ?? key);
+  }
+
+  /**
+   * A raw binding (`u+lshift`, `mouse1`) as the player reads it on the
+   * keycap — "Linke Umschalt + U", "Maustaste 1" (audit L18). Key names follow
+   * the UI language; an unknown token falls back to a readable form of itself.
+   */
+  keyLabel(raw: string | null): string {
+    return formatKeyCombo(raw, (token, params) => {
+      const key = 'codex.keybinds.keys.' + token;
+      const v = this.t.instant(key, params) as unknown;
+      return typeof v === 'string' && v && v !== key ? v : null;
+    });
   }
 
   // ── assignment mode ────────────────────────────────────────────────────────

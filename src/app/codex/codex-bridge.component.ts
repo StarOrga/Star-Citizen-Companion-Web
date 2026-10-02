@@ -1,5 +1,6 @@
 import { rankBySearch } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -542,6 +543,13 @@ export class CodexBridgeComponent implements OnInit {
   private readonly catalog = signal<CodexListRow[]>([]);
   // Hangar ship catalog rows, keyed in hangar order (Your Hangar lane + hero).
   private readonly hangarRows = signal<CodexListRow[]>([]);
+  /**
+   * Catalog ships whose stats moved between the previous and the current LIVE
+   * build (audit L23), most-changed first. Empty when there is no previous
+   * build, nothing moved, or the diff read failed — the lane then hides
+   * instead of passing the alphabetical catalog off as "fresh".
+   */
+  readonly patchChanged = signal<string[]>([]);
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
@@ -581,7 +589,9 @@ export class CodexBridgeComponent implements OnInit {
         rows: hangar,
       });
     }
-    const fresh = this.catalog();
+    const order = this.patchChanged();
+    const bySlug = new Map(this.catalog().map((r) => [r.classNameSlug, r] as const));
+    const fresh = order.map((cn) => bySlug.get(cn)).filter((r): r is CodexListRow => !!r);
     if (fresh.length > 0) {
       out.push({
         id: 'fresh',
@@ -646,11 +656,37 @@ export class CodexBridgeComponent implements OnInit {
       void this.rsi.ensureLoaded();
       if (this.hangar.ships().length === 0) await this.hangar.loadAll();
       this.catalog.set(await this.svc.listBridgeShips(60));
+      void this.resolvePatchChanges();
       await this.resolveHangarRows();
     } catch (err) {
       this.error.set(toErrorKey('codex', 'bridge', err));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /**
+   * Feed the "Fresh this patch" lane from the build diff: the same
+   * current-vs-previous LIVE comparison the landing's fleet deltas use, run
+   * over the catalog the bridge already loaded. Best-effort by contract.
+   */
+  private async resolvePatchChanges(): Promise<void> {
+    const names = this.catalog().map((r) => r.classNameSlug);
+    if (names.length === 0) {
+      this.patchChanged.set([]);
+      return;
+    }
+    try {
+      const deltas = await this.svc.ownedFleetDeltas(names);
+      this.patchChanged.set(
+        Array.from(deltas.entries())
+          .filter(([, d]) => d.length > 0)
+          .sort((a, b) => b[1].length - a[1].length)
+          .map(([cn]) => cn),
+      );
+    } catch (error) {
+      logWarn('codex', 'bridge patch diff failed', error);
+      this.patchChanged.set([]);
     }
   }
 
