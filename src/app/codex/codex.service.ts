@@ -5,7 +5,7 @@ import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
 import { PolySearchHit, dedupePolyHits, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
-import { ilikeTokenGroups, ilikeTokenPatterns, searchMatcher } from './codex-search';
+import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
@@ -275,6 +275,11 @@ const FPS_CATALOG_HARD_CAP = 12000;
 /** How many rows per kind `searchAll` reads before ranking and truncating. */
 const SEARCH_OVERFETCH = 4;
 const SEARCH_COUNT_CACHE_MAX = 200;
+/**
+ * Most class names the German-name fallback of `listByKind` asks for — they
+ * travel as one `class_name=in.(…)` URL parameter (~50 chars each).
+ */
+const GERMAN_SEARCH_MAX_IDS = 100;
 // Ceiling for the livery-/edition-sibling reads. The largest family in build
 // 4.9.0 is the LH86 pistol at 14 records (ships top out at the Cutlass Black's
 // seven); the prefix also catches unrelated neighbours, so this sits well above
@@ -398,6 +403,8 @@ export class CodexService {
   private fpsCatalogCache = new Map<string, Promise<CodexListRow[]>>();
   /** `countSearchMatches` answers per build + term + kind (in flight or done), oldest dropped first. */
   private readonly searchCountCache = new Map<string, Promise<number | null>>();
+  /** Set once `codex_search`/`codex_search_suggest` answered "function not found" — the migration is not live yet. */
+  private searchRpcMissing = false;
   /** `countItemsByAttachType` answers for the current build. */
   private attachTypeCounts: { buildId: string; counts: Map<string, number> } | null = null;
   /** `facetValues` answers, per build + kind (in flight or done) — see facetValues. */
@@ -731,14 +738,48 @@ export class CodexService {
     if (filters.search && ilikeTokenGroups(filters.search).length === 0 && searchMatcher(filters.search)) {
       return { rows: [], count: 0 };
     }
-    const table = CODEX_ENTITY_TABLES[kind];
     const limit = filters.limit ?? PAGE_SIZE;
     const offset = filters.offset ?? 0;
 
+    let query = this.filteredListQuery(kind, build.id, filters);
+
+    // manufacturer/ammunition still have name_localized + class_name.
+    if (filters.search) query = applySearchTokens(query, filters.search);
+
+    query = query
+      .order('name_localized', { ascending: true, nullsFirst: false })
+      .order('class_name', { ascending: true })
+      .range(offset, offset + limit - 1);
+
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    const mapped = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+    // The server patterns are a superset ("p4ar" → `*p*4*ar*` also hits a
+    // "Caterpillar BIS 2949"); the shared matcher drops those false hits.
+    const matches = filters.search ? searchMatcher(filters.search) : null;
+    const rows = matches ? mapped.filter((r) => matches(r.nameLocalized, r.classNameSlug)) : mapped;
+    const result = { rows, count: Math.max(rows.length, (count ?? mapped.length) - (mapped.length - rows.length)) };
+
+    // `name_localized` is English only. When the English/class-name search
+    // finds nothing at all, ask the German names (codex_search RPC) — see
+    // listByGermanName for why this is a fallback and not the primary path.
+    if (filters.search && result.count === 0) {
+      return (await this.listByGermanName(kind, build.id, filters, limit, offset)) ?? result;
+    }
+    return result;
+  }
+
+  /**
+   * The list query of one kind and build with every non-search filter of
+   * {@link listByKind} applied — shared by the primary (English ILIKE) search
+   * and the German-name fallback, so both honour the same filters and facets.
+   */
+  private filteredListQuery(kind: CodexKind, buildId: string, filters: CodexListFilters) {
     let query = this.sb.client
-      .from(table)
+      .from(CODEX_ENTITY_TABLES[kind])
       .select(LIST_SELECT[kind], { count: 'exact' })
-      .eq('build_id', build.id);
+      .eq('build_id', buildId);
 
     // "Include variants" is the switch for the raw records — all of them.
     if (!filters.includeVariants) query = applyDefaultBrowseFilters(query, kind);
@@ -763,24 +804,122 @@ export class CodexService {
     if (filters.category && kind === 'blueprint') query = query.eq('category', filters.category);
     if (filters.blueprintCategoryIn?.length && kind === 'blueprint')
       query = query.in('category', filters.blueprintCategoryIn);
+    return query;
+  }
 
-    // manufacturer/ammunition still have name_localized + class_name.
-    if (filters.search) query = applySearchTokens(query, filters.search);
+  /**
+   * German-name fallback of {@link listByKind} (Codex UX audit 2026-10-02 L05).
+   *
+   * Design: the PostgREST ILIKE search over `name_localized` + `class_name`
+   * stays the primary path — it is index-backed, pages exactly and keeps
+   * every filter. Only when it finds NOTHING does this ask `codex_search`
+   * (migration 20261002230428) for the class names whose German name matches,
+   * capped at {@link GERMAN_SEARCH_MAX_IDS} so the `class_name=in.(…)` URL
+   * stays short, and re-runs the same filtered list query restricted to them.
+   * Calling the RPC first for every search would turn a broad term ("a",
+   * "helm") into an id list too long for a URL.
+   *
+   * @returns null when the fallback cannot answer (RPC not deployed yet, an
+   *   error, no German match) — the caller keeps its empty result.
+   */
+  private async listByGermanName(
+    kind: CodexKind,
+    buildId: string,
+    filters: CodexListFilters,
+    limit: number,
+    offset: number,
+  ): Promise<CodexListResult | null> {
+    const ids = await this.searchClassNames(kind, buildId, filters.search ?? '');
+    if (ids.length === 0) return null;
+    try {
+      const { data, count, error } = await this.filteredListQuery(kind, buildId, filters)
+        .in('class_name', ids)
+        .order('name_localized', { ascending: true, nullsFirst: false })
+        .order('class_name', { ascending: true })
+        .range(offset, offset + limit - 1);
+      if (error) return null;
+      const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+      return { rows, count: Math.max(rows.length, count ?? rows.length) };
+    } catch {
+      return null;
+    }
+  }
 
-    query = query
-      .order('name_localized', { ascending: true, nullsFirst: false })
-      .order('class_name', { ascending: true })
-      .range(offset, offset + limit - 1);
+  /**
+   * Class names whose English OR German name (or class name) contains every
+   * token of `term` — the `codex_search` RPC. Never throws: `[]` on any
+   * failure, including the RPC not existing yet.
+   */
+  private async searchClassNames(kind: CodexKind, buildId: string, term: string): Promise<string[]> {
+    const tokens = searchTokens(term);
+    if (this.searchRpcMissing || !tokens.some((t) => t.replace(/\*/g, '').length >= 3)) return [];
+    try {
+      const { data, error, status } = await this.sb.client.rpc('codex_search', {
+        p_kind: kind,
+        p_build: buildId,
+        p_tokens: tokens,
+        p_limit: GERMAN_SEARCH_MAX_IDS,
+        p_offset: 0,
+      });
+      if (error) {
+        this.noteSearchRpcError(error, status);
+        return [];
+      }
+      const names = ((data ?? []) as { class_name?: unknown }[])
+        .map((r) => r.class_name)
+        .filter((c): c is string => typeof c === 'string' && c !== '');
+      return [...new Set(names)];
+    } catch {
+      return [];
+    }
+  }
 
-    const { data, count, error } = await query;
-    if (error) throw error;
+  /**
+   * "Did you mean …" for a search that found nothing (Codex UX audit L06):
+   * up to three record names (English or German, whichever is closer) of
+   * `kind` in the active build whose words resemble `term` —
+   * `codex_search_suggest`, word similarity ≥ 0.45, best first, no duplicates.
+   *
+   * Never throws and never blocks the empty state: resolves to `[]` for a term
+   * under three searchable characters, without a build, on any error — and
+   * for the rest of the session once the RPC turned out not to exist (the
+   * migration may land after this code).
+   */
+  async suggestNames(kind: CodexKind, term: string): Promise<string[]> {
+    const q = normalizeSearch(term).replace(/[\s*]/g, '');
+    if (this.searchRpcMissing || q.length < 3) return [];
+    try {
+      const build = await this.loadCurrentBuild();
+      if (!build) return [];
+      const { data, error, status } = await this.sb.client.rpc('codex_search_suggest', {
+        p_kind: kind,
+        p_build: build.id,
+        p_term: term.trim().slice(0, 120),
+        p_limit: 3,
+      });
+      if (error) {
+        this.noteSearchRpcError(error, status);
+        return [];
+      }
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const row of (data ?? []) as { name?: unknown }[]) {
+        const name = typeof row.name === 'string' ? row.name.trim() : '';
+        const key = normalizeSearch(name);
+        if (!name || seen.has(key)) continue;
+        seen.add(key);
+        out.push(name);
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
 
-    const mapped = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
-    // The server patterns are a superset ("p4ar" → `*p*4*ar*` also hits a
-    // "Caterpillar BIS 2949"); the shared matcher drops those false hits.
-    const matches = filters.search ? searchMatcher(filters.search) : null;
-    const rows = matches ? mapped.filter((r) => matches(r.nameLocalized, r.classNameSlug)) : mapped;
-    return { rows, count: Math.max(rows.length, (count ?? mapped.length) - (mapped.length - rows.length)) };
+  /** Remembers a missing search RPC (PostgREST PGRST202 / HTTP 404) so the session stops asking. */
+  private noteSearchRpcError(error: unknown, status?: number): void {
+    const e = error as { code?: unknown } | null;
+    if (e?.code === 'PGRST202' || status === 404) this.searchRpcMissing = true;
   }
 
   /**
