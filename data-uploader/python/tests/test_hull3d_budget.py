@@ -108,7 +108,7 @@ def test_shipped_defaults_fit_the_storage_budget(tmp_path: Path) -> None:
         work_dir=tmp_path / "work",
     )
     assert cfg.texture_size == 512
-    assert cfg.max_model_bytes == 600_000
+    assert cfg.max_model_bytes == 1_500_000
     assert cfg.strip_interior is True
     ex = Hull3DExporter(_FakeP4K(), cfg)
     assert ex.quality_ladder() == [(512, 0.0), (512, 0.0005), (512, 0.001), (512, 0.002)]

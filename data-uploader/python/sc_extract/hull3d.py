@@ -127,17 +127,12 @@ class HullExportConfig:
     # bucket. See the "Storage budget" section of HULL3D.md for the arithmetic.
     texture_size: int = 512
     simplify_error: float = 0.0   # first ladder rung; 0 = no simplification
-    # Per-model size budget. A skin over budget is re-optimized down the quality
-    # ladder (halve textures, coarsen simplify) until it fits — so only the heavy
-    # skins lose fidelity, not the whole catalog. 0 disables the budget.
-    #
-    # Deliberately NOT raised for the draco->meshopt swap (#305). meshopt is
-    # ~1.56x draco on the MESH, but textures are ~70 % of a web glb, so the
-    # end-to-end effect is far smaller than 1.56x — and the ladder already
-    # handles an over-budget model deterministically. Expect it to step down one
-    # rung more often than before; re-tune this from the real per-skin sizes of
-    # the first full meshopt re-export rather than from an estimate.
-    max_model_bytes: int = 600_000
+    # Per-model size budget. A hull over budget is re-optimized up the simplify
+    # ladder until it fits — but the hole gate stays authoritative: a rung that
+    # tears the skin is never kept, so a hull may end up over budget. 1.5 MB
+    # since the gap-free export: unsimplified hulls measured 0.44 MB (Avenger
+    # Stalker) to 1.44 MB (Gladius) meshopt-compressed. 0 disables the budget.
+    max_model_bytes: int = 1_500_000
     # Drop the ship's interior geometry/textures. The Showroom is an exterior
     # viewer; the interior is a quarter of the triangles and the bulk of the
     # texture payload, and is never visible in the viewer.

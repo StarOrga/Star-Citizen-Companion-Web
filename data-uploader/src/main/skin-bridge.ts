@@ -189,7 +189,7 @@ export function startSkinExport(
     '--out', req.outDir,
     '--converter', converterPath(),
     '--texture-size', String(req.textureSize ?? 1024),
-    '--max-model-mb', String(req.maxModelMb ?? 1),
+    '--max-model-mb', String(req.maxModelMb ?? 1.5),
   ];
   if (req.manifest) args.push('--manifest', req.manifest);
   for (const s of req.ships ?? []) args.push('--ship', s);
