@@ -20,6 +20,7 @@ import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
 import { readWithStallTimeout } from '../lib/fetch-timeout.js';
+import { packageExportArgs } from '../lib/asset-package.js';
 
 const CGF_CONVERTER_URL =
   'https://github.com/Markemp/Cryengine-Converter/releases/download/v2.0.0/cgf-converter.exe';
@@ -42,6 +43,12 @@ export interface SkinExportRequest {
    *  Supabase storage quota. 0 disables the budget. */
   maxModelMb?: number;
   limitSkins?: number;
+  /**
+   * Also export every FPS weapon package (`--fps`, `_fps/<className>/package.json`).
+   * Off by default until the extractor flag ships on the same release train;
+   * ships always get `--package --interior`.
+   */
+  fps?: boolean;
 }
 
 export interface SkinEntry {
@@ -182,6 +189,7 @@ export function startSkinExport(
   for (const s of req.ships ?? []) args.push('--ship', s);
   if (req.skipExisting) args.push('--skip-existing');
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
+  args.push(...packageExportArgs(req));
 
   let child: ChildProcessWithoutNullStreams;
   try {

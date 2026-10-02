@@ -49,6 +49,29 @@ built in by design.
   become `{ _truncated: true, bytes }`).
 - Both since `20260928231143_delete_paths_and_log_retention.sql` (plan D02).
 
+## 3D asset packages (ships, FPS weapons)
+
+Pre-built by the uploader, so the web only fetches and displays. All keys sit in
+R2 under `ship-skins/` and are content-addressed (sha256 of the bytes), so the
+Worker serves them `public, max-age=31536000, immutable`:
+
+| Key | What | Size |
+|---|---|---|
+| `_hulls/<sha>.glb` | ship hull (existing hull flow) | ~0.6 MB |
+| `_parts/<sha>.glb` | shared geometry-only part; an FPS weapon's root too | 10-300 kB |
+| `_interiors/<sha>.glb` | optional ship interior | a few MB |
+| `_manifests/<sha>.json` | the package manifest (plain JSON) | ~100 kB |
+
+A ship package is ~1.3-2.9 MB before cross-ship dedup (parts are shared across
+ships, so the bucket grows far less than packages x ships). The DB holds only
+`asset_packages` (PK `kind, entity_class`; manifest sha, root/interior sha,
+counts, bytes) — public read, writes by `ingest-skins` (service role) only.
+Web path: row -> `/ship-skins/_manifests/<manifest_sha256>.json` -> each part at
+`/ship-skins/_parts/<sha>.glb`. Orphans (a replaced manifest and parts no
+manifest names any more) are not collected yet; a GC pass would list the three
+prefixes, subtract everything the current manifests name, delete the rest. They
+count against the 8 GB write gate like everything else.
+
 ## R2 cost guard (R2 has no hard spending cap)
 
 - **Reads** only through the Worker on `*.workers.dev`. Its Free plan stops at
