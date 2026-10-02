@@ -33,6 +33,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { ArmorRatingRow, SetLensId, lensValueFor } from './set-rating';
 import { setReadiness } from './set-readiness';
 import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set-arsenal-transition';
+import { SetSlotClearer } from './set-slot-clear';
 
 /** Which column a slot's tile sits in — the figure's default anchor side, so a line never crosses the body. */
 const LEFT_SLOTS = ['helmet', 'core', 'arms'] as const;
@@ -162,48 +163,85 @@ export interface SetStageLine {
     </sc-codex-stage>
 
     <ng-template #tileTpl let-t>
-      <a
-        #tile
-        class="tile"
-        [class.left]="t.side === 'left'"
-        [class.open]="!t.filled"
-        [class.lit]="lit() === t.slot"
-        [attr.data-slot]="t.slot"
-        [attr.href]="t.href"
-        [scTooltip]="t.labelKey | translate"
-        scTooltipTier="label"
-        [style.view-transition-name]="transition.isLandingOn(t.slot, 'toSet') ? transitionName : null"
-        (pointerenter)="hoveredTile.set(t.slot)"
-        (pointerleave)="leaveTile(t.slot)"
-        (focus)="hoveredTile.set(t.slot)"
-        (blur)="leaveTile(t.slot)"
-        (click)="onTileClick($event, t, tile)"
-      >
-        <span class="ic" aria-hidden="true"><sc-codex-icon kind="item" [attachType]="t.attachType" /></span>
-        <span class="txt">
-          <!-- The slot's name is the tooltip; assistive tech gets it as text. -->
-          <span class="sr">{{ t.labelKey | translate }}: </span>
+      @let label = t.labelKey | translate;
+      <!-- The slot wrapper is what the leader line starts from, so the clear
+           button beside the tile never sits under a line. -->
+      <div #tile class="slot" [class.left]="t.side === 'left'" [attr.data-slot]="t.slot">
+        <div class="slot-row">
+          <a
+            #link
+            class="tile"
+            [class.open]="!t.filled"
+            [class.lit]="lit() === t.slot"
+            [attr.data-slot]="t.slot"
+            [attr.href]="t.href"
+            [scTooltip]="t.filled ? t.name : null"
+            scTooltipTier="label"
+            [style.view-transition-name]="transition.isLandingOn(t.slot, 'toSet') ? transitionName : null"
+            (pointerenter)="hoveredTile.set(t.slot)"
+            (pointerleave)="leaveTile(t.slot)"
+            (focus)="hoveredTile.set(t.slot)"
+            (blur)="leaveTile(t.slot)"
+            (click)="onTileClick($event, t, link)"
+          >
+            <span class="ic" aria-hidden="true"><sc-codex-icon kind="item" [attachType]="t.attachType" /></span>
+            <span class="txt">
+              <span class="head">
+                <span class="lbl">{{ label }}</span>
+                @if (t.filled) {
+                  <!-- Secondary, like the weapon tiles: on hover/focus with a mouse, always on touch. -->
+                  <span class="change">{{ 'codex.set.gear.change' | translate }}</span>
+                }
+              </span>
+              @if (t.filled) {
+                <span class="name">{{ t.name }}</span>
+              } @else {
+                <span class="cta"><span aria-hidden="true">+ </span>{{ 'codex.set.gear.choose' | translate }}</span>
+                @if (t.archiveCount) {
+                  <span class="count">{{ 'codex.landing.board.archiveCount' | translate: { count: t.archiveCount } }}</span>
+                }
+              }
+              @if (t.lens) {
+                <span class="lens" [class.warn]="t.lens.warn">
+                  {{ t.lens.text }}
+                  @if (t.lens.warn) {
+                    <span class="sr"> — {{ 'codex.set.stage.lensLimits' | translate }}</span>
+                  }
+                </span>
+              }
+            </span>
+          </a>
           @if (t.filled) {
-            <span class="name">{{ t.name }}</span>
-          } @else {
-            <span class="name free">
-              {{ 'codex.set.stage.free' | translate }}
-              @if (t.archiveCount) {
-                <span class="count">· {{ 'codex.landing.board.archiveCount' | translate: { count: t.archiveCount } }}</span>
-              }
-            </span>
-            <span class="cta">{{ 'codex.set.equipInArchive' | translate }} <span aria-hidden="true">→</span></span>
+            <!-- An action, never nested inside the navigation. One write at a time. -->
+            <button
+              type="button"
+              class="clear"
+              [disabled]="clearer.busySlot() !== null"
+              [attr.aria-busy]="clearer.busySlot() === t.slot"
+              [attr.aria-label]="'codex.set.gear.clearAria' | translate: { slot: label }"
+              [scTooltip]="'codex.set.gear.clearAria' | translate: { slot: label }"
+              scTooltipTier="label"
+              (click)="clearer.clear(t.slot, t.className)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
           }
-          @if (t.lens) {
-            <span class="lens" [class.warn]="t.lens.warn">
-              {{ t.lens.text }}
-              @if (t.lens.warn) {
-                <span class="sr"> — {{ 'codex.set.stage.lensLimits' | translate }}</span>
-              }
-            </span>
-          }
-        </span>
-      </a>
+        </div>
+        @if (clearer.failedSlot() === t.slot) {
+          <p class="note err" role="alert">{{ 'codex.set.gear.clearFailed' | translate: { slot: label } }}</p>
+        } @else if (clearer.undoFailedSlot() === t.slot) {
+          <p class="note err" role="alert">{{ 'codex.set.gear.undoFailed' | translate: { slot: label } }}</p>
+        } @else if (clearer.conflictSlot() === t.slot) {
+          <p class="note" role="status">{{ 'codex.set.gear.changedElsewhere' | translate: { slot: label } }}</p>
+        } @else if (clearer.undoable()?.slot === t.slot) {
+          <p class="note" role="status">
+            {{ 'codex.set.gear.cleared' | translate: { slot: label } }}
+            <button type="button" class="undo" [disabled]="clearer.busySlot() !== null" (click)="clearer.undo()">
+              {{ 'codex.set.gear.undo' | translate }}
+            </button>
+          </p>
+        }
+      </div>
     </ng-template>
   `,
   styles: [
@@ -234,13 +272,18 @@ export interface SetStageLine {
 
       .rig { position: absolute; inset: 0; pointer-events: none; }
 
-      .rdy { position: absolute; top: 12px; right: 16px; z-index: 1; display: flex; gap: 5px; pointer-events: auto; }
+      /* On touch each icon's hit area grows to --sc-tap-min around its 26px box;
+         the gap grows with it so neighbouring targets never overlap. */
+      .rdy {
+        position: absolute; top: 12px; right: 16px; z-index: 1; display: flex; pointer-events: auto;
+        gap: max(5px, calc(var(--sc-tap-min, 0px) - 21px));
+      }
       .rdy-ic {
         width: 26px; height: 26px; border-radius: 5px;
         display: flex; align-items: center; justify-content: center;
         border: 1px solid var(--idle); background: var(--idle-bg); color: var(--idle);
       }
-      .rdy-img { display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: 100%; border-radius: inherit; }
+      .rdy-img { min-width: var(--sc-tap-min, 0px); min-height: var(--sc-tap-min, 0px); display: flex; align-items: center; justify-content: center; inline-size: 100%; block-size: 100%; border-radius: inherit; }
       .rdy-ic svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
       .rdy-ic.on {
         border-color: var(--tint);
@@ -263,20 +306,22 @@ export interface SetStageLine {
         left: 50%;
         top: 52px;
         bottom: 36px;
-        width: min(640px, calc(100% - 32px));
+        width: min(720px, calc(100% - 32px));
         transform: translateX(-50%);
         display: grid;
         grid-template-columns: minmax(0, 1fr) 168px minmax(0, 1fr);
-        column-gap: 36px;
+        column-gap: 32px;
       }
-      .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+      .col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
       .col.right { justify-content: space-between; padding-top: 24px; }
       .fig-wrap { display: flex; align-items: center; justify-content: center; min-width: 0; }
       /* An explicit width: the anchors are fractions of this box. */
       .fig { width: 168px; pointer-events: auto; }
 
+      .slot { pointer-events: auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+      .slot-row { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
       .tile {
-        pointer-events: auto;
+        flex: 1 1 auto;
         display: flex;
         align-items: center;
         gap: 8px;
@@ -299,11 +344,70 @@ export interface SetStageLine {
       .ic { flex: none; width: 28px; height: 28px; display: inline-flex; --sc-icon-max: 20px; }
       .ic sc-codex-icon { width: 100%; height: 100%; }
       .tile.open .ic { opacity: 0.6; }
-      .txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-      .name { font-size: max(0.82rem, var(--sc-fs-floor, 0.7rem)); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .name.free { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); font-style: italic; }
-      .count { font-style: normal; color: var(--sc-fg-2); }
-      .cta { color: var(--sc-accent); font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem)); }
+      .txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+      /* The slot's name, always visible — the weapon tiles' label vocabulary. */
+      .head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
+      .lbl {
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-family: var(--sc-font-display);
+        font-size: max(0.6rem, var(--sc-fs-floor, 0.7rem));
+        letter-spacing: 0.16em; text-transform: uppercase; line-height: 1.3;
+        color: var(--tint);
+      }
+      .tile.open .lbl { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); }
+      .change {
+        flex: none;
+        font-family: var(--sc-font-display);
+        font-size: max(0.56rem, var(--sc-fs-floor, 0.7rem));
+        letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--sc-fg-2);
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      .tile:hover .change, .tile:focus-visible .change, .tile.lit .change { opacity: 1; color: var(--tint); }
+      @media (hover: none) { .change { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .change { transition: none; } }
+      /* Up to two lines, never cut mid-word on a phone; the full name is the tooltip. */
+      .name {
+        font-size: max(0.82rem, var(--sc-fs-floor, 0.7rem)); line-height: 1.3;
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+        overflow: hidden; overflow-wrap: anywhere;
+      }
+      .count { color: var(--sc-fg-2); font-size: max(0.68rem, var(--sc-fs-floor, 0.7rem)); line-height: 1.3; }
+      .cta {
+        color: var(--sc-accent);
+        font-family: var(--sc-font-display);
+        font-size: max(0.7rem, var(--sc-fs-floor, 0.7rem));
+        letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.3;
+      }
+
+      .clear {
+        flex: none;
+        inline-size: max(30px, var(--sc-tap-min, 0px));
+        min-block-size: max(30px, var(--sc-tap-min, 0px));
+        padding: 0; display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 4px; border: 1px solid var(--sc-border);
+        background: color-mix(in srgb, var(--sc-bg-0) 74%, transparent);
+        color: var(--sc-fg-2); cursor: pointer;
+      }
+      .clear svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+      /* Neutral hover: amber means "equipped", red is for errors — clearing is undoable. */
+      .clear:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
+      .clear:focus-visible, .undo:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      .clear:disabled, .undo:disabled { cursor: progress; opacity: 0.6; }
+      .note {
+        margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        padding: 2px 6px; border-radius: 3px; background: color-mix(in srgb, var(--sc-bg-0) 86%, transparent);
+        font-size: max(0.7rem, var(--sc-fs-floor, 0.7rem)); color: var(--sc-fg-1);
+      }
+      .note.err { color: var(--sc-danger); }
+      .undo {
+        min-height: max(24px, var(--sc-tap-min, 0px)); padding: 2px 10px; border-radius: 3px;
+        border: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-1);
+        font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor, 0.7rem));
+        letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+      }
+      .undo:hover { color: var(--sc-fg-0); border-color: var(--sc-fg-2); }
       .lens { color: var(--sc-fg-2); font-size: max(0.72rem, var(--sc-fs-floor, 0.7rem)); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .lens.warn { color: var(--sc-warning); }
       .sr {
@@ -346,6 +450,8 @@ export class CodexSetStageComponent {
   private readonly location = inject(Location);
   readonly transition = inject(SetArsenalTransition);
   readonly transitionName = SET_SLOT_TRANSITION_NAME;
+  /** Clear + undo for the armour slots — the weapons hotbar's own logic and strings. */
+  readonly clearer = new SetSlotClearer(() => this.set().id, () => this.set().items);
 
   /** The set on screen. */
   readonly set = input.required<HangarRoleLoadout>();
