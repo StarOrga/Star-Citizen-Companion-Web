@@ -4,6 +4,19 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.114.2] - 2026-10-02
+
+### Security
+
+- **Abhängigkeiten mit Sicherheitslücken aktualisiert.** piscina 5.3.2
+  (über `overrides`, weil @angular/build 22.1.9 die Version exakt festlegt),
+  dompurify 3.4.16 und brace-expansion 1.1.21 in der Web-App; brace-expansion
+  und undici in den Build-Werkzeugen des Data Uploaders. Damit läuft auch der
+  Dependabot-Job wieder durch, der an Hinweisen ohne passende Abhängigkeit
+  scheiterte. Offen bleiben die Python-Hinweise des Uploaders (pycryptodome,
+  sentry-sdk, numpy) – sie hängen an den festen Versionsbereichen von
+  scdatatools 1.0.4.
+
 ## [0.114.1] - 2026-10-01
 
 ### Changed
