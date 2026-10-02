@@ -1329,13 +1329,18 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
   100% { box-shadow: 0 0 0 0 rgba(var(--status-success-rgb), 0); }
 }
 
-.conn-idwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.conn-idwrap { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
 .conn-email {
   font-size: var(--fs-md); color: var(--sc-fg-0);
-  max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Server catalog on its own row under the identity line, indented to the
+   email (dot 9px + gap 10px) so both rows share one left edge. */
+.conn-server {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px 10px; padding-left: 19px; min-width: 0;
 }
 .conn-state { font-size: var(--fs-md); color: var(--sc-fg-1); }
-.conn-div { width: 1px; height: 18px; background: var(--sc-border-ui); flex: none; }
 .conn-srv-ico { display: inline-flex; color: var(--sc-accent); flex: none; }
 .conn-srv-ico svg { width: 16px; height: 16px; }
 .conn-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }

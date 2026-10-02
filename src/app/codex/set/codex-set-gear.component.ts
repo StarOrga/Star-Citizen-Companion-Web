@@ -68,6 +68,11 @@ export interface GearSlotRow {
   template: `
     <section class="gear" aria-labelledby="set-gear-title">
       <h2 class="zone-eyebrow" id="set-gear-title">{{ 'codex.set.gear.eyebrow' | translate }}</h2>
+      <!-- Until a single weapon/tool is in, nothing on the page says the tiles
+           are how gear gets picked — one line does. -->
+      @if (!anyFilled()) {
+        <p class="gear-hint">{{ 'codex.set.gear.hint' | translate }}</p>
+      }
       <ul class="gear-grid" [style.--gear-cols]="rows().length">
         @for (r of rows(); track r.slot) {
           <li class="gear-slot" [class.empty]="!r.className" [class.nosource]="!r.linkable" [attr.data-slot]="r.slot">
@@ -79,8 +84,20 @@ export interface GearSlotRow {
                   routerLink="/codex/fps"
                   [queryParams]="{ cat: 'weapon', equipInto: setId(), equipSlot: r.slot }"
                 >
-                  <span class="t-label"><b class="t-num">{{ r.order }}</b> {{ label }}</span>
-                  <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
+                  <span class="t-head">
+                    <span class="t-label"><b class="t-num">{{ r.order }}</b> {{ label }}</span>
+                    <!-- Filled: the secondary "Change" hint — on hover/focus with a
+                         mouse, always on touch (no hover there). -->
+                    @if (r.className) {
+                      <span class="t-change">{{ 'codex.set.gear.change' | translate }}</span>
+                    }
+                  </span>
+                  @if (r.className) {
+                    <span class="t-value">{{ r.name }}</span>
+                  } @else {
+                    <!-- Empty: say what the tile does, not just that it is open. -->
+                    <span class="t-value t-cta"><span aria-hidden="true">+ </span>{{ 'codex.set.gear.choose' | translate }}</span>
+                  }
                 </a>
               } @else {
                 <div class="gear-tile static">
@@ -208,7 +225,38 @@ export interface GearSlotRow {
       /* The frame keeps the concept's blue-grey; the TEXT is lifted with fg-0 — --idle
          itself reads at ~2.4:1 on --idle-bg, too faint for 0.6–0.78rem labels. */
       .empty .t-label, .empty .t-value { color: color-mix(in srgb, var(--idle) 62%, var(--sc-fg-0)); }
-      .empty .t-value { font-style: italic; }
+      .t-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
+      .t-head .t-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* "Change": secondary, so it stays quiet — revealed on hover/focus with a
+         mouse, always shown where there is no hover (touch). */
+      .t-change {
+        flex: 0 0 auto;
+        font-family: var(--sc-font-display);
+        font-size: max(0.56rem, var(--sc-fs-floor));
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--sc-fg-2);
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      a.gear-tile:hover .t-change, a.gear-tile:focus-visible .t-change { opacity: 1; color: var(--tint); }
+      @media (hover: none) {
+        .t-change { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .t-change { transition: none; }
+      }
+      /* Empty: an explicit call to action, in the accent so it reads as one. */
+      .t-cta {
+        font-family: var(--sc-font-display);
+        font-size: max(0.7rem, var(--sc-fs-floor));
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .empty .t-value.t-cta { color: var(--sc-accent); }
+      .empty a.gear-tile:hover .t-value.t-cta, .empty a.gear-tile:focus-visible .t-value.t-cta { color: var(--sc-accent); }
+      .static .t-value { font-style: italic; }
+      .gear-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.4; }
       .empty a.gear-tile:hover, .empty a.gear-tile:focus-visible { border-color: var(--tint); }
       .empty a.gear-tile:hover .t-value, .empty a.gear-tile:focus-visible .t-value { color: var(--sc-fg-1); }
 
@@ -333,6 +381,9 @@ export class CodexSetGearComponent {
     }
     return rows;
   });
+
+  /** True once any weapon/tool position holds a piece — hides the "how to fill" hint. */
+  readonly anyFilled = computed(() => this.rows().some((r) => !!r.className));
 
   /**
    * Empty `slot` — but only while it still holds `shown`, the piece this tile

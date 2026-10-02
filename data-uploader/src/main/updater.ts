@@ -59,10 +59,13 @@ let currentChannel: ReleaseChannel = 'stable';
  * Re-check cadence for long-open sessions. The startup check alone never fires
  * again while the window stays open — so an uploader left running for hours (a
  * full extraction can take a while) would never notice a release published
- * mid-session. Mirrors the web app's SwUpdateService poll; a native, restart-
- * gated updater needn't be as eager as the 30-min web poll, so this is coarser.
+ * mid-session. Mirrors the web app's 30-min SwUpdateService poll: the old 6 h
+ * cadence let a release published an hour into an upload go unnoticed all
+ * evening, because the upload view has no navigation to trigger a check. A
+ * check is one small yml fetch; the download stages silently and installs on
+ * quit, so a running upload is never interrupted.
  */
-const UPDATE_POLL_MS = 6 * 60 * 60 * 1000;
+const UPDATE_POLL_MS = 30 * 60 * 1000;
 
 let initialized = false;
 let lastEvent: UpdateEventPayload = { type: 'not-available', currentVersion: TOOL_VERSION };
