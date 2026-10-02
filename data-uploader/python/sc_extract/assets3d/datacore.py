@@ -7,7 +7,7 @@ placement's ``itemClass``/``portName`` are the exact keys of ``codex_items`` /
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ..dataforge import DataForge
 from ..dataforge_extract import (_as_list, _components_of, _default_loadout_of, _dig,
@@ -15,6 +15,7 @@ from ..dataforge_extract import (_as_list, _components_of, _default_loadout_of, 
 from ..geometry import helpers_from_cga_bytes, normalize_geometry_path
 from ..hardpoints import port_helper_name
 from .entity import EntityDef, LoadoutEntry, PortDef, loadout_from_dicts
+from .transforms import cry_to_gltf, from_pos_quat, to_pos_quat
 
 
 class P4KReader:
@@ -85,8 +86,14 @@ def geometry_of(comps: List[Dict[str, Any]]) -> tuple:
 class DataCoreSource:
     """:class:`~.entity.EntitySource` over a parsed DataCore + the P4K."""
 
-    def __init__(self, df: DataForge, reader: P4KReader) -> None:
+    def __init__(self, df: DataForge, reader: P4KReader,
+                 node_helpers: Optional[Callable[[str], Dict[str, Dict[str, Any]]]] = None) -> None:
+        """``node_helpers`` (normally ``PartStore.helpers``) supplies helper
+        transforms from the converter's node tree when the ``.cga`` chunk scan
+        finds none — on LIVE 4.x it finds none for ships AND items, so in
+        practice this is the source."""
         self.df, self.reader = df, reader
+        self.node_helpers = node_helpers
         self._by_name = {rec.name.split(".", 1)[1].lower(): rec
                          for rec in df.records_by_type_name("EntityClassDefinition")
                          if "." in rec.name}
@@ -128,10 +135,22 @@ class DataCoreSource:
         return loadout_from_dicts(_default_loadout_of(self.components(class_name)))
 
     def helpers(self, geometry_path: str) -> Dict[str, Dict[str, Any]]:
+        """Helper transforms in glTF space (the space every stage after
+        RESOLVE works in)."""
         key = geometry_path.lower()
         if key not in self._helpers:
             try:
-                self._helpers[key] = helpers_from_cga_bytes(self.reader.read(geometry_path))
+                cry = helpers_from_cga_bytes(self.reader.read(geometry_path))
             except Exception:  # noqa: BLE001 — unreadable mesh = no helpers
-                self._helpers[key] = {}
+                cry = {}
+            out = {name: _cry_helper_to_gltf(h) for name, h in cry.items()}
+            if not out and self.node_helpers is not None:
+                out = self.node_helpers(geometry_path)
+            self._helpers[key] = out
         return self._helpers[key]
+
+
+def _cry_helper_to_gltf(h: Dict[str, Any]) -> Dict[str, Any]:
+    m = cry_to_gltf(from_pos_quat(h["position"], h.get("rotation")))
+    pos, quat = to_pos_quat(m)
+    return {"position": pos, "rotation": quat}

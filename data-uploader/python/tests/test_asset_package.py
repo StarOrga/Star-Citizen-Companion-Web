@@ -109,7 +109,7 @@ def test_enrich_groups_refs_and_metadata(ship):
     gun = rows["hardpoint_weapon_left/hardpoint_class_2"]
     assert gun["group"] == "weapons" and gun["partSha256"] == SHA_GUN
     assert gun["parentClass"] == "MOUNT_S3" and gun["itemGuid"] == "g-gun"
-    assert gun["position"] == pytest.approx(cry_point_to_gltf([-2.5, 1.0, 0.5]))
+    assert gun["position"] == pytest.approx([-2.5, 1.0, 0.5])
     assert rows["hardpoint_weapon_left"]["parentClass"] == "SHIP"
     assert rows["hardpoint_weapon_left"]["port"]["types"] == ["Turret.GunTurret"]
     assert rows["hardpoint_missile"]["port"]["editable"] is False
@@ -178,13 +178,32 @@ def test_manifest_positions_coincide_with_hull_locators(ship, tmp_path):
     from DataCore + .cga matrices. They must agree within 1 cm."""
     m = _manifest(ship, {})
     hull = tmp_path / "hull.glb"
-    _glb_with_locators(hull, {"hardpoint_weapon_left": cry_point_to_gltf([-2.0, 1.0, 0.5]),
-                              "hardpoint_missile": cry_point_to_gltf([0.0, -1.0, -0.5])})
+    _glb_with_locators(hull, {"hardpoint_weapon_left": [-2.0, 1.0, 0.5],
+                              "hardpoint_missile": [0.0, -1.0, -0.5]})
     rep = check_locators(m, hull)
     assert rep["ok"] and rep["checked"] == 2 and rep["max_error_m"] < 0.01
-    # a Z-up position (the pre-manifest bug class) is caught
-    _glb_with_locators(hull, {"hardpoint_weapon_left": [-2.0, 1.0, 0.5]})
+    # a position left in the other axis convention is caught
+    _glb_with_locators(hull, {"hardpoint_weapon_left": cry_point_to_gltf([-2.0, 1.0, 0.5])})
     assert not check_locators(m, hull)["ok"]
+
+
+def test_glb_node_transforms_world_space():
+    from sc_extract.assets3d.parts import glb_node_transforms
+    q = [0.0, math.sqrt(0.5), 0.0, math.sqrt(0.5)]
+    gltf = {"scene": 0, "scenes": [{"nodes": [0]}],
+            "nodes": [{"name": "root", "translation": [1, 0, 0], "rotation": q, "children": [1]},
+                      {"name": "hardpoint_x", "translation": [0, 0, 2], "scale": [3, 3, 3]}]}
+    n = glb_node_transforms(gltf)
+    # child +Z 2 m under a +90 deg yaw about Y -> +X 2 m
+    assert n["hardpoint_x"]["position"] == pytest.approx([3.0, 0.0, 0.0])
+    assert n["hardpoint_x"]["rotation"] == pytest.approx(q)
+
+
+def test_cga_helpers_are_converted_to_gltf_space():
+    from sc_extract.assets3d.datacore import _cry_helper_to_gltf
+    out = _cry_helper_to_gltf({"position": [1.0, 2.0, 3.0], "rotation": QZ90})
+    assert out["position"] == pytest.approx([1.0, 3.0, -2.0])
+    assert out["rotation"] == pytest.approx([0.0, math.sqrt(0.5), 0.0, math.sqrt(0.5)])
 
 
 def test_glb_bounds_through_node_transform(tmp_path):

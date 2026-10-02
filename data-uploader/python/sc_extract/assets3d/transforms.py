@@ -4,13 +4,14 @@ Everything upstream (DataCore helper names, ``.cga`` node matrices) lives in
 CryEngine model space: metres, ``+X`` right, ``+Y`` forward, ``+Z`` up. The
 published GLBs (hull, parts, interior) are what cgf-converter emits: glTF
 space, metres, ``+Y`` up. Placements are composed in CryEngine space (where the
-helper matrices are native) and converted exactly once, at the very end, by
-:func:`cry_to_gltf`. The web applies the result verbatim.
+helper matrices are native) and converted once, at the source, by
+:func:`cry_to_gltf` (``datacore.DataCoreSource.helpers``). Helpers read from
+the converter's own node tree are glTF already. The web applies the result
+verbatim.
 
-The basis was confirmed against the converter's own output: a hull helper
-node at CryEngine ``(x, y, z)`` lands at glTF ``(x, z, -y)`` (see
-``tests/test_asset_package.py`` and the locator check in
-:mod:`sc_extract.assets3d.package`).
+Basis: CryEngine ``(x, y, z)`` -> glTF ``(x, z, -y)``, the glTF convention
+for a Z-up source; the per-build locator check in
+:mod:`sc_extract.assets3d.package` is the guard.
 
 Matrices are plain row-major 4x4 nested lists — tiny, dependency-free and easy
 to assert on in tests.

@@ -4,7 +4,8 @@ Pure. Takes stage-1 :class:`~.entity.ResolvedPort` (CryEngine space) and the
 stage-2 part map (geometry path -> :class:`~.parts.PartRef`) and produces the
 final, web-ready :class:`~.manifest.Placement` rows: glTF-space transforms,
 a display group, codex refs (class name, GUID, parent class) and port
-metadata. The only place the axis conversion happens.
+metadata. Stage-1 transforms are already glTF space (``DataCoreSource.helpers``
+converts at the source), so this stage only rounds them.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from typing import Dict, List, Mapping, Optional
 
 from .entity import EntityDef, ResolvedPort
 from .manifest import Group, Placement, PortMeta
-from .transforms import cry_to_gltf, rounded, to_pos_quat
+from .transforms import rounded, to_pos_quat
 
 # AttachDef.Type -> display group. Unknown types inherit the parent's group
 # (a gimbal's gun is a weapon) and fall back to "other".
@@ -78,7 +79,7 @@ def enrich(resolved: List[ResolvedPort], root: EntityDef,
             classes[rp.path] = rp.item_class
         pos = rot = None
         if rp.world is not None:
-            p, q = to_pos_quat(cry_to_gltf(rp.world))
+            p, q = to_pos_quat(rp.world)
             pos, rot = rounded(p, 4), rounded(q, 6)
         geo = rp.item.geometry_path if rp.item else None
         sha = parts.get(geo) if geo and pos is not None else None

@@ -79,6 +79,29 @@ def glb_bounds(path: Path) -> Optional[dict]:
     return {"min": [round(v, 4) + 0.0 for v in lo], "max": [round(v, 4) + 0.0 for v in hi]}
 
 
+def glb_node_transforms(gltf: dict) -> Dict[str, dict]:
+    """``name -> {position, rotation}`` of every named node, world space of the
+    GLB (glTF axes, metres). First node wins on a duplicate name. Scale is
+    divided out so the rotation stays a unit quaternion."""
+    from .transforms import to_pos_quat
+    worlds = glb_materials._global_matrices(gltf)  # column-major 4x4
+    out: Dict[str, dict] = {}
+    for i, node in enumerate(gltf.get("nodes", [])):
+        name = node.get("name")
+        if not isinstance(name, str) or not name or name in out:
+            continue
+        c = worlds[i]
+        cols = [c[0:3], c[4:8][:3], c[8:11]]
+        norms = [max(sum(v * v for v in col) ** 0.5, 1e-12) for col in cols]
+        m = [[cols[k][r] / norms[k] for k in range(3)] + [c[12 + r]] for r in range(3)]
+        m.append([0.0, 0.0, 0.0, 1.0])
+        pos, quat = to_pos_quat(m)
+        if all(abs(v) < 1e6 for v in pos):
+            out[name] = {"position": [round(v, 5) + 0.0 for v in pos],
+                         "rotation": [round(v, 7) + 0.0 for v in quat]}
+    return out
+
+
 def keep_only_interior(glb: Path, on_log: Optional[LogFn] = None) -> int:
     """Inverse of ``glb_materials.drop_interior_geometry``: keep the primitives
     whose material is interior, drop the rest. Returns primitives kept.
@@ -164,6 +187,29 @@ class PartStore:
                            "bounds": ref.bounds, "error": ref.error}
         return ref
 
+    def helpers(self, geometry_path: str) -> Dict[str, dict]:
+        """Named node transforms of a mesh as the CONVERTER places them (glTF
+        space) — the same tree the published GLBs come from, so a placement
+        built on them coincides with the GLB by construction. Cached in
+        ``index.json``; ``export`` fills the cache for free from its own run."""
+        key = "helpers:" + geometry_path.lower()
+        row = self.index.get(key)
+        if isinstance(row, dict):
+            return row
+        scratch = self.work / f"nodes_{hashlib.sha1(key.encode()).hexdigest()[:12]}"
+        shutil.rmtree(scratch, ignore_errors=True)
+        try:
+            raw = self.convert_raw(geometry_path, None, scratch)
+            row = glb_node_transforms(glb_materials.read_glb(raw)[0])
+        except Exception as exc:  # noqa: BLE001 — no nodes = nothing placeable here
+            self.log("warn", f"  nodes {geometry_path}: {type(exc).__name__}: {exc}")
+            row = {}
+        finally:
+            if not self.keep_work:
+                shutil.rmtree(scratch, ignore_errors=True)
+        self.index[key] = row
+        return row
+
     # ---- conversion ------------------------------------------------------
     def convert_raw(self, geometry_path: str, material_path: Optional[str], scratch: Path) -> Path:
         """P4K mesh (+ companion data + optional .mtl) -> raw, un-rigged glb."""
@@ -197,6 +243,8 @@ class PartStore:
         shutil.rmtree(scratch, ignore_errors=True)
         try:
             raw = self.convert_raw(geometry_path, material_path, scratch)
+            self.index.setdefault("helpers:" + geometry_path.lower(),
+                                  glb_node_transforms(glb_materials.read_glb(raw)[0]))
             glb_materials.strip_to_geometry(raw, self.log)
             out = scratch / "opt.glb"
             self.optimize(raw, out, 256, self.simplify_error)

@@ -72,13 +72,14 @@ class _PackageBuilder:
         phase("datacore")
         self.reader = P4KReader(p4k)
         log("info", "package: parsing DataCore")
-        self.source = DataCoreSource(load_datacore(self.reader), self.reader)
         self.optimize = exporter._optimize
         self.out = args.out.resolve()
         self.interior = args.interior
         self.store = PartStore(self.out / "_parts", self.reader.read, self.reader.exists,
                                args.converter, self.optimize, self.out / "_work_parts",
                                on_log=on_log)
+        self.source = DataCoreSource(load_datacore(self.reader), self.reader,
+                                     node_helpers=self.store.helpers)
         self.rows: list[dict] = []
 
     def build(self, ship_id: str, spec, hull_glb):
