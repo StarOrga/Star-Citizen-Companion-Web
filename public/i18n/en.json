@@ -1798,6 +1798,8 @@
     },
     "set": {
       "back": "← Back to Codex",
+      "backToHangar": "← Back to Hangar",
+      "flowHint": "Tap a slot — armour around the figure, weapons in the bar below — to fill it from the Arsenal.",
       "notFound": "That set was not found — showing the first set from your hangar.",
       "signInHint": "Sign in to view and edit your sets.",
       "noSets": "No set commissioned yet.",
@@ -1809,7 +1811,6 @@
         "eyebrow": "Weapons & tools",
         "choose": "Choose",
         "change": "Change",
-        "hint": "Pick a slot to choose gear for it from the Arsenal.",
         "open": "open",
         "clear": "Clear",
         "clearAria": "Clear {{slot}}",
@@ -1822,9 +1823,7 @@
         "undoFailed": "{{slot}} couldn't be put back. Please equip it again.",
         "changedElsewhere": "{{slot}} was changed elsewhere meanwhile — this is its current state."
       },
-      "equipInArchive": "Equip from the Arsenal",
       "stage": {
-        "free": "Free",
         "slotsAria": "Armour pieces",
         "readinessAria": "Readiness",
         "lensLimits": "limits the set for this mission"

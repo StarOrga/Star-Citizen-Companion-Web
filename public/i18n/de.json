@@ -1798,6 +1798,8 @@
     },
     "set": {
       "back": "← Zurück zum Codex",
+      "backToHangar": "← Zurück zum Hangar",
+      "flowHint": "Tippe einen Slot an — Rüstung am Körper, Waffen in der Leiste darunter —, um ihn im Arsenal zu befüllen.",
       "notFound": "Dieses Set wurde nicht gefunden — das erste Set aus deinem Hangar.",
       "signInHint": "Melde dich an, um deine Sets zu sehen und zu bearbeiten.",
       "noSets": "Noch kein Set kommissioniert.",
@@ -1809,7 +1811,6 @@
         "eyebrow": "Waffen & Werkzeug",
         "choose": "Auswählen",
         "change": "Ändern",
-        "hint": "Wähle einen Slot, um Ausrüstung dafür aus dem Arsenal auszuwählen.",
         "open": "offen",
         "clear": "Leeren",
         "clearAria": "{{slot}} leeren",
@@ -1822,9 +1823,7 @@
         "undoFailed": "{{slot}} konnte nicht zurückgelegt werden. Bitte erneut ausrüsten.",
         "changedElsewhere": "{{slot}} wurde inzwischen anderswo geändert — das ist der aktuelle Stand."
       },
-      "equipInArchive": "Im Arsenal ausrüsten",
       "stage": {
-        "free": "Frei",
         "slotsAria": "Rüstungsteile",
         "readinessAria": "Einsatzbereitschaft",
         "lensLimits": "begrenzt das Set in diesem Einsatz"

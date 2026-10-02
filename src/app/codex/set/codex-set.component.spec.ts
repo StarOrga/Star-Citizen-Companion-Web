@@ -2,10 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ChangeDetectorRef, Component, input, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router, convertToParamMap, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { provideLocationMocks } from '@angular/common/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { BehaviorSubject } from 'rxjs';
-import { CodexSetComponent } from './codex-set.component';
+import { CodexSetComponent, SetBackLink, backLinkFor } from './codex-set.component';
 import { CodexService, ResolvedEntity } from '../codex.service';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -503,5 +504,61 @@ describe('CodexSetComponent — switching sets', () => {
     await settle(fixture);
 
     expect(shown(fixture)).toEqual({ title: 'Medic Set', slots: ['Resolved Medic_Helmet'] });
+  });
+});
+
+describe('CodexSetComponent — flow hint and back link', () => {
+  afterEach(() => clearLenses());
+
+  it('explains the slot flow in one line on a brand-new set, and only there', async () => {
+    const empty: HangarRoleLoadout = { ...SET_A, id: 'set-new', items: SET_A.items.map((i) => ({ ...i, className: null, kind: null })) };
+    const fresh = await setup({ id: 'set-new', loadouts: [empty] });
+    const hints = (fresh.nativeElement as HTMLElement).querySelectorAll('.flow-hint');
+    expect(hints.length).toBe(1);
+    expect(hints[0].textContent?.trim()).toBe('codex.set.flowHint');
+    // No second, weapons-only hint further down.
+    expect((fresh.nativeElement as HTMLElement).querySelector('.gear-hint')).toBeNull();
+    TestBed.resetTestingModule();
+
+    const filled = await setup({ id: 'set-a', loadouts: [SET_A] });
+    expect((filled.nativeElement as HTMLElement).querySelector('.flow-hint')).toBeNull();
+  });
+
+  it('points the back link at the Codex by default — a real anchor', async () => {
+    const fixture = await setup({ id: 'set-a', loadouts: [SET_A] });
+    const back = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.back')!;
+    expect(back.getAttribute('href')).toBe('/codex');
+    expect(back.textContent?.trim()).toBe('codex.set.back');
+  });
+
+  it('points the back link at the Hangar when the page was opened from there', async () => {
+    let seen: SetBackLink | null = null;
+    @Component({ standalone: true, template: '' })
+    class Blank {}
+    @Component({ standalone: true, template: '' })
+    class Probe {
+      constructor() {
+        seen = backLinkFor(TestBedRouter());
+      }
+    }
+    const TestBedRouter = () => TestBed.inject(Router);
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          { path: 'hangar', component: Blank },
+          { path: 'codex', component: Blank },
+          { path: 'codex/set/:id', component: Probe },
+        ]),
+        provideLocationMocks(),
+      ],
+    });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/hangar');
+    await harness.navigateByUrl('/codex/set/set-a');
+    expect(seen).toEqual(jasmine.objectContaining({ path: '/hangar', key: 'codex.set.backToHangar' }));
+
+    await harness.navigateByUrl('/codex');
+    await harness.navigateByUrl('/codex/set/set-a');
+    expect(seen).toEqual(jasmine.objectContaining({ path: '/codex', key: 'codex.set.back' }));
   });
 });

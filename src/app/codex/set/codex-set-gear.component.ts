@@ -1,5 +1,4 @@
-import { logWarn } from '../../core/log';
-import { ChangeDetectionStrategy, Component, DestroyRef, NgZone, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -7,7 +6,7 @@ import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { ARMOR_SLOT_SPECS } from '../codex-landing-kpi';
 import { cleanLocaleValue, humanizeClassName } from '../codex-format';
-import { HangarService } from '../../hangar/hangar.service';
+import { SetSlotClearer } from './set-slot-clear';
 import {
   ROLE_SLOT_SUGGESTIONS,
   RoleLoadoutItem,
@@ -18,8 +17,7 @@ import {
 /** The six anatomical positions — the board panel above already renders them. */
 const ARMOR_ROLE_SLOTS: ReadonlySet<string> = new Set(ARMOR_SLOT_SPECS.map((s) => s.roleSlot));
 
-/** How long "Undo" stays offered after a clear. */
-export const UNDO_WINDOW_MS = 5000;
+export { UNDO_WINDOW_MS } from './set-slot-clear';
 
 /** Every slot token some role suggests — each has a `hangar.slots.*` label. */
 const KNOWN_SLOTS: ReadonlySet<string> = new Set(Object.values(ROLE_SLOT_SUGGESTIONS).flat());
@@ -68,11 +66,6 @@ export interface GearSlotRow {
   template: `
     <section class="gear" aria-labelledby="set-gear-title">
       <h2 class="zone-eyebrow" id="set-gear-title">{{ 'codex.set.gear.eyebrow' | translate }}</h2>
-      <!-- Until a single weapon/tool is in, nothing on the page says the tiles
-           are how gear gets picked — one line does. -->
-      @if (!anyFilled()) {
-        <p class="gear-hint">{{ 'codex.set.gear.hint' | translate }}</p>
-      }
       <ul class="gear-grid" [style.--gear-cols]="rows().length">
         @for (r of rows(); track r.slot) {
           <li class="gear-slot" [class.empty]="!r.className" [class.nosource]="!r.linkable" [attr.data-slot]="r.slot">
@@ -256,7 +249,6 @@ export interface GearSlotRow {
       .empty .t-value.t-cta { color: var(--sc-accent); }
       .empty a.gear-tile:hover .t-value.t-cta, .empty a.gear-tile:focus-visible .t-value.t-cta { color: var(--sc-accent); }
       .static .t-value { font-style: italic; }
-      .gear-hint { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.4; }
       .empty a.gear-tile:hover, .empty a.gear-tile:focus-visible { border-color: var(--tint); }
       .empty a.gear-tile:hover .t-value, .empty a.gear-tile:focus-visible .t-value { color: var(--sc-fg-1); }
 
@@ -290,7 +282,7 @@ export interface GearSlotRow {
         font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-1);
       }
       .gear-undo {
-        padding: 2px 10px; border-radius: 3px; border: 1px solid var(--sc-border); background: transparent;
+        min-height: max(24px, var(--sc-tap-min)); padding: 2px 10px; border-radius: 3px; border: 1px solid var(--sc-border); background: transparent;
         color: var(--sc-fg-1); font-family: var(--sc-font-display); font-size: max(0.6rem, var(--sc-fs-floor));
         letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
       }
@@ -299,7 +291,6 @@ export interface GearSlotRow {
   ],
 })
 export class CodexSetGearComponent {
-  private readonly hangar = inject(HangarService);
   private readonly t = inject(TranslateService);
 
   /** UI language for piece names — re-derived on every language switch (see constructor). */
@@ -311,21 +302,15 @@ export class CodexSetGearComponent {
   /** Names of the set's pieces — the set page resolves every item, not only armour. */
   readonly resolved = input<ReadonlyMap<string, ResolvedEntity>>(new Map());
 
-  /** The slot whose clear is in flight — one write at a time for the whole list. */
-  readonly busySlot = signal<string | null>(null);
-  /** The slot whose last clear failed; its inline alert shows until the next attempt. */
-  readonly failedSlot = signal<string | null>(null);
-  /** The slot whose last clear met another tab's newer piece — that piece stays, and the tile says so. */
-  readonly conflictSlot = signal<string | null>(null);
-  /** The piece the last clear removed, re-equippable for {@link UNDO_WINDOW_MS}. */
-  readonly undoable = signal<{ slot: string; className: string; kind: string } | null>(null);
-  /** The slot whose undo could not put the piece back. */
-  readonly undoFailedSlot = signal<string | null>(null);
-  private undoTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly zone = inject(NgZone);
+  /** Clear + undo, shared with the armour tiles on the stage. */
+  private readonly clearer = new SetSlotClearer(() => this.setId(), () => this.items());
+  readonly busySlot = this.clearer.busySlot;
+  readonly failedSlot = this.clearer.failedSlot;
+  readonly conflictSlot = this.clearer.conflictSlot;
+  readonly undoable = this.clearer.undoable;
+  readonly undoFailedSlot = this.clearer.undoFailedSlot;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.dropUndo());
     this.t.onLangChange
       .pipe(takeUntilDestroyed())
       .subscribe((e) => this.dataLang.set(toLang(e.lang)));
@@ -382,64 +367,13 @@ export class CodexSetGearComponent {
     return rows;
   });
 
-  /** True once any weapon/tool position holds a piece — hides the "how to fill" hint. */
-  readonly anyFilled = computed(() => this.rows().some((r) => !!r.className));
-
-  /**
-   * Empty `slot` — but only while it still holds `shown`, the piece this tile
-   * displays; a newer piece another tab put there stays (see setRoleLoadoutSlot).
-   */
-  async clear(slot: string, shown: string | null): Promise<void> {
-    if (this.busySlot()) return;
-    const kind = this.items().find((i) => i.slot === slot)?.kind ?? null;
-    this.busySlot.set(slot);
-    this.failedSlot.set(null);
-    this.undoFailedSlot.set(null);
-    this.conflictSlot.set(null);
-    this.dropUndo();
-    try {
-      const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), slot, null, shown ?? undefined);
-      if (!saved) this.failedSlot.set(slot);
-      else if (saved.items.some((i) => i.slot === slot && i.className)) this.conflictSlot.set(slot);
-      else if (shown && kind) this.offerUndo({ slot, className: shown, kind });
-    } catch (error) {
-      logWarn('codex', 'set slot clear failed', { set: this.setId(), slot, error });
-      this.failedSlot.set(slot);
-    } finally {
-      this.busySlot.set(null);
-    }
+  /** Empty `slot` while it still holds `shown` (see {@link SetSlotClearer.clear}). */
+  clear(slot: string, shown: string | null): Promise<void> {
+    return this.clearer.clear(slot, shown);
   }
 
   /** Put back the piece the last clear removed. */
-  async undo(): Promise<void> {
-    const last = this.undoable();
-    if (!last || this.busySlot()) return;
-    this.dropUndo();
-    this.busySlot.set(last.slot);
-    try {
-      const saved = await this.hangar.setRoleLoadoutSlot(this.setId(), last.slot, {
-        className: last.className,
-        kind: last.kind,
-      });
-      if (!saved) this.undoFailedSlot.set(last.slot);
-    } catch (error) {
-      logWarn('codex', 'set slot undo failed', { set: this.setId(), slot: last.slot, error });
-      this.undoFailedSlot.set(last.slot);
-    } finally {
-      this.busySlot.set(null);
-    }
-  }
-
-  private offerUndo(piece: { slot: string; className: string; kind: string }): void {
-    this.undoable.set(piece);
-    // Outside the zone: a pending 5 s timer would hold it unstable (whenStable,
-    // hydration) for the whole undo window. The signal still re-renders the view.
-    this.undoTimer = this.zone.runOutsideAngular(() => setTimeout(() => this.undoable.set(null), UNDO_WINDOW_MS));
-  }
-
-  private dropUndo(): void {
-    if (this.undoTimer) clearTimeout(this.undoTimer);
-    this.undoTimer = null;
-    this.undoable.set(null);
+  undo(): Promise<void> {
+    return this.clearer.undo();
   }
 }

@@ -162,16 +162,10 @@ describe('CodexSetGearComponent', () => {
     expect(medpen.querySelector('.t-cta')).toBeNull();
   });
 
-  it('explains how to fill the section while no weapon or tool is in, and drops the hint after', async () => {
-    const empty = await setup({ role: 'fps' });
-    expect((empty.nativeElement as HTMLElement).querySelector('.gear-hint')?.textContent?.trim()).toBe('codex.set.gear.hint');
-    TestBed.resetTestingModule();
-
-    const filled = await setup({
-      role: 'fps',
-      items: [{ slot: 'primary', className: 'behr_rifle_ballistic_01', kind: 'weapon' }],
-    });
-    expect((filled.nativeElement as HTMLElement).querySelector('.gear-hint')).toBeNull();
+  // The "how to fill" hint is the set page's one shared line now (armour + weapons).
+  it('carries no hint of its own — the set page explains the flow once', async () => {
+    const fixture = await setup({ role: 'fps' });
+    expect((fixture.nativeElement as HTMLElement).querySelector('.gear-hint')).toBeNull();
   });
 
   it('links each archive-backed position to the FPS archive narrowed to that slot', async () => {
