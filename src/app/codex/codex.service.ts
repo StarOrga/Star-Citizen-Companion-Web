@@ -4,8 +4,8 @@ import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
-import { ilikeTokenPatterns } from './codex-search';
+import { PolySearchHit, dedupePolyHits, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import { ilikeTokenGroups, ilikeTokenPatterns, searchMatcher } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
@@ -770,8 +770,12 @@ export class CodexService {
     const { data, count, error } = await query;
     if (error) throw error;
 
-    const rows = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
-    return { rows, count: count ?? rows.length };
+    const mapped = ((data ?? []) as unknown[]).map((r) => mapListRow(kind, r as Record<string, unknown>));
+    // The server patterns are a superset ("p4ar" → `*p*4*ar*` also hits a
+    // "Caterpillar BIS 2949"); the shared matcher drops those false hits.
+    const matches = filters.search ? searchMatcher(filters.search) : null;
+    const rows = matches ? mapped.filter((r) => matches(r.nameLocalized, r.classNameSlug)) : mapped;
+    return { rows, count: Math.max(rows.length, (count ?? mapped.length) - (mapped.length - rows.length)) };
   }
 
   /**
@@ -787,6 +791,7 @@ export class CodexService {
     // nothing, and an empty pattern would count every record of every kind.
     const safe = ilikeTokenPatterns(search).join(' ');
     if (safe.replace(/[*\s]/g, '').length < 3) return out;
+    const term = search.trim();
     const build = await this.loadCurrentBuild();
     if (!build) return out;
     await Promise.all(
@@ -796,7 +801,7 @@ export class CodexService {
         const key = `${build.id}|${safe.toLowerCase()}|${kind}`;
         let pending = this.searchCountCache.get(key);
         if (!pending) {
-          pending = this.countOneKind(build.id, kind, safe);
+          pending = this.countOneKind(build.id, kind, term);
           this.searchCountCache.set(key, pending);
           if (this.searchCountCache.size > SEARCH_COUNT_CACHE_MAX) {
             this.searchCountCache.delete(this.searchCountCache.keys().next().value!);
@@ -811,7 +816,7 @@ export class CodexService {
   }
 
   /** One head-only count for `countSearchMatches`; null when the query failed. */
-  private async countOneKind(buildId: string, kind: CodexKind, safe: string): Promise<number | null> {
+  private async countOneKind(buildId: string, kind: CodexKind, term: string): Promise<number | null> {
     const query = applyDefaultBrowseFilters(
       this.sb.client
         .from(CODEX_ENTITY_TABLES[kind])
@@ -819,7 +824,7 @@ export class CodexService {
         .eq('build_id', buildId),
       kind,
     );
-    const { count, error } = await applySearchTokens(query, safe);
+    const { count, error } = await applySearchTokens(query, term);
     return error ? null : (count ?? 0);
   }
 
@@ -1530,7 +1535,7 @@ export class CodexService {
         // short term ("p4", "ar") can sit behind `perKindLimit` weaker ones.
         // Rank first, then keep the top `perKindLimit` of each kind.
         const res = await this.listByKind(kind, { search: q, limit: perKindLimit * SEARCH_OVERFETCH });
-        return rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r))).slice(0, perKindLimit);
+        return dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r)))).slice(0, perKindLimit);
       } catch {
         return [] as PolySearchHit[];
       }
@@ -2257,7 +2262,9 @@ function mapString(s: Record<string, unknown>): CodexEntityString {
  */
 function applySearchTokens<Q extends { or(filters: string): Q }>(query: Q, term: string): Q {
   let out = query;
-  for (const p of ilikeTokenPatterns(term)) out = out.or(`name_localized.ilike.${p},class_name.ilike.${p}`);
+  for (const group of ilikeTokenGroups(term)) {
+    out = out.or(group.flatMap((p) => [`name_localized.ilike.${p}`, `class_name.ilike.${p}`]).join(','));
+  }
   return out;
 }
 

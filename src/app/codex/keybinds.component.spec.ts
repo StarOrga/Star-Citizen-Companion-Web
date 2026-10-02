@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { KeybindsComponent } from './keybinds.component';
 import { CodexService } from './codex.service';
@@ -193,6 +193,35 @@ describe('KeybindsComponent', () => {
     expect(groups.map((g) => g.actionmap)).toEqual(['spaceship_movement', 'ui_menu']);
     expect(groups[0].category).toBe('Flight – Movement');
     expect(groups[0].rows.map((r) => r.label)).toEqual(['Strafe Up', 'Strafe Down']);
+  });
+
+  it('keeps the search term in ?q= and restores it on a fresh visit (audit L17)', async () => {
+    const fixture = await setup({ binds: SAMPLE, labels: LABELS });
+    const router = TestBed.inject(Router);
+    fixture.componentInstance.onSearch('  strafe ');
+    await fixture.whenStable();
+    expect(router.url).toContain('q=strafe');
+
+    const again = TestBed.createComponent(KeybindsComponent);
+    again.detectChanges();
+    await again.whenStable();
+    expect(again.componentInstance.searchInput()).toBe('strafe');
+
+    fixture.componentInstance.onSearch('');
+    await fixture.whenStable();
+    expect(router.url).not.toContain('q=');
+  });
+
+  it('searches label, action id and key with the shared Codex dialect', async () => {
+    const cmp = (await setup({ binds: SAMPLE, labels: LABELS })).componentInstance;
+    const labels = (): string[] => cmp.groups().flatMap((g) => g.rows.map((r) => r.label));
+
+    cmp.onSearch('space'); // the bound key
+    expect(labels()).toEqual(['Strafe Up']);
+    cmp.onSearch('down strafe'); // tokens in any order narrow
+    expect(labels()).toEqual(['Strafe Down']);
+    cmp.onSearch('ui_back'); // the raw action id, separator-tolerant
+    expect(labels()).toEqual(['Back']);
   });
 
   it('shows the selected device binding (keyboard default → gamepad)', async () => {

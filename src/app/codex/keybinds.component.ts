@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexService, toLang } from './codex.service';
 import { cleanLocaleValue } from './codex-format';
@@ -684,6 +684,8 @@ export class KeybindsComponent implements OnInit {
   readonly cats = inject(KeybindCategoryService);
   private readonly t = inject(TranslateService);
   private readonly english = inject(EnglishStringsService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly devices = DEVICES;
   readonly skeletons = SKELETONS;
@@ -749,6 +751,10 @@ export class KeybindsComponent implements OnInit {
     // the previous language's labels (and the DE|EN switch would label itself
     // for a language that is no longer active).
     this.t.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => void this.ngOnInit());
+    // Every other Codex search keeps its term in `?q=`; reload and Back used to
+    // lose it here (Codex UX audit L17).
+    const q = this.route.snapshot.queryParamMap.get('q');
+    if (q) this.searchInput.set(q);
   }
 
   /** Taxonomy values → themed-select options (value + i18n key, never literals). */
@@ -935,6 +941,12 @@ export class KeybindsComponent implements OnInit {
 
   onSearch(v: string): void {
     this.searchInput.set(v);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { q: v.trim() || null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   // ── name language ──────────────────────────────────────────────────────────

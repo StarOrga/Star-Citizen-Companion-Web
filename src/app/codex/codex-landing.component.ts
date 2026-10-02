@@ -494,6 +494,20 @@ const SEARCH_DEBOUNCE_MS = 250;
       .hit-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 0.72rem; color: var(--sc-fg-2); }
       .hit-mfr { overflow: hidden; text-overflow: ellipsis; }
       .hit-kind { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-accent); }
+      /* The compare pin had no rule of its own, so the generic .icon (100% x 100%)
+         blew its star up over the whole hit card (Codex UX audit L01). */
+      .hit .pin {
+        flex: none; align-self: center; display: inline-flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; padding: 0; border-radius: 6px;
+        background: transparent; border: 1px solid transparent; color: var(--sc-fg-2); cursor: pointer;
+      }
+      .hit .pin .icon { width: 16px; height: 16px; }
+      /* The terminal has its own clear button; the browser's would be a second x (audit L16). */
+      input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+      .hit .pin:hover, .hit .pin.pinned { color: var(--sc-accent); }
+      .hit .pin:hover { border-color: var(--sc-border); }
+      .hit .pin:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      @media (pointer: coarse) { .hit .pin { width: 44px; height: 44px; } }
       .hit.meta .hit-kind { color: var(--meta); }
 
       /* ── STAGE SPLIT: ship ⅔ · person ⅓ (concept 2026-09-20, rounds 14-17) ──

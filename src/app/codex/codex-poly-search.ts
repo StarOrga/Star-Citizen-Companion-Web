@@ -11,7 +11,7 @@
 
 import type { CodexKind, CodexListRow, LocalizedText } from './codex.service';
 import type { UpcomingShip } from './upcoming-ships.service';
-import { recordScore } from './codex-search';
+import { normalizeSearch, recordScore } from './codex-search';
 
 /**
  * Pseudo-kind for a ship RSI has ANNOUNCED but that the datamined game data
@@ -184,8 +184,12 @@ export function polyMatchScore(query: string, hit: PolySearchHit): number {
   // score against it, or a short query could "substring match" a random id.
   const ids = isUpcomingHit(hit) ? [] : [hit.classNameSlug];
   // Shared Codex dialect (codex-search): case, diacritics and separators never
-  // matter, so "p4ar" scores the "P4-AR" exact match like "p4-ar" does.
-  const s = recordScore(query, [hit.nameLocalized], ids);
+  // matter, so "p4ar" scores the "P4-AR" exact match like "p4-ar" does. A ship
+  // is named "<Maker> <Model>": "gladius" is an EXACT answer to "Aegis
+  // Gladius", not a word match that six "Gladius … Livery" prefixes outrank
+  // (Codex UX audit L02).
+  const maker = hit.manufacturerName?.en ?? hit.manufacturerName?.de ?? null;
+  const s = recordScore(query, [hit.nameLocalized, withoutMaker(hit.nameLocalized, maker)], ids);
   return s >= 3 ? s : s >= 1 ? 2 : 1;
 }
 
@@ -204,6 +208,36 @@ export function rankPolyHits(query: string, hits: PolySearchHit[]): PolySearchHi
     if (ka !== kb) return ka - kb;
     const na = (a.nameLocalized ?? a.classNameSlug).toLowerCase();
     const nb = (b.nameLocalized ?? b.classNameSlug).toLowerCase();
+    // Equal match, same kind: the shorter name is the base record ("P4-AR
+    // Rifle" before 'P4-AR "Warhawk" Rifle'), alphabetical after that.
+    if (na.length !== nb.length) return na.length - nb.length;
     return na.localeCompare(nb);
+  });
+}
+
+/**
+ * The name without a leading manufacturer word ("Aegis Gladius" → "Gladius"),
+ * or null when the name does not start with the maker's first word.
+ */
+export function withoutMaker(name: string | null, maker: string | null): string | null {
+  if (!name || !maker) return null;
+  const first = normalizeSearch(maker).split(' ')[0];
+  const n = normalizeSearch(name);
+  if (!first || !n.startsWith(first + ' ')) return null;
+  return name.trim().slice(name.trim().indexOf(' ') + 1);
+}
+
+/**
+ * Drop hits that would render as the same card twice: same kind, same
+ * name (e.g. four "Cutlass Black Ship Armor" records, two "Aegis Eclipse").
+ * Keeps the first — the best-ranked — of each (Codex UX audit L03).
+ */
+export function dedupePolyHits(hits: readonly PolySearchHit[]): PolySearchHit[] {
+  const seen = new Set<string>();
+  return hits.filter((h) => {
+    const key = `${h.kind}|${normalizeSearch(h.nameLocalized ?? h.classNameSlug)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }

@@ -463,6 +463,40 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('a.hit .pin svg')).not.toBeNull();
   });
 
+  it('keeps the compare pin a small icon button, never a card-sized star (audit L01)', async () => {
+    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
+    fixture.componentInstance.searchTerm.set('gladius');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const card = el.querySelector('a.hit') as HTMLElement;
+    const pin = el.querySelector('a.hit .pin') as HTMLElement;
+    const star = pin.querySelector('svg') as SVGElement;
+    expect(pin.getBoundingClientRect().width).toBeLessThanOrEqual(44);
+    expect(star.getBoundingClientRect().width).toBeLessThanOrEqual(16.5);
+    expect(pin.getBoundingClientRect().width).toBeLessThan(card.getBoundingClientRect().width / 3);
+  });
+
+  it('clearing the terminal while a search is in flight leaves no hits behind', async () => {
+    let resolve!: (v: unknown[]) => void;
+    const fixture = await setup({});
+    const svc = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
+    svc.searchAll.and.returnValue(new Promise((r) => (resolve = r)));
+    const cmp = fixture.componentInstance;
+    cmp.searchTerm.set('gladius');
+    fixture.detectChanges();
+    cmp.clearSearch();
+    fixture.detectChanges();
+    resolve([hit('ship', 'AEGS_Gladius')]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(cmp.searchResults()).toEqual([]);
+    expect((fixture.nativeElement as HTMLElement).querySelector('a.hit')).toBeNull();
+  });
+
   it('spells the manufacturer out on the ship stage eyebrow', async () => {
     const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
     const fixture = await setup({

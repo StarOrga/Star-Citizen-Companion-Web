@@ -62,17 +62,72 @@ function tokenRegExp(token: string): RegExp {
 }
 
 /**
+ * German words for things the datamine names in English only. The server's
+ * `name_localized` is the English name (the German one lives in the payload,
+ * which an index cannot reach in time), so "Gewehr", "Helm" or "Rüstung"
+ * found nothing on the index (Codex UX audit L05). A token equal to a key
+ * also matches its English counterparts — the German word itself still
+ * counts, so German-named records keep matching. Keys are normalized
+ * (lower case, no diacritics).
+ */
+export const SEARCH_SYNONYMS: Readonly<Record<string, readonly string[]>> = {
+  gewehr: ['rifle'],
+  sturmgewehr: ['rifle'],
+  snipergewehr: ['sniper'],
+  scharfschutzengewehr: ['sniper'],
+  pistole: ['pistol'],
+  schrotflinte: ['shotgun'],
+  flinte: ['shotgun'],
+  maschinenpistole: ['smg'],
+  maschinengewehr: ['lmg'],
+  raketenwerfer: ['launcher'],
+  granatwerfer: ['launcher'],
+  granate: ['grenade'],
+  messer: ['knife'],
+  helm: ['helmet'],
+  rustung: ['armor'],
+  panzerung: ['armor'],
+  oberkorper: ['torso', 'core'],
+  arme: ['arms'],
+  beine: ['legs'],
+  rucksack: ['backpack'],
+  unterkleidung: ['undersuit'],
+  anzug: ['suit'],
+  munition: ['ammo', 'magazine'],
+  magazin: ['magazine'],
+  werkzeug: ['tool'],
+  bergbau: ['mining'],
+  schild: ['shield'],
+  schilde: ['shield'],
+  kuhler: ['cooler'],
+  kraftwerk: ['power plant'],
+  triebwerk: ['thruster'],
+  rakete: ['missile'],
+  raketen: ['missile'],
+  geschutz: ['turret'],
+  kanone: ['cannon'],
+  lackierung: ['livery'],
+  schiff: ['ship'],
+};
+
+/** The alternatives one token stands for: itself plus its synonyms. */
+function tokenAlternatives(token: string): string[] {
+  return [token, ...(SEARCH_SYNONYMS[token] ?? [])];
+}
+
+/**
  * A reusable predicate for one search term, or `null` when the term filters
  * nothing (empty or only wildcards/separators). The predicate takes every
- * searchable field of a record; each token must match at least one of them.
+ * searchable field of a record; each token (or one of its synonyms) must
+ * match at least one of them.
  */
 export function searchMatcher(term: string): ((...fields: (string | null | undefined)[]) => boolean) | null {
   const tokens = searchTokens(term);
   if (tokens.length === 0) return null;
-  const patterns = tokens.map(tokenRegExp);
+  const groups = tokens.map((t) => tokenAlternatives(t).map(tokenRegExp));
   return (...fields) => {
     const haystack = normalizeSearch(fields.filter(Boolean).join(' \u0001 '));
-    return patterns.every((p) => p.test(haystack));
+    return groups.every((alts) => alts.some((p) => p.test(haystack)));
   };
 }
 
@@ -135,26 +190,42 @@ export function rankBySearch<T>(
 }
 
 /**
- * Server-side counterpart: one ILIKE pattern per token for PostgREST
- * (`*` is PostgREST's wildcard). A letter/digit boundary inside a token
- * becomes `*` so "p4ar" matches "P4-AR"; `_` (an ILIKE single-character
- * wildcard) never reaches the pattern because it is a separator. Characters
- * that break the `or=(…)` grammar are dropped. Case is handled by ILIKE.
- * The column has no unaccent, so the term keeps its diacritics here — but a
- * non-ASCII letter becomes `*`, so "kühl" still finds "Kühl" and "Kuhl"; a
- * plain "kuhl" cannot find "Kühl" server-side (no unaccent index yet).
+ * Server-side counterpart: per token, the PostgREST ILIKE patterns that may
+ * match it — the token itself plus its English synonyms (`*` is PostgREST's
+ * wildcard). The caller ANDs the groups and ORs the patterns within one.
+ * A letter/digit boundary inside a token becomes `*` so "p4ar" matches
+ * "P4-AR" — a superset ("p…4…ar"), so the caller re-checks the rows with
+ * {@link searchMatcher}. `_` (an ILIKE single-character wildcard) never
+ * reaches a pattern because it is a separator, and characters that break the
+ * `or=(…)` grammar are dropped. Case is handled by ILIKE. The column has no
+ * unaccent, so the term keeps its diacritics here — but a non-ASCII letter
+ * becomes `*`, so "kühl" still finds "Kühl"; a plain "kuhl" cannot find
+ * "Kühl" server-side.
  */
-export function ilikeTokenPatterns(term: string): string[] {
+export function ilikeTokenGroups(term: string): string[][] {
   return term
     .toLowerCase()
     .split(SEPARATORS)
     .filter((t) => t.replace(/\*/g, '') !== '')
-    .map((token) =>
-      token
-        .split('*')
-        .map((chunk) => boundaryParts(chunk).filter((p) => /[a-z0-9]/.test(p)).join('*'))
-        .join('*'),
-    )
-    .filter((p) => p.replace(/\*/g, '') !== '')
-    .map((p) => `*${p}*`.replace(/\*+/g, '*'));
+    .map((raw) => {
+      const own = toIlikePattern(raw);
+      const syn = SEARCH_SYNONYMS[normalizeSearch(raw)] ?? [];
+      return [own, ...syn.map(toIlikePattern)].filter((p): p is string => p !== null);
+    })
+    .filter((g) => g.length > 0);
+}
+
+/** One token (or synonym) as a PostgREST ILIKE pattern, or null when nothing searchable is left. */
+function toIlikePattern(token: string): string | null {
+  const body = token
+    .split('*')
+    .map((chunk) => boundaryParts(chunk).filter((p) => /[a-z0-9]/.test(p)).join('*'))
+    .join('*');
+  if (body.replace(/\*/g, '') === '') return null;
+  return `*${body}*`.replace(/\*+/g, '*');
+}
+
+/** Flat list of every token's own pattern — kept for callers that need a cache key. */
+export function ilikeTokenPatterns(term: string): string[] {
+  return ilikeTokenGroups(term).map((g) => g[0]);
 }

@@ -1,4 +1,5 @@
 import {
+  ilikeTokenGroups,
   ilikeTokenPatterns,
   normalizeSearch,
   rankBySearch,
@@ -179,4 +180,28 @@ describe('codex-search (shared Codex search dialect)', () => {
       expect(ilikeTokenPatterns('*')).toEqual([]);
     });
   });
+  describe('German search words (audit L05)', () => {
+    it('lets a German word find the English-named record', () => {
+      expect(searchMatcher('gewehr')!('P4-AR Rifle')).toBeTrue();
+      expect(searchMatcher('Rüstung')!('Morozov-SH Core Armor')).toBeTrue();
+      expect(searchMatcher('helm')!('Aril Helmet')).toBeTrue();
+      expect(searchMatcher('Pistole')!('S-38 Pistol')).toBeTrue();
+    });
+
+    it('still matches the German word itself and ANDs with other tokens', () => {
+      expect(searchMatcher('gewehr')!('P6-LR-Snipergewehr (Raureif)')).toBeTrue();
+      expect(searchMatcher('gewehr p4')!('P4-AR Rifle')).toBeTrue();
+      expect(searchMatcher('gewehr p4')!('P6-LR Sniper Rifle')).toBeFalse();
+    });
+
+    it('sends the synonyms to the server as alternatives of one AND group', () => {
+      expect(ilikeTokenGroups('Gewehr P4')).toEqual([['*gewehr*', '*rifle*'], ['*p*4*']]);
+      expect(ilikeTokenGroups('Rüstung')).toEqual([['*r*stung*', '*armor*']]);
+    });
+
+    it('expands only whole words, not a word being typed', () => {
+      expect(ilikeTokenGroups('gewe')).toEqual([['*gewe*']]);
+    });
+  });
 });
+
