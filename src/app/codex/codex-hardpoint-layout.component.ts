@@ -1005,7 +1005,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
     :host(.calm) .fp-lock { display: none; }
     :host(.calm) .mod-sec[open] > .sec-head, :host(.calm) .mod-sub[open] > .sub-head { margin-inline: 0; padding: 6px 0; border-bottom: 0; }
     :host(.calm) .sec-ct { background: transparent; color: var(--sc-fg-2); font-family: var(--font-monospace, monospace); letter-spacing: 0; padding: 0; }
-    :host(.calm) .sec-btn { min-height: 26px; padding: 1px 7px; border-radius: 2px; font-family: var(--sc-font-display); letter-spacing: 0.1em; }
+    :host(.calm) .sec-btn { min-height: max(26px, var(--sc-tap-min)); padding: 1px 7px; border-radius: 2px; font-family: var(--sc-font-display); letter-spacing: 0.1em; }
     :host(.calm) .detail-btn { margin-left: 0; color: var(--sc-accent); border-color: color-mix(in srgb, var(--sc-accent) 35%, transparent); }
     :host(.calm) .caret { margin-left: 0; font-family: var(--sc-font-body); }
     :host(.calm) .sec-rows, :host(.calm) .sec-rows.dense { display: flex; flex-direction: column; gap: 0; }

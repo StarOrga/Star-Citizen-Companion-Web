@@ -621,6 +621,11 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .top3 { margin: 0; padding: 0 0 0 18px; font-size: max(11.5px, var(--f)); color: var(--sc-fg-1); display: grid; gap: 3px; }
   .top3 a { color: var(--sc-fg-0); text-decoration: none; transition: color 160ms ease; }
   .top3 a:hover { color: var(--sc-accent); }
+  /* Touch: the focusable title and the top-3 links reach the tap minimum. */
+  @media (pointer: coarse) {
+    .ht-name { min-height: var(--sc-tap-min); line-height: var(--sc-tap-min); }
+    .top3 a { display: inline-flex; align-items: center; min-height: var(--sc-tap-min); }
+  }
   .cohort-link { font-size: max(10.5px, var(--f)); color: var(--sc-fg-2); text-decoration: none; text-align: center; transition: color 160ms ease; }
   .cohort-link:hover { color: var(--sc-accent); }
 
