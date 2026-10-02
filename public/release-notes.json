@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.115.0",
+  "current": "0.115.1",
   "releases": [
+    {
+      "version": "0.115.1",
+      "date": "2026-10-02",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.40.1: Verbindungs-Popover ohne überlappenden Text.",
+              "text": "Der Server-Chip (z. B. „LIVE v4.10.0…“) steht jetzt in einer eigenen Zeile unter der E-Mail-Adresse und schiebt sich nicht mehr über „aktualisiert gerade eben“."
+            },
+            {
+              "title": "Data Uploader: neue Versionen kommen auch während eines Uploads an.",
+              "text": "Der Uploader sucht alle 30 Minuten statt alle 6 Stunden nach Updates. Die Upload-Ansicht löst beim Arbeiten keinen Check aus, deshalb blieb eine am Abend veröffentlichte Version bis zum nächsten Neustart unbemerkt. Das Update lädt still im Hintergrund und installiert sich beim Beenden."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.115.0",
       "date": "2026-10-02",
