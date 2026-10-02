@@ -583,7 +583,7 @@ describe('FpsListComponent (whole catalog)', () => {
     // Wildcards alone narrow nothing; regex characters stay literal.
     expect((await browse({ cat: 'weapon', q: '*' }, guns)).names().length).toBe(2);
     TestBed.resetTestingModule();
-    expect((await browse({ cat: 'weapon', q: 'p4-ar (*' }, guns)).names()).toEqual([]);
+    expect((await browse({ cat: 'weapon', q: 'p4-ar [*' }, guns)).names()).toEqual([]);
   });
 
   it('keeps the category\'s own size on its tab after the reader switches tabs', async () => {

@@ -1,0 +1,18 @@
+# Static lens (devops:scout) — 2026-10-02
+- AUD-S01 high search ranking: listByKind orders alphabetically (codex.service.ts:766) — no exact/prefix first (index, bridge).
+- AUD-S02 high searchAll truncates to 6/kind alphabetically before rankPolyHits (codex.service.ts:1530) — best hit can be cut; failed kinds dropped silently.
+- AUD-S03 high normalization: raw contiguous ilike; "p4ar"/"p4 ar"/double space/manufacturer/umlaut/`_` wildcard all miss or misbehave (codex.service.ts:759,823,2028,2256).
+- AUD-S04 high 5 search surfaces, 5 match rules (index/bridge server ilike; fps substring+glob; picker token AND; keybinds substring; upcoming tokens+diacritics).
+- AUD-S05 med FPS search ignores manufacturer (fps-list.component.ts:733).
+- AUD-S06 med "also found in" silently gated to >=3 chars (codex-list.component.ts:1179).
+- AUD-S07 low upcoming term leaks into other categories via categoryHref.
+- AUD-S08 low debounce inconsistent (picker, keybinds per keystroke).
+- AUD-S09 low bridge clearSearch doesn't invalidate in-flight search (codex-bridge.component.ts:650).
+- AUD-S10 high set selection only from slot tile; no "add to set" from FPS list/detail.
+- AUD-S11 med empty slot tile says only "offen/open", no verb (codex-set-gear.component.ts:83).
+- AUD-S12 med equip mode: no confirmation / back-to-set after equipping (fps-list.component.ts:1135).
+- AUD-S13 low active equip button toggles to remove but label unchanged (fps-list.component.ts:358).
+- AUD-S15 med swap picker / component modal / weapon detail hand-rolled dialogs, no [scDialog].
+- AUD-S16 low picker rows tabindex without role.
+- AUD-S17 low --sc-danger on non-destructive hover (codex-bridge.component.ts:346, codex-compare-tray.component.ts:154).
+- AUD-S18 low picker error without retry (codex-swap-picker.component.ts:214).

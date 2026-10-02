@@ -1,3 +1,4 @@
+import { searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -242,14 +243,9 @@ export function diffUpcoming(
  * of widening. Case- and diacritic-insensitive.
  */
 export function matchesUpcomingQuery(ship: UpcomingShip, query: string): boolean {
-  const tokens = normalize(query).split(' ').filter(Boolean);
-  if (tokens.length === 0) return true;
-  const haystack = normalize(
-    [ship.name, ship.manufacturer, ship.manufacturerCode, ship.type, ship.focus, ship.productionStatus]
-      .filter(Boolean)
-      .join(' '),
-  );
-  return tokens.every((t) => haystack.includes(t));
+  const matches = searchMatcher(query);
+  if (!matches) return true;
+  return matches(ship.name, ship.manufacturer, ship.manufacturerCode, ship.type, ship.focus, ship.productionStatus);
 }
 
 function normalize(value: string): string {

@@ -1,3 +1,4 @@
+import { rankBySearch, searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -730,10 +731,7 @@ export class FpsListComponent {
     return this.catalog().filter(
       (r) =>
         (!fitting || slotAccepts(fitting, { className: r.classNameSlug, subType: r.subType })) &&
-        (!matches ||
-          matches(this.cardName(r)) ||
-          matches(r.nameLocalized ?? '') ||
-          matches(r.classNameSlug)) &&
+        (!matches || matches(...this.searchFields(r))) &&
         (!mfr || r.manufacturerCode === mfr) &&
         (!size || String(r.size) === size) &&
         (!grade || r.grade === grade) &&
@@ -757,7 +755,36 @@ export class FpsListComponent {
    * until pass 1 has folded them. Ticking "include variants" — the control that
    * already means "show me the raw records" — turns BOTH off.
    */
-  readonly rows = computed<FpsGridRow[]>(() => this.fold(this.filtered(), this.includeVariants()));
+  readonly rows = computed<FpsGridRow[]>(() =>
+    // A search puts exact and prefix name matches first; the catalog order
+    // breaks ties (shared Codex search dialect, codex-search.ts).
+    rankBySearch(this.searchTerm(), this.fold(this.filtered(), this.includeVariants()), (r) => [
+      this.cardName(r),
+      r.nameLocalized,
+      r.classNameSlug,
+    ]),
+  );
+
+  /**
+   * Everything a player may type to find a piece: both language names (the
+   * UI language is not the language a player thinks in), the class name, and
+   * the manufacturer as code and spelled out ("behring", "BEHR").
+   */
+  private searchFields(r: FpsRow): (string | null | undefined)[] {
+    const p = r.payload as
+      | { name?: { de?: string; en?: string }; manufacturer?: { name?: { de?: string; en?: string } } }
+      | undefined;
+    return [
+      this.cardName(r),
+      r.nameLocalized,
+      r.classNameSlug,
+      r.manufacturerCode,
+      p?.name?.de,
+      p?.name?.en,
+      p?.manufacturer?.name?.en,
+      // CIG's "TRANSLATION NOT FOUND FOR LOCID …" placeholder is no name.
+    ].filter((f) => !f?.includes('TRANSLATION NOT FOUND'));
+  }
   readonly visibleRows = computed(() => this.rows().slice(0, this.shown()));
   /** Exact: the whole category is folded, so this is the number of cards there are. */
   readonly total = computed(() => this.rows().length);
@@ -1305,21 +1332,6 @@ export class FpsListComponent {
       if (seq === this.loadSeq) this.loading.set(false);
     }
   }
-}
-
-/**
- * Case-insensitive "contains" test for the list search, with `*` as a
- * wildcard the way the index search's ILIKE reads it — the placeholder's own
- * example `klwe_*` found nothing while `*` was compared literally. Null for a
- * term that filters nothing (empty, or only wildcards).
- */
-function searchMatcher(raw: string): ((text: string) => boolean) | null {
-  const term = raw.trim().toLowerCase();
-  if (!term.includes('*')) return term ? (text) => text.toLowerCase().includes(term) : null;
-  const parts = term.split('*').filter(Boolean).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (parts.length === 0) return null;
-  const pattern = new RegExp(parts.join('.*'));
-  return (text) => pattern.test(text.toLowerCase());
 }
 
 function uniqSorted(values: (string | null)[]): string[] {

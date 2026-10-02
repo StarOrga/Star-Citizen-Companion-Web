@@ -1,3 +1,4 @@
+import { rankBySearch } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -906,19 +907,25 @@ export class CodexListComponent implements OnInit {
    */
   readonly rows = computed<CodexGridRow[]>(() => {
     if (this.includeVariants()) {
-      return this.rawRows().map((r) => ({
+      const raw = this.rawRows().map((r) => ({
         ...r,
         foldedClassNames: [] as readonly string[],
         skinVariants: [] as readonly SkinVariantRef[],
         editions: [] as readonly EditionRef[],
       }));
+      return rankBySearch(this.searchTerm(), raw, (r) => [this.cardName(r), r.nameLocalized, r.classNameSlug]);
     }
     const grouped = groupSkinRows(foldVariantRows(this.rawRows(), (r) => this.cardName(r)));
     // Edition grouping reads a class-name lineage only the vehicle catalog
     // carries, so it stays off every other kind.
-    return this.kind() === 'ship'
-      ? groupEditionRows(grouped)
-      : grouped.map((r) => ({ ...r, editions: [] as readonly EditionRef[] }));
+    const rows: CodexGridRow[] =
+      this.kind() === 'ship'
+        ? groupEditionRows(grouped)
+        : grouped.map((r) => ({ ...r, editions: [] as readonly EditionRef[] }));
+    // The server answers alphabetically; a search puts the exact and prefix
+    // matches first ("gladius" → Gladius before Gladius Valiant before a
+    // Pirate edition), the server order breaking ties.
+    return rankBySearch(this.searchTerm(), rows, (r) => [this.cardName(r), r.nameLocalized, r.classNameSlug]);
   });
   /**
    * Result count with the folded-away duplicates subtracted. Only the loaded

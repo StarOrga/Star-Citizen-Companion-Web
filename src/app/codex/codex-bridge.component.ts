@@ -1,3 +1,4 @@
+import { rankBySearch } from './codex-search';
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -648,6 +649,11 @@ export class CodexBridgeComponent implements OnInit {
   }
 
   clearSearch(): void {
+    // A pending debounce or an in-flight search must not repaint results
+    // after the reader cleared the box.
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchSeq++;
+    this.searching.set(false);
     this.searchInput.set('');
     this.searchTerm.set('');
   }
@@ -658,7 +664,7 @@ export class CodexBridgeComponent implements OnInit {
     try {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
-      this.searchResults.set(res.rows);
+      this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized, r.classNameSlug]));
     } catch (error) {
       logWarn('codex', 'bridge search failed', { term, error });
       if (seq === this.searchSeq) this.searchResults.set([]);

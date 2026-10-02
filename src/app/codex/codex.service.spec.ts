@@ -460,6 +460,30 @@ describe('CodexService archive readers and the build lookup', () => {
     expect(calls.builds).toBe(2);
   });
 
+  it('ANDs one name/className group per search token, tolerant of separators', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls);
+
+    await svc.listByKind('weapon', { search: '  p4ar   Rifle ' });
+
+    // "p4ar" must find "P4-AR": the letter/digit boundary becomes a wildcard,
+    // and every token is its own AND-ed or() group.
+    expect(calls.filters).toContain('codex_weapons:or:name_localized.ilike.*p*4*ar*,class_name.ilike.*p*4*ar*');
+    expect(calls.filters).toContain('codex_weapons:or:name_localized.ilike.*rifle*,class_name.ilike.*rifle*');
+  });
+
+  it('never sends an ILIKE single-character wildcard or or() grammar characters', async () => {
+    const calls: Calls = { builds: 0, filters: [] };
+    const svc = make(calls);
+
+    await svc.listByKind('ship', { search: 'AEGS_glad,(i)' });
+    const groups = calls.filters.filter((f) => f.includes('.ilike.*'));
+
+    expect(groups.length).toBe(3);
+    const patterns = groups.flatMap((g) => [...g.matchAll(/ilike\.([^,]*)/g)].map((m) => m[1]));
+    expect(patterns).toEqual(['*aegs*', '*aegs*', '*glad*', '*glad*', '*i*', '*i*']);
+  });
+
   it('drops nameless records and non-ship vehicles from the default browse only', async () => {
     const calls: Calls = { builds: 0, filters: [] };
     const svc = make(calls);
@@ -648,7 +672,7 @@ describe('CodexService.listFpsCatalog and countSearchMatches', () => {
     expect(counts.get('item')).toBe(4);
     expect(cap.filters).toContain('codex_ships:not:class_name.ilike.SalvageableDebris*');
     expect(cap.filters).toContain('codex_items:eq:is_variant=false');
-    expect(cap.filters).toContain('codex_ships:or:name_localized.ilike.%titan%,class_name.ilike.%titan%');
+    expect(cap.filters).toContain('codex_ships:or:name_localized.ilike.*titan*,class_name.ilike.*titan*');
   });
 
   it('counts nothing for a term with fewer than three characters left after escaping', async () => {

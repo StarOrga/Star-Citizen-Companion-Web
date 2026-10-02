@@ -1,3 +1,4 @@
+import { searchMatcher } from './codex-search';
 import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
@@ -945,14 +946,12 @@ export class CodexSwapPickerComponent {
   });
 
   readonly searched = computed<SwapCandidate[]>(() => {
-    const q = this.query().trim().toLowerCase();
     const scoped = this.typeScoped();
-    if (!q) return scoped;
-    const terms = q.split(/\s+/);
-    return scoped.filter((c) => {
-      const hay = [c.name, c.manufacturerCode, ...c.damageChannels].filter(Boolean).join(' ').toLowerCase();
-      return terms.every((term) => hay.includes(term));
-    });
+    const matches = searchMatcher(this.query());
+    if (!matches) return scoped;
+    // Shared Codex search dialect (codex-search.ts): same tokens, diacritics
+    // and separator rules as every other Codex search box.
+    return scoped.filter((c) => matches(c.name, c.manufacturerCode, ...c.damageChannels));
   });
 
   /** Column keys the extract has no source for at all — omitted + named in the footer. */

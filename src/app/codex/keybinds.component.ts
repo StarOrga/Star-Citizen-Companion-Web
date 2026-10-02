@@ -1,3 +1,4 @@
+import { searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -776,7 +777,7 @@ export class KeybindsComponent implements OnInit {
   /** Filtered actions grouped by actionmap, in document order. */
   readonly groups = computed<KeybindGroup[]>(() => {
     const dev = this.device();
-    const term = this.searchInput().trim().toLowerCase();
+    const matches = searchMatcher(this.searchInput());
     const labels = this.labels();
     const labelsEn = this.labelsEn();
     const cats = this.cats.byAction();
@@ -801,7 +802,7 @@ export class KeybindsComponent implements OnInit {
       });
       const binding = b.bindings[dev];
       // The raw key stays searchable even though it is no longer the label.
-      if (term && !`${label.text} ${b.actionName} ${binding ?? ''}`.toLowerCase().includes(term)) {
+      if (matches && !matches(label.text, b.actionName, binding)) {
         continue;
       }
       const key = keybindKey(b.actionmap, b.actionName);
