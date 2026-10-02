@@ -853,7 +853,10 @@ function paintConnection(): void {
     idBlock = `<span class="conn-state">${pillText}</span>`;
   }
 
-  // Middle: server-catalog chips + freshness (only when connected + not syncing).
+  // Second row: server-catalog chips + freshness (only when connected + not
+  // syncing). It used to share the identity row, where the narrow popover
+  // pushed the nowrap chip over the freshness text — on its own row the chips
+  // can wrap and the email + actions keep one clean line.
   let serverBlock = '';
   if (s?.connected && !conn.syncing) {
     if (snap) {
@@ -864,14 +867,14 @@ function paintConnection(): void {
         )
         .join('');
       serverBlock = `
-        <span class="conn-div" aria-hidden="true"></span>
-        <span class="conn-srv-ico" aria-hidden="true">${IC_CLOUD}</span>
-        <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty')}</span>`}</div>
-        <span class="conn-fresh">· ${t('sync.lastSynced', { when: relTime(snap.syncedAt) })}</span>`;
+        <div class="conn-server">
+          <span class="conn-srv-ico" aria-hidden="true">${IC_CLOUD}</span>
+          <div class="conn-chips">${chips || `<span class="conn-empty">${t('sync.empty')}</span>`}</div>
+          <span class="conn-fresh">${t('sync.lastSynced', { when: relTime(snap.syncedAt) })}</span>
+        </div>`;
     } else {
       serverBlock = `
-        <span class="conn-div" aria-hidden="true"></span>
-        <span class="conn-fresh">${t('sync.idle')}</span>`;
+        <div class="conn-server"><span class="conn-fresh">${t('sync.idle')}</span></div>`;
     }
   }
 
@@ -903,10 +906,10 @@ function paintConnection(): void {
       <div class="conn-bar">
         <span class="conn-dot conn-dot--${pillCls}" data-tip="${escapeHtml(pillText)}" data-tip-tier="label"></span>
         <div class="conn-idwrap">${idBlock}</div>
-        ${serverBlock}
         <span class="conn-spacer"></span>
         <div class="conn-actions">${actions}</div>
       </div>
+      ${serverBlock}
       ${syncBar}
       ${persistNote}
       ${errorRow}
