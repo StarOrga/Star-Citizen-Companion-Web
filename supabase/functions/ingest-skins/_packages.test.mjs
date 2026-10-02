@@ -67,7 +67,7 @@ describe('class names and kinds', () => {
     assert.ok(!CLASS_NAME.test('../a'));
     assert.ok(!CLASS_NAME.test('a/b'));
     assert.ok(!CLASS_NAME.test(''));
-    assert.ok(isPackageKind('fps_weapon') && !isPackageKind('vehicle'));
+    assert.ok(isPackageKind('fps_weapon') && isPackageKind('item') && !isPackageKind('vehicle'));
   });
 });
 
@@ -82,6 +82,11 @@ describe('parseManifest', () => {
   it('an fps root is a part', () => {
     const m = { ...shipManifest(), kind: 'fps_weapon', interior: null };
     const r = parseManifest(m);
+    assert.deepEqual(r.parts.map((p) => p.sha).sort(), [SHA, SHA3]);
+    assert.equal(r.totalBytes, 1200);
+  });
+  it('an item root is a part', () => {
+    const r = parseManifest({ ...shipManifest(), kind: 'item', interior: null });
     assert.deepEqual(r.parts.map((p) => p.sha).sort(), [SHA, SHA3]);
     assert.equal(r.totalBytes, 1200);
   });

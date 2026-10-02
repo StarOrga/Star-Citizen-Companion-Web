@@ -230,7 +230,7 @@ async function handlePackage(
     );
   }
   const kind = body.kind;
-  if (!isPackageKind(kind)) return json({ error: 'invalid_body', message: 'kind must be ship|fps_weapon' }, 400);
+  if (!isPackageKind(kind)) return json({ error: 'invalid_body', message: 'kind must be ship|fps_weapon|item' }, 400);
   const entityClass = typeof body.entity_class === 'string' ? body.entity_class.trim() : '';
   if (!CLASS_NAME.test(entityClass)) {
     return json({ error: 'unsafe_id', message: 'entity_class is not a safe class name' }, 400);

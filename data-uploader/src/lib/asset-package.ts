@@ -4,16 +4,16 @@
  * retry / concurrency primitives the transport uses. No I/O, no Electron.
  */
 
-export type PackageKind = 'ship' | 'fps_weapon';
+export type PackageKind = 'ship' | 'fps_weapon' | 'item';
 export type PackageObjectType = 'part' | 'interior' | 'manifest';
 
-/** Extra `skin_export_app` flags: every ship builds its package + interior; FPS on request. */
-export function packageExportArgs(req: { fps?: boolean }): string[] {
-  return ['--package', '--interior', ...(req.fps ? ['--fps'] : [])];
+/** Extra `skin_export_app` flags: every ship builds its package + interior; FPS and items on request. */
+export function packageExportArgs(req: { fps?: boolean; items?: boolean }): string[] {
+  return ['--package', '--interior', ...(req.fps ? ['--fps'] : []), ...(req.items ? ['--items'] : [])];
 }
 
 /** Folders the exporter writes next to the ship folders — never a ship. */
-const NON_SHIP_DIRS = new Set(['_parts', '_interiors', '_work_parts', '_fps', '_manifests']);
+const NON_SHIP_DIRS = new Set(['_parts', '_interiors', '_work_parts', '_fps', '_items', '_manifests']);
 
 /** True for a real ship folder name; the export's shared/scratch dirs are not. */
 export function isShipFolder(name: string): boolean {
@@ -52,7 +52,7 @@ export function planPackage(manifest: unknown, manifestSha: string, manifestByte
   };
   if (!m || typeof m !== 'object') throw new Error('manifest is not an object');
   if (m.schemaVersion !== 1) throw new Error(`unsupported manifest schemaVersion ${String(m.schemaVersion)}`);
-  if (m.kind !== 'ship' && m.kind !== 'fps_weapon') throw new Error('manifest kind must be ship or fps_weapon');
+  if (m.kind !== 'ship' && m.kind !== 'fps_weapon' && m.kind !== 'item') throw new Error('manifest kind must be ship, fps_weapon or item');
   const entityClass = typeof m.entity?.className === 'string' ? m.entity.className : '';
   if (!entityClass) throw new Error('manifest has no entity.className');
 
@@ -67,7 +67,7 @@ export function planPackage(manifest: unknown, manifestSha: string, manifestByte
     objects.push({ type, sha256: sha, bytes });
   };
   for (const [sha, p] of Object.entries(m.parts ?? {})) add('part', sha, p?.bytes);
-  if (m.kind === 'fps_weapon' && m.root) add('part', m.root.sha256, m.root.bytes);
+  if (m.kind !== 'ship' && m.root) add('part', m.root.sha256, m.root.bytes);
   if (m.interior) add('interior', m.interior.sha256, m.interior.bytes);
   add('manifest', manifestSha, manifestBytes);
   return { kind: m.kind, entityClass, objects };

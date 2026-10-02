@@ -19,10 +19,10 @@
 
 import { hullSha, sha256Hex } from './_hulls.ts';
 
-export type PackageKind = 'ship' | 'fps_weapon';
+export type PackageKind = 'ship' | 'fps_weapon' | 'item';
 export type PackageObjectType = 'part' | 'interior' | 'manifest' | 'hull';
 
-export const PACKAGE_KINDS: readonly PackageKind[] = ['ship', 'fps_weapon'];
+export const PACKAGE_KINDS: readonly PackageKind[] = ['ship', 'fps_weapon', 'item'];
 export const MIN_PACKAGE_TOOL_VERSION = [0, 41, 0];
 export const SUPPORTED_SCHEMA_VERSION = 1;
 
@@ -48,7 +48,7 @@ const EXT: Record<PackageObjectType, string> = { part: 'glb', interior: 'glb', m
 export const CLASS_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 export function isPackageKind(v: unknown): v is PackageKind {
-  return v === 'ship' || v === 'fps_weapon';
+  return v === 'ship' || v === 'fps_weapon' || v === 'item';
 }
 
 export function isPackageObjectType(v: unknown): v is PackageObjectType {
@@ -104,7 +104,7 @@ export function parseManifest(json: unknown): ManifestRefs | string {
   if (!json || typeof json !== 'object') return 'manifest is not an object';
   const m = json as Record<string, unknown>;
   if (m.schemaVersion !== SUPPORTED_SCHEMA_VERSION) return `unsupported schemaVersion ${String(m.schemaVersion)}`;
-  if (!isPackageKind(m.kind)) return 'manifest kind must be ship|fps_weapon';
+  if (!isPackageKind(m.kind)) return 'manifest kind must be ship|fps_weapon|item';
   const entity = m.entity as { className?: unknown } | undefined;
   const entityClass = typeof entity?.className === 'string' ? entity.className : '';
   if (!CLASS_NAME.test(entityClass)) return 'manifest entity.className is not a safe class name';
@@ -134,8 +134,8 @@ export function parseManifest(json: unknown): ManifestRefs | string {
     if (bytes > MAX_BYTES.part) return `part ${sha} over the size limit`;
     parts.push({ sha, bytes });
   }
-  // A weapon's root lives in _parts/ (ships' hulls live in _hulls/).
-  if (m.kind === 'fps_weapon' && root && !parts.some((p) => p.sha === root.sha)) {
+  // A weapon's or item's root lives in _parts/ (ships' hulls live in _hulls/).
+  if (m.kind !== 'ship' && root && !parts.some((p) => p.sha === root.sha)) {
     parts.push({ sha: root.sha, bytes: root.bytes });
   }
   const partCount = parts.length;

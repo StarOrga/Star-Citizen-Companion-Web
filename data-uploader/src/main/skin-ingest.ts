@@ -200,7 +200,7 @@ export async function uploadSkins(
     }
   };
   let processed = 0;
-  // The exporter's shared/scratch folders (`_parts`, `_interiors`, …) are not ships.
+  // The exporter's shared/scratch folders (`_parts`, `_interiors`, ï¿½) are not ships.
   for (const { shipId, dir } of ships.filter((x) => isShipFolder(x.shipId))) {
     try {
       // Safe boundary between ships â€” a pause here costs nothing to replay.
@@ -337,24 +337,31 @@ export async function uploadSkins(
       hooks.onProgress?.(++processed, ships.length, shipId);
     }
   }
-  // FPS weapon packages (`<out>/_fps/<className>/package.json`) share the export
-  // root with the ships and ride the same run; they need no ship hull.
+  // FPS weapon (`<out>/_fps/<className>/`) and vehicle item (`<out>/_items/<className>/`)
+  // packages share the export root with the ships and ride the same run; they need no hull.
   if (!packageGate && ships.length > 0) {
     const root = exportRootOf(ships[0].dir);
-    const fpsDir = resolve(root, '_fps');
-    const classes = existsSync(fpsDir)
-      ? readdirSync(fpsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
-      : [];
-    let ok = 0;
-    for (const className of classes) {
-      const r = await uploadPackage(
-        { kind: 'fps_weapon', dir: resolve(fpsDir, className), outRoot: root },
-        { call: (body) => callIngest(getToken, body), onLog, control: hooks.control, known: knownObjects },
-      );
-      if (r.ok) ok++;
-      if (r.gate) break;
+    for (const [kind, sub, label] of [
+      ['fps_weapon', '_fps', 'FPS weapon'],
+      ['item', '_items', 'Item'],
+    ] as const) {
+      const kindDir = resolve(root, sub);
+      const classes = existsSync(kindDir)
+        ? readdirSync(kindDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+        : [];
+      let ok = 0;
+      let gated = false;
+      for (const className of classes) {
+        const r = await uploadPackage(
+          { kind, dir: resolve(kindDir, className), outRoot: root },
+          { call: (body) => callIngest(getToken, body), onLog, control: hooks.control, known: knownObjects },
+        );
+        if (r.ok) ok++;
+        if (r.gate) { gated = true; break; }
+      }
+      if (classes.length) onLog(`${label} packages: ${ok}/${classes.length} live`, ok === classes.length ? 'info' : 'warn');
+      if (gated) break;
     }
-    if (classes.length) onLog(`FPS weapon packages: ${ok}/${classes.length} live`, ok === classes.length ? 'info' : 'warn');
   }
   return out;
 }

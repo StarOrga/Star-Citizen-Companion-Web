@@ -11,12 +11,12 @@
 -- prefixes, fetch every manifest still named by a row here, delete the rest.
 
 create table if not exists public.asset_packages (
-  kind            text   not null check (kind in ('ship', 'fps_weapon')),
+  kind            text   not null check (kind in ('ship', 'fps_weapon', 'item')),
   entity_class    text   not null,            -- manifest entity.className (codex_items.class_name)
   ship_id         text,                       -- ships only: ship_skins.ship_id this belongs to
   manifest_sha256 text   not null check (manifest_sha256 ~ '^[0-9a-f]{64}$'),
   manifest_bytes  integer not null check (manifest_bytes > 0),
-  root_sha256     text   check (root_sha256 ~ '^[0-9a-f]{64}$'),      -- ship: _hulls/, fps_weapon: _parts/
+  root_sha256     text   check (root_sha256 ~ '^[0-9a-f]{64}$'),      -- ship: _hulls/, fps_weapon/item: _parts/
   interior_sha256 text   check (interior_sha256 ~ '^[0-9a-f]{64}$'),  -- _interiors/
   part_count      integer not null default 0,
   total_bytes     bigint  not null default 0, -- root + interior + parts, before cross-entity dedup

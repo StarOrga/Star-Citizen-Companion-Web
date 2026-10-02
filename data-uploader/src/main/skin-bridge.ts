@@ -49,6 +49,12 @@ export interface SkinExportRequest {
    * ships always get `--package --interior`.
    */
   fps?: boolean;
+  /**
+   * Also export every standalone vehicle item package (components, ship weapons,
+   * missiles, racks — `--items`, `_items/<className>/package.json`). Same parts
+   * store as the ships, so a docked component and its item page share one GLB.
+   */
+  items?: boolean;
 }
 
 export interface SkinEntry {
