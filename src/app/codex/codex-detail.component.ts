@@ -239,7 +239,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              this template, rendered in both branches (D17). -->
         @if (kind() !== 'ship') {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
-        <div class="m-top" [class.ship-mode]="kind() === 'ship'">
+        <div class="m-top">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
              A ship gets the concept's BÜHNE (§2): the art fills the card, the
@@ -614,15 +614,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (discardDraft)="discardLoadoutDraft()"
             (configRefreshed)="activeHangarConfig.set($event)"
             (sheetChange)="powerSheet.set($event)"
-            (artAvailable)="onArtAvailable($event)"
             (arrivedShip)="onHoloArrived($event)"
             [linkCopied]="linkCopied()"
             (copyShareLink)="copyShareLink()">
             <!-- Details drawer content, projected into the Holotable: the
-                 shared sub-components in detail/ and the shared ng-templates,
-                 rendered in both branches, on the SAME signals/methods as the
-                 classic view (item B "present, not hidden behind a code
-                 path"). -->
+                 shared sub-components in detail/ and the shared ng-templates. -->
             <div class="holo-details-pickers">
               @if (editionOptions().length > 1) {
                 <sc-codex-variant-picker variant="edition" [kind]="detail()!.kind" [currentSlug]="detail()!.classNameSlug"
@@ -685,7 +681,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
       <sc-codex-weapon-detail [entry]="weaponDetail()" (closed)="closeWeaponDetail()" />
 
-      <!-- Shared by the classic view and the Holotable drawer, which renders
+      <!-- Shared by the non-ship pages and the Holotable drawer, which renders
            them into its projected details (same view, so these rules stay
            in this component's style block). -->
       <!-- ── Zelle & feste Systeme — BELOW the paints block (feedback #236:
@@ -755,7 +751,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
-    .m-top.ship-mode { grid-template-columns: 1fr 1fr; }
 
     /* Loadout | Analyse (MASTER §1/§6/§7) */
     .m-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
@@ -779,50 +774,18 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .col-head .head-note { flex: 0 0 auto; text-transform: none; letter-spacing: normal; }
     .col-head .head-note p { margin: 0 0 6px; }
     .col-head .head-note p:last-child { margin-bottom: 0; }
-    .col-analyse { display: flex; flex-direction: column; gap: 12px; }
 
     @media (max-width: 1100px) {
-      .m-top.ship-mode { grid-template-columns: 1fr; }
       .m-cols { grid-template-columns: 1fr; }
     }
-
-    /* Mission + draft bar (MASTER §5): the lens chips share their row with the
-       loadout draft's persistence/discard/apply controls. */
-    .mission-draft-bar { display: flex; align-items: center; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap; }
-    .mission-draft-bar sc-codex-mission-bar { flex: 1 1 auto; min-width: 0; }
-    .draft-controls { flex: 0 0 auto; }
-
-    /* The ship stage's own hero chip row (.hchip, career/role/crew/cargo/mass)
-       moved to sc-codex-ship-stage (AUD-062) along with everything else the
-       stage renders — nothing else on this page uses that class. */
 
     /* Data provenance pill: gold when a re-extract is pending (MASTER §2/§11). */
     .data-pill.pending { color: var(--sc-warn); border: 1px dashed color-mix(in srgb, var(--sc-warn) 45%, transparent);
       border-radius: 999px; padding: 3px 10px; background: color-mix(in srgb, var(--sc-warn) 10%, transparent); }
 
-    /* The hero and the tool row are one unit and share the masthead's left
-       half, so the row sits directly under the stage rather than in the next
-       grid track. */
+    /* The hero and whatever sits under it share the masthead's left half. */
     .hero-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 
-    /* ── BUEHNE (concept section 2) ── sc-codex-ship-stage (AUD-062) renders
-       with display:contents inside this header, so its content becomes this
-       grid's own items; only the card chrome (the 246px grid, the bottom-wash
-       pseudo) stays here — the stage's own rules moved with its template. */
-    .hero.stage { display: grid; grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(56px, 1fr) auto; position: relative;
-      min-height: 246px; padding: 12px 14px;
-      overflow: hidden; background: var(--sc-bg-1); }
-    /* The art is the card; everything readable sits in the band at its foot,
-       so the wash comes up from the bottom instead of across the diagonal —
-       the same shape a codex fleet tile uses for its caption. */
-    .hero.stage::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent) 0%,
-        color-mix(in srgb, var(--sc-bg-0) 72%, transparent) 34%, transparent 68%); }
-
-    /* The four frequent actions in their own row directly under the stage. */
-    .stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     /* The one button on this page (concept section 2, part-02:159). Never the
        hot accent: nothing here is admin-gated. A 3px rectangle with a 10px
        uppercase label at .12em - the mock's button, not a pill.
@@ -830,7 +793,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        they no longer need to, because this rule IS the concept's button at
        every occurrence, so the four German labels on the half-width hero and
        the ones in the tool row are one and the same control. */
-    .btn, .pin { position: relative; display: inline-flex; align-items: center; gap: 5px;
+    .pin { position: relative; display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 8px; min-height: 48px;
       border: 1px solid var(--sc-border); border-radius: 3px;
       background: color-mix(in srgb, var(--sc-bg-0) 72%, transparent);
@@ -841,29 +804,15 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        coarse pointers - and therefore the mobile gate, which emulates one -
        keep the 48px floor declared above. */
     @media (pointer: fine) {
-      .btn, .pin { min-height: 24px; }
+      .pin { min-height: 24px; }
     }
-    .btn:hover, .pin:hover { color: var(--sc-fg-0);
+    .pin:hover { color: var(--sc-fg-0);
       border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0)); }
-    .btn.on, .pin.pinned { color: var(--sc-accent);
+    .pin.pinned { color: var(--sc-accent);
       border-color: color-mix(in srgb, var(--sc-accent) 62%, var(--sc-bg-0));
       background: color-mix(in srgb, var(--sc-accent) 18%, transparent); }
-    .btn:focus-visible, .pin:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .btn:disabled, .pin:disabled { opacity: 0.38; cursor: not-allowed; }
-    .btn.quiet { text-transform: none; letter-spacing: 0; background: transparent; }
-
-    /* The 2D/3D switch (.view-switch) moved to sc-codex-ship-stage — see
-       codex-ship-stage.component.ts. */
-
-    /* ── WERKZEUGZEILE ────────────────────────────────────────────────────
-       One flat row, no card: Ausfuehrung, Lackierung, then the rarer actions
-       pushed to the end (the module census sits on the stage now). */
-    .toolrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-      padding: 6px 2px; border-top: 1px solid var(--sc-border); }
-    /* The spacer that pushes the rarer actions to the row's end lives in
-       sc-codex-ship-actions (display:contents keeps it in this flex row). */
-    /* The pickers' tool-row sizing lives in sc-codex-variant-picker
-       (:host(.in-toolrow)). */
+    .pin:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .pin:disabled { opacity: 0.38; cursor: not-allowed; }
 
     /* Hero */
     .hero { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 22px; padding: 0; overflow: hidden; }
@@ -878,18 +827,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
     .hero-art .art { flex: 1 1 auto; align-self: stretch; min-width: 0;
       display: flex; align-items: center; justify-content: center; }
-    /* Bay scene (ships): dim hangar light + rim glow around the hull. The
-       frame gets atmospheric — every number stays on the calm right side. */
-    .hero.bay .hero-art {
-      background:
-        radial-gradient(ellipse at 50% 62%, color-mix(in srgb, var(--sc-accent) 17%, #05080d), #04060a 78%);
-      border-right: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
-      --sc-img-shadow: drop-shadow(0 12px 34px rgba(0,0,0,0.72))
-                       drop-shadow(0 0 22px color-mix(in srgb, var(--sc-accent) 28%, transparent)); }
-    @media (prefers-reduced-motion: no-preference) {
-      .hero.bay .hero-art:not(.icon-only) .art { animation: bay-drift 6s ease-in-out infinite alternate; }
-      @keyframes bay-drift { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
-    }
     /* No artwork anywhere: say so instead of leaving a lost glyph in a big
        empty frame — the catalog simply has no render for this hull yet. */
     .hero-art .art-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -910,10 +847,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .f-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     .f-value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
     .fact.accent .f-value { color: var(--sc-accent); }
-
-    /* Module census (bottom-right of the stage): .loadout-summary/.ls-* moved
-       to sc-codex-ship-stage along with the template that uses them — no
-       other section on this page renders that vocabulary. */
 
     .hero-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 12px; flex-wrap: wrap; }
     .copy-toast { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
@@ -1011,14 +944,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       .hero-art { min-height: 180px; }
       .hero-body { padding: 20px; }
       .dmg { grid-template-columns: 84px 1fr 56px; }
-      /* A phone has no room for four overlays on one picture: the stage keeps
-         the art and the name, and hands chips and actions to normal flow
-         underneath it. Nothing is dropped, nothing overlaps. The stage's own
-         rules for this breakpoint live in sc-codex-ship-stage now; only the
-         card chrome (grid → flex, the wash's height) stays here. */
-      .hero.stage { display: flex; flex-direction: column; min-height: 0; padding: 0; gap: 0; }
-      .hero.stage::before { inset: 0 0 auto 0; height: 190px; }
-      .stage-actions .btn { flex: 1 1 auto; justify-content: center; }
     }
     @media (max-width: 400px) {
       .hero-body { padding: 16px; }
@@ -1029,11 +954,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 })
 /**
  * The codex detail page (/codex/:kind/:className): every catalog kind, and for
- * ships the classic view plus the Holotable.
+ * ships the Holotable (the only ship view since 2026-10-02).
  *
  * What lives where (D17, AUD-090):
  * - detail/codex-detail.types.ts — the page's shared types (StageCountChip, …)
- * - detail/codex-ship-stage.component.ts — the ship hero stage (AUD-062)
  * - detail/codex-variant-picker.component.ts — skin and edition pickers
  * - detail/codex-ship-actions.component.ts + codex-ship-link-form.component.ts
  *   — tool-row actions and the RSI pledge-link form, state in
@@ -1069,21 +993,6 @@ export class CodexDetailComponent implements OnInit {
     const d = this.detail();
     return !!d && this.hangar.ships().some((s) => s.shipClassName === d.classNameSlug);
   });
-  /** The skin catalog actually has a 3D model — no model, no switch. */
-  readonly has3dView = signal(false);
-
-  /**
-   * Availability LATCHES. A freshly mounted viewer reports "no model" for one
-   * turn while its catalog request is still in flight — and the viewer remounts
-   * every time the switch is pressed, because it moves between the stage and
-   * the livery section. Without the latch the switch would vanish under the
-   * user's finger the moment they pressed it, stranding them in 3D. Cleared
-   * only when the page loads a different ship (see load()).
-   */
-  onArtAvailable(available: boolean): void {
-    if (available) this.has3dView.set(true);
-  }
-
   /** Wave 2 arrival animation: cut to "already arrived" on a repeat visit
    * within the same tab session (concept: "repeat visit in the session =
    * cut only"). */
@@ -1247,7 +1156,7 @@ export class CodexDetailComponent implements OnInit {
   // promoted link is admin-curated. Own link wins so a user's correction always
   // beats the catalog-wide one.
   // State and actions live in ShipLinkFormStore (provided below, shared by
-  // the classic view and the Holotable drawer).
+  // the Holotable drawer's ship actions and link form).
   readonly shipLinkForm = inject(ShipLinkFormStore);
   /** Copy-link toast state (MASTER §2 / R-t1): a plain timed signal, no shared toast service exists yet. */
   readonly linkCopied = signal(false);
@@ -1428,8 +1337,6 @@ export class CodexDetailComponent implements OnInit {
   private async load(kind: CodexKind, className: string): Promise<void> {
     const seq = ++this.loadSeq;
     if (kind === 'ship') this.initHoloView(className);
-    // A new ship is a new answer to "is there a model?" — see onArtAvailable.
-    this.has3dView.set(false);
     this.loading.set(true);
     this.error.set(null);
     this.expandedPort.set(null);
@@ -1907,9 +1814,8 @@ export class CodexDetailComponent implements OnInit {
     void this.router.navigate(['/codex', 'ship', classNameSlug]);
   }
 
-  /** HangarPicker `open` — neither the classic hero nor the Holotable dock has
-   * an overlay yet (same gap as the Codex landing, M3/M4 out of this scope);
-   * both open the hangar page. */
+  /** HangarPicker `open` — the Holotable dock has no overlay yet (same gap as
+   * the Codex landing, M3/M4 out of this scope); it opens the hangar page. */
   onHangarPickerOpen(): void {
     void this.router.navigateByUrl('/hangar');
   }
@@ -2616,7 +2522,6 @@ export class CodexDetailComponent implements OnInit {
    *  and the analysis panels' default collapse state. */
   readonly foldedModuleSections = computed(() => foldedSectionsFor(this.activeMission()));
   readonly moduleSectionOrder = computed(() => this.activeMission().order);
-  readonly offensiveStartsCollapsed = computed(() => this.foldedModuleSections().has('weapons'));
 
   /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured (buildShipFactGroups). */
   readonly shipFactGroups = computed<ShipFactGroup[]>(() => {

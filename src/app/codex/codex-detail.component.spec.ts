@@ -1,4 +1,6 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { provideRouter } from '@angular/router';
@@ -206,13 +208,6 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
   });
 
 
-  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
-
-
-
-  // ── decision 1: the BÜHNE and the tool row under it ──────────────────────
-
-
   it('states the role once — in the eyebrow beside the maker, not also as a chip', () => {
     const el: HTMLElement = fixture.nativeElement;
     const eyebrow = el.querySelector('.hero.stage .mfr')?.textContent?.trim() ?? '';
@@ -252,14 +247,6 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
     // The Nomad fixture HAS flight data, so the note must stay silent here.
     expect(flight?.note).toBeNull();
     expect(flight?.rows.length).toBe(6);
-  });
-
-  // ── decision 4: the 2D/3D switch on the hero card ────────────────────────
-
-  it('offers no view switch while the ship has no 3D model', () => {
-    const el: HTMLElement = fixture.nativeElement;
-    expect(fixture.componentInstance.has3dView()).toBeFalse();
-    expect(el.querySelector('.view-switch')).toBeNull();
   });
 
   // ── the concept's page skeleton ──────────────────────────────────────────
@@ -309,6 +296,15 @@ describe('CodexDetailComponent — stage census (feedback 140dfb7e)', () => {
     // …which is exactly what the armament block says.
     const block = fixture.componentInstance.moduleSections().find((s) => s.section === 'weapons');
     expect(block?.slots.length).toBe(3);
+  });
+
+  it('counts the missiles the racks carry and names the rack count as detail', () => {
+    const missiles = fixture.componentInstance.stageCounts().find((c) => c.group === 'missiles');
+    expect(missiles?.count).toBe(8);
+    expect(missiles?.labelKey).toBe('codex.moduleSection.missiles');
+    expect(missiles?.detailKey).toBe('codex.detail.stageLaunchers');
+    expect(missiles?.detailCount).toBe(2);
+    expect(holoStage(fixture).stageCounts()).toEqual(fixture.componentInstance.stageCounts());
   });
 
 });
@@ -870,8 +866,8 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(hangar.updateConfig).not.toHaveBeenCalled();
       // No translate loader in Karma: instant() hands back the key itself.
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
-      // The Holotable shows it in the inspector's save bar once the arrival
-      // is done (bodyReady); the arrival does not run to its end in Karma.
+      // Visible without waiting for the arrival or opening the right rail.
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
     });
 
     it('closes the picker and drafts nothing when the pick carries no raw port', async () => {
@@ -922,4 +918,223 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
     });
   });
 
+});
+
+// ── Holotable helpers ───────────────────────────────────────────────────────
+
+function holoStage(fixture: ComponentFixture<CodexDetailComponent>): CodexHoloStageComponent {
+  const de = fixture.debugElement.query(By.directive(CodexHoloStageComponent));
+  expect(de).withContext('Holotable rendered').not.toBeNull();
+  return de.componentInstance as CodexHoloStageComponent;
+}
+
+/** Runs the arrival to its end (what reduced motion or a repeat visit does). */
+function arrive(fixture: ComponentFixture<CodexDetailComponent>): void {
+  holoStage(fixture).phase.set('done');
+  fixture.detectChanges();
+}
+
+function openDetails(fixture: ComponentFixture<CodexDetailComponent>): HTMLElement {
+  const el: HTMLElement = fixture.nativeElement;
+  (el.querySelector('.details-toggle') as HTMLButtonElement).click();
+  fixture.detectChanges();
+  const body = el.querySelector('.details-body') as HTMLElement;
+  expect(body).withContext('details drawer open').not.toBeNull();
+  return body;
+}
+
+describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+
+  beforeEach(async () => {
+    fixture = await setup('ship');
+  });
+
+  it('hands the census, counted from the loadout blocks themselves, to the Holotable', () => {
+    const cmp = fixture.componentInstance;
+    const chips = cmp.stageCounts();
+    const sections = cmp.moduleSections();
+    // One chip per block, the airframe excluded.
+    expect(chips.length).toBe(cmp.moduleCount() + cmp.tailModuleCount() - 1);
+    expect(chips.find((c) => c.group === 'structure')).toBeUndefined();
+    const weapons = chips.find((c) => c.group === 'weapons');
+    expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);
+    expect(weapons?.labelKey).toBe('codex.moduleSection.weapons');
+    expect(holoStage(fixture).stageCounts()).toEqual(chips);
+  });
+
+  it('has exactly one source for the equipped mass', () => {
+    arrive(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    // Every perspective tile unfolded — the ship panel is one of them.
+    el.querySelectorAll<HTMLButtonElement>('.tile-expand').forEach((b) => b.click());
+    fixture.detectChanges();
+    const massRows = Array.from(el.querySelectorAll('dt')).filter((dt) =>
+      dt.textContent?.includes('codex.hull.equippedMass'),
+    );
+    // Two perspective tiles unfold the same ship panel, so the row may show
+    // twice — but always from the one source (the draft), never two values.
+    expect(massRows.length).toBeGreaterThan(0);
+    const values = new Set(massRows.map((dt) => dt.nextElementSibling?.textContent?.trim()));
+    expect(values.size).toBe(1);
+  });
+
+  it('lists every loadout block once in the ports list, and the airframe card counts its blocks', () => {
+    const cmp = fixture.componentInstance;
+    const el: HTMLElement = fixture.nativeElement;
+    // The Nomad fixture has more sections than blocks — that is the whole point.
+    const sections = cmp.moduleSections().filter((s) => s.slots.length > 0);
+    expect(cmp.moduleCount()).toBeLessThan(sections.length);
+    const listed = el.querySelectorAll('.below-ports .mod-sec').length;
+    expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
+    const body = openDetails(fixture);
+    expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
+  });
+
+  // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
+  it('locks "add to hangar" while the insert runs and alerts when it fails', async () => {
+    const hangar = TestBed.inject(HangarService);
+    let resolve!: (v: null) => void;
+    const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
+    const body = openDetails(fixture);
+    const btn = body.querySelector('.add-hangar') as HTMLButtonElement;
+    expect(btn).withContext('add-to-hangar button rendered').not.toBeNull();
+
+    btn.click();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeTrue();
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    void fixture.componentInstance.addToHangar();
+    expect(addShip).toHaveBeenCalledTimes(1);
+
+    resolve(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(btn.disabled).toBeFalse();
+    const alert = body.querySelector('.add-err[role="alert"]');
+    expect(alert).not.toBeNull();
+    expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
+  });
+});
+
+describe('CodexDetailComponent — Holotable copy link', () => {
+  let fixture: ComponentFixture<CodexDetailComponent>;
+  beforeEach(async () => {
+    fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+  });
+
+  function openShareCopy(): HTMLButtonElement {
+    const el: HTMLElement = fixture.nativeElement;
+    const share = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).find((b) =>
+      (b.textContent ?? '').includes('codex.holo.stage.viewShare'),
+    );
+    expect(share).withContext('share button rendered').toBeDefined();
+    share!.click();
+    fixture.detectChanges();
+    const copy = el.querySelector('.link-copy') as HTMLButtonElement;
+    expect(copy).withContext('copy row rendered').not.toBeNull();
+    return copy;
+  }
+
+  it('confirms for two seconds after the URL reached the clipboard', fakeAsync(() => {
+    const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+    const copy = openShareCopy();
+    expect(copy.classList).not.toContain('done');
+
+    copy.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(write).toHaveBeenCalledOnceWith(location.href);
+    expect(copy.classList).toContain('done');
+    expect(copy.textContent).toContain('codex.holo.share.copied');
+
+    tick(1999);
+    fixture.detectChanges();
+    expect(copy.classList).withContext('still confirmed just before 2 s').toContain('done');
+    tick(1);
+    fixture.detectChanges();
+    expect(copy.classList).not.toContain('done');
+  }));
+
+  it('confirms nothing when the browser denies the clipboard', fakeAsync(() => {
+    spyOn(navigator.clipboard, 'writeText').and.rejectWith(new Error('denied'));
+    const copy = openShareCopy();
+    copy.click();
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(copy.classList).not.toContain('done');
+  }));
+});
+
+describe('CodexDetailComponent — Holotable RSI pledge link', () => {
+  it('offers no link form to a signed-out reader', async () => {
+    const fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+    const body = openDetails(fixture);
+    const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
+    expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
+    // The RSI link itself stays: a plain anchor into a new tab.
+    const rsi = body.querySelector('a.rsi-link') as HTMLAnchorElement;
+    expect(rsi).not.toBeNull();
+    expect(rsi.target).toBe('_blank');
+    expect(rsi.rel).toContain('noopener');
+  });
+
+  it('opens the form for a signed-in reader and names a rejected URL', async () => {
+    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
+    const fixture = await setupCharacterisation({
+      params: { kind: 'ship', className: 'cnou_nomad' },
+      user: { id: 'u1' },
+      hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
+    });
+    const el: HTMLElement = fixture.nativeElement;
+    const body = openDetails(fixture);
+    const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
+      (b.textContent ?? '').includes('codex.shipLink.add'),
+    );
+    expect(add).withContext('"add link" button rendered').toBeDefined();
+    expect(el.querySelector('.ship-link-form')).toBeNull();
+
+    add!.click();
+    fixture.detectChanges();
+    const form = el.querySelector('.ship-link-form') as HTMLFormElement;
+    expect(form).not.toBeNull();
+
+    const input = form.querySelector('input.sl-input') as HTMLInputElement;
+    input.value = 'not a url';
+    input.dispatchEvent(new Event('input'));
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
+    const err = el.querySelector('.sl-error');
+    expect(err).not.toBeNull();
+    expect(err!.getAttribute('role')).toBe('alert');
+    expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(el.querySelector('.sl-ok')).toBeNull();
+  });
+
+  it('confirms a saved link', async () => {
+    const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
+    const fixture = await setupCharacterisation({
+      params: { kind: 'ship', className: 'cnou_nomad' },
+      user: { id: 'u1' },
+      hangar: { listConfigs: async () => [] } as Partial<HangarService>,
+      shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
+    });
+    const cmp = fixture.componentInstance;
+    openDetails(fixture);
+    cmp.toggleLinkForm();
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
+      new Event('submit', { cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.sl-error')).toBeNull();
+    expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
+  });
 });

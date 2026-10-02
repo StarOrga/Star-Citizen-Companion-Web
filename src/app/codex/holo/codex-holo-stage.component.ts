@@ -366,7 +366,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               [still]="reducedMotion()"
               (hovered)="hovered.emit($event)"
               (pinInspect)="inspectPin($event)"
-              (artAvailable)="artAvailable.emit($event)"
               (previewError)="previewFailed.set(true)"
               (locatable)="onModelLocatable($event)" />
             @if (viewMode() === '3d') {
@@ -461,6 +460,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         </div>
       }
 
+      <!-- A failed save must never depend on the arrival or the right rail:
+           when the inspector's save bar is not on screen, the stage says it. -->
+      @if (saveErrorElsewhere(); as err) {
+        <p class="save-err" role="alert">{{ err }}</p>
+      }
+
       <!-- ── Details drawer (everything with no other home) ──────────── -->
       <section class="holo-details mobile-data">
         <div class="sh">
@@ -506,6 +511,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   styles: [
 `
   .holo-components { display: block; margin-top: 10px; }
+  .save-err { margin: 0; padding: 8px 12px; border: 1px solid var(--sc-danger); border-radius: var(--holo-r, 6px); color: var(--sc-danger); }
   :host { display: block; }
   .holo-stage {
   --f: var(--sc-fs-floor); --d: var(--sc-font-display); --m: var(--font-monospace, "Share Tech Mono", monospace);
@@ -894,9 +900,6 @@ export class CodexHoloStageComponent {
    * subject switch (navigate + `markShipPicked`) and the hangar-open route. */
   readonly hangarPick = output<string>();
   readonly hangarOpen = output<void>();
-  /** The embedded 3D viewer's catalog answer, forwarded so the host's latch
-   * (`has3dView`) learns about a model from the holo view too. */
-  readonly artAvailable = output<boolean>();
   /** Ports the 3D model resolved (forwarded to the page's locatable set). */
   readonly locatable = output<string[]>();
   /** Ports the 3D model resolved — the component list's "has a position" test. */
@@ -969,6 +972,14 @@ export class CodexHoloStageComponent {
    * first visit starts from an empty stage. */
   readonly hadBody = signal(false);
   /** The panels' bodies exist from the reveal on, so they rise WITH it. */
+  /** The save error, when the inspector's save bar (rail open, arrival done,
+   * a journal to save) is not there to show it. */
+  readonly saveErrorElsewhere = computed(() => {
+    const err = this.saveError();
+    if (!err) return null;
+    const barShown = this.bodyReady() && !this.rightCollapsed() && this.journal().length > 0;
+    return barShown ? null : err;
+  });
   readonly bodyReady = computed(() => this.phase() === 'reveal' || this.phase() === 'done' || this.hadBody());
 
   readonly staticKeys: readonly StaticKey[] = ['crew', 'mass', 'cargo'];
@@ -1081,7 +1092,6 @@ export class CodexHoloStageComponent {
         if (seq !== this.skinsSeq) return;
         const available = skins.some((s) => !!s.modelPath);
         this.has3d.set(available);
-        if (available) this.artAvailable.emit(true);
       }).catch((error) => {
         logWarn('codex', 'holo skin catalog failed', { shipId, error });
         /* catalog unreachable — the toggle simply stays hidden */
