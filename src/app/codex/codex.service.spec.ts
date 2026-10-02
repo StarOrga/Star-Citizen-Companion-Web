@@ -1,5 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { CodexService, manufacturerFacetOptions, manufacturerLabel } from './codex.service';
+import {
+  CODEX_KINDS,
+  CodexKind,
+  CodexService,
+  manufacturerFacetOptions,
+  manufacturerLabel,
+} from './codex.service';
+import { UpcomingShipsService } from './upcoming-ships.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 
@@ -1223,5 +1230,196 @@ describe('CodexService.armorRating', () => {
     const { svc, rpcCalls } = make([{ data: null, error: err, status: 404 }]);
     expect(await svc.armorRating(['A'])).toEqual({ failed: true, error: err });
     expect(rpcCalls()).toBe(1);
+  });
+});
+
+describe('CodexService.searchAll', () => {
+  function listRow(slug: string, name: string | null = slug) {
+    return {
+      classNameSlug: slug,
+      nameLocalized: name,
+      manufacturerCode: null,
+      size: null,
+      grade: null,
+      role: null,
+      crewSize: null,
+      weaponClass: null,
+      componentKind: null,
+      subType: null,
+      attachType: null,
+      speed: null,
+      isVariant: false,
+      payload: {},
+      blueprintCategory: null,
+      blueprintTier: null,
+      craftTimeSec: null,
+    };
+  }
+
+  function make(upcoming: Partial<UpcomingShipsService> = {}): CodexService {
+    TestBed.configureTestingModule({
+      providers: [
+        CodexService,
+        { provide: SupabaseClientProvider, useValue: { client: { from: () => ({}) } } },
+        {
+          provide: UpcomingShipsService,
+          useValue: { searchShips: jasmine.createSpy('searchShips').and.resolveTo([]), ...upcoming },
+        },
+      ],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('answers a blank term with nothing and asks no source', async () => {
+    const svc = make();
+    const list = spyOn(svc, 'listByKind');
+    expect(await svc.searchAll('   ')).toEqual([]);
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it('over-fetches perKind × 4 rows from every kind with the trimmed term', async () => {
+    const svc = make();
+    const list = spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+
+    await svc.searchAll('  gladius ', 5);
+
+    expect(list).toHaveBeenCalledTimes(CODEX_KINDS.length);
+    for (const kind of CODEX_KINDS) {
+      expect(list).toHaveBeenCalledWith(kind, { search: 'gladius', limit: 20 });
+    }
+  });
+
+  it('ranks, dedupes and truncates per kind — the best match survives the alphabetical over-fetch', async () => {
+    const svc = make();
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+      if (kind !== 'weapon') return { rows: [], count: 0 };
+      return {
+        rows: [
+          listRow('a_rifle', 'Aardvark P4 Rifle Mount'),
+          listRow('b_rifle', 'Bravo P4 Rifle'),
+          listRow('b_rifle', 'Bravo P4 Rifle'),
+          listRow('c_rifle', 'Charlie P4 Rifle'),
+          listRow('behr_rifle_p4ar', 'P4-AR Rifle'),
+        ],
+        count: 5,
+      };
+    });
+
+    const hits = await svc.searchAll('p4-ar', 2);
+
+    expect(hits.length).toBe(2);
+    expect(hits[0].classNameSlug).toBe('behr_rifle_p4ar');
+    expect(new Set(hits.map((h) => h.classNameSlug)).size).toBe(2);
+  });
+
+  it('skips a kind whose read fails instead of failing the whole search', async () => {
+    const svc = make();
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+      if (kind === 'ship') throw new Error('timeout');
+      if (kind === 'blueprint') return { rows: [listRow('BP_Gladius', 'Gladius Blueprint')], count: 1 };
+      return { rows: [], count: 0 };
+    });
+
+    const hits = await svc.searchAll('gladius');
+
+    expect(hits.map((h) => `${h.kind}:${h.classNameSlug}`)).toEqual(['blueprint:BP_Gladius']);
+  });
+
+  it('adds announced ships from the upcoming feed as an extra source, tagged upcoming', async () => {
+    const searchShips = jasmine.createSpy('searchShips').and.resolveTo([
+      { id: 'rsi-arrastra', name: 'Arrastra', manufacturer: 'Argo Astronautics', manufacturerCode: 'ARGO' },
+    ]);
+    const svc = make({ searchShips } as Partial<UpcomingShipsService>);
+    spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+
+    const hits = await svc.searchAll('arrastra', 3);
+
+    expect(searchShips).toHaveBeenCalledWith('arrastra', 3);
+    expect(hits.length).toBe(1);
+    expect(hits[0].kind).toBe('upcoming');
+    expect(hits[0].scope).toBe('upcoming');
+    expect(hits[0].nameLocalized).toBe('Arrastra');
+  });
+
+  it('keeps the archive hits when the upcoming feed rejects', async () => {
+    const svc = make({
+      searchShips: jasmine.createSpy('searchShips').and.rejectWith(new Error('proxy down')),
+    } as Partial<UpcomingShipsService>);
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) =>
+      kind === 'ship' ? { rows: [listRow('AEGS_Gladius', 'Gladius')], count: 1 } : { rows: [], count: 0 },
+    );
+
+    const hits = await svc.searchAll('gladius');
+
+    expect(hits.map((h) => h.classNameSlug)).toEqual(['AEGS_Gladius']);
+  });
+});
+
+describe('CodexService.listByKind search post-filter', () => {
+  function make(rows: Record<string, unknown>[], count: number | null): CodexService {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => (table === 'p4k_bundles_public_stats' ? Promise.resolve({ data: [], error: null }) : chain),
+        or: () => chain,
+        not: () => chain,
+        in: () => chain,
+        order: () => chain,
+        range: () => Promise.resolve({ data: rows, count, error: null }),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from } } }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('drops a server false hit for "p4ar" and lowers the count by the dropped rows', async () => {
+    const svc = make(
+      [
+        { class_name: 'behr_rifle_ballistic_01', name_localized: 'P4-AR Rifle' },
+        { class_name: 'DRAK_Caterpillar_BIS2949', name_localized: 'Drake Caterpillar BIS 2949' },
+      ],
+      12,
+    );
+
+    const res = await svc.listByKind('weapon', { search: 'p4ar' });
+
+    expect(res.rows.map((r) => r.classNameSlug)).toEqual(['behr_rifle_ballistic_01']);
+    expect(res.count).toBe(11);
+  });
+
+  it('keeps every row and the server count when no search is set', async () => {
+    const svc = make(
+      [
+        { class_name: 'a', name_localized: 'Alpha' },
+        { class_name: 'b', name_localized: 'Bravo' },
+      ],
+      40,
+    );
+
+    const res = await svc.listByKind('weapon');
+
+    expect(res.rows.length).toBe(2);
+    expect(res.count).toBe(40);
+  });
+
+  it('never reports a count below the rows actually returned', async () => {
+    const svc = make([{ class_name: 'behr_rifle_ballistic_01', name_localized: 'P4-AR Rifle' }], null);
+
+    const res = await svc.listByKind('weapon', { search: 'p4ar' });
+
+    expect(res.count).toBe(1);
   });
 });

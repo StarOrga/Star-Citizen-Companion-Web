@@ -264,6 +264,54 @@ describe('CodexSwapPickerComponent', () => {
     expect(rowNames(fixture.nativeElement)).toEqual(['Omnisky IX Cannon']);
   });
 
+  describe('free-text search', () => {
+    function search(el: HTMLElement, term: string): void {
+      const input = el.querySelector('input[type="search"]') as HTMLInputElement;
+      input.value = term;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    }
+
+    it('finds "CF-337" from a run-together "cf337" — separators between letters and digits are optional', async () => {
+      const el = await open();
+      widenToAllSize(el);
+      search(el, 'cf337');
+      expect(rowNames(fixture.nativeElement)).toEqual(['CF-337 Panther Repeater']);
+    });
+
+    it('ANDs every token of a multi-word term, across name and manufacturer code', async () => {
+      const el = await open();
+      widenToAllSize(el);
+      search(el, 'gatling gat');
+      expect(rowNames(fixture.nativeElement)).toEqual(['Mantis GT-220 Gatling']);
+      search(el, 'gatling amrs');
+      expect(rowNames(fixture.nativeElement)).toEqual([]);
+    });
+
+    it('says "no match" for a term nothing fits, and clearing the box restores every row', async () => {
+      const el = await open();
+      widenToAllSize(el);
+      search(el, 'zzqx');
+      expect(el.querySelector('.pick-row')).toBeNull();
+      expect(el.querySelector('.pick-msg')?.textContent).toContain('codex.swap.noMatch');
+
+      search(el, '');
+      expect(el.querySelector('.pick-msg')).toBeNull();
+      expect(rowNames(fixture.nativeElement).length).toBe(3);
+    });
+
+    it('searches inside the active scope only, and widening the scope keeps the term', async () => {
+      const el = await open();
+      // Default scope `sameClass` holds only the installed repeater.
+      search(el, 'omnisky');
+      expect(el.querySelector('.pick-msg')?.textContent).toContain('codex.swap.noMatch');
+
+      widenToAllSize(el);
+      expect((el.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('omnisky');
+      expect(rowNames(fixture.nativeElement)).toEqual(['Omnisky IX Cannon']);
+    });
+  });
+
   it('closes on Escape', async () => {
     const el = await open();
     const spy = jasmine.createSpy();
