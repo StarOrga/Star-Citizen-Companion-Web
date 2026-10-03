@@ -4,6 +4,38 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.117.0] - 2026-10-03
+
+### Added
+
+- **Codex: Suche auch nach deutschen Namen, mit „Meintest du …“.** Findet die
+  englische Suche nichts, sucht der Codex über die deutschen Namen weiter
+  (Akzente egal, alle Wörter müssen passen). Bei null Treffern schlagen Index,
+  Archiv-Terminal und Bridge-Scanner die nächstliegenden Namen vor
+  (*gladus* → Aegis Gladius). Neue Migration `codex_search_index`
+  (unaccent + Trigramm-Indizes, RPCs `codex_search` / `codex_search_suggest`,
+  ~2,8 MB). Ohne die Migration fällt beides still weg.
+- **Codex: „+ Zum Set“ direkt aus dem FPS-Arsenal.** Auf jeder FPS-Karte und
+  auf der Detailseite von Gegenständen und Waffen wählt ein Popover Set und
+  passenden Slot und rüstet sofort aus, mit Link „Zum Set →“.
+- **Codex: Bridge zeigt „Frisch in diesem Patch“** aus den Werte-Änderungen
+  des aktuellen Builds (versteckt, wenn es keine gibt). Landing-Seite mit
+  Einstieg für leeren Hangar bzw. ohne Set.
+
+### Changed
+
+- **Codex: Archiv-Terminal per Tastatur** (Pfeile, Enter, Escape); jede
+  abgeschickte Suche ist ein Verlaufseintrag.
+- **Codex: FPS-Filter klappen auf Handys** hinter „Filter (n)“ zusammen;
+  Rüstung wird wie Waffen in der Liste ausgerüstet; die Zahlen der Set-Kacheln
+  stimmen mit der Liste überein.
+- **Codex: Tastenbelegungen lesbar** („Leertaste“, „Linke Strg“, sprechende
+  Namen statt Roh-IDs, Umbruch auf Handys); Blaupausen zeigen den
+  Zutatennamen einmal, „SCU“ und „9 min“.
+- **Codex: Tausch-Auswahl, Komponenten- und Waffen-Dialog** nutzen den
+  gemeinsamen Dialog (Fokus, Tab-Falle, Escape).
+- **Hangar: Ein neues Set öffnet sich** direkt nach dem Anlegen.
+
 ## [0.116.0] - 2026-10-03
 
 ### Changed
