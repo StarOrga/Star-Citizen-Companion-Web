@@ -411,8 +411,9 @@ kbd.sc-kbd {
   padding: 10px;
 }
 .connection-popover { width: min(460px, 90vw); }
-.throttle-popover { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+.throttle-popover { display: flex; flex-direction: column; gap: 4px; min-width: 180px; max-width: 300px; }
 .throttle-popover .profile-pill.compact { width: 100%; }
+.throttle-popover-hint { margin: 4px 2px 0; max-width: 220px; font-size: var(--fs-xs); color: var(--sc-fg-2); }
 
 .chevron {
   position: fixed;
@@ -689,11 +690,8 @@ kbd.sc-kbd {
 .discover-update-close:hover { color: var(--sc-fg-0); background: rgba(var(--accent-primary-rgb), 0.1); }
 
 /* ===================================================================
-   Setup step
+   Speed pills (the ⚡ tempo popover)
    =================================================================== */
-.setup-sections { flex-direction: column; gap: 10px; }
-.setup-hint { margin: 0; font-size: var(--fs-sm); color: var(--sc-fg-2); }
-.speed-pills { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
 .profile-pill .desc { font-size: var(--fs-sm); color: var(--sc-fg-2); line-height: 1.4; }
 .profile-pill {
   font: inherit;
@@ -983,12 +981,17 @@ kbd.sc-kbd {
   transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 .throttle-chip:hover { border-color: var(--sc-accent); color: var(--sc-accent); background: var(--sc-bg-2); }
+.throttle-chip--armed { border-color: var(--sc-warning); color: var(--sc-warning); background: rgba(var(--accent-warning-rgb), 0.14); }
+.throttle-chip--armed:hover { border-color: var(--sc-warning); color: var(--sc-warning); }
+.run-chips { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* Category bars — one per entity family. They only ever know a running count
    (no per-category total), so the bar states are honest: empty until the
    first item, a scanning stripe while items arrive, solid success once the
    category is complete, and empty + "—" when a category yielded nothing. */
-.category-bars { display: flex; gap: 12px; flex-wrap: wrap; }
+.category-bars { display: flex; gap: 12px; flex-wrap: wrap; transition: opacity 0.2s; }
+.category-bars--waiting { opacity: 0.45; }
+.category-bars-caption { margin: 0 0 -4px; font-size: var(--fs-xs); color: var(--sc-fg-2); }
 .category-bar { flex: 1 1 140px; min-width: 120px; }
 .category-bar-label { font-family: var(--sc-font-label); font-weight: 600; font-size: var(--fs-xs); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 .category-bar-track {
@@ -1083,18 +1086,6 @@ kbd.sc-kbd {
 .upload-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .upload-card-head h1 { margin: 0; }
 .upload-card > p { margin: 0; color: var(--sc-fg-1); }
-/* Where the data goes — sits where the Extract card has its speed chip. */
-.upload-target-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 4px 12px;
-  border: 1px solid var(--sc-border-ui);
-  border-radius: var(--sc-radius-pill);
-  background: var(--sc-bg-1);
-  color: var(--sc-fg-1);
-  font-size: var(--fs-sm);
-}
 /* Diff vs. the previous bundle: one quiet line like the Extract card's log
    line, opening into the table. */
 .upload-diff-line {
@@ -1436,35 +1427,6 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
 .segment.active { background: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
 .segment:focus-visible { outline-offset: -2px; }
 
-/* "armed" when-done chip (Setup/Run/Upload headers) */
-.armed-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-xs);
-  font-family: var(--sc-font-body);
-  font-weight: 500;
-  letter-spacing: 0;
-  vertical-align: middle;
-  margin-left: 10px;
-  padding: 3px 8px 3px 10px;
-  border-radius: var(--sc-radius-pill);
-  background: rgba(var(--accent-warning-rgb), 0.14);
-  color: var(--sc-warning);
-  border: 1px solid var(--sc-warning);
-}
-.armed-chip button {
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 2px 4px;
-  line-height: 1;
-  font-size: 0.9em;
-  border-radius: var(--sc-radius-pill);
-}
-.armed-chip button:hover { color: var(--sc-danger); background: rgba(var(--accent-danger-light-rgb), 0.15); }
-
 /* Modal shell — confirm dialog, settings dialog and options sheet. */
 .sc-modal-overlay {
   position: fixed;
@@ -1515,15 +1477,16 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
 }
 
 .sc-sheet-overlay { align-items: center; }
-.sc-sheet-overlay--bottom { align-items: end; }
-.sc-sheet { width: min(520px, 100%); display: flex; flex-direction: column; gap: 14px; }
-.sc-sheet-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
-.sheet-whendone-hint { margin: -6px 0 0; }
 
-.sc-settings-dialog { width: min(540px, 100%); display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.sc-settings-dialog { width: min(540px, 100%); max-height: calc(100vh - 48px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; text-align: left; }
 .sc-settings-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sc-settings-head .sc-modal-title { margin: 0; }
 .settings-master { font-weight: 600; color: var(--sc-fg-0); }
+.settings-section { display: flex; flex-direction: column; gap: 8px; }
+.settings-section + .settings-section { padding-top: 12px; border-top: 1px solid var(--sc-border-ui); }
+.settings-section-title { margin: 0; font-family: var(--sc-font-label); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); }
+.settings-section > .settings-row-hint { margin: 0; }
+.settings-group--off { opacity: 0.5; }
 .settings-group {
   display: flex;
   flex-direction: column;

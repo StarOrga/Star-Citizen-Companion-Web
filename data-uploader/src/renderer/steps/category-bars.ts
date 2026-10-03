@@ -62,6 +62,7 @@ const totals: Record<string, number> = {};
 
 export function categoryBarsHtml(): string {
   return `
+    <p class="category-bars-caption" id="category-bars-caption" hidden></p>
     <div class="category-bars" id="category-bars">
       ${CATEGORIES.map(
         (c) => `
@@ -72,6 +73,21 @@ export function categoryBarsHtml(): string {
         </div>`,
       ).join('')}
     </div>`;
+}
+
+/**
+ * Says why the bars are not moving while other work runs first (the local
+ * silhouette build before the Codex upload) — dims them and names the wait.
+ * `null` clears it.
+ */
+export function setCategoryBarsCaption(text: string | null): void {
+  const caption = document.getElementById('category-bars-caption');
+  const bars = document.getElementById('category-bars');
+  if (caption) {
+    caption.textContent = text ?? '';
+    caption.hidden = !text;
+  }
+  bars?.classList.toggle('category-bars--waiting', Boolean(text));
 }
 
 export function resetCategoryBars(): void {

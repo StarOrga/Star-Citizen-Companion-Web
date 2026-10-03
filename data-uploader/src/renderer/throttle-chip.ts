@@ -1,5 +1,6 @@
 /**
- * Compact "⚡ Standard ▾" tempo chip shown under the Extract/Upload card.
+ * Compact "⚡ Standard ▾" tempo chip in the Extract/Upload card heads — the
+ * only place the speed is picked (it is persisted by main).
  * Click opens a small popover with the profile picker (same `applyProfile`
  * write path main.ts already owns) — the applied/armed/unsupported outcome is
  * reported to the caller so it can be routed to the bottom-strip snackbar.
@@ -10,24 +11,27 @@ import { escapeHtml } from './dom.js';
 
 export type LiveProfile = 'minimal' | 'standard' | 'maximum' | 'auto';
 
-interface ProfileDefLike {
-  id: string;
-  label: { en: string };
-  description: { en: string };
-}
+/** The speed modes the operator can pick; `auto` stays internal. */
+const SPEED_PROFILES: Array<Exclude<LiveProfile, 'auto'>> = ['minimal', 'standard', 'maximum'];
 
 export interface ThrottleChipCtx {
   getProfile: () => LiveProfile;
-  getLocale: () => string;
   applyProfile: (next: LiveProfile) => Promise<{ message: string } | null>;
   onMessage: (msg: string) => void;
 }
 
+function chipLabel(profile: LiveProfile): string {
+  return `⚡ ${t('run.tempo')}: ${t('speed.' + (profile === 'auto' ? 'standard' : profile))} ▾`;
+}
+
 export function throttleChipHtml(profile: LiveProfile): string {
-  // Same localized words as the Setup speed picker — the raw id ("Maximum",
-  // "Standard") read like the identically-named SCOPE pills.
-  const label = t('speed.' + profile);
-  return `<button type="button" id="throttle-chip" class="throttle-chip" data-tip="${escapeHtml(t('run.tempo'))}" data-tip-key="T">⚡ ${label} ▾</button>`;
+  return `<button type="button" id="throttle-chip" class="throttle-chip" data-tip="${escapeHtml(t('run.tempoHint'))}" data-tip-key="T">${chipLabel(profile)}</button>`;
+}
+
+/** Repaint a mounted chip after the profile changed (here, from the tray, or another window). */
+export function refreshThrottleChip(profile: LiveProfile): void {
+  const chip = document.getElementById('throttle-chip');
+  if (chip) chip.textContent = chipLabel(profile);
 }
 
 /** Hotkey entry point (T): same as clicking the chip; no-op when no chip is mounted. */
@@ -39,7 +43,7 @@ export function wireThrottleChip(ctx: ThrottleChipCtx): void {
   const chip = document.getElementById('throttle-chip');
   chip?.addEventListener('click', (e) => {
     e.stopPropagation();
-    void openPopover(chip as HTMLElement, ctx);
+    openPopover(chip as HTMLElement, ctx);
   });
 }
 
@@ -50,26 +54,27 @@ function closePopover(): void {
   openPanel = null;
 }
 
-async function openPopover(anchor: HTMLElement, ctx: ThrottleChipCtx): Promise<void> {
+function openPopover(anchor: HTMLElement, ctx: ThrottleChipCtx): void {
   if (openPanel) {
     closePopover();
     return;
   }
-  const { profiles } = await window.sc.profiles();
-  const lang = ctx.getLocale();
   const panel = document.createElement('div');
   panel.className = 'sc-popover throttle-popover';
-  panel.innerHTML = (Object.values(profiles) as ProfileDefLike[])
-    .map((p) => {
-      const label = (p.label as Record<string, string>)[lang] ?? p.label.en;
-      const active = p.id === ctx.getProfile() ? 'active' : '';
-      return `<button type="button" class="profile-pill compact ${active}" data-profile="${p.id}">${label}</button>`;
-    })
-    .join('');
+  // The chip is the only place the speed is picked, so each mode carries its
+  // one-line meaning — the Setup step that used to explain them is gone.
+  panel.innerHTML = SPEED_PROFILES.map((id) => {
+    const active = id === ctx.getProfile() ? 'active' : '';
+    return `<button type="button" class="profile-pill compact ${active}" data-profile="${id}">
+        <span class="name">${t('speed.' + id)}</span>
+        <span class="desc">${t('speed.' + id + 'Desc')}</span>
+      </button>`;
+  }).join('');
   document.body.appendChild(panel);
   const rect = anchor.getBoundingClientRect();
   panel.style.top = `${rect.bottom + 6}px`;
-  panel.style.left = `${rect.left}px`;
+  // The chips sit at the card's right edge — keep the panel inside the window.
+  panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panel.offsetWidth - 8))}px`;
   openPanel = panel;
 
   panel.querySelectorAll<HTMLButtonElement>('.profile-pill').forEach((btn) => {
