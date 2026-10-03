@@ -31,7 +31,8 @@
     },
     "lastUploaded": "Last uploaded {{when}}",
     "resumeGeneric": "Found an interrupted upload — resume it?",
-    "extractOnly": "Extract only (no upload)"
+    "extractOnly": "Extract only (no upload)",
+    "connectAndStart": "Connect & start extraction"
   },
   "category": {
     "ships": "Ships",

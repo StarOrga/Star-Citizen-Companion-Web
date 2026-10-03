@@ -9,7 +9,7 @@
 // Shared design tokens are imported here (not via @import in styles.css) so the
 // build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
 import '@starorga/star-ui/lib/design-tokens.css';
-import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
+import { load as loadI18n, t } from '../lib/i18n.js';
 import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
@@ -1668,10 +1668,11 @@ async function runRealExtract(): Promise<void> {
 // ============= View: Auth-Upload =============
 
 // The 4 sub-flows of one upload run, in the order they actually execute
-// (see doUploadAfterAuth). Silhouettes are their own step: they are built
-// locally for a long while before the first Codex row is sent, and folded into
-// "Codex" the main bar moved while every category bar sat at 0 — surfaced as a small stepper on the shared
-// progress card so the upload flow reads as a sibling of the Run view.
+// (see doUploadAfterAuth) — surfaced as a small stepper on the shared progress
+// card so the upload flow reads as a sibling of the Run view. Silhouettes are
+// their own step: they are built locally for a long while before the first
+// Codex row is sent; folded into "Codex", the main bar moved while every
+// category bar still sat at 0.
 function uploadSteps(): ProgressStep[] {
   return [
     { key: 'bundle', label: t('upload.steps.bundle') },
@@ -2303,6 +2304,9 @@ async function doUploadAfterAuth(): Promise<void> {
   // already run or that phase simply sends nothing this run. Non-fatal, same
   // as the 3D-skin build: a failure here never blocks the bundle/codex upload.
   uploadProgress?.setStep(1);
+  // The bars count Codex rows sent — none are until the silhouettes (and the
+  // build tools they need) are through, so say why they stand still.
+  setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
   try {
     await buildSilhouettes(result, uploadProgress);
   } catch (err) {
@@ -2311,6 +2315,8 @@ async function doUploadAfterAuth(): Promise<void> {
       `${t('silhouettes.buildFailed')}: ${(err as Error).message}`,
       'warn',
     );
+  } finally {
+    setCategoryBarsCaption(null);
   }
 
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
@@ -2786,8 +2792,6 @@ async function buildSilhouettes(
     detail: '',
     hint: t('silhouettes.hint'),
   });
-  // The bars count Codex rows sent — none are, until the build is through.
-  setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
   const silhouetteCounters: Record<string, number> = {};
   const unsub = window.sc.silhouette.onEvent((ev) => {
     if (ev.type === 'phase' && ev.phase) {
@@ -2823,10 +2827,7 @@ async function buildSilhouettes(
       },
       manifestPath: manifest,
     })
-    .finally(() => {
-      unsub();
-      setCategoryBarsCaption(null);
-    });
+    .finally(unsub);
   progress?.update({ indeterminate: false });
   // `paused` / `cancelled` come back when the operator stopped the build —
   // control flow, not a failure (same as the skin build's own pause path).

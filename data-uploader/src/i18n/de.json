@@ -31,7 +31,8 @@
     },
     "lastUploaded": "Zuletzt hochgeladen {{when}}",
     "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
-    "extractOnly": "Nur extrahieren (ohne Upload)"
+    "extractOnly": "Nur extrahieren (ohne Upload)",
+    "connectAndStart": "Verbinden & Extraktion starten"
   },
   "category": {
     "ships": "Schiffe",

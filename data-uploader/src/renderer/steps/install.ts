@@ -93,7 +93,7 @@ export function renderInstall(): string {
   const connected = isConnected();
   const primary = connected
     ? `<button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
-    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('session.connect')}" data-tip-key="Enter">${t('session.connect')}</button>
+    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('install.connectAndStart')}" data-tip-key="Enter">${t('install.connectAndStart')}</button>
        <button id="btn-to-setup" type="button" class="btn">${t('install.extractOnly')}</button>`;
   return `
     <div class="view step-install">

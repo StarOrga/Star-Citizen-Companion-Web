@@ -61,7 +61,10 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
       : '';
 
   const afterAutoRunOptions: PublicSettings['afterAutoRun'][] = ['keep', 'quit', 'shutdown'];
-  const autoOn = s.autoStart && s.autoRunOnNewVersion;
+  // One switch for both flags. A half-on state left over from the old separate
+  // toggles shows as on, so a single click switches both off — otherwise a
+  // stray autostart would have no visible off switch any more.
+  const autoOn = s.autoStart || s.autoRunOnNewVersion;
   const langSegment = LOCALES.map(
     (l) => `<button type="button" class="segment ${l === getLocale() ? 'active' : ''}" role="radio" aria-checked="${l === getLocale() ? 'true' : 'false'}" data-lang="${l}">${l.toUpperCase()}</button>`,
   ).join('');
