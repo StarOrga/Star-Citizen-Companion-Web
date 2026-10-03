@@ -173,8 +173,8 @@ void main() {
   // manufacturer's accent. Kept narrow and bright: a dim warm accent spread
   // over whole panels reads as brown, not as light.
   col += mix(uTint, vec3(1.0), 0.25) * rim * 0.55;
-  float fringe = smoothstep(0.6, 0.95, 1.0 - ndv);
-  col += mix(uAccent, vec3(1.0), 0.15) * fringe * 1.1;
+  float fringe = smoothstep(0.8, 0.98, 1.0 - ndv);
+  col += mix(uAccent, vec3(1.0), 0.15) * fringe * 0.8;
   col *= uLevel;
   // Highlight: everything else dims, a glow cloud lights the hull around the
   // focus points, a focused component renders as a lit model in the accent.
