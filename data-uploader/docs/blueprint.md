@@ -42,8 +42,10 @@ and uploads two small vector files: one file serves every size.
    without R2 or an older function (unknown action) stop the blueprint step
    for the rest of the run; the log ends with one `Blueprints: …` line.
 
-Drawing a hull takes ~0.5-1 s (Gladius 36k triangles ~0.5 s, Reclaimer
-86k ~0.8 s) on the main process, between two network calls.
+Drawing a hull takes ~0.5-1 s for the hulls live today (Gladius 36k triangles
+~0.5 s, Idris 89k ~0.9 s) and ~3 s for a fresh 0.41 export (Gladius 338k
+triangles), on the main process between two network calls. 35 Aegis hulls
+were drawn without a failure while building this (fighters to the Javelin).
 
 ## Drawing algorithm (`src/lib/blueprint/geometry.ts`)
 
