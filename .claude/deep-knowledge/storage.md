@@ -10,9 +10,23 @@ built in by design.
 | Relational: users, social, hangar, feedback, telemetry, codex catalog | Supabase Postgres (Free, 500 MB) | RLS, RPCs, Realtime. Blocks (402) at its limit, never bills |
 | RLS-gated files (feedback attachments — private since `20260928211217`, shown via signed URLs, 1 h), codex previews | Supabase Storage (Free, 1 GB) | RLS per owner cannot be rebuilt elsewhere |
 | Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` at `https://sc-assets.sc-assets-worker.workers.dev` (live 2026-09-25) | 0 € egress, 10 GB. A key the bucket lacks is streamed from Supabase by the Worker |
+| News thumbnails (`news-images`, written by `fetch-verse-news`) | Same R2 bucket under `news-images/<hash>/w<N>.<ext>`, read via the same Worker at `/news-images/…` (code 2026-10-03, `feat/news-images-r2`) | Every thumbnail view used to count against the 5 GB/month Supabase egress. Legacy objects stay in Supabase and are streamed by the Worker |
 | App bundle, icons, meshopt decoder | Vercel Hobby | Static hosting |
 | Desktop installers | GitHub Releases in the public `Star-Citizen-Companion-Binaries` mirror | No bandwidth cap, trusted domain for AV scanners |
 | Backups / codex build archive | *(planned)* Backblaze B2 EU with daily caps | Supabase Free has no downloadable backups |
+
+**News images on R2.** `fetch-verse-news` PUTs new variants to R2
+(`news-image-r2.ts`, R2 config + usage gate imported from `ingest-skins`) and
+hands out `<ASSETS_BASE_URL>/news-images/<path>` (secret optional, defaults to
+the workers.dev Worker). A refused or unknown usage gate, missing R2 secrets or
+a failed PUT fall back to the Supabase upload per object, so the feed never
+depends on R2. The video-retention prune deletes a cache entry from R2 *and*
+Supabase and keeps the `verse_image_cache` row if either fails. Rows written
+before the move keep their Supabase url in the DB; the client rewrites that
+prefix to the Worker at read time (`toNewsImageUrl` in
+`src/app/news/news-image-variants.ts`). `scripts/r2-migrate-news-images.mjs`
+copies the existing objects (dry run unless `--apply`); a change to
+`ingest-skins/_r2*.ts` does not redeploy `fetch-verse-news` by itself.
 
 ## Database budget — the codex is the only thing that grows
 
