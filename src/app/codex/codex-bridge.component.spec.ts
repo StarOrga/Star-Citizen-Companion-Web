@@ -10,6 +10,7 @@ import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
 import { ShowroomService } from './showroom.service';
 import { ShipStatDelta } from './codex-build-diff';
+import { CodexBuildDiffService } from './codex-build-diff.service';
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -54,6 +55,8 @@ describe('CodexBridgeComponent', () => {
     byClassName?: Map<string, CodexListRow>;
     flagship?: string | null;
     deltas?: Map<string, ShipStatDelta[]>;
+    /** Ships new in the current build; an Error makes the diff reject. */
+    added?: CodexListRow[] | Error;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -136,6 +139,15 @@ describe('CodexBridgeComponent', () => {
         // ShowroomService, whose load() hits Supabase and hangs whenStable. Stub
         // it empty — no liveries ⇒ billboard hidden, badges render nothing.
         {
+          provide: CodexBuildDiffService,
+          useValue: {
+            addedShips:
+              opts.added instanceof Error
+                ? jasmine.createSpy('addedShips').and.rejectWith(opts.added)
+                : jasmine.createSpy('addedShips').and.resolveTo(opts.added ?? []),
+          },
+        },
+        {
           provide: ShowroomService,
           useValue: {
             entries: signal([]),
@@ -215,6 +227,47 @@ describe('CodexBridgeComponent', () => {
     const fixture = await setup({ catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })], hangar: [] });
     await fixture.whenStable();
     expect(fixture.componentInstance.lanes().some((l) => l.id === 'fresh')).toBeFalse();
+  });
+
+  it('puts ships new in this build first in "Fresh this patch", badged New', async () => {
+    const delta: ShipStatDelta = { labelKey: 'x', from: 1, to: 2, delta: 1, direction: 'up' };
+    const fixture = await setup({
+      catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })],
+      hangar: [],
+      deltas: new Map([['AEGS_Gladius', [delta]]]),
+      added: [shipRow({ classNameSlug: 'KRIG_S65_Stingray' })],
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const fresh = fixture.componentInstance.lanes().find((l) => l.id === 'fresh');
+    expect(fresh?.rows.map((r) => r.classNameSlug)).toEqual(['KRIG_S65_Stingray', 'AEGS_Gladius']);
+    expect(fresh?.subtitleKey).toBe('codex.bridge.lanes.freshSubNew');
+    const cards = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('a.lane-card[href*="KRIG_S65_Stingray"], a.lane-card[href*="AEGS_Gladius"]'),
+    );
+    const stingray = cards.find((a) => a.getAttribute('href')?.includes('KRIG_S65_Stingray'));
+    const gladius = cards.filter((a) => a.getAttribute('href')?.includes('AEGS_Gladius'));
+    expect(stingray?.querySelector('.new-tag')).not.toBeNull();
+    expect(gladius.length).toBeGreaterThan(0);
+    for (const a of gladius) expect(a.querySelector('.new-tag')).toBeNull();
+  });
+
+  it('shows the lane with only new ships when no stats moved', async () => {
+    const fixture = await setup({ catalog: [], hangar: [], added: [shipRow({ classNameSlug: 'RSI_Zeus' })] });
+    await fixture.whenStable();
+    const fresh = fixture.componentInstance.lanes().find((l) => l.id === 'fresh');
+    expect(fresh?.rows.map((r) => r.classNameSlug)).toEqual(['RSI_Zeus']);
+  });
+
+  it('hides "Fresh this patch" when the added-ships diff fails and nothing moved', async () => {
+    const fixture = await setup({
+      catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })],
+      hangar: [],
+      added: new Error('boom'),
+    });
+    await fixture.whenStable();
+    expect(fixture.componentInstance.lanes().some((l) => l.id === 'fresh')).toBeFalse();
+    expect(fixture.componentInstance.error()).toBeNull();
   });
 
   it('exposes an Index-mode escape hatch link', async () => {

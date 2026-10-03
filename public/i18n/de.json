@@ -311,6 +311,8 @@
         "hangarSub": "Schiffe in deinem Besitz",
         "fresh": "Frisch in diesem Patch",
         "freshSub": "Werte gegenüber dem vorigen Build verändert",
+        "freshSubNew": "Neue Schiffe und geänderte Werte seit dem vorigen Build",
+        "newBadge": "Neu",
         "role": "Nach Hersteller entdecken",
         "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
       },
