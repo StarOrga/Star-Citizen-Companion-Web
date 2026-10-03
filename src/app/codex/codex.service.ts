@@ -12,6 +12,7 @@ import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import { skinQueryPrefix } from './codex-skin-group';
 import { editionQueryPrefix } from './codex-edition-group';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
+import { codexLocaleBase, localeShardOf, parseLocaleBundles, shardStrings } from './codex-locale-shards';
 import {
   CODEX_ENTITY_TABLES,
   BlueprintIngredientPayload,
@@ -547,16 +548,23 @@ export class CodexService {
 
   /** The `is_current` LIVE row, or null when there is none. Throws on a failed read. */
   private async readCurrentLiveBuild(): Promise<CodexBuild | null> {
-    const { data, error } = await this.sb.client
-      .from('codex_builds')
-      .select(
-        'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at',
-      )
-      .eq('channel', 'LIVE')
-      .eq('is_current', true)
-      .maybeSingle();
+    const base =
+      'id, channel, patch_version, build_number, schema_version, quality_score, tool_version, entity_counts, is_current, extracted_at';
+    const read = (columns: string) =>
+      this.sb.client
+        .from('codex_builds')
+        .select(columns)
+        .eq('channel', 'LIVE')
+        .eq('is_current', true)
+        .maybeSingle();
+    let { data, error } = await read(`${base}, locale_bundles`);
+    // 42703 = undefined column: the client shipped before the migration that
+    // adds `locale_bundles`. Read without it — the table path still resolves.
+    if (error && (error as { code?: string }).code === '42703') {
+      ({ data, error } = await read(base));
+    }
     if (error) throw error;
-    return data ? mapBuild(data) : null;
+    return data ? mapBuild(data as unknown as Record<string, unknown>) : null;
   }
 
   /**
@@ -1964,9 +1972,14 @@ export class CodexService {
 
   /**
    * Resolve raw global.ini @-keys (roles, port labels, …) to their localized
-   * value in the current build, from codex_locale_strings. The leading `@` is
-   * stripped to match the table's key form. Returns a key→value map keyed by
-   * the ORIGINAL input string.
+   * value in the current build. The leading `@` is stripped to match the
+   * stored key form. Returns a key→value map keyed by the ORIGINAL input string;
+   * never throws, unresolved keys are just missing.
+   *
+   * When the build lists R2 shards for `lang` (`codex_builds.locale_bundles`),
+   * the keys are grouped by shard (codex-locale-shards.ts) and only those
+   * immutable shards are fetched from the assets Worker. Builds not migrated yet
+   * fall back to the codex_locale_strings table.
    *
    * The key list travels in the URL as PostgREST's `key=in.(…)`, so it is sent
    * in batches (see LOCALE_KEY_URL_BUDGET) rather than one request — /codex/
@@ -1980,6 +1993,31 @@ export class CodexService {
     const wanted = keys.filter((k) => k && k.startsWith('@'));
     if (!build || wanted.length === 0) return out;
     const norm = new Map(wanted.map((k) => [k.slice(1), k])); // stripped -> original
+
+    const bundle = build.localeBundles?.[lang];
+    const shardBase = codexLocaleBase(environment.assets?.r2BaseUrl);
+    if (bundle && shardBase) {
+      // R2 path: only the shards that hold a wanted key, concurrently, each one
+      // fetched at most once per build+lang per session (see localeShard).
+      const byShard = new Map<number, string[]>();
+      for (const key of norm.keys()) {
+        const shard = localeShardOf(key);
+        const list = byShard.get(shard);
+        if (list) list.push(key);
+        else byShard.set(shard, [key]);
+      }
+      await Promise.all(
+        [...byShard].map(async ([shard, shardKeys]) => {
+          const strings = await this.localeShard(shardBase, build.id, lang, bundle.shards[shard]);
+          if (!strings) return;
+          for (const key of shardKeys) {
+            const value = strings[key];
+            if (typeof value === 'string') out.set(norm.get(key) as string, value);
+          }
+        }),
+      );
+      return out;
+    }
 
     const batches = await Promise.all(
       batchLocaleKeys([...norm.keys()]).map((batch) =>
@@ -2002,6 +2040,40 @@ export class CodexService {
       }
     }
     return out;
+  }
+
+  /** In-flight / settled shard reads, keyed `build:lang:sha`. Failures are evicted. */
+  private readonly localeShards = new Map<string, Promise<Record<string, string> | null>>();
+
+  /**
+   * One immutable locale shard from the assets Worker, or null when it could
+   * not be read. Memoised per build+lang+hash for the session; a failed read is
+   * dropped from the memo so the next call tries again.
+   */
+  private localeShard(
+    base: string,
+    buildId: string,
+    lang: Lang,
+    sha: string,
+  ): Promise<Record<string, string> | null> {
+    const memoKey = `${buildId}:${lang}:${sha}`;
+    const cached = this.localeShards.get(memoKey);
+    if (cached) return cached;
+    const attempt = (async () => {
+      try {
+        const res = await fetch(`${base}${sha}.json`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const strings = shardStrings(await res.json());
+        if (!strings) throw new Error('malformed shard');
+        return strings;
+      } catch (err) {
+        logWarn('codex', `locale shard ${sha} (${lang}) failed`, err);
+        if (this.localeShards.get(memoKey) === attempt) this.localeShards.delete(memoKey);
+        return null;
+      }
+    })();
+    this.localeShards.set(memoKey, attempt);
+    return attempt;
   }
 
   /**
@@ -2334,6 +2406,7 @@ function mapBuild(r: Record<string, unknown>): CodexBuild {
     entityCounts: counts,
     isCurrent: (r['is_current'] as boolean) ?? false,
     extractedAt: (r['extracted_at'] as string | null) ?? null,
+    localeBundles: parseLocaleBundles(r['locale_bundles']),
   };
 }
 
