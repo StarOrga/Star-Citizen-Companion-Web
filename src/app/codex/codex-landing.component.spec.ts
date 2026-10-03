@@ -132,6 +132,7 @@ describe('CodexLandingComponent', () => {
         .createSpy('ownedFleetDeltas')
         .and.resolveTo(opts.deltas ?? new Map<string, ShipStatDelta[]>()),
       searchAll: jasmine.createSpy('searchAll').and.resolveTo(opts.searchResults ?? []),
+      suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
       previewUrl: () => null,
       isPinned: (_k, c) => compareKeys().includes(`ship:${c}`),
       togglePin: jasmine.createSpy('togglePin'),
@@ -811,5 +812,77 @@ describe('CodexLandingComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('.stage-ship button.stage-cta') as HTMLButtonElement).click();
     expect(document.activeElement).toBe(el.querySelector('.terminal-input'));
+  });
+
+  describe('"did you mean" under an empty terminal search (L06)', () => {
+    async function settle(fixture: ComponentFixture<CodexLandingComponent>): Promise<void> {
+      for (let i = 0; i < 3; i++) {
+        fixture.detectChanges();
+        await fixture.whenStable();
+      }
+      fixture.detectChanges();
+    }
+    function svcOf(): { searchAll: jasmine.Spy; suggestNames: jasmine.Spy } {
+      return TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy; suggestNames: jasmine.Spy };
+    }
+    function suggestionLinks(fixture: ComponentFixture<CodexLandingComponent>): HTMLAnchorElement[] {
+      return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.did-you-mean a.suggestion'));
+    }
+
+    it('merges ship, weapon and item names, collapses variant families and links each to ?q=', async () => {
+      const fixture = await setup({});
+      const by: Record<string, string[]> = {
+        ship: ['Aegis Gladius Dunlevy', 'Aegis Gladius'],
+        weapon: ['Gallant'],
+        item: ['gallant', 'Gladius Helmet'],
+      };
+      svcOf().suggestNames.and.callFake(async (kind: string) => by[kind] ?? []);
+      fixture.componentInstance.searchTerm.set('glaidus');
+      await settle(fixture);
+
+      expect(svcOf().suggestNames.calls.allArgs().map((a) => a[0]).sort()).toEqual(['item', 'ship', 'weapon']);
+      const links = suggestionLinks(fixture);
+      expect(links.map((a) => a.textContent!.trim())).toEqual(['Aegis Gladius', 'Gallant', 'Gladius Helmet']);
+      expect(links[0].getAttribute('href')).toContain('q=Aegis%20Gladius');
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.search.didYouMean');
+
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      links[1].dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(fixture.componentInstance.searchTerm()).toBe('Gallant');
+    });
+
+    it('asks for no suggestions when the search has hits', async () => {
+      const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
+      fixture.componentInstance.searchTerm.set('gladius');
+      await settle(fixture);
+      expect(svcOf().suggestNames).not.toHaveBeenCalled();
+      expect(suggestionLinks(fixture).length).toBe(0);
+    });
+
+    it('renders nothing when the service has no suggestion', async () => {
+      const fixture = await setup({});
+      fixture.componentInstance.searchTerm.set('zzzzqx');
+      await settle(fixture);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.did-you-mean')).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.landing.results.empty');
+    });
+
+    it('drops a slow suggestion that belongs to an older term', async () => {
+      const fixture = await setup({});
+      let resolveOld!: (v: string[]) => void;
+      svcOf().suggestNames.and.callFake((_k: string, term: string) =>
+        term === 'glaidus' ? new Promise<string[]>((r) => (resolveOld = r)) : Promise.resolve([]),
+      );
+      fixture.componentInstance.searchTerm.set('glaidus');
+      await settle(fixture);
+      svcOf().searchAll.and.resolveTo([hit('ship', 'AEGS_Avenger')]);
+      fixture.componentInstance.searchTerm.set('avenger');
+      await settle(fixture);
+      resolveOld(['Aegis Gladius']);
+      await settle(fixture);
+      expect(fixture.componentInstance.suggestions()).toEqual([]);
+      expect(suggestionLinks(fixture).length).toBe(0);
+    });
   });
 });

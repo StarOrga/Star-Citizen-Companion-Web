@@ -63,6 +63,7 @@ import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
+import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -131,7 +132,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -380,6 +381,10 @@ export function blueprintCategoriesForGroup(
               <button type="button" class="reset-all secondary" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
             } @else if (hasActiveFilters() || searchInput()) {
               <p>{{ 'codex.empty.filtered' | translate }}</p>
+              <!-- Typo tolerance (L06): close names when the term matched nothing anywhere. -->
+              @if (searchInput().trim()) {
+                <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
+              }
               <!-- The way out: reset alone keeps the search, which is often what emptied the list. -->
               <button type="button" class="reset-all" (click)="resetAll()">{{ 'codex.empty.resetAll' | translate }}</button>
             } @else {
@@ -1588,17 +1593,38 @@ export class CodexListComponent implements OnInit {
     };
   }
 
+  /** "Did you mean" names for a search that found nothing in the active kind (L06). */
+  readonly suggestions = signal<string[]>([]);
+
+  /** Run a suggested name as the search, in place (the anchor carries the same `?q=`). */
+  searchFor(name: string): void {
+    this.searchInput.set(name);
+    this.commitSearch();
+  }
+
+  /** Fire-and-forget: the empty state is already on screen while this loads. */
+  private async loadSuggestions(seq: number, kind: CodexKind, term: string): Promise<void> {
+    const names = await this.svc.suggestNames(kind, term);
+    if (seq !== this.loadSeq) return; // an older term's answer
+    this.suggestions.set(names);
+  }
+
   private async runQuery(reset: boolean): Promise<void> {
     if (reset) this.offset = 0;
     const seq = ++this.loadSeq;
     this.loading.set(true);
     this.error.set(null);
+    if (reset) this.suggestions.set([]);
     const activeKind = this.kind();
     try {
-      const res = await this.svc.listByKind(activeKind, this.buildFilters());
+      const filters = this.buildFilters();
+      const res = await this.svc.listByKind(activeKind, filters);
       if (seq !== this.loadSeq) return;
       this.rawRows.set(reset ? res.rows : [...this.rawRows(), ...res.rows]);
       this.serverTotal.set(res.count);
+      if (reset && res.rows.length === 0 && filters.search) {
+        void this.loadSuggestions(seq, activeKind, filters.search);
+      }
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set(toErrorKey('codex', 'list', err));

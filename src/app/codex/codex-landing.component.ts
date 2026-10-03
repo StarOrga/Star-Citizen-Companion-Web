@@ -56,6 +56,7 @@ import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { CodexDidYouMeanComponent, mergeSuggestions } from './codex-did-you-mean.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -103,6 +104,7 @@ export function gridColumns(items: readonly HTMLElement[]): number {
     CodexStageComponent,
     CodexBoardFigureComponent,
     ScTooltipDirective,
+    CodexDidYouMeanComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -213,6 +215,7 @@ export function gridColumns(items: readonly HTMLElement[]): number {
             <p class="results-note">{{
               'codex.landing.results.empty' | translate: { term: searchTerm() }
             }}</p>
+            <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
           } @else {
             <div class="hit-grid" #hitGrid (keydown)="onHitKeydown($event)">
               @for (hit of searchResults(); track hit.kind + ':' + hit.classNameSlug) {
@@ -1097,14 +1100,35 @@ export class CodexLandingComponent implements OnInit {
     if (term) void this.runSearch(term);
   }
 
+  /** "Did you mean" names for a terminal search that found nothing (L06). */
+  readonly suggestions = signal<string[]>([]);
+
+  /** Run a suggested name as the terminal search, in place (the anchor carries the same `?q=`). */
+  searchFor(name: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchInput.set(name);
+    this.searchTerm.set(name);
+  }
+
+  /** Fire-and-forget across the three kinds; the empty note is already on screen. */
+  private async loadSuggestions(seq: number, term: string): Promise<void> {
+    const lists = await Promise.all(
+      (['ship', 'weapon', 'item'] as const).map((k) => this.svc.suggestNames(k, term)),
+    );
+    if (seq !== this.searchSeq) return; // an older term's answer
+    this.suggestions.set(mergeSuggestions(lists, 3));
+  }
+
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
     this.searchError.set(null);
+    this.suggestions.set([]);
     try {
       const hits = await this.svc.searchAll(term, 6);
       if (seq !== this.searchSeq) return; // a newer search superseded this one
       this.searchResults.set(hits);
+      if (hits.length === 0) void this.loadSuggestions(seq, term);
     } catch (error) {
       if (seq === this.searchSeq) {
         this.searchResults.set([]);

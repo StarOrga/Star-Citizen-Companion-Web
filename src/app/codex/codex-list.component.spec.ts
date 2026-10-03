@@ -48,6 +48,8 @@ describe('CodexListComponent (Index mode)', () => {
       crossCounts?: Map<string, number>;
       /** `codex_facet_values` answer (AUD-063) — null (default) exercises the row-derived fallback. */
       facetValues?: CodexFacetValues | null;
+      /** `suggestNames` answer ("did you mean", L06). */
+      suggest?: (kind: string, term: string) => Promise<string[]>;
     } = {},
   ): Promise<{
     fixture: ComponentFixture<CodexListComponent>;
@@ -87,6 +89,9 @@ describe('CodexListComponent (Index mode)', () => {
         .createSpy('countSearchMatches')
         .and.resolveTo(opts.crossCounts ?? new Map()),
       facetValues,
+      suggestNames: jasmine
+        .createSpy('suggestNames')
+        .and.callFake(opts.suggest ?? (async () => [])),
     };
 
     const hangar: Partial<HangarService> = {
@@ -828,6 +833,89 @@ describe('CodexListComponent (Index mode)', () => {
       expect(url).not.toMatch(/q=(%20|\+)/);
       const link = el.querySelector('.empty a.cross-hit') as HTMLAnchorElement;
       expect(link.getAttribute('href')).toMatch(/q=Arrowhead(&|$)/);
+    });
+  });
+
+  describe('"did you mean" under an empty search (L06)', () => {
+    async function type(fixture: ComponentFixture<CodexListComponent>, term: string) {
+      jasmine.clock().install();
+      try {
+        fixture.componentInstance.onSearchInput(term);
+        jasmine.clock().tick(1000);
+      } finally {
+        jasmine.clock().uninstall();
+      }
+      for (let i = 0; i < 3; i++) {
+        fixture.detectChanges();
+        await fixture.whenStable();
+      }
+      fixture.detectChanges();
+      return { el: fixture.nativeElement as HTMLElement };
+    }
+    async function searchFor(
+      term: string,
+      opts: {
+        rows?: CodexListRow[];
+        crossCounts?: Map<string, number>;
+        suggest?: (k: string, t: string) => Promise<string[]>;
+      } = {},
+    ) {
+      const ctx = await setup({ ships: 300, weapons: 900, components: 2000 }, opts);
+      return { ...ctx, ...(await type(ctx.fixture, term)) };
+    }
+    function svcOf(): { suggestNames: jasmine.Spy } {
+      return TestBed.inject(CodexService) as unknown as { suggestNames: jasmine.Spy };
+    }
+
+    it('names close records of the active kind as ?q= links and runs one in place', async () => {
+      const { el, cmp } = await searchFor('Glaidus', { suggest: async () => ['Aegis Gladius', 'Gladius Valiant'] });
+      expect(svcOf().suggestNames).toHaveBeenCalledWith(cmp.kind(), 'Glaidus');
+      const links = Array.from(el.querySelectorAll('.empty .did-you-mean a.suggestion')) as HTMLAnchorElement[];
+      expect(links.map((a) => a.textContent!.trim())).toEqual(['Aegis Gladius', 'Gladius Valiant']);
+      expect(links[0].getAttribute('href')).toContain('q=Aegis%20Gladius');
+      expect(el.textContent).toContain('codex.search.didYouMean');
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      links[0].dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(cmp.searchInput()).toBe('Aegis Gladius');
+    });
+
+    it('asks for no suggestions when the search has hits', async () => {
+      const { el } = await searchFor('Avenger', {
+        rows: [{ ...blueprintRow('AEGS_Avenger_Titan', null), blueprintTier: null, craftTimeSec: null }],
+        suggest: async () => ['Aegis Avenger'],
+      });
+      expect(svcOf().suggestNames).not.toHaveBeenCalled();
+      expect(el.querySelector('.did-you-mean')).toBeNull();
+    });
+
+    it('leaves the "found elsewhere" lead alone when another kind matches', async () => {
+      const { el } = await searchFor('Arrowhead', {
+        crossCounts: new Map([['weapon', 3]]),
+        suggest: async () => ['Arrow'],
+      });
+      expect(el.querySelector('.empty .empty-elsewhere')).not.toBeNull();
+      expect(el.querySelector('.did-you-mean')).toBeNull();
+    });
+
+    it('renders nothing when the service has no suggestion', async () => {
+      const { el } = await searchFor('zzzzqx');
+      expect(el.querySelector('.did-you-mean')).toBeNull();
+      expect(el.textContent).toContain('codex.empty.filtered');
+    });
+
+    it('drops a slow suggestion that belongs to an older term', async () => {
+      let resolveOld!: (v: string[]) => void;
+      const { fixture, cmp } = await searchFor('Glaidus', {
+        suggest: (_k, term) =>
+          term === 'Glaidus' ? new Promise<string[]>((r) => (resolveOld = r)) : Promise.resolve([]),
+      });
+      await type(fixture, 'zzzzqx');
+      resolveOld(['Aegis Gladius']);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(cmp.suggestions()).toEqual([]);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.did-you-mean')).toBeNull();
     });
   });
 });

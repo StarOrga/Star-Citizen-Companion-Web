@@ -436,6 +436,7 @@
       "staleUploadLink": "Open Data Uploader"
     },
     "search": {
+      "didYouMean": "Did you mean:",
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
       "label": "Search the codex",
       "clear": "Clear search",
