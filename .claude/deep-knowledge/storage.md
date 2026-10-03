@@ -37,7 +37,41 @@ built in by design.
   the Supabase MCP `execute_sql` one table per call.
 - The durable fix before the next big patch: move `codex_locale_strings`
   (pure key→value per build and language, read in batches by
-  `CodexService.resolveLocaleKeys`) to R2 as one JSON per build and language.
+  `CodexService.resolveLocaleKeys`) to R2 — see the next section.
+
+## Codex locale strings in R2
+
+`codex_locale_strings` (~137 MB incl. 68 MB pkey, 303k rows per build, 11
+languages) was the largest table at 385 of 500 MB (2026-10-03). The app reads
+only `de` + `en` of the current build, so only those move to R2:
+
+- **Shards.** Per (build, lang) 64 shards; `shard(key) = fnv1a32(utf8(key)) >>> 0
+  % 64` (offset 2166136261, prime 16777619, `Math.imul`), keys without the
+  leading `@`. Body `{"v":1,"lang":"de","shard":7,"strings":{...}}`, keys
+  sorted, so the same strings always give the same bytes. Reference
+  implementation + tests: `supabase/functions/ingest-catalog/_locale-shards.ts`.
+- **R2 key** `codex-locale/<sha256-of-body>.json` (content-addressed, an
+  unchanged shard is never re-uploaded across builds). The Worker serves it
+  `immutable`, without Supabase fallback (missing = 404).
+- **Pointer** `codex_builds.locale_bundles` =
+  `{"de":{"v":1,"shards":[64 sha],"keys":n,"bytes":n},"en":{...}}`, written
+  atomically per language by `set_codex_locale_bundle()` (service role only).
+- **Writes** through ingest-catalog, behind the R2 usage gate of ingest-skins
+  (`_r2.ts`, `_r2-usage.ts` are imported from there — a change to them does not
+  mark ingest-catalog for redeploy in `changed-edge-functions.mjs`):
+  `locale_sign` (presigned PUTs, `exists:true` for held shards) →
+  uploader PUTs → `locale_commit` (checks every object, then writes the
+  pointer). `locale_backfill` (admin or service-role key) builds the shards from
+  the table server-side; `scripts/codex-locale-backfill.mjs` runs it for the
+  current LIVE build. The legacy `locale_strings` op keeps de + en rows only.
+- **Size:** ~27k strings per language, a few MB per language and build.
+- **Drop:** `supabase/migrations/20261003140100_drop_codex_locale_strings.sql.pending`
+  is ignored by `db push`; re-stamp and activate it once the client reads R2
+  and the LIVE build has both bundles.
+
+The assets Worker also serves `news-images/<hash>/<variant>.<webp|jpg|jpeg|png|gif|avif>`
+with the short cache and a stream-from-Supabase fallback to the public
+`news-images` bucket (the fallback bucket is the key's first segment).
 
 ## Log retention
 

@@ -49,13 +49,13 @@ export const SHA256_RE = /^[0-9a-f]{64}$/;
 
 export interface Shard {
   shard: number;
-  body: Uint8Array;
+  body: Uint8Array<ArrayBuffer>;
   sha256: string;
   bytes: number;
   keys: number;
 }
 
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
+async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -75,9 +75,11 @@ export async function buildShards(
   return Promise.all(
     buckets.map(async (pairs, shard) => {
       pairs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-      const map: Record<string, string> = {};
+      // Null prototype: a key named __proto__ stays a plain own property.
+      const map: Record<string, string> = Object.create(null);
       for (const [k, v] of pairs) map[k] = v;
-      const body = encoder.encode(JSON.stringify({ v: BUNDLE_VERSION, lang, shard, strings: map }));
+      // new Uint8Array(...) pins the buffer type to ArrayBuffer (BodyInit, BufferSource).
+      const body = new Uint8Array(encoder.encode(JSON.stringify({ v: BUNDLE_VERSION, lang, shard, strings: map })));
       return { shard, body, sha256: await sha256Hex(body), bytes: body.length, keys: pairs.length };
     }),
   );
