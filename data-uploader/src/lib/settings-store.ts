@@ -41,12 +41,7 @@ export interface Settings {
    */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
   /**
-   * How much of the game data an extraction run pulls. Default 'standard'.
-   */
-  extractScope: 'minimal' | 'standard' | 'maximum';
-  /**
-   * The speed (load) mode the operator last picked — orthogonal to
-   * `extractScope`. Main seeds its live throttle from this on launch, so the
+   * The speed (load) mode the operator last picked. Main seeds its live throttle from this on launch, so the
    * mode picked once (e.g. "minimal, I want to play") is still the mode when
    * the next run — manual or unattended — starts. Default 'standard'.
    */
@@ -73,6 +68,10 @@ export interface TextIO {
 const SCHEMA_VERSION = 2;
 
 /**
+ * The retired `extractScope` (every run now extracts the full data set — the
+ * upload must not depend on which uploader produced it) is dropped the same
+ * way: `load()` only carries known keys, so it vanishes on the next save.
+ *
  * Envelope versions this store can still read. v1 predates `afterAutoRun` /
  * `extractScope` and carried a `shutdownAfterUpload` boolean instead — that key
  * is dropped silently on load (never migrated into `afterAutoRun`) and every new
@@ -122,12 +121,6 @@ export class SettingsStore {
         parsed?.afterAutoRun === 'shutdown'
           ? parsed.afterAutoRun
           : 'quit',
-      extractScope:
-        parsed?.extractScope === 'minimal' ||
-        parsed?.extractScope === 'standard' ||
-        parsed?.extractScope === 'maximum'
-          ? parsed.extractScope
-          : 'standard',
       speedProfile:
         parsed?.speedProfile === 'minimal' ||
         parsed?.speedProfile === 'standard' ||

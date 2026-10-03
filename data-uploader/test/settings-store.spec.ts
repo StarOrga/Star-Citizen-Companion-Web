@@ -115,24 +115,17 @@ describe('SettingsStore', () => {
     io.data = JSON.stringify({ v: 2, settings: { installId: 'x', uploadAfterExtract: false } });
     const store = new SettingsStore(io, seqIds());
     expect('uploadAfterExtract' in store.load()).toBe(false);
-    store.patch({ extractScope: 'minimal' });
+    store.patch({ speedProfile: 'minimal' });
     expect(io.data).not.toContain('uploadAfterExtract');
   });
 
-  it('defaults extractScope to standard and round-trips a patch', () => {
+  it('drops the retired extractScope on load and on the next save', () => {
     const io = fakeIO();
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', extractScope: 'minimal' } });
     const store = new SettingsStore(io, seqIds());
-    expect(store.load().extractScope).toBe('standard');
-    store.patch({ extractScope: 'maximum' });
-    const reloaded = new SettingsStore(io, seqIds());
-    expect(reloaded.load().extractScope).toBe('maximum');
-  });
-
-  it('rejects an unknown extractScope value and falls back to the default', () => {
-    const io = fakeIO();
-    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', extractScope: 'ludicrous' } });
-    const s = new SettingsStore(io, seqIds()).load();
-    expect(s.extractScope).toBe('standard');
+    expect('extractScope' in store.load()).toBe(false);
+    store.patch({ speedProfile: 'maximum' });
+    expect(io.data).not.toContain('extractScope');
   });
 
   it('defaults speedProfile to standard, round-trips a patch and rejects unknown ids', () => {
@@ -158,7 +151,7 @@ describe('SettingsStore', () => {
 
   it('drops a v1 shutdownAfterUpload flag silently and never lets it influence afterAutoRun', () => {
     const io = fakeIO();
-    // A real v1 envelope: no afterAutoRun/extractScope yet,
+    // A real v1 envelope: no afterAutoRun yet,
     // but it does carry the removed shutdownAfterUpload flag turned ON.
     io.data = JSON.stringify({
       v: 1,
@@ -177,8 +170,8 @@ describe('SettingsStore', () => {
     expect((s as unknown as { shutdownAfterUpload?: boolean }).shutdownAfterUpload).toBeUndefined();
     // The removed flag must never be migrated into the new setting.
     expect(s.afterAutoRun).toBe('quit');
-    // New v2-only fields fall back to their defaults.
-    expect(s.extractScope).toBe('standard');
+    // New fields fall back to their defaults.
+    expect(s.speedProfile).toBe('standard');
     // Other v1 fields are still carried over.
     expect(s.installId).toBe('legacy-id');
     expect(s.telemetryEnabled).toBe(false);

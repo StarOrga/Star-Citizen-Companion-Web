@@ -34,12 +34,6 @@
     "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
     "extractOnly": "Weiter (nur extrahieren)"
   },
-  "scope": {
-    "minimal": "Kompakt",
-    "standard": "Standard",
-    "maximum": "Komplett",
-    "recommended": "empfohlen"
-  },
   "sheet": {
     "title": "Laufoptionen",
     "mode": {
@@ -76,21 +70,16 @@
     "next": "Weiter → Konfiguration"
   },
   "configure": {
-    "title": "Tempo & Umfang",
-    "subtitle": "Zwei getrennte Fragen: wie stark der PC ausgelastet wird und wie viele Daten gezogen werden.",
+    "title": "Tempo wählen",
+    "subtitle": "Wie stark darf der Uploader deinen PC auslasten? Extrahiert wird immer der komplette Datenstand.",
     "start": "Extraktion starten",
     "speed": {
-      "title": "Tempo — wie stark der PC ausgelastet wird",
+      "title": "Tempo",
       "hint": "Jederzeit umschaltbar — auch mitten im Lauf, über den ⚡-Chip.",
       "applied": "Modus geändert — wirkt ab der nächsten Datei.",
       "appliedPartly": "Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Protokoll).",
       "armed": "Modus gesetzt — er gilt, sobald ein Lauf startet.",
-      "unsupported": "Auf dieser Plattform lässt sich die Priorität nicht live ändern.",
-      "scopePinned": "Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich."
-    },
-    "scope": {
-      "title": "Umfang — wie viele Daten gezogen werden",
-      "hint": "Steht fest, sobald die Extraktion läuft."
+      "unsupported": "Auf dieser Plattform lässt sich die Priorität nicht live ändern."
     }
   },
   "run": {

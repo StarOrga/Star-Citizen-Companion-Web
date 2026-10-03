@@ -251,7 +251,6 @@ function publicSettings(): {
   autoRunOnNewVersion: boolean;
   quitAfterAutoRun: boolean;
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
   language?: string;
 } {
@@ -265,7 +264,6 @@ function publicSettings(): {
     autoRunOnNewVersion: s.autoRunOnNewVersion,
     quitAfterAutoRun: s.quitAfterAutoRun,
     afterAutoRun: s.afterAutoRun,
-    extractScope: s.extractScope,
     updateChannel: s.updateChannel,
     ...(s.language !== undefined ? { language: s.language } : {}),
   };
@@ -288,7 +286,6 @@ ipcMain.handle(
       autoRunOnNewVersion?: boolean;
       quitAfterAutoRun?: boolean;
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
-      extractScope?: 'minimal' | 'standard' | 'maximum';
       updateChannel?: 'alpha' | 'beta' | 'stable';
       language?: string;
     },
@@ -310,13 +307,6 @@ ipcMain.handle(
       partial?.afterAutoRun === 'shutdown'
     ) {
       clean.afterAutoRun = partial.afterAutoRun;
-    }
-    if (
-      partial?.extractScope === 'minimal' ||
-      partial?.extractScope === 'standard' ||
-      partial?.extractScope === 'maximum'
-    ) {
-      clean.extractScope = partial.extractScope;
     }
     if (
       partial?.updateChannel === 'alpha' ||

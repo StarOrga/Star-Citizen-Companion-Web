@@ -16,7 +16,6 @@ export type WhenDone = 'nothing' | 'quit' | 'shutdown';
 
 export interface RunPlan {
   channel: ChannelTag;
-  scope: Settings['extractScope'];
   /** Only ever true when the operator is signed in. */
   uploadAfter: boolean;
   whenDone: WhenDone;
@@ -57,8 +56,8 @@ interface UnattendedRunInput {
 export type BuildRunPlanInput = ManualRunInput | UnattendedRunInput;
 
 /**
- * Build the plan a run executes from. Scope always comes from settings; the
- * two triggers differ only in `whenDone`:
+ * Build the plan a run executes from. The two triggers differ only in
+ * `whenDone` (the extracted data set is always the full one):
  *
  * - Manual run (Start button): `whenDone` is the live per-run pick.
  * - Unattended run (`maybeAutoRun`): `whenDone` derives from
@@ -71,7 +70,6 @@ export function buildRunPlan(input: BuildRunPlanInput): RunPlan {
   if (input.unattended) {
     return {
       channel: input.channel,
-      scope: input.settings.extractScope,
       uploadAfter: input.signedIn,
       whenDone: mapAfterAutoRun(input.settings.afterAutoRun),
       unattended: true,
@@ -79,7 +77,6 @@ export function buildRunPlan(input: BuildRunPlanInput): RunPlan {
   }
   return {
     channel: input.channel,
-    scope: input.settings.extractScope,
     uploadAfter: input.signedIn,
     whenDone: input.whenDone,
     unattended: false,

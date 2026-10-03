@@ -34,12 +34,6 @@
     "resumeGeneric": "Found an interrupted upload — resume it?",
     "extractOnly": "Continue (extract only)"
   },
-  "scope": {
-    "minimal": "Compact",
-    "standard": "Standard",
-    "maximum": "Complete",
-    "recommended": "recommended"
-  },
   "sheet": {
     "title": "Run options",
     "mode": {
@@ -76,21 +70,16 @@
     "next": "Next → Configure"
   },
   "configure": {
-    "title": "Speed & scope",
-    "subtitle": "Two separate questions: how hard the PC is loaded and how much data is pulled.",
+    "title": "Choose speed",
+    "subtitle": "How hard may the uploader load your PC? It always extracts the complete data set.",
     "start": "Start extraction",
     "speed": {
-      "title": "Speed — how hard the PC is loaded",
+      "title": "Speed",
       "hint": "Switch any time — mid-run too, via the ⚡ chip.",
       "applied": "Mode changed — takes effect from the next file.",
       "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
       "armed": "Mode set — it applies as soon as a run starts.",
-      "unsupported": "This platform has no live priority control.",
-      "scopePinned": "The extraction scope stays fixed for the running job — only pace and priority change."
-    },
-    "scope": {
-      "title": "Scope — how much data is pulled",
-      "hint": "Fixed once the extraction is running."
+      "unsupported": "This platform has no live priority control."
     }
   },
   "run": {
