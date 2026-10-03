@@ -1,14 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  HostListener,
   computed,
-  effect,
   input,
   output,
-  viewChild,
 } from '@angular/core';
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../core/modified-click.util';
@@ -70,14 +67,14 @@ export interface ComponentInspectEntry {
 @Component({
   selector: 'sc-codex-component-modal',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, ScTooltipDirective],
+  imports: [RouterLink, TranslatePipe, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
       <div class="cm-backdrop" (click)="closed.emit()">
-        <article #dialog class="cm-panel sc-card" role="dialog" aria-modal="true" tabindex="-1"
+        <article class="cm-panel sc-card" role="dialog" aria-modal="true" tabindex="-1"
                  [attr.aria-label]="e.name" (click)="$event.stopPropagation()"
-                 (keydown)="onKeydown($event)">
+                 scDialog scDialogInitialFocus="container" (scDialogEscape)="closed.emit()">
           <header class="cm-head">
             <div class="cm-ident">
               @if (badge(); as b) { <span class="cm-size">{{ b }}</span> }
@@ -271,50 +268,8 @@ export class CodexComponentModalComponent {
   readonly entry = input<ComponentInspectEntry | null>(null);
   readonly closed = output<void>();
 
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.entry()) this.closed.emit();
-  }
-
-  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
-  private returnFocus: HTMLElement | null = null;
-
-  constructor() {
-    // Focus into the dialog on open, back to the opener on close, Tab wraps
-    // inside — the weapon-detail window's pattern (§13). Without it a keyboard
-    // reader stayed on the page behind the overlay.
-    effect(() => {
-      if (this.entry()) {
-        this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
-        queueMicrotask(() => this.dialog()?.nativeElement.focus());
-      } else {
-        const el = this.returnFocus;
-        this.returnFocus = null;
-        if (el?.isConnected) el.focus();
-      }
-    });
-  }
-
-  onKeydown(ev: KeyboardEvent): void {
-    if (ev.key !== 'Tab') return;
-    const root = this.dialog()?.nativeElement;
-    const focusable = root
-      ? Array.from(root.querySelectorAll<HTMLElement>('button, input, a[href], [tabindex]:not([tabindex="-1"])')).filter(
-          (el) => !el.hasAttribute('disabled'),
-        )
-      : [];
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = globalThis.document?.activeElement as HTMLElement | null;
-    if (ev.shiftKey && active === first) {
-      ev.preventDefault();
-      last.focus();
-    } else if (!ev.shiftKey && active === last) {
-      ev.preventDefault();
-      first.focus();
-    }
-  }
+  // Focus in, Tab trap, Escape and focus return come from [scDialog]
+  // (audit S15) — the panel itself takes focus, as before.
 
   /**
    * The detail link closes the overlay only for a plain left click — a middle

@@ -95,7 +95,9 @@ describe('CodexComponentModalComponent', () => {
     const el = render(PANTHER);
     (el.querySelector('.cm-close') as HTMLButtonElement).click();
     (el.querySelector('.cm-backdrop') as HTMLElement).click();
-    fixture.componentInstance.onEscape();
+    render(PANTHER)
+      .querySelector('.cm-panel')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(closes).toBe(3);
   });
 
@@ -107,8 +109,9 @@ describe('CodexComponentModalComponent', () => {
 
   it('moves focus into the dialog when it opens', async () => {
     const el = render(PANTHER);
-    await Promise.resolve();
+    await fixture.whenStable();
     expect(document.activeElement).toBe(el.querySelector('.cm-panel'));
+    expect(el.querySelector('.cm-panel')!.classList).toContain('sc-dialog');
   });
 
   it('stays open when the detail link is ctrl+clicked into a new tab, closes on a plain click', () => {

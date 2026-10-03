@@ -1434,3 +1434,155 @@ describe('CodexService.listByKind search post-filter', () => {
     expect(res.count).toBe(1);
   });
 });
+
+/**
+ * Codex UX audit 2026-10-02 L05/L06: German names and "did you mean" go
+ * through the `codex_search` / `codex_search_suggest` RPCs — and must degrade
+ * to the old behaviour while that migration is not live yet.
+ */
+describe('CodexService German-name search and suggestions', () => {
+  interface Seen {
+    rpc: { fn: string; params: Record<string, unknown> }[];
+    ins: { col: string; values: unknown[] }[];
+    ranges: number;
+  }
+
+  function make(
+    seen: Seen,
+    pages: { data: Record<string, unknown>[]; count: number }[],
+    rpc: ((fn: string) => { data: unknown; error: unknown; status?: number }) | null,
+  ): CodexService {
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => (table === 'p4k_bundles_public_stats' ? Promise.resolve({ data: [], error: null }) : chain),
+        or: () => chain,
+        not: () => chain,
+        in: (col: string, values: unknown[]) => {
+          seen.ins.push({ col, values });
+          return chain;
+        },
+        order: () => chain,
+        range: () => Promise.resolve({ ...pages[Math.min(seen.ranges++, pages.length - 1)], error: null }),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    const client: Record<string, unknown> = { from };
+    if (rpc) {
+      client['rpc'] = (fn: string, params: Record<string, unknown>) => {
+        seen.rpc.push({ fn, params });
+        return Promise.resolve(rpc(fn));
+      };
+    }
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client } }],
+    });
+    return TestBed.inject(CodexService);
+  }
+
+  const fresh = (): Seen => ({ rpc: [], ins: [], ranges: 0 });
+  const missing = () => ({
+    data: null,
+    error: { code: 'PGRST202', message: 'Could not find the function public.codex_search_suggest' },
+    status: 404,
+  });
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('suggestNames returns the RPC names best-first without duplicates', async () => {
+    const seen = fresh();
+    const svc = make(seen, [{ data: [], count: 0 }], () => ({
+      data: [
+        { name: 'Aegis Gladius', score: 0.57 },
+        { name: 'aegis gladius', score: 0.57 },
+        { name: 'Anvil Gladiator', score: 0.5 },
+      ],
+      error: null,
+    }));
+
+    const names = await svc.suggestNames('ship', '  Gladus ');
+
+    expect(names).toEqual(['Aegis Gladius', 'Anvil Gladiator']);
+    expect(seen.rpc).toEqual([
+      { fn: 'codex_search_suggest', params: { p_kind: 'ship', p_build: BUILD_ID, p_term: 'Gladus', p_limit: 3 } },
+    ]);
+  });
+
+  it('suggestNames resolves [] when the RPC does not exist yet, and stops asking', async () => {
+    const seen = fresh();
+    const svc = make(seen, [{ data: [], count: 0 }], missing);
+
+    expect(await svc.suggestNames('ship', 'gladus')).toEqual([]);
+    expect(await svc.suggestNames('ship', 'arowhead')).toEqual([]);
+    expect(seen.rpc.length).toBe(1);
+  });
+
+  it('suggestNames resolves [] without a client rpc', async () => {
+    const svc = make(fresh(), [{ data: [], count: 0 }], null);
+
+    expect(await svc.suggestNames('item', 'gewehr')).toEqual([]);
+  });
+
+  it('suggestNames skips terms under three searchable characters', async () => {
+    const seen = fresh();
+    const svc = make(seen, [{ data: [], count: 0 }], () => ({ data: [{ name: 'x' }], error: null }));
+
+    expect(await svc.suggestNames('item', ' a* ')).toEqual([]);
+    expect(seen.rpc.length).toBe(0);
+  });
+
+  it('listByKind falls back to German names when the English search finds nothing', async () => {
+    const seen = fresh();
+    const svc = make(
+      seen,
+      [
+        { data: [], count: 0 },
+        { data: [{ class_name: 'behr_rifle_ballistic_01', name_localized: 'P4-AR Rifle' }], count: 1 },
+      ],
+      () => ({ data: [{ class_name: 'behr_rifle_ballistic_01', name_localized: 'P4-AR Rifle', rank: 1 }], error: null }),
+    );
+
+    const res = await svc.listByKind('weapon', { search: 'Gewehr', weaponClass: 'Rifle', limit: 20, offset: 0 });
+
+    expect(seen.rpc).toEqual([
+      {
+        fn: 'codex_search',
+        params: { p_kind: 'weapon', p_build: BUILD_ID, p_tokens: ['gewehr'], p_limit: 100, p_offset: 0 },
+      },
+    ]);
+    // The second list query is restricted to the RPC's class names, not to the term.
+    expect(seen.ins.at(-1)).toEqual({ col: 'class_name', values: ['behr_rifle_ballistic_01'] });
+    expect(seen.ranges).toBe(2);
+    // A German hit is kept although its English name does not contain "gewehr".
+    expect(res.rows.map((r) => r.classNameSlug)).toEqual(['behr_rifle_ballistic_01']);
+    expect(res.count).toBe(1);
+  });
+
+  it('listByKind keeps its empty result when the search RPC is missing', async () => {
+    const seen = fresh();
+    const svc = make(seen, [{ data: [], count: 0 }], missing);
+
+    const res = await svc.listByKind('item', { search: 'rustung' });
+
+    expect(res).toEqual({ rows: [], count: 0 });
+    expect(seen.ranges).toBe(1);
+  });
+
+  it('listByKind never calls the search RPC without a search, or when the English search hits', async () => {
+    const seen = fresh();
+    const rows = [{ class_name: 'AEGS_Gladius', name_localized: 'Aegis Gladius' }];
+    const svc = make(seen, [{ data: rows, count: 1 }], () => ({ data: [], error: null }));
+
+    await svc.listByKind('ship');
+    await svc.listByKind('ship', { search: 'gladius' });
+
+    expect(seen.rpc).toEqual([]);
+    expect(seen.ranges).toBe(2);
+  });
+});

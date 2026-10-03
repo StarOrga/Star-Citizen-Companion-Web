@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
 import { signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -115,6 +115,19 @@ describe('HangarDashboardComponent role loadouts', () => {
       expect(nameInput(el).value).toBe('');
       expect(el.querySelector('.sc-card.err')).toBeNull();
       expect(Array.from(el.querySelectorAll('.loadout-card .name')).map((n) => n.textContent?.trim())).toEqual(['Boarding', 'Recon']);
+    });
+
+    it('opens the new set, so picking gear for a slot is the next thing on screen (audit L09)', async () => {
+      write = () => ({ data: setRow('set-2', 'Boarding') });
+      const { fixture, el } = await setup();
+      const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+      typeInto(nameInput(el), 'Boarding');
+      fixture.detectChanges();
+      buttonByKey(el.querySelector('.new-loadout')!, 'hangar.roleLoadouts.create').click();
+      await settle(fixture);
+
+      expect(nav).toHaveBeenCalledOnceWith(['/codex', 'set', 'set-2']);
     });
 
     it('keeps the typed name and shows the error banner when the write fails', async () => {

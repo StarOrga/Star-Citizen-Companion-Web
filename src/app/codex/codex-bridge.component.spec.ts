@@ -9,6 +9,7 @@ import { UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShip } from '../hangar/hangar.types';
 import { ShowroomService } from './showroom.service';
+import { ShipStatDelta } from './codex-build-diff';
 
 function shipRow(over: Partial<CodexListRow> & { classNameSlug: string }): CodexListRow {
   return {
@@ -52,6 +53,7 @@ describe('CodexBridgeComponent', () => {
     hangar: HangarShip[];
     byClassName?: Map<string, CodexListRow>;
     flagship?: string | null;
+    deltas?: Map<string, ShipStatDelta[]>;
   }) {
     const compareKeys = signal<string[]>([]);
     const byClassName = opts.byClassName ?? new Map<string, CodexListRow>();
@@ -64,7 +66,11 @@ describe('CodexBridgeComponent', () => {
       compareKeys: compareKeys.asReadonly(),
       loadCurrentBuild: jasmine.createSpy('loadCurrentBuild').and.resolveTo(null),
       listBridgeShips: jasmine.createSpy('listBridgeShips').and.resolveTo(opts.catalog),
+      ownedFleetDeltas: jasmine
+        .createSpy('ownedFleetDeltas')
+        .and.resolveTo(opts.deltas ?? new Map<string, ShipStatDelta[]>()),
       listByKind: jasmine.createSpy('listByKind').and.resolveTo({ rows: [], count: 0 }),
+      suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
       getShipsByClassNames: jasmine
         .createSpy('getShipsByClassNames')
         .and.callFake(async (names: string[]) => {
@@ -184,6 +190,31 @@ describe('CodexBridgeComponent', () => {
     for (const id of ids) {
       expect(id === 'hangar' || id === 'fresh' || id.startsWith('role-')).toBeTrue();
     }
+  });
+
+  it('feeds "Fresh this patch" from the build diff, most-changed first (audit L23)', async () => {
+    const delta = (field: string): ShipStatDelta => ({ labelKey: field, from: 1, to: 2, delta: 1, direction: 'up' });
+    const fixture = await setup({
+      catalog: [
+        shipRow({ classNameSlug: 'AEGS_Avenger' }),
+        shipRow({ classNameSlug: 'AEGS_Gladius' }),
+        shipRow({ classNameSlug: 'ANVL_Arrow' }),
+      ],
+      hangar: [],
+      deltas: new Map([
+        ['ANVL_Arrow', [delta('a')]],
+        ['AEGS_Gladius', [delta('a'), delta('b')]],
+      ]),
+    });
+    await fixture.whenStable();
+    const fresh = fixture.componentInstance.lanes().find((l) => l.id === 'fresh');
+    expect(fresh?.rows.map((r) => r.classNameSlug)).toEqual(['AEGS_Gladius', 'ANVL_Arrow']);
+  });
+
+  it('hides "Fresh this patch" when the build diff has nothing (no alphabetical stand-in)', async () => {
+    const fixture = await setup({ catalog: [shipRow({ classNameSlug: 'AEGS_Gladius' })], hangar: [] });
+    await fixture.whenStable();
+    expect(fixture.componentInstance.lanes().some((l) => l.id === 'fresh')).toBeFalse();
   });
 
   it('exposes an Index-mode escape hatch link', async () => {
@@ -356,5 +387,70 @@ describe('CodexBridgeComponent', () => {
       jasmine.clock().uninstall();
     }
     expect(fixture.componentInstance.searchTerm()).toBe('Gladius');
+  });
+
+  describe('"did you mean" under an empty scan (L06)', () => {
+    async function settle(fixture: ComponentFixture<CodexBridgeComponent>): Promise<void> {
+      for (let i = 0; i < 3; i++) {
+        fixture.detectChanges();
+        await fixture.whenStable();
+      }
+      fixture.detectChanges();
+    }
+    function svcOf(): { listByKind: jasmine.Spy; suggestNames: jasmine.Spy } {
+      return TestBed.inject(CodexService) as unknown as { listByKind: jasmine.Spy; suggestNames: jasmine.Spy };
+    }
+
+    it('offers ship names as ?q= links in the empty state and runs one in place', async () => {
+      const fixture = await setup({ catalog: [], hangar: [] });
+      svcOf().suggestNames.and.resolveTo(['Aegis Gladius', 'Aegis Sabre']);
+      fixture.componentInstance.searchTerm.set('glaidus');
+      await settle(fixture);
+      expect(svcOf().suggestNames).toHaveBeenCalledWith('ship', 'glaidus');
+      const links = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('.empty .did-you-mean a.suggestion'),
+      ) as HTMLAnchorElement[];
+      expect(links.map((a) => a.textContent!.trim())).toEqual(['Aegis Gladius', 'Aegis Sabre']);
+      expect(links[0].getAttribute('href')).toContain('q=Aegis%20Gladius');
+      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
+      links[0].dispatchEvent(plain);
+      expect(plain.defaultPrevented).toBeTrue();
+      expect(fixture.componentInstance.searchTerm()).toBe('Aegis Gladius');
+    });
+
+    it('asks for no suggestions when the scan has hits', async () => {
+      const fixture = await setup({ catalog: [], hangar: [] });
+      svcOf().listByKind.and.resolveTo({
+        rows: [{ classNameSlug: 'AEGS_Gladius', nameLocalized: 'Gladius' } as CodexListRow],
+        count: 1,
+      });
+      fixture.componentInstance.searchTerm.set('gladius');
+      await settle(fixture);
+      expect(svcOf().suggestNames).not.toHaveBeenCalled();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.did-you-mean')).toBeNull();
+    });
+
+    it('renders nothing when the service has no suggestion', async () => {
+      const fixture = await setup({ catalog: [], hangar: [] });
+      fixture.componentInstance.searchTerm.set('zzzzqx');
+      await settle(fixture);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.did-you-mean')).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.bridge.scannerEmpty');
+    });
+
+    it('drops a slow suggestion that belongs to an older term', async () => {
+      const fixture = await setup({ catalog: [], hangar: [] });
+      let resolveOld!: (v: string[]) => void;
+      svcOf().suggestNames.and.callFake((_k: string, term: string) =>
+        term === 'glaidus' ? new Promise<string[]>((r) => (resolveOld = r)) : Promise.resolve([]),
+      );
+      fixture.componentInstance.searchTerm.set('glaidus');
+      await settle(fixture);
+      fixture.componentInstance.searchTerm.set('zzzzqx');
+      await settle(fixture);
+      resolveOld(['Aegis Gladius']);
+      await settle(fixture);
+      expect(fixture.componentInstance.suggestions()).toEqual([]);
+    });
   });
 });

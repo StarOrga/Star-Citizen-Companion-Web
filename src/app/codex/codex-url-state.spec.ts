@@ -66,4 +66,17 @@ describe('mirrorQueryParams', () => {
 
     expect(location.urlChanges.length).toBe(changes);
   });
+
+  it('pushes a new history entry when asked (a committed search, L33), replaces otherwise', async () => {
+    const { router, location, route } = await at('/codex/fps?q=gladius');
+    const go = spyOn(location, 'go').and.callThrough();
+    const replace = spyOn(location, 'replaceState').and.callThrough();
+
+    mirrorQueryParams(router, route, location, { q: 'c' }, true);
+    mirrorQueryParams(router, route, location, { q: 'cutlass' });
+
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(location.path()).toBe('/codex/fps?q=cutlass');
+  });
 });

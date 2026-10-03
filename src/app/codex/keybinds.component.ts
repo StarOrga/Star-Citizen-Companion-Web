@@ -19,6 +19,7 @@ import { cleanLocaleValue } from './codex-format';
 import {
   KeybindContext,
   KeybindLabelSource,
+  formatKeyCombo,
   humanizeKeybindName,
   resolveKeybindLabel,
   sharedContext,
@@ -400,7 +401,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
                       </button>
                     }
                     @if (r.binding) {
-                      <kbd class="bind">{{ r.binding }}</kbd>
+                      <kbd class="bind">{{ keyLabel(r.binding) }}</kbd>
                     } @else {
                       <span class="bind unbound">{{ 'codex.keybinds.unbound' | translate }}</span>
                     }
@@ -642,6 +643,13 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
       flex: 0 0 auto; font-family: var(--sc-font-mono, ui-monospace, monospace); font-size: 0.8rem;
       padding: 4px 10px; border-radius: 6px; background: var(--sc-bg-2);
       border: 1px solid var(--sc-border); color: var(--sc-fg-0); white-space: nowrap;
+      max-width: 100%;
+    }
+    /* Readable chords ("Rechte Strg + Linke Umschalt + ...") are longer than the
+       raw tokens were: on a phone they wrap at the joiners instead of pushing
+       the row sideways (REQ-24). */
+    @media (max-width: 640px) {
+      .bind { white-space: normal; overflow-wrap: anywhere; flex-shrink: 1; min-width: 0; }
     }
     .bind.unbound { background: transparent; color: var(--sc-fg-2); border-style: dashed; }
 
@@ -987,6 +995,19 @@ export class KeybindsComponent implements OnInit {
    */
   tx(key: string): string {
     return this.enText(key) ?? String(this.t.instant(key) ?? key);
+  }
+
+  /**
+   * A raw binding (`u+lshift`, `mouse1`) as the player reads it on the
+   * keycap — "Linke Umschalt + U", "Maustaste 1" (audit L18). Key names follow
+   * the UI language; an unknown token falls back to a readable form of itself.
+   */
+  keyLabel(raw: string | null): string {
+    return formatKeyCombo(raw, (token, params) => {
+      const key = 'codex.keybinds.keys.' + token;
+      const v = this.t.instant(key, params) as unknown;
+      return typeof v === 'string' && v && v !== key ? v : null;
+    });
   }
 
   // ── assignment mode ────────────────────────────────────────────────────────

@@ -1,7 +1,57 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.116.0",
+  "current": "0.117.0",
   "releases": [
+    {
+      "version": "0.117.0",
+      "date": "2026-10-03",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex: Suche auch nach deutschen Namen, mit „Meintest du …“.",
+              "text": "Findet die englische Suche nichts, sucht der Codex über die deutschen Namen weiter (Akzente egal, alle Wörter müssen passen). Bei null Treffern schlagen Index, Archiv-Terminal und Bridge-Scanner die nächstliegenden Namen vor (*gladus* → Aegis Gladius). Neue Migration codex_search_index (unaccent + Trigramm-Indizes, RPCs codex_search / codex_search_suggest, ~2,8 MB). Ohne die Migration fällt beides still weg."
+            },
+            {
+              "title": "Codex: „+ Zum Set“ direkt aus dem FPS-Arsenal.",
+              "text": "Auf jeder FPS-Karte und auf der Detailseite von Gegenständen und Waffen wählt ein Popover Set und passenden Slot und rüstet sofort aus, mit Link „Zum Set →“."
+            },
+            {
+              "title": "Codex: Bridge zeigt „Frisch in diesem Patch“",
+              "text": "aus den Werte-Änderungen des aktuellen Builds (versteckt, wenn es keine gibt). Landing-Seite mit Einstieg für leeren Hangar bzw. ohne Set."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex: Archiv-Terminal per Tastatur",
+              "text": "(Pfeile, Enter, Escape); jede abgeschickte Suche ist ein Verlaufseintrag."
+            },
+            {
+              "title": "Codex: FPS-Filter klappen auf Handys",
+              "text": "hinter „Filter (n)“ zusammen; Rüstung wird wie Waffen in der Liste ausgerüstet; die Zahlen der Set-Kacheln stimmen mit der Liste überein."
+            },
+            {
+              "title": "Codex: Tastenbelegungen lesbar",
+              "text": "(„Leertaste“, „Linke Strg“, sprechende Namen statt Roh-IDs, Umbruch auf Handys); Blaupausen zeigen den Zutatennamen einmal, „SCU“ und „9 min“."
+            },
+            {
+              "title": "Codex: Tausch-Auswahl, Komponenten- und Waffen-Dialog",
+              "text": "nutzen den gemeinsamen Dialog (Fokus, Tab-Falle, Escape)."
+            },
+            {
+              "title": "Hangar: Ein neues Set öffnet sich",
+              "text": "direkt nach dem Anlegen."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.116.0",
       "date": "2026-10-03",

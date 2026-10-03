@@ -1,8 +1,7 @@
 import {
   deriveActionName,
   resolveKeybindLabel,
-  sharedContext,
-} from './keybind-format';
+  sharedContext, formatKeyCombo, formatKeyToken } from './keybind-format';
 
 describe('deriveActionName', () => {
   it('strips the vehicle prefix and title-cases the remainder', () => {
@@ -131,5 +130,45 @@ describe('sharedContext', () => {
 
   it('returns null for an empty group', () => {
     expect(sharedContext([])).toBeNull();
+  });
+});
+
+describe('formatKeyCombo (audit L18)', () => {
+  const DE: Record<string, string> = {
+    lshift: 'Linke Umschalt',
+    lalt: 'Linke Alt',
+    comma: 'Komma',
+    mouseN: 'Maustaste {{n}}',
+    numpad: 'Ziffernblock {{key}}',
+  };
+  const tr = (key: string, params?: Record<string, string>): string | null => {
+    const v = DE[key];
+    if (!v) return null;
+    return v.replace(/\{\{(\w+)\}\}/g, (_, p: string) => params?.[p] ?? '');
+  };
+
+  it('puts the modifier first and names it', () => {
+    expect(formatKeyCombo('u+lshift', tr)).toBe('Linke Umschalt + U');
+    expect(formatKeyCombo('lalt+n', tr)).toBe('Linke Alt + N');
+  });
+
+  it('names mouse buttons, numpad keys, punctuation and function keys', () => {
+    expect(formatKeyCombo('mouse1', tr)).toBe('Maustaste 1');
+    expect(formatKeyToken('np_2', tr)).toBe('Ziffernblock 2');
+    expect(formatKeyToken('comma', tr)).toBe('Komma');
+    expect(formatKeyToken('f5', tr)).toBe('F5');
+  });
+
+  it('falls back to a readable token when nothing is translated, and empty on no binding', () => {
+    expect(formatKeyToken('mwheel_up', () => null)).toBe('Mwheel Up');
+    expect(formatKeyCombo(null, tr)).toBe('');
+  });
+});
+
+describe('resolveKeybindLabel — engine ids are not names (audit L18)', () => {
+  it('derives a label when the "translation" is the raw action id', () => {
+    const l = resolveKeybindLabel({ actionName: 'v_toggle_guns_mode', localized: null, english: 'v_toggle_guns_mode' });
+    expect(l.source).toBe('derived');
+    expect(l.text).toBe('Toggle Guns Mode');
   });
 });
