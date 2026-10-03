@@ -412,8 +412,12 @@ export function featureLines(
   const view = viewerDir(r.win.view);
   const cosMinor = Math.cos((opts.minorAngle * Math.PI) / 180);
   const cosMajor = Math.cos((opts.majorAngle * Math.PI) / 180);
-  const segs: { kind: LineKind; s: number[] }[] = [];
   const eps = Math.max(0.04, 2.5 / r.k);
+  // Candidates first, then drawn nearest-first: where two edges project onto
+  // the same pixels (the top and bottom rim of a vertical wall), only the
+  // nearer one is kept.
+  const cand: { s: number; major: boolean; depth: number }[] = [];
+  const dir = r.win.view === 'top' ? 1 : 0;
   for (let s = 0; s < ea.length; s++) {
     let kind: LineKind | null = null;
     const n = cnt[s]!;
@@ -432,7 +436,14 @@ export function featureLines(
       kind = 'minor';
     }
     if (!kind) continue;
-    visibleRuns(r, outline, p, ea[s]!, eb[s]!, eps, (run) => segs.push({ kind: kind!, s: run }));
+    cand.push({ s, major: kind === 'major', depth: Math.max(p[3 * ea[s]! + dir]!, p[3 * eb[s]! + dir]!) });
+  }
+  cand.sort((a, b) => Number(b.major) - Number(a.major) || b.depth - a.depth || a.s - b.s);
+  const taken = new Uint8Array(r.w * r.h);
+  const segs: { kind: LineKind; s: number[] }[] = [];
+  for (const c of cand) {
+    const kind: LineKind = c.major ? 'major' : 'minor';
+    visibleRuns(r, outline, taken, p, ea[c.s]!, eb[c.s]!, eps, (run) => segs.push({ kind, s: run }));
   }
   return [...chain(segs.filter((x) => x.kind === 'major').map((x) => x.s), 'major'),
     ...chain(segs.filter((x) => x.kind === 'minor').map((x) => x.s), 'minor')];
@@ -442,6 +453,7 @@ export function featureLines(
 function visibleRuns(
   r: DepthRaster,
   outline: Uint8Array,
+  taken: Uint8Array,
   p: Float32Array,
   i: number,
   j: number,
@@ -462,10 +474,19 @@ function visibleRuns(
     }
     runStart = -1;
   };
+  let last = -1;
   for (let k = 0; k <= steps; k++) {
     const t = k / steps;
-    const ok = sampleVisible(r, outline, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, d0 + (d1 - d0) * t, eps);
+    const x = x0 + (x1 - x0) * t;
+    const y = y0 + (y1 - y0) * t;
+    const o = Math.floor(y) * r.w + Math.floor(x);
+    // A pixel a nearer line already drew is not drawn twice — except right at
+    // this edge's own ends, where the next edge of the same line joins on.
+    const free = k <= 1 || k >= steps - 1 || !taken[o] || o === last;
+    const ok = free && sampleVisible(r, outline, x, y, d0 + (d1 - d0) * t, eps);
     if (ok) {
+      taken[o] = 1;
+      last = o;
       if (runStart < 0) runStart = k;
     } else {
       flush(k - 1);
