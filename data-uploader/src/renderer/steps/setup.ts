@@ -141,9 +141,12 @@ async function paintScopePills(): Promise<void> {
     const pick = (): void => {
       const scope = (el as HTMLElement).dataset['scope'] as 'minimal' | 'standard' | 'maximum' | undefined;
       if (!scope) return;
-      void window.sc.settings.patch({ extractScope: scope }).then((s) => {
+      const hadFocus = document.activeElement === el;
+      void window.sc.settings.patch({ extractScope: scope }).then(async (s) => {
         state.settings = s;
-        void paintScopePills();
+        await paintScopePills();
+        // The repaint replaces the pills — keep keyboard focus on the chosen one.
+        if (hadFocus) $(`.profile-pill[data-scope="${scope}"]`)?.focus();
       });
     };
     el.addEventListener('click', pick);

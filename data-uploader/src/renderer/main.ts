@@ -1934,6 +1934,8 @@ function confirmDiscard(opts: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
     document.getElementById('sc-modal-overlay')?.remove();
 
+    // Hand focus back to whatever opened the dialog (e.g. "Verwerfen").
+    const opener = document.activeElement as HTMLElement | null;
     const overlay = document.createElement('div');
     overlay.id = 'sc-modal-overlay';
     overlay.className = 'sc-modal-overlay';
@@ -1957,6 +1959,7 @@ function confirmDiscard(opts: ConfirmOptions): Promise<boolean> {
     const close = (result: boolean): void => {
       document.removeEventListener('keydown', onKey, true);
       overlay.remove();
+      if (opener?.isConnected) opener.focus();
       resolve(result);
     };
     const onKey = (e: KeyboardEvent): void => {
