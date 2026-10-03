@@ -27,7 +27,17 @@ const KEY_RE = /^ship-skins\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(glb|webp)$/;
  * shape KEY_RE cannot express (json).
  */
 const MANIFEST_RE = /^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
-const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
+const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$|^ship-skins\/_blueprints\/[0-9a-f]{64}\.svg$/;
+
+/**
+ * Blueprint drawings (ingest-skins blueprint_sign, data-uploader/docs/blueprint.md):
+ * `ship-skins/_blueprints/<sha>.svg`, content-addressed like the hulls. They exist
+ * only in R2 (never in the Supabase bucket), so a miss is a plain 404. Served
+ * with a CSP that forbids everything an opened SVG document could run or load;
+ * the site itself parses the file and never injects it.
+ */
+const BLUEPRINT_RE = /^ship-skins\/_blueprints\/[0-9a-f]{64}\.svg$/;
+const SVG_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
 
 /**
  * Cached news images (fetch-verse-news): `news-images/<source hash>/<variant>.<ext>`,
@@ -42,6 +52,7 @@ const CONTENT_TYPES = {
   glb: 'model/gltf-binary',
   webp: 'image/webp',
   json: 'application/json',
+  svg: 'image/svg+xml',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   png: 'image/png',
@@ -95,7 +106,9 @@ export function keyFor(pathname) {
   } catch {
     return null;
   }
-  return KEY_RE.test(key) || MANIFEST_RE.test(key) || isLocaleKey(key) || NEWS_RE.test(key) ? key : null;
+  return KEY_RE.test(key) || MANIFEST_RE.test(key) || BLUEPRINT_RE.test(key) || isLocaleKey(key) || NEWS_RE.test(key)
+    ? key
+    : null;
 }
 
 /**
@@ -134,6 +147,7 @@ function baseHeaders(key) {
     'cache-control': cacheControlFor(key),
     'x-content-type-options': 'nosniff',
     'accept-ranges': 'bytes',
+    ...(BLUEPRINT_RE.test(key) ? { 'content-security-policy': SVG_CSP } : {}),
   };
 }
 
@@ -177,6 +191,7 @@ function unavailable() {
  * (`ship-skins`, `news-images`). null = R2 only (codex-locale), no fallback.
  */
 export function fallbackBucket(key) {
+  if (BLUEPRINT_RE.test(key)) return null;
   const bucket = key.slice(0, key.indexOf('/'));
   return bucket === 'ship-skins' || bucket === 'news-images' ? bucket : null;
 }

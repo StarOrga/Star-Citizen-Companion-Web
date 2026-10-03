@@ -120,6 +120,26 @@ describe('fetch', () => {
     }
   });
 
+  it('serves blueprint drawings immutable as sandboxed SVG and never proxies them', async () => {
+    const key = `ship-skins/_blueprints/${'cd'.repeat(32)}.svg`;
+    const res = await worker.fetch(new Request(`https://w.dev/${key}`), env({ [key]: '<svg/>' }));
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'image/svg+xml');
+    assert.equal(res.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    assert.match(res.headers.get('content-security-policy'), /default-src 'none'.*sandbox/);
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    globalThis.fetch = async () => {
+      throw new Error('must not proxy blueprints');
+    };
+    assert.equal(fallbackBucket(key), null);
+    assert.equal((await worker.fetch(new Request(`https://w.dev/${key}`), env())).status, 404);
+    assert.equal(keyFor('/ship-skins/_blueprints/index.svg'), null);
+    assert.equal(keyFor('/ship-skins/AEGS_Gladius/standard.svg'), null);
+    // Other keys carry no CSP of their own.
+    const glb = await worker.fetch(new Request(`https://w.dev/${GLB}`), env({ [GLB]: 'glTF' }));
+    assert.equal(glb.headers.get('content-security-policy'), null);
+  });
+
   it('only exposes manifests under a sha256 name', () => {
     assert.equal(keyFor('/ship-skins/_manifests/' + 'ab'.repeat(32) + '.json'), 'ship-skins/_manifests/' + 'ab'.repeat(32) + '.json');
     assert.equal(keyFor('/ship-skins/_manifests/index.json'), null);
