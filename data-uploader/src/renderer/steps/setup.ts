@@ -150,7 +150,8 @@ async function paintScopePills(): Promise<void> {
     el.addEventListener('keydown', (e) => {
       const ke = e as KeyboardEvent;
       if (ke.key === 'Enter' || ke.key === ' ') {
-        if (ke.key === ' ') ke.preventDefault();
+        // Handled here — the global Enter (= start the run) must not fire too.
+        ke.preventDefault();
         pick();
       }
     });

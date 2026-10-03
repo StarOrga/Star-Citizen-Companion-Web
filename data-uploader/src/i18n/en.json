@@ -169,6 +169,8 @@
     "signInFailed": "Sign-in failed",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
+    "bundleAlreadyThere": "Bundle is already on the server — updating the Codex and 3D data.",
+    "installMissing": "No {{channel}} install found — the local 3D data could not be built.",
     "uploadFailed": "Upload failed",
     "cleaned": "Extracted files cleaned up (upload confirmed)",
     "bundleUploading": "Uploading bundle metadata…",

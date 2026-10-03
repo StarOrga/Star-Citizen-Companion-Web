@@ -415,8 +415,14 @@ async function init(): Promise<void> {
   // The tray's Resume item can only signal intent — the renderer sequences the
   // upload stages, so it has to do the actual resuming.
   window.sc.autoRun.onResumeRequested(() => {
-    state.view = 'auth-upload';
-    render();
+    // The tray flips to "Fortsetzen" the moment a pause is requested, while this
+    // renderer is still unwinding the stage — resuming then would start a second
+    // pipeline on the same job. Only an idle renderer may pick it up.
+    if (uploadRunning || resumeInFlight) return;
+    if (state.view !== 'auth-upload') {
+      state.view = 'auth-upload';
+      render();
+    }
     // Same restart caveat as the in-window button: the tray is typically used
     // on a long-running instance, but nothing guarantees an extraction result
     // is still in memory.
@@ -448,6 +454,11 @@ async function init(): Promise<void> {
 }
 
 // ============= Auto-run (new data.p4k → full pipeline, unattended) =============
+
+/** The operator left the Install step or started work while auto-run was deciding. */
+function operatorHasMoved(): boolean {
+  return state.view !== 'discover' || extractRunning || uploadRunning;
+}
 
 /** Hand the tray its strings, resolved from the renderer's dictionary. */
 function pushTrayLabels(): void {
@@ -482,6 +493,9 @@ async function maybeAutoRun(): Promise<void> {
   // persisted one is restored by the connection tile — wait for it, or a fresh
   // launch always looks signed out and never runs anything unattended.
   await connectionReady.catch(() => undefined);
+  // Both awaits above can take seconds; an operator who already moved on (or
+  // pressed Start) must not be yanked into Upload or get a second run.
+  if (operatorHasMoved()) return;
   if (state.resumableJob?.resumable) {
     state.view = 'auth-upload';
     render();
@@ -496,7 +510,9 @@ async function maybeAutoRun(): Promise<void> {
           : null,
     });
     if (!resume) {
-      setStatus(t('autorun.resumeFirst'));
+      // Only worth saying when an auto-run was actually on the table; the
+      // card's resume banner already explains the job itself.
+      if (state.settings?.autoRunOnNewVersion) setStatus(t('autorun.resumeFirst'));
       return;
     }
     setStatus(t('autorun.resuming'));
@@ -510,6 +526,7 @@ async function maybeAutoRun(): Promise<void> {
   } catch {
     return;
   }
+  if (operatorHasMoved()) return;
   if (!decision.run || !decision.channel) {
     // Nothing to upload and nobody watching → close again instead of leaving a
     // tray icon behind for the rest of the day (feedback 71b1e402). Only for the
@@ -1393,7 +1410,9 @@ function markBundleReady(): void {
     cancel.dataset.tipKey = 'Esc';
     cancel.classList.remove('btn-danger-ghost');
   }
-  if (state.runPlan?.uploadAfter) return; // auto-continues into Upload
+  // Auto-continues into Upload — but only with a live session; one lost during
+  // the extraction (sign-out, expired) would otherwise leave no way forward.
+  if (state.runPlan?.uploadAfter && state.authToken) return;
   const footer = $('#run-footer');
   if (!footer || $('#btn-upload-now')) return;
   const btn = document.createElement('button');
@@ -1407,11 +1426,35 @@ function markBundleReady(): void {
   footer.appendChild(btn);
 }
 
+/**
+ * A failed extraction leaves nothing to abort: the red "Lauf abbrechen" turns
+ * into a plain "Zurück" (to Setup, where the run can be started again).
+ */
+function markExtractFailed(): void {
+  const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
+  if (!cancel) return;
+  cancel.textContent = t('common.back');
+  cancel.dataset.tip = t('common.back');
+  cancel.dataset.tipKey = 'Esc';
+  cancel.classList.remove('btn-danger-ghost');
+}
+
 /** "Jetzt hochladen" on a bundle-ready Extract card without auto-upload — needs a session first. */
 async function goToUploadNow(): Promise<void> {
   if (!state.authToken) {
-    const token = await ensureUploadToken();
-    if (!token) return;
+    const btn = $('#btn-upload-now') as HTMLButtonElement | null;
+    if (btn?.disabled) return; // a sign-in is already open in the browser
+    if (btn) btn.disabled = true;
+    let token: string | null;
+    try {
+      token = await ensureUploadToken();
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+    if (!token) {
+      showSnackbar(t('upload.signInFailed'), 'error');
+      return;
+    }
   }
   state.view = 'auth-upload';
   render();
@@ -1432,6 +1475,11 @@ function wireRun(): void {
       if (btn.disabled) return;
       const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
       if (!ok) return;
+      // Flag first: main purges old extracts before the sidecar's first event
+      // carries a job id, so a cancel in that window has nothing to address yet.
+      // The flag makes the first event cancel it and keeps a result that lands
+      // anyway from being adopted (and auto-uploaded) behind the operator's back.
+      if (extractRunning) extractCancelled = true;
       if (currentExtractJobId) {
         // The abort can take a moment to land — say so and take the button
         // out of reach so a second click (or Esc) cannot fire it again.
@@ -1484,7 +1532,12 @@ async function runRealExtract(): Promise<void> {
   appendLog(`output → ${outDir}`);
 
   const unsubscribe = window.sc.extract.onEvent((ev) => {
+    const firstEvent = currentExtractJobId === null;
     currentExtractJobId = ev.jobId; // stable for the run; lets "abort" cancel it
+    if (extractCancelled) {
+      if (firstEvent) void window.sc.extract.cancel(ev.jobId).catch(() => undefined);
+      return;
+    }
     switch (ev.type) {
       case 'pulse':
         // The sidecar's CPU heartbeat — keeps the bar's activity animation
@@ -1550,6 +1603,7 @@ async function runRealExtract(): Promise<void> {
   });
 
   extractRunning = true;
+  extractCancelled = false;
   paintNav();
   try {
     const final = await window.sc.extract.start({
@@ -1566,7 +1620,9 @@ async function runRealExtract(): Promise<void> {
       toolVersion: (await window.sc.env()).toolVersion,
     });
 
-    if (final.ok && final.result) {
+    if (extractCancelled) {
+      // Aborted by the operator — whatever came back is not theirs to upload.
+    } else if (final.ok && final.result) {
       state.lastResult = final.result;
       state.extractDone = true;
       const totalEntities = Object.values(final.result.entity_counts)
@@ -1596,6 +1652,7 @@ async function runRealExtract(): Promise<void> {
       }
     } else {
       appendLog(final.error ?? t('run.failedUnknown'), 'error');
+      markExtractFailed();
     }
   } finally {
     extractRunning = false;
@@ -1815,7 +1872,12 @@ function paintJobNotice(): void {
   const resumable = Boolean(job?.resumable);
   const running = uploadRunning;
 
-  pauseBtn.hidden = !running;
+  // No Pause during the browser sign-in: the upload session (and its pause
+  // control) only exists once signed in, so a pause there was silently lost.
+  pauseBtn.hidden = !running || uploadSigningIn;
+  // A re-render mid-upload (language switch) mounts a fresh, enabled Start
+  // button — it must not be able to launch a second, parallel upload.
+  startBtn.disabled = running || !state.lastResult;
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
@@ -1844,11 +1906,15 @@ function paintJobNotice(): void {
 
 /** True while this renderer is actively driving the stages. */
 let uploadRunning = false;
+/** True while the upload waits on the browser sign-in (no session to pause yet). */
+let uploadSigningIn = false;
 
 /** True while a local P4K extraction is in flight (Run view). */
 let extractRunning = false;
 /** Job id of the in-flight extraction, so "back" can actually abort it. */
 let currentExtractJobId: string | null = null;
+/** The operator aborted the in-flight extraction — its result must not be adopted. */
+let extractCancelled = false;
 
 interface ConfirmOptions {
   title: string;
@@ -1995,6 +2061,8 @@ async function doResumeUpload(): Promise<void> {
   if (btn) btn.disabled = true;
   try {
     if (!(await ensureResultForResume())) return;
+    // The launch-time "interrupted upload found" line is answered now.
+    setStatus('');
     await window.sc.uploadJob.resume();
     setAuthStatus(t('upload.job.resumed'), 'ok');
     await doStartUpload();
@@ -2073,7 +2141,15 @@ async function doStartUpload(): Promise<void> {
         indeterminate: true,
         detail: '',
       });
-      const token = await ensureUploadToken();
+      uploadSigningIn = true;
+      paintJobNotice();
+      let token: string | null;
+      try {
+        token = await ensureUploadToken();
+      } finally {
+        uploadSigningIn = false;
+        paintJobNotice();
+      }
       if (!token) {
         uploadProgress?.update({ indeterminate: false });
         uploadProgress?.stop();
@@ -2191,17 +2267,26 @@ async function doUploadAfterAuth(): Promise<void> {
     manifest: {},
     manifestPath: result.manifest_path,
   });
-  if (!r.ok) {
+  // `duplicate`: this patch's bundle is already on the server (a re-run, or a
+  // resume whose first POST landed before the app died). Nothing to fix there —
+  // carry on with codex + skins, which is what the operator came back for.
+  const bundleAlreadyThere = !r.ok && r.error === 'duplicate';
+  if (!r.ok && !bundleAlreadyThere) {
     uploadProgress?.update({ indeterminate: false });
     uploadProgress?.stop();
     setAuthStatus(friendlyUploadError(r), 'error');
+    // Close the job's run in main too: otherwise it stays `running` on disk and
+    // the tray keeps offering "Pause" for an upload that is over.
+    await window.sc.uploadJob.fail(r.error ?? 'bundle_failed');
     return;
   }
   // Only claim the bundle step as 100% on a fresh run; on a resume the card is
   // already on the catalog stage and promoteToCodex owns the bar from here.
   if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   setAuthStatus(
-    `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'}`,
+    bundleAlreadyThere
+      ? t('upload.bundleAlreadyThere')
+      : `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'}`,
     'ok',
   );
   paintDiffSummary(r.diffSummary);
@@ -2242,10 +2327,10 @@ async function doUploadAfterAuth(): Promise<void> {
     await buildAndUploadSkins(result, uploadProgress);
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
-    setAuthStatus(
-      `${t('skins.buildFailed')}: ${(err as Error).message}`,
-      'warn',
-    );
+    const msg = `${t('skins.buildFailed')}: ${(err as Error).message}`;
+    // Kept for the final "Upload OK" line, which would otherwise paper over it.
+    state.skinUploadStatus = msg;
+    setAuthStatus(msg, 'warn');
   }
   uploadProgress?.stop();
 
@@ -2267,7 +2352,13 @@ async function doUploadAfterAuth(): Promise<void> {
     // The skin stage's own status line has since overwritten ours — put the
     // thing the operator actually has to act on back on screen.
     paintCatalogFailure();
-    await window.sc.uploadJob.fail('catalog_failed');
+    if (lastCatalogFailure && !lastCatalogFailure.resumable) {
+      // Missing/empty extract: a resume can only fail the same way again, so
+      // offering one would be a trap — drop the job; the hint says re-extract.
+      state.resumableJob = await window.sc.uploadJob.cancel();
+    } else {
+      await window.sc.uploadJob.fail('catalog_failed');
+    }
     await refreshJobView();
     return;
   }
@@ -2330,7 +2421,7 @@ async function maybeQuitAfterUpload(): Promise<void> {
  * resumable, and saying so is the difference between "2 hours wasted" and "hit
  * continue".
  */
-function catalogFailureNotice(res: CatalogUploadResult): { msg: string; hint: string; detail: string } {
+function catalogFailureNotice(res: CatalogUploadResult): CatalogFailure {
   const code = res.errorCode ?? 'unknown';
   const msg =
     code === 'timeout'
@@ -2366,7 +2457,7 @@ function catalogFailureNotice(res: CatalogUploadResult): { msg: string; hint: st
     ? tOr('catalog.err.atPhase', `Abgebrochen bei: ${res.errorPhase}`, { phase: res.errorPhase })
     : '';
   const detail = [where, res.error].filter(Boolean).join(' · ');
-  return { msg, hint, detail };
+  return { msg, hint, detail, resumable };
 }
 
 /**
@@ -2375,7 +2466,14 @@ function catalogFailureNotice(res: CatalogUploadResult): { msg: string; hint: st
  * success line would otherwise overwrite the codex error — leaving the operator
  * with a cheerful "3D-Skins fertig" and no idea the catalog never updated.
  */
-let lastCatalogFailure: { msg: string; hint: string; detail: string } | null = null;
+interface CatalogFailure {
+  msg: string;
+  hint: string;
+  detail: string;
+  /** A retry can fix it (timeout, network, session) — vs. a missing/empty extract. */
+  resumable: boolean;
+}
+let lastCatalogFailure: CatalogFailure | null = null;
 
 function paintCatalogFailure(): void {
   if (!lastCatalogFailure) return;
@@ -2417,7 +2515,17 @@ async function promoteToCodex(
   outDir: string | undefined,
   progress?: ProgressController | null,
 ): Promise<'ok' | 'failed' | 'paused'> {
-  if (!outDir || !state.authToken) return 'failed';
+  if (!outDir || !state.authToken) {
+    // Never fail silently: a session lost mid-upload (sign-out, expiry) or a
+    // missing extract would otherwise leave a green bundle line next to an
+    // unexplained "interrupted upload" banner.
+    lastCatalogFailure = catalogFailureNotice({
+      ok: false,
+      error: !outDir ? 'out_dir_missing' : 'no session',
+      errorCode: !outDir ? 'out_dir_missing' : 'unauthorized',
+    });
+    return 'failed';
+  }
   const label = t('catalog.publishing');
   progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
@@ -2593,6 +2701,7 @@ export async function maybeShutdownAfterUpload(): Promise<void> {
   if (!notice) return;
   if (!res.ok) {
     notice.textContent = t('upload.shutdownFailed') + (res.error ? `: ${res.error}` : '');
+    notice.dataset.state = 'failed';
     notice.style.display = 'block';
     return;
   }
@@ -2606,12 +2715,28 @@ export async function maybeShutdownAfterUpload(): Promise<void> {
       notice.textContent = r.ok
         ? t('upload.shutdownCancelled')
         : t('upload.shutdownAbortFailed');
+      if (r.ok) notice.dataset.state = 'cancelled';
       notice.style.display = 'block';
     });
   });
 }
 
 // ============= Silhouettes (built locally, BEFORE the codex catalog phase) ===
+
+/**
+ * The install whose Data.p4k the local builds read — matched to the EXTRACT's
+ * channel, not to whatever is selected now: after a restart with several
+ * installs nothing is selected, and "the first one" could be LIVE for a PTU
+ * job. No match throws (the callers turn it into a visible warning) instead of
+ * skipping the stage silently.
+ */
+function installFor(result: ExtractResultPayload): (typeof state.channels)[number] {
+  const tag = result.channel.toLowerCase();
+  const matching = state.channels.filter((c) => c.channel.toLowerCase() === tag);
+  const ch = matching.find((c) => c.selected) ?? matching[0];
+  if (!ch) throw new Error(t('upload.installMissing', { channel: result.channel }));
+  return ch;
+}
 
 // Build the top-down outline (Codex Holotable + generic tile-view art) for
 // every ship/weapon/component/armor item the extract's silhouette manifest
@@ -2623,8 +2748,7 @@ async function buildSilhouettes(
   result: ExtractResultPayload,
   progress?: ProgressController | null,
 ): Promise<void> {
-  const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
-  if (!ch) return;
+  const ch = installFor(result);
 
   const manifest = `${result.output_dir}/silhouettes/_build_manifest.json`;
   const label = t('silhouettes.building');
@@ -2736,8 +2860,7 @@ async function buildAndUploadSkins(
 ): Promise<void> {
   state.skinUploadStatus = null;
   if (!state.authToken) return;
-  const ch = state.channels.find((c) => c.selected) ?? state.channels[0];
-  if (!ch) return;
+  const ch = installFor(result);
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
   const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;

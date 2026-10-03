@@ -169,6 +169,8 @@
     "signInFailed": "Anmeldung fehlgeschlagen",
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
+    "bundleAlreadyThere": "Bundle ist bereits auf dem Server — Codex und 3D-Daten werden aktualisiert.",
+    "installMissing": "Keine {{channel}}-Installation gefunden — die lokalen 3D-Daten konnten nicht gebaut werden.",
     "uploadFailed": "Upload-Fehler",
     "cleaned": "Extrahierte Dateien aufgeräumt (Upload bestätigt)",
     "bundleUploading": "Bundle-Metadaten werden hochgeladen…",

@@ -9,6 +9,7 @@
 
 import { t } from '../../lib/i18n.js';
 import { $, escapeHtml } from '../dom.js';
+import { showSnackbar } from '../shell/bottom-strip.js';
 import {
   state,
   setStatus,
@@ -113,7 +114,12 @@ export function wireInstall(): void {
   $('#install-resume-btn')?.addEventListener('click', () => void jumpToResumeUpload());
   $('#btn-to-setup')?.addEventListener('click', () => goToSetup());
   $('#btn-connect-continue')?.addEventListener('click', () => {
-    void connectNow().then(() => goToSetup());
+    // Continue only on a real session — a failed or closed browser login
+    // would otherwise move on silently, its error hidden in the closed popover.
+    void connectNow().then(() => {
+      if (isConnected()) goToSetup();
+      else showSnackbar(t('session.connectFailed'), 'error');
+    });
   });
 
   if (!state.scanned && !state.scanning) {
@@ -125,6 +131,8 @@ export function wireInstall(): void {
 
 /** Primary action for the Enter shortcut on this step. */
 export function primaryAction(): void {
+  // No install found yet / still scanning: the footer is hidden, so is its action.
+  if (($('#discover-next') as HTMLElement | null)?.hidden) return;
   if (isConnected()) {
     goToSetup();
   } else {

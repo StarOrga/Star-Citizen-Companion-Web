@@ -12,10 +12,10 @@ import { orderedCounts, state, resetForNewRun, SHUTDOWN_DELAY_SECS } from '../ma
 export function renderDone(): string {
   const result = state.lastResult;
   const wd = state.runPlan?.whenDone ?? 'nothing';
+  // Only a shutdown has a countdown to show (and to cancel); "quit" closes the
+  // app right away, so a "shutting down in 60 s — Esc" line would be a lie.
   const countdown =
-    wd === 'shutdown' || wd === 'quit'
-      ? `<div class="done-countdown" id="done-shutdown-notice"></div>`
-      : '';
+    wd === 'shutdown' ? `<div class="done-countdown" id="done-shutdown-notice"></div>` : '';
   const counts = result
     ? orderedCounts(result.entity_counts)
         .filter(([k]) => k !== 'records_total')
@@ -58,6 +58,9 @@ export function primaryAction(): void {
 export function cancelCountdown(): boolean {
   const notice = $('#done-shutdown-notice');
   if (!notice || !notice.textContent) return false;
+  // Nothing scheduled any more — keep the failure / cancel message readable.
+  if (notice.dataset.state === 'failed' || notice.dataset.state === 'cancelled') return false;
+  notice.dataset.state = 'cancelled';
   void window.sc.system.abortShutdown();
   notice.textContent = t('upload.shutdownCancelled');
   return true;
