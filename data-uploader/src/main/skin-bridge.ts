@@ -20,6 +20,7 @@ import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
 import { readWithStallTimeout } from '../lib/fetch-timeout.js';
+import { packageExportArgs } from '../lib/asset-package.js';
 
 const CGF_CONVERTER_URL =
   'https://github.com/Markemp/Cryengine-Converter/releases/download/v2.0.0/cgf-converter.exe';
@@ -42,6 +43,18 @@ export interface SkinExportRequest {
    *  Supabase storage quota. 0 disables the budget. */
   maxModelMb?: number;
   limitSkins?: number;
+  /**
+   * Also export every FPS weapon package (`--fps`, `_fps/<className>/package.json`).
+   * Off by default until the extractor flag ships on the same release train;
+   * ships always get `--package --interior`.
+   */
+  fps?: boolean;
+  /**
+   * Also export every standalone vehicle item package (components, ship weapons,
+   * missiles, racks — `--items`, `_items/<className>/package.json`). Same parts
+   * store as the ships, so a docked component and its item page share one GLB.
+   */
+  items?: boolean;
 }
 
 export interface SkinEntry {
@@ -176,12 +189,13 @@ export function startSkinExport(
     '--out', req.outDir,
     '--converter', converterPath(),
     '--texture-size', String(req.textureSize ?? 1024),
-    '--max-model-mb', String(req.maxModelMb ?? 1),
+    '--max-model-mb', String(req.maxModelMb ?? 1.5),
   ];
   if (req.manifest) args.push('--manifest', req.manifest);
   for (const s of req.ships ?? []) args.push('--ship', s);
   if (req.skipExisting) args.push('--skip-existing');
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
+  args.push(...packageExportArgs(req));
 
   let child: ChildProcessWithoutNullStreams;
   try {

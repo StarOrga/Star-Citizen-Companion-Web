@@ -192,6 +192,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
+import { AssetPackageViewerComponent } from './asset-package/asset-package-viewer.component';
+import { AssetPackageService } from './asset-package/asset-package.service';
+import type { AssetPackageKind, AssetPackageRow } from './asset-package/asset-package.model';
 import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
@@ -202,7 +205,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, CodexCategoryIconComponent, FallbackImageComponent, InfoNoteComponent, CodexHoloStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet, AddToSetComponent],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, CodexCategoryIconComponent, FallbackImageComponent, InfoNoteComponent, CodexHoloStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -395,6 +398,17 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              armor pieces and personal weapons. Best-effort — the section only
              appears for the relevant kinds and quietly shows "no data" rather
              than an error state for anything unmatched. ───────────────── -->
+        @if (itemPackage(); as pkg) {
+          <section class="sc-card block pkg-block">
+            <h2>{{ 'codex.assetPackage.title' | translate }}</h2>
+            @defer (on viewport) {
+              <sc-asset-package-viewer class="pkg-viewer" [row]="pkg" [still]="prefersReducedMotion()" />
+            } @placeholder {
+              <div class="pkg-viewer" aria-hidden="true"></div>
+            }
+          </section>
+        }
+
         @if (kind() === 'item' || kind() === 'weapon') {
           <section class="sc-card block">
             <h2>{{ 'codex.detail.whereToBuy' | translate }}</h2>
@@ -866,6 +880,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     /* Generic block. The card title is the mock's .m-h2 (part-02:141):
        10.5px at .14em, semibold, accent. */
     .block { padding: 16px 18px; }
+    .pkg-viewer { display: block; height: clamp(18rem, 45vh, 32rem); }
     .block h2 { margin: 0 0 12px; font-size: max(10.5px, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600; color: var(--sc-accent);
       display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .block h2 .ct { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -1201,6 +1216,23 @@ export class CodexDetailComponent implements OnInit {
   // Reverse ingredient lookup: crafting blueprints that consume this entity.
   readonly usedInBlueprints = signal<BlueprintRef[]>([]);
 
+  // 3D asset package of a non-ship entity (FPS weapon, ship component/weapon/
+  // missile/rack). Null = no package → the section is simply absent; a failed
+  // lookup hides it too (logged) — only manifest/GLB failures show an error.
+  readonly itemPackage = signal<AssetPackageRow | null>(null);
+  private readonly assetPackages = inject(AssetPackageService);
+
+  private async loadItemPackage(kind: CodexKind, className: string, seq: number): Promise<void> {
+    this.itemPackage.set(null);
+    const kinds: AssetPackageKind[] = kind === 'weapon' ? ['fps_weapon', 'item'] : ['item', 'fps_weapon'];
+    try {
+      const row = await this.assetPackages.findRow(kinds, className);
+      if (seq === this.loadSeq) this.itemPackage.set(row);
+    } catch (err) {
+      logWarn('codex-detail', 'asset package lookup failed', { className, err });
+    }
+  }
+
   // "Where to buy" (#254/#255): UEX Corp purchase locations for FPS armor
   // pieces and personal weapons. Best-effort — never blocks/fails the page.
   readonly buyOptions = signal<BuyOption[]>([]);
@@ -1387,6 +1419,11 @@ export class CodexDetailComponent implements OnInit {
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
         // Ships are not crafting ingredients; skip the reverse lookup for them.
         if (kind !== 'ship') void this.loadUsedInBlueprints(d.classNameSlug, seq);
+        if (kind === 'weapon' || kind === 'component' || kind === 'item' || kind === 'ammunition') {
+          void this.loadItemPackage(kind, d.classNameSlug, seq);
+        } else {
+          this.itemPackage.set(null);
+        }
         // Ships are not craftable either, so skip the forward lookup as well.
         if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
         // Ship pages: hangar membership backs the add-to-hangar action.

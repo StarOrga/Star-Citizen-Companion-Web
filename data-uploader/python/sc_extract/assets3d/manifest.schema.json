@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sc-companion.vercel.app/schemas/asset-package-manifest-v1.json",
+  "title": "SC Companion 3D asset package manifest",
+  "description": "Places shared part GLBs on a root GLB (ship hull or FPS weapon body). All transforms are glTF space (Y-up, metres), relative to the root GLB's origin; a viewer applies them verbatim. See data-uploader/docs/asset-package.md.",
+  "type": "object",
+  "required": ["schemaVersion", "kind", "coordinateSystem", "entity", "root", "interior", "parts", "placements", "generator"],
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "quat": { "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4 },
+    "bounds": {
+      "type": ["object", "null"],
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": { "min": { "$ref": "#/$defs/vec3" }, "max": { "$ref": "#/$defs/vec3" } }
+    },
+    "blob": {
+      "type": "object",
+      "required": ["sha256", "bytes"],
+      "properties": { "sha256": { "$ref": "#/$defs/sha256" }, "bytes": { "type": "integer", "minimum": 0 } }
+    },
+    "portMeta": {
+      "type": ["object", "null"],
+      "required": ["minSize", "maxSize", "types", "flags", "editable"],
+      "additionalProperties": false,
+      "properties": {
+        "minSize": { "type": ["integer", "null"] },
+        "maxSize": { "type": ["integer", "null"] },
+        "types": { "type": "array", "items": { "type": "string" }, "description": "Accepted item types ('Type' or 'Type.SubType') — the compatible set." },
+        "flags": { "type": "array", "items": { "type": "string" } },
+        "editable": { "type": "boolean", "description": "false when CIG flags the port uneditable." }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "enum": ["ship", "fps_weapon", "item"] },
+    "coordinateSystem": { "const": "gltf-y-up-metres" },
+    "entity": {
+      "type": "object",
+      "required": ["className", "guid"],
+      "additionalProperties": false,
+      "properties": {
+        "className": { "type": "string", "description": "codex_items.class_name of the root entity." },
+        "guid": { "type": ["string", "null"], "description": "DataCore record GUID." }
+      }
+    },
+    "root": {
+      "description": "Root GLB (hull / weapon body). null when no root mesh was exported.",
+      "oneOf": [
+        { "type": "null" },
+        { "allOf": [{ "$ref": "#/$defs/blob" }], "properties": { "bounds": { "$ref": "#/$defs/bounds" } } }
+      ]
+    },
+    "interior": { "description": "Optional lazy-loaded interior layer, same space as root.", "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/blob" }] },
+    "parts": {
+      "type": "object",
+      "description": "Unique part GLBs used by this entity, keyed by sha256. Shared across entities.",
+      "propertyNames": { "$ref": "#/$defs/sha256" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["bytes", "geometryPath", "bounds"],
+        "additionalProperties": false,
+        "properties": {
+          "bytes": { "type": "integer", "minimum": 0 },
+          "geometryPath": { "type": "string", "description": "P4K source mesh (provenance + dedup key)." },
+          "bounds": { "$ref": "#/$defs/bounds" }
+        }
+      }
+    },
+    "placements": {
+      "type": "array",
+      "description": "Every port, parents before children. Filled ports carry the default-loadout item; empty ports carry itemClass null.",
+      "items": {
+        "type": "object",
+        "required": ["id", "portName", "helperName", "parentPort", "group", "itemClass", "itemGuid", "itemType", "itemSubType", "itemSize", "parentClass", "port", "loadout", "partSha256", "position", "rotation"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Port path, unique: 'hardpoint_weapon_left/hardpoint_class_2'." },
+          "portName": { "type": "string", "description": "codex_item_ports.port_name." },
+          "helperName": { "type": ["string", "null"], "description": "Mesh helper node the port resolved to." },
+          "parentPort": { "type": ["string", "null"], "description": "id of the parent placement (earlier in the array); null at the root." },
+          "group": { "enum": ["weapons", "missiles", "components", "attachments", "interior", "other"] },
+          "itemClass": { "type": ["string", "null"], "description": "codex_items.class_name of the installed item." },
+          "itemGuid": { "type": ["string", "null"] },
+          "itemType": { "type": ["string", "null"] },
+          "itemSubType": { "type": ["string", "null"] },
+          "itemSize": { "type": ["integer", "null"] },
+          "parentClass": { "type": "string", "description": "codex_item_ports.parent_class_name for this port." },
+          "port": { "$ref": "#/$defs/portMeta" },
+          "loadout": { "enum": ["default", "empty"] },
+          "partSha256": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }], "description": "Key into parts; null = no own geometry (or not placeable)." },
+          "position": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/vec3" }], "description": "Root-relative, glTF space. Already includes every parent transform — do NOT parent-compose." },
+          "rotation": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/quat" }], "description": "[x,y,z,w], root-relative, glTF space." }
+        }
+      }
+    },
+    "generator": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" } } }
+  }
+}

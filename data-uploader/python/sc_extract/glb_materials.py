@@ -70,6 +70,8 @@ import json
 import math
 import re
 import struct
+
+import numpy as np
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
@@ -248,8 +250,9 @@ def _local_matrix(node: dict) -> List[float]:
     ]
 
 
-def _global_matrices(gltf: dict) -> List[List[float]]:
-    """World matrix per node, walked from the active scene's roots."""
+def global_matrices(gltf: dict) -> List[List[float]]:
+    """World matrix per node (column-major, glTF order), walked from the active
+    scene's roots. Public: the asset-package pipeline places parts with it."""
     nodes = gltf.get("nodes", [])
     out = [list(_IDENTITY) for _ in nodes]
     scenes = gltf.get("scenes") or [{}]
@@ -265,6 +268,9 @@ def _global_matrices(gltf: dict) -> List[List[float]]:
         for child in nodes[idx].get("children", []):
             stack.append((child, world))
     return out
+
+
+_global_matrices = global_matrices  # pre-0.116 name, still borrowed
 
 
 # ---- hardpoint locators ---------------------------------------------------
@@ -518,18 +524,64 @@ def is_interior_material(name: str) -> bool:
             or any(s in n for s in _INTERIOR_SUBSTRINGS))
 
 
-def drop_interior_geometry(glb: Path, on_log: Optional[LogFn] = None) -> dict:
+# An interior-named material that covers more than this share of the pixels an
+# outside view sees is part of the visible skin and stays. Measured on LIVE:
+# the Cutlass Black's `internal_pom` covers 2.4 % of its outside views (open
+# cargo bay / ramp area), `internal_structure` 0.46 %, `Glass_INT` 0.11 %; the
+# Gladius' `internal_mesh` 1.1 %, `glass_int` 0.27 %. Dropping those was the
+# residual 0.59 % hole ratio of the Cutlass even without any simplification.
+INTERIOR_VISIBLE_SHARE = 0.0005
+
+
+def visible_interior_materials(glb: Path, interior: set, share: float = INTERIOR_VISIBLE_SHARE
+                               ) -> Dict[int, float]:
+    """``{material index: visible share}`` of the interior materials that an
+    outside view sees (first hit, proxies excluded) above ``share``."""
+    from . import mesh_integrity
+    gltf, _ = read_glb(glb)
+    mats = gltf.get("materials", [])
+    tris, owner = mesh_integrity.load_triangles(glb, with_materials=True)
+    visible = np.ones(len(owner), dtype=bool)
+    for i, m in enumerate(mats):
+        if is_hidden_material(m.get("name", "")):
+            visible &= owner != i
+    px = mesh_integrity.visible_pixels_by_group(tris[visible], owner[visible])
+    total = sum(px.values()) or 1
+    return {i: px[i] / total for i in interior if px.get(i, 0) / total > share}
+
+
+def drop_interior_geometry(glb: Path, on_log: Optional[LogFn] = None,
+                           keep_visible: bool = True) -> dict:
     """Remove primitives painted with an interior material from a converted glb.
 
-    Orphaned accessors/bufferViews/textures are left behind on purpose — the
-    `gltf-transform optimize --prune` pass that runs next collects them, which is
-    both simpler and safer than re-indexing binary data here.
+    Conservative: with ``keep_visible`` (default) an interior-named material
+    that is part of what an outside view sees is kept — a name is a hint, the
+    geometry is the proof, and a hole in the exterior is worse than some
+    leftover interior. Orphaned accessors/bufferViews/textures are left behind
+    on purpose — the `gltf-transform optimize --prune` pass that runs next
+    collects them, which is both simpler and safer than re-indexing binary
+    data here.
     """
     gltf, binary = read_glb(glb)
     mats = gltf.get("materials", [])
     interior = {i for i, m in enumerate(mats) if is_interior_material(m.get("name", ""))}
+    kept_visible: Dict[int, float] = {}
+    if interior and keep_visible:
+        try:
+            kept_visible = visible_interior_materials(glb, interior)
+        except (KeyError, ValueError, IndexError, TypeError) as exc:
+            # Unmeasurable geometry: fall back to the name rule; the hole gate
+            # after optimize still catches an exterior that went missing.
+            if on_log:
+                on_log("warn", f"  interior visibility unmeasurable ({type(exc).__name__}: "
+                               f"{exc}) — stripping by name only")
+        interior -= set(kept_visible)
+        if on_log and kept_visible:
+            on_log("info", "  interior strip keeps outside-visible: " + ", ".join(
+                f"{mats[i].get('name')} {s:.2%}" for i, s in sorted(kept_visible.items())))
     if not interior:
-        return {"dropped_primitives": 0, "dropped_triangles": 0, "interior_materials": 0}
+        return {"dropped_primitives": 0, "dropped_triangles": 0, "interior_materials": 0,
+                "kept_visible": len(kept_visible)}
 
     accessors = gltf.get("accessors", [])
 
@@ -567,7 +619,7 @@ def drop_interior_geometry(glb: Path, on_log: Optional[LogFn] = None) -> dict:
 
     write_glb(glb, gltf, binary)
     stats = {"dropped_primitives": dropped_prims, "dropped_triangles": dropped_tris,
-             "interior_materials": len(interior)}
+             "interior_materials": len(interior), "kept_visible": len(kept_visible)}
     if on_log:
         on_log("info", f"  interior strip: -{dropped_tris:,} triangles "
                        f"({dropped_prims} primitives, {len(interior)} materials)")
@@ -674,7 +726,10 @@ def strip_to_geometry(glb: Path, on_log: Optional[LogFn] = None) -> dict:
     gltf["materials"] = []
     for cls in classes:
         spec = dict(_MATERIAL_CLASSES[cls])
-        mat = {"name": cls}
+        # doubleSided: CIG panels are partly wound inward (3.6 % of the raw
+        # Avenger Stalker's visible pixels, 3.7 % on the Cutlass, mirror-aware);
+        # a single-sided viewer culls them into dark see-through patches.
+        mat = {"name": cls, "doubleSided": True}
         if "emissive" in spec:
             mat["emissiveFactor"] = spec.pop("emissive")
         mat["pbrMetallicRoughness"] = spec

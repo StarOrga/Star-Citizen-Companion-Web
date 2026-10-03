@@ -5,6 +5,7 @@ import {
   ElementRef,
   afterNextRender,
   computed,
+  effect,
   inject,
   input,
   output,
@@ -16,6 +17,10 @@ import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
+import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
+import { AssetPackageService } from '../asset-package/asset-package.service';
+import type { AssetPackageRow } from '../asset-package/asset-package.model';
+import { logWarn } from '../../core/log';
 import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
@@ -45,7 +50,7 @@ let hullFillSeq = 0;
 @Component({
   selector: 'sc-codex-holo-table',
   standalone: true,
-  imports: [TranslatePipe, ShipHardpointMapComponent, ShipSkinViewerComponent, FallbackImageComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ShipHardpointMapComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.ph-wait]': "phase() === 'wait'",
@@ -70,9 +75,17 @@ let hullFillSeq = 0;
       @if (viewMode() === '3d') {
         <!-- @defer: the viewer chunk loads only in 3D mode (AUD-048). -->
         @defer (on immediate) {
-          <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
-            [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
-            (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+          @if (packageRow(); as row) {
+            <sc-asset-package-viewer class="mode-viewer" animate.leave="surface-leave" [row]="row" [still]="still()"
+              [activePorts]="activePorts()" (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+          } @else if (packageRow() === null) {
+            <!-- Legacy path (hulls uploaded before asset packages): model-viewer + browser-side port/node join. -->
+            <sc-ship-skin-viewer class="mode-viewer" animate.leave="surface-leave" [shipId]="shipClassName()" [embedded]="true" [holo]="true" [still]="still()"
+              [hardpointPorts]="hardpointPortRefs()" [activePorts]="activePorts()"
+              (hovered)="hovered.emit($event)" (locatable)="locatable.emit($event)" />
+          } @else {
+            <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
+          }
         } @placeholder {
           <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
         }
@@ -456,6 +469,15 @@ export class CodexHoloTableComponent {
   /** The table is scrolled out of view — its loops (sweep, band, halo, ping) pause. */
   readonly offscreen = signal(false);
 
+  /**
+   * The ship's 3D asset package row: undefined while looking it up, null when
+   * there is none (or the lookup failed) — the 3D view then keeps the legacy
+   * model-viewer path, so hulls uploaded before packages keep working.
+   */
+  readonly packageRow = signal<AssetPackageRow | null | undefined>(undefined);
+  private readonly packages = inject(AssetPackageService);
+  private packageLookup = 0;
+
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const destroyRef = inject(DestroyRef);
@@ -464,6 +486,26 @@ export class CodexHoloTableComponent {
       const io = new IntersectionObserver(([entry]) => this.offscreen.set(!entry.isIntersecting));
       io.observe(host);
       destroyRef.onDestroy(() => io.disconnect());
+    });
+    effect(() => {
+      // Only the 3D view needs the answer; the 2D surfaces never query.
+      if (this.viewMode() !== '3d') return;
+      const ship = this.shipClassName();
+      const token = ++this.packageLookup;
+      if (!ship) {
+        this.packageRow.set(null);
+        return;
+      }
+      this.packageRow.set(undefined);
+      this.packages.findRow(['ship'], ship).then(
+        (row) => {
+          if (token === this.packageLookup) this.packageRow.set(row);
+        },
+        (err: unknown) => {
+          logWarn('holo-table', 'asset package lookup failed', { ship, err });
+          if (token === this.packageLookup) this.packageRow.set(null);
+        },
+      );
     });
   }
   readonly hasGold = computed(() => this.pins().some((p) => p.tone === 'gold'));

@@ -38,7 +38,10 @@ Data.p4k
    raw glb
         │
         ▼  glb_materials repair  (no-op skin · interior strip · strip_to_geometry)
-        ▼  gltf-transform optimize  (weld · simplify · meshopt, no palette)
+        ▼  gltf-transform optimize  (weld · join, no simplify, no palette)
+        ▼  [gltf-transform simplify --lock-border, only on a budget retry]
+        ▼  hole gate  (mesh_integrity vs. the raw mesh — refuses a gappy hull)
+        ▼  gltf-transform meshopt
    web glb  ──►  <model-viewer> in the Angular app, rendered as hologram
 ```
 
@@ -123,11 +126,42 @@ Crossbones) differ visually.
 ### 3. Interior strip
 
 `drop_interior_geometry` removes primitives whose material is an interior one
-(`internal_*`, `Int_*`, `*_INT`, `*interior*`). The Showroom is an exterior
-viewer, so this geometry is never seen — but on the Cutlass it is ~26 % of the
-triangles and the majority of the texture payload (the interior POM/decal
-atlases are the largest images in the file). Set `strip_interior=False` to keep
-it.
+(`internal_*`, `Int_*`, `*_INT`, `*interior*`) **and that no outside view can
+see**. The name is only a hint: an interior-named material that covers more
+than 0.05 % of the first-hit pixels from 26 directions around the ship is part
+of the visible skin and is kept (`visible_interior_materials`). Measured on
+LIVE: Cutlass Black `internal_pom` 2.4 %, `internal_structure` 0.46 %,
+`Glass_INT` 0.11 %; Gladius `internal_mesh` 1.1 %, `glass_int` 0.27 % —
+dropping them by name punched see-through holes into both hulls. An exterior
+false positive is worse than leftover interior. Set `strip_interior=False` to
+keep all of it.
+
+### 4. Double-sided classes
+
+`strip_to_geometry` marks the hull/glass/glow classes `doubleSided`. 2–4 % of
+the pixels an outside view sees on a raw CIG hull are panels wound inward
+(mirror-aware, glTF §3.7.4); a single-sided renderer culls them into dark
+see-through patches.
+
+## Hull integrity (`mesh_integrity.py`)
+
+The hole gate. Reference = the raw converter glb after the un-rig, before any
+strip, proxies excluded (`Hull3DExporter.raw_reference`). Both meshes are
+splatted into first-hit depth maps from 26 directions (384 px); a pixel inside
+the reference silhouette where the candidate shows nothing, or a surface more
+than 1 % of the bbox diagonal behind, is a hole. `hole_ratio` = hole pixels /
+reference pixels; also logged: open boundary edges and triangle counts.
+
+| LIVE hull | old (simplify 0.002) | new (gated) |
+| --- | --- | --- |
+| AEGS_Avenger_Stalker | 0.31 % (worst view 2.2 %) | 0.03 % |
+| AEGS_Gladius | 0.43 % (worst view 5.8 %) | 0.04 % |
+| DRAK_Cutlass_Black | 1.05 % (worst view 4.1 %) | 0.06 % |
+
+`max_hole_ratio` = 0.2 %. Every ladder rung is measured on the uncompressed
+optimize output before `meshopt` (meshopt buffers are not decodable in Python).
+If the first rung fails the hull is not exported (`HullIntegrityError`); if a
+later rung fails, the last gap-free rung is kept even over budget.
 
 ## Why an external geometry converter?
 
@@ -174,20 +208,21 @@ out/DRAK_Cutlass_Black/
 ## Cost / knobs
 
 - ~155 MB intermediate glb per ship (scratch, auto-deleted unless `--keep-work`).
-- `simplify_error` (0.002) trades size vs. fidelity; `--texture-size` is inert
-  since the hull carries no texture.
+- `simplify_error` (0 = none) is the first ladder rung; `--texture-size` is
+  inert since the hull carries no texture.
 - One hull = convert + repair + geometry strip + optimize, serial; no DDS is
   extracted any more.
 
-## Size budget (`--max-model-mb`, default 0.6)
+## Size budget (`--max-model-mb`, default 1.5)
 
-Each web glb carries a size budget. A hull over budget is re-optimized down the
-quality ladder (`simplify_error` doubles per step; the texture-size half of the
-ladder is a no-op without textures) until it fits. If even the last step is over
-budget the hull is still exported (a too-big model beats a missing one) and a
-`warn` is logged. `--max-model-mb 0` disables the budget. Each retry is one more
-`gltf-transform optimize` pass over the raw glb; the cgf-converter step is not
-repeated.
+Each web glb carries a size budget. A hull over budget is re-optimized up the
+simplify ladder `0 → 0.0005 → 0.001 → 0.002` (border-locked) until it fits. The
+hole gate is authoritative: a rung that tears the skin ends the ladder and the
+last gap-free rung is kept, over budget or not. If even the last step is over
+budget the hull is still exported and a `warn` is logged. `--max-model-mb 0`
+disables the budget. 1.5 MB since the gap-free export: unsimplified hulls
+measured 0.44 MB (Avenger Stalker) to 1.44 MB (Gladius) meshopt-compressed.
+Simplification is why the old 0.6 MB budget held — and why the hulls had gaps.
 
 Storage: hulls live in Cloudflare R2 (`ship-skins/` prefix, served by
 `cloudflare/assets-worker`), not in the 1 GB Supabase quota the textured era was
