@@ -27,9 +27,34 @@ const KEY_RE = /^ship-skins\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(glb|webp)$/;
  * shape KEY_RE cannot express (json).
  */
 const MANIFEST_RE = /^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
-const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
+const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$|^codex-locale\/[0-9a-f]{64}\.json$/;
 
-const CONTENT_TYPES = { glb: 'model/gltf-binary', webp: 'image/webp', json: 'application/json' };
+/**
+ * Codex locale shards (ingest-catalog locale_sign / locale_backfill): 64
+ * content-addressed JSON objects per build and language. R2 is their only
+ * home, so a missing one is a plain 404 without a Supabase fallback.
+ */
+const LOCALE_RE = /^codex-locale\/[0-9a-f]{64}\.json$/;
+
+/**
+ * Cached news images (fetch-verse-news): `news-images/<source hash>/<variant>.<ext>`,
+ * e.g. `<hash>/w800.webp` or the older `<hash>/cover.jpg`. Same short cache as
+ * ship-skins (a re-cache overwrites the key); a key R2 lacks is streamed from
+ * the public Supabase bucket `news-images`. A segment may not start with a dot,
+ * so `..` cannot traverse.
+ */
+const NEWS_RE = /^news-images\/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/){0,3}[A-Za-z0-9_-][A-Za-z0-9_.-]*\.(webp|jpe?g|png|gif|avif)$/;
+
+const CONTENT_TYPES = {
+  glb: 'model/gltf-binary',
+  webp: 'image/webp',
+  json: 'application/json',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  avif: 'image/avif',
+};
 
 /**
  * Paths are NOT versioned — a re-upload overwrites the same key — so the cache
@@ -59,7 +84,7 @@ export function keyFor(pathname) {
   } catch {
     return null;
   }
-  return KEY_RE.test(key) || MANIFEST_RE.test(key) ? key : null;
+  return KEY_RE.test(key) || MANIFEST_RE.test(key) || LOCALE_RE.test(key) || NEWS_RE.test(key) ? key : null;
 }
 
 /**
@@ -136,8 +161,19 @@ function unavailable() {
   });
 }
 
+/**
+ * Public Supabase bucket a key falls back to: the key's first segment
+ * (`ship-skins`, `news-images`). null = R2 only (codex-locale), no fallback.
+ */
+export function fallbackBucket(key) {
+  const bucket = key.slice(0, key.indexOf('/'));
+  return bucket === 'ship-skins' || bucket === 'news-images' ? bucket : null;
+}
+
 async function fromSupabase(env, key, request) {
-  const upstream = `${env.SUPABASE_URL}/storage/v1/object/public/${key}`;
+  const bucket = fallbackBucket(key);
+  if (!bucket) return plain(404, 'not found');
+  const upstream = `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${key.slice(bucket.length + 1)}`;
   // A plain object on purpose: the tests read init.headers.range directly.
   const upstreamHeaders = {};
   const inm = request.headers.get('if-none-match');
