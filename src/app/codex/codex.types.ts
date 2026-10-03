@@ -13,6 +13,7 @@
 // for the exact supabase-js queries (search / list-by-kind / detail).
 
 import type { Tables } from '../core/database.types';
+import type { LocaleBundles } from './codex-locale-shards';
 
 // ── DB row aliases (snake_case, exactly as returned by supabase-js) ──────────
 export type CodexBuildRow = Tables<'codex_builds'>;
@@ -440,6 +441,12 @@ export interface CodexBuild {
   entityCounts: Record<string, number> & { seeded?: Record<string, number> };
   isCurrent: boolean;
   extractedAt: string | null;
+  /**
+   * Per-language R2 shard lists of the locale strings (`codex_builds.locale_bundles`).
+   * Only the current-build read selects it; empty / missing = resolve from the
+   * `codex_locale_strings` table.
+   */
+  localeBundles?: LocaleBundles;
 }
 
 export interface CodexShip {
