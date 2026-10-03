@@ -29,7 +29,7 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { key: 'strings', labelKey: 'category.strings', counters: ['strings'], phases: ['codex_locale_strings'] },
+  { key: 'strings', labelKey: 'category.strings', counters: ['strings'], phases: ['codex_locale_shards'] },
   { key: 'ships', labelKey: 'category.ships', counters: ['ships'], phases: ['codex_ships'] },
   { key: 'components', labelKey: 'category.components', counters: ['components'], phases: ['codex_components'] },
   {

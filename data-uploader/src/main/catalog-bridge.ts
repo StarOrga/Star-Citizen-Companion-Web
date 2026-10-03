@@ -20,7 +20,14 @@ import { join } from 'node:path';
 import log from 'electron-log';
 import { API_BASE, RELEASE_TOKEN } from '../lib/release-token.js';
 import { isInterrupt, type PauseControl } from '../lib/pause-control.js';
-import { CATALOG_PHASE_ORDER } from '../lib/catalog-phases.js';
+import { CATALOG_PHASE_ORDER, LOCALE_PHASE } from '../lib/catalog-phases.js';
+import {
+  LOCALE_LANGS,
+  buildLocaleShards,
+  normaliseLocaleTable,
+  type LocaleShardSet,
+} from '../lib/locale-shards.js';
+import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js';
 import { FetchTimeoutError, fetchWithTimeout, isTimeout } from '../lib/fetch-timeout.js';
 import {
   makeTagger,
@@ -45,7 +52,6 @@ import {
 } from '../lib/catalog-map.js';
 
 const CHUNK = 500; // entity/string rows per request
-const LOCALE_CHUNK = 1000; // locale rows per request (small rows)
 
 // ── transient-failure handling ───────────────────────────────────────────────
 // One catalog run is thousands of sequential requests over hours. Treating any
@@ -75,6 +81,8 @@ export type CatalogErrorCode =
   | 'manifest_missing'
   | 'no_build_id'
   | 'empty_catalog'
+  /** R2 cost gate refused the locale shards (same codes as the hull upload). */
+  | SkinGateCode
   | 'unknown';
 
 /** A non-2xx reply from ingest-catalog, kept structured so retry/split can reason about it. */
@@ -110,6 +118,9 @@ export class IngestHttpError extends Error {
     // `server_misconfigured` is a 500 but a *deployment* problem: retrying it
     // only burns a minute before failing with the same message.
     if (this.code === 'server_misconfigured') return false;
+    // The R2 cost gate (507/503 on locale_sign) stays closed for hours or the
+    // rest of the month — a retry storm only delays the translated stop.
+    if (isSkinGateCode(this.code)) return false;
     return this.isTimeout || this.status === 429 || this.status >= 500;
   }
 }
@@ -134,6 +145,7 @@ function isTransientFailure(err: unknown): boolean {
 /** Map a failure onto the coarse class the renderer explains to the operator. */
 export function classifyCatalogError(err: unknown): CatalogErrorCode {
   if (err instanceof IngestHttpError) {
+    if (isSkinGateCode(err.code)) return err.code;
     if (err.isTimeout) return 'timeout';
     if (err.status === 401) return 'unauthorized';
     if (err.status === 403) return 'forbidden';
@@ -418,6 +430,99 @@ export async function uploadCatalog(
   const sendEntity = async (table: string, rows: unknown[]): Promise<number> =>
     sendChunks(table, rows, CHUNK, (slice) => post('upsert', { table, rows: slice }));
 
+  /** PUT one shard body to its signed R2 URL, with the same retry policy as `post`. */
+  const putShard = async (signedUrl: string, body: Buffer): Promise<void> => {
+    let last: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const res = await fetchWithTimeout(
+          signedUrl,
+          { method: 'PUT', headers: { 'content-type': 'application/json' }, body: new Uint8Array(body) },
+          hooks.requestTimeoutMs ?? CATALOG_REQUEST_TIMEOUT_MS,
+        );
+        if (!res.ok) throw new IngestHttpError('locale_put', res.status, 'put_failed', '');
+        return;
+      } catch (err) {
+        if (isInterrupt(err)) throw err;
+        last = err;
+        if (attempt === MAX_ATTEMPTS || !isTransientFailure(err)) throw err;
+        const wait = hooks.backoffMs?.(attempt) ?? BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
+        log.warn(`[catalog] locale_put: ${(err as Error).message} — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${wait}ms`);
+        hooks.control?.checkpoint();
+        await sleep(wait);
+        hooks.control?.checkpoint();
+      }
+    }
+    throw last;
+  };
+
+  /**
+   * Locale strings → R2 shards, per language: `locale_sign` (one call, all 64
+   * shards), PUT every shard the server does not already hold, `locale_commit`.
+   *
+   * Resume: the cursor counts languages fully committed, so a resumed run skips
+   * those; inside a language, shards that already landed come back `exists` and
+   * are not sent again (content-addressed by sha256). Progress counts strings.
+   * A language whose file the extract did not write is skipped, never faked.
+   */
+  const sendLocaleShards = async (buildId: string): Promise<number> => {
+    const phase = LOCALE_PHASE;
+    const dir = join(outDir, 'localization');
+    const sets: LocaleShardSet[] = [];
+    for (const lang of LOCALE_LANGS) {
+      const file = join(dir, `${lang}.json`);
+      if (!existsSync(file)) continue;
+      const table = JSON.parse(await readFile(file, 'utf-8')) as Record<string, unknown>;
+      sets.push(buildLocaleShards(lang, normaliseLocaleTable(table)));
+    }
+    const total = sets.reduce((n, s) => n + s.keys, 0);
+    if (isPhaseDone(phase)) {
+      progress({ phase, current: total, total });
+      return total;
+    }
+    const langsDone = Math.min(alreadySent(phase), sets.length);
+    let current = sets.slice(0, langsDone).reduce((n, s) => n + s.keys, 0);
+    progress({ phase, current, total });
+    for (let i = langsDone; i < sets.length; i++) {
+      const set = sets[i];
+      hooks.control?.checkpoint();
+      await hooks.pace?.();
+      hooks.onCursor?.(phase, i);
+      livePhase = phase;
+      const signed = await post('locale_sign', {
+        build_id: buildId,
+        lang: set.lang,
+        shards: set.shards.map((s) => ({ sha256: s.sha256, bytes: s.bytes })),
+      });
+      const uploads = Array.isArray(signed.uploads)
+        ? (signed.uploads as { sha256?: string; signedUrl?: string; exists?: boolean }[])
+        : [];
+      const bySha = new Map(uploads.map((u) => [String(u.sha256 ?? ''), u]));
+      for (const shard of set.shards) {
+        const up = bySha.get(shard.sha256);
+        if (!up) throw new IngestHttpError('locale_sign', 200, 'locale_sign_incomplete', `no upload for shard ${shard.shard}`);
+        if (!up.exists) {
+          if (!up.signedUrl) {
+            throw new IngestHttpError('locale_sign', 200, 'locale_sign_incomplete', `no signedUrl for shard ${shard.shard}`);
+          }
+          hooks.control?.checkpoint();
+          await putShard(up.signedUrl, shard.body);
+        }
+        current += shard.keys;
+        progress({ phase, current, total });
+      }
+      await post('locale_commit', {
+        build_id: buildId,
+        lang: set.lang,
+        shards: set.shards.map((s) => s.sha256),
+        keys: set.keys,
+        bytes: set.bytes,
+      });
+    }
+    hooks.onPhaseDone?.(phase);
+    return total;
+  };
+
   try {
     const manifest = JSON.parse(await readFile(manifestPath, 'utf-8')) as Record<string, unknown>;
     const nat: Nat = {
@@ -466,26 +571,9 @@ export async function uploadCatalog(
     // order as the category bars (Texte · Schiffe · Komponenten · Waffen ·
     // Gegenstände), so the upload fills them in reading order too. Independent
     // of every later phase (own table, own rows), so moving it up is free.
-    {
-      const dir = join(outDir, 'localization');
-      const localeRows: { build_id: string; lang: string; key: string; value: string }[] = [];
-      if (existsSync(dir)) {
-        for (const f of (await readdir(dir)).filter((n) => n.endsWith('.json'))) {
-          const lang = f.replace(/\.json$/, '');
-          const table = JSON.parse(await readFile(join(dir, f), 'utf-8')) as Record<string, unknown>;
-          for (const [key, value] of Object.entries(table)) {
-            if (value == null) continue;
-            localeRows.push({ build_id: buildId, lang, key, value: String(value) });
-          }
-        }
-      }
-      counts.locale_strings = await sendChunks(
-        'codex_locale_strings',
-        localeRows,
-        LOCALE_CHUNK,
-        (slice) => post('locale_strings', { rows: slice }),
-      );
-    }
+    // Only de + en go up, as content-addressed R2 shards (sign → PUT → commit);
+    // the old `locale_strings` row op is no longer called.
+    counts.locale_strings = await sendLocaleShards(buildId);
 
     // 3. manufacturers (always full) ---------------------------------------
     {

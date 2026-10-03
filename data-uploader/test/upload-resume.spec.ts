@@ -165,7 +165,7 @@ describe('catalog upload — resume after a kill', () => {
       status: 'running',
       buildId: 'build-fixed-1',
       donePhases: [
-        'codex_locale_strings',
+        'codex_locale_shards',
         'codex_manufacturers',
         'codex_ships',
         'codex_components',
