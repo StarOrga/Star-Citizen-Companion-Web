@@ -30,7 +30,32 @@
  * are duplicated rather than imported because that module lives in the Deno
  * function tree, outside the app's compilation unit; `news-image-variants.spec.ts`
  * pins the contract from this side.
+ *
+ * **Where the cache is read from.** The bytes moved to Cloudflare R2 and are
+ * served by the assets Worker at `<r2BaseUrl>/news-images/<path>` — same path as
+ * in the Supabase bucket, and the Worker streams a key R2 lacks from that
+ * bucket. Rows written before the move still carry the Supabase public url, so
+ * `toNewsImageUrl` rewrites that prefix at read time (no DB rewrite); every
+ * helper below applies it first.
  */
+import { environment } from '../../environments/environment';
+
+/** Map a Supabase `news-images` public url to the assets Worker; anything else unchanged. */
+export function rewriteNewsImageUrl(
+  url: string,
+  supabaseUrl: string,
+  assetsBase: string | null | undefined,
+): string {
+  const base = (assetsBase ?? '').trim().replace(/\/+$/, '');
+  if (!base || !supabaseUrl) return url;
+  const legacy = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/news-images/`;
+  return url.startsWith(legacy) ? `${base}/news-images/${url.slice(legacy.length)}` : url;
+}
+
+/** `rewriteNewsImageUrl` against this build's environment. */
+export function toNewsImageUrl(url: string): string {
+  return rewriteNewsImageUrl(url, environment.supabase.url, environment.assets?.r2BaseUrl);
+}
 
 /** Fixed intermediate rungs, ascending. Must match the edge function's ladder. */
 export const RUNG_WIDTHS = [400, 800] as const;
@@ -66,6 +91,7 @@ const LEGACY_COVER_WIDTH = 1140;
  * literals, so widening to `string` changes no behavior for them.
  */
 export function rsiVariant(url: string, target: string): string {
+  url = toNewsImageUrl(url);
   const media = /^(https:\/\/media\.robertsspaceindustries\.com\/[^/]+\/)[^/.]+(\.[a-zA-Z0-9]+)$/.exec(url);
   if (media) return `${media[1]}${target}${media[2]}`;
   const cached = /^(https?:\/\/.+\/)(?:post|cover)(\.[a-zA-Z0-9]+)$/.exec(url);
@@ -83,7 +109,7 @@ interface ParsedVariant { base: string; top: number; ext: string; }
 
 /** Split `…/<hash>/w<N>.<ext>`, or null when the url is not one of ours. */
 export function parseVariantUrl(url: string): ParsedVariant | null {
-  const m = WIDTH_VARIANT_RE.exec(url);
+  const m = WIDTH_VARIANT_RE.exec(toNewsImageUrl(url));
   if (!m) return null;
   const top = Number(m[2]);
   return Number.isFinite(top) ? { base: m[1], top, ext: m[3] } : null;
@@ -114,6 +140,7 @@ export function sourceWidth(url: string): number {
  * (a single opaque `w0` object) — the caller then relies on `src` alone.
  */
 export function newsSrcset(url: string): string {
+  url = toNewsImageUrl(url);
   const v = parseVariantUrl(url);
   if (v) {
     return variantRungs(v.top).map((w) => `${v.base}w${w}${v.ext} ${w}w`).join(', ');
@@ -126,6 +153,7 @@ export function newsSrcset(url: string): string {
  * a regular tile, and never the multi-MB original on any of them.
  */
 export function newsDefaultSrc(url: string, featured: boolean): string {
+  url = toNewsImageUrl(url);
   const v = parseVariantUrl(url);
   if (v) {
     const rungs = variantRungs(v.top);
