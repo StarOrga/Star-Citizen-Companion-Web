@@ -15,7 +15,14 @@
 //   POST { op: "ingredients",      build_id, rows: [...] }             -> { inserted }
 //   POST { op: "clear_ingredients",build_id }                          -> { ok }
 //   POST { op: "strings",          build_id, rows: [...] }             -> { upserted }
-//   POST { op: "locale_strings",   build_id, rows: [...] }             -> { upserted }
+//   POST { op: "locale_strings",   build_id, rows: [...] }             -> { upserted, skipped }
+//        (legacy: keeps de + en rows only, see the locale ops below)
+//   POST { op: "locale_sign",      build_id, lang, shards:[{sha256,bytes}] x64 }
+//                                                     -> { uploads:[{sha256, signedUrl, exists}] }
+//   POST { op: "locale_commit",    build_id, lang, shards:[sha x64], keys, bytes } -> { bundle }
+//   POST { op: "locale_backfill",  build_id, lang }   ADMIN or service-role key -> { bundle, uploaded }
+//        (global.ini strings as 64 content-addressed R2 shards per build+lang,
+//         see _locale-shards.ts and _locale-r2.ts)
 //   POST { op: "silhouettes",      build_id, rows: [...] }             -> { upserted }
 //        (rows: {kind, class_name, view_box, path, bbox, anchors, unresolved,
 //         meta, generated_at} — Holotable outline contract, see wave0-research
@@ -36,12 +43,26 @@
 //   (b) Seed:       X-SC-Seed-Token: <token> matching a row in
 //       public.codex_seed_tokens (used by supabase/scripts/seed-codex via the
 //       edge function so the local machine never needs the service-role key).
+//   (c) Ops:        Authorization: Bearer <service-role key> — for one-off
+//       maintenance runs such as scripts/codex-locale-backfill.mjs. Counts as
+//       admin; the key can write every table directly anyway.
 //
 // Response codes: 200 ok; 400 invalid_body; 401 unauthorized; 403 forbidden;
 //   500 ingest_failed; 503 ingest_timeout (Postgres cancelled the statement —
 //   the caller should halve the batch and retry, see catalog-bridge.ts).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { keepReadLangs } from './_locale-body.ts';
+import { localeBackfill, localeCommit, localeSign } from './_locale-r2.ts';
+
+/** Constant-time string compare (the service-role key check). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a);
+  const y = new TextEncoder().encode(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -138,7 +159,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const releaseToken = req.headers.get('x-sc-release-token');
 
   let authed = false;
-  if (seedToken) {
+  // Role of the caller: 'admin' | 'collaborator' for the JWT gate, 'service' for
+  // the service-role key (scripts/codex-locale-backfill.mjs), '' for seed tokens.
+  let role = '';
+  if (authHeader && timingSafeEqual(authHeader, `Bearer ${serviceKey}`)) {
+    authed = true;
+    role = 'service';
+  } else if (seedToken) {
     const { data: tok } = await admin
       .from('codex_seed_tokens')
       .select('token, expires_at, disabled')
@@ -161,7 +188,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (!user) return json({ error: 'unauthorized' }, 401);
     const { data: profile } = await userClient
       .from('profiles').select('role').eq('id', user.id).maybeSingle();
-    const role = (profile as { role?: string } | null)?.role ?? '';
+    role = (profile as { role?: string } | null)?.role ?? '';
     if (!['admin', 'collaborator'].includes(role)) return json({ error: 'forbidden' }, 403);
     if (!releaseToken) return json({ error: 'missing_release_token' }, 400);
     // is_current was dropped by the desktop-channels migration; a known,
@@ -263,13 +290,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     if (op === 'locale_strings') {
+      // Legacy path for uploaders before locale_sign/locale_commit. Only de + en
+      // are kept: the app never read the other nine languages, and they were
+      // the bulk of the largest table in the database.
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
+      const kept = keepReadLangs(rows as { lang?: unknown }[]);
+      if (kept.length === 0) return json({ ok: true, upserted: 0, skipped: rows.length });
       const { error } = await admin
         .from('codex_locale_strings')
-        .upsert(rows, { onConflict: 'build_id,lang,key' });
+        .upsert(kept, { onConflict: 'build_id,lang,key' });
       if (error) throw error;
-      return json({ ok: true, upserted: rows.length });
+      return json({ ok: true, upserted: kept.length, skipped: rows.length - kept.length });
+    }
+
+    if (op === 'locale_sign') return await localeSign(admin, body, json);
+    if (op === 'locale_commit') return await localeCommit(admin, body, json);
+    if (op === 'locale_backfill') {
+      if (role !== 'admin' && role !== 'service') return json({ error: 'forbidden', message: 'admin only' }, 403);
+      return await localeBackfill(admin, body, json);
     }
 
     if (op === 'preview') {

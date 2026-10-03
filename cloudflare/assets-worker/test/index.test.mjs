@@ -2,7 +2,7 @@
 // Exercises the Worker against an in-memory stand-in for the R2 binding.
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import worker, { keyFor, parseRange } from '../src/index.js';
+import worker, { fallbackBucket, keyFor, parseRange } from '../src/index.js';
 
 const GLB = 'ship-skins/DRAK_Cutlass_Black/standard.glb';
 
@@ -272,5 +272,82 @@ describe('fetch', () => {
   it('refuses writes and unknown paths', async () => {
     assert.equal((await worker.fetch(new Request(`https://w.dev/${GLB}`, { method: 'PUT' }), env())).status, 405);
     assert.equal((await worker.fetch(new Request('https://w.dev/index.html'), env())).status, 404);
+  });
+});
+
+describe('codex-locale shards', () => {
+  const sha = 'cd'.repeat(32);
+  const KEY = `codex-locale/${sha}.json`;
+
+  it('accepts only the content-addressed shape', () => {
+    assert.equal(keyFor(`/${KEY}`), KEY);
+    assert.equal(keyFor('/codex-locale/index.json'), null);
+    assert.equal(keyFor(`/codex-locale/${'CD'.repeat(32)}.json`), null);
+    assert.equal(keyFor(`/codex-locale/x/${sha}.json`), null);
+    assert.equal(fallbackBucket(KEY), null);
+  });
+
+  it('serves a shard as immutable JSON', async () => {
+    const res = await worker.fetch(new Request(`https://w.dev/${KEY}`), env({ [KEY]: '{"v":1}' }));
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'application/json');
+    assert.equal(res.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    assert.equal(await res.text(), '{"v":1}');
+  });
+
+  it('404s a missing shard without asking Supabase', async () => {
+    let asked = false;
+    globalThis.fetch = async () => {
+      asked = true;
+      return new Response('x');
+    };
+    const res = await worker.fetch(new Request(`https://w.dev/${KEY}`), env());
+    assert.equal(res.status, 404);
+    assert.equal(asked, false);
+  });
+});
+
+describe('news-images', () => {
+  const hash = '3f2a9c0d1e';
+  const KEY = `news-images/${hash}/w800.webp`;
+
+  it('accepts the fetch-verse-news key shapes and image extensions only', () => {
+    assert.equal(keyFor(`/${KEY}`), KEY);
+    for (const k of [
+      `news-images/${hash}/cover.jpg`,
+      `news-images/${hash}/post.jpeg`,
+      `news-images/${hash}/w400.png`,
+      `news-images/${hash}/w1140.gif`,
+      'news-images/x.avif',
+    ]) {
+      assert.equal(keyFor(`/${k}`), k);
+    }
+    assert.equal(keyFor(`/news-images/${hash}/w800.svg`), null);
+    assert.equal(keyFor(`/news-images/${hash}/w800.html`), null);
+    assert.equal(keyFor('/news-images/../ship-skins/a.webp'), null);
+    assert.equal(keyFor('/news-images/%2e%2e/secret.png'), null);
+    assert.equal(keyFor('/news-images/.hidden/a.png'), null);
+    assert.equal(fallbackBucket(KEY), 'news-images');
+  });
+
+  it('serves an R2 copy with the short cache and image type', async () => {
+    const key = `news-images/${hash}/cover.jpg`;
+    const res = await worker.fetch(new Request(`https://w.dev/${key}`), env({ [key]: 'jpg' }));
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'image/jpeg');
+    assert.equal(res.headers.get('cache-control'), 'public, max-age=3600, stale-while-revalidate=86400');
+  });
+
+  it('streams a key R2 lacks from the public news-images bucket', async () => {
+    let asked = '';
+    globalThis.fetch = async (url) => {
+      asked = String(url);
+      return new Response('img', { status: 200, headers: { etag: '"n"', 'content-length': '3' } });
+    };
+    const res = await worker.fetch(new Request(`https://w.dev/${KEY}`), env());
+    assert.equal(asked, `https://example.supabase.co/storage/v1/object/public/news-images/${hash}/w800.webp`);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('content-type'), 'image/webp');
+    assert.equal(res.headers.get('x-sc-origin'), 'supabase');
   });
 });
