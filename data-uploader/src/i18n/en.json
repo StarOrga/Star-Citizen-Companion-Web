@@ -206,7 +206,12 @@
       "resumeLost": "The upload cannot be resumed — the extracted data is no longer available.",
       "resumeLostHint": "Please discard the upload and run the extraction again.",
       "discard": "Discard",
+      "discardConfirm": {
+        "title": "Discard upload?",
+        "message": "The saved progress of this upload is deleted — it can no longer be resumed afterwards."
+      },
       "cancelled": "Upload discarded — the saved progress was removed.",
+      "cancelledNoResult": "Use “Back” to start a fresh extraction from Setup.",
       "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
       "resumeBannerRich": "Interrupted upload · {{macro}}: {{stages}} — resume?",
       "stagePending": "pending",

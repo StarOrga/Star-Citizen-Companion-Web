@@ -353,12 +353,7 @@ async function init(): Promise<void> {
   $('#connection-chip')?.addEventListener('click', () => toggleConnectionPopover(paintConnection));
 
   wireChevrons({
-    goPrev: () => {
-      if (state.view === 'configure') {
-        state.view = 'discover';
-        render();
-      }
-    },
+    goPrev: () => goBack(),
     goNext: () => {
       if (state.view === 'discover') goToSetup();
     },
@@ -386,6 +381,12 @@ async function init(): Promise<void> {
         const btn = $('#btn-cancel-extract') as HTMLButtonElement | null;
         if (!btn) return false;
         btn.click();
+        return true;
+      },
+      // Esc on an idle Upload card = its "Zurück" (nothing in flight to lose).
+      () => {
+        if (state.view !== 'auth-upload' || !canGoBack()) return false;
+        goBack();
         return true;
       },
     ],
@@ -1080,9 +1081,37 @@ export function setStatus(msg: string): void {
   setBottomStatus(msg);
 }
 
-/** True once a run (extract or upload) is live — gates the chevrons + Back. */
-function runIsLive(): boolean {
-  return state.view === 'run' || state.view === 'auth-upload' || state.view === 'done';
+/**
+ * Whether stepping back is possible from the current view. Decided by the work
+ * actually in flight, not by the view: an Upload card whose job was discarded
+ * (or never started) must not trap the operator, while a running extraction
+ * or upload keeps "back" an explicit, confirmed abort.
+ */
+function canGoBack(): boolean {
+  switch (state.view) {
+    case 'configure':
+      return true;
+    case 'run':
+      return !extractRunning;
+    case 'auth-upload':
+      return !uploadRunning && !resumeInFlight;
+    default:
+      return false;
+  }
+}
+
+/** One step back: Setup → Install, anything later → Setup (a new run starts there). */
+function goBack(): void {
+  if (!canGoBack()) return;
+  state.view = state.view === 'configure' ? 'discover' : 'configure';
+  render();
+}
+
+/** Repaint the chevrons + Upload back button after in-flight work started or ended. */
+function paintNav(): void {
+  paintChevrons(canGoBack(), state.view === 'discover');
+  const back = $('#btn-upload-back') as HTMLButtonElement | null;
+  if (back) back.hidden = !canGoBack();
 }
 
 function render(): void {
@@ -1095,7 +1124,7 @@ function render(): void {
 
   const step = viewToStep(state.view);
   paintStepRail({ current: step, activePct: lastOverallPct });
-  paintChevrons(step, runIsLive());
+  paintNav();
   paintConnection();
 
   // Direction-aware slide: `.step-enter` is re-applied (remove → reflow →
@@ -1521,6 +1550,7 @@ async function runRealExtract(): Promise<void> {
   });
 
   extractRunning = true;
+  paintNav();
   try {
     const final = await window.sc.extract.start({
       p4kPath: channel.dataP4kPath,
@@ -1569,6 +1599,7 @@ async function runRealExtract(): Promise<void> {
     }
   } finally {
     extractRunning = false;
+    paintNav();
     currentExtractJobId = null;
     unsubscribe();
     progress.stop();
@@ -1668,6 +1699,7 @@ function renderAuthUpload(): string {
         <div id="upload-result"></div>
       </section>
       <div class="btn-row view-footer" id="upload-footer">
+        <button type="button" id="btn-upload-back" class="btn" data-tip="${t('common.back')}" data-tip-key="Esc">${t('common.back')}</button>
         <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
         <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
         <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
@@ -1700,6 +1732,7 @@ function wireAuthUpload(): void {
   $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
   $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
   $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
+  $('#btn-upload-back')?.addEventListener('click', () => goBack());
   // Force a fresh session check on entry so a "re-authorise needed" hint shows
   // up-front here, not only after the upload attempt fails.
   paintReconnectNotice();
@@ -1791,8 +1824,11 @@ function paintJobNotice(): void {
   resumeBtn.hidden = !(!running && resumable);
   discardBtn.hidden = !(!running && resumable);
   // A resumable job makes "start over" the wrong default — hide it so the
-  // operator resumes rather than silently re-uploading everything.
-  startBtn.hidden = !running && resumable;
+  // operator resumes rather than silently re-uploading everything. Without an
+  // extraction result there is nothing to start either (e.g. right after a
+  // discarded job on a fresh launch): then "Zurück" is the way on.
+  startBtn.hidden = (!running && resumable) || !state.lastResult;
+  paintNav();
 
   if (!running && resumable && job?.resumeSummary) {
     notice.textContent = formatResumeBanner(job.resumeSummary);
@@ -1954,6 +1990,7 @@ let resumeInFlight = false;
 async function doResumeUpload(): Promise<void> {
   if (resumeInFlight) return;
   resumeInFlight = true;
+  paintNav();
   const btn = $('#btn-resume-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
   try {
@@ -1963,6 +2000,7 @@ async function doResumeUpload(): Promise<void> {
     await doStartUpload();
   } finally {
     resumeInFlight = false;
+    paintNav();
     // Re-query: the view may have been re-rendered while the upload ran.
     const live = $('#btn-resume-upload') as HTMLButtonElement | null;
     if (live) live.disabled = false;
@@ -1970,9 +2008,23 @@ async function doResumeUpload(): Promise<void> {
 }
 
 async function doDiscardUpload(): Promise<void> {
+  // Discarding deletes the saved progress for good — ask first, safe default.
+  const ok = await confirmDiscard({
+    title: t('upload.job.discardConfirm.title'),
+    message: t('upload.job.discardConfirm.message'),
+    confirmLabel: t('upload.job.discard'),
+    cancelLabel: t('common.cancel'),
+  });
+  if (!ok) return;
   state.resumableJob = await window.sc.uploadJob.cancel();
   state.uploadPaused = false;
-  setAuthStatus(t('upload.job.cancelled'), 'warn');
+  // The launch-time "interrupted upload found" line is no longer true.
+  setStatus('');
+  setAuthStatus(
+    t('upload.job.cancelled'),
+    'warn',
+    state.lastResult ? {} : { hint: t('upload.job.cancelledNoResult') },
+  );
   paintJobNotice();
 }
 
@@ -2003,6 +2055,7 @@ async function doStartUpload(): Promise<void> {
   const btn = $('#btn-start-upload') as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
   uploadRunning = true;
+  paintNav();
   // The sign-in explanation is only useful before the first click — once the
   // run is going it would sit between the title and the bar for nothing.
   $('#upload-intro')?.setAttribute('hidden', '');

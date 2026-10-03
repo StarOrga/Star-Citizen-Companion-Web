@@ -206,7 +206,12 @@
       "resumeLost": "Der Upload kann nicht fortgesetzt werden — die extrahierten Daten sind nicht mehr vorhanden.",
       "resumeLostHint": "Bitte den Upload verwerfen und die Extraktion erneut ausführen.",
       "discard": "Verwerfen",
+      "discardConfirm": {
+        "title": "Upload verwerfen?",
+        "message": "Der gespeicherte Fortschritt dieses Uploads wird gelöscht — fortsetzen lässt er sich danach nicht mehr."
+      },
       "cancelled": "Upload verworfen — der Fortschritt wurde gelöscht.",
+      "cancelledNoResult": "Über „Zurück“ startest du in der Einrichtung eine neue Extraktion.",
       "resumeBanner": "Unterbrochener Upload gefunden ({{hint}}) — fortsetzen?",
       "resumeBannerRich": "Unterbrochener Upload · {{macro}}: {{stages}} — fortsetzen?",
       "stagePending": "offen",
