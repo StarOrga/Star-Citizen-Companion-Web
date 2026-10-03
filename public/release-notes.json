@@ -1,7 +1,47 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.122.0",
+  "current": "0.123.0",
   "releases": [
+    {
+      "version": "0.123.0",
+      "date": "2026-10-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.43.0: nur noch das Tempo ist wählbar.",
+              "text": "Der Setup-Schritt fragt nur noch, wie stark der Uploader den PC auslasten darf: *Minimal* (nebenbei spielen — 1 Kern, niedrigste Priorität), *Standard* (nebenbei surfen oder streamen — halbe Kerne, gesenkte Priorität) oder *Maximal* (der PC gehört dem Uploader — alle Kerne bis auf einen). Die Wahl wird gespeichert, gilt ab dem Start des nächsten Laufs (auch unbeaufsichtigt) und bleibt über den ⚡-Chip mitten im Lauf umschaltbar."
+            },
+            {
+              "title": "Kein Extraktions-Umfang mehr.",
+              "text": "Jeder Lauf extrahiert den kompletten Datenstand (HD-Icons, Render-Bilder, Komponentenbaum), damit die hochgeladenen Daten nicht davon abhängen, welcher Uploader sie erzeugt hat."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: „Minimal“ wurde beim Start zu „Standard“.",
+              "text": "Der Setup-Schritt bot nur den gleichnamigen Umfang an; das Tempo blieb auf Standard und der ⚡-Chip zeigte beim Extraktionsstart „Standard“."
+            }
+          ]
+        },
+        {
+          "category": "Deploy",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Uploader 0.43.0 veröffentlichen (Tag data-uploader-v0.43.0, Katalog-Eintrag auf alpha)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.122.0",
       "date": "2026-10-03",
