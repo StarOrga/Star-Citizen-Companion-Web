@@ -691,7 +691,10 @@ kbd.sc-kbd {
 /* ===================================================================
    Setup step
    =================================================================== */
-.scope-pills { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+.setup-sections { flex-direction: column; gap: 10px; }
+.setup-hint { margin: 0; font-size: var(--fs-sm); color: var(--sc-fg-2); }
+.speed-pills { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+.profile-pill .desc { font-size: var(--fs-sm); color: var(--sc-fg-2); line-height: 1.4; }
 .profile-pill {
   font: inherit;
   color: inherit;
@@ -714,15 +717,6 @@ kbd.sc-kbd {
 .profile-pill .name { font-family: var(--sc-font-label); font-weight: 600; text-transform: uppercase; font-size: var(--fs-md); letter-spacing: 0.06em; display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .profile-pill .eta { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); color: var(--sc-accent); }
 .profile-pill.compact { padding: 7px 12px; gap: 0; align-items: center; justify-content: center; min-width: 110px; }
-.scope-recommended {
-  font-family: var(--sc-font-body);
-  font-size: var(--fs-xs);
-  letter-spacing: 0;
-  color: var(--sc-accent);
-  border: 1px solid var(--sc-accent);
-  border-radius: var(--sc-radius-pill);
-  padding: 1px 7px;
-}
 
 /* ===================================================================
    Progress — shared bar + card used by Extract and Upload

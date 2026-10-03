@@ -93,8 +93,6 @@ export interface PublicSettings {
   quitAfterAutoRun: boolean;
   /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  /** How much of the game data an extraction run pulls. Default 'standard'. */
-  extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
   /** Persisted UI locale; undefined = renderer's own detection/fallback. */
   language?: string;
@@ -1612,11 +1610,9 @@ async function runRealExtract(): Promise<void> {
       channel: channel.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW',
       patchVersion: channel.version ?? 'unknown',
       buildNumber: '', // unknown from disk; server will treat empty as missing
-      scope: {
-        hdIcons: state.runPlan?.scope !== 'minimal',
-        renderPngs: state.runPlan?.scope === 'maximum',
-        componentTree: state.runPlan?.scope !== 'minimal',
-      },
+      // Always the full data set: what lands on the server must not depend on
+      // which uploader ran or what it picked. Only the speed (PC load) is a choice.
+      scope: { hdIcons: true, renderPngs: true, componentTree: true },
       toolVersion: (await window.sc.env()).toolVersion,
     });
 

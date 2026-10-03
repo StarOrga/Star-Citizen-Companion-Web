@@ -93,7 +93,9 @@ describe('buildThrottleCommand', () => {
     const priorityOf = (p: 'minimal' | 'standard' | 'maximum' | 'auto'): string =>
       buildThrottleCommand('win32', 1, runtimeFor(p), 8)!.args.at(-1)!;
     expect(priorityOf('minimal')).toContain('::Idle');
-    expect(priorityOf('standard')).toContain('::Normal');
+    // standard is BelowNormal: Windows propagates it to the dump workers, so a
+    // browser or video in the foreground stays smooth ("browse/stream alongside").
+    expect(priorityOf('standard')).toContain('::BelowNormal');
     expect(priorityOf('auto')).toContain('::BelowNormal');
     // maximum is Normal, NOT AboveNormal. Raising the class buys nothing here:
     // Windows does not propagate AboveNormal to children (measured on Win11 —
@@ -128,7 +130,7 @@ describe('buildThrottleCommand', () => {
       command: 'renice',
       args: ['-n', '19', '-p', '99'],
     });
-    expect(buildThrottleCommand('darwin', 99, runtimeFor('standard'), 8)?.args).toEqual([
+    expect(buildThrottleCommand('darwin', 99, runtimeFor('maximum'), 8)?.args).toEqual([
       '-n',
       '0',
       '-p',

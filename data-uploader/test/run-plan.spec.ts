@@ -11,7 +11,7 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     autoRunOnNewVersion: false,
     quitAfterAutoRun: true,
     afterAutoRun: 'quit',
-    extractScope: 'standard',
+    speedProfile: 'standard',
     updateChannel: 'stable',
     ...overrides,
   };
@@ -27,7 +27,6 @@ describe('buildRunPlan', () => {
     });
     expect(plan).toEqual({
       channel: 'LIVE',
-      scope: 'standard',
       uploadAfter: true,
       whenDone: 'shutdown',
       unattended: false,
@@ -107,21 +106,8 @@ describe('buildRunPlan', () => {
     expect(plan.uploadAfter).toBe(false);
   });
 
-  it('scope always comes from settings.extractScope', () => {
-    const manual = buildRunPlan({
-      channel: 'LIVE',
-      settings: baseSettings({ extractScope: 'maximum' }),
-      signedIn: true,
-      whenDone: 'nothing',
-    });
-    expect(manual.scope).toBe('maximum');
-
-    const unattended = buildRunPlan({
-      unattended: true,
-      channel: 'LIVE',
-      settings: baseSettings({ extractScope: 'minimal' }),
-      signedIn: true,
-    });
-    expect(unattended.scope).toBe('minimal');
+  it('carries no scope — every run extracts the full data set', () => {
+    const plan = buildRunPlan({ channel: 'LIVE', settings: baseSettings(), signedIn: true, whenDone: 'nothing' });
+    expect('scope' in plan).toBe(false);
   });
 });

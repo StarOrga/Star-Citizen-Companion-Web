@@ -24,7 +24,9 @@ export interface ThrottleChipCtx {
 }
 
 export function throttleChipHtml(profile: LiveProfile): string {
-  const label = profile.charAt(0).toUpperCase() + profile.slice(1);
+  // Same localized words as the Setup speed picker — the raw id ("Maximum",
+  // "Standard") read like the identically-named SCOPE pills.
+  const label = t('speed.' + profile);
   return `<button type="button" id="throttle-chip" class="throttle-chip" data-tip="${escapeHtml(t('run.tempo'))}" data-tip-key="T">⚡ ${label} ▾</button>`;
 }
 

@@ -251,7 +251,6 @@ function publicSettings(): {
   autoRunOnNewVersion: boolean;
   quitAfterAutoRun: boolean;
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
-  extractScope: 'minimal' | 'standard' | 'maximum';
   updateChannel: 'alpha' | 'beta' | 'stable';
   language?: string;
 } {
@@ -265,7 +264,6 @@ function publicSettings(): {
     autoRunOnNewVersion: s.autoRunOnNewVersion,
     quitAfterAutoRun: s.quitAfterAutoRun,
     afterAutoRun: s.afterAutoRun,
-    extractScope: s.extractScope,
     updateChannel: s.updateChannel,
     ...(s.language !== undefined ? { language: s.language } : {}),
   };
@@ -288,7 +286,6 @@ ipcMain.handle(
       autoRunOnNewVersion?: boolean;
       quitAfterAutoRun?: boolean;
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
-      extractScope?: 'minimal' | 'standard' | 'maximum';
       updateChannel?: 'alpha' | 'beta' | 'stable';
       language?: string;
     },
@@ -310,13 +307,6 @@ ipcMain.handle(
       partial?.afterAutoRun === 'shutdown'
     ) {
       clean.afterAutoRun = partial.afterAutoRun;
-    }
-    if (
-      partial?.extractScope === 'minimal' ||
-      partial?.extractScope === 'standard' ||
-      partial?.extractScope === 'maximum'
-    ) {
-      clean.extractScope = partial.extractScope;
     }
     if (
       partial?.updateChannel === 'alpha' ||
@@ -480,6 +470,11 @@ ipcMain.handle('sc:perf:get', () => throttle.view());
 // implying an effect that never left the process.
 ipcMain.handle('sc:perf:set', (_e, profileId: unknown) => {
   const result = throttle.set(profileId);
+  // Remember the operator's pick for the next launch — only the modes they can
+  // actually choose; `auto` stays an internal, non-persisted value.
+  if (result.changed && (SELECTABLE_PROFILES as readonly string[]).includes(result.profile)) {
+    patchSettings({ speedProfile: result.profile as (typeof SELECTABLE_PROFILES)[number] });
+  }
   // Every window mirrors the switch — including the one that did not send it,
   // and the Configure screen when the change came from the Run screen.
   for (const w of BrowserWindow.getAllWindows()) {
@@ -1202,6 +1197,10 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   app.setAppUserModelId('com.sc-companion.data-uploader');
+  // Seed the live throttle with the speed mode picked last time, BEFORE any
+  // window or auto-run can start a sidecar — otherwise every launch silently
+  // fell back to Standard and "minimal, I'm playing" did not survive a restart.
+  throttle.set(getSettings().speedProfile);
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
   // Tray first, then the close handler can safely rely on hasTray().

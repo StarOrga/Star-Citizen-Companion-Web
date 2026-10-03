@@ -34,12 +34,6 @@
     "resumeGeneric": "Found an interrupted upload — resume it?",
     "extractOnly": "Continue (extract only)"
   },
-  "scope": {
-    "minimal": "Minimal",
-    "standard": "Standard",
-    "maximum": "Maximum",
-    "recommended": "recommended"
-  },
   "sheet": {
     "title": "Run options",
     "mode": {
@@ -76,17 +70,16 @@
     "next": "Next → Configure"
   },
   "configure": {
-    "title": "Choose scope",
-    "subtitle": "Speed stays switchable any time later — scope doesn't.",
+    "title": "Choose speed",
+    "subtitle": "How hard may the uploader load your PC? It always extracts the complete data set.",
     "start": "Start extraction",
     "speed": {
       "title": "Speed",
-      "hint": "Switch any time — mid-run included.",
+      "hint": "Switch any time — mid-run too, via the ⚡ chip.",
       "applied": "Mode changed — takes effect from the next file.",
       "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
       "armed": "Mode set — it applies as soon as a run starts.",
-      "unsupported": "This platform has no live priority control.",
-      "scopePinned": "The extraction scope stays fixed for the running job — only pace and priority change."
+      "unsupported": "This platform has no live priority control."
     }
   },
   "run": {
@@ -396,5 +389,13 @@
     "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
     "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
     "resuming": "Found an interrupted upload — resuming it automatically."
+  },
+  "speed": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "minimalDesc": "Play alongside: 1 core, lowest priority. Takes the longest.",
+    "standardDesc": "Browse or stream alongside: half the cores, lowered priority. Too much for gaming.",
+    "maximumDesc": "The PC belongs to the uploader: every core but one. Little else runs alongside."
   }
 }

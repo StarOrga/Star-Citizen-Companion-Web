@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.123.0] - 2026-10-03
+
+### Changed
+
+- **Data Uploader 0.43.0: nur noch das Tempo ist wählbar.** Der Setup-Schritt
+  fragt nur noch, wie stark der Uploader den PC auslasten darf: *Minimal*
+  (nebenbei spielen — 1 Kern, niedrigste Priorität), *Standard* (nebenbei
+  surfen oder streamen — halbe Kerne, gesenkte Priorität) oder *Maximal* (der PC
+  gehört dem Uploader — alle Kerne bis auf einen). Die Wahl wird gespeichert,
+  gilt ab dem Start des nächsten Laufs (auch unbeaufsichtigt) und bleibt über
+  den ⚡-Chip mitten im Lauf umschaltbar.
+- **Kein Extraktions-Umfang mehr.** Jeder Lauf extrahiert den kompletten
+  Datenstand (HD-Icons, Render-Bilder, Komponentenbaum), damit die hochgeladenen
+  Daten nicht davon abhängen, welcher Uploader sie erzeugt hat.
+
+### Fixed
+
+- **Data Uploader: „Minimal“ wurde beim Start zu „Standard“.** Der Setup-Schritt
+  bot nur den gleichnamigen Umfang an; das Tempo blieb auf Standard und der
+  ⚡-Chip zeigte beim Extraktionsstart „Standard“.
+
+### Deploy
+
+- Uploader 0.43.0 veröffentlichen (Tag `data-uploader-v0.43.0`, Katalog-Eintrag
+  auf alpha).
+
 ## [0.122.0] - 2026-10-03
 
 ### Added
