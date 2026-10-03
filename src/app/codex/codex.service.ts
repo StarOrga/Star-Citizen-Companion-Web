@@ -2059,19 +2059,14 @@ export class CodexService {
     const memoKey = `${buildId}:${lang}:${sha}`;
     const cached = this.localeShards.get(memoKey);
     if (cached) return cached;
-    const attempt = (async () => {
-      try {
-        const res = await fetch(`${base}${sha}.json`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const strings = shardStrings(await res.json());
-        if (!strings) throw new Error('malformed shard');
-        return strings;
-      } catch (err) {
+    const attempt: Promise<Record<string, string> | null> = readLocaleShard(`${base}${sha}.json`).then(
+      (strings) => strings,
+      (err: unknown) => {
         logWarn('codex', `locale shard ${sha} (${lang}) failed`, err);
         if (this.localeShards.get(memoKey) === attempt) this.localeShards.delete(memoKey);
         return null;
-      }
-    })();
+      },
+    );
     this.localeShards.set(memoKey, attempt);
     return attempt;
   }
@@ -2392,6 +2387,15 @@ export class CodexService {
 }
 
 // ── pure mappers / helpers ────────────────────────────────────────────────────
+
+/** Fetch + validate one locale shard; throws on HTTP or shape errors. */
+async function readLocaleShard(url: string): Promise<Record<string, string>> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const strings = shardStrings(await res.json());
+  if (!strings) throw new Error('malformed shard');
+  return strings;
+}
 
 function mapBuild(r: Record<string, unknown>): CodexBuild {
   const counts = (r['entity_counts'] ?? {}) as CodexBuild['entityCounts'];
