@@ -134,6 +134,20 @@ export async function getObject(cfg: R2Config, key: string, maxBytes: number): P
   return new Uint8Array(await res.arrayBuffer());
 }
 
+/**
+ * Direct PUT with the function's own key — for objects the function builds
+ * itself (ingest-catalog's localization shards), not for uploader bytes.
+ */
+export async function putObject(cfg: R2Config, key: string, body: string, contentType: string): Promise<void> {
+  const res = await cfg.client.fetch(objectUrl(cfg, key), {
+    method: 'PUT',
+    body,
+    headers: { 'content-type': contentType },
+    signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS * 3),
+  });
+  if (!res.ok) throw new Error(`R2 put ${key} failed: HTTP ${res.status}`);
+}
+
 export async function deleteObject(cfg: R2Config, key: string): Promise<void> {
   const res = await cfg.client.fetch(objectUrl(cfg, key), { method: 'DELETE', signal: AbortSignal.timeout(R2_FETCH_TIMEOUT_MS) });
   // 204 on success; a 404 means it is already gone, which is what we wanted.
