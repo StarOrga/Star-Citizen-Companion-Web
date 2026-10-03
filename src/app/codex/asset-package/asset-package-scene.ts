@@ -26,6 +26,7 @@ export interface ScreenPoint {
 
 const HULL_OPACITY_XRAY = 0.1;
 const PART_OPACITY_XRAY = 0.06;
+const HULL_OPACITY_INTERIOR = 0.28;
 
 export class PackageScene {
   private readonly renderer: THREE.WebGLRenderer;
@@ -74,6 +75,9 @@ export class PackageScene {
       (mesh.material as THREE.Material | undefined)?.dispose?.();
     });
     this.scene.environment = this.envTarget.texture;
+    // RoomEnvironment is a bright studio; dimmed, it leaves the hull dark with
+    // a lit rim — the hologram, not a white plastic model.
+    this.scene.environmentIntensity = 0.35;
     this.loader.setMeshoptDecoder(MeshoptDecoder);
 
     // Hologram look (same recipe as ship-hologram.ts for model-viewer): dark
@@ -166,19 +170,36 @@ export class PackageScene {
   setVisibility(visible: ReadonlySet<string>, interiorOn: boolean): void {
     for (const [id, node] of this.placed) node.visible = visible.has(id);
     if (this.interior) this.interior.visible = interiorOn;
+    this.interiorOn = interiorOn && !!this.interior;
+    this.applyOpacity();
+  }
+
+  private interiorOn = false;
+
+  /**
+   * Hull/part translucency: x-ray while something is focused; with the
+   * interior layer on, the hull alone turns glassy so the cabin reads.
+   */
+  private applyOpacity(): void {
+    const xray = this.focused.size > 0;
+    for (const m of [this.hullMat, this.partMat, this.interiorMat]) {
+      let opacity = 1;
+      if (xray) opacity = m === this.hullMat ? HULL_OPACITY_XRAY : PART_OPACITY_XRAY;
+      else if (this.interiorOn && m === this.hullMat) opacity = HULL_OPACITY_INTERIOR;
+      const transparent = opacity < 1;
+      if (m.transparent !== transparent || m.opacity !== opacity) {
+        m.transparent = transparent;
+        m.depthWrite = !transparent;
+        m.opacity = opacity;
+        m.needsUpdate = true;
+      }
+    }
     this.requestRender();
   }
 
   /** X-ray: hull + other parts translucent, the focused placements solid and bright. */
   setFocus(ids: readonly string[]): void {
     const next = new Set(ids);
-    const xray = next.size > 0;
-    for (const m of [this.hullMat, this.partMat, this.interiorMat]) {
-      m.transparent = xray;
-      m.depthWrite = !xray;
-      m.opacity = xray ? (m === this.hullMat ? HULL_OPACITY_XRAY : PART_OPACITY_XRAY) : 1;
-      m.needsUpdate = true;
-    }
     for (const [id, node] of this.placed) {
       const on = next.has(id);
       if (on === this.focused.has(id)) continue;
@@ -190,7 +211,7 @@ export class PackageScene {
       });
     }
     this.focused = next;
-    this.requestRender();
+    this.applyOpacity();
   }
 
   /** Frame the camera on `bounds` (manifest) or, when null, the loaded root's measured box. */
@@ -202,7 +223,8 @@ export class PackageScene {
     if (box.isEmpty()) box.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
     const center = box.getCenter(new THREE.Vector3());
     const radius = Math.max(box.getSize(this.tmp).length() / 2, 0.1);
-    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 1.05;
+    // The bounding sphere overestimates a flat, long hull; 0.8 fills the stage.
+    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 0.8;
     const dir = new THREE.Vector3(1, 0.55, 1.25).normalize();
     this.camera.position.copy(center).addScaledVector(dir, dist);
     this.camera.near = Math.max(dist / 200, 0.01);
