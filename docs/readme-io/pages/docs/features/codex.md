@@ -141,6 +141,13 @@ out to RSI — sits in one flat tool row directly underneath. The same
 **⌂ Hangar** button as on the landing stage sits in the top-left corner of the
 render and unfolds your last three ships.
 
+The 3D model is drawn as a hologram: one body colour, with the rim light,
+glow, ring and leader lines in the manufacturer's colour. Highlighting a
+component lights it up as its own model and draws a leader line to a label
+outside the hull; the label links to the component's Codex page, and **‹ ›** or
+the arrow keys step through the slots. An empty slot shows as a slowly rotating,
+pulsing ring (still, if your system asks for reduced motion).
+
 Below that, the loadout reads as **four blocks**: *Weapons*, *Missiles*,
 *Shields* and *Propulsion & systems*. The last one holds the power plant, the
 quantum drive, the coolers, the radar and life support as subgroups — each with
