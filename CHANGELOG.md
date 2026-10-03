@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.121.0] - 2026-10-03
+
+### Changed
+
+- **Codex-3D-Ansicht: ein einheitlicher Hologramm-Look.** Die Varianten
+  Studio und Blueprint entfallen; es bleibt der Konzept-Hologramm-Look mit
+  dezenteren Scanlines und dünneren Kantenlinien auf großen Rümpfen. Der Rumpf
+  hat eine einheitliche Grundfarbe, Akzente (Randlicht, Glühen, Ring,
+  Führungslinie) tragen die Farbe des Herstellers.
+- **Hervorgehobene Komponente mit Beschriftung.** Die gewählte Komponente
+  erscheint als beleuchtetes Modell mit einer Führungslinie zu einem
+  anklickbaren Label außerhalb des Rumpfs, das auf ihre Codex-Seite führt;
+  ‹ › bzw. die Pfeiltasten wechseln den Slot. Leere Slots zeigen einen
+  rotierenden, pulsierenden Ring (statisch bei reduzierter Bewegung).
+
 ## [0.120.0] - 2026-10-03
 
 ### Changed

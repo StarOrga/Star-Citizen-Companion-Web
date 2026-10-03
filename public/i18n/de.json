@@ -2056,7 +2056,15 @@
       "show": "{{name}} einblenden",
       "hide": "{{name}} ausblenden",
       "hotspotTip": "{{name}} · {{type}} · Größe {{size}}",
-      "freeSlot": "Freier Platz, nimmt {{types}} auf"
+      "freeSlot": "Freier Platz, nimmt {{types}} auf",
+      "label": {
+        "aria": "Gewählter Platz: {{name}}",
+        "open": "{{name}} im Codex öffnen",
+        "prev": "Vorheriger Platz",
+        "next": "Nächster Platz",
+        "close": "Auswahl aufheben",
+        "emptySlot": "Freier Platz"
+      }
     },
     "attachType": {
       "WeaponPersonal": "Handwaffe",

@@ -2056,7 +2056,15 @@
       "show": "Show {{name}}",
       "hide": "Hide {{name}}",
       "hotspotTip": "{{name}} · {{type}} · size {{size}}",
-      "freeSlot": "Free slot, accepts {{types}}"
+      "freeSlot": "Free slot, accepts {{types}}",
+      "label": {
+        "aria": "Selected slot: {{name}}",
+        "open": "Open {{name}} in the Codex",
+        "prev": "Previous slot",
+        "next": "Next slot",
+        "close": "Clear selection",
+        "emptySlot": "Free slot"
+      }
     },
     "attachType": {
       "WeaponPersonal": "Personal weapon",
