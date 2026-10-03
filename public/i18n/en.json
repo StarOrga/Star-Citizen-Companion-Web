@@ -1472,6 +1472,23 @@
       "nose": "Nose",
       "readoutIdle": "No hardpoint selected"
     },
+    "shipBlueprint": {
+      "schema": {
+        "title": "Hardpoint schematic",
+        "topAria": "Top view of the ship with {{count}} hardpoints marked",
+        "extent": "{{length}} × {{beam}} × {{height}} m",
+        "hint": "Seen from above, nose to the right. Point at a marker for size and type, click it for the component.",
+        "noPositions": "No hardpoint positions for this hull yet — they arrive with its next 3D upload.",
+        "listLabel": "Hardpoints",
+        "size": "Size {{size}}"
+      },
+      "group": {
+        "weapons": "Weapons",
+        "missiles": "Missiles",
+        "components": "Components",
+        "other": "Hardpoint"
+      }
+    },
     "skins": {
       "title": "Liveries",
       "source": "Hologram of the ship's shape · liveries as official store renders",

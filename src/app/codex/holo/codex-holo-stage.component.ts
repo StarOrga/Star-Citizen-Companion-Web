@@ -61,6 +61,7 @@ import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
 interface PerspectiveTile {
@@ -312,9 +313,9 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                 @if (has3d()) {
                   <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}</button>
                 }
-                <span style="display: contents" [scTooltip]="hardpointFrame() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)" scTooltipTier="label">
+                <span style="display: contents" [scTooltip]="schemaAvailable() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)" scTooltipTier="label">
                 <button type="button" class="tt" [class.on]="viewMode() === 'schema'" [attr.aria-pressed]="viewMode() === 'schema'"
-                        [disabled]="!hardpointFrame()"
+                        [disabled]="!schemaAvailable()"
                         (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}</button>
                 </span>
                 <span class="share-wrap" (keydown.escape)="closeShare($event)">
@@ -821,6 +822,11 @@ export class CodexHoloStageComponent {
   readonly hardpointPortRefs = input<readonly HardpointPortRef[]>([]);
   readonly hardpointFrame = input<HardpointFrame | null>(null);
   readonly hardpointMarkers = input<readonly HardpointMarker[]>([]);
+  private readonly blueprints = inject(ShipBlueprintService);
+  /** The schema view needs a blueprint drawing or the extractor's hardpoint frame. */
+  readonly schemaAvailable = computed(
+    () => !!this.hardpointFrame() || !!this.blueprints.urls(this.shipClassName())?.full,
+  );
 
   // ── Einsatz bar / KPI ────────────────────────────────────────────
   /** The six band cells of the active Einsatz (kept for the lead-metric accent). */
@@ -990,6 +996,7 @@ export class CodexHoloStageComponent {
   readonly staticKeys: readonly StaticKey[] = ['crew', 'mass', 'cargo'];
 
   constructor() {
+    void this.blueprints.load();
     // The arrival (concept hv3-s1), keyed on the ship: every hull switch
     // re-runs it. Reduced motion or a repeat visit in the same session = a
     // hard cut. Otherwise the hero art is fetched (briefly — the table never

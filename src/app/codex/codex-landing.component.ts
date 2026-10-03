@@ -56,6 +56,7 @@ import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ShipBlueprintIconComponent } from './ship-blueprint/ship-blueprint-icon.component';
 import { CodexDidYouMeanComponent, mergeSuggestions } from './codex-did-you-mean.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -105,6 +106,7 @@ export function gridColumns(items: readonly HTMLElement[]): number {
     CodexBoardFigureComponent,
     ScTooltipDirective,
     CodexDidYouMeanComponent,
+    ShipBlueprintIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -227,7 +229,14 @@ export function gridColumns(items: readonly HTMLElement[]): number {
                   [queryParams]="hitQueryParams(hit)"
                 >
                   <span class="hit-icon" aria-hidden="true">
-                    <sc-codex-icon [kind]="hitIcon(hit)" />
+                    @if (hit.kind === 'ship') {
+                      <!-- The hull's own blueprint once it is there; the kind icon until then and without one. -->
+                      <sc-ship-blueprint-icon [shipId]="hit.classNameSlug">
+                        <sc-codex-icon [kind]="hitIcon(hit)" />
+                      </sc-ship-blueprint-icon>
+                    } @else {
+                      <sc-codex-icon [kind]="hitIcon(hit)" />
+                    }
                   </span>
                   <span class="hit-body">
                     <span class="hit-name">{{ hitName(hit) }}</span>

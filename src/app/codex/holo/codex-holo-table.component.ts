@@ -15,6 +15,16 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloSilhouette } from '../holo-silhouette';
 import { ShipHardpointMapComponent } from '../ship-hardpoint-map.component';
+import { ShipBlueprintSchemaComponent } from '../ship-blueprint/ship-blueprint-schema.component';
+import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
+import {
+  type ShipBlueprint,
+  blueprintView,
+  placeSchemaMarkers,
+  schemaHardpointsFromManifest,
+  schemaHardpointsFromPayload,
+} from '../ship-blueprint/ship-blueprint.model';
+import type { AssetPackageManifest } from '../asset-package/asset-package.model';
 import { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 import { ShipSkinViewerComponent } from '../ship-skin-viewer.component';
 import { AssetPackageViewerComponent } from '../asset-package/asset-package-viewer.component';
@@ -50,7 +60,7 @@ let hullFillSeq = 0;
 @Component({
   selector: 'sc-codex-holo-table',
   standalone: true,
-  imports: [TranslatePipe, ShipHardpointMapComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ShipHardpointMapComponent, ShipBlueprintSchemaComponent, ShipSkinViewerComponent, AssetPackageViewerComponent, FallbackImageComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.ph-wait]': "phase() === 'wait'",
@@ -89,6 +99,14 @@ let hullFillSeq = 0;
         } @placeholder {
           <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
         }
+      } @else if (viewMode() === 'schema' && schemaBlueprint(); as bp) {
+        <!-- The ship's own blueprint with every hardpoint on it; the box map
+             below stays the view for hulls without a drawing. -->
+        <sc-ship-blueprint-schema class="mode-viewer schema-sheet" animate.leave="surface-leave" [blueprint]="bp"
+          [markers]="schemaMarkers()" [activePorts]="activePorts()" [inspectedPort]="inspectedPort()"
+          (hovered)="hovered.emit($event)" (inspect)="pinInspect.emit($event)" />
+      } @else if (viewMode() === 'schema' && schemaBlueprintPending()) {
+        <div class="mode-viewer is-placeholder" aria-hidden="true"></div>
       } @else if (viewMode() === 'schema' && hardpointFrame(); as frame) {
         <sc-ship-hardpoint-map class="mode-viewer" animate.leave="surface-leave" [markers]="hardpointMarkers()" [frame]="frame"
           [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
@@ -243,6 +261,7 @@ let hullFillSeq = 0;
        one leaves while the next enters) instead of cutting to bare rings. */
     .mode-viewer { position: absolute; inset: 0; z-index: 1; animation: fade-in var(--holo-t-base) var(--holo-e-out) backwards; }
     .mode-viewer.is-placeholder { animation: none; }
+    .mode-viewer.schema-sheet { padding: 14px 16px; overflow: auto; }
     .surface-leave { animation: surface-out var(--holo-t-fast) var(--holo-e-io) forwards; pointer-events: none; }
     @keyframes surface-out { to { opacity: 0; } }
     .shipwrap { position: absolute; left: 50%; top: 50%; aspect-ratio: 1 / 1; transform: translate(-50%, -50%);
@@ -488,8 +507,8 @@ export class CodexHoloTableComponent {
       destroyRef.onDestroy(() => io.disconnect());
     });
     effect(() => {
-      // Only the 3D view needs the answer; the 2D surfaces never query.
-      if (this.viewMode() !== '3d') return;
+      // The 3D view and the schema (its hardpoint positions) need the answer; the holo table never queries.
+      if (this.viewMode() === 'holo') return;
       const ship = this.shipClassName();
       const token = ++this.packageLookup;
       if (!ship) {
@@ -509,4 +528,62 @@ export class CodexHoloTableComponent {
     });
   }
   readonly hasGold = computed(() => this.pins().some((p) => p.tone === 'gold'));
+
+  // ── Schema view: the ship's blueprint with its hardpoints ─────────────
+  private readonly blueprints = inject(ShipBlueprintService);
+  /** The full drawing, once loaded in schema mode (null = none / not yet). */
+  readonly schemaBlueprint = signal<ShipBlueprint | null>(null);
+  /** The ship has a drawing that is still on its way — hold the surface instead of flashing the box map. */
+  readonly schemaBlueprintPending = signal(false);
+  /** The package manifest, for hardpoint positions in the hull's own space. */
+  private readonly schemaManifest = signal<AssetPackageManifest | null>(null);
+  private schemaRequest = 0;
+  private manifestRequest = 0;
+
+  private readonly schemaEffects = [
+    effect(() => {
+      if (this.viewMode() !== 'schema') return;
+      const ship = this.shipClassName();
+      const has = !!this.blueprints.urls(ship)?.full;
+      const token = ++this.schemaRequest;
+      this.schemaBlueprint.set(null);
+      this.schemaBlueprintPending.set(has);
+      if (!has) return;
+      void this.blueprints.drawing(ship, 'full').then((bp) => {
+        if (token !== this.schemaRequest) return;
+        this.schemaBlueprint.set(bp);
+        this.schemaBlueprintPending.set(false);
+      });
+    }),
+    effect(() => {
+      const row = this.packageRow();
+      const token = ++this.manifestRequest;
+      this.schemaManifest.set(null);
+      if (this.viewMode() !== 'schema' || !row) return;
+      this.packages.manifest(row.manifestSha256).then(
+        (m) => {
+          if (token === this.manifestRequest) this.schemaManifest.set(m);
+        },
+        (err: unknown) => logWarn('holo-table', 'manifest for the schema failed', { ship: this.shipClassName(), err }),
+      );
+    }),
+  ];
+
+  /**
+   * Hardpoints on the drawing: the package's placements (the hull's own glTF
+   * space) when the ship has one, else the extractor's positions converted from
+   * CryEngine space. Labels and numbers come from the stage's pins.
+   */
+  readonly schemaMarkers = computed(() => {
+    const bp = this.schemaBlueprint();
+    const top = bp ? blueprintView(bp, 'top') : null;
+    if (!top) return [];
+    const m = this.schemaManifest();
+    const hardpoints = m ? schemaHardpointsFromManifest(m) : schemaHardpointsFromPayload(this.hardpointMarkers());
+    return placeSchemaMarkers(
+      top,
+      hardpoints,
+      this.pins().map((p) => ({ portName: p.portName, label: p.label, index: p.index })),
+    );
+  });
 }

@@ -29,6 +29,7 @@ import {
 } from './codex.service';
 import { UpcomingGridComponent } from './upcoming-grid.component';
 import { FallbackImageComponent } from './fallback-image.component';
+import { ShipTileArtComponent } from './ship-blueprint/ship-tile-art.component';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -132,7 +133,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -400,9 +401,16 @@ export function blueprintCategoriesForGroup(
               <div class="card-wrap">
                 <a class="card" [routerLink]="['/codex', kind(), r.classNameSlug]">
                   <div class="thumb" [class.icon-only]="thumbs(r).length === 0">
-                    <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
-                      <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
-                    </sc-fallback-image>
+                    @if (kind() === 'ship') {
+                      <!-- Blueprint first, store art cross-fades in once it has loaded. -->
+                      <sc-ship-tile-art [shipId]="r.classNameSlug" [candidates]="thumbs(r)" [alt]="cardName(r)">
+                        <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
+                      </sc-ship-tile-art>
+                    } @else {
+                      <sc-fallback-image [candidates]="thumbs(r)" [alt]="cardName(r)">
+                        <sc-codex-icon [kind]="kind()" [sub]="iconSub(r)" [attachType]="r.attachType" />
+                      </sc-fallback-image>
+                    }
                   </div>
                   <h3 class="name">{{ cardName(r) }}</h3>
                   <code class="cls">{{ r.classNameSlug }}</code>
