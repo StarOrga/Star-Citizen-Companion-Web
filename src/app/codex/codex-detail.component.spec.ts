@@ -15,6 +15,7 @@ import { UexShopService } from './uex-shop.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { ShipLinkService } from './ship-link.service';
 import { ShipSkin, ShipSkinsService } from './ship-skins.service';
+import { AssetPackageService } from './asset-package/asset-package.service';
 import { RankShipInput } from './codex-rank';
 import {
   NOMAD_POWER_FIXTURE,
@@ -179,6 +180,8 @@ async function setup(
         } as Partial<ShipSkinsService>,
       },
       { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      // No 3D package lookups against the real Supabase from a spec.
+      { provide: AssetPackageService, useValue: { findRow: async () => null } as Partial<AssetPackageService> },
       {
         provide: UpcomingShipsService,
         useValue: { ensureLoaded: async () => undefined, heroArtFor: () => [] } as Partial<UpcomingShipsService>,
@@ -629,6 +632,8 @@ async function setupCharacterisation(opts: CharacterisationOpts): Promise<Compon
         } as Partial<ShipSkinsService>,
       },
       { provide: UexShopService, useValue: { whereToBuy: async () => [] } as Partial<UexShopService> },
+      // No 3D package lookups against the real Supabase from a spec.
+      { provide: AssetPackageService, useValue: { findRow: async () => null } as Partial<AssetPackageService> },
       {
         provide: UpcomingShipsService,
         useValue: { ensureLoaded: async () => undefined, heroArtFor: () => [] } as Partial<UpcomingShipsService>,
