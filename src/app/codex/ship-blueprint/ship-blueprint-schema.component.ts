@@ -94,19 +94,22 @@ import {
   styles: [`
     :host { display: flex; flex-direction: column; min-height: 0; color: var(--sc-accent); }
     .schema { margin: 0; display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
-    .sheet { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; align-items: stretch;
+    .sheet { flex: 1 1 0; min-height: 240px; display: grid; gap: 10px; grid-template-rows: minmax(0, 3fr) minmax(0, 1fr);
       padding: 14px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--sc-accent) 22%, var(--sc-border));
       background:
         linear-gradient(color-mix(in srgb, var(--sc-accent) 6%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
         linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 6%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
         color-mix(in srgb, var(--sc-bg-0) 80%, transparent); }
-    svg { display: block; width: 100%; overflow: visible; }
-    .plan { flex: 3 1 0; min-height: 160px; }
-    .elevation { flex: 1 1 0; min-height: 60px; max-height: 26%; opacity: 0.85; }
+    /* Both views fit the sheet whatever its height: each fills its grid row, meet-scaled. */
+    svg { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; }
+    .sheet:not(:has(.elevation)) { grid-template-rows: minmax(0, 1fr); }
+    .elevation { opacity: 0.85; }
     path { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
     .hull { fill: color-mix(in srgb, currentColor 7%, transparent); stroke: currentColor; stroke-width: 1.5px; }
-    .major { fill: none; stroke: currentColor; stroke-width: 0.9px; stroke-opacity: 0.7; }
-    .minor { fill: none; stroke: currentColor; stroke-width: 0.6px; stroke-opacity: 0.32; }
+    .major { fill: none; stroke: currentColor; stroke-width: 0.9px; stroke-opacity: 0.55; }
+    .minor { fill: none; stroke: currentColor; stroke-width: 0.6px; stroke-opacity: 0.22; }
+    /* The drawing steps back so the markers read first. */
+    .plan .hull { fill: color-mix(in srgb, currentColor 5%, transparent); stroke-opacity: 0.8; }
 
     /* Markers: weapons in the accent, missiles gold (the stage legend's colour),
        components and the rest neutral — the group is also named in words. */
@@ -115,7 +118,7 @@ import {
     .mk.g-missiles { --mk: var(--holo-gold); }
     .mk .hit { fill: transparent; }
     .mk .dot { fill: var(--mk); stroke: var(--sc-bg-0); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
-    .mk .halo { fill: none; stroke: var(--mk); stroke-opacity: 0; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+    .mk .halo { fill: none; stroke: var(--mk); stroke-opacity: 0.35; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
     .mk:hover .halo, .mk.on .halo, .mk.sel .halo { stroke-opacity: 0.9; }
     .mk.on .halo, .mk.sel .halo { fill: color-mix(in srgb, var(--mk) 22%, transparent); }
 
@@ -132,7 +135,7 @@ import {
     .hint { flex-basis: 100%; }
 
     .hp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); max-height: 180px; overflow: auto; }
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); max-height: 128px; overflow: auto; }
     .hp { width: 100%; display: grid; grid-template-columns: auto 1fr; gap: 0 8px; align-items: center; text-align: left;
       padding: 6px 8px; border-radius: 6px; border: 1px solid var(--sc-border); background: var(--sc-bg-1);
       color: var(--sc-fg-1); font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; min-height: 44px; }
@@ -169,7 +172,7 @@ export class ShipBlueprintSchemaComponent {
   /** Marker radius in drawing units: readable on a fighter and on a capital ship alike. */
   readonly radius = computed(() => {
     const v = this.top();
-    return v ? Math.max(v.box.w, v.box.h) * 0.0085 : 1;
+    return v ? Math.max(v.box.w, v.box.h) * 0.012 : 1;
   });
   readonly groups = computed(() => {
     const present = new Set(this.markers().map((m) => m.group));
