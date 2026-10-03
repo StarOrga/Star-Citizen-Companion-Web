@@ -7,6 +7,7 @@ import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-f
 import { PolySearchHit, dedupePolyHits, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
 import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
+import { CodexLocaleShards } from './codex-locale-shards';
 import { ShipStatDelta, computeShipRowDeltas } from './codex-build-diff';
 import { PatchTimelineEntry, buildPatchTimeline } from './codex-patch-timeline';
 import { skinQueryPrefix } from './codex-skin-group';
@@ -389,6 +390,7 @@ function yieldToEventLoop(): Promise<void> {
 @Injectable({ providedIn: 'root' })
 export class CodexService {
   private readonly sb = inject(SupabaseClientProvider);
+  private readonly localeShards = inject(CodexLocaleShards);
   /**
    * The RSI announcement feed, read-only from here. Injected purely so
    * {@link searchAll} can cover ships that exist on a concept page but not in
@@ -1964,9 +1966,12 @@ export class CodexService {
 
   /**
    * Resolve raw global.ini @-keys (roles, port labels, …) to their localized
-   * value in the current build, from codex_locale_strings. The leading `@` is
-   * stripped to match the table's key form. Returns a key→value map keyed by
-   * the ORIGINAL input string.
+   * value in the current build. The leading `@` is stripped to match the
+   * stored key form. Returns a key→value map keyed by the ORIGINAL input string.
+   *
+   * Source: the build's shards in R2 (CodexLocaleShards, since 2026-10-03).
+   * Only while a build has no R2 index — an older build not yet moved by
+   * scripts/codex-locale-to-r2.mjs — the strings come from codex_locale_strings.
    *
    * The key list travels in the URL as PostgREST's `key=in.(…)`, so it is sent
    * in batches (see LOCALE_KEY_URL_BUDGET) rather than one request — /codex/
@@ -1980,6 +1985,15 @@ export class CodexService {
     const wanted = keys.filter((k) => k && k.startsWith('@'));
     if (!build || wanted.length === 0) return out;
     const norm = new Map(wanted.map((k) => [k.slice(1), k])); // stripped -> original
+
+    const fromR2 = await this.localeShards.resolve(build.id, lang, [...norm.keys()]);
+    if (fromR2) {
+      for (const [key, value] of fromR2) {
+        const original = norm.get(key);
+        if (original) out.set(original, value);
+      }
+      return out;
+    }
 
     const batches = await Promise.all(
       batchLocaleKeys([...norm.keys()]).map((batch) =>

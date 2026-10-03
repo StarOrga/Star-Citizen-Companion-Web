@@ -34,6 +34,7 @@ import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
+import { CodexBuildDiffService } from './codex-build-diff.service';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
@@ -50,6 +51,8 @@ interface Lane {
   titleKey: string;
   subtitleKey: string;
   rows: CodexListRow[];
+  /** Rows of this lane that are new in the current build (badged "New"). */
+  newSlugs?: ReadonlySet<string>;
 }
 
 /**
@@ -245,7 +248,8 @@ interface Lane {
             </header>
             <div class="lane-track">
               @for (r of lane.rows; track r.classNameSlug) {
-                <ng-container [ngTemplateOutlet]="laneCard" [ngTemplateOutletContext]="{ $implicit: r }" />
+                <ng-container [ngTemplateOutlet]="laneCard"
+                              [ngTemplateOutletContext]="{ $implicit: r, isNew: lane.newSlugs?.has(r.classNameSlug) ?? false }" />
               }
             </div>
           </section>
@@ -295,7 +299,7 @@ interface Lane {
       }
 
       <!-- Reusable lane / result card -->
-      <ng-template #laneCard let-r>
+      <ng-template #laneCard let-r let-isNew="isNew">
         <a class="lane-card" [routerLink]="['/codex', 'ship', r.classNameSlug]">
           <div class="lane-thumb" [class.icon-only]="thumbs(r).length === 0">
             <sc-fallback-image [candidates]="thumbs(r)" [alt]="rowName(r)">
@@ -304,6 +308,7 @@ interface Lane {
           </div>
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
+            @if (isNew) { <span class="new-tag">{{ 'codex.bridge.lanes.newBadge' | translate }}</span> }
             <sc-holo-ready-badge [shipId]="r.classNameSlug" />
             @if (rowMfr(r); as mfr) { <span class="lane-mfr">{{ mfr }}</span> }
           </div>
@@ -414,10 +419,10 @@ interface Lane {
     .stat-label { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
     .stat-value { font-family: var(--sc-font-display); font-size: 1.5rem; color: var(--sc-fg-0); }
     .hero-fresh { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
-      background: color-mix(in srgb, var(--sc-success, #5fd698) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--sc-success, #5fd698) 34%, transparent);
+      background: color-mix(in srgb, var(--sc-success) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--sc-success) 34%, transparent);
       color: var(--sc-fg-1); font-size: max(0.74rem, var(--sc-fs-floor)); }
-    .fresh-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-success, #5fd698); box-shadow: 0 0 8px var(--sc-success, #5fd698); }
+    .fresh-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-success); box-shadow: 0 0 8px var(--sc-success); }
     .hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .btn { padding: 11px 22px; border-radius: 9px; font-family: var(--sc-font-display); font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
     .btn.primary { background: var(--sc-accent); color: var(--sc-bg-0); }
@@ -443,6 +448,10 @@ interface Lane {
     .upcoming-tag { font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.04em; text-transform: uppercase;
       padding: 3px 7px; border-radius: 6px; border: 1px solid var(--sc-border);
       background: color-mix(in srgb, var(--sc-fg-2) 14%, transparent); color: var(--sc-fg-1); }
+    .new-tag { align-self: flex-start; font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.04em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--sc-success) 40%, transparent);
+      background: color-mix(in srgb, var(--sc-success) 14%, transparent); color: var(--sc-success); }
     .upcoming-tag.concept { background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
       border-color: color-mix(in srgb, var(--sc-accent) 34%, transparent); color: var(--sc-accent); }
     .lane-sub { color: var(--sc-fg-2); font-size: max(0.76rem, var(--sc-fs-floor)); }
@@ -479,12 +488,12 @@ interface Lane {
       font-size: 0.82rem; line-height: 1; min-width: max(30px, var(--sc-tap-min));
       height: 26px; min-height: var(--sc-tap-min); border-radius: 7px; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; }
-    .chip-btn:hover { color: var(--sc-success, #5fd698); border-color: var(--sc-success, #5fd698); }
+    .chip-btn:hover { color: var(--sc-success); border-color: var(--sc-success); }
     .chip-btn.compare:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
     .chip-btn.compare.pinned { color: var(--sc-accent); border-color: var(--sc-accent); }
     .chip-btn.flag:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
     .chip-btn.flag.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
-    .in-hangar { font-size: 0.92rem; color: var(--sc-success, #5fd698); line-height: 1; padding: 0 4px; }
+    .in-hangar { font-size: 0.92rem; color: var(--sc-success); line-height: 1; padding: 0 4px; }
 
     /* Skeletons */
         .lane-card.skel { min-height: 200px; }
@@ -522,6 +531,7 @@ export class CodexBridgeComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly rsi = inject(UpcomingShipsService);
+  private readonly buildDiff = inject(CodexBuildDiffService);
 
   readonly skeletons = Array.from({ length: 6 }, (_, i) => i);
 
@@ -553,6 +563,12 @@ export class CodexBridgeComponent implements OnInit {
    * instead of passing the alphabetical catalog off as "fresh".
    */
   readonly patchChanged = signal<string[]>([]);
+  /**
+   * Ships the current LIVE build has and the previous one did not — diffed
+   * over the whole builds (CodexBuildDiffService), so a hull the patch added
+   * shows up even though it is not among the 60 catalog ships loaded here.
+   */
+  readonly patchAdded = signal<CodexListRow[]>([]);
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
@@ -592,15 +608,22 @@ export class CodexBridgeComponent implements OnInit {
         rows: hangar,
       });
     }
-    const order = this.patchChanged();
+    // New hulls first, then catalog ships whose stats moved.
+    const added = this.patchAdded();
+    const newSlugs = new Set(added.map((r) => r.classNameSlug));
     const bySlug = new Map(this.catalog().map((r) => [r.classNameSlug, r] as const));
-    const fresh = order.map((cn) => bySlug.get(cn)).filter((r): r is CodexListRow => !!r);
+    const changed = this.patchChanged()
+      .filter((cn) => !newSlugs.has(cn))
+      .map((cn) => bySlug.get(cn))
+      .filter((r): r is CodexListRow => !!r);
+    const fresh = [...added, ...changed];
     if (fresh.length > 0) {
       out.push({
         id: 'fresh',
         titleKey: 'codex.bridge.lanes.fresh',
-        subtitleKey: 'codex.bridge.lanes.freshSub',
+        subtitleKey: added.length > 0 ? 'codex.bridge.lanes.freshSubNew' : 'codex.bridge.lanes.freshSub',
         rows: fresh.slice(0, LANE_SIZE),
+        newSlugs,
       });
     }
     for (const group of this.roleGroups()) {
@@ -668,6 +691,7 @@ export class CodexBridgeComponent implements OnInit {
       if (this.hangar.ships().length === 0) await this.hangar.loadAll();
       this.catalog.set(await this.svc.listBridgeShips(60));
       void this.resolvePatchChanges();
+      void this.resolvePatchAdded();
       await this.resolveHangarRows();
     } catch (err) {
       this.error.set(toErrorKey('codex', 'bridge', err));
@@ -698,6 +722,16 @@ export class CodexBridgeComponent implements OnInit {
     } catch (error) {
       logWarn('codex', 'bridge patch diff failed', error);
       this.patchChanged.set([]);
+    }
+  }
+
+  /** Feed the new-hull half of "Fresh this patch". Best-effort by contract. */
+  private async resolvePatchAdded(): Promise<void> {
+    try {
+      this.patchAdded.set(await this.buildDiff.addedShips());
+    } catch (error) {
+      logWarn('codex', 'bridge added-ships diff failed', error);
+      this.patchAdded.set([]);
     }
   }
 

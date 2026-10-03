@@ -9,6 +9,10 @@ import {
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
+import { LOCALE_SHARD_BASE, LOCALE_SHARD_FETCH } from './codex-locale-shards';
+
+/** No R2 index for any build: resolveLocaleKeys reads the database table. */
+const noR2 = (async () => new Response('not found', { status: 404 })) as unknown as typeof fetch;
 
 const BUILD_ID = 'b77f1586-d1fe-4be9-a359-f397266acb86';
 
@@ -68,9 +72,15 @@ function mockProvider(
 function makeService(
   cap: Capture,
   respond: (keys: string[], nth: number) => { data: unknown; error: unknown },
+  r2Fetch: typeof fetch = noR2,
 ): CodexService {
   TestBed.configureTestingModule({
-    providers: [CodexService, { provide: SupabaseClientProvider, useValue: mockProvider(cap, respond) }],
+    providers: [
+      CodexService,
+      { provide: SupabaseClientProvider, useValue: mockProvider(cap, respond) },
+      { provide: LOCALE_SHARD_FETCH, useValue: r2Fetch },
+      { provide: LOCALE_SHARD_BASE, useValue: 'https://assets.test' },
+    ],
   });
   return TestBed.inject(CodexService);
 }
@@ -126,6 +136,31 @@ describe('CodexService.resolveLocaleKeys', () => {
     await svc.resolveLocaleKeys(['@ui_role_bomber', '@ui_role_fighter'], 'en');
 
     expect(cap.batches).toEqual([['ui_role_bomber', 'ui_role_fighter']]);
+  });
+
+  it('reads a build that has an R2 index from its shards and never asks the table', async () => {
+    const cap: Capture = { batches: [] };
+    const asked: string[] = [];
+    const r2 = (async (url: string) => {
+      asked.push(url);
+      if (url.endsWith('/index.json')) {
+        return Response.json({ v: 1, build_id: BUILD_ID, lang: 'de', gen: 'abc12345', count: 2, groups: {}, misc: 1 });
+      }
+      return Response.json({ ui_role_bomber: 'Bomber DE', ui_role_fighter: 'Jäger' });
+    }) as unknown as typeof fetch;
+    const svc = makeService(cap, echo, r2);
+
+    const out = await svc.resolveLocaleKeys(['@ui_role_bomber', '@ui_role_fighter', '@ui_missing', 'plain'], 'de');
+
+    expect(cap.batches).toEqual([]);
+    expect(asked).toEqual([
+      `https://assets.test/codex-locale/${BUILD_ID}/de/index.json`,
+      `https://assets.test/codex-locale/${BUILD_ID}/de/abc12345/_misc-0.json`,
+    ]);
+    expect([...out]).toEqual([
+      ['@ui_role_bomber', 'Bomber DE'],
+      ['@ui_role_fighter', 'Jäger'],
+    ]);
   });
 
   it('keeps the batches that succeeded when one fails — localization never blocks the view', async () => {
