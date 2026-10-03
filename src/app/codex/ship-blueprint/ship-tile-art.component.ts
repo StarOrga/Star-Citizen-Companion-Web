@@ -37,7 +37,7 @@ import type { ShipBlueprint } from './ship-blueprint.model';
       display: grid; place-items: center; width: 100%; height: 100%; min-width: 0;
       --sc-img-area: 1 / 1;
       --sc-img-radius: 10px;
-      --sc-img-mask: radial-gradient(ellipse farthest-corner at 50% 50%, #000 62%, transparent 100%);
+      --sc-img-mask: radial-gradient(ellipse farthest-corner at 50% 50%, #000 50%, transparent 100%);
       --sc-img-shadow: drop-shadow(0 0 12px color-mix(in srgb, var(--sc-accent) 22%, transparent))
         drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
     }

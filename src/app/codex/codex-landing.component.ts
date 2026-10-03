@@ -530,6 +530,8 @@ export function gridColumns(items: readonly HTMLElement[]): number {
         background: color-mix(in srgb, var(--soon) 14%, transparent);
       }
       .hit-icon { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; color: var(--sc-accent); }
+      /* A ship's blueprint is wider than tall (nose to the right): the slot widens for it. */
+      .hit-icon:has(sc-ship-blueprint-art) { width: 48px; }
       .hit.meta .hit-icon { color: var(--meta); }
       .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .hit-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
