@@ -224,8 +224,8 @@ describe('describeResume', () => {
   it('describes a mid-phase catalog resume', () => {
     const s = job();
     s.bundle.status = 'done';
-    s.catalog.cursor = { phase: 'codex_locale_strings', sent: 4000 };
-    expect(describeResume(s)).toBe('catalog:codex_locale_strings@4000');
+    s.catalog.cursor = { phase: 'codex_locale_shards', sent: 4000 };
+    expect(describeResume(s)).toBe('catalog:codex_locale_shards@4000');
   });
 
   it('describes a partial skin resume', () => {
@@ -274,7 +274,7 @@ describe('resumeSummary', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'running';
-    s.catalog.donePhases = ['codex_locale_strings', 'codex_manufacturers', 'codex_ships'];
+    s.catalog.donePhases = ['codex_locale_shards', 'codex_manufacturers', 'codex_ships'];
     s.catalog.cursor = null;
     const sum = resumeSummary(s);
     // codex_components is next after the three done phases — step 5 of 16.
