@@ -14,6 +14,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import type { Bounds, PackagePlacement } from './asset-package.model';
+import { HoloLook, type HoloRole } from '../holo-look';
+import { DEFAULT_HOLO_VARIANT, type HoloVariant } from '../holo-variant';
 
 export type Rgb = readonly [number, number, number];
 
@@ -37,10 +39,9 @@ export class PackageScene {
   private readonly pmrem: THREE.PMREMGenerator;
   private readonly envTarget: THREE.WebGLRenderTarget;
 
-  private readonly hullMat: THREE.MeshStandardMaterial;
-  private readonly partMat: THREE.MeshStandardMaterial;
-  private readonly interiorMat: THREE.MeshStandardMaterial;
-  private readonly focusMat: THREE.MeshStandardMaterial;
+  /** Concept-hologram materials + cached crease edges (holo-look.ts). */
+  private readonly look: HoloLook;
+  private readonly clock = new THREE.Clock();
 
   private root: THREE.Object3D | null = null;
   private interior: THREE.Object3D | null = null;
@@ -61,6 +62,7 @@ export class PackageScene {
     accent: Rgb,
     reducedMotion: boolean,
     private readonly onFrame: () => void,
+    variant: HoloVariant = DEFAULT_HOLO_VARIANT,
   ) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -80,23 +82,9 @@ export class PackageScene {
     this.scene.environmentIntensity = 0.35;
     this.loader.setMeshoptDecoder(MeshoptDecoder);
 
-    // Hologram look (same recipe as ship-hologram.ts for model-viewer): dark
-    // accent base, metallic + smooth so the environment draws a bright rim,
-    // low self-glow.
-    const c = new THREE.Color().setRGB(accent[0] / 255, accent[1] / 255, accent[2] / 255, THREE.SRGBColorSpace);
-    const holo = (glow: number, base = 0.2) =>
-      new THREE.MeshStandardMaterial({
-        color: c.clone().multiplyScalar(base),
-        metalness: 0.9,
-        roughness: 0.2,
-        emissive: c.clone().multiplyScalar(glow),
-      });
-    this.hullMat = holo(0.12);
-    this.partMat = holo(0.2, 0.3);
-    this.interiorMat = holo(0.08, 0.15);
-    this.focusMat = holo(0.95, 0.6);
-    this.focusMat.metalness = 0.4;
-    this.focusMat.roughness = 0.35;
+    // Concept-hologram look (holo-look.ts): shader fill + crease edges, the
+    // same materials for every role so focus/x-ray only flip uniforms.
+    this.look = new HoloLook(variant, accent, reducedMotion);
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = !reducedMotion;
@@ -109,22 +97,23 @@ export class PackageScene {
     return new Promise((resolve, reject) => this.loader.parse(buf, '', (g) => resolve(g.scene), reject));
   }
 
-  /** Swap every material for `mat` (GLBs are geometry-only), remember geometries for disposal. */
-  private adopt(obj: THREE.Object3D, mat: THREE.Material): void {
+  /** Dress every mesh in the look's `role` (GLBs are geometry-only), remember geometries for disposal. */
+  private adopt(obj: THREE.Object3D, role: HoloRole): void {
     obj.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       const old = mesh.material;
       for (const m of Array.isArray(old) ? old : [old]) m?.dispose();
-      mesh.material = mat;
       this.geometries.add(mesh.geometry);
     });
+    this.look.dress(obj, role);
   }
 
   async setRoot(buf: ArrayBuffer): Promise<void> {
     const obj = await this.parse(buf);
-    this.adopt(obj, this.hullMat);
+    this.adopt(obj, 'hull');
     this.root = obj;
+    this.look.fit(new THREE.Box3().setFromObject(obj));
     this.scene.add(obj);
     this.requestRender();
   }
@@ -132,7 +121,7 @@ export class PackageScene {
   async addPart(sha: string, buf: ArrayBuffer): Promise<void> {
     if (this.templates.has(sha)) return;
     const obj = await this.parse(buf);
-    this.adopt(obj, this.partMat);
+    this.adopt(obj, 'part');
     this.templates.set(sha, obj);
   }
 
@@ -157,7 +146,7 @@ export class PackageScene {
   async setInterior(buf: ArrayBuffer): Promise<void> {
     if (this.interior) return;
     const obj = await this.parse(buf);
-    this.adopt(obj, this.interiorMat);
+    this.adopt(obj, 'interior');
     this.interior = obj;
     this.scene.add(obj);
     this.requestRender();
@@ -182,18 +171,14 @@ export class PackageScene {
    */
   private applyOpacity(): void {
     const xray = this.focused.size > 0;
-    for (const m of [this.hullMat, this.partMat, this.interiorMat]) {
+    for (const role of ['hull', 'part', 'interior'] as const) {
       let opacity = 1;
-      if (xray) opacity = m === this.hullMat ? HULL_OPACITY_XRAY : PART_OPACITY_XRAY;
-      else if (this.interiorOn && m === this.hullMat) opacity = HULL_OPACITY_INTERIOR;
-      const transparent = opacity < 1;
-      if (m.transparent !== transparent || m.opacity !== opacity) {
-        m.transparent = transparent;
-        m.depthWrite = !transparent;
-        m.opacity = opacity;
-        m.needsUpdate = true;
-      }
+      if (xray) opacity = role === 'hull' ? HULL_OPACITY_XRAY : PART_OPACITY_XRAY;
+      else if (this.interiorOn && role === 'hull') opacity = HULL_OPACITY_INTERIOR;
+      this.look.setOpacity(role, opacity);
     }
+    // Highlight: everything that is not the focus dims, the focus glows.
+    this.look.setDim(xray);
     this.requestRender();
   }
 
@@ -203,12 +188,7 @@ export class PackageScene {
     for (const [id, node] of this.placed) {
       const on = next.has(id);
       if (on === this.focused.has(id)) continue;
-      node.traverse((o) => {
-        const mesh = o as THREE.Mesh;
-        if (!mesh.isMesh) return;
-        mesh.material = on ? this.focusMat : this.partMat;
-        mesh.renderOrder = on ? 10 : 0;
-      });
+      this.look.setRole(node, on ? 'focus' : 'part', on ? 10 : 0);
     }
     this.focused = next;
     this.applyOpacity();
@@ -266,9 +246,12 @@ export class PackageScene {
     this.frameId = requestAnimationFrame(() => {
       this.frameId = 0;
       const moving = this.controls.enableDamping && this.controls.update();
+      this.look.tick(this.clock.getElapsedTime());
       this.renderer.render(this.scene, this.camera);
       this.onFrame();
-      if (moving) this.requestRender();
+      // The scan band of the animated look keeps the loop alive; every other
+      // look renders on demand only.
+      if (moving || this.look.animated) this.requestRender();
     });
   }
 
@@ -277,7 +260,7 @@ export class PackageScene {
     if (this.frameId) cancelAnimationFrame(this.frameId);
     this.controls.dispose();
     for (const g of this.geometries) g.dispose();
-    for (const m of [this.hullMat, this.partMat, this.interiorMat, this.focusMat]) m.dispose();
+    this.look.dispose();
     this.envTarget.dispose();
     this.pmrem.dispose();
     this.scene.clear();

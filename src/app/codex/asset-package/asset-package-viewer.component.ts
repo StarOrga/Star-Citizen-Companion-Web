@@ -20,6 +20,7 @@ import { logWarn } from '../../core/log';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { CodexService, type CodexKind } from '../codex.service';
 import { HOLO_FALLBACK_ACCENT, parseRgbToken } from '../ship-hologram';
+import { currentHoloVariant } from '../holo-variant';
 import { AssetPackageService } from './asset-package.service';
 import type { PackageScene, ScreenPoint } from './asset-package-scene';
 import {
@@ -360,8 +361,12 @@ export class AssetPackageViewerComponent {
       const accent =
         parseRgbToken(getComputedStyle(this.host.nativeElement).getPropertyValue('--accent-primary-rgb')) ??
         HOLO_FALLBACK_ACCENT;
-      const scene = new PackageScene(this.canvas().nativeElement, accent, this.reducedMotion(), () =>
-        this.reproject(),
+      const scene = new PackageScene(
+        this.canvas().nativeElement,
+        accent,
+        this.reducedMotion(),
+        () => this.reproject(),
+        currentHoloVariant(),
       );
       this.scene = scene;
       this.observeSize(scene);

@@ -23,6 +23,29 @@ import {
   resolveAnchors,
 } from './glb-hardpoints';
 import { HOLO_FALLBACK_ACCENT, HoloMaterial, applyHologram, parseRgbToken } from './ship-hologram';
+// three is already in this chunk through model-viewer (peer dependency, one copy).
+import * as THREE from 'three';
+import { HoloLook } from './holo-look';
+import { currentHoloVariant } from './holo-variant';
+
+/** The slice of model-viewer's internal scene (`Symbol('scene')`) the concept look needs. */
+interface ModelViewerScene {
+  readonly target: THREE.Object3D;
+  queueRender(): void;
+}
+
+/** model-viewer's three scene, or null when this model-viewer build hides it differently. */
+export function modelViewerScene(el: object | null | undefined): ModelViewerScene | null {
+  if (!el) return null;
+  const sym = Object.getOwnPropertySymbols(el).find((s) => s.description === 'scene');
+  const scene = sym ? ((el as Record<symbol, unknown>)[sym] as Partial<ModelViewerScene> | undefined) : undefined;
+  return scene && (scene.target as THREE.Object3D | undefined)?.isObject3D && typeof scene.queueRender === 'function'
+    ? (scene as ModelViewerScene)
+    : null;
+}
+
+/** Scan band frame interval: 30 fps is plenty for a slow sweep. */
+const LOOK_TICK_MS = 33;
 
 // Side-effect import registers the <model-viewer> custom element. This component
 // (and with it model-viewer + three, ~470 kB) is its own chunk: every page that
@@ -192,9 +215,10 @@ const GLB_HEAD_TIMEOUT_MS = 10_000;
                   }
                 </model-viewer>
               }
-              @if (holo()) {
+              @if (holo() && !shaderLook()) {
                 <!-- Projection layer: scanlines and a slow interference band
-                     over the hull — the model reads as light, not as a plastic toy. -->
+                     over the hull — the model reads as light, not as a plastic toy.
+                     Only the fallback: the concept look draws its own scan. -->
                 <div class="holo-scan" aria-hidden="true"><i class="band"></i></div>
               }
               @if (modelLoading()) {
@@ -900,7 +924,12 @@ export class ShipSkinViewerComponent {
   private headAbort: AbortController | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.headAbort?.abort());
+    inject(DestroyRef).onDestroy(() => {
+      this.headAbort?.abort();
+      this.disposeLook();
+    });
+    // Component highlight in the concept look follows the hovered/selected ports.
+    effect(() => this.applyLookFocus());
     // React to shipId changes (router navigation between ships reuses this
     // component, so the input value changes without a new constructor call).
     effect(() => this.load(this.shipId()));
@@ -1036,9 +1065,86 @@ export class ShipSkinViewerComponent {
   onModelLoad(event?: Event): void {
     this.modelLoading.set(false);
     this.modelError.set(false);
-    const materials = (event?.target as { model?: { materials?: HoloMaterial[] } } | null)?.model
-      ?.materials;
+    const target = event?.target ?? null;
+    // Holo stage: the concept-hologram look on model-viewer's own three scene.
+    // Anywhere else, or when the scene is not reachable, the PBR hologram tint.
+    if (this.holo() && this.dressModel(target)) return;
+    const materials = (target as { model?: { materials?: HoloMaterial[] } } | null)?.model?.materials;
     if (materials?.length) applyHologram(materials, this.accent());
+  }
+
+  /** The concept look is on the model; the CSS scan overlay steps aside. */
+  readonly shaderLook = signal(false);
+  private look: HoloLook | null = null;
+  private lookScene: ModelViewerScene | null = null;
+  private lookRaf = 0;
+
+  /** Put the concept-hologram look on the loaded model; false if model-viewer's scene is unreachable. */
+  private dressModel(el: EventTarget | null): boolean {
+    const scene = modelViewerScene(el);
+    if (!scene) return false;
+    this.disposeLook();
+    const reduced =
+      this.still() || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const look = new HoloLook(currentHoloVariant(), this.accent(), reduced);
+    // Only the glb's own meshes (standard materials) — never a shadow plane.
+    look.dress(scene.target, 'hull', (m) => !!(m.material as THREE.MeshStandardMaterial | undefined)?.isMeshStandardMaterial);
+    look.fit(new THREE.Box3().setFromObject(scene.target));
+    this.look = look;
+    this.lookScene = scene;
+    this.shaderLook.set(true);
+    this.applyLookFocus();
+    scene.queueRender();
+    if (look.animated) this.runLookLoop();
+    return true;
+  }
+
+  /** Drive the scan band: model-viewer only redraws a dirty scene. */
+  private runLookLoop(): void {
+    const start = performance.now();
+    let last = 0;
+    const step = (now: number) => {
+      this.lookRaf = 0;
+      if (!this.look || !this.lookScene) return;
+      if (now - last >= LOOK_TICK_MS) {
+        last = now;
+        this.look.tick((now - start) / 1000);
+        this.lookScene.queueRender();
+      }
+      this.lookRaf = requestAnimationFrame(step);
+    };
+    this.lookRaf = requestAnimationFrame(step);
+  }
+
+  /**
+   * Highlight: an active port dims the hull and lights the hull around its
+   * locator. The selection API is unchanged — this only reads activePorts.
+   */
+  private applyLookFocus(): void {
+    // Read the signals first so the effect tracks them even before a look exists.
+    const active = new Set(this.activePorts());
+    const positions = this.nodePositions();
+    const ports = this.hardpointPorts();
+    const look = this.look;
+    const scene = this.lookScene;
+    if (!look || !scene) return;
+    const points = active.size
+      ? resolveAnchors(positions, ports)
+          .filter((a) => active.has(a.port))
+          .map((a) => scene.target.localToWorld(new THREE.Vector3(a.position[0], a.position[1], a.position[2])))
+      : [];
+    look.setFocusPoints(points);
+    look.setDim(points.length > 0);
+    scene.queueRender();
+  }
+
+  private disposeLook(): void {
+    if (this.lookRaf) cancelAnimationFrame(this.lookRaf);
+    this.lookRaf = 0;
+    this.look?.dispose();
+    this.look = null;
+    this.lookScene = null;
+    this.shaderLook.set(false);
   }
 
   /** The theme's accent, read live so the hologram follows the design tokens. */
@@ -1052,6 +1158,8 @@ export class ShipSkinViewerComponent {
   }
 
   private applySelection(s: ShipSkin | null): void {
+    // The keyed model-viewer is recreated for the new skin; its look goes with it.
+    this.disposeLook();
     this.current.set(s);
     this.modelError.set(false);
     const has3d = !!s?.modelPath;
