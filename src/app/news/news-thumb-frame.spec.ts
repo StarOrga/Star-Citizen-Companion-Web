@@ -178,6 +178,12 @@ describe('isPixelReadable', () => {
     expect(isPixelReadable(`https://${host}/storage/v1/object/public/news-images/a/cover.jpg`)).toBeTrue();
   });
 
+  it('accepts the assets Worker that serves the cache from R2', () => {
+    const base = environment.assets?.r2BaseUrl ?? '';
+    expect(base).not.toBe('');
+    expect(isPixelReadable(`${base}/news-images/a/w800.jpg`)).toBeTrue();
+  });
+
   it('accepts the RSI media CDN', () => {
     expect(isPixelReadable('https://media.robertsspaceindustries.com/4p0b1xnv3vte5/post.jpg')).toBeTrue();
   });

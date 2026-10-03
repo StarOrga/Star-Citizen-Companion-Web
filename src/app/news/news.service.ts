@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 import { ConsentService } from '../core/consent.service';
 import { PatchLineGroup, groupPatchNotes } from './patch-notes';
 import { BuildVerdict, buildSaved, buildStream, buildVerdict, pickStage } from './news-stage';
+import { toNewsImageUrl } from './news-image-variants';
 
 export type NewsChannel = 'comm-link' | 'spectrum' | 'status' | 'patch' | 'youtube';
 export type StatusLevel = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance' | 'unknown';
@@ -191,7 +192,7 @@ export class NewsService {
       if (seq !== this.refreshSeq) return;
       // Drop videos that fell out of the retention window before anything sees
       // them, so counts, buckets, the rail and deep-links all agree (e7082310).
-      this.feed.set({ ...data, news: pruneExpiredVideos(data?.news ?? []) });
+      this.feed.set({ ...data, news: pruneExpiredVideos(data?.news ?? []).map(withWorkerImages) });
     } catch (err) {
       if (seq !== this.refreshSeq) return;
       this.error.set(toErrorKey('news', 'feed', err));
@@ -286,6 +287,20 @@ export class NewsService {
  * A video with an unparseable date is dropped: it is undatable, so the server
  * cannot have kept its thumbnail either.
  */
+/**
+ * Legacy Supabase `news-images` urls (rows cached before the R2 move, or an
+ * old feed replayed by the service worker) read through the assets Worker
+ * instead, so no thumbnail view costs Supabase egress any more.
+ */
+export function withWorkerImages(item: VerseNewsItem): VerseNewsItem {
+  if (!item.images?.length && !item.thumbnail) return item;
+  return {
+    ...item,
+    images: item.images?.map(toNewsImageUrl),
+    thumbnail: item.thumbnail ? toNewsImageUrl(item.thumbnail) : item.thumbnail,
+  };
+}
+
 export function pruneExpiredVideos(news: VerseNewsItem[], now = Date.now()): VerseNewsItem[] {
   const cutoff = now - VIDEO_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   return news.filter((n) => {
