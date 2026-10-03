@@ -144,6 +144,32 @@ describe('fetch', () => {
     assert.equal(res.body, null);
   });
 
+  it('serves codex locale shards immutable and the index short-cached', async () => {
+    const dir = 'codex-locale/a3fb1249-9115-4035-9039-2ffc6043d832/pt-BR';
+    const shard = `${dir}/mgaq1z2k/_misc-0.json`;
+    const index = `${dir}/index.json`;
+    const e = env({ [shard]: '{}', [index]: '{}' });
+    const s = await worker.fetch(new Request(`https://w.dev/${shard}`), e);
+    assert.equal(s.status, 200);
+    assert.equal(s.headers.get('content-type'), 'application/json');
+    assert.equal(s.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    const i = await worker.fetch(new Request(`https://w.dev/${index}?verify=1`), e);
+    assert.equal(i.status, 200);
+    assert.equal(i.headers.get('cache-control'), 'public, max-age=300');
+  });
+
+  it('404s a missing locale key without asking Supabase, and rejects foreign locale shapes', async () => {
+    globalThis.fetch = async () => {
+      throw new Error('must not proxy locale keys');
+    };
+    const key = 'codex-locale/a3fb1249-9115-4035-9039-2ffc6043d832/en/index.json';
+    const res = await worker.fetch(new Request(`https://w.dev/${key}`), env());
+    assert.equal(res.status, 404);
+    assert.equal(keyFor('/codex-locale/not-a-uuid/en/index.json'), null);
+    assert.equal(keyFor('/codex-locale/a3fb1249-9115-4035-9039-2ffc6043d832/en/../index.json'), null);
+    assert.equal(keyFor('/codex-locale/a3fb1249-9115-4035-9039-2ffc6043d832/en/gen/ui-0.json'), null);
+  });
+
   it('falls back to the Supabase bucket for a key R2 does not hold yet', async () => {
     let asked = '';
     globalThis.fetch = async (url) => {

@@ -311,6 +311,8 @@
         "hangarSub": "Ships you own",
         "fresh": "Fresh this patch",
         "freshSub": "Stats changed since the previous build",
+        "freshSubNew": "New ships and changed stats since the previous build",
+        "newBadge": "New",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
       },

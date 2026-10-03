@@ -23,7 +23,15 @@
 //   POST { op: "clear_silhouettes",build_id }                          -> { ok }
 //        (mirror of clear_ports)
 //   POST { op: "preview",          build_number, name, content_base64 } -> { path }
-//   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current }
+//   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current, locale_publish }
+//        (then, after the response: publishes the build's locale strings to R2
+//         and deletes the rows once the public Worker serves them — see below)
+//   POST { op: "locale_publish",   build_id, lang?, delete_source? }   -> { ok, results }
+//        (service role or the gates below; one language per call keeps it short)
+//
+// LOCALIZATION STRINGS live in R2 since 2026-10-03 (storage plan): the
+// `locale_strings` rows are only the staging area of a running ingest. See
+// _locale-shards.ts for the layout and _locale-publish.ts for the order of steps.
 //
 // Each `upsert` carries one batch (recommend <= 500 rows) for ONE table; the
 // caller loops over kinds and chunks. Writes use the service-role key (RLS is
@@ -33,6 +41,8 @@
 //   (a) Production: Authorization: Bearer <jwt> of a collaborator/admin user
 //       + X-SC-Release-Token: <uuid> of a current desktop_releases row.
 //       (Mirrors ingest-bundle.)
+//   (c) Operator: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY> (the
+//       sb_secret_ key) — scripts/codex-locale-to-r2.mjs.
 //   (b) Seed:       X-SC-Seed-Token: <token> matching a row in
 //       public.codex_seed_tokens (used by supabase/scripts/seed-codex via the
 //       edge function so the local machine never needs the service-role key).
@@ -42,6 +52,11 @@
 //   the caller should halve the batch and retry, see catalog-bridge.ts).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { bucketBytes, deleteObject, listObjects, putObject, r2FromEnv, readUsage } from '../ingest-skins/_r2.ts';
+import { usageGate } from '../ingest-skins/_r2-usage.ts';
+import { BUILD_ID_RE, LANG_RE } from './_locale-shards.ts';
+import { publishLocale } from './_locale-publish.ts';
+import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -119,6 +134,110 @@ function isMissingTransformColumn(error: unknown): boolean {
   return missingColumn && PORT_TRANSFORM_COLUMNS.some((c) => msg.includes(c));
 }
 
+// ── localization strings → R2 ────────────────────────────────────────────────
+type R2 = NonNullable<ReturnType<typeof r2FromEnv>>;
+type Admin = ReturnType<typeof createClient>;
+/** Rows per export/delete RPC — ~1-2 s each, measured 2026-10-03. */
+const LOCALE_PAGE = 20_000;
+
+/** Public read path the publish verifies against (cloudflare/assets-worker). */
+function assetsPublicBase(): string {
+  return (Deno.env.get('ASSETS_PUBLIC_URL') ?? 'https://sc-assets.sc-assets-worker.workers.dev').replace(/\/+$/, '');
+}
+
+/** Run `p` after the response is flushed (fallback: just let it run). */
+function afterResponse(p: Promise<unknown>): void {
+  (globalThis as { EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void } }).EdgeRuntime?.waitUntil?.(p);
+}
+
+/**
+ * The same cost kill-switch ingest-skins applies before signing (storage.md
+ * § R2 cost guard): fail closed while usage is unknown, refuse near the free
+ * tier or past the bucket quota. null = writes may go ahead.
+ */
+async function r2WriteBlocked(r2: R2): Promise<{ status: number; code: string; message: string } | null> {
+  const { reading, error } = await readUsage(r2);
+  const gate = usageGate(reading, error, Date.now());
+  if (gate.kind === 'unknown') return { status: 503, code: 'r2_usage_unknown', message: gate.reason };
+  if (gate.kind === 'over') return { status: 507, code: 'r2_free_tier_guard', message: `R2 usage near the free tier: ${gate.over}` };
+  const used = await bucketBytes(r2);
+  if (used >= r2.quotaBytes) {
+    return { status: 507, code: 'storage_quota_exceeded', message: `R2 holds ${used} of ${r2.quotaBytes} bytes` };
+  }
+  return null;
+}
+
+function publishDeps(admin: Admin, r2: R2): PublishDeps {
+  const base = assetsPublicBase();
+  return {
+    async exportLang(buildId, lang) {
+      // Keyset pages: the authenticator's 8 s statement_timeout covers each RPC.
+      const out: Record<string, string> = {};
+      let after: string | null = null;
+      for (;;) {
+        const { data, error } = await admin.rpc('codex_locale_export', {
+          p_build_id: buildId, p_lang: lang, p_after: after, p_limit: LOCALE_PAGE,
+        });
+        if (error) throw error;
+        const page = ((data ?? []) as { entries: Record<string, string>; last_key: string | null; n: number }[])[0];
+        if (!page || !page.n) return out;
+        Object.assign(out, page.entries);
+        if (page.n < LOCALE_PAGE || !page.last_key) return out;
+        after = page.last_key;
+      }
+    },
+    putJson: (key, body) => putObject(r2, key, body, 'application/json'),
+    async readPublic(key) {
+      try {
+        // The query string only defeats intermediate caches; the Worker keys on the path.
+        const res = await fetch(`${base}/${key}?verify=${Date.now()}`, { signal: AbortSignal.timeout(15_000) });
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    },
+    listKeys: async (prefix) => (await listObjects(r2, prefix)).map((o) => o.key),
+    deleteKey: (key) => deleteObject(r2, key),
+    async deleteRows(buildId, lang) {
+      let total = 0;
+      for (;;) {
+        const { data, error } = await admin.rpc('codex_locale_delete', {
+          p_build_id: buildId, p_lang: lang, p_limit: LOCALE_PAGE,
+        });
+        if (error) throw error;
+        const n = Number(data ?? 0);
+        total += n;
+        if (n < LOCALE_PAGE) return total;
+      }
+    },
+  };
+}
+
+/** Publishes the given languages (null = every language the build has rows for). */
+async function publishBuildLocales(
+  admin: Admin,
+  r2: R2,
+  buildId: string,
+  langs: string[] | null,
+  deleteSource: boolean,
+  gateChecked = false,
+): Promise<PublishResult[]> {
+  if (!gateChecked) {
+    const blocked = await r2WriteBlocked(r2);
+    if (blocked) throw new Error(`${blocked.code}: ${blocked.message}`);
+  }
+  let list = langs;
+  if (!list) {
+    const { data, error } = await admin.rpc('codex_locale_langs', { p_build_id: buildId });
+    if (error) throw error;
+    list = ((data ?? []) as { lang: string }[]).map((r) => r.lang).filter((l) => LANG_RE.test(l));
+  }
+  const deps = publishDeps(admin, r2);
+  const results: PublishResult[] = [];
+  for (const lang of list) results.push(await publishLocale(deps, buildId, lang, { deleteSource }));
+  return results;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -138,7 +257,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const releaseToken = req.headers.get('x-sc-release-token');
 
   let authed = false;
-  if (seedToken) {
+  if (authHeader && authHeader === `Bearer ${serviceKey}`) {
+    authed = true;
+  } else if (seedToken) {
     const { data: tok } = await admin
       .from('codex_seed_tokens')
       .select('token, expires_at, disabled')
@@ -370,7 +491,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
       const { error } = await admin.rpc('set_current_codex_build', { p_build_id: buildId });
       if (error) throw error;
-      return json({ ok: true, current: true });
+      const r2 = r2FromEnv((k) => Deno.env.get(k));
+      if (!r2) return json({ ok: true, current: true, locale_publish: 'r2_not_configured' });
+      // After the response: the uploader's finalize must not wait ~30 s for
+      // 11 languages. A failure only leaves the rows in place (clients keep
+      // reading them); locale_publish or the backfill script can redo it.
+      afterResponse(
+        publishBuildLocales(admin, r2, buildId, null, true)
+          .then((results) => console.log(`ingest-catalog: locale publish ${buildId}: ${JSON.stringify(results)}`))
+          .catch((e) => console.error(`ingest-catalog: locale publish ${buildId} failed: ${(e as Error).message}`)),
+      );
+      return json({ ok: true, current: true, locale_publish: 'started' });
+    }
+
+    if (op === 'locale_publish') {
+      const buildId = String(body.build_id ?? '');
+      const lang = body.lang === undefined || body.lang === null ? null : String(body.lang);
+      if (!BUILD_ID_RE.test(buildId) || (lang !== null && !LANG_RE.test(lang))) {
+        return json({ error: 'invalid_body', message: 'build_id (uuid) and optional lang required' }, 400);
+      }
+      const r2 = r2FromEnv((k) => Deno.env.get(k));
+      if (!r2) return json({ error: 'r2_not_configured' }, 503);
+      const blocked = await r2WriteBlocked(r2);
+      if (blocked) return json({ error: blocked.code, message: blocked.message }, blocked.status);
+      const results = await publishBuildLocales(admin, r2, buildId, lang ? [lang] : null, body.delete_source === true, true);
+      return json({ ok: true, results });
     }
 
     return json({ error: 'invalid_body', message: `unknown op '${op}'` }, 400);
