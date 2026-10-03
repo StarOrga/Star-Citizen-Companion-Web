@@ -45,6 +45,13 @@ export interface Settings {
    */
   extractScope: 'minimal' | 'standard' | 'maximum';
   /**
+   * The speed (load) mode the operator last picked — orthogonal to
+   * `extractScope`. Main seeds its live throttle from this on launch, so the
+   * mode picked once (e.g. "minimal, I want to play") is still the mode when
+   * the next run — manual or unattended — starts. Default 'standard'.
+   */
+  speedProfile: 'minimal' | 'standard' | 'maximum';
+  /**
    * Auto-update ring the operator opted into (role-gated in the UI). Default
    * 'stable'; only admins/collaborators ever see the picker to change it. The
    * renderer maps it onto electron-updater's channel via the main process.
@@ -120,6 +127,12 @@ export class SettingsStore {
         parsed?.extractScope === 'standard' ||
         parsed?.extractScope === 'maximum'
           ? parsed.extractScope
+          : 'standard',
+      speedProfile:
+        parsed?.speedProfile === 'minimal' ||
+        parsed?.speedProfile === 'standard' ||
+        parsed?.speedProfile === 'maximum'
+          ? parsed.speedProfile
           : 'standard',
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'

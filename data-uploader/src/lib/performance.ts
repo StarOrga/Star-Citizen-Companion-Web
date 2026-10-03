@@ -63,10 +63,10 @@ export function workersFor(profile: Exclude<ProfileId, 'custom'>, cores = logica
 export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> = {
   minimal: {
     id: 'minimal',
-    label: { de: 'Minimaler Impact', en: 'Minimal Impact' },
+    label: { de: 'Minimal', en: 'Minimal' },
     description: {
-      de: '1 Prozess auf 1 Kern, niedrigste Priorität. Du kannst flüssig weiterarbeiten.',
-      en: '1 process on 1 core, lowest priority. Use your PC freely while it runs.',
+      de: 'Nebenbei spielen: 1 Kern, niedrigste Priorität. Dauert am längsten.',
+      en: 'Play alongside: 1 core, lowest priority. Takes the longest.',
     },
     cpuThreads: 1,
     ramCapMb: 512,
@@ -77,20 +77,24 @@ export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> 
     id: 'standard',
     label: { de: 'Standard', en: 'Standard' },
     description: {
-      de: 'Hälfte der Kerne als eigene Prozesse. Browser oder Game spürbar langsamer.',
-      en: 'Half the cores as separate processes. Browser/game noticeably slower.',
+      de: 'Nebenbei surfen oder streamen: halbe Kerne, gesenkte Priorität. Zum Spielen zu viel.',
+      en: 'Browse or stream alongside: half the cores, lowered priority. Too much for gaming.',
     },
     cpuThreads: halfCores(),
     ramCapMb: 2048,
-    workerProcessPriority: 'normal',
+    // BelowNormal, not Normal: it is one of the two classes Windows DOES pass on
+    // to child processes (Idle and BelowNormal — measured on Win11), so the
+    // dump workers inherit it and a browser or video player in the foreground
+    // keeps winning the scheduler. Half the cores bounds the throughput cost.
+    workerProcessPriority: 'below_normal',
     estimatedSecondsPerGb: 36,
   },
   maximum: {
     id: 'maximum',
-    label: { de: 'Maximum Throughput', en: 'Maximum Throughput' },
+    label: { de: 'Maximal', en: 'Maximum' },
     description: {
-      de: 'Alle Kerne bis auf einen, als eigene Prozesse. Anderes Arbeiten am PC ist quasi unmöglich.',
-      en: 'Every core but one, as separate processes. Hard to use the PC for anything else.',
+      de: 'Der PC gehört dem Uploader: alle Kerne bis auf einen. Nebenbei geht kaum etwas.',
+      en: 'The PC belongs to the uploader: every core but one. Little else runs alongside.',
     },
     cpuThreads: 'auto',
     ramCapMb: 8192,

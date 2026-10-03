@@ -135,6 +135,18 @@ describe('SettingsStore', () => {
     expect(s.extractScope).toBe('standard');
   });
 
+  it('defaults speedProfile to standard, round-trips a patch and rejects unknown ids', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().speedProfile).toBe('standard');
+    // The operator picked "minimal, I'm playing" — it must survive a relaunch.
+    store.patch({ speedProfile: 'minimal' });
+    expect(new SettingsStore(io, seqIds()).load().speedProfile).toBe('minimal');
+    // `auto` is internal and never persisted; a stray value falls back.
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', speedProfile: 'auto' } });
+    expect(new SettingsStore(io, seqIds()).load().speedProfile).toBe('standard');
+  });
+
   it('leaves language unset by default and round-trips a patch', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());

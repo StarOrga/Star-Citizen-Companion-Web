@@ -35,9 +35,9 @@
     "extractOnly": "Continue (extract only)"
   },
   "scope": {
-    "minimal": "Minimal",
+    "minimal": "Compact",
     "standard": "Standard",
-    "maximum": "Maximum",
+    "maximum": "Complete",
     "recommended": "recommended"
   },
   "sheet": {
@@ -76,17 +76,21 @@
     "next": "Next → Configure"
   },
   "configure": {
-    "title": "Choose scope",
-    "subtitle": "Speed stays switchable any time later — scope doesn't.",
+    "title": "Speed & scope",
+    "subtitle": "Two separate questions: how hard the PC is loaded and how much data is pulled.",
     "start": "Start extraction",
     "speed": {
-      "title": "Speed",
-      "hint": "Switch any time — mid-run included.",
+      "title": "Speed — how hard the PC is loaded",
+      "hint": "Switch any time — mid-run too, via the ⚡ chip.",
       "applied": "Mode changed — takes effect from the next file.",
       "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
       "armed": "Mode set — it applies as soon as a run starts.",
       "unsupported": "This platform has no live priority control.",
       "scopePinned": "The extraction scope stays fixed for the running job — only pace and priority change."
+    },
+    "scope": {
+      "title": "Scope — how much data is pulled",
+      "hint": "Fixed once the extraction is running."
     }
   },
   "run": {
@@ -396,5 +400,13 @@
     "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
     "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
     "resuming": "Found an interrupted upload — resuming it automatically."
+  },
+  "speed": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximum",
+    "minimalDesc": "Play alongside: 1 core, lowest priority. Takes the longest.",
+    "standardDesc": "Browse or stream alongside: half the cores, lowered priority. Too much for gaming.",
+    "maximumDesc": "The PC belongs to the uploader: every core but one. Little else runs alongside."
   }
 }

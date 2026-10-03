@@ -35,9 +35,9 @@
     "extractOnly": "Weiter (nur extrahieren)"
   },
   "scope": {
-    "minimal": "Minimal",
+    "minimal": "Kompakt",
     "standard": "Standard",
-    "maximum": "Maximum",
+    "maximum": "Komplett",
     "recommended": "empfohlen"
   },
   "sheet": {
@@ -76,17 +76,21 @@
     "next": "Weiter → Konfiguration"
   },
   "configure": {
-    "title": "Umfang wählen",
-    "subtitle": "Tempo ist später jederzeit umschaltbar, der Umfang nicht.",
+    "title": "Tempo & Umfang",
+    "subtitle": "Zwei getrennte Fragen: wie stark der PC ausgelastet wird und wie viele Daten gezogen werden.",
     "start": "Extraktion starten",
     "speed": {
-      "title": "Geschwindigkeit",
-      "hint": "Jederzeit umschaltbar — auch mitten im Lauf.",
+      "title": "Tempo — wie stark der PC ausgelastet wird",
+      "hint": "Jederzeit umschaltbar — auch mitten im Lauf, über den ⚡-Chip.",
       "applied": "Modus geändert — wirkt ab der nächsten Datei.",
       "appliedPartly": "Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Protokoll).",
       "armed": "Modus gesetzt — er gilt, sobald ein Lauf startet.",
       "unsupported": "Auf dieser Plattform lässt sich die Priorität nicht live ändern.",
       "scopePinned": "Der Umfang der Extraktion bleibt für den laufenden Vorgang fest — nur Tempo und Priorität ändern sich."
+    },
+    "scope": {
+      "title": "Umfang — wie viele Daten gezogen werden",
+      "hint": "Steht fest, sobald die Extraktion läuft."
     }
   },
   "run": {
@@ -396,5 +400,13 @@
     "starting": "Neue Version erkannt ({{channel}}: {{local}} vs. {{server}}) — starte automatisch.",
     "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen.",
     "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt."
+  },
+  "speed": {
+    "minimal": "Minimal",
+    "standard": "Standard",
+    "maximum": "Maximal",
+    "minimalDesc": "Nebenbei spielen: 1 Kern, niedrigste Priorität. Dauert am längsten.",
+    "standardDesc": "Nebenbei surfen oder streamen: halbe Kerne, gesenkte Priorität. Zum Spielen zu viel.",
+    "maximumDesc": "Der PC gehört dem Uploader: alle Kerne bis auf einen. Nebenbei geht kaum etwas."
   }
 }
