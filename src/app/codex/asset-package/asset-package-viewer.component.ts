@@ -225,18 +225,18 @@ const LABEL_SIZE_GUESS: Size = { w: 240, h: 56 };
       .leader .tip { fill: var(--holo-mfr); }
       .clabel {
         position: absolute; display: flex; align-items: center; gap: var(--sc-gap-1);
-        max-width: min(18rem, calc(100% - 1rem)); padding: var(--sc-pad-1);
+        width: max-content; max-width: min(22rem, calc(100% - 1rem)); padding: var(--sc-pad-1);
         background: rgb(from var(--sc-bg-1) r g b / 0.9); border: 1px solid var(--sc-accent);
         border-radius: 0.375rem; box-shadow: 0 0 0.75rem rgb(from var(--sc-accent) r g b / 0.25);
         backdrop-filter: blur(4px);
       }
-      .clabel .txt { display: grid; min-width: 0; padding: 0 var(--sc-pad-1); }
+      .clabel .txt { display: grid; flex: 1 1 auto; min-width: 0; padding: 0 var(--sc-pad-1); text-align: start; }
       .clabel .nm {
         color: var(--sc-fg-0); font-weight: 600; font-size: 0.875rem; text-decoration: none;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       }
       .clabel a.nm:hover { color: var(--sc-accent); text-decoration: underline; }
-      .clabel .meta { color: var(--sc-fg-2); font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .clabel .meta { color: var(--sc-fg-2); font-size: 0.75rem; overflow-wrap: anywhere; }
       .clabel.empty .nm { color: var(--sc-fg-1); font-style: italic; font-weight: 500; }
       .step {
         flex: none; width: 2rem; height: 2rem; display: grid; place-items: center; padding: 0;

@@ -7,6 +7,7 @@ import {
   HOLO_SWEEP,
   HoloLook,
   countTriangles,
+  creaseEdges,
   edgeDetail,
 } from './holo-look';
 
@@ -28,14 +29,14 @@ describe('edgeDetail (line thinning by hull size)', () => {
     const d = edgeDetail(22, 80_000);
     expect(d.thinning).toBe(0);
     expect(d.creaseDeg).toBe(HOLO_CREASE_DEG);
-    expect(d.minSegment).toBe(0);
+    expect(d.minArea).toBe(0);
   });
 
   it('thins a capital hull to its coarse character edges', () => {
     const d = edgeDetail(155, 900_000);
     expect(d.thinning).toBe(1);
     expect(d.creaseDeg).toBe(HOLO_CREASE_DEG_MAX);
-    expect(d.minSegment).toBeCloseTo(155 * 0.006, 5);
+    expect(d.minArea).toBeCloseTo((155 * 0.012) ** 2, 5);
   });
 
   it('grows monotonically with size and with triangle count', () => {
@@ -45,6 +46,26 @@ describe('edgeDetail (line thinning by hull size)', () => {
     const dense = edgeDetail(25, 1_000_000);
     expect(dense.thinning).toBeGreaterThan(0);
     expect(dense.thinning).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('creaseEdges', () => {
+  it('matches THREE.EdgesGeometry without a size gate', () => {
+    const geos = [new THREE.BoxGeometry(2, 1, 4, 3, 2, 5), new THREE.CylinderGeometry(1, 1, 2, 12)];
+    for (const g of geos) {
+      const ours = creaseEdges(g, 30).getAttribute('position').count;
+      const ref = new THREE.EdgesGeometry(g, 30).getAttribute('position').count;
+      expect(ours).toBe(ref);
+    }
+  });
+
+  it('keeps every segment of a long edge that borders a big panel', () => {
+    // 6 segments along x: the long edges are chains of short segments.
+    const g = new THREE.BoxGeometry(12, 1, 1, 6, 1, 1);
+    const all = creaseEdges(g, 30).getAttribute('position').count;
+    // Each side-panel triangle is 1 m2 x 0.5 = 0.5 m2, the end caps 0.5 m2 too: gate below that keeps all.
+    expect(creaseEdges(g, 30, 0.4).getAttribute('position').count).toBe(all);
+    expect(creaseEdges(g, 30, 10).getAttribute('position').count).toBe(0);
   });
 });
 
@@ -90,17 +111,17 @@ describe('HoloLook', () => {
     look = new HoloLook(BASE, BASE, false);
     look.fit(new THREE.Box3(new THREE.Vector3(-80, -15, -20), new THREE.Vector3(80, 15, 20)), 900_000);
     expect(look.detail.thinning).toBe(1);
-    // The minimum segment is 160 m * 0.006 = 0.96 m: a hull panel keeps all 12 edges.
+    // Minimum area (160 m * 0.012)^2 = 3.7 m2: a hull panel keeps all 12 edges.
     const hull = box(40, 10, 60);
     const greeble = box(0.4, 0.4, 0.4);
     look.dress(new THREE.Group().add(hull, greeble), 'hull');
     expect(edgeChild(hull)!.geometry.getAttribute('position').count).toBe(24);
-    // Every edge of the 0.4 m greeble is shorter than the minimum segment: no lines.
+    // The 0.4 m greeble has only small triangles: no lines.
     expect(edgeChild(greeble)!.geometry.getAttribute('position').count).toBe(0);
     const part = box(0.4, 0.4, 0.4);
     look.dress(part, 'part');
     expect(edgeChild(part)!.geometry.getAttribute('position').count).toBe(24);
-    expect(FULL_DETAIL.minSegment).toBe(0);
+    expect(FULL_DETAIL.minArea).toBe(0);
   });
 
   it('counts triangles of every mesh', () => {

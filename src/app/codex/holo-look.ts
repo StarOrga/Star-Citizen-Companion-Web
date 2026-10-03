@@ -5,7 +5,7 @@
  * ship-hologram.ts). A flat PBR material on bare geometry reads as a grey
  * silhouette: the surfaces between the outline say nothing. This module draws
  * the character lines instead: one small ShaderMaterial per role (no post
- * processing) plus crease edges from THREE.EdgesGeometry, so panel breaks,
+ * processing) plus crease edges ({@link creaseEdges}), so panel breaks,
  * intakes and wing roots show without every triangle doing so.
  *
  * Two colours: the body (fill, scanlines, edge lines) is the app accent for
@@ -30,7 +30,7 @@ const ROLES: readonly HoloRole[] = ['hull', 'part', 'interior', 'focus'];
 /** Crease angle for panel/character lines on a normal-sized hull: below it a seam is "smooth surface". */
 export const HOLO_CREASE_DEG = 30;
 /** Crease angle the biggest hulls reach: only the coarse character edges remain. */
-export const HOLO_CREASE_DEG_MAX = 55;
+export const HOLO_CREASE_DEG_MAX = 60;
 /** Above this many triangles a geometry gets no edge lines (EdgesGeometry is O(n) with a hash per edge). */
 export const HOLO_EDGE_MAX_TRIANGLES = 1_200_000;
 /** Focus points the shader can glow at once. */
@@ -43,10 +43,13 @@ export const HOLO_SWEEP = 0.2;
 export const HOLO_EDGE_OPACITY = 0.45;
 
 export interface EdgeDetail {
-  /** Crease angle (degrees) for THREE.EdgesGeometry. */
+  /** Crease angle (degrees). */
   readonly creaseDeg: number;
-  /** Segments shorter than this (world units) are dropped — the greebles of a big hull. */
-  readonly minSegment: number;
+  /**
+   * A crease draws only when one of its triangles has this area (world units
+   * squared): the greebles of a big hull — small triangles only — drop out.
+   */
+  readonly minArea: number;
   /** 0 = full detail (fighter) … 1 = coarsest (capital hull). */
   readonly thinning: number;
 }
@@ -65,13 +68,13 @@ export function edgeDetail(extent: number, triangles: number): EdgeDetail {
   const t = Math.max(bySize, byTris);
   return {
     creaseDeg: HOLO_CREASE_DEG + (HOLO_CREASE_DEG_MAX - HOLO_CREASE_DEG) * t,
-    minSegment: Math.max(extent, 0) * 0.006 * t,
+    minArea: (Math.max(extent, 0) * 0.012 * t) ** 2,
     thinning: t,
   };
 }
 
 /** Full detail: parts, focused components, anything not fitted. */
-export const FULL_DETAIL: EdgeDetail = { creaseDeg: HOLO_CREASE_DEG, minSegment: 0, thinning: 0 };
+export const FULL_DETAIL: EdgeDetail = { creaseDeg: HOLO_CREASE_DEG, minArea: 0, thinning: 0 };
 
 /** Triangles of every mesh under `root`. */
 export function countTriangles(root: THREE.Object3D): number {
@@ -166,8 +169,12 @@ void main() {
   float sweep = smoothstep(0.0, 0.05, band) * (1.0 - smoothstep(0.05, 0.14, band)) * uScan;
   vec3 col = uTint * (0.035 + 0.11 * ndv * (0.35 + 0.65 * up));
   col += uTint * (lines + sweep * uSweep) * (0.35 + ndv);
-  // Accent: the Fresnel rim in the manufacturer's colour.
-  col += mix(uAccent, vec3(1.0), 0.2) * rim * 0.95;
+  // A soft Fresnel rim in the body colour; the grazing fringe of it in the
+  // manufacturer's accent. Kept narrow and bright: a dim warm accent spread
+  // over whole panels reads as brown, not as light.
+  col += mix(uTint, vec3(1.0), 0.25) * rim * 0.55;
+  float fringe = smoothstep(0.6, 0.95, 1.0 - ndv);
+  col += mix(uAccent, vec3(1.0), 0.15) * fringe * 1.1;
   col *= uLevel;
   // Highlight: everything else dims, a glow cloud lights the hull around the
   // focus points, a focused component renders as a lit model in the accent.
@@ -319,16 +326,15 @@ export class HoloLook {
 
   /**
    * Crease edges of `geometry` at `detail`, computed on first request and
-   * cached. `worldScale` converts the detail's world-space minimum segment
-   * into the geometry's own units.
+   * cached. `worldScale` converts the detail's world-space minimum area into
+   * the geometry's own units.
    */
   edgesFor(geometry: THREE.BufferGeometry, detail: EdgeDetail = FULL_DETAIL, worldScale = 1): THREE.BufferGeometry | null {
     if (this.edgeCache.has(geometry)) return this.edgeCache.get(geometry) ?? null;
     const tris = trianglesOf(geometry);
-    let edges: THREE.BufferGeometry | null =
-      tris > 0 && tris <= HOLO_EDGE_MAX_TRIANGLES ? new THREE.EdgesGeometry(geometry, detail.creaseDeg) : null;
-    const minLocal = detail.minSegment / (worldScale > 0 ? worldScale : 1);
-    if (edges && minLocal > 0) edges = dropShortSegments(edges, minLocal);
+    const s = worldScale > 0 ? worldScale : 1;
+    const edges =
+      tris > 0 && tris <= HOLO_EDGE_MAX_TRIANGLES ? creaseEdges(geometry, detail.creaseDeg, detail.minArea / (s * s)) : null;
     this.edgeCache.set(geometry, edges);
     return edges;
   }
@@ -345,12 +351,12 @@ export class HoloLook {
       if ((o as THREE.Mesh).isMesh && accept(o as THREE.Mesh)) meshes.push(o as THREE.Mesh);
     });
     const detail = role === 'hull' || role === 'interior' ? this.hullDetail : FULL_DETAIL;
-    if (detail.minSegment > 0) root.updateWorldMatrix(true, true);
+    if (detail.minArea > 0) root.updateWorldMatrix(true, true);
     for (const mesh of meshes) {
       mesh.material = this.fill(role);
       let edge = mesh.children.find((c) => c.userData[EDGE_FLAG]) as THREE.LineSegments | undefined;
       if (!edge) {
-        const scale = detail.minSegment > 0 ? mesh.matrixWorld.getMaxScaleOnAxis() : 1;
+        const scale = detail.minArea > 0 ? mesh.matrixWorld.getMaxScaleOnAxis() : 1;
         const geo = this.edgesFor(mesh.geometry, detail, scale);
         if (!geo) continue;
         edge = new THREE.LineSegments(geo, this.line(role));
@@ -442,20 +448,61 @@ export class HoloLook {
   }
 }
 
-/** A copy of `edges` without the segments shorter than `minLength`; disposes the input. */
-function dropShortSegments(edges: THREE.BufferGeometry, minLength: number): THREE.BufferGeometry {
-  const pos = edges.getAttribute('position');
-  const keep: number[] = [];
-  const min2 = minLength * minLength;
-  for (let i = 0; i + 1 < pos.count; i += 2) {
-    const dx = pos.getX(i + 1) - pos.getX(i);
-    const dy = pos.getY(i + 1) - pos.getY(i);
-    const dz = pos.getZ(i + 1) - pos.getZ(i);
-    if (dx * dx + dy * dy + dz * dz < min2) continue;
-    keep.push(pos.getX(i), pos.getY(i), pos.getZ(i), pos.getX(i + 1), pos.getY(i + 1), pos.getZ(i + 1));
+interface HalfEdge {
+  readonly normal: THREE.Vector3;
+  readonly area: number;
+  readonly a: THREE.Vector3;
+  readonly b: THREE.Vector3;
+}
+
+/**
+ * THREE.EdgesGeometry plus a size gate: a crease edge only draws when at least
+ * one of its two triangles has `minArea` (geometry units squared). Greebles —
+ * crease edges between small triangles only — drop out; a long character edge
+ * keeps every one of its segments, because a big panel borders it. (A plain
+ * segment-length filter would dash those edges: they are chains of short
+ * segments.)
+ */
+export function creaseEdges(geometry: THREE.BufferGeometry, creaseDeg: number, minArea = 0): THREE.BufferGeometry {
+  const thresholdDot = Math.cos(THREE.MathUtils.DEG2RAD * creaseDeg);
+  const pos = geometry.getAttribute('position');
+  const index = geometry.getIndex();
+  const count = index ? index.count : pos.count;
+  const tri = new THREE.Triangle();
+  const corners = [tri.a, tri.b, tri.c];
+  const ids = [0, 0, 0];
+  const hashes = ['', '', ''];
+  const precision = 1e4;
+  const hashOf = (v: THREE.Vector3) =>
+    `${Math.round(v.x * precision)},${Math.round(v.y * precision)},${Math.round(v.z * precision)}`;
+  const open = new Map<string, HalfEdge | null>();
+  const out: number[] = [];
+  const push = (a: THREE.Vector3, b: THREE.Vector3) => out.push(a.x, a.y, a.z, b.x, b.y, b.z);
+  for (let i = 0; i + 2 < count; i += 3) {
+    for (let k = 0; k < 3; k++) {
+      ids[k] = index ? index.getX(i + k) : i + k;
+      corners[k].fromBufferAttribute(pos, ids[k]);
+      hashes[k] = hashOf(corners[k]);
+    }
+    if (hashes[0] === hashes[1] || hashes[1] === hashes[2] || hashes[2] === hashes[0]) continue;
+    const normal = tri.getNormal(new THREE.Vector3());
+    const area = tri.getArea();
+    for (let k = 0; k < 3; k++) {
+      const n = (k + 1) % 3;
+      const hash = `${hashes[k]}_${hashes[n]}`;
+      const reverse = `${hashes[n]}_${hashes[k]}`;
+      const other = open.get(reverse);
+      if (other) {
+        if (normal.dot(other.normal) <= thresholdDot && Math.max(area, other.area) >= minArea) push(corners[k], corners[n]);
+        open.set(reverse, null);
+      } else if (!open.has(hash)) {
+        open.set(hash, { normal, area, a: corners[k].clone(), b: corners[n].clone() });
+      }
+    }
   }
-  edges.dispose();
-  const out = new THREE.BufferGeometry();
-  out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
-  return out;
+  // Open (boundary) edges always count as creases.
+  for (const e of open.values()) if (e && e.area >= minArea) push(e.a, e.b);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(out, 3));
+  return g;
 }

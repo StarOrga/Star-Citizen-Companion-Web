@@ -94,7 +94,7 @@ export class PackageScene {
 
   /** Concept-hologram materials + cached crease edges (holo-look.ts). */
   private readonly look: HoloLook;
-  private readonly clock = new THREE.Clock();
+  private readonly t0 = performance.now();
   private readonly reducedMotion: boolean;
 
   private root: THREE.Object3D | null = null;
@@ -177,6 +177,11 @@ export class PackageScene {
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener('change', () => this.requestRender());
     void this.disposed;
+  }
+
+  /** Seconds since the scene was created (scan band, ring pulse). */
+  private elapsed(): number {
+    return (performance.now() - this.t0) / 1000;
   }
 
   private parse(buf: ArrayBuffer): Promise<THREE.Object3D> {
@@ -323,7 +328,7 @@ export class PackageScene {
       m.visible = i < ringAt.length;
       if (m.visible) m.position.copy(ringAt[i]);
     });
-    this.poseRings(this.clock.getElapsedTime());
+    this.poseRings(this.elapsed());
   }
 
   /** Billboard + animate the rings (static pose with reduced motion). */
@@ -331,7 +336,7 @@ export class PackageScene {
     const pose = ringPose(seconds, this.reducedMotion);
     this.ringMat.uniforms['uAngle'].value = pose.angle;
     this.ringMat.uniforms['uAlpha'].value = pose.alpha;
-    const size = this.look.focusRadius * 1.1 * pose.scale;
+    const size = this.look.focusRadius * 1.6 * pose.scale;
     for (const m of this.rings) {
       if (!m.visible) continue;
       m.quaternion.copy(this.camera.quaternion);
@@ -411,7 +416,7 @@ export class PackageScene {
     this.frameId = requestAnimationFrame(() => {
       this.frameId = 0;
       const moving = this.controls.enableDamping && this.controls.update();
-      const t = this.clock.getElapsedTime();
+      const t = this.elapsed();
       this.look.tick(t);
       this.poseRings(t);
       this.renderer.render(this.scene, this.camera);
