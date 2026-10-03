@@ -1,81 +1,160 @@
+import { Injectable, InjectionToken, inject } from '@angular/core';
+import { environment } from '../../environments/environment';
+
 /**
- * Codex locale strings on R2: each build+lang is split into a fixed number of
- * immutable, content-addressed JSON shards. `codex_builds.locale_bundles` lists
- * the shard hashes per language; a key lives in shard `fnv1a32(key) % 64`
- * (key WITHOUT the leading `@`). The server side (ingest + Worker) uses the
- * same hash — the test vectors in the spec pin both ends to one contract.
+ * Localization strings of a build, read from R2 through the assets Worker
+ * (storage plan, 2026-10-03). The layout is written by ingest-catalog:
+ * supabase/functions/ingest-catalog/_locale-shards.ts is the source of truth;
+ * the lookup below is a copy pinned to the same golden vectors in
+ * codex-locale-shards.spec.ts and that file's _locale.test.mjs.
+ *
+ *   codex-locale/<build>/<lang>/index.json          which shards exist (5 min cache)
+ *   codex-locale/<build>/<lang>/<gen>/<shard>.json  key → value (immutable)
  */
 
-export const LOCALE_SHARD_COUNT = 64;
-
-/** One language's entry of `codex_builds.locale_bundles`. */
-export interface LocaleBundle {
-  v: number;
-  /** Shard content hashes, index = shard number; exactly LOCALE_SHARD_COUNT long. */
-  shards: string[];
-  keys: number;
-  bytes: number;
+export interface LocaleIndex {
+  v: 1;
+  build_id: string;
+  lang: string;
+  gen: string;
+  count: number;
+  groups: Record<string, number>;
+  misc: number;
 }
 
-export type LocaleBundles = Record<string, LocaleBundle>;
+const GROUP_RE = /^[a-z0-9]{1,24}$/;
+const GEN_RE = /^[0-9a-z]{6,16}$/;
 
-/** FNV-1a 32-bit over the UTF-8 bytes of `s`, as an unsigned integer. */
-export function fnv1a32(s: string): number {
-  let h = 2166136261;
-  for (const byte of new TextEncoder().encode(s)) {
-    h ^= byte;
-    h = Math.imul(h, 16777619);
+export function fnv1a(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h >>> 0;
 }
 
-/** Shard index of a locale key (without the leading `@`). */
-export function localeShardOf(key: string): number {
-  return fnv1a32(key) % LOCALE_SHARD_COUNT;
+export function keyGroup(key: string): string {
+  const head = key.split('_', 1)[0].toLowerCase();
+  return GROUP_RE.test(head) ? head : '';
 }
 
-/**
- * Base URL of the codex-locale shards on the assets Worker, or null when no R2
- * host is configured (then the client stays on the Supabase table).
- */
-export function codexLocaleBase(r2BaseUrl: string | null | undefined): string | null {
-  const r2 = (r2BaseUrl ?? '').trim().replace(/\/+$/, '');
-  return r2 ? `${r2}/codex-locale/` : null;
+export function shardFor(index: Pick<LocaleIndex, 'groups' | 'misc'>, key: string): string {
+  const group = keyGroup(key);
+  const own = group ? index.groups[group] : undefined;
+  if (own) return `${group}-${fnv1a(key) % own}`;
+  return `_misc-${fnv1a(key) % Math.max(1, index.misc)}`;
 }
 
-/**
- * Validated `locale_bundles` column value. Anything malformed — a missing
- * column, `{}`, a language whose shard list is not exactly 64 strings — is
- * dropped, so the caller falls back to the table for that language.
- */
-export function parseLocaleBundles(raw: unknown): LocaleBundles {
-  const out: LocaleBundles = {};
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
-  for (const [lang, entry] of Object.entries(raw as Record<string, unknown>)) {
-    if (!entry || typeof entry !== 'object') continue;
-    const e = entry as Record<string, unknown>;
-    const shards = e['shards'];
-    if (
-      !Array.isArray(shards) ||
-      shards.length !== LOCALE_SHARD_COUNT ||
-      !shards.every((s) => typeof s === 'string' && /^[A-Za-z0-9_-]+$/.test(s))
-    ) {
-      continue;
+export function isLocaleIndex(v: unknown, buildId: string, lang: string): v is LocaleIndex {
+  const i = v as LocaleIndex | null;
+  return !!i && i.v === 1 && i.build_id === buildId && i.lang === lang &&
+    typeof i.gen === 'string' && GEN_RE.test(i.gen) &&
+    Number.isInteger(i.count) && Number.isInteger(i.misc) && i.misc >= 1 &&
+    !!i.groups && typeof i.groups === 'object';
+}
+
+/** The fetch the shard reader uses — a token so specs never touch the network. */
+export const LOCALE_SHARD_FETCH = new InjectionToken<typeof fetch>('LOCALE_SHARD_FETCH', {
+  providedIn: 'root',
+  factory: () => (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
+});
+
+/** Base of the assets Worker, without a trailing slash; '' when none is configured. */
+export const LOCALE_SHARD_BASE = new InjectionToken<string>('LOCALE_SHARD_BASE', {
+  providedIn: 'root',
+  factory: () => (environment.assets?.r2BaseUrl ?? '').trim().replace(/\/+$/, ''),
+});
+
+type Shard = Record<string, string>;
+
+@Injectable({ providedIn: 'root' })
+export class CodexLocaleShards {
+  private readonly fetchFn = inject(LOCALE_SHARD_FETCH);
+  private readonly base = inject(LOCALE_SHARD_BASE);
+  /** Per build + language. A settled `null` means "this build is not in R2". */
+  private readonly indexes = new Map<string, Promise<LocaleIndex | null>>();
+  private readonly shards = new Map<string, Promise<Shard>>();
+
+  /**
+   * Values for the given (stripped, `@`-less) keys, or `null` when this build
+   * has no R2 index for `lang` — the caller then reads the database table.
+   * A key the build does not have, or whose shard failed to load, is simply
+   * absent from the map, exactly like a missing row.
+   */
+  async resolve(buildId: string, lang: string, keys: string[]): Promise<Map<string, string> | null> {
+    if (!this.base) return null;
+    const index = await this.index(buildId, lang);
+    if (!index) return null;
+
+    const byShard = new Map<string, string[]>();
+    for (const key of keys) {
+      const name = shardFor(index, key);
+      const list = byShard.get(name);
+      if (list) list.push(key);
+      else byShard.set(name, [key]);
     }
-    out[lang] = {
-      v: typeof e['v'] === 'number' ? e['v'] : 1,
-      shards: shards as string[],
-      keys: typeof e['keys'] === 'number' ? e['keys'] : 0,
-      bytes: typeof e['bytes'] === 'number' ? e['bytes'] : 0,
-    };
+    const out = new Map<string, string>();
+    await Promise.all(
+      [...byShard].map(async ([name, wanted]) => {
+        let shard: Shard;
+        try {
+          shard = await this.shard(`${this.dir(buildId, lang)}${index.gen}/${name}.json`);
+        } catch {
+          return; // localization never blocks the view; these keys stay raw
+        }
+        for (const key of wanted) {
+          const value = shard[key];
+          if (typeof value === 'string') out.set(key, value);
+        }
+      }),
+    );
+    return out;
   }
-  return out;
-}
 
-/** The `strings` map of a shard body, or null when the body is not a shard. */
-export function shardStrings(body: unknown): Record<string, string> | null {
-  if (!body || typeof body !== 'object') return null;
-  const strings = (body as Record<string, unknown>)['strings'];
-  if (!strings || typeof strings !== 'object' || Array.isArray(strings)) return null;
-  return strings as Record<string, string>;
+  private dir(buildId: string, lang: string): string {
+    return `codex-locale/${buildId}/${lang}/`;
+  }
+
+  private index(buildId: string, lang: string): Promise<LocaleIndex | null> {
+    const id = `${buildId}/${lang}`;
+    let p = this.indexes.get(id);
+    if (!p) {
+      p = this.loadIndex(buildId, lang).catch(() => {
+        // Outage, not absence: forget it so the next call asks again.
+        this.indexes.delete(id);
+        return null;
+      });
+      this.indexes.set(id, p);
+    }
+    return p;
+  }
+
+  private async loadIndex(buildId: string, lang: string): Promise<LocaleIndex | null> {
+    const res = await this.fetchFn(`${this.base}/${this.dir(buildId, lang)}index.json`);
+    // 404 = this build has no R2 strings (yet): remember it, use the database.
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`locale index HTTP ${res.status}`);
+    const body: unknown = await res.json();
+    if (!isLocaleIndex(body, buildId, lang)) throw new Error('locale index malformed');
+    return body;
+  }
+
+  private shard(path: string): Promise<Shard> {
+    let p = this.shards.get(path);
+    if (!p) {
+      p = this.loadShard(path);
+      p.catch(() => this.shards.delete(path));
+      this.shards.set(path, p);
+    }
+    return p;
+  }
+
+  private async loadShard(path: string): Promise<Shard> {
+    const res = await this.fetchFn(`${this.base}/${path}`);
+    if (!res.ok) throw new Error(`locale shard HTTP ${res.status}`);
+    const body: unknown = await res.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('locale shard malformed');
+    return body as Shard;
+  }
 }

@@ -293,7 +293,6 @@
   "catalog": {
     "publishing": "Codex wird veröffentlicht",
     "published": "Codex aktualisiert",
-    "localeSkipped": "Texte übersprungen (R2-Kostenbremse)",
     "ships": "Schiffe",
     "failed": "Codex-Veröffentlichung fehlgeschlagen",
     "step": "Schritt {{current}} / {{total}} wird veröffentlicht",
@@ -305,16 +304,13 @@
       "server": "Der Server konnte den Codex nicht aktualisieren.",
       "empty": "Die Extraktion enthält keine Schiffe oder Hersteller — der bisherige Codex bleibt aktiv.",
       "missingData": "Die extrahierten Daten sind nicht mehr vorhanden.",
-      "r2UsageUnknown": "Texte nicht hochgeladen: Die R2-Kostenbremse kann den Verbrauch dieses Monats gerade nicht lesen. Der Codex ist unverändert — später fortsetzen.",
-      "r2FreeTierGuard": "Texte nicht hochgeladen: R2 hat 80 % eines kostenlosen Monatskontingents erreicht. Der Codex bleibt bis nächsten Monat unverändert.",
-      "storageQuotaExceeded": "Texte nicht hochgeladen: Der R2-Speicher hat seine Obergrenze erreicht. Der Codex ist unverändert.",
       "resumeHint": "Nichts ist verloren — der Fortschritt ist gespeichert. „Upload fortsetzen“ macht genau an dieser Stelle weiter.",
       "reextractHint": "Bitte die Extraktion erneut ausführen.",
       "atPhase": "Abgebrochen bei: {{phase}}"
     },
     "phases": {
       "init": "Build anlegen",
-      "codex_locale_shards": "Texte hochladen (Deutsch + Englisch)",
+      "codex_locale_strings": "Texte hochladen",
       "codex_manufacturers": "Hersteller hochladen",
       "codex_ships": "Schiffe hochladen",
       "codex_components": "Komponenten hochladen",

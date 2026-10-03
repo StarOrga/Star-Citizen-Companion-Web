@@ -4,6 +4,31 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.119.0] - 2026-10-03
+
+### Added
+
+- **Codex-Brücke: neue Schiffe im Patch.** Die Reihe „Frisch in diesem
+  Patch“ zeigt jetzt zuerst die Schiffe, die der aktuelle LIVE-Build neu
+  mitbringt (mit „Neu“-Abzeichen), danach Schiffe mit geänderten Werten.
+  Grundlage ist ein Abgleich der Klassennamen zwischen aktuellem und vorigem
+  Build. Ist nichts neu oder schlägt der Abgleich fehl, bleibt die Reihe wie
+  bisher.
+
+### Changed
+
+- **Codex: Übersetzungen kommen aus R2 statt aus der Datenbank.** Die
+  Lokalisierungstexte eines Builds (alle 11 Sprachen) werden nach dem Ingest
+  als kleine JSON-Pakete in R2 veröffentlicht und über den Assets-Worker
+  ausgeliefert. Erst nach einer erfolgreich zurückgelesenen Veröffentlichung
+  werden die Zeilen aus `codex_locale_strings` gelöscht; bei jedem Fehler
+  bleiben sie stehen. Die App liest die Pakete und fällt bei 404 oder Ausfall
+  auf die Datenbank zurück. Hintergrund: die freie Supabase-Datenbank stand
+  bei ~496 von 500 MB, die Tabelle belegte davon 185 MB. Für bestehende
+  Builds gibt es das Backfill-Skript `scripts/codex-locale-to-r2.mjs`
+  (Probelauf als Standard). Offen: R2-Aufräumen für entfernte Builds ist noch
+  nicht umgesetzt (~10 MB je Build).
+
 ## [0.118.0] - 2026-10-03
 
 ### Added

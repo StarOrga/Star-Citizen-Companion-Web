@@ -9,6 +9,7 @@ built in by design.
 |---|---|---|
 | Relational: users, social, hangar, feedback, telemetry, codex catalog | Supabase Postgres (Free, 500 MB) | RLS, RPCs, Realtime. Blocks (402) at its limit, never bills |
 | RLS-gated files (feedback attachments — private since `20260928211217`, shown via signed URLs, 1 h), codex previews | Supabase Storage (Free, 1 GB) | RLS per owner cannot be rebuilt elsewhere |
+| Codex localization strings (`codex-locale/`, since 2026-10-03) | R2, same bucket and Worker | ~31 MB per build, immutable per build; see § Localization strings |
 | Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` at `https://sc-assets.sc-assets-worker.workers.dev` (live 2026-09-25) | 0 € egress, 10 GB. A key the bucket lacks is streamed from Supabase by the Worker |
 | News thumbnails (`news-images`, written by `fetch-verse-news`) | Same R2 bucket under `news-images/<hash>/w<N>.<ext>`, read via the same Worker at `/news-images/…` (code 2026-10-03, `feat/news-images-r2`) | Every thumbnail view used to count against the 5 GB/month Supabase egress. Legacy objects stay in Supabase and are streamed by the Worker |
 | App bundle, icons, meshopt decoder | Vercel Hobby | Static hosting |
@@ -49,39 +50,73 @@ copies the existing objects (dry run unless `--apply`); a change to
   worth of disk (~480–510 MB). Only `VACUUM FULL` gives space back, and it takes
   an ACCESS EXCLUSIVE lock, so it is a manual, off-hours step. It works through
   the Supabase MCP `execute_sql` one table per call.
-- The durable fix before the next big patch: move `codex_locale_strings`
-  (pure key→value per build and language, read in batches by
-  `CodexService.resolveLocaleKeys`) to R2 — see the next section.
+- `codex_locale_strings` moved to R2 (2026-10-03, § Localization strings).
+  The table is now only an ingest's staging area.
 
-## Codex locale strings in R2
+## Localization strings (R2 since 2026-10-03)
 
-`codex_locale_strings` (~137 MB incl. 68 MB pkey, 303k rows per build, 11
-languages) was the largest table at 385 of 500 MB (2026-10-03). The app reads
-only `de` + `en` of the current build, so only those move to R2:
+Measured 2026-10-03 before the move: database 496 MB, `codex_locale_strings`
+185 MB (117 MB heap + 68 MB pkey) for two builds (4.9.0, 4.10.0), 11
+languages each, ~323k rows and ~31 MB of raw text per build (English 90k
+keys / 10 MB, German 23k / 2.2 MB). Later the same day, before any backfill,
+the database read 385 MB and the table 137 MB (not this change).
 
-- **Shards.** Per (build, lang) 64 shards; `shard(key) = fnv1a32(utf8(key)) >>> 0
-  % 64` (offset 2166136261, prime 16777619, `Math.imul`), keys without the
-  leading `@`. Body `{"v":1,"lang":"de","shard":7,"strings":{...}}`, keys
-  sorted, so the same strings always give the same bytes. Reference
-  implementation + tests: `supabase/functions/ingest-catalog/_locale-shards.ts`.
-- **R2 key** `codex-locale/<sha256-of-body>.json` (content-addressed, an
-  unchanged shard is never re-uploaded across builds). The Worker serves it
-  `immutable`, without Supabase fallback (missing = 404).
-- **Pointer** `codex_builds.locale_bundles` =
-  `{"de":{"v":1,"shards":[64 sha],"keys":n,"bytes":n},"en":{...}}`, written
-  atomically per language by `set_codex_locale_bundle()` (service role only).
-- **Writes** through ingest-catalog, behind the R2 usage gate of ingest-skins
-  (`_r2.ts`, `_r2-usage.ts` are imported from there — a change to them does not
-  mark ingest-catalog for redeploy in `changed-edge-functions.mjs`):
-  `locale_sign` (presigned PUTs, `exists:true` for held shards) →
-  uploader PUTs → `locale_commit` (checks every object, then writes the
-  pointer). `locale_backfill` (admin or service-role key) builds the shards from
-  the table server-side; `scripts/codex-locale-backfill.mjs` runs it for the
-  current LIVE build. The legacy `locale_strings` op keeps de + en rows only.
-- **Size:** ~27k strings per language, a few MB per language and build.
-- **Drop:** `supabase/migrations/20261003140100_drop_codex_locale_strings.sql.pending`
-  is ignored by `db push`; re-stamp and activate it once the client reads R2
-  and the LIVE build has both bundles.
+**Layout** (`supabase/functions/ingest-catalog/_locale-shards.ts`, the one
+source of truth; the client copy in `src/app/codex/codex-locale-shards.ts` is
+pinned to it by shared golden vectors in both test suites):
+
+| Key | Cache |
+|---|---|
+| `codex-locale/<build uuid>/<lang>/index.json` | `max-age=300` (names the current gen) |
+| `codex-locale/<build uuid>/<lang>/<gen>/<shard>.json` | immutable (a new gen per publish) |
+
+A page needs few keys (a detail page 1-5, `/codex/keybinds` ~1 250 `ui_*`
+keys), so neither one file per language (10 MB) nor one per key fits. Keys
+are grouped by their lower-cased first `_` segment (`ui`, `item`, `pu`, …);
+a group of at least 16 kB gets `ceil(bytes / 96 kB)` shards picked by
+FNV-1a of the key, everything smaller lands in hashed `_misc-<n>` shards. The
+index stores the split, so a client computes a key's shard with no extra
+lookup. Keybinds then loads ~3 shards per language.
+
+**Write path.** The uploader is unchanged: it still sends row chunks
+(`locale_strings` op), so the table stays the staging area of a running
+ingest (~95 MB for one build while it runs). After `finalize` answers,
+ingest-catalog publishes every language (`EdgeRuntime.waitUntil`): keyset-paged
+export RPC (`codex_locale_export`, 20k rows per call — the authenticator's
+8 s statement_timeout: the whole English export took 5.0 s, its delete
+6.4 s), shards, then the index, read-back of index and one shard **through the
+public Worker**, removal of older gens, and only then the paged row delete
+(`codex_locale_delete`). Same cost guard as ingest-skins (usage gate + bucket
+quota) before any write. Any failure leaves the rows; the client keeps
+reading them. Redo: `locale_publish` op or the backfill script.
+
+**Read path.** `CodexService.resolveLocaleKeys` → `CodexLocaleShards.resolve`:
+index per build+language (404 = "not in R2", remembered → database table;
+outage → database, asked again next time), then one request per needed
+shard, both cached as promises for the session. A missing key or a failed
+shard leaves the key raw, as a missing row did. The Worker host is already in
+`connect-src`.
+
+**Backfill / redo.** `node scripts/codex-locale-to-r2.mjs` (dry run) →
+`--apply` → `--apply --delete-source`; `--build`, `--lang` narrow it. It only
+needs `SUPABASE_ACCESS_TOKEN` and calls `locale_publish` with the service key,
+so no R2 credentials leave the edge function. Order of deployment: migration
+`20261003150000` (db push), Worker (`wrangler deploy` in
+`cloudflare/assets-worker`, without it the read-back fails and nothing is
+deleted), `functions deploy ingest-catalog`, the web app, then the script.
+Deleting rows does not shrink the database file: `vacuum full
+public.codex_locale_strings;` off-hours afterwards.
+
+**Not collected yet:** a build pruned by `prune_codex_builds` leaves its
+`codex-locale/<build>/` prefix in R2 (~10 MB as JSON per build). Counts
+against the 8 GB write gate; a GC would delete prefixes of build ids no
+longer in `codex_builds`.
+
+Only `de` and `en` reach the staging table: the `locale_strings` op drops every
+other language (the app reads no other), which halves an ingest's temporary
+table growth and the R2 writes. A publish the R2 usage gate refuses leaves the
+rows in place and clients keep reading the table; the catalog import is never
+aborted for it.
 
 The assets Worker also serves `news-images/<hash>/<variant>.<webp|jpg|jpeg|png|gif|avif>`
 with the short cache and a stream-from-Supabase fallback to the public

@@ -1,103 +1,143 @@
-// Codex locale shards — the R2 storage contract for global.ini strings
-// (storage.md "Codex locale strings in R2", 2026-10-03).
+// Localization strings in R2 — the shard layout (storage plan, 2026-10-03).
 //
-// Per (build, lang) the key→value map is split into SHARD_COUNT shards:
-//   shard(key) = FNV-1a 32-bit over the UTF-8 bytes of the key (no leading '@',
-//                exactly as codex_locale_strings stores it) >>> 0, mod 64.
-// One shard is the JSON body {"v":1,"lang":"de","shard":7,"strings":{...}},
-// stored content-addressed in R2 as `codex-locale/<sha256-hex-of-body>.json`.
-// An empty shard still gets an object, so a bundle always lists 64 hashes.
+// One build's global.ini tables are ~31 MB of key→value pairs across 11
+// languages (English alone ~10 MB, 90k keys). They used to sit in
+// codex_locale_strings (185 MB with its index for two builds), the biggest
+// consumer of the 500 MB Free database. They now live in the R2 assets bucket
+// and are read through the public Worker.
 //
-// The uploader and the web client implement the same hash; this module is the
-// reference. Pure logic only (WebCrypto + TextEncoder), so Deno imports it and
-// the Node tests load it directly (`node --test`, Node 24 strips the types).
+// A page asks for a handful of keys (detail: a few, /codex/keybinds: ~1 250
+// `ui_*` keys), so one file per language would be far too big and one file per
+// key far too many. Keys are grouped by their first `_` segment (`ui`, `item`,
+// `pu`, …), because a page's keys share it; a large group is split by hash into
+// shards of about SHARD_TARGET_BYTES, and every group smaller than
+// GROUP_MIN_BYTES goes into the hashed `_misc` shards. The per-language
+// index.json records the split, so the client computes a key's shard without
+// another lookup. Keybinds then needs ~3 shards, a detail page 1-5.
+//
+// Keys:
+//   codex-locale/<build_id>/<lang>/index.json              (short cache)
+//   codex-locale/<build_id>/<lang>/<gen>/<shard>.json      (immutable)
+// `gen` is new on every publish, so a shard key never changes content and the
+// Worker can serve it `immutable`; the index points at the current gen.
+//
+// This file is plain, erasable TypeScript on purpose: the edge function, the
+// node tests and scripts/codex-locale-to-r2.mjs import it as is. The client's
+// copy of the lookup (src/app/codex/codex-locale-shards.ts) is pinned to the
+// same golden vectors in both test suites.
 
-export const SHARD_COUNT = 64;
-export const BUNDLE_VERSION = 1;
-export const LOCALE_PREFIX = 'codex-locale/';
-export const LOCALE_LANGS = ['de', 'en'] as const;
-export type LocaleLang = (typeof LOCALE_LANGS)[number];
+export const LOCALE_ROOT = 'codex-locale';
+export const SHARD_TARGET_BYTES = 96 * 1024;
+export const GROUP_MIN_BYTES = 16 * 1024;
+export const MISC_GROUP = '_misc';
 
-const FNV_OFFSET = 2166136261;
-const FNV_PRIME = 16777619;
-const encoder = new TextEncoder();
+export const BUILD_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const LANG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,4})?$/;
+const GROUP_RE = /^[a-z0-9]{1,24}$/;
 
-export function isLocaleLang(x: unknown): x is LocaleLang {
-  return x === 'de' || x === 'en';
+export interface LocaleIndex {
+  v: 1;
+  build_id: string;
+  lang: string;
+  gen: string;
+  /** Number of keys over all shards. */
+  count: number;
+  /** Shard count per own group; every other key is in `_misc`. */
+  groups: Record<string, number>;
+  misc: number;
 }
 
-/** FNV-1a 32-bit over the UTF-8 bytes of `s`, as an unsigned integer. */
+/** FNV-1a over UTF-16 code units — tiny, and identical in Deno, Node and the browser. */
 export function fnv1a(s: string): number {
-  let h = FNV_OFFSET;
-  for (const b of encoder.encode(s)) {
-    h ^= b;
-    h = Math.imul(h, FNV_PRIME);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h >>> 0;
 }
 
-export function shardOf(key: string): number {
-  return fnv1a(key) % SHARD_COUNT;
+/** The key's group (lower-cased first `_` segment), or '' when it cannot name a file. */
+export function keyGroup(key: string): string {
+  const head = key.split('_', 1)[0].toLowerCase();
+  return GROUP_RE.test(head) ? head : '';
 }
 
-/** R2 key of a shard object. */
-export function shardObjectKey(sha256: string): string {
-  return `${LOCALE_PREFIX}${sha256}.json`;
+/** Shard name of `key` (without `.json`) under the given index. */
+export function shardFor(index: Pick<LocaleIndex, 'groups' | 'misc'>, key: string): string {
+  const group = keyGroup(key);
+  const own = group ? index.groups[group] : undefined;
+  if (own) return `${group}-${fnv1a(key) % own}`;
+  return `${MISC_GROUP}-${fnv1a(key) % Math.max(1, index.misc)}`;
 }
 
-export const SHA256_RE = /^[0-9a-f]{64}$/;
-
-export interface Shard {
-  shard: number;
-  body: Uint8Array<ArrayBuffer>;
-  sha256: string;
-  bytes: number;
-  keys: number;
+function entryBytes(key: string, value: string): number {
+  // JSON overhead ("k":"v",) plus the characters; an estimate is enough to size shards.
+  return key.length + value.length + 6;
 }
 
-async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
-  return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Splits `strings` into SHARD_COUNT shard bodies. Keys are written in sorted
- * order, so the same map always yields the same bytes and therefore the same
- * content address (an unchanged shard is never uploaded twice).
- */
-export async function buildShards(
-  lang: LocaleLang,
-  strings: Map<string, string> | Record<string, string>,
-): Promise<Shard[]> {
-  const entries = strings instanceof Map ? [...strings.entries()] : Object.entries(strings);
-  const buckets: [string, string][][] = Array.from({ length: SHARD_COUNT }, () => []);
-  for (const [k, v] of entries) buckets[shardOf(k)].push([k, v]);
-  return Promise.all(
-    buckets.map(async (pairs, shard) => {
-      pairs.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-      // Null prototype: a key named __proto__ stays a plain own property.
-      const map: Record<string, string> = Object.create(null);
-      for (const [k, v] of pairs) map[k] = v;
-      // new Uint8Array(...) pins the buffer type to ArrayBuffer (BodyInit, BufferSource).
-      const body = new Uint8Array(encoder.encode(JSON.stringify({ v: BUNDLE_VERSION, lang, shard, strings: map })));
-      return { shard, body, sha256: await sha256Hex(body), bytes: body.length, keys: pairs.length };
-    }),
-  );
-}
-
-/** The `codex_builds.locale_bundles[lang]` value for a set of shards. */
-export interface LocaleBundle {
-  v: number;
-  shards: string[];
-  keys: number;
-  bytes: number;
-}
-
-export function bundleOf(shards: Shard[]): LocaleBundle {
-  return {
-    v: BUNDLE_VERSION,
-    shards: shards.map((s) => s.sha256),
-    keys: shards.reduce((n, s) => n + s.keys, 0),
-    bytes: shards.reduce((n, s) => n + s.bytes, 0),
+/** Split one language's entries into shards. Pure; the caller writes them. */
+export function buildShards(
+  buildId: string,
+  lang: string,
+  gen: string,
+  entries: Record<string, string>,
+): { index: LocaleIndex; shards: Map<string, Record<string, string>> } {
+  const groupBytes = new Map<string, number>();
+  let miscBytes = 0;
+  const keys = Object.keys(entries);
+  for (const k of keys) {
+    const g = keyGroup(k);
+    const b = entryBytes(k, entries[k]);
+    if (g) groupBytes.set(g, (groupBytes.get(g) ?? 0) + b);
+    else miscBytes += b;
+  }
+  const groups: Record<string, number> = {};
+  for (const [g, b] of [...groupBytes].sort(([a], [z]) => (a < z ? -1 : a > z ? 1 : 0))) {
+    if (b >= GROUP_MIN_BYTES) groups[g] = Math.ceil(b / SHARD_TARGET_BYTES);
+    else miscBytes += b;
+  }
+  const index: LocaleIndex = {
+    v: 1,
+    build_id: buildId,
+    lang,
+    gen,
+    count: keys.length,
+    groups,
+    misc: Math.max(1, Math.ceil(miscBytes / SHARD_TARGET_BYTES)),
   };
+  const shards = new Map<string, Record<string, string>>();
+  for (const k of keys) {
+    const name = shardFor(index, k);
+    let shard = shards.get(name);
+    if (!shard) shards.set(name, (shard = {}));
+    shard[k] = entries[k];
+  }
+  return { index, shards };
+}
+
+export function localeDir(buildId: string, lang: string): string {
+  return `${LOCALE_ROOT}/${buildId}/${lang}/`;
+}
+
+export function indexKey(buildId: string, lang: string): string {
+  return `${localeDir(buildId, lang)}index.json`;
+}
+
+export function shardKey(buildId: string, lang: string, gen: string, shard: string): string {
+  return `${localeDir(buildId, lang)}${gen}/${shard}.json`;
+}
+
+/** A new publish generation: base-36 milliseconds, lower-case [0-9a-z]. */
+export function newGen(now = Date.now()): string {
+  return now.toString(36);
+}
+
+/** True when `v` is an index this code can read for the given build and language. */
+export function isLocaleIndex(v: unknown, buildId: string, lang: string): v is LocaleIndex {
+  const i = v as LocaleIndex | null;
+  return !!i && i.v === 1 && i.build_id === buildId && i.lang === lang &&
+    typeof i.gen === 'string' && /^[0-9a-z]{6,16}$/.test(i.gen) &&
+    Number.isInteger(i.count) && Number.isInteger(i.misc) && i.misc >= 1 &&
+    !!i.groups && typeof i.groups === 'object';
 }

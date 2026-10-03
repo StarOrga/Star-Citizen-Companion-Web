@@ -18,10 +18,7 @@ export const CATALOG_PHASE_ORDER = [
   'init',
   // Texte first, then ships → components → weapons (+ ammunition) → items: the
   // left-to-right order of the uploader's category bars.
-  // Locale strings as de/en R2 shards. Renamed from `codex_locale_strings` (row
-  // upload): an old job's row cursor (e.g. 4000) must never be read as a shard
-  // cursor, so a stale record simply re-runs this phase — idempotent via `exists`.
-  'codex_locale_shards',
+  'codex_locale_strings',
   'codex_manufacturers',
   'codex_ships',
   'codex_components',
@@ -38,10 +35,7 @@ export const CATALOG_PHASE_ORDER = [
   'finalize',
 ] as const;
 
-/** The locale phase — its cursor counts languages committed, not rows. */
-export const LOCALE_PHASE = 'codex_locale_shards';
-
-export type CatalogPhase =(typeof CATALOG_PHASE_ORDER)[number];
+export type CatalogPhase = (typeof CATALOG_PHASE_ORDER)[number];
 
 /** How many publish steps the catalog stage reports — the "/ M" a bar shows. */
 export const CATALOG_PHASE_TOTAL = CATALOG_PHASE_ORDER.length;

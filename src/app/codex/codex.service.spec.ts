@@ -9,7 +9,10 @@ import {
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
-import { LOCALE_SHARD_COUNT, codexLocaleBase, localeShardOf } from './codex-locale-shards';
+import { LOCALE_SHARD_BASE, LOCALE_SHARD_FETCH } from './codex-locale-shards';
+
+/** No R2 index for any build: resolveLocaleKeys reads the database table. */
+const noR2 = (async () => new Response('not found', { status: 404 })) as unknown as typeof fetch;
 
 const BUILD_ID = 'b77f1586-d1fe-4be9-a359-f397266acb86';
 
@@ -42,7 +45,6 @@ interface Capture {
 function mockProvider(
   cap: Capture,
   respond: (keys: string[], nth: number) => { data: unknown; error: unknown },
-  buildExtra: Record<string, unknown> = {},
 ): SupabaseClientProvider {
   const from = (table: string) => {
     const chain: Record<string, unknown> = {};
@@ -53,7 +55,7 @@ function mockProvider(
         : chain),
       maybeSingle: () =>
         Promise.resolve({
-          data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true, ...buildExtra },
+          data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
           error: null,
         }),
       in: (_col: string, values: string[]) => {
@@ -70,10 +72,15 @@ function mockProvider(
 function makeService(
   cap: Capture,
   respond: (keys: string[], nth: number) => { data: unknown; error: unknown },
-  buildExtra: Record<string, unknown> = {},
+  r2Fetch: typeof fetch = noR2,
 ): CodexService {
   TestBed.configureTestingModule({
-    providers: [CodexService, { provide: SupabaseClientProvider, useValue: mockProvider(cap, respond, buildExtra) }],
+    providers: [
+      CodexService,
+      { provide: SupabaseClientProvider, useValue: mockProvider(cap, respond) },
+      { provide: LOCALE_SHARD_FETCH, useValue: r2Fetch },
+      { provide: LOCALE_SHARD_BASE, useValue: 'https://assets.test' },
+    ],
   });
   return TestBed.inject(CodexService);
 }
@@ -131,6 +138,31 @@ describe('CodexService.resolveLocaleKeys', () => {
     expect(cap.batches).toEqual([['ui_role_bomber', 'ui_role_fighter']]);
   });
 
+  it('reads a build that has an R2 index from its shards and never asks the table', async () => {
+    const cap: Capture = { batches: [] };
+    const asked: string[] = [];
+    const r2 = (async (url: string) => {
+      asked.push(url);
+      if (url.endsWith('/index.json')) {
+        return Response.json({ v: 1, build_id: BUILD_ID, lang: 'de', gen: 'abc12345', count: 2, groups: {}, misc: 1 });
+      }
+      return Response.json({ ui_role_bomber: 'Bomber DE', ui_role_fighter: 'Jäger' });
+    }) as unknown as typeof fetch;
+    const svc = makeService(cap, echo, r2);
+
+    const out = await svc.resolveLocaleKeys(['@ui_role_bomber', '@ui_role_fighter', '@ui_missing', 'plain'], 'de');
+
+    expect(cap.batches).toEqual([]);
+    expect(asked).toEqual([
+      `https://assets.test/codex-locale/${BUILD_ID}/de/index.json`,
+      `https://assets.test/codex-locale/${BUILD_ID}/de/abc12345/_misc-0.json`,
+    ]);
+    expect([...out]).toEqual([
+      ['@ui_role_bomber', 'Bomber DE'],
+      ['@ui_role_fighter', 'Jäger'],
+    ]);
+  });
+
   it('keeps the batches that succeeded when one fails — localization never blocks the view', async () => {
     const cap: Capture = { batches: [] };
     const svc = makeService(cap, (keys, nth) =>
@@ -142,130 +174,6 @@ describe('CodexService.resolveLocaleKeys', () => {
     expect(cap.batches.length).toBeGreaterThan(1);
     expect(out.size).toBeGreaterThan(0);
     expect(out.size).toBeLessThan(KEYBIND_KEYS.length);
-  });
-});
-
-const SHA = (i: number) => `sha${String(i).padStart(2, '0')}`;
-const BUNDLES = {
-  locale_bundles: {
-    de: { v: 1, shards: Array.from({ length: LOCALE_SHARD_COUNT }, (_, i) => SHA(i)), keys: 1254, bytes: 1 },
-  },
-};
-const SHARD_BASE = codexLocaleBase(environment.assets?.r2BaseUrl) as string;
-
-/** Spy on fetch: every shard URL answers with `<key> R2` for the given keys. */
-function shardFetch(keys: string[], fail: (sha: string) => boolean = () => false): jasmine.Spy {
-  const byShard = new Map<number, Record<string, string>>();
-  for (const k of keys) {
-    const bare = k.slice(1);
-    const shard = localeShardOf(bare);
-    byShard.set(shard, { ...(byShard.get(shard) ?? {}), [bare]: `${bare} R2` });
-  }
-  return spyOn(window, 'fetch').and.callFake(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    const sha = url.slice(SHARD_BASE.length, -'.json'.length);
-    if (fail(sha)) return new Response('nope', { status: 503 });
-    const shard = Number(sha.slice(3));
-    return new Response(JSON.stringify({ v: 1, lang: 'de', shard, strings: byShard.get(shard) ?? {} }), {
-      status: 200,
-    });
-  });
-}
-
-describe('CodexService.resolveLocaleKeys — R2 shards', () => {
-  afterEach(() => TestBed.resetTestingModule());
-
-  it('fetches only the shards holding a wanted key and never touches the table', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, BUNDLES);
-    const keys = ['@ui_role_bomber', '@ui_role_fighter'];
-    const spy = shardFetch(keys);
-
-    const out = await svc.resolveLocaleKeys(keys, 'de');
-
-    const needed = new Set(keys.map((k) => localeShardOf(k.slice(1))));
-    const urls = spy.calls.allArgs().map((a) => String(a[0]));
-    expect(new Set(urls)).toEqual(new Set([...needed].map((s) => `${SHARD_BASE}${SHA(s)}.json`)));
-    expect(urls.length).toBe(needed.size);
-    expect(cap.batches).toEqual([]);
-    expect(out.get('@ui_role_bomber')).toBe('ui_role_bomber R2');
-    expect(out.get('@ui_role_fighter')).toBe('ui_role_fighter R2');
-  });
-
-  it('fetches each shard once per session and reuses it, also for concurrent callers', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, BUNDLES);
-    const spy = shardFetch(KEYBIND_KEYS);
-
-    const [a, b] = await Promise.all([
-      svc.resolveLocaleKeys(KEYBIND_KEYS, 'de'),
-      svc.resolveLocaleKeys(KEYBIND_KEYS.slice(0, 10), 'de'),
-    ]);
-    const firstRound = spy.calls.count();
-    const c = await svc.resolveLocaleKeys(KEYBIND_KEYS, 'de');
-
-    const urls = spy.calls.allArgs().map((x) => String(x[0]));
-    expect(new Set(urls).size).toBe(urls.length);
-    expect(firstRound).toBeLessThanOrEqual(LOCALE_SHARD_COUNT);
-    expect(spy.calls.count()).toBe(firstRound);
-    expect(a.size).toBe(KEYBIND_KEYS.length);
-    expect(b.size).toBe(10);
-    expect(c.size).toBe(KEYBIND_KEYS.length);
-  });
-
-  it('falls back to the table when the build has no bundle for the language', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, BUNDLES);
-    const spy = spyOn(window, 'fetch');
-
-    const out = await svc.resolveLocaleKeys(['@ui_role_bomber'], 'en');
-
-    expect(spy).not.toHaveBeenCalled();
-    expect(cap.batches).toEqual([['ui_role_bomber']]);
-    expect(out.get('@ui_role_bomber')).toBe('ui_role_bomber DE');
-  });
-
-  it('falls back to the table for a build without locale_bundles', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, { locale_bundles: {} });
-    const spy = spyOn(window, 'fetch');
-
-    await svc.resolveLocaleKeys(['@ui_role_bomber'], 'de');
-
-    expect(spy).not.toHaveBeenCalled();
-    expect(cap.batches.length).toBe(1);
-  });
-
-  it('leaves the keys of a failed shard unresolved without throwing, and retries it next time', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, BUNDLES);
-    const keys = ['@ui_role_bomber', '@ui_role_fighter'];
-    const bad = SHA(localeShardOf('ui_role_bomber'));
-    let failing = true;
-    const spy = shardFetch(keys, (sha) => failing && sha === bad);
-
-    const out = await svc.resolveLocaleKeys(keys, 'de');
-
-    expect(out.has('@ui_role_bomber')).toBeFalse();
-    if (localeShardOf('ui_role_fighter') !== localeShardOf('ui_role_bomber')) {
-      expect(out.get('@ui_role_fighter')).toBe('ui_role_fighter R2');
-    }
-
-    failing = false;
-    const before = spy.calls.count();
-    const again = await svc.resolveLocaleKeys(['@ui_role_bomber'], 'de');
-    expect(spy.calls.count()).toBe(before + 1);
-    expect(again.get('@ui_role_bomber')).toBe('ui_role_bomber R2');
-  });
-
-  it('survives a network error on a shard', async () => {
-    const cap: Capture = { batches: [] };
-    const svc = makeService(cap, echo, BUNDLES);
-    spyOn(window, 'fetch').and.rejectWith(new TypeError('Failed to fetch'));
-
-    const out = await svc.resolveLocaleKeys(['@ui_role_bomber'], 'de');
-
-    expect(out.size).toBe(0);
   });
 });
 

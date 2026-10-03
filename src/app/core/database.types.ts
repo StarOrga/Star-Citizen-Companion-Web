@@ -271,7 +271,6 @@ export type Database = {
           extracted_at: string | null
           id: string
           is_current: boolean
-          locale_bundles: Json
           manifest: Json
           patch_version: string
           quality_score: number | null
@@ -286,7 +285,6 @@ export type Database = {
           extracted_at?: string | null
           id?: string
           is_current?: boolean
-          locale_bundles?: Json
           manifest?: Json
           patch_version: string
           quality_score?: number | null
@@ -301,7 +299,6 @@ export type Database = {
           extracted_at?: string | null
           id?: string
           is_current?: boolean
-          locale_bundles?: Json
           manifest?: Json
           patch_version?: string
           quality_score?: number | null

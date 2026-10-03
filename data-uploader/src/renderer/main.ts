@@ -64,7 +64,6 @@ interface CatalogUploadResult {
   error?: string;
   errorCode?: string;
   errorPhase?: string;
-  localeSkipped?: string;
 }
 
 /** Performance profiles the operator can pick — mirrors `lib/performance.ts`. */
@@ -2299,13 +2298,7 @@ function catalogFailureNotice(res: CatalogUploadResult): { msg: string; hint: st
                 )
               : code === 'out_dir_missing' || code === 'manifest_missing'
                 ? tOr('catalog.err.missingData', 'Die extrahierten Daten sind nicht mehr vorhanden.')
-                : code === 'r2_usage_unknown'
-                  ? tOr('catalog.err.r2UsageUnknown', 'Texte nicht hochgeladen: Die R2-Kostenbremse kann den Verbrauch gerade nicht lesen.')
-                  : code === 'r2_free_tier_guard'
-                    ? tOr('catalog.err.r2FreeTierGuard', 'Texte nicht hochgeladen: R2 hat 80 % eines kostenlosen Monatskontingents erreicht.')
-                    : code === 'storage_quota_exceeded'
-                      ? tOr('catalog.err.storageQuotaExceeded', 'Texte nicht hochgeladen: Der R2-Speicher hat seine Obergrenze erreicht.')
-                      : tOr('catalog.err.server', 'Der Server konnte den Codex nicht aktualisieren.');
+                : tOr('catalog.err.server', 'Der Server konnte den Codex nicht aktualisieren.');
 
   // Only the classes a retry can actually fix get the "continue" promise.
   const resumable = code !== 'empty_catalog' && code !== 'out_dir_missing' && code !== 'manifest_missing';
@@ -2407,9 +2400,8 @@ async function promoteToCodex(
       progress?.update({ overallPct: 100, indeterminate: false });
       markCategoriesComplete();
       setAuthStatus(
-        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}` +
-          (res.localeSkipped ? ` · ${t('catalog.localeSkipped')}` : ''),
-        res.localeSkipped ? 'warn' : 'ok',
+        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
+        'ok',
       );
       return 'ok';
     }

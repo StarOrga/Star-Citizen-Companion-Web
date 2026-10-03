@@ -27,14 +27,7 @@ const KEY_RE = /^ship-skins\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.(glb|webp)$/;
  * shape KEY_RE cannot express (json).
  */
 const MANIFEST_RE = /^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
-const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$|^codex-locale\/[0-9a-f]{64}\.json$/;
-
-/**
- * Codex locale shards (ingest-catalog locale_sign / locale_backfill): 64
- * content-addressed JSON objects per build and language. R2 is their only
- * home, so a missing one is a plain 404 without a Supabase fallback.
- */
-const LOCALE_RE = /^codex-locale\/[0-9a-f]{64}\.json$/;
+const IMMUTABLE_RE = /^ship-skins\/(_hulls|_parts|_interiors)\/[0-9a-f]{64}\.glb$|^ship-skins\/_manifests\/[0-9a-f]{64}\.json$/;
 
 /**
  * Cached news images (fetch-verse-news): `news-images/<source hash>/<variant>.<ext>`,
@@ -57,6 +50,22 @@ const CONTENT_TYPES = {
 };
 
 /**
+ * Codex localization shards (ingest-catalog _locale-shards.ts, 2026-10-03):
+ * `codex-locale/<build uuid>/<lang>/index.json` names the current generation,
+ * `codex-locale/<build uuid>/<lang>/<gen>/<shard>.json` never changes content.
+ * They exist only in R2, so a miss is a plain 404, never a Supabase proxy.
+ */
+const LOCALE_DIR = String.raw`codex-locale\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[A-Za-z]{2,3}(-[A-Za-z0-9]{2,4})?`;
+const LOCALE_INDEX_RE = new RegExp(String.raw`^${LOCALE_DIR}\/index\.json$`);
+const LOCALE_SHARD_RE = new RegExp(String.raw`^${LOCALE_DIR}\/[0-9a-z]{6,16}\/[a-z0-9_]{1,24}-\d{1,4}\.json$`);
+/** A republish points the index at a new generation, so it must not stick for long. */
+const LOCALE_INDEX_CACHE_CONTROL = 'public, max-age=300';
+
+function isLocaleKey(key) {
+  return LOCALE_INDEX_RE.test(key) || LOCALE_SHARD_RE.test(key);
+}
+
+/**
  * Paths are NOT versioned — a re-upload overwrites the same key — so the cache
  * lifetime stays short and revalidation goes through the ETag.
  */
@@ -65,6 +74,8 @@ const CACHE_CONTROL = 'public, max-age=3600, stale-while-revalidate=86400';
 const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
 function cacheControlFor(key) {
+  if (LOCALE_INDEX_RE.test(key)) return LOCALE_INDEX_CACHE_CONTROL;
+  if (LOCALE_SHARD_RE.test(key)) return IMMUTABLE_CACHE_CONTROL;
   return IMMUTABLE_RE.test(key) ? IMMUTABLE_CACHE_CONTROL : CACHE_CONTROL;
 }
 
@@ -84,7 +95,7 @@ export function keyFor(pathname) {
   } catch {
     return null;
   }
-  return KEY_RE.test(key) || MANIFEST_RE.test(key) || LOCALE_RE.test(key) || NEWS_RE.test(key) ? key : null;
+  return KEY_RE.test(key) || MANIFEST_RE.test(key) || isLocaleKey(key) || NEWS_RE.test(key) ? key : null;
 }
 
 /**
