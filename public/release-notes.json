@@ -1,7 +1,27 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.120.0",
+  "current": "0.121.0",
   "releases": [
+    {
+      "version": "0.121.0",
+      "date": "2026-10-03",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex-3D-Ansicht: ein einheitlicher Hologramm-Look.",
+              "text": "Die Varianten Studio und Blueprint entfallen; es bleibt der Konzept-Hologramm-Look mit dezenteren Scanlines und dünneren Kantenlinien auf großen Rümpfen. Der Rumpf hat eine einheitliche Grundfarbe, Akzente (Randlicht, Glühen, Ring, Führungslinie) tragen die Farbe des Herstellers."
+            },
+            {
+              "title": "Hervorgehobene Komponente mit Beschriftung.",
+              "text": "Die gewählte Komponente erscheint als beleuchtetes Modell mit einer Führungslinie zu einem anklickbaren Label außerhalb des Rumpfs, das auf ihre Codex-Seite führt; ‹ › bzw. die Pfeiltasten wechseln den Slot. Leere Slots zeigen einen rotierenden, pulsierenden Ring (statisch bei reduzierter Bewegung)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.120.0",
       "date": "2026-10-03",
