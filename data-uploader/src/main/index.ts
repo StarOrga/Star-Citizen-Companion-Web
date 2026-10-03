@@ -567,11 +567,15 @@ ipcMain.handle('sc:upload:begin', (_e, outDir: string, nat: { channel: string; p
 function interruptLocalSkinBuild(): boolean {
   let hit = false;
   for (const job of activeJobs.values()) {
-    if (job.kind !== 'skin') continue;
+    // The silhouette build is the other long local stage (up to ~1 h). Its
+    // handler already maps `cancelled` to the job signal and its per-item cache
+    // makes a resume cheap — but pause never reached it, so "Pausiere…" sat on
+    // screen while it ground on.
+    if (job.kind !== 'skin' && job.kind !== 'silhouette') continue;
     job.cancel();
     hit = true;
   }
-  if (hit) log.info('[upload-job] pause/cancel interrupted the in-flight 3D-skin build');
+  if (hit) log.info('[upload-job] pause/cancel interrupted the in-flight local build (skins/silhouettes)');
   return hit;
 }
 
@@ -632,7 +636,11 @@ ipcMain.handle('sc:upload', async (_e, payload: UploadPayload) => {
     ...payload,
     accessToken: await freshToken(payload.accessToken),
   });
-  if (result.ok) {
+  // `duplicate` = the server already holds this channel/patch/build from an
+  // equal or newer uploader — the bundle stage's goal is met. Record it as done
+  // so a resume (or the documented "discard and re-extract" recovery) moves on
+  // to the codex stage instead of hitting the same 409 forever.
+  if (result.ok || result.error === 'duplicate') {
     uploadJob.update((s) => ({
       ...s,
       bundle: { status: 'done', bundleId: result.bundleId ?? null, attempted: true },

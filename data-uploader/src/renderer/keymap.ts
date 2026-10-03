@@ -33,6 +33,11 @@ export function installKeymap(ctx: KeymapCtx): void {
   if (installed) return;
   installed = true;
   document.addEventListener('keydown', (e) => {
+    // Overlays (confirm, settings, options sheet) handle their own keys in the
+    // capture phase and mark them handled. Without this check an Esc that just
+    // closed "Lauf abbrechen?" fired the step's Esc again and reopened it, and
+    // an Esc on the discard confirm navigated away behind it.
+    if (e.defaultPrevented || overlayOpen()) return;
     if (e.key === 'Escape') {
       for (const handler of ctx.escHandlers) {
         if (handler()) {
@@ -53,6 +58,10 @@ export function installKeymap(ctx: KeymapCtx): void {
       return;
     }
     if (e.key === 'Enter') {
+      // Enter on a focused control activates THAT control (a scope pill, a
+      // segment button) — it must not also fire the step's primary action,
+      // which on Setup starts an hours-long run with the old choice.
+      if (isActivatable(e.target)) return;
       ctx.onEnter();
       return;
     }
@@ -66,4 +75,15 @@ export function installKeymap(ctx: KeymapCtx): void {
       ctx.onSpace();
     }
   });
+}
+
+/** A modal surface is up — the step shortcuts underneath must stay quiet. */
+function overlayOpen(): boolean {
+  return document.querySelector('[aria-modal="true"]') !== null;
+}
+
+/** Focus sits on something Enter already activates by itself. */
+function isActivatable(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return target.closest('button, a[href], [role="button"], [role="radio"], [role="option"], [role="switch"], [role="tab"]') !== null;
 }
