@@ -80,7 +80,14 @@ that item references (`partSha256`), so nothing is stored twice and the web
 links "docked in ship" ↔ item page via `partSha256` / `itemClass`; per-part
 `bounds` (for hover highlight) sit in the ship manifest's `parts{}`.
 Placements are the item's own ports (rack → missiles, gimbal → gun), same
-enrichment as everywhere. Default set (`items.item_classes`): records under
+enrichment as everywhere. They are filled from the ITEM's own default
+loadout. Most racks and every gimbal on LIVE 4.x have none (the ship's loadout
+fills them), so a standalone `Mount_Gimbal_S3` or `MRCK_S03_AEGS_Sabre_Firebird`
+lists its ports as empty slots. Self-filled examples:
+`MRCK_S05_BEHR_PDC_Missile_16_S1` (16 missiles) and `AEGS_Idris_K_Turret_Large`.
+LIVE 4.x default set: 1356 items. FPS: 387 weapons pass the record rule and
+360 of them have a convertible body (60 distinct bodies). The other 27 have a
+`.cdf` without a skin or bone mesh and are skipped. Default set (`items.item_classes`): records under
 `scitem/ships/`, `_is_catalog_entity`, `AttachDef.Type` in `items.ITEM_TYPES`
 (WeaponGun, WeaponMining, WeaponDefensive, Turret, TurretBase,
 MissileLauncher, Missile, Torpedo, Bomb, BombLauncher, Shield, PowerPlant,
