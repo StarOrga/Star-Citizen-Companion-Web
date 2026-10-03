@@ -14,6 +14,8 @@
 //          source?, name_verified?, has_model, has_icon, model_bytes?, sort?,
 //          model_sha256?}] }
 //        -> 200 { ok:true, count }
+//   POST { action:'blueprint_sign' | 'blueprint_commit', ship_id, … } — the two
+//        blueprint SVGs drawn from the hull (handleBlueprint, _blueprints.ts)
 //
 // Object paths are ALWAYS derived server-side from validated ids
 // (`<ship_id>/<skin_id>.<ext>`) — the client never supplies a storage path,
@@ -91,6 +93,13 @@ import {
   parseObject,
 } from './_packages.ts';
 import type { ManifestRefs, ObjectOk } from './_packages.ts';
+import {
+  MAX_BLUEPRINT_BYTES,
+  blueprintPath,
+  checkBlueprintBytes,
+  droppedBlueprints,
+  parseBlueprintObjects,
+} from './_blueprints.ts';
 
 const BUCKET = 'ship-skins';
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -137,7 +146,7 @@ interface SkinRowIn {
 }
 
 interface Body {
-  action?: 'sign' | 'commit' | 'package_sign' | 'package_commit';
+  action?: 'sign' | 'commit' | 'package_sign' | 'package_commit' | 'blueprint_sign' | 'blueprint_commit';
   ship_id?: string;
   objects?: { skin_id?: string; ext?: string; sha256?: string }[];
   skins?: SkinRowIn[];
@@ -332,6 +341,113 @@ async function handlePackage(
   return json({ ok: true, entity_class: entityClass, part_count: refs.partCount, total_bytes: refs.totalBytes });
 }
 
+interface BlueprintBody {
+  action?: string;
+  objects?: unknown;
+  full_sha256?: unknown;
+  icon_sha256?: unknown;
+}
+
+/**
+ * Blueprint actions (data-uploader/docs/blueprint.md):
+ *   blueprint_sign   { ship_id, objects:[{type:'full'|'icon', sha256, bytes}] }
+ *                    -> { ok, uploads:[{type, sha256, path, signedUrl, exists?}] }
+ *   blueprint_commit { ship_id, full_sha256, icon_sha256 }
+ *                    -> { ok, rows }   rows = ship_skins rows (the hull rows) now linked
+ * R2 only. Commit reads both drawings back (hash + markup allow-list); a bad
+ * object no row links is deleted. The drawings hang off the ship's hull rows
+ * (`model_path is not null`) — no hull row, nothing to link (409 no_hull_row).
+ */
+async function handleBlueprint(
+  body: BlueprintBody,
+  shipId: string,
+  r2: R2 | null,
+  adminClient: ReturnType<typeof createClient>,
+): Promise<Response> {
+  if (!r2) return json({ error: 'r2_required', message: 'blueprints need R2' }, 501);
+
+  if (body.action === 'blueprint_sign') {
+    const objects = parseBlueprintObjects(body.objects);
+    if (typeof objects === 'string') return json({ error: 'invalid_body', message: objects }, 400);
+    const refused = await r2Gate(r2);
+    if (refused) return refused;
+    try {
+      const uploads = await mapLimit(objects, 2, async (o) => {
+        const base = { type: o.type, sha256: o.sha, path: o.path };
+        if ((await sizeOf(r2, o.path)) !== null) return { ...base, signedUrl: '', exists: true };
+        return { ...base, signedUrl: await presignPut(r2, SKINS_PREFIX + o.path) };
+      });
+      return json({ ok: true, uploads });
+    } catch (e) {
+      return json({ error: 'sign_failed', message: (e as Error).message }, 500);
+    }
+  }
+
+  // ---- blueprint_commit ----
+  const full = hullSha(body.full_sha256);
+  const icon = hullSha(body.icon_sha256);
+  if (!full || !icon) return json({ error: 'invalid_body', message: 'full_sha256 and icon_sha256 must be lowercase hex sha256' }, 400);
+  const wanted = [
+    { type: 'full' as const, sha: full, path: blueprintPath(full) },
+    { type: 'icon' as const, sha: icon, path: blueprintPath(icon) },
+  ];
+  const isLinked = async (path: string): Promise<boolean> => {
+    const { count, error } = await adminClient
+      .from('ship_skins')
+      .select('ship_id', { count: 'exact', head: true })
+      .or(`blueprint_path.eq."${path}",blueprint_icon_path.eq."${path}"`);
+    if (error) throw new Error(error.message);
+    return count !== 0;
+  };
+  try {
+    for (const w of wanted) {
+      const size = await sizeOf(r2, w.path);
+      if (size === null) return json({ error: 'blueprint_missing', message: w.path }, 409);
+      const check = size > MAX_BLUEPRINT_BYTES[w.type]
+        ? ({ ok: false, error: 'blueprint_too_large', message: String(size) } as const)
+        : await checkBlueprintBytes(await getObject(r2, SKINS_PREFIX + w.path, MAX_BLUEPRINT_BYTES[w.type]), w.sha, w.type);
+      if (!check.ok) {
+        // Bad bytes no ship links yet must not stay under their address.
+        if (!(await isLinked(w.path))) await deleteObject(r2, SKINS_PREFIX + w.path);
+        return json({ error: check.error, message: check.message }, 409);
+      }
+    }
+  } catch (e) {
+    return json({ error: 'commit_failed', message: (e as Error).message }, 500);
+  }
+
+  const { data: before, error: beforeErr } = await adminClient
+    .from('ship_skins')
+    .select('blueprint_path, blueprint_icon_path')
+    .eq('ship_id', shipId)
+    .not('model_path', 'is', null);
+  if (beforeErr) return json({ error: 'commit_failed', message: beforeErr.message }, 500);
+  if (!before?.length) return json({ error: 'no_hull_row', message: `${shipId} has no hull row to link` }, 409);
+
+  const { error } = await adminClient
+    .from('ship_skins')
+    .update({ blueprint_path: wanted[0]!.path, blueprint_icon_path: wanted[1]!.path })
+    .eq('ship_id', shipId)
+    .not('model_path', 'is', null);
+  if (error) return json({ error: 'commit_failed', message: error.message }, 500);
+
+  // Drawings this ship stopped using go once no other ship links them.
+  let pruned = 0;
+  try {
+    const prev = (before as { blueprint_path: string | null; blueprint_icon_path: string | null }[])
+      .flatMap((r) => [r.blueprint_path, r.blueprint_icon_path]);
+    for (const p of droppedBlueprints(prev, new Set(wanted.map((w) => w.path)))) {
+      if (await isLinked(p)) continue;
+      await deleteObject(r2, SKINS_PREFIX + p);
+      pruned++;
+    }
+  } catch (e) {
+    // The new drawings are linked; a leftover object only costs storage.
+    console.warn(`ingest-skins: blueprint prune failed for ${shipId}: ${(e as Error).message}`);
+  }
+  return json({ ok: true, rows: before.length, pruned });
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -405,6 +521,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   const r2 = r2FromEnv((k) => Deno.env.get(k));
+
+  if (body.action === 'blueprint_sign' || body.action === 'blueprint_commit') {
+    return handleBlueprint(body as BlueprintBody, shipId, r2, adminClient);
+  }
 
   // ---- action: sign ----
   if (body.action === 'sign') {

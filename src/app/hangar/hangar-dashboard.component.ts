@@ -36,6 +36,7 @@ import { LoadoutSharePanelComponent } from '../social/loadout-share-panel.compon
 import { LoadoutShareService } from '../social/loadout-share.service';
 import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ShipTileArtComponent } from '../codex/ship-blueprint/ship-tile-art.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -50,6 +51,7 @@ const SEARCH_DEBOUNCE_MS = 250;
   standalone: true,
   imports: [
     NeuroFieldDirective,
+    ShipTileArtComponent,
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -123,7 +125,7 @@ const SEARCH_DEBOUNCE_MS = 250;
             <a class="hero sc-card" [routerLink]="['/hangar/ship', s.id]">
               <span class="rank">#{{ s.pinnedRank }}</span>
               @if (thumb(s); as src) {
-                <div class="hero-thumb"><img [src]="src" [alt]="displayName(s)" loading="lazy" /></div>
+                <div class="hero-thumb"><sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="[src]" [alt]="displayName(s)" /></div>
               }
               <h3>{{ s.customName || displayName(s) }}</h3>
               @if (s.customName) { <span class="hero-sub">{{ displayName(s) }}</span> }
@@ -251,7 +253,7 @@ const SEARCH_DEBOUNCE_MS = 250;
             @for (s of hangar.ships(); track s.id) {
               <a class="card" [routerLink]="['/hangar/ship', s.id]">
                 @if (thumb(s); as src) {
-                  <div class="thumb"><img [src]="src" [alt]="displayName(s)" loading="lazy" /></div>
+                  <div class="thumb"><sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="[src]" [alt]="displayName(s)" /></div>
                 }
                 <div class="card-top">
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
@@ -525,7 +527,8 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 18px color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     .hero .rank { position: absolute; top: 10px; right: 12px; font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 1rem; }
     .hero-thumb { height: 110px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .hero-thumb img { max-height: 100px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    /* sc-ship-tile-art owns the <img>; its size crosses the boundary as a var. */
+    .hero-thumb { --sc-img-max-h: 100px; }
     .hero h3 { margin: 0; font-size: 1.05rem; }
     .hero-sub { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
@@ -638,7 +641,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 8px; border: 1px solid var(--sc-border); background: var(--sc-bg-1); color: inherit; text-decoration: none; transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s; }
     .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
     .card .thumb { height: 90px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .card .thumb img { max-height: 82px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .card .thumb { --sc-img-max-h: 82px; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
     .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }

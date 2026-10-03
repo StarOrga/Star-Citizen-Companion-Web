@@ -1,3 +1,4 @@
+import { provideNoShipBlueprints } from '../codex/ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideLocationMocks } from '@angular/common/testing';
@@ -47,6 +48,7 @@ describe('HangarDashboardComponent role loadouts', () => {
     TestBed.configureTestingModule({
       imports: [HangarDashboardComponent],
       providers: [
+      provideNoShipBlueprints(),
         provideRouter([]),
         provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),

@@ -15,6 +15,7 @@ import { fetchWithTimeout, isTimeout, putTimeoutMs } from '../lib/fetch-timeout.
 import { isSkinGateCode, type SkinGateCode } from '../lib/skin-upload-summary.js';
 import { isShipFolder } from '../lib/asset-package.js';
 import { exportRootOf, uploadPackage, type PackageUploadResult } from './asset-package-ingest.js';
+import { uploadBlueprint, type BlueprintUploadResult } from './blueprint-ingest.js';
 
 interface SkinCatalogEntry {
   id: string;
@@ -60,6 +61,11 @@ export interface SkinUploadResult {
    * the hull and liveries are already live, the next run retries the package.
    */
   package?: PackageUploadResult;
+  /**
+   * Outcome of the blueprint drawings (docs/blueprint.md). Like the package, a
+   * failed blueprint never fails the ship.
+   */
+  blueprint?: BlueprintUploadResult;
 }
 
 type LogFn = (message: string, level?: 'info' | 'warn' | 'error') => void;
@@ -187,6 +193,22 @@ export async function uploadSkins(
     if (r.gate) packageGate = true;
     return r;
   };
+  // Blueprints are drawn from the hull on disk, so ships already live get theirs too.
+  let blueprintStop = false;
+  const bp = { sent: 0, live: 0, failed: 0 };
+  const uploadShipBlueprint = async (
+    shipId: string,
+    dir: string,
+    force: boolean,
+  ): Promise<BlueprintUploadResult | undefined> => {
+    if (blueprintStop) return undefined;
+    const r = await uploadBlueprint({ shipId, dir, force }, { call: (body) => callIngest(getToken, body), onLog });
+    if (r.gate || r.unsupported) blueprintStop = true;
+    if (!r.ok) bp.failed++;
+    else if (r.skipped === 'live') bp.live++;
+    else if (!r.skipped) bp.sent++;
+    return r;
+  };
   const done = new Set(hooks.doneShips ?? []);
   // Resolved per call so a multi-hour run refreshes the JWT instead of reusing
   // the one captured at stage start.
@@ -210,7 +232,11 @@ export async function uploadSkins(
       // on-disk marker below, which also survives a *new* job over the same dir.
       if (done.has(shipId)) {
         onLog(`${shipId}: already uploaded in this job — skipping`, 'info');
-        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true, package: await uploadShipPackage(shipId, dir) });
+        out.push({
+          ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true,
+          package: await uploadShipPackage(shipId, dir),
+          blueprint: await uploadShipBlueprint(shipId, dir, false),
+        });
         continue;
       }
       // Upload-cache: a ship uploaded in a prior run carries a .uploaded marker
@@ -218,7 +244,10 @@ export async function uploadSkins(
       const marker = resolve(dir, '.uploaded');
       if (existsSync(marker)) {
         onLog(`${shipId}: already uploaded — skipping`, 'info');
-        out.push({ ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true });
+        out.push({
+          ok: true, ship_id: shipId, uploaded: 0, committed: 0, cached: true,
+          blueprint: await uploadShipBlueprint(shipId, dir, false),
+        });
         continue;
       }
       const catPath = resolve(dir, 'skins.json');
@@ -324,7 +353,11 @@ export async function uploadSkins(
         `${shipId}: uploaded ${n} objects${shared ? `, reused ${shared} shared 3D model(s)` : ''}, committed ${count} rows`,
         'info',
       );
-      out.push({ ok: true, ship_id: shipId, uploaded: n, committed: count, package: await uploadShipPackage(shipId, dir) });
+      out.push({
+        ok: true, ship_id: shipId, uploaded: n, committed: count,
+        package: await uploadShipPackage(shipId, dir),
+        blueprint: await uploadShipBlueprint(cat.ship, dir, true),
+      });
     } catch (err) {
       // Pause/cancel is control flow — unwind to the caller instead of being
       // recorded as a per-ship upload failure.
@@ -336,6 +369,10 @@ export async function uploadSkins(
       // move the bar, otherwise "no visible progress" reads as "hung".
       hooks.onProgress?.(++processed, ships.length, shipId);
     }
+  }
+  if (bp.sent + bp.live + bp.failed > 0) {
+    const failed = bp.failed ? `, ${bp.failed} failed` : '';
+    onLog(`Blueprints: ${bp.sent} uploaded, ${bp.live} already live${failed}`, bp.failed ? 'warn' : 'info');
   }
   // FPS weapon (`<out>/_fps/<className>/`) and vehicle item (`<out>/_items/<className>/`)
   // packages share the export root with the ships and ride the same run; they need no hull.

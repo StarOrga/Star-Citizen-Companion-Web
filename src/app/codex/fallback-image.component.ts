@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
 /**
  * An `<img>` that walks a candidate list instead of dying on the first miss.
@@ -24,7 +24,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
   template: `
     @if (src(); as url) {
       <img [src]="url" [alt]="alt()" [attr.loading]="eager() ? null : 'lazy'"
-           [attr.decoding]="eager() ? null : 'async'" (error)="onError(url)" />
+           [attr.decoding]="eager() ? null : 'async'" (error)="onError(url)" (load)="loaded.emit(url)" />
     } @else {
       <ng-content />
     }
@@ -44,6 +44,12 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
       max-height: var(--sc-img-max-h, 100%);
       object-fit: var(--sc-img-fit, contain);
       filter: var(--sc-img-shadow, drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5)));
+      /* Framing and the placeholder cross-fade (sc-ship-tile-art) travel the same way. */
+      grid-area: var(--sc-img-area, auto);
+      border-radius: var(--sc-img-radius, 0);
+      mask-image: var(--sc-img-mask, none);
+      opacity: var(--sc-img-opacity, 1);
+      transition: opacity var(--sc-img-fade, 0s) ease;
     }
   `],
 })
@@ -53,6 +59,8 @@ export class FallbackImageComponent {
   readonly alt = input('');
   /** Skip lazy-loading for above-the-fold art (hero renders). */
   readonly eager = input(false);
+  /** The shown candidate finished loading (its url) — hosts cross-fade a placeholder on this. */
+  readonly loaded = output<string>();
 
   private readonly failed = signal<ReadonlySet<string>>(new Set<string>());
 

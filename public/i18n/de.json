@@ -1472,6 +1472,23 @@
       "nose": "Bug",
       "readoutIdle": "Kein Hardpoint ausgewählt"
     },
+    "shipBlueprint": {
+      "schema": {
+        "title": "Hardpoint-Schema",
+        "topAria": "Draufsicht des Schiffs mit {{count}} markierten Hardpoints",
+        "extent": "{{length}} × {{beam}} × {{height}} m",
+        "hint": "Von oben gesehen, Bug nach rechts. Marker zeigen Größe und Typ, ein Klick öffnet die Komponente.",
+        "noPositions": "Für diesen Rumpf gibt es noch keine Hardpoint-Positionen — sie kommen mit seinem nächsten 3D-Upload.",
+        "listLabel": "Hardpoints",
+        "size": "Größe {{size}}"
+      },
+      "group": {
+        "weapons": "Waffen",
+        "missiles": "Raketen",
+        "components": "Komponenten",
+        "other": "Hardpoint"
+      }
+    },
     "skins": {
       "title": "Lackierungen",
       "source": "Hologramm der Schiffsform · Lackierungen als offizielle Store-Renders",

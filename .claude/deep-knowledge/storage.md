@@ -144,6 +144,7 @@ Worker serves them `public, max-age=31536000, immutable`:
 | `_parts/<sha>.glb` | shared geometry-only part; an FPS weapon's root too | 10-300 kB |
 | `_interiors/<sha>.glb` | optional ship interior | a few MB |
 | `_manifests/<sha>.json` | the package manifest (plain JSON) | ~100 kB |
+| `_blueprints/<sha>.svg` | ship blueprint drawing, `full` (top + side) or `icon` (top), drawn by the uploader from the hull ([blueprint.md](../../data-uploader/docs/blueprint.md)); R2 only, sandboxed SVG CSP | full ~80-135 kB, icon ~2-3 kB |
 
 A ship package is ~1.3-2.9 MB before cross-ship dedup (parts are shared across
 ships, so the bucket grows far less than packages x ships). The DB holds only

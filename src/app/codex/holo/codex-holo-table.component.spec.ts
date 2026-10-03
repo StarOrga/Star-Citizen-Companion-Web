@@ -2,6 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { HoloPhase, StagePin } from './codex-holo-model';
+import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
+import { fakeShipBlueprints } from '../ship-blueprint/ship-blueprint.testing';
+import { AssetPackageService } from '../asset-package/asset-package.service';
+import type { HardpointFrame, HardpointMarker } from '../hardpoint-map';
 
 function pin(portName: string, index: number, over: Partial<StagePin> = {}): StagePin {
   return {
@@ -143,5 +147,60 @@ describe('CodexHoloTableComponent', () => {
     const legendText = (fixture.nativeElement as HTMLElement).querySelector('.legend')!.textContent!;
     expect(legendText).toContain('codex.holo.stage.legendUnresolved');
     expect(legendText).not.toContain('codex.holo.stage.legendMissiles');
+  });
+
+  describe('schema view', () => {
+    const FRAME: HardpointFrame = { min: [-2, -5, -1], max: [2, 5, 1], source: 'bbox' };
+    const MARKERS: HardpointMarker[] = [
+      { port: 'hp_a', label: 'A', itemName: null, position: [0, 4, 0], top: { x: 0.5, y: 0.1 }, side: { x: 0.9, y: 0.5 }, clamped: false },
+      { port: 'hp_b', label: 'B', itemName: null, position: [1, -3, 0], top: { x: 0.75, y: 0.8 }, side: { x: 0.2, y: 0.5 }, clamped: false },
+    ];
+
+    async function schemaSetup(withDrawing: boolean) {
+      const blueprints = fakeShipBlueprints();
+      if (withDrawing) blueprints.set('AEGS_Gladius');
+      TestBed.configureTestingModule({
+        imports: [CodexHoloTableComponent],
+        providers: [
+          provideTranslateService({ fallbackLang: 'en' }),
+          { provide: ShipBlueprintService, useValue: blueprints },
+          // No package for this hull: the extractor's positions are used.
+          { provide: AssetPackageService, useValue: { findRow: () => Promise.resolve(null), manifest: () => Promise.reject(new Error('none')) } },
+        ],
+      });
+      const fixture = TestBed.createComponent(CodexHoloTableComponent);
+      const inputs: Record<string, unknown> = {
+        pins: PINS, viewMode: 'schema', shipClassName: 'AEGS_Gladius', hardpointFrame: FRAME, hardpointMarkers: MARKERS,
+      };
+      for (const [k, v] of Object.entries(inputs)) fixture.componentRef.setInput(k, v);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('draws the blueprint schema with every positioned hardpoint, labelled like its pin', async () => {
+      const fixture = await schemaSetup(true);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('sc-ship-blueprint-schema')).not.toBeNull();
+      expect(el.querySelector('sc-ship-hardpoint-map')).toBeNull();
+      expect(el.querySelectorAll('sc-ship-blueprint-schema g.mk').length).toBe(2);
+      expect(el.querySelector('.hp-list button')!.textContent).toContain('Label hp_a');
+    });
+
+    it('opens a hardpoint from the schema in the inspector (pinInspect)', async () => {
+      const fixture = await schemaSetup(true);
+      const seen: string[] = [];
+      fixture.componentInstance.pinInspect.subscribe((p) => seen.push(p));
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.hp-list button')[1]!.click();
+      expect(seen).toEqual(['hp_b']);
+    });
+
+    it('keeps the box map for a hull without a drawing', async () => {
+      const fixture = await schemaSetup(false);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('sc-ship-blueprint-schema')).toBeNull();
+      expect(el.querySelector('sc-ship-hardpoint-map')).not.toBeNull();
+    });
   });
 });

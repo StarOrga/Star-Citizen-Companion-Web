@@ -1,3 +1,4 @@
+import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
@@ -194,6 +195,7 @@ describe('CodexLandingComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CodexLandingComponent],
       providers: [
+      provideNoShipBlueprints(),
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },

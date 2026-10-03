@@ -29,6 +29,7 @@ import { ExtensionPromoComponent } from './extension-promo.component';
 import { UploaderAccessComponent } from '../desktop/uploader-access.component';
 import { HoloReadyBadgeComponent } from './holo-ready-badge.component';
 import { FallbackImageComponent } from './fallback-image.component';
+import { ShipTileArtComponent } from './ship-blueprint/ship-tile-art.component';
 import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
@@ -70,7 +71,7 @@ interface Lane {
 @Component({
   selector: 'sc-codex-bridge',
   standalone: true,
-  imports: [NeuroFieldDirective, CodexDidYouMeanComponent,
+  imports: [NeuroFieldDirective, CodexDidYouMeanComponent, ShipTileArtComponent,
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -175,9 +176,9 @@ interface Lane {
             <a class="hero-art" [class.icon-only]="heroThumbs().length === 0"
                [routerLink]="['/codex', 'ship', h.classNameSlug]"
                [attr.aria-label]="'codex.bridge.hero.openShip' | translate: { ship: rowName(h) }">
-              <sc-fallback-image [candidates]="heroThumbs()" [alt]="rowName(h)" [eager]="true">
+              <sc-ship-tile-art [shipId]="h.classNameSlug" [candidates]="heroThumbs()" [alt]="rowName(h)" [eager]="true">
                 <sc-codex-icon kind="ship" />
-              </sc-fallback-image>
+              </sc-ship-tile-art>
             </a>
             <div class="hero-body">
               @if (heroFromFlagship()) {
@@ -302,9 +303,9 @@ interface Lane {
       <ng-template #laneCard let-r let-isNew="isNew">
         <a class="lane-card" [routerLink]="['/codex', 'ship', r.classNameSlug]">
           <div class="lane-thumb" [class.icon-only]="thumbs(r).length === 0">
-            <sc-fallback-image [candidates]="thumbs(r)" [alt]="rowName(r)">
+            <sc-ship-tile-art [shipId]="r.classNameSlug" [candidates]="thumbs(r)" [alt]="rowName(r)">
               <sc-codex-icon kind="ship" />
-            </sc-fallback-image>
+            </sc-ship-tile-art>
           </div>
           <div class="lane-info">
             <h3 class="lane-name">{{ rowName(r) }}</h3>
