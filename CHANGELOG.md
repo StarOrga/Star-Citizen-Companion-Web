@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.122.0] - 2026-10-03
+
+### Added
+
+- **Schiffs-Blaupausen in der Codex-Suche.** Neben einem Schiffstreffer in den
+  Suchergebnissen steht eine kleine Draufsicht des Rumpfs als Linienzeichnung.
+- **Blaupause als Platzhalter auf Schiffskacheln.** Kacheln in der Codex-Liste,
+  der Bridge (Lanes und Hero) und im Hangar-Dashboard zeigen die Blaupause,
+  bis das Store-Bild geladen ist, und blenden dann weich zum gerahmten Bild über.
+- **Schema-Ansicht auf der Schiffsseite.** Die bisher deaktivierte Ansicht
+  „Schema“ am Holotisch zeigt die Draufsicht mit allen markierten Hardpoints
+  und darunter die Seitenansicht; Hover oder Fokus hebt einen Hardpoint hervor,
+  eine Liste macht sie per Tastatur erreichbar.
+- **Data Uploader 0.42.0: zeichnet die Blaupausen.** Der Uploader zeichnet aus
+  jedem exportierten Rumpf (GLB) eine Drauf- und Seitenansicht als SVG
+  (`full` und `icon`), speichert sie zwischen und lädt sie über die neuen
+  `ingest-skins`-Aktionen `blueprint_sign`/`blueprint_commit` nach R2
+  (`ship-skins/_blueprints/<sha256>.svg`) — auch für Schiffe, deren Rumpf schon
+  online ist. Der Assets-Worker liefert die Dateien aus.
+
+### Deploy
+
+- Reihenfolge: Migration `ship_blueprints` (`ship_skins.blueprint_path`,
+  `blueprint_icon_path`, `ship_skins_index`; `npm run db:push`), Edge Function
+  `ingest-skins` (CI), Assets-Worker (`npx wrangler deploy`), danach Uploader
+  0.42.0 veröffentlichen und einen Skin-Lauf machen, damit die Blaupausen
+  entstehen.
+
 ## [0.121.0] - 2026-10-03
 
 ### Changed
