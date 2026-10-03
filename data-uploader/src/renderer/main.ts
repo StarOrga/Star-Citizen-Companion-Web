@@ -9,7 +9,7 @@
 // Shared design tokens are imported here (not via @import in styles.css) so the
 // build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
 import '@starorga/star-ui/lib/design-tokens.css';
-import { load as loadI18n, getLocale, t } from '../lib/i18n.js';
+import { load as loadI18n, t } from '../lib/i18n.js';
 import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
@@ -21,12 +21,17 @@ import { setStatus as setBottomStatus, showSnackbar } from './shell/bottom-strip
 import { wireChevrons, paintChevrons } from './shell/chevrons.js';
 import { toggleConnectionPopover, isConnectionPopoverOpen, closeConnectionPopover } from './connection-popover.js';
 import { installKeymap } from './keymap.js';
-import { closeOptionsSheetIfOpen } from './options-sheet.js';
 import { closeLogDrawer } from './log-drawer.js';
 import * as InstallStep from './steps/install.js';
-import * as SetupStep from './steps/setup.js';
 import * as DoneStep from './steps/done.js';
-import { throttleChipHtml, wireThrottleChip, toggleThrottlePopover } from './throttle-chip.js';
+import {
+  throttleChipHtml,
+  wireThrottleChip,
+  toggleThrottlePopover,
+  refreshThrottleChip,
+  closeThrottlePopoverIfOpen,
+} from './throttle-chip.js';
+import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
 import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import {
   updateCategoryBars,
@@ -34,6 +39,7 @@ import {
   resetCategoryBars,
   markCategoriesComplete,
   uploadExpectedFromCounts,
+  setCategoryBarsCaption,
 } from './steps/category-bars.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
@@ -139,19 +145,17 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-// Internal view names kept from the original 4-view routing (discover →
-// configure → run → auth-upload) — the one-screen shell maps each onto a
+// Internal view names kept from the original view routing (discover →
+// run → auth-upload) — the one-screen shell maps each onto a
 // step-rail node (see `viewToStep` below) without renaming the state field
 // everywhere it's referenced. 'done' is new: the post-upload summary/countdown.
-type ViewName = 'discover' | 'configure' | 'run' | 'auth-upload' | 'done';
+type ViewName = 'discover' | 'run' | 'auth-upload' | 'done';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
 function viewToStep(v: ViewName): StepKey {
   switch (v) {
     case 'discover':
       return 'install';
-    case 'configure':
-      return 'setup';
     case 'run':
       return 'extract';
     case 'auth-upload':
@@ -353,7 +357,7 @@ async function init(): Promise<void> {
   wireChevrons({
     goPrev: () => goBack(),
     goNext: () => {
-      if (state.view === 'discover') goToSetup();
+      if (state.view === 'discover') void startRunFromInstall();
     },
   });
 
@@ -363,7 +367,8 @@ async function init(): Promise<void> {
       return !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
     },
     escHandlers: [
-      closeOptionsSheetIfOpen,
+      closeWhenDonePopoverIfOpen,
+      closeThrottlePopoverIfOpen,
       closeSettingsDialogIfOpen,
       () => {
         if (!isConnectionPopoverOpen()) return false;
@@ -393,7 +398,6 @@ async function init(): Promise<void> {
     },
     onEnter: () => {
       if (state.view === 'discover') InstallStep.primaryAction();
-      else if (state.view === 'configure') SetupStep.primaryAction();
       else if (state.view === 'run') ($('#btn-upload-now') as HTMLButtonElement | null)?.click();
       else if (state.view === 'done') DoneStep.primaryAction();
     },
@@ -1104,8 +1108,6 @@ export function setStatus(msg: string): void {
  */
 function canGoBack(): boolean {
   switch (state.view) {
-    case 'configure':
-      return true;
     case 'run':
       return !extractRunning;
     case 'auth-upload':
@@ -1115,10 +1117,10 @@ function canGoBack(): boolean {
   }
 }
 
-/** One step back: Setup → Install, anything later → Setup (a new run starts there). */
+/** One step back: always to Install — a new run starts there. */
 function goBack(): void {
   if (!canGoBack()) return;
-  state.view = state.view === 'configure' ? 'discover' : 'configure';
+  state.view = 'discover';
   render();
 }
 
@@ -1158,10 +1160,6 @@ function render(): void {
       app.innerHTML = InstallStep.renderInstall();
       InstallStep.wireInstall();
       break;
-    case 'configure':
-      app.innerHTML = SetupStep.renderSetup();
-      SetupStep.wireSetup();
-      break;
     case 'run':
       app.innerHTML = renderRun();
       wireRun();
@@ -1188,8 +1186,8 @@ function noteOverallPct(pct: number): void {
 let lastStepIdx = 0;
 
 /**
- * The ONLY entry point into a run — called by the Setup step's Start button
- * AND by `maybeAutoRun`. Never a side effect of rendering: `render()` just
+ * The ONLY entry point into a run — called by the Install step's Start button
+ * (via `startRunFromInstall`) AND by `maybeAutoRun`. Never a side effect of rendering: `render()` just
  * mounts the Extract card; the actual sidecar spawn happens right after, once
  * the DOM it paints into exists.
  */
@@ -1214,18 +1212,29 @@ export function resetForNewRun(): void {
   render();
 }
 
-// ============= Install/Setup step helpers (used by steps/install.ts + steps/setup.ts) =============
+// ============= Install step helpers (used by steps/install.ts) =============
 
-/** Navigate to the Setup step — the Install step's primary/secondary CTA. */
-export function goToSetup(): void {
-  // Setup runs against exactly one install — with none picked, Start would be
-  // a silent no-op, so say so here instead.
-  if (!state.channels.some((c) => c.selected)) {
+/**
+ * The Install step's Start: straight into the extraction. There is no setup
+ * step in between any more — the run's two knobs (tempo, when done) sit as
+ * chips on the Extract/Upload cards and stay changeable while it runs.
+ */
+export async function startRunFromInstall(): Promise<void> {
+  // A run reads exactly one install — with none picked, Start would be a
+  // silent no-op, so say so here instead.
+  const channel = state.channels.find((c) => c.selected);
+  if (!channel) {
     showSnackbar(t('discover.pickOne'), 'warn');
     return;
   }
-  state.view = 'configure';
-  render();
+  if (!state.settings) return;
+  const plan = buildRunPlan({
+    channel: channel.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW',
+    settings: state.settings,
+    signedIn: Boolean(state.authToken),
+    whenDone: state.whenDone,
+  });
+  await startRun(plan);
 }
 
 export function isConnected(): boolean {
@@ -1261,22 +1270,30 @@ export function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
 // The update-channel picker moved out of Configure into the always-visible
 // connection bar (see paintConnection). `allowedChannels()` above is shared.
 
-/** Small "armed" chip shown on Setup/Run/Upload while a when-done choice is live. */
-export function armedChipHtml(): string {
+/**
+ * The run's two knobs — ⚡ tempo and ⏻ when done — as chips in the Extract and
+ * Upload card heads. Both stay changeable while the run is going.
+ */
+function runChipsHtml(): string {
   const wd = state.runPlan?.whenDone ?? state.whenDone;
-  if (wd === 'nothing') return '';
-  return `
-    <span class="armed-chip" id="armed-chip" data-tip="${t('run.whenDone.' + wd)}">
-      ⏻ ${t('run.whenDone.' + wd)}
-      <button type="button" id="armed-chip-disarm" aria-label="${t('run.whenDone.disarm')}" data-tip="${t('run.whenDone.disarm')}" data-tip-tier="label">✕</button>
-    </span>`;
+  return `<div class="run-chips">
+      ${throttleChipHtml(state.profile === 'auto' ? 'standard' : state.profile)}
+      ${whenDoneChipHtml(wd)}
+    </div>`;
 }
 
-export function wireArmedChip(): void {
-  $('#armed-chip-disarm')?.addEventListener('click', () => {
-    state.whenDone = 'nothing';
-    if (state.runPlan) state.runPlan = { ...state.runPlan, whenDone: 'nothing' };
-    $('#armed-chip')?.remove();
+function wireRunChips(): void {
+  wireThrottleChip({
+    getProfile: () => state.profile,
+    applyProfile: (next) => applyProfile(next),
+    onMessage: (msg) => showSnackbar(msg),
+  });
+  wireWhenDoneChip({
+    get: () => state.runPlan?.whenDone ?? state.whenDone,
+    set: (next) => {
+      state.whenDone = next;
+      if (state.runPlan) state.runPlan = { ...state.runPlan, whenDone: next };
+    },
   });
 }
 
@@ -1345,6 +1362,7 @@ export function throttleStatusMessage(v: ThrottleViewLike): string {
 function adoptThrottle(v: ThrottleViewLike): void {
   state.profile = v.profile;
   state.throttleSupported = v.supported;
+  refreshThrottleChip(v.profile);
 }
 
 export async function refreshProfileFromMain(): Promise<void> {
@@ -1362,8 +1380,8 @@ function renderRun(): string {
     <div class="view step-run">
       <section class="card run-card">
         <div class="run-card-head">
-          <h1>${t('run.title')} ${armedChipHtml()}</h1>
-          ${throttleChipHtml(state.profile === 'auto' ? 'standard' : state.profile)}
+          <h1>${t('run.title')}</h1>
+          ${runChipsHtml()}
         </div>
         ${progressCardHtml('run-progress', runSteps())}
         ${categoryBarsHtml()}
@@ -1459,14 +1477,8 @@ async function goToUploadNow(): Promise<void> {
 }
 
 function wireRun(): void {
-  wireArmedChip();
   wireLogDrawer();
-  wireThrottleChip({
-    getProfile: () => state.profile,
-    getLocale: () => getLocale(),
-    applyProfile: (next) => applyProfile(next),
-    onMessage: (msg) => showSnackbar(msg),
-  });
+  wireRunChips();
   $('#btn-cancel-extract')?.addEventListener('click', (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     void (async () => {
@@ -1489,7 +1501,7 @@ function wireRun(): void {
           /* best-effort */
         }
       }
-      state.view = 'configure';
+      state.view = 'discover';
       render();
     })();
   });
@@ -1662,12 +1674,16 @@ async function runRealExtract(): Promise<void> {
 
 // ============= View: Auth-Upload =============
 
-// The 3 sub-flows of one upload run, in the order they actually execute
-// (see doUploadAfterAuth) — surfaced as a small stepper on the shared
-// progress card so the upload flow reads as a sibling of the Run view.
+// The 4 sub-flows of one upload run, in the order they actually execute
+// (see doUploadAfterAuth) — surfaced as a small stepper on the shared progress
+// card so the upload flow reads as a sibling of the Run view. Silhouettes are
+// their own step: they are built locally for a long while before the first
+// Codex row is sent; folded into "Codex", the main bar moved while every
+// category bar still sat at 0.
 function uploadSteps(): ProgressStep[] {
   return [
     { key: 'bundle', label: t('upload.steps.bundle') },
+    { key: 'silhouettes', label: t('upload.steps.silhouettes') },
     { key: 'codex', label: t('upload.steps.codex') },
     { key: 'skins', label: t('upload.steps.skins') },
   ];
@@ -1734,14 +1750,13 @@ function paintBundleDetails(): void {
 }
 
 function renderAuthUpload(): string {
-  const result = state.lastResult;
-  const hasResult = result !== null;
+  const hasResult = state.lastResult !== null;
   return `
     <div class="view step-upload">
       <section class="card upload-card">
         <div class="upload-card-head">
-          <h1>${t('upload.title')} — ${t('upload.codexTitle')} ${armedChipHtml()}</h1>
-          <span class="upload-target-chip">→ sc-companion · ${result?.channel ?? '—'}</span>
+          <h1>${t('upload.title')} — ${t('upload.codexTitle')}</h1>
+          ${runChipsHtml()}
         </div>
         <p id="upload-intro">${t('upload.intro')}</p>
         <div id="reconnect-notice" class="reconnect-notice" hidden></div>
@@ -1769,7 +1784,7 @@ function renderAuthUpload(): string {
 let uploadProgress: ProgressController | null = null;
 
 function wireAuthUpload(): void {
-  wireArmedChip();
+  wireRunChips();
   // Fresh view, fresh rail: the extract's 100 % must not sit on the Upload
   // node's segment while the bundle POST is still indeterminate.
   noteOverallPct(0);
@@ -2243,8 +2258,8 @@ async function doUploadAfterAuth(): Promise<void> {
   });
   // On a resume whose bundle already landed, the bundle POST returns instantly
   // from the main process — so skip the bundle spinner and open the card
-  // straight on the catalog stage (macro 2/3), where the work actually resumes,
-  // instead of flashing "1/3 · Bundle" then jumping.
+  // straight on the silhouette step (macro 2/4, a cache hit on a resume) that
+  // runs next, instead of flashing "1/4 · Bundle" then jumping.
   const resumingPastBundle = job?.bundle?.status === 'done';
   uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
   uploadProgress?.update({
@@ -2295,6 +2310,10 @@ async function doUploadAfterAuth(): Promise<void> {
   // phase reads `<output_dir>/silhouettes/rows/*.json`, so this must have
   // already run or that phase simply sends nothing this run. Non-fatal, same
   // as the 3D-skin build: a failure here never blocks the bundle/codex upload.
+  uploadProgress?.setStep(1);
+  // The bars count Codex rows sent — none are until the silhouettes (and the
+  // build tools they need) are through, so say why they stand still.
+  setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
   try {
     await buildSilhouettes(result, uploadProgress);
   } catch (err) {
@@ -2303,12 +2322,14 @@ async function doUploadAfterAuth(): Promise<void> {
       `${t('silhouettes.buildFailed')}: ${(err as Error).message}`,
       'warn',
     );
+  } finally {
+    setCategoryBarsCaption(null);
   }
 
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
-  uploadProgress?.setStep(1);
+  uploadProgress?.setStep(2);
   const codex = await promoteToCodex(result.output_dir, uploadProgress);
   // Stop the whole run on a pause. Falling through would upload skins and —
   // worse — reach the cleanup below, deleting the out_dir that a resume needs.
@@ -2321,7 +2342,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // sub-property of every ship, not a separate step. Reads the extract's build
   // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
   // out_dir). Fully non-fatal: the bundle is already confirmed.
-  uploadProgress?.setStep(2);
+  uploadProgress?.setStep(3);
   try {
     await buildAndUploadSkins(result, uploadProgress);
   } catch (err) {

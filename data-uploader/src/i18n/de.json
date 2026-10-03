@@ -18,7 +18,6 @@
   },
   "steprail": {
     "install": "Installation",
-    "setup": "Einrichtung",
     "extract": "Extraktion",
     "upload": "Upload",
     "done": "Fertig",
@@ -32,17 +31,8 @@
     },
     "lastUploaded": "Zuletzt hochgeladen {{when}}",
     "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
-    "extractOnly": "Weiter (nur extrahieren)"
-  },
-  "sheet": {
-    "title": "Laufoptionen",
-    "mode": {
-      "label": "Modus",
-      "watch": "Ich schaue zu",
-      "unattended": "Unbeaufsichtigt"
-    },
-    "moreSettings": "Mehr in den Einstellungen",
-    "whenDoneHint": "60-s-Countdown zum Abbrechen · gilt nur für diesen Lauf, wird nie gespeichert"
+    "extractOnly": "Nur extrahieren (ohne Upload)",
+    "connectAndStart": "Verbinden & Extraktion starten"
   },
   "category": {
     "ships": "Schiffe",
@@ -67,15 +57,10 @@
     "addManual": "Ordner manuell hinzufügen",
     "none": "Keine Installation automatisch gefunden — füge unten einen Ordner manuell hinzu.",
     "found": "Gefundene Channels",
-    "next": "Weiter → Konfiguration"
+    "next": "Extraktion starten"
   },
   "configure": {
-    "title": "Tempo wählen",
-    "subtitle": "Wie stark darf der Uploader deinen PC auslasten? Extrahiert wird immer der komplette Datenstand.",
-    "start": "Extraktion starten",
     "speed": {
-      "title": "Tempo",
-      "hint": "Jederzeit umschaltbar — auch mitten im Lauf, über den ⚡-Chip.",
       "applied": "Modus geändert — wirkt ab der nächsten Datei.",
       "appliedPartly": "Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Protokoll).",
       "armed": "Modus gesetzt — er gilt, sobald ein Lauf startet.",
@@ -99,7 +84,7 @@
       "nothing": "Nichts",
       "quit": "Programm beenden",
       "shutdown": "PC herunterfahren",
-      "disarm": "Entwaffnen"
+      "hint": "Was nach diesem Lauf passiert. 60-s-Countdown zum Abbrechen · gilt nur für diesen Lauf, wird nie gespeichert."
     },
     "phase": {
       "discover": "Spiel lesen",
@@ -142,7 +127,8 @@
     "warningFallback": "Warnung",
     "errorFallback": "Fehler bei der Extraktion",
     "failedUnknown": "Die Extraktion ist aus unbekanntem Grund fehlgeschlagen.",
-    "tempo": "Tempo"
+    "tempo": "Tempo",
+    "tempoHint": "Wie stark der Uploader deinen PC auslastet — jederzeit umschaltbar, auch mitten im Lauf. Wird gespeichert."
   },
   "upload": {
     "title": "Upload",
@@ -177,7 +163,8 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D-Modelle"
+      "skins": "3D-Modelle",
+      "silhouettes": "Silhouetten"
     },
     "err": {
       "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
@@ -222,7 +209,8 @@
       "colEntity": "Typ",
       "colPrev": "vorher",
       "colNew": "neu"
-    }
+    },
+    "barsAfterSilhouettes": "Die Balken zählen die Codex-Einträge, die hochgeladen werden — das beginnt erst, wenn die Silhouetten lokal gebaut sind."
   },
   "update": {
     "available": "Update verfügbar: v{{version}} — wird im Hintergrund geladen…",
@@ -264,13 +252,8 @@
     "title": "Einstellungen",
     "adminOnly": "nur Admin/Collaborator",
     "language": "Sprache",
-    "unattended": {
-      "label": "Unbeaufsichtigt",
-      "hint": "Startet mit Windows und läuft bei einer neuen data.p4k-Version automatisch komplett durch — ohne dass jemand zusieht."
-    },
     "afterAutoRun": {
-      "label": "Nach einem automatischen Lauf",
-      "hint": "Was passiert, nachdem ein unbeaufsichtigter Lauf erfolgreich hochgeladen hat.",
+      "label": "Nach dem automatischen Upload",
       "keep": "Weiterlaufen",
       "quit": "Programm beenden",
       "shutdown": "PC herunterfahren"
@@ -284,6 +267,19 @@
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stabil"
+    },
+    "auto": {
+      "title": "Automatik — ohne dich",
+      "label": "Neue Patches automatisch hochladen",
+      "hint": "Startet mit Windows im Tray. Sobald eine neue data.p4k-Version da ist, extrahiert das Programm sie und lädt sie selbstständig hoch — mit dem zuletzt gewählten Tempo.",
+      "manualNote": "Startest du einen Lauf selbst, stellst du Tempo (⚡) und „Wenn fertig“ (⏻) direkt am Lauf ein — diese Automatik-Einstellungen gelten dafür nicht."
+    },
+    "quitIfNothing": {
+      "label": "Ohne neuen Patch gleich wieder beenden",
+      "hint": "Ist beim Windows-Start nichts Neues hochzuladen, beendet sich das Programm sofort wieder, statt im Tray zu bleiben."
+    },
+    "general": {
+      "title": "Allgemein"
     }
   },
   "telemetry": {
@@ -377,15 +373,9 @@
     "done": "fertig",
     "error": "fehlgeschlagen",
     "minimize": "Beim Schließen in den Tray minimieren",
-    "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden.",
-    "autoStart": "Mit Windows starten",
-    "autoStartHint": "Startet das Programm mit Windows — direkt im Tray, ohne Fenster.",
-    "quitAfterAutoRun": "Danach automatisch beenden, wenn nichts zu tun ist",
-    "quitAfterAutoRunHint": "Gilt nur für den Start mit Windows: ist der aktuelle Patch schon vollständig hochgeladen, beendet sich das Programm sofort wieder — und nach einem Upload, sobald der fertig ist."
+    "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden."
   },
   "autorun": {
-    "toggle": "Bei neuer data.p4k-Version automatisch komplett durchlaufen",
-    "hint": "Prüft beim Start, ob eine neuere data.p4k vorliegt als bereits hochgeladen — und fährt dann den kompletten Prozess automatisch.",
     "starting": "Neue Version erkannt ({{channel}}: {{local}} vs. {{server}}) — starte automatisch.",
     "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen.",
     "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt."

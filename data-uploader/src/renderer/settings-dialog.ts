@@ -1,13 +1,15 @@
 /**
- * App-behaviour Settings dialog (⚙, Ctrl+,).
+ * App-behaviour Settings dialog (⚙, Ctrl+,), in two sections:
  *
- * Everything that used to live scattered across the Configure checkboxes and
- * the topbar/statusbar now lives here: the "Unbeaufsichtigt" master toggle
- * (autoStart + autoRunOnNewVersion, coherently), the after-auto-run choice,
- * minimize-to-tray, the role-gated update ring, language and telemetry.
+ * - "Automatik": the one switch for runs nobody starts by hand (autoStart +
+ *   autoRunOnNewVersion, always together), plus what such a run does once it
+ *   is through and whether a launch with nothing to do quits again.
+ * - "Allgemein": minimize-to-tray, the role-gated update ring, language,
+ *   telemetry, diagnostics.
  *
- * Per-run choices (game version, scope, upload-after, when-done) are NOT
- * here — those live on the Setup step / options sheet, see `options-sheet.ts`.
+ * A run started by hand has its own two knobs (⚡ tempo, ⏻ when done) as chips
+ * on the Extract/Upload cards — they never live here, so "automatic" and
+ * "this run" cannot be confused.
  */
 
 import { t, setLocale, getLocale, LOCALES, type LocaleId } from '../lib/i18n.js';
@@ -59,6 +61,10 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
       : '';
 
   const afterAutoRunOptions: PublicSettings['afterAutoRun'][] = ['keep', 'quit', 'shutdown'];
+  // One switch for both flags. A half-on state left over from the old separate
+  // toggles shows as on, so a single click switches both off — otherwise a
+  // stray autostart would have no visible off switch any more.
+  const autoOn = s.autoStart || s.autoRunOnNewVersion;
   const langSegment = LOCALES.map(
     (l) => `<button type="button" class="segment ${l === getLocale() ? 'active' : ''}" role="radio" aria-checked="${l === getLocale() ? 'true' : 'false'}" data-lang="${l}">${l.toUpperCase()}</button>`,
   ).join('');
@@ -70,35 +76,32 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
         <button type="button" class="sc-icon-btn" id="set-close" data-tip="${t('common.dismiss')}" data-tip-key="Esc" data-tip-tier="label" aria-label="${t('common.dismiss')}">✕</button>
       </div>
 
-      <label class="sc-toggle settings-master" data-tip="${t('settings.unattended.hint')}">
-        <input type="checkbox" id="set-unattended" ${s.autoStart && s.autoRunOnNewVersion ? 'checked' : ''} />
-        <span>${t('settings.unattended.label')}</span>
-      </label>
-
-      <div class="settings-group">
-        <label class="sc-toggle" data-tip="${t('tray.autoStartHint')}">
-          <input type="checkbox" id="set-autostart" ${s.autoStart ? 'checked' : ''} />
-          <span>${t('tray.autoStart')}</span>
+      <section class="settings-section">
+        <h3 class="settings-section-title">${t('settings.auto.title')}</h3>
+        <label class="sc-toggle settings-master">
+          <input type="checkbox" id="set-unattended" ${autoOn ? 'checked' : ''} />
+          <span>${t('settings.auto.label')}</span>
         </label>
-        <label class="sc-toggle" data-tip="${t('autorun.hint')}">
-          <input type="checkbox" id="set-autorun" ${s.autoRunOnNewVersion ? 'checked' : ''} />
-          <span>${t('autorun.toggle')}</span>
-        </label>
-        <label class="sc-toggle" data-tip="${t('tray.quitAfterAutoRunHint')}">
-          <input type="checkbox" id="set-quitafter" ${s.quitAfterAutoRun ? 'checked' : ''} />
-          <span>${t('tray.quitAfterAutoRun')}</span>
-        </label>
-        <div class="settings-row">
-          <div class="settings-row-main">
-            <span class="settings-row-label">${t('settings.afterAutoRun.label')}</span>
-            <span class="settings-row-hint">${t('settings.afterAutoRun.hint')}</span>
+        <p class="settings-row-hint">${t('settings.auto.hint')}</p>
+        <div class="settings-group ${autoOn ? '' : 'settings-group--off'}">
+          <div class="settings-row">
+            <div class="settings-row-main">
+              <span class="settings-row-label">${t('settings.afterAutoRun.label')}</span>
+            </div>
+            <div class="segment-group" id="set-after-autorun" role="radiogroup" aria-label="${t('settings.afterAutoRun.label')}">
+              ${afterAutoRunOptions.map((v) => `<button type="button" class="segment ${v === s.afterAutoRun ? 'active' : ''}" role="radio" aria-checked="${v === s.afterAutoRun ? 'true' : 'false'}" data-value="${v}" ${autoOn ? '' : 'disabled'}>${t('settings.afterAutoRun.' + v)}</button>`).join('')}
+            </div>
           </div>
-          <div class="segment-group" id="set-after-autorun" role="radiogroup" aria-label="${t('settings.afterAutoRun.label')}">
-            ${afterAutoRunOptions.map((v) => `<button type="button" class="segment ${v === s.afterAutoRun ? 'active' : ''}" role="radio" aria-checked="${v === s.afterAutoRun ? 'true' : 'false'}" data-value="${v}">${t('settings.afterAutoRun.' + v)}</button>`).join('')}
-          </div>
+          <label class="sc-toggle" data-tip="${t('settings.quitIfNothing.hint')}">
+            <input type="checkbox" id="set-quitafter" ${s.quitAfterAutoRun ? 'checked' : ''} ${autoOn ? '' : 'disabled'} />
+            <span>${t('settings.quitIfNothing.label')}</span>
+          </label>
         </div>
-      </div>
+        <p class="settings-row-hint">${t('settings.auto.manualNote')}</p>
+      </section>
 
+      <section class="settings-section">
+        <h3 class="settings-section-title">${t('settings.general.title')}</h3>
       <label class="sc-toggle" data-tip="${t('tray.minimizeHint')}">
         <input type="checkbox" id="set-minimize" ${s.minimizeToTray ? 'checked' : ''} />
         <span>${t('tray.minimize')}</span>
@@ -120,6 +123,7 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
         <span class="settings-row-label">${t('settings.diagnostics.title')}</span>
         <p class="settings-diag" id="set-diag">…</p>
       </div>
+      </section>
     </div>
   `;
 
@@ -156,12 +160,6 @@ export function openSettingsDialog(ctx: SettingsDialogCtx): void {
       close();
       openSettingsDialog(ctx); // repaint sub-rows in sync
     });
-  });
-  overlay.querySelector('#set-autostart')?.addEventListener('change', (e) => {
-    void patch({ autoStart: (e.target as HTMLInputElement).checked });
-  });
-  overlay.querySelector('#set-autorun')?.addEventListener('change', (e) => {
-    void patch({ autoRunOnNewVersion: (e.target as HTMLInputElement).checked });
   });
   overlay.querySelector('#set-quitafter')?.addEventListener('change', (e) => {
     void patch({ quitAfterAutoRun: (e.target as HTMLInputElement).checked });

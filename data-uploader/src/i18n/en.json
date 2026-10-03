@@ -18,7 +18,6 @@
   },
   "steprail": {
     "install": "Install",
-    "setup": "Setup",
     "extract": "Extract",
     "upload": "Upload",
     "done": "Done",
@@ -32,17 +31,8 @@
     },
     "lastUploaded": "Last uploaded {{when}}",
     "resumeGeneric": "Found an interrupted upload — resume it?",
-    "extractOnly": "Continue (extract only)"
-  },
-  "sheet": {
-    "title": "Run options",
-    "mode": {
-      "label": "Mode",
-      "watch": "I'm watching",
-      "unattended": "Unattended"
-    },
-    "moreSettings": "More in Settings",
-    "whenDoneHint": "60 s cancelable countdown · applies to this run only, never saved"
+    "extractOnly": "Extract only (no upload)",
+    "connectAndStart": "Connect & start extraction"
   },
   "category": {
     "ships": "Ships",
@@ -67,15 +57,10 @@
     "addManual": "Add folder manually",
     "none": "No install found automatically — add a folder by hand below.",
     "found": "Detected channels",
-    "next": "Next → Configure"
+    "next": "Start extraction"
   },
   "configure": {
-    "title": "Choose speed",
-    "subtitle": "How hard may the uploader load your PC? It always extracts the complete data set.",
-    "start": "Start extraction",
     "speed": {
-      "title": "Speed",
-      "hint": "Switch any time — mid-run too, via the ⚡ chip.",
       "applied": "Mode changed — takes effect from the next file.",
       "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
       "armed": "Mode set — it applies as soon as a run starts.",
@@ -99,7 +84,7 @@
       "nothing": "Nothing",
       "quit": "Quit app",
       "shutdown": "Shut down PC",
-      "disarm": "Disarm"
+      "hint": "What happens after this run. 60 s cancelable countdown · applies to this run only, never saved."
     },
     "phase": {
       "discover": "Read game",
@@ -142,7 +127,8 @@
     "warningFallback": "Warning",
     "errorFallback": "Extraction error",
     "failedUnknown": "Extraction failed for an unknown reason.",
-    "tempo": "Speed"
+    "tempo": "Speed",
+    "tempoHint": "How hard the uploader loads your PC — switch any time, even mid-run. Saved."
   },
   "upload": {
     "title": "Upload",
@@ -177,7 +163,8 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D models"
+      "skins": "3D models",
+      "silhouettes": "Silhouettes"
     },
     "err": {
       "unauthorized": "Not signed in or your session is invalid — please reconnect.",
@@ -222,7 +209,8 @@
       "colEntity": "Type",
       "colPrev": "before",
       "colNew": "now"
-    }
+    },
+    "barsAfterSilhouettes": "The bars count the Codex entries being uploaded — that only starts once the silhouettes are built locally."
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",
@@ -264,13 +252,8 @@
     "title": "Settings",
     "adminOnly": "admin/collaborator only",
     "language": "Language",
-    "unattended": {
-      "label": "Unattended",
-      "hint": "Starts with Windows and runs the whole pipeline automatically on a new data.p4k version — with nobody watching."
-    },
     "afterAutoRun": {
-      "label": "After an automatic run",
-      "hint": "What happens once an unattended run has uploaded successfully.",
+      "label": "After the automatic upload",
       "keep": "Keep running",
       "quit": "Quit app",
       "shutdown": "Shut down PC"
@@ -284,6 +267,19 @@
       "alpha": "Alpha",
       "beta": "Beta",
       "stable": "Stable"
+    },
+    "auto": {
+      "title": "Automatic — without you",
+      "label": "Upload new patches automatically",
+      "hint": "Starts with Windows in the tray. As soon as a new data.p4k version is there, it extracts and uploads it on its own — at the speed you picked last.",
+      "manualNote": "When you start a run yourself, set speed (⚡) and \"when done\" (⏻) right on the run — these automatic settings do not apply to it."
+    },
+    "quitIfNothing": {
+      "label": "Close again when there is no new patch",
+      "hint": "If there is nothing new to upload at Windows start, the program closes right away instead of staying in the tray."
+    },
+    "general": {
+      "title": "General"
     }
   },
   "telemetry": {
@@ -377,15 +373,9 @@
     "done": "done",
     "error": "failed",
     "minimize": "Minimise to tray on close",
-    "minimizeHint": "The X hides the window to the tray instead of quitting.",
-    "autoStart": "Start with Windows",
-    "autoStartHint": "Launches with Windows — straight into the tray, no window.",
-    "quitAfterAutoRun": "Close again when there is nothing to do",
-    "quitAfterAutoRunHint": "Applies to the Windows start only: if the current patch is already fully uploaded the program closes again right away — and after an upload, as soon as it finishes."
+    "minimizeHint": "The X hides the window to the tray instead of quitting."
   },
   "autorun": {
-    "toggle": "Run the whole pipeline automatically on a new data.p4k",
-    "hint": "On launch, checks whether the local data.p4k is newer than what's uploaded — and runs the whole process automatically.",
     "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
     "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
     "resuming": "Found an interrupted upload — resuming it automatically."

@@ -4,6 +4,40 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.124.0] - 2026-10-03
+
+### Changed
+
+- **Data Uploader 0.44.0: Lauf-Einstellungen als Chips.** Extraktion und
+  Upload zeigen im Kopf zwei Chips: ⚡ *Tempo* (Minimal / Standard / Maximal mit
+  je einer Zeile Erklärung, Hotkey T, wird gespeichert) und ⏻ *Wenn fertig*
+  (nichts / Uploader beenden / PC herunterfahren — gilt nur für diesen Lauf,
+  scharf gestellt in Warnfarbe). Die Zielangabe „→ sc-companion · Kanal“ oben
+  rechts auf der Upload-Karte ist weg.
+- **Kein Setup-Schritt mehr.** Die Schritte sind Installieren → Extrahieren →
+  Hochladen → Fertig. „Extraktion starten“ bzw. „Verbinden & Extraktion
+  starten“ startet den Lauf direkt; das Tempo lässt sich danach jederzeit am
+  Chip ändern.
+- **Einstellungen klar getrennt.** „Automatik — ohne dich“ hat einen Schalter
+  „Neue Patches automatisch hochladen“ (Autostart und Auto-Lauf zusammen) mit
+  den Unteroptionen „Nach dem automatischen Upload“ und „Ohne neuen Patch gleich
+  wieder beenden“; alles andere steht unter „Allgemein“. Die früheren getrennten
+  Schalter für Autostart und Auto-Lauf entfallen.
+
+### Fixed
+
+- **Data Uploader: Hauptbalken voll, Kategorie-Balken leer.** Der Hauptbalken
+  zeigte den lokalen Silhouetten-Bau, die Kategorie-Balken zählen aber erst
+  gesendete Codex-Zeilen. „Silhouetten“ ist jetzt ein eigener Upload-Schritt
+  (Bundle › Silhouetten › Codex › 3D-Modelle); solange Werkzeug-Download und
+  Silhouetten-Bau laufen, sind die Kategorie-Balken abgedunkelt und eine Zeile
+  erklärt warum.
+
+### Deploy
+
+- Uploader 0.44.0 veröffentlichen (Tag `data-uploader-v0.44.0`, Katalog-Eintrag
+  auf alpha).
+
 ## [0.123.0] - 2026-10-03
 
 ### Changed

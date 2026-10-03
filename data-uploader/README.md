@@ -7,10 +7,13 @@ Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
 ## Status
 
 **Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run:
-Schritt-Schiene Installation → Einrichtung → Extraktion → Upload → Fertig. Nach einer
-erfolgreichen Extraktion folgt der Upload immer automatisch (angemeldet vorausgesetzt).
-Laufoption "Wenn fertig": nichts / Programm beenden / PC herunterfahren — pro Lauf,
-nie gespeichert — vor dem Start, dauerhafte Einstellungen hinter ⚙ (Ctrl+,).
+Schritt-Schiene Installation → Extraktion → Upload → Fertig (seit 0.44.0 ohne eigenen
+Einrichtungs-Schritt). Nach einer erfolgreichen Extraktion folgt der Upload immer
+automatisch (angemeldet vorausgesetzt). Ein Lauf hat genau zwei Knöpfe, beide als Chips
+im Kopf der Extraktions- und Upload-Karte und jederzeit umschaltbar: ⚡ Tempo (gespeichert)
+und ⏻ "Wenn fertig": nichts / Programm beenden / PC herunterfahren (pro Lauf, nie
+gespeichert). Die Automatik (neue Patches ohne Zutun hochladen) und alles andere
+Dauerhafte liegt hinter ⚙ (Ctrl+,).
 Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
 FS-Scan → Manual), 4 Performance-Profilen, OAuth-Loopback + Release-Token-Header,
@@ -51,11 +54,11 @@ src/
 ├── renderer/     # Browser-UI (SCC-Brand-Theme) — ein Bildschirm, geführter Lauf
 │   ├── index.html         # Shell: Kopfstreifen (Schiene, Verbindungs-Chip, ⚙), Bühne, Bodenleiste
 │   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
-│   ├── steps/             # install (Startrampe), setup (Umfang + Sheet), done, category-bars
+│   ├── steps/             # install (Startrampe + Start), done, category-bars
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
-│   ├── options-sheet.ts   # nur "diese Runde": Wenn fertig (nie gespeichert)
-│   ├── settings-dialog.ts # alles Dauerhafte: Unbeaufsichtigt, Tray, Ring, Sprache, Telemetrie
-│   ├── connection-popover.ts · throttle-chip.ts · log-drawer.ts · keymap.ts
+│   ├── throttle-chip.ts · when-done-chip.ts # die zwei Lauf-Knöpfe (⚡ Tempo, ⏻ Wenn fertig)
+│   ├── settings-dialog.ts # Automatik (neue Patches ohne Zutun) + Allgemein (Tray, Ring, Sprache, Telemetrie)
+│   ├── connection-popover.ts · log-drawer.ts · keymap.ts
 │   ├── progress.ts        # Progress-Karte (unverändert)
 │   └── styles.css
 ├── lib/          # Domain-Logic (im Main-Prozess geladen)
@@ -96,14 +99,10 @@ weder abgebrochen noch neu gestartet.
   an denselben sicheren Grenzen wie `PauseControl.checkpoint()` zusätzlich
   `throttle.pace()` auf. Das liest das Profil **pro Work-Unit** neu — ein
   Wechsel wirkt ab der nächsten Unit, nie mitten in einem Request.
-- **Nicht live** ist der Extraktions-*Scope* (HD-Icons, Render-PNGs,
-  Component-Tree): der entscheidet, *welche* Dateien der Sidecar abarbeitet, und
-  seine Planung läuft schon. Scope bleibt für den Lauf fest; die UI sagt das.
-
-Das Umschalt-UI ist ein Tempo-Chip unter der Progress-Karte (Popover mit dem
-kompakten Picker) — ein Mount, derselbe Schreibpfad. Der *Umfang* (minimal /
-standard / maximum, `settings.extractScope`) ist davon getrennt und wird auf
-"Einrichtung" gewählt.
+Das Umschalt-UI ist der ⚡-Tempo-Chip im Kopf der Extraktions- und Upload-Karte
+(Popover mit den drei Modi samt Kurzbeschreibung, Hotkey T) — die einzige Stelle,
+an der das Tempo gewählt wird. Einen Umfang gibt es nicht mehr: jeder Lauf
+extrahiert den kompletten Datenstand.
 
 ## Pause, Fortsetzen & Fehlertoleranz
 

@@ -1,6 +1,6 @@
 /**
  * Step rail — the position indicator for the whole one-screen flow
- * (Install · Setup · Extract · Upload · Done). Paints into `#step-rail`
+ * (Install · Extract · Upload · Done). Paints into `#step-rail`
  * (see index.html). The active Extract/Upload node's incoming line segment
  * fills with the overall run percentage, so the rail doubles as a macro
  * progress bar without a second progress element competing for attention.
@@ -8,9 +8,9 @@
 
 import { t } from '../../lib/i18n.js';
 
-export type StepKey = 'install' | 'setup' | 'extract' | 'upload' | 'done';
+export type StepKey = 'install' | 'extract' | 'upload' | 'done';
 
-export const STEP_ORDER: StepKey[] = ['install', 'setup', 'extract', 'upload', 'done'];
+export const STEP_ORDER: StepKey[] = ['install', 'extract', 'upload', 'done'];
 
 function labelFor(step: StepKey): string {
   return t(`steprail.${step}`);

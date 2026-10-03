@@ -18,7 +18,7 @@ import {
   connectNow,
   isConnected,
   connSnapshotFor,
-  goToSetup,
+  startRunFromInstall,
   jumpToResumeUpload,
 } from '../main.js';
 
@@ -93,7 +93,7 @@ export function renderInstall(): string {
   const connected = isConnected();
   const primary = connected
     ? `<button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
-    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('session.connect')}" data-tip-key="Enter">${t('session.connect')}</button>
+    : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('install.connectAndStart')}" data-tip-key="Enter">${t('install.connectAndStart')}</button>
        <button id="btn-to-setup" type="button" class="btn">${t('install.extractOnly')}</button>`;
   return `
     <div class="view step-install">
@@ -112,12 +112,12 @@ export function renderInstall(): string {
 export function wireInstall(): void {
   wireDiscoverUpdateBanner();
   $('#install-resume-btn')?.addEventListener('click', () => void jumpToResumeUpload());
-  $('#btn-to-setup')?.addEventListener('click', () => goToSetup());
+  $('#btn-to-setup')?.addEventListener('click', () => void startRunFromInstall());
   $('#btn-connect-continue')?.addEventListener('click', () => {
     // Continue only on a real session — a failed or closed browser login
     // would otherwise move on silently, its error hidden in the closed popover.
     void connectNow().then(() => {
-      if (isConnected()) goToSetup();
+      if (isConnected()) void startRunFromInstall();
       else showSnackbar(t('session.connectFailed'), 'error');
     });
   });
@@ -134,7 +134,7 @@ export function primaryAction(): void {
   // No install found yet / still scanning: the footer is hidden, so is its action.
   if (($('#discover-next') as HTMLElement | null)?.hidden) return;
   if (isConnected()) {
-    goToSetup();
+    void startRunFromInstall();
   } else {
     ($('#btn-connect-continue') as HTMLButtonElement | null)?.click();
   }
