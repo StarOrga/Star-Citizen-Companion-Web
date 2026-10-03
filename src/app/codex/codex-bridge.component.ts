@@ -1,5 +1,6 @@
 import { rankBySearch } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
+import { logWarn } from '../core/log';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,7 +12,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CodexListRow,
@@ -32,6 +33,7 @@ import { UpcomingShip, UpcomingShipsService, thumbnailCandidates } from './upcom
 import { HangarService } from '../hangar/hangar.service';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const LANE_SIZE = 18;
@@ -65,7 +67,7 @@ interface Lane {
 @Component({
   selector: 'sc-codex-bridge',
   standalone: true,
-  imports: [NeuroFieldDirective, 
+  imports: [NeuroFieldDirective, CodexDidYouMeanComponent,
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -144,6 +146,7 @@ interface Lane {
             <!-- The Bridge has no filters to loosen (L27): the scanner looks at
                  ships only, so the way on is the full index with the same term. -->
             <p>{{ 'codex.bridge.scannerEmpty' | translate: { term: searchTerm() } }}</p>
+            <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
             <a class="index-search" routerLink="/codex/index" [queryParams]="{ kind: 'ship', q: searchTerm() }">
               {{ 'codex.bridge.searchIndex' | translate }} <span aria-hidden="true">&rarr;</span>
             </a>
@@ -517,6 +520,7 @@ export class CodexBridgeComponent implements OnInit {
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly rsi = inject(UpcomingShipsService);
 
   readonly skeletons = Array.from({ length: 6 }, (_, i) => i);
@@ -542,6 +546,13 @@ export class CodexBridgeComponent implements OnInit {
   private readonly catalog = signal<CodexListRow[]>([]);
   // Hangar ship catalog rows, keyed in hangar order (Your Hangar lane + hero).
   private readonly hangarRows = signal<CodexListRow[]>([]);
+  /**
+   * Catalog ships whose stats moved between the previous and the current LIVE
+   * build (audit L23), most-changed first. Empty when there is no previous
+   * build, nothing moved, or the diff read failed — the lane then hides
+   * instead of passing the alphabetical catalog off as "fresh".
+   */
+  readonly patchChanged = signal<string[]>([]);
 
   // Class names already in the hangar — read-overlay over hangar.ships().
   readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
@@ -581,7 +592,9 @@ export class CodexBridgeComponent implements OnInit {
         rows: hangar,
       });
     }
-    const fresh = this.catalog();
+    const order = this.patchChanged();
+    const bySlug = new Map(this.catalog().map((r) => [r.classNameSlug, r] as const));
+    const fresh = order.map((cn) => bySlug.get(cn)).filter((r): r is CodexListRow => !!r);
     if (fresh.length > 0) {
       out.push({
         id: 'fresh',
@@ -634,6 +647,14 @@ export class CodexBridgeComponent implements OnInit {
       }
       void this.runSearch(term);
     });
+
+    // `?q=` seeds the scanner — the "did you mean" anchors carry it, so a
+    // suggestion opened in a new tab lands on that scan.
+    const q = this.route?.snapshot?.queryParamMap?.get('q')?.trim();
+    if (q) {
+      this.searchInput.set(q);
+      this.searchTerm.set(q);
+    }
   }
 
   async ngOnInit(): Promise<void> {
@@ -646,11 +667,37 @@ export class CodexBridgeComponent implements OnInit {
       void this.rsi.ensureLoaded();
       if (this.hangar.ships().length === 0) await this.hangar.loadAll();
       this.catalog.set(await this.svc.listBridgeShips(60));
+      void this.resolvePatchChanges();
       await this.resolveHangarRows();
     } catch (err) {
       this.error.set(toErrorKey('codex', 'bridge', err));
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  /**
+   * Feed the "Fresh this patch" lane from the build diff: the same
+   * current-vs-previous LIVE comparison the landing's fleet deltas use, run
+   * over the catalog the bridge already loaded. Best-effort by contract.
+   */
+  private async resolvePatchChanges(): Promise<void> {
+    const names = this.catalog().map((r) => r.classNameSlug);
+    if (names.length === 0) {
+      this.patchChanged.set([]);
+      return;
+    }
+    try {
+      const deltas = await this.svc.ownedFleetDeltas(names);
+      this.patchChanged.set(
+        Array.from(deltas.entries())
+          .filter(([, d]) => d.length > 0)
+          .sort((a, b) => b[1].length - a[1].length)
+          .map(([cn]) => cn),
+      );
+    } catch (error) {
+      logWarn('codex', 'bridge patch diff failed', error);
+      this.patchChanged.set([]);
     }
   }
 
@@ -696,14 +743,33 @@ export class CodexBridgeComponent implements OnInit {
     if (term) void this.runSearch(term);
   }
 
+  /** "Did you mean" ship names for a scan that found nothing (L06). */
+  readonly suggestions = signal<string[]>([]);
+
+  /** Run a suggested name as the scan, in place (the anchor carries the same `?q=`). */
+  searchFor(name: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchInput.set(name);
+    this.searchTerm.set(name);
+  }
+
+  /** Fire-and-forget: the empty state is already on screen while this loads. */
+  private async loadSuggestions(seq: number, term: string): Promise<void> {
+    const names = await this.svc.suggestNames('ship', term);
+    if (seq !== this.searchSeq) return; // an older term's answer
+    this.suggestions.set(names);
+  }
+
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
     this.searchError.set(null);
+    this.suggestions.set([]);
     try {
       const res = await this.svc.listByKind('ship', { search: term, limit: LANE_SIZE });
       if (seq !== this.searchSeq) return;
       this.searchResults.set(rankBySearch(term, res.rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug]));
+      if (res.rows.length === 0) void this.loadSuggestions(seq, term);
     } catch (error) {
       if (seq === this.searchSeq) {
         this.searchResults.set([]);

@@ -19,7 +19,7 @@ import { Location, NgTemplateOutlet } from '@angular/common';
 import { Router, UrlTree } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { ResolvedEntity, fpsArmorSlot, pickLocalized, toLang } from '../codex.service';
+import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from '../codex-format';
 import { EntityPayloadEntry, armorSlotsFromLoadout } from '../codex-landing-kpi';
 import { CodexBoardFigureComponent } from '../codex-board-figure.component';
@@ -494,7 +494,8 @@ export class CodexSetStageComponent {
     const lang = this.lang();
     return armorSlotsFromLoadout(set.items).map((s) => {
       const side: 'left' | 'right' = (LEFT_SLOTS as readonly string[]).includes(s.roleSlot) ? 'left' : 'right';
-      const query: Record<string, string> = { cat: 'armor', slot: fpsArmorSlot(s.attachType) ?? '', equipInto: set.id };
+      // One equip param for armour and weapons (L20): the set's position, not the archive facet.
+      const query: Record<string, string> = { cat: 'armor', equipInto: set.id, equipSlot: s.roleSlot };
       const href = this.hrefFor(query);
       if (!s.className) {
         const count = depth.get(s.attachType);

@@ -16,7 +16,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 
-import { CodexService, ResolvedEntity } from '../codex.service';
+import { CodexService, ResolvedEntity, toLang } from '../codex.service';
+import { armorArsenalCounts } from './fps-set-fit';
 import { HangarPickerItem } from '../stage/hangar-picker.component';
 import { CodexSetGearComponent } from './codex-set-gear.component';
 import { CodexSetStageComponent } from './codex-set-stage.component';
@@ -360,10 +361,16 @@ export class CodexSetComponent implements OnInit {
           logWarn('codex', 'set armor payloads failed', { set: active.id, error: e });
           land(this.armorPayloads, new Map());
         }),
-      // "N im Archiv" on the open positions: head-only counts, cached per build
-      // (a set switch used to fetch one full payload row per open position).
+      // "N im Arsenal" on the open positions: the cards /codex/fps shows under
+      // that slot filter — the same slim armour catalog (cached per build, the
+      // arsenal reuses it), folded the same way. A head count of raw rows said
+      // 677 where the list said 644 (audit L22).
       this.svc
-        .countItemsByAttachType(emptySlots.map((s) => s.attachType))
+        .listFpsCatalog('armor')
+        .then((rows) => {
+          const counts = armorArsenalCounts(rows, toLang(this.t.getCurrentLang()));
+          return new Map(emptySlots.map((s) => [s.attachType, counts.get(s.attachType) ?? 0] as const));
+        })
         .then((m) => land(this.archiveDepth, m))
         .catch((e) => {
           logWarn('codex', 'set archive depth failed', { set: active.id, error: e });

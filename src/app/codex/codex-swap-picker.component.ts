@@ -1,3 +1,4 @@
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import { searchMatcher } from './codex-search';
 import { logWarn } from '../core/log';
 import {
@@ -174,15 +175,18 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 @Component({
   selector: 'sc-codex-swap-picker',
   standalone: true,
-  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ScSegmentedComponent, ScColumnMenuComponent, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (target(); as t) {
       <div class="pick-veil" (click)="closed.emit()">
         <p class="pick-hint">{{ 'codex.picker.hint' | translate }}</p>
-        <article #dialog class="pick-win" role="dialog" aria-modal="true"
+        <!-- [scDialog]: focus in, Tab trap, Escape, focus back to the opener
+             (audit S15). An open sc-select consumes its own Escape first. -->
+        <article class="pick-win" role="dialog" aria-modal="true"
                  aria-labelledby="pick-title"
-                 (click)="$event.stopPropagation()" (keydown)="onKeydown($event)">
+                 scDialog (scDialogEscape)="closed.emit()"
+                 (click)="$event.stopPropagation()">
           <header class="pick-head">
             <div class="pick-titles">
               <h2 id="pick-title">{{ 'codex.picker.title' | translate: { port: t.port, size: t.size ?? '' } }}</h2>
@@ -663,9 +667,7 @@ export class CodexSwapPickerComponent {
   readonly portTypes = signal<string[]>([]);
   readonly typeFilter = signal<string>(TYPE_ALL);
 
-  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
   private readonly search = viewChild<ElementRef<HTMLInputElement>>('search');
-  private returnFocus: HTMLElement | null = null;
   private loadToken = 0;
 
   /** Value keys that get a magnitude bar (MASTER §9: Alpha, DPS only). */
@@ -703,12 +705,7 @@ export class CodexSwapPickerComponent {
       this.portTypes.set([]);
       this.columnMenu.set(EMPTY_COLUMN_MENU_STATE);
       this.error.set(false);
-      if (t) {
-        this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
-        void this.load(t, this.loadToken);
-      } else {
-        this.restoreFocus();
-      }
+      if (t) void this.load(t, this.loadToken);
     });
 
     effect(() => {
@@ -1268,42 +1265,5 @@ export class CodexSwapPickerComponent {
     const t = this.target();
     if (!t) return;
     this.picked.emit({ className: null, target: t });
-  }
-
-  // ── dialog behaviour ───────────────────────────────────────────────────────
-
-  onKeydown(ev: KeyboardEvent): void {
-    if (ev.key === 'Escape') {
-      ev.stopPropagation();
-      this.closed.emit();
-      return;
-    }
-    if (ev.key !== 'Tab') return;
-    const focusable = this.focusable();
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = globalThis.document?.activeElement as HTMLElement | null;
-    if (ev.shiftKey && active === first) {
-      ev.preventDefault();
-      last.focus();
-    } else if (!ev.shiftKey && active === last) {
-      ev.preventDefault();
-      first.focus();
-    }
-  }
-
-  private focusable(): HTMLElement[] {
-    const root = this.dialog()?.nativeElement;
-    if (!root) return [];
-    return Array.from(
-      root.querySelectorAll<HTMLElement>('button, input, a[href], [tabindex]:not([tabindex="-1"])'),
-    ).filter((el) => !el.hasAttribute('disabled'));
-  }
-
-  private restoreFocus(): void {
-    const el = this.returnFocus;
-    this.returnFocus = null;
-    if (el?.isConnected) el.focus();
   }
 }

@@ -111,7 +111,9 @@ describe('CodexWeaponDetailComponent', () => {
     fixture.detectChanges();
     const spy = jasmine.createSpy();
     fixture.componentInstance.closed.subscribe(spy);
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    (fixture.nativeElement as HTMLElement)
+      .querySelector('.wd-panel')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(spy).toHaveBeenCalled();
   });
 });

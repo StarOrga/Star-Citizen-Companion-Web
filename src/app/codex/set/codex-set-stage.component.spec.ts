@@ -107,7 +107,10 @@ describe('CodexSetStageComponent', () => {
   it('links every tile to the arsenal filtered to its slot, with the equip intent', () => {
     for (const slot of ['helmet', 'core', 'arms', 'legs', 'undersuit', 'backpack']) {
       const href = tile(slot).getAttribute('href')!;
-      expect(href).toContain('/codex/fps?cat=armor&slot=');
+      // One equip param for armour and weapons (L20): the set's position.
+      expect(href).toContain('/codex/fps?cat=armor');
+      expect(href).toContain('equipSlot=' + slot);
+      expect(href).not.toContain('slot=Helmet');
       expect(href).toContain('equipInto=set-a');
     }
   });

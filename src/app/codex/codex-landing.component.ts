@@ -3,11 +3,13 @@ import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   OnInit,
   computed,
   effect,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -54,8 +56,16 @@ import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { CodexDidYouMeanComponent, mergeSuggestions } from './codex-did-you-mean.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
+
+/** Columns of a rendered auto-fill grid: the hits sharing the first one's row. */
+export function gridColumns(items: readonly HTMLElement[]): number {
+  if (items.length === 0) return 1;
+  const top = items[0].offsetTop;
+  return Math.max(1, items.filter((el) => el.offsetTop === top).length);
+}
 
 /**
  * The Codex landing — the "Spot" stage (concept 2026-09-20, rounds 14-17,
@@ -94,6 +104,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     CodexStageComponent,
     CodexBoardFigureComponent,
     ScTooltipDirective,
+    CodexDidYouMeanComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -107,8 +118,10 @@ const SEARCH_DEBOUNCE_MS = 250;
             <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
           </svg>
           <input
+            #terminalInput
             class="terminal-input"
             type="search"
+            (keydown)="onTerminalKeydown($event)"
             [ngModel]="searchInput()"
             (ngModelChange)="onSearchInput($event)"
             [attr.aria-label]="'codex.landing.terminal.label' | translate"
@@ -202,8 +215,9 @@ const SEARCH_DEBOUNCE_MS = 250;
             <p class="results-note">{{
               'codex.landing.results.empty' | translate: { term: searchTerm() }
             }}</p>
+            <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
           } @else {
-            <div class="hit-grid">
+            <div class="hit-grid" #hitGrid (keydown)="onHitKeydown($event)">
               @for (hit of searchResults(); track hit.kind + ':' + hit.classNameSlug) {
                 <a
                   class="hit"
@@ -291,13 +305,21 @@ const SEARCH_DEBOUNCE_MS = 250;
           [eyebrow]="stageShipRow() ? rowMfr(stageShipRow()!) : null"
           [eyebrowSuffix]="stageShipRoleSuffix()"
           [stageTitle]="stageShipTitle()"
-          [routerLinkTo]="stageShipRow() ? ['/codex', 'ship', stageShipRow()!.classNameSlug] : null"
+          [routerLinkTo]="stageShipRow() ? ['/codex', 'ship', stageShipRow()!.classNameSlug] : (emptyHangar() ? ['/hangar'] : null)"
           pickerKind="ship"
           [pickerItems]="shipPickerItems()"
           (pick)="onShipPick($event)"
           (open)="onHangarOpen()"
         >
           <nav stageArchive class="archive-line" [attr.aria-label]="'codex.landing.archive.label' | translate">
+            <!-- Empty hangar (new or signed-out user, audit L24): the panel says
+                 where to go instead of leaving a dead dark area. -->
+            @if (emptyHangar()) {
+              <a class="archive-line__link stage-cta" routerLink="/hangar">{{ 'codex.landing.cta.setupHangar' | translate }}</a>
+              <button type="button" class="archive-line__link stage-cta stage-cta--ghost" (click)="focusTerminal()">
+                {{ 'codex.landing.cta.searchShip' | translate }}
+              </button>
+            }
             <span class="archive-line__eyebrow">{{ 'codex.landing.archive.label' | translate }}</span>
             <a class="archive-line__link" routerLink="/codex/index" [queryParams]="{ kind: 'ship' }">
               {{ 'codex.landing.archive.ships' | translate }}
@@ -324,7 +346,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           [eyebrow]="stagePersonRoleLabel()"
           [eyebrowSuffix]="stagePersonEquipSuffix()"
           [stageTitle]="stagePersonTitle()"
-          [routerLinkTo]="activeLoadout() ? ['/codex', 'set', activeLoadout()!.id] : null"
+          [routerLinkTo]="activeLoadout() ? ['/codex', 'set', activeLoadout()!.id] : (loading() ? null : ['/hangar'])"
           pickerKind="set"
           [pickerItems]="setPickerItems()"
           (pick)="onSetPick($event)"
@@ -332,6 +354,10 @@ const SEARCH_DEBOUNCE_MS = 250;
         >
           <sc-codex-board-figure stageFigure [filled]="boardHero()" [decorative]="true" />
           <nav stageArchive class="archive-line amber" [attr.aria-label]="'codex.landing.archive.label' | translate">
+            <!-- "Unkommissioniert" = no FPS set yet; sets are created on the hangar page. -->
+            @if (!loading() && !activeLoadout()) {
+              <a class="archive-line__link stage-cta" routerLink="/hangar">{{ 'codex.landing.cta.createSet' | translate }}</a>
+            }
             <span class="archive-line__eyebrow">{{ 'codex.landing.archive.label' | translate }}</span>
             <a class="archive-line__link" routerLink="/codex/fps" [queryParams]="{ cat: 'armor' }">
               {{ 'codex.landing.archive.armor' | translate }}
@@ -568,6 +594,20 @@ const SEARCH_DEBOUNCE_MS = 250;
         color: var(--sc-accent);
       }
       .archive-line.amber .archive-line__link b { color: var(--amber, #f0c27b); }
+      /* The empty-state CTA: a real, bordered target, not one more quiet link. */
+      .archive-line__link.stage-cta {
+        align-self: center;
+        padding: 6px 10px;
+        border: 1px solid var(--sc-accent);
+        border-radius: var(--sc-radius-sm, 4px);
+        background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+        color: #f2f7fb;
+        cursor: pointer;
+      }
+      .archive-line__link.stage-cta--ghost { background: transparent; border-color: var(--sc-border); }
+      .archive-line.amber .archive-line__link.stage-cta { border-color: var(--amber, #f0c27b); background: color-mix(in srgb, var(--amber, #f0c27b) 14%, transparent); }
+      .archive-line__link.stage-cta:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+      @media (pointer: coarse) { .archive-line__link.stage-cta { min-height: 48px; align-items: center; } }
 
       /* ── responsive: stacked stages, 300px each (final design) ──────────── */
       @media (max-width: 520px) {
@@ -595,6 +635,8 @@ export class CodexLandingComponent implements OnInit {
 
   // Archive Terminal (poly-search)
   readonly searchInput = signal('');
+  private readonly terminalInput = viewChild<ElementRef<HTMLInputElement>>('terminalInput');
+  private readonly hitGrid = viewChild<ElementRef<HTMLElement>>('hitGrid');
   readonly searchTerm = signal('');
   readonly searching = signal(false);
   readonly searchResults = signal<PolySearchHit[]>([]);
@@ -973,20 +1015,120 @@ export class CodexLandingComponent implements OnInit {
     this.searchTerm.set('');
   }
 
+  /** Move focus to the Archive Terminal (empty-hangar CTA "search a ship"). */
+  focusTerminal(): void {
+    this.terminalInput()?.nativeElement.focus();
+  }
+
+  /**
+   * Keyboard model of the terminal (audit L15): ArrowDown enters the hit grid,
+   * Enter opens the first hit (the same navigation its anchor performs),
+   * Escape clears — and blurs once there is nothing left to clear.
+   */
+  onTerminalKeydown(ev: KeyboardEvent): void {
+    if (ev.key === 'ArrowDown') {
+      const first = this.hitAnchors()[0];
+      if (!first) return;
+      ev.preventDefault();
+      first.focus();
+    } else if (ev.key === 'Enter') {
+      if (this.searchInput().trim() !== this.searchTerm().trim()) {
+        // Debounce still pending: commit the term now; the hits are not here yet.
+        if (this.searchTimer) clearTimeout(this.searchTimer);
+        this.searchTerm.set(this.searchInput());
+        ev.preventDefault();
+        return;
+      }
+      const first = this.searchResults()[0];
+      if (!first) return;
+      ev.preventDefault();
+      const queryParams = this.hitQueryParams(first) ?? undefined;
+      void this.router.navigate(this.hitLink(first), { queryParams });
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      if (this.searchInput()) this.clearSearch();
+      else (ev.target as HTMLElement | null)?.blur();
+    }
+  }
+
+  /**
+   * Arrow keys inside the hit grid. Left/Right step through the hits, Up/Down
+   * jump a row (the column count is read from the rendered layout, so the
+   * auto-fill grid stays right at every width), Home/End go to the ends and
+   * Up from the first row returns to the terminal. Hits stay ordinary anchors
+   * in the Tab order — the arrows are a shortcut, not a replacement.
+   */
+  onHitKeydown(ev: KeyboardEvent): void {
+    const hits = this.hitAnchors();
+    const idx = hits.findIndex((a) => a === document.activeElement);
+    if (idx < 0) return;
+    const cols = gridColumns(hits);
+    let next: number;
+    switch (ev.key) {
+      case 'ArrowRight': next = Math.min(idx + 1, hits.length - 1); break;
+      case 'ArrowLeft': next = Math.max(idx - 1, 0); break;
+      case 'ArrowDown': next = Math.min(idx + cols, hits.length - 1); break;
+      case 'ArrowUp':
+        if (idx < cols) {
+          ev.preventDefault();
+          this.focusTerminal();
+          return;
+        }
+        next = idx - cols;
+        break;
+      case 'Home': next = 0; break;
+      case 'End': next = hits.length - 1; break;
+      case 'Escape':
+        ev.preventDefault();
+        this.clearSearch();
+        this.focusTerminal();
+        return;
+      default: return;
+    }
+    ev.preventDefault();
+    hits[next].focus();
+  }
+
+  private hitAnchors(): HTMLAnchorElement[] {
+    const grid = this.hitGrid()?.nativeElement;
+    return grid ? Array.from(grid.querySelectorAll<HTMLAnchorElement>(':scope > a.hit')) : [];
+  }
+
   /** Run the current terminal search again after a failure. */
   retrySearch(): void {
     const term = this.searchTerm().trim();
     if (term) void this.runSearch(term);
   }
 
+  /** "Did you mean" names for a terminal search that found nothing (L06). */
+  readonly suggestions = signal<string[]>([]);
+
+  /** Run a suggested name as the terminal search, in place (the anchor carries the same `?q=`). */
+  searchFor(name: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchInput.set(name);
+    this.searchTerm.set(name);
+  }
+
+  /** Fire-and-forget across the three kinds; the empty note is already on screen. */
+  private async loadSuggestions(seq: number, term: string): Promise<void> {
+    const lists = await Promise.all(
+      (['ship', 'weapon', 'item'] as const).map((k) => this.svc.suggestNames(k, term)),
+    );
+    if (seq !== this.searchSeq) return; // an older term's answer
+    this.suggestions.set(mergeSuggestions(lists, 3));
+  }
+
   private async runSearch(term: string): Promise<void> {
     const seq = ++this.searchSeq;
     this.searching.set(true);
     this.searchError.set(null);
+    this.suggestions.set([]);
     try {
       const hits = await this.svc.searchAll(term, 6);
       if (seq !== this.searchSeq) return; // a newer search superseded this one
       this.searchResults.set(hits);
+      if (hits.length === 0) void this.loadSuggestions(seq, term);
     } catch (error) {
       if (seq === this.searchSeq) {
         this.searchResults.set([]);

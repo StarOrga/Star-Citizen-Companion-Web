@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
@@ -731,6 +731,7 @@ const SEARCH_DEBOUNCE_MS = 250;
   `],
 })
 export class HangarDashboardComponent implements OnInit {
+  private readonly router = inject(Router);
   readonly hangar = inject(HangarService);
   private readonly shares = inject(LoadoutShareService);
   private readonly rsi = inject(UpcomingShipsService);
@@ -926,7 +927,11 @@ export class HangarDashboardComponent implements OnInit {
     const name = this.newLoadoutName().trim();
     if (!name) return;
     const created = await this.hangar.createRoleLoadout(name, this.newLoadoutRole());
-    if (created) this.newLoadoutName.set('');
+    if (!created) return;
+    this.newLoadoutName.set('');
+    // A new set is empty — open it, so the next step (pick gear for a slot) is
+    // in front of the reader instead of a list row (Codex UX audit L09).
+    void this.router.navigate(['/codex', 'set', created.id]);
   }
 
   // ── set housekeeping ───────────────────────────────────────────────────────

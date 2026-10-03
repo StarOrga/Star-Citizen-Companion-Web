@@ -176,7 +176,11 @@ export interface KeybindLabel {
  */
 function usable(v: string | null | undefined): string | null {
   const s = (v ?? '').trim();
-  return s && !s.startsWith('@') ? s : null;
+  if (!s || s.startsWith('@')) return null;
+  // A "translation" that is itself an engine id (`v_toggle_guns_mode`) is a
+  // raw key echoed back, not a name — derive instead (audit L18).
+  if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(s)) return null;
+  return s;
 }
 
 /**
@@ -213,4 +217,53 @@ export function sharedContext(
   const first = contexts[0];
   if (!first) return null;
   return contexts.every((c) => c === first) ? first : null;
+}
+
+// ── key tokens ───────────────────────────────────────────────────────────────
+
+/** Modifier tokens, in the order a combo reads them (audit L18). */
+const MODIFIER_ORDER = ['lctrl', 'rctrl', 'lshift', 'rshift', 'lalt', 'ralt'] as const;
+
+/**
+ * Looks up the readable name of one key token. `key` is the token-relative
+ * i18n key (`lshift`, `mouseN`, …); returns null when there is none, so the
+ * formatter can fall back.
+ */
+export type KeyTokenTranslate = (key: string, params?: Record<string, string>) => string | null;
+
+/** One raw key token (`lshift`, `mouse1`, `np_2`, `n`, `f5`) → a readable name. */
+export function formatKeyToken(raw: string, tr: KeyTokenTranslate): string {
+  const token = raw.trim().toLowerCase();
+  if (!token) return '';
+  const named = tr(token);
+  if (named) return named;
+  const mouse = /^mouse(\d+)$/.exec(token);
+  if (mouse) return tr('mouseN', { n: mouse[1] }) ?? raw;
+  const numpad = /^np_(.+)$/.exec(token);
+  if (numpad) {
+    const inner = tr(numpad[1]) ?? numpad[1].toUpperCase();
+    return tr('numpad', { key: inner }) ?? raw;
+  }
+  if (/^f\d{1,2}$/.test(token)) return token.toUpperCase();
+  if (token.length === 1) return token.toUpperCase();
+  return humanizeKeybindName(raw.trim());
+}
+
+/**
+ * A raw binding (`u+lshift`, `lalt+n`, `mouse1`) → "Left Shift + U". Modifiers
+ * lead in a fixed order whatever order the profile stored them in; the rest
+ * keep theirs. Empty input → ''.
+ */
+export function formatKeyCombo(raw: string | null | undefined, tr: KeyTokenTranslate): string {
+  const tokens = (raw ?? '').split('+').map((t) => t.trim()).filter(Boolean);
+  if (tokens.length === 0) return '';
+  const rank = (t: string) => {
+    const i = (MODIFIER_ORDER as readonly string[]).indexOf(t.toLowerCase());
+    return i < 0 ? MODIFIER_ORDER.length : i;
+  };
+  return tokens
+    .map((t, i) => ({ t, i }))
+    .sort((a, b) => rank(a.t) - rank(b.t) || a.i - b.i)
+    .map(({ t }) => formatKeyToken(t, tr))
+    .join(' + ');
 }

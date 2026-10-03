@@ -36,6 +36,8 @@ import {
   pickLocalized,
   toLang,
 } from './codex.service';
+import { AddToSetComponent } from './set/add-to-set.component';
+import { roleSlotForAttachType } from './codex-landing-kpi';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig } from '../hangar/hangar.types';
 import { HangarPickerItem } from './stage/hangar-picker.component';
@@ -200,7 +202,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, CodexCategoryIconComponent, FallbackImageComponent, InfoNoteComponent, CodexHoloStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet],
+  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, CodexCategoryIconComponent, FallbackImageComponent, InfoNoteComponent, CodexHoloStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, NgTemplateOutlet, AddToSetComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -305,6 +307,11 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   <span class="copy-toast" role="status">{{ 'codex.detail.linkCopied' | translate }}</span>
                 }
               </button>
+              <!-- L09: an on-foot piece goes into a set from its own page too. -->
+              @if (fpsSetPiece(); as piece) {
+                <sc-add-to-set [className]="piece.className" [kind]="piece.kind" [subType]="piece.subType"
+                               [attachType]="piece.attachType" [itemName]="displayName()" />
+              }
             </div>
           </div>
         </header>
@@ -1689,6 +1696,29 @@ export class CodexDetailComponent implements OnInit {
   }
 
   // ── derived views ──────────────────────────────────────────────────────────
+  /**
+   * The on-foot piece this page shows, in the shape "add to set" needs — an
+   * FPS weapon or a personal armour piece; null for anything a set cannot hold.
+   */
+  readonly fpsSetPiece = computed<{
+    className: string;
+    kind: 'weapon' | 'item';
+    subType: string | null;
+    attachType: string | null;
+  } | null>(() => {
+    const d = this.detail();
+    if (!d) return null;
+    const subType = (d.row['sub_type'] as string | null) ?? null;
+    const attachType = (d.row['attach_type'] as string | null) ?? null;
+    if (d.kind === 'weapon' && d.row['weapon_class'] === 'FPS') {
+      return { className: d.classNameSlug, kind: 'weapon', subType, attachType: null };
+    }
+    if (d.kind === 'item' && roleSlotForAttachType(attachType)) {
+      return { className: d.classNameSlug, kind: 'item', subType, attachType };
+    }
+    return null;
+  });
+
   readonly displayName = computed(() => {
     const d = this.detail();
     if (!d) return '';

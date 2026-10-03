@@ -369,16 +369,16 @@ describe('codex-format', () => {
       expect(formatCraftTime(45)).toBe('45 s');
     });
     it('formats minutes + seconds', () => {
-      expect(formatCraftTime(90)).toBe('1 m 30 s');
+      expect(formatCraftTime(90)).toBe('1 min 30 s');
     });
     it('formats whole minutes (no seconds part)', () => {
-      expect(formatCraftTime(120)).toBe('2 m');
+      expect(formatCraftTime(120)).toBe('2 min');
     });
     it('formats hours only', () => {
       expect(formatCraftTime(3600)).toBe('1 h');
     });
     it('formats hours + minutes + seconds', () => {
-      expect(formatCraftTime(3661)).toBe('1 h 1 m 1 s');
+      expect(formatCraftTime(3661)).toBe('1 h 1 min 1 s');
     });
     it('rounds fractional seconds', () => {
       expect(formatCraftTime(45.6)).toBe('46 s');

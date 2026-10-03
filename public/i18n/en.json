@@ -279,6 +279,11 @@
           "gadget": "Gadget",
           "medical": "Medical"
         }
+      },
+      "cta": {
+        "setupHangar": "Set up your hangar",
+        "searchShip": "Search the Codex for a ship",
+        "createSet": "Create an FPS set"
       }
     },
     "bridge": {
@@ -305,7 +310,7 @@
         "hangar": "Your Hangar",
         "hangarSub": "Ships you own",
         "fresh": "Fresh this patch",
-        "freshSub": "Ships in the current live build",
+        "freshSub": "Stats changed since the previous build",
         "role": "Explore by manufacturer",
         "roleSub": "Ships grouped by their maker"
       },
@@ -431,6 +436,7 @@
       "staleUploadLink": "Open Data Uploader"
     },
     "search": {
+      "didYouMean": "Did you mean:",
       "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
       "label": "Search the codex",
       "clear": "Clear search",
@@ -947,7 +953,50 @@
         "rows": "{{n}} actions"
       },
       "expandAll": "Expand all",
-      "collapseAll": "Collapse all"
+      "collapseAll": "Collapse all",
+      "keys": {
+        "lshift": "Left Shift",
+        "rshift": "Right Shift",
+        "lalt": "Left Alt",
+        "ralt": "Right Alt",
+        "lctrl": "Left Ctrl",
+        "rctrl": "Right Ctrl",
+        "space": "Space",
+        "enter": "Enter",
+        "escape": "Esc",
+        "tab": "Tab",
+        "backspace": "Backspace",
+        "capslock": "Caps Lock",
+        "comma": "Comma",
+        "period": "Period",
+        "minus": "Minus",
+        "equals": "Equals",
+        "semicolon": "Semicolon",
+        "apostrophe": "Apostrophe",
+        "slash": "Slash",
+        "backslash": "Backslash",
+        "lbracket": "Left Bracket",
+        "rbracket": "Right Bracket",
+        "grave": "Grave",
+        "up": "Up Arrow",
+        "down": "Down Arrow",
+        "left": "Left Arrow",
+        "right": "Right Arrow",
+        "insert": "Insert",
+        "delete": "Delete",
+        "home": "Home",
+        "end": "End",
+        "pgup": "Page Up",
+        "pgdn": "Page Down",
+        "multiply": "Multiply",
+        "add": "Plus",
+        "subtract": "Minus",
+        "divide": "Divide",
+        "mwheel_up": "Wheel Up",
+        "mwheel_down": "Wheel Down",
+        "mouseN": "Mouse Button {{n}}",
+        "numpad": "Numpad {{key}}"
+      }
     },
     "provenance": {
       "label": "Source",
@@ -2039,7 +2088,8 @@
       "qualityNote": "Static base-quality values — interactive quality simulation coming in a future update.",
       "primary": "Primary",
       "usedIn": "Used in blueprints",
-      "usedInCount": "Used in {{count}} blueprint(s)"
+      "usedInCount": "Used in {{count}} blueprint(s)",
+      "unitScu": "SCU"
     }
   },
   "fps": {
@@ -2054,7 +2104,8 @@
     },
     "filters": {
       "weaponType": "Weapon type",
-      "armorSlot": "Armor slot"
+      "armorSlot": "Armor slot",
+      "toggle": "Filters ({{count}})"
     },
     "weaponType": {
       "sidearm": "Sidearm",
@@ -2098,6 +2149,21 @@
       },
       "setLoadFailed": "The set from the link could not be loaded",
       "equipAs": "Equip as {{slot}}"
+    },
+    "addToSet": {
+      "trigger": "Add to set",
+      "dialogAria": "Add {{item}} to a set",
+      "signedOut": "Sign in and create a set to collect gear.",
+      "createSet": "Create a set",
+      "loading": "Loading sets …",
+      "noSet": "You have no set yet.",
+      "noFit": "None of your sets has a slot for this piece.",
+      "pickSet": "Which set?",
+      "pickSlot": "Slot in {{set}}",
+      "replaces": "Replaces the current piece",
+      "done": "{{item}} is now in {{slot}} of {{set}}",
+      "toSet": "To the set",
+      "close": "Close"
     }
   },
   "news": {

@@ -140,7 +140,7 @@ describe('Codex keybinds at a 375px viewport (REQ-24)', () => {
     // Guard against a vacuous pass: the long content must actually be on
     // screen, and the phone branch of the styles must actually be in force.
     expect(text).toContain(LONG_LABEL);
-    expect(text).toContain('lalt');
+    expect(text).toContain('Linke Alt'); // the chord reads as words now (audit L18)
     expect(text).not.toContain('codex.keybinds.');
     expect(iframe.contentWindow!.matchMedia('(max-width: 640px)').matches).toBeTrue();
     expect(iframe.contentWindow!.innerWidth).toBe(PHONE_PX);

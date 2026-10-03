@@ -1,15 +1,12 @@
+import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
-  HostListener,
   computed,
-  effect,
   inject,
   input,
   output,
   signal,
-  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
@@ -78,13 +75,14 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
 @Component({
   selector: 'sc-codex-weapon-detail',
   standalone: true,
-  imports: [TranslatePipe, ScTooltipDirective],
+  imports: [TranslatePipe, ScTooltipDirective, ScDialogDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entry(); as e) {
       <div class="wd-backdrop" (click)="closed.emit()">
-        <article #dialog class="wd-panel sc-card" role="dialog" aria-modal="true" aria-labelledby="wd-title"
-                 tabindex="-1" (click)="$event.stopPropagation()" (keydown)="onKeydown($event)">
+        <article class="wd-panel sc-card" role="dialog" aria-modal="true" aria-labelledby="wd-title"
+                 tabindex="-1" (click)="$event.stopPropagation()"
+                 scDialog scDialogInitialFocus="container" (scDialogEscape)="closed.emit()">
           <header class="wd-head">
             <h2 id="wd-title">{{ e.name }}{{ e.size != null ? ' · S' + e.size : '' }}</h2>
             <button type="button" class="wd-close" (click)="closed.emit()"
@@ -151,14 +149,6 @@ export class CodexWeaponDetailComponent {
   readonly entry = input<WeaponDetailEntry | null>(null);
   readonly closed = output<void>();
 
-  private readonly dialog = viewChild<ElementRef<HTMLElement>>('dialog');
-  private returnFocus: HTMLElement | null = null;
-
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    if (this.entry()) this.closed.emit();
-  }
-
   private readonly i18n = inject(TranslateService);
   /** Re-run the computed on a language switch so the resolved strings below follow (#50). */
   private readonly lang = signal(this.i18n.getCurrentLang());
@@ -166,42 +156,7 @@ export class CodexWeaponDetailComponent {
   constructor() {
     this.i18n.onLangChange.pipe(takeUntilDestroyed()).subscribe((e) => this.lang.set(e.lang));
 
-    // Focus trap + focus-return (§13), same pattern as the swap picker.
-    effect(() => {
-      if (this.entry()) {
-        this.returnFocus = (globalThis.document?.activeElement as HTMLElement | null) ?? null;
-        queueMicrotask(() => this.dialog()?.nativeElement.focus());
-      } else {
-        const el = this.returnFocus;
-        this.returnFocus = null;
-        if (el?.isConnected) el.focus();
-      }
-    });
-  }
-
-  /** Tab/Shift+Tab wrap inside the dialog; Escape is handled by the host listener above. */
-  onKeydown(ev: KeyboardEvent): void {
-    if (ev.key !== 'Tab') return;
-    const focusable = this.focusable();
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    const active = globalThis.document?.activeElement as HTMLElement | null;
-    if (ev.shiftKey && active === first) {
-      ev.preventDefault();
-      last.focus();
-    } else if (!ev.shiftKey && active === last) {
-      ev.preventDefault();
-      first.focus();
-    }
-  }
-
-  private focusable(): HTMLElement[] {
-    const root = this.dialog()?.nativeElement;
-    if (!root) return [];
-    return Array.from(
-      root.querySelectorAll<HTMLElement>('button, input, a[href], [tabindex]:not([tabindex="-1"])'),
-    ).filter((el) => !el.hasAttribute('disabled'));
+    // Focus in, Tab trap, Escape and focus return: [scDialog] (audit S15).
   }
 
   dashText(): string {
