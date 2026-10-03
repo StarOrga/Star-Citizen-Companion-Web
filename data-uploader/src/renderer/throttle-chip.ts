@@ -34,6 +34,13 @@ export function refreshThrottleChip(profile: LiveProfile): void {
   if (chip) chip.textContent = chipLabel(profile);
 }
 
+/** Esc handler: closes an open tempo popover, reports whether it did. */
+export function closeThrottlePopoverIfOpen(): boolean {
+  if (!openPanel) return false;
+  closePopover();
+  return true;
+}
+
 /** Hotkey entry point (T): same as clicking the chip; no-op when no chip is mounted. */
 export function toggleThrottlePopover(): void {
   (document.getElementById('throttle-chip') as HTMLButtonElement | null)?.click();
@@ -76,6 +83,8 @@ function openPopover(anchor: HTMLElement, ctx: ThrottleChipCtx): void {
   // The chips sit at the card's right edge — keep the panel inside the window.
   panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panel.offsetWidth - 8))}px`;
   openPanel = panel;
+  // Keyboard users land on the current mode; Esc closes (main's keymap).
+  panel.querySelector<HTMLButtonElement>('.profile-pill.active')?.focus();
 
   panel.querySelectorAll<HTMLButtonElement>('.profile-pill').forEach((btn) => {
     btn.addEventListener('click', () => {

@@ -1426,6 +1426,7 @@ td.error, span.error { background: none; border: none; padding: 0; margin: 0; }
 .segment:hover { color: var(--sc-fg-0); background: rgba(var(--accent-primary-rgb), 0.1); }
 .segment.active { background: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
 .segment:focus-visible { outline-offset: -2px; }
+.segment:disabled { cursor: not-allowed; }
 
 /* Modal shell — confirm dialog, settings dialog and options sheet. */
 .sc-modal-overlay {

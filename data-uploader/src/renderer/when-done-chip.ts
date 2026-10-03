@@ -58,6 +58,7 @@ function openPopover(anchor: HTMLElement, ctx: WhenDoneChipCtx): void {
   panel.style.top = `${rect.bottom + 6}px`;
   panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panel.offsetWidth - 8))}px`;
   openPanel = panel;
+  panel.querySelector<HTMLButtonElement>('[data-whendone].active')?.focus();
 
   panel.querySelectorAll<HTMLButtonElement>('[data-whendone]').forEach((btn) => {
     btn.addEventListener('click', () => {

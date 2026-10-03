@@ -24,7 +24,13 @@ import { installKeymap } from './keymap.js';
 import { closeLogDrawer } from './log-drawer.js';
 import * as InstallStep from './steps/install.js';
 import * as DoneStep from './steps/done.js';
-import { throttleChipHtml, wireThrottleChip, toggleThrottlePopover, refreshThrottleChip } from './throttle-chip.js';
+import {
+  throttleChipHtml,
+  wireThrottleChip,
+  toggleThrottlePopover,
+  refreshThrottleChip,
+  closeThrottlePopoverIfOpen,
+} from './throttle-chip.js';
 import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
 import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import {
@@ -362,6 +368,7 @@ async function init(): Promise<void> {
     },
     escHandlers: [
       closeWhenDonePopoverIfOpen,
+      closeThrottlePopoverIfOpen,
       closeSettingsDialogIfOpen,
       () => {
         if (!isConnectionPopoverOpen()) return false;
