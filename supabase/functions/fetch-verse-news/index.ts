@@ -24,6 +24,15 @@ import { isWithinVideoRetention, videoRetentionCutoff } from './video-retention.
 import { isImageUrl } from './media-urls.ts';
 import { isWallpaperSeries } from './wallpaper-series.ts';
 import {
+  NEWS_IMG_BUCKET,
+  assetsBaseUrl,
+  cachedSourceKey,
+  newsImagesPublicBase,
+  supabaseNewsImagesBase,
+} from './news-image-store.ts';
+import { deleteNewsFolder, newsR2Config, newsR2Writer, putNewsObject } from './news-image-r2.ts';
+import type { R2Config } from '../ingest-skins/_r2.ts';
+import {
   MAX_PASSTHROUGH_BYTES,
   OPAQUE_WIDTH,
   VARIANT_CACHE_CONTROL,
@@ -680,11 +689,22 @@ async function fetchStatus(): Promise<VerseStatus | null> {
 // reached 809 MB of the 1 GB quota. Now each source is decoded once and stored as
 // a ladder of genuinely different sizes (`w400`/`w800`/`w<top>`, see
 // image-variants.ts) — no twins, nothing wider than the app ever paints.
+//
+// Where the bytes live changed again (news-images → R2, 2026-10-03): new
+// variants go to Cloudflare R2 under `news-images/<path>` (news-image-r2.ts),
+// and every url handed out points at the assets Worker, which streams keys R2
+// does not hold yet from this Supabase bucket. A refused usage gate, missing
+// R2 secrets or a failed PUT fall back to the Supabase upload per object, so
+// the cache keeps warming either way. Supabase egress was the reason: every
+// thumbnail view counted against the 5 GB/month Free allowance.
 
-const IMG_BUCKET = 'news-images';
+const IMG_BUCKET = NEWS_IMG_BUCKET;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const PUBLIC_BASE = `${SUPABASE_URL}/storage/v1/object/public/${IMG_BUCKET}`;
+/** What clients get: the assets Worker (env ASSETS_BASE_URL, default workers.dev). */
+const PUBLIC_BASE = newsImagesPublicBase(assetsBaseUrl((k) => Deno.env.get(k)));
+/** Where pre-R2 urls pointed; still recognised when one comes back in. */
+const LEGACY_PUBLIC_BASE = supabaseNewsImagesBase(SUPABASE_URL);
 // Cap warm work per request so a cold cache can't blow the deferred pass's
 // timeout OR its memory; the cache warms over a few request cycles, raw urls
 // serve meanwhile. Misses are processed SEQUENTIALLY (see warmImageCache), but
@@ -799,7 +819,13 @@ function cachedUrl(row: CacheRow): string {
  * ≤1140w, which is already the widest the app ever paints, and half the ingest
  * bandwidth of the old post+cover pair). Every stored size is derived from it.
  */
-async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample: string): Promise<CacheRow | null> {
+async function cacheOne(
+  admin: SupabaseClient,
+  r2: R2Config | null,
+  hash: string,
+  ext: string,
+  sample: string,
+): Promise<CacheRow | null> {
   const src = mediaVariant(sample, 'cover');
   const fetched = (await fetchImage(src, ext)) ?? (src === sample ? null : await fetchImage(sample, ext));
   if (!fetched) return null;
@@ -809,12 +835,16 @@ async function cacheOne(admin: SupabaseClient, hash: string, ext: string, sample
   const size = readImageSize(fetched.bytes);
   if (size && size.w * size.h > MAX_SOURCE_PIXELS) return null;
 
-  const upload = (path: string, bytes: Uint8Array, contentType: string) =>
-    admin.storage.from(IMG_BUCKET).upload(path, bytes, {
+  // R2 first; any R2 failure lands the object in the Supabase bucket instead,
+  // which the Worker serves under the same url.
+  const upload = async (path: string, bytes: Uint8Array, contentType: string) => {
+    if (r2 && await putNewsObject(r2, path, bytes, contentType, VARIANT_CACHE_CONTROL)) return { error: null };
+    return admin.storage.from(IMG_BUCKET).upload(path, bytes, {
       contentType,
       upsert: true,
       cacheControl: VARIANT_CACHE_CONTROL,
     });
+  };
 
   const variants = buildVariants(fetched.bytes, ext, edgeCodecs);
   if (!variants) {
@@ -929,6 +959,10 @@ async function warmImageCache(items: VerseNewsItem[]): Promise<void> {
 
   const deadline = Date.now() + CACHE_WARM_BUDGET_MS;
   const misses = entries.filter((e) => !cached.has(e.hash)).slice(0, MAX_CACHE_PER_REQUEST);
+  if (!misses.length) return;
+  // Asked only when there is something to write; never throws.
+  const { cfg: r2, reason } = await newsR2Writer();
+  if (!r2) console.warn(`verse_image_cache: writing to Supabase storage (${reason})`);
   const freshlyCached: CacheRow[] = [];
   for (const [i, e] of misses.entries()) {
     if (Date.now() >= deadline) {
@@ -936,7 +970,7 @@ async function warmImageCache(items: VerseNewsItem[]): Promise<void> {
       break;
     }
     try {
-      const row = await cacheOne(admin, e.hash, e.ext, e.sample);
+      const row = await cacheOne(admin, r2, e.hash, e.ext, e.sample);
       if (row) freshlyCached.push(row);
     } catch (err) {
       // One bad image must never cost the whole warm pass.
@@ -1559,9 +1593,8 @@ async function videoImageKeys(items: VerseNewsItem[]): Promise<Map<string, strin
       // them in place), so the key is normally the sha1 of the source identity —
       // the same key warmImageCache/rewriteToCachedImages derive. The public-copy
       // branch stays as a safety net for any already-cached url that reaches here.
-      const key = url.startsWith(`${PUBLIC_BASE}/`)
-        ? url.slice(PUBLIC_BASE.length + 1).split('/')[0]
-        : await sha1Hex(imageIdentity(url).base);
+      const key = cachedSourceKey(url, [PUBLIC_BASE, LEGACY_PUBLIC_BASE])
+        ?? await sha1Hex(imageIdentity(url).base);
       if (key) out.set(key, it.publishedAt);
     }
   }
@@ -1611,8 +1644,13 @@ async function pruneVideoImages(admin: SupabaseClient): Promise<void> {
 
   // List the folder instead of assuming file names: the stored variant set has
   // changed before and a hardcoded name would silently orphan the real objects.
+  // Both homes are cleared — R2 (new writes) and Supabase (legacy objects and
+  // gate fallbacks). Without R2 secrets the R2 side is skipped; deletes are free
+  // operations, so they do not ask the usage gate.
+  const r2 = newsR2Config();
   const removed: string[] = [];
   await Promise.allSettled(keys.map(async (key) => {
+    if (r2) await deleteNewsFolder(r2, key);
     const { data: files, error: listErr } = await admin.storage.from(IMG_BUCKET).list(key);
     if (listErr) throw new Error(listErr.message);
     const paths = (files ?? []).map((f) => `${key}/${f.name}`);
