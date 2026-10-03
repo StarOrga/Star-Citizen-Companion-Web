@@ -28,6 +28,9 @@ const ICON =
 
 /** The committed samples are real generator output (docs/concepts/blueprint). */
 const sample = (name) => readFileSync(new URL(`../../../docs/concepts/blueprint/${name}`, import.meta.url), 'utf-8');
+/** The Deno parity run has no --allow-read; the samples live outside the function, so only Node reads them. */
+const readState = globalThis.Deno?.permissions?.querySync?.({ name: 'read' }).state;
+const cannotReadSamples = readState !== undefined && readState !== 'granted';
 
 describe('blueprint paths', () => {
   it('derives and recognises content-addressed paths', () => {
@@ -75,7 +78,7 @@ describe('blueprint markup allow-list', () => {
     assert.equal(blueprintMarkupError(ICON, 'icon'), null);
   });
 
-  it('accepts the real samples for the right LOD only', () => {
+  it('accepts the real samples for the right LOD only', { skip: cannotReadSamples && 'Deno run without --allow-read' }, () => {
     for (const ship of ['gladius', 'reclaimer']) {
       assert.equal(blueprintMarkupError(sample(`${ship}.full.svg`), 'full'), null, `${ship} full`);
       assert.equal(blueprintMarkupError(sample(`${ship}.icon.svg`), 'icon'), null, `${ship} icon`);
