@@ -1,6 +1,6 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { provideTranslateService } from '@ngx-translate/core';
+import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { AssetPackageViewerComponent, HOVER_GRACE_MS } from './asset-package-viewer.component';
 import { AssetPackageService } from './asset-package.service';
 import { CodexService } from '../codex.service';
@@ -123,6 +123,11 @@ describe('AssetPackageViewerComponent (state logic, no WebGL)', () => {
 
   it('labels the selected component outside the hull with a link to its codex page', async () => {
     const { fixture, c } = create();
+    const t = TestBed.inject(TranslateService);
+    t.setTranslation('en', {
+      codex: { assetPackage: { label: { aria: 'Selected slot: {{name}}', open: 'Open {{name}} in the Codex', prev: 'Previous slot', next: 'Next slot' } } },
+    });
+    t.use('en');
     c['items'].set(new Map([['POWR_A', { kind: 'component', name: 'Regulus' }]]));
     project(c, ['hardpoint_power_plant']);
     c.status.set('ready');
