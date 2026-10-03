@@ -239,6 +239,16 @@ export function hotspotPlacements(m: AssetPackageManifest): PackagePlacement[] {
   return m.placements.filter((p) => isPlaced(p) && !!p.itemClass && HOTSPOT_GROUPS.has(p.group));
 }
 
+/**
+ * Slots the component label can step through: positioned and either a filled
+ * hotspot or an empty, fittable port (shown as its ring marker).
+ */
+export function selectablePlacements(m: AssetPackageManifest): PackagePlacement[] {
+  return m.placements.filter(
+    (p) => isPlaced(p) && (p.itemClass ? HOTSPOT_GROUPS.has(p.group) : isFreeSlot(p) && p.group !== 'other'),
+  );
+}
+
 /** Rows the parts list shows: filled items in any group plus free attachment slots. */
 export function listPlacements(m: AssetPackageManifest): PackagePlacement[] {
   return m.placements.filter((p) => !!p.itemClass || (p.group === 'attachments' && isFreeSlot(p)));

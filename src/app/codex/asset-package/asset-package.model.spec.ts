@@ -10,6 +10,7 @@ import {
   placementVisible,
   plausibleBounds,
   rowFromDb,
+  selectablePlacements,
   type PlacementGroup,
 } from './asset-package.model';
 
@@ -124,6 +125,19 @@ describe('asset-package model', () => {
     expect(listPlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun', 'optic', 'half']);
     expect(isFreeSlot(m.placements.find((p) => p.id === 'optic')!)).toBeTrue();
     expect(availableGroups(m)).toEqual(['weapons', 'components', 'interior']);
+  });
+
+  it('lets the label step through filled hotspots and positioned free slots', () => {
+    const raw = manifestFixture();
+    (raw['placements'] as Record<string, unknown>[]).push(
+      placementFixture({
+        id: 'empty_gun', portName: 'hardpoint_weapon_left', group: 'weapons', position: [2, 0, 1], rotation: [0, 0, 0, 1],
+        port: { minSize: 1, maxSize: 3, types: ['WeaponGun'], flags: [], editable: true }, loadout: 'empty',
+      }),
+    );
+    const m = parseManifest(raw);
+    // optic is free but has no transform; paint has no port; half has no transform.
+    expect(selectablePlacements(m).map((p) => p.id)).toEqual(['hardpoint_power_plant', 'turret', 'turret/gun', 'empty_gun']);
   });
 
   it('cascades show/hide through parentPort', () => {

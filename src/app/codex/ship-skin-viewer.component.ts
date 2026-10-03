@@ -25,8 +25,8 @@ import {
 import { HOLO_FALLBACK_ACCENT, HoloMaterial, applyHologram, parseRgbToken } from './ship-hologram';
 // three is already in this chunk through model-viewer (peer dependency, one copy).
 import * as THREE from 'three';
-import { HoloLook } from './holo-look';
-import { currentHoloVariant } from './holo-variant';
+import { HoloLook, countTriangles } from './holo-look';
+import { manufacturerAccent } from './holo-manufacturer';
 
 /** The slice of model-viewer's internal scene (`Symbol('scene')`) the concept look needs. */
 interface ModelViewerScene {
@@ -1086,10 +1086,13 @@ export class ShipSkinViewerComponent {
     this.disposeLook();
     const reduced =
       this.still() || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
-    const look = new HoloLook(currentHoloVariant(), this.accent(), reduced);
+    // Body in the app accent for every ship, rim + highlight in the manufacturer's colour.
+    const base = this.accent();
+    const look = new HoloLook(base, manufacturerAccent(this.shipId(), base), reduced);
+    // Fit first: the hull's line detail depends on its size and triangle count.
+    look.fit(new THREE.Box3().setFromObject(scene.target), countTriangles(scene.target));
     // Only the glb's own meshes (standard materials) — never a shadow plane.
     look.dress(scene.target, 'hull', (m) => !!(m.material as THREE.MeshStandardMaterial | undefined)?.isMeshStandardMaterial);
-    look.fit(new THREE.Box3().setFromObject(scene.target));
     this.look = look;
     this.lookScene = scene;
     this.shaderLook.set(true);

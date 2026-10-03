@@ -1,4 +1,4 @@
-import { inject, isDevMode } from '@angular/core';
+import { inject } from '@angular/core';
 import { Params, Router, Routes, UrlTree } from '@angular/router';
 import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
@@ -54,18 +54,6 @@ export function blueprintListRedirect({ queryParams }: { queryParams: Params }):
  * blueprintListRedirect). Pinned in app.routes.spec.ts (AUD-144).
  */
 export const routes: Routes = [
-  // DEV-ONLY: the holo look harness (concept-hologram screenshots without the
-  // login wall). isDevMode() is false in production builds, so the route does
-  // not exist there.
-  ...(isDevMode()
-    ? [
-        {
-          path: 'dev/holo',
-          loadComponent: () =>
-            import('./codex/dev/holo-harness.component').then((m) => m.HoloHarnessComponent),
-        },
-      ]
-    : []),
   {
     path: '',
     pathMatch: 'full',
