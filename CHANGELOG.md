@@ -4,6 +4,46 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.118.0] - 2026-10-03
+
+### Added
+
+- **Codex: 3D-Modelle mit eingebauten Komponenten.** Schiffe zeigen im
+  Holo-Tisch jetzt Rumpf, Komponenten, Waffen, Raketen-Racks und Türme genau
+  an ihren Andockpunkten. Gruppen (z. B. Komponenten, Waffen, Innenraum) lassen
+  sich ein- und ausblenden, einzelne Teile über die Liste. Fährt man über einen
+  Hotspot (oder fokussiert ihn), wird der Rumpf durchsichtig und die Komponente
+  innen drin hervorgehoben, etwa der Quantum Drive oder das Kraftwerk. Ein
+  Hotspot ist ein echter Link zur Codex-Seite des Teils. Der Innenraum lädt erst
+  bei Bedarf. Gegenstandsseiten (Komponenten, Schiffswaffen, Raketen, Racks,
+  FPS-Waffen) haben einen neuen Abschnitt „3D-Modell“; FPS-Waffen zeigen ihre
+  Aufsätze (Optik, Magazin, …) an den richtigen Halterungen. Schiffe ohne neues
+  Paket nutzen weiter die bisherige Ansicht. Der 3D-Code lädt erst, wenn ein
+  Modell angezeigt wird; die Startseite wird dadurch nicht größer.
+- **Data Uploader 0.41.0: fertige 3D-Pakete statt Rohdaten.** Der Uploader
+  extrahiert, platziert und reichert die 3D-Daten selbst an und lädt ein
+  fertiges Paket hoch: Rumpf, gemeinsam genutzte Teile, optional Innenraum und
+  ein Manifest mit Positionen und Codex-Verweisen. Ein Teil, das in mehreren
+  Schiffen steckt, liegt nur einmal online, und hochgeladen wird nur, was noch
+  fehlt (parallel, mit Wiederholungen). Neue Optionen: `--package`,
+  `--interior`, `--fps`/`--weapon`, `--items`/`--item`, `--max-packages`.
+  Weiterhin nur Geometrie, keine CIG-Texturen.
+
+### Fixed
+
+- **3D-Rümpfe ohne Lücken außen.** Die Vereinfachung des Rumpfs riss sichtbare
+  Löcher (0,3–1 % der Außenhaut bei Stalker, Gladius, Cutlass), außerdem
+  entfernte das Innenraum-Filtern außen sichtbare Teile und nach innen
+  gerichtete Platten verschwanden. Rümpfe werden jetzt standardmäßig nicht mehr
+  vereinfacht; eine Prüfung misst offene Kanten gegen das Rohmodell (Grenze
+  0,2 %, gemessen 0,03–0,06 %). Ein Rumpf darf dafür bis 1,5 MB groß sein.
+
+### Deploy
+
+- Reihenfolge: zuerst die Migration `asset_packages` (`npm run db:push`), dann
+  Edge Function `ingest-skins` und den Assets-Worker, danach Uploader 0.41.0
+  veröffentlichen.
+
 ## [0.117.0] - 2026-10-03
 
 ### Added
