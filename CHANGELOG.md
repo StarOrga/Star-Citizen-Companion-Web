@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.120.0] - 2026-10-03
+
+### Changed
+
+- **News-Bilder kommen aus R2 statt aus Supabase Storage.** `fetch-verse-news`
+  legt neue Bilder in den R2-Assets-Bucket (bei Kostenbremse oder PUT-Fehler
+  weiterhin in Supabase), das Aufräumen löscht in beiden. Die App schreibt alte
+  `news-images`-Adressen auf den Assets-Worker um; der Worker liefert
+  `news-images/…` aus R2 und streamt bei einem Fehlschlag aus Supabase nach.
+  So kosten Thumbnails keinen Supabase-Egress mehr (5 GB/Monat im Free-Tarif).
+  Bestehende Bilder kopiert `scripts/r2-migrate-news-images.mjs` (Probelauf als
+  Standard, `--apply`).
+- **Codex-Import: nur Deutsch und Englisch.** Die `locale_strings`-Stufe von
+  `ingest-catalog` nimmt nur noch de/en-Zeilen an; die App liest keine anderen
+  Sprachen. Das halbiert Staging in der Datenbank und R2-Schreibvorgänge je
+  Build. Die Kostenbremse bricht den Import nicht ab: schlägt die
+  R2-Veröffentlichung fehl, bleiben die Zeilen stehen (Design aus 0.119.0).
+
+### Fixed
+
+- **Assets-Worker-Tests laufen unter Windows** (`node --test` auf ein
+  Verzeichnis schlug fehl; das Skript nimmt jetzt ein Glob).
+
 ## [0.119.1] - 2026-10-03
 
 ### Fixed

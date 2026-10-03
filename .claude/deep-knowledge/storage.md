@@ -11,9 +11,23 @@ built in by design.
 | RLS-gated files (feedback attachments — private since `20260928211217`, shown via signed URLs, 1 h), codex previews | Supabase Storage (Free, 1 GB) | RLS per owner cannot be rebuilt elsewhere |
 | Codex localization strings (`codex-locale/`, since 2026-10-03) | R2, same bucket and Worker | ~31 MB per build, immutable per build; see § Localization strings |
 | Ship hulls + livery icons (`ship-skins`) | Cloudflare R2 `sc-companion-assets` (WEUR, account `115d75098864fcf13d36dc1aec1d874a`), read via `cloudflare/assets-worker` at `https://sc-assets.sc-assets-worker.workers.dev` (live 2026-09-25) | 0 € egress, 10 GB. A key the bucket lacks is streamed from Supabase by the Worker |
+| News thumbnails (`news-images`, written by `fetch-verse-news`) | Same R2 bucket under `news-images/<hash>/w<N>.<ext>`, read via the same Worker at `/news-images/…` (code 2026-10-03, `feat/news-images-r2`) | Every thumbnail view used to count against the 5 GB/month Supabase egress. Legacy objects stay in Supabase and are streamed by the Worker |
 | App bundle, icons, meshopt decoder | Vercel Hobby | Static hosting |
 | Desktop installers | GitHub Releases in the public `Star-Citizen-Companion-Binaries` mirror | No bandwidth cap, trusted domain for AV scanners |
 | Backups / codex build archive | *(planned)* Backblaze B2 EU with daily caps | Supabase Free has no downloadable backups |
+
+**News images on R2.** `fetch-verse-news` PUTs new variants to R2
+(`news-image-r2.ts`, R2 config + usage gate imported from `ingest-skins`) and
+hands out `<ASSETS_BASE_URL>/news-images/<path>` (secret optional, defaults to
+the workers.dev Worker). A refused or unknown usage gate, missing R2 secrets or
+a failed PUT fall back to the Supabase upload per object, so the feed never
+depends on R2. The video-retention prune deletes a cache entry from R2 *and*
+Supabase and keeps the `verse_image_cache` row if either fails. Rows written
+before the move keep their Supabase url in the DB; the client rewrites that
+prefix to the Worker at read time (`toNewsImageUrl` in
+`src/app/news/news-image-variants.ts`). `scripts/r2-migrate-news-images.mjs`
+copies the existing objects (dry run unless `--apply`); a change to
+`ingest-skins/_r2*.ts` does not redeploy `fetch-verse-news` by itself.
 
 ## Database budget — the codex is the only thing that grows
 
@@ -97,6 +111,16 @@ public.codex_locale_strings;` off-hours afterwards.
 `codex-locale/<build>/` prefix in R2 (~10 MB as JSON per build). Counts
 against the 8 GB write gate; a GC would delete prefixes of build ids no
 longer in `codex_builds`.
+
+Only `de` and `en` reach the staging table: the `locale_strings` op drops every
+other language (the app reads no other), which halves an ingest's temporary
+table growth and the R2 writes. A publish the R2 usage gate refuses leaves the
+rows in place and clients keep reading the table; the catalog import is never
+aborted for it.
+
+The assets Worker also serves `news-images/<hash>/<variant>.<webp|jpg|jpeg|png|gif|avif>`
+with the short cache and a stream-from-Supabase fallback to the public
+`news-images` bucket (the fallback bucket is the key's first segment).
 
 ## Log retention
 

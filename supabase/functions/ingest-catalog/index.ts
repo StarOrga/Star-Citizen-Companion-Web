@@ -139,6 +139,8 @@ type R2 = NonNullable<ReturnType<typeof r2FromEnv>>;
 type Admin = ReturnType<typeof createClient>;
 /** Rows per export/delete RPC — ~1-2 s each, measured 2026-10-03. */
 const LOCALE_PAGE = 20_000;
+/** Languages the web app reads (src/app/codex/codex.types.ts `Lang`). */
+const READ_LANGS = new Set(['de', 'en']);
 
 /** Public read path the publish verifies against (cloudflare/assets-worker). */
 function assetsPublicBase(): string {
@@ -386,11 +388,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'locale_strings') {
       const rows = body.rows as unknown[];
       if (!Array.isArray(rows) || rows.length === 0) return json({ error: 'invalid_body', message: 'rows required' }, 400);
-      const { error } = await admin
-        .from('codex_locale_strings')
-        .upsert(rows, { onConflict: 'build_id,lang,key' });
-      if (error) throw error;
-      return json({ ok: true, upserted: rows.length });
+      // The app reads de + en only; other languages would just inflate the
+      // staging table and the R2 publish.
+      const kept = rows.filter((r) => READ_LANGS.has(String((r as { lang?: unknown })?.lang ?? '')));
+      if (kept.length > 0) {
+        const { error } = await admin
+          .from('codex_locale_strings')
+          .upsert(kept, { onConflict: 'build_id,lang,key' });
+        if (error) throw error;
+      }
+      return json({ ok: true, upserted: kept.length, skipped: rows.length - kept.length });
     }
 
     if (op === 'preview') {

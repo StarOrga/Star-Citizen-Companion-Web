@@ -231,3 +231,11 @@ below is canonical — external docs cite it.)
 9. **Edge-function diffs run `npm run test:functions`** (own Bash call, rule 7)
    before merge. CI runs the same suite under Node and Deno in the
    `edge-functions` workflow's `plan` job; a red test blocks the deploy.
+
+10. **Deploys and migrations are part of the ship. Run them; never hand them
+    over as a to-do list.** After the merge, the ship brings every surface the
+    diff touches live: migrations, the assets worker, edge functions (CI),
+    post-deploy scripts and the uploader binary. It stops only for an
+    interactive login, a missing secret, or a data-destroying migration the
+    user has not approved. The order, commands and why this was manual until
+    2026-10-03 are in `deep-knowledge/deploy-surfaces.md`.

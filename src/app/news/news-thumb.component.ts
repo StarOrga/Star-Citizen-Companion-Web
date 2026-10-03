@@ -349,6 +349,8 @@ export function frameZoom(inset: FrameInset, imageRatio: number, slotRatio: numb
  *  - our own `news-images` bucket, which serves the majority of thumbnails once
  *    `fetch-verse-news` has mirrored them (it caps at a handful of downloads per
  *    run, so raw upstream urls still reach the client while the cache warms),
+ *    and the assets Worker that now serves that cache from R2 (`ACAO: *` on
+ *    every response, cloudflare/assets-worker),
  *  - `media.robertsspaceindustries.com` — the comm-link / patch media CDN,
  *  - `theverse.robertsspaceindustries.com` — Spectrum's upload host, which is
  *    where the launcher release-note screenshots from feedback db5eba1e live.
@@ -366,6 +368,7 @@ export function isPixelReadable(url: string): boolean {
   try {
     const host = new URL(url, typeof location !== 'undefined' ? location.href : undefined).hostname;
     return host === new URL(environment.supabase.url).hostname
+      || (!!environment.assets?.r2BaseUrl && host === new URL(environment.assets.r2BaseUrl).hostname)
       || PIXEL_READABLE_HOSTS.has(host);
   } catch {
     return false;

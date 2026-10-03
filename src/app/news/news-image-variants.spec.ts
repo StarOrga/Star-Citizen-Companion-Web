@@ -1,6 +1,8 @@
 import {
-  MAX_VARIANT_WIDTH, RUNG_WIDTHS, newsDefaultSrc, newsSrcset, parseVariantUrl, rsiVariant, variantRungs,
+  MAX_VARIANT_WIDTH, RUNG_WIDTHS, newsDefaultSrc, newsSrcset, parseVariantUrl, rewriteNewsImageUrl, rsiVariant,
+  toNewsImageUrl, variantRungs,
 } from './news-image-variants';
+import { environment } from '../../environments/environment';
 
 const BUCKET = 'https://x.supabase.co/storage/v1/object/public/news-images';
 const MEDIA = 'https://media.robertsspaceindustries.com/abc123';
@@ -104,5 +106,44 @@ describe('news image variants', () => {
     // supabase/functions/fetch-verse-news/image-variants.ts must agree.
     expect(RUNG_WIDTHS).toEqual([400, 800]);
     expect(MAX_VARIANT_WIDTH).toBe(1600);
+  });
+
+  describe('reading the cache through the assets Worker', () => {
+    const SB = 'https://x.supabase.co';
+    const WORKER = 'https://sc-assets.example.workers.dev';
+    const LIVE_BUCKET = `${environment.supabase.url}/storage/v1/object/public/news-images`;
+    const LIVE_WORKER = `${environment.assets?.r2BaseUrl}/news-images`;
+
+    it('maps the Supabase news-images prefix to <worker>/news-images, path unchanged', () => {
+      expect(rewriteNewsImageUrl(`${SB}/storage/v1/object/public/news-images/abc/w800.jpg`, SB, WORKER))
+        .toBe(`${WORKER}/news-images/abc/w800.jpg`);
+      expect(rewriteNewsImageUrl(`${SB}/storage/v1/object/public/news-images/abc/cover.png`, SB, `${WORKER}/`))
+        .toBe(`${WORKER}/news-images/abc/cover.png`);
+    });
+
+    it('leaves other buckets, other hosts and an unset Worker alone', () => {
+      const skins = `${SB}/storage/v1/object/public/ship-skins/a/b.glb`;
+      expect(rewriteNewsImageUrl(skins, SB, WORKER)).toBe(skins);
+      expect(rewriteNewsImageUrl(`${MEDIA}/cover.jpg`, SB, WORKER)).toBe(`${MEDIA}/cover.jpg`);
+      const cached = `${SB}/storage/v1/object/public/news-images/abc/w800.jpg`;
+      expect(rewriteNewsImageUrl(cached, SB, null)).toBe(cached);
+      expect(rewriteNewsImageUrl(cached, SB, '  ')).toBe(cached);
+    });
+
+    it('is idempotent on an already rewritten url', () => {
+      const once = toNewsImageUrl(`${LIVE_BUCKET}/abc/w800.jpg`);
+      expect(once).toBe(`${LIVE_WORKER}/abc/w800.jpg`);
+      expect(toNewsImageUrl(once)).toBe(once);
+    });
+
+    it('builds srcset and default src from the Worker for legacy rows', () => {
+      expect(newsSrcset(`${LIVE_BUCKET}/abc/w1140.jpg`)).toBe(
+        `${LIVE_WORKER}/abc/w400.jpg 400w, ${LIVE_WORKER}/abc/w800.jpg 800w, ${LIVE_WORKER}/abc/w1140.jpg 1140w`,
+      );
+      expect(newsDefaultSrc(`${LIVE_BUCKET}/abc/w1140.jpg`, false)).toBe(`${LIVE_WORKER}/abc/w400.jpg`);
+      expect(newsDefaultSrc(`${LIVE_BUCKET}/abc/w0.gif`, true)).toBe(`${LIVE_WORKER}/abc/w0.gif`);
+      expect(rsiVariant(`${LIVE_BUCKET}/abc/cover.png`, 'post')).toBe(`${LIVE_WORKER}/abc/post.png`);
+      expect(parseVariantUrl(`${LIVE_BUCKET}/abc/w800.jpg`)?.base).toBe(`${LIVE_WORKER}/abc/`);
+    });
   });
 });
