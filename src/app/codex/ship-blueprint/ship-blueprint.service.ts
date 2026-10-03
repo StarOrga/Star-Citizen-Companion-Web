@@ -57,15 +57,20 @@ export class ShipBlueprintService {
     }
   }
 
-  /** Loads the index once; concurrent callers share the request, a failure lets the next caller retry. */
+  /**
+   * Loads the index once per session; concurrent callers share the request.
+   * A failure counts as "no drawings" for the session: dozens of tiles mount at
+   * once, and each retrying would hammer a backend that just said no (or a
+   * database the migration has not reached yet).
+   */
   load(): Promise<void> {
     if (this.index()) return Promise.resolve();
     this.loading ??= this.readIndex()
-      .then((rows) => this.index.set(rows))
-      .catch((err: unknown) => logWarn('ship-blueprint', 'index read failed', err))
-      .finally(() => {
-        this.loading = null;
-      });
+      .catch((err: unknown) => {
+        logWarn('ship-blueprint', 'index read failed', err);
+        return new Map<string, BlueprintUrls>();
+      })
+      .then((rows) => this.index.set(rows));
     return this.loading;
   }
 

@@ -1,3 +1,4 @@
+import { provideNoShipBlueprints } from '../ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed, fakeAsync, flush, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -76,7 +77,8 @@ async function setup(inputs: Partial<{
 }> = {}): Promise<ComponentFixture<CodexHoloStageComponent>> {
   await TestBed.configureTestingModule({
     imports: [CodexHoloStageComponent],
-    providers: [provideRouter([]), provideTranslateService({})],
+    providers: [
+      provideNoShipBlueprints(),provideRouter([]), provideTranslateService({})],
   }).compileComponents();
   const fixture = TestBed.createComponent(CodexHoloStageComponent);
   fixture.componentRef.setInput('detail', inputs.detail ?? detailWithPorts([]));

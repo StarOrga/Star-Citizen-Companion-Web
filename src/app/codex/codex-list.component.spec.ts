@@ -1,3 +1,4 @@
+import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { Location } from '@angular/common';
@@ -102,6 +103,7 @@ describe('CodexListComponent (Index mode)', () => {
     await TestBed.configureTestingModule({
       imports: [CodexListComponent],
       providers: [
+      provideNoShipBlueprints(),
         provideRouter([]),
         provideLocationMocks(),
         provideTranslateService({ fallbackLang: 'en' }),

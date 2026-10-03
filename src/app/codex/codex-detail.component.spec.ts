@@ -1,3 +1,4 @@
+import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
@@ -146,6 +147,7 @@ async function setup(
   await TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
+      provideNoShipBlueprints(),
       provideRouter([]),
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(payload), ...svc } },
@@ -597,6 +599,7 @@ async function setupCharacterisation(opts: CharacterisationOpts): Promise<Compon
   await TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
+      provideNoShipBlueprints(),
       provideRouter([]),
       provideTranslateService({}),
       { provide: CodexService, useValue: { ...makeCodexServiceStub(NOMAD_PAYLOAD), ...opts.svc } },

@@ -1,8 +1,8 @@
 // Spec helpers for ship blueprints — imported by specs only.
-import { signal } from '@angular/core';
+import { type Provider, signal } from '@angular/core';
 import type { BlueprintLod, ShipBlueprint } from './ship-blueprint.model';
 import { parseShipBlueprint } from './ship-blueprint.model';
-import type { BlueprintUrls } from './ship-blueprint.service';
+import { type BlueprintUrls, ShipBlueprintService } from './ship-blueprint.service';
 
 /**
  * A 10 m x 4 m hull in the generator's exact format: top view box 100 x 40 at
@@ -28,6 +28,14 @@ export function blueprintSvg(lod: BlueprintLod = 'full', extra = ''): string {
 
 export function blueprintFixture(lod: BlueprintLod = 'full'): ShipBlueprint {
   return parseShipBlueprint(blueprintSvg(lod))!;
+}
+
+/**
+ * For specs of pages that merely CONTAIN blueprint art (tiles, search rows, the
+ * stage): no ship has a drawing, and nothing reaches the network.
+ */
+export function provideNoShipBlueprints(): Provider {
+  return { provide: ShipBlueprintService, useValue: fakeShipBlueprints() };
 }
 
 /** A stand-in ShipBlueprintService: `set(shipId)` gives a ship drawings, reactive like the real index. */
