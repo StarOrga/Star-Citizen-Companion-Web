@@ -169,6 +169,8 @@
     "signInFailed": "Sign-in failed",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
+    "bundleAlreadyThere": "Bundle is already on the server — updating the Codex and 3D data.",
+    "installMissing": "No {{channel}} install found — the local 3D data could not be built.",
     "uploadFailed": "Upload failed",
     "cleaned": "Extracted files cleaned up (upload confirmed)",
     "bundleUploading": "Uploading bundle metadata…",
@@ -206,7 +208,12 @@
       "resumeLost": "The upload cannot be resumed — the extracted data is no longer available.",
       "resumeLostHint": "Please discard the upload and run the extraction again.",
       "discard": "Discard",
+      "discardConfirm": {
+        "title": "Discard upload?",
+        "message": "The saved progress of this upload is deleted — it can no longer be resumed afterwards."
+      },
       "cancelled": "Upload discarded — the saved progress was removed.",
+      "cancelledNoResult": "Use “Back” to start a fresh extraction from Setup.",
       "resumeBanner": "Found an interrupted upload ({{hint}}) — resume it?",
       "resumeBannerRich": "Interrupted upload · {{macro}}: {{stages}} — resume?",
       "stagePending": "pending",

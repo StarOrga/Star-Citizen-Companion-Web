@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.119.1] - 2026-10-03
+
+### Fixed
+
+- **Data Uploader 0.41.1: kein Sackgassen-Bildschirm mehr nach „Verwerfen“.**
+  Wer einen unterbrochenen Upload verwirft, kommt jetzt über „Zurück“, den
+  ‹-Pfeil oder Esc zurück zur Einrichtung und kann neu extrahieren. Zurück ist
+  im Upload- und Extraktionsschritt immer möglich, solange nichts läuft.
+  „Verwerfen“ fragt vorher nach, die veraltete Meldung „Unterbrochener Upload
+  gefunden“ verschwindet, und die Tastatur-Auswahl bleibt nach dem Dialog und
+  auf den Bereichs-Pillen erhalten. Esc öffnet den Abbruch-Dialog nicht mehr
+  erneut, Enter auf einer Bereichs-Pille startet keinen stundenlangen Lauf mehr.
+- **Data Uploader: Abbrechen und Fortsetzen ohne Wettläufe.** Ein Abbruch vor
+  dem ersten Lebenszeichen der Extraktion wird beachtet und ein spät
+  eintreffendes Ergebnis nicht mehr übernommen oder automatisch hochgeladen.
+  Fortsetzen aus dem Tray während ein Lauf endet startet keine zweite
+  Pipeline, Pause während der Browser-Anmeldung ist gesperrt, Pause
+  unterbricht auch den Silhouetten-Bau, und ein bereits vorhandenes Paket
+  (409) zählt als erledigt, sodass Codex und 3D-Modelle trotzdem laufen.
+  Lokale Builds nehmen die `Data.p4k` des Kanals der Extraktion (PTU statt
+  LIVE), der Fertig-Schritt zeigt keinen falschen 60-s-Countdown mehr.
+- **Data Uploader: Fehler werden angezeigt statt still übersprungen.**
+  Fehlgeschlagene Anmeldungen, eine verlorene Sitzung beim Codex-Schritt und
+  eine fehlende Installation für den Kanal der Extraktion erscheinen jetzt als
+  Meldung. Codex-Fehler, die ein Fortsetzen nicht beheben kann (leere oder
+  fehlende Extraktion), verwerfen den Auftrag statt ein aussichtsloses
+  Fortsetzen anzubieten.
+
 ## [0.119.0] - 2026-10-03
 
 ### Added

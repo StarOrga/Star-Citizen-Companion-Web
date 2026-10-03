@@ -1,11 +1,11 @@
 /**
- * Floating ‹ › carousel chevrons — only meaningful between Install ↔ Setup,
- * before a run is live (see brief: "no Back during a run — abort is an
- * explicit action"). Hidden/disabled everywhere else, including the ←/→ keys
- * (wired centrally in keymap.ts, which calls `wireChevrons`'s handlers).
+ * Floating ‹ › carousel chevrons — the flow's position cue on both edges.
+ * Back is offered wherever no work is in flight (Setup → Install, a finished
+ * or failed Extract → Setup, an idle Upload → Setup); Next only Install →
+ * Setup, because every later step starts with an explicit action. The
+ * renderer decides availability (`paintChevrons`), the ←/→ keys follow it
+ * (wired centrally in keymap.ts, which calls `handleChevronKey`).
  */
-
-import type { StepKey } from './step-rail.js';
 
 export interface ChevronCtx {
   goPrev: () => void;
@@ -23,15 +23,14 @@ export function wireChevrons(next: ChevronCtx): void {
 }
 
 /**
- * Chevrons stay on both edges as the flow's position cue; they are only
- * ENABLED between Install ↔ Setup before a run starts (concept: "ab
- * Extraktion starten ausgegraut, weil rückwärts dann Abbrechen hieße").
+ * Chevrons stay on both edges; they are disabled — never hidden — while
+ * stepping that way is not possible, so the cue does not jump around. The
+ * caller passes availability from the actual in-flight work: going back
+ * mid-run would mean aborting, which stays an explicit action.
  */
-export function paintChevrons(step: StepKey, runStarted: boolean): void {
+export function paintChevrons(canPrev: boolean, canNext: boolean): void {
   const prev = document.getElementById('chevron-prev') as HTMLButtonElement | null;
   const nxt = document.getElementById('chevron-next') as HTMLButtonElement | null;
-  const canPrev = !runStarted && step === 'setup';
-  const canNext = !runStarted && step === 'install';
   if (prev) {
     prev.hidden = false;
     prev.disabled = !canPrev;
