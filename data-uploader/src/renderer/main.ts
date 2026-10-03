@@ -64,6 +64,7 @@ interface CatalogUploadResult {
   error?: string;
   errorCode?: string;
   errorPhase?: string;
+  localeSkipped?: string;
 }
 
 /** Performance profiles the operator can pick — mirrors `lib/performance.ts`. */
@@ -2406,8 +2407,9 @@ async function promoteToCodex(
       progress?.update({ overallPct: 100, indeterminate: false });
       markCategoriesComplete();
       setAuthStatus(
-        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
-        'ok',
+        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}` +
+          (res.localeSkipped ? ` · ${t('catalog.localeSkipped')}` : ''),
+        res.localeSkipped ? 'warn' : 'ok',
       );
       return 'ok';
     }

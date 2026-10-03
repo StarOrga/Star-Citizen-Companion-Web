@@ -177,6 +177,8 @@ export interface CatalogUploadResult {
   errorCode?: CatalogErrorCode;
   /** Publish phase that failed (`codex_ships`, `finalize`, …) — names WHERE it stopped. */
   errorPhase?: string;
+  /** Published, but the R2 cost gate refused the locale shards — texts were skipped. */
+  localeSkipped?: SkinGateCode;
 }
 
 /**
@@ -465,6 +467,7 @@ export async function uploadCatalog(
    * are not sent again (content-addressed by sha256). Progress counts strings.
    * A language whose file the extract did not write is skipped, never faked.
    */
+  let localeSkipped: SkinGateCode | undefined;
   const sendLocaleShards = async (buildId: string): Promise<number> => {
     const phase = LOCALE_PHASE;
     const dir = join(outDir, 'localization');
@@ -489,11 +492,24 @@ export async function uploadCatalog(
       await hooks.pace?.();
       hooks.onCursor?.(phase, i);
       livePhase = phase;
-      const signed = await post('locale_sign', {
-        build_id: buildId,
-        lang: set.lang,
-        shards: set.shards.map((s) => ({ sha256: s.sha256, bytes: s.bytes })),
-      });
+      let signed: Record<string, unknown>;
+      try {
+        signed = await post('locale_sign', {
+          build_id: buildId,
+          lang: set.lang,
+          shards: set.shards.map((s) => ({ sha256: s.sha256, bytes: s.bytes })),
+        });
+      } catch (err) {
+        // The R2 cost gate stays closed for hours or the rest of the month.
+        // Texts are skipped rather than holding back the whole catalog: the
+        // build still goes live, labels fall back to raw keys / English.
+        if (err instanceof IngestHttpError && isSkinGateCode(err.code)) {
+          log.warn(`[catalog] locale shards skipped from '${set.lang}' on: ${err.code}`);
+          localeSkipped = err.code;
+          break;
+        }
+        throw err;
+      }
       const uploads = Array.isArray(signed.uploads)
         ? (signed.uploads as { sha256?: string; signedUrl?: string; exists?: boolean }[])
         : [];
@@ -519,7 +535,8 @@ export async function uploadCatalog(
         bytes: set.bytes,
       });
     }
-    hooks.onPhaseDone?.(phase);
+    // A skipped language is not done: a later run of the same build retries it.
+    if (!localeSkipped) hooks.onPhaseDone?.(phase);
     return total;
   };
 
@@ -761,7 +778,7 @@ export async function uploadCatalog(
     progress({ phase: 'finalize', current: 1, total: 1 });
 
     log.info(`[catalog] promoted build ${buildId} (${nat.channel} ${nat.patch_version} ${nat.build_number})`);
-    return { ok: true, buildId, counts };
+    return localeSkipped ? { ok: true, buildId, counts, localeSkipped } : { ok: true, buildId, counts };
   } catch (err) {
     // A pause/cancel is control flow, not a failure: let it unwind to the
     // caller, which persists the cursor and reports `paused` rather than

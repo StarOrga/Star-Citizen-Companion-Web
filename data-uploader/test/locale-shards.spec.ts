@@ -191,22 +191,22 @@ describe('uploadCatalog locale phase', () => {
     expect(calls.filter((c) => c.op === 'locale_sign').map((c) => c.body?.lang)).toEqual(['en']);
   });
 
-  it('stops on the R2 cost gate without retrying and reports its code', async () => {
+  it('skips the texts on the R2 cost gate, without retrying, and still publishes', async () => {
     const calls: Call[] = [];
     stub(calls, { signError: { status: 507, error: 'r2_free_tier_guard' } });
     const res = await uploadCatalog('t', outDir, () => {}, { backoffMs: () => 0 });
-    expect(res.ok).toBe(false);
-    expect(res.errorCode).toBe('r2_free_tier_guard');
-    expect(res.errorPhase).toBe('codex_locale_shards');
+    expect(res.ok).toBe(true);
+    expect(res.localeSkipped).toBe('r2_free_tier_guard');
     expect(calls.filter((c) => c.op === 'locale_sign')).toHaveLength(1);
-    expect(calls.some((c) => c.op === 'finalize')).toBe(false);
+    expect(calls.some((c) => c.op === 'locale_commit')).toBe(false);
+    expect(calls.some((c) => c.op === 'finalize')).toBe(true);
   });
 
-  it('treats 503 r2_usage_unknown as a stop, not a retry', async () => {
+  it('treats 503 r2_usage_unknown as a skip, not a retry', async () => {
     const calls: Call[] = [];
     stub(calls, { signError: { status: 503, error: 'r2_usage_unknown' } });
     const res = await uploadCatalog('t', outDir, () => {}, { backoffMs: () => 0 });
-    expect(res.errorCode).toBe('r2_usage_unknown');
+    expect(res.localeSkipped).toBe('r2_usage_unknown');
     expect(calls.filter((c) => c.op === 'locale_sign')).toHaveLength(1);
   });
 });

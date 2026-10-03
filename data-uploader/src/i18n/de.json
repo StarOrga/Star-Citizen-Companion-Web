@@ -293,6 +293,7 @@
   "catalog": {
     "publishing": "Codex wird veröffentlicht",
     "published": "Codex aktualisiert",
+    "localeSkipped": "Texte übersprungen (R2-Kostenbremse)",
     "ships": "Schiffe",
     "failed": "Codex-Veröffentlichung fehlgeschlagen",
     "step": "Schritt {{current}} / {{total}} wird veröffentlicht",
