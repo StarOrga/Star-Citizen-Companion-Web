@@ -20,6 +20,12 @@ export interface DiscoveredChannel {
   installPath: string;
   dataP4kPath: string;
   version: string | null;
+  /**
+   * Game build number (`RequestedP4ChangeNum` of `build_manifest.id`) — with
+   * `version` the "same patch + build" key subtheme skipping compares on.
+   * Null/absent when the manifest does not carry it.
+   */
+  buildNumber?: string | null;
   sizeBytes: number;
   source: 'rsi-launcher' | 'fs-scan' | 'manual';
 }
@@ -148,11 +154,13 @@ async function probeChannel(
     return null;
   }
   if (!stat.isFile() || stat.size < 1024 * 1024) return null;
+  const ids = await readVersionFile(channelDir);
   return {
     channel: inferChannelFromPath(channelDir),
     installPath: channelDir,
     dataP4kPath: dataP4k,
-    version: await readVersionFile(channelDir),
+    version: ids.version,
+    buildNumber: ids.buildNumber,
     sizeBytes: stat.size,
     source,
   };
@@ -163,17 +171,28 @@ function inferChannelFromPath(p: string): ChannelTag {
   return CHANNELS.includes(lastPart) ? lastPart : 'LIVE';
 }
 
-async function readVersionFile(channelDir: string): Promise<string | null> {
+async function readVersionFile(
+  channelDir: string,
+): Promise<{ version: string | null; buildNumber: string | null }> {
   for (const candidate of ['build_manifest.id', 'f_win_game_client_release_version.txt']) {
     try {
       const raw = await fs.readFile(join(channelDir, candidate), 'utf-8');
       const m = raw.match(/\d+\.\d+(\.\d+)+/);
-      if (m) return m[0];
+      if (m) return { version: m[0], buildNumber: parseBuildNumber(raw) };
     } catch {
       /* skip */
     }
   }
-  return null;
+  return { version: null, buildNumber: null };
+}
+
+/**
+ * The build number of a `build_manifest.id` (`"RequestedP4ChangeNum": "9876543"`).
+ * A plain-text version file carries none — null, never a guess.
+ */
+export function parseBuildNumber(raw: string): string | null {
+  const m = raw.match(/"RequestedP4ChangeNum"\s*:\s*"?(\d+)"?/);
+  return m ? m[1] : null;
 }
 
 function dedupe(channels: DiscoveredChannel[]): DiscoveredChannel[] {

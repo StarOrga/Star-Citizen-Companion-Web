@@ -32,7 +32,11 @@
     "lastUploaded": "Last uploaded {{when}}",
     "resumeGeneric": "Found an interrupted upload — resume it?",
     "extractOnly": "Extract only (no upload)",
-    "connectAndStart": "Connect & start extraction"
+    "connectAndStart": "Connect & start extraction",
+    "forceAll": {
+      "label": "Force everything",
+      "hint": "Extracts and re-uploads every part — including those the server already holds in their current form for this build."
+    }
   },
   "category": {
     "ships": "Ships",
@@ -387,5 +391,20 @@
     "minimalDesc": "Play alongside: 1 core, lowest priority. Takes the longest.",
     "standardDesc": "Browse or stream alongside: half the cores, lowered priority. Too much for gaming.",
     "maximumDesc": "The PC belongs to the uploader: every core but one. Little else runs alongside."
+  },
+  "subthemes": {
+    "allCurrent": "The server already holds this build in full — nothing changed, extraction and upload are skipped. \"Force everything\" runs anyway.",
+    "skipping": "Unchanged, skipped: {{list}}",
+    "skipped": "{{name}}: unchanged — skipped",
+    "names": {
+      "strings": "Texts",
+      "ships": "Ships",
+      "components": "Components",
+      "weapons": "Weapons",
+      "items": "Items",
+      "codex_extra": "Other Codex data",
+      "silhouettes": "Silhouettes",
+      "hulls": "3D hulls"
+    }
   }
 }

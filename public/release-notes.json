@@ -1,7 +1,51 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.124.0",
+  "current": "0.125.0",
   "releases": [
+    {
+      "version": "0.125.0",
+      "date": "2026-10-04",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.45.0: unveränderte Subthemen werden übersprungen.",
+              "text": "Hat der Server ein Subthema (Kategorie-Balken: Strings, Schiffe, Komponenten, Waffen, Items, Codex-Extras, Silhouetten, 3D-Hüllen) schon für denselben Kanal, Patch und Build mit der aktuellen Revision des Uploaders, wird es weder extrahiert noch hochgeladen; ist nichts offen, startet keine Extraktion. Der Installieren-Schritt hat einen Schalter „Alles neu erzwingen“. Der Auto-Lauf startet auch bei gleichem Patch, wenn ein Subthema offen ist."
+            },
+            {
+              "title": "Revisions-Guard in CI.",
+              "text": "Ein PR, der die Quellen eines Subthemas ändert, muss dessen Revision erhöhen oder per Commit-Trailer Subtheme-Unchanged: <keys> bestätigen, dass sich die Ausgabe nicht ändert."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: Build-Nummer.",
+              "text": "Die Build-Nummer kommt jetzt aus build_manifest.id (RequestedP4ChangeNum); bisher war sie leer und der Server speicherte jeden Lauf als Build „desktop“."
+            }
+          ]
+        },
+        {
+          "category": "Deploy",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Migration 20261004070000_uploader_subtheme_ledger.sql (Tabelle uploader_subtheme_uploads, RPCs list_uploader_subthemes / record_uploader_subthemes, nur Collaborator/Admin) vor dem Uploader-Release."
+            },
+            {
+              "title": "",
+              "text": "Uploader 0.45.0 veröffentlichen (Tag data-uploader-v0.45.0, Katalog-Eintrag auf alpha). Der erste Lauf nach dem Update lädt jeden Build noch einmal voll hoch (noch keine Ledger-Zeilen)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.124.0",
       "date": "2026-10-03",

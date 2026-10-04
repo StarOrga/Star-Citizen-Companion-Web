@@ -14,6 +14,7 @@ import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
 import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
 import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
+import { CATALOG_SUBTHEMES, phasesOf, type SubthemeKey, type SubthemePlan } from '../lib/subthemes.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
 import { $, escapeHtml } from './dom.js';
 import { paintStepRail, setStepRailFill, STEP_ORDER, type StepKey } from './shell/step-rail.js';
@@ -247,6 +248,7 @@ export const state = {
     installPath: string;
     dataP4kPath: string;
     version: string | null;
+    buildNumber?: string | null;
     sizeBytes: number;
     source: string;
     selected: boolean;
@@ -264,6 +266,11 @@ export const state = {
   // `buildRunPlan()` at the single `startRun()` entry point. Drives
   // `maybeShutdownAfterUpload` / `maybeQuitAfterUpload` and the armed chip.
   runPlan: null as RunPlan | null,
+  // Subthemes the server already holds for this build (lib/subthemes.ts) —
+  // decided once per run before the extraction; null = skip nothing.
+  subthemePlan: null as SubthemePlan | null,
+  /** Install step's "Alles neu erzwingen" — per run, never persisted. */
+  forceAll: false,
   lastResult: null as ExtractResultPayload | null,
   // Flips true the moment the extract finishes OK — drives the clear
   // "Bundle fertig, du kannst hochladen" affordance on the Run screen.
@@ -553,6 +560,7 @@ async function maybeAutoRun(): Promise<void> {
       installPath: decision.channel.installPath,
       dataP4kPath: decision.channel.dataP4kPath,
       version: decision.channel.version,
+      buildNumber: decision.channel.buildNumber ?? null,
       sizeBytes: decision.channel.sizeBytes,
       source: decision.channel.source,
       selected: true,
@@ -1206,6 +1214,8 @@ export function resetForNewRun(): void {
   state.skinResult = null;
   state.skinUploadStatus = null;
   state.runPlan = null;
+  state.subthemePlan = null;
+  state.forceAll = false;
   state.whenDone = 'nothing';
   state.view = 'discover';
   noteOverallPct(0);
@@ -1541,6 +1551,36 @@ async function runRealExtract(): Promise<void> {
   appendLog(`extracting ${channel.dataP4kPath}`);
   appendLog(`output → ${outDir}`);
 
+  // Which subthemes does the server already hold for this exact build, made by
+  // an uploader whose logic for them is unchanged? Those are left out below
+  // (lib/subthemes.ts). Only asked when the run will upload — without a
+  // session nothing is uploaded, so nothing can be skipped either.
+  state.subthemePlan = null;
+  if (state.runPlan?.uploadAfter && state.authToken) {
+    const plan = await window.sc.subthemes.plan(
+      {
+        channel: channel.channel,
+        patchVersion: channel.version ?? '',
+        buildNumber: channel.buildNumber ?? '',
+      },
+      state.forceAll,
+    );
+    state.subthemePlan = plan;
+    if (plan.skip.length) {
+      appendLog(t('subthemes.skipping', { list: plan.skip.map(subthemeName).join(', ') }));
+    }
+    if (plan.reason === 'ledger' && plan.pending.length === 0) {
+      // Same game build, nothing the uploader would now do differently — no
+      // extraction, no upload. "Alles neu erzwingen" on the Install step overrides.
+      appendLog(t('subthemes.allCurrent'), 'success');
+      setStatus(t('subthemes.allCurrent'));
+      progress.update({ overallPct: 100, indeterminate: false });
+      progress.stop();
+      noteOverallPct(100);
+      return;
+    }
+  }
+
   const unsubscribe = window.sc.extract.onEvent((ev) => {
     const firstEvent = currentExtractJobId === null;
     currentExtractJobId = ev.jobId; // stable for the run; lets "abort" cancel it
@@ -1621,7 +1661,9 @@ async function runRealExtract(): Promise<void> {
       outDir,
       channel: channel.channel as 'LIVE' | 'PTU' | 'EPTU' | 'TECH-PREVIEW',
       patchVersion: channel.version ?? 'unknown',
-      buildNumber: '', // unknown from disk; server will treat empty as missing
+      // From build_manifest.id; empty when the install does not carry one (the
+      // server then files the build as 'desktop' and nothing is skipped).
+      buildNumber: channel.buildNumber ?? '',
       // Always the full data set: what lands on the server must not depend on
       // which uploader ran or what it picked. Only the speed (PC load) is a choice.
       scope: { hdIcons: true, renderPngs: true, componentTree: true },
@@ -2314,8 +2356,15 @@ async function doUploadAfterAuth(): Promise<void> {
   // The bars count Codex rows sent — none are until the silhouettes (and the
   // build tools they need) are through, so say why they stand still.
   setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
+  const skipped = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
+  let silhouettesOk = false;
   try {
-    await buildSilhouettes(result, uploadProgress);
+    if (skipped.has('silhouettes')) {
+      drawerAppendLog(t('subthemes.skipped', { name: subthemeName('silhouettes') }));
+    } else {
+      await buildSilhouettes(result, uploadProgress);
+      silhouettesOk = true;
+    }
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
     setAuthStatus(
@@ -2337,6 +2386,18 @@ async function doUploadAfterAuth(): Promise<void> {
     setAuthStatus(tOr('upload.job.paused', 'Upload pausiert — der Fortschritt ist gespeichert.'), 'warn');
     return;
   }
+  const ledgerKey = {
+    channel: result.channel,
+    patchVersion: result.patch_version,
+    buildNumber: result.build_number,
+  };
+  if (codex === 'ok') {
+    // Only what this run actually sent lands in the ledger: skipped subthemes
+    // already have their row, and silhouettes count only when they were built.
+    const landed = CATALOG_SUBTHEMES.filter((k) => !skipped.has(k));
+    if (silhouettesOk) landed.push('silhouettes');
+    if (landed.length) void window.sc.subthemes.record(ledgerKey, landed);
+  }
 
   // Build + upload the 3D liveries as part of the SAME upload — skins are a
   // sub-property of every ship, not a separate step. Reads the extract's build
@@ -2344,7 +2405,15 @@ async function doUploadAfterAuth(): Promise<void> {
   // out_dir). Fully non-fatal: the bundle is already confirmed.
   uploadProgress?.setStep(3);
   try {
-    await buildAndUploadSkins(result, uploadProgress);
+    if (skipped.has('hulls')) {
+      drawerAppendLog(t('subthemes.skipped', { name: subthemeName('hulls') }));
+    } else {
+      // True only when every ship landed — a lost ship, a pause or missing
+      // tools leave the hulls unrecorded, so the next run uploads them again.
+      if (await buildAndUploadSkins(result, uploadProgress)) {
+        void window.sc.subthemes.record(ledgerKey, ['hulls']);
+      }
+    }
   } catch (err) {
     uploadProgress?.update({ indeterminate: false });
     const msg = `${t('skins.buildFailed')}: ${(err as Error).message}`;
@@ -2531,6 +2600,11 @@ function resetUploadCategories(): void {
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
 // any failure is surfaced as a warning but never blocks the confirmed upload.
 // `progress` is optional so this stays callable without a mounted view (tests).
+/** Localized name of a subtheme for log lines. */
+function subthemeName(key: SubthemeKey): string {
+  return tOr(`subthemes.names.${key}`, key);
+}
+
 async function promoteToCodex(
   outDir: string | undefined,
   progress?: ProgressController | null,
@@ -2575,7 +2649,7 @@ async function promoteToCodex(
     });
   });
   try {
-    const res = await window.sc.catalog.upload(state.authToken, outDir);
+    const res = await window.sc.catalog.upload(state.authToken, outDir, phasesOf(state.subthemePlan?.skip ?? []));
     if (res.ok) {
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
@@ -2877,9 +2951,9 @@ async function pauseRequested(): Promise<boolean> {
 async function buildAndUploadSkins(
   result: ExtractResultPayload,
   progress?: ProgressController | null,
-): Promise<void> {
+): Promise<boolean> {
   state.skinUploadStatus = null;
-  if (!state.authToken) return;
+  if (!state.authToken) return false;
   const ch = installFor(result);
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
@@ -2897,14 +2971,14 @@ async function buildAndUploadSkins(
   // The tool download is a single long fetch with no checkpoint of its own, so
   // honour a pause that arrived while it ran instead of starting a multi-hour
   // build the operator just asked us to stop.
-  if (await pauseRequested()) return;
+  if (await pauseRequested()) return false;
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
     setAuthStatus(
       `${t('skins.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
-    return;
+    return false;
   }
 
   // 2. build glbs (streams; first run per patch is long, cached runs are quick).
@@ -2949,7 +3023,7 @@ async function buildAndUploadSkins(
   if (!built.ok && (built.error === 'paused' || built.error === 'cancelled')) {
     progress?.update({ indeterminate: false });
     progress?.stop();
-    return;
+    return false;
   }
   if (!built.ok || !built.ships) {
     progress?.update({ indeterminate: false });
@@ -2958,13 +3032,13 @@ async function buildAndUploadSkins(
       'warn',
       { detail: built.error ?? undefined },
     );
-    return;
+    return false;
   }
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
     setAuthStatus(t('skins.none'), 'ok');
-    return;
+    return true;
   }
 
   // 3. upload (upload-cache skips ships already shipped in a prior run).
@@ -3021,6 +3095,7 @@ async function buildAndUploadSkins(
   const status = skinUploadStatus(tally, t);
   state.skinUploadStatus = status.level === 'warn' ? status.message : null;
   setAuthStatus(status.message, status.level);
+  return status.level !== 'warn';
 }
 
 void init();

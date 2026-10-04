@@ -11,12 +11,30 @@ on:
   pull_request:
     paths:
       - 'data-uploader/**'
+      - 'supabase/functions/ingest-catalog/**'
+      - 'supabase/functions/ingest-skins/**'
+      - 'scripts/check-subtheme-revisions.mjs'
       - '.github/workflows/data-uploader-build.yml'
 
 permissions:
   contents: write
 
 jobs:
+  # A change to a subtheme's sources must bump its revision (or carry a
+  # "Subtheme-Unchanged:" trailer) — otherwise the uploader keeps skipping it
+  # and the server keeps the old output. See data-uploader/src/lib/subthemes.ts.
+  subtheme-revisions:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/check-subtheme-revisions.mjs
+
   typecheck-and-test:
     runs-on: ubuntu-latest
     defaults:
