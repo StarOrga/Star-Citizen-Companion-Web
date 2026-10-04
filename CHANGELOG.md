@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.125.0] - 2026-10-04
+
+### Added
+
+- **Data Uploader 0.45.0: unveränderte Subthemen werden übersprungen.** Hat der
+  Server ein Subthema (Kategorie-Balken: Strings, Schiffe, Komponenten, Waffen,
+  Items, Codex-Extras, Silhouetten, 3D-Hüllen) schon für denselben Kanal, Patch
+  und Build mit der aktuellen Revision des Uploaders, wird es weder extrahiert
+  noch hochgeladen; ist nichts offen, startet keine Extraktion. Der
+  Installieren-Schritt hat einen Schalter „Alles neu erzwingen“. Der Auto-Lauf
+  startet auch bei gleichem Patch, wenn ein Subthema offen ist.
+- **Revisions-Guard in CI.** Ein PR, der die Quellen eines Subthemas ändert,
+  muss dessen Revision erhöhen oder per Commit-Trailer
+  `Subtheme-Unchanged: <keys>` bestätigen, dass sich die Ausgabe nicht ändert.
+
+### Fixed
+
+- **Data Uploader: Build-Nummer.** Die Build-Nummer kommt jetzt aus
+  `build_manifest.id` (`RequestedP4ChangeNum`); bisher war sie leer und der
+  Server speicherte jeden Lauf als Build „desktop“.
+
+### Deploy
+
+- Migration `20261004070000_uploader_subtheme_ledger.sql` (Tabelle
+  `uploader_subtheme_uploads`, RPCs `list_uploader_subthemes` /
+  `record_uploader_subthemes`, nur Collaborator/Admin) vor dem Uploader-Release.
+- Uploader 0.45.0 veröffentlichen (Tag `data-uploader-v0.45.0`, Katalog-Eintrag
+  auf alpha). Der erste Lauf nach dem Update lädt jeden Build noch einmal voll
+  hoch (noch keine Ledger-Zeilen).
+
 ## [0.124.0] - 2026-10-03
 
 ### Changed

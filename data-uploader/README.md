@@ -130,6 +130,28 @@ nicht wegwerfen.
   — „Upload fortsetzen" macht am gespeicherten Cursor weiter. Aufgeräumt wird
   ausschließlich nach einem vollständig bestätigten Lauf.
 
+## Unveränderte Subthemen überspringen
+
+Jeder Kategorie-Balken ist ein **Subthema** (Strings, Schiffe, Komponenten,
+Waffen, Items, Codex-Extras, Silhouetten, 3D-Hüllen — `src/lib/subthemes.ts`).
+Der Server führt pro Kanal + Patch + Build (`build_manifest.id` →
+`RequestedP4ChangeNum`) mit, welches Subthema mit welcher **Revision**
+hochgeladen wurde (`uploader_subtheme_uploads`, RPCs
+`list_uploader_subthemes` / `record_uploader_subthemes`). Vor dem Lauf
+vergleicht der Uploader diese Liste mit seinen eigenen Revisionen und lässt
+alles weg, was schon aktuell ist; ist nichts offen, startet keine Extraktion.
+
+- **Konservativ:** unbekannter Build, nicht lesbare Liste oder der Schalter
+  „Alles neu erzwingen“ im Installieren-Schritt → nichts wird übersprungen.
+  Eine Zeile wird erst geschrieben, wenn ein Subthema vollständig angekommen ist.
+- **Revisionen werden von Hand erhöht**, sobald eine Änderung ändert, was ein
+  Subthema auf den Server legt. `scripts/check-subtheme-revisions.mjs` (PR-Job
+  in `data-uploader-build.yml`) lehnt einen Branch ab, der die `sources` eines
+  Subthemas ändert, ohne dessen Revision zu erhöhen — außer ein Commit trägt
+  `Subtheme-Unchanged: <keys>` (oder `all`).
+- Die fünf Codex-Kategorien teilen sich eine Extraktion: ist eine davon offen,
+  wird voll extrahiert und nur der Upload der übrigen gespart.
+
 ## Idle behaviour (tray, no job)
 
 With no job running and the window closed, the uploader does no periodic work:
