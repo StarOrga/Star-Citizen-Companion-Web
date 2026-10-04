@@ -7,6 +7,8 @@ import type { JobView } from '../main/upload-session.js';
 import type { ThrottleView, ThrottleSetResult } from '../main/throttle.js';
 import type { LiveProfileId } from '../lib/throttle-control.js';
 import type { AutoRunDecision } from '../lib/auto-run.js';
+import type { SubthemeKey, SubthemePlan } from '../lib/subthemes.js';
+import type { LedgerKey } from '../lib/subtheme-ledger.js';
 import type { SkinGateCode } from '../lib/skin-upload-summary.js';
 
 /** The settings subset the UI is allowed to see (no installId). */
@@ -322,6 +324,14 @@ export const api = {
      */
     quit: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:system:quit'),
   },
+  subthemes: {
+    /** Which subthemes the server already holds for this build at the current revision. */
+    plan: (key: LedgerKey, force: boolean): Promise<SubthemePlan> =>
+      ipcRenderer.invoke('sc:subthemes:plan', key, force),
+    /** Note in the server ledger that these subthemes fully landed. */
+    record: (key: LedgerKey, subthemes: SubthemeKey[]): Promise<boolean> =>
+      ipcRenderer.invoke('sc:subthemes:record', key, subthemes),
+  },
   autoRun: {
     /** Ask main whether an unattended run should start now. */
     decide: (signedIn: boolean): Promise<AutoRunDecision> =>
@@ -366,6 +376,8 @@ export const api = {
     upload: (
       accessToken: string,
       outDir: string,
+      /** Phases of subthemes the server already holds for this build. */
+      skipPhases: string[] = [],
     ): Promise<{
       ok: boolean;
       buildId?: string;
@@ -376,7 +388,7 @@ export const api = {
       errorCode?: string;
       /** Publish phase that failed, so the UI can name where it stopped. */
       errorPhase?: string;
-    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir),
+    }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir, skipPhases),
     onEvent: (
       cb: (ev: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number }) => void,
     ): (() => void) => {

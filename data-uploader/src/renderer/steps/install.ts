@@ -91,8 +91,17 @@ export function renderInstall(): string {
   const updateBanner =
     state.manualUpdate && !state.manualUpdateDismissed ? renderDiscoverUpdateBanner() : '';
   const connected = isConnected();
+  // Unchanged subthemes are skipped (lib/subthemes.ts); this per-run switch
+  // re-extracts and re-uploads everything anyway. Only meaningful with a
+  // session — without one nothing is uploaded, so nothing is skipped either.
+  const forceToggle = `
+        <label class="sc-toggle" data-tip="${t('install.forceAll.hint')}">
+          <input type="checkbox" id="install-force-all" ${state.forceAll ? 'checked' : ''} />
+          <span>${t('install.forceAll.label')}</span>
+        </label>`;
   const primary = connected
-    ? `<button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
+    ? `${forceToggle}
+       <button id="btn-to-setup" type="button" class="btn btn-primary" data-tip="${t('discover.next')}" data-tip-key="Enter">${t('discover.next')}</button>`
     : `<button id="btn-connect-continue" type="button" class="btn btn-primary" data-tip="${t('install.connectAndStart')}" data-tip-key="Enter">${t('install.connectAndStart')}</button>
        <button id="btn-to-setup" type="button" class="btn">${t('install.extractOnly')}</button>`;
   return `
@@ -113,6 +122,9 @@ export function wireInstall(): void {
   wireDiscoverUpdateBanner();
   $('#install-resume-btn')?.addEventListener('click', () => void jumpToResumeUpload());
   $('#btn-to-setup')?.addEventListener('click', () => void startRunFromInstall());
+  $('#install-force-all')?.addEventListener('change', (e) => {
+    state.forceAll = (e.target as HTMLInputElement).checked;
+  });
   $('#btn-connect-continue')?.addEventListener('click', () => {
     // Continue only on a real session — a failed or closed browser login
     // would otherwise move on silently, its error hidden in the closed popover.

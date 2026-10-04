@@ -88,6 +88,18 @@ export function decideAutoRun(input: AutoRunInputs): AutoRunDecision {
   return { run: false, reason: sawUnknown ? 'unknown-local-version' : 'already-uploaded' };
 }
 
+/**
+ * Installs worth asking the subtheme ledger about once `decideAutoRun` said
+ * `already-uploaded`: only those with a readable version AND build number (the
+ * ledger key), in channel priority order. Without a build number nothing could
+ * be skipped, so such an install would restart the pipeline on every launch.
+ */
+export function pickSubthemeCandidates(channels: readonly DiscoveredChannel[]): DiscoveredChannel[] {
+  return channels
+    .filter((c) => Boolean(c.version) && Boolean(c.buildNumber && c.buildNumber.trim()))
+    .sort((a, b) => CHANNEL_PRIORITY.indexOf(a.channel) - CHANNEL_PRIORITY.indexOf(b.channel));
+}
+
 /** One-line log/UI summary of a decision. */
 export function describeDecision(d: AutoRunDecision): string {
   if (d.run && d.channel) {

@@ -32,7 +32,11 @@
     "lastUploaded": "Zuletzt hochgeladen {{when}}",
     "resumeGeneric": "Unterbrochener Upload gefunden — fortsetzen?",
     "extractOnly": "Nur extrahieren (ohne Upload)",
-    "connectAndStart": "Verbinden & Extraktion starten"
+    "connectAndStart": "Verbinden & Extraktion starten",
+    "forceAll": {
+      "label": "Alles neu erzwingen",
+      "hint": "Extrahiert und lädt alle Teilbereiche neu hoch – auch die, die der Server für diesen Build schon in aktueller Form hat."
+    }
   },
   "category": {
     "ships": "Schiffe",
@@ -387,5 +391,20 @@
     "minimalDesc": "Nebenbei spielen: 1 Kern, niedrigste Priorität. Dauert am längsten.",
     "standardDesc": "Nebenbei surfen oder streamen: halbe Kerne, gesenkte Priorität. Zum Spielen zu viel.",
     "maximumDesc": "Der PC gehört dem Uploader: alle Kerne bis auf einen. Nebenbei geht kaum etwas."
+  },
+  "subthemes": {
+    "allCurrent": "Der Server hat diesen Build bereits vollständig – nichts hat sich geändert, Extraktion und Upload entfallen. „Alles neu erzwingen“ startet trotzdem.",
+    "skipping": "Unverändert, wird übersprungen: {{list}}",
+    "skipped": "{{name}}: unverändert – übersprungen",
+    "names": {
+      "strings": "Texte",
+      "ships": "Schiffe",
+      "components": "Komponenten",
+      "weapons": "Waffen",
+      "items": "Gegenstände",
+      "codex_extra": "Weitere Codex-Daten",
+      "silhouettes": "Silhouetten",
+      "hulls": "3D-Hüllen"
+    }
   }
 }

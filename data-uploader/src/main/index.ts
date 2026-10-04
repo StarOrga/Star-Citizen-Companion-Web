@@ -23,7 +23,7 @@ import { raiseWindow } from '../lib/window-focus.js';
 import { settleInitialVisibility, shouldStartHidden } from '../lib/window-visibility.js';
 import { uploadBundle, type UploadPayload } from '../lib/uploader.js';
 import { createWatchdog } from '../lib/watchdog.js';
-import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE } from '../lib/release-token.js';
+import { RELEASE_TOKEN, TOOL_VERSION, API_BASE, WEB_BASE, SUPABASE_ANON_KEY } from '../lib/release-token.js';
 import {
   initAutoUpdater,
   setUpdateChannel,
@@ -73,7 +73,9 @@ import * as throttle from './throttle.js';
 import { isInterrupt, PausedError } from '../lib/pause-control.js';
 import { ProgressHub } from '../lib/progress-hub.js';
 import { initTray, updateTray, destroyTray, notifyHidden, hasTray, type TrayMenuLabels } from './tray.js';
-import { decideAutoRun, describeDecision, type AutoRunDecision } from '../lib/auto-run.js';
+import { decideAutoRun, describeDecision, pickSubthemeCandidates, type AutoRunDecision } from '../lib/auto-run.js';
+import { planSubthemes, type SubthemeKey, type SubthemePlan } from '../lib/subthemes.js';
+import { fetchLedger, recordLedger, type LedgerKey } from '../lib/subtheme-ledger.js';
 
 // Configure logging + install uncaughtException/unhandledRejection handlers
 // before any window or IPC work, so a startup failure lands in main.log and
@@ -397,15 +399,75 @@ ipcMain.on('sc:tray:labels', (_e, labels: Partial<TrayMenuLabels>) => {
  */
 ipcMain.handle('sc:autorun:decide', async (_e, signedIn: boolean): Promise<AutoRunDecision> => {
   const settings = getSettings();
+  const channels = settings.autoRunOnNewVersion ? await discoverAll() : [];
   const decision = decideAutoRun({
     enabled: settings.autoRunOnNewVersion,
     signedIn: Boolean(signedIn),
-    channels: settings.autoRunOnNewVersion ? await discoverAll() : [],
+    channels,
     snapshot: getCachedSnapshot(),
   });
   log.info(`[autorun] ${describeDecision(decision)}`);
+  if (decision.reason !== 'already-uploaded') return decision;
+
+  // Same patch as the server — but this uploader may do a subtheme differently
+  // now (revision bumped), or the server may hold another build of that patch.
+  // Only a ledger that was actually read (`reason: 'ledger'`) may start a run:
+  // an unknown build or an unreadable ledger would otherwise restart the whole
+  // pipeline on every launch.
+  const { token } = await ensureAccessToken();
+  if (!token) return decision;
+  for (const channel of pickSubthemeCandidates(channels)) {
+    const key = { channel: channel.channel, patchVersion: channel.version ?? '', buildNumber: channel.buildNumber ?? '' };
+    const ledger = await fetchLedger({ apiBase: API_BASE, anonKey: SUPABASE_ANON_KEY, accessToken: token }, key);
+    const plan = planSubthemes({ buildNumber: key.buildNumber, ledger, force: false });
+    if (plan.reason === 'ledger' && plan.pending.length > 0) {
+      log.info(`[autorun] ${channel.channel}: subthemes pending [${plan.pending.join(', ')}] — starting`);
+      return { run: true, channel, localVersion: channel.version ?? undefined, serverVersion: channel.version };
+    }
+  }
   return decision;
 });
+
+/**
+ * Which subthemes this run can leave out: the server's ledger for the same
+ * channel + patch + build, compared against this uploader's subtheme
+ * revisions. Unreadable ledger, unknown build or no session = skip nothing.
+ */
+ipcMain.handle(
+  'sc:subthemes:plan',
+  async (_e, key: LedgerKey, force: boolean): Promise<SubthemePlan> => {
+    const { token } = await ensureAccessToken();
+    const ledger = token
+      ? await fetchLedger({ apiBase: API_BASE, anonKey: SUPABASE_ANON_KEY, accessToken: token }, key)
+      : null;
+    const plan = planSubthemes({ buildNumber: key.buildNumber, ledger, force: Boolean(force) });
+    log.info(
+      `[subthemes] ${key.channel} ${key.patchVersion} build ${key.buildNumber || '?'}: ` +
+        `skip [${plan.skip.join(', ')}] pending [${plan.pending.join(', ')}] (${plan.reason})`,
+    );
+    return plan;
+  },
+);
+
+/** Note in the ledger that these subthemes fully landed for this build. */
+ipcMain.handle(
+  'sc:subthemes:record',
+  async (_e, key: LedgerKey, subthemes: SubthemeKey[]): Promise<boolean> => {
+    const { token } = await ensureAccessToken();
+    if (!token) return false;
+    const ok = await recordLedger(
+      { apiBase: API_BASE, anonKey: SUPABASE_ANON_KEY, accessToken: token },
+      key,
+      subthemes,
+      TOOL_VERSION,
+    );
+    log.info(
+      `[subthemes] record [${subthemes.join(', ')}] for ${key.channel} ${key.patchVersion} ` +
+        `build ${key.buildNumber}: ${ok ? 'ok' : 'failed'}`,
+    );
+    return ok;
+  },
+);
 
 // ============= Renderer logging / crash forwarding =============
 
@@ -1112,8 +1174,12 @@ ipcMain.handle('sc:silhouette:cancel', (_e, jobId: string) => {
 // out_dir still exists. Streams per-table progress to the renderer.
 ipcMain.handle(
   'sc:catalog:upload',
-  async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> => {
+  async (event, accessToken: string, outDir: string, skipPhases: string[] = []): Promise<CatalogUploadResult> => {
     try {
+      // Phases of subthemes the server already holds for this build (see
+      // lib/subthemes.ts) count as done: sent nothing, cleared nothing.
+      const hooks = uploadJob.hooksForCatalog();
+      const skip = Array.isArray(skipPhases) ? skipPhases.filter((x) => typeof x === 'string') : [];
       const result = await uploadCatalog(
         // Getter, not a static token: the catalog stage runs for hours, so each
         // chunk request re-reads a fresh (auto-refreshed) JWT.
@@ -1129,7 +1195,7 @@ ipcMain.handle(
           hub.update('upload', p.phase, pct);
           event.sender.send('sc:catalog:event', p);
         },
-        uploadJob.hooksForCatalog(),
+        { ...hooks, donePhases: [...(hooks.donePhases ?? []), ...skip] },
       );
       if (result.ok) uploadJob.update((s) => ({ ...s, catalog: { ...s.catalog, status: 'done' } }));
       return result;
