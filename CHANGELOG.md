@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.126.0] - 2026-10-04
+
+### Changed
+
+- **Data Uploader 0.46.0: 3D-Modelle bauen deutlich schneller, bei
+  identischer Ausgabe.** Mehrere Schiffe werden parallel gebaut (Standard 3,
+  Maximal 4 Worker auf 12 Threads, Minimal 1; begrenzt durch den Arbeitsspeicher
+  mit 6 GB pro Worker). Jedes Mesh wird nur noch einmal konvertiert — die
+  Rohausgabe der Hülle speist auch Port-Platzierung und Innenraum (Freelancer:
+  92 → 46 Konverter-Läufe). Die glTF-Optimierung läuft in einem einzigen,
+  langlebigen Node-Prozess statt einem pro Aufruf (45 Teile: 60 s → 11 s);
+  `SC_GLTF_WORKER=0` schaltet zurück. Pro Schiff und Lauf protokolliert das Log
+  die Zeit je Schritt (Konvertierung, glTF, Loch-Prüfung, Innenraum-Scan).
+  Hülle, Paket, Teile und Innenraum sind Byte-für-Byte gleich zur bisherigen
+  Pipeline (geprüft an Freelancer, Fortune, Cutlass Black, Gladius); die
+  Loch-Prüfung bleibt unverändert.
+
+### Deploy
+
+- Uploader 0.46.0 veröffentlichen (Tag `data-uploader-v0.46.0`, Katalog-Eintrag
+  auf alpha). Bereits gebaute Schiffe bleiben über `--skip-existing` erhalten.
+
 ## [0.125.0] - 2026-10-04
 
 ### Added
