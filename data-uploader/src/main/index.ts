@@ -16,6 +16,7 @@ import {
   DEFAULT_PROFILE,
   SELECTABLE_PROFILES,
   estimateForSize,
+  skinWorkersFor,
   workersFor,
 } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
@@ -1006,6 +1007,8 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
 
 ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
   const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Same rule as the extract: parallelism follows the profile live at start.
+  req = { ...req, workers: skinWorkersFor(throttle.control().profile(), cpus().length || 1) };
   const watchdog = createWatchdog({
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('skin', idle, jobId),

@@ -15,13 +15,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
-from .. import glb_materials
+from .. import glb_materials, stage_timing
 
 LogFn = Callable[[str, str], None]
 # (in_glb, out_glb, texture_size, simplify_error) -> None; raises on failure.
@@ -39,6 +40,25 @@ class PartRef:
     bounds: Optional[dict] = None
     error: Optional[str] = None
     cached: bool = False
+
+
+def _mtl_key(material_path: Optional[str]) -> Optional[str]:
+    return material_path.replace("\\", "/").lower() if material_path else None
+
+
+def publish_blob(src: Path, dest: Path) -> None:
+    """Move a content-addressed file into place. Parallel workers may publish
+    the same hash at once; the content is identical by construction, so the
+    loser of the race simply drops its copy."""
+    if dest.exists():
+        src.unlink(missing_ok=True)
+        return
+    try:
+        os.replace(src, dest)
+    except OSError:
+        if not dest.exists():
+            raise
+        src.unlink(missing_ok=True)
 
 
 def sha256_file(path: Path) -> str:
@@ -152,7 +172,7 @@ class PartStore:
     def __init__(self, store_dir: Path, read: Callable[[str], bytes], exists: Callable[[str], bool],
                  converter: Path, optimize: OptimizeFn, work_dir: Path,
                  on_log: LogFn = lambda lvl, m: None, simplify_error: float = 0.0,
-                 keep_work: bool = False) -> None:
+                 keep_work: bool = False, index_name: str = "index.json") -> None:
         self.dir = store_dir.resolve()
         self.dir.mkdir(parents=True, exist_ok=True)
         self.read, self.exists = read, exists
@@ -162,17 +182,37 @@ class PartStore:
         self.log = on_log
         self.simplify_error = simplify_error
         self.keep_work = keep_work
-        self.index_path = self.dir / "index.json"
-        try:
-            idx = json.loads(self.index_path.read_text(encoding="utf-8"))
-        except Exception:  # noqa: BLE001 — missing/corrupt index = cold cache
-            idx = {}
-        self.index: Dict[str, dict] = idx if idx.get("_format") == PART_FORMAT else {}
+        # Parallel workers share the store directory but each writes its OWN
+        # index file (``index.w<N>.json``) — one shared file would lose rows to
+        # concurrent read-modify-write. Every index file is read on start, so
+        # a later run sees what all workers of the previous one built.
+        self.index_path = self.dir / index_name
+        self.index: Dict[str, dict] = {}
+        for path in sorted(self.dir.glob("index*.json")):
+            try:
+                idx = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001 — missing/corrupt index = cold cache
+                continue
+            if isinstance(idx, dict) and idx.get("_format") == PART_FORMAT:
+                self.index.update(idx)
         self.index["_format"] = PART_FORMAT
         self.hits = self.misses = 0
+        # Raw converter output kept between `helpers()` and `export()` of the
+        # same geometry: a parent item (turret, rack) is converted once for its
+        # node tree and once more as a part otherwise.
+        self._raw_cache: Dict[str, Tuple[Path, Optional[str], Path]] = {}
 
     def save_index(self) -> None:
-        self.index_path.write_text(json.dumps(self.index, indent=1, sort_keys=True), encoding="utf-8")
+        tmp = self.index_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(self.index, indent=1, sort_keys=True), encoding="utf-8")
+        tmp.replace(self.index_path)
+
+    def release_raw(self) -> None:
+        """Drop raw glbs `helpers()` kept for an `export()` that never came."""
+        for scratch, _mtl, _raw in self._raw_cache.values():
+            if not self.keep_work:
+                shutil.rmtree(scratch, ignore_errors=True)
+        self._raw_cache.clear()
 
     def path_of(self, sha: str) -> Path:
         return self.dir / f"{sha}.glb"
@@ -198,28 +238,43 @@ class PartStore:
                            "bounds": ref.bounds, "error": ref.error}
         return ref
 
-    def helpers(self, geometry_path: str) -> Dict[str, dict]:
+    def helpers(self, geometry_path: str, material_path: Optional[str] = None) -> Dict[str, dict]:
         """Named node transforms of a mesh as the CONVERTER places them (glTF
         space) — the same tree the published GLBs come from, so a placement
         built on them coincides with the GLB by construction. Cached in
-        ``index.json``; ``export`` fills the cache for free from its own run."""
+        ``index.json``; ``export`` fills the cache for free from its own run.
+
+        With ``material_path`` the conversion is the one `export` would run,
+        so its raw output is kept for that `export` instead of converting the
+        same mesh twice (`release_raw` drops what no export claimed)."""
         key = "helpers:" + geometry_path.lower()
         row = self.index.get(key)
         if isinstance(row, dict):
             return row
-        scratch = self.work / f"nodes_{hashlib.sha1(key.encode()).hexdigest()[:12]}"
+        part_row = self.index.get(geometry_path.lower())
+        reuse = material_path is not None and not (
+            isinstance(part_row, dict) and (part_row.get("sha256") is None
+                                            or self.path_of(part_row["sha256"]).exists()))
+        scratch = self._scratch("part" if reuse else "nodes", geometry_path)
         shutil.rmtree(scratch, ignore_errors=True)
+        kept = False
         try:
-            raw = self.convert_raw(geometry_path, None, scratch)
+            raw = self.convert_raw(geometry_path, material_path if reuse else None, scratch)
             row = glb_node_transforms(glb_materials.read_glb(raw)[0])
+            if reuse:
+                self._raw_cache[geometry_path.lower()] = (scratch, _mtl_key(material_path), raw)
+                kept = True
         except Exception as exc:  # noqa: BLE001 — no nodes = nothing placeable here
             self.log("warn", f"  nodes {geometry_path}: {type(exc).__name__}: {exc}")
             row = {}
         finally:
-            if not self.keep_work:
+            if not kept and not self.keep_work:
                 shutil.rmtree(scratch, ignore_errors=True)
         self.index[key] = row
         return row
+
+    def _scratch(self, prefix: str, geometry_path: str) -> Path:
+        return self.work / f"{prefix}_{hashlib.sha1(geometry_path.lower().encode()).hexdigest()[:12]}"
 
     # ---- conversion ------------------------------------------------------
     def convert_raw(self, geometry_path: str, material_path: Optional[str], scratch: Path) -> Path:
@@ -241,7 +296,8 @@ class PartStore:
             cmd += ["-mtl", os.path.relpath(mtl, mesh.parent).replace("\\", "/")]
         produced = mesh.with_suffix(".glb")
         produced.unlink(missing_ok=True)
-        r = subprocess.run(cmd, cwd=str(mesh.parent), capture_output=True, timeout=600)
+        with stage_timing.timed("convert"):
+            r = subprocess.run(cmd, cwd=str(mesh.parent), capture_output=True, timeout=600)
         if not produced.exists() or produced.stat().st_size < 256:
             raise RuntimeError(f"cgf-converter produced no glb (rc={r.returncode})")
         gltf, binary = glb_materials.read_glb(produced)
@@ -310,13 +366,22 @@ class PartStore:
             return PartRef(sha256=None, geometry_path=geometry_path, error="no geometry")
         sha = sha256_file(out)
         dest = self.path_of(sha)
-        if not dest.exists():
-            shutil.move(str(out), dest)
+        publish_blob(out, dest)
         return PartRef(sha256=sha, bytes=dest.stat().st_size, geometry_path=geometry_path,
                        bounds=glb_bounds(dest))
 
     def _build(self, geometry_path: str, material_path: Optional[str]) -> PartRef:
-        scratch = self.work / f"part_{hashlib.sha1(geometry_path.lower().encode()).hexdigest()[:12]}"
+        cached = self._raw_cache.pop(geometry_path.lower(), None)
+        if cached and cached[1] == _mtl_key(material_path) and cached[2].exists():
+            scratch, _mtl, raw = cached
+            try:
+                return self._publish(raw, scratch, geometry_path)
+            finally:
+                if not self.keep_work:
+                    shutil.rmtree(scratch, ignore_errors=True)
+        if cached and not self.keep_work:
+            shutil.rmtree(cached[0], ignore_errors=True)
+        scratch = self._scratch("part", geometry_path)
         shutil.rmtree(scratch, ignore_errors=True)
         try:
             raw = self.convert_raw(geometry_path, material_path, scratch)

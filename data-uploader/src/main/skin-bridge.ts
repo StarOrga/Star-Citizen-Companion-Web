@@ -55,6 +55,8 @@ export interface SkinExportRequest {
    * store as the ships, so a docked component and its item page share one GLB.
    */
   items?: boolean;
+  /** Ships built at once (`--workers`); resolved by main from the live speed profile. */
+  workers?: number;
 }
 
 export interface SkinEntry {
@@ -195,6 +197,7 @@ export function startSkinExport(
   for (const s of req.ships ?? []) args.push('--ship', s);
   if (req.skipExisting) args.push('--skip-existing');
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
+  if (req.workers) args.push('--workers', String(req.workers));
   args.push(...packageExportArgs(req));
 
   let child: ChildProcessWithoutNullStreams;

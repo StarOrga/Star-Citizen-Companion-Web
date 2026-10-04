@@ -60,6 +60,20 @@ export function workersFor(profile: Exclude<ProfileId, 'custom'>, cores = logica
   }
 }
 
+/**
+ * Ships the 3D export builds at once under `profile` (`skin_export_app --workers`).
+ *
+ * A ship build is a chain of mostly single-threaded steps (geometry converter,
+ * Node optimizer, numpy hole gate) that keeps ~2 logical processors busy, so
+ * the profile's worker budget is halved. Capped at 4: each worker holds its own
+ * P4K index + DataCore (~3 GB), and the sidecar caps it by RAM again.
+ * `minimal` stays the serial path.
+ */
+export function skinWorkersFor(profile: Exclude<ProfileId, 'custom'>, cores = logicalCores()): number {
+  if (profile === 'minimal') return 1;
+  return Math.max(1, Math.min(4, Math.floor(workersFor(profile, cores) / 2)));
+}
+
 export const PROFILES: Record<Exclude<ProfileId, 'custom'>, PerformanceProfile> = {
   minimal: {
     id: 'minimal',

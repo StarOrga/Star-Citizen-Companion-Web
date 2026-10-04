@@ -118,6 +118,7 @@ export const SUBTHEMES: readonly Subtheme[] = [
     sources: [
       'data-uploader/python/sc_extract/assets3d/',
       'data-uploader/python/sc_extract/hull3d.py',
+      'data-uploader/python/sc_extract/gltf_worker',
       'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/glb_materials.py',
       'data-uploader/python/sc_extract/mesh_integrity.py',

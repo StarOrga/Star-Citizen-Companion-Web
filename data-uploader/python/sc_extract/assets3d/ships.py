@@ -11,6 +11,7 @@ On disk (all under the export ``--out``):
 from __future__ import annotations
 
 import io
+import os
 import shutil
 from pathlib import Path
 from typing import Any, List, Optional
@@ -20,7 +21,7 @@ from ..dataforge_extract import _find_component
 from .datacore import DataCoreSource, P4KReader
 from .entity import PortDef
 from .package import PackageResult, build_package
-from .parts import PartStore, keep_only_interior, sha256_file
+from .parts import PartStore, keep_only_interior, publish_blob, sha256_file
 
 PACKAGE_FILE = "package.json"
 
@@ -73,14 +74,22 @@ def _int(v: Any) -> Optional[int]:
 
 
 def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
-                    out_dir: Path, optimize, simplify_error: float = 0.0) -> Optional[Path]:
+                    out_dir: Path, optimize, simplify_error: float = 0.0,
+                    raw_glb: Optional[Path] = None) -> Optional[Path]:
     """The geometry hull3d strips (interior materials), as its own GLB.
     Content-addressed into ``out_dir/<sha>.glb``; ``None`` when the ship has
-    no interior geometry."""
+    no interior geometry. ``raw_glb`` = a copy of the hull's own raw,
+    un-rigged converter output (same mesh, same paint) — it is consumed, and
+    saves converting the whole hull a second time."""
     scratch = store.work / "interior"
     shutil.rmtree(scratch, ignore_errors=True)
     try:
-        raw = store.convert_raw(hull_cga, paint_mtl, scratch)
+        if raw_glb is not None and raw_glb.exists():
+            scratch.mkdir(parents=True, exist_ok=True)
+            raw = scratch / "hull_raw.glb"
+            os.replace(raw_glb, raw)
+        else:
+            raw = store.convert_raw(hull_cga, paint_mtl, scratch)
         if keep_only_interior(raw, store.log) == 0:
             return None
         glb_materials.strip_to_geometry(raw, store.log)
@@ -89,8 +98,7 @@ def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
         sha = sha256_file(opt)
         out_dir.mkdir(parents=True, exist_ok=True)
         dest = out_dir / f"{sha}.glb"
-        if not dest.exists():
-            shutil.move(str(opt), dest)
+        publish_blob(opt, dest)
         return dest
     finally:
         if not store.keep_work:
