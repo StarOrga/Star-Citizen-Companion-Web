@@ -213,6 +213,44 @@ out/DRAK_Cutlass_Black/
 - One hull = convert + repair + geometry strip + optimize, serial; no DDS is
   extracted any more.
 
+## Speed (whole-catalog runs)
+
+A LIVE 4.10 catalog run (271 ships) averaged ~8 min per ship one at a time —
+~35 h. The same ships measured 25 s (parts cached) to ~4 min on an idle box.
+What changed, none of it touching the output (each checked byte for byte
+against the previous pipeline: hull glb, `package.json`, parts, interior):
+
+- **Parallel ships** — `skin_export_app --workers N` builds N ships at once in
+  spawned processes fed from one queue (0 = auto from cores and RAM; the
+  uploader passes `skinWorkersFor(speed profile)`: minimal 1, standard 3 and
+  maximum 4 on 12 threads). Each worker opens its own P4K + DataCore (~2–5 min,
+  ~3 GB), so RAM caps the count (6 GB per worker). Workers write their own
+  part index (`_parts/index.w<N>.json`, all read on start) and scratch dirs
+  (`_work_w<N>`, `_work_parts_w<N>`); content-addressed files publish
+  race-free (`parts.publish_blob`).
+- **One conversion per mesh** — the hull's raw converter output also feeds
+  the ship's node tree (port placement) and the interior layer; a parent item
+  converted for its node tree keeps that raw glb for its own part export.
+  Converter runs per ship halved (Freelancer: 92 → 46).
+- **One optimizer process** — `gltf_worker.mjs` runs the gltf-transform CLI's
+  command table in one long-lived Node instead of one Node per call (~0.6 s
+  start-up each, two calls per part): optimize + meshopt for a 45-part ship
+  60 s → 11 s. Falls back to one Node per call if it cannot start or dies;
+  `SC_GLTF_WORKER=0` disables it.
+- **Step timing** — every ship logs where its time went
+  (`MISC_Fortune: 498s — hole-gate 227.8s/3 · interior-scan 56.3s/1 · convert …
+  · other …`) and the run logs the sum. `~stdout-wait` books time the export
+  sat blocked on a host that stopped reading its events.
+
+The remaining big step is the hole gate (numpy, single-threaded per worker):
+~40 s per checked rung on a 600k-triangle hull. It is a quality gate, not
+overhead — make it faster, never coarser.
+
+Note the uploader runs the export at below-normal priority on `standard`:
+anything else busy on the machine (a game, a build, another heavy job) wins
+the scheduler, and the export then waits at 0 % CPU. The step timing shows it
+as `other`.
+
 ## Size budget (`--max-model-mb`, default 1.5)
 
 Each web glb carries a size budget. A hull over budget is re-optimized up the

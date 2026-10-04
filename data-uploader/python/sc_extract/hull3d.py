@@ -38,6 +38,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from . import stage_timing
+
 LogFn = Callable[[str, str], None]
 
 # Adaptive size budget: the simplify errors the retry ladder walks through when
@@ -184,6 +186,10 @@ class Hull3DExporter:
                 self._ddsidx.setdefault(fn.split(".dds")[0] + ".dds", i)
         cfg.out_dir.mkdir(parents=True, exist_ok=True)
         cfg.work_dir.mkdir(parents=True, exist_ok=True)
+        # Called with (spec, raw_glb) once the raw hull is un-rigged and before
+        # anything is stripped from it — the asset package reads its node tree
+        # and interior from here instead of converting the hull again.
+        self.raw_hook: Optional[Callable[[ShipSpec, Path], None]] = None
 
     # ---- P4K helpers -------------------------------------------------------
     def _read(self, p4k_path: str) -> bytes:
@@ -197,7 +203,8 @@ class Hull3DExporter:
                     break
         if not info:
             raise FileNotFoundError(p4k_path)
-        return self.p4k.open(info).read()
+        with stage_timing.timed("~p4k-read"):
+            return self.p4k.open(info).read()
 
     def _mirror_save(self, p4k_path: str, root: Path) -> Path:
         dest = _safe_join(root, p4k_path.replace("\\", "/"))
@@ -214,7 +221,8 @@ class Hull3DExporter:
                "-objectdir", str(objectdir), "-loglevel", "Error"]
         if mtl_rel:
             cmd += ["-mtl", mtl_rel]
-        r = subprocess.run(cmd, cwd=str(cga_disk.parent), capture_output=True, timeout=600)
+        with stage_timing.timed("convert"):
+            r = subprocess.run(cmd, cwd=str(cga_disk.parent), capture_output=True, timeout=600)
         # cgf-converter's exit code is unreliable (non-zero on success in some
         # paths), so the freshly-produced output file is the success signal —
         # robust now that any stale glb was unlinked above. rc is logged only.
@@ -236,6 +244,18 @@ class Hull3DExporter:
             # the Electron binary behave as a plain Node interpreter.
             prefix = _json.loads(host_argv)
             env = {**os.environ, "ELECTRON_RUN_AS_NODE": "1"}
+            worker = self._optimizer_worker(prefix, env)
+            if worker is not None:
+                from .gltf_worker import WorkerUnavailable
+                try:
+                    ok, err = worker.run(args)
+                    return subprocess.CompletedProcess(args, 0 if ok else 1, "", err)
+                except WorkerUnavailable as exc:
+                    # Accelerator only: from here on one Node per call, as before.
+                    self.log("warn", f"  optimizer worker unavailable ({exc}) — "
+                                     "starting one Node per call from here on")
+                    self._worker_failed = True
+                    worker.close()
             return subprocess.run([*prefix, *args], capture_output=True,
                                   encoding="utf-8", errors="replace", timeout=900, env=env)
         # Dev fallback: pull the CLI on demand via npx (Node required).
@@ -254,9 +274,23 @@ class Hull3DExporter:
         return subprocess.run(cmd, capture_output=True, encoding="utf-8",
                               errors="replace", timeout=900)
 
+    def _optimizer_worker(self, prefix: List[str], env: dict):
+        """The shared long-lived optimizer (gltf_worker), or None."""
+        from .gltf_worker import GltfWorker, WorkerUnavailable, worker_disabled
+        if getattr(self, "_worker_failed", False) or worker_disabled():
+            return None
+        if getattr(self, "_worker", None) is None:
+            try:
+                self._worker = GltfWorker(prefix, env)
+            except WorkerUnavailable:
+                self._worker_failed = True
+                return None
+        return self._worker
+
     def _gltf_step(self, args: List[str], out_glb: Path) -> None:
         out_glb.unlink(missing_ok=True)  # never mistake a stale file for success
-        r = self._gltf_transform(args)
+        with stage_timing.timed(f"gltf {args[0]}"):
+            r = self._gltf_transform(args)
         if not out_glb.exists():
             raise RuntimeError(f"gltf-transform {args[0]} failed (rc={r.returncode}): "
                                f"{(r.stderr or '')[-400:]}")
@@ -353,8 +387,9 @@ class Hull3DExporter:
                     check = out_glb.with_name(out_glb.stem + ".check.glb")
                     try:
                         self._optimize(in_glb, check, ts, err, compress=False)
-                        report = mesh_integrity.check_hull(reference, check,
-                                                           self.cfg.max_hole_ratio)
+                        with stage_timing.timed("hole-gate"):
+                            report = mesh_integrity.check_hull(reference, check,
+                                                               self.cfg.max_hole_ratio)
                         self.last_integrity = report
                         self.log("info" if report.ok else "warn",
                                  f"  {skin_id}: simplify {err}: {report.summary()}")
@@ -483,9 +518,15 @@ class Hull3DExporter:
         # --center), and meshopt's quantization only puts a dequantize
         # transform on mesh nodes, which keeps their world placement.
         hardpoints = self._collect_hardpoints(paint, raw_glb)
+        if self.raw_hook is not None:
+            try:
+                self.raw_hook(spec, raw_glb)
+            except Exception as exc:  # noqa: BLE001 — the package falls back to converting
+                self.log("warn", f"  {paint.id}: raw hull hand-off failed: {type(exc).__name__}: {exc}")
         # 3a''. the hole gate's reference: the raw, unsimplified, unstripped
         # mesh minus the never-drawn proxies, read BEFORE anything is dropped.
-        reference = self.raw_reference(raw_glb)
+        with stage_timing.timed("hole-gate"):
+            reference = self.raw_reference(raw_glb)
         # 3b. shape only: drop the interior and every texture/UV. NOT
         # best-effort like the un-rig — a hull that still carries CIG's
         # textures must never be published, so a failure here costs the model.
@@ -542,7 +583,8 @@ class Hull3DExporter:
         """
         from . import glb_materials
         if self.cfg.strip_interior if strip_interior is None else strip_interior:
-            glb_materials.drop_interior_geometry(raw_glb, self.log)
+            with stage_timing.timed("interior-scan"):
+                glb_materials.drop_interior_geometry(raw_glb, self.log)
         glb_materials.strip_to_geometry(raw_glb, self.log)
 
     _reduce_to_geometry = reduce_to_geometry

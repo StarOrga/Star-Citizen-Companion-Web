@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
+from .. import stage_timing
 from ..dataforge import DataForge
 from ..dataforge_extract import (_as_list, _components_of, _default_loadout_of, _dig,
                                  _find_component, _find_geometry_path, _port_types, _to_int)
@@ -32,7 +33,8 @@ class P4KReader:
         info = self._idx.get(path.replace("\\", "/").lower())
         if info is None:
             raise FileNotFoundError(path)
-        return self.p4k.open(info).read()
+        with stage_timing.timed("~p4k-read"):
+            return self.p4k.open(info).read()
 
 
 def load_datacore(reader: P4KReader) -> DataForge:
@@ -108,7 +110,7 @@ class DataCoreSource:
     """:class:`~.entity.EntitySource` over a parsed DataCore + the P4K."""
 
     def __init__(self, df: DataForge, reader: P4KReader,
-                 node_helpers: Optional[Callable[[str], Dict[str, Dict[str, Any]]]] = None) -> None:
+                 node_helpers: Optional[Callable[..., Dict[str, Dict[str, Any]]]] = None) -> None:
         """``node_helpers`` (normally ``PartStore.helpers``) supplies helper
         transforms from the converter's node tree when the ``.cga`` chunk scan
         finds none — on LIVE 4.x it finds none for ships AND items, so in
@@ -121,6 +123,9 @@ class DataCoreSource:
         self._entities: Dict[str, Optional[EntityDef]] = {}
         self._comps: Dict[str, List[Dict[str, Any]]] = {}
         self._helpers: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        # geometry -> its entity's material, so `node_helpers` can run the
+        # conversion `PartStore.export` will need anyway (one convert, not two).
+        self._mtl_by_geo: Dict[str, Optional[str]] = {}
 
     def components(self, class_name: str) -> List[Dict[str, Any]]:
         key = class_name.lower()
@@ -144,6 +149,8 @@ class DataCoreSource:
             geo, mtl = geometry_of(comps)
             if geo and not self.reader.exists(geo):
                 geo = None
+            if geo:
+                self._mtl_by_geo.setdefault(geo.lower(), mtl)
             ad = (_find_component(comps, "SAttachableComponentParams") or {}).get("AttachDef") or {}
             ent = EntityDef(class_name=rec.name.split(".", 1)[1], guid=str(rec.guid),
                             geometry_path=geo, material_path=mtl,
@@ -166,7 +173,8 @@ class DataCoreSource:
                 cry = {}
             out = {name: _cry_helper_to_gltf(h) for name, h in cry.items()}
             if not out and self.node_helpers is not None:
-                out = self.node_helpers(geometry_path)
+                mtl = self._mtl_by_geo.get(key)
+                out = self.node_helpers(geometry_path, mtl) if mtl else                     self.node_helpers(geometry_path)
             self._helpers[key] = out
         return self._helpers[key]
 

@@ -63,7 +63,15 @@ def _write_stdout(event: Dict[str, Any]) -> None:
     ALWAYS reach the Electron bridge instead of crashing the run.
     """
     with _stdout_lock:
+        t0 = time.perf_counter()
         _write_stdout_locked(event)
+        waited = time.perf_counter() - t0
+    if waited > 0.05:
+        # A reader that falls behind (the host's event loop busy) blocks this
+        # write and with it the whole export, at 0 % CPU — book it so the run
+        # timing shows it instead of an unexplained gap.
+        from . import stage_timing
+        stage_timing.add("~stdout-wait", waited)
 
 
 def _write_stdout_locked(event: Dict[str, Any]) -> None:

@@ -4,6 +4,7 @@ import {
   DEFAULT_PROFILE,
   SELECTABLE_PROFILES,
   estimateForSize,
+  skinWorkersFor,
   workersFor,
 } from '../src/lib/performance.js';
 
@@ -65,6 +66,20 @@ describe('workersFor', () => {
     // — no pool, no shared memory, no regression risk for the gentle profile.
     for (const cores of [1, 8, 64]) {
       expect(workersFor('minimal', cores)).toBe(1);
+    }
+  });
+
+  it('sizes the 3D export by profile — serial on minimal, at most 4 ships at once', () => {
+    expect(skinWorkersFor('minimal', 12)).toBe(1);
+    expect(skinWorkersFor('standard', 12)).toBe(3); // 6 dump workers -> 3 ships
+    expect(skinWorkersFor('maximum', 12)).toBe(4); // 11 -> 5, capped
+    expect(skinWorkersFor('standard', 2)).toBe(1);
+    for (const cores of [1, 4, 8, 64]) {
+      for (const p of ['minimal', 'standard', 'maximum', 'auto'] as const) {
+        const n = skinWorkersFor(p, cores);
+        expect(n).toBeGreaterThanOrEqual(1);
+        expect(n).toBeLessThanOrEqual(4);
+      }
     }
   });
 
