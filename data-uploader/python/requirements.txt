@@ -28,17 +28,17 @@ zstandard==0.12.0      # scdatatools: zstandard~=0.12.0 — P4K zstd entries
 # The rest of scdatatools 1.0.4's requires.txt — with --no-deps nothing pulls
 # them in any more, so each is pinned here to what the old full resolve chose
 # (the newest release inside scdatatools's range).
-fnvhash==0.1.0         # scdatatools: fnvhash~=0.1.0
+fnvhash==0.2.1         # scdatatools: fnvhash~=0.1.0
 hexdump==3.3           # scdatatools: hexdump~=3.3
-humanize==3.13.1       # scdatatools: humanize~=3.13.1
-packaging==21.3        # scdatatools: packaging~=21.3
+humanize==4.16.0       # scdatatools: humanize~=3.13.1
+packaging==26.3        # scdatatools: packaging~=21.3
 pyrsi==0.1.19          # scdatatools: pyrsi~=0.1.19
-rich==12.4.4           # scdatatools: rich~=12.4.4
-tqdm==4.62.3           # scdatatools: tqdm~=4.62.3
+rich==15.0.0           # scdatatools: rich~=12.4.4
+tqdm==4.70.1           # scdatatools: tqdm~=4.62.3
 numpy==1.26.4          # PATCHED (scdatatools wants ~=1.21.5) — last 1.x, cp310 wheel; also sc_extract/silhouette.py
 
 # Our own direct deps — NOT required by scdatatools, so free to pin/update:
 rsa==4.9.1
-cryptography==50.0.1   # AES-backed P4K decryption — pinned; supply-chain sensitive (cp39-abi3 wheel → embedded py3.10 OK)
+cryptography==50.0.2   # AES-backed P4K decryption — pinned; supply-chain sensitive (cp39-abi3 wheel → embedded py3.10 OK)
 lz4==4.4.5
 Pillow==12.3.0         # DDS → PNG icon conversion (icons currently deferred); cp310 win wheel → embedded py3.10 OK
