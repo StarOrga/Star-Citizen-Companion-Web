@@ -197,7 +197,7 @@ export class ScSegmentedComponent {
     // Disabled segments are stepped over, never landed on.
     const step = (from: number, dir: 1 | -1): number => {
       let i = from;
-      for (let k = 0; k < options.length; k++) {
+      for (let tries = options.length; tries > 0; tries--) {
         i = (i + dir + options.length) % options.length;
         if (!options[i].disabled) return i;
       }
