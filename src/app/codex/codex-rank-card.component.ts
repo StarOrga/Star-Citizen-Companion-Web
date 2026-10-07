@@ -3,10 +3,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 import {
   RANK_PROFILES,
   RankProfileId,
+  RankAxisResult,
   RankResult,
   RankScope,
 } from './codex-rank';
-import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
+import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
@@ -25,7 +26,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 @Component({
   selector: 'sc-codex-rank-card',
   standalone: true,
-  imports: [TranslatePipe, ScSelectComponent, ScTooltipDirective],
+  imports: [TranslatePipe, ScSegmentedComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.holo]': 'holo()' },
   template: `
@@ -37,10 +38,12 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </h2>
         @if (result()) {
           <p class="cohort-line">
-            @if (scope() === 'sizeClass' && sizeClass() != null) {
+            @if (result()!.scope === 'sizeClass' && sizeClass() != null) {
               {{ 'codex.rank.nShipsOfSizeClass' | translate: { n: result()!.cohortSize, k: sizeClass() } }}
-            } @else if (scope() === 'career') {
+            } @else if (result()!.scope === 'career') {
               {{ 'codex.rank.nShipsOfCareer' | translate: { n: result()!.cohortSize } }}
+            } @else if (result()!.scope === 'role') {
+              {{ 'codex.rank.nShipsOfRole' | translate: { n: result()!.cohortSize } }}
             } @else {
               {{ 'codex.rank.nShips' | translate: { n: result()!.cohortSize } }}
             }
@@ -55,6 +58,27 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         <p class="rolenote">◈ {{ 'codex.holo.stage.profileNote' | translate: { profile: (activeProfileLabelKey() | translate) } }}</p>
       }
 
+      @if (result()) {
+        <!-- Comparison group as the panel's head line (concept round 3, L2):
+             one segmented control, a group the ship has no data for stays
+             visible but disabled and says why in its tooltip. -->
+        <div class="compare-head">
+          <span class="compare-label">{{ 'codex.rank.compare.label' | translate }}</span>
+          <sc-segmented
+            class="compact"
+            [options]="scopeChoices()"
+            [value]="activeScope()"
+            [ariaLabel]="'codex.rank.scopeLabel' | translate"
+            (valueChange)="pickScope($any($event))" />
+          <button
+            type="button"
+            class="compare-info"
+            [scTooltip]="'codex.rank.compare.info' | translate"
+            [attr.aria-label]="'codex.rank.compare.info' | translate"
+          >ⓘ</button>
+        </div>
+      }
+
       @if (ready()) {
         <div class="rank-col-radar">
           <svg class="radar" viewBox="0 0 200 200" [attr.aria-label]="'codex.rank.radarAria' | translate: { name: shipName(), n: result()!.cohortSize }" role="img">
@@ -66,27 +90,35 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                 <line x1="100" y1="100" [attr.x2]="spoke.x" [attr.y2]="spoke.y" />
               }
             </g>
-            <polygon class="median" [attr.points]="polygonPoints(result()!.medianPolygon)" />
             @if (shipPolygonPoints(); as shipPts) {
               <polygon class="ship" [attr.points]="shipPts" />
             }
-            @if (weakestAxisVertex(); as wv) {
-              <circle class="weak-axis" [attr.cx]="wv.x" [attr.cy]="wv.y" r="4" />
+            @if (comparePolygonPoints(); as cmpPts) {
+              <polygon class="compare" [attr.points]="cmpPts" />
+            }
+            @for (c of connectors(); track c.key) {
+              <line class="connector" [class.up]="c.up" [class.down]="!c.up" [attr.x1]="c.x1" [attr.y1]="c.y1" [attr.x2]="c.x2" [attr.y2]="c.y2" />
             }
             @for (cap of axisCaptions(); track cap.key) {
-              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'" [class.gap]="cap.gap">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
+              <text [attr.x]="cap.x" [attr.y]="cap.y" [attr.text-anchor]="'middle'" [class.gap]="cap.gap" [class.up]="cap.trend === 'up'" [class.down]="cap.trend === 'down'">{{ (holo() && cap.gap ? cap.axisLabelKey : cap.labelKey) | translate }}@if (holo() && cap.gap) { ·—}</text>
             }
           </svg>
           <dl class="sr-only axis-mirror">
             @for (a of result()!.axes; track a.key) {
               <dt>{{ a.labelKey | translate }}</dt>
-              <dd>{{ a.percentile != null ? (a.percentile + '%') : ('codex.rank.gapAxis' | translate) }}</dd>
+              <dd>{{ a.delta != null ? ('codex.rank.compare.axisDelta' | translate: { d: (a.delta > 0 ? '+' : '') + a.delta }) : ('codex.rank.gapAxis' | translate) }}</dd>
             }
           </dl>
-          <p class="legend">
-            <span class="leg ship">— {{ 'codex.rank.legend.ship' | translate: { name: shipName() } }}</span>
-            <span class="leg median">·· {{ 'codex.rank.legend.median' | translate }}</span>
-          </p>
+          <dl class="legend">
+            <dt aria-hidden="true"><svg class="sw" viewBox="0 0 28 10"><rect x="1" y="2" width="26" height="6" rx="2" class="sw-ship-fill" /><line x1="1" y1="5" x2="27" y2="5" class="sw-ship" /></svg></dt>
+            <dd>{{ 'codex.rank.legend.ship' | translate: { name: shipName() } }}</dd>
+            <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="8" x2="10" y2="2" class="sw-up" /></svg></dt>
+            <dd><b class="up">{{ 'codex.rank.legend.better' | translate }}</b></dd>
+            <dt aria-hidden="true"><svg class="sw" viewBox="0 0 28 10"><line x1="1" y1="5" x2="27" y2="5" class="sw-compare" /></svg></dt>
+            <dd>{{ 'codex.rank.legend.compare' | translate: { group: (activeScopeLabelKey() | translate), n: result()!.cohortSize } }}</dd>
+            <dt aria-hidden="true"><svg class="sw sw-s" viewBox="0 0 12 10"><line x1="2" y1="2" x2="10" y2="8" class="sw-down" /></svg></dt>
+            <dd><b class="down">{{ 'codex.rank.legend.worse' | translate }}</b></dd>
+          </dl>
         </div>
       }
 
@@ -98,17 +130,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         } @else if (result()!.overall != null && holo()) {
             <p class="verdict holo-verdict">
               <b>{{ result()!.overall }} %</b> · {{ result()!.bandKey! | translate }}
-            </p>
-            <p class="cohort holo-cohort">
-              {{ 'codex.holo.stage.against' | translate }}
-              <button type="button" class="scope-link" (click)="cycleScope()" [scTooltip]="'codex.rank.scopeLabel' | translate">{{ scopeLineKey() | translate: { n: result()!.cohortSize } }}</button>
-              ·
-              <button
-                type="button"
-                class="tip"
-                [attr.aria-describedby]="'rank-pct-tip'"
-              >{{ 'codex.rank.percentile' | translate }} ⓘ</button>
-              <span id="rank-pct-tip" class="pct-tip" role="tooltip">{{ 'codex.rank.percentileTooltip' | translate }}</span>
             </p>
         } @else if (result()!.overall != null) {
             <p class="verdict">
@@ -150,18 +171,6 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
             <span [id]="'rank-reason-' + p.id" class="sr-only">{{ disabledReason(p.id)! | translate }}</span>
           }
         }
-        <!-- A div, not a label: a label forwards clicks on the listbox's
-             options to the trigger and would snap the list shut again. -->
-        <div class="scope-select">
-          <sc-select
-            [options]="scopeOptions()"
-            [value]="scope()"
-            [allowEmpty]="false"
-            [ariaLabel]="'codex.rank.scopeLabel' | translate"
-            (valueChange)="onScopeChange($event)"
-          />
-        </div>
-        <span class="scope-hint">{{ 'codex.rank.disabled.noSizeClass' | translate }}</span>
       </div>
       }
         @if (ready() && holo()) {
@@ -245,11 +254,18 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     /* Wrapper carries the tooltip: a disabled button gets no pointer events,
        so the "why disabled" hover must land on the span around it. */
     .chip-wrap { display: inline-flex; }
-    .scope-select { margin-left: auto; }
-    .scope-hint { flex-basis: 100%; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor));
-      color: var(--sc-fg-2); font-style: italic; }
-    /* The themed select (shared/sc-select) draws itself; this only sizes it. */
-    .scope-select sc-select { min-width: 130px; font-size: max(0.7rem, var(--sc-fs-floor)); }
+
+    /* Comparison head (concept round 3, L2): "Verglichen mit" + one
+       segmented control + ⓘ, ruled off from the radar below it. */
+    .compare-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding-bottom: 10px; border-bottom: 1px solid var(--sc-border); }
+    .compare-label { font-size: max(10.5px, var(--sc-fs-floor)); letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2); }
+    .compare-info:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .compare-info { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border-radius: 50%;
+      border: 1px solid var(--sc-border); background: none; color: var(--sc-fg-2); font: inherit; font-size: 12px; cursor: help; }
+    @media (pointer: coarse) {
+      .compare-info { width: var(--sc-tap-min); height: var(--sc-tap-min); }
+    }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
     .rank-skel { height: 220px; border-radius: 8px; }
@@ -277,16 +293,31 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .radar .rings polygon { fill: none; stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 1; }
     .radar .rings line { stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 1; }
     .radar text { font-size: 6px; fill: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.04em; }
-    .radar .median { fill: none; stroke: var(--sc-fg-2); stroke-width: 1; stroke-dasharray: 3 3; }
     .radar .ship { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke: var(--sc-accent); stroke-width: 1.5; }
-    /* Weakest ranked axis (Holotable "Einordnung" ask): a stroke-only ring,
-       no fill, no coloured text. --sc-warning, not --sc-danger: a weak axis is
-       neither an error nor a destructive action (CLAUDE.md), and the set
-       page's rating card marks its weak axes the same way. */
-    .radar .weak-axis { fill: none; stroke: var(--sc-warning); stroke-width: 2; }
+    /* The comparison group's median, on the same fleet-wide scale as the
+       ship — it moves when the group changes, the ship does not. */
+    .radar .compare { fill: none; stroke: color-mix(in srgb, var(--sc-fg-0) 75%, transparent); stroke-width: 1.2; stroke-dasharray: 2.5 2.5; }
+    /* Ship vs. comparison per axis: accent where the ship is ahead,
+       --sc-warning where it is behind — a weaker comparison value is not an
+       error (CLAUDE.md), so never --sc-danger. */
+    .radar .connector { stroke-width: 2; stroke-linecap: round; }
+    .radar .connector.up { stroke: var(--sc-accent); }
+    .radar .connector.down { stroke: var(--sc-warning); }
+    .radar text.up { fill: var(--sc-accent); font-weight: 700; }
+    .radar text.down { fill: var(--sc-warning); font-weight: 700; }
     .axis-mirror.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .legend { display: flex; gap: 12px; justify-content: center; margin: 0; font-size: max(0.66rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    .legend .ship { color: var(--sc-accent); }
+    .legend { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 8px; align-items: center; margin: 0;
+      font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-1); }
+    .legend dt, .legend dd { margin: 0; }
+    .legend .sw { display: block; width: 28px; height: 10px; overflow: visible; }
+    .legend .sw-s { width: 12px; }
+    .legend .sw-ship-fill { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); }
+    .legend .sw-ship { stroke: var(--sc-accent); stroke-width: 2; }
+    .legend .sw-compare { stroke: color-mix(in srgb, var(--sc-fg-0) 75%, transparent); stroke-width: 1.6; stroke-dasharray: 3 3; }
+    .legend .sw-up { stroke: var(--sc-accent); stroke-width: 2.4; stroke-linecap: round; }
+    .legend .sw-down { stroke: var(--sc-warning); stroke-width: 2.4; stroke-linecap: round; }
+    .legend .up { color: var(--sc-accent); }
+    .legend .down { color: var(--sc-warning); }
 
     /* ONE column by default. A row spends 74 + 34 + two 5px gaps = 118px on
        label, value and gutters and gives the rest to the track, so the track
@@ -370,14 +401,11 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
        labels land on the 12px readability floor. */
     @media (pointer: coarse) { :host(.holo) .radar text { font-size: 10.5px; } }
     :host(.holo) .radar text.gap { fill: color-mix(in srgb, var(--sc-fg-2) 60%, transparent); }
-    :host(.holo) .legend { display: none; }
+    :host(.holo) .compare-head { justify-content: center; }
+    :host(.holo) .legend { align-self: stretch; }
     :host(.holo) .rank-col-bars { gap: 8px; }
     :host(.holo) .holo-verdict { text-align: center; font-size: max(11.5px, var(--sc-fs-floor)); color: var(--sc-fg-1); }
     :host(.holo) .holo-verdict b { font-family: var(--font-monospace, monospace); font-weight: 400; }
-    :host(.holo) .holo-cohort { position: relative; margin: 0; text-align: center; font-size: max(10.5px, var(--sc-fs-floor)); color: var(--sc-fg-2); }
-    :host(.holo) .scope-link { background: none; border: none; padding: 0; font: inherit; color: var(--sc-fg-1); cursor: pointer;
-      text-decoration: underline dotted; text-underline-offset: 3px; min-height: var(--sc-tap-min, 20px); }
-    :host(.holo) .scope-link:hover { color: var(--sc-accent); }
     :host(.holo) .sub-head { margin: 0; display: flex; align-items: center; gap: 8px; font-family: var(--sc-font-display); font-size: max(8.5px, var(--sc-fs-floor));
       letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); }
     :host(.holo) .sub-head i { flex: 1; height: 1px; background: var(--sc-border); }
@@ -412,71 +440,71 @@ export class CodexRankCardComponent {
     () => RANK_PROFILES.find((p) => p.id === this.profile())?.labelKey ?? RANK_PROFILES[0].labelKey,
   );
 
-  /** The cohort line's wording for the scope the result was ACTUALLY built with. */
-  readonly scopeLineKey = computed<string>(() => {
-    const r = this.result();
-    const scope = r?.scope ?? this.scope();
-    if (scope === 'sizeClass' && this.sizeClass() != null) return 'codex.holo.stage.cohortSizeClass';
-    if (scope === 'career') return 'codex.holo.stage.cohortCareer';
-    return 'codex.holo.stage.cohortAll';
+  /** The groups the head toggle offers, in this order. Size class stays out
+   * until the schema carries it (#523). */
+  private static readonly SCOPES: readonly { id: RankScope; labelKey: string; reasonKey: string }[] = [
+    { id: 'all', labelKey: 'codex.rank.scope.all', reasonKey: '' },
+    { id: 'career', labelKey: 'codex.rank.scope.career', reasonKey: 'codex.rank.disabled.noCareer' },
+    { id: 'role', labelKey: 'codex.rank.scope.role', reasonKey: 'codex.rank.disabled.noRole' },
+  ];
+
+  /** The scope the result was ACTUALLY built with — a remembered group the
+   * ship has no data for shows as "Alle" here, never as a fake filter. */
+  readonly activeScope = computed<RankScope>(() => this.result()?.scope ?? this.scope());
+
+  readonly scopeChoices = computed<ScSegmentOption[]>(() => {
+    const available = this.result()?.scopeAvailable;
+    return CodexRankCardComponent.SCOPES.map((s) => {
+      const off = !!available && !available[s.id];
+      return { value: s.id, labelKey: s.labelKey, titleKey: off ? s.reasonKey : undefined, disabled: off };
+    });
   });
 
-  /** Holotable: the underlined cohort word cycles through the usable scopes. */
-  cycleScope(): void {
-    const order: RankScope[] = ['all', 'career', 'sizeClass'];
-    const usable = order.filter((s) => s !== 'sizeClass' || this.sizeClass() != null);
-    const i = usable.indexOf(this.scope());
-    this.scopeChange.emit(usable[(i + 1) % usable.length]);
+  readonly activeScopeLabelKey = computed<string>(
+    () => CodexRankCardComponent.SCOPES.find((s) => s.id === this.activeScope())?.labelKey ?? 'codex.rank.scope.all',
+  );
+
+  pickScope(scope: RankScope): void {
+    if (scope !== this.activeScope()) this.scopeChange.emit(scope);
   }
+
   readonly rings = [1, 2, 3];
 
   /**
-   * Vertices of the ship's line — ONLY the axes the cohort could actually
-   * rank. An axis with no percentile contributes no vertex at all: the line
+   * Vertices of the ship's line on the fleet-wide scale — ONLY the axes that
+   * carry a value. An axis without one contributes no vertex at all: the line
    * cuts straight across it and the caption on that spoke says
-   * `codex.rank.gapAxis`. Substituting the median (let alone a flat 50) would
+   * `codex.rank.gapAxis`. Substituting a value (let alone a flat 50) would
    * draw a number the data does not have, which is the one thing this page
    * must never do (MASTER §11, R-A29). Below three known axes there is no
    * honest shape left, so the line is dropped and only the bars speak.
    */
-  readonly shipPolygonPoints = computed<string>(() => {
-    const r = this.result();
-    if (!r) return '';
-    const n = r.axes.length;
-    const known = r.axes
-      .map((a, i) => ({ percentile: a.percentile, i }))
-      .filter((v): v is { percentile: number; i: number } => v.percentile != null);
-    if (known.length < 3) return '';
-    return known.map((v) => this.vertexAt(v.percentile, v.i, n)).join(' ');
-  });
+  readonly shipPolygonPoints = computed<string>(() => this.polygonOf((a) => a.norm));
 
-  /**
-   * Vertex of the single weakest ranked axis (lowest percentile), for the
-   * Holotable "Einordnung" panel's warning-stroke marker. Ties keep the first
-   * axis in profile order. `null` when nothing is ranked yet.
-   */
-  readonly weakestAxisVertex = computed<{ x: number; y: number } | null>(() => {
+  /** The comparison group's median line — same rule, same scale. */
+  readonly comparePolygonPoints = computed<string>(() => this.polygonOf((a) => a.compareNorm));
+
+  /** Ship vs. comparison per axis: a short stroke from the group's vertex to
+   * the ship's, coloured by which side is ahead. Axes within one point of
+   * each other draw none. */
+  readonly connectors = computed<{ key: string; up: boolean; x1: number; y1: number; x2: number; y2: number }[]>(() => {
     const r = this.result();
-    if (!r) return null;
+    if (!r || !this.shipPolygonPoints() || !this.comparePolygonPoints()) return [];
     const n = r.axes.length;
-    let best: { percentile: number; i: number } | null = null;
-    for (let i = 0; i < r.axes.length; i++) {
-      const pct = r.axes[i].percentile;
-      if (pct == null) continue;
-      if (best === null || pct < best.percentile) best = { percentile: pct, i };
-    }
-    if (best === null) return null;
-    const chosen: { percentile: number; i: number } = best;
-    const [x, y] = this.vertexAt(chosen.percentile, chosen.i, n).split(',').map(Number);
-    return { x, y };
+    return r.axes.flatMap((a, i) => {
+      if (a.norm == null || a.compareNorm == null || a.delta == null || Math.abs(a.delta) < 1) return [];
+      const [x1, y1] = this.vertexAt(a.compareNorm, i, n).split(',').map(Number);
+      const [x2, y2] = this.vertexAt(a.norm, i, n).split(',').map(Number);
+      return [{ key: a.key, up: a.delta > 0, x1, y1, x2, y2 }];
+    });
   });
 
   /** How many axes the ship's line actually rests on (specs + a11y text). */
   readonly rankedAxisCount = computed<number>(
-    () => this.result()?.axes.filter((a) => a.percentile != null).length ?? 0,
+    () => this.result()?.axes.filter((a) => a.norm != null).length ?? 0,
   );
 
-  readonly axisCaptions = computed<{ key: string; labelKey: string; axisLabelKey: string; x: number; y: number; gap: boolean }[]>(() => {
+  readonly axisCaptions = computed<{ key: string; labelKey: string; axisLabelKey: string; x: number; y: number; gap: boolean; trend: 'up' | 'down' | null }[]>(() => {
     const r = this.result();
     if (!r) return [];
     const n = r.axes.length;
@@ -486,31 +514,28 @@ export class CodexRankCardComponent {
       return {
         key: a.key,
         axisLabelKey: a.labelKey,
-        labelKey: a.percentile == null ? 'codex.rank.gapAxis' : a.labelKey,
+        labelKey: a.norm == null ? 'codex.rank.gapAxis' : a.labelKey,
         x: cx + r2 * Math.cos(angle),
         y: cy + r2 * Math.sin(angle),
-        gap: a.percentile == null,
+        gap: a.norm == null,
+        trend: a.delta == null || Math.abs(a.delta) < 1 ? null : a.delta > 0 ? 'up' : 'down',
       };
     });
   });
 
-  /**
-   * The scope select's choices. `sizeClass` is listed but not pickable, as it
-   * was in the native `<select>`: the same-size-class cohort is not wired yet
-   * (schema gap, #523) — the adjoining `.scope-hint` says so.
-   */
-  readonly scopeOptions = computed<ScSelectOption[]>(() => [
-    { value: 'sizeClass', labelKey: 'codex.rank.scope.sizeClass', disabled: true },
-    { value: 'all', labelKey: 'codex.rank.scope.all' },
-    { value: 'career', labelKey: 'codex.rank.scope.career' },
-  ]);
+  private polygonOf(pick: (a: RankAxisResult) => number | null): string {
+    const r = this.result();
+    if (!r) return '';
+    const n = r.axes.length;
+    const known = r.axes
+      .map((a, i) => ({ v: pick(a), i }))
+      .filter((p): p is { v: number; i: number } => p.v != null);
+    if (known.length < 3) return '';
+    return known.map((p) => this.vertexAt(p.v, p.i, n)).join(' ');
+  }
 
   disabledReason(id: RankProfileId): string | null {
     return this.disabledReasons()[id] ?? null;
-  }
-
-  onScopeChange(value: string | null): void {
-    if (value) this.scopeChange.emit(value as RankScope);
   }
 
   ringPoints(ring: number, n: number): string {
@@ -537,22 +562,5 @@ export class CodexRankCardComponent {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     const radius = (Math.max(0, Math.min(100, percentile)) / 100) * r;
     return `${(cx + radius * Math.cos(angle)).toFixed(1)},${(cy + radius * Math.sin(angle)).toFixed(1)}`;
-  }
-
-  polygonPoints(percentiles: readonly number[]): string {
-    const n = percentiles.length;
-    if (n === 0) return '';
-    const cx = 100;
-    const cy = 100;
-    const r = 80;
-    return percentiles
-      .map((p, i) => {
-        const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-        const radius = (Math.max(0, Math.min(100, p)) / 100) * r;
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(' ');
   }
 }

@@ -1843,6 +1843,7 @@ export class CodexService {
           name: cleanLocaleValue(row.nameLocalized) || null,
           sizeClass: null, // schema gap — see the header comment.
           career: resolveCareerLabel(payload?.career ?? null),
+          role: row.role?.trim() || null,
           sheet: computeKpiSheet(
             this.cohortOccupantsFor(payload?.defaultLoadout ?? [], payloads, ammo),
             this.cohortShipInput(payload),

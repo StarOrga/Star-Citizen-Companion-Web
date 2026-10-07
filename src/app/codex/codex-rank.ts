@@ -18,7 +18,7 @@ import type { KpiKey } from './codex-mission';
 import type { KpiSheet } from './codex-loadout-stats';
 
 export type RankProfileId = 'combat' | 'defence' | 'transport';
-export type RankScope = 'sizeClass' | 'all' | 'career';
+export type RankScope = 'sizeClass' | 'all' | 'career' | 'role';
 
 export interface RankAxis {
   key: KpiKey;
@@ -98,6 +98,9 @@ export interface RankShipInput {
   /** ship size class (1..5) — the default scope groups by it. */
   sizeClass: number | null;
   career: string | null;
+  /** The ship's role (`ships.role`, raw localisation key) — the third
+   * comparison group. Optional: cohorts cached before it existed. */
+  role?: string | null;
   sheet: Partial<KpiSheet>;
 }
 
@@ -116,6 +119,18 @@ export interface RankAxisResult {
   /** true when the bar should paint red (MASTER §3: below 45 %). */
   weak: boolean;
   gapKey: string | null;
+  /**
+   * The radar's shared scale: this ship's value placed between the weakest
+   * (0) and the strongest (100) ship of the WHOLE fleet, square-root eased so
+   * a single outlier (an Idris shield) does not press everyone else against
+   * the centre. Independent of the scope — that is what lets the comparison
+   * line move when the group changes while the ship stays put.
+   */
+  norm: number | null;
+  /** The comparison group's median value on the same fleet-wide scale. */
+  compareNorm: number | null;
+  /** `norm - compareNorm`, rounded; positive = this ship is better. */
+  delta: number | null;
 }
 
 /** Matches the authored keys `codex.rank.band.low|mid|high` (R4). */
@@ -140,8 +155,10 @@ export interface RankResult {
   overall: number | null;
   band: RankBand | null;
   bandKey: string | null;
-  /** the dashed reference polygon — the median ship sits at 50 % by definition. */
-  medianPolygon: number[];
+  /** Which comparison groups the target can actually be put in — a scope
+   * whose discriminator the ship lacks is offered disabled, never silently
+   * widened behind the user's back. */
+  scopeAvailable: Record<RankScope, boolean>;
 }
 
 /** Percentile band thresholds (MASTER §3). */
@@ -172,8 +189,42 @@ export function filterCohort(
     if (target.sizeClass == null) return withTarget;
     return withTarget.filter((c) => c.sizeClass === target.sizeClass);
   }
+  if (scope === 'role') {
+    if (!target.role) return withTarget;
+    return withTarget.filter((c) => c.role === target.role);
+  }
   if (!target.career) return withTarget;
   return withTarget.filter((c) => c.career === target.career);
+}
+
+/** Which scopes can filter anything for `target` (see `RankResult.scopeAvailable`). */
+export function rankScopeAvailability(target: RankShipInput): Record<RankScope, boolean> {
+  return {
+    all: true,
+    career: !!target.career,
+    role: !!target.role,
+    sizeClass: target.sizeClass != null,
+  };
+}
+
+/**
+ * Place `value` on the fleet-wide 0..100 scale spanned by `fleet`. Linear
+ * min-max first, then a square root: ship stats are heavily right-skewed (one
+ * capital ship carries ten times everyone's shield), and a plain min-max would
+ * pile the whole field into the inner ring. Lower-is-better axes are flipped
+ * so "further out" always reads "better".
+ */
+export function fleetScale(value: number, fleet: readonly number[], lowerIsBetter: boolean): number | null {
+  if (fleet.length === 0) return null;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of fleet) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  if (max === min) return 50;
+  const t = Math.max(0, Math.min(1, lowerIsBetter ? (max - value) / (max - min) : (value - min) / (max - min)));
+  return Math.round(Math.sqrt(t) * 1000) / 10;
 }
 
 function median(values: readonly number[]): number | null {
@@ -216,31 +267,40 @@ export function rankShip(
   // Rank hygiene: a scope whose discriminator the target does not carry cannot
   // filter anything. Report `all` + the reason rather than pretending the
   // cohort was narrowed.
-  const degraded =
-    (requested === 'career' && !target.career) ||
-    (requested === 'sizeClass' && target.sizeClass == null);
+  const scopeAvailable = rankScopeAvailability(target);
+  const degraded = !scopeAvailable[requested];
   const scope: RankScope = degraded ? 'all' : requested;
   const scopeFallbackKey = degraded ? 'codex.rank.disabled.noData' : null;
   const set = filterCohort(target, cohort, scope);
+  const fleet = filterCohort(target, cohort, 'all');
+  const numbersOf = (ships: readonly RankShipInput[], key: KpiKey): number[] =>
+    ships
+      .map((c) => c.sheet[key] ?? null)
+      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
 
   const axes: RankAxisResult[] = profile.axes.map((a) => {
-    const values = set
-      .map((c) => c.sheet[a.key] ?? null)
-      .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+    const values = numbersOf(set, a.key);
+    const fleetValues = numbersOf(fleet, a.key);
     const value = target.sheet[a.key] ?? null;
     const usable = typeof value === 'number' && Number.isFinite(value);
     const percentile = usable ? percentileOf(value, values, a.lowerIsBetter) : null;
+    const groupMedian = median(values);
+    const norm = usable ? fleetScale(value, fleetValues, a.lowerIsBetter) : null;
+    const compareNorm = groupMedian != null ? fleetScale(groupMedian, fleetValues, a.lowerIsBetter) : null;
     return {
       key: a.key,
       labelKey: a.labelKey,
       lowerIsBetter: a.lowerIsBetter,
       value: usable ? value : null,
       percentile,
-      medianValue: median(values),
+      medianValue: groupMedian,
       cohortCount: values.length,
       weak: percentile != null && percentile < WEAK_THRESHOLD,
       // ONE authored gap string for every axis — there is no per-axis copy (R4).
       gapKey: usable ? null : RANK_AXIS_GAP_KEY,
+      norm,
+      compareNorm,
+      delta: norm != null && compareNorm != null ? Math.round(norm - compareNorm) : null,
     };
   });
 
@@ -264,7 +324,7 @@ export function rankShip(
     overall,
     band,
     bandKey: band ? `codex.rank.band.${band}` : null,
-    medianPolygon: profile.axes.map(() => 50),
+    scopeAvailable,
   };
 }
 
@@ -293,6 +353,30 @@ export function resolveCareerLabel(career: string | null | undefined): string | 
   return c === '' ? null : c;
 }
 
+// ── remembered comparison group ──────────────────────────────────────────────
+// An essential functional preference like `ComposerPrefsService`'s: no
+// personal data, persisted unconditionally, failing open to "Alle Schiffe".
+
+const RANK_SCOPE_PREF_KEY = 'sc.codex.rankScope';
+const PICKABLE_SCOPES: readonly RankScope[] = ['all', 'career', 'role'];
+
+export function readRankScopePref(): RankScope {
+  try {
+    const v = localStorage.getItem(RANK_SCOPE_PREF_KEY) as RankScope | null;
+    return v && PICKABLE_SCOPES.includes(v) ? v : 'all';
+  } catch {
+    return 'all';
+  }
+}
+
+export function writeRankScopePref(scope: RankScope): void {
+  try {
+    localStorage.setItem(RANK_SCOPE_PREF_KEY, scope);
+  } catch {
+    /* private mode / quota — the choice still holds for this page */
+  }
+}
+
 // ── cohort cache ─────────────────────────────────────────────────────────────
 // localStorage (not IndexedDB): the payload is a few hundred small sheets, the
 // API is synchronous — which keeps the ranking a pure computed() — and a quota
@@ -302,7 +386,8 @@ export function resolveCareerLabel(career: string | null | undefined): string | 
 
 // v2: the cohort drops salvage wrecks, sentries, probes and nameless records
 // (archive audit 2026-09-25) — a v1 entry holds the old fleet.
-const COHORT_CACHE_PREFIX = 'scc-codex-rank:v2';
+// v3: every member carries its `role` (the third comparison group).
+const COHORT_CACHE_PREFIX = 'scc-codex-rank:v3';
 
 export function cohortCacheKey(buildId: string, scope: RankScope, discriminator = ''): string {
   return `${COHORT_CACHE_PREFIX}:${buildId}:${scope}${discriminator ? `:${discriminator}` : ''}`;

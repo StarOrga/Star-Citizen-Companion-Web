@@ -152,8 +152,10 @@ import {
   RankScope,
   RankShipInput,
   rankProfileDisabledReason,
+  readRankScopePref,
   rankShip,
   resolveCareerLabel,
+  writeRankScopePref,
 } from './codex-rank';
 import { ShipFactGroup } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
@@ -627,7 +629,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (reverted)="onRevertPaths($event)"
             (missionChange)="setMission($event)"
             (rankProfileChange)="rankProfile.set($event)"
-            (rankScopeChange)="rankScope.set($event)"
+            (rankScopeChange)="setRankScope($event)"
             (addToHangar)="addToHangar()"
             [addBusy]="addBusy()"
             [addFailed]="addFailed()"
@@ -2367,10 +2369,16 @@ export class CodexDetailComponent implements OnInit {
 
   // ── Einordnung (MASTER §3) ───────────────────────────────────────────────
   readonly rankProfile = signal<RankProfileId>('combat');
-  // The schema carries no ship size class (see `rankShipInput` below), so
-  // "same size class" is disabled and "Alle Schiffe" is the honest default —
-  // `sizeClass` would just re-degrade to `all` on every ship anyway.
-  readonly rankScope = signal<RankScope>('all');
+  // The comparison group the user picked last (Alle / Karriere / Rolle) is
+  // remembered across ships and visits; "Alle Schiffe" is the default. A ship
+  // that lacks the remembered group shows "Alle" for itself without
+  // overwriting the choice (`RankResult.scope` vs. this signal).
+  readonly rankScope = signal<RankScope>(readRankScopePref());
+
+  setRankScope(scope: RankScope): void {
+    this.rankScope.set(scope);
+    writeRankScopePref(scope);
+  }
 
   /** The cohort — every buyable ship's stock KPI sheet, fetched once per
    * build (cached in `CodexService.getRankCohort`) and never blocking the
@@ -2409,7 +2417,9 @@ export class CodexDetailComponent implements OnInit {
     const className = this.shipClassName();
     if (!className) return null;
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
-    return { className, sizeClass: null, career, sheet: this.currentKpiSheet() };
+    const roleRaw = this.detail()?.row?.['role'];
+    const role = typeof roleRaw === 'string' && roleRaw.trim() ? roleRaw.trim() : null;
+    return { className, sizeClass: null, career, role, sheet: this.currentKpiSheet() };
   });
 
   readonly rankResult = computed<RankResult | null>(() => {

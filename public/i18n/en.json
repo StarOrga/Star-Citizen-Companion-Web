@@ -1026,7 +1026,10 @@
       },
       "legend": {
         "ship": "{{name}}",
-        "median": "Median"
+        "median": "Median",
+        "compare": "Median {{group}} · {{n}} ships",
+        "better": "better",
+        "worse": "weaker"
       },
       "profile": {
         "combat": "Combat",
@@ -1036,13 +1039,16 @@
       "scope": {
         "sizeClass": "Same size class",
         "all": "All ships",
-        "career": "Same career"
+        "career": "Career",
+        "role": "Role"
       },
       "disabled": {
         "noCargo": "This ship has no cargo hold",
         "noData": "This build carries no values for this profile",
         "noSizeClass": "The game files carry no size class for this build",
-        "tooFewShips": "Too few ships in the comparison field"
+        "tooFewShips": "Too few ships in the comparison field",
+        "noCareer": "No career is recorded for this ship.",
+        "noRole": "No role is recorded for this ship."
       },
       "axis": {
         "alpha": "ALPHA",
@@ -1060,6 +1066,12 @@
         "quantumRange": "QUANTUM RANGE",
         "scm": "SCM",
         "mass": "MASS"
+      },
+      "nShipsOfRole": "{{n}} ships of the same role",
+      "compare": {
+        "label": "Compared with",
+        "info": "Each axis runs from the weakest (centre) to the strongest ship of the whole fleet (rim). Blue is this ship, the dashed line is the median of the chosen comparison ships. Blue strokes: better than the comparison, yellow: weaker.",
+        "axisDelta": "{{d}} points against the comparison"
       }
     },
     "detail": {
