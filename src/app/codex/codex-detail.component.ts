@@ -1,13 +1,16 @@
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
+import { AccountPrefsService } from '../core/account-prefs.service';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -151,6 +154,8 @@ import {
   RankResult,
   RankScope,
   RankShipInput,
+  RANK_SCOPE_ACCOUNT_KEY,
+  parseRankScopePref,
   rankProfileDisabledReason,
   readRankScopePref,
   rankShip,
@@ -2373,11 +2378,22 @@ export class CodexDetailComponent implements OnInit {
   // remembered across ships and visits; "Alle Schiffe" is the default. A ship
   // that lacks the remembered group shows "Alle" for itself without
   // overwriting the choice (`RankResult.scope` vs. this signal).
+  // Signed in, the account's copy (profiles.ui_prefs) wins once it has loaded,
+  // so the choice follows the user to another browser.
   readonly rankScope = signal<RankScope>(readRankScopePref());
+  private readonly accountPrefs = inject(AccountPrefsService);
+  private readonly rankScopeFromAccount = effect(() => {
+    const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
+    if (fromAccount && fromAccount !== untracked(this.rankScope)) {
+      this.rankScope.set(fromAccount);
+      writeRankScopePref(fromAccount);
+    }
+  });
 
   setRankScope(scope: RankScope): void {
     this.rankScope.set(scope);
     writeRankScopePref(scope);
+    this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
   }
 
   /** The cohort — every buyable ship's stock KPI sheet, fetched once per

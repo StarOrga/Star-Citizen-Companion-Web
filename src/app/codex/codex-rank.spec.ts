@@ -2,6 +2,7 @@ import {
   cohortCacheKey,
   filterCohort,
   fleetScale,
+  parseRankScopePref,
   percentileOf,
   pruneCohortCache,
   rankBandOf,
@@ -188,6 +189,16 @@ describe('role scope', () => {
     expect(r.scope).toBe('all');
     expect(r.scopeFallbackKey).toBe('codex.rank.disabled.noData');
     expect(r.scopeAvailable.role).toBeFalse();
+  });
+});
+
+describe('remembered comparison group', () => {
+  it('accepts only the pickable groups from storage', () => {
+    expect(parseRankScopePref('career')).toBe('career');
+    expect(parseRankScopePref('role')).toBe('role');
+    expect(parseRankScopePref('sizeClass')).toBeNull();
+    expect(parseRankScopePref(42)).toBeNull();
+    expect(parseRankScopePref(undefined)).toBeNull();
   });
 });
 

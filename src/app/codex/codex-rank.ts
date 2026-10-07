@@ -356,14 +356,22 @@ export function resolveCareerLabel(career: string | null | undefined): string | 
 // ── remembered comparison group ──────────────────────────────────────────────
 // An essential functional preference like `ComposerPrefsService`'s: no
 // personal data, persisted unconditionally, failing open to "Alle Schiffe".
+// localStorage is the instant, signed-out copy; a signed-in account also keeps
+// it in `profiles.ui_prefs` under RANK_SCOPE_ACCOUNT_KEY (AccountPrefsService),
+// which wins once loaded so the choice follows the user to another browser.
 
 const RANK_SCOPE_PREF_KEY = 'sc.codex.rankScope';
+export const RANK_SCOPE_ACCOUNT_KEY = 'codex.rankScope';
 const PICKABLE_SCOPES: readonly RankScope[] = ['all', 'career', 'role'];
+
+/** A stored value as a pickable group, or null for anything else. */
+export function parseRankScopePref(v: unknown): RankScope | null {
+  return typeof v === 'string' && (PICKABLE_SCOPES as readonly string[]).includes(v) ? (v as RankScope) : null;
+}
 
 export function readRankScopePref(): RankScope {
   try {
-    const v = localStorage.getItem(RANK_SCOPE_PREF_KEY) as RankScope | null;
-    return v && PICKABLE_SCOPES.includes(v) ? v : 'all';
+    return parseRankScopePref(localStorage.getItem(RANK_SCOPE_PREF_KEY)) ?? 'all';
   } catch {
     return 'all';
   }
