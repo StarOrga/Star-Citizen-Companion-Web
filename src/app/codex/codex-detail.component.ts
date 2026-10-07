@@ -442,7 +442,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [scope]="rankScope()"
             [disabledReasons]="rankDisabledReasons()"
             (profileChange)="rankProfile.set($event)"
-            (scopeChange)="rankScope.set($event)" />
+            (scopeChange)="setRankScope($event)" />
         }
         </div>
 
