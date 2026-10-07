@@ -4,6 +4,29 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.127.0] - 2026-10-07
+
+### Changed
+
+- **Holodeck-Einordnung: das Hexagon zeigt jetzt wirklich den Vergleich.**
+  Schiff und Vergleichsgruppe liegen auf einem gemeinsamen Maßstab (echte
+  Werte, Min–Max über alle Schiffe, Wurzel-Skala). Die blaue Form bleibt beim
+  Gruppenwechsel stehen, die gestrichelte Linie ist der Median der gewählten
+  Vergleichsschiffe und wandert mit. Farbige Striche je Achse (blau = besser,
+  gelb = schwächer) und gleichfarbige Achsennamen zeigen, wo das Schiff vorn
+  oder hinten liegt. Der gelbe Punkt und der feste 50-%-Ring entfallen.
+- Kopfzeile „Verglichen mit [Alle Schiffe | Karriere | Rolle] ⓘ“: Rolle ist
+  eine neue Vergleichsgruppe; eine Gruppe ohne Daten bleibt sichtbar, ist aber
+  nicht wählbar und sagt im Tooltip warum. Die Legende ist auch im Holotable
+  immer sichtbar.
+- Die gewählte Vergleichsgruppe wird pro Account gemerkt und folgt dir auf
+  andere Browser (neu: `profiles.ui_prefs`).
+
+### Deploy
+
+- Migration `20261007100000_profile_ui_prefs.sql` anwenden (`npm run db:push`
+  aus dem Primär-Checkout). Ohne sie bleibt die Wahl pro Browser gemerkt.
+
 ## [0.126.0] - 2026-10-04
 
 ### Changed

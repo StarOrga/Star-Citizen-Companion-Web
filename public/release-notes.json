@@ -1,7 +1,41 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.126.0",
+  "current": "0.127.0",
   "releases": [
+    {
+      "version": "0.127.0",
+      "date": "2026-10-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Holodeck-Einordnung: das Hexagon zeigt jetzt wirklich den Vergleich.",
+              "text": "Schiff und Vergleichsgruppe liegen auf einem gemeinsamen Maßstab (echte Werte, Min–Max über alle Schiffe, Wurzel-Skala). Die blaue Form bleibt beim Gruppenwechsel stehen, die gestrichelte Linie ist der Median der gewählten Vergleichsschiffe und wandert mit. Farbige Striche je Achse (blau = besser, gelb = schwächer) und gleichfarbige Achsennamen zeigen, wo das Schiff vorn oder hinten liegt. Der gelbe Punkt und der feste 50-%-Ring entfallen."
+            },
+            {
+              "title": "",
+              "text": "Kopfzeile „Verglichen mit [Alle Schiffe | Karriere | Rolle] ⓘ“: Rolle ist eine neue Vergleichsgruppe; eine Gruppe ohne Daten bleibt sichtbar, ist aber nicht wählbar und sagt im Tooltip warum. Die Legende ist auch im Holotable immer sichtbar."
+            },
+            {
+              "title": "",
+              "text": "Die gewählte Vergleichsgruppe wird pro Account gemerkt und folgt dir auf andere Browser (neu: profiles.ui_prefs)."
+            }
+          ]
+        },
+        {
+          "category": "Deploy",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Migration 20261007100000_profile_ui_prefs.sql anwenden (npm run db:push aus dem Primär-Checkout). Ohne sie bleibt die Wahl pro Browser gemerkt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.126.0",
       "date": "2026-10-04",
