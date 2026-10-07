@@ -4,7 +4,22 @@ import { Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { environment } from '../../environments/environment';
 import { cleanLocaleValue, isCatalogStale, comparePatchVersion } from './codex-format';
-import { PolySearchHit, dedupePolyHits, rankPolyHits, toPolyHit, toUpcomingHit } from './codex-poly-search';
+import {
+  PolyHitKind,
+  PolySearchHit,
+  UPCOMING_HIT_KIND,
+  dedupePolyHits,
+  rankPolyHits,
+  toPolyHit,
+  toUpcomingHit,
+} from './codex-poly-search';
+
+/** One Codex search: the ranked hits plus how many records each kind matched in total. */
+export interface PolySearchResult {
+  hits: PolySearchHit[];
+  /** Per-kind match count (server count; the announced feed counts its own). */
+  totals: Partial<Record<PolyHitKind, number>>;
+}
 import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { CodexLocaleShards } from './codex-locale-shards';
@@ -275,6 +290,8 @@ const FPS_CATALOG_HARD_CAP = 12000;
 /** Search-count cache bound: a session types a few dozen terms, not thousands. */
 /** How many rows per kind `searchAll` reads before ranking and truncating. */
 const SEARCH_OVERFETCH = 4;
+/** The announced-ship feed is local (~60 ships): read every match to count them. */
+const UPCOMING_SEARCH_ALL = 500;
 const SEARCH_COUNT_CACHE_MAX = 200;
 /**
  * Most class names the German-name fallback of `listByKind` asks for — they
@@ -1662,15 +1679,19 @@ export class CodexService {
    * the terminal answered with nothing at all). Those hits carry the `upcoming`
    * pseudo-kind and are tinted + badged apart from anything you can fly today.
    */
-  async searchAll(query: string, perKindLimit = 6): Promise<PolySearchHit[]> {
+  async searchAll(query: string, perKindLimit = 6): Promise<PolySearchResult> {
     const q = query.trim();
-    if (!q) return [];
+    const totals: Partial<Record<PolyHitKind, number>> = {};
+    if (!q) return { hits: [], totals };
     const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
       try {
         // Over-fetch: the server orders alphabetically, so the best match of a
         // short term ("p4", "ar") can sit behind `perKindLimit` weaker ones.
         // Rank first, then keep the top `perKindLimit` of each kind.
         const res = await this.listByKind(kind, { search: q, limit: perKindLimit * SEARCH_OVERFETCH });
+        // The server count is what "all N in the index" promises — the index
+        // runs the very same list query.
+        totals[kind] = res.count;
         return dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r)))).slice(0, perKindLimit);
       } catch {
         return [] as PolySearchHit[];
@@ -1679,14 +1700,16 @@ export class CodexService {
     sources.push(
       (async () => {
         try {
-          return (await this.upcoming.searchShips(q, perKindLimit)).map(toUpcomingHit);
+          const ships = await this.upcoming.searchShips(q, UPCOMING_SEARCH_ALL);
+          totals[UPCOMING_HIT_KIND] = ships.length;
+          return ships.slice(0, perKindLimit).map(toUpcomingHit);
         } catch {
           return [] as PolySearchHit[];
         }
       })(),
     );
     const results = await Promise.all(sources);
-    return rankPolyHits(q, results.flat());
+    return { hits: rankPolyHits(q, results.flat()), totals };
   }
 
   /**

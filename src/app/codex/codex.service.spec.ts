@@ -1326,7 +1326,7 @@ describe('CodexService.searchAll', () => {
   it('answers a blank term with nothing and asks no source', async () => {
     const svc = make();
     const list = spyOn(svc, 'listByKind');
-    expect(await svc.searchAll('   ')).toEqual([]);
+    expect((await svc.searchAll('   ')).hits).toEqual([]);
     expect(list).not.toHaveBeenCalled();
   });
 
@@ -1358,7 +1358,7 @@ describe('CodexService.searchAll', () => {
       };
     });
 
-    const hits = await svc.searchAll('p4-ar', 2);
+    const { hits } = await svc.searchAll('p4-ar', 2);
 
     expect(hits.length).toBe(2);
     expect(hits[0].classNameSlug).toBe('behr_rifle_p4ar');
@@ -1373,7 +1373,7 @@ describe('CodexService.searchAll', () => {
       return { rows: [], count: 0 };
     });
 
-    const hits = await svc.searchAll('gladius');
+    const { hits } = await svc.searchAll('gladius');
 
     expect(hits.map((h) => `${h.kind}:${h.classNameSlug}`)).toEqual(['blueprint:BP_Gladius']);
   });
@@ -1385,9 +1385,9 @@ describe('CodexService.searchAll', () => {
     const svc = make({ searchShips } as Partial<UpcomingShipsService>);
     spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
 
-    const hits = await svc.searchAll('arrastra', 3);
+    const { hits } = await svc.searchAll('arrastra', 3);
 
-    expect(searchShips).toHaveBeenCalledWith('arrastra', 3);
+    expect(searchShips).toHaveBeenCalledWith('arrastra', 500);
     expect(hits.length).toBe(1);
     expect(hits[0].kind).toBe('upcoming');
     expect(hits[0].scope).toBe('upcoming');
@@ -1402,9 +1402,29 @@ describe('CodexService.searchAll', () => {
       kind === 'ship' ? { rows: [listRow('AEGS_Gladius', 'Gladius')], count: 1 } : { rows: [], count: 0 },
     );
 
-    const hits = await svc.searchAll('gladius');
+    const { hits } = await svc.searchAll('gladius');
 
     expect(hits.map((h) => h.classNameSlug)).toEqual(['AEGS_Gladius']);
+  });
+
+  it('reports the per-kind totals the index will show, beyond the per-kind cap', async () => {
+    const searchShips = jasmine.createSpy('searchShips').and.resolveTo([
+      { id: 'a', name: 'Gladius II', manufacturer: null, manufacturerCode: null },
+      { id: 'b', name: 'Gladius III', manufacturer: null, manufacturerCode: null },
+    ]);
+    const svc = make({ searchShips } as Partial<UpcomingShipsService>);
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) =>
+      kind === 'component'
+        ? { rows: [listRow('A', 'Gladius A'), listRow('B', 'Gladius B')], count: 37 }
+        : { rows: [], count: 0 },
+    );
+
+    const { hits, totals } = await svc.searchAll('gladius', 1);
+
+    expect(totals.component).toBe(37);
+    expect(totals.ship).toBe(0);
+    expect(totals.upcoming).toBe(2);
+    expect(hits.filter((h) => h.kind === 'upcoming').length).toBe(1);
   });
 });
 
