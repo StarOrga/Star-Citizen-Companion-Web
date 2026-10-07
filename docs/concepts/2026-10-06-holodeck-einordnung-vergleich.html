@@ -4113,7 +4113,7 @@ section[data-iteration]:not([data-active]) select {
 </section>
 <script type="application/json" data-frozen-feedback>{"general":{"text":"ich finde die legende abseits des toggle noch sehr schwach... nicht hübsch dargestellt...","attachments":[]},"designs":{"r2-lines":"der karriere hinweis bitte einfach als tooltip zum toggle.","r2-fill":"verwirrend","r2-delta":"ne"},"screens":{},"views":{}}</script>
 </section>
-<section id="iter-3" data-iteration="3" data-iteration-template="design" data-active>
+<section id="iter-3" data-iteration="3" data-iteration-template="design" hidden>
 <style>
 .mock-r3-toggle { display: inline-flex; padding: 2px; gap: 2px; border-radius: 999px; background: rgba(13,38,53,.9); border: 1px solid rgba(82,193,230,.35); }
 .mock-r3-seg { position: relative; background: none; border: 0; color: #9fb3c8; font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
@@ -4181,7 +4181,7 @@ section[data-iteration]:not([data-active]) select {
           <span class="anno-chevron" aria-hidden="true">›</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3a-all-a1" data-annotation="r3a-all-a1" data-attachable placeholder="Deine Antwort …"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3a-all-a1" data-annotation="r3a-all-a1" data-attachable placeholder="Deine Antwort …" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3a-all-a1"></div>
         </div>
       </div>
@@ -4194,7 +4194,7 @@ section[data-iteration]:not([data-active]) select {
           <span class="anno-chevron" aria-hidden="true">›</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3a-all-a2" data-annotation="r3a-all-a2" data-attachable placeholder="Deine Antwort …"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3a-all-a2" data-annotation="r3a-all-a2" data-attachable placeholder="Deine Antwort …" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3a-all-a2"></div>
         </div>
       </div>
@@ -4297,7 +4297,7 @@ section[data-iteration]:not([data-active]) select {
           <span class="anno-chevron" aria-hidden="true">›</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3b-all-a1" data-annotation="r3b-all-a1" data-attachable placeholder="Deine Antwort …"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3b-all-a1" data-annotation="r3b-all-a1" data-attachable placeholder="Deine Antwort …" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3b-all-a1"></div>
         </div>
       </div>
@@ -4388,7 +4388,7 @@ section[data-iteration]:not([data-active]) select {
           <span class="anno-chevron" aria-hidden="true">›</span>
         </button>
         <div class="anno-bubble-body">
-          <textarea class="anno-answer" data-comment="anno-r3c-all-a1" data-annotation="r3c-all-a1" data-attachable placeholder="Deine Antwort …"></textarea>
+          <textarea class="anno-answer" data-comment="anno-r3c-all-a1" data-annotation="r3c-all-a1" data-attachable placeholder="Deine Antwort …" readonly></textarea>
           <div class="attach-slot" data-attach-slot="anno-r3c-all-a1"></div>
         </div>
       </div>
@@ -4454,36 +4454,36 @@ section[data-iteration]:not([data-active]) select {
       <h3>Perzentil unter allen Schiffen (Empfehlung)</h3>
       <p>Robust gegen Ausreißer, mit der heutigen Rechnung kompatibel. Gegen „Alle Schiffe“ liegt der Ø in der Mitte – das ist ehrlich.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-s3-pct-all" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-s3-pct-all" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-pct-all" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-pct-all" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="s3-pct-all-note">Anmerkung</label>
-        <textarea id="s3-pct-all-note" data-comment="s3-pct-all-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2"></textarea>
+        <textarea id="s3-pct-all-note" data-comment="s3-pct-all-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2" readonly></textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="s3-minmax" data-label="Echte Werte, Min–Max normiert">
       <h3>Echte Werte, Min–Max normiert</h3>
       <p>Ausreißer (Idris & Co.) drücken alles an den Rand; bräuchte eine Wurzel-/Log-Skala.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-s3-minmax" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-s3-minmax" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-minmax" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-minmax" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="s3-minmax-note">Anmerkung</label>
-        <textarea id="s3-minmax-note" data-comment="s3-minmax-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2"></textarea>
+        <textarea id="s3-minmax-note" data-comment="s3-minmax-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2" readonly>Dann lass uns doch den median statt durchschnitt nehemn!? </textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="s3-ratio" data-label="Verhältnis zum Vergleich">
       <h3>Verhältnis zum Vergleich</h3>
       <p>Vergleich als fester Ring – die Vergleichslinie würde wieder nicht wandern. Widerspricht deinem Wunsch aus Runde 1.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-s3-ratio" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-s3-ratio" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-ratio" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-s3-ratio" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="s3-ratio-note">Anmerkung</label>
-        <textarea id="s3-ratio-note" data-comment="s3-ratio-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2"></textarea>
+        <textarea id="s3-ratio-note" data-comment="s3-ratio-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2" readonly></textarea>
       </div>
     </div>
   </div>
@@ -4496,28 +4496,67 @@ section[data-iteration]:not([data-active]) select {
       <h3>Durchschnitt Ø (Empfehlung)</h3>
       <p>In Legende und ⓘ als „Ø“ beschriftet.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-a3-mean" value="discard"><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-a3-mean" value="include" checked><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-a3-mean" value="discard" checked disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-a3-mean" value="include" disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="a3-mean-note">Anmerkung</label>
-        <textarea id="a3-mean-note" data-comment="a3-mean-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2"></textarea>
+        <textarea id="a3-mean-note" data-comment="a3-mean-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2" readonly></textarea>
       </div>
     </div>
     <div class="variant-evaluation" data-decision="a3-median" data-label="Median">
       <h3>Median</h3>
       <p>Nur sinnvoll, wenn wir doch echte Werte statt Perzentilen nehmen.</p>
       <div class="eval-group">
-        <label class="eval-option"><input type="radio" name="eval-a3-median" value="discard" checked><span class="eval-label">Verwerfen</span></label>
-        <label class="eval-option"><input type="radio" name="eval-a3-median" value="include"><span class="eval-label">Miteinbeziehen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-a3-median" value="discard" disabled><span class="eval-label">Verwerfen</span></label>
+        <label class="eval-option"><input type="radio" name="eval-a3-median" value="include" checked disabled><span class="eval-label">Miteinbeziehen</span></label>
       </div>
       <div class="field-row decision-comment-row">
         <label for="a3-median-note">Anmerkung</label>
-        <textarea id="a3-median-note" data-comment="a3-median-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2"></textarea>
+        <textarea id="a3-median-note" data-comment="a3-median-note" data-attachable placeholder="Optional: Einschränkung oder Ergänzung …" rows="2" readonly></textarea>
       </div>
     </div>
   </div>
 </section>
+<script type="application/json" data-frozen-feedback>{"general":{"text":"","attachments":[]},"designs":{"r3-head":"^so machen wir es!"},"screens":{},"views":{}}</script>
+</section>
+<section id="iter-4" data-iteration="4" data-iteration-template="free" data-final-report data-active>
+  <div class="iteration-intro">
+    <h2>Abschlussbericht</h2>
+    <p>Umgesetzt: Entwurf B1 mit Legende L2, gemeinsamer Maßstab (echte Werte, Min–Max) und Median als Vergleichswert.</p>
+  </div>
+
+  <section id="summary" data-nav-label="Zusammenfassung">
+    <h3>Zusammenfassung</h3>
+    <p>Die Einordnung legt Schiff und Vergleichsgruppe jetzt auf <b>einen</b> Maßstab: jede Achse reicht vom schwächsten bis zum stärksten Schiff der ganzen Flotte (Min–Max, mit Wurzel-Skala, damit ein Ausreißer wie die Idris nicht alle anderen in die Mitte drückt). Die blaue Form bleibt beim Gruppenwechsel stehen, die gestrichelte Linie ist der <b>Median</b> der gewählten Vergleichsschiffe und wandert mit. Farbige Striche (blau = besser, gelb = schwächer) verbinden Schiff und Vergleich je Achse, die Achsennamen werden in derselben Farbe fett. Der gelbe Punkt und der feste 50-%-Ring sind weg.</p>
+    <p>Die Vergleichswahl sitzt als Kopfzeile „Verglichen mit [Alle Schiffe | Karriere | Rolle] ⓘ“ über dem Diagramm (Variante L2). Eine Gruppe ohne Daten bleibt sichtbar, ist aber nicht wählbar und sagt im Tooltip warum. Die Legende mit echten Linienmustern ist jetzt auch im Holotable immer sichtbar.</p>
+    <p>Commit <code>cf00f87b</code> auf <code>claude/holodeck-hexagon-vergleich-7604d6</code>.</p>
+    <p><b>Abweichung vom Wunsch:</b> Die zuletzt gewählte Vergleichsgruppe wird <b>pro Browser</b> gemerkt (localStorage, wie die anderen UI-Einstellungen der App), nicht pro Account. Account-weit bräuchte eine neue Spalte in <code>profiles</code> plus Migration – das habe ich nicht ohne Rückfrage angelegt.</p>
+    <p>Die Balkenliste und die Gesamtzahl (z. B. „P72“) zeigen weiterhin das Perzentil <i>innerhalb</i> der gewählten Gruppe – darauf bauen Holotable-Strip und Perspektiven auf, die nicht Teil dieses Concepts waren.</p>
+  </section>
+
+  <section id="changed-files" data-nav-label="Geänderte Dateien">
+    <h3>Geänderte Dateien</h3>
+    <ul>
+      <li><code>src/app/codex/codex-rank.ts</code> — Rolle als Gruppe, <code>fleetScale()</code> (Min–Max + Wurzel), <code>norm</code>/<code>compareNorm</code>/<code>delta</code> je Achse, <code>scopeAvailable</code>, gemerkte Gruppenwahl, Cache-Version v3</li>
+      <li><code>src/app/codex/codex-rank-card.component.ts</code> — Kopfzeile mit Segment-Schalter, Vergleichslinie, farbige Verbindungen + Achsennamen, neue Legende (auch im Holotable)</li>
+      <li><code>src/app/shared/segmented-control.component.ts</code> — Option <code>disabled</code> (aria-disabled + Tooltip bleibt erreichbar), kompakte Größe</li>
+      <li><code>src/app/codex/codex-detail.component.ts</code> — Rolle des Schiffs an die Einordnung, Gruppenwahl merken</li>
+      <li><code>src/app/codex/codex.service.ts</code> — Rolle in der Vergleichs-Kohorte</li>
+      <li><code>public/i18n/de.json</code>, <code>en.json</code> — neue Texte (Verglichen mit, Rolle, Legende, Tooltips)</li>
+      <li>Specs: <code>codex-rank.spec.ts</code>, <code>codex-rank-card.component.spec.ts</code></li>
+    </ul>
+  </section>
+
+  <section id="tests" data-nav-label="Tests &amp; Verifikation">
+    <h3>Tests &amp; Verifikation</h3>
+    <ul>
+      <li><code>npm run typecheck</code> und <code>npm run build</code>: grün.</li>
+      <li><code>npm test</code>: 4203 von 4205 grün, inkl. der neuen Specs (Vergleichslinie wandert, Schiff bleibt; Rolle; deaktivierte Gruppe mit Tooltip; Legende im Holotable; Warnfarbe statt Fehlerfarbe).</li>
+      <li>2 rote Specs liegen außerhalb dieser Änderung: <code>RoleService … publicOrApprovedGuard</code> (Timeout unter Last) und <code>Patch dossier … draws the cycle</code> (Reihenfolge usual/now) – beide Dateien sind nicht angefasst.</li>
+      <li><b>Nicht im Browser gesehen:</b> die Schiffsseite braucht Login, und in dieser Session gab es keinen angemeldeten Test-Browser. Bitte einmal selbst prüfen: Holodeck → Einordnung, zwischen Alle / Karriere / Rolle wechseln.</li>
+    </ul>
+  </section>
 </section>
 </main>
     </div>
@@ -4704,7 +4743,8 @@ section[data-iteration]:not([data-active]) select {
       <nav class="iteration-tabs" role="tablist" aria-label="Iterationen">
 <button class="iteration-tab" role="tab" data-iteration="1" aria-selected="false">Iteration 1</button>
 <button class="iteration-tab" role="tab" data-iteration="2" aria-selected="false">Iteration 2</button>
-<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="true">Iteration 3</button>
+<button class="iteration-tab" role="tab" data-iteration="3" aria-selected="false">Iteration 3</button>
+<button class="iteration-tab" role="tab" data-final-report data-iteration="4" aria-selected="true" aria-controls="iter-4">Abschlussbericht</button>
 </nav>
       <!-- #section-nav also lives on the design skeleton: a free/decision round
            on a design concept (the final report is always free) renders its TOC

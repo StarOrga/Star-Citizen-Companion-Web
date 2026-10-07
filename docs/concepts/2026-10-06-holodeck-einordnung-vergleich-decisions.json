@@ -290,5 +290,98 @@
       "_picked_up_at": "2026-10-07T06:52:17.435Z",
       "_phase": ""
     }
+  },
+  {
+    "iteration": 3,
+    "processed_at": "2026-10-07T07:09:37.190Z",
+    "payload": {
+      "submitted": true,
+      "template": "design",
+      "iteration": "3",
+      "decisions": [
+        {
+          "id": "s3-pct-all",
+          "label": "Perzentil unter allen Schiffen (Empfehlung)",
+          "evaluation": "discard",
+          "view": "v3-scale",
+          "note": ""
+        },
+        {
+          "id": "s3-minmax",
+          "label": "Echte Werte, Min–Max normiert",
+          "evaluation": "include",
+          "view": "v3-scale",
+          "note": "Dann lass uns doch den median statt durchschnitt nehemn!?"
+        },
+        {
+          "id": "s3-ratio",
+          "label": "Verhältnis zum Vergleich",
+          "evaluation": "discard",
+          "view": "v3-scale",
+          "note": ""
+        },
+        {
+          "id": "a3-mean",
+          "label": "Durchschnitt Ø (Empfehlung)",
+          "evaluation": "discard",
+          "view": "v3-avg",
+          "note": ""
+        },
+        {
+          "id": "a3-median",
+          "label": "Median",
+          "evaluation": "include",
+          "view": "v3-avg",
+          "note": ""
+        }
+      ],
+      "comments": {
+        "general": {
+          "text": "",
+          "attachments": []
+        },
+        "items": [
+          {
+            "id": "s3-minmax-note",
+            "text": "Dann lass uns doch den median statt durchschnitt nehemn!?",
+            "attachments": []
+          },
+          {
+            "id": "design-r3-head",
+            "text": "^so machen wir es!",
+            "attachments": []
+          }
+        ],
+        "designs": {
+          "r3-head": "^so machen wir es!"
+        },
+        "screens": {},
+        "views": {}
+      },
+      "annotations": [],
+      "attachments": {},
+      "mappings": [],
+      "action": "implement",
+      "allFields": {
+        "anno-r3a-all-a1": "",
+        "anno-r3a-all-a2": "",
+        "anno-r3b-all-a1": "",
+        "anno-r3c-all-a1": "",
+        "eval-s3-pct-all": "discard",
+        "s3-pct-all-note": "",
+        "eval-s3-minmax": "include",
+        "s3-minmax-note": "Dann lass uns doch den median statt durchschnitt nehemn!? ",
+        "eval-s3-ratio": "discard",
+        "s3-ratio-note": "",
+        "eval-a3-mean": "discard",
+        "a3-mean-note": "",
+        "eval-a3-median": "include",
+        "a3-median-note": ""
+      },
+      "submission_id": "sub-muxr9r6e-8ic3qu8w",
+      "_picked_up_at": "2026-10-07T06:57:56.023Z",
+      "_phase": ""
+    },
+    "implemented": "cf00f87b"
   }
 ]
