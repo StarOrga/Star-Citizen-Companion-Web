@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Die klassische Einordnung merkt sich die Vergleichsgruppe wie der Holotisch.
 - Mobile-Gate prüft die klassische Schiffsansicht mit.
 
+## [0.127.1] - 2026-10-07
+
+### Changed
+
+- **Holodeck-Einordnung: lesbare Ringe.** Jede Achse reicht jetzt von 0
+  (Mitte) bis zum besten Wert der gewählten Vergleichsgruppe (Rand), linear —
+  die Ringe stehen für 33, 67 und 100 % dieses Bestwerts. Bei Achsen, wo
+  weniger besser ist (Querschnitt), liegt der kleinste Wert der Gruppe am Rand.
+
 ## [0.127.0] - 2026-10-07
 
 ### Changed
