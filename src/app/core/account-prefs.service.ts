@@ -1,4 +1,4 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { Injectable, Injector, effect, inject, signal } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { logWarn } from './log';
 import { SupabaseClientProvider } from './supabase.client';
@@ -21,7 +21,13 @@ import { SupabaseClientProvider } from './supabase.client';
  */
 @Injectable({ providedIn: 'root' })
 export class AccountPrefsService {
-  private readonly sb = inject(SupabaseClientProvider);
+  // Resolved on first use, not at construction: a signed-out page (and every
+  // spec that mocks AuthService) must not spin up a second Supabase client
+  // just because a component reads a preference.
+  private readonly injector = inject(Injector);
+  private get sb(): SupabaseClientProvider {
+    return this.injector.get(SupabaseClientProvider);
+  }
   private readonly auth = inject(AuthService);
 
   private readonly state = signal<Readonly<Record<string, unknown>> | null>(null);
