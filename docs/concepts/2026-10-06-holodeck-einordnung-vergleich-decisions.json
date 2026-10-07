@@ -188,5 +188,107 @@
       "_picked_up_at": "2026-10-07T06:44:42.535Z",
       "_phase": ""
     }
+  },
+  {
+    "iteration": 2,
+    "processed_at": "2026-10-07T06:54:51.324Z",
+    "payload": {
+      "submitted": true,
+      "template": "design",
+      "iteration": "2",
+      "decisions": [
+        {
+          "id": "scale-pct-all",
+          "label": "Perzentil unter allen Schiffen (fest)",
+          "evaluation": "include",
+          "view": "v2-scale",
+          "note": ""
+        },
+        {
+          "id": "scale-minmax",
+          "label": "Echte Werte, auf Min–Max aller Schiffe normiert",
+          "evaluation": "include",
+          "view": "v2-scale",
+          "note": ""
+        },
+        {
+          "id": "scale-ratio",
+          "label": "Verhältnis zum Vergleich (Vergleich = 100 %)",
+          "evaluation": "include",
+          "view": "v2-scale",
+          "note": ""
+        },
+        {
+          "id": "avg-mean",
+          "label": "Durchschnitt (Ø)",
+          "evaluation": "include",
+          "view": "v2-avg",
+          "note": ""
+        },
+        {
+          "id": "avg-median",
+          "label": "Median (mittleres Schiff)",
+          "evaluation": "include",
+          "view": "v2-avg",
+          "note": ""
+        }
+      ],
+      "comments": {
+        "general": {
+          "text": "ich finde die legende abseits des toggle noch sehr schwach... nicht hübsch dargestellt...",
+          "attachments": []
+        },
+        "items": [
+          {
+            "id": "design-r2-lines",
+            "text": "der karriere hinweis bitte einfach als tooltip zum toggle.",
+            "attachments": []
+          },
+          {
+            "id": "design-r2-fill",
+            "text": "verwirrend",
+            "attachments": []
+          },
+          {
+            "id": "design-r2-delta",
+            "text": "ne",
+            "attachments": []
+          }
+        ],
+        "designs": {
+          "r2-lines": "der karriere hinweis bitte einfach als tooltip zum toggle.",
+          "r2-fill": "verwirrend",
+          "r2-delta": "ne"
+        },
+        "screens": {},
+        "views": {}
+      },
+      "annotations": [],
+      "attachments": {},
+      "mappings": [],
+      "action": "iterate",
+      "allFields": {
+        "anno-r2a-all-a1": "",
+        "anno-r2a-all-a2": "",
+        "anno-r2a-all-a3": "",
+        "anno-r2b-all-a1": "",
+        "anno-r2b-all-a2": "",
+        "anno-r2c-all-a1": "",
+        "anno-r2c-all-a2": "",
+        "eval-scale-pct-all": "include",
+        "scale-pct-all-note": "",
+        "eval-scale-minmax": "include",
+        "scale-minmax-note": "",
+        "eval-scale-ratio": "include",
+        "scale-ratio-note": "",
+        "eval-avg-mean": "include",
+        "avg-mean-note": "",
+        "eval-avg-median": "include",
+        "avg-median-note": ""
+      },
+      "submission_id": "sub-muxr2c1j-dssn98r4",
+      "_picked_up_at": "2026-10-07T06:52:17.435Z",
+      "_phase": ""
+    }
   }
 ]
