@@ -286,40 +286,6 @@
         "createSet": "Create an FPS set"
       }
     },
-    "bridge": {
-      "scannerResults": "Scanner · \"{{term}}\"",
-      "indexMode": "Index mode",
-      "keybinds": "Keybinds",
-      "hangar": "Hangar",
-      "addCompare": "Compare",
-      "hero": {
-        "featured": "Featured ship",
-        "fromHangar": "From your hangar",
-        "flagship": "Your flagship",
-        "open": "Open",
-        "openShip": "Open {{ship}}",
-        "freshness": "{{patch}} LIVE · build {{build}}"
-      },
-      "flagship": {
-        "set": "★ Set as flagship",
-        "pinned": "★ Flagship",
-        "hint": "Your flagship is your default ship: it always opens at the top of the Codex, is marked with a ★ in your hangar and is saved to your profile, so it follows you across devices.",
-        "hintPinned": "This is your flagship: it always opens at the top of the Codex and is marked with a ★ in your hangar. Tap again to unpin it."
-      },
-      "lanes": {
-        "hangar": "Your Hangar",
-        "hangarSub": "Ships you own",
-        "fresh": "Fresh this patch",
-        "freshSub": "Stats changed since the previous build",
-        "freshSubNew": "New ships and changed stats since the previous build",
-        "newBadge": "New",
-        "role": "Explore by manufacturer",
-        "roleSub": "Ships grouped by their maker"
-      },
-      "scannerPlaceholderShort": "Scan a ship or class…",
-      "scannerEmpty": "No ship matches “{{term}}”.",
-      "searchIndex": "Search the index"
-    },
     "index": {
       "title": "Codex — Index mode"
     },
@@ -355,8 +321,6 @@
         "title": "No matches",
         "body": "No upcoming ship matches the search and filter — shorten the term or drop the favorites filter."
       },
-      "laneSub": "Announced by RSI, with no entry in our game data yet",
-      "laneAll": "View all {{count}}",
       "conceptBadge": "Concept",
       "notFlightReady": "Not flight-ready yet",
       "role": {
@@ -1534,8 +1498,6 @@
       "retry": "Retry",
       "collapse": "Collapse 3D view",
       "expand": "Expand 3D view",
-      "holoReady": "Holo-Ready — interactive 3D hologram available",
-      "holoReadyShort": "3D",
       "hardpointHint": "{{count}} hardpoints marked on the model — point at a marker or a row below and both light up."
     },
     "equipped": {
@@ -4552,5 +4514,15 @@
     "server": "The server reported an error.",
     "generic": "Something went wrong.",
     "retry": "Try again"
+  },
+  "pageHeader": {
+    "crumbsAria": "Breadcrumb",
+    "crumb": {
+      "codex": "Codex",
+      "index": "Index",
+      "fps": "FPS Equipment",
+      "keybinds": "Keybindings",
+      "hangar": "Hangar"
+    }
   }
 }

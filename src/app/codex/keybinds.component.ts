@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexService, toLang } from './codex.service';
 import { cleanLocaleValue } from './codex-format';
@@ -45,6 +45,8 @@ import {
   rolesFor,
   taxonomyKey,
 } from './keybind-taxonomy';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 interface KeybindRow {
   actionName: string;
@@ -134,8 +136,8 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
   selector: 'sc-codex-keybinds',
   standalone: true,
   imports: [
+    PageHeaderComponent,
     FormsModule,
-    RouterLink,
     TranslatePipe,
     CodexStatusBannerComponent,
     ScSelectComponent,
@@ -144,12 +146,12 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="kb">
-      <header class="kb-head">
-        <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
-        <h1>{{ 'codex.keybinds.title' | translate }}</h1>
-        <p class="sub">{{ 'codex.keybinds.subtitle' | translate }}</p>
-        <sc-codex-status-banner />
-      </header>
+      <sc-page-header
+        [crumbs]="codexCrumbs"
+        [title]="'codex.keybinds.title' | translate"
+        [subtitle]="'codex.keybinds.subtitle' | translate">
+        <sc-codex-status-banner phAside />
+      </sc-page-header>
 
       @if (error(); as err) {
         <div class="sc-card err" role="alert">
@@ -417,13 +419,8 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
   `,
   styles: [`
     :host { display: block; }
-    .kb { display: flex; flex-direction: column; gap: 18px; padding-bottom: 90px; }
+    .kb { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
 
-    .kb-head { display: flex; flex-direction: column; gap: 4px; }
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
-    .back:hover, .back:focus-visible { color: var(--sc-accent); }
-    .kb-head h1 { margin: 4px 0 0; font-size: clamp(1.4rem, 2.6vw, 2rem); }
-    .sub { margin: 0; color: var(--sc-fg-2); font-size: 0.84rem; }
 
     .kb-controls {
       display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
@@ -691,6 +688,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
   `],
 })
 export class KeybindsComponent implements OnInit {
+  protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
   readonly cats = inject(KeybindCategoryService);

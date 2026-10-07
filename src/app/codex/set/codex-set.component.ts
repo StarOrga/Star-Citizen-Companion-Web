@@ -35,6 +35,8 @@ import {
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
+import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB, HANGAR_ROOT_CRUMB, PageCrumb } from '../../shared/page-header/nav-origin.service';
 
 /**
  * The set page (concept 2026-09-20, round 2 decision T1 / round 17 N5) —
@@ -56,7 +58,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
 @Component({
   selector: 'sc-codex-set',
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     RouterLink,
     TranslatePipe,
     CodexSetStageComponent,
@@ -69,10 +71,9 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="set-page">
-      <div class="top-row">
-        <a class="back" [routerLink]="backLink().path">{{ backLink().key | translate }}</a>
+      <sc-page-header [crumbs]="crumbs()" [rememberAs]="activeSet()?.name ?? null">
         @if (!loading() && auth.user() && activeSet()) {
-          <span class="share-wrap">
+          <span phAside class="share-wrap">
             <button
               type="button"
               class="share-btn"
@@ -93,7 +94,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
             </button>
           </span>
         }
-      </div>
+      </sc-page-header>
 
       @if (loading()) {
         <p class="hint" role="status">{{ 'codex.set.loading' | translate }}</p>
@@ -163,13 +164,7 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
       /* The full page frame (styles.scss, "PAGE FRAME") — no width or side/top
          padding of its own. */
       .set-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 96px; }
-      .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
-      .back {
-        display: inline-flex; align-items: center; min-height: var(--sc-tap-min, 0px);
-        color: var(--sc-fg-2); font-size: 0.82rem; text-decoration: none;
-      }
       .flow-hint { margin: 0; font-size: max(0.82rem, var(--sc-fs-floor)); color: var(--sc-fg-1); line-height: 1.4; }
-      .back:hover, .back:focus-visible { color: var(--sc-accent); }
       /* Share is a set action: an icon button beside the back link. Its label
          is the app tooltip ([scTooltip], Label tier: the icon is its only
          visible name) — one tooltip, not a second CSS one next to it. */
@@ -211,6 +206,10 @@ import { HangarRoleLoadout } from '../../hangar/hangar.types';
   ],
 })
 export class CodexSetComponent implements OnInit {
+  /** Hangar when the set was opened from the hangar, the Codex otherwise. */
+  readonly crumbs = computed<PageCrumb[]>(() =>
+    this.backLink().path === '/hangar' ? [HANGAR_ROOT_CRUMB] : [CODEX_ROOT_CRUMB],
+  );
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
   private readonly svc = inject(CodexService);
