@@ -120,14 +120,12 @@ export interface RankAxisResult {
   weak: boolean;
   gapKey: string | null;
   /**
-   * The radar's shared scale: this ship's value placed between the weakest
-   * (0) and the strongest (100) ship of the WHOLE fleet, square-root eased so
-   * a single outlier (an Idris shield) does not press everyone else against
-   * the centre. Independent of the scope — that is what lets the comparison
-   * line move when the group changes while the ship stays put.
+   * The radar's scale: this ship's value as a share of the best value in the
+   * chosen comparison group — 0 at the centre, the group's best ship at the
+   * rim (100), linear, so the rings read 33 / 67 / 100 %.
    */
   norm: number | null;
-  /** The comparison group's median value on the same fleet-wide scale. */
+  /** The comparison group's median value on the same group scale. */
   compareNorm: number | null;
   /** `norm - compareNorm`, rounded; positive = this ship is better. */
   delta: number | null;
@@ -208,23 +206,24 @@ export function rankScopeAvailability(target: RankShipInput): Record<RankScope, 
 }
 
 /**
- * Place `value` on the fleet-wide 0..100 scale spanned by `fleet`. Linear
- * min-max first, then a square root: ship stats are heavily right-skewed (one
- * capital ship carries ten times everyone's shield), and a plain min-max would
- * pile the whole field into the inner ring. Lower-is-better axes are flipped
- * so "further out" always reads "better".
+ * Place `value` on the 0..100 scale of the comparison `group`: 0 is a value
+ * of 0 (the centre), 100 the group's best value (the rim), linear in between —
+ * so the radar's rings mean 33 / 67 / 100 % of the group's best. Lower-is-
+ * better axes take the group's smallest value as 100 and scale by
+ * best / value, so "further out" always reads "better".
  */
-export function fleetScale(value: number, fleet: readonly number[], lowerIsBetter: boolean): number | null {
-  if (fleet.length === 0) return null;
+export function groupScale(value: number, group: readonly number[], lowerIsBetter: boolean): number | null {
+  if (group.length === 0) return null;
   let min = Infinity;
   let max = -Infinity;
-  for (const v of fleet) {
+  for (const v of group) {
     if (v < min) min = v;
     if (v > max) max = v;
   }
-  if (max === min) return 50;
-  const t = Math.max(0, Math.min(1, lowerIsBetter ? (max - value) / (max - min) : (value - min) / (max - min)));
-  return Math.round(Math.sqrt(t) * 1000) / 10;
+  let t: number;
+  if (lowerIsBetter) t = value <= 0 ? 1 : Math.max(0, min) / value;
+  else t = max <= 0 ? 0 : value / max;
+  return Math.round(Math.max(0, Math.min(1, t)) * 1000) / 10;
 }
 
 function median(values: readonly number[]): number | null {
@@ -272,7 +271,6 @@ export function rankShip(
   const scope: RankScope = degraded ? 'all' : requested;
   const scopeFallbackKey = degraded ? 'codex.rank.disabled.noData' : null;
   const set = filterCohort(target, cohort, scope);
-  const fleet = filterCohort(target, cohort, 'all');
   const numbersOf = (ships: readonly RankShipInput[], key: KpiKey): number[] =>
     ships
       .map((c) => c.sheet[key] ?? null)
@@ -280,13 +278,12 @@ export function rankShip(
 
   const axes: RankAxisResult[] = profile.axes.map((a) => {
     const values = numbersOf(set, a.key);
-    const fleetValues = numbersOf(fleet, a.key);
     const value = target.sheet[a.key] ?? null;
     const usable = typeof value === 'number' && Number.isFinite(value);
     const percentile = usable ? percentileOf(value, values, a.lowerIsBetter) : null;
     const groupMedian = median(values);
-    const norm = usable ? fleetScale(value, fleetValues, a.lowerIsBetter) : null;
-    const compareNorm = groupMedian != null ? fleetScale(groupMedian, fleetValues, a.lowerIsBetter) : null;
+    const norm = usable ? groupScale(value, values, a.lowerIsBetter) : null;
+    const compareNorm = groupMedian != null ? groupScale(groupMedian, values, a.lowerIsBetter) : null;
     return {
       key: a.key,
       labelKey: a.labelKey,

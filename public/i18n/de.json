@@ -1070,7 +1070,7 @@
       "nShipsOfRole": "{{n}} Schiffe der gleichen Rolle",
       "compare": {
         "label": "Verglichen mit",
-        "info": "Jede Achse reicht vom schwächsten (Mitte) bis zum stärksten Schiff aller Schiffe (Rand). Blau ist dieses Schiff, die gestrichelte Linie der Median der gewählten Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
+        "info": "Jede Achse reicht von 0 (Mitte) bis zum besten Wert der gewählten Vergleichsschiffe (Rand); die Ringe markieren 33, 67 und 100 % davon. Blau ist dieses Schiff, die gestrichelte Linie der Median der Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
         "axisDelta": "{{d}} Punkte zum Vergleich"
       }
     },

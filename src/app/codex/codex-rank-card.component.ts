@@ -294,8 +294,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .radar .rings line { stroke: color-mix(in srgb, var(--sc-accent) 18%, transparent); stroke-width: 1; }
     .radar text { font-size: 6px; fill: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.04em; }
     .radar .ship { fill: color-mix(in srgb, var(--sc-accent) 22%, transparent); stroke: var(--sc-accent); stroke-width: 1.5; }
-    /* The comparison group's median, on the same fleet-wide scale as the
-       ship — it moves when the group changes, the ship does not. */
+    /* The comparison group's median, on the same group scale as the ship
+       (0 = centre, the group's best = rim). */
     .radar .compare { fill: none; stroke: color-mix(in srgb, var(--sc-fg-0) 75%, transparent); stroke-width: 1.2; stroke-dasharray: 2.5 2.5; }
     /* Ship vs. comparison per axis: accent where the ship is ahead,
        --sc-warning where it is behind — a weaker comparison value is not an
@@ -471,7 +471,7 @@ export class CodexRankCardComponent {
   readonly rings = [1, 2, 3];
 
   /**
-   * Vertices of the ship's line on the fleet-wide scale — ONLY the axes that
+   * Vertices of the ship's line on the group scale — ONLY the axes that
    * carry a value. An axis without one contributes no vertex at all: the line
    * cuts straight across it and the caption on that spoke says
    * `codex.rank.gapAxis`. Substituting a value (let alone a flat 50) would

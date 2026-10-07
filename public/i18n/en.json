@@ -1070,7 +1070,7 @@
       "nShipsOfRole": "{{n}} ships of the same role",
       "compare": {
         "label": "Compared with",
-        "info": "Each axis runs from the weakest (centre) to the strongest ship of the whole fleet (rim). Blue is this ship, the dashed line is the median of the chosen comparison ships. Blue strokes: better than the comparison, yellow: weaker.",
+        "info": "Each axis runs from 0 (centre) to the best value among the chosen comparison ships (rim); the rings mark 33, 67 and 100 % of it. Blue is this ship, the dashed line is the median of the comparison ships. Blue strokes: better than the comparison, yellow: weaker.",
         "axisDelta": "{{d}} points against the comparison"
       }
     },
