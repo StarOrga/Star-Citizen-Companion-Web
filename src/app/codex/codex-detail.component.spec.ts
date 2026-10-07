@@ -11,6 +11,7 @@ import { CodexDetailComponent } from './codex-detail.component';
 import { BlueprintDetail, CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { AuthService } from '../auth/auth.service';
+import { AccountPrefsService } from '../core/account-prefs.service';
 import { RoleService } from '../auth/role.service';
 import { UexShopService } from './uex-shop.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -173,6 +174,7 @@ async function setup(
         } as Partial<HangarService>,
       },
       { provide: AuthService, useValue: { user: signal(null) } as Partial<AuthService> },
+      { provide: AccountPrefsService, useValue: { prefs: signal(null), set: () => undefined } as unknown as Partial<AccountPrefsService> },
       { provide: RoleService, useValue: {} as Partial<RoleService> },
       {
         provide: ShipSkinsService,
@@ -623,6 +625,7 @@ async function setupCharacterisation(opts: CharacterisationOpts): Promise<Compon
         } as Partial<HangarService>,
       },
       { provide: AuthService, useValue: { user: signal(opts.user ?? null) } as unknown as Partial<AuthService> },
+      { provide: AccountPrefsService, useValue: { prefs: signal(null), set: () => undefined } as unknown as Partial<AccountPrefsService> },
       {
         provide: RoleService,
         useValue: { isAdmin: signal(false), isCollaborator: signal(false) } as unknown as Partial<RoleService>,
