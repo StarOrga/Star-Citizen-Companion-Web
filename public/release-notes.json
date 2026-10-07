@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.129.0",
+  "current": "0.130.0",
   "releases": [
+    {
+      "version": "0.130.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex und Hangar: ein einheitlicher Seitenkopf.",
+              "text": "Index, FPS, Tastenbelegung, Blaupausen, Kommende Inhalte, Sets, Detailseiten, Hangar, Hangar-Schiff und Import zeigen oben dieselbe Brotkrumen-Zeile mit Titelblock darunter. Der Rückweg führt dorthin, wo du hergekommen bist: zurück in den Index mit deinen Filtern (nach der Kategorie benannt), in die FPS-Liste, den Hangar oder auf die Schiffseite, von der aus du eine Komponente geöffnet hast — bisher führte jedes „Zurück zum Codex“ auf /codex und verlor die Filter. Auf der Schiffseite sitzen Daten-Hinweis und „Klassisch | Holotisch“ jetzt rechts in dieser Zeile."
+            },
+            {
+              "title": "Codex-Suche und Listen ohne Engine-Interna.",
+              "text": "Sitze, Türen, Displays, Steuerungen, NPC-Vorlagen, Körperteile und unbenannte Datensätze tauchen in Suche, Listen und Zählern nicht mehr auf (rund 6.000 von 23.600 Einträgen in 4.10.0). Echte Lackierungen, Flair-Modelle und Komponenten bleiben. Der Hersteller zeigt keine Lackierungs-Kürzel wie „Paint_Gladius_…“ mehr."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "Die Seite /codex/bridge ist entfernt",
+              "text": "(ohne Weiterleitung), samt der nur von ihr genutzten Bausteine."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.129.0",
       "date": "2026-10-07",
