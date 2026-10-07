@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
@@ -42,7 +42,8 @@ export type SearchKeyAction = 'open' | 'open-new-tab' | 'escape' | null;
 @Injectable()
 export class CodexSearchEngine {
   private readonly codex = inject(CodexService);
-  private readonly diff = inject(CodexBuildDiffService);
+  // Resolved on first use: the diff is only needed once an empty field opens.
+  private readonly injector = inject(Injector);
   private readonly t = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
@@ -138,7 +139,8 @@ export class CodexSearchEngine {
   ensureSuggestions(): void {
     if (this.freshRequested) return;
     this.freshRequested = true;
-    void this.diff
+    void this.injector
+      .get(CodexBuildDiffService)
       .addedShipsMemo()
       .then((rows) => this.fresh.set(rows.slice(0, FRESH_SHIPS_SHOWN).map((r) => toPolyHit('ship', r))))
       .catch(() => this.fresh.set([]));

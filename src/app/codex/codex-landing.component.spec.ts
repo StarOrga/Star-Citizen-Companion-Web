@@ -3,10 +3,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
-import { CodexLandingComponent, gridColumns } from './codex-landing.component';
+import { CodexLandingComponent } from './codex-landing.component';
 import { CodexListRow, CodexService, ResolvedEntity } from './codex.service';
-import { PolySearchHit, scopeForKind } from './codex-poly-search';
 import { ShipStatDelta } from './codex-build-diff';
+import { CodexBuildDiffService } from './codex-build-diff.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout, HangarShip, HangarShipConfig } from '../hangar/hangar.types';
 import { AuthService } from '../auth/auth.service';
@@ -54,19 +54,6 @@ function fpsLoadout(id: string, name: string, role: HangarRoleLoadout['role'] = 
   return { id, name, role, items: [], createdAt: '', updatedAt: '2026-08-10T00:00:00Z' };
 }
 
-function hit(kind: PolySearchHit['kind'], slug: string): PolySearchHit {
-  return {
-    kind,
-    classNameSlug: slug,
-    nameLocalized: slug,
-    manufacturerCode: 'AEGS',
-    manufacturerName: null,
-    size: null,
-    grade: null,
-    scope: scopeForKind(kind),
-  };
-}
-
 describe('CodexLandingComponent', () => {
   async function setup(opts: {
     hangar?: HangarShip[];
@@ -74,7 +61,6 @@ describe('CodexLandingComponent', () => {
     byClassName?: Map<string, CodexListRow>;
     flagship?: string | null;
     deltas?: Map<string, ShipStatDelta[]>;
-    searchResults?: PolySearchHit[];
     user?: { id: string } | null;
     entityCounts?: Record<string, number>;
     shipConfigs?: HangarShipConfig[];
@@ -132,7 +118,7 @@ describe('CodexLandingComponent', () => {
       ownedFleetDeltas: jasmine
         .createSpy('ownedFleetDeltas')
         .and.resolveTo(opts.deltas ?? new Map<string, ShipStatDelta[]>()),
-      searchAll: jasmine.createSpy('searchAll').and.resolveTo(opts.searchResults ?? []),
+      searchAll: jasmine.createSpy('searchAll').and.resolveTo({ hits: [], totals: {} }),
       suggestNames: jasmine.createSpy('suggestNames').and.resolveTo([]),
       previewUrl: () => null,
       isPinned: (_k, c) => compareKeys().includes(`ship:${c}`),
@@ -196,6 +182,7 @@ describe('CodexLandingComponent', () => {
       imports: [CodexLandingComponent],
       providers: [
       provideNoShipBlueprints(),
+        { provide: CodexBuildDiffService, useValue: { addedShipsMemo: () => Promise.resolve([]) } },
         provideRouter([]),
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
@@ -443,215 +430,6 @@ describe('CodexLandingComponent', () => {
   });
 
   // ── manufacturer spelling ───────────────────────────────────────────────
-
-  it('spells the manufacturer out on an archive-terminal search hit too', async () => {
-    const fixture = await setup({
-      searchResults: [hit('ship', 'AEGS_Gladius'), hit('manufacturer', 'AEGS'), hit('blueprint', 'BP_Foo')],
-    });
-    const cmp = fixture.componentInstance;
-    cmp.searchTerm.set('a');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.results')).not.toBeNull();
-    const hits = el.querySelectorAll('a.hit');
-    expect(hits.length).toBe(3);
-    expect(el.querySelectorAll('a.hit.meta').length).toBe(2);
-    const bp = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.hit')).find((a) =>
-      a.getAttribute('href')?.includes('BP_Foo'),
-    );
-    expect(bp?.getAttribute('href')).toContain('/codex/blueprint/BP_Foo');
-    // Pin buttons render an SVG glyph, never the old ☆/★ text characters.
-    expect(el.querySelector('a.hit .pin svg')).not.toBeNull();
-  });
-
-  it('keeps the compare pin a small icon button, never a card-sized star (audit L01)', async () => {
-    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-    fixture.componentInstance.searchTerm.set('gladius');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    const el: HTMLElement = fixture.nativeElement;
-    const card = el.querySelector('a.hit') as HTMLElement;
-    const pin = el.querySelector('a.hit .pin') as HTMLElement;
-    const star = pin.querySelector('svg') as SVGElement;
-    expect(pin.getBoundingClientRect().width).toBeLessThanOrEqual(44);
-    expect(star.getBoundingClientRect().width).toBeLessThanOrEqual(16.5);
-    expect(pin.getBoundingClientRect().width).toBeLessThan(card.getBoundingClientRect().width / 3);
-  });
-
-  it('clearing the terminal while a search is in flight leaves no hits behind', async () => {
-    let resolve!: (v: unknown[]) => void;
-    const fixture = await setup({});
-    const svc = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
-    svc.searchAll.and.returnValue(new Promise((r) => (resolve = r)));
-    const cmp = fixture.componentInstance;
-    cmp.searchTerm.set('gladius');
-    fixture.detectChanges();
-    cmp.clearSearch();
-    fixture.detectChanges();
-    resolve([hit('ship', 'AEGS_Gladius')]);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(cmp.searchResults()).toEqual([]);
-    expect((fixture.nativeElement as HTMLElement).querySelector('a.hit')).toBeNull();
-  });
-
-  // ── archive terminal, driven through the real input ─────────────────────
-  describe('archive terminal input', () => {
-    function terminal(fixture: ComponentFixture<CodexLandingComponent>): HTMLInputElement {
-      return (fixture.nativeElement as HTMLElement).querySelector('input.terminal-input') as HTMLInputElement;
-    }
-
-    function type(fixture: ComponentFixture<CodexLandingComponent>, value: string): void {
-      const input = terminal(fixture);
-      input.value = value;
-      input.dispatchEvent(new Event('input'));
-      fixture.detectChanges();
-    }
-
-    async function settle(fixture: ComponentFixture<CodexLandingComponent>): Promise<void> {
-      fixture.detectChanges();
-      await fixture.whenStable();
-      fixture.detectChanges();
-      await fixture.whenStable();
-      fixture.detectChanges();
-    }
-
-    function searchSpy(): jasmine.Spy {
-      return (TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy }).searchAll;
-    }
-
-    // The debounce runs on a mocked clock; the clock comes off again before the
-    // fixture settles, so Angular's own scheduling keeps its real timers.
-    afterEach(() => {
-      try {
-        jasmine.clock().uninstall();
-      } catch {
-        /* already off */
-      }
-    });
-
-    it('searches only after the debounce and renders the hits as anchors into their pages', async () => {
-      const upcoming: PolySearchHit = {
-        ...hit('upcoming', 'rsi-arrastra'),
-        nameLocalized: 'Arrastra',
-      };
-      const fixture = await setup({
-        searchResults: [hit('ship', 'AEGS_Gladius'), hit('weapon', 'behr_rifle_ballistic_01'), upcoming],
-      });
-      jasmine.clock().install();
-      type(fixture, 'gla');
-      jasmine.clock().tick(200);
-      expect(searchSpy()).not.toHaveBeenCalled();
-
-      jasmine.clock().tick(60);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-
-      expect(searchSpy()).toHaveBeenCalledOnceWith('gla', 6);
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('.results-term')?.textContent).toContain('gla');
-      const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.hit')).map((a) => a.getAttribute('href'));
-      expect(hrefs).toEqual([
-        '/codex/ship/AEGS_Gladius',
-        '/codex/weapon/behr_rifle_ballistic_01',
-        '/codex/upcoming?q=Arrastra',
-      ]);
-      const soon = el.querySelector('a.hit.upcoming');
-      expect(soon?.querySelector('.hit-badge.soon')).not.toBeNull();
-      // Nothing to compare on an announced hull: no pin on the upcoming card.
-      expect(soon?.querySelector('.pin')).toBeNull();
-    });
-
-    it('coalesces rapid typing into one search for the last term', async () => {
-      const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-      jasmine.clock().install();
-      type(fixture, 'g');
-      jasmine.clock().tick(100);
-      type(fixture, 'gl');
-      jasmine.clock().tick(100);
-      type(fixture, 'gladius');
-      jasmine.clock().tick(250);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-
-      expect(searchSpy()).toHaveBeenCalledTimes(1);
-      expect(searchSpy()).toHaveBeenCalledWith('gladius', 6);
-    });
-
-    it('shows the empty state with the term when nothing matches', async () => {
-      const fixture = await setup({ searchResults: [] });
-      jasmine.clock().install();
-      type(fixture, 'zzqx');
-      jasmine.clock().tick(250);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('a.hit')).toBeNull();
-      expect(el.querySelector('.results-note')?.textContent).toContain('codex.landing.results.empty');
-    });
-
-    it('the clear button empties the input and takes the results away', async () => {
-      const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-      jasmine.clock().install();
-      type(fixture, 'gladius');
-      jasmine.clock().tick(250);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelectorAll('a.hit').length).toBe(1);
-
-      (el.querySelector('button.terminal-clear') as HTMLButtonElement).click();
-      await settle(fixture);
-
-      expect(terminal(fixture).value).toBe('');
-      expect(el.querySelector('.results')).toBeNull();
-      expect(el.querySelector('a.hit')).toBeNull();
-      expect(el.querySelector('button.terminal-clear')).toBeNull();
-    });
-
-    it('a clear before the debounce fires never starts the search', async () => {
-      const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-      jasmine.clock().install();
-      type(fixture, 'gladius');
-      (fixture.nativeElement.querySelector('button.terminal-clear') as HTMLButtonElement).click();
-      jasmine.clock().tick(500);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-
-      expect(searchSpy()).not.toHaveBeenCalled();
-    });
-
-    // Was a BUG (audit wave 3): a rejected searchAll rendered "no results".
-    // CLAUDE.md: a load failure renders an error state with retry.
-    it('a failed search shows an error state with retry, not "no results"', async () => {
-      const fixture = await setup({});
-      jasmine.clock().install();
-      searchSpy().and.rejectWith(new Error('network down'));
-      type(fixture, 'gladius');
-      jasmine.clock().tick(250);
-      jasmine.clock().uninstall();
-      await settle(fixture);
-
-      const el: HTMLElement = fixture.nativeElement;
-      expect(el.querySelector('.results-note')?.textContent ?? '').not.toContain('codex.landing.results.empty');
-      expect(el.querySelector('.results [role="alert"], .results .err')).not.toBeNull();
-
-      // Retry runs the same term again and clears the error once it answers.
-      searchSpy().and.resolveTo([]);
-      (el.querySelector('.results-retry') as HTMLButtonElement).click();
-      await settle(fixture);
-      expect(searchSpy()).toHaveBeenCalledTimes(2);
-      expect(el.querySelector('.results [role="alert"]')).toBeNull();
-    });
-  });
-
   it('spells the manufacturer out on the ship stage eyebrow', async () => {
     const gladius = shipRow({ classNameSlug: 'AEGS_Gladius' });
     const fixture = await setup({
@@ -735,66 +513,6 @@ describe('CodexLandingComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector('.cycle-report')).toBeNull();
   });
-
-  // ── Archive Terminal keyboard (audit L15) ───────────────────────────────
-
-  async function withHits(fixture: ComponentFixture<CodexLandingComponent>): Promise<HTMLElement> {
-    fixture.componentInstance.onSearchInput('a');
-    fixture.componentInstance.searchTerm.set('a');
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    return fixture.nativeElement as HTMLElement;
-  }
-  const key = (el: Element, k: string) =>
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
-
-  it('ArrowDown moves from the terminal into the hits, arrows walk them, ArrowUp from the first row returns', async () => {
-    const fixture = await setup({
-      searchResults: [hit('ship', 'AEGS_Gladius'), hit('ship', 'AEGS_Avenger'), hit('ship', 'AEGS_Sabre')],
-    });
-    const el = await withHits(fixture);
-    const input = el.querySelector('.terminal-input') as HTMLInputElement;
-    const hits = Array.from(el.querySelectorAll<HTMLAnchorElement>('a.hit'));
-    input.focus();
-    key(input, 'ArrowDown');
-    expect(document.activeElement).toBe(hits[0]);
-    key(hits[0], 'ArrowRight');
-    expect(document.activeElement).toBe(hits[1]);
-    key(hits[1], 'End');
-    expect(document.activeElement).toBe(hits[2]);
-    key(hits[2], 'Home');
-    key(hits[0], 'ArrowUp');
-    expect(document.activeElement).toBe(input);
-    // The hits stay real anchors in the Tab order.
-    expect(hits.every((a) => a.getAttribute('href') && a.tabIndex === 0)).toBeTrue();
-  });
-
-  it('Enter in the terminal opens the first hit the way its anchor does', async () => {
-    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius'), hit('ship', 'AEGS_Avenger')] });
-    const el = await withHits(fixture);
-    const router = TestBed.inject(Router);
-    const nav = spyOn(router, 'navigate').and.resolveTo(true);
-    key(el.querySelector('.terminal-input')!, 'Enter');
-    expect(nav).toHaveBeenCalledTimes(1);
-    expect(nav.calls.mostRecent().args[0]).toEqual(fixture.componentInstance.hitLink(hit('ship', 'AEGS_Gladius')));
-  });
-
-  it('Escape clears the terminal', async () => {
-    const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-    const el = await withHits(fixture);
-    key(el.querySelector('.terminal-input')!, 'Escape');
-    expect(fixture.componentInstance.searchInput()).toBe('');
-    expect(fixture.componentInstance.searchTerm()).toBe('');
-  });
-
-  it('reads the column count of the hit grid from the layout', () => {
-    const at = (top: number) => ({ offsetTop: top }) as HTMLElement;
-    expect(gridColumns([at(0), at(0), at(0), at(60), at(60)])).toBe(3);
-    expect(gridColumns([at(0), at(50)])).toBe(1);
-    expect(gridColumns([])).toBe(1);
-  });
-
   // ── empty landing (audit L24) ───────────────────────────────────────────
 
   it('gives an empty hangar and a set-less person stage real ways forward', async () => {
@@ -809,82 +527,13 @@ describe('CodexLandingComponent', () => {
     expect(el.querySelector('.stage-person a.stage-hit, .stage-person a.stage-text--link')).not.toBeNull();
   });
 
-  it('the "search a ship" CTA focuses the terminal', async () => {
+  it('the "search a ship" CTA brings the Codex search bar forward, focused', async () => {
     const fixture = await setup({ hangar: [] });
     const el: HTMLElement = fixture.nativeElement;
     (el.querySelector('.stage-ship button.stage-cta') as HTMLButtonElement).click();
-    expect(document.activeElement).toBe(el.querySelector('.terminal-input'));
-  });
-
-  describe('"did you mean" under an empty terminal search (L06)', () => {
-    async function settle(fixture: ComponentFixture<CodexLandingComponent>): Promise<void> {
-      for (let i = 0; i < 3; i++) {
-        fixture.detectChanges();
-        await fixture.whenStable();
-      }
-      fixture.detectChanges();
-    }
-    function svcOf(): { searchAll: jasmine.Spy; suggestNames: jasmine.Spy } {
-      return TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy; suggestNames: jasmine.Spy };
-    }
-    function suggestionLinks(fixture: ComponentFixture<CodexLandingComponent>): HTMLAnchorElement[] {
-      return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.did-you-mean a.suggestion'));
-    }
-
-    it('merges ship, weapon and item names, collapses variant families and links each to ?q=', async () => {
-      const fixture = await setup({});
-      const by: Record<string, string[]> = {
-        ship: ['Aegis Gladius Dunlevy', 'Aegis Gladius'],
-        weapon: ['Gallant'],
-        item: ['gallant', 'Gladius Helmet'],
-      };
-      svcOf().suggestNames.and.callFake(async (kind: string) => by[kind] ?? []);
-      fixture.componentInstance.searchTerm.set('glaidus');
-      await settle(fixture);
-
-      expect(svcOf().suggestNames.calls.allArgs().map((a) => a[0]).sort()).toEqual(['item', 'ship', 'weapon']);
-      const links = suggestionLinks(fixture);
-      expect(links.map((a) => a.textContent!.trim())).toEqual(['Aegis Gladius', 'Gallant', 'Gladius Helmet']);
-      expect(links[0].getAttribute('href')).toContain('q=Aegis%20Gladius');
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.search.didYouMean');
-
-      const plain = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 });
-      links[1].dispatchEvent(plain);
-      expect(plain.defaultPrevented).toBeTrue();
-      expect(fixture.componentInstance.searchTerm()).toBe('Gallant');
-    });
-
-    it('asks for no suggestions when the search has hits', async () => {
-      const fixture = await setup({ searchResults: [hit('ship', 'AEGS_Gladius')] });
-      fixture.componentInstance.searchTerm.set('gladius');
-      await settle(fixture);
-      expect(svcOf().suggestNames).not.toHaveBeenCalled();
-      expect(suggestionLinks(fixture).length).toBe(0);
-    });
-
-    it('renders nothing when the service has no suggestion', async () => {
-      const fixture = await setup({});
-      fixture.componentInstance.searchTerm.set('zzzzqx');
-      await settle(fixture);
-      expect((fixture.nativeElement as HTMLElement).querySelector('.did-you-mean')).toBeNull();
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.landing.results.empty');
-    });
-
-    it('drops a slow suggestion that belongs to an older term', async () => {
-      const fixture = await setup({});
-      let resolveOld!: (v: string[]) => void;
-      svcOf().suggestNames.and.callFake((_k: string, term: string) =>
-        term === 'glaidus' ? new Promise<string[]>((r) => (resolveOld = r)) : Promise.resolve([]),
-      );
-      fixture.componentInstance.searchTerm.set('glaidus');
-      await settle(fixture);
-      svcOf().searchAll.and.resolveTo([hit('ship', 'AEGS_Avenger')]);
-      fixture.componentInstance.searchTerm.set('avenger');
-      await settle(fixture);
-      resolveOld(['Aegis Gladius']);
-      await settle(fixture);
-      expect(fixture.componentInstance.suggestions()).toEqual([]);
-      expect(suggestionLinks(fixture).length).toBe(0);
-    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(el.querySelector('sc-codex-search-bar input'));
+    expect(el.querySelector('sc-codex-search-bar')?.classList).toContain('active');
   });
 });

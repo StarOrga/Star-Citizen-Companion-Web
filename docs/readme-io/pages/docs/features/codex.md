@@ -39,11 +39,31 @@ the page returns you to the live patch.
   "featured ships" list anywhere in the app.
 - **Compare** — add ships to a comparison tray and view them side by side.
 
+### The Codex search
+
+There is one Codex search. On the Codex landing page it is the terminal row at
+the top; on every other Codex page it is the slim search bar above the page.
+Click it, press **Ctrl+K** or **/**, or simply start typing a letter on the
+page: the bar grows, takes focus and shows its results below itself while the
+rest of the page dims. Outside the Codex, Ctrl+K and the header's search button
+open the same search as an overlay (a full-screen sheet on a phone).
+
+Results are grouped by kind — ships, weapons, components, items and so on —
+with the best few of each, how many matched in total, and an **All N in the
+index** link that opens the full list with your term. Liveries carry a
+*Livery* badge, announced ships a *Not in the game yet* badge. With an empty
+field the search offers your recent searches, the ships new in this patch and
+shortcuts into the Codex areas.
+
+Keyboard: ↑/↓ move through all groups, Enter opens the highlighted result,
+Ctrl+Enter (⌘+Enter) opens it in a new tab, Esc clears the field and then
+closes the search. Every result is a real link, so middle click works too.
+
 ### How search works
 
-Every Codex search box — the Scanner, the index, the archive terminal on the
-landing page, the Ctrl+K quick search, the Arsenal, keybinds, the swap picker
-and Upcoming Ships — follows the same rules:
+Every Codex search box — the Codex search, the Scanner, the index, the Arsenal,
+keybinds, the swap picker, the hangar's add-ship search and Upcoming Ships —
+follows the same rules:
 
 - Case, accents and extra spaces don't matter.
 - Separators are optional and words combine: `p4ar`, `p4 ar` and `P4_AR` all
