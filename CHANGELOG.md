@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.128.0] - 2026-10-07
+
+### Added
+
+- **Codex-Schiffseiten: die klassische Ansicht ist zurück.** Oben rechts
+  schaltet „Klassisch | Holotisch“ zwischen beiden Ansichten um. Der Holotisch
+  bleibt Standard; die klassische Ansicht kommt im Stand vor 0.115.0 zurück
+  (Bühne mit 2D/3D-Umschalter, Einordnung, KPI-Band, Einsatz-Leiste,
+  Analyse-Spalte, Energie-Dock). Die Wahl wird im Browser gemerkt und als
+  `?view=classic` in den Link übernommen, ein geteilter Link öffnet also
+  dieselbe Ansicht.
+- Die klassische Einordnung merkt sich die Vergleichsgruppe wie der Holotisch.
+- Mobile-Gate prüft die klassische Schiffsansicht mit.
+
 ## [0.127.1] - 2026-10-07
 
 ### Changed

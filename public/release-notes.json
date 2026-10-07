@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.127.1",
+  "current": "0.128.0",
   "releases": [
+    {
+      "version": "0.128.0",
+      "date": "2026-10-07",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Codex-Schiffseiten: die klassische Ansicht ist zurück.",
+              "text": "Oben rechts schaltet „Klassisch | Holotisch“ zwischen beiden Ansichten um. Der Holotisch bleibt Standard; die klassische Ansicht kommt im Stand vor 0.115.0 zurück (Bühne mit 2D/3D-Umschalter, Einordnung, KPI-Band, Einsatz-Leiste, Analyse-Spalte, Energie-Dock). Die Wahl wird im Browser gemerkt und als ?view=classic in den Link übernommen, ein geteilter Link öffnet also dieselbe Ansicht."
+            },
+            {
+              "title": "",
+              "text": "Die klassische Einordnung merkt sich die Vergleichsgruppe wie der Holotisch."
+            },
+            {
+              "title": "",
+              "text": "Mobile-Gate prüft die klassische Schiffsansicht mit."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.127.1",
       "date": "2026-10-07",
