@@ -3137,6 +3137,21 @@
         "forbidden": "Dafür fehlen dir die Rechte.",
         "generic": "Das hat nicht geklappt. Bitte noch einmal versuchen."
       }
+    },
+    "silhouettes": {
+      "title": "Holotable-Silhouetten",
+      "subtitle": "Silhouetten-Abdeckung des aktuellen Builds.",
+      "build": "Aktueller Build: {{channel}} {{patch}} ({{build}})",
+      "total": "Schiffe gesamt",
+      "withSilhouette": "Mit Silhouette",
+      "withAnchors": "Mit Ankern",
+      "without": "Ohne Silhouette",
+      "withoutTip": "Rümpfe dieses Builds ohne Silhouette vom Uploader. Der Holotable zeigt für sie den Platzhalter; ihre Kacheln nutzen das ausgelesene Vorschau-Icon, falls vorhanden, sonst die RSI-Store-Grafik — oder das allgemeine Symbol, wenn kein Bild lädt. Welches der letzten beiden greift, entscheidet erst der Browser.",
+      "barLabel": "{{pct}} % mit Silhouette",
+      "fallbackSplit": "ohne: {{icon}} mit Vorschau-Icon, {{none}} RSI-Grafik oder Symbol",
+      "missingToggle": "Die {{count}} Rümpfe ohne Silhouette anzeigen",
+      "noBuild": "Kein aktueller Build — noch nichts zu zählen.",
+      "retry": "Erneut versuchen"
     }
   },
   "desktop": {
