@@ -56,15 +56,15 @@ export const RECENT_SEARCHES_MAX = 8;
  * one is an anchor (middle click opens it in a new tab).
  */
 export const SEARCH_CATEGORY_SHORTCUTS: readonly { labelKey: string; target: SearchTarget }[] = [
-  { labelKey: 'codex.search.category.ships', target: { link: ['/codex/index'], queryParams: { kind: 'ship' } } },
-  { labelKey: 'codex.search.category.components', target: { link: ['/codex/index'], queryParams: { kind: 'component' } } },
+  { labelKey: 'codex.search.bar.category.ships', target: { link: ['/codex/index'], queryParams: { kind: 'ship' } } },
+  { labelKey: 'codex.search.bar.category.components', target: { link: ['/codex/index'], queryParams: { kind: 'component' } } },
   {
-    labelKey: 'codex.search.category.shipWeapons',
+    labelKey: 'codex.search.bar.category.shipWeapons',
     target: { link: ['/codex/index'], queryParams: { kind: 'weapon', weaponClass: 'Ship' } },
   },
-  { labelKey: 'codex.search.category.fps', target: { link: ['/codex/fps'], queryParams: null } },
-  { labelKey: 'codex.search.category.upcoming', target: { link: ['/codex/upcoming'], queryParams: null } },
-  { labelKey: 'codex.search.category.keybinds', target: { link: ['/codex/keybinds'], queryParams: null } },
+  { labelKey: 'codex.search.bar.category.fps', target: { link: ['/codex/fps'], queryParams: null } },
+  { labelKey: 'codex.search.bar.category.upcoming', target: { link: ['/codex/upcoming'], queryParams: null } },
+  { labelKey: 'codex.search.bar.category.keybinds', target: { link: ['/codex/keybinds'], queryParams: null } },
 ];
 
 /** Where a hit opens. */

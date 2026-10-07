@@ -34,12 +34,12 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     @let e = engine();
     <div class="results" [class.roomy]="variant() === 'page'">
       @if (!e.input().trim()) {
-        <div class="listbox" role="listbox" [id]="listboxId()" [attr.aria-label]="'codex.search.suggestionsAria' | translate">
+        <div class="listbox" role="listbox" [id]="listboxId()" [attr.aria-label]="'codex.search.bar.suggestionsAria' | translate">
           @if (e.recent().length) {
             <div class="group" role="group" [attr.aria-labelledby]="listboxId() + '-h-recent'">
               <div class="group-head" role="presentation">
-                <span [id]="listboxId() + '-h-recent'">{{ 'codex.search.recent' | translate }}</span>
-                <button type="button" class="head-action" (click)="forgetRecent()">{{ 'codex.search.clearRecent' | translate }}</button>
+                <span [id]="listboxId() + '-h-recent'">{{ 'codex.search.bar.recent' | translate }}</span>
+                <button type="button" class="head-action" (click)="forgetRecent()">{{ 'codex.search.bar.clearRecent' | translate }}</button>
               </div>
               <div class="chips" role="presentation">
                 @for (o of recentOptions(); track o.id) {
@@ -58,7 +58,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           @if (freshOptions().length) {
             <div class="group" role="group" [attr.aria-labelledby]="listboxId() + '-h-fresh'">
               <div class="group-head" role="presentation">
-                <span [id]="listboxId() + '-h-fresh'">{{ 'codex.search.fresh' | translate }}</span>
+                <span [id]="listboxId() + '-h-fresh'">{{ 'codex.search.bar.fresh' | translate }}</span>
               </div>
               @for (o of freshOptions(); track o.id) {
                 <ng-container *ngTemplateOutlet="row; context: { $implicit: o }" />
@@ -67,7 +67,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           }
           <div class="group" role="group" [attr.aria-labelledby]="listboxId() + '-h-areas'">
             <div class="group-head" role="presentation">
-              <span [id]="listboxId() + '-h-areas'">{{ 'codex.search.areas' | translate }}</span>
+              <span [id]="listboxId() + '-h-areas'">{{ 'codex.search.bar.areas' | translate }}</span>
             </div>
             <div class="chips" role="presentation">
               @for (o of categoryOptions(); track o.id) {
@@ -84,14 +84,14 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
       } @else if (e.error(); as err) {
         <!-- A failed archive read is an error with a way forward, never "no results". -->
         <div class="state err" role="alert">
-          <span>{{ 'codex.search.failed' | translate }} — {{ err | translate }}</span>
+          <span>{{ 'codex.search.bar.failed' | translate }} — {{ err | translate }}</span>
           <button type="button" class="retry" (click)="e.retry()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else if (e.groups().length === 0) {
         @if (e.loading() || pending()) {
-          <p class="state" role="status">{{ 'codex.search.searching' | translate }}</p>
+          <p class="state" role="status">{{ 'codex.search.bar.searching' | translate }}</p>
         } @else {
-          <p class="state" role="status">{{ 'codex.search.empty' | translate: { term: e.term().trim() } }}</p>
+          <p class="state" role="status">{{ 'codex.search.bar.empty' | translate: { term: e.term().trim() } }}</p>
           @if (e.didYouMean().length) {
             <p class="did-you-mean">
               <span>{{ 'codex.search.didYouMean' | translate }}</span>
@@ -102,7 +102,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           }
         }
       } @else {
-        <div class="listbox" role="listbox" [id]="listboxId()" [attr.aria-label]="'codex.search.resultsAria' | translate"
+        <div class="listbox" role="listbox" [id]="listboxId()" [attr.aria-label]="'codex.search.bar.resultsAria' | translate"
              [attr.aria-busy]="e.loading()" [class.stale]="e.loading() || pending()">
           @for (g of e.groups(); track g.kind) {
             <div class="group" role="group" [attr.aria-labelledby]="listboxId() + '-h-' + g.kind">
@@ -116,7 +116,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
                      [class.active]="isActive(o)" [attr.aria-selected]="isActive(o)"
                      [routerLink]="o.target.link" [queryParams]="o.target.queryParams"
                      (click)="onClick($event, o)" (mouseenter)="hover(o)">
-                    {{ (o.kind === 'upcoming' ? 'codex.search.allUpcoming' : 'codex.search.allInIndex') | translate: { n: o.total } }}
+                    {{ (o.kind === 'upcoming' ? 'codex.search.bar.allUpcoming' : 'codex.search.bar.allInIndex') | translate: { n: o.total } }}
                     <span aria-hidden="true">→</span>
                   </a>
                 } @else {
@@ -131,7 +131,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
         <!-- Outside the listbox: an alert inside an option breaks the combobox semantics. -->
         <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
       }
-      <p class="nav-hint" aria-hidden="true">{{ 'codex.search.navHint' | translate }}</p>
+      <p class="nav-hint" aria-hidden="true">{{ 'codex.search.bar.navHint' | translate }}</p>
     </div>
 
     <ng-template #row let-o>
@@ -157,10 +157,10 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
                 }
                 @if (mfr(o.hit); as m) { <span class="mfr">{{ m }}</span> }
                 @if (o.hit.size != null) { <span class="badge">{{ 'codex.card.size' | translate: { size: o.hit.size } }}</span> }
-                @if (o.hit.grade) { <span class="badge">{{ 'codex.search.grade' | translate: { grade: o.hit.grade } }}</span> }
-                @if (livery(o.hit)) { <span class="badge livery">{{ 'codex.search.livery' | translate }}</span> }
+                @if (o.hit.grade) { <span class="badge">{{ 'codex.search.bar.grade' | translate: { grade: o.hit.grade } }}</span> }
+                @if (livery(o.hit)) { <span class="badge livery">{{ 'codex.search.bar.livery' | translate }}</span> }
                 <!-- Says in words what the amber tint says in colour: announced, not in the build. -->
-                @if (isUpcoming(o.hit)) { <span class="badge soon">{{ 'codex.search.upcomingBadge' | translate }}</span> }
+                @if (isUpcoming(o.hit)) { <span class="badge soon">{{ 'codex.search.bar.upcomingBadge' | translate }}</span> }
               </span>
             </span>
           </a>
@@ -171,8 +171,8 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
             } @else {
               <button type="button" class="act add" (click)="addToHangar(o.hit.classNameSlug)"
                       [disabled]="adding().has(o.hit.classNameSlug)" [attr.aria-busy]="adding().has(o.hit.classNameSlug)"
-                      [attr.aria-label]="'codex.search.addToHangarAria' | translate: { name: title(o.hit) }">
-                {{ 'codex.search.addToHangar' | translate }}
+                      [attr.aria-label]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }">
+                {{ 'quickSearch.addToHangar' | translate }}
               </button>
             }
           }

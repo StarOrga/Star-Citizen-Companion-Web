@@ -176,9 +176,6 @@
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
       "terminal": {
-        "label": "Search the Arsenal",
-        "placeholder": "Arsenal Terminal — ship, component, weapon, item, manufacturer, blueprint …",
-        "clear": "Clear search",
         "keybinds": "Keybindings"
       },
       "archive": {
@@ -211,12 +208,6 @@
         "archive": "{{count}} records in the Arsenal",
         "extracted": "Extracted {{date}}",
         "build": "Build \"{{build}}\" (placeholder)"
-      },
-      "results": {
-        "title": "Arsenal hits",
-        "searching": "Searching the Arsenal …",
-        "empty": "No matches for “{{term}}”.",
-        "upcomingBadge": "Not in game yet"
       },
       "surface": {
         "expandBoard": "Expand On board",
@@ -408,7 +399,37 @@
       "clear": "Clear search",
       "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
       "alsoIn": "Also found in:",
-      "upcomingLink": "View in Upcoming Ships"
+      "upcomingLink": "View in Upcoming Ships",
+      "bar": {
+        "label": "Search the Codex",
+        "placeholder": "Search the Codex — ship, component, weapon, gear, manufacturer …",
+        "clear": "Clear search",
+        "shortcut": "Ctrl K",
+        "suggestionsAria": "Suggestions",
+        "resultsAria": "Search results",
+        "recent": "Recent searches",
+        "clearRecent": "Clear history",
+        "fresh": "New in this patch",
+        "areas": "Areas",
+        "failed": "Search failed",
+        "searching": "Searching the Codex …",
+        "empty": "No matches for “{{term}}”.",
+        "allInIndex": "All {{n}} in the index",
+        "allUpcoming": "All {{n}} in Upcoming Ships",
+        "grade": "Grade {{grade}}",
+        "livery": "Livery",
+        "upcomingBadge": "Not in the game yet",
+        "addToHangarAria": "Add {{name}} to the hangar",
+        "navHint": "↑↓ navigate · ↵ open · Ctrl+↵ new tab · Esc close",
+        "category": {
+          "ships": "Ships",
+          "components": "Components",
+          "shipWeapons": "Ship weapons",
+          "fps": "FPS gear",
+          "upcoming": "Upcoming ships",
+          "keybinds": "Keybindings"
+        }
+      }
     },
     "kinds": {
       "ship": "Ships",
@@ -630,8 +651,6 @@
           "movement": "Movement",
           "signature": "Signature & Cooling"
         },
-        "searchLabel": "Search the codex",
-        "searchPlaceholder": "Ships, components, manufacturers …",
         "staticCrew": "Crew",
         "staticMass": "Mass",
         "staticCargo": "Cargo",
@@ -3564,22 +3583,7 @@
   },
   "quickSearch": {
     "open": "Search",
-    "placeholder": "Search ships, weapons, components…",
-    "searching": "Searching…",
-    "noResults": "No matches.",
-    "hint": "Type to search — ↑↓ to navigate, Enter opens the highlighted match. Ctrl+K opens this search anywhere.",
-    "addToHangar": "→ Hangar",
-    "navHint": "↑↓ navigate · ↵ open · esc close",
-    "otherMatches": "Other matches",
-    "noneInCategory": "No {{category}} found — showing other matches",
-    "category": {
-      "groupAria": "Filter search by category",
-      "all": "All",
-      "ship": "Ships",
-      "weapon": "Weapons",
-      "component": "Components"
-    },
-    "error": "Search failed"
+    "addToHangar": "→ Hangar"
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",
