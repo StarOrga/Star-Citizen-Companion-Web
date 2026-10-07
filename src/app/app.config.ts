@@ -16,6 +16,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
 import { AppErrorHandler } from './core/app-error-handler';
+import { provideNavOrigin } from './shared/page-header/nav-origin.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -61,5 +62,8 @@ export const appConfig: ApplicationConfig = {
     // Every catalog figure is grouped in the resolved UI locale (feedback
     // dbdb2ffe). Bootstrap-eager on purpose — see codex-number-locale.ts.
     provideCodexNumberLocale(),
+    // Breadcrumbs lead back to the page the user came from (index with its
+    // filters, FPS list, hangar) — the history has to start at bootstrap.
+    provideNavOrigin(),
   ],
 };

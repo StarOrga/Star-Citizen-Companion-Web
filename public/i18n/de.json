@@ -286,40 +286,6 @@
         "createSet": "FPS-Set anlegen"
       }
     },
-    "bridge": {
-      "scannerResults": "Scanner · \"{{term}}\"",
-      "indexMode": "Index-Modus",
-      "keybinds": "Keybinds",
-      "hangar": "Hangar",
-      "addCompare": "Vergleich",
-      "hero": {
-        "featured": "Vorgestelltes Schiff",
-        "fromHangar": "Aus deinem Hangar",
-        "flagship": "Dein Flaggschiff",
-        "open": "Öffnen",
-        "openShip": "{{ship}} öffnen",
-        "freshness": "{{patch}} LIVE · Build {{build}}"
-      },
-      "flagship": {
-        "set": "★ Als Flaggschiff festlegen",
-        "pinned": "★ Flaggschiff",
-        "hint": "Dein Flaggschiff ist dein Standardschiff: Es wird im Codex immer ganz oben angezeigt, im Hangar mit ★ markiert und in deinem Profil gespeichert – damit ist es auf allen Geräten dasselbe.",
-        "hintPinned": "Das ist dein Flaggschiff: Es wird im Codex immer ganz oben angezeigt und im Hangar mit ★ markiert. Nochmal tippen hebt die Markierung auf."
-      },
-      "lanes": {
-        "hangar": "Dein Hangar",
-        "hangarSub": "Schiffe in deinem Besitz",
-        "fresh": "Frisch in diesem Patch",
-        "freshSub": "Werte gegenüber dem vorigen Build verändert",
-        "freshSubNew": "Neue Schiffe und geänderte Werte seit dem vorigen Build",
-        "newBadge": "Neu",
-        "role": "Nach Hersteller entdecken",
-        "roleSub": "Schiffe nach ihrem Hersteller gruppiert"
-      },
-      "scannerPlaceholderShort": "Schiff oder Klasse scannen…",
-      "scannerEmpty": "Kein Schiff passt zu „{{term}}“.",
-      "searchIndex": "Im Index suchen"
-    },
     "index": {
       "title": "Codex — Index-Modus"
     },
@@ -355,8 +321,6 @@
         "title": "Keine Treffer",
         "body": "Kein kommendes Schiff passt zu Suche und Filter — Suchbegriff kürzen oder Favoritenfilter lösen."
       },
-      "laneSub": "Von RSI angekündigt, in unseren Spieldaten noch ohne Eintrag",
-      "laneAll": "Alle {{count}} ansehen",
       "conceptBadge": "Konzept",
       "notFlightReady": "Noch nicht flugfähig",
       "role": {
@@ -1534,8 +1498,6 @@
       "retry": "Erneut versuchen",
       "collapse": "3D-Ansicht einklappen",
       "expand": "3D-Ansicht ausklappen",
-      "holoReady": "Holo-Ready — interaktives 3D-Hologramm verfügbar",
-      "holoReadyShort": "3D",
       "hardpointHint": "{{count}} Hardpoints am Modell markiert — Zeiger auf einen Marker oder eine Zeile unten, beide leuchten gemeinsam."
     },
     "equipped": {
@@ -4552,5 +4514,15 @@
     "server": "Der Server hat einen Fehler gemeldet.",
     "generic": "Etwas ist schiefgelaufen.",
     "retry": "Erneut versuchen"
+  },
+  "pageHeader": {
+    "crumbsAria": "Seitenpfad",
+    "crumb": {
+      "codex": "Codex",
+      "index": "Index",
+      "fps": "FPS-Ausrüstung",
+      "keybinds": "Tastenbelegung",
+      "hangar": "Hangar"
+    }
   }
 }

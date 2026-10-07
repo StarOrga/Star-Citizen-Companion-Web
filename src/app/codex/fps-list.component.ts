@@ -42,6 +42,8 @@ import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set/set-arsenal-transition';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
 const PAGE_SIZE = 60;
@@ -83,23 +85,19 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
-      <header class="head">
-        <div class="title-block">
-          <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
-          <h1>{{ 'fps.title' | translate }}</h1>
-          <!-- Equip mode drops the subtitle: the band says why the reader is
-               here, and the first card's equip button has to stay above the
-               fold on a 1440x900 desktop (L11). -->
-          @if (!targetSet()) {
-            <p class="hint">{{ 'fps.subtitle' | translate }}</p>
-          }
-        </div>
-        <sc-codex-status-banner />
-      </header>
+      <!-- Equip mode drops the subtitle: the band says why the reader is
+           here, and the first card's equip button has to stay above the
+           fold on a 1440x900 desktop (L11). -->
+      <sc-page-header
+        [crumbs]="codexCrumbs"
+        [title]="'fps.title' | translate"
+        [subtitle]="targetSet() ? null : ('fps.subtitle' | translate)">
+        <sc-codex-status-banner phAside />
+      </sc-page-header>
 
       <!-- EQUIP MODE. Only reachable with ?equipInto=&lt;setId&gt; in the URL, which
            is what makes "no equip controls during ordinary browsing" structural
@@ -450,15 +448,9 @@ interface FacetOption {
     :host { display: block; }
     .fps-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
-    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
-    .back:hover, .back:focus-visible { color: var(--sc-accent); }
-    .title-block { display: flex; flex-direction: column; gap: 4px; }
-    .title-block h1 { margin: 4px 0 0; }
     /* The column gap alone sets title-to-subtitle distance (feedback 98f50dfc):
        a margin here stacked on top of it and made this head 4px taller than
        every other list view's. */
-    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: var(--sc-measure); }
 
     /* Equip mode — the archive working FOR one personal set. Dressed like the
        set page's stage (dark field, thin border, radius) since the reader
@@ -718,9 +710,6 @@ interface FacetOption {
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
-    @media (max-width: 720px) {
-      .head { flex-direction: column; }
-    }
     /* Phones stack the facets one per row — full width, not ragged 160/220 px boxes. */
     @media (max-width: 640px) {
       .facet:not(.check) { flex: 1 1 100%; }
@@ -733,6 +722,7 @@ interface FacetOption {
   `],
 })
 export class FpsListComponent {
+  protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly route = inject(ActivatedRoute);

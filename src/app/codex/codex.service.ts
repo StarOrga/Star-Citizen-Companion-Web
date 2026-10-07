@@ -1012,19 +1012,6 @@ export class CodexService {
   }
 
   /**
-   * Bridge landing data (Slice-1 "The Bridge"): a single query for the ship
-   * lane content. Returns up to `limit` buyable ships of the current build,
-   * ordered by name — reused as both the "Fresh this patch" lane source and the
-   * featured-hero fallback. No schema change: this is `listByKind('ship')` with
-   * a ship-focused default, surfaced as a named read helper so the Bridge
-   * component stays declarative.
-   */
-  async listBridgeShips(limit = 24): Promise<CodexListRow[]> {
-    const res = await this.listByKind('ship', { limit, offset: 0 });
-    return res.rows;
-  }
-
-  /**
    * The COMPLETE manufacturer/size/grade/component-kind facet values for one
    * kind, under the current build and the same default browse filters
    * `listByKind` applies — the source for the index's filter dropdowns, which
@@ -2472,8 +2459,41 @@ function applyDefaultBrowseFilters<T extends BrowseFilterable>(query: T, kind: C
   if (kind === 'ship') {
     for (const prefix of NON_SHIP_VEHICLE_PREFIXES) out = out.not('class_name', 'ilike', `${prefix}*`);
   }
+  if (kind === 'item') {
+    // Engine plumbing is not an item a player can find, buy or carry (owner,
+    // 2026-10-07: "Interna überall komplett entfernen"): seats, doors,
+    // dashboards, HUD projectors, ship controllers, NPC archetypes, character
+    // body parts. A record with no name in any language is the same thing —
+    // the game never shows it. Liveries, flair models and everything else a
+    // player owns keep their place.
+    out = out
+      .not('name_localized', 'is', 'null')
+      .or(notInOrNull('attach_type', INTERNAL_ITEM_ATTACH_TYPES));
+  }
   return out;
 }
+
+/**
+ * `codex_items.attach_type` values that are engine plumbing, never a player
+ * item (measured on LIVE 4.10.0, 2026-10-07: ~6 000 of 23 600 item rows).
+ * Hidden from every list, count and search; a detail page reached through a
+ * ship's port list still opens.
+ */
+export const INTERNAL_ITEM_ATTACH_TYPES: readonly string[] = [
+  'AIModule', 'AirTrafficController', 'AmmoBox', 'AttachedPart', 'Audio', 'Button',
+  'CapacitorAssignmentController', 'Char_Accessory_Head', 'Char_Body', 'Char_Flair', 'Char_Hair_Color',
+  'Char_Hair_Prop', 'Char_Head', 'Char_Head_Beard', 'Char_Head_Eyebrow', 'Char_Head_Eyelash',
+  'Char_Head_Eyes', 'Char_Head_Hair', 'Char_Head_Piercings', 'Char_Head_Stubble', 'Char_Lens',
+  'Char_Skin_Color', 'CommsController', 'Container', 'ControlPanel', 'CoolerController', 'Debris',
+  'Decal', 'DockingAnimator', 'DockingCollar', 'Door', 'DoorController', 'Display', 'Elevator',
+  'EnergyController', 'FPS_Radar', 'FuelController', 'Hangar', 'LandingGear', 'LandingSystem',
+  'LifeSupportVent', 'Light', 'LightController', 'Lightgroup', 'MiningController', 'MissileController',
+  'NOITEM_Player', 'NOITEM_Vehicle', 'PersistentHab', 'Player', 'Relay', 'RemoteConnection', 'Room',
+  'SalvageController', 'SalvageFieldEmitter', 'SalvageFieldSupporter', 'SalvageFillerStation',
+  'SalvageInternalStorage', 'Seat', 'SeatAccess', 'SeatDashboard', 'Sensor', 'ShieldController',
+  'ShopDisplay', 'StatusScreen', 'TargetSelector', 'Thumbnail', 'Visor', 'WeaponController',
+  'WheeledController',
+];
 
 /**
  * PostgREST `or` clause for "column is none of these values" that ALSO keeps
@@ -2591,7 +2611,12 @@ export function manufacturerLabel(
   // says nothing — 320 weapons and items carried one (audit 2026-09-25).
   if (row.manufacturerCode === UNKNOWN_MANUFACTURER_CODE) return null;
   const p = row.payload as { manufacturer?: { name?: LocalizedText } } | undefined;
-  return pickLocalized(p?.manufacturer?.name, lang) || row.manufacturerCode || null;
+  const name = pickLocalized(p?.manufacturer?.name, lang);
+  if (name) return name;
+  // A livery token in the code column ("Paint_Gladius_Black_…_Logo") is no
+  // maker — printing it put a raw class name under a search hit.
+  const code = row.manufacturerCode ?? null;
+  return code && MANUFACTURER_CODE_SHAPE.test(code) ? code : null;
 }
 
 /** The catalog's "no known maker" code — never shown as a manufacturer. */

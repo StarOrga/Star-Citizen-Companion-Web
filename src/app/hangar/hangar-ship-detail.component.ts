@@ -47,6 +47,8 @@ import {
 } from './loadout-stats';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { HANGAR_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 interface PortRow {
   port: CodexItemPort;
@@ -67,11 +69,11 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [PageHeaderComponent, FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
-      <a class="back" routerLink="/hangar">← {{ 'hangar.detail.back' | translate }}</a>
+      <sc-page-header [crumbs]="hangarCrumbs" />
 
       @if (loadError(); as err) {
         <div class="sc-card err" role="alert">
@@ -354,8 +356,6 @@ interface PortRow {
   styles: [`
     :host { display: block; }
     .page { display: flex; flex-direction: column; gap: 16px; }
-    .back { color: var(--sc-fg-2); text-decoration: none; font-size: 0.82rem; }
-    .back:hover { color: var(--sc-accent); }
 
     .head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
     .name-row { display: flex; align-items: center; gap: 10px; }
@@ -461,6 +461,7 @@ interface PortRow {
   `],
 })
 export class HangarShipDetailComponent implements OnInit {
+  protected readonly hangarCrumbs = [HANGAR_ROOT_CRUMB];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);

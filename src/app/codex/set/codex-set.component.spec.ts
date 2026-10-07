@@ -527,9 +527,10 @@ describe('CodexSetComponent — flow hint and back link', () => {
 
   it('points the back link at the Codex by default — a real anchor', async () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A] });
-    const back = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a.back')!;
-    expect(back.getAttribute('href')).toBe('/codex');
-    expect(back.textContent?.trim()).toBe('codex.set.back');
+    const crumbs = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('nav.crumbs a');
+    expect(crumbs.length).toBe(1);
+    expect(crumbs[0].getAttribute('href')).toBe('/codex');
+    expect(crumbs[0].textContent?.trim()).toBe('pageHeader.crumb.codex');
   });
 
   it('points the back link at the Hangar when the page was opened from there', async () => {
