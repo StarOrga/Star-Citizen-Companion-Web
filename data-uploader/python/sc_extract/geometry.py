@@ -28,7 +28,18 @@ ids), so we read them directly. Verified layout (``#ivo`` v0x900):
     ``u32 crc32(name), u16 x3, u16, u16, u16 node_index``, followed by a
     NUL-separated string blob. A name belongs to a node when its CRC-32 is in
     the table — verified 273/273 (AEGS_Gladius) and 209/209
-    (DRAK_Cutlass_Black) names resolved.
+    (DRAK_Cutlass_Black) names resolved on the older v0x900 chunk. On LIVE 4.x
+    the chunk is v0x901 and the entry's last u16 is no longer the node index
+    (it reads ``0xffff``/unrelated values — 1 of 273 names resolved, so every
+    ship's ``hardpointTransforms`` came out empty, #643). There the names come
+    from the node chunk itself (below), and this table is only the fallback.
+  * the NODE chunk's own string table (LIVE 4.x, as cgf-converter reads
+    ``NodeMeshCombo``): header u32 ``[3]`` = count of a u16 list, ``[4]`` =
+    mesh-subset count (u16 each), ``[5]`` = string-table size; after the node
+    records follow those two lists, then one NUL-terminated name per node in
+    node order. Verified 273/273 (AEGS_Gladius), 209/209 (DRAK_Cutlass_Black),
+    every non-LOD ``.cga`` of five ship folders; positions match the
+    converter's node tree to 5e-5 m.
   * chunk type ``0x70697fda`` is the NODE table: u32 header (``[1]`` = node
     count), node records start at byte-offset 64 with a 208-byte stride. Each
     record starts with two row-major ``Matrix34`` (12 float32, translation in
