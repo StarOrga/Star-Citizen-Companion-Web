@@ -96,6 +96,7 @@
       "extract": "Extract",
       "validate": "Check",
       "bundle": "Pack bundle",
+      "silhouettes": "Build silhouettes",
       "done": "Done"
     },
     "stage": {
@@ -167,8 +168,7 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D models",
-      "silhouettes": "Silhouettes"
+      "skins": "3D models"
     },
     "err": {
       "unauthorized": "Not signed in or your session is invalid — please reconnect.",
@@ -358,7 +358,7 @@
     "building": "Building silhouettes",
     "hint": "The first build converts every hull and part one by one — this can take a while.",
     "toolsFailed": "Build tools unavailable — silhouettes skipped",
-    "buildFailed": "Silhouette build failed (bundle is uploaded)",
+    "buildFailed": "Silhouette build failed — the Codex goes up without outlines",
     "done": "{{written}} silhouettes built ({{cached}} cached, {{skipped}} without geometry)"
   },
   "progress": {

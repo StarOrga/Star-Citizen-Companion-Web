@@ -275,6 +275,10 @@ export const state = {
   // Flips true the moment the extract finishes OK — drives the clear
   // "Bundle fertig, du kannst hochladen" affordance on the Run screen.
   extractDone: false,
+  // Outcome of the silhouette build that ran inside the extraction, keyed by
+  // the extract it belongs to. The upload only builds them itself when this
+  // does not name its out_dir (a resume after a restart, an older extract).
+  silhouettes: null as { outDir: string; outcome: SilhouetteOutcome } | null,
   authToken: null as string | null,
   // 3D-livery build result from the upload step (skins ride along the normal
   // extract → upload flow — no separate view).
@@ -1211,6 +1215,7 @@ export async function startRun(plan: RunPlan): Promise<void> {
 export function resetForNewRun(): void {
   state.lastResult = null;
   state.extractDone = false;
+  state.silhouettes = null;
   state.skinResult = null;
   state.skinUploadStatus = null;
   state.runPlan = null;
@@ -1511,6 +1516,9 @@ function wireRun(): void {
           /* best-effort */
         }
       }
+      if (currentSilhouetteJobId) {
+        await window.sc.silhouette.cancel(currentSilhouetteJobId).catch(() => undefined);
+      }
       state.view = 'discover';
       render();
     })();
@@ -1641,7 +1649,8 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? t('run.warningFallback'), 'warn');
         return;
       case 'done':
-        progress.setStep(5); // past the last phase → all step chips 'done'
+        // Past the sidecar's last phase: the silhouette build runs next.
+        progress.setStep(RUN_STEP_SILHOUETTES);
         progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
         markCategoriesComplete();
         return;
@@ -1673,6 +1682,13 @@ async function runRealExtract(): Promise<void> {
     if (extractCancelled) {
       // Aborted by the operator — whatever came back is not theirs to upload.
     } else if (final.ok && final.result) {
+      // Silhouettes are built here, not during the upload: the upload step
+      // should only upload, and the Codex phase sends these rows with it.
+      const silhouettes = await buildRunSilhouettes(final.result, progress, appendLog);
+      if (extractCancelled) return;
+      state.silhouettes = { outDir: final.result.output_dir, outcome: silhouettes };
+      progress.setStep(RUN_STEP_SILHOUETTES + 1); // all step chips done
+      progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
       state.lastResult = final.result;
       state.extractDone = true;
       const totalEntities = Object.values(final.result.entity_counts)
@@ -1716,16 +1732,15 @@ async function runRealExtract(): Promise<void> {
 
 // ============= View: Auth-Upload =============
 
-// The 4 sub-flows of one upload run, in the order they actually execute
+// The 3 sub-flows of one upload run, in the order they actually execute
 // (see doUploadAfterAuth) — surfaced as a small stepper on the shared progress
-// card so the upload flow reads as a sibling of the Run view. Silhouettes are
-// their own step: they are built locally for a long while before the first
-// Codex row is sent; folded into "Codex", the main bar moved while every
-// category bar still sat at 0.
+// card so the upload flow reads as a sibling of the Run view. Each one is live
+// on the website once it is through: the Codex (with its silhouettes) at its
+// finalize, every 3D model the moment its ship lands. Silhouettes are built in
+// the extraction, so they ride along with the Codex instead of being a step.
 function uploadSteps(): ProgressStep[] {
   return [
     { key: 'bundle', label: t('upload.steps.bundle') },
-    { key: 'silhouettes', label: t('upload.steps.silhouettes') },
     { key: 'codex', label: t('upload.steps.codex') },
     { key: 'skins', label: t('upload.steps.skins') },
   ];
@@ -1741,9 +1756,13 @@ function runSteps(): ProgressStep[] {
     { key: 'extract', label: phaseLabel('extract') },
     { key: 'validate', label: phaseLabel('validate') },
     { key: 'bundle', label: phaseLabel('bundle') },
+    // Built locally right after the bundle, so the upload only uploads.
+    { key: 'silhouettes', label: phaseLabel('silhouettes') },
   ];
 }
 const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 2, validate: 3, bundle: 4 };
+/** Step index of the silhouette build — the extract sidecar's `done` lands here. */
+const RUN_STEP_SILHOUETTES = 5;
 
 // Localized labels for the shared progress meta line (throughput / ETA / stall).
 function progressLabels(): Partial<ProgressLabels> {
@@ -2300,8 +2319,8 @@ async function doUploadAfterAuth(): Promise<void> {
   });
   // On a resume whose bundle already landed, the bundle POST returns instantly
   // from the main process — so skip the bundle spinner and open the card
-  // straight on the silhouette step (macro 2/4, a cache hit on a resume) that
-  // runs next, instead of flashing "1/4 · Bundle" then jumping.
+  // straight on the Codex step that runs next, instead of flashing
+  // "1/3 · Bundle" then jumping.
   const resumingPastBundle = job?.bundle?.status === 'done';
   uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
   uploadProgress?.update({
@@ -2347,38 +2366,40 @@ async function doUploadAfterAuth(): Promise<void> {
   );
   paintDiffSummary(r.diffSummary);
 
-  // Build silhouettes (Codex Holotable + tile-view outlines) BEFORE the codex
-  // promotion below: `promoteToCodex` -> `catalog-bridge.ts`'s `codex_silhouettes`
-  // phase reads `<output_dir>/silhouettes/rows/*.json`, so this must have
-  // already run or that phase simply sends nothing this run. Non-fatal, same
-  // as the 3D-skin build: a failure here never blocks the bundle/codex upload.
+  // Silhouettes are built in the extraction; the Codex phase `codex_silhouettes`
+  // reads their `<output_dir>/silhouettes/rows/*.json`. Only when this session
+  // has no outcome for this extract (a resume after a restart, an extract from
+  // an older uploader) are they built here — mostly cache hits then. Non-fatal:
+  // without them the Codex simply goes up without outlines.
   uploadProgress?.setStep(1);
-  // The bars count Codex rows sent — none are until the silhouettes (and the
-  // build tools they need) are through, so say why they stand still.
-  setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
   const skipped = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
-  let silhouettesOk = false;
-  try {
-    if (skipped.has('silhouettes')) {
-      drawerAppendLog(t('subthemes.skipped', { name: subthemeName('silhouettes') }));
+  let silhouettes: SilhouetteOutcome | 'skipped' = skipped.has('silhouettes') ? 'skipped' : 'failed';
+  if (silhouettes !== 'skipped') {
+    if (state.silhouettes?.outDir === result.output_dir) {
+      silhouettes = state.silhouettes.outcome;
     } else {
-      await buildSilhouettes(result, uploadProgress);
-      silhouettesOk = true;
+      // The bars count Codex rows sent — none are until the silhouettes are
+      // through, so say why they stand still.
+      setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
+      try {
+        silhouettes = await buildSilhouettes(result, uploadProgress, {
+          shouldStop: pauseRequested,
+          report: setAuthStatus,
+        });
+        state.silhouettes = { outDir: result.output_dir, outcome: silhouettes };
+      } catch (err) {
+        uploadProgress?.update({ indeterminate: false });
+        setAuthStatus(`${t('silhouettes.buildFailed')}: ${(err as Error).message}`, 'warn');
+      } finally {
+        setCategoryBarsCaption(null);
+      }
+      if (silhouettes === 'stopped') uploadProgress?.stop();
     }
-  } catch (err) {
-    uploadProgress?.update({ indeterminate: false });
-    setAuthStatus(
-      `${t('silhouettes.buildFailed')}: ${(err as Error).message}`,
-      'warn',
-    );
-  } finally {
-    setCategoryBarsCaption(null);
   }
 
   // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
   // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
   // a codex failure only means the public catalog isn't refreshed this run.
-  uploadProgress?.setStep(2);
   const codex = await promoteToCodex(result.output_dir, uploadProgress);
   // Stop the whole run on a pause. Falling through would upload skins and —
   // worse — reach the cleanup below, deleting the out_dir that a resume needs.
@@ -2395,7 +2416,7 @@ async function doUploadAfterAuth(): Promise<void> {
     // Only what this run actually sent lands in the ledger: skipped subthemes
     // already have their row, and silhouettes count only when they were built.
     const landed = CATALOG_SUBTHEMES.filter((k) => !skipped.has(k));
-    if (silhouettesOk) landed.push('silhouettes');
+    if (silhouettes === 'ok') landed.push('silhouettes');
     if (landed.length) void window.sc.subthemes.record(ledgerKey, landed);
   }
 
@@ -2403,7 +2424,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // sub-property of every ship, not a separate step. Reads the extract's build
   // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
   // out_dir). Fully non-fatal: the bundle is already confirmed.
-  uploadProgress?.setStep(3);
+  uploadProgress?.setStep(2);
   try {
     if (skipped.has('hulls')) {
       drawerAppendLog(t('subthemes.skipped', { name: subthemeName('hulls') }));
@@ -2832,16 +2853,58 @@ function installFor(result: ExtractResultPayload): (typeof state.channels)[numbe
   return ch;
 }
 
+/**
+ * The extraction's silhouette step. Skipped when the server already holds this
+ * build's silhouettes at the current revision (lib/subthemes.ts); a failure is
+ * logged and the run carries on — the Codex then goes up without outlines.
+ */
+async function buildRunSilhouettes(
+  result: ExtractResultPayload,
+  progress: ProgressController,
+  appendLog: (msg: string, level?: LogLevel) => void,
+): Promise<SilhouetteOutcome> {
+  if (state.subthemePlan?.skip.includes('silhouettes')) {
+    appendLog(t('subthemes.skipped', { name: subthemeName('silhouettes') }));
+    return 'ok';
+  }
+  appendLog(`▶ ${phaseLabel('silhouettes')}`);
+  const level = (cls: 'ok' | 'warn' | 'error'): LogLevel => (cls === 'ok' ? 'success' : cls);
+  try {
+    return await buildSilhouettes(result, progress, {
+      shouldStop: () => Promise.resolve(extractCancelled),
+      report: (msg, cls, extras) => appendLog(extras?.detail ? `${msg}: ${extras.detail}` : msg, level(cls)),
+    });
+  } catch (err) {
+    appendLog(`${t('silhouettes.buildFailed')}: ${(err as Error).message}`, 'warn');
+    return 'failed';
+  }
+}
+
+/** How a silhouette build ended — `stopped` is a pause/abort, not a failure. */
+type SilhouetteOutcome = 'ok' | 'failed' | 'stopped';
+
+interface SilhouetteBuildHooks {
+  /** True once the operator paused/aborted — checked at stage boundaries. */
+  shouldStop: () => Promise<boolean>;
+  /** Where the outcome line goes: the upload status box, or the run log. */
+  report: (msg: string, cls: 'ok' | 'warn' | 'error', extras?: StatusExtras) => void;
+}
+
+/** Id of the silhouette build in flight — lets the Run step's abort cancel it. */
+let currentSilhouetteJobId: string | null = null;
+
 // Build the top-down outline (Codex Holotable + generic tile-view art) for
 // every ship/weapon/component/armor item the extract's silhouette manifest
-// named. Reuses the SAME cgf-converter binary the 3D-skin build downloads
+// named. Runs as the last step of the extraction (local work, no network);
+// the upload only falls back to it when that run's outcome is unknown. Reuses the SAME cgf-converter binary the 3D-skin build downloads
 // (`ensureTools()` is idempotent — a no-op once the binary is on disk, so
 // calling it again here never re-downloads it). Entirely non-fatal: a failure
 // here only means the Codex falls back to "ohne Geometrie" for this run.
 async function buildSilhouettes(
   result: ExtractResultPayload,
-  progress?: ProgressController | null,
-): Promise<void> {
+  progress: ProgressController | null | undefined,
+  hooks: SilhouetteBuildHooks,
+): Promise<SilhouetteOutcome> {
   const ch = installFor(result);
 
   const manifest = `${result.output_dir}/silhouettes/_build_manifest.json`;
@@ -2855,14 +2918,11 @@ async function buildSilhouettes(
   );
   const tools = await window.sc.skin.ensureTools();
   unsubTools();
-  if (await pauseRequested()) return;
+  if (await hooks.shouldStop()) return 'stopped';
   if (!tools.ok) {
     progress?.update({ indeterminate: false });
-    setAuthStatus(
-      `${t('silhouettes.toolsFailed')}: ${tools.error ?? '—'}`,
-      'warn',
-    );
-    return;
+    hooks.report(`${t('silhouettes.toolsFailed')}: ${tools.error ?? '—'}`, 'warn');
+    return 'failed';
   }
 
   // 2. build silhouettes (streams; per-entity progress + cache-hit/error logs
@@ -2875,6 +2935,7 @@ async function buildSilhouettes(
   });
   const silhouetteCounters: Record<string, number> = {};
   const unsub = window.sc.silhouette.onEvent((ev) => {
+    currentSilhouetteJobId = ev.jobId;
     if (ev.type === 'phase' && ev.phase) {
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
@@ -2908,27 +2969,23 @@ async function buildSilhouettes(
       },
       manifestPath: manifest,
     })
-    .finally(unsub);
+    .finally(() => {
+      unsub();
+      currentSilhouetteJobId = null;
+    });
   progress?.update({ indeterminate: false });
   // `paused` / `cancelled` come back when the operator stopped the build —
   // control flow, not a failure (same as the skin build's own pause path).
   if (!built.ok && (built.error === 'paused' || built.error === 'cancelled')) {
-    progress?.stop();
-    return;
+    return 'stopped';
   }
   if (!built.ok) {
-    setAuthStatus(
-      t('silhouettes.buildFailed'),
-      'warn',
-      { detail: built.error ?? undefined },
-    );
-    return;
+    hooks.report(t('silhouettes.buildFailed'), 'warn', { detail: built.error ?? undefined });
+    return 'failed';
   }
   const { written = 0, skipped = 0, cached = 0 } = built.result ?? {};
-  setAuthStatus(
-    t('silhouettes.done', { written, cached, skipped }),
-    'ok',
-  );
+  hooks.report(t('silhouettes.done', { written, cached, skipped }), 'ok');
+  return 'ok';
 }
 
 // ============= 3D liveries (built + uploaded inside the normal upload) =======
