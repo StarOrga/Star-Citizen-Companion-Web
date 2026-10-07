@@ -275,7 +275,12 @@ describe('Patch dossier — one patch, opened (rethink Ⓚ)', () => {
     expect(axis.querySelector('.bar.real:not(.lead)')).not.toBeNull();
     expect(axis.querySelector('.bar.usual:not(.lead)')).withContext('a live line projects the usual next release').not.toBeNull();
     expect(axis.querySelector('.bar.real.lead')).withContext('the test phase is measured retrospectively').not.toBeNull();
-    expect((Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'))).toEqual(['prevLive', 'firstTest', 'leadUsual', 'live', 'hotfix', 'now', 'usual']);
+    // The fixture's dates are fixed while "now" is the real clock, so whether
+    // today falls before or after the projected usual release depends on the
+    // day the suite runs — only the fixed points have a fixed order.
+    const keys = (Array.from(axis.querySelectorAll('.pt')) as HTMLElement[]).map((p) => p.getAttribute('data-key'));
+    expect(keys.slice(0, 5)).toEqual(['prevLive', 'firstTest', 'leadUsual', 'live', 'hotfix']);
+    expect([...keys.slice(5)].sort()).toEqual(['now', 'usual']);
     expect(text('#pd-next .sentence')).toContain('ist seit');
     expect(text('#pd-next .facts')).toContain('Test → Live: 24 Tage');
     expect(text('#pd-next .facts')).toContain('1 Hotfix seit Live');

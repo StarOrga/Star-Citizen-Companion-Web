@@ -51,13 +51,14 @@ describe('CodexRankCardComponent', () => {
     expect(el.querySelectorAll('.bar-row').length).toBe(result.axes.length);
   });
 
-  it('marks the weakest axis in the warning colour, never in the error colour', () => {
-    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100 } };
+  it('paints an axis where the ship trails its comparison in the warning colour, never in the error colour', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: 1, career: null, sheet: { alpha: 100, sustainedDps: 900, missiles: 4, shieldHp: 900, agility: 90, boost: 900 } };
     const cohort: RankShipInput[] = [
       target,
-      { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200 } },
+      { className: 'AEGS_Avenger', sizeClass: 1, career: null, sheet: { alpha: 200, sustainedDps: 100, missiles: 1, shieldHp: 100, agility: 10, boost: 100 } },
+      { className: 'AEGS_Gladius', sizeClass: 1, career: null, sheet: { alpha: 300, sustainedDps: 200, missiles: 2, shieldHp: 200, agility: 20, boost: 200 } },
     ];
-    fixture.componentRef.setInput('result', rankShip(target, cohort, { profile: 'combat', scope: 'sizeClass' }));
+    fixture.componentRef.setInput('result', rankShip(target, cohort, { profile: 'combat', scope: 'all' }));
     fixture.componentRef.setInput('loading', false);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
@@ -73,12 +74,17 @@ describe('CodexRankCardComponent', () => {
     const warning = resolved('--sc-warning');
     expect(warning).not.toBe(resolved('--sc-danger'));
 
-    const bar = el.querySelector<HTMLElement>('.bar-fill.weak');
-    const ring = el.querySelector<SVGCircleElement>('.radar .weak-axis');
-    expect(bar).withContext('weak bar').toBeTruthy();
-    expect(ring).withContext('weakest-axis ring').toBeTruthy();
-    expect(getComputedStyle(bar!).backgroundColor).toBe(warning);
-    expect(getComputedStyle(ring!).stroke).toBe(warning);
+    const behind = el.querySelector<SVGLineElement>('.radar .connector.down');
+    const behindCaption = el.querySelector<SVGTextElement>('.radar text.down');
+    expect(behind).withContext('alpha trails the median').toBeTruthy();
+    expect(behindCaption).withContext('alpha caption').toBeTruthy();
+    expect(getComputedStyle(behind!).stroke).toBe(warning);
+    expect(getComputedStyle(behindCaption!).fill).toBe(warning);
+    expect(el.querySelector('.radar .connector.up')).withContext('the other axes lead').toBeTruthy();
+    // The old fixed 50 % ring and the unexplained weakest-axis dot are gone.
+    expect(el.querySelector('.radar .weak-axis')).toBeNull();
+    expect(el.querySelector('.radar .median')).toBeNull();
+    expect(el.querySelector('.radar .compare')).toBeTruthy();
   });
 
   it('disables a profile chip with its reason as an app tooltip', () => {
@@ -98,30 +104,46 @@ describe('CodexRankCardComponent', () => {
     expect(wrap!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.rank.disabled.noCargo');
   });
 
-  // REQ-9 (AUD-267): themed select, no native one; the size-class scope is listed but not pickable.
-  it('offers the scope as a themed select with the size-class option disabled', () => {
+  it('offers the comparison group as a segmented control; a group without data stays visible but disabled with its reason', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: null, career: null, role: 'Light Freight', sheet: { alpha: 100 } };
+    const cohort: RankShipInput[] = [
+      target,
+      { className: 'AEGS_Avenger', sizeClass: null, career: 'Combat', role: 'Light Fighter', sheet: { alpha: 200 } },
+    ];
+    fixture.componentRef.setInput('result', rankShip(target, cohort, { profile: 'combat', scope: 'all' }));
+    fixture.componentRef.setInput('scope', 'all');
     const emitted: string[] = [];
     fixture.componentInstance.scopeChange.subscribe((v) => emitted.push(v));
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.scope-select sc-select')).not.toBeNull();
     expect(el.querySelector('select')).toBeNull();
-    expect(el.querySelector('.scope-hint')?.textContent).toContain('codex.rank.disabled.noSizeClass');
+    expect(el.querySelector('.compare-head sc-segmented')).not.toBeNull();
+    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>('.compare-head .seg-btn'));
+    expect(segs.map((b) => b.textContent!.trim())).toEqual(['codex.rank.scope.all', 'codex.rank.scope.career', 'codex.rank.scope.role']);
+    expect(segs[1].getAttribute('aria-disabled')).toBe('true');
+    expect(segs[2].getAttribute('aria-disabled')).toBeNull();
+    const tip = fixture.debugElement
+      .queryAll(By.directive(ScTooltipDirective))
+      .find((de) => de.nativeElement === segs[1]);
+    expect(tip!.injector.get(ScTooltipDirective).scTooltip()).toBe('codex.rank.disabled.noCareer');
 
-    (el.querySelector('.scope-select .trigger') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    const options = Array.from(el.querySelectorAll<HTMLElement>('.scope-select [role="option"]'));
-    expect(options.length).toBe(3);
-    const sizeClass = options.find((o) => o.textContent?.includes('codex.rank.scope.sizeClass'))!;
-    expect(sizeClass.getAttribute('aria-disabled')).toBe('true');
-    expect(options.filter((o) => o.getAttribute('aria-disabled') === 'true').length).toBe(1);
-
-    sizeClass.click();
-    fixture.detectChanges();
+    segs[1].click();
     expect(emitted).toEqual([]);
-    const all = options.find((o) => o.textContent?.includes('codex.rank.scope.all'))!;
-    all.click();
-    expect(emitted).toEqual(['all']);
+    segs[2].click();
+    expect(emitted).toEqual(['role']);
+  });
+
+  it('keeps the legend visible in the Holotable variant', () => {
+    const target: RankShipInput = { className: 'CNOU_Nomad', sizeClass: null, career: null, sheet: { alpha: 100, sustainedDps: 1, missiles: 1 } };
+    const other: RankShipInput = { className: 'AEGS_Avenger', sizeClass: null, career: null, sheet: { alpha: 200, sustainedDps: 2, missiles: 2 } };
+    fixture.componentRef.setInput('holo', true);
+    fixture.componentRef.setInput('result', rankShip(target, [target, other], { profile: 'combat', scope: 'all' }));
+    fixture.detectChanges();
+    const legend = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.legend');
+    expect(legend).toBeTruthy();
+    expect(getComputedStyle(legend!).display).not.toBe('none');
+    expect(legend!.textContent).toContain('codex.rank.legend.better');
+    expect(legend!.textContent).toContain('codex.rank.legend.worse');
   });
 });
 

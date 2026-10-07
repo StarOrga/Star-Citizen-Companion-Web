@@ -1,13 +1,16 @@
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
+import { AccountPrefsService } from '../core/account-prefs.service';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
+  untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -151,9 +154,13 @@ import {
   RankResult,
   RankScope,
   RankShipInput,
+  RANK_SCOPE_ACCOUNT_KEY,
+  parseRankScopePref,
   rankProfileDisabledReason,
+  readRankScopePref,
   rankShip,
   resolveCareerLabel,
+  writeRankScopePref,
 } from './codex-rank';
 import { ShipFactGroup } from './codex-analysis-panels.component';
 import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
@@ -627,7 +634,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             (reverted)="onRevertPaths($event)"
             (missionChange)="setMission($event)"
             (rankProfileChange)="rankProfile.set($event)"
-            (rankScopeChange)="rankScope.set($event)"
+            (rankScopeChange)="setRankScope($event)"
             (addToHangar)="addToHangar()"
             [addBusy]="addBusy()"
             [addFailed]="addFailed()"
@@ -2367,10 +2374,27 @@ export class CodexDetailComponent implements OnInit {
 
   // ── Einordnung (MASTER §3) ───────────────────────────────────────────────
   readonly rankProfile = signal<RankProfileId>('combat');
-  // The schema carries no ship size class (see `rankShipInput` below), so
-  // "same size class" is disabled and "Alle Schiffe" is the honest default —
-  // `sizeClass` would just re-degrade to `all` on every ship anyway.
-  readonly rankScope = signal<RankScope>('all');
+  // The comparison group the user picked last (Alle / Karriere / Rolle) is
+  // remembered across ships and visits; "Alle Schiffe" is the default. A ship
+  // that lacks the remembered group shows "Alle" for itself without
+  // overwriting the choice (`RankResult.scope` vs. this signal).
+  // Signed in, the account's copy (profiles.ui_prefs) wins once it has loaded,
+  // so the choice follows the user to another browser.
+  readonly rankScope = signal<RankScope>(readRankScopePref());
+  private readonly accountPrefs = inject(AccountPrefsService);
+  private readonly rankScopeFromAccount = effect(() => {
+    const fromAccount = parseRankScopePref(this.accountPrefs.prefs()?.[RANK_SCOPE_ACCOUNT_KEY]);
+    if (fromAccount && fromAccount !== untracked(this.rankScope)) {
+      this.rankScope.set(fromAccount);
+      writeRankScopePref(fromAccount);
+    }
+  });
+
+  setRankScope(scope: RankScope): void {
+    this.rankScope.set(scope);
+    writeRankScopePref(scope);
+    this.accountPrefs.set(RANK_SCOPE_ACCOUNT_KEY, scope);
+  }
 
   /** The cohort — every buyable ship's stock KPI sheet, fetched once per
    * build (cached in `CodexService.getRankCohort`) and never blocking the
@@ -2409,7 +2433,9 @@ export class CodexDetailComponent implements OnInit {
     const className = this.shipClassName();
     if (!className) return null;
     const career = resolveCareerLabel((this.detail()?.payload as ShipPayload | undefined)?.career ?? null);
-    return { className, sizeClass: null, career, sheet: this.currentKpiSheet() };
+    const roleRaw = this.detail()?.row?.['role'];
+    const role = typeof roleRaw === 'string' && roleRaw.trim() ? roleRaw.trim() : null;
+    return { className, sizeClass: null, career, role, sheet: this.currentKpiSheet() };
   });
 
   readonly rankResult = computed<RankResult | null>(() => {

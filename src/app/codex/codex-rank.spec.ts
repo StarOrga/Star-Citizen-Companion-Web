@@ -1,6 +1,8 @@
 import {
   cohortCacheKey,
   filterCohort,
+  fleetScale,
+  parseRankScopePref,
   percentileOf,
   pruneCohortCache,
   rankBandOf,
@@ -133,8 +135,70 @@ describe('rankShip', () => {
     expect(r.axes.find((a) => a.key === 'alpha')!.weak).toBeTrue();
   });
 
-  it('draws the median polygon at 50 % on every axis', () => {
-    expect(result.medianPolygon).toEqual([50, 50, 50, 50, 50, 50]);
+  it('keeps the ship on the fleet-wide scale while the comparison line moves with the group', () => {
+    const all = rankShip(target, cohort, { profile: 'combat', scope: 'all' });
+    const career = rankShip(target, cohort, { profile: 'combat', scope: 'career' });
+    const shield = (r: typeof all) => r.axes.find((a) => a.key === 'shieldHp')!;
+    // Same ship, same fleet → same place on the radar, whichever group is picked.
+    expect(shield(career).norm).toBe(shield(all).norm);
+    // Freight median shield (6480, 9000 → 7740) sits above the fleet median (5240).
+    expect(shield(career).compareNorm!).toBeGreaterThan(shield(all).compareNorm!);
+    expect(shield(career).delta!).toBeLessThan(shield(all).delta!);
+  });
+
+  it('reports which comparison groups the ship can be put in', () => {
+    expect(result.scopeAvailable).toEqual({ all: true, career: true, role: false, sizeClass: true });
+  });
+});
+
+describe('fleetScale', () => {
+  it('spans weakest (0) to strongest (100) with a square-root ease', () => {
+    expect(fleetScale(0, [0, 100], false)).toBe(0);
+    expect(fleetScale(100, [0, 100], false)).toBe(100);
+    expect(fleetScale(25, [0, 100], false)).toBe(50);
+  });
+
+  it('flips lower-is-better axes so further out always reads better', () => {
+    expect(fleetScale(0, [0, 100], true)).toBe(100);
+    expect(fleetScale(100, [0, 100], true)).toBe(0);
+  });
+
+  it('puts a field of identical values in the middle and an empty one nowhere', () => {
+    expect(fleetScale(7, [7, 7], false)).toBe(50);
+    expect(fleetScale(7, [], false)).toBeNull();
+  });
+});
+
+describe('role scope', () => {
+  const withRole = (s: RankShipInput, role: string | null): RankShipInput => ({ ...s, role });
+  const roleCohort = [
+    withRole(target, 'Light Freight'),
+    withRole(cohort[1], 'Light Fighter'),
+    withRole(cohort[2], 'Light Freight'),
+    withRole(cohort[3], 'Starter'),
+  ];
+
+  it('compares against ships of the same role', () => {
+    const r = rankShip(roleCohort[0], roleCohort, { profile: 'combat', scope: 'role' });
+    expect(r.scope).toBe('role');
+    expect(r.cohortSize).toBe(2);
+  });
+
+  it('falls back to all ships — visibly — when the ship has no role', () => {
+    const r = rankShip(target, roleCohort, { profile: 'combat', scope: 'role' });
+    expect(r.scope).toBe('all');
+    expect(r.scopeFallbackKey).toBe('codex.rank.disabled.noData');
+    expect(r.scopeAvailable.role).toBeFalse();
+  });
+});
+
+describe('remembered comparison group', () => {
+  it('accepts only the pickable groups from storage', () => {
+    expect(parseRankScopePref('career')).toBe('career');
+    expect(parseRankScopePref('role')).toBe('role');
+    expect(parseRankScopePref('sizeClass')).toBeNull();
+    expect(parseRankScopePref(42)).toBeNull();
+    expect(parseRankScopePref(undefined)).toBeNull();
   });
 });
 

@@ -1208,6 +1208,7 @@ export type Database = {
           preferred_channel: string | null
           preferred_lang: string | null
           preferred_region: string | null
+          ui_prefs: Json
           role: string
           rsi_handle: string | null
           updated_at: string
@@ -1222,6 +1223,7 @@ export type Database = {
           preferred_channel?: string | null
           preferred_lang?: string | null
           preferred_region?: string | null
+          ui_prefs?: Json
           role?: string
           rsi_handle?: string | null
           updated_at?: string
@@ -1236,6 +1238,7 @@ export type Database = {
           preferred_channel?: string | null
           preferred_lang?: string | null
           preferred_region?: string | null
+          ui_prefs?: Json
           role?: string
           rsi_handle?: string | null
           updated_at?: string
@@ -1468,6 +1471,11 @@ export type Database = {
       }
       set_preferred_region: {
         Args: { region: string | null }
+        Returns: undefined
+      }
+      // Added by 20261007100000_profile_ui_prefs.sql — hand-patched.
+      set_ui_pref: {
+        Args: { pref_key: string; pref_value: Json | null }
         Returns: undefined
       }
       set_user_role: {

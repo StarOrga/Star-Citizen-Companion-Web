@@ -1026,7 +1026,10 @@
       },
       "legend": {
         "ship": "{{name}}",
-        "median": "Median"
+        "median": "Median",
+        "compare": "Median {{group}} · {{n}} Schiffe",
+        "better": "besser",
+        "worse": "schwächer"
       },
       "profile": {
         "combat": "Kampf",
@@ -1036,13 +1039,16 @@
       "scope": {
         "sizeClass": "Gleiche Größenklasse",
         "all": "Alle Schiffe",
-        "career": "Gleiche Karriere"
+        "career": "Karriere",
+        "role": "Rolle"
       },
       "disabled": {
         "noCargo": "Dieses Schiff hat keinen Laderaum",
         "noData": "Für dieses Profil fehlen in diesem Build die Werte",
         "noSizeClass": "Die Spieldateien liefern für diesen Build keine Größenklasse",
-        "tooFewShips": "Zu wenige Schiffe im Vergleichsfeld"
+        "tooFewShips": "Zu wenige Schiffe im Vergleichsfeld",
+        "noCareer": "Für dieses Schiff ist keine Karriere hinterlegt.",
+        "noRole": "Für dieses Schiff ist keine Rolle hinterlegt."
       },
       "axis": {
         "alpha": "ALPHA",
@@ -1060,6 +1066,12 @@
         "quantumRange": "QUANTUM-REICHWEITE",
         "scm": "SCM",
         "mass": "MASSE"
+      },
+      "nShipsOfRole": "{{n}} Schiffe der gleichen Rolle",
+      "compare": {
+        "label": "Verglichen mit",
+        "info": "Jede Achse reicht vom schwächsten (Mitte) bis zum stärksten Schiff aller Schiffe (Rand). Blau ist dieses Schiff, die gestrichelte Linie der Median der gewählten Vergleichsschiffe. Blaue Striche: besser als der Vergleich, gelbe: schwächer.",
+        "axisDelta": "{{d}} Punkte zum Vergleich"
       }
     },
     "detail": {

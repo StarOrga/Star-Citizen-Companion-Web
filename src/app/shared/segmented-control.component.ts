@@ -40,6 +40,12 @@ export interface ScSegmentOption {
   readonly titleKey?: string;
   /** Turns this segment into a link. Set it on ALL options or on none. */
   readonly link?: ScSegmentLink;
+  /**
+   * Visible but not pickable (button mode only). Rendered with
+   * `aria-disabled`, not `disabled`: a disabled button swallows the pointer,
+   * so its `titleKey` tooltip — the place to say WHY — would never show.
+   */
+  readonly disabled?: boolean;
 }
 
 /**
@@ -96,7 +102,9 @@ export interface ScSegmentOption {
             class="seg-btn"
             role="radio"
             [class.active]="o.value === value()"
+            [class.disabled]="o.disabled"
             [attr.aria-checked]="o.value === value()"
+            [attr.aria-disabled]="o.disabled ? 'true' : null"
             [scTooltip]="o.titleKey ? (o.titleKey | translate) : null" scTooltipTier="label"
             [attr.tabindex]="i === activeIndex() ? 0 : -1"
             (click)="pick(o.value)"
@@ -141,6 +149,11 @@ export interface ScSegmentOption {
     .seg-btn:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .seg-btn.active { background: var(--sc-accent); color: var(--sc-bg-0); font-weight: 600; }
     .seg-btn.active:hover { background: var(--sc-accent); color: var(--sc-bg-0); }
+    .seg-btn.disabled, .seg-btn.disabled:hover { color: color-mix(in srgb, var(--sc-fg-2) 45%, transparent); background: transparent; cursor: not-allowed; }
+    /* Compact: for a control that sits inside a dense panel (the Einordnung
+       head). Touch keeps the 48px row — compact is a pointer-only density. */
+    :host(.compact) .seg-btn { min-height: 30px; padding: 0 0.75rem; font-size: max(0.74rem, var(--sc-fs-floor)); }
+    @media (pointer: coarse) { :host(.compact) .seg-btn { min-height: 48px; } }
 
     @media (max-width: 560px) { .seg-btn { padding: 0 0.75rem; } }
   `],
@@ -171,6 +184,7 @@ export class ScSegmentedComponent {
   });
 
   pick(value: string): void {
+    if (this.options().find((o) => o.value === value)?.disabled) return;
     if (value !== this.value()) this.valueChange.emit(value);
   }
 
@@ -180,21 +194,30 @@ export class ScSegmentedComponent {
     const options = this.options();
     if (options.length === 0) return;
     const current = this.activeIndex();
+    // Disabled segments are stepped over, never landed on.
+    const step = (from: number, dir: 1 | -1): number => {
+      let i = from;
+      for (let tries = options.length; tries > 0; tries--) {
+        i = (i + dir + options.length) % options.length;
+        if (!options[i].disabled) return i;
+      }
+      return from;
+    };
     let next: number;
     switch (ev.key) {
       case 'ArrowRight':
       case 'ArrowDown':
-        next = (current + 1) % options.length;
+        next = step(current, 1);
         break;
       case 'ArrowLeft':
       case 'ArrowUp':
-        next = (current - 1 + options.length) % options.length;
+        next = step(current, -1);
         break;
       case 'Home':
-        next = 0;
+        next = step(options.length - 1, 1);
         break;
       case 'End':
-        next = options.length - 1;
+        next = step(0, -1);
         break;
       default:
         return;
