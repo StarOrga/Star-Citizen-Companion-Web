@@ -4,6 +4,18 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.129.0] - 2026-10-07
+
+### Changed
+
+- **Data Uploader 0.47.0: Silhouetten werden beim Extrahieren gebaut, der
+  Upload lädt nur noch hoch.** Die Extraktion hat einen neuen letzten Schritt
+  „Silhouetten bauen“; Abbrechen stoppt auch diesen Build. Der Upload läuft in
+  drei Schritten: Bundle → Codex (mit den Silhouetten, auf der Website live,
+  sobald der Codex-Schritt fertig ist) → 3D-Modelle (jedes Schiff live, sobald
+  es hochgeladen ist). Nur bei einem Fortsetzen nach einem Neustart baut der
+  Upload die Silhouetten selbst nach, meist aus dem Zwischenspeicher.
+
 ## [0.128.0] - 2026-10-07
 
 ### Added

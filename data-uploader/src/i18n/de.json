@@ -96,6 +96,7 @@
       "extract": "Auslesen",
       "validate": "Prüfen",
       "bundle": "Bundle packen",
+      "silhouettes": "Silhouetten bauen",
       "done": "Fertig"
     },
     "stage": {
@@ -167,8 +168,7 @@
     "steps": {
       "bundle": "Bundle",
       "codex": "Codex",
-      "skins": "3D-Modelle",
-      "silhouettes": "Silhouetten"
+      "skins": "3D-Modelle"
     },
     "err": {
       "unauthorized": "Nicht angemeldet oder Sitzung ungültig — bitte neu verbinden.",
@@ -358,7 +358,7 @@
     "building": "Silhouetten werden gebaut",
     "hint": "Der erste Build wandelt jede Hülle und jedes Bauteil einzeln um – das kann etwas dauern.",
     "toolsFailed": "Build-Tools nicht verfügbar – Silhouetten übersprungen",
-    "buildFailed": "Silhouetten-Build fehlgeschlagen (Bundle ist hochgeladen)",
+    "buildFailed": "Silhouetten-Build fehlgeschlagen — der Codex geht ohne Umrisse hoch",
     "done": "{{written}} Silhouetten erzeugt ({{cached}} zwischengespeichert, {{skipped}} ohne Geometrie)"
   },
   "progress": {

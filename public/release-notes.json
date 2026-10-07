@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.128.0",
+  "current": "0.129.0",
   "releases": [
+    {
+      "version": "0.129.0",
+      "date": "2026-10-07",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.47.0: Silhouetten werden beim Extrahieren gebaut, der Upload lädt nur noch hoch.",
+              "text": "Die Extraktion hat einen neuen letzten Schritt „Silhouetten bauen“; Abbrechen stoppt auch diesen Build. Der Upload läuft in drei Schritten: Bundle → Codex (mit den Silhouetten, auf der Website live, sobald der Codex-Schritt fertig ist) → 3D-Modelle (jedes Schiff live, sobald es hochgeladen ist). Nur bei einem Fortsetzen nach einem Neustart baut der Upload die Silhouetten selbst nach, meist aus dem Zwischenspeicher."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.128.0",
       "date": "2026-10-07",
