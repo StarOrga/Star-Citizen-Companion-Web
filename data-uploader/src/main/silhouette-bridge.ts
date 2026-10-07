@@ -31,6 +31,9 @@ export interface SilhouetteBuildResult {
   written: number;
   skipped: number;
   cached: number;
+  /** Ship rows written / ship rows without a single anchor (#643 coverage). */
+  ships?: number;
+  shipsWithoutAnchors?: number;
 }
 
 export interface SilhouetteBuildFinal {

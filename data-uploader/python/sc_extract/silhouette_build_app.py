@@ -85,6 +85,10 @@ def main() -> int:
             by_mesh.setdefault(e["mesh"], []).append(e)
 
         ok = skipped = cached = 0
+        # #643 coverage: ships whose row was written but carries no anchor
+        # (no hardpoint transform reached the silhouette) — named in the log.
+        ships = ships_without_anchors = 0
+        no_anchor_names: list = []
         total = len(entities)
         done_so_far = 0
         for mesh, refs in by_mesh.items():
@@ -119,10 +123,20 @@ def main() -> int:
                 (out_dir / fname).write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
                 ok += 1
                 count(kind, ok)
+                if kind == "ship":
+                    ships += 1
+                    if not row.get("anchors"):
+                        ships_without_anchors += 1
+                        no_anchor_names.append(class_name)
 
         log("info", f"silhouette build: {ok} written ({cached} from cache), "
                     f"{skipped} skipped (no usable geometry)")
-        done(result={"written": ok, "skipped": skipped, "cached": cached})
+        if ships_without_anchors:
+            log("warn", f"{ships_without_anchors}/{ships} ship silhouettes without anchors: "
+                        + ", ".join(sorted(no_anchor_names)[:40])
+                        + (" …" if ships_without_anchors > 40 else ""))
+        done(result={"written": ok, "skipped": skipped, "cached": cached,
+                     "ships": ships, "shipsWithoutAnchors": ships_without_anchors})
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")

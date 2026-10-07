@@ -2985,6 +2985,15 @@ async function buildSilhouettes(
   }
   const { written = 0, skipped = 0, cached = 0 } = built.result ?? {};
   hooks.report(t('silhouettes.done', { written, cached, skipped }), 'ok');
+  // Coverage line (#643): a ship silhouette without anchors shows no hardpoint
+  // pins on the website — say how many, so a silent regression is visible.
+  const { ships = 0, shipsWithoutAnchors = 0 } = built.result ?? {};
+  if (ships > 0) {
+    hooks.report(
+      t('silhouettes.anchorCoverage', { withAnchors: ships - shipsWithoutAnchors, ships, without: shipsWithoutAnchors }),
+      shipsWithoutAnchors > 0 ? 'warn' : 'ok',
+    );
+  }
   return 'ok';
 }
 
