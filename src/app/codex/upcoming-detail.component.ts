@@ -19,6 +19,8 @@ import {
   thumbnailCandidates,
   upcomingRoleLabel,
 } from './upcoming-ships.service';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
 
 /**
  * Detail page for one ANNOUNCED ship — `/codex/upcoming/:id`.
@@ -40,7 +42,7 @@ import {
 @Component({
   selector: 'sc-upcoming-detail',
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     NeuroFieldDirective,
     RouterLink,
     TranslatePipe,
@@ -50,7 +52,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <a class="back" routerLink="/codex">← {{ 'codex.upcomingDetail.back' | translate }}</a>
+      <sc-page-header [crumbs]="crumbs()" [rememberAs]="ship()?.name ?? null" />
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
@@ -151,8 +153,6 @@ import {
     /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; }
-    .back:hover { color: var(--sc-accent); }
 
     .sc-card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 10px; padding: 20px 24px; }
     .skel-card { min-height: 260px; }
@@ -217,6 +217,15 @@ import {
   `],
 })
 export class UpcomingDetailComponent implements OnInit {
+  private readonly navOrigin = inject(NavOriginService);
+  /** Codex › where the reader came from (hangar drawing board, index), else the upcoming index. */
+  readonly crumbs = computed<PageCrumb[]>(() => {
+    this.ship();
+    const parent = originCrumb(this.navOrigin, {
+      labelKey: 'codex.kinds.upcoming', link: '/codex/upcoming',
+    });
+    return parent?.link === '/hangar' ? [parent] : parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
+  });
   private readonly route = inject(ActivatedRoute);
   private readonly rsi = inject(UpcomingShipsService);
   private readonly translate = inject(TranslateService);

@@ -349,6 +349,11 @@ describe('CodexService.listKeybinds', () => {
 describe('manufacturerLabel', () => {
   const payload = (name: unknown) => ({ manufacturer: { code: 'AEG', name } });
 
+  it('never prints a livery token from the code column as a maker', () => {
+    expect(manufacturerLabel({ payload: {}, manufacturerCode: 'Paint_Gladius_Black_Grey_Grey_Geometric_Logo' }, 'en')).toBeNull();
+    expect(manufacturerLabel({ payload: {}, manufacturerCode: 'AEGS' }, 'en')).toBe('AEGS');
+  });
+
   it('spells the manufacturer out from the payload, not from the code', () => {
     const row = {
       manufacturerCode: 'AEG',

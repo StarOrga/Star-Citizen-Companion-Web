@@ -217,6 +217,8 @@ import type { AssetPackageKind, AssetPackageRow } from './asset-package/asset-pa
 import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
 
 // Engine placeholders that identify no attach type — never build a fit on them.
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
@@ -224,14 +226,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent],
+  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <div class="crumbrow">
-        <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
-        <span class="crumb-spacer"></span>
+      <sc-page-header class="crumbrow" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
+        <div phAside class="crumb-aside">
         @if (kind() === 'ship' && dataPill(); as pill) {
           <span class="prov data-pill" [class.pending]="pill.pending">
             {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
@@ -243,7 +244,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           </span>
         }
         @if (kind() === 'ship') {
-          <span class="crumb-spacer"></span>
           <div class="holo-toggle" role="group" [attr.aria-label]="'codex.holo.toggle.group' | translate">
             <button type="button" class="ht-btn" [class.active]="!holoView()"
                     [attr.aria-pressed]="!holoView()"
@@ -257,7 +257,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             </button>
           </div>
         }
-      </div>
+        </div>
+      </sc-page-header>
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
@@ -972,8 +973,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
        so the rule is scoped instead of edited globally. */
     .detail-page .sc-card,
     .detail-page .sc-card.block { border-radius: 4px; box-shadow: none; }
-    .crumbrow { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .crumb-spacer { flex: 1 1 auto; }
+    .crumbrow { margin-bottom: 10px; }
+    .crumb-aside { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
     .holo-toggle { display: flex; border: 1px solid var(--sc-border); border-radius: var(--holo-r); overflow: hidden; }
     .ht-btn { min-height: var(--sc-tap-min, 32px); padding: 4px 12px; background: var(--sc-bg-2); border: none; color: var(--sc-fg-1); cursor: pointer; font: inherit; font-size: max(11px, var(--sc-fs-floor));
       transition: background var(--holo-t-fast) ease, color var(--holo-t-fast) ease; }
@@ -984,8 +985,6 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     .view-in { animation: view-in var(--holo-t-base) var(--holo-e-out); }
     @keyframes view-in { from { opacity: 0; transform: translateY(var(--holo-rise)); } }
     @media (prefers-reduced-motion: reduce) { .view-in { animation: none; } .ht-btn { transition: none; } }
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; align-self: flex-start; }
-    .back:hover, .back:focus-visible { color: var(--sc-accent); }
 
     /* Masthead: hero | Einordnung (MASTER §1/§3) */
     .m-top { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
@@ -1298,6 +1297,21 @@ export class CodexDetailComponent implements OnInit {
   private readonly draftStore = inject(CodexLoadoutDraftStore);
 
   readonly detail = signal<CodexDetail | null>(null);
+  private readonly navOrigin = inject(NavOriginService);
+  /**
+   * Codex › where the reader came from (the index with its filters, the FPS
+   * list, the ship a component was opened from) — or, on a deep link, the
+   * index of this entry's category.
+   */
+  readonly crumbs = computed<PageCrumb[]>(() => {
+    const kind = this.kind() ?? (this.route.snapshot.paramMap.get('kind') as CodexKind | null);
+    const fallback: PageCrumb | null =
+      kind && CODEX_KINDS.includes(kind)
+        ? { labelKey: `codex.kinds.${kind}`, link: '/codex/index', queryParams: { kind } }
+        : null;
+    const parent = originCrumb(this.navOrigin, fallback);
+    return parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
+  });
   readonly kind = computed(() => this.detail()?.kind ?? null);
   /** Ship pages only: whether this ship is already in the user's hangar. */
   readonly inHangar = computed(() => {

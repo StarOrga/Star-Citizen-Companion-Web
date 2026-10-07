@@ -65,6 +65,8 @@ import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 /**
  * A card in the grid: a list row after variant folding, livery grouping (FPS
@@ -133,18 +135,16 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
-      <header class="head">
-        <div class="title-block">
-          <a class="back" routerLink="/codex">← {{ 'codex.detail.back' | translate }}</a>
-          <h1>{{ 'codex.index.title' | translate }}</h1>
-          <p class="hint">{{ 'codex.subtitle' | translate }}</p>
-        </div>
-        <sc-codex-status-banner />
-      </header>
+      <sc-page-header
+        [crumbs]="codexCrumbs"
+        [title]="'codex.index.title' | translate"
+        [subtitle]="'codex.subtitle' | translate">
+        <sc-codex-status-banner phAside />
+      </sc-page-header>
 
       <!-- Category switcher (datamined kinds + the RSI "upcoming" category).
            Real links since the category lives in the URL (?kind=): middle
@@ -502,13 +502,6 @@ export function blueprintCategoriesForGroup(
     :host { display: block; }
     .codex-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
-    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    /* Same back link and head rhythm as every other archive view. */
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; width: fit-content; }
-    .back:hover, .back:focus-visible { color: var(--sc-accent); }
-    .title-block { display: flex; flex-direction: column; gap: 4px; }
-    .title-block h1 { margin: 4px 0 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 0; max-width: var(--sc-measure); }
 
     .upcoming-lede { margin: -4px 0 0; color: var(--sc-fg-2); font-size: 0.86rem; max-width: 72ch; }
 
@@ -698,7 +691,6 @@ export function blueprintCategoriesForGroup(
     .empty .reset-all.secondary { border-color: transparent; color: var(--sc-fg-2); }
     /* Touch (L31): the back link and the ways out reach the 44px target. */
     @media (pointer: coarse) {
-      .back { display: inline-flex; align-items: center; min-height: max(44px, var(--sc-tap-min)); }
       .empty .reset-all, .cross-hit { min-height: max(44px, var(--sc-tap-min)); }
     }
     /* No own padding: .sc-card's density scale (--sc-pad-1) tightens it on phones. */
@@ -707,9 +699,6 @@ export function blueprintCategoriesForGroup(
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
-    @media (max-width: 720px) {
-      .head { flex-direction: column; }
-    }
     /* Phones stack the facets one per row — full width, not ragged 160/220 px boxes. */
     @media (max-width: 640px) {
       .facet:not(.check) { flex: 1 1 100%; }
@@ -723,6 +712,7 @@ export function blueprintCategoriesForGroup(
   `],
 })
 export class CodexListComponent implements OnInit {
+  protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);

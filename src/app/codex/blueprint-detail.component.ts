@@ -33,15 +33,17 @@ import {
   unescapeText,
 } from './codex-format';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
 
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [NeuroFieldDirective, RouterLink, TranslatePipe],
+  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
-      <a class="back" routerLink="/codex/index" [queryParams]="{ kind: 'blueprint' }">← {{ 'blueprint.detail.back' | translate }}</a>
+      <sc-page-header [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null" />
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
@@ -177,8 +179,6 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
        the sections below share it in two columns. */
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
-    .back { font-size: 0.82rem; color: var(--sc-fg-2); text-decoration: none; }
-    .back:hover { color: var(--sc-accent); }
 
     .sc-card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 10px; padding: 20px 24px; }
     .skel-card { min-height: 200px; }
@@ -251,6 +251,15 @@ import { NeuroFieldDirective } from '../core/neuro-field.directive';
   `],
 })
 export class BlueprintDetailComponent implements OnInit {
+  private readonly navOrigin = inject(NavOriginService);
+  /** Codex › where the reader came from, else the blueprint index. */
+  readonly crumbs = computed<PageCrumb[]>(() => {
+    this.detail();
+    const parent = originCrumb(this.navOrigin, {
+      labelKey: 'codex.kinds.blueprint', link: '/codex/index', queryParams: { kind: 'blueprint' },
+    });
+    return parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
+  });
   readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly translate = inject(TranslateService);

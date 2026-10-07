@@ -38,6 +38,7 @@ import { SharedWithMeRow, shareItems } from '../social/loadout-share.types';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ShipTileArtComponent } from '../codex/ship-blueprint/ship-tile-art.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -49,7 +50,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 @Component({
   selector: 'sc-hangar-dashboard',
   standalone: true,
-  imports: [
+  imports: [PageHeaderComponent, 
     NeuroFieldDirective,
     ShipTileArtComponent,
     NgTemplateOutlet,
@@ -85,12 +86,8 @@ const SEARCH_DEBOUNCE_MS = 250;
           </a>
         </div>
       } @else {
-      <header class="head">
-        <div class="title-block">
-          <h1>{{ 'hangar.title' | translate }}</h1>
-          <p class="hint">{{ 'hangar.subtitle' | translate }}</p>
-        </div>
-        <div class="counts">
+      <sc-page-header [title]="'hangar.title' | translate" [subtitle]="'hangar.subtitle' | translate">
+        <div phActions class="counts">
           <div class="count-chip">
             <strong>{{ hangar.ownedCount() }}</strong>
             <span>{{ 'hangar.counts.owned' | translate }}</span>
@@ -103,7 +100,7 @@ const SEARCH_DEBOUNCE_MS = 250;
             {{ 'hangar.import.open' | translate }}
           </button>
         </div>
-      </header>
+      </sc-page-header>
 
       @if (hangar.error(); as err) {
         <!-- hangar.error holds an i18n key (describe-error), never raw backend text. -->
@@ -513,9 +510,6 @@ const SEARCH_DEBOUNCE_MS = 250;
     .teaser .cta { align-self: flex-start; text-decoration: none;
       color: var(--sc-bg-0); background: var(--sc-accent); border-color: var(--sc-accent); }
     .teaser .cta:hover { background: transparent; color: var(--sc-accent); }
-    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-    .title-block h1 { margin: 0; }
-    .title-block .hint { color: var(--sc-fg-2); margin: 4px 0 0; max-width: 60ch; }
     .counts { display: flex; gap: 8px; }
     .count-chip { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .count-chip strong { font-family: var(--sc-font-display); font-size: 1.2rem; color: var(--sc-accent); }
@@ -719,7 +713,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hint { color: var(--sc-fg-2); font-size: 0.84rem; margin: 0; }
 
     @media (max-width: 720px) {
-      .head { flex-direction: column; align-items: stretch; }
+
       .counts { flex-wrap: wrap; }
     }
     @media (max-width: 560px) {

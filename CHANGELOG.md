@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.130.0] - 2026-10-08
+
+### Changed
+
+- **Codex und Hangar: ein einheitlicher Seitenkopf.** Index, FPS, Tastenbelegung,
+  Blaupausen, Kommende Inhalte, Sets, Detailseiten, Hangar, Hangar-Schiff und
+  Import zeigen oben dieselbe Brotkrumen-Zeile mit Titelblock darunter. Der
+  Rückweg führt dorthin, wo du hergekommen bist: zurück in den Index mit deinen
+  Filtern (nach der Kategorie benannt), in die FPS-Liste, den Hangar oder auf
+  die Schiffseite, von der aus du eine Komponente geöffnet hast — bisher führte
+  jedes „Zurück zum Codex“ auf `/codex` und verlor die Filter. Auf der
+  Schiffseite sitzen Daten-Hinweis und „Klassisch | Holotisch“ jetzt rechts in
+  dieser Zeile.
+- **Codex-Suche und Listen ohne Engine-Interna.** Sitze, Türen, Displays,
+  Steuerungen, NPC-Vorlagen, Körperteile und unbenannte Datensätze tauchen in
+  Suche, Listen und Zählern nicht mehr auf (rund 6.000 von 23.600 Einträgen in
+  4.10.0). Echte Lackierungen, Flair-Modelle und Komponenten bleiben. Der
+  Hersteller zeigt keine Lackierungs-Kürzel wie „Paint_Gladius_…“ mehr.
+
+### Removed
+
+- **Die Seite `/codex/bridge` ist entfernt** (ohne Weiterleitung), samt der nur
+  von ihr genutzten Bausteine.
+
 ## [0.129.0] - 2026-10-07
 
 ### Changed

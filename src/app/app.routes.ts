@@ -174,16 +174,6 @@ export const routes: Routes = [
           import('./codex/codex-landing.component').then((m) => m.CodexLandingComponent),
       },
       {
-        // The previous front door ("The Bridge") — kept reachable for
-        // comparison/rollback while the new landing is verified (not deleted).
-        // Static segment placed BEFORE codex/:kind/:className so it is never
-        // consumed by the :kind wildcard.
-        path: 'codex/bridge',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./codex/codex-bridge.component').then((m) => m.CodexBridgeComponent),
-      },
-      {
         // Index mode — the power-user escape hatch. The original filter-list
         // (kind tabs + all facets + result grid + load-more + compare tray),
         // reachable one click from the Bridge. Static segment placed BEFORE

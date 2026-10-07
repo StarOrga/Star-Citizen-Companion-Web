@@ -6,6 +6,8 @@ import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ExtensionBridgeService, ExtensionHangarPayload } from './extension-bridge.service';
 import { HangarImportComponent } from './hangar-import.component';
+import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { HANGAR_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 /**
  * /hangar/import — the review + confirm screen for the browser-extension
@@ -23,14 +25,14 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
 @Component({
   selector: 'sc-hangar-import-page',
   standalone: true,
-  imports: [RouterLink, TranslatePipe, HangarImportComponent],
+  imports: [PageHeaderComponent, RouterLink, TranslatePipe, HangarImportComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
-      <header class="head">
-        <h1>{{ 'extension.importPage.title' | translate }}</h1>
-        <p class="hint">{{ 'extension.importPage.subtitle' | translate }}</p>
-      </header>
+      <sc-page-header
+        [crumbs]="hangarCrumbs"
+        [title]="'extension.importPage.title' | translate"
+        [subtitle]="'extension.importPage.subtitle' | translate" />
 
       @switch (phase()) {
         @case ('waiting') {
@@ -119,6 +121,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
   ],
 })
 export class HangarImportPageComponent implements OnInit {
+  protected readonly hangarCrumbs = [HANGAR_ROOT_CRUMB];
   private readonly bridge = inject(ExtensionBridgeService);
   private readonly analytics = inject(AnalyticsService);
   private readonly locale = inject(LocaleService);
