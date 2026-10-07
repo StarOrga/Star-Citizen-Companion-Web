@@ -1,7 +1,7 @@
 import {
   cohortCacheKey,
   filterCohort,
-  fleetScale,
+  groupScale,
   parseRankScopePref,
   percentileOf,
   pruneCohortCache,
@@ -135,15 +135,20 @@ describe('rankShip', () => {
     expect(r.axes.find((a) => a.key === 'alpha')!.weak).toBeTrue();
   });
 
-  it('keeps the ship on the fleet-wide scale while the comparison line moves with the group', () => {
+  it('scales every axis from 0 to the best value of the chosen group', () => {
     const all = rankShip(target, cohort, { profile: 'combat', scope: 'all' });
     const career = rankShip(target, cohort, { profile: 'combat', scope: 'career' });
     const shield = (r: typeof all) => r.axes.find((a) => a.key === 'shieldHp')!;
-    // Same ship, same fleet → same place on the radar, whichever group is picked.
-    expect(shield(career).norm).toBe(shield(all).norm);
-    // Freight median shield (6480, 9000 → 7740) sits above the fleet median (5240).
-    expect(shield(career).compareNorm!).toBeGreaterThan(shield(all).compareNorm!);
+    // 6480 of the best 9000 (Freelancer) in both groups → 72 %.
+    expect(shield(all).norm).toBe(72);
+    expect(shield(career).norm).toBe(72);
+    // Medians: all ships (4000, 6480 → 5240) vs. Freight (6480, 9000 → 7740).
+    expect(shield(all).compareNorm).toBe(58.2);
+    expect(shield(career).compareNorm).toBe(86);
     expect(shield(career).delta!).toBeLessThan(shield(all).delta!);
+    // The group's best ship sits on the rim.
+    const dps = (r: typeof all) => r.axes.find((a) => a.key === 'sustainedDps')!;
+    expect(dps(career).norm).toBe(100);
   });
 
   it('reports which comparison groups the ship can be put in', () => {
@@ -151,21 +156,21 @@ describe('rankShip', () => {
   });
 });
 
-describe('fleetScale', () => {
-  it('spans weakest (0) to strongest (100) with a square-root ease', () => {
-    expect(fleetScale(0, [0, 100], false)).toBe(0);
-    expect(fleetScale(100, [0, 100], false)).toBe(100);
-    expect(fleetScale(25, [0, 100], false)).toBe(50);
+describe('groupScale', () => {
+  it('runs linearly from 0 (centre) to the group best (rim)', () => {
+    expect(groupScale(0, [0, 50, 200], false)).toBe(0);
+    expect(groupScale(50, [0, 50, 200], false)).toBe(25);
+    expect(groupScale(200, [0, 50, 200], false)).toBe(100);
   });
 
-  it('flips lower-is-better axes so further out always reads better', () => {
-    expect(fleetScale(0, [0, 100], true)).toBe(100);
-    expect(fleetScale(100, [0, 100], true)).toBe(0);
+  it('puts the smallest value on the rim for lower-is-better axes', () => {
+    expect(groupScale(100, [100, 400], true)).toBe(100);
+    expect(groupScale(400, [100, 400], true)).toBe(25);
   });
 
-  it('puts a field of identical values in the middle and an empty one nowhere', () => {
-    expect(fleetScale(7, [7, 7], false)).toBe(50);
-    expect(fleetScale(7, [], false)).toBeNull();
+  it('keeps an all-zero group at the centre and an empty one nowhere', () => {
+    expect(groupScale(0, [0, 0], false)).toBe(0);
+    expect(groupScale(7, [], false)).toBeNull();
   });
 });
 
