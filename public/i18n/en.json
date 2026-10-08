@@ -428,7 +428,8 @@
           "fps": "FPS gear",
           "upcoming": "Upcoming ships",
           "keybinds": "Keybindings"
-        }
+        },
+        "close": "Close search"
       }
     },
     "kinds": {

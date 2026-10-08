@@ -428,7 +428,8 @@
           "fps": "FPS-Ausrüstung",
           "upcoming": "Kommende Schiffe",
           "keybinds": "Tastenbelegungen"
-        }
+        },
+        "close": "Suche schließen"
       }
     },
     "kinds": {

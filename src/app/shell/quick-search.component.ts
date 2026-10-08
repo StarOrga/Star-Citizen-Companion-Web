@@ -13,6 +13,7 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexSearchEngine } from '../codex/search/codex-search-engine';
 import { CodexSearchResultsComponent } from '../codex/search/codex-search-results.component';
 import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/search/codex-search-hub.service';
@@ -29,7 +30,7 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
 @Component({
   selector: 'sc-quick-search',
   standalone: true,
-  imports: [TranslatePipe, ScDialogDirective, CodexSearchResultsComponent],
+  imports: [TranslatePipe, ScDialogDirective, ScTooltipDirective, CodexSearchResultsComponent],
   providers: [CodexSearchEngine],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -75,6 +76,14 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
               (keydown)="onKeydown($event)"
               [attr.aria-label]="'codex.search.bar.label' | translate"
               [attr.placeholder]="'codex.search.bar.placeholder' | translate" />
+            <!-- The phone sheet has no backdrop to tap and no Esc key: closing needs a control. -->
+            <button type="button" class="qs-close" (click)="close()"
+                    [attr.aria-label]="'codex.search.bar.close' | translate"
+                    [scTooltip]="'codex.search.bar.close' | translate" scTooltipTier="label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+              </svg>
+            </button>
           </div>
           <sc-codex-search-results
             class="qs-results"
@@ -126,6 +135,15 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
       color: var(--sc-fg-0); font-family: inherit; font-size: 1rem;
     }
     .qs-input::-webkit-search-cancel-button { display: none; }
+    .qs-close {
+      flex: none; display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; margin-right: -8px; border: 0; border-radius: 6px;
+      background: none; color: var(--sc-fg-2); cursor: pointer;
+    }
+    .qs-close svg { width: 18px; height: 18px; }
+    .qs-close:hover { color: var(--sc-fg-0); background: var(--sc-bg-2); }
+    .qs-close:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    @media (pointer: coarse) { .qs-close { width: 48px; height: 48px; } }
     /* The results are the scroll port; the field stays put above them. */
     .qs-results { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
 
