@@ -249,6 +249,20 @@
      the maximized panel), so "large" never means "a search bar across the
      whole screen" (admin feedback a4f30011). */
   --sc-feedback-dock-width: 480px;
+  /* What a floating bottom surface (a tray, a toast, a sticky composer, a
+     confirmation bar) has to keep clear of. Derived from the launcher tokens
+     above, so every surface follows when the disc or its inset changes:
+     - --sc-safe-bottom: the home indicator / gesture bar (0 where there is none)
+     - --sc-float-bottom: the distance a floating surface keeps from the bottom
+       edge — the launcher's own inset plus the safe area
+     - --sc-fab-clear-inline: the inline-end space that keeps a full-width bar's
+       last control out from under the launcher
+     - --sc-fab-clear-block: the height that keeps a surface's bottom edge above
+       the launcher instead of beside it */
+  --sc-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sc-float-bottom: calc(var(--sc-fab-inset) + var(--sc-safe-bottom));
+  --sc-fab-clear-inline: calc(var(--sc-fab-lane) + var(--sc-fab-gutter));
+  --sc-fab-clear-block: calc(var(--sc-float-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
 }
 @media (max-width: 720px) {
   :root {
@@ -257,6 +271,36 @@
     --sc-fab-inset: 16px;
     --sc-fab-gutter: 10px;
   }
+}
+
+/* ---- A bar docked to the bottom on a phone ----
+   `.sc-dock-phone` pins a page's own bottom bar (a composer, a confirmation)
+   to the bottom edge below 720px: above the safe area, and ending before the
+   feedback launcher's lane so the bar's last control is never under the disc.
+   Above 720px the class does nothing. */
+@media (max-width: 720px) {
+  .sc-dock-phone {
+    position: sticky;
+    bottom: calc(12px + var(--sc-safe-bottom));
+    z-index: 1;
+    margin-inline-end: var(--sc-fab-clear-inline);
+  }
+}
+
+/* ---- Wide tables on narrow screens ----
+   A data table that has more columns than a phone has width scrolls inside
+   its own box instead of pushing the whole page sideways. Wrap the <table> in
+   `.sc-table-scroll`; the table keeps its real table layout (no display hacks
+   on thead/tbody), the wrapper owns the horizontal scroll, and `min-width` on
+   the table (set by the component) decides from which width on it scrolls. */
+.sc-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.sc-table-scroll > table {
+  width: 100%;
 }
 
 /* ---- De-nesting: a frame inside a frame ----
@@ -410,6 +454,14 @@
     min-height: var(--sc-tap-min);
     margin-block: calc((var(--sc-tap-min) - 1lh) / -2);
     vertical-align: middle;
+  }
+
+  /* The compact `.sc-btn.micro` variant several admin panels define keeps its
+     small type and padding on touch, but never its small hit area. The
+     doubled classes beat encapsulation as with .sc-nest: the component rules
+     that shrink it are 0,3,0 already, so this is 0,4,0. */
+  .sc-btn.sc-btn.micro.micro {
+    min-height: var(--sc-tap-min);
   }
 
 }

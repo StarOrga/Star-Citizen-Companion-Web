@@ -440,6 +440,14 @@ export interface SetStageLine {
         .fig-wrap { grid-column: 1 / -1; order: -1; margin-bottom: 8px; }
         .fig { width: 120px; }
       }
+      /* A phone's stage leaves ~150px per column: the slot label ellipsed to a
+         few letters, "+ Auswählen" broke over two lines and a filled tile's
+         "Ändern" ran into its label. One tile per row from here on, and the
+         head may wrap rather than overlap. */
+      @container setstage (max-width: 460px) {
+        .doll { grid-template-columns: minmax(0, 1fr); }
+        .head { flex-wrap: wrap; }
+      }
     `,
   ],
 })

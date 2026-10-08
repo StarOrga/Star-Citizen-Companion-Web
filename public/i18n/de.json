@@ -77,7 +77,8 @@
       "title": "Dein Zugang konnte nicht geprüft werden",
       "body": "Dein Profil ließ sich gerade nicht laden — meist ein kurzer Aussetzer direkt nach der Anmeldung. Du bist weiterhin angemeldet.",
       "retry": "Erneut versuchen",
-      "retrying": "Wird geprüft …"
+      "retrying": "Wird geprüft …",
+      "checking": "Dein Zugang wird geprüft …"
     },
     "landing": {
       "appName": "Star Citizen Companion",

@@ -70,6 +70,12 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       padding: 12px var(--sc-page-gutter);
       margin-top: auto;
     }
+    /* Phone / tablet portrait: the footer's last line (the legal links) is the
+       last thing on every page, i.e. exactly where the fixed feedback launcher
+       sits once the page is scrolled to its end. The footer ends above it. */
+    @media (max-width: 800px) {
+      .site-footer { padding-bottom: var(--sc-fab-clear-block); }
+    }
     /* The community badge and the disclaimer column need real air between them
        (feedback #79, item 6): at 18px the wrapped "… Community" and the
        "Dies ist eine inoffizielle …" line ran into each other and read as one
@@ -176,6 +182,14 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       transition: color 0.16s ease;
     }
     .legal-links a:hover { color: var(--sc-accent); }
+    /* Tablet portrait / narrow window: three blocks in one nowrap row squeeze
+       the disclaimer into a sliver. The links block wraps under the other two
+       instead, and the gap tightens with it. */
+    @media (min-width: 641px) and (max-width: 800px) {
+      .inner { flex-wrap: wrap; gap: 12px 24px; }
+      .meta { flex: 1 1 320px; }
+      .whatsnew { flex: 1 1 100%; }
+    }
     @media (max-width: 640px) {
       .inner { flex-direction: column; align-items: flex-start; gap: 10px; }
       .badge-label { max-width: none; }

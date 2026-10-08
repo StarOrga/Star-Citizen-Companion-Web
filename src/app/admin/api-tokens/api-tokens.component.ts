@@ -98,7 +98,8 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       } @else if (tokens().length === 0 && !busy() && !loadError()) {
         <div class="sc-card empty">{{ 'admin.tokens.empty' | translate }}</div>
       } @else if (tokens().length > 0) {
-        <table class="sc-card table">
+        <div class="sc-card table-card sc-table-scroll">
+        <table class="table">
           <thead>
             <tr>
               <th>{{ 'admin.tokens.col.name' | translate }}</th>
@@ -114,27 +115,32 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
               <tr>
                 <td class="name">{{ t.name }}</td>
                 <td class="mono">{{ t.prefix }}…</td>
-                <td class="scopes">
-                  @for (s of t.scopes; track s) {
-                    <span class="scope-pill">{{ s }}</span>
-                  }
+                <td>
+                  <div class="scopes">
+                    @for (s of t.scopes; track s) {
+                      <span class="scope-pill">{{ s }}</span>
+                    }
+                  </div>
                 </td>
                 <td>
                   {{ t.last_used_at ? (t.last_used_at | scDate: 'datetime') : ('admin.tokens.neverUsed' | translate) }}
                 </td>
                 <td>{{ t.created_at | scDate: 'datetime' }}</td>
-                <td class="actions">
+                <td>
+                  <div class="actions">
                   <button
                     class="sc-btn micro danger"
                     (click)="revoke(t)"
                     [disabled]="busy() || revokingId() === t.id">
                     {{ (revokingId() === t.id ? 'admin.tokens.revoking' : 'admin.tokens.revoke') | translate }}
                   </button>
+                  </div>
                 </td>
               </tr>
             }
           </tbody>
         </table>
+        </div>
       }
       </section>
     </section>
@@ -327,7 +333,10 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     }
     .empty { text-align: center; color: var(--sc-fg-2); padding: 40px; }
 
-    .table { width: 100%; padding: 0; border-collapse: collapse; overflow: hidden; }
+    /* The card draws the frame; the table inside it is a real table and the
+       card scrolls it sideways on a narrow screen (.sc-table-scroll). */
+    .table-card { padding: 0; }
+    .table { width: 100%; border-collapse: collapse; }
     .table th, .table td {
       padding: 10px 14px;
       text-align: left;
@@ -387,6 +396,7 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
       width: min(560px, 92vw);
       z-index: 51;
       max-height: 90vh;
+      max-height: 90dvh;
       overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), var(--sc-glow);
     }
@@ -512,17 +522,24 @@ const README_IO_URL = 'https://star-citizen-companion.readme.io';
     @media (max-width: 640px) {
       .head { flex-direction: column; align-items: stretch; }
       .head-actions .sc-btn { flex: 1; justify-content: center; }
-      .scope-row { grid-template-columns: 1fr; padding: 8px 0; }
+      /* Checkbox in its own column, code and description stacked beside it:
+         one row per scope instead of three. */
+      .scope-row { grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; row-gap: 0; padding: 4px 0; }
+      .scope-row input { grid-row: span 2; }
+      .scope-desc { grid-column: 2; }
       .scope-code { min-width: 0; }
       .reveal-token-row { flex-direction: column; }
-      /* Token table scrolls horizontally instead of overflowing the page. */
-      .table {
-        display: block;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
+      /* The token table scrolls inside its card instead of the page. */
+      .table { min-width: 620px; }
+      /* A dialog taller than the screen starts at the top and scrolls, rather
+         than being centred with its title above the visible area. */
+      .dialog {
+        top: 8px; transform: translateX(-50%);
+        /* ...and ends above the feedback launcher, which stays on top of every
+           dialog (z-index 1400) and would otherwise sit on "Create token". */
+        max-height: calc(100vh - 8px - var(--sc-fab-clear-block));
+        max-height: calc(100dvh - 8px - var(--sc-fab-clear-block));
       }
-      .table thead, .table tbody { display: table; width: 100%; min-width: 620px; }
     }
   `],
 })
