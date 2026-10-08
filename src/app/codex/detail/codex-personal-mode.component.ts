@@ -105,9 +105,9 @@ export class CodexModeSwitchComponent {
   });
 
   /** A variant link drops every other loadout source, so the variant itself shows. */
-  variantLink(configId: string): HqLink {
+  variantLink(configId: string): { commands: string[]; queryParams: Record<string, string | null> } {
     const l = personalShipLink(this.className(), configId);
-    return { commands: l.commands, queryParams: { ...l.queryParams, config: null, loadout: null, shared: null } as Record<string, string> };
+    return { commands: l.commands, queryParams: { ...l.queryParams, config: null, loadout: null, shared: null } };
   }
 
   toggle(): void {
