@@ -1,7 +1,55 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.133.0",
+  "current": "0.134.0",
   "releases": [
+    {
+      "version": "0.134.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Holodeck-Tastenkürzel.",
+              "text": "Auf dem Holotable kopiert L den Link der Ansicht, P öffnet die Patch-Auswahl, V wechselt die Ansicht und S öffnet das Teilen. Kleine Tasten-Hinweise zeigen die Kürzel an Maus und Tastatur, auf Touch-Geräten sind sie ausgeblendet. Solange kein Textfeld den Fokus hat, gehen die Kürzel der Tipp-Suche vor."
+            },
+            {
+              "title": "„Speichern & teilen“ im Holodeck.",
+              "text": "Ein Knopf speichert den Entwurf, verwendet einen passenden aktiven Link weiter oder erstellt einen neuen und kopiert ihn. Darunter stehen die aktiven Links dieser Konfiguration mit Kopieren und Widerrufen (mit Rückfrage)."
+            },
+            {
+              "title": "Geteilte Links auf dem Holotable.",
+              "text": "Ein geteilter Hangar-Link bietet „Auf dem Holotable ansehen“: das Loadout erscheint dort schreibgeschützt mit einem Banner, wer es geteilt hat. Übernehmen lädt den Hangar neu und öffnet die übernommene Konfiguration direkt als Entwurf."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Energie-Dock bleibt beim Laden zu",
+              "text": "und lässt sich minimieren; der Zustand wird pro Nutzer gemerkt."
+            },
+            {
+              "title": "Einordnung zuverlässiger.",
+              "text": "Das Vergleichsdiagramm lädt fehlgeschlagene Teile erneut und merkt sich keine unvollständigen Ergebnisse mehr."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Holo-Leiste auf dem Handy.",
+              "text": "Die Beschriftung „Einsatz / Alles“ überlappt den ersten Wert nicht mehr."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.133.0",
       "date": "2026-10-08",

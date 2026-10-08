@@ -4,6 +4,36 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.134.0] - 2026-10-08
+
+### Added
+
+- **Holodeck-Tastenkürzel.** Auf dem Holotable kopiert `L` den Link der Ansicht,
+  `P` öffnet die Patch-Auswahl, `V` wechselt die Ansicht und `S` öffnet das
+  Teilen. Kleine Tasten-Hinweise zeigen die Kürzel an Maus und Tastatur, auf
+  Touch-Geräten sind sie ausgeblendet. Solange kein Textfeld den Fokus hat,
+  gehen die Kürzel der Tipp-Suche vor.
+- **„Speichern & teilen“ im Holodeck.** Ein Knopf speichert den Entwurf,
+  verwendet einen passenden aktiven Link weiter oder erstellt einen neuen und
+  kopiert ihn. Darunter stehen die aktiven Links dieser Konfiguration mit
+  Kopieren und Widerrufen (mit Rückfrage).
+- **Geteilte Links auf dem Holotable.** Ein geteilter Hangar-Link bietet
+  „Auf dem Holotable ansehen“: das Loadout erscheint dort schreibgeschützt mit
+  einem Banner, wer es geteilt hat. Übernehmen lädt den Hangar neu und öffnet
+  die übernommene Konfiguration direkt als Entwurf.
+
+### Changed
+
+- **Energie-Dock bleibt beim Laden zu** und lässt sich minimieren; der Zustand
+  wird pro Nutzer gemerkt.
+- **Einordnung zuverlässiger.** Das Vergleichsdiagramm lädt fehlgeschlagene
+  Teile erneut und merkt sich keine unvollständigen Ergebnisse mehr.
+
+### Fixed
+
+- **Holo-Leiste auf dem Handy.** Die Beschriftung „Einsatz / Alles“ überlappt
+  den ersten Wert nicht mehr.
+
 ## [0.133.0] - 2026-10-08
 
 ### Changed
