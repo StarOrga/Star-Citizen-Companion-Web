@@ -2132,6 +2132,21 @@
       "WeaponAttachment": "Waffenaufsatz",
       "Gadget": "Gadget",
       "FPS_Consumable": "Verbrauchsgut"
+    },
+    "personal": {
+      "switchGroup": "Ansicht: Codex oder deine Version",
+      "codex": "Codex",
+      "mine": "Meine",
+      "yourVariant": "Deine Variante: {{name}}",
+      "variantsMenu": "Deine Varianten dieses Schiffs",
+      "hqCrumb": "HQ",
+      "foreignVariant": "Diese Variante gehört jemand anderem — geteilt wird über einen Share-Link.",
+      "adopt": "In dein HQ übernehmen",
+      "openVariant": "Deine Variante öffnen",
+      "inHqChip": "{{n}}× in deinem HQ",
+      "usesTitle": "In deinem HQ",
+      "equippedOn": "Verbaut auf: {{ship}} ({{variant}})",
+      "inSet": "In Set {{name}}"
     }
   },
   "blueprint": {

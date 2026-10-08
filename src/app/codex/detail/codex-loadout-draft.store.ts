@@ -274,39 +274,32 @@ export class CodexLoadoutDraftStore {
 
   // ── persistence (R1/R2) ──────────────────────────────────────────────────
 
+  /** The personal variant (`?v=`) a save writes to; null = codex mode, nothing saves. */
+  targetConfig(): string | null {
+    return this.targetConfigId;
+  }
+
   /**
-   * Write the draft into the ship's ACTIVE hangar config (creating + activating
-   * one when it has none). Never a from-scratch array: only OUR joinable,
+   * Write the draft into the personal variant the page shows (`?v=`). Codex
+   * mode (no variant) never saves — the page offers "In dein HQ übernehmen"
+   * (`adoptToHq`) instead. Never a from-scratch array: only OUR joinable,
    * top-level paths are upserted/removed; every other row the config already
    * carries — including ones the hangar editor wrote — survives untouched.
    */
   async saveLoadoutDraft(): Promise<HangarShipConfig | null> {
     const d = this.src.detail();
     if (d?.kind !== 'ship' || this.saveableEntries().length === 0 || this.readOnly()) return null;
+    const targetId = this.targetConfigId;
+    if (!targetId) return null;
     this.savingState.set(true);
     this.saveErrorState.set(null);
     try {
-      const ship =
-        this.hangar.shipByClassName(d.classNameSlug) ?? (await this.hangar.addShip(d.classNameSlug, 'owned'));
-      if (!ship) {
+      const ship = this.hangar.shipByClassName(d.classNameSlug);
+      const configs = ship ? await this.hangar.listConfigs(ship.id) : [];
+      const target = configs.find((c) => c.id === targetId) ?? null;
+      if (!target) {
         this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
         return null;
-      }
-      const configs = await this.hangar.listConfigs(ship.id);
-      let target: HangarShipConfig | null =
-        configs.find((c) => c.id === this.targetConfigId) ?? configs.find((c) => c.isActive) ?? configs[0] ?? null;
-      if (!target) {
-        target = await this.hangar.createConfig(
-          ship.id,
-          this.t.instant('codex.loadout.defaultConfigName') as string,
-          'multipurpose',
-          [],
-        );
-        if (!target) {
-          this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
-          return null;
-        }
-        await this.hangar.activateConfig(target.id, ship.id);
       }
       const touched = touchedTopPorts(this.draftState(), this.src.joinablePorts());
       const merged = mergeSavedLoadout(target.loadout, this.saveableEntries(), touched);
@@ -323,6 +316,7 @@ export class CodexLoadoutDraftStore {
         this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
         return null;
       }
+      this.targetConfigId = updated.id;
       this.savedPathsState.set(new Set(this.saveableEntries().map((e) => e.portName)));
       // The share popover snapshots the page's active config — hand it the
       // config that was just written, not the one loaded at page open.
@@ -330,6 +324,47 @@ export class CodexLoadoutDraftStore {
       return updated;
     } catch (error) {
       logWarn('codex', 'loadout save failed', error);
+      this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
+      return null;
+    } finally {
+      this.savingState.set(false);
+    }
+  }
+
+  /**
+   * "In dein HQ übernehmen" (codex mode): put the ship into the hangar when it
+   * is not there yet and create a NEW variant carrying the current draft (the
+   * stock loadout when nothing changed). Resolves the new config — the page
+   * then opens it as `?v=<id>` — or null when anything was refused.
+   */
+  async adoptToHq(): Promise<HangarShipConfig | null> {
+    const d = this.src.detail();
+    if (d?.kind !== 'ship') return null;
+    this.savingState.set(true);
+    this.saveErrorState.set(null);
+    try {
+      const ship =
+        this.hangar.shipByClassName(d.classNameSlug) ?? (await this.hangar.addShip(d.classNameSlug, 'owned'));
+      if (!ship) {
+        this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
+        return null;
+      }
+      const touched = touchedTopPorts(this.draftState(), this.src.joinablePorts());
+      const loadout = this.readOnly() ? [] : mergeSavedLoadout([], this.saveableEntries(), touched);
+      const created = await this.hangar.createConfig(
+        ship.id,
+        this.t.instant('codex.loadout.defaultConfigName') as string,
+        'multipurpose',
+        loadout,
+      );
+      if (!created) {
+        this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorHangar') as string);
+        return null;
+      }
+      this.src.onSaved(created);
+      return created;
+    } catch (error) {
+      logWarn('codex', 'adopt to HQ failed', error);
       this.saveErrorState.set(this.t.instant('codex.loadout.saveErrorGeneric') as string);
       return null;
     } finally {

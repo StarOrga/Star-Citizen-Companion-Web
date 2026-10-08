@@ -58,6 +58,8 @@ import {
 } from './codex-weapon-taxonomy';
 import { CodexStatusBannerComponent } from './codex-status-banner.component';
 import { HangarService } from '../hangar/hangar.service';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
+import { HqLink, personalShipLink } from '../hq/hq-routes';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { mirrorQueryParams } from './codex-url-state';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
@@ -459,7 +461,11 @@ export function blueprintCategoriesForGroup(
                 </a>
                 <div class="card-actions">
                   @if (kind() === 'ship') {
-                    @if (inHangarSet().has(r.classNameSlug)) {
+                    @if (shipVariantLink(r.classNameSlug); as l) {
+                      <a class="hangar-chip" [routerLink]="l.commands" [queryParams]="l.queryParams"
+                         [attr.aria-label]="'codex.personal.openVariant' | translate"
+                         [scTooltip]="'codex.personal.openVariant' | translate" scTooltipTier="label">✓</a>
+                    } @else if (inHangarSet().has(r.classNameSlug.toLowerCase())) {
                       <span class="hangar-chip" role="img" tabindex="0"
                             [attr.aria-label]="'codex.card.inHangar' | translate"
                             [scTooltip]="'codex.card.inHangar' | translate" scTooltipTier="label">✓</span>
@@ -761,7 +767,15 @@ export class CodexListComponent implements OnInit {
 
   // UC-02: class names already in the hangar — a pure read-overlay over the
   // hangar.ships() signal (no DB change), so ship cards can mark ownership.
-  readonly inHangarSet = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
+  private readonly ownership = inject(HqOwnershipService);
+  /** Lower-cased class names of every hangar ship (HQ ownership index). */
+  readonly inHangarSet = computed(() => this.ownership.shipClassNames());
+
+  /** Signpost into the reader's own copy: their active (else first) variant of this hull. */
+  shipVariantLink(classNameSlug: string): HqLink | null {
+    const c = this.ownership.lookup(classNameSlug)?.configs[0];
+    return c ? personalShipLink(classNameSlug, c.id) : null;
+  }
 
   /**
    * Kinds whose catalog isn't ingested yet — shown but disabled. (UC-13)
@@ -1284,7 +1298,7 @@ export class CodexListComponent implements OnInit {
     void this.rsi.ensureLoaded();
     await this.svc.loadCurrentBuild();
     // UC-02: hangar membership backs the in-hangar badge on ship cards.
-    if (this.hangar.ships().length === 0) void this.hangar.loadAll();
+    void this.ownership.ensureLoaded();
     await this.loadBlueprintCategories();
     if (this.kind() === 'weapon') await this.loadWeaponFacets();
   }

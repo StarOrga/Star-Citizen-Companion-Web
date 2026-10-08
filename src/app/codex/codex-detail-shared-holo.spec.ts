@@ -12,6 +12,7 @@ import { CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import type { PeekedSharedLoadout } from '../hangar/hangar.types';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { UexShopService } from './uex-shop.service';
@@ -144,8 +145,9 @@ const PEEK: PeekedSharedLoadout = {
 };
 
 interface HangarStub {
-  peekSharedLoadout: jasmine.Spy;
-  listConfigs: jasmine.Spy;
+  peekSharedLoadout?: jasmine.Spy;
+  listConfigs?: jasmine.Spy;
+  listAllConfigs?: jasmine.Spy;
 }
 
 async function setup(
@@ -174,6 +176,8 @@ async function setup(
       {
         provide: HangarService,
         useValue: {
+          roleLoadouts: signal([]),
+          listAllConfigs: async () => [],
           ships: signal([{ id: 'ship-1', shipClassName: 'cnou_nomad' }]),
           loadAll: async () => undefined,
           addShip: async () => null,
@@ -184,7 +188,8 @@ async function setup(
         } as unknown as Partial<HangarService>,
       },
       { provide: SharedLoadoutAdopter, useValue: { adoptAndOpen } },
-      { provide: AuthService, useValue: { user: signal(null) } as unknown as Partial<AuthService> },
+      { provide: AuthService, useValue: { user: signal(null), whenReady: async () => undefined } as unknown as Partial<AuthService> },
+      { provide: HqOwnershipService, useValue: fakeOwnership() },
       { provide: RoleService, useValue: {} as Partial<RoleService> },
       {
         provide: ShipSkinsService,
@@ -216,8 +221,30 @@ async function setup(
   return fixture;
 }
 
+/** The reader's own variants of the Nomad for the next setup(). */
+let ownedConfigs: { id: string; name: string; isActive: boolean; loadout: unknown[] }[] = [];
+
+/** HQ ownership over `ownedConfigs` — the Nomad is in the hangar, nothing else. */
+function fakeOwnership(): Partial<HqOwnershipService> {
+  const own = () => ({
+    ship: { id: 'ship-1', shipClassName: 'cnou_nomad' },
+    configs: ownedConfigs.map((c) => ({ id: c.id, name: c.name, active: c.isActive })),
+    equippedOn: [],
+    inSets: [],
+  });
+  return {
+    ensureLoaded: async () => undefined,
+    invalidate: () => undefined,
+    lookup: ((cn: string | null | undefined) => (cn?.toLowerCase() === 'cnou_nomad' ? own() : null)) as HqOwnershipService['lookup'],
+    configById: ((id: string | null | undefined) => ownedConfigs.find((c) => c.id === id) ?? null) as HqOwnershipService['configById'],
+  };
+}
+
 describe('CodexDetailComponent — shared link / own config on the Holotable (#646)', () => {
-  beforeEach(() => localStorage.removeItem('sc.codex.holoView'));
+  beforeEach(() => {
+    localStorage.removeItem('sc.codex.holoView');
+    ownedConfigs = [];
+  });
 
   it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', async () => {
     const hangar = {
@@ -292,7 +319,7 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     expect(adopt).toHaveBeenCalledWith('tok', 'cnou_nomad');
   });
 
-  it('?config= puts THAT config on the table as the (saved) draft — not stock', async () => {
+  it('legacy ?config= becomes ?v= and opens THAT variant as the (saved) draft — not stock', async () => {
     const adopted = {
       id: 'cfg-adopted',
       hangarShipId: 'ship-1',
@@ -303,16 +330,59 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
       followsOwner: true,
       ownerName: 'Kestrel',
     };
+    const configs = [{ id: 'other', hangarShipId: 'ship-1', name: 'Stock', isActive: true, loadout: [] }, adopted];
+    ownedConfigs = configs;
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek'),
-      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([{ id: 'other', isActive: true, loadout: [] }, adopted]),
+      listConfigs: jasmine.createSpy('listConfigs').and.resolveTo(configs),
+      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo(configs),
     };
     const fixture = await setup({ view: 'holo', config: 'cfg-adopted' }, hangar);
     const c = fixture.componentInstance;
+    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
+    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({
+      queryParams: { config: null, v: 'cfg-adopted' },
+      replaceUrl: true,
+    }));
+    expect(c.personalMode()).toBeTrue();
+    expect(c.activeVariantId()).toBe('cfg-adopted');
     expect(c.draftReadOnly()).toBeFalse();
     expect(c.activeHangarConfig()?.id).toBe('cfg-adopted');
     expect(c.draftChangedCount()).toBe(1);
     expect(c.sharedDraft()).toBeNull();
     expect(hangar.peekSharedLoadout).not.toHaveBeenCalled();
+    // Personal mode: the parent crumb leads to HQ, the switch names the variant.
+    expect(c.crumbs()).toEqual([jasmine.objectContaining({ labelKey: 'codex.personal.hqCrumb', link: '/hq/hangar' })]);
+    expect(c.showModeSwitch()).toBeTrue();
+  });
+
+  it('?v= of the reader puts that variant on the table and keeps v in the URL', async () => {
+    const mine = { id: 'cfg-mine', hangarShipId: 'ship-1', name: 'Brawler', isActive: true,
+      loadout: [{ portName: GUN_PORT, className: SHARED_GUN, kind: 'weapon' }] };
+    ownedConfigs = [mine];
+    const fixture = await setup({ view: 'holo', v: 'cfg-mine' }, {
+      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([mine]),
+    });
+    const c = fixture.componentInstance;
+    expect(c.personalMode()).toBeTrue();
+    expect(c.activeHangarConfig()?.id).toBe('cfg-mine');
+    expect(c.foreignVariant()).toBeFalse();
+    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
+    expect(nav.calls.allArgs().some(([, extras]) => (extras as { queryParams?: Record<string, unknown> })?.queryParams?.['v'] === null))
+      .withContext('v stays').toBeFalse();
+  });
+
+  it('a foreign ?v= falls back to codex mode, drops v and says how variants are shared', async () => {
+    const fixture = await setup({ view: 'holo', v: 'cfg-someone-else' }, {
+      listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([]),
+    });
+    const c = fixture.componentInstance;
+    expect(c.personalMode()).toBeFalse();
+    expect(c.foreignVariant()).toBeTrue();
+    expect(c.activeHangarConfig()).toBeNull();
+    const nav = TestBed.inject(Router).navigate as jasmine.Spy;
+    expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { v: null }, replaceUrl: true }));
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.foreign-note')?.textContent).toContain('codex.personal.foreignVariant');
   });
 });

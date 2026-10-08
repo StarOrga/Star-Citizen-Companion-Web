@@ -76,8 +76,14 @@ describe('CodexLoadoutSaveBarComponent', () => {
     expect(reason.classList).toContain('sr-only');
   });
 
-  it('offers "apply & save to hangar" when the ship is not owned yet', () => {
+  it('codex mode offers "In dein HQ übernehmen" instead of a save', () => {
     const el = render({ changed: 1, saveable: 1, inHangar: false });
+    const btn = el.querySelector('.save') as HTMLButtonElement;
+    expect(btn.textContent?.trim()).toBe('codex.personal.adopt');
+  });
+
+  it('personal mode saves into the variant', () => {
+    const el = render({ changed: 1, saveable: 1, inHangar: true });
     const btn = el.querySelector('.save') as HTMLButtonElement;
     expect(btn.textContent?.trim()).toBe('codex.detail.draftApplyAndSave');
   });
