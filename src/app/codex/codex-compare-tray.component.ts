@@ -129,8 +129,11 @@ interface PinnedRef {
   styles: [`
     .tray {
       position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 18px; z-index: 40;
-      max-width: min(1100px, calc(100vw - 32px));
+      /* Clear of the feedback launcher (--sc-fab-* in styles.scss): centred, the
+         tray keeps the launcher's lane free on both sides so it never slides
+         under the disc on a mid-width window, and it stands above the safe area. */
+      bottom: var(--sc-float-bottom); z-index: 40;
+      max-width: min(1100px, calc(100vw - 2 * var(--sc-fab-clear-inline)));
       border-radius: 12px;
       background: color-mix(in srgb, var(--sc-bg-2) 94%, transparent);
       border: 1px solid var(--sc-accent);
@@ -183,6 +186,35 @@ interface PinnedRef {
       color: var(--sc-fg-2); font-family: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; }
     .diff-toggle:hover, .diff-toggle.on { color: var(--sc-accent); border-color: var(--sc-accent); }
     .reject { margin: 0; padding: 6px 14px 10px; font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-warning, #ffc14d); }
+
+    /* Phone: collapsed, the tray runs from the left edge up to the launcher's
+       lane instead of centring across it. Expanded, it becomes a bottom sheet
+       sized to the dynamic viewport (the URL bar does not eat its last rows);
+       the panel's bottom padding lets the last row scroll above the launcher. */
+    @media (max-width: 720px) {
+      .tray {
+        left: 8px; right: var(--sc-fab-clear-inline); transform: none;
+        max-width: none;
+      }
+      /* Label, open and clear share the first row; the chips run in one
+         sideways-scrolling row under it instead of stacking a 54px row each. */
+      .bar { gap: 6px 8px; padding: 8px 10px; }
+      .chips { order: 2; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+      .chips::-webkit-scrollbar { display: none; }
+      .chip { flex: 0 0 auto; padding-block: 0; }
+      .chip-link { max-width: 160px; display: inline-flex; align-items: center; }
+      .toggle, .clear { padding-inline: 10px; }
+      .tray.expanded {
+        left: 0; right: 0; bottom: 0;
+        border-radius: 12px 12px 0 0; border-bottom-width: 0;
+        padding-bottom: var(--sc-safe-bottom);
+      }
+      .tray.expanded .panel {
+        max-height: calc(100vh - 180px);
+        max-height: calc(100dvh - 180px);
+        padding-bottom: calc(var(--sc-fab-size) + var(--sc-fab-gutter) * 2);
+      }
+    }
   `],
 })
 export class CodexCompareTrayComponent {

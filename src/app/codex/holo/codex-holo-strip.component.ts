@@ -421,6 +421,14 @@ let uidSeq = 0;
       .grp-btn { min-inline-size: var(--sc-tap-min); min-block-size: var(--sc-tap-min); border: 1px solid transparent;
         border-radius: 3px; background: transparent; color: var(--sc-fg-2); cursor: pointer;
         display: inline-flex; align-items: center; justify-content: center; }
+      /* Touch: the global 48px button floor turned every 10px pip into a 48px
+         block, and the fixed-height stack let them climb over the mode buttons
+         above it. A pip keeps the bar shape (the stack is the target, one
+         segment per level) and grows the way the energy dock's do. */
+      @media (pointer: coarse) {
+        .hp-pips { --pip-h: 16px; --pip-w: 30px; }
+        .stack .pip { min-block-size: 0; min-inline-size: 0; }
+      }
       .hp-col.act .grp-btn { color: var(--sc-accent); }
       .ico { width: 16px; height: 16px; }
       .hp-right { display: grid; gap: 6px; padding-inline-start: 22px; border-inline-start: 1px solid var(--sc-border); }
@@ -477,7 +485,9 @@ let uidSeq = 0;
         .tip-trigger { display: none; }
         .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
         .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
-        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; overflow-y: auto;
+        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; max-block-size: 70dvh; overflow-y: auto;
+          /* The last row scrolls clear of the home indicator and the feedback launcher. */
+          padding-block-end: calc(var(--sc-safe-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
           background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
       }
       @media (prefers-reduced-motion: reduce) {
