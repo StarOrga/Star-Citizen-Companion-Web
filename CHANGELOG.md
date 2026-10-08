@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.136.0] - 2026-10-08
+
+### Added
+
+- **Holotable-Pins am echten Rumpf.** Trägt die Silhouette eines Schiffs
+  Hardpoint-Anker, sitzt jeder Pin genau auf seinem Anker am Rumpf. Die
+  Beschriftungen stehen in einer Spalte links und rechts daneben, verbunden
+  durch eine feine Führungslinie. Beschriftungen überlappen nie, Hover und
+  Auswahl leuchten Pin, Linie und Beschriftung gemeinsam auf, und mit
+  „Bewegung reduzieren“ erscheinen die Linien ohne Animation.
+- Ohne Anker, bei sehr vielen Pins und auf dem Handy bleibt es bei der
+  nummerierten Pin-Legende. Aktiv wird die Ansicht, sobald der nächste Lauf
+  des Data Uploaders die Anker liefert (#642).
+
 ## [0.135.0] - 2026-10-08
 
 ### Added

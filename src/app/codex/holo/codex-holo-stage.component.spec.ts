@@ -135,6 +135,20 @@ describe('CodexHoloStageComponent', () => {
     expect((pin as HTMLElement).style.top).toBe('60%');
   });
 
+  // #642: anchors exist per hardpoint node (a Nomad: 96) — only shown pins
+  // use one, matched by port name whatever its case.
+  it('matches a pin to its anchor by port name, case-insensitively, and ignores the other anchors', async () => {
+    const sil = silhouetteWithAnchor('hardpoint_gun_left');
+    const fixture = await setup({
+      detail: detailWithPorts(['HardPoint_Gun_Left']),
+      silhouette: { ...sil, anchors: [...sil.anchors, { ...sil.anchors[0], portId: 'hardpoint_seat_pilot', x: 10, y: 10 }] },
+    });
+    const pins = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.pin'));
+    expect(pins.length).toBe(1);
+    expect(pins[0].classList.contains('unresolved')).toBe(false);
+    expect(pins[0].style.left).toBe('40%');
+  });
+
   it('gives a port with no anchor the dashed unresolved ring, not an invented position', async () => {
     const fixture = await setup({
       detail: detailWithPorts(['hardpoint_gun_left', 'hardpoint_shield_generator_2']),

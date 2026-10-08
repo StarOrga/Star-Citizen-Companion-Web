@@ -10,6 +10,7 @@ import {
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -35,6 +36,7 @@ import type { HardpointPortRef } from '../hardpoint-port-ref';
 import { FallbackImageComponent } from '../fallback-image.component';
 import type { PortPinBadge } from './codex-holo-patch.component';
 import { HoloPhase, PinRing, StagePin } from './codex-holo-model';
+import { LeaderLayout, layoutLeaderLabels } from './codex-holo-leader';
 
 /** Last-resort hull glyph (top-down, nose up, 100×100 viewBox) shown only
  * when a ship has neither a traced silhouette nor any artwork. */
@@ -42,6 +44,14 @@ const GENERIC_HULL_PATH =
   'M50 4 L56 18 L58 34 L74 46 L90 52 L90 58 L72 58 L64 66 L66 82 L60 88 L54 78 L50 90 L46 78 L40 88 L34 82 L36 66 L28 58 L10 58 L10 52 L26 46 L42 34 L44 18 Z';
 
 let hullFillSeq = 0;
+
+/** The outline's horizontal extent in % of the (square) hull box — what the
+ * leader columns hug. Undefined for a viewBox that is not a plain square. */
+function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
+  const vb = s.viewBox.trim().split(/[\s,]+/).map(Number);
+  if (vb.length !== 4 || vb.some((v) => !Number.isFinite(v)) || vb[2] <= 0 || vb[2] !== vb[3]) return undefined;
+  return { x0: ((s.bbox.x - vb[0]) / vb[2]) * 100, x1: ((s.bbox.x + s.bbox.w - vb[0]) / vb[2]) * 100 };
+}
 
 /**
  * The Holotable's projection surface: rings, the hull (traced outline, the
@@ -70,7 +80,7 @@ let hullFillSeq = 0;
     '[class.offscreen]': 'offscreen()',
   },
   template: `
-    <div class="silhouette-frame" [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
+    <div class="silhouette-frame" #frame [class.mode-3d]="viewMode() === '3d'" [class.mode-schema]="viewMode() === 'schema'">
       <div class="rings" aria-hidden="true"><i class="sweep"></i></div>
       <!-- Projection layer over everything on the surface: scanlines and a
            slow interference band, masked to the table's light cone. -->
@@ -111,7 +121,8 @@ let hullFillSeq = 0;
         <sc-ship-hardpoint-map class="mode-viewer" animate.leave="surface-leave" [markers]="hardpointMarkers()" [frame]="frame"
           [activePorts]="activePorts()" (hovered)="hovered.emit($event)" />
       } @else if (showCanvas()) {
-        <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="dense()"
+        <div class="shipwrap" animate.leave="surface-leave" [class.no-geometry]="!silhouette()" [class.dense]="keyMode()"
+             [class.leader]="!!leader()" [style.width.px]="leader()?.hull?.w ?? null"
              [class.empty]="pins().length === 0" [class.has-orbit]="!!orbit()">
           @if (orbit(); as o) {
             <svg class="orbit" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -165,7 +176,7 @@ let hullFillSeq = 0;
               class="pin"
               [class.unresolved]="!pin.resolved"
               [class.gold]="pin.tone === 'gold'"
-              [class.active]="activePorts().includes(pin.portName)"
+              [class.active]="lit(pin.portName)"
               [class.sel]="inspectedPort() === pin.portName"
               [class.patched]="!!patchPortPins()?.[pin.portName]"
               [class.rev]="pin.side === 'left'"
@@ -175,12 +186,14 @@ let hullFillSeq = 0;
               [style.top.%]="pin.y"
               [style.--i]="pin.index"
               [attr.aria-pressed]="inspectedPort() === pin.portName"
+              [attr.tabindex]="leader() ? -1 : null"
+              [attr.aria-hidden]="leader() ? 'true' : null"
               [scTooltip]="pin.resolved ? null : (pin.label + ' · ' + ('codex.holo.pinUnresolved' | translate))"
               scTooltipTier="label"
-              (mouseenter)="hovered.emit([pin.portName])"
-              (mouseleave)="hovered.emit(null)"
-              (focus)="hovered.emit([pin.portName])"
-              (blur)="hovered.emit(null)"
+              (mouseenter)="hover(pin.portName)"
+              (mouseleave)="hover(null)"
+              (focus)="hover(pin.portName)"
+              (blur)="hover(null)"
               (click)="pinInspect.emit(pin.portName)">
               <i aria-hidden="true">{{ pin.index }}</i>
               <span class="pin-label">
@@ -194,24 +207,67 @@ let hullFillSeq = 0;
             </button>
           }
         </div>
+        @if (leader(); as lay) {
+          <!-- Leader lines (#642): each anchored dot's label sits in the
+               nearest free slot of a column beside the hull, joined by a thin
+               line. Geometry from layoutLeaderLabels() in frame px. -->
+          <svg class="leaders" animate.leave="surface-leave" [attr.viewBox]="'0 0 ' + frameW() + ' ' + frameH()"
+               preserveAspectRatio="none" aria-hidden="true">
+            @for (l of lay.labels; track l.portName) {
+              <path [attr.d]="l.path" pathLength="1" [style.--i]="l.index"
+                    [class.gold]="pinByPort().get(l.portName)?.tone === 'gold'"
+                    [class.est]="!pinByPort().get(l.portName)?.resolved"
+                    [class.active]="lit(l.portName)" [class.sel]="inspectedPort() === l.portName" />
+            }
+          </svg>
+          <ol class="leader-labels" animate.leave="surface-leave" [attr.aria-label]="'codex.holo.stage.pinLabels' | translate">
+            @for (l of lay.labels; track l.portName) {
+              @if (pinByPort().get(l.portName); as pin) {
+                <li>
+                  <button type="button" class="ll" [class.r]="l.side === 'right'"
+                          [class.gold]="pin.tone === 'gold'"
+                          [class.est]="!pin.resolved"
+                          [class.active]="lit(l.portName)"
+                          [class.sel]="inspectedPort() === l.portName"
+                          [style.left.px]="l.side === 'left' ? l.rect.x : null"
+                          [style.right.px]="l.side === 'right' ? frameW() - l.rect.x - l.rect.w : null"
+                          [style.top.px]="l.rect.y"
+                          [style.height.px]="l.rect.h"
+                          [style.--w.px]="l.rect.w"
+                          [style.--i]="l.index"
+                          [attr.aria-pressed]="inspectedPort() === l.portName"
+                          [attr.data-port]="l.portName"
+                          (mouseenter)="hover(l.portName)"
+                          (mouseleave)="hover(null)"
+                          (focus)="hover(l.portName)"
+                          (blur)="hover(null)"
+                          (click)="pinInspect.emit(l.portName)">
+                    <i aria-hidden="true">{{ l.index }}</i>
+                    <span class="ll-t">{{ pin.label }}@if (pin.short) {<em> · {{ pin.short }}</em>}</span>
+                  </button>
+                </li>
+              }
+            }
+          </ol>
+        }
       }
     </div>
 
     <!-- Dense tables (wave 5 A2.4): labels leave the pins and become a
          numbered key under the table — hover/click work like the pins. On a
          desktop with the inspector open, its hardpoint list takes this job. -->
-    @if (dense() && viewMode() === 'holo') {
+    @if (keyMode() && viewMode() === 'holo') {
       <ol class="pin-key" [attr.aria-label]="'codex.holo.stage.pinKey' | translate">
         @for (pin of pins(); track pin.portName) {
           <li>
             <button type="button" class="pk"
                     [class.gold]="pin.tone === 'gold'"
-                    [class.active]="activePorts().includes(pin.portName)"
+                    [class.active]="lit(pin.portName)"
                     [class.sel]="inspectedPort() === pin.portName"
-                    (mouseenter)="hovered.emit([pin.portName])"
-                    (mouseleave)="hovered.emit(null)"
-                    (focus)="hovered.emit([pin.portName])"
-                    (blur)="hovered.emit(null)"
+                    (mouseenter)="hover(pin.portName)"
+                    (mouseleave)="hover(null)"
+                    (focus)="hover(pin.portName)"
+                    (blur)="hover(null)"
                     (click)="pinInspect.emit(pin.portName)">
               <i aria-hidden="true">{{ pin.index }}</i><span>{{ pin.label }}</span>
             </button>
@@ -409,6 +465,44 @@ let hullFillSeq = 0;
     .shipwrap.dense .pin-label { opacity: 0; visibility: hidden; }
     .shipwrap.dense .pin:is(.sel, .active, :hover, :focus-visible) .pin-label { opacity: 1; visibility: visible; }
 
+    /* ── Leader lines (#642): the dot stays on its anchor, the label moves into
+       a column beside the hull. Thin lines under the pins, drawn in with the
+       pins' stagger; reduced motion shows them complete (the rules below). ── */
+    .shipwrap.leader .pin-label { display: none; }
+    .leaders { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible; }
+    .leaders path { fill: none; stroke: color-mix(in srgb, var(--pc) 45%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke;
+      stroke-dasharray: 1; stroke-dashoffset: 0; --pc: var(--sc-accent);
+      transition: stroke var(--holo-t-fast) ease, stroke-width var(--holo-t-fast) ease;
+      animation: leader-draw calc(var(--pin-dur) + 120ms) var(--e-out) backwards;
+      animation-delay: calc(var(--pin-delay) + 60ms + min(var(--i, 1), 16) * var(--pin-step)); }
+    .leaders path.gold { --pc: var(--holo-gold); }
+    .leaders path.est { stroke-dasharray: 0.012 0.012; animation-name: fade-in; }
+    .leaders path:is(.active, .sel) { stroke: var(--pc); stroke-width: 1.5; }
+    @keyframes leader-draw { from { stroke-dashoffset: 1; } }
+    .leader-labels { position: absolute; inset: 0; z-index: 3; list-style: none; margin: 0; padding: 0; pointer-events: none; }
+    .ll { position: absolute; pointer-events: auto; display: flex; align-items: center; gap: 5px; box-sizing: border-box;
+      min-width: var(--w); max-width: var(--w); padding: 0 7px 0 3px; margin: 0; cursor: pointer; --pc: var(--sc-accent);
+      font-family: var(--d); text-transform: uppercase; font-size: max(8.5px, var(--f)); letter-spacing: 0.12em; color: var(--sc-fg-1);
+      background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent); border: 1px solid var(--l1); border-radius: 2px;
+      transition: border-color 160ms ease, color 160ms ease, max-width var(--holo-t-base) var(--e-out);
+      animation: pin-label calc(var(--pin-dur) + 80ms) var(--e-out) backwards;
+      animation-delay: calc(var(--pin-delay) + 90ms + min(var(--i, 1), 16) * var(--pin-step)); }
+    /* A right-column label reads toward the hull: number on the inner edge. */
+    .ll.r { flex-direction: row-reverse; padding: 0 3px 0 7px; text-align: right; }
+    .ll.gold { --pc: var(--holo-gold); }
+    .ll i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--pc); color: var(--pc); font-family: var(--m); font-style: normal;
+      font-size: 9px; letter-spacing: 0; display: grid; place-items: center; flex: none; transition: background 160ms ease, color 160ms ease; }
+    .ll.est i { border-style: dashed; }
+    .ll-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ll-t em { font-style: normal; font-family: var(--m); letter-spacing: 0; text-transform: none; color: var(--sc-fg-0); display: none; }
+    /* Hovered, lit from its pin or selected: the label opens toward the hull
+       to its full text and the short value — above the line, never clipped. */
+    .ll:is(.active, .sel, :hover, :focus-visible) { max-width: calc(var(--w) + 180px); z-index: 1; border-color: var(--pc); color: var(--sc-fg-0); }
+    .ll:is(.active, .sel) .ll-t em { display: inline; }
+    .ll.sel { color: var(--pc); }
+    .ll.sel i { background: var(--pc); color: var(--sc-bg-0); }
+    .ll:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+
     /* ── Key + legend under the canvas ── */
     .pin-key { position: relative; z-index: 2; list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
     .pk { display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px 2px 2px; border: 1px solid var(--l1); border-radius: 999px;
@@ -479,6 +573,42 @@ export class CodexHoloTableComponent {
 
   readonly hovered = output<string[] | null>();
   readonly pinInspect = output<string>();
+
+  // ── Leader lines (#642) ────────────────────────────────────────────
+  private readonly frameRef = viewChild<ElementRef<HTMLElement>>('frame');
+  /** The projection surface's size in CSS px (0 until measured). */
+  readonly frameW = signal(0);
+  readonly frameH = signal(0);
+  /** Touch pointer: leader labels are full tap targets, fewer fit a column. */
+  private readonly coarse = signal(typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
+  /** The port under the pointer / focus HERE — lights its pin and its label
+   * together even before the host feeds the hover back as `activePorts`. */
+  readonly hoverPort = signal<string | null>(null);
+  /**
+   * Leader-line layout for the holo surface: only when the hull has an
+   * outline and at least one pin sits on its anchor. Null (the dense key /
+   * labels beside the dots stay) when the frame is too small — every phone —
+   * or the pins outnumber the column slots — see layoutLeaderLabels().
+   */
+  readonly leader = computed<LeaderLayout | null>(() => {
+    const s = this.silhouette();
+    if (this.viewMode() !== 'holo' || !s) return null;
+    const pins = this.pins();
+    if (!pins.some((p) => p.resolved)) return null;
+    return layoutLeaderLabels(pins, { width: this.frameW(), height: this.frameH(), coarse: this.coarse(), hullSpan: hullSpanOf(s) });
+  });
+  /** The numbered key under the table: a dense table the leader layout could not take. */
+  readonly keyMode = computed(() => this.dense() && !this.leader());
+  readonly pinByPort = computed(() => new Map(this.pins().map((p) => [p.portName, p])));
+
+  lit(port: string): boolean {
+    return this.hoverPort() === port || this.activePorts().includes(port);
+  }
+
+  hover(port: string | null): void {
+    this.hoverPort.set(port);
+    this.hovered.emit(port ? [port] : null);
+  }
   /** Ports the 3D model resolved to a hotspot (the viewer's `locatable`). */
   readonly locatable = output<string[]>();
   readonly previewError = output<void>();
@@ -500,6 +630,19 @@ export class CodexHoloTableComponent {
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const destroyRef = inject(DestroyRef);
+    afterNextRender(() => {
+      const frame = this.frameRef()?.nativeElement;
+      if (!frame) return;
+      const measure = () => {
+        this.frameW.set(Math.round(frame.clientWidth));
+        this.frameH.set(Math.round(frame.clientHeight));
+      };
+      measure();
+      if (typeof ResizeObserver !== 'function') return;
+      const ro = new ResizeObserver(measure);
+      ro.observe(frame);
+      destroyRef.onDestroy(() => ro.disconnect());
+    });
     afterNextRender(() => {
       if (typeof IntersectionObserver !== 'function') return;
       const io = new IntersectionObserver(([entry]) => this.offscreen.set(!entry.isIntersecting));
