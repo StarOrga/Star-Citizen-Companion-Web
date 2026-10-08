@@ -124,25 +124,27 @@ describe('ShellComponent navigation', () => {
   });
 
   /**
-   * Regression guard (2026-08-16): a Hangar entry was briefly added as a
-   * fourth top-level link, then reverted — Hangar is a subview of Codex,
-   * reached via the "Im Hangar" zone entrance on the Codex landing, not its
-   * own nav slot. Pin the count so a future add-back has to be deliberate.
+   * Concept 2026-10-08: the personal area is HQ, a top-level entry next to
+   * the Codex; the hangar is one of its tabs, not a nav slot of its own. Pin
+   * the count so a future add has to be deliberate.
    */
-  it('renders exactly three top-level nav entries: News, Codex, Starscape', () => {
+  it('renders exactly four top-level nav entries: News, Codex, HQ, Starscape', () => {
     const fixture = setup();
     const links = Array.from(
       fixture.nativeElement.querySelectorAll('nav.nav > a'),
     ) as HTMLAnchorElement[];
 
-    expect(links.length).toBe(3);
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/news', '/codex', '/starscape']);
+    expect(links.length).toBe(4);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/news', '/codex', '/hq', '/starscape']);
   });
 
-  it('never renders a top-level Hangar nav entry', () => {
+  it('reaches the hangar only through HQ, never as its own top-level entry', () => {
     const fixture = setup();
-    const hangarLink = fixture.nativeElement.querySelector('nav.nav a[href="/hangar"]');
-    expect(hangarLink).toBeNull();
+    expect(fixture.nativeElement.querySelector('nav.nav a[href="/hangar"]')).toBeNull();
+    const hq = fixture.nativeElement.querySelector('nav.nav > a[href="/hq"]') as HTMLAnchorElement | null;
+    expect(hq).not.toBeNull();
+    // Every user has an HQ: normal accent, never the red elevated-access style.
+    expect(hq?.classList.contains('admin-link')).toBeFalse();
   });
 
   /**

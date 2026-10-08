@@ -129,7 +129,7 @@ describe('HangarDashboardComponent role loadouts', () => {
       buttonByKey(el.querySelector('.new-loadout')!, 'hangar.roleLoadouts.create').click();
       await settle(fixture);
 
-      expect(nav).toHaveBeenCalledOnceWith(['/codex', 'set', 'set-2']);
+      expect(nav).toHaveBeenCalledOnceWith(['/hq/spind', 'set-2']);
     });
 
     it('keeps the typed name and shows the error banner when the write fails', async () => {

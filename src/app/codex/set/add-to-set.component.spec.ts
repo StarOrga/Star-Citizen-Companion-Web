@@ -59,7 +59,7 @@ describe('AddToSetComponent (L09)', () => {
     const { fixture, el, loadAll } = await setup({ signedIn: false });
     await open(fixture);
     expect(fixture.componentInstance.view()).toBe('signedOut');
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hangar');
+    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/spind');
     expect(loadAll).not.toHaveBeenCalled();
   });
 
@@ -67,7 +67,7 @@ describe('AddToSetComponent (L09)', () => {
     const { fixture, el } = await setup({ sets: [] });
     await open(fixture);
     expect(fixture.componentInstance.view()).toBe('noSet');
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hangar');
+    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/spind');
   });
 
   it('asks for the set, then the slot, and writes through the equip-mode merge', async () => {
@@ -92,7 +92,7 @@ describe('AddToSetComponent (L09)', () => {
 
     expect(write).toHaveBeenCalledOnceWith('set-1', 'secondary', { className: 'behr_rifle_01', kind: 'weapon' }, undefined);
     expect(fixture.componentInstance.view()).toBe('done');
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/spind/set-1');
   });
 
   it('skips both questions for armour with one set: one click writes the one home', async () => {
@@ -105,7 +105,7 @@ describe('AddToSetComponent (L09)', () => {
     });
     await open(fixture);
     expect(write).toHaveBeenCalledOnceWith('set-1', 'helmet', { className: 'rsi_helmet_01', kind: 'item' }, undefined);
-    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/codex/set/set-1');
+    expect(el.querySelector('a.ats-link')!.getAttribute('href')).toBe('/hq/spind/set-1');
   });
 
   it('says so when another tab put a different piece into the slot meanwhile', async () => {

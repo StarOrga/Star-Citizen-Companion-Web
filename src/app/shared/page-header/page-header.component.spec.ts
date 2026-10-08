@@ -37,8 +37,8 @@ describe('PageHeaderComponent', () => {
           { path: 'codex', component: BlankComponent },
           { path: 'codex/index', component: BlankComponent },
           { path: 'codex/fps', component: BlankComponent },
-          { path: 'hangar', component: BlankComponent },
-          { path: 'hangar/ship/:id', component: BlankComponent },
+          { path: 'hq/hangar', component: BlankComponent },
+          { path: 'hq/hangar/:id', component: BlankComponent },
           { path: 'codex/:kind/:className', component: BlankComponent },
         ]),
       ],
@@ -137,15 +137,15 @@ describe('PageHeaderComponent', () => {
 
     it('starts the trail at the hangar for a page opened from the hangar', async () => {
       const origin = TestBed.inject(NavOriginService);
-      await router.navigateByUrl('/hangar/ship/s1');
-      origin.rememberTitle('/hangar/ship/s1', 'Rusty Bucket');
+      await router.navigateByUrl('/hq/hangar/s1');
+      origin.rememberTitle('/hq/hangar/s1', 'Rusty Bucket');
       await router.navigateByUrl('/codex/ship/AEGS_Avenger_Titan');
       expect(originTrail(origin, fallback)).toEqual([
         HANGAR_ROOT_CRUMB,
-        { label: 'Rusty Bucket', link: '/hangar/ship/s1', queryParams: null },
+        { label: 'Rusty Bucket', link: '/hq/hangar/s1', queryParams: null },
       ]);
 
-      await router.navigateByUrl('/hangar');
+      await router.navigateByUrl('/hq/hangar');
       await router.navigateByUrl('/codex/weapon/X');
       expect(originTrail(origin, fallback)).toEqual([HANGAR_ROOT_CRUMB]);
     });

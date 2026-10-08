@@ -24,7 +24,7 @@ import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-forma
 import { LocalizedText, Lang } from './codex.types';
 import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
 import { CodexStageComponent } from './stage/codex-stage.component';
-import { HangarPickerItem } from './stage/hangar-picker.component';
+import { hqHangar, hqLocker, hqSet } from '../hq/hq-routes';
 import { CodexBoardFigureComponent } from './codex-board-figure.component';
 import { totalRecordCount } from './codex-patch-timeline';
 import { ShipStatDelta } from './codex-build-diff';
@@ -165,17 +165,14 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
           [eyebrow]="stageShipRow() ? rowMfr(stageShipRow()!) : null"
           [eyebrowSuffix]="stageShipRoleSuffix()"
           [stageTitle]="stageShipTitle()"
-          [routerLinkTo]="stageShipRow() ? ['/codex', 'ship', stageShipRow()!.classNameSlug] : (emptyHangar() ? ['/hangar'] : null)"
+          [routerLinkTo]="stageShipRow() ? ['/codex', 'ship', stageShipRow()!.classNameSlug] : (emptyHangar() ? [hangarLink] : null)"
           pickerKind="ship"
-          [pickerItems]="shipPickerItems()"
-          (pick)="onShipPick($event)"
-          (open)="onHangarOpen()"
         >
           <nav stageArchive class="archive-line" [attr.aria-label]="'codex.landing.archive.label' | translate">
             <!-- Empty hangar (new or signed-out user, audit L24): the panel says
                  where to go instead of leaving a dead dark area. -->
             @if (emptyHangar()) {
-              <a class="archive-line__link stage-cta" routerLink="/hangar">{{ 'codex.landing.cta.setupHangar' | translate }}</a>
+              <a class="archive-line__link stage-cta" [routerLink]="hangarLink">{{ 'codex.landing.cta.setupHangar' | translate }}</a>
               <button type="button" class="archive-line__link stage-cta stage-cta--ghost" (click)="focusTerminal()">
                 {{ 'codex.landing.cta.searchShip' | translate }}
               </button>
@@ -206,17 +203,14 @@ import { CodexSearchBarComponent } from './search/codex-search-bar.component';
           [eyebrow]="stagePersonRoleLabel()"
           [eyebrowSuffix]="stagePersonEquipSuffix()"
           [stageTitle]="stagePersonTitle()"
-          [routerLinkTo]="activeLoadout() ? ['/codex', 'set', activeLoadout()!.id] : (loading() ? null : ['/hangar'])"
+          [routerLinkTo]="activeLoadout() ? setRoute(activeLoadout()!.id) : (loading() ? null : [lockerLink])"
           pickerKind="set"
-          [pickerItems]="setPickerItems()"
-          (pick)="onSetPick($event)"
-          (open)="onHangarOpen()"
         >
           <sc-codex-board-figure stageFigure [filled]="boardHero()" [decorative]="true" />
           <nav stageArchive class="archive-line amber" [attr.aria-label]="'codex.landing.archive.label' | translate">
             <!-- "Unkommissioniert" = no FPS set yet; sets are created on the hangar page. -->
             @if (!loading() && !activeLoadout()) {
-              <a class="archive-line__link stage-cta" routerLink="/hangar">{{ 'codex.landing.cta.createSet' | translate }}</a>
+              <a class="archive-line__link stage-cta" [routerLink]="lockerLink">{{ 'codex.landing.cta.createSet' | translate }}</a>
             }
             <span class="archive-line__eyebrow">{{ 'codex.landing.archive.label' | translate }}</span>
             <a class="archive-line__link" routerLink="/codex/fps" [queryParams]="{ cat: 'armor' }">
@@ -370,6 +364,16 @@ export class CodexLandingComponent implements OnInit {
   private readonly locale = inject(LocaleService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  /**
+   * The personal area is HQ (concept 2026-10-08): the stage picker's recent
+   * ships / sets chooser moved to the HQ overview; the stage's button and the
+   * empty-state CTAs are now only signposts into HQ.
+   */
+  readonly hangarLink = hqHangar;
+  readonly lockerLink = hqLocker;
+  setRoute(id: string): string[] {
+    return hqSet(id);
+  }
 
   readonly loading = signal(true);
   /** i18n key, never raw text. */
@@ -485,25 +489,6 @@ export class CodexLandingComponent implements OnInit {
     return role ? `· ${role}` : null;
   });
 
-  /**
-   * HangarPicker chain for the ship stage: `HangarService.recentShips()` (M1
-   * — top 3 recently chosen, persisted, falls back to the first 3 owned hulls
-   * when nothing was picked yet). Only rows the current build can also name
-   * make it into the chain — a recently-picked hull the build dropped is not
-   * worth showing as a dead entry.
-   */
-  readonly shipPickerItems = computed<HangarPickerItem[]>(() => {
-    const current = this.stageShipRow()?.classNameSlug ?? null;
-    const rowByClass = new Map(this.fleetRows().map((r) => [r.classNameSlug, r]));
-    const items: HangarPickerItem[] = [];
-    for (const s of this.hangar.recentShips()) {
-      const row = rowByClass.get(s.shipClassName);
-      if (!row) continue;
-      items.push({ id: row.classNameSlug, label: this.rowName(row), active: row.classNameSlug === current });
-    }
-    return items;
-  });
-
   // AN BORD: the "active" personal loadout is the most recently touched one
   // (see sortByRecency — no last_opened_at yet, sorts by updatedAt), or the
   // one `selectedSetId`/the picker named — `withSelectedFirst` puts it at [0].
@@ -538,14 +523,6 @@ export class CodexLandingComponent implements OnInit {
   readonly stagePersonEquipSuffix = computed(
     () => '· ' + this.t.instant('codex.stage.armorEquipped', { filled: this.boardHero().size, total: 6 }),
   );
-
-  /** HangarPicker chain for the person stage: `HangarService.recentSets()` (M1), active = the one on stage. */
-  readonly setPickerItems = computed<HangarPickerItem[]>(() => {
-    const current = this.activeLoadout()?.id ?? null;
-    return this.hangar
-      .recentSets()
-      .map((l) => ({ id: l.id, label: l.name, active: l.id === current }));
-  });
 
   readonly archiveRecordCount = computed<number | null>(() =>
     totalRecordCount(this.svc.build()?.entityCounts as Record<string, unknown> | undefined),
@@ -743,24 +720,6 @@ export class CodexLandingComponent implements OnInit {
 
   formatNum(v: number): string {
     return formatNumber(v);
-  }
-
-  // ── stage picker handlers (M6: switch the subject, move it to the front) ──
-  onShipPick(id: string): void {
-    this.selectedShipSlug.set(id);
-    this.hangar.markShipPicked(id);
-  }
-
-  onSetPick(id: string): void {
-    this.hangar.markSetPicked(id);
-    if (id === this.selectedSetId()) return;
-    this.selectedSetId.set(id);
-    this.resolvePersonal();
-  }
-
-  /** Neither stage has an overlay yet (M3/M4 are out of this round's scope) — both open the hangar page. */
-  onHangarOpen(): void {
-    void this.router.navigateByUrl('/hangar');
   }
 
   private lang(): Lang {

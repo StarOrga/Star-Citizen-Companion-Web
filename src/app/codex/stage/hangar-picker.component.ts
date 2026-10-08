@@ -9,6 +9,7 @@ import {
   viewChildren,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { hqHangar, hqLocker, hqSet } from '../../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { isPlainLeftClick } from '../../core/modified-click.util';
@@ -57,7 +58,7 @@ const COLLAPSE_DELAY_MS = 150;
       (keydown.escape)="onEscape()"
     >
       <a
-        routerLink="/hangar"
+        [routerLink]="kind() === 'ship' ? hangarLink : lockerLink"
         class="picker-btn"
         [attr.aria-expanded]="expanded()"
         [attr.aria-label]="(kind() === 'ship' ? 'codex.hangarPicker.hangar' : 'codex.hangarPicker.sets') | translate"
@@ -238,9 +239,12 @@ export class HangarPickerComponent {
   /** Route for one chain item's `href` — ships resolve to the ship detail
    * page, sets to the set detail page (the two routes this picker's `kind`
    * covers today). */
-  chainRoute(id: string): readonly [string, string, string] {
-    return this.kind() === 'ship' ? ['/codex', 'ship', id] : ['/codex', 'set', id];
+  chainRoute(id: string): string[] {
+    return this.kind() === 'ship' ? ['/codex', 'ship', id] : hqSet(id);
   }
+
+  readonly hangarLink = hqHangar;
+  readonly lockerLink = hqLocker;
 
   onFocus(): void {
     this.clearTimers();
