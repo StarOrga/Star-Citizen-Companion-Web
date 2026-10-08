@@ -56,6 +56,15 @@ small badge (not on touch screens). The digits **1–9** and **0** pick a
 hardpoint, **Esc** closes what is open; every other letter still starts a
 search.
 
+In the top-down view each hardpoint pin sits where its mount really is on the
+hull, once the ship's outline carries hardpoint positions. Its label then sits
+in a column left or right of the hull, joined to the pin by a thin line;
+hovering or selecting a label lights its pin, and the other way round. A pin
+without a known position rides on a dashed ring instead. When the labels do
+not fit — more hardpoints than the two columns hold (a Javelin's 47), a narrow
+table, every phone — the pins stay numbered and the list beside or below the
+table names them.
+
 Results are grouped by kind — ships, weapons, components, items and so on —
 with the best few of each, how many matched in total, and an **All N in the
 index** link that opens the full list with your term. Liveries carry a
