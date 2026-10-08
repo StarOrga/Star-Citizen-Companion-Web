@@ -105,8 +105,11 @@ interface Gate {
             </ol>
           }
         </section>
+      }
 
-        <nav class="gates" [attr.aria-label]="'verse.gates.aria' | translate">
+      <!-- The gates stay usable when the digest failed: their numbers fall
+           back to the live feeds. -->
+      <nav class="gates" [attr.aria-label]="'verse.gates.aria' | translate">
           @for (g of gates(); track g.door) {
             <a class="gate" [attr.data-door]="g.door" [routerLink]="g.link" (click)="openDoor(g.door)" (auxclick)="openDoor(g.door)">
               <span class="ring" aria-hidden="true"></span>
@@ -118,7 +121,6 @@ interface Gate {
             </a>
           }
         </nav>
-      }
 
       <ng-template #body let-it let-i="i">
         <span class="rank" aria-hidden="true">{{ i + 1 }}</span>
@@ -135,7 +137,7 @@ interface Gate {
   `,
   styles: [`
     :host { display: block; }
-    .err { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+    .err { margin-bottom: 18px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
     .hero {
       display: grid; gap: 10px; padding: 22px 22px 24px; border-radius: 16px; margin-bottom: 18px;
       background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--sc-accent) 16%, transparent), var(--sc-bg-1) 60%);
