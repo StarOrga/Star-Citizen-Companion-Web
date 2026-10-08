@@ -138,12 +138,12 @@ const REFRESH_MS = 5 * 60_000;
     .fill { display: block; height: 100%; background: var(--sc-accent); }
     .bar-caption { margin: 6px 0 0; color: var(--sc-fg-2); font-size: 0.85rem; }
     .missing { margin-top: 12px; }
-    .missing summary { cursor: pointer; color: var(--sc-accent); min-height: 32px; display: flex; align-items: center; }
+    .missing summary { cursor: pointer; color: var(--sc-accent); min-height: max(32px, var(--sc-tap-min)); display: flex; align-items: center; }
     .missing ul {
       list-style: none; margin: 8px 0 0; padding: 0;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px 16px;
     }
-    .missing a { color: var(--sc-fg-0); }
+    .missing a { color: var(--sc-fg-0); display: inline-flex; align-items: center; }
     .missing a:hover, .missing a:focus-visible { color: var(--sc-accent); }
     @media (max-width: 640px) {
       .nums { grid-template-columns: repeat(2, minmax(0, 1fr)); }
