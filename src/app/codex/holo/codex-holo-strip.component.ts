@@ -102,13 +102,18 @@ interface PerspectiveTile {
 
 let uidSeq = 0;
 
+/** Per-viewer localStorage key of the minimised strip. */
+export function stripMiniKey(userId: string | null | undefined): string {
+  return `${dockPositionStorageKey(userId)}:strip-mini`;
+}
+
 @Component({
   selector: 'sc-codex-holo-strip',
   standalone: true,
   imports: [TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="holo-strip" [class.open]="expanded()">
+    <div class="holo-strip" [class.open]="expanded()" [class.mini]="mini() && !phone">
       <div class="hs-row">
         <div class="seg einsatz">
           <span class="lab">{{ 'codex.holo.strip.einsatz' | translate }}</span>
@@ -180,6 +185,20 @@ let uidSeq = 0;
           </span>
         </div>
 
+        <!-- Minimise (remembered per viewer): the strip folds to its Einsatz
+             cell and these two controls, so nothing of it sits over the table.
+             Not on a phone: there the strip is already one slim row. -->
+        @if (!phone) {
+        <button
+          type="button"
+          class="hs-mini"
+          [attr.aria-pressed]="mini()"
+          [attr.aria-label]="(mini() ? 'codex.holo.strip.restore' : 'codex.holo.strip.minimize') | translate"
+          [scTooltip]="(mini() ? 'codex.holo.strip.restore' : 'codex.holo.strip.minimize') | translate"
+          scTooltipTier="label"
+          (click)="toggleMini()"
+        ><span aria-hidden="true">{{ mini() ? '▭' : '–' }}</span></button>
+        }
         <button
           type="button"
           class="hs-toggle"
@@ -386,10 +405,23 @@ let uidSeq = 0;
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       .gapv { color: var(--sc-fg-2); }
 
+      .hs-mini { align-self: stretch; flex: none; margin-inline-start: auto; min-inline-size: max(36px, var(--sc-tap-min, 0px)); border: none;
+        border-inline-start: 1px solid var(--sc-border); background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 13px; }
+      .hs-mini + .hs-toggle { margin-inline-start: 0; }
+      .hs-mini:hover { color: var(--sc-accent); background: color-mix(in srgb, var(--sc-accent) 8%, transparent); }
+      .hs-mini:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
+      /* Minimised: only the Einsatz cell and the two controls, right-aligned
+         as a small tab — the table keeps the whole viewport. */
+      .holo-strip.mini { margin-inline-start: auto; inline-size: max-content; max-inline-size: 100%; }
+      .holo-strip.mini .hs-row { min-block-size: 40px; }
+      .holo-strip.mini .seg:not(.einsatz), .holo-strip.mini .arrow, .holo-strip.mini .joint, .holo-strip.mini .einsatz .sub { display: none; }
       /* Expanded: modes | pips | cooling (concept round 6 "Energie-Zeile":
          Modi links, Pips Mitte, Kühlung rechts — one instrument, one row). */
+      /* Capped: a hull with many pip columns must not grow the sticky panel
+         over the table (it scrolls inside instead). */
       .hs-panel { border-block-start: 1px solid color-mix(in srgb, var(--sc-accent) 20%, transparent);
-        padding: 12px 14px; display: grid; grid-template-columns: 180px 1fr 250px; gap: 22px; align-items: center; }
+        padding: 10px 14px; display: grid; grid-template-columns: 170px 1fr 240px; gap: 18px; align-items: center;
+        max-block-size: min(36dvh, 300px); overflow-y: auto; overscroll-behavior: contain; }
       /* The panel unfolds out of the strip and folds back into it. */
       .hp-enter { animation: hp-in 260ms var(--e-out); }
       .hp-leave { animation: hp-out 180ms ease-in forwards; }
@@ -421,6 +453,14 @@ let uidSeq = 0;
       .grp-btn { min-inline-size: var(--sc-tap-min); min-block-size: var(--sc-tap-min); border: 1px solid transparent;
         border-radius: 3px; background: transparent; color: var(--sc-fg-2); cursor: pointer;
         display: inline-flex; align-items: center; justify-content: center; }
+      /* Touch: the global 48px button floor turned every 10px pip into a 48px
+         block, and the fixed-height stack let them climb over the mode buttons
+         above it. A pip keeps the bar shape (the stack is the target, one
+         segment per level) and grows the way the energy dock's do. */
+      @media (pointer: coarse) {
+        .hp-pips { --pip-h: 16px; --pip-w: 30px; }
+        .stack .pip { min-block-size: 0; min-inline-size: 0; }
+      }
       .hp-col.act .grp-btn { color: var(--sc-accent); }
       .ico { width: 16px; height: 16px; }
       .hp-right { display: grid; gap: 6px; padding-inline-start: 22px; border-inline-start: 1px solid var(--sc-border); }
@@ -475,9 +515,15 @@ let uidSeq = 0;
         .rankpips { display: none; }
         .sig .lab { max-inline-size: none; }
         .tip-trigger { display: none; }
-        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
+        /* The mission segment sizes to its own label: as an equal flex share
+           its nowrap "EINSATZ" / "◈ ALLES" spilled over the first value. */
+        .einsatz { flex: none; }
+        .einsatz .lab { letter-spacing: 0.08em; }
+        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; white-space: nowrap; }
         .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
-        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; overflow-y: auto;
+        .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; max-block-size: 70dvh; overflow-y: auto;
+          /* The last row scrolls clear of the home indicator and the feedback launcher. */
+          padding-block-end: calc(var(--sc-safe-bottom) + var(--sc-fab-size) + var(--sc-fab-gutter));
           background: var(--sc-bg-1); border-block-start: 1px solid var(--sc-accent); }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -527,6 +573,10 @@ export class CodexHoloStripComponent {
   protected readonly mode = signal<FlightMode>('scm');
   protected readonly preset = signal<PowerPreset>('auto');
   protected readonly expanded = signal<boolean>(false);
+  /** A phone (≤ 640 px at load): the strip is one slim row, no minimise. */
+  protected readonly phone = typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches;
+  /** Folded to its Einsatz cell — remembered per viewer (see {@link stripMiniKey}). */
+  protected readonly mini = signal<boolean>(false);
   protected readonly tipsHidden = signal(false);
 
   private previousSheet: PowerSheet | null = null;
@@ -694,6 +744,12 @@ export class CodexHoloStripComponent {
       this.restoredFor = shipKey;
       untracked(() => this.restoreState());
     });
+    // The minimised state is per VIEWER: re-read whenever the user resolves
+    // (a deep link renders before the session does — the first read is anon).
+    effect(() => {
+      const key = stripMiniKey(this.userId());
+      untracked(() => this.mini.set(this.storageGet(key) === 'true'));
+    });
     effect(() => {
       this.sheetChange.emit(this.sheet());
     });
@@ -756,12 +812,11 @@ export class CodexHoloStripComponent {
     this.mode.set(isFlightMode(draft.mode) ? draft.mode : 'scm');
     this.preset.set(draft.preset === 'stealth' ? 'stealth' : 'auto');
 
-    // A remembered "open" never survives onto a phone: the expanded sheet
-    // covers 70vh there (concept mo5: the phone strip opens as a bottom
-    // sheet on demand), so the page must never load with the table hidden.
-    const expKey = `${dockPositionStorageKey(this.userId())}:strip-open`;
-    const phone = typeof matchMedia === 'function' && matchMedia('(max-width: 640px)').matches;
-    this.expanded.set(!phone && this.storageGet(expKey) === 'true');
+    // The energy panel always starts closed: opened, it sits over the lower
+    // part of the table, so a page must never LOAD with it open (holodeck
+    // walkthrough 2026-10-08 — it covered ~40 % of a 900 px viewport). What
+    // the viewer chooses to keep is the minimised strip (`mini`).
+    this.expanded.set(false);
   }
 
   private currentDraft(): PowerDraftState {
@@ -906,6 +961,14 @@ export class CodexHoloStripComponent {
   protected toggleExpanded(): void {
     const next = !this.expanded();
     this.expanded.set(next);
-    this.storageSet(`${dockPositionStorageKey(this.userId())}:strip-open`, String(next));
+    // Opening the panel from a minimised strip brings the strip back.
+    if (next && this.mini()) this.toggleMini();
+  }
+
+  protected toggleMini(): void {
+    const next = !this.mini();
+    this.mini.set(next);
+    if (next) this.expanded.set(false);
+    this.storageSet(stripMiniKey(this.userId()), String(next));
   }
 }

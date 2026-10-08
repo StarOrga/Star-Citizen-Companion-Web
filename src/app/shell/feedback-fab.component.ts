@@ -221,12 +221,14 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
          once without needing near-fullscreen (feedback fc5373d5). */
       width: min(var(--sc-feedback-dock-width), calc(100vw - 32px));
       height: min(680px, calc(100vh - 120px));
+      height: min(680px, calc(100dvh - 120px));
       /* User-resizable: drag the corner grip to enlarge the chat window. */
       resize: both;
       min-width: 320px;
       min-height: 320px;
       max-width: calc(100vw - 32px);
       max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
       display: flex;
       flex-direction: column;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));

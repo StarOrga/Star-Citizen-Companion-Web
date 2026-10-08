@@ -201,11 +201,13 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .panel {
       width: min(420px, calc(100vw - 32px));
       height: min(600px, calc(100vh - 120px));
+      height: min(600px, calc(100dvh - 120px));
       resize: both;
       min-width: 300px;
       min-height: 300px;
       max-width: calc(100vw - 32px);
       max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
       display: flex;
       flex-direction: column;
       background: linear-gradient(180deg, var(--sc-bg-2), var(--sc-bg-1));

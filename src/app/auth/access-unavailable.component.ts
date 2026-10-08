@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { safeRedirectTarget } from '../core/safe-redirect.util';
@@ -22,6 +22,13 @@ import { RoleService } from './role.service';
  * signed in, we just could not read their approval — so "retry" re-reads the
  * profile and resumes the original navigation, and signing out is offered
  * only as the manual way out.
+ *
+ * Auto-resume: the guard's 5 s `waitReady()` timeout can fire while the
+ * `profiles` read is merely slow (a throttled phone CPU, a bad network) — the
+ * read then lands a moment later with the user approved. The page watches for
+ * exactly that and resumes the original navigation on its own, replacing this
+ * entry in the history so Back does not return here. While the read is still
+ * pending it says "checking" instead of claiming a failure it cannot know yet.
  */
 @Component({
   selector: 'sc-access-unavailable',
@@ -31,6 +38,9 @@ import { RoleService } from './role.service';
   template: `
     <section class="page">
       <div class="sc-card">
+        @if (checking()) {
+          <p class="checking" role="status">{{ 'auth.unavailable.checking' | translate }}</p>
+        } @else {
         <h1>{{ 'auth.unavailable.title' | translate }}</h1>
         <p>{{ 'auth.unavailable.body' | translate }}</p>
         <div class="actions">
@@ -41,14 +51,17 @@ import { RoleService } from './role.service';
             {{ 'nav.signOut' | translate }}
           </button>
         </div>
+        }
       </div>
     </section>
   `,
   styles: [`
     .page { display: grid; place-items: center; min-height: 60vh; }
     .sc-card { max-width: 480px; padding: 32px 36px; text-align: center; }
+    @media (max-width: 480px) { .sc-card { padding: 24px var(--sc-pad-1); } }
     h1 { font-size: 1.3rem; margin-bottom: 16px; }
     p { color: var(--sc-fg-1); margin: 0 0 20px; }
+    .checking { margin: 0; color: var(--sc-fg-2); }
     .actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
     .link {
       background: transparent;
@@ -66,6 +79,27 @@ export class AccessUnavailableComponent {
   private readonly auth = inject(AuthService);
 
   readonly busy = signal(false);
+  /** Set once a navigation away has been started (auto-resume or retry). */
+  private resumed = false;
+
+  /**
+   * The profile read has not settled yet (and no manual retry is running,
+   * which keeps its own "retrying" label on the error card).
+   */
+  readonly checking = computed(() => !this.roles.loaded() && !this.busy());
+
+  constructor() {
+    effect(() => {
+      const ready = this.roles.loaded() && !this.roles.identityUnknown() && this.roles.approved();
+      if (!ready || untracked(this.busy) || this.resumed) return;
+      this.resumed = true;
+      void this.router.navigateByUrl(this.redirectTarget(), { replaceUrl: true });
+    });
+  }
+
+  private redirectTarget(): string {
+    return safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirect'));
+  }
 
   async retry(): Promise<void> {
     if (this.busy()) return;
@@ -75,9 +109,16 @@ export class AccessUnavailableComponent {
     // back here. `refresh()` carries its own first-load backoff.
     await this.roles.refresh();
     this.busy.set(false);
-    await this.router.navigateByUrl(
-      safeRedirectTarget(this.route.snapshot.queryParamMap.get('redirect')),
-    );
+    if (this.resumed) return;
+    // Claimed while the retry's own navigation runs, so the effect does not
+    // start a second one; released afterwards, because a guard that bounces
+    // straight back here reuses this instance and auto-resume must still work.
+    this.resumed = true;
+    try {
+      await this.router.navigateByUrl(this.redirectTarget());
+    } finally {
+      this.resumed = false;
+    }
   }
 
   async signOut(): Promise<void> {

@@ -447,8 +447,11 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
     /* Reassurance for genuinely slow loads (>3s) — a bottom-centre HUD toast,
        matching the app's existing toast placement so it never clashes with the header. */
     .nav-scan__label {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: var(--sc-float-bottom); left: 50%; transform: translateX(-50%);
       z-index: 50; pointer-events: none;
+      /* Centred, it keeps the feedback launcher's lane free on both sides. */
+      max-width: calc(100vw - 2 * var(--sc-fab-clear-inline));
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       padding: 4px 14px; border-radius: 999px;
       background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);

@@ -59,14 +59,16 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
           @if (it.slot.draftState; as ds) {
             <p class="insp-draft">
               <span class="tag draft" [class.pending]="ds === 'pending'" [class.unresolved]="ds === 'unresolved'">{{ ('codex.loadout.draftState.' + ds) | translate }}</span>
-              @if (it.slot.draftPaths?.length) {
+              @if (it.slot.draftPaths?.length && !readOnly()) {
                 <button type="button" class="lnk" (click)="reverted.emit(it.slot.draftPaths!)">{{ 'codex.loadout.revert' | translate }}</button>
               }
             </p>
           }
           @if (!isRawPort()) {
             <div class="insp-actions">
-              <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
+              @if (!readOnly()) {
+                <button type="button" class="btn" (click)="swapRequested.emit(it)">⇄ {{ 'codex.swap.open' | translate }}</button>
+              }
               <button type="button" class="btn quiet" (click)="inspected.emit(it)">{{ 'codex.inspect.openStats' | translate }}</button>
             </div>
           } @else {
@@ -91,7 +93,7 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
                 </dl>
               }
               <div class="insp-actions">
-                @if (kid.className || kid.rawTypes.length > 0) {
+                @if ((kid.className || kid.rawTypes.length > 0) && !readOnly()) {
                   <button type="button" class="btn quiet" (click)="swapRequested.emit(childTarget(it, kid))">⇄ {{ 'codex.swap.open' | translate }}</button>
                 }
                 @if (kid.className) {
@@ -139,6 +141,17 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
       <div class="h2"><span>{{ 'codex.holo.stage.journal' | translate }}</span><span class="rule"></span></div>
       @if (journal().length === 0) {
         <p class="mut">{{ 'codex.holo.stage.journalEmpty' | translate }}</p>
+      } @else if (readOnly()) {
+        <!-- A shared link's loadout (#646): what differs from stock, nothing to undo or save. -->
+        <ul class="journal">
+          @for (e of journal(); track e.port) {
+            <li>
+              <span class="j-label">{{ itemName(e.label) }}</span>
+              <span class="j-state">{{ ('codex.loadout.draftState.' + e.state) | translate }}</span>
+            </li>
+          }
+        </ul>
+        <p class="mut">{{ 'codex.holo.shared.readOnlyHint' | translate }}</p>
       } @else {
         <ul class="journal">
           @for (e of journal(); track e.port) {
@@ -278,6 +291,8 @@ export class CodexHoloInspectorComponent {
   readonly saving = input(false);
   readonly saveError = input<string | null>(null);
   readonly inHangar = input(false);
+  /** A shared link's loadout is on the table (#646): no swap, undo or save. */
+  readonly readOnly = input(false);
 
   readonly closed = output<void>();
   readonly pinInspect = output<string>();

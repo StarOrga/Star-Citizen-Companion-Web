@@ -479,7 +479,7 @@ export interface AnnotationResult {
     .lb-frame {
       position: relative;
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      max-width: 90vw; max-height: 90vh;
+      max-width: 90vw; max-height: 90vh; max-height: 90dvh;
       cursor: default;
     }
     .lb-stage { position: relative; line-height: 0; }
@@ -493,6 +493,7 @@ export interface AnnotationResult {
     .lb-img {
       max-width: 90vw;
       max-height: 72vh;
+      max-height: 72dvh;
       object-fit: contain;
       border: 1px solid var(--sc-border);
       border-radius: 8px;
@@ -579,7 +580,7 @@ export interface AnnotationResult {
        thumb's own edge-swipe zone and, on a tall image, under the status bar. */
     @media (max-width: 720px) {
       .lb-backdrop { padding: 8px; }
-      .lb-img { max-width: calc(100vw - 16px); max-height: 76vh; }
+      .lb-img { max-width: calc(100vw - 16px); max-height: 76vh; max-height: 76dvh; }
       .lb-caption { max-width: calc(100vw - 16px); }
       .lb-close {
         top: 8px;

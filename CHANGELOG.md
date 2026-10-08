@@ -4,6 +4,71 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.134.0] - 2026-10-08
+
+### Added
+
+- **Holodeck-Tastenkürzel.** Auf dem Holotable kopiert `L` den Link der Ansicht,
+  `P` öffnet die Patch-Auswahl, `V` wechselt die Ansicht und `S` öffnet das
+  Teilen. Kleine Tasten-Hinweise zeigen die Kürzel an Maus und Tastatur, auf
+  Touch-Geräten sind sie ausgeblendet. Solange kein Textfeld den Fokus hat,
+  gehen die Kürzel der Tipp-Suche vor.
+- **„Speichern & teilen“ im Holodeck.** Ein Knopf speichert den Entwurf,
+  verwendet einen passenden aktiven Link weiter oder erstellt einen neuen und
+  kopiert ihn. Darunter stehen die aktiven Links dieser Konfiguration mit
+  Kopieren und Widerrufen (mit Rückfrage).
+- **Geteilte Links auf dem Holotable.** Ein geteilter Hangar-Link bietet
+  „Auf dem Holotable ansehen“: das Loadout erscheint dort schreibgeschützt mit
+  einem Banner, wer es geteilt hat. Übernehmen lädt den Hangar neu und öffnet
+  die übernommene Konfiguration direkt als Entwurf.
+
+### Changed
+
+- **Energie-Dock bleibt beim Laden zu** und lässt sich minimieren; der Zustand
+  wird pro Nutzer gemerkt.
+- **Einordnung zuverlässiger.** Das Vergleichsdiagramm lädt fehlgeschlagene
+  Teile erneut und merkt sich keine unvollständigen Ergebnisse mehr.
+
+### Fixed
+
+- **Holo-Leiste auf dem Handy.** Die Beschriftung „Einsatz / Alles“ überlappt
+  den ersten Wert nicht mehr.
+
+## [0.133.0] - 2026-10-08
+
+### Changed
+
+- **Handy: nichts liegt mehr unter dem Feedback-Knopf.** Vergleichsleiste,
+  FPS-Ausrüstungsleiste, Lade-Hinweis, Holo-Leiste, Download-Verlauf und Footer
+  enden vor dem runden Feedback-Knopf und halten Abstand zur Gestenleiste. Die
+  Vergleichsleiste öffnet auf dem Handy als Bottom-Sheet mit einer wischbaren
+  Chip-Zeile.
+- **Handy: Sheets und Dialoge passen in den sichtbaren Bildschirm.** Bottom-
+  Sheets, Lightboxen und Dialoge richten ihre Höhe am dynamischen Viewport aus,
+  die ein- und ausfahrende Adressleiste schneidet sie nicht mehr ab.
+- **Admin auf dem Handy.** Die Nutzerliste erscheint unter 640 px als gestapelte
+  Karten (Name, Rolle, Aktionen ohne seitliches Scrollen). API-Token-, Telemetrie-
+  und Bundle-Diff-Tabellen scrollen in ihrem eigenen Kasten statt die ganze Seite
+  zu verschieben; der Token-Dialog beginnt oben und zeigt eine Zeile pro Scope.
+  Im Feedback-Board klappt das Eingabefeld auf dem Handy in eine Leiste
+  „Neues Thema“ ein.
+- **Kürzere angeheftete Leisten.** Die Keybind-Steuerung scrollt auf dem Handy
+  mit, die Abschnittsleiste der Einstellungen ist im flachen Querformat nicht
+  mehr angeheftet, und das Banner der Rollenvorschau ist auf zwei Zeilen begrenzt.
+- **Sets, Hangar und Holodeck auf Touch.** Rüstungskacheln und Ausrüstungsplätze
+  eines Sets stehen auf dem Handy untereinander, Schließen-Knöpfe im Hangar
+  haben eine echte Trefferfläche, lange Pledge- und Bestandsnamen brechen um, und
+  die Energie-Pips im Holodeck wachsen auf Touch nicht mehr über die Modus-Knöpfe.
+- **Größere Tippflächen.** Kompakte Knöpfe in Admin-Panels und die Schlagzeile
+  oben auf /news haben auf Touch mindestens 48 px Trefferfläche.
+
+### Fixed
+
+- **/unavailable geht von selbst weiter.** Lädt das Profil nur langsam, zeigt
+  die Seite „Dein Zugang wird geprüft …“ und springt zur gewünschten Seite, sobald
+  die Freigabe da ist. Fehlertext und „Erneut versuchen“ erscheinen erst, wenn
+  das Laden ohne freigegebenen Zugang abgeschlossen ist.
+
 ## [0.132.0] - 2026-10-08
 
 ### Added

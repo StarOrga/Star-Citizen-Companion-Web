@@ -111,6 +111,7 @@ type State = 'loading' | 'ready' | ConceptTicketError;
       .frame {
         flex: 1 1 auto;
         min-height: 70vh;
+        min-height: 70dvh;
         width: 100%;
         max-width: 100%;
         border: 0;

@@ -122,8 +122,27 @@ import { RoleService } from '../auth/role.service';
       outline: none;
       box-shadow: 0 0 0 2px var(--sc-accent-hot), 0 0 0 4px #10060a;
     }
+    /* Under a notch / status bar the strip starts below the unsafe area; the
+       measured height (--sc-imp-banner-h) includes it, so everything pinned
+       under the banner follows. */
+    .imp-banner { padding-top: max(4px, env(safe-area-inset-top, 0px)); }
+    /* Phone: the message is capped at two lines (ellipsis, full text stays in
+       the DOM for screen readers) and Exit keeps its place at the end of the
+       row, so the strip never grows into a third of the screen. */
     @media (max-width: 720px) {
-      .imp-banner { flex-wrap: wrap; padding: 6px 12px; }
+      .imp-banner {
+        padding: max(6px, env(safe-area-inset-top, 0px)) 12px 6px;
+      }
+      .imp-banner__msg {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+      }
+      .imp-banner__msg > * { display: inline; }
+      .imp-banner__msg strong { margin-inline-end: 8px; }
+      .imp-banner__real { white-space: normal; }
       .imp-banner__fidelity { display: none; }
     }
   `],
