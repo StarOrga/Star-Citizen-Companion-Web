@@ -174,11 +174,14 @@ and keeps the `<class>_AMMO` convention only for builds below schema 6.
 | chunk type   | what it holds | how it is read |
 | ------------ | ------------- | -------------- |
 | `0x92914444` | AABB (ship L/W/H) | first plausible `(min,max)` float-triple pair, byte offset 24 |
-| `0xc201973c` | NAME table | `count` at 0, 16-byte entries at 48 (`crc32(name)` … `u16 node_index`), then a NUL-separated string blob; a name belongs to a node when its CRC-32 is in the table |
-| `0x70697fda` | NODE table | count in the 2nd u32, records from offset **64** at a **208-byte** stride, each starting with two row-major `Matrix34` (model-space, then parent-relative) |
+| `0xc201973c` | NAME table (fallback only) | `count` at 0, 16-byte entries at 48 (`crc32(name)` … `u16 node_index`), then a NUL-separated string blob; a name belongs to a node when its CRC-32 is in the table. **On LIVE 4.x this chunk is v0x901 and the last u16 is no longer the node index** (`0xffff` / unrelated values — 1 of 273 Gladius names resolved) |
+| `0x70697fda` | NODE table + node names | count in the 2nd u32, records from offset **64** at a **208-byte** stride, each starting with two row-major `Matrix34` (model-space, then parent-relative). Header u32 `[3]` = count of a u16 index list, `[4]` = mesh-subset count (u16 each), `[5]` = string-table size; after the records come those two u16 lists, then **one NUL-terminated name per node in node order** — the authoritative name source on LIVE 4.x (#643) |
 
 Verified against `AEGS_Gladius` (273/273 names resolved) and
-`DRAK_Cutlass_Black` (209/209); every rotation block orthonormal. Both readers
+`DRAK_Cutlass_Black` (209/209); every rotation block orthonormal. Until #643
+(uploader 0.48.0) the names came from the CRC table only, so on LIVE 4.x every
+ship's `hardpointTransforms` — and every `codex_silhouettes` anchor — was
+empty; a full LIVE 4.10 extract now resolves transforms for 348/349 ships. Both readers
 self-validate (the node walk re-derives the stride by requiring EVERY rotation
 block to be orthonormal) and return nothing rather than a fabricated coordinate.
 
