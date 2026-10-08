@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.136.1] - 2026-10-08
+
+### Fixed
+
+- **Angemeldet plötzlich auf „Nicht verfügbar“.** Eine frisch geöffnete
+  Schiffsseite schickte rund 75 Codex-Abfragen gleichzeitig ab, und jede
+  davon war ohne passenden Index langsam. Das belegte alle Datenbank-
+  Verbindungen, die Rollenprüfung beim Seitenaufruf lief in ihr Zeitlimit,
+  und man landete auf `/unavailable`. Ein neuer Datenbank-Index macht diese
+  Abfragen rund hundertmal schneller, und jeder Tab stellt höchstens drei
+  davon gleichzeitig.
+- **Komponenten im Modell** zeigt Teile ohne eigenen Namen lesbar statt als
+  rohen Klassennamen.
+- Die Konsole meldet beim Laden keine veraltete Auth-Lock-Option mehr.
+
 ## [0.136.0] - 2026-10-08
 
 ### Added

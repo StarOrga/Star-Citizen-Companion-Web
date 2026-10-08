@@ -138,14 +138,54 @@ function makeCodexServiceStub(payload: ShipPayload = NOMAD_PAYLOAD): Partial<Cod
   };
 }
 
+/**
+ * Renders the page under a fake clock — call inside `fakeAsync`.
+ *
+ * Why not `await fixture.whenStable()` on a ship page: "stable" means no
+ * timer and no animation frame is pending anywhere in the zone, and the
+ * Holotable's arrival keeps a REAL 1.3 s timer (plus an animation frame for
+ * the KPI ink) pending right after the first render. Every `whenStable()`
+ * after the setup therefore sat out the arrival on the wall clock — 1.3 s
+ * per case on a quiet machine, past Jasmine's 5 s on a loaded CI runner or a
+ * page that renders no frames (CI run 37609592589 and its reruns). Under
+ * `fakeAsync` the arrival, the 0 ms cohort timer and every frame are fake
+ * tasks: the spec says when time passes, and nothing waits for the clock.
+ * A real HTTP request inside `fakeAsync` throws, so this also proves the
+ * page talks to the stubs only.
+ */
+function renderOnFakeClock(): ComponentFixture<CodexDetailComponent> {
+  void TestBed.compileComponents();
+  const fixture = TestBed.createComponent(CodexDetailComponent);
+  fixture.detectChanges();
+  // The stubbed reads (microtasks) and the 0 ms cohort kick-off — not the arrival.
+  tick();
+  fixture.detectChanges();
+  return fixture;
+}
+
 async function setup(
   kind: 'ship' | 'weapon',
   skins: ShipSkin[] = [],
   payload: ShipPayload = NOMAD_PAYLOAD,
   svc: Partial<CodexService> = {},
 ) {
+  configureSetup(kind, skins, payload, svc);
+  await TestBed.compileComponents();
+  const fixture: ComponentFixture<CodexDetailComponent> = TestBed.createComponent(CodexDetailComponent);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  return fixture;
+}
+
+function configureSetup(
+  kind: 'ship' | 'weapon',
+  skins: ShipSkin[] = [],
+  payload: ShipPayload = NOMAD_PAYLOAD,
+  svc: Partial<CodexService> = {},
+): void {
   const className = kind === 'ship' ? 'cnou_nomad' : 'klwe_laserrepeater_s3';
-  await TestBed.configureTestingModule({
+  TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
       provideNoShipBlueprints(),
@@ -199,12 +239,7 @@ async function setup(
         } as Partial<ShipLinkService>,
       },
     ],
-  }).compileComponents();
-  const fixture: ComponentFixture<CodexDetailComponent> = TestBed.createComponent(CodexDetailComponent);
-  fixture.detectChanges();
-  await fixture.whenStable();
-  fixture.detectChanges();
-  return fixture;
+  });
 }
 
 describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
@@ -597,8 +632,18 @@ interface CharacterisationOpts {
 }
 
 async function setupCharacterisation(opts: CharacterisationOpts): Promise<ComponentFixture<CodexDetailComponent>> {
+  configureCharacterisation(opts);
+  await TestBed.compileComponents();
+  const fixture = TestBed.createComponent(CodexDetailComponent);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  return fixture;
+}
+
+function configureCharacterisation(opts: CharacterisationOpts): void {
   const params = convertToParamMap(opts.params);
-  await TestBed.configureTestingModule({
+  TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
       provideNoShipBlueprints(),
@@ -656,12 +701,7 @@ async function setupCharacterisation(opts: CharacterisationOpts): Promise<Compon
       },
       ...(opts.forkGuard ? [{ provide: CodexHoloForkGuard, useValue: opts.forkGuard }] : []),
     ],
-  }).compileComponents();
-  const fixture = TestBed.createComponent(CodexDetailComponent);
-  fixture.detectChanges();
-  await fixture.whenStable();
-  fixture.detectChanges();
-  return fixture;
+  });
 }
 
 /** The weapon stub's detail, with one expandable port. */
@@ -796,18 +836,28 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       };
     }
 
-    async function setupDraftPage(createResult: unknown) {
+    /** A ship page with a saveable gun port, on the fake clock — call inside `fakeAsync`. */
+    function renderDraftPage(createResult: unknown) {
       const hangar = hangarStubs(createResult);
       const ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('own');
-      const fixture = await setupCharacterisation({
+      configureCharacterisation({
         params: { kind: 'ship', className: 'cnou_nomad' },
         svc: { getDetail: shipDetailWithGunPort() },
         hangar: hangar as unknown as Partial<HangarService>,
         forkGuard: { ensureEditable } as unknown as Partial<CodexHoloForkGuard>,
       });
+      const fixture = renderOnFakeClock();
       // The draft mirrors itself into the URL; keep the Karma page where it is.
       spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
       return { fixture, hangar, ensureEditable, cmp: fixture.componentInstance };
+    }
+
+    /** Runs a save to its end on the fake clock and proves it did end. */
+    function save(cmp: CodexDetailComponent): void {
+      let settled = false;
+      void cmp.saveLoadoutDraft().finally(() => (settled = true));
+      flushMicrotasks();
+      expect(settled).withContext('save settled').toBeTrue();
     }
 
     function pickNewGun(cmp: CodexDetailComponent): void {
@@ -826,25 +876,25 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       cmp.onSwapPicked(pick);
     }
 
-    it('does nothing while there is nothing saveable', async () => {
-      const { cmp, hangar } = await setupDraftPage({ id: 'c1', loadout: [], isActive: false });
-      await cmp.saveLoadoutDraft();
+    it('does nothing while there is nothing saveable', fakeAsync(() => {
+      const { cmp, hangar } = renderDraftPage({ id: 'c1', loadout: [], isActive: false });
+      save(cmp);
       expect(hangar.shipByClassName).not.toHaveBeenCalled();
       expect(hangar.createConfig).not.toHaveBeenCalled();
       expect(hangar.updateConfig).not.toHaveBeenCalled();
-    });
+    }));
 
-    it('creates and activates a config when the ship has none, then writes the merged loadout', async () => {
-      const { fixture, cmp, hangar, ensureEditable } = await setupDraftPage({
+    it('creates and activates a config when the ship has none, then writes the merged loadout', fakeAsync(() => {
+      const { fixture, cmp, hangar, ensureEditable } = renderDraftPage({
         id: 'c1',
         loadout: [],
         isActive: false,
       });
       pickNewGun(cmp);
-      await fixture.whenStable();
+      flushMicrotasks();
       expect(cmp.saveableEntries().length).withContext('draft is saveable').toBe(1);
 
-      await cmp.saveLoadoutDraft();
+      save(cmp);
       fixture.detectChanges();
 
       expect(hangar.shipByClassName).toHaveBeenCalledWith('cnou_nomad');
@@ -862,14 +912,14 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       ]);
       expect(hangar.forkFollowedLoadout).not.toHaveBeenCalled();
       expect(cmp.saveError()).toBeNull();
-    });
+    }));
 
-    it('says the hangar was unreachable when the config cannot be created', async () => {
-      const { fixture, cmp, hangar } = await setupDraftPage(null);
+    it('says the hangar was unreachable when the config cannot be created', fakeAsync(() => {
+      const { fixture, cmp, hangar } = renderDraftPage(null);
       pickNewGun(cmp);
-      await fixture.whenStable();
+      flushMicrotasks();
 
-      await cmp.saveLoadoutDraft();
+      save(cmp);
       fixture.detectChanges();
 
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
@@ -879,17 +929,17 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');
       // Visible without waiting for the arrival or opening the right rail.
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('codex.loadout.saveErrorHangar');
-    });
+    }));
 
-    it('closes the picker and drafts nothing when the pick carries no raw port', async () => {
-      const { cmp } = await setupDraftPage({ id: 'c1', loadout: [], isActive: false });
+    it('closes the picker and drafts nothing when the pick carries no raw port', fakeAsync(() => {
+      const { cmp } = renderDraftPage({ id: 'c1', loadout: [], isActive: false });
       cmp.onSwapPicked({
         className: 'BEHR_LaserCannon_S3',
         target: { port: 'x', count: 1, className: null, kind: null, name: null, size: null, rawPorts: [] } as SwapTarget,
       });
       expect(cmp.saveableEntries().length).toBe(0);
       expect(cmp.draftChangedCount()).toBe(0);
-    });
+    }));
   });
 
   describe('livery picker', () => {
@@ -954,14 +1004,13 @@ function openDetails(fixture: ComponentFixture<CodexDetailComponent>): HTMLEleme
   return body;
 }
 
+// Every Holotable case runs on the fake clock (see renderOnFakeClock): the
+// arrival's timers and frames never make a case wait for the wall clock.
 describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
-  let fixture: ComponentFixture<CodexDetailComponent>;
+  beforeEach(() => configureSetup('ship'));
 
-  beforeEach(async () => {
-    fixture = await setup('ship');
-  });
-
-  it('hands the census, counted from the loadout blocks themselves, to the Holotable', () => {
+  it('hands the census, counted from the loadout blocks themselves, to the Holotable', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
     const cmp = fixture.componentInstance;
     const chips = cmp.stageCounts();
     const sections = cmp.moduleSections();
@@ -972,9 +1021,10 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     expect(weapons?.count).toBe(sections.find((s) => s.section === 'weapons')?.slots.length);
     expect(weapons?.labelKey).toBe('codex.moduleSection.weapons');
     expect(holoStage(fixture).stageCounts()).toEqual(chips);
-  });
+  }));
 
-  it('has exactly one source for the equipped mass', () => {
+  it('has exactly one source for the equipped mass', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
     arrive(fixture);
     const el: HTMLElement = fixture.nativeElement;
     // Every perspective tile unfolded — the ship panel is one of them.
@@ -988,9 +1038,10 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     expect(massRows.length).toBeGreaterThan(0);
     const values = new Set(massRows.map((dt) => dt.nextElementSibling?.textContent?.trim()));
     expect(values.size).toBe(1);
-  });
+  }));
 
-  it('lists every loadout block once in the ports list, and the airframe card counts its blocks', () => {
+  it('lists every loadout block once in the ports list, and the airframe card counts its blocks', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
     const cmp = fixture.componentInstance;
     const el: HTMLElement = fixture.nativeElement;
     // The Nomad fixture has more sections than blocks — that is the whole point.
@@ -1000,10 +1051,11 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     expect(listed).toBe(cmp.moduleCount() + cmp.tailModuleCount());
     const body = openDetails(fixture);
     expect(body.querySelector('.col-loadout-tail .col-head .n')?.textContent?.trim()).toBe(String(cmp.tailModuleCount()));
-  });
+  }));
 
   // AUD-065 / AUD-268: add-to-hangar locks while it runs and says when it failed.
-  it('locks "add to hangar" while the insert runs and alerts when it fails', async () => {
+  it('locks "add to hangar" while the insert runs and alerts when it fails', fakeAsync(() => {
+    const fixture = renderOnFakeClock();
     const hangar = TestBed.inject(HangarService);
     let resolve!: (v: null) => void;
     const addShip = spyOn(hangar, 'addShip').and.returnValue(new Promise<null>((r) => (resolve = r)));
@@ -1019,22 +1071,21 @@ describe('CodexDetailComponent — Holotable (Nomad fixture)', () => {
     expect(addShip).toHaveBeenCalledTimes(1);
 
     resolve(null);
-    await fixture.whenStable();
+    flushMicrotasks();
     fixture.detectChanges();
     expect(btn.disabled).toBeFalse();
     const alert = body.querySelector('.add-err[role="alert"]');
     expect(alert).not.toBeNull();
     expect(alert!.textContent).toContain('codex.card.addToHangarFailed');
-  });
+  }));
 });
 
 describe('CodexDetailComponent — Holotable copy link', () => {
   let fixture: ComponentFixture<CodexDetailComponent>;
-  beforeEach(async () => {
-    fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
-  });
+  beforeEach(() => configureCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } }));
 
   function openShareCopy(): HTMLButtonElement {
+    fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
     const share = Array.from(el.querySelectorAll<HTMLButtonElement>('.tools5 button')).find((b) =>
       (b.textContent ?? '').includes('codex.holo.stage.viewShare'),
@@ -1078,8 +1129,9 @@ describe('CodexDetailComponent — Holotable copy link', () => {
 });
 
 describe('CodexDetailComponent — Holotable RSI pledge link', () => {
-  it('offers no link form to a signed-out reader', async () => {
-    const fixture = await setupCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+  it('offers no link form to a signed-out reader', fakeAsync(() => {
+    configureCharacterisation({ params: { kind: 'ship', className: 'cnou_nomad' } });
+    const fixture = renderOnFakeClock();
     const body = openDetails(fixture);
     const labels = Array.from(body.querySelectorAll('button')).map((b) => b.textContent ?? '');
     expect(labels.some((l) => l.includes('codex.shipLink.add'))).toBeFalse();
@@ -1088,16 +1140,17 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     expect(rsi).not.toBeNull();
     expect(rsi.target).toBe('_blank');
     expect(rsi.rel).toContain('noopener');
-  });
+  }));
 
-  it('opens the form for a signed-in reader and names a rejected URL', async () => {
+  it('opens the form for a signed-in reader and names a rejected URL', fakeAsync(() => {
     const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo('invalidUrl');
-    const fixture = await setupCharacterisation({
+    configureCharacterisation({
       params: { kind: 'ship', className: 'cnou_nomad' },
       user: { id: 'u1' },
       hangar: { listConfigs: async () => [] } as Partial<HangarService>,
       shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
     });
+    const fixture = renderOnFakeClock();
     const el: HTMLElement = fixture.nativeElement;
     const body = openDetails(fixture);
     const add = Array.from(body.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
@@ -1115,7 +1168,7 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     input.value = 'not a url';
     input.dispatchEvent(new Event('input'));
     form.dispatchEvent(new Event('submit', { cancelable: true }));
-    await fixture.whenStable();
+    flushMicrotasks();
     fixture.detectChanges();
 
     expect(setMyLink).toHaveBeenCalledOnceWith('cnou_nomad', 'not a url');
@@ -1125,16 +1178,17 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     expect(err!.textContent).toContain('codex.shipLink.error.invalidUrl');
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(el.querySelector('.sl-ok')).toBeNull();
-  });
+  }));
 
-  it('confirms a saved link', async () => {
+  it('confirms a saved link', fakeAsync(() => {
     const setMyLink = jasmine.createSpy('setMyLink').and.resolveTo(null);
-    const fixture = await setupCharacterisation({
+    configureCharacterisation({
       params: { kind: 'ship', className: 'cnou_nomad' },
       user: { id: 'u1' },
       hangar: { listConfigs: async () => [] } as Partial<HangarService>,
       shipLinks: { setMyLink } as unknown as Partial<ShipLinkService>,
     });
+    const fixture = renderOnFakeClock();
     const cmp = fixture.componentInstance;
     openDetails(fixture);
     cmp.toggleLinkForm();
@@ -1143,9 +1197,10 @@ describe('CodexDetailComponent — Holotable RSI pledge link', () => {
     (el.querySelector('.ship-link-form') as HTMLFormElement).dispatchEvent(
       new Event('submit', { cancelable: true }),
     );
-    await fixture.whenStable();
+    flushMicrotasks();
     fixture.detectChanges();
+    expect(setMyLink).toHaveBeenCalledTimes(1);
     expect(el.querySelector('.sl-error')).toBeNull();
     expect(el.querySelector('.sl-ok')?.textContent).toContain('codex.shipLink.saved');
-  });
+  }));
 });

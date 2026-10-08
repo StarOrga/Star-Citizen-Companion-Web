@@ -291,6 +291,11 @@ Rules it keeps:
   layout under test does not exist there.
 - **A failed sign-in is a finding**, reported on the `[auth]` row, so a broken
   test account cannot read as "the panels are fine".
+- **At most two signed-in devices at a time**, whatever `--concurrency` says.
+  Each device is a fresh browser context (no cohort cache, a full page load per
+  route), and every one of them talks to the shared cloud database. Four at once
+  pushed a primary-key `profiles` read to 7–11 s on 2026-10-08, past the 5 s
+  `approvedGuard` waits, and 1–5 routes per run landed on `/unavailable`.
 
 Which account you point it at decides what gets audited: an admin sees the admin
 board, a plain approved user sees the viewer panel.

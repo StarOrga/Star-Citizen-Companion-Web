@@ -27,6 +27,23 @@ describe('buildHoloComponentGroups', () => {
     expect(groups[0].entries[0].located).toEqual(['hardpoint_qd']);
   });
 
+  // Production sweep 2026-10-08: unnamed parts listed as `AEGS_Gladius_Thruster_Main`.
+  it('shows an unnamed part readable instead of as its raw class name', () => {
+    const groups = buildHoloComponentGroups(
+      [
+        {
+          section: 'structure' as LayoutSection['section'],
+          slots: [
+            slot({ rawPort: 'hardpoint_thruster_main', name: 'AEGS_Gladius_Thruster_Main' }),
+            slot({ rawPort: 'hardpoint_dash', name: 'AEGS_Gladius_SCItem_Dashboard_Pilot' }),
+          ],
+        },
+      ],
+      new Set(),
+    );
+    expect(groups[0].entries.map((e) => e.name)).toEqual(['AEGS Gladius Thruster Main', 'AEGS Gladius Dashboard Pilot']);
+  });
+
   it('collects child ports and ignores slots without any raw port', () => {
     const groups = buildHoloComponentGroups(
       [{ section: 'weapons' as LayoutSection['section'], slots: [
