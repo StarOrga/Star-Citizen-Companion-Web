@@ -135,6 +135,7 @@
     "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
     "adminOnly": "Nur Admin",
+    "adminMenu": "Admin",
     "telemetry": "Telemetrie",
     "feedback": "Feedback",
     "signIn": "Anmelden",
@@ -395,8 +396,8 @@
     },
     "search": {
       "didYouMean": "Meintest du:",
-      "placeholder": "Name oder Klasse suchen (z. B. Gladius, AEGS_*)…",
-      "label": "Codex durchsuchen",
+      "placeholder": "Diese Liste filtern – Name oder Klasse (z. B. Gladius, AEGS_*) …",
+      "listFilterLabel": "Diese Liste filtern",
       "clear": "Suche löschen",
       "upcomingHint": "Nicht in den Spieldaten, aber von RSI angekündigt: {{names}}",
       "alsoIn": "Auch gefunden in:",
@@ -418,13 +419,23 @@
         "empty": "Keine Treffer für „{{term}}“.",
         "allInIndex": "Alle {{n}} im Index",
         "allUpcoming": "Alle {{n}} bei „Kommende Schiffe“",
+        "folded": "{{n}} Varianten zusammengefasst",
+        "foldedOne": "1 Variante zusammengefasst",
+        "foldedAtLeast": "mind. {{n}} Varianten zusammengefasst",
+        "foldedAtLeastOne": "mind. 1 Variante zusammengefasst",
         "grade": "Klasse {{grade}}",
         "livery": "Lackierung",
         "upcomingBadge": "Noch nicht im Spiel",
         "addToHangarAria": "{{name}} zum Hangar hinzufügen",
         "addToHangar": "Hangar",
         "pinAria": "{{name}} vergleichen",
-        "navHint": "↑↓ navigieren · ↵ öffnen · Strg+↵ neuer Tab · Esc schließen",
+        "keys": {
+          "navigate": "navigieren",
+          "open": "öffnen",
+          "ctrl": "Strg",
+          "newTab": "neuer Tab",
+          "close": "schließen"
+        },
         "category": {
           "ships": "Schiffe",
           "components": "Komponenten",
@@ -434,6 +445,10 @@
           "keybinds": "Tastenbelegungen"
         },
         "close": "Suche schließen"
+      },
+      "trigger": {
+        "label": "Ganzen Codex durchsuchen",
+        "tooltip": "Ganzen Codex durchsuchen (Strg+K)"
       }
     },
     "kinds": {
@@ -2177,7 +2192,7 @@
     "subtitle": "Ausrüstung zu Fuß — Waffen und Rüstung, datamined aus dem Live-Build.",
     "bridgeLink": "FPS-Ausrüstung",
     "categoriesAria": "FPS-Ausrüstungskategorien",
-    "searchPlaceholder": "Name oder Klasse suchen (z. B. Arclight, Morozov, klwe_*) …",
+    "searchPlaceholder": "Diese Liste filtern – Name oder Klasse (z. B. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Waffen",
       "armor": "Rüstung"

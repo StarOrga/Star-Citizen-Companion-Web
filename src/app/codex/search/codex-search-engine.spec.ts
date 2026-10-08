@@ -8,6 +8,7 @@ import { CodexSearchEngine, SEARCH_DEBOUNCE_MS } from './codex-search-engine';
 import {
   RECENT_SEARCHES_KEY,
   RECENT_SEARCHES_MAX,
+  groupCounts,
   groupHits,
   hitTitle,
   indexTarget,
@@ -60,6 +61,30 @@ describe('codex-search-model', () => {
     expect(groups[1].more).toBeNull();
     expect(groups[2].more).toEqual({ link: ['/codex/upcoming'], queryParams: { q: 'gladius' } });
     expect(targetUrl(indexTarget('component', 'p4 ar'))).toBe('/codex/index?kind=component&q=p4+ar');
+  });
+
+  it('counts cards, not records: the pill follows the dedupe, "all N" keeps the raw total', () => {
+    // 49 weapon records matched, all 49 read, the dedupe left one card.
+    const [weapons] = groupHits('p4', [hit('weapon', 'w1')], { weapon: 49 }, 6, {
+      distinct: { weapon: 1 },
+      read: { weapon: 49 },
+    });
+    expect(weapons.count).toBe(1);
+    expect(weapons.countIsFloor).toBeFalse();
+    expect(weapons.folded).toBe(48);
+    expect(weapons.total).toBe(49);
+    expect(weapons.more).toEqual({ link: ['/codex/index'], queryParams: { kind: 'weapon', q: 'p4' } });
+  });
+
+  it('a count over a partial read is a floor, and so is the folded number', () => {
+    // 24 of 49 rows read, 3 cards among them: at least 3 cards, at least 21 folded.
+    expect(groupCounts(49, 3, 3, 24)).toEqual({ count: 3, countIsFloor: true, folded: 21, foldedIsFloor: true });
+    // Nothing folded, everything read: the count is the total, no hint.
+    expect(groupCounts(5, 5, 5, 5)).toEqual({ count: 5, countIsFloor: false, folded: 0, foldedIsFloor: false });
+    // No dedupe information (announced ships): the total, as before.
+    expect(groupCounts(4, 4, undefined, undefined)).toEqual({ count: 4, countIsFloor: false, folded: 0, foldedIsFloor: false });
+    // Never below what the group shows.
+    expect(groupCounts(10, 6, 2, 10).count).toBe(6);
   });
 
   it('titles a hit in the app language and never with the raw class name', () => {

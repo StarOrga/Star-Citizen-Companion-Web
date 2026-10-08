@@ -48,6 +48,12 @@ page: the bar grows, takes focus and shows its results below itself while the
 rest of the page dims. Outside the Codex, Ctrl+K and the header's search button
 open the same search as an overlay (a full-screen sheet on a phone).
 
+The index and the Arsenal filter their own list, so they show one field, not
+two: the list filter (*Filter this list …*), and in the page header a compact
+**Search the whole Codex** button for the Codex search. The button, Ctrl+K,
+**/** and type-to-search bring the big search forward as anywhere else; Esc
+puts it away and returns focus to where you were.
+
 On a ship's Holotable four letters belong to the table instead, as long as no
 text field has focus: **L** copies the link to this view, **P** opens or
 closes the patch chooser, **V** switches the table between top-down, 3D and
@@ -66,8 +72,13 @@ table, every phone — the pins stay numbered and the list beside or below the
 table names them.
 
 Results are grouped by kind — ships, weapons, components, items and so on —
-with the best few of each, how many matched in total, and an **All N in the
-index** link that opens the full list with your term. Liveries carry a
+with the best few of each and an **All N in the index** link that opens the
+full list with your term. The number beside a group counts the results as
+listed: variants that share a name (four records of one armour, every
+livery of a launcher) fold into one row, and a quiet note says how many were
+folded in, so *Weapons 1 · 48 variants folded in* sits above one row and
+*All 49 in the index*. When only part of a large group was read, the count
+reads as a minimum (*12+*). Liveries carry a
 *Livery* badge, announced ships a *Not in the game yet* badge. With an empty
 field the search offers your recent searches, the ships new in this patch and
 shortcuts into the Codex areas.

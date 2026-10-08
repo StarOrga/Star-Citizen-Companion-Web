@@ -44,6 +44,7 @@ import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set/set-arsenal-transition';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
 import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 /** Cards per "load more" step — the catalog itself is loaded whole. */
@@ -86,7 +87,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent, ClassChipComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -97,6 +98,9 @@ interface FacetOption {
         [crumbs]="codexCrumbs"
         [title]="'fps.title' | translate"
         [subtitle]="targetSet() ? null : ('fps.subtitle' | translate)">
+        <!-- This page filters its own list below; the whole-Codex search
+             is the compact trigger here, so the shell's slim bar tucks away. -->
+        <sc-codex-search-trigger phAside />
         <sc-codex-status-banner phAside />
       </sc-page-header>
 
@@ -190,7 +194,7 @@ interface FacetOption {
         <div class="search-row">
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
-                 [attr.aria-label]="'codex.search.label' | translate"
+                 [attr.aria-label]="'codex.search.listFilterLabel' | translate"
                  [attr.placeholder]="'fps.searchPlaceholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"

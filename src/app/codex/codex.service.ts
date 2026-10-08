@@ -26,6 +26,14 @@ export interface PolySearchResult {
   /** Per-kind match count (server count; the announced feed counts its own). */
   totals: Partial<Record<PolyHitKind, number>>;
   /**
+   * Per kind: distinct cards among the rows read — what the dedupe leaves of
+   * them (four "Cutlass Black Ship Armor" records are one card). Absent for a
+   * kind that was not deduped.
+   */
+  distinct?: Partial<Record<PolyHitKind, number>>;
+  /** Per kind: how many rows were read before the dedupe (at most the over-fetch). */
+  read?: Partial<Record<PolyHitKind, number>>;
+  /**
    * Kinds whose read failed while others answered — the search is partial and
    * says so. Absent or empty when every source answered. When EVERY source
    * fails, `searchAll` rejects instead: that is an error, not "no results".
@@ -1733,6 +1741,8 @@ export class CodexService {
   async searchAll(query: string, perKindLimit = 6): Promise<PolySearchResult> {
     const q = query.trim();
     const totals: Partial<Record<PolyHitKind, number>> = {};
+    const distinct: Partial<Record<PolyHitKind, number>> = {};
+    const read: Partial<Record<PolyHitKind, number>> = {};
     if (!q) return { hits: [], totals };
     const failed: PolyHitKind[] = [];
     let failure: unknown;
@@ -1750,7 +1760,11 @@ export class CodexService {
         // The server count is what "all N in the index" promises — the index
         // runs the very same list query.
         totals[kind] = res.count;
-        return dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r)))).slice(0, perKindLimit);
+        const cards = dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r))));
+        // What the group header counts: cards, not the variants folded into them.
+        distinct[kind] = cards.length;
+        read[kind] = res.rows.length;
+        return cards.slice(0, perKindLimit);
       } catch (err) {
         return fail(kind, err);
       }
@@ -1770,7 +1784,7 @@ export class CodexService {
     // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
     if (failed.length === sources.length) throw failure;
     const hits = rankPolyHits(q, results.flat());
-    return failed.length ? { hits, totals, failed, failure } : { hits, totals };
+    return failed.length ? { hits, totals, distinct, read, failed, failure } : { hits, totals, distinct, read };
   }
 
   /**

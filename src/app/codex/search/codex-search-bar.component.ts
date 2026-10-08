@@ -34,6 +34,12 @@ let nextId = 0;
  * rest of the page. It is absolutely positioned inside a host of fixed
  * height, so expanding never moves the page underneath. Esc, a click on the
  * dimmed page, focus leaving an empty field or a navigation put it back.
+ *
+ * Tucked: on a page with a list filter of its own, the page header carries a
+ * compact trigger (CodexSearchTriggerComponent) and the slim row is not drawn
+ * at all — one field per page, not two stacked ones with different jobs. The
+ * same calls still bring the bar forward, over the top of the page; Esc or a
+ * click on the dimmed page hand focus back to where it came from (the trigger).
  */
 @Component({
   selector: 'sc-codex-search-bar',
@@ -45,10 +51,11 @@ let nextId = 0;
     '[class.terminal]': "variant() === 'terminal'",
     '[class.compact]': "variant() === 'compact'",
     '[class.active]': 'active()',
+    '[class.tucked]': 'tucked()',
   },
   template: `
     @if (active()) {
-      <div class="dim" aria-hidden="true" (click)="collapse()"></div>
+      <div class="dim" aria-hidden="true" (click)="collapse(false, true)"></div>
     }
     <div class="shell" [class.active]="active()" (focusout)="onFocusOut($event)" role="search">
       <div class="field" (click)="onFieldClick($event)" (transitionend)="refit()">
@@ -110,6 +117,9 @@ let nextId = 0;
     /* Active terminal: the shell spans the whole terminal row (the landing
        makes that row the positioning context) and leads the page. */
     :host(.terminal.active) { position: static; }
+    /* Tucked: no slim row in the page flow; the bar only exists while called. */
+    :host(.tucked) { height: 0; }
+    :host(.tucked:not(.active)) .shell { display: none; }
 
     .dim {
       position: fixed; inset: 0; z-index: 90;
@@ -204,6 +214,8 @@ export class CodexSearchBarComponent {
   readonly query = input<string | null>(null);
 
   readonly active = signal(false);
+  /** The page header carries the compact trigger — the slim row tucks away. */
+  readonly tucked = computed(() => this.variant() === 'compact' && this.hub.tucked());
   readonly listboxId = `sc-codex-search-${nextId++}`;
   private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
 
@@ -213,7 +225,7 @@ export class CodexSearchBarComponent {
   });
 
   constructor() {
-    const unregister = this.hub.register({ activate: (seed) => this.activate(seed, true) });
+    const unregister = this.hub.register({ activate: (seed) => this.activate(seed, true), active: this.active });
     inject(DestroyRef).onDestroy(unregister);
 
     effect(() => {
@@ -263,6 +275,7 @@ export class CodexSearchBarComponent {
    */
   activate(seed?: string, fromShortcut = false): void {
     const wasActive = this.active();
+    if (!wasActive) this.rememberFocus();
     // Keys typed before the field had focus append — fast typing must not
     // restart the term with every letter.
     if (seed != null) this.engine.setInput(wasActive ? this.engine.input() + seed : seed);
@@ -301,13 +314,41 @@ export class CodexSearchBarComponent {
     host.style.setProperty('--panel-max', `${Math.max(180, room)}px`);
   }
 
-  /** Back to the slim bar. `clear` also empties the field (after a navigation). */
-  collapse(clear = false): void {
+  /**
+   * Back to the slim bar. `clear` also empties the field (after a navigation).
+   * `restoreFocus` (Esc, a click on the dimmed page) hands focus back when the
+   * bar was tucked — its field disappears, so focus would otherwise drop to
+   * the document.
+   */
+  collapse(clear = false, restoreFocus = false): void {
+    const wasActive = this.active();
+    // Taken before the blur: its focusout runs a nested collapse that resets it.
+    const back = this.returnFocus;
+    this.returnFocus = null;
     this.active.set(false);
     this.engine.setActive(-1);
     if (clear) this.engine.clear();
     const el = this.field().nativeElement;
     if (document.activeElement === el) el.blur();
+    if (restoreFocus && wasActive && this.tucked()) this.restoreFocus(back);
+  }
+
+  private returnFocus: HTMLElement | null = null;
+
+  /** Where focus was before the bar came forward — outside the bar, never the page body. */
+  private rememberFocus(): void {
+    if (typeof document === 'undefined') return;
+    const el = document.activeElement;
+    this.returnFocus =
+      el instanceof HTMLElement && el !== document.body && !this.host.nativeElement.contains(el) ? el : null;
+  }
+
+  private restoreFocus(back: HTMLElement | null): void {
+    if (back?.isConnected) {
+      back.focus({ preventScroll: true });
+      if (document.activeElement === back) return;
+    }
+    this.hub.focusTrigger();
   }
 
   /** A click on the field's chrome focuses the input; a click IN the input keeps the caret/selection the user placed. */
@@ -350,7 +391,7 @@ export class CodexSearchBarComponent {
     const action = this.engine.keyAction(ev);
     if (action === 'escape') {
       if (this.engine.input()) this.engine.clear();
-      else this.collapse();
+      else this.collapse(false, true);
       return;
     }
     if (action !== 'open' && action !== 'open-new-tab') {

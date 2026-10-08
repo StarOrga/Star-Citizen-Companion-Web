@@ -1470,6 +1470,28 @@ describe('CodexService.searchAll', () => {
     expect(new Set(hits.map((h) => h.classNameSlug)).size).toBe(2);
   });
 
+  it('reports per kind how many rows it read and how many cards the dedupe left', async () => {
+    const svc = make();
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+      if (kind !== 'item') return { rows: [], count: 0 };
+      return {
+        rows: [
+          listRow('armor_a', 'Cutlass Black Ship Armor'),
+          listRow('armor_b', 'Cutlass Black Ship Armor'),
+          listRow('armor_c', 'Cutlass Black Ship Armor'),
+          listRow('armor_d', 'Cutlass Blue Ship Armor'),
+        ],
+        count: 9,
+      };
+    });
+
+    const res = await svc.searchAll('cutlass armor');
+
+    expect(res.totals.item).toBe(9);
+    expect(res.read?.item).toBe(4);
+    expect(res.distinct?.item).toBe(2);
+  });
+
   it('skips a kind whose read fails instead of failing the whole search', async () => {
     const svc = make();
     spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
