@@ -62,7 +62,7 @@ import { DesktopCapabilityService } from '../core/desktop-capability.service';
             scTooltipTier="label"
             (click)="onSave()"
           >
-            {{ (saving() ? 'codex.loadout.saving' : 'codex.detail.draftApplyAndSave') | translate }}
+            {{ (saving() ? 'codex.loadout.saving' : inHangar() ? 'codex.detail.draftApplyAndSave' : 'codex.personal.adopt') | translate }}
           </button>
         </div>
         <!-- One element, two jobs: the accessible description the blocked
@@ -112,6 +112,7 @@ export class CodexLoadoutSaveBarComponent {
   readonly saveable = input.required<number>();
   readonly saving = input(false);
   readonly error = input<string | null>(null);
+  /** Personal mode (`?v=`): the button saves into the variant; codex mode offers "In dein HQ übernehmen". */
   readonly inHangar = input(false);
 
   readonly save = output<void>();
