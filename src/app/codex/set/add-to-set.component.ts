@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { hqLocker, hqSet } from '../../hq/hq-routes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
@@ -59,7 +60,7 @@ export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit'
         @switch (view()) {
           @case ('signedOut') {
             <p class="ats-text">{{ 'fps.addToSet.signedOut' | translate }}</p>
-            <a class="ats-link" routerLink="/hangar">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
+            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
           }
           @case ('loading') {
             <p class="ats-text" role="status">{{ 'fps.addToSet.loading' | translate }}</p>
@@ -70,11 +71,11 @@ export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit'
           }
           @case ('noSet') {
             <p class="ats-text">{{ 'fps.addToSet.noSet' | translate }}</p>
-            <a class="ats-link" routerLink="/hangar">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
+            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
           }
           @case ('noFit') {
             <p class="ats-text">{{ 'fps.addToSet.noFit' | translate }}</p>
-            <a class="ats-link" routerLink="/hangar">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
+            <a class="ats-link" [routerLink]="lockerLink">{{ 'fps.addToSet.createSet' | translate }} <span aria-hidden="true">→</span></a>
           }
           @case ('pickSet') {
             <p class="ats-head">{{ 'fps.addToSet.pickSet' | translate }}</p>
@@ -113,7 +114,7 @@ export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit'
                 <span aria-hidden="true">✓</span>
                 {{ 'fps.addToSet.done' | translate: { item: itemName(), slot: slotLabel(c.slot), set: c.set.name } }}
               </p>
-              <a class="ats-link" [routerLink]="['/codex', 'set', c.set.id]">{{ 'fps.addToSet.toSet' | translate }} <span aria-hidden="true">→</span></a>
+              <a class="ats-link" [routerLink]="setRoute(c.set.id)">{{ 'fps.addToSet.toSet' | translate }} <span aria-hidden="true">→</span></a>
             }
           }
         }
@@ -190,6 +191,12 @@ export type AddToSetView = 'signedOut' | 'loading' | 'error' | 'noSet' | 'noFit'
   `],
 })
 export class AddToSetComponent {
+  readonly lockerLink = hqLocker;
+
+  setRoute(id: string): string[] {
+    return hqSet(id);
+  }
+
   readonly svc = inject(CodexService);
   private readonly t = inject(TranslateService);
   private readonly injector = inject(Injector);

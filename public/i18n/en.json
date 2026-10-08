@@ -156,7 +156,8 @@
       "message": "This page could not be loaded — your browser is probably still running an older version of the app.",
       "reload": "Reload app",
       "dismiss": "Dismiss"
-    }
+    },
+    "hq": "HQ"
   },
   "impersonation": {
     "banner": {
@@ -4596,5 +4597,58 @@
     "copy": "Copy class name",
     "copied": "Copied",
     "copyAria": "Copy class name {{name}}"
+  },
+  "hq": {
+    "title": "HQ",
+    "eyebrow": "Personal area",
+    "subtitle": "Your ships, sets and ops in one place.",
+    "tabsAria": "HQ sections",
+    "tabs": {
+      "overview": "Overview",
+      "locker": "Locker",
+      "hangar": "Hangar",
+      "ops": "Ops"
+    },
+    "supplies": {
+      "button": "Supplies",
+      "buttonAria": "Open supplies ({{count}} entries)",
+      "title": "Supplies",
+      "close": "Close supplies",
+      "empty": "Nothing on the supplies list yet.",
+      "emptyHint": "Soon this collects what your ships and sets still need — across hangar, locker and ops."
+    },
+    "ops": {
+      "title": "Ops",
+      "subtitle": "Plan what you are going to do with ship and set.",
+      "soon": "Coming soon",
+      "empty": "Ops planning is in the works. Soon you will plan missions with your ships and sets here."
+    },
+    "overview": {
+      "activeShip": "Active ship",
+      "activeVariant": "Active variant",
+      "noVariant": "Stock loadout",
+      "activeSet": "Active set",
+      "nextOps": "Next ops",
+      "suppliesPreview": "Supplies",
+      "opsEmpty": "No ops planned yet.",
+      "suppliesEmpty": "Nothing to fetch.",
+      "noShip": "No ship in your hangar yet.",
+      "noSet": "No set in your locker yet.",
+      "setupHangar": "Set up hangar",
+      "createSet": "Create a set",
+      "openHangar": "Go to hangar",
+      "openLocker": "Go to locker",
+      "openCodex": "View in codex",
+      "recentShips": "Recently picked ships",
+      "recentSets": "Recently picked sets",
+      "loadFailed": "Your HQ could not be loaded."
+    },
+    "locker": {
+      "title": "Locker",
+      "subtitle": "Your FPS sets for every role.",
+      "details": "Details",
+      "detailsAria": "{{name}} details in the codex"
+    },
+    "signpost": "Your ships in HQ"
   }
 }

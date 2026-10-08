@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { hqHangar } from '../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AnalyticsService } from '../core/analytics.service';
 import { formatScDate } from '../core/locale/date-format';
@@ -50,7 +51,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
               <a class="sc-btn" routerLink="/tools/extension">
                 {{ 'extension.importPage.empty.installLink' | translate }}
               </a>
-              <a class="sc-btn" routerLink="/hangar">
+              <a class="sc-btn" [routerLink]="hangarLink">
                 {{ 'extension.importPage.empty.hangarLink' | translate }}
               </a>
             </div>
@@ -61,7 +62,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
           <div class="sc-card state done">
             <strong>{{ 'extension.importPage.done.title' | translate: { count: importedCount() } }}</strong>
             <p>{{ 'extension.importPage.done.text' | translate }}</p>
-            <a class="sc-btn sc-btn-primary" routerLink="/hangar">
+            <a class="sc-btn sc-btn-primary" [routerLink]="hangarLink">
               {{ 'extension.importPage.done.hangarLink' | translate }}
             </a>
           </div>
@@ -121,6 +122,7 @@ type Phase = 'waiting' | 'ready' | 'empty' | 'done';
   ],
 })
 export class HangarImportPageComponent implements OnInit {
+  protected readonly hangarLink = hqHangar;
   protected readonly hangarCrumbs = [HANGAR_ROOT_CRUMB];
   private readonly bridge = inject(ExtensionBridgeService);
   private readonly analytics = inject(AnalyticsService);

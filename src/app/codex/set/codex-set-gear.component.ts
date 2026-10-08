@@ -7,6 +7,7 @@ import { ResolvedEntity, pickLocalized, toLang } from '../codex.service';
 import { ARMOR_SLOT_SPECS } from '../codex-landing-kpi';
 import { cleanLocaleValue, humanizeClassName } from '../codex-format';
 import { SetSlotClearer } from './set-slot-clear';
+import { HqLink, personalItemLink } from '../../hq/hq-routes';
 import {
   ROLE_SLOT_SUGGESTIONS,
   RoleLoadoutItem,
@@ -29,6 +30,8 @@ export interface GearSlotRow {
   /** A free-form slot's own name, as the user typed it; null when `labelKey` names it. */
   label: string | null;
   className: string | null;
+  /** Codex kind of the equipped piece (from the resolved entity); null while unresolved or open. */
+  kind: string | null;
   /** Resolved display name of the equipped piece; '' when the slot is open. */
   name: string;
   /** False where the FPS archive has nothing to offer (medpen, custom slots) — no link then. */
@@ -98,6 +101,11 @@ export interface GearSlotRow {
                   <span class="t-value">{{ r.className ? r.name : ('codex.set.gear.open' | translate) }}</span>
                   <span class="gear-note">{{ (r.custom ? 'codex.set.gear.customSlot' : 'codex.set.gear.noSource') | translate }}</span>
                 </div>
+              }
+              @if (r.className && r.kind) {
+                @let dl = detailLink(r.kind, r.className);
+                <a class="gear-detail" [routerLink]="dl.commands" [queryParams]="dl.queryParams"
+                   [attr.aria-label]="'hq.locker.detailsAria' | translate: { name: r.name }">{{ 'hq.locker.details' | translate }}</a>
               }
               @if (r.className) {
                 <!-- One write at a time: every clear waits while one is in flight. -->
@@ -262,6 +270,15 @@ export interface GearSlotRow {
       .gear-tile.static { border-style: dotted; }
       .gear-note { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); line-height: 1.3; }
 
+      .gear-detail {
+        align-self: center;
+        color: var(--sc-accent);
+        text-decoration: none;
+        font-size: 0.85rem;
+        white-space: nowrap;
+      }
+      .gear-detail:hover { text-decoration: underline; }
+      .gear-detail:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
       .gear-clear {
         flex: 0 0 auto;
         min-height: max(40px, var(--sc-tap-min));
@@ -321,6 +338,11 @@ export class CodexSetGearComponent {
       .subscribe((e) => this.dataLang.set(toLang(e.lang)));
   }
 
+  /** The equipped piece's codex page in "mine" mode. */
+  detailLink(kind: string, className: string): HqLink {
+    return personalItemLink(kind, className);
+  }
+
   readonly rows = computed<GearSlotRow[]>(() => {
     const items = this.items();
     const bySlot = new Map(items.map((i) => [i.slot, i.className] as const));
@@ -343,6 +365,7 @@ export class CodexSetGearComponent {
         labelKey: 'hangar.slots.' + slot,
         label: null,
         className,
+        kind: className ? resolved.get(className)?.kind ?? null : null,
         name: nameOf(className),
         linkable: slotHasArchiveSource(slot),
         custom: false,
@@ -363,6 +386,7 @@ export class CodexSetGearComponent {
         labelKey: known ? 'hangar.slots.' + item.slot : null,
         label: known ? null : item.slot,
         className: item.className,
+        kind: resolved.get(item.className)?.kind ?? null,
         name: nameOf(item.className),
         linkable: false,
         custom: true,
