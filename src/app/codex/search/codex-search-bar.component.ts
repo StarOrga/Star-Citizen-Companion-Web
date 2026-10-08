@@ -237,8 +237,10 @@ export class CodexSearchBarComponent {
    * typed character; `fromShortcut` also scrolls the page up to the bar.
    */
   activate(seed?: string, fromShortcut = false): void {
-    if (seed != null) this.engine.setInput(seed);
     const wasActive = this.active();
+    // Keys typed before the field had focus append — fast typing must not
+    // restart the term with every letter.
+    if (seed != null) this.engine.setInput(wasActive ? this.engine.input() + seed : seed);
     this.active.set(true);
     this.engine.ensureSuggestions();
     if (fromShortcut && !wasActive && typeof window !== 'undefined') {
@@ -258,15 +260,18 @@ export class CodexSearchBarComponent {
   }
 
   focusInput(select = false): void {
-    afterNextRender(
-      () => {
-        const el = this.field().nativeElement;
-        el.focus({ preventScroll: true });
-        if (select) el.select();
-        else el.setSelectionRange(el.value.length, el.value.length);
-      },
-      { injector: this.injector },
-    );
+    // Focus now (the field always exists), so the next keystroke already lands
+    // in it; the after-render pass re-applies caret/selection to the new value.
+    this.applyFocus(select);
+    afterNextRender(() => this.applyFocus(select), { injector: this.injector });
+  }
+
+  private applyFocus(select: boolean): void {
+    const el = this.field().nativeElement;
+    if (el.value !== this.engine.input()) el.value = this.engine.input();
+    el.focus({ preventScroll: true });
+    if (select) el.select();
+    else el.setSelectionRange(el.value.length, el.value.length);
   }
 
   onInput(ev: Event): void {
