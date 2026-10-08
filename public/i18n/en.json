@@ -395,8 +395,8 @@
     },
     "search": {
       "didYouMean": "Did you mean:",
-      "placeholder": "Search name or class (e.g. Gladius, AEGS_*)…",
-      "label": "Search the codex",
+      "placeholder": "Filter this list – name or class (e.g. Gladius, AEGS_*) …",
+      "listFilterLabel": "Filter this list",
       "clear": "Clear search",
       "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
       "alsoIn": "Also found in:",
@@ -418,13 +418,23 @@
         "empty": "No matches for “{{term}}”.",
         "allInIndex": "All {{n}} in the index",
         "allUpcoming": "All {{n}} in Upcoming Ships",
+        "folded": "{{n}} variants folded in",
+        "foldedOne": "1 variant folded in",
+        "foldedAtLeast": "at least {{n}} variants folded in",
+        "foldedAtLeastOne": "at least 1 variant folded in",
         "grade": "Grade {{grade}}",
         "livery": "Livery",
         "upcomingBadge": "Not in the game yet",
         "addToHangarAria": "Add {{name}} to the hangar",
         "addToHangar": "Hangar",
         "pinAria": "Compare {{name}}",
-        "navHint": "↑↓ navigate · ↵ open · Ctrl+↵ new tab · Esc close",
+        "keys": {
+          "navigate": "navigate",
+          "open": "open",
+          "ctrl": "Ctrl",
+          "newTab": "new tab",
+          "close": "close"
+        },
         "category": {
           "ships": "Ships",
           "components": "Components",
@@ -434,6 +444,10 @@
           "keybinds": "Keybindings"
         },
         "close": "Close search"
+      },
+      "trigger": {
+        "label": "Search the whole Codex",
+        "tooltip": "Search the whole Codex (Ctrl+K)"
       }
     },
     "kinds": {
@@ -2177,7 +2191,7 @@
     "subtitle": "On-foot gear — weapons and armor, datamined from the live build.",
     "bridgeLink": "FPS Gear",
     "categoriesAria": "FPS equipment categories",
-    "searchPlaceholder": "Search name or class (e.g. Arclight, Morozov, klwe_*) …",
+    "searchPlaceholder": "Filter this list – name or class (e.g. Arclight, Morozov, klwe_*) …",
     "category": {
       "weapon": "Weapons",
       "armor": "Armor"

@@ -226,6 +226,114 @@ describe('CodexSearchBarComponent', () => {
     expect(host.querySelector('.partial')).toBeNull();
   }));
 
+  it('the group pill counts the cards it lists; folded variants get a quiet hint, "all N" keeps the raw total', fakeAsync(() => {
+    const codex = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
+    const weapon = {
+      kind: 'weapon' as const,
+      classNameSlug: 'behr_rifle_p4ar',
+      nameLocalized: 'P4-AR Rifle',
+      manufacturerCode: 'BEHR',
+      size: null,
+      grade: null,
+      scope: scopeForKind('weapon'),
+    };
+    codex.searchAll.and.resolveTo({ hits: [weapon], totals: { weapon: 49 }, distinct: { weapon: 1 }, read: { weapon: 49 } });
+    fixture.componentInstance.activate();
+    fixture.componentInstance.engine.searchFor('p4');
+    tick();
+    fixture.detectChanges();
+
+    expect(host.querySelector('.group-head .count')?.textContent?.trim()).toBe('1');
+    expect(host.querySelector('.group-head .folded')?.textContent?.trim()).toBe('codex.search.bar.folded');
+    expect(host.querySelectorAll('.hit').length).toBe(1);
+    expect(host.querySelector('.more')?.getAttribute('href')).toBe('/codex/index?kind=weapon&q=p4');
+  }));
+
+  it('the key legend renders keycaps, the return glyph on its own size step', fakeAsync(() => {
+    fixture.componentInstance.activate();
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const keys = Array.from(host.querySelectorAll<HTMLElement>('.nav-hint kbd'));
+    expect(keys.map((k) => k.textContent?.trim())).toEqual(['↑', '↓', '↵', 'codex.search.bar.keys.ctrl', '↵', 'Esc']);
+    const px = (el: Element) => parseFloat(getComputedStyle(el).fontSize);
+    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    expect(px(keys[0])).toBeGreaterThanOrEqual(0.75 * rootPx);
+    expect(px(keys[2])).toBeGreaterThan(px(keys[0]));
+  }));
+
+  describe('tucked (the page header carries the compact trigger)', () => {
+    let unregister: () => void;
+    let trigger: HTMLButtonElement;
+
+    beforeEach(() => {
+      trigger = document.createElement('button');
+      document.body.appendChild(trigger);
+      unregister = TestBed.inject(CodexSearchHub).registerTrigger({ focus: () => trigger.focus() });
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      unregister();
+      trigger.remove();
+    });
+
+    it('draws no slim row: zero height, no visible field', () => {
+      expect(host.classList).toContain('tucked');
+      expect(host.getBoundingClientRect().height).toBe(0);
+      expect(getComputedStyle(host.querySelector('.shell')!).display).toBe('none');
+    });
+
+    it('a call brings it forward, focused; the hub reports it expanded', fakeAsync(() => {
+      spyOn(window, 'scrollTo');
+      const hub = TestBed.inject(CodexSearchHub);
+      trigger.focus();
+      expect(hub.activate()).toBeTrue();
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+
+      expect(getComputedStyle(host.querySelector('.shell')!).display).not.toBe('none');
+      expect(document.activeElement).toBe(input());
+      expect(hub.expanded()).toBeTrue();
+      tick(1000);
+    }));
+
+    it('Esc on an empty field collapses and hands focus back to where it came from', fakeAsync(() => {
+      spyOn(window, 'scrollTo');
+      trigger.focus();
+      TestBed.inject(CodexSearchHub).activate();
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+
+      keydown('Escape');
+      fixture.detectChanges();
+
+      expect(host.classList).not.toContain('active');
+      expect(TestBed.inject(CodexSearchHub).expanded()).toBeFalse();
+      expect(document.activeElement).toBe(trigger);
+      tick(1000);
+    }));
+
+    it('type-to-search (no field focused) also lands focus back on the trigger after Esc', fakeAsync(() => {
+      spyOn(window, 'scrollTo');
+      (document.activeElement as HTMLElement | null)?.blur();
+      TestBed.inject(CodexSearchHub).activate('g');
+      fixture.detectChanges();
+      tick();
+      fixture.detectChanges();
+      expect(input().value).toBe('g');
+
+      keydown('Escape'); // clears the term
+      keydown('Escape'); // collapses
+      fixture.detectChanges();
+      expect(document.activeElement).toBe(trigger);
+      tick(1000);
+    }));
+  });
+
   it('the landing terminal keeps a real height on a mouse pointer — the field never hangs over the next row', () => {
     const t = TestBed.createComponent(CodexSearchBarComponent);
     t.componentRef.setInput('variant', 'terminal');

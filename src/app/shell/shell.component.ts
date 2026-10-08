@@ -703,6 +703,9 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves. */
     .codex-bar { margin-bottom: 18px; }
+    /* A page with its own list filter carries the compact trigger in its
+       header instead — no slim row, so no gap for one (the bar sets .tucked). */
+    .codex-bar.tucked { margin-bottom: 0; }
     .content {
       flex: 1;
       width: 100%;

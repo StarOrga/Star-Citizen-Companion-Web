@@ -29,8 +29,19 @@ export interface CodexSearchGroup {
   kind: PolyHitKind;
   /** The best hits of this kind, at most the cap. */
   hits: PolySearchHit[];
-  /** Every record of this kind that matched — at least `hits.length`. */
+  /** Every record of this kind that matched — at least `hits.length`. What "all N in the index" promises. */
   total: number;
+  /**
+   * What the group header counts: distinct cards, the way the user sees them
+   * (same-name variants fold into one row). Equals `total` when nothing folded.
+   */
+  count: number;
+  /** True when only part of the matches was read: `count` is a floor ("12+"). */
+  countIsFloor: boolean;
+  /** Records folded into the cards — the quiet "N variants folded in" hint; 0 for none. */
+  folded: number;
+  /** True when `folded` only covers the rows read ("at least N"). */
+  foldedIsFloor: boolean;
   /** "All N in the index" — only when the index holds more than shown. */
   more: SearchTarget | null;
 }
@@ -82,12 +93,41 @@ export function indexTarget(kind: PolyHitKind, term: string): SearchTarget {
   return { link: ['/codex/index'], queryParams: q ? { kind, q } : { kind } };
 }
 
+/** Per kind: distinct cards among the rows read, and how many rows were read. */
+export interface GroupCounts {
+  distinct?: Partial<Record<PolyHitKind, number>>;
+  read?: Partial<Record<PolyHitKind, number>>;
+}
+
+/**
+ * The header numbers of one group. The pill counts cards (deduped), the "all
+ * N" link keeps the raw total. When the over-fetch did not read every match,
+ * the unread rest may hold more cards: the count becomes a floor ("12+") and
+ * the folded number covers only what was read.
+ */
+export function groupCounts(
+  total: number,
+  shown: number,
+  distinct: number | undefined,
+  read: number | undefined,
+): Pick<CodexSearchGroup, 'count' | 'countIsFloor' | 'folded' | 'foldedIsFloor'> {
+  if (distinct == null) return { count: total, countIsFloor: false, folded: 0, foldedIsFloor: false };
+  const cards = Math.max(distinct, shown);
+  const complete = read == null || read >= total;
+  if (complete) {
+    const count = Math.min(cards, total);
+    return { count, countIsFloor: false, folded: Math.max(0, total - count), foldedIsFloor: false };
+  }
+  return { count: cards, countIsFloor: true, folded: Math.max(0, read - cards), foldedIsFloor: true };
+}
+
 /** Group ranked hits by kind in KIND_PRIORITY order, at most `cap` per group. */
 export function groupHits(
   term: string,
   hits: readonly PolySearchHit[],
   totals: Partial<Record<PolyHitKind, number>>,
   cap: number,
+  counts: GroupCounts = {},
 ): CodexSearchGroup[] {
   const byKind = new Map<PolyHitKind, PolySearchHit[]>();
   for (const h of hits) {
@@ -102,7 +142,13 @@ export function groupHits(
     if (!all?.length) continue;
     const shown = all.slice(0, Math.max(1, cap));
     const total = Math.max(totals[kind] ?? all.length, all.length);
-    groups.push({ kind, hits: shown, total, more: total > shown.length ? indexTarget(kind, term) : null });
+    groups.push({
+      kind,
+      hits: shown,
+      total,
+      ...groupCounts(total, shown.length, counts.distinct?.[kind], counts.read?.[kind]),
+      more: total > shown.length ? indexTarget(kind, term) : null,
+    });
   }
   return groups;
 }

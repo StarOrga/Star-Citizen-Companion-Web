@@ -1,9 +1,17 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, Signal, computed, signal } from '@angular/core';
 
 /** What the hub needs from a mounted Codex search bar. */
 export interface CodexSearchBarHandle {
   /** Bring the bar forward: expanded, focused; `seed` starts the search with that text. */
   activate(seed?: string): void;
+  /** True while the bar is expanded. */
+  readonly active?: Signal<boolean>;
+}
+
+/** A compact "search the whole Codex" button in a page header (CodexSearchTriggerComponent). */
+export interface CodexSearchTriggerHandle {
+  /** Take focus back when the bar it opened collapses. */
+  focus(): void;
 }
 
 /**
@@ -18,8 +26,38 @@ export interface CodexSearchBarHandle {
 export class CodexSearchHub {
   private readonly bars = signal<readonly CodexSearchBarHandle[]>([]);
 
+  private readonly triggers = signal<readonly CodexSearchTriggerHandle[]>([]);
+
   /** True while a Codex search bar is mounted. */
   readonly hasBar = computed(() => this.bars().length > 0);
+
+  /**
+   * True while a page that has a list filter of its own shows the compact
+   * trigger in its header. The slim bar then tucks away until it is called
+   * — two stacked search fields with different jobs read as one too many.
+   */
+  readonly tucked = computed(() => this.triggers().length > 0);
+
+  /** True while the newest bar is expanded — the trigger's aria-expanded. */
+  readonly expanded = computed(() => {
+    const list = this.bars();
+    return list[list.length - 1]?.active?.() ?? false;
+  });
+
+  /** Register a page-header trigger; the returned function unregisters it. */
+  registerTrigger(trigger: CodexSearchTriggerHandle): () => void {
+    this.triggers.update((list) => [...list.filter((t) => t !== trigger), trigger]);
+    return () => this.triggers.update((list) => list.filter((t) => t !== trigger));
+  }
+
+  /** Focus the newest trigger (focus return after a tucked bar collapses). False when there is none. */
+  focusTrigger(): boolean {
+    const list = this.triggers();
+    const t = list[list.length - 1];
+    if (!t) return false;
+    t.focus();
+    return true;
+  }
 
   /** Register a bar; the returned function unregisters it. The newest bar wins. */
   register(bar: CodexSearchBarHandle): () => void {

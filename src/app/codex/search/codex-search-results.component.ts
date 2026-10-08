@@ -120,7 +120,12 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
             <div class="group" role="group" [attr.aria-labelledby]="listboxId() + '-h-' + g.kind">
               <div class="group-head" role="presentation">
                 <span [id]="listboxId() + '-h-' + g.kind">{{ 'codex.kinds.' + g.kind | translate }}</span>
-                <span class="count">{{ g.total }}</span>
+                <!-- Counts cards, the way the rows below show them; the raw
+                     record total stays on the "all N in the index" link. -->
+                <span class="count">{{ g.count }}{{ g.countIsFloor ? '+' : '' }}</span>
+                @if (g.folded > 0) {
+                  <span class="folded">{{ foldedKey(g.folded, g.foldedIsFloor) | translate: { n: g.folded } }}</span>
+                }
               </div>
               @for (o of groupOptions(g.kind); track o.id) {
                 @if (o.type === 'more') {
@@ -143,7 +148,12 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
         <!-- Outside the listbox: an alert inside an option breaks the combobox semantics. -->
         <p class="state err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
       }
-      <p class="nav-hint" aria-hidden="true">{{ 'codex.search.bar.navHint' | translate }}</p>
+      <p class="nav-hint" aria-hidden="true">
+        <span class="nh-item"><kbd>↑</kbd><kbd>↓</kbd> {{ 'codex.search.bar.keys.navigate' | translate }}</span>
+        <span class="nh-item"><kbd class="glyph">↵</kbd> {{ 'codex.search.bar.keys.open' | translate }}</span>
+        <span class="nh-item"><kbd>{{ 'codex.search.bar.keys.ctrl' | translate }}</kbd>+<kbd class="glyph">↵</kbd> {{ 'codex.search.bar.keys.newTab' | translate }}</span>
+        <span class="nh-item"><kbd>Esc</kbd> {{ 'codex.search.bar.keys.close' | translate }}</span>
+      </p>
     </div>
 
     <ng-template #row let-o>
@@ -225,6 +235,11 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
       font-family: var(--sc-font-mono, monospace); font-variant-numeric: tabular-nums; letter-spacing: 0;
       font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.5;
       padding: 0 7px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-1);
+    }
+    /* Quiet: says why "Waffen 1" sits above a single row and "all 49" below it. */
+    .folded {
+      font-family: inherit; text-transform: none; letter-spacing: 0;
+      font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic;
     }
     .head-action {
       margin-left: auto; background: none; border: 0; padding: 2px 4px; cursor: pointer; border-radius: 4px;
@@ -332,10 +347,22 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
        away under a long result list. */
     .nav-hint {
       position: sticky; bottom: 0; z-index: 1;
-      margin: 4px 0 0; padding: 6px 4px; border-top: 1px solid var(--sc-border); text-align: center;
+      display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px;
+      margin: 4px 0 0; padding: 7px 4px; border-top: 1px solid var(--sc-border);
       background: var(--sc-hint-bg, var(--sc-bg-1));
-      color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.03em;
+      color: var(--sc-fg-2); font-size: max(0.78rem, var(--sc-fs-floor)); letter-spacing: 0.02em;
     }
+    .nh-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    /* Keys as keycaps at a legible size; the return arrow is a thin glyph in
+       most fonts, so it gets a size step of its own. */
+    .nav-hint kbd {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.6em; height: 1.55em; padding: 0 5px; border-radius: 4px;
+      font-family: var(--sc-font-mono, monospace); font-size: max(0.76rem, var(--sc-fs-floor)); line-height: 1;
+      color: var(--sc-fg-1); background: var(--sc-bg-2);
+      border: 1px solid var(--sc-border); border-bottom-width: 2px;
+    }
+    .nav-hint kbd.glyph { font-size: max(1rem, var(--sc-fs-floor)); font-weight: 600; }
 
     .roomy .hit { padding: 8px 10px; }
     .roomy .icon { width: 34px; height: 34px; }
@@ -395,6 +422,12 @@ export class CodexSearchResultsComponent {
     return this.engine()
       .options()
       .filter((o) => (o.type === 'hit' && o.hit.kind === kind) || (o.type === 'more' && o.kind === kind));
+  }
+
+  /** i18n key of the "N variants folded in" hint — singular, plural, "at least". */
+  foldedKey(n: number, floor: boolean): string {
+    const base = floor ? 'codex.search.bar.foldedAtLeast' : 'codex.search.bar.folded';
+    return n === 1 ? `${base}One` : base;
   }
 
   optId(o: SearchOption): string {

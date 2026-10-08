@@ -67,6 +67,7 @@ import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { CodexDidYouMeanComponent } from './codex-did-you-mean.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
+import { CodexSearchTriggerComponent } from './search/codex-search-trigger.component';
 import { CODEX_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
 
 /**
@@ -136,7 +137,7 @@ export function blueprintCategoriesForGroup(
 @Component({
   selector: 'sc-codex-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, ClassChipComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexStatusBannerComponent, UpcomingGridComponent, FallbackImageComponent, ShipTileArtComponent, ScSegmentedComponent, ScSelectComponent, ScTooltipDirective, CodexDidYouMeanComponent, PageHeaderComponent, CodexSearchTriggerComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="codex-page">
@@ -144,6 +145,9 @@ export function blueprintCategoriesForGroup(
         [crumbs]="codexCrumbs"
         [title]="'codex.index.title' | translate"
         [subtitle]="'codex.subtitle' | translate">
+        <!-- This page filters its own list below; the whole-Codex search
+             is the compact trigger here, so the shell's slim bar tucks away. -->
+        <sc-codex-search-trigger phAside />
         <sc-codex-status-banner phAside />
       </sc-page-header>
 
@@ -222,7 +226,7 @@ export function blueprintCategoriesForGroup(
           <input class="search" type="search" [ngModel]="searchInput()"
                  (ngModelChange)="onSearchInput($event)"
                  (keydown.enter)="commitSearch()"
-                 [attr.aria-label]="'codex.search.label' | translate"
+                 [attr.aria-label]="'codex.search.listFilterLabel' | translate"
                  [attr.placeholder]="'codex.search.placeholder' | translate" />
           @if (searchInput()) {
             <button class="search-clear" type="button" (click)="clearSearch()"

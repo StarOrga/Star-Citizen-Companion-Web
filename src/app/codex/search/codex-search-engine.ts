@@ -11,6 +11,7 @@ import { mergeSuggestions } from '../codex-did-you-mean.component';
 import { Lang } from '../codex.types';
 import {
   CodexSearchGroup,
+  GroupCounts,
   SearchOption,
   SearchTarget,
   clearRecentSearches,
@@ -66,6 +67,8 @@ export class CodexSearchEngine {
   readonly partialError = signal<string | null>(null);
   readonly hits = signal<PolySearchHit[]>([]);
   readonly totals = signal<Partial<Record<PolyHitKind, number>>>({});
+  /** Per kind: distinct cards and rows read — the group pill counts cards. */
+  readonly counts = signal<GroupCounts>({});
   /** "Did you mean" names for a search that found nothing. */
   readonly didYouMean = signal<string[]>([]);
   readonly recent = signal<string[]>(readRecentSearches(storage()));
@@ -76,7 +79,7 @@ export class CodexSearchEngine {
 
   readonly hasTerm = computed(() => this.term().trim().length > 0);
   readonly groups = computed<CodexSearchGroup[]>(() =>
-    this.hasTerm() ? groupHits(this.term(), this.hits(), this.totals(), this.perGroup()) : [],
+    this.hasTerm() ? groupHits(this.term(), this.hits(), this.totals(), this.perGroup(), this.counts()) : [],
   );
   readonly options = computed<SearchOption[]>(() =>
     this.input().trim() ? resultOptions(this.groups()) : suggestionOptions(this.recent(), this.fresh()),
@@ -246,6 +249,7 @@ export class CodexSearchEngine {
       this.seq++;
       this.hits.set([]);
       this.totals.set({});
+      this.counts.set({});
       this.error.set(null);
       this.partialError.set(null);
       this.didYouMean.set([]);
@@ -262,10 +266,11 @@ export class CodexSearchEngine {
     this.partialError.set(null);
     this.didYouMean.set([]);
     try {
-      const { hits, totals, failed, failure } = await this.codex.searchAll(term, this.perGroup());
+      const { hits, totals, distinct, read, failed, failure } = await this.codex.searchAll(term, this.perGroup());
       if (seq !== this.seq) return; // a newer search superseded this one
       this.hits.set(hits);
       this.totals.set(totals);
+      this.counts.set({ distinct, read });
       if (failed?.length) this.partialError.set(toErrorKey('codex', 'search', failure, { term, failed }));
       this.activeIndex.set(-1);
       if (hits.length === 0) void this.loadDidYouMean(seq, term);
@@ -273,6 +278,7 @@ export class CodexSearchEngine {
       if (seq === this.seq) {
         this.hits.set([]);
         this.totals.set({});
+        this.counts.set({});
         this.partialError.set(null);
         this.error.set(toErrorKey('codex', 'search', err, { term }));
       }
