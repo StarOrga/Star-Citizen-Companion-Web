@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.140.0] - 2026-10-08
+
+### Changed
+
+- **Data Uploader 0.50.0: 3D-Modelle in zwei Schritten.** Der Schritt
+  „3D-Modelle“ der Upload-Karte hat jetzt wie der Codex zwei Unterzeilen:
+  „Modelle bauen“ und „Modelle hochladen“, jede mit eigenem Zustand und
+  einer Zahl x/y. Fehlen die Werkzeuge oder scheitert der Bau, warnt nur die
+  Bau-Zeile; gibt es keine Schiffe zu bauen, ist der Bau fertig und das
+  Hochladen übersprungen. Die Zeile „3D-Modelle“ folgt beiden Unterzeilen.
+
+### Fixed
+
+- **Data Uploader: Schrittleiste springt nicht mehr zurück.** Der
+  Upload-Abschnitt der Schrittleiste rechnet jetzt pro Arbeitsschritt
+  (Bundle, Silhouetten, Einträge, Modelle bauen, Modelle hochladen) statt pro
+  Hauptschritt. Vorher sprang die Leiste beim Wechsel zwischen zwei
+  Unterzeilen auf den Anfang des Hauptschritts zurück – auch beim Codex.
+
 ## [0.139.0] - 2026-10-08
 
 ### Added
