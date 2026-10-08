@@ -49,13 +49,14 @@ async function setup(
   detail: BlueprintDetail,
   translations?: TranslationObject,
   getBlueprint: CodexService['getBlueprint'] = async () => detail,
+  extra: Partial<CodexService> = {},
 ): Promise<ComponentFixture<BlueprintDetailComponent>> {
   TestBed.configureTestingModule({
     imports: [BlueprintDetailComponent],
     providers: [
       provideTranslateService(),
       provideRouter([]),
-      { provide: CodexService, useValue: { getBlueprint } as Partial<CodexService> },
+      { provide: CodexService, useValue: { getBlueprint, ...extra } as Partial<CodexService> },
       {
         provide: ActivatedRoute,
         useValue: { paramMap: new BehaviorSubject(convertToParamMap({ className: detail.classNameSlug })) },
@@ -291,5 +292,40 @@ describe('BlueprintDetailComponent — moving on to another blueprint', () => {
 
     expect((fixture.nativeElement as HTMLElement).querySelector('.err')).toBeNull();
     expect(ingredientClasses(fixture)).toEqual(['Agricium']);
+  });
+});
+
+describe('BlueprintDetailComponent — hero and output', () => {
+  it('shows the class name as a copyable chip, never as the title', async () => {
+    const fixture = await setup(blueprint([ingredient(0, 'Aluminum', 1)]));
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.hero h1')?.textContent?.trim()).not.toBe(MICROSAT);
+    expect(el.querySelector('.hero sc-class-chip button')).not.toBeNull();
+    expect(heroClass(fixture)).toBe(MICROSAT);
+  });
+
+  it('names and links the crafted item once the catalog resolves it', async () => {
+    const out = 'Carryable_2H_FL_MissionItem_Microsatellite_a';
+    const resolveEntities = jasmine.createSpy('resolveEntities').and.resolveTo(
+      new Map([[out, { kind: 'item', className: out, nameLocalized: 'Microsatellite', manufacturerCode: null, size: null, grade: null }]]),
+    );
+    const detail = blueprint([ingredient(0, 'Aluminum', 1)]);
+    const fixture = await setup(detail, undefined, async () => detail, { resolveEntities } as Partial<CodexService>);
+    await settle(fixture);
+    const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('.output-row a.ing-name');
+    expect(resolveEntities).toHaveBeenCalledWith([out]);
+    expect(link?.textContent?.trim()).toBe('Microsatellite');
+    expect(link?.getAttribute('href')).toBe(`/codex/item/${out}`);
+  });
+
+  it('keeps a plain, humanized output line when the lookup fails', async () => {
+    const resolveEntities = jasmine.createSpy('resolveEntities').and.rejectWith(new Error('timeout'));
+    const detail = blueprint([ingredient(0, 'Aluminum', 1)]);
+    const fixture = await setup(detail, undefined, async () => detail, { resolveEntities } as Partial<CodexService>);
+    await settle(fixture);
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.output-row a.ing-name')).toBeNull();
+    expect(el.querySelector('.output-row .ing-name')?.textContent?.trim()).toBe('Carryable 2H FL Mission Item Microsatellite a');
+    expect(el.querySelector('.err')).toBeNull();
   });
 });
