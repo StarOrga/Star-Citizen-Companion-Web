@@ -326,7 +326,7 @@ kbd.sc-kbd {
   user-select: none;
   animation: sc-tip-in var(--sc-transition-overlay) ease;
 }
-.sc-tooltip .sc-tip-text { overflow-wrap: anywhere; }
+.sc-tooltip .sc-tip-text { overflow-wrap: anywhere; white-space: pre-line; }
 .sc-tooltip .sc-tip-text:empty { display: none; }
 @keyframes sc-tip-in { from { opacity: 0; } to { opacity: 1; } }
 
@@ -750,6 +750,44 @@ kbd.sc-kbd {
 }
 
 .sc-progress { display: flex; flex-direction: column; min-height: 0; }
+/* Upload card: the stage list carries the numbers; detail text + rate are the bar's tooltip. */
+.sc-progress--compact .sc-progress-head,
+.sc-progress--compact .progress-detail,
+.sc-progress--compact .counters { display: none; }
+
+/* Upload stage list — a checklist, one state per row (steps/upload-stages.ts). */
+.upload-stages, .upload-stages-sub { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.upload-stages { margin-bottom: 12px; font-size: var(--fs-md); }
+.upload-stages-sub { margin: 6px 0 0 22px; font-size: var(--fs-sm); }
+.upload-stage-line {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  border-radius: 4px;
+}
+.upload-stage-line[data-tip] { cursor: help; }
+.upload-stage-icon { text-align: center; color: var(--sc-fg-2); }
+.upload-stage-label { color: var(--sc-fg-2); }
+.upload-stage-meta { color: var(--sc-fg-2); font-variant-numeric: tabular-nums; text-align: right; }
+.upload-stage[data-state='active'] > .upload-stage-line .upload-stage-icon,
+.upload-stage[data-state='active'] > .upload-stage-line .upload-stage-label { color: var(--sc-accent); text-shadow: var(--sc-glow-sm); }
+.upload-stage[data-state='done'] > .upload-stage-line .upload-stage-icon { color: var(--sc-success); }
+.upload-stage[data-state='done'] > .upload-stage-line .upload-stage-label { color: var(--sc-fg-1); }
+.upload-stage[data-state='warn'] > .upload-stage-line .upload-stage-icon { color: var(--sc-warning); }
+.upload-stage[data-state='failed'] > .upload-stage-line .upload-stage-icon,
+.upload-stage[data-state='failed'] > .upload-stage-line .upload-stage-label { color: var(--sc-danger); }
+.upload-stage[data-state='skipped'] > .upload-stage-line .upload-stage-label { text-decoration: line-through; }
+.upload-stage-bars { margin-top: 8px; }
+.upload-stage-bars[hidden] { display: none; }
+@media (max-width: 480px) {
+  .upload-stage-line { grid-template-columns: 16px 1fr; }
+  .upload-stage-meta { grid-column: 2; text-align: left; }
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .sc-progress-head {
   display: flex;
   align-items: baseline;
@@ -989,9 +1027,7 @@ kbd.sc-kbd {
    (no per-category total), so the bar states are honest: empty until the
    first item, a scanning stripe while items arrive, solid success once the
    category is complete, and empty + "—" when a category yielded nothing. */
-.category-bars { display: flex; gap: 12px; flex-wrap: wrap; transition: opacity 0.2s; }
-.category-bars--waiting { opacity: 0.45; }
-.category-bars-caption { margin: 0 0 -4px; font-size: var(--fs-xs); color: var(--sc-fg-2); }
+.category-bars { display: flex; gap: 12px; flex-wrap: wrap; }
 .category-bar { flex: 1 1 140px; min-width: 120px; }
 .category-bar-label { font-family: var(--sc-font-label); font-weight: 600; font-size: var(--fs-xs); color: var(--sc-fg-2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 .category-bar-track {

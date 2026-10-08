@@ -137,7 +137,6 @@
   },
   "upload": {
     "title": "Upload",
-    "codexTitle": "Entries into the Codex",
     "completeness": "Completeness {{pct}}%",
     "intro": "Starting the upload opens your browser for sign-in. After a successful login, the bundle is uploaded automatically.",
     "start": "Start upload",
@@ -214,7 +213,23 @@
       "colPrev": "before",
       "colNew": "now"
     },
-    "barsAfterSilhouettes": "The bars count the Codex entries being uploaded — that only starts once the silhouettes are built locally."
+    "stages": {
+      "aria": "Upload steps",
+      "silhouettes": "Build silhouettes",
+      "entries": "Upload entries",
+      "phaseOf": "Step {{n}} / {{total}}",
+      "partial": "partly uploaded",
+      "bundleId": "Bundle ID {{id}}",
+      "state": {
+        "pending": "pending",
+        "active": "running",
+        "done": "done",
+        "warn": "with notice",
+        "paused": "paused",
+        "failed": "failed",
+        "skipped": "skipped"
+      }
+    }
   },
   "update": {
     "available": "Update available: v{{version}} — downloading in background…",

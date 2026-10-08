@@ -120,7 +120,7 @@ export interface ProgressLabels {
  * layout/placement. Pass `steps` to render the journey chip row (used by both
  * flows now — the extract phases and the upload sub-steps).
  */
-export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
+export function progressCardHtml(id: string, steps?: ProgressStep[], opts: { compact?: boolean } = {}): string {
   const stepsHtml =
     steps && steps.length
       ? `<div class="sc-progress-steps" id="${id}-steps">` +
@@ -134,7 +134,7 @@ export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
         `</div>`
       : '';
   return `
-    <div class="sc-progress" id="${id}">
+    <div class="sc-progress${opts.compact ? ' sc-progress--compact' : ''}" id="${id}">
       <div class="sc-progress-head">
         <span class="sc-progress-phase" id="${id}-phase">…</span>
       </div>
@@ -207,6 +207,17 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   const metaEl = byId('-meta');
   const countersEl = byId('-counters');
   const rateEl = byId('-rate');
+  // Compact (the Upload card, whose stage list carries the numbers): no detail
+  // line or counter chips — the detail text and the rate become the bar's tooltip.
+  const compact = byId('')?.classList.contains('sc-progress--compact') ?? false;
+  let detailText = '';
+  let rateText = '';
+  const paintBarTip = (): void => {
+    if (!compact || !barWrap) return;
+    const tip = [detailText, rateText].filter(Boolean).join(' · ');
+    if (tip) barWrap.dataset.tip = tip;
+    else delete barWrap.dataset.tip;
+  };
   // Both copies of each clock: the dark one clipped to the fill, the muted one
   // on the empty track — together they read as one label that changes colour
   // exactly where the fill ends.
@@ -317,6 +328,8 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     }
     if (vm.detail) txt += `${txt ? '  ·  ' : ''}${vm.detail}`;
     if (detailEl) detailEl.textContent = txt;
+    detailText = txt;
+    paintBarTip();
 
     barWrap?.classList.toggle('indeterminate', vm.indeterminate);
   };
@@ -352,10 +365,11 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
 
     const eta = ri?.etaSec != null ? `${labels.eta} ${fmtElapsed(ri.etaSec * 1000)}` : '';
     for (const el of etaEls) el.textContent = eta;
-    if (rateEl) {
-      rateEl.textContent = ri
-        ? `~${ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1)}${labels.perSec}`
-        : '';
+    const rate = ri ? `~${ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1)}${labels.perSec}` : '';
+    if (rateEl) rateEl.textContent = rate;
+    if (rate !== rateText) {
+      rateText = rate;
+      paintBarTip();
     }
     // Animate only while work is observed — see pulse()/hold().
     barWrap?.classList.toggle('live', running && (holds > 0 || now - lastActiveAt < LIVE_MS));

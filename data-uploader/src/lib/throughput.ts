@@ -28,7 +28,7 @@ export const THROUGHPUT_MIN_SPAN_MS = 5_000;
  * observation.
  */
 export function pruneSamples(samples: ThroughputSample[], now: number, windowMs = THROUGHPUT_WINDOW_MS): void {
-  while (samples.length > 1 && samples[1].t <= now - windowMs) samples.shift();
+  while (samples.length > 1 && (samples[1]?.t ?? Infinity) <= now - windowMs) samples.shift();
 }
 
 /** Rate in items/s over the window ending at `now`, or null without a meaningful span or progress. */
@@ -37,11 +37,11 @@ export function throughput(
   now: number,
   windowMs = THROUGHPUT_WINDOW_MS,
 ): number | null {
-  if (samples.length < 2) return null;
   const last = samples[samples.length - 1];
+  if (samples.length < 2 || !last) return null;
   // The base is the newest sample at or before the window start; without one
   // (a young phase) the phase's first sample.
-  let base = samples[0];
+  let base = samples[0] as ThroughputSample;
   for (const s of samples) {
     if (s.t <= now - windowMs) base = s;
     else break;
