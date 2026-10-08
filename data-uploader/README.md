@@ -43,6 +43,12 @@ npm test
 SC_RELEASE_TOKEN=<release-uuid> npm run package:win
 ```
 
+`npm run dev` läuft mit eigenem userData-Verzeichnis (`<userData>-dev`, siehe
+`src/main/dev-user-data.ts`): eigener Single-Instance-Lock, eigene Settings,
+Session und Job-Datei. Ein installierter Uploader im Tray blockiert den
+Dev-Start deshalb nicht mehr (#632) — eine Dev-Sitzung muss sich aber einmal
+separat anmelden.
+
 ## Architektur
 
 ```
