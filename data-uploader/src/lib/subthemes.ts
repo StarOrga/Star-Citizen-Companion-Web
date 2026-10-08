@@ -110,10 +110,12 @@ export const SUBTHEMES: readonly Subtheme[] = [
   {
     key: 'silhouettes',
     // 2: #643 — ship silhouettes carry hardpoint anchors (were all empty).
-    revision: 2,
+    // 3: ship silhouettes carry the Verse-hub constellation (7 stars) + ground flag.
+    revision: 3,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',
+      'data-uploader/python/sc_extract/constellation.py',
       'data-uploader/src/main/silhouette-bridge.ts',
       'data-uploader/src/lib/silhouette-bridge-args.ts',
     ],

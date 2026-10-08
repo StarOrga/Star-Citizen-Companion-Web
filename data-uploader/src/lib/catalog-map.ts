@@ -484,6 +484,41 @@ export interface SilhouetteFile {
   };
   anchors?: unknown[];
   unresolved?: string[];
+  /** Verse-hub stars: 7 [x,y] in 0..1 (python/sc_extract/constellation.py). Ships only. */
+  constellation?: unknown;
+  /** Ship record filed under entities/groundvehicles. */
+  ground?: boolean;
+}
+
+/** One candidate for the `constellation` op of ingest-catalog. */
+export interface ConstellationCandidate {
+  class_name: string;
+  kind: 'ship' | 'ground';
+  points: [number, number][];
+}
+
+/**
+ * Every ship silhouette's precomputed 7 stars, for the server to pick the
+ * patch's newest vehicle from. Malformed or missing stars are skipped — the
+ * server validates again, this only keeps the request small and honest.
+ */
+export function mapConstellationCandidates(list: Record<string, unknown>[]): ConstellationCandidate[] {
+  const out: ConstellationCandidate[] = [];
+  for (const raw of list) {
+    const f = raw as SilhouetteFile;
+    if (f.kind !== 'ship' || !f.className || !Array.isArray(f.constellation)) continue;
+    const pts = f.constellation as unknown[];
+    const ok = pts.length === 7 && pts.every((p) =>
+      Array.isArray(p) && p.length === 2 &&
+      p.every((v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1));
+    if (!ok) continue;
+    out.push({
+      class_name: f.className,
+      kind: f.ground ? 'ground' : 'ship',
+      points: pts as [number, number][],
+    });
+  }
+  return out;
 }
 
 /** Map the uploader's silhouette JSON files onto `codex_silhouettes` rows. */

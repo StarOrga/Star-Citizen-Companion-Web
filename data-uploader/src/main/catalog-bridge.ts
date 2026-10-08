@@ -38,6 +38,7 @@ import {
   mapBlueprints,
   mapKeybinds,
   mapSilhouettes,
+  mapConstellationCandidates,
   type Nat,
   type StringRow,
   type PortRow,
@@ -620,6 +621,25 @@ export async function uploadCatalog(
         (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
         { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
       );
+    }
+
+    // 10c. Verse-hub constellation -------------------------------------------
+    // Every ship silhouette carries its precomputed 7 stars; one request hands
+    // them all over and the server keeps the patch's newest vehicle. Optional:
+    // a server without the op (or without verse_constellations) must not fail
+    // the catalog run, so a failure here is only a warning.
+    {
+      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
+      const candidates = mapConstellationCandidates(list);
+      if (candidates.length > 0) {
+        try {
+          const res = await post('constellation', { build_id: buildId, candidates });
+          log.info(`[catalog] constellation from ${candidates.length} hull(s): ${JSON.stringify(res)}`);
+        } catch (e) {
+          if (isInterrupt(e)) throw e;
+          log.warn(`[catalog] constellation skipped: ${(e as Error).message}`);
+        }
+      }
     }
 
     // 11. preview images ----------------------------------------------------
