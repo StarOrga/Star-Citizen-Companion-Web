@@ -35,6 +35,25 @@ fn main() {
     res.set("CompanyName", "Star Citizen Companion");
     res.set("LegalCopyright", "MIT License");
     // FileVersion / ProductVersion default from CARGO_PKG_VERSION.
+    // Per-monitor DPI awareness (v2, falling back to v1 / system-aware on older
+    // builds). Without it Windows bitmap-stretches every window of the process
+    // at 125-150 % scaling, which blurs the live/meteor animation. With it every
+    // size the app reads (SM_CXSCREEN, GetWindowRect of the wallpaper layer,
+    // GetCursorPos for the tray menu) is in physical pixels, so the animation
+    // and crossfade windows match the screen 1:1. main() repeats the request at
+    // runtime for a build whose resource step failed (see util::enable_dpi_awareness).
+    res.set_manifest(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>
+"#,
+    );
 
     if let Err(e) = res.compile() {
         // Don't hard-fail the build if the Windows SDK's rc.exe is missing on a

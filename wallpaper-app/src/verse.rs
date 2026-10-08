@@ -10,6 +10,15 @@
 //! Everything here except [`fetch_state`] and the settings file is pure and
 //! unit-tested: the JSON shape, the "last 7 patches" selection and the LIVE-day
 //! check.
+//!
+//! LIVE day: the user's *local* calendar day that contains the instant
+//! `live_at` (converted to local time first, see [`parse_state_with`]). A
+//! 17:00 UTC release is the same day in Europe and the Americas and the next
+//! day east of UTC+7, never a day early anywhere. The older rule (UTC date of
+//! `live_at` == local date) moved a late-evening UTC release to the wrong day
+//! for every zone whose local date differs at that instant. The shower runs
+//! until local midnight. The website applies the same rule (`isLiveDay` in
+//! `src/app/verse/starmap/starmap.model.ts`).
 
 use std::fs;
 use std::path::PathBuf;
@@ -30,7 +39,8 @@ pub const SUPERNOVA_KEY: &str = "supernova";
 pub struct Patch {
     /// `major.minor`, e.g. `4.3`.
     pub line: String,
-    /// `yyyymmdd` (UTC date of `live_at`), 0 when the patch has no LIVE date yet.
+    /// `yyyymmdd`: the local calendar day containing `live_at`, 0 when the
+    /// patch has no LIVE date yet.
     pub live_day: u32,
     pub star_count: u32,
     pub sun: bool,
@@ -106,13 +116,25 @@ pub fn fetch_state(access_token: &str) -> Option<State> {
 
 // ---------------- Parsing ----------------
 
+/// Parse with the machine's time zone for the LIVE day.
 pub fn parse_state(json: &str) -> Option<State> {
+    parse_state_with(json, util::local_yyyymmdd)
+}
+
+/// Parse, converting each `live_at` instant (Unix seconds) to a LIVE day with
+/// `local_day`, injected so the tests can pin a time zone.
+pub fn parse_state_with(json: &str, local_day: fn(i64) -> u32) -> Option<State> {
     let root = Json::parse(json)?;
     let patches = root.get("patches")?.as_arr()?;
     let mut out = State::default();
     for p in patches {
         let Some(line) = p.get("patch_line").and_then(Json::as_str) else { continue };
-        let live_day = p.get("live_at").and_then(Json::as_str).map(iso_day).unwrap_or(0);
+        let live_day = p
+            .get("live_at")
+            .and_then(Json::as_str)
+            .and_then(iso_epoch)
+            .map(local_day)
+            .unwrap_or(0);
         let unlocks = p.get("unlocks");
         let points = p
             .get("constellation")
@@ -161,19 +183,98 @@ pub fn parse_state(json: &str) -> Option<State> {
     Some(out)
 }
 
-/// `2026-10-08T17:00:00+00:00` → `20261008`; 0 when it is not a date.
-pub fn iso_day(s: &str) -> u32 {
+/// ISO-8601 instant to Unix seconds. Accepts what PostgREST emits for a
+/// `timestamptz` (`2026-10-08T17:00:00+00:00`, optional fraction, `Z`,
+/// `+hh:mm` / `+hhmm` / `+hh`); a bare date or a missing offset counts as
+/// UTC. `None` when it is not a date.
+pub fn iso_epoch(s: &str) -> Option<i64> {
     let b = s.as_bytes();
     if b.len() < 10 || b[4] != b'-' || b[7] != b'-' {
-        return 0;
+        return None;
     }
-    let num = |r: std::ops::Range<usize>| s.get(r).and_then(|t| t.parse::<u32>().ok());
-    match (num(0..4), num(5..7), num(8..10)) {
-        (Some(y), Some(m), Some(d)) if (1..=12).contains(&m) && (1..=31).contains(&d) => {
-            y * 10_000 + m * 100 + d
+    let num = |r: std::ops::Range<usize>| -> Option<i64> {
+        let t = s.get(r)?;
+        if t.bytes().all(|c| c.is_ascii_digit()) {
+            t.parse().ok()
+        } else {
+            None
         }
-        _ => 0,
+    };
+    let (y, m, d) = (num(0..4)?, num(5..7)?, num(8..10)?);
+    if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+        return None;
     }
+    let mut secs = days_from_civil(y, m, d) * 86_400;
+    if b.len() == 10 {
+        return Some(secs);
+    }
+    if !(b[10] == b'T' || b[10] == b' ') || b.len() < 16 || b[13] != b':' {
+        return None;
+    }
+    let (hh, mm) = (num(11..13)?, num(14..16)?);
+    let mut i = 16;
+    let mut ss = 0;
+    if b.get(16) == Some(&b':') {
+        ss = num(17..19)?;
+        i = 19;
+    }
+    if hh > 23 || mm > 59 || ss > 60 {
+        return None;
+    }
+    secs += hh * 3600 + mm * 60 + ss;
+    if b.get(i) == Some(&b'.') {
+        i += 1;
+        while b.get(i).is_some_and(u8::is_ascii_digit) {
+            i += 1;
+        }
+    }
+    match b.get(i) {
+        None => Some(secs),
+        Some(b'Z') | Some(b'z') if i + 1 == b.len() => Some(secs),
+        Some(&sign @ (b'+' | b'-')) => {
+            let rest = s.get(i + 1..)?.replace(':', "");
+            if !(rest.len() == 2 || rest.len() == 4) || !rest.bytes().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
+            let oh: i64 = rest[..2].parse().ok()?;
+            let om: i64 = if rest.len() == 4 { rest[2..].parse().ok()? } else { 0 };
+            let off = oh * 3600 + om * 60;
+            Some(if sign == b'+' { secs - off } else { secs + off })
+        }
+        _ => None,
+    }
+}
+
+/// Days since 1970-01-01 for a proleptic Gregorian date (Howard Hinnant's algorithm).
+pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+/// Inverse of [`days_from_civil`]: `(year, month, day)`.
+pub fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
+/// `yyyymmdd` of the calendar day containing `epoch + offset_secs`: the LIVE
+/// day for a fixed UTC offset. The OS-backed variant is `util::local_yyyymmdd`.
+pub fn yyyymmdd_at_offset(epoch: i64, offset_secs: i64) -> u32 {
+    let (y, m, d) = civil_from_days((epoch + offset_secs).div_euclid(86_400));
+    (y * 10_000 + m * 100 + d) as u32
 }
 
 /// Minimal JSON value — the explorer payload nests arrays of arrays, which the
@@ -421,6 +522,19 @@ impl Settings {
 mod tests {
     use super::*;
 
+    fn utc(e: i64) -> u32 {
+        yyyymmdd_at_offset(e, 0)
+    }
+    fn berlin_summer(e: i64) -> u32 {
+        yyyymmdd_at_offset(e, 2 * 3600)
+    }
+    fn los_angeles_summer(e: i64) -> u32 {
+        yyyymmdd_at_offset(e, -7 * 3600)
+    }
+    fn tokyo(e: i64) -> u32 {
+        yyyymmdd_at_offset(e, 9 * 3600)
+    }
+
     fn patch_json(line: &str, stars: u32, wallpaper: bool, with_points: bool, live: &str) -> String {
         let c = if with_points {
             r#"{"class_name":"X","kind":"ship","points":[[0.1,0.2],[0.3,0.1],[0.5,0.15],[0.7,0.3],[0.6,0.6],[0.4,0.8],[0.2,0.5]]}"#
@@ -443,7 +557,7 @@ mod tests {
     #[test]
     fn parses_explorer_payload() {
         let json = state_json(&[patch_json("4.3", 7, true, true, "\"2026-10-08T17:00:00+00:00\"")]);
-        let s = parse_state(&json).expect("parses");
+        let s = parse_state_with(&json, utc).expect("parses");
         assert_eq!(s.patches.len(), 1);
         let p = &s.patches[0];
         assert_eq!(p.line, "4.3");
@@ -472,7 +586,7 @@ mod tests {
             let unlocked = i != 8;
             ps.push(patch_json(&line, if unlocked { 7 } else { 3 }, unlocked, shaped, "null"));
         }
-        let s = parse_state(&state_json(&ps)).unwrap();
+        let s = parse_state_with(&state_json(&ps), utc).unwrap();
         let lines: Vec<&str> = s.app_wallpapers().iter().map(|p| p.line.as_str()).collect();
         assert_eq!(lines, vec!["4.11", "4.10", "4.7", "4.6", "4.5", "4.4", "4.3"]);
         assert_eq!(lines.len(), APP_MAX_PATCHES);
@@ -480,10 +594,10 @@ mod tests {
 
     #[test]
     fn live_day_needs_matching_date_and_shape() {
-        let s = parse_state(&state_json(&[
+        let s = parse_state_with(&state_json(&[
             patch_json("4.4", 1, false, false, "\"2026-10-08T17:00:00Z\""),
             patch_json("4.3", 7, true, true, "\"2026-09-01T17:00:00Z\""),
-        ]))
+        ]), utc)
         .unwrap();
         assert_eq!(s.live_day_patch(20261008), None, "4.4 has no shape yet");
         assert_eq!(s.live_day_patch(20260901).map(|p| p.line.as_str()), Some("4.3"));
@@ -491,10 +605,46 @@ mod tests {
     }
 
     #[test]
-    fn iso_day_rejects_garbage() {
-        assert_eq!(iso_day("2026-02-03"), 20260203);
-        assert_eq!(iso_day("2026-13-03"), 0);
-        assert_eq!(iso_day("soon"), 0);
+    fn live_day_is_the_local_day_containing_live_at() {
+        // 4.3 goes LIVE at 2026-10-08 17:00 UTC.
+        let json = state_json(&[patch_json("4.3", 7, true, true, "\"2026-10-08T17:00:00+00:00\"")]);
+        let day = |f: fn(i64) -> u32| parse_state_with(&json, f).unwrap().patches[0].live_day;
+        assert_eq!(day(utc), 20261008);
+        assert_eq!(day(berlin_summer), 20261008, "19:00 CEST, same day");
+        assert_eq!(day(los_angeles_summer), 20261008, "10:00 PDT, same day");
+        assert_eq!(day(tokyo), 20261009, "02:00 JST the next morning: LIVE day is the 9th");
+        // 02:00 UTC on the 9th is 19:00 PDT on the 8th: the old rule (UTC date)
+        // put the shower on the 9th in Los Angeles, a day after the release.
+        let late = state_json(&[patch_json("4.4", 7, true, true, "\"2026-10-09T02:00:00Z\"")]);
+        let s = parse_state_with(&late, los_angeles_summer).unwrap();
+        assert_eq!(s.patches[0].live_day, 20261008);
+        assert_eq!(s.live_day_patch(20261008).map(|p| p.line.as_str()), Some("4.4"));
+        assert_eq!(s.live_day_patch(20261009), None);
+    }
+
+    #[test]
+    fn iso_epoch_reads_postgrest_timestamps() {
+        assert_eq!(iso_epoch("1970-01-01T00:00:00Z"), Some(0));
+        assert_eq!(iso_epoch("2026-10-08T17:00:00+00:00"), Some(1_791_478_800));
+        assert_eq!(iso_epoch("2026-10-08T19:00:00+02:00"), Some(1_791_478_800));
+        assert_eq!(iso_epoch("2026-10-08T10:00:00-0700"), Some(1_791_478_800));
+        assert_eq!(iso_epoch("2026-10-08T17:00:00.123456+00"), Some(1_791_478_800));
+        assert_eq!(iso_epoch("2026-10-08 17:00:00"), Some(1_791_478_800));
+        assert_eq!(iso_epoch("2026-10-08"), Some(1_791_417_600));
+        assert_eq!(iso_epoch("2026-13-03"), None);
+        assert_eq!(iso_epoch("2026-10-08T25:00:00Z"), None);
+        assert_eq!(iso_epoch("2026-10-08T17:00:00+2"), None);
+        assert_eq!(iso_epoch("soon"), None);
+    }
+
+    #[test]
+    fn civil_days_roundtrip() {
+        for z in [-1, 0, 59, 11_016, 20_734, 20_735, 47_541] {
+            let (y, m, d) = civil_from_days(z);
+            assert_eq!(days_from_civil(y, m, d), z);
+        }
+        assert_eq!(civil_from_days(20_734), (2026, 10, 8));
+        assert_eq!(yyyymmdd_at_offset(0, -1), 19691231);
     }
 
     #[test]

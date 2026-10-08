@@ -501,6 +501,31 @@ pub fn refresh_autostart_path() -> bool {
     write_hkcu_string(RUN_KEY, RUN_VALUE, &quoted)
 }
 
+// ---------------- DPI awareness ----------------
+
+/// Make the process per-monitor DPI aware (v2) unless the embedded manifest
+/// already did (build.rs). Must run before the first window is created. Looked
+/// up at runtime so the binary still starts on Windows builds older than 1703,
+/// which lack `SetProcessDpiAwarenessContext`; there the manifest's
+/// `dpiAware=true/pm` applies. A call after the manifest set the mode fails
+/// with ERROR_ACCESS_DENIED, which is the expected, harmless outcome.
+pub fn enable_dpi_awareness() {
+    use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+    // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+    const PMV2: isize = -4;
+    type SetCtx = unsafe extern "system" fn(isize) -> i32;
+    unsafe {
+        let user32 = GetModuleHandleW(wide("user32.dll").as_ptr());
+        if user32.is_null() {
+            return;
+        }
+        if let Some(f) = GetProcAddress(user32, b"SetProcessDpiAwarenessContext\0".as_ptr()) {
+            let set: SetCtx = std::mem::transmute(f);
+            set(PMV2);
+        }
+    }
+}
+
 // ---------------- Date helper (for the once-per-day boot summary) ----------------
 
 /// Today's local date as `yyyymmdd` (e.g. `20260719`). Used only to gate the
@@ -512,6 +537,36 @@ pub fn today_yyyymmdd() -> u32 {
     let mut st: SYSTEMTIME = unsafe { std::mem::zeroed() };
     unsafe { GetLocalTime(&mut st) };
     (st.wYear as u32) * 10_000 + (st.wMonth as u32) * 100 + (st.wDay as u32)
+}
+
+/// Local calendar date (`yyyymmdd`) of the instant `epoch` (Unix seconds), with
+/// the machine's time zone and the DST rule in force at that instant. Used for
+/// the LIVE day of a patch (see `verse.rs`). Falls back to the UTC date when the
+/// conversion fails.
+pub fn local_yyyymmdd(epoch: i64) -> u32 {
+    use windows_sys::Win32::Foundation::SYSTEMTIME;
+    use windows_sys::Win32::System::Time::SystemTimeToTzSpecificLocalTime;
+    let days = epoch.div_euclid(86_400);
+    let secs = epoch.rem_euclid(86_400);
+    let (y, m, d) = crate::verse::civil_from_days(days);
+    if !(1601..=30827).contains(&y) {
+        return crate::verse::yyyymmdd_at_offset(epoch, 0);
+    }
+    let utc = SYSTEMTIME {
+        wYear: y as u16,
+        wMonth: m as u16,
+        wDayOfWeek: 0,
+        wDay: d as u16,
+        wHour: (secs / 3600) as u16,
+        wMinute: (secs % 3600 / 60) as u16,
+        wSecond: (secs % 60) as u16,
+        wMilliseconds: 0,
+    };
+    let mut local: SYSTEMTIME = unsafe { std::mem::zeroed() };
+    if unsafe { SystemTimeToTzSpecificLocalTime(std::ptr::null(), &utc, &mut local) } == 0 {
+        return crate::verse::yyyymmdd_at_offset(epoch, 0);
+    }
+    (local.wYear as u32) * 10_000 + (local.wMonth as u32) * 100 + (local.wDay as u32)
 }
 
 // ---------------- Open URL in default browser ----------------
@@ -612,6 +667,23 @@ fn delete_hkcu_value(sub: &str, name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_day_of_now_matches_get_local_time() {
+        let now = || {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64
+        };
+        // Retry once in case the two reads straddle local midnight.
+        let ok = (0..2).any(|_| {
+            let before = today_yyyymmdd();
+            let local = local_yyyymmdd(now());
+            local == before && today_yyyymmdd() == before
+        });
+        assert!(ok, "local_yyyymmdd(now) disagrees with GetLocalTime");
+    }
 
     #[test]
     fn channel_keys_round_trip() {

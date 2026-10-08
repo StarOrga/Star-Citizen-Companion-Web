@@ -182,8 +182,11 @@ pub fn active_scene() -> Option<Scene> {
     LIVE.with(|l| l.borrow().as_ref().map(|s| s.scene))
 }
 
-/// Logical (DPI-virtualised) size — what a window of this process spans.
-pub fn logical_screen() -> (i32, i32) {
+/// Primary screen in this process's window coordinates — what the animation
+/// window spans. Physical pixels: the process is per-monitor DPI aware
+/// (manifest in build.rs + `util::enable_dpi_awareness`), so at 125-150 %
+/// scaling the window is not bitmap-stretched by Windows and stays sharp.
+pub fn window_screen() -> (i32, i32) {
     unsafe { (GetSystemMetrics(SM_CXSCREEN).max(1), GetSystemMetrics(SM_CYSCREEN).max(1)) }
 }
 
@@ -200,7 +203,7 @@ pub fn physical_screen() -> (u32, u32) {
             return (dm.dmPelsWidth, dm.dmPelsHeight);
         }
     }
-    let (w, h) = logical_screen();
+    let (w, h) = window_screen();
     (w as u32, h as u32)
 }
 
@@ -227,7 +230,7 @@ fn environment() -> Environment {
     }
 }
 
-/// Start (or replace) the animation over `base` (`w`×`h` = the logical screen).
+/// Start (or replace) the animation over `base` (`w`×`h` = [`window_screen`], physical pixels).
 pub fn start(base: Vec<u32>, w: i32, h: i32, layout: Layout, scene: Scene, seed: &str) {
     stop();
     if base.len() != (w * h) as usize {

@@ -25,6 +25,8 @@ features = [
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_System_Threading",
   "Win32_System_SystemInformation",
+  # SystemTimeToTzSpecificLocalTime: the local day of a patch's live_at.
+  "Win32_System_Time",
   "Win32_Globalization",
   "Win32_Security",
   # CNG (SHA-256 of a downloaded update, CSRF random) + DPAPI (session at rest).

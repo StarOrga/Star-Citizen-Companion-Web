@@ -160,6 +160,9 @@ fn main() {
     // under `panic = "abort"`) vanishes with no feedback — "it just doesn't start".
     log::install_panic_hook();
     log::line("startup: launching");
+    // Before any window exists: physical-pixel coordinates everywhere, so the
+    // live/meteor animation is not bitmap-stretched at 125-150 % scaling.
+    util::enable_dpi_awareness();
 
     // One instance only (autostart + a manual launch must not double up).
     let Some(singleton) = util::acquire_single_instance() else {

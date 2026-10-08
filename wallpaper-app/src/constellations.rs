@@ -11,7 +11,7 @@
 //! constellation is pinned the gallery rotation stands still; "Next wallpaper"
 //! or picking an image selection unpins it.
 //!
-//! sr-meteor: on the LIVE day of a patch (local date = UTC date of `live_at`)
+//! sr-meteor: on the LIVE day of a patch (the local calendar day containing `live_at`)
 //! the desktop switches to that patch's constellation with the meteor shower,
 //! until midnight or until the user clicks "Next wallpaper".
 
@@ -249,12 +249,13 @@ fn spawn_render(hwnd: isize, key: String, scene: Option<Scene>) {
         }
         log::line(&format!("verse: rendered '{key}' at {w}x{h} in {} ms", started.elapsed().as_millis()));
 
-        // The animation window spans the LOGICAL screen; reuse the pixels when
-        // that is the same size, otherwise render a second, matching base.
+        // The animation window spans the screen in physical pixels (the process is
+        // DPI aware); reuse the pixels when that is the wallpaper's size (always,
+        // up to 4K), otherwise render a second, matching base.
         let (base, lw, lh, layout) = match scene {
             None => (Vec::new(), 0, 0, layout),
             Some(_) => {
-                let (lw, lh) = live::logical_screen();
+                let (lw, lh) = live::window_screen();
                 if (lw, lh) == (w, h) {
                     (px, w, h, layout)
                 } else {
