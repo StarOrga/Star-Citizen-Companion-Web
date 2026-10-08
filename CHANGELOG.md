@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.138.0] - 2026-10-08
+
+### Changed
+
+- **Data Uploader 0.49.0: Upload als Schritt-Liste.** Die Upload-Karte zeigt
+  den Upload jetzt als kurze Checkliste: Bundle, Codex (mit „Silhouetten
+  bauen“ und „Einträge hochladen“) und 3D-Modelle, jeder Schritt mit eigenem
+  Zustand (offen, läuft, fertig, pausiert, fehlgeschlagen, übersprungen) und
+  einer Zahl daneben. Die fünf Kategorie-Balken erscheinen nur noch unter
+  „Einträge hochladen“, solange dieser Schritt läuft. Bundle-ID, Build-Zahlen,
+  Anker-Abdeckung, Kategorie-Summen, die aktuelle Datei und die Rate stehen
+  im Tooltip des jeweiligen Schritts bzw. des Fortschrittsbalkens statt als
+  Textzeilen auf der Karte. Der Hinweiskasten erscheint nur noch bei Warnungen
+  und Fehlern; die Unterschiede zum letzten Upload stehen als +n / −m am
+  Bundle-Schritt.
+
+### Fixed
+
+- **Data Uploader: ehrliche Rate und Restzeit.** „~x/s“ und „Rest“ messen
+  jetzt über die letzten 60 Sekunden bis jetzt. Vorher hielt ein schneller
+  Schub (Cache-Treffer) seine hohe Rate und eine zu kurze Restzeit, obwohl
+  der Upload danach stockte; ein Zähler, der für ein neues Ziel neu anfängt,
+  setzt die Messung jetzt zurück.
+- **Data Uploader: keine vollen Balken mehr, während noch gearbeitet wird.**
+  Beim Fortsetzen eines Uploads standen die Kategorie-Balken schon voll, obwohl
+  die Silhouetten noch gebaut wurden. Der Schritt „Einträge hochladen“ zeigt
+  in diesem Fall „teilweise oben“.
+
 ## [0.137.0] - 2026-10-08
 
 ### Changed

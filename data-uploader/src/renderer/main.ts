@@ -40,8 +40,17 @@ import {
   resetCategoryBars,
   markCategoriesComplete,
   uploadExpectedFromCounts,
-  setCategoryBarsCaption,
+  categoryTotalsLine,
 } from './steps/category-bars.js';
+import {
+  uploadStagesHtml,
+  setStage,
+  setStageMeta,
+  tipStage,
+  pauseActiveStage,
+  resetStages,
+  type StageKey,
+} from './steps/upload-stages.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
 // file's existing convention (see `ToolEnv` / `ConnSnapshot` below). The
 // renderer's tsconfig project only spans `src/renderer/**` + i18n, so importing
@@ -1732,19 +1741,8 @@ async function runRealExtract(): Promise<void> {
 
 // ============= View: Auth-Upload =============
 
-// The 3 sub-flows of one upload run, in the order they actually execute
-// (see doUploadAfterAuth) — surfaced as a small stepper on the shared progress
-// card so the upload flow reads as a sibling of the Run view. Each one is live
-// on the website once it is through: the Codex (with its silhouettes) at its
-// finalize, every 3D model the moment its ship lands. Silhouettes are built in
-// the extraction, so they ride along with the Codex instead of being a step.
-function uploadSteps(): ProgressStep[] {
-  return [
-    { key: 'bundle', label: t('upload.steps.bundle') },
-    { key: 'codex', label: t('upload.steps.codex') },
-    { key: 'skins', label: t('upload.steps.skins') },
-  ];
-}
+// The stages of one upload run (Bundle → Codex [silhouettes, entries] →
+// 3D models) are the Upload card's stage list — steps/upload-stages.ts.
 
 // The extract pipeline's fixed phases, surfaced as the same step-chip journey
 // the upload flow uses — so both views read as siblings. `phaseLabel` reuses
@@ -1816,25 +1814,24 @@ function renderAuthUpload(): string {
     <div class="view step-upload">
       <section class="card upload-card">
         <div class="upload-card-head">
-          <h1>${t('upload.title')} — ${t('upload.codexTitle')}</h1>
+          <h1>${t('upload.title')}</h1>
           ${runChipsHtml()}
         </div>
-        <p id="upload-intro">${t('upload.intro')}</p>
         <div id="reconnect-notice" class="reconnect-notice" hidden></div>
         <div id="resume-notice" class="reconnect-notice" hidden></div>
-        ${progressCardHtml('upload-progress', uploadSteps())}
-        ${categoryBarsHtml()}
+        ${uploadStagesHtml(categoryBarsHtml())}
+        ${progressCardHtml('upload-progress', undefined, { compact: true })}
         <div id="auth-status" class="upload-status" hidden></div>
-        <div id="upload-result"></div>
       </section>
       <div class="btn-row view-footer" id="upload-footer">
         <button type="button" id="btn-upload-back" class="btn" data-tip="${t('common.back')}" data-tip-key="Esc">${t('common.back')}</button>
-        <button id="btn-start-upload" class="btn btn-primary" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
+        <button id="btn-start-upload" class="btn btn-primary" data-tip="${t('upload.intro')}" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
         <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
         <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
         <button id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
       </div>
       <div id="upload-bundle-details"></div>
+      <div id="upload-result"></div>
     </div>
   `;
 }
@@ -1844,6 +1841,21 @@ function renderAuthUpload(): string {
 // read by the upload sub-flow functions below.
 let uploadProgress: ProgressController | null = null;
 
+/** Share of the step rail's Upload segment per stage (the silhouette build dominates). */
+const STAGE_SPAN: Record<'bundle' | 'codex' | 'skins', { from: number; width: number }> = {
+  bundle: { from: 0, width: 5 },
+  codex: { from: 5, width: 65 },
+  skins: { from: 70, width: 30 },
+};
+let railStage: 'bundle' | 'codex' | 'skins' = 'bundle';
+
+/** Make `key` the running row; the bar restarts for it. */
+function startStage(key: StageKey, meta = ''): void {
+  railStage = key === 'bundle' ? 'bundle' : key === 'skins' ? 'skins' : 'codex';
+  setStage(key, 'active', meta);
+  uploadProgress?.update({ overallPct: 0 });
+}
+
 function wireAuthUpload(): void {
   wireRunChips();
   // Fresh view, fresh rail: the extract's 100 % must not sit on the Upload
@@ -1851,10 +1863,11 @@ function wireAuthUpload(): void {
   noteOverallPct(0);
   uploadProgress = mountProgress('upload-progress', {
     counterLabel,
-    steps: uploadSteps(),
     labels: progressLabels(),
-    onOverallPct: noteOverallPct,
+    // The bar shows the running stage; the rail gets the whole upload.
+    onOverallPct: (pct) => noteOverallPct(STAGE_SPAN[railStage].from + (pct / 100) * STAGE_SPAN[railStage].width),
   });
+  resetStages();
   resetUploadCategories();
   paintBundleDetails();
   $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
@@ -1965,6 +1978,11 @@ function paintJobNotice(): void {
   paintNav();
 
   if (!running && resumable && job?.resumeSummary) {
+    // The stage list shows where the paused run stands, not a row of "open".
+    for (const s of job.resumeSummary.stages) {
+      const key: StageKey = s.stage === 'catalog' ? 'entries' : s.stage;
+      setStage(key, s.state === 'done' ? 'done' : s.state === 'pending' ? 'pending' : 'paused');
+    }
     notice.textContent = formatResumeBanner(job.resumeSummary);
     notice.hidden = false;
   } else if (!running && resumable && job?.resumeHint) {
@@ -2199,16 +2217,15 @@ async function doStartUpload(): Promise<void> {
   if (btn) btn.disabled = true;
   uploadRunning = true;
   paintNav();
-  // The sign-in explanation is only useful before the first click — once the
-  // run is going it would sit between the title and the bar for nothing.
-  $('#upload-intro')?.setAttribute('hidden', '');
   // Fresh attempt: drop any stale status/diff from a previous attempt so a landed
   // bundle's "first upload" message can't coexist with a new "duplicate" error.
   clearUploadFeedback();
   lastCatalogFailure = null;
   paintJobNotice();
   uploadProgress?.start();
-  uploadProgress?.setStep(0);
+  resetStages();
+  resetUploadCategories();
+  startStage('bundle');
   try {
     if (!state.authToken) {
       uploadProgress?.update({
@@ -2322,7 +2339,10 @@ async function doUploadAfterAuth(): Promise<void> {
   // straight on the Codex step that runs next, instead of flashing
   // "1/3 · Bundle" then jumping.
   const resumingPastBundle = job?.bundle?.status === 'done';
-  uploadProgress?.setStep(resumingPastBundle ? 1 : 0);
+  if (resumingPastBundle) {
+    setStage('bundle', 'done');
+    startStage('silhouettes');
+  }
   uploadProgress?.update({
     phaseLabel: resumingPastBundle
       ? t('catalog.publishing')
@@ -2349,6 +2369,7 @@ async function doUploadAfterAuth(): Promise<void> {
   if (!r.ok && !bundleAlreadyThere) {
     uploadProgress?.update({ indeterminate: false });
     uploadProgress?.stop();
+    setStage('bundle', 'failed');
     setAuthStatus(friendlyUploadError(r), 'error');
     // Close the job's run in main too: otherwise it stays `running` on disk and
     // the tray keeps offering "Pause" for an upload that is over.
@@ -2358,42 +2379,59 @@ async function doUploadAfterAuth(): Promise<void> {
   // Only claim the bundle step as 100% on a fresh run; on a resume the card is
   // already on the catalog stage and promoteToCodex owns the bar from here.
   if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
-  setAuthStatus(
-    bundleAlreadyThere
-      ? t('upload.bundleAlreadyThere')
-      : `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'}`,
-    'ok',
+  // Done is a check mark; the bundle id and the diff note live in its tooltip.
+  const diff = paintDiffSummary(r.diffSummary);
+  setStage('bundle', 'done', diff.badge);
+  tipStage(
+    'bundle',
+    [
+      bundleAlreadyThere ? t('upload.bundleAlreadyThere') : t('upload.stages.bundleId', { id: r.bundleId ?? '—' }),
+      diff.tip,
+    ]
+      .filter(Boolean)
+      .join('\n'),
   );
-  paintDiffSummary(r.diffSummary);
 
   // Silhouettes are built in the extraction; the Codex phase `codex_silhouettes`
   // reads their `<output_dir>/silhouettes/rows/*.json`. Only when this session
   // has no outcome for this extract (a resume after a restart, an extract from
   // an older uploader) are they built here — mostly cache hits then. Non-fatal:
   // without them the Codex simply goes up without outlines.
-  uploadProgress?.setStep(1);
   const skipped = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
   let silhouettes: SilhouetteOutcome | 'skipped' = skipped.has('silhouettes') ? 'skipped' : 'failed';
-  if (silhouettes !== 'skipped') {
-    if (state.silhouettes?.outDir === result.output_dir) {
-      silhouettes = state.silhouettes.outcome;
+  if (silhouettes === 'skipped') {
+    setStage('silhouettes', 'skipped');
+  } else if (state.silhouettes?.outDir === result.output_dir) {
+    // Built in this session's extraction already.
+    silhouettes = state.silhouettes.outcome;
+    setStage('silhouettes', silhouettes === 'ok' ? 'done' : 'warn');
+  } else {
+    startStage('silhouettes');
+    // The row carries the numbers and, in its tooltip, every outcome line.
+    const notes: string[] = [];
+    let warned = false;
+    try {
+      silhouettes = await buildSilhouettes(result, uploadProgress, {
+        shouldStop: pauseRequested,
+        report: (msg, cls, extras) => {
+          notes.push(extras?.detail ? `${msg}: ${extras.detail}` : msg);
+          if (cls !== 'ok') warned = true;
+          tipStage('silhouettes', notes.join('\n'));
+        },
+        onProgress: (current, total) =>
+          setStageMeta('silhouettes', `${current.toLocaleString()} / ${total.toLocaleString()}`),
+      });
+      state.silhouettes = { outDir: result.output_dir, outcome: silhouettes };
+    } catch (err) {
+      uploadProgress?.update({ indeterminate: false });
+      warned = true;
+      tipStage('silhouettes', `${t('silhouettes.buildFailed')}: ${(err as Error).message}`);
+    }
+    if (silhouettes === 'stopped') {
+      uploadProgress?.stop();
+      setStage('silhouettes', 'paused');
     } else {
-      // The bars count Codex rows sent — none are until the silhouettes are
-      // through, so say why they stand still.
-      setCategoryBarsCaption(t('upload.barsAfterSilhouettes'));
-      try {
-        silhouettes = await buildSilhouettes(result, uploadProgress, {
-          shouldStop: pauseRequested,
-          report: setAuthStatus,
-        });
-        state.silhouettes = { outDir: result.output_dir, outcome: silhouettes };
-      } catch (err) {
-        uploadProgress?.update({ indeterminate: false });
-        setAuthStatus(`${t('silhouettes.buildFailed')}: ${(err as Error).message}`, 'warn');
-      } finally {
-        setCategoryBarsCaption(null);
-      }
-      if (silhouettes === 'stopped') uploadProgress?.stop();
+      setStage('silhouettes', warned || silhouettes !== 'ok' ? 'warn' : 'done');
     }
   }
 
@@ -2404,6 +2442,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // Stop the whole run on a pause. Falling through would upload skins and —
   // worse — reach the cleanup below, deleting the out_dir that a resume needs.
   if (codex === 'paused') {
+    pauseActiveStage();
     setAuthStatus(tOr('upload.job.paused', 'Upload pausiert — der Fortschritt ist gespeichert.'), 'warn');
     return;
   }
@@ -2424,9 +2463,9 @@ async function doUploadAfterAuth(): Promise<void> {
   // sub-property of every ship, not a separate step. Reads the extract's build
   // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
   // out_dir). Fully non-fatal: the bundle is already confirmed.
-  uploadProgress?.setStep(2);
   try {
     if (skipped.has('hulls')) {
+      setStage('skins', 'skipped');
       drawerAppendLog(t('subthemes.skipped', { name: subthemeName('hulls') }));
     } else {
       // True only when every ship landed — a lost ship, a pause or missing
@@ -2440,6 +2479,7 @@ async function doUploadAfterAuth(): Promise<void> {
     const msg = `${t('skins.buildFailed')}: ${(err as Error).message}`;
     // Kept for the final "Upload OK" line, which would otherwise paper over it.
     state.skinUploadStatus = msg;
+    setStage('skins', 'warn');
     setAuthStatus(msg, 'warn');
   }
   uploadProgress?.stop();
@@ -2448,6 +2488,7 @@ async function doUploadAfterAuth(): Promise<void> {
   // never clean up an out_dir a resume still needs.
   const jobAfterSkins = await window.sc.uploadJob.get();
   if (jobAfterSkins.state?.status === 'paused') {
+    pauseActiveStage();
     setAuthStatus(t('upload.job.paused'), 'warn');
     return;
   }
@@ -2492,7 +2533,7 @@ async function doUploadAfterAuth(): Promise<void> {
       // failed liveries, so that verdict stays on screen — as a warning.
       const skinsWarn = state.skinUploadStatus;
       setAuthStatus(
-        `${t('upload.uploadOk')} · bundle_id ${r.bundleId ?? '—'} · ` +
+        `${t('upload.uploadOk')} · ` +
           (t('upload.cleaned')) +
           (skinsWarn ? ` · ${skinsWarn}` : ''),
         skinsWarn ? 'warn' : 'ok',
@@ -2616,6 +2657,7 @@ function resetUploadCategories(): void {
   }
   resetCategoryBars();
   updateCategoryBars(uploadCounts, uploadExpected, 'upload');
+  if (Array.isArray(donePhases) && donePhases.length > 0) setStageMeta('entries', t('upload.stages.partial'));
 }
 
 // Drive the codex promotion with a live per-table progress line. Non-fatal:
@@ -2642,8 +2684,12 @@ async function promoteToCodex(
     return 'failed';
   }
   const label = t('catalog.publishing');
+  startStage('entries');
   progress?.update({ phaseLabel: label, indeterminate: true, detail: '' });
   const unsub = window.sc.catalog.onEvent((ev) => {
+    if (typeof ev.phaseIndex === 'number' && typeof ev.phaseTotal === 'number') {
+      setStageMeta('entries', t('upload.stages.phaseOf', { n: ev.phaseIndex, total: ev.phaseTotal }));
+    }
     // phaseIndex/phaseTotal are additive fields (catalog-bridge.ts) — an
     // overall two-tier bar: which of the ~14 fixed publish steps we're on,
     // refined by how far the CURRENT step's own current/total has gotten.
@@ -2675,10 +2721,9 @@ async function promoteToCodex(
       const ships = res.counts?.['ships'] ?? 0;
       progress?.update({ overallPct: 100, indeterminate: false });
       markCategoriesComplete();
-      setAuthStatus(
-        `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`,
-        'ok',
-      );
+      setStage('entries', 'done', '');
+      tipStage('entries', categoryTotalsLine());
+      tipStage('codex', `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`);
       return 'ok';
     }
     // A pause is not a failure — the cursor is safe on disk and the operator
@@ -2689,11 +2734,13 @@ async function promoteToCodex(
       return 'paused';
     }
     progress?.update({ indeterminate: false });
+    setStage('entries', 'failed');
     lastCatalogFailure = catalogFailureNotice(res);
     paintCatalogFailure();
     return 'failed';
   } catch (err) {
     progress?.update({ indeterminate: false });
+    setStage('entries', 'failed');
     lastCatalogFailure = catalogFailureNotice({ ok: false, error: (err as Error).message, errorCode: 'unknown' });
     paintCatalogFailure();
     return 'failed';
@@ -2705,12 +2752,11 @@ async function promoteToCodex(
 // The diff against the previous bundle, folded into one quiet line (like the
 // Extract card's log line) that opens into the per-entity table — the numbers
 // stay one click away without pushing the card's own content down.
-function paintDiffSummary(diff: unknown): void {
+function paintDiffSummary(diff: unknown): { badge: string; tip: string } {
   const mount = $('#upload-result');
-  if (!mount) return;
   if (!diff) {
-    mount.innerHTML = `<p class="upload-diff-line">${escapeHtml(t('upload.diff.first'))}</p>`;
-    return;
+    if (mount) mount.innerHTML = '';
+    return { badge: '', tip: t('upload.diff.first') };
   }
   // Server shape (diff_bundle in migration 00005, ingest_bundle_atomic in
   // 00006): { prev_id, new_id, count_diffs: { <entity>: {prev, new, delta} },
@@ -2732,6 +2778,9 @@ function paintDiffSummary(diff: unknown): void {
         })
         .join('')
     : '';
+  const badge = `+${totalAdded.toLocaleString()} / −${totalRemoved.toLocaleString()}`;
+  const tip = `${t('upload.diff.summary')} ${badge}`;
+  if (!mount) return { badge, tip };
   mount.innerHTML = `
     <details class="upload-diff">
       <summary class="upload-diff-line">${escapeHtml(t('upload.diff.summary'))}
@@ -2744,6 +2793,7 @@ function paintDiffSummary(diff: unknown): void {
       </div>
     </details>
   `;
+  return { badge, tip };
 }
 
 interface StatusExtras {
@@ -2888,6 +2938,8 @@ interface SilhouetteBuildHooks {
   shouldStop: () => Promise<boolean>;
   /** Where the outcome line goes: the upload status box, or the run log. */
   report: (msg: string, cls: 'ok' | 'warn' | 'error', extras?: StatusExtras) => void;
+  /** Per-entity position — the Upload card's stage row shows it. */
+  onProgress?: (current: number, total: number) => void;
 }
 
 /** Id of the silhouette build in flight — lets the Run step's abort cancel it. */
@@ -2939,6 +2991,7 @@ async function buildSilhouettes(
     if (ev.type === 'phase' && ev.phase) {
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
+      if (typeof ev.current === 'number' && typeof ev.total === 'number') hooks.onProgress?.(ev.current, ev.total);
       progress?.update({
         // The card appends "x / y" itself; the lead names the work.
         stageLabel: label,
@@ -3021,6 +3074,7 @@ async function buildAndUploadSkins(
   state.skinUploadStatus = null;
   if (!state.authToken) return false;
   const ch = installFor(result);
+  startStage('skins');
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
   const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;
@@ -3044,6 +3098,7 @@ async function buildAndUploadSkins(
       `${t('skins.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
+    setStage('skins', 'warn');
     return false;
   }
 
@@ -3062,6 +3117,7 @@ async function buildAndUploadSkins(
     if (ev.type === 'phase' && ev.phase) {
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
+      if (typeof ev.current === 'number' && typeof ev.total === 'number') setStageMeta('skins', `${ev.current} / ${ev.total}`);
       progress?.update({
         stageLabel: label,
         current: ev.current,
@@ -3098,12 +3154,14 @@ async function buildAndUploadSkins(
       'warn',
       { detail: built.error ?? undefined },
     );
+    setStage('skins', 'warn');
     return false;
   }
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
-    setAuthStatus(t('skins.none'), 'ok');
+    setStage('skins', 'done');
+    tipStage('skins', t('skins.none'));
     return true;
   }
 
@@ -3124,6 +3182,7 @@ async function buildAndUploadSkins(
   });
   const unsubUpload = window.sc.skin.onEvent((ev) => {
     if (ev.type === 'progress') {
+      if (typeof ev.current === 'number') setStageMeta('skins', `${ev.current} / ${ev.total ?? built.ships.length}`);
       const total = ev.total ?? built.ships.length;
       progress?.update({
         current: ev.current,
@@ -3160,7 +3219,11 @@ async function buildAndUploadSkins(
   });
   const status = skinUploadStatus(tally, t);
   state.skinUploadStatus = status.level === 'warn' ? status.message : null;
-  setAuthStatus(status.message, status.level);
+  // Success is a check mark with its line as the tooltip; a lost ship stays
+  // in the status box, because the operator has to act on it.
+  setStage('skins', status.level === 'warn' ? 'warn' : 'done', `${tally.live} / ${tally.attempted}`);
+  tipStage('skins', status.message);
+  if (status.level === 'warn') setAuthStatus(status.message, status.level);
   return status.level !== 'warn';
 }
 

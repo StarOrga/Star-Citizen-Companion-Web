@@ -25,6 +25,8 @@
  * all animation/transition durations), so nothing extra is needed here.
  */
 
+import { pruneSamples, throughput } from '../lib/throughput.js';
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, (c) =>
     c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;',
@@ -47,8 +49,6 @@ function fmtSince(ms: number): string {
 // the meta line surfaces a running "…still working (Xs)" timer so the user
 // knows the app is alive, not hung.
 const STALL_MS = 3500;
-// Rolling window over which throughput is averaged (smooths out bursty events).
-const RATE_WINDOW_MS = 6000;
 // How long one observation of real work keeps the bar animated.
 const LIVE_MS = 2500;
 // CPU seconds per wall second below which a worker pulse counts as idle.
@@ -120,7 +120,7 @@ export interface ProgressLabels {
  * layout/placement. Pass `steps` to render the journey chip row (used by both
  * flows now — the extract phases and the upload sub-steps).
  */
-export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
+export function progressCardHtml(id: string, steps?: ProgressStep[], opts: { compact?: boolean } = {}): string {
   const stepsHtml =
     steps && steps.length
       ? `<div class="sc-progress-steps" id="${id}-steps">` +
@@ -134,7 +134,7 @@ export function progressCardHtml(id: string, steps?: ProgressStep[]): string {
         `</div>`
       : '';
   return `
-    <div class="sc-progress" id="${id}">
+    <div class="sc-progress${opts.compact ? ' sc-progress--compact' : ''}" id="${id}">
       <div class="sc-progress-head">
         <span class="sc-progress-phase" id="${id}-phase">…</span>
       </div>
@@ -207,6 +207,17 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   const metaEl = byId('-meta');
   const countersEl = byId('-counters');
   const rateEl = byId('-rate');
+  // Compact (the Upload card, whose stage list carries the numbers): no detail
+  // line or counter chips — the detail text and the rate become the bar's tooltip.
+  const compact = byId('')?.classList.contains('sc-progress--compact') ?? false;
+  let detailText = '';
+  let rateText = '';
+  const paintBarTip = (): void => {
+    if (!compact || !barWrap) return;
+    const tip = [detailText, rateText].filter(Boolean).join(' · ');
+    if (tip) barWrap.dataset.tip = tip;
+    else delete barWrap.dataset.tip;
+  };
   // Both copies of each clock: the dark one clipped to the fill, the muted one
   // on the empty track — together they read as one label that changes colour
   // exactly where the fill ends.
@@ -262,15 +273,13 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   let lastActiveAt = 0;
   let holds = 0;
 
-  // Throughput over the rolling window → items/sec + ETA to the current goal.
+  // Throughput over the rolling window ending NOW (lib/throughput.ts) →
+  // items/sec + ETA to the current goal; a stall decays both.
   const rateInfo = (): { rate: number; etaSec: number | null } | null => {
-    if (samples.length < 2) return null;
-    const first = samples[0];
-    const last = samples[samples.length - 1];
-    const dt = (last.t - first.t) / 1000;
-    const dc = last.current - first.current;
-    if (dt < 1 || dc <= 0) return null;
-    const rate = dc / dt;
+    const now = Date.now();
+    pruneSamples(samples, now);
+    const rate = throughput(samples, now);
+    if (rate === null) return null;
     let etaSec: number | null = null;
     if (
       typeof vm.total === 'number' &&
@@ -319,6 +328,8 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
     }
     if (vm.detail) txt += `${txt ? '  ·  ' : ''}${vm.detail}`;
     if (detailEl) detailEl.textContent = txt;
+    detailText = txt;
+    paintBarTip();
 
     barWrap?.classList.toggle('indeterminate', vm.indeterminate);
   };
@@ -354,10 +365,11 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
 
     const eta = ri?.etaSec != null ? `${labels.eta} ${fmtElapsed(ri.etaSec * 1000)}` : '';
     for (const el of etaEls) el.textContent = eta;
-    if (rateEl) {
-      rateEl.textContent = ri
-        ? `~${ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1)}${labels.perSec}`
-        : '';
+    const rate = ri ? `~${ri.rate >= 10 ? String(Math.round(ri.rate)) : ri.rate.toFixed(1)}${labels.perSec}` : '';
+    if (rateEl) rateEl.textContent = rate;
+    if (rate !== rateText) {
+      rateText = rate;
+      paintBarTip();
     }
     // Animate only while work is observed — see pulse()/hold().
     barWrap?.classList.toggle('live', running && (holds > 0 || now - lastActiveAt < LIVE_MS));
@@ -449,8 +461,13 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       const hasGoal = typeof vm.total === 'number' && vm.total > 0 && typeof vm.current === 'number';
       vm.indeterminate = u.indeterminate ?? (!hasGoal && typeof vm.current !== 'number');
 
-      if (hasGoal) samples.push({ t: Date.now(), current: vm.current as number });
-      while (samples.length > 2 && Date.now() - samples[0].t > RATE_WINDOW_MS) samples.shift();
+      if (hasGoal) {
+        const last = samples[samples.length - 1];
+        // A counter going backwards is a new goal (tool download → build), not throughput.
+        if (last && (vm.current as number) < last.current) samples.length = 0;
+        samples.push({ t: Date.now(), current: vm.current as number });
+        pruneSamples(samples, Date.now());
+      }
 
       // Reset the stall timer only on a *real* change (new stage, more items,
       // new detail, ticked counter) — not on a no-op repaint.
