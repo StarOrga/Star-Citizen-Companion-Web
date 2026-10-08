@@ -96,7 +96,11 @@ export interface PickedItem {
       font-family: inherit; font-size: 0.86rem;
     }
     .search:focus { outline: none; border-color: var(--sc-accent); }
-    .close { border: none; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; line-height: 1; }
+    .close {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(36px, var(--sc-tap-min)); min-height: max(36px, var(--sc-tap-min)); padding: 4px;
+      border: none; border-radius: 6px; background: transparent; color: var(--sc-fg-2); font-size: 1.3rem; cursor: pointer; line-height: 1;
+    }
     .close:hover { color: var(--sc-danger); }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; padding: 6px 2px; }
     .state.err { color: var(--sc-danger); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
