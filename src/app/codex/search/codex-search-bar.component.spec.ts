@@ -150,4 +150,90 @@ describe('CodexSearchBarComponent', () => {
     expect(host.classList).not.toContain('active');
     tick(1000);
   }));
+  it('a click inside the field keeps the caret and selection the user placed', fakeAsync(() => {
+    fixture.componentInstance.activate();
+    fixture.componentInstance.engine.setInput('gladius');
+    fixture.detectChanges();
+    tick(1000);
+    fixture.detectChanges();
+    const el = input();
+    el.focus();
+    el.setSelectionRange(0, 4);
+    el.click();
+    fixture.detectChanges();
+    tick();
+
+    expect([el.selectionStart, el.selectionEnd]).toEqual([0, 4]);
+  }));
+
+  it('a click on the field chrome (not the input) still focuses the input', fakeAsync(() => {
+    host.querySelector<HTMLElement>('.field')!.click();
+    fixture.detectChanges();
+    tick();
+
+    expect(document.activeElement).toBe(input());
+    expect(host.classList).toContain('active');
+  }));
+
+  it('caps the results panel at the room left below the field', fakeAsync(() => {
+    fixture.componentInstance.activate();
+    fixture.detectChanges();
+    tick();
+    fixture.detectChanges();
+
+    const max = parseFloat(host.style.getPropertyValue('--panel-max'));
+    const fieldBottom = host.querySelector('.field')!.getBoundingClientRect().bottom;
+    const viewport = window.visualViewport?.height ?? window.innerHeight;
+    expect(max).toBeGreaterThanOrEqual(180);
+    expect(max).toBeLessThanOrEqual(Math.max(180, viewport - fieldBottom));
+  }));
+
+  it('a partial search keeps its hits and says quietly which part is missing, with retry', fakeAsync(() => {
+    const codex = TestBed.inject(CodexService) as unknown as { searchAll: jasmine.Spy };
+    spyOn(console, 'warn');
+    const hit = {
+      kind: 'ship' as const,
+      classNameSlug: 'AEGS_Gladius',
+      nameLocalized: 'Aegis Gladius',
+      manufacturerCode: 'AEGS',
+      size: 1,
+      grade: null,
+      scope: scopeForKind('ship'),
+    };
+    codex.searchAll.and.resolveTo({
+      hits: [hit],
+      totals: { ship: 1 },
+      failed: ['item'],
+      failure: new Error('canceling statement due to statement timeout'),
+    });
+    fixture.componentInstance.activate();
+    fixture.componentInstance.engine.searchFor('gladius');
+    tick();
+    fixture.detectChanges();
+
+    const note = host.querySelector('.partial');
+    expect(note).not.toBeNull();
+    expect(note?.getAttribute('role')).toBe('status');
+    expect(note?.closest('[role="listbox"]')).toBeNull();
+    expect(host.querySelectorAll('.hit').length).toBe(1);
+
+    codex.searchAll.calls.reset();
+    codex.searchAll.and.resolveTo({ hits: [hit], totals: { ship: 1 } });
+    host.querySelector<HTMLButtonElement>('.partial-retry')!.click();
+    tick();
+    fixture.detectChanges();
+    expect(codex.searchAll).toHaveBeenCalledTimes(1);
+    expect(host.querySelector('.partial')).toBeNull();
+  }));
+
+  it('the landing terminal keeps a real height on a mouse pointer — the field never hangs over the next row', () => {
+    const t = TestBed.createComponent(CodexSearchBarComponent);
+    t.componentRef.setInput('variant', 'terminal');
+    t.detectChanges();
+    const el = t.nativeElement as HTMLElement;
+    const field = el.querySelector('.field')!.getBoundingClientRect();
+    expect(el.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+    expect(field.height).toBeLessThanOrEqual(el.getBoundingClientRect().height);
+    t.destroy();
+  });
 });

@@ -51,7 +51,7 @@ let nextId = 0;
       <div class="dim" aria-hidden="true" (click)="collapse()"></div>
     }
     <div class="shell" [class.active]="active()" (focusout)="onFocusOut($event)" role="search">
-      <div class="field" (click)="focusInput()">
+      <div class="field" (click)="onFieldClick($event)">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
              stroke-linecap="round" aria-hidden="true">
           <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
@@ -104,7 +104,9 @@ let nextId = 0;
     /* The host keeps the slim height in the page flow; the shell paints on top
        of it, so growing never shifts what follows. */
     :host { --bar-h: 40px; display: block; position: relative; height: var(--bar-h); }
-    :host(.terminal) { --bar-h: var(--sc-tap-min, 44px); }
+    /* --sc-tap-min is 0px on a fine pointer, so it cannot be the height here:
+       a 0px host let the field hang over the row below the terminal. */
+    :host(.terminal) { --bar-h: 44px; }
     /* Active terminal: the shell spans the whole terminal row (the landing
        makes that row the positioning context) and leads the page. */
     :host(.terminal.active) { position: static; }
@@ -115,7 +117,11 @@ let nextId = 0;
       -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
       animation: dim-in 0.18s ease-out;
     }
-    .shell { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-direction: column; }
+    .shell {
+      position: absolute; top: 0; left: 0; right: 0; display: flex; flex-direction: column;
+      /* Room above the bar when it scrolls itself to the top of a phone screen. */
+      scroll-margin-top: 12px;
+    }
     .shell.active { z-index: 91; }
 
     .field {
@@ -159,7 +165,9 @@ let nextId = 0;
 
     .panel {
       margin-top: 8px; padding: 10px; border-radius: 6px; overflow-y: auto; overscroll-behavior: contain;
-      max-height: calc(100dvh - var(--sc-topbar-h, 64px) - 120px);
+      /* --panel-max is measured from the field's bottom to the visible
+         viewport's bottom (keyboard included); the calc is the first frame. */
+      max-height: var(--panel-max, calc(100dvh - var(--sc-topbar-h, 64px) - 120px));
       border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, var(--sc-border));
       background: var(--sc-bg-1); box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
       animation: panel-in 0.18s ease-out;
@@ -179,7 +187,7 @@ let nextId = 0;
     @media (max-width: 720px) {
       .hint { display: none; }
       .shell.active .field { min-height: 52px; }
-      .panel { max-height: calc(100dvh - 140px); padding: 8px 6px; }
+      .panel { padding: 8px 6px; }
     }
   `],
 })
@@ -223,6 +231,23 @@ export class CodexSearchBarComponent {
       });
     });
 
+    // The panel fits between the field and the bottom of what is visible —
+    // a phone keyboard or a resized window changes that while it is open.
+    if (typeof window !== 'undefined') {
+      const refit = () => {
+        if (this.active()) this.fitPanel();
+      };
+      const vv = window.visualViewport;
+      window.addEventListener('resize', refit, { passive: true });
+      window.addEventListener('scroll', refit, { passive: true });
+      vv?.addEventListener('resize', refit, { passive: true });
+      inject(DestroyRef).onDestroy(() => {
+        window.removeEventListener('resize', refit);
+        window.removeEventListener('scroll', refit);
+        vv?.removeEventListener('resize', refit);
+      });
+    }
+
     // Any navigation (a hit, "all N", a link elsewhere) puts the bar back.
     this.router.events
       .pipe(
@@ -245,11 +270,32 @@ export class CodexSearchBarComponent {
     if (seed != null) this.engine.setInput(wasActive ? this.engine.input() + seed : seed);
     this.active.set(true);
     this.engine.ensureSuggestions();
-    if (fromShortcut && !wasActive && typeof window !== 'undefined') {
+    if (!wasActive && typeof window !== 'undefined') {
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+      const behavior: ScrollBehavior = reduce ? 'auto' : 'smooth';
+      if (fromShortcut) {
+        window.scrollTo({ top: 0, behavior });
+      } else if (window.matchMedia?.('(max-width: 720px)').matches) {
+        // A phone: the bar further down the page becomes the page's lead —
+        // it moves to the top so the results get the screen below it.
+        this.host.nativeElement.querySelector('.shell')?.scrollIntoView({ block: 'start', behavior });
+      }
     }
+    afterNextRender(() => this.fitPanel(), { injector: this.injector });
     if (fromShortcut) this.focusInput(seed == null);
+  }
+
+  /** Cap the results panel at the space between the field and the visible viewport's bottom. */
+  private fitPanel(): void {
+    if (typeof window === 'undefined') return;
+    const host = this.host.nativeElement;
+    const field = host.querySelector('.field');
+    if (!field) return;
+    const vv = window.visualViewport;
+    const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    // 8px gap above the panel, 12px air below it; never squeeze below a few rows.
+    const room = Math.round(bottom - field.getBoundingClientRect().bottom - 8 - 12);
+    host.style.setProperty('--panel-max', `${Math.max(180, room)}px`);
   }
 
   /** Back to the slim bar. `clear` also empties the field (after a navigation). */
@@ -259,6 +305,15 @@ export class CodexSearchBarComponent {
     if (clear) this.engine.clear();
     const el = this.field().nativeElement;
     if (document.activeElement === el) el.blur();
+  }
+
+  /** A click on the field's chrome focuses the input; a click IN the input keeps the caret/selection the user placed. */
+  onFieldClick(ev: MouseEvent): void {
+    if (ev.target === this.field().nativeElement) {
+      if (!this.active()) this.activate();
+      return;
+    }
+    this.focusInput();
   }
 
   focusInput(select = false): void {

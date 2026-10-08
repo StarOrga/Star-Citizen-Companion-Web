@@ -19,6 +19,14 @@ export interface PolySearchResult {
   hits: PolySearchHit[];
   /** Per-kind match count (server count; the announced feed counts its own). */
   totals: Partial<Record<PolyHitKind, number>>;
+  /**
+   * Kinds whose read failed while others answered — the search is partial and
+   * says so. Absent or empty when every source answered. When EVERY source
+   * fails, `searchAll` rejects instead: that is an error, not "no results".
+   */
+  failed?: PolyHitKind[];
+  /** The first failure of a partial search, for the translated note (never rendered raw). */
+  failure?: unknown;
 }
 import { ilikeTokenGroups, ilikeTokenPatterns, normalizeSearch, searchMatcher, searchTokens } from './codex-search';
 import { UpcomingShipsService } from './upcoming-ships.service';
@@ -1683,6 +1691,13 @@ export class CodexService {
     const q = query.trim();
     const totals: Partial<Record<PolyHitKind, number>> = {};
     if (!q) return { hits: [], totals };
+    const failed: PolyHitKind[] = [];
+    let failure: unknown;
+    const fail = (kind: PolyHitKind, err: unknown): PolySearchHit[] => {
+      failed.push(kind);
+      failure ??= err;
+      return [];
+    };
     const sources: Promise<PolySearchHit[]>[] = CODEX_KINDS.map(async (kind) => {
       try {
         // Over-fetch: the server orders alphabetically, so the best match of a
@@ -1693,8 +1708,8 @@ export class CodexService {
         // runs the very same list query.
         totals[kind] = res.count;
         return dedupePolyHits(rankPolyHits(q, res.rows.map((r) => toPolyHit(kind, r)))).slice(0, perKindLimit);
-      } catch {
-        return [] as PolySearchHit[];
+      } catch (err) {
+        return fail(kind, err);
       }
     });
     sources.push(
@@ -1703,13 +1718,16 @@ export class CodexService {
           const ships = await this.upcoming.searchShips(q, UPCOMING_SEARCH_ALL);
           totals[UPCOMING_HIT_KIND] = ships.length;
           return ships.slice(0, perKindLimit).map(toUpcomingHit);
-        } catch {
-          return [] as PolySearchHit[];
+        } catch (err) {
+          return fail(UPCOMING_HIT_KIND, err);
         }
       })(),
     );
     const results = await Promise.all(sources);
-    return { hits: rankPolyHits(q, results.flat()), totals };
+    // Nothing answered: an outage, not an empty archive — the caller shows an error with retry.
+    if (failed.length === sources.length) throw failure;
+    const hits = rankPolyHits(q, results.flat());
+    return failed.length ? { hits, totals, failed, failure } : { hits, totals };
   }
 
   /**

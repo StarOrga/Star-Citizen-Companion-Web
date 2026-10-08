@@ -102,6 +102,18 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           }
         }
       } @else {
+        @if (e.partialError(); as perr) {
+          <!-- Some kinds timed out, the rest answered: keep the hits, say what is
+               missing and offer the retry — quietly, outside the listbox. -->
+          <p class="partial" role="status">
+            <svg class="partial-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3 2.5 20h19L12 3Z" /><path d="M12 10v4" /><path d="M12 17.2v.01" />
+            </svg>
+            <span>{{ 'codex.search.bar.partial' | translate }} — {{ perr | translate }}</span>
+            <button type="button" class="partial-retry" (click)="e.retry()">{{ 'codex.error.retry' | translate }}</button>
+          </p>
+        }
         <div class="listbox" role="listbox" [id]="listboxId()" [attr.aria-label]="'codex.search.bar.resultsAria' | translate"
              [attr.aria-busy]="e.loading()" [class.stale]="e.loading() || pending()">
           @for (g of e.groups(); track g.kind) {
@@ -171,8 +183,11 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
             } @else {
               <button type="button" class="act add" (click)="addToHangar(o.hit.classNameSlug)"
                       [disabled]="adding().has(o.hit.classNameSlug)" [attr.aria-busy]="adding().has(o.hit.classNameSlug)"
-                      [attr.aria-label]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }">
-                {{ 'quickSearch.addToHangar' | translate }}
+                      [attr.aria-label]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }"
+                      [scTooltip]="'codex.search.bar.addToHangarAria' | translate: { name: title(o.hit) }" scTooltipTier="label">
+                <svg class="add-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                <span class="add-label">{{ 'codex.search.bar.addToHangar' | translate }}</span>
               </button>
             }
           }
@@ -201,12 +216,15 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     .group { display: flex; flex-direction: column; gap: 2px; }
     .group-head {
       display: flex; align-items: center; gap: 8px; padding: 2px 8px 4px;
-      font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor));
+      font-family: var(--sc-font-display); font-size: max(0.74rem, var(--sc-fs-floor));
       text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2);
     }
+    /* Groups after the first get a hairline, so a long list reads as sections. */
+    .group + .group { padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--sc-border) 60%, transparent); }
     .count {
       font-family: var(--sc-font-mono, monospace); font-variant-numeric: tabular-nums; letter-spacing: 0;
-      padding: 0 6px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-1);
+      font-size: max(0.7rem, var(--sc-fs-floor)); line-height: 1.5;
+      padding: 0 7px; border-radius: 999px; background: var(--sc-bg-2); color: var(--sc-fg-1);
     }
     .head-action {
       margin-left: auto; background: none; border: 0; padding: 2px 4px; cursor: pointer; border-radius: 4px;
@@ -266,6 +284,8 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
       padding: 0 10px; border-color: color-mix(in srgb, var(--sc-accent) 60%, transparent); color: var(--sc-accent);
       font-family: var(--sc-font-display); font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
     }
+    .act.add { gap: 4px; }
+    .add-icon { width: 14px; height: 14px; flex: none; }
     .act.add:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
     .act.pin svg { width: 18px; height: 18px; }
     .act.pin:hover, .act.pin.pinned { color: var(--sc-accent); }
@@ -298,8 +318,22 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     .dym { color: var(--sc-accent); text-decoration: none; border-radius: 4px; }
     .dym:hover { text-decoration: underline; }
     .dym:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .partial {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; padding: 4px 8px;
+      color: var(--sc-fg-2); font-size: max(0.8rem, var(--sc-fs-floor));
+    }
+    .partial-icon { width: 16px; height: 16px; flex: none; color: var(--sc-warning); }
+    .partial-retry {
+      background: none; border: 0; padding: 2px 4px; border-radius: 4px; cursor: pointer;
+      color: var(--sc-accent); font: inherit; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .partial-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+    /* Pinned to the bottom of the scroll port: the key legend must not scroll
+       away under a long result list. */
     .nav-hint {
-      margin: 4px 0 0; padding: 6px 4px 0; border-top: 1px solid var(--sc-border); text-align: center;
+      position: sticky; bottom: 0; z-index: 1;
+      margin: 4px 0 0; padding: 6px 4px; border-top: 1px solid var(--sc-border); text-align: center;
+      background: var(--sc-hint-bg, var(--sc-bg-1));
       color: var(--sc-fg-2); font-size: max(0.7rem, var(--sc-fs-floor)); letter-spacing: 0.03em;
     }
 
@@ -308,10 +342,17 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     .roomy .icon:has(sc-ship-blueprint-art) { width: 52px; }
 
     @media (pointer: coarse) {
-      .hit, .more, .chip, .act, .head-action, .dym, .retry { min-height: 48px; }
+      .hit, .more, .chip, .act, .head-action, .dym, .retry, .partial-retry { min-height: 48px; }
       .act { min-width: 48px; }
       .dym { display: inline-flex; align-items: center; padding: 0 4px; }
       .nav-hint { display: none; }
+    }
+    /* A phone row: the ship name needs the width — the add button keeps its
+       "+" and its aria-label, the word goes. */
+    @media (max-width: 480px) {
+      .act.add { padding: 0; }
+      .add-label { display: none; }
+      .add-icon { width: 18px; height: 18px; }
     }
   `],
 })

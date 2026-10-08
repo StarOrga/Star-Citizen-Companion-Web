@@ -1378,6 +1378,38 @@ describe('CodexService.searchAll', () => {
     expect(hits.map((h) => `${h.kind}:${h.classNameSlug}`)).toEqual(['blueprint:BP_Gladius']);
   });
 
+  it('names the kinds it could not search, so the UI can say the result is partial', async () => {
+    const svc = make();
+    const timeout = new Error('canceling statement due to statement timeout');
+    spyOn(svc, 'listByKind').and.callFake(async (kind: CodexKind) => {
+      if (kind === 'ship' || kind === 'item') throw timeout;
+      return { rows: [], count: 0 };
+    });
+
+    const res = await svc.searchAll('gladius');
+
+    expect(res.failed).toEqual(jasmine.arrayWithExactContents(['ship', 'item']));
+    expect(res.failure).toBe(timeout);
+  });
+
+  it('reports nothing failed when every source answered', async () => {
+    const svc = make();
+    spyOn(svc, 'listByKind').and.resolveTo({ rows: [], count: 0 });
+
+    const res = await svc.searchAll('gladius');
+
+    expect(res.failed).toBeUndefined();
+  });
+
+  it('rejects when every source failed — an outage is an error, not "no results"', async () => {
+    const svc = make({
+      searchShips: jasmine.createSpy('searchShips').and.rejectWith(new TypeError('Failed to fetch')),
+    } as Partial<UpcomingShipsService>);
+    spyOn(svc, 'listByKind').and.rejectWith(new TypeError('Failed to fetch'));
+
+    await expectAsync(svc.searchAll('gladius')).toBeRejectedWithError(TypeError);
+  });
+
   it('adds announced ships from the upcoming feed as an extra source, tagged upcoming', async () => {
     const searchShips = jasmine.createSpy('searchShips').and.resolveTo([
       { id: 'rsi-arrastra', name: 'Arrastra', manufacturer: 'Argo Astronautics', manufacturerCode: 'ARGO' },

@@ -412,6 +412,7 @@
         "fresh": "Neu in diesem Patch",
         "areas": "Bereiche",
         "failed": "Suche fehlgeschlagen",
+        "partial": "Einige Bereiche konnten nicht durchsucht werden",
         "searching": "Durchsuche den Codex …",
         "empty": "Keine Treffer für „{{term}}“.",
         "allInIndex": "Alle {{n}} im Index",
@@ -420,6 +421,7 @@
         "livery": "Lackierung",
         "upcomingBadge": "Noch nicht im Spiel",
         "addToHangarAria": "{{name}} zum Hangar hinzufügen",
+        "addToHangar": "Hangar",
         "navHint": "↑↓ navigieren · ↵ öffnen · Strg+↵ neuer Tab · Esc schließen",
         "category": {
           "ships": "Schiffe",

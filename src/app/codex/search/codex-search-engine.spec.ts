@@ -165,6 +165,26 @@ describe('CodexSearchEngine', () => {
     expect(engine.groups()).toEqual([]);
   }));
 
+  it('a partial search keeps the hits and carries a translated note; a clean search drops it', fakeAsync(() => {
+    spyOn(console, 'warn');
+    searchAll.and.resolveTo({
+      hits: [hit('ship', 'AEGS_Gladius')],
+      totals: { ship: 1 },
+      failed: ['item'],
+      failure: new Error('canceling statement due to statement timeout'),
+    });
+    engine.searchFor('gladius');
+    tick();
+    expect(engine.error()).toBeNull();
+    expect(engine.hits().length).toBe(1);
+    expect(engine.partialError()).toBe('errors.timeout');
+
+    searchAll.and.resolveTo({ hits: [hit('ship', 'AEGS_Gladius')], totals: { ship: 1 } });
+    engine.retry();
+    tick();
+    expect(engine.partialError()).toBeNull();
+  }));
+
   it('a failed search is an error key with retry, never "no results"', fakeAsync(() => {
     spyOn(console, 'warn');
     searchAll.and.rejectWith(new TypeError('Failed to fetch'));

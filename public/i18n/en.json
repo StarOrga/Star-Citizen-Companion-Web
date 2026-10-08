@@ -412,6 +412,7 @@
         "fresh": "New in this patch",
         "areas": "Areas",
         "failed": "Search failed",
+        "partial": "Some areas could not be searched",
         "searching": "Searching the Codex …",
         "empty": "No matches for “{{term}}”.",
         "allInIndex": "All {{n}} in the index",
@@ -420,6 +421,7 @@
         "livery": "Livery",
         "upcomingBadge": "Not in the game yet",
         "addToHangarAria": "Add {{name}} to the hangar",
+        "addToHangar": "Hangar",
         "navHint": "↑↓ navigate · ↵ open · Ctrl+↵ new tab · Esc close",
         "category": {
           "ships": "Ships",

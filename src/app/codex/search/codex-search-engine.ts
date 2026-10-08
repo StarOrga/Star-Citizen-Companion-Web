@@ -57,6 +57,11 @@ export class CodexSearchEngine {
   readonly loading = signal(false);
   /** i18n key of a failed search — never raw text, never shown as "no results". */
   readonly error = signal<string | null>(null);
+  /**
+   * i18n key of a PARTIAL failure: some kinds could not be searched, the rest
+   * answered. The hits stay; the UI adds a quiet "some areas missing — retry".
+   */
+  readonly partialError = signal<string | null>(null);
   readonly hits = signal<PolySearchHit[]>([]);
   readonly totals = signal<Partial<Record<PolyHitKind, number>>>({});
   /** "Did you mean" names for a search that found nothing. */
@@ -229,6 +234,7 @@ export class CodexSearchEngine {
       this.hits.set([]);
       this.totals.set({});
       this.error.set(null);
+      this.partialError.set(null);
       this.didYouMean.set([]);
       this.loading.set(false);
       return;
@@ -240,18 +246,21 @@ export class CodexSearchEngine {
     const seq = ++this.seq;
     this.loading.set(true);
     this.error.set(null);
+    this.partialError.set(null);
     this.didYouMean.set([]);
     try {
-      const { hits, totals } = await this.codex.searchAll(term, this.perGroup());
+      const { hits, totals, failed, failure } = await this.codex.searchAll(term, this.perGroup());
       if (seq !== this.seq) return; // a newer search superseded this one
       this.hits.set(hits);
       this.totals.set(totals);
+      if (failed?.length) this.partialError.set(toErrorKey('codex', 'search', failure, { term, failed }));
       this.activeIndex.set(-1);
       if (hits.length === 0) void this.loadDidYouMean(seq, term);
     } catch (err) {
       if (seq === this.seq) {
         this.hits.set([]);
         this.totals.set({});
+        this.partialError.set(null);
         this.error.set(toErrorKey('codex', 'search', err, { term }));
       }
     } finally {
