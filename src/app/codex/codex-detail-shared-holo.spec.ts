@@ -2,7 +2,7 @@
 // Holotable, on the real page with the same Nomad fixture/stub shape as
 // codex-detail-holo-toggle.spec.ts.
 import { provideNoShipBlueprints } from './ship-blueprint/ship-blueprint.testing';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, flush, flushMicrotasks } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
@@ -150,12 +150,28 @@ interface HangarStub {
   listAllConfigs?: jasmine.Spy;
 }
 
-async function setup(
+/**
+ * Runs every pending microtask and timer (fakeAsync) and re-renders until the
+ * page has settled. Deterministic: no real clock, no whenStable() — a slow
+ * machine only takes longer, it can never time a spec out half-way and leave
+ * its continuation running into the next spec's TestBed.
+ */
+function settle(fixture: ComponentFixture<CodexDetailComponent>): void {
+  for (let i = 0; i < 4; i++) {
+    flush();
+    fixture.detectChanges();
+  }
+  flush();
+  discardPeriodicTasks();
+}
+
+/** Must run inside fakeAsync(). */
+function setup(
   queryParams: Record<string, string>,
   hangar: HangarStub,
   adoptAndOpen = jasmine.createSpy('adoptAndOpen').and.resolveTo(true),
-): Promise<ComponentFixture<CodexDetailComponent>> {
-  await TestBed.configureTestingModule({
+): ComponentFixture<CodexDetailComponent> {
+  TestBed.configureTestingModule({
     imports: [CodexDetailComponent],
     providers: [
       provideNoShipBlueprints(),
@@ -210,14 +226,13 @@ async function setup(
         } as Partial<ShipLinkService>,
       },
     ],
-  }).compileComponents();
+  });
+  void TestBed.compileComponents();
+  flushMicrotasks();
   spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
   const fixture: ComponentFixture<CodexDetailComponent> = TestBed.createComponent(CodexDetailComponent);
   fixture.detectChanges();
-  await fixture.whenStable();
-  fixture.detectChanges();
-  await fixture.whenStable();
-  fixture.detectChanges();
+  settle(fixture);
   return fixture;
 }
 
@@ -246,12 +261,12 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     ownedConfigs = [];
   });
 
-  it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', async () => {
+  it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', fakeAsync(() => {
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
     };
-    const fixture = await setup({ view: 'holo', shared: 'tok' }, hangar);
+    const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
     expect(hangar.peekSharedLoadout).toHaveBeenCalledWith('tok');
     expect(c.draftReadOnly()).toBeTrue();
@@ -263,14 +278,14 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     const open = spyOn(c, 'openSwapPicker');
     c.onHoloSwapRequested({} as never);
     expect(open).not.toHaveBeenCalled();
-  });
+  }));
 
-  it('switching to the classic view leaves the read-only shared view', async () => {
+  it('switching to the classic view leaves the read-only shared view', fakeAsync(() => {
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
     };
-    const fixture = await setup({ view: 'holo', shared: 'tok' }, hangar);
+    const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
     expect(c.draftReadOnly()).toBeTrue();
     c.toggleHoloView();
@@ -280,46 +295,47 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
       [],
       jasmine.objectContaining({ queryParams: { view: 'classic', shared: null } }),
     );
-  });
+  }));
 
-  it('a failed peek is an error banner with retry; the retry loads it', async () => {
+  it('a failed peek is an error banner with retry; the retry loads it', fakeAsync(() => {
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek').and.rejectWith({ message: 'Failed to fetch' }),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
     };
-    const fixture = await setup({ view: 'holo', shared: 'tok' }, hangar);
+    const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     const c = fixture.componentInstance;
     expect(c.sharedDraft()?.status).toBe('error');
     expect(c.draftReadOnly()).toBeFalse();
     hangar.peekSharedLoadout.and.resolveTo(PEEK);
     c.retrySharedDraft();
-    await fixture.whenStable();
+    settle(fixture);
     expect(c.sharedDraft()?.status).toBe('ready');
     expect(c.draftReadOnly()).toBeTrue();
-  });
+  }));
 
-  it('a link for another hull keeps stock and says so', async () => {
+  it('a link for another hull keeps stock and says so', fakeAsync(() => {
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo({ ...PEEK, shipClassName: 'AEGS_Gladius' }),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
     };
-    const fixture = await setup({ view: 'holo', shared: 'tok' }, hangar);
+    const fixture = setup({ view: 'holo', shared: 'tok' }, hangar);
     expect(fixture.componentInstance.sharedDraft()?.status).toBe('unavailable');
     expect(fixture.componentInstance.draftChangedCount()).toBe(0);
-  });
+  }));
 
-  it('adopt hands the token to the adopter', async () => {
+  it('adopt hands the token to the adopter', fakeAsync(() => {
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek').and.resolveTo(PEEK),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo([]),
     };
     const adopt = jasmine.createSpy('adoptAndOpen').and.resolveTo(true);
-    const fixture = await setup({ view: 'holo', shared: 'tok' }, hangar, adopt);
-    await fixture.componentInstance.adoptSharedDraft();
+    const fixture = setup({ view: 'holo', shared: 'tok' }, hangar, adopt);
+    void fixture.componentInstance.adoptSharedDraft();
+    settle(fixture);
     expect(adopt).toHaveBeenCalledWith('tok', 'cnou_nomad');
-  });
+  }));
 
-  it('legacy ?config= becomes ?v= and opens THAT variant as the (saved) draft — not stock', async () => {
+  it('legacy ?config= becomes ?v= and opens THAT variant as the (saved) draft — not stock', fakeAsync(() => {
     const adopted = {
       id: 'cfg-adopted',
       hangarShipId: 'ship-1',
@@ -337,7 +353,7 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo(configs),
       listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo(configs),
     };
-    const fixture = await setup({ view: 'holo', config: 'cfg-adopted' }, hangar);
+    const fixture = setup({ view: 'holo', config: 'cfg-adopted' }, hangar);
     const c = fixture.componentInstance;
     const nav = TestBed.inject(Router).navigate as jasmine.Spy;
     expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({
@@ -354,13 +370,13 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     // Personal mode: the parent crumb leads to HQ, the switch names the variant.
     expect(c.crumbs()).toEqual([jasmine.objectContaining({ labelKey: 'codex.personal.hqCrumb', link: '/hq/hangar' })]);
     expect(c.showModeSwitch()).toBeTrue();
-  });
+  }));
 
-  it('?v= of the reader puts that variant on the table and keeps v in the URL', async () => {
+  it('?v= of the reader puts that variant on the table and keeps v in the URL', fakeAsync(() => {
     const mine = { id: 'cfg-mine', hangarShipId: 'ship-1', name: 'Brawler', isActive: true,
       loadout: [{ portName: GUN_PORT, className: SHARED_GUN, kind: 'weapon' }] };
     ownedConfigs = [mine];
-    const fixture = await setup({ view: 'holo', v: 'cfg-mine' }, {
+    const fixture = setup({ view: 'holo', v: 'cfg-mine' }, {
       listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([mine]),
     });
     const c = fixture.componentInstance;
@@ -370,10 +386,10 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     const nav = TestBed.inject(Router).navigate as jasmine.Spy;
     expect(nav.calls.allArgs().some(([, extras]) => (extras as { queryParams?: Record<string, unknown> })?.queryParams?.['v'] === null))
       .withContext('v stays').toBeFalse();
-  });
+  }));
 
-  it('a foreign ?v= falls back to codex mode, drops v and says how variants are shared', async () => {
-    const fixture = await setup({ view: 'holo', v: 'cfg-someone-else' }, {
+  it('a foreign ?v= falls back to codex mode, drops v and says how variants are shared', fakeAsync(() => {
+    const fixture = setup({ view: 'holo', v: 'cfg-someone-else' }, {
       listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([]),
     });
     const c = fixture.componentInstance;
@@ -384,5 +400,5 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
     expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { v: null }, replaceUrl: true }));
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.foreign-note')?.textContent).toContain('codex.personal.foreignVariant');
-  });
+  }));
 });
