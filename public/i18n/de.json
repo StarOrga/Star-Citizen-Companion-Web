@@ -690,6 +690,7 @@
         "placeholderAria": "Platzhalter-Silhouette von {{name}}",
         "noPorts": "Keine Hardpoints in den Spieldaten",
         "pinKey": "Pin-Legende",
+        "pinLabels": "Pin-Beschriftungen am Rumpf",
         "legendUnresolved": "Position geschätzt",
         "rawPortHint": "Roh-Port aus den Spieldaten — kein Bauteil zum Tauschen oder Öffnen.",
         "eyebrowTop": "Draufsicht · {{n}} Hardpoints",
