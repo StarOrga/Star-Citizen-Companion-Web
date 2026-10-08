@@ -261,7 +261,7 @@ unsafe fn desktop_layer() -> HWND {
 /// Move `hwnd` into the desktop wallpaper layer, where it can never cover an
 /// application window or take focus, and align it with the primary monitor.
 /// Returns false if the layer could not be found or the re-parent did not take.
-unsafe fn attach_to_desktop(hwnd: HWND, sw: i32, sh: i32) -> bool {
+pub(crate) unsafe fn attach_to_desktop(hwnd: HWND, sw: i32, sh: i32) -> bool {
     let layer = desktop_layer();
     if layer.is_null() {
         return false;

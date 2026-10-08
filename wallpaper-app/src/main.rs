@@ -11,15 +11,19 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 mod auth;
+mod constellations;
 mod crypto;
 mod gfx;
+mod live;
 mod log;
 mod net;
 mod screensaver;
 mod session;
+mod starmap;
 mod telemetry;
 mod update;
 mod util;
+mod verse;
 
 use std::collections::VecDeque;
 use std::ffi::c_void;
@@ -56,6 +60,9 @@ const WM_UPDATE_RESTART: u32 = WM_APP + 4;
 const WM_UPDATE_FOREGROUND: u32 = WM_APP + 5;
 const TIMER_ROTATE: usize = 1;
 const TIMER_IDLE: usize = 2;
+/// Once a minute: LIVE-day meteor shower start/end, pinned-constellation restore.
+const TIMER_VERSE: usize = 3;
+const VERSE_POLL_MS: u32 = 60_000;
 const IDLE_POLL_MS: u32 = 2_000;
 const TRAY_UID: u32 = 1;
 
@@ -286,6 +293,11 @@ unsafe fn run(cfg: Config) {
     // readout, plus a seamless relaunch when a verified newer build lands.
     spawn_update_loop(hwnd_isize);
 
+    // "Meine Sternbilder": the signed-in user's earned constellations, streak
+    // rewards and the LIVE-day meteor shower (src/constellations.rs).
+    constellations::spawn_fetch_loop(hwnd_isize);
+    SetTimer(hwnd, TIMER_VERSE, VERSE_POLL_MS, None);
+
     // Anonymous telemetry: flush a panic the previous run recorded, then report
     // this launch. Same signed ingest path and same opt-out contract as the
     // other desktop clients (see src/telemetry.rs). Its own thread, delayed, so
@@ -331,8 +343,18 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                 if event == WM_RBUTTONUP {
                     show_menu(hwnd);
                 } else if event == WM_LBUTTONDBLCLK {
-                    apply_next();
+                    apply_next_by_user();
                 }
+                0
+            }
+            constellations::WM_VERSE_READY => {
+                constellations::evaluate(hwnd as isize);
+                0
+            }
+            constellations::WM_VERSE_RENDERED => {
+                let fade = ui().lock().unwrap().cfg.fade;
+                constellations::on_rendered(lp, fade);
+                ui().lock().unwrap().shown = true;
                 0
             }
             WM_IMG_READY => {
@@ -348,7 +370,11 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     // rotation interval that may be half an hour away. This
                     // deliberately ignores `paused`: pausing stops the TIMER,
                     // it does not refuse a change the user asked for by hand.
-                    apply_next();
+                    apply_next_by_user();
+                } else if need && constellations::holds_desktop() {
+                    // A pinned constellation / meteor shower owns the desktop;
+                    // it is re-applied once the explorer data arrives.
+                    ui().lock().unwrap().shown = true;
                 } else if need {
                     if wants_wp {
                         apply_next();
@@ -372,6 +398,8 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     u.cfg.summary_last_shown = util::today_yyyymmdd();
                     u.cfg.save();
                     log::line("summary: applied as wallpaper");
+                } else if boot_flow && constellations::holds_desktop() {
+                    log::line("summary: fetch failed at boot — pinned constellation stays");
                 } else if boot_flow {
                     ui().lock().unwrap().shown = false;
                     apply_next();
@@ -419,9 +447,15 @@ extern "system" fn wndproc(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRES
                     };
                     // Skip while the screensaver is up (Both mode): a crossfade
                     // overlay underneath would flash over the fullscreen saver.
-                    if !paused && wants_wp && !screensaver::is_active() {
+                    if !paused
+                        && wants_wp
+                        && !screensaver::is_active()
+                        && !constellations::holds_desktop()
+                    {
                         apply_next();
                     }
+                } else if wp == TIMER_VERSE {
+                    constellations::evaluate(hwnd as isize);
                 } else if wp == TIMER_IDLE {
                     let (wants_ss, after_min) = {
                         let u = ui().lock().unwrap();
@@ -554,6 +588,13 @@ unsafe fn restart_into_update(hwnd: HWND) {
 }
 
 /// Pop the next ready image and apply it (crossfade if enabled).
+/// A gallery image the USER asked for (tray "Next", double-click, a new image
+/// selection): it unpins a constellation and ends today's meteor shower first.
+fn apply_next_by_user() {
+    constellations::release_for_gallery();
+    apply_next();
+}
+
 fn apply_next() {
     let path = queue().lock().unwrap().pop_front();
     let Some(path) = path else { return };
@@ -771,6 +812,11 @@ unsafe fn show_menu(hwnd: HWND) {
     AppendMenuW(menu, chk(paused), ID_PAUSE, l_pause.as_ptr());
     AppendMenuW(menu, MF_POPUP, source_menu as usize, l_source.as_ptr());
     AppendMenuW(menu, MF_POPUP, display_menu as usize, l_display.as_ptr());
+    // Fifth (and last allowed) gallery entry: the earned constellations, max
+    // the last seven patches — the website keeps the full list.
+    let (verse_menu, _verse_labels) = constellations::build_menu(signed_in);
+    let l_verse = util::wide(&t("Meine Sternbilder", "My constellations"));
+    AppendMenuW(menu, MF_POPUP, verse_menu as usize, l_verse.as_ptr());
     AppendMenuW(menu, MF_SEPARATOR, 0, std::ptr::null());
     AppendMenuW(menu, chk(autostart), ID_AUTOSTART, l_auto.as_ptr());
     // Telemetry opt-OUT (ticked by default), same contract as the data-uploader.
@@ -799,7 +845,7 @@ unsafe fn show_menu(hwnd: HWND) {
     PostMessageW(hwnd, 0 /* WM_NULL */, 0, 0);
 
     match cmd as usize {
-        ID_NEXT => apply_next(),
+        ID_NEXT => apply_next_by_user(),
         ID_PAUSE => toggle(|c| c.paused = !c.paused),
         ID_FADE => toggle(|c| c.fade = !c.fade),
         ID_AUTOSTART => {
@@ -847,6 +893,8 @@ unsafe fn show_menu(hwnd: HWND) {
             update::forget_entitlement();
             // "Only my upvotes" no longer has an account to resolve against.
             bump_source_epoch();
+            // Nor do the earned constellations.
+            constellations::on_sign_out();
             log::line("auth: signed out from the tray");
             let hwnd_isize = hwnd as isize;
             std::thread::spawn(move || run_update_cycle(hwnd_isize, false));
@@ -857,10 +905,13 @@ unsafe fn show_menu(hwnd: HWND) {
         ID_RING_STABLE => pick_ring(hwnd, RingPref::Pinned(Channel::Stable)),
         ID_STARSCAPE => util::open_url(STARSCAPE_URL),
         ID_QUIT => {
+            live::stop();
             DestroyWindow(hwnd);
             return;
         }
-        _ => {}
+        other => {
+            constellations::handle_command(hwnd as isize, other);
+        }
     }
 
     // An update finished installing while this menu was up (the common case on
@@ -899,6 +950,8 @@ fn sign_in(hwnd_isize: isize) {
     run_update_cycle(hwnd_isize, false);
     // "Only my upvotes" has an answer now that it did not have signed out.
     bump_source_epoch();
+    // So does "Meine Sternbilder".
+    constellations::refresh_now(hwnd_isize);
 }
 
 /// Apply an image-selection choice from the tray: persist it and make the
