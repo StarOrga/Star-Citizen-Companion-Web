@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { FrameClock, installFrameClock } from '../../testing/frames';
 import { ApiTokenRow, ApiTokensService, CreatedToken } from './api-tokens.service';
 import { ApiTokensComponent } from './api-tokens.component';
 
@@ -22,8 +23,14 @@ describe('ApiTokensComponent', () => {
     revoke: jasmine.Spy;
   };
   let confirm: jasmine.Spy;
+  let frames: FrameClock;
 
   async function mount(rows: ApiTokenRow[] = [ROW_A, ROW_B]) {
+    // A closing [scDialog] hands focus back on the next animation frame. A
+    // real frame never comes while the Karma page is hidden (a headed Chrome
+    // behind other windows), and its pending rAF kept whenStable() waiting
+    // into the 5 s timeout — so the spec plays the frame clock itself.
+    frames = installFrameClock();
     svc = {
       list: jasmine.createSpy('list').and.resolveTo(rows),
       create: jasmine.createSpy('create'),
@@ -46,6 +53,7 @@ describe('ApiTokensComponent', () => {
   async function settle(fixture: ComponentFixture<ApiTokensComponent>) {
     fixture.detectChanges();
     await fixture.whenStable();
+    frames.runFrame();
     fixture.detectChanges();
   }
 
