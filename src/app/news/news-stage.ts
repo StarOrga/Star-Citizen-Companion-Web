@@ -190,7 +190,7 @@ function withinFreshWindow(days: number | null): boolean {
  * This is a re-presentation of logic that already existed — `isCurrentLive`
  * from `groupPatchNotes` and `computeNextPatch` — not new data work. The
  * rotating carousel, the two filter axes and the full history moved to
- * `/news/patches` unchanged.
+ * `/verse/patches` unchanged.
  *
  * The date comes from `computeNextPatch` and from nowhere else. It used to come
  * from the `live` forecast row, which is version-level, so the card could count

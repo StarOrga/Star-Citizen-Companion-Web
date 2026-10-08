@@ -44,7 +44,7 @@ interface MonitorView {
  * The same question already had an answer — but only inside a patch's dossier,
  * three sections down, written out in full sentences with a legend and a facts
  * list. That is the right depth for someone reading ONE patch and the wrong
- * one for the question people come to `/news/patches` with. So this panel puts
+ * one for the question people come to `/verse/patches` with. So this panel puts
  * the answer where the eye lands first and says it the way a status board
  * does: a date, a distance, one rail, three cells.
  *

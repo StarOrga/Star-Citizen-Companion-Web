@@ -27,10 +27,10 @@ describe('StabilityHistoryComponent', () => {
     const cols = el.querySelectorAll('a.col');
     expect(cols.length).toBe(3);
     expect(cols[2].classList.contains('early')).toBeTrue();
-    expect(cols[0].getAttribute('href')).toBe('/news/patches/4.8');
+    expect(cols[0].getAttribute('href')).toBe('/verse/patches/4.8');
     f.componentRef.setInput('query', 'crash');
     f.detectChanges();
-    expect(el.querySelectorAll('a.col')[0].getAttribute('href')).toBe('/news/patches/4.8?q=crash');
+    expect(el.querySelectorAll('a.col')[0].getAttribute('href')).toBe('/verse/patches/4.8?q=crash');
   });
 
   // Taller = calmer. 4.8 is level 4 (penalty 0.8) and 4.9 level 2 (0.4), so the

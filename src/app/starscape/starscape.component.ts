@@ -988,7 +988,7 @@ export class StarscapeComponent implements OnInit {
   /** Deep link that reopens this wallpaper's lightbox on our own site. */
   shareUrl(w: Wallpaper): string {
     const origin = typeof location !== 'undefined' ? location.origin : '';
-    return `${origin}/starscape?${DEEP_LINK_PARAM}=${encodeURIComponent(w.imageId)}`;
+    return `${origin}/verse/gallery?${DEEP_LINK_PARAM}=${encodeURIComponent(w.imageId)}`;
   }
 
   /**

@@ -33,7 +33,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
         </div>
         <div class="chart">
           @for (v of shown(); track v.line) {
-            <a class="col" [routerLink]="['/news/patches', v.line]" [queryParams]="queryParams()"
+            <a class="col" [routerLink]="['/verse/patches', v.line]" [queryParams]="queryParams()"
                [class.early]="v.early" [class.none]="v.level === null"
                [attr.data-tone]="v.tone ?? 'none'" [attr.aria-label]="colAria(v)" [scTooltip]="colAria(v)" scTooltipTier="label">
               <span class="col-bar" [style.height.%]="v.stability ?? 8"></span>

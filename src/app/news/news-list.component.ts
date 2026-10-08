@@ -62,7 +62,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
  *   (`pickStage`), which cannot come back empty.
  * - The patch apparatus (rotating KPI carousel, two filter axes, the full
  *   history) occupied **2,019 px entirely above the first news article**. It
- *   moved to `/news/patches`; what stays here is one sentence — which build is
+ *   moved to `/verse/patches`; what stays here is one sentence — which build is
  *   live and when the next one is due.
  *
  * Three objects, in this order: the stage, the verdict, the stream. The density
@@ -168,7 +168,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
               @if (verdictBasis(); as basis) {
                 <p class="verdict-basis">{{ basis }}</p>
               }
-              <a class="verdict-link" routerLink="/news/patches">
+              <a class="verdict-link" routerLink="/verse/patches">
                 {{ verdictLinkKey() | translate }} →
               </a>
             </aside>

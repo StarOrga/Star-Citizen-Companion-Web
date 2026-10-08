@@ -35,7 +35,7 @@ import { HighlightSegment, fuzzyTokens, highlightSegments } from './patch-search
       @for (g of groups(); track g.line) {
         <section class="grp" [attr.data-status]="g.cardStatus">
           <header class="gh">
-            <a class="gline" [routerLink]="['/news/patches', g.line]" [queryParams]="{ q: query() }">
+            <a class="gline" [routerLink]="['/verse/patches', g.line]" [queryParams]="{ q: query() }">
               <span class="gstatus" [attr.data-status]="g.cardStatus">{{ ('news.patch.status.' + g.cardStatus) | translate }}</span>
               <span class="gver">{{ g.line ? ('news.patch.line' | translate:{ version: g.line }) : ('news.patch.otherLine' | translate) }}</span>
             </a>
@@ -69,7 +69,7 @@ import { HighlightSegment, fuzzyTokens, highlightSegments } from './patch-search
           </ul>
 
           @if (g.total > g.hits.length) {
-            <a class="more" [routerLink]="['/news/patches', g.line]" [queryParams]="{ q: query() }">
+            <a class="more" [routerLink]="['/verse/patches', g.line]" [queryParams]="{ q: query() }">
               {{ 'news.patch.find.moreInDossier' | translate:{ n: g.total - g.hits.length } }} →
             </a>
           }
