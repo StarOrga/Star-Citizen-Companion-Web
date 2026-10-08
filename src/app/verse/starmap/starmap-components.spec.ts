@@ -1,6 +1,10 @@
 import { Component, input, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { RoleService } from '../../auth/role.service';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
+import { KartographBadgeComponent } from './kartograph-badge.component';
 import { provideTranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
 import { AnalyticsService } from '../../core/analytics.service';
@@ -46,12 +50,21 @@ describe('star map components', () => {
   const explorerState = signal<VerseLoadState>('ready');
   const authed = signal(true);
   let loadExplorer: jasmine.Spy;
+  let suggest: jasmine.Spy;
+  let suggestions: jasmine.Spy;
+  const isAdmin = signal(false);
 
   beforeEach(() => {
     explorer.set(STATE);
     explorerState.set('ready');
     authed.set(true);
     loadExplorer = jasmine.createSpy('loadExplorer').and.resolveTo();
+    isAdmin.set(false);
+    suggest = jasmine.createSpy('suggest').and.resolveTo({ ok: true, data: undefined });
+    suggestions = jasmine.createSpy('suggestions').and.resolveTo({
+      ok: true,
+      data: [{ id: 's1', itemUrl: '/verse/patches/4.4', note: 'read', status: 'open', createdAt: 'x' }],
+    });
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
@@ -60,8 +73,23 @@ describe('star map components', () => {
         { provide: AnalyticsService, useValue: jasmine.createSpyObj('AnalyticsService', ['captureVerse']) },
         {
           provide: VerseApiService,
-          useValue: { explorer, explorerState, explorerError: signal(null), loadExplorer },
+          useValue: {
+            explorer,
+            explorerState,
+            explorerError: signal(null),
+            loadExplorer,
+            suggest,
+            suggestions,
+            communityStars: jasmine
+              .createSpy('communityStars')
+              .and.resolveTo({ ok: true, data: { patchLine: '4.4', explorers: 4, stars: { notes: 4, 'cx-keybinds': 1 } } }),
+            constellation: jasmine.createSpy('constellation').and.resolveTo({ ok: true, data: null }),
+            promoteSuggestion: jasmine.createSpy('promoteSuggestion').and.resolveTo({ ok: true, data: 'suggestion:s1' }),
+            dismissSuggestion: jasmine.createSpy('dismissSuggestion').and.resolveTo({ ok: true, data: undefined }),
+          },
         },
+        { provide: RoleService, useValue: { isAdmin } },
+        { provide: ScConfirmService, useValue: { prompt: jasmine.createSpy('prompt').and.resolveTo('Pin it') } },
       ],
     });
     for (const cmp of [ExplorerPageComponent, MyConstellationsComponent]) {
@@ -131,5 +159,90 @@ describe('star map components', () => {
   it('wallpaper inputs put the selected patch first and skip empty patches', () => {
     const list = wallpaperConstellations(STATE, STATE.patches[1]);
     expect(list.map((c) => c.patchLine)).toEqual(['4.3', '4.4']);
+  });
+
+  it('Kartograph card: suggest a top item, own suggestions, badge share', async () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('.side .btn.ghost')).not.toBeNull();
+    const input = el.querySelector('#sg-url') as HTMLInputElement;
+    const submit = el.querySelector('.suggest button[type=submit]') as HTMLButtonElement;
+    expect(submit.disabled).toBeTrue();
+    input.value = '/verse/patches/4.4';
+    input.dispatchEvent(new Event('input'));
+    f.detectChanges();
+    expect(submit.disabled).toBeFalse();
+    submit.click();
+    await f.whenStable();
+    expect(suggest).toHaveBeenCalledWith('/verse/patches/4.4', null);
+    expect(el.querySelectorAll('.sg-list li').length).toBe(1);
+    expect(el.querySelector('.admin-queue')).toBeNull();
+  });
+
+  it('admins get the suggestion queue and can pin', async () => {
+    isAdmin.set(true);
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const queue = f.nativeElement.querySelector('.admin-queue') as HTMLElement;
+    expect(queue.querySelectorAll('.sg-row').length).toBe(1);
+    (queue.querySelector('.sg-actions .btn') as HTMLButtonElement).click();
+    await f.whenStable();
+    expect(TestBed.inject(VerseApiService).promoteSuggestion).toHaveBeenCalledWith('s1', 'Pin it');
+  });
+
+  it('community figure lights the stars other explorers earned', async () => {
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const fig = f.nativeElement.querySelector('.community-fig') as HTMLElement;
+    expect(fig.querySelectorAll('.star.lit').length).toBe(2);
+  });
+
+  it('meteor shower shows only a hint off the LIVE day', () => {
+    explorer.set({ ...STATE, rewards: { ...STATE.rewards, live: true, meteor: true } });
+    const f = TestBed.createComponent(ExplorerPageComponent);
+    f.detectChanges();
+    expect(f.componentInstance.meteorToday()).toBeFalse();
+    expect(f.nativeElement.textContent).toContain('starmap.reward.meteor.notToday');
+  });
+});
+
+describe('Kartograph badge page', () => {
+  function create(query: Record<string, string>) {
+    const params = convertToParamMap(query);
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideTranslateService({}),
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(params), snapshot: { queryParamMap: params } } },
+        {
+          provide: VerseApiService,
+          useValue: { constellation: jasmine.createSpy('constellation').and.resolveTo({ ok: true, data: null }) },
+        },
+      ],
+    });
+    const f = TestBed.createComponent(KartographBadgeComponent);
+    f.detectChanges();
+    return f;
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('renders the badge from the link alone', () => {
+    const f = create({ rank: '2', patch: '4.4', stars: '7', sun: '1' });
+    expect(f.nativeElement.querySelector('canvas')).not.toBeNull();
+    expect(f.nativeElement.querySelector('a')?.getAttribute('href')).toBe('/verse/explorer');
+    expect(TestBed.inject(VerseApiService).constellation).toHaveBeenCalledWith('4.4');
+  });
+
+  it('refuses an unusable link', () => {
+    const f = create({ rank: 'x', patch: '4.4' });
+    expect(f.nativeElement.querySelector('canvas')).toBeNull();
   });
 });

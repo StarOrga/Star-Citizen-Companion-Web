@@ -126,4 +126,21 @@ describe('VerseApiService', () => {
     expect(svc.explorer()).toBeNull();
     expect(rpc).not.toHaveBeenCalled();
   });
+
+  it('maps the anon community aggregate (counts only)', async () => {
+    rpc.and.resolveTo({ data: { patch_line: '4.4', explorers: 3, stars: { notes: 2, bogus: 9 } }, error: null });
+    const r = await TestBed.inject(VerseApiService).communityStars('4.4');
+    expect(rpc).toHaveBeenCalledWith('verse_community_stars', { p_patch_line: '4.4' });
+    expect(r).toEqual({ ok: true, data: { patchLine: '4.4', explorers: 3, stars: { notes: 2 } } });
+  });
+
+  it('inserts a suggestion and translates a refusal', async () => {
+    const svc = TestBed.inject(VerseApiService);
+    expect((await svc.suggest('/verse/patches/4.4', '')).ok).toBeTrue();
+    expect(calls.find((c) => c.method === 'insert')?.args[0]).toEqual({ item_url: '/verse/patches/4.4', note: null });
+    fromRes = { data: null, error: { code: '42501', message: 'new row violates row-level security policy' } };
+    const r = await svc.suggest('/x', null);
+    expect(r.ok).toBeFalse();
+    expect(!r.ok && r.errorKey.startsWith('errors.')).toBeTrue();
+  });
 });
