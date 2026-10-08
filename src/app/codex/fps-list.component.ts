@@ -649,7 +649,8 @@ interface FacetOption {
     .card:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
     .card .thumb { height: 96px; margin: -4px 0 2px; display: flex; align-items: center; justify-content: center;
       border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
-    .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    /* The previews are 64px UI renders: a little larger reads as gear, not as a speck. */
+    .card .thumb img { height: 80px; width: auto; max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
     .card .thumb sc-codex-icon { width: 100%; height: 100%; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
     .card .cls { max-width: 100%; }
