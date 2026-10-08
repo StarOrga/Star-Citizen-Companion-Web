@@ -77,7 +77,8 @@
       "title": "We couldn't verify your access",
       "body": "Your profile could not be loaded just now — usually a brief hiccup right after signing in. You are still signed in.",
       "retry": "Try again",
-      "retrying": "Checking …"
+      "retrying": "Checking …",
+      "checking": "Checking your access …"
     },
     "landing": {
       "appName": "Star Citizen Companion",
@@ -176,9 +177,6 @@
     "subtitle": "Every ship, weapon, component, item, ammo & manufacturer — searchable, datamined from the live build.",
     "landing": {
       "terminal": {
-        "label": "Search the Arsenal",
-        "placeholder": "Arsenal Terminal — ship, component, weapon, item, manufacturer, blueprint …",
-        "clear": "Clear search",
         "keybinds": "Keybindings"
       },
       "archive": {
@@ -211,12 +209,6 @@
         "archive": "{{count}} records in the Arsenal",
         "extracted": "Extracted {{date}}",
         "build": "Build \"{{build}}\" (placeholder)"
-      },
-      "results": {
-        "title": "Arsenal hits",
-        "searching": "Searching the Arsenal …",
-        "empty": "No matches for “{{term}}”.",
-        "upcomingBadge": "Not in game yet"
       },
       "surface": {
         "expandBoard": "Expand On board",
@@ -408,7 +400,41 @@
       "clear": "Clear search",
       "upcomingHint": "Not in the game data, but announced by RSI: {{names}}",
       "alsoIn": "Also found in:",
-      "upcomingLink": "View in Upcoming Ships"
+      "upcomingLink": "View in Upcoming Ships",
+      "bar": {
+        "label": "Search the Codex",
+        "placeholder": "Search the Codex — ship, component, weapon, gear, manufacturer …",
+        "clear": "Clear search",
+        "shortcut": "Ctrl K",
+        "suggestionsAria": "Suggestions",
+        "resultsAria": "Search results",
+        "recent": "Recent searches",
+        "clearRecent": "Clear history",
+        "fresh": "New in this patch",
+        "areas": "Areas",
+        "failed": "Search failed",
+        "partial": "Some areas could not be searched",
+        "searching": "Searching the Codex …",
+        "empty": "No matches for “{{term}}”.",
+        "allInIndex": "All {{n}} in the index",
+        "allUpcoming": "All {{n}} in Upcoming Ships",
+        "grade": "Grade {{grade}}",
+        "livery": "Livery",
+        "upcomingBadge": "Not in the game yet",
+        "addToHangarAria": "Add {{name}} to the hangar",
+        "addToHangar": "Hangar",
+        "pinAria": "Compare {{name}}",
+        "navHint": "↑↓ navigate · ↵ open · Ctrl+↵ new tab · Esc close",
+        "category": {
+          "ships": "Ships",
+          "components": "Components",
+          "shipWeapons": "Ship weapons",
+          "fps": "FPS gear",
+          "upcoming": "Upcoming ships",
+          "keybinds": "Keybindings"
+        },
+        "close": "Close search"
+      }
     },
     "kinds": {
       "ship": "Ships",
@@ -630,8 +656,6 @@
           "movement": "Movement",
           "signature": "Signature & Cooling"
         },
-        "searchLabel": "Search the codex",
-        "searchPlaceholder": "Ships, components, manufacturers …",
         "staticCrew": "Crew",
         "staticMass": "Mass",
         "staticCargo": "Cargo",
@@ -672,7 +696,10 @@
         "eyebrow3d": "3D model · drag to rotate",
         "eyebrowSchema": "Schematic · hardpoint positions",
         "pinListTitle": "All hardpoints",
-        "pinGroupOther": "Hardpoints"
+        "pinGroupOther": "Hardpoints",
+        "rankLoading": "Comparing with the whole fleet … the first visit per patch takes a moment.",
+        "rankFailed": "The fleet comparison could not be loaded.",
+        "rankEmpty": "There are no comparison values for this fleet yet."
       },
       "strip": {
         "einsatz": "Mission",
@@ -687,7 +714,9 @@
         "stealthPreset": "Stealth",
         "expand": "Expand strip",
         "collapse": "Collapse strip",
-        "presetTag": "preset"
+        "presetTag": "preset",
+        "minimize": "Minimise the strip",
+        "restore": "Show the whole strip"
       },
       "hangar": {
         "tab": "Hangar",
@@ -754,13 +783,10 @@
         "followedSince": "as of {{date}}",
         "refresh": "Refresh",
         "refreshing": "Refreshing …",
-        "createLink": "Create share link",
-        "creating": "Creating …",
         "copy": "Copy",
         "copied": "Copied",
         "revoke": "Stop sharing",
         "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
-        "revoked": "Sharing stopped.",
         "errorGeneric": "That didn't work. Please try again.",
         "copyLinkHint": "Copies the address of this view — including the Holotable and any unsaved hardpoint changes.",
         "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
@@ -768,13 +794,34 @@
         "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
         "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
         "addToHangar": "Add to hangar",
-        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand."
+        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand.",
+        "saveAndShare": "Save & share",
+        "shareLink": "Share link",
+        "sharing": "Sharing …",
+        "followedShareHint": "Sharing makes this configuration your own — it stops following its owner.",
+        "linksLoading": "Loading your links …",
+        "linksError": "Your links could not be loaded.",
+        "activeLinks": "Active links ({{n}})",
+        "readOnlyHint": "This is a shared loadout. Adopt it to share a link of your own.",
+        "revokeConfirm": {
+          "title": "Stop sharing this link?",
+          "body": "Nobody can adopt the loadout through this link any more. Recipients who already follow it stay connected."
+        }
       },
       "components": {
         "title": "Components in the model",
         "hint": "Tap or click to mark · Esc clears",
         "unknownPosition": "Position in model unknown",
         "groupCount": "{{count}} installed · {{located}} in model"
+      },
+      "shared": {
+        "loading": "Loading the shared loadout …",
+        "banner": "Shared by {{owner}} — “{{name}}”. Adopt it to edit.",
+        "adopt": "Adopt to edit",
+        "unavailable": "This shared loadout is not available — the link is invalid, expired, revoked or for another ship. The table shows the stock loadout.",
+        "loadError": "The shared loadout could not be loaded.",
+        "exit": "Back to my loadout",
+        "readOnlyHint": "Shared loadout — read-only. Adopt it to change or save it."
       }
     },
     "empty": {
@@ -3137,6 +3184,21 @@
         "forbidden": "You do not have the rights for that.",
         "generic": "That did not work. Please try again."
       }
+    },
+    "silhouettes": {
+      "title": "Holotable silhouettes",
+      "subtitle": "Silhouette coverage of the current build.",
+      "build": "Current build: {{channel}} {{patch}} ({{build}})",
+      "total": "Ships total",
+      "withSilhouette": "With silhouette",
+      "withAnchors": "With anchors",
+      "without": "Without silhouette",
+      "withoutTip": "Hulls of this build without a silhouette from the uploader. The Holotable shows its placeholder for them; their tiles use the datamined preview icon if one exists, otherwise the RSI store art — or the generic glyph when no image loads. Which of the last two applies is only decided in the browser.",
+      "barLabel": "{{pct}} % with silhouette",
+      "fallbackSplit": "without: {{icon}} with preview icon, {{none}} RSI art or glyph",
+      "missingToggle": "Show the {{count}} hulls without silhouette",
+      "noBuild": "No current build — nothing to count yet.",
+      "retry": "Try again"
     }
   },
   "desktop": {
@@ -3556,7 +3618,9 @@
       "unavailable": {
         "title": "This loadout is not available",
         "body": "The link is invalid, expired, or was revoked."
-      }
+      },
+      "viewOnHolotable": "View on the Holotable",
+      "loadError": "The shared loadout could not be loaded"
     },
     "errors": {
       "adoptFailed": "The shared loadout could not be adopted."
@@ -3564,22 +3628,7 @@
   },
   "quickSearch": {
     "open": "Search",
-    "placeholder": "Search ships, weapons, components…",
-    "searching": "Searching…",
-    "noResults": "No matches.",
-    "hint": "Type to search — ↑↓ to navigate, Enter opens the highlighted match. Ctrl+K opens this search anywhere.",
-    "addToHangar": "→ Hangar",
-    "navHint": "↑↓ navigate · ↵ open · esc close",
-    "otherMatches": "Other matches",
-    "noneInCategory": "No {{category}} found — showing other matches",
-    "category": {
-      "groupAria": "Filter search by category",
-      "all": "All",
-      "ship": "Ships",
-      "weapon": "Weapons",
-      "component": "Components"
-    },
-    "error": "Search failed"
+    "addToHangar": "→ Hangar"
   },
   "telemetry": {
     "title": "Telemetry & Crash Stats",

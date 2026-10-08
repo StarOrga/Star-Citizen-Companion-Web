@@ -15,6 +15,7 @@ import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
 import { CodexListRow, CodexService, pickLocalized } from '../codex/codex.service';
 import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
+import { normalizeSearch, rankBySearch } from '../codex/codex-search';
 import { CodexCategoryIconComponent } from '../codex/codex-category-icon.component';
 import { FallbackImageComponent } from '../codex/fallback-image.component';
 import {
@@ -40,6 +41,8 @@ import { ShipTileArtComponent } from '../codex/ship-blueprint/ship-tile-art.comp
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 
+/** Ships the add-ship search lists. */
+const ADD_SHIP_RESULTS = 8;
 const SEARCH_DEBOUNCE_MS = 250;
 
 /**
@@ -997,9 +1000,20 @@ export class HangarDashboardComponent implements OnInit {
     this.searchError.set(null);
     this.searching.set(true);
     try {
-      const res = await this.codex.listByKind('ship', { search: term, limit: 8 });
+      // The Codex search's ranking dialect (codex-search): over-fetch, since
+      // the server orders alphabetically, then exact/prefix names first and
+      // one row per name — "gladius" leads with the Gladius, not with "Aegis
+      // Gladius Blade" because it sorts first.
+      const res = await this.codex.listByKind('ship', { search: term, limit: ADD_SHIP_RESULTS * 4 });
       if (seq !== this.searchSeq) return;
-      this.searchResults.set(res.rows);
+      const seen = new Set<string>();
+      const ranked = rankBySearch(term, res.rows, (r) => [r.nameLocalized], (r) => [r.classNameSlug]).filter((r) => {
+        const key = normalizeSearch(r.nameLocalized ?? r.classNameSlug);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      this.searchResults.set(ranked.slice(0, ADD_SHIP_RESULTS));
     } catch (err) {
       if (seq === this.searchSeq) {
         this.searchResults.set([]);

@@ -10,6 +10,7 @@ import { PeopleRow, mergePeopleRows } from './people-rows';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { SilhouetteCoverageComponent } from './silhouette-coverage.component';
 // Pure function, no Angular dependency — the same "vor 3 Std." formatter the
 // news surfaces use (and the `news.relative.*` keys it is documented to read).
 import { relativeTime } from '../news/relative-time';
@@ -146,7 +147,7 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
 @Component({
   selector: 'sc-admin',
   standalone: true,
-  imports: [ScDatePipe, ScSelectComponent, TranslatePipe, ScTooltipDirective],
+  imports: [ScDatePipe, ScSelectComponent, TranslatePipe, ScTooltipDirective, SilhouetteCoverageComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
@@ -447,6 +448,9 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
         }
       </div>
 
+      <!-- Holotable silhouette coverage of the current build (#647). -->
+      <sc-silhouette-coverage />
+
       <!--
         ONE people list (feedback 5e2facd9). The allowlist used to have its own
         card above this table, which meant every invited address that had since
@@ -544,12 +548,12 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
             @for (p of filteredSortedPeople(); track p.key) {
             @if (p.user; as u) {
               <tr [class.is-self]="u.id === selfId()">
-                <td>
+                <td class="c-user">
                   <span class="user-name">{{ u.display_name ?? '—' }}</span>
                   @if (u.username) { <span class="user-handle">&#64;{{ u.username }}</span> }
                 </td>
-                <td class="mono">{{ u.email }}</td>
-                <td>
+                <td class="mono c-wide">{{ u.email }}</td>
+                <td class="c-wide">
                   <span class="role-pill" [class]="u.role">
                     {{ ('profile.roles.' + u.role) | translate }}
                   </span>
@@ -569,15 +573,15 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                     </span>
                   }
                 </td>
-                <td>
+                <td class="c-stat" [attr.data-label]="'admin.col.reports' | translate">
                   @if (reportCount(u) > 0) {
                     <span class="role-pill reported">{{ reportCount(u) }}</span>
                   } @else {
                     <span class="muted-zero">0</span>
                   }
                 </td>
-                <td>{{ u.created_at | scDate }}</td>
-                <td>{{ lastSeenAt(u) ? (lastSeenAt(u)! | scDate: 'datetime') : '—' }}</td>
+                <td class="c-stat" [attr.data-label]="'admin.col.since' | translate">{{ u.created_at | scDate }}</td>
+                <td class="c-stat" [attr.data-label]="'admin.col.lastSeen' | translate">{{ lastSeenAt(u) ? (lastSeenAt(u)! | scDate: 'datetime') : '—' }}</td>
                 <td class="actions">
                   @if (u.role !== 'collaborator') {
                     <span class="tip-wrap" [scTooltip]="roleLockReason(u, 'collaborator')" scTooltipTier="label">
@@ -638,24 +642,24 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
                 been out, and the way to take it back.
               -->
               <tr class="invited-row">
-                <td>
+                <td class="c-user">
                   <span class="role-pill pending" tabindex="0" [scTooltip]="'admin.people.invitedTitle' | translate">
                     {{ 'admin.people.invitedPill' | translate }}
                   </span>
                   <span class="invite-age">{{ inviteAge(inv.created_at) }}</span>
                 </td>
-                <td class="mono">
+                <td class="mono c-wide">
                   {{ inv.email }}
                   @if (inv.note) { <span class="invite-note">{{ inv.note }}</span> }
                 </td>
-                <td>
+                <td class="c-wide">
                   <span class="role-pill" [class]="inv.role">
                     {{ ('profile.roles.' + inv.role) | translate }}
                   </span>
                 </td>
-                <td><span class="muted-zero">—</span></td>
-                <td tabindex="0" [scTooltip]="inv.created_at | scDate: 'datetime'" scTooltipTier="label">{{ inv.created_at | scDate }}</td>
-                <td><span class="muted-zero">—</span></td>
+                <td class="c-stat c-empty"><span class="muted-zero">—</span></td>
+                <td class="c-stat" [attr.data-label]="'admin.col.since' | translate" tabindex="0" [scTooltip]="inv.created_at | scDate: 'datetime'" scTooltipTier="label">{{ inv.created_at | scDate }}</td>
+                <td class="c-stat c-empty"><span class="muted-zero">—</span></td>
                 <td class="actions">
                   <!-- The old card said it in a subline nobody re-read; here the
                        promise sits on the button that needs it. -->
@@ -728,11 +732,6 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     .no-matches { text-align: center; color: var(--sc-fg-2); padding: 24px !important; }
     @media (max-width: 640px) {
       .filter-search, sc-select.filter-role { flex: 1 1 100%; width: auto; }
-      /* One line per user on a phone, read by scrolling the card sideways
-         (.table-scroll below) — squeezed into the screen instead, every row
-         wrapped into a tall stack of fragments. */
-      .table { white-space: nowrap; }
-      .table .actions { flex-wrap: nowrap; }
     }
 
     /* The card scrolls, the table keeps its own layout: wherever the frame is
@@ -823,6 +822,40 @@ const ROLE_RANK: Record<Role, number> = { admin: 3, collaborator: 2, viewer: 1 }
     /* The pill is the row's only explanation of what "Eingeladen" means. */
     .invited-row .role-pill.pending { cursor: help; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Phone: one card per person instead of a 900px row read by scrolling
+       sideways (owner: name, role and the actions must be visible at once).
+       The header row stays as a strip of sort chips, the row becomes a small
+       grid — name, e-mail and role full width, the three dates/counters side by
+       side under their own labels (data-label, translated), actions last. */
+    @media (max-width: 640px) {
+      .table-scroll { overflow-x: visible; }
+      .table, .table thead, .table tbody { display: block; }
+      .table thead tr {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        padding: 10px 12px; border-bottom: 1px solid var(--sc-border);
+        background: var(--sc-bg-2);
+      }
+      .table thead th {
+        display: inline-flex; align-items: center;
+        padding: 4px 10px; border: 1px solid var(--sc-border); border-radius: 999px;
+      }
+      .table thead th:not(.sortable) { display: none; }
+      .table tbody tr {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px 12px; padding: 12px; border-bottom: 1px solid var(--sc-border);
+      }
+      .table tbody td { display: block; padding: 0; border: 0; min-width: 0; }
+      .table tbody td.c-user, .table tbody td.c-wide, .table tbody td.actions, .table tbody td.no-matches { grid-column: 1 / -1; }
+      .table tbody td.c-empty { display: none; }
+      .table tbody td[data-label]::before {
+        content: attr(data-label); display: block; margin-bottom: 2px;
+        font-family: var(--sc-font-display); font-size: max(0.66rem, var(--sc-fs-floor));
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--sc-fg-2);
+      }
+      .table tbody td.actions { display: flex; padding-top: 4px; }
+      .table tbody .user-name { font-weight: 600; }
+    }
     /* Conspicuous accounts (feedback cf0ddf7d) */
     .reports-card { display: flex; flex-direction: column; gap: 12px; }
     .reports-card .req.flagged { align-items: flex-start; }

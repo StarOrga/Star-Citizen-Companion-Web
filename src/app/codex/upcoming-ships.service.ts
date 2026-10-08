@@ -1,4 +1,4 @@
-import { searchMatcher } from './codex-search';
+import { searchMatcher, searchScore } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -258,19 +258,6 @@ function normalize(value: string): string {
 }
 
 /**
- * How well a ship's NAME answers the query: 3 exact, 2 prefix, 1 substring,
- * 0 when only the manufacturer/role/status matched. Name matches must outrank
- * "some Drake ship" so a limited result set keeps the ship actually asked for.
- */
-function nameScore(name: string, query: string): number {
-  const n = normalize(name);
-  if (n === query) return 3;
-  if (n.startsWith(query)) return 2;
-  if (n.includes(query)) return 1;
-  return 0;
-}
-
-/**
  * Best `limit` announced ships for a free-text query, name matches first.
  *
  * Pure so the Codex's cross-entity search can be unit-tested without the feed:
@@ -288,7 +275,7 @@ export function searchUpcoming(
   if (!q || limit <= 0) return [];
   return ships
     .filter((s) => matchesUpcomingQuery(s, query))
-    .map((s) => ({ ship: s, score: nameScore(s.name, q) }))
+    .map((s) => ({ ship: s, score: searchScore(query, s.name) })) // the Codex ranking dialect
     .sort((a, b) => b.score - a.score || a.ship.name.localeCompare(b.ship.name))
     .slice(0, limit)
     .map((e) => e.ship);

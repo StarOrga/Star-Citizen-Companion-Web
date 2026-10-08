@@ -173,6 +173,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                       @if (isExpanded(b.id) && b.diff_summary) {
                         <div class="diff-detail">
                           <strong>{{ 'p4k.diff.title' | translate }}</strong>
+                          <div class="sc-table-scroll diff-scroll">
                           <table class="diff-table">
                             <thead>
                               <tr>
@@ -195,6 +196,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
                               }
                             </tbody>
                           </table>
+                          </div>
                           @if (b.disabled) {
                             <p class="disabled-note" [class.superseded-note]="isSuperseded(b)">
                               <strong>{{ (isSuperseded(b) ? 'p4k.superseded.title' : 'p4k.disabled.title') | translate }}:</strong>
@@ -375,7 +377,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       font-family: var(--sc-font-display); font-size: max(0.72rem, var(--sc-fs-floor));
       letter-spacing: 0.06em; text-transform: uppercase; color: var(--sc-fg-2);
     }
-    .diff-table { width: 100%; max-width: 560px; margin-top: 8px; border-collapse: collapse; }
+    .diff-scroll { max-width: 560px; margin-top: 8px; }
+    .diff-table { min-width: 360px; border-collapse: collapse; }
     .diff-table th, .diff-table td { padding: 4px 10px; border-bottom: 1px solid var(--sc-border); font-size: 0.82rem; }
     .diff-table th {
       text-align: left; font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor));

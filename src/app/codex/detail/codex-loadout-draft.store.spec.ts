@@ -179,4 +179,63 @@ describe('CodexLoadoutDraftStore', () => {
     expect(onSaved).not.toHaveBeenCalled();
     expect(store.saveError()).toBeNull();
   });
+
+  // ── stored loadouts on the table (#646) ─────────────────────────────────
+  const SHARED = { token: 'tok', ownerName: 'Kestrel', configName: 'Brawler' };
+
+  it('a shared link becomes a READ-ONLY draft: no swap, revert or save, nothing mirrored', async () => {
+    const navigate = TestBed.inject(Router).navigate as jasmine.Spy;
+    navigate.calls.reset();
+    store.applyStoredLoadout(
+      [
+        { portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' },
+        // Same as stock = no draft entry; nested paths are never written by a save.
+        { portName: 'hardpoint_other', className: 'KLWE_LaserRepeater_S3', kind: 'weapon' },
+        { portName: `${PORT}.sub`, className: 'X', kind: 'weapon' },
+      ],
+      { readOnly: SHARED },
+    );
+    expect(store.readOnly()).toBeTrue();
+    expect(store.readOnlySource()).toEqual(SHARED);
+    expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
+    expect(store.draft().size).toBe(2); // hardpoint_other has no stock → it differs
+    expect(svc.getEntityPayloads).toHaveBeenCalledWith(['BEHR_LaserCannon_S3']);
+    // Not the reader's draft: neither the URL nor localStorage gets it.
+    expect(navigate).not.toHaveBeenCalled();
+    expect(localStorage.getItem(LOCAL_DRAFT_STORAGE_KEY)).toBeNull();
+
+    store.applySwap(pick('OTHER_GUN'));
+    expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
+    store.onRevertPaths([PORT]);
+    expect(store.draft().has(PORT)).toBeTrue();
+    expect(await store.saveLoadoutDraft()).toBeNull();
+    expect(hangar.updateConfig).not.toHaveBeenCalled();
+
+    store.reset();
+    expect(store.readOnly()).toBeFalse();
+  });
+
+  it('an own config (?config=) becomes the draft, counts as saved, and a save writes to THAT config', async () => {
+    store.applyStoredLoadout([{ portName: PORT, className: 'BEHR_LaserCannon_S3', kind: 'weapon' }], { configId: 'adopted' });
+    expect(store.readOnly()).toBeFalse();
+    expect(store.draft().get(PORT)).toBe('BEHR_LaserCannon_S3');
+    expect(store.savedPaths().has(PORT)).toBeTrue();
+    hangar.listConfigs.and.resolveTo([
+      { id: 'active-one', loadout: [], isActive: true },
+      { id: 'adopted', loadout: [], isActive: false },
+    ]);
+    store.applySwap(pick('OTHER_GUN'));
+    const saved = await store.saveLoadoutDraft();
+    expect(hangar.updateConfig).toHaveBeenCalledWith('adopted', jasmine.anything());
+    expect(saved?.id).toBe('adopted');
+  });
+
+  it('saveLoadoutDraft resolves the written config, or null when nothing was written', async () => {
+    expect(await store.saveLoadoutDraft()).toBeNull(); // nothing to save
+    store.applySwap(pick('BEHR_LaserCannon_S3'));
+    ensureEditable.and.resolveTo('cancelled');
+    expect(await store.saveLoadoutDraft()).toBeNull();
+    ensureEditable.and.resolveTo('own');
+    expect((await store.saveLoadoutDraft())?.id).toBe('c1');
+  });
 });

@@ -4,12 +4,12 @@ import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
-import { CodexHoloStripComponent } from './codex-holo-strip.component';
+import { CodexHoloStripComponent, stripMiniKey } from './codex-holo-strip.component';
 import { POWER_REQUIRED_SCHEMA } from '../codex-power';
 import { NOMAD_SHIP_STATS, nomadOccupants } from '../testing/nomad-power.fixture';
 import { KpiStripCell } from '../codex-kpi-sets';
 import { rankShip, RankShipInput } from '../codex-rank';
-import { powerStorageKey, serializeLocalPowerDraft } from '../codex-loadout-draft';
+import { dockPositionStorageKey, powerStorageKey, serializeLocalPowerDraft } from '../codex-loadout-draft';
 import { setNumberLocale } from '../codex-format';
 
 const SHIP = 'CNOU_Nomad';
@@ -56,6 +56,40 @@ async function setup(opts: { rank?: boolean } = {}): Promise<ComponentFixture<Co
 
 describe('CodexHoloStripComponent', () => {
   beforeEach(() => localStorage.clear());
+
+  it('never LOADS with the energy panel open, even when an old "open" was stored', async () => {
+    localStorage.setItem(`${dockPositionStorageKey(null)}:strip-open`, 'true');
+    const fixture = await setup();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.hs-panel')).toBeNull();
+  });
+
+  it('minimises to its Einsatz cell, remembered per viewer — read again once the user resolves', async () => {
+    const fixture = await setup();
+    const el: HTMLElement = fixture.nativeElement;
+    (el.querySelector('.hs-mini') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeTrue();
+    expect(localStorage.getItem(stripMiniKey(null))).toBe('true');
+    expect(el.querySelector('.hs-mini')!.getAttribute('aria-pressed')).toBe('true');
+
+    // Signed-in viewer with their own (un-minimised) choice: the deep link
+    // renders anon first, then the session lands — their choice wins.
+    localStorage.setItem(stripMiniKey('u1'), 'false');
+    fixture.componentRef.setInput('userId', 'u1');
+    fixture.detectChanges();
+    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeFalse();
+  });
+
+  it('opening the energy panel from a minimised strip brings the strip back', async () => {
+    localStorage.setItem(stripMiniKey(null), 'true');
+    const fixture = await setup();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeTrue();
+    (el.querySelector('.hs-toggle') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.holo-strip')!.classList.contains('mini')).toBeFalse();
+    expect(el.querySelector('.hs-panel')).toBeTruthy();
+  });
 
   it('shows no energy segment while collapsed', async () => {
     const fixture = await setup();

@@ -13,7 +13,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   BaseEntityPayload,
@@ -42,7 +42,8 @@ import {
 import { AddToSetComponent } from './set/add-to-set.component';
 import { roleSlotForAttachType } from './codex-landing-kpi';
 import { HangarService } from '../hangar/hangar.service';
-import { HangarShipConfig } from '../hangar/hangar.types';
+import { HangarShipConfig, PeekedSharedLoadout } from '../hangar/hangar.types';
+import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
 import { DisplayStatGroup, toDisplayStatGroups } from './detail/stat-labels';
@@ -210,7 +211,7 @@ import { BuyOption, UexShopService } from './uex-shop.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { HoloSilhouette } from './holo-silhouette';
-import { CodexHoloStageComponent } from './holo/codex-holo-stage.component';
+import { CodexHoloStageComponent, HoloSharedBanner } from './holo/codex-holo-stage.component';
 import { AssetPackageViewerComponent } from './asset-package/asset-package-viewer.component';
 import { AssetPackageService } from './asset-package/asset-package.service';
 import type { AssetPackageKind, AssetPackageRow } from './asset-package/asset-package.model';
@@ -221,6 +222,15 @@ import { PageHeaderComponent } from '../shared/page-header/page-header.component
 import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
 
 // Engine placeholders that identify no attach type — never build a fit on them.
+/** Which stored loadout the URL puts on the table (#646): a shared link
+ * wins over a config id; neither = the reader's own draft. */
+function loadoutSourceKey(q: ParamMap): string | null {
+  const token = q.get('shared')?.trim();
+  if (token) return `shared:${token}`;
+  const config = q.get('config')?.trim();
+  return config ? `config:${config}` : null;
+}
+
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
 
 @Component({
@@ -777,6 +787,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [draftChangedCount]="draftChangedCount()"
             [rankResult]="rankResult()"
             [rankLoading]="rankCohortLoading()"
+            [rankFailed]="rankCohortFailed()"
+            (retryRank)="retryRankCohort()"
             [rankProfile]="rankProfile()"
             [rankScope]="rankScope()"
             [rankDisabledReasons]="rankDisabledReasons()"
@@ -817,8 +829,16 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [previewSilhouette]="previewSilhouetteUrl()"
             (hovered)="setActivePorts($event)"
             (inspected)="openInspect($event)"
-            (swapRequested)="openSwapPicker($event)"
+            (swapRequested)="onHoloSwapRequested($event)"
             (reverted)="onRevertPaths($event)"
+            [readOnly]="draftReadOnly()"
+            [savedPorts]="draftSavedPaths()"
+            [sharedBanner]="sharedDraft()"
+            [adoptingShared]="adoptingShared()"
+            (adoptShared)="adoptSharedDraft()"
+            (exitShared)="exitSharedDraft()"
+            (retryShared)="retrySharedDraft()"
+            [saveDraftForShare]="saveDraftForShare"
             (missionChange)="setMission($event)"
             (rankProfileChange)="rankProfile.set($event)"
             (rankScopeChange)="setRankScope($event)"
@@ -1295,6 +1315,7 @@ export class CodexDetailComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly uexShop = inject(UexShopService);
   private readonly draftStore = inject(CodexLoadoutDraftStore);
+  private readonly sharedAdopter = inject(SharedLoadoutAdopter);
 
   readonly detail = signal<CodexDetail | null>(null);
   private readonly navOrigin = inject(NavOriginService);
@@ -1457,6 +1478,134 @@ export class CodexDetailComponent implements OnInit {
    * hint. `null` when signed out, not in the hangar, or not yet loaded. */
   readonly activeHangarConfig = signal<HangarShipConfig | null>(null);
 
+  // ── Loadout source: a shared link or one of the reader's configs (#646) ──
+  // `?shared=<token>` puts a shared link's loadout on the Holotable as a
+  // READ-ONLY draft (peek RPC, the same read the public landing page uses);
+  // `?config=<id>` puts one of the reader's own configs on it as the draft
+  // (after an adopt: the adopted config, not stock). Without either, the
+  // draft comes back from the URL / localStorage as before.
+
+  /** The read-only banner's state while a shared link is on the table. */
+  readonly sharedDraft = signal<HoloSharedBanner | null>(null);
+  readonly adoptingShared = signal(false);
+  /** The token / config id the current draft was applied from — a repeated
+   * query-param emission for the same source never re-applies it. */
+  private appliedLoadoutSource: string | null = null;
+  /** `?config=` pinned this config: the active-config lookup must not override it. */
+  private pinnedConfigId: string | null = null;
+
+  /** Called once per ship load and on every later `shared` / `config` change. */
+  private async applyLoadoutSource(classNameSlug: string, seq: number): Promise<void> {
+    const q = this.route.snapshot.queryParamMap;
+    // A shared link is a Holotable view (its banner lives there): the classic
+    // view never shows somebody else's loadout without saying whose it is.
+    const token = this.holoView() ? q.get('shared')?.trim() || null : null;
+    const configId = q.get('config')?.trim() || null;
+    this.appliedLoadoutSource = loadoutSourceKey(q);
+    if (token) {
+      await this.applySharedLoadout(classNameSlug, token, seq);
+    } else if (configId) {
+      await this.applyConfigLoadout(classNameSlug, configId, seq);
+    } else {
+      this.sharedDraft.set(null);
+      this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
+    }
+  }
+
+  private async applySharedLoadout(classNameSlug: string, token: string, seq: number): Promise<void> {
+    this.sharedDraft.set({ status: 'loading', ownerName: null, configName: '', errorKey: null });
+    let peek: PeekedSharedLoadout | null;
+    try {
+      peek = await this.hangar.peekSharedLoadout(token);
+    } catch (error) {
+      if (!this.isCurrentLoad(seq)) return;
+      this.appliedLoadoutSource = null; // a retry must run again
+      this.sharedDraft.set({ status: 'error', ownerName: null, configName: '', errorKey: toErrorKey('hangar', 'peekSharedLoadout', error) });
+      return;
+    }
+    if (!this.isCurrentLoad(seq)) return;
+    // A dead link, or a link for ANOTHER hull than the page shows: the table
+    // keeps the stock loadout and the banner says why.
+    if (!peek || peek.shipClassName.toLowerCase() !== classNameSlug.toLowerCase()) {
+      this.sharedDraft.set({ status: 'unavailable', ownerName: null, configName: '', errorKey: null });
+      return;
+    }
+    this.draftStore.applyStoredLoadout(peek.loadout, {
+      readOnly: { token, ownerName: peek.ownerName, configName: peek.name },
+    });
+    this.sharedDraft.set({ status: 'ready', ownerName: peek.ownerName, configName: peek.name, errorKey: null });
+  }
+
+  private async applyConfigLoadout(classNameSlug: string, configId: string, seq: number): Promise<void> {
+    this.sharedDraft.set(null);
+    this.pinnedConfigId = configId;
+    try {
+      if (this.hangar.ships().length === 0) await this.hangar.loadAll();
+      const ship = this.hangar.shipByClassName(classNameSlug);
+      const configs = ship ? await this.hangar.listConfigs(ship.id) : [];
+      if (!this.isCurrentLoad(seq)) return;
+      const config = configs.find((c) => c.id === configId) ?? null;
+      if (!config) {
+        // Not (or no longer) the reader's config: their own draft, as without the param.
+        this.pinnedConfigId = null;
+        this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
+        return;
+      }
+      this.activeHangarConfig.set(config);
+      this.draftStore.applyStoredLoadout(config.loadout, { configId: config.id });
+      // The draft now mirrors itself into `?loadout=` — the one-shot `config`
+      // param goes, so a reload keeps later edits instead of re-applying it.
+      // (Marked as applied first: dropping the param is not a new source.)
+      this.appliedLoadoutSource = null;
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { config: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    } catch (error) {
+      logWarn('codex', 'config loadout failed', { configId, error });
+      this.pinnedConfigId = null;
+      if (this.isCurrentLoad(seq)) this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
+    }
+  }
+
+  /** The banner's retry after a failed shared-link read. */
+  retrySharedDraft(): void {
+    const d = this.detail();
+    if (d?.kind === 'ship') void this.applyLoadoutSource(d.classNameSlug, this.loadSeq);
+  }
+
+  /** "Adopt to edit": the link becomes a config of the reader's own, which
+   * then opens as the draft (`?config=`), see SharedLoadoutAdopter. */
+  async adoptSharedDraft(): Promise<void> {
+    const src = this.draftStore.readOnlySource();
+    const d = this.detail();
+    if (!src || !d) return;
+    this.adoptingShared.set(true);
+    try {
+      const ok = await this.sharedAdopter.adoptAndOpen(src.token, d.classNameSlug);
+      if (!ok) this.sharedDraft.update((b) => (b ? { ...b, errorKey: 'hangar.shared.adoptError' } : b));
+    } finally {
+      this.adoptingShared.set(false);
+    }
+  }
+
+  /** Leave the shared view: the reader's own draft comes back. */
+  exitSharedDraft(): void {
+    this.sharedDraft.set(null);
+    this.draftStore.reset();
+    // The query-param watcher (ngOnInit) sees the source change and brings
+    // the reader's own draft back.
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { shared: null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  /** The Holotable asks for a swap — refused while a shared link is on the table. */
+  onHoloSwapRequested(target: LayoutTarget): void {
+    if (this.draftStore.readOnly()) return;
+    this.openSwapPicker(target);
+  }
+
   private async loadActiveHangarConfig(classNameSlug: string): Promise<void> {
     if (!this.auth.user()) return;
     // The hangar list is what answers "is this ship mine?" — on a deep link
@@ -1468,11 +1617,20 @@ export class CodexDetailComponent implements OnInit {
     if (!ship) return;
     const configs = await this.hangar.listConfigs(ship.id);
     if (this.detail()?.classNameSlug !== classNameSlug) return;
+    // `?config=` opened a specific config — that one is the page's config.
+    if (this.pinnedConfigId) return;
     this.activeHangarConfig.set(configs.find((c) => c.isActive) ?? configs[0] ?? null);
   }
 
   toggleHoloView(): void {
     const next = !this.holoView();
+    // Leaving the Holotable leaves a shared link's read-only view too (#646);
+    // the query-param watcher then brings the reader's own draft back.
+    const dropShared = !next && !!this.route.snapshot.queryParamMap.get('shared');
+    if (dropShared) {
+      this.sharedDraft.set(null);
+      this.draftStore.reset();
+    }
     this.holoView.set(next);
     try {
       localStorage.setItem(CodexDetailComponent.HOLO_VIEW_STORAGE_KEY, next ? 'holo' : 'classic');
@@ -1481,7 +1639,7 @@ export class CodexDetailComponent implements OnInit {
     }
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { view: next ? null : 'classic' },
+      queryParams: { view: next ? null : 'classic', ...(dropShared ? { shared: null } : {}) },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
@@ -1735,6 +1893,14 @@ export class CodexDetailComponent implements OnInit {
       if (kind === 'ship') void this.rsi.ensureLoaded();
       void this.load(kind, className);
     });
+    // `?shared=` / `?config=` change without a new ship (adopt → own config,
+    // leaving the shared view): the draft follows, the page does not reload.
+    this.route.queryParamMap?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((q) => {
+      const d = this.detail();
+      if (!d || d.kind !== 'ship' || this.loading()) return;
+      if (loadoutSourceKey(q) === this.appliedLoadoutSource) return;
+      void this.applyLoadoutSource(d.classNameSlug, this.loadSeq);
+    });
   }
 
   /** The entity the route asked for last — what "retry" loads again. */
@@ -1778,6 +1944,7 @@ export class CodexDetailComponent implements OnInit {
     this.editionOptions.set([]);
     this.rankCohort.set(null);
     this.rankCohortLoading.set(false);
+    this.rankCohortFailed.set(false);
     this.shipSilhouette.set(null);
     try {
       const d = await this.svc.getDetail(kind, className);
@@ -1793,7 +1960,10 @@ export class CodexDetailComponent implements OnInit {
         if (kind === 'ship') {
           this.activeMissionId.set(loadStoredMission(d.classNameSlug) ?? 'all');
         }
-        if (kind === 'ship') this.draftStore.restoreDraftFromUrlOrStorage(className);
+        if (kind === 'ship') {
+          this.pinnedConfigId = null;
+          void this.applyLoadoutSource(d.classNameSlug, seq);
+        }
         if (kind === 'item' || kind === 'weapon') void this.loadWhereToBuy(d);
         void this.loadSkinGroup(kind, d.classNameSlug);
         if (kind === 'ship') void this.loadEditionGroup(kind, d.classNameSlug);
@@ -2407,6 +2577,9 @@ export class CodexDetailComponent implements OnInit {
 
   readonly draftChangedCount = this.draftStore.draftChangedCount;
   readonly saveableEntries = this.draftStore.saveableEntries;
+  /** A shared link is on the Holotable read-only (#646). */
+  readonly draftReadOnly = this.draftStore.readOnly;
+  readonly draftSavedPaths = this.draftStore.savedPaths;
 
   /** "Übernehmen" / "Slot leeren" from the picker — closes it, then drafts every covered path. */
   onSwapPicked(pick: SwapPick): void {
@@ -2424,9 +2597,17 @@ export class CodexDetailComponent implements OnInit {
   }
 
   /** Write the draft into the ship's active hangar config (CodexLoadoutDraftStore). */
-  saveLoadoutDraft(): Promise<void> {
+  saveLoadoutDraft(): Promise<HangarShipConfig | null> {
     return this.draftStore.saveLoadoutDraft();
   }
+
+  /** "Save & share" (#645): saves the draft first when there is anything to
+   * save; resolves the config the link must be minted for — null when the
+   * save failed or the fork question was declined (the save bar says why). */
+  readonly saveDraftForShare = async (): Promise<HangarShipConfig | null> => {
+    if (this.draftStore.saveableEntries().length === 0) return this.activeHangarConfig();
+    return this.draftStore.saveLoadoutDraft();
+  };
 
   /** `codex.detail.actionCopyLink` (MASTER §2 / concept #t1): share the current
    *  URL and flash a small toast. Best-effort — clipboard access can be denied
@@ -2782,12 +2963,20 @@ export class CodexDetailComponent implements OnInit {
    * candidate ships against this SAME cohort data — never a second fetch. */
   readonly rankCohort = signal<RankShipInput[] | null>(null);
   readonly rankCohortLoading = signal(false);
+  /** The cohort read failed (or came back incomplete) — the Holotable offers a retry. */
+  readonly rankCohortFailed = signal(false);
+
+  /** The Holotable "Einordnung" retry after a failed cohort read. */
+  retryRankCohort(): void {
+    if (!this.rankCohortLoading()) void this.loadRankCohort();
+  }
 
   /** Holotable silhouette (Wave 2), current build only, ship kind only. */
   readonly shipSilhouette = signal<HoloSilhouette | null>(null);
 
   private async loadRankCohort(): Promise<void> {
     this.rankCohortLoading.set(true);
+    this.rankCohortFailed.set(false);
     try {
       const cohort = await this.svc.getRankCohort();
       // A degenerate cohort (nothing resolved, or every sheet came back all
@@ -2801,6 +2990,7 @@ export class CodexDetailComponent implements OnInit {
     } catch (error) {
       logWarn('codex', 'rank cohort failed', error);
       this.rankCohort.set(null); // honest gap state — never a fake cohort of one.
+      this.rankCohortFailed.set(true);
     } finally {
       this.rankCohortLoading.set(false);
     }

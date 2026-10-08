@@ -975,6 +975,19 @@ export class HangarService {
   }
 
   /**
+   * The caller's ACTIVE share links of one config (not revoked, not expired),
+   * newest first — `list_share_links` (migration 20261008214500, #645). The
+   * RPC pins ownership to `auth.uid()`, so a foreign config id answers [].
+   * Throws on a failed read: the caller renders an error state with retry,
+   * never "no links" (an empty list would invite a duplicate link).
+   */
+  async listShareLinks(configId: string): Promise<HangarShareLink[]> {
+    const { data, error } = await this.sb.client.rpc('list_share_links', { p_config_id: configId });
+    if (error) throw error;
+    return ((data ?? []) as Record<string, unknown>[]).map(mapHangarShareLink);
+  }
+
+  /**
    * Turn a share token into a following config in the CALLER's hangar (adds
    * the ship to their hangar if it is not already there, or returns the
    * existing follow on a re-adopt). Runs through the `adopt_shared_loadout`
@@ -1069,12 +1082,17 @@ export class HangarService {
    * is not signed in — wave 1.5 user decision 3. Adopting into the hangar
    * (persisting a following config) still requires {@link adoptSharedLoadout}
    * and therefore a session.
+   *
+   * `null` = no such link (unknown, revoked and expired answer alike); a
+   * failed READ throws, so the caller can offer a retry instead of telling
+   * the reader the link is gone.
    */
   async peekSharedLoadout(token: string): Promise<PeekedSharedLoadout | null> {
     const { data, error } = await this.sb.client
       .rpc('peek_shared_loadout', { p_token: token })
       .maybeSingle();
-    if (error || !data) return null;
+    if (error) throw error;
+    if (!data) return null;
     return mapPeekedSharedLoadout(data as Record<string, unknown>);
   }
 

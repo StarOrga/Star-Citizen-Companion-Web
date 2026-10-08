@@ -38,11 +38,12 @@ import { FeedbackFabComponent } from './feedback-fab.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { AccountNoticeComponent } from '../social/account-notice.component';
+import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.component';
 
 @Component({
   selector: 'sc-shell',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, TranslatePipe, FooterComponent, QuickSearchComponent, VerseStatusChipComponent, FeedbackFabComponent, UserFeedbackFabComponent, AccountNoticeComponent, CodexSearchBarComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Routed views "develop" into focus as they mount — fade + slight rise, keyed
   // to a per-navigation counter so it replays on every switch. Header/footer are
@@ -313,6 +314,12 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     <sc-account-notice />
 
     <main id="sc-main" tabindex="-1" class="content" [@.disabled]="reducedMotion" [@routeReveal]="reveal()">
+      <!-- The Codex search on every Codex page below the landing (whose own
+           terminal row is the same bar). Ctrl+K, "/", the header button and
+           typing on the page bring it forward instead of the overlay. -->
+      @if (codexBar()) {
+        <sc-codex-search-bar class="codex-bar" variant="compact" />
+      }
       <router-outlet (activate)="onRouteActivate()" />
     </main>
 
@@ -440,8 +447,11 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
     /* Reassurance for genuinely slow loads (>3s) — a bottom-centre HUD toast,
        matching the app's existing toast placement so it never clashes with the header. */
     .nav-scan__label {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: var(--sc-float-bottom); left: 50%; transform: translateX(-50%);
       z-index: 50; pointer-events: none;
+      /* Centred, it keeps the feedback launcher's lane free on both sides. */
+      max-width: calc(100vw - 2 * var(--sc-fab-clear-inline));
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       padding: 4px 14px; border-radius: 999px;
       background: color-mix(in srgb, var(--sc-bg-2) 88%, transparent);
       border: 1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent);
@@ -692,6 +702,7 @@ import { AccountNoticeComponent } from '../social/account-notice.component';
        Head room above a page title, trimmed by ~1/5 (32 → 26px) so the first
        heading is not marooned in empty space (feedback #79, item 5). The
        reclaimed space is reused below the heading by the pages themselves. */
+    .codex-bar { margin-bottom: 18px; }
     .content {
       flex: 1;
       width: 100%;
@@ -773,6 +784,9 @@ export class ShellComponent implements AfterViewInit {
   readonly routeRecovery = inject(RouteLoadRecoveryService);
   private readonly zone = inject(NgZone);
 
+  /** A Codex page below the landing — the shell mounts the Codex search bar above it. */
+  readonly codexBar = signal(isCodexSubpage(this.router.url));
+
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
 
@@ -796,6 +810,7 @@ export class ShellComponent implements AfterViewInit {
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
+      if (e instanceof NavigationEnd) this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
       if (e instanceof NavigationStart) {
         this.startNavIndicator();
       } else if (
@@ -1020,4 +1035,10 @@ export class ShellComponent implements AfterViewInit {
       this.signingOut.set(false);
     }
   }
+}
+
+/** `/codex/…` but not the landing `/codex` itself (it carries the bar in its terminal row). */
+export function isCodexSubpage(url: string): boolean {
+  const path = url.split(/[?#]/)[0];
+  return path.startsWith('/codex/');
 }

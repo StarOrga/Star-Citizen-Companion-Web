@@ -5,15 +5,17 @@
 // session. Rendered through `PublicLayoutComponent` (ungated route) so the
 // anonymous half actually works — see app.routes.ts.
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { humanizeClassName } from '../codex/codex-format';
 import { AuthService } from '../auth/auth.service';
+import { toErrorKey } from '../core/describe-error';
 import { HangarService } from './hangar.service';
 import { PeekedSharedLoadout } from './hangar.types';
+import { SharedLoadoutAdopter, holoSharedLink } from './shared-loadout-adopter.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
-type LandingState = 'loading' | 'available' | 'unavailable';
+type LandingState = 'loading' | 'available' | 'unavailable' | 'error';
 
 @Component({
   selector: 'sc-hangar-shared-loadout',
@@ -53,18 +55,35 @@ type LandingState = 'loading' | 'available' | 'unavailable';
               }
             </div>
 
-            @if (auth.isAuthenticated()) {
-              <button type="button" class="sc-btn adopt" [disabled]="adopting()" (click)="adopt(p)"
-                      [scTooltip]="'hangar.shared.adoptHint' | translate">
-                {{ (adopting() ? 'hangar.shared.adopting' : 'hangar.shared.adopt') | translate }}
-              </button>
-              @if (adoptError()) {
-                <p class="err">{{ 'hangar.shared.adoptError' | translate }}</p>
+            <div class="actions">
+              <!-- The loadout on the ship itself (#646), read-only on the
+                   Holotable. A real anchor: a signed-out reader passes the
+                   login wall and comes back to exactly this view. -->
+              @if (holoLink(p); as hl) {
+                <a class="sc-btn holo" [routerLink]="hl.commands" [queryParams]="hl.queryParams">
+                  {{ 'hangar.shared.viewOnHolotable' | translate }}
+                </a>
               }
-            } @else {
-              <a class="sc-btn adopt" [routerLink]="['/login']">{{ 'hangar.shared.loginToAdopt' | translate }}</a>
-            }
+              @if (auth.isAuthenticated()) {
+                <button type="button" class="sc-btn adopt" [disabled]="adopting()" (click)="adopt(p)"
+                        [scTooltip]="'hangar.shared.adoptHint' | translate">
+                  {{ (adopting() ? 'hangar.shared.adopting' : 'hangar.shared.adopt') | translate }}
+                </button>
+                @if (adoptError()) {
+                  <p class="err" role="alert">{{ 'hangar.shared.adoptError' | translate }}</p>
+                }
+              } @else {
+                <a class="sc-btn adopt" [routerLink]="['/login']" [queryParams]="{ redirect: selfUrl() }">{{ 'hangar.shared.loginToAdopt' | translate }}</a>
+              }
+            </div>
           }
+        }
+        @case ('error') {
+          <div class="sc-card state" role="alert">
+            <p class="state__title">{{ 'hangar.shared.loadError' | translate }}</p>
+            <p>{{ loadErrorKey() | translate }}</p>
+            <button type="button" class="sc-btn retry" (click)="load()">{{ 'codex.error.retry' | translate }}</button>
+          </div>
         }
         @case ('unavailable') {
           <div class="sc-card state">
@@ -98,31 +117,49 @@ type LandingState = 'loading' | 'available' | 'unavailable';
     .state { color: var(--sc-fg-2); text-align: center; padding: 28px; }
     .state.inline { padding: 12px 0; text-align: left; }
     .state__title { color: var(--sc-fg-0); font-weight: 600; margin: 0 0 6px; }
-    .err { margin: 0; color: var(--sc-danger, #ff5252); font-size: max(0.76rem, var(--sc-fs-floor)); }
-    .sc-btn.adopt { align-self: flex-start; text-decoration: none; min-height: 48px; }
+    .err { margin: 0; flex-basis: 100%; color: var(--sc-danger, #ff5252); font-size: max(0.76rem, var(--sc-fs-floor)); }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .sc-btn.adopt, .sc-btn.holo { display: inline-flex; align-items: center; text-decoration: none; min-height: 48px; }
     .state .sc-btn { align-self: center; margin-top: 14px; }
   `],
 })
 export class HangarSharedLoadoutComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly hangar = inject(HangarService);
+  private readonly adopter = inject(SharedLoadoutAdopter);
   readonly auth = inject(AuthService);
 
   readonly state = signal<LandingState>('loading');
   readonly peek = signal<PeekedSharedLoadout | null>(null);
   readonly adopting = signal(false);
   readonly adoptError = signal(false);
+  /** `errors.*` key of a failed peek READ — the error state, never "unavailable". */
+  readonly loadErrorKey = signal('errors.generic');
 
   readonly token = computed(() => this.route.snapshot.paramMap.get('token') ?? '');
+  /** This page's own path — where the login sends a signed-out reader back to. */
+  readonly selfUrl = computed(() => `/hangar/shared/${encodeURIComponent(this.token().trim())}`);
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): Promise<void> {
+    return this.load();
+  }
+
+  async load(): Promise<void> {
     const token = this.token().trim();
     if (!token) {
       this.state.set('unavailable');
       return;
     }
-    const result = await this.hangar.peekSharedLoadout(token);
+    this.state.set('loading');
+    let result: PeekedSharedLoadout | null;
+    try {
+      result = await this.hangar.peekSharedLoadout(token);
+    } catch (error) {
+      // A failed read is not a dead link: say so and offer the retry.
+      this.loadErrorKey.set(toErrorKey('hangar', 'peekSharedLoadout', error));
+      this.state.set('error');
+      return;
+    }
     // Revoked, expired and unknown all answer identically (null) — same
     // "no distinguishable probe" reasoning as `get_shared_loadout()`.
     if (!result) {
@@ -133,19 +170,20 @@ export class HangarSharedLoadoutComponent implements OnInit {
     this.state.set('available');
   }
 
+  /** Adopt → reload the hangar → the adopted config opens as the Holotable's draft (#646). */
   async adopt(p: PeekedSharedLoadout): Promise<void> {
     this.adoptError.set(false);
     this.adopting.set(true);
     try {
-      const adopted = await this.hangar.adoptSharedLoadout(this.token().trim());
-      if (!adopted) {
-        this.adoptError.set(true);
-        return;
-      }
-      void this.router.navigate(['/codex', 'ship', p.shipClassName]);
+      const ok = await this.adopter.adoptAndOpen(this.token().trim(), p.shipClassName);
+      if (!ok) this.adoptError.set(true);
     } finally {
       this.adopting.set(false);
     }
+  }
+
+  holoLink(p: PeekedSharedLoadout): ReturnType<typeof holoSharedLink> | null {
+    return p.shipClassName ? holoSharedLink(p.shipClassName, this.token().trim()) : null;
   }
 
   shipName(p: PeekedSharedLoadout): string {

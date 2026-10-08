@@ -189,7 +189,12 @@ export interface GearSlotRow {
         gap: 6px;
       }
       @container gear (max-width: 700px) {
-        .gear-grid { grid-template-columns: repeat(2, 1fr); }
+        .gear-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      /* A phone's card leaves ~320px: two tiles of ~150px clip every weapon
+         name to a few letters, so the slots stack one per row. */
+      @container gear (max-width: 400px) {
+        .gear-grid { grid-template-columns: minmax(0, 1fr); }
       }
       .gear-slot { min-width: 0; }
       .gear-row { display: flex; align-items: stretch; gap: 4px; min-width: 0; }
