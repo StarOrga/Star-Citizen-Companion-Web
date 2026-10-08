@@ -48,6 +48,7 @@ import {
   setStageMeta,
   tipStage,
   pauseActiveStage,
+  activeStage,
   resetStages,
   type StageKey,
 } from './steps/upload-stages.js';
@@ -1841,17 +1842,24 @@ function renderAuthUpload(): string {
 // read by the upload sub-flow functions below.
 let uploadProgress: ProgressController | null = null;
 
-/** Share of the step rail's Upload segment per stage (the silhouette build dominates). */
-const STAGE_SPAN: Record<'bundle' | 'codex' | 'skins', { from: number; width: number }> = {
+/**
+ * Share of the step rail's Upload segment per working row (the silhouette build
+ * dominates). Per row, not per parent: the bar restarts at every row, and a
+ * shared span would send the rail back to the parent's start.
+ */
+type RailStage = 'bundle' | 'silhouettes' | 'entries' | 'skinsBuild' | 'skinsUpload';
+const STAGE_SPAN: Record<RailStage, { from: number; width: number }> = {
   bundle: { from: 0, width: 5 },
-  codex: { from: 5, width: 65 },
-  skins: { from: 70, width: 30 },
+  silhouettes: { from: 5, width: 45 },
+  entries: { from: 50, width: 20 },
+  skinsBuild: { from: 70, width: 15 },
+  skinsUpload: { from: 85, width: 15 },
 };
-let railStage: 'bundle' | 'codex' | 'skins' = 'bundle';
+let railStage: RailStage = 'bundle';
 
 /** Make `key` the running row; the bar restarts for it. */
-function startStage(key: StageKey, meta = ''): void {
-  railStage = key === 'bundle' ? 'bundle' : key === 'skins' ? 'skins' : 'codex';
+function startStage(key: RailStage, meta = ''): void {
+  railStage = key;
   setStage(key, 'active', meta);
   uploadProgress?.update({ overallPct: 0 });
 }
@@ -1980,7 +1988,8 @@ function paintJobNotice(): void {
   if (!running && resumable && job?.resumeSummary) {
     // The stage list shows where the paused run stands, not a row of "open".
     for (const s of job.resumeSummary.stages) {
-      const key: StageKey = s.stage === 'catalog' ? 'entries' : s.stage;
+      const key: StageKey = s.stage === 'catalog' ? 'entries' : s.stage === 'skins' ? 'skinsUpload' : s.stage;
+      if (s.stage === 'skins' && s.state === 'done') setStage('skinsBuild', 'done');
       setStage(key, s.state === 'done' ? 'done' : s.state === 'pending' ? 'pending' : 'paused');
     }
     notice.textContent = formatResumeBanner(job.resumeSummary);
@@ -2465,7 +2474,8 @@ async function doUploadAfterAuth(): Promise<void> {
   // out_dir). Fully non-fatal: the bundle is already confirmed.
   try {
     if (skipped.has('hulls')) {
-      setStage('skins', 'skipped');
+      setStage('skinsBuild', 'skipped');
+      setStage('skinsUpload', 'skipped');
       drawerAppendLog(t('subthemes.skipped', { name: subthemeName('hulls') }));
     } else {
       // True only when every ship landed — a lost ship, a pause or missing
@@ -2479,7 +2489,7 @@ async function doUploadAfterAuth(): Promise<void> {
     const msg = `${t('skins.buildFailed')}: ${(err as Error).message}`;
     // Kept for the final "Upload OK" line, which would otherwise paper over it.
     state.skinUploadStatus = msg;
-    setStage('skins', 'warn');
+    setStage(activeStage() ?? 'skinsBuild', 'warn');
     setAuthStatus(msg, 'warn');
   }
   uploadProgress?.stop();
@@ -3074,7 +3084,7 @@ async function buildAndUploadSkins(
   state.skinUploadStatus = null;
   if (!state.authToken) return false;
   const ch = installFor(result);
-  startStage('skins');
+  startStage('skinsBuild');
 
   const manifest = `${result.output_dir}/skins/_build_manifest.json`;
   const skinsOut = `${ch.installPath}/.sc-companion-extracts/skins-${result.patch_version}`;
@@ -3098,7 +3108,7 @@ async function buildAndUploadSkins(
       `${t('skins.toolsFailed')}: ${tools.error ?? '—'}`,
       'warn',
     );
-    setStage('skins', 'warn');
+    setStage('skinsBuild', 'warn');
     return false;
   }
 
@@ -3117,7 +3127,7 @@ async function buildAndUploadSkins(
     if (ev.type === 'phase' && ev.phase) {
       progress?.update({ phaseLabel: `${label}: ${ev.phase}`, overallPct: ev.pct });
     } else if (ev.type === 'progress') {
-      if (typeof ev.current === 'number' && typeof ev.total === 'number') setStageMeta('skins', `${ev.current} / ${ev.total}`);
+      if (typeof ev.current === 'number' && typeof ev.total === 'number') setStageMeta('skinsBuild', `${ev.current} / ${ev.total}`);
       progress?.update({
         stageLabel: label,
         current: ev.current,
@@ -3154,14 +3164,15 @@ async function buildAndUploadSkins(
       'warn',
       { detail: built.error ?? undefined },
     );
-    setStage('skins', 'warn');
+    setStage('skinsBuild', 'warn');
     return false;
   }
   state.skinResult = built.ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
-    setStage('skins', 'done');
-    tipStage('skins', t('skins.none'));
+    setStage('skinsBuild', 'done');
+    tipStage('skinsBuild', t('skins.none'));
+    setStage('skinsUpload', 'skipped');
     return true;
   }
 
@@ -3171,6 +3182,8 @@ async function buildAndUploadSkins(
   // await — the card kept the build stage's numbers, the bar never moved, and a
   // finished run was indistinguishable from a hung one.
   const uploadLabel = tOr('skins.stepUpload', 'Liveries werden hochgeladen');
+  setStage('skinsBuild', 'done', built.ships.length.toLocaleString());
+  startStage('skinsUpload');
   progress?.update({
     phaseLabel: uploadLabel,
     indeterminate: false,
@@ -3182,7 +3195,7 @@ async function buildAndUploadSkins(
   });
   const unsubUpload = window.sc.skin.onEvent((ev) => {
     if (ev.type === 'progress') {
-      if (typeof ev.current === 'number') setStageMeta('skins', `${ev.current} / ${ev.total ?? built.ships.length}`);
+      if (typeof ev.current === 'number') setStageMeta('skinsUpload', `${ev.current} / ${ev.total ?? built.ships.length}`);
       const total = ev.total ?? built.ships.length;
       progress?.update({
         current: ev.current,
@@ -3221,8 +3234,8 @@ async function buildAndUploadSkins(
   state.skinUploadStatus = status.level === 'warn' ? status.message : null;
   // Success is a check mark with its line as the tooltip; a lost ship stays
   // in the status box, because the operator has to act on it.
-  setStage('skins', status.level === 'warn' ? 'warn' : 'done', `${tally.live} / ${tally.attempted}`);
-  tipStage('skins', status.message);
+  setStage('skinsUpload', status.level === 'warn' ? 'warn' : 'done', `${tally.live} / ${tally.attempted}`);
+  tipStage('skinsUpload', status.message);
   if (status.level === 'warn') setAuthStatus(status.message, status.level);
   return status.level !== 'warn';
 }
