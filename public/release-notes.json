@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.137.0",
+  "current": "0.138.0",
   "releases": [
+    {
+      "version": "0.138.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.49.0: Upload als Schritt-Liste.",
+              "text": "Die Upload-Karte zeigt den Upload jetzt als kurze Checkliste: Bundle, Codex (mit „Silhouetten bauen“ und „Einträge hochladen“) und 3D-Modelle, jeder Schritt mit eigenem Zustand (offen, läuft, fertig, pausiert, fehlgeschlagen, übersprungen) und einer Zahl daneben. Die fünf Kategorie-Balken erscheinen nur noch unter „Einträge hochladen“, solange dieser Schritt läuft. Bundle-ID, Build-Zahlen, Anker-Abdeckung, Kategorie-Summen, die aktuelle Datei und die Rate stehen im Tooltip des jeweiligen Schritts bzw. des Fortschrittsbalkens statt als Textzeilen auf der Karte. Der Hinweiskasten erscheint nur noch bei Warnungen und Fehlern; die Unterschiede zum letzten Upload stehen als +n / −m am Bundle-Schritt."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: ehrliche Rate und Restzeit.",
+              "text": "„~x/s“ und „Rest“ messen jetzt über die letzten 60 Sekunden bis jetzt. Vorher hielt ein schneller Schub (Cache-Treffer) seine hohe Rate und eine zu kurze Restzeit, obwohl der Upload danach stockte; ein Zähler, der für ein neues Ziel neu anfängt, setzt die Messung jetzt zurück."
+            },
+            {
+              "title": "Data Uploader: keine vollen Balken mehr, während noch gearbeitet wird.",
+              "text": "Beim Fortsetzen eines Uploads standen die Kategorie-Balken schon voll, obwohl die Silhouetten noch gebaut wurden. Der Schritt „Einträge hochladen“ zeigt in diesem Fall „teilweise oben“."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.137.0",
       "date": "2026-10-08",
