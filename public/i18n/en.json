@@ -77,7 +77,8 @@
       "title": "We couldn't verify your access",
       "body": "Your profile could not be loaded just now — usually a brief hiccup right after signing in. You are still signed in.",
       "retry": "Try again",
-      "retrying": "Checking …"
+      "retrying": "Checking …",
+      "checking": "Checking your access …"
     },
     "landing": {
       "appName": "Star Citizen Companion",

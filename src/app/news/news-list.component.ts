@@ -431,6 +431,12 @@ const SAFE_SVG = new Map<string, SafeHtml>();
        a pseudo-element, so the mobile gate can measure the true tap area. */
     .stage-link { color: inherit; text-decoration: none; }
     .stage-link-touch-target { position: absolute; inset: 0; z-index: 3; }
+    /* Touch: a one-line headline is only ~28px tall — below the tap floor. Give
+       the anchor a flex box of at least 48px (44 can measure 43). Desktop keeps
+       the plain inline anchor. */
+    @media (pointer: coarse) {
+      .stage-link { display: flex; align-items: center; min-height: max(48px, var(--sc-tap-min)); }
+    }
     .stage-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; border-radius: 4px; }
     .stage-deck {
       margin: 0 0 14px; color: var(--sc-fg-1); font-size: 0.9rem; line-height: 1.5;

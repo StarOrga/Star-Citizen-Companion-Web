@@ -863,6 +863,12 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
         );
       }
     }
+    /* A phone held sideways has ~360px of height: a pinned bar there costs a
+       sixth of the screen for the whole page, so it scrolls away instead. */
+    @media (max-width: 1079px) and (max-height: 480px) {
+      .toc { position: static; }
+      .group { scroll-margin-top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px) + 16px); }
+    }
 
     /* Touch baseline: 44px is the project threshold, but the shell's loading
        scale animations shave a pixel off a measured target — so ask for 48. */

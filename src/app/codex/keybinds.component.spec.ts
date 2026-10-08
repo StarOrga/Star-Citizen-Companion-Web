@@ -665,22 +665,24 @@ describe('KeybindsComponent', () => {
 
   // ── impersonation-banner offset (profil-ansehen-als-bug) ─────────────────
 
-  it('offsets both sticky bars by --sc-imp-banner-h so they park below the banner, not under it', async () => {
+  it('offsets the pinned controls block by --sc-imp-banner-h and keeps the assign bar inside it', async () => {
     document.documentElement.style.setProperty('--sc-imp-banner-h', '40px');
     try {
       const fixture = await setup({ binds: SAMPLE, labels: LABELS, admin: true });
       fixture.componentInstance.toggleAssignMode();
       fixture.detectChanges();
 
-      const controls: HTMLElement = fixture.nativeElement.querySelector('.kb-controls');
+      const pin: HTMLElement = fixture.nativeElement.querySelector('.kb-pin');
       const assignBar: HTMLElement = fixture.nativeElement.querySelector('.assign-bar');
-      expect(controls).not.toBeNull();
+      expect(pin).not.toBeNull();
       expect(assignBar).not.toBeNull();
 
-      // Both computed `top` values must move with the published var (40px),
-      // proving they reference --sc-imp-banner-h rather than a bare offset.
-      expect(getComputedStyle(controls).top).toBe('40px');
-      expect(getComputedStyle(assignBar).top).toBe('100px'); // 40px banner + 60px controls
+      // The pinned block's `top` moves with the published var (40px), proving
+      // it references --sc-imp-banner-h rather than a bare offset; the assign
+      // bar rides inside it, so no guessed controls height is involved.
+      expect(getComputedStyle(pin).top).toBe('40px');
+      expect(pin.contains(pin.querySelector('.kb-controls'))).toBeTrue();
+      expect(pin.contains(assignBar)).toBeTrue();
     } finally {
       document.documentElement.style.removeProperty('--sc-imp-banner-h');
     }

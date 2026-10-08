@@ -265,6 +265,7 @@ const WINDOWS = [7, 30, 90] as const;
                 </div>
               }
               <h2 class="sub">{{ 'telemetry.aborts.recent' | translate }}</h2>
+              <div class="sc-table-scroll">
               <table class="table">
                 <thead><tr>
                   <th>{{ 'telemetry.col.at' | translate }}</th>
@@ -291,6 +292,7 @@ const WINDOWS = [7, 30, 90] as const;
                   }
                 </tbody>
               </table>
+              </div>
             } @else {
               <p class="hint">{{ 'telemetry.empty' | translate }}</p>
             }
@@ -384,6 +386,7 @@ const WINDOWS = [7, 30, 90] as const;
         <div class="sc-card">
           <h2>{{ 'telemetry.recent' | translate }}</h2>
           @if (s.recentCrashes.length) {
+            <div class="sc-table-scroll">
             <table class="table">
               <thead><tr>
                 <th>{{ 'telemetry.col.at' | translate }}</th>
@@ -414,6 +417,7 @@ const WINDOWS = [7, 30, 90] as const;
                 }
               </tbody>
             </table>
+            </div>
           } @else { <p class="hint">{{ 'telemetry.empty' | translate }}</p> }
         </div>
 
@@ -509,7 +513,13 @@ const WINDOWS = [7, 30, 90] as const;
     }
     .diag-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
 
-    @media (max-width: 760px) { .totals { grid-template-columns: repeat(2,1fr); } .cols { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) {
+      .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cols { grid-template-columns: 1fr; }
+      /* The tables scroll inside their wrapper (.sc-table-scroll) from here on
+         instead of squeezing the message column into a ribbon. */
+      .table { min-width: 560px; }
+    }
+    @media (max-width: 380px) { .totals { grid-template-columns: minmax(0, 1fr); } }
     @media (max-width: 560px) {
       .head { flex-direction: column; align-items: stretch; }
       /* Full width so all three ranges stay a comfortable thumb target. */
@@ -517,14 +527,7 @@ const WINDOWS = [7, 30, 90] as const;
       .products { grid-template-columns: 1fr; }
       .stat .num { font-size: 1.45rem; }
       .bar-row { grid-template-columns: 90px 1fr 40px; gap: 0.4rem; }
-      .table .msg { max-width: 200px; }
-      .table {
-        display: block;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-      }
-      .table thead, .table tbody { display: table; width: 100%; min-width: 480px; }
+      .table .msg { max-width: 220px; }
     }
   `],
 })

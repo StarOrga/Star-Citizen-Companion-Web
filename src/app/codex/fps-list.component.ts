@@ -538,6 +538,9 @@ interface FacetOption {
     .equip-confirm-live {
       position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
       display: flex; justify-content: center; pointer-events: none;
+      /* The bar's end stays out of the feedback launcher's lane, so its
+         "back to the loadout" link is never under the disc. */
+      padding-inline-end: var(--sc-fab-clear-inline);
     }
     .equip-confirm-live:empty { display: none; }
     .equip-confirm {

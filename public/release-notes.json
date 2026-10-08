@@ -1,7 +1,53 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.132.0",
+  "current": "0.133.0",
   "releases": [
+    {
+      "version": "0.133.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Handy: nichts liegt mehr unter dem Feedback-Knopf.",
+              "text": "Vergleichsleiste, FPS-Ausrüstungsleiste, Lade-Hinweis, Holo-Leiste, Download-Verlauf und Footer enden vor dem runden Feedback-Knopf und halten Abstand zur Gestenleiste. Die Vergleichsleiste öffnet auf dem Handy als Bottom-Sheet mit einer wischbaren Chip-Zeile."
+            },
+            {
+              "title": "Handy: Sheets und Dialoge passen in den sichtbaren Bildschirm.",
+              "text": "Bottom- Sheets, Lightboxen und Dialoge richten ihre Höhe am dynamischen Viewport aus, die ein- und ausfahrende Adressleiste schneidet sie nicht mehr ab."
+            },
+            {
+              "title": "Admin auf dem Handy.",
+              "text": "Die Nutzerliste erscheint unter 640 px als gestapelte Karten (Name, Rolle, Aktionen ohne seitliches Scrollen). API-Token-, Telemetrie- und Bundle-Diff-Tabellen scrollen in ihrem eigenen Kasten statt die ganze Seite zu verschieben; der Token-Dialog beginnt oben und zeigt eine Zeile pro Scope. Im Feedback-Board klappt das Eingabefeld auf dem Handy in eine Leiste „Neues Thema“ ein."
+            },
+            {
+              "title": "Kürzere angeheftete Leisten.",
+              "text": "Die Keybind-Steuerung scrollt auf dem Handy mit, die Abschnittsleiste der Einstellungen ist im flachen Querformat nicht mehr angeheftet, und das Banner der Rollenvorschau ist auf zwei Zeilen begrenzt."
+            },
+            {
+              "title": "Sets, Hangar und Holodeck auf Touch.",
+              "text": "Rüstungskacheln und Ausrüstungsplätze eines Sets stehen auf dem Handy untereinander, Schließen-Knöpfe im Hangar haben eine echte Trefferfläche, lange Pledge- und Bestandsnamen brechen um, und die Energie-Pips im Holodeck wachsen auf Touch nicht mehr über die Modus-Knöpfe."
+            },
+            {
+              "title": "Größere Tippflächen.",
+              "text": "Kompakte Knöpfe in Admin-Panels und die Schlagzeile oben auf /news haben auf Touch mindestens 48 px Trefferfläche."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "/unavailable geht von selbst weiter.",
+              "text": "Lädt das Profil nur langsam, zeigt die Seite „Dein Zugang wird geprüft …“ und springt zur gewünschten Seite, sobald die Freigabe da ist. Fehlertext und „Erneut versuchen“ erscheinen erst, wenn das Laden ohne freigegebenen Zugang abgeschlossen ist."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.132.0",
       "date": "2026-10-08",

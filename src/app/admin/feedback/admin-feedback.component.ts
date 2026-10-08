@@ -463,9 +463,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
         </div>
 
         <!-- The composer bar, pinned to the bottom (settled core 7). On the full
-             board it is the whole composer; in the docked panel it folds to a
-             slim "＋ Neues Thema" bar so the stream owns the panel. -->
-        @if (!embedded()) {
+             board it is the whole composer; in the docked panel — and on a
+             phone, where the full composer pinned at the bottom covered half
+             the board — it folds to a slim "＋ Neues Thema" bar so the stream
+             owns the screen. -->
+        @if (!embedded() && !phone()) {
           <sc-feedback-composer
             class="main-composer"
             [draftScope]="draftScope"
@@ -477,7 +479,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             sendLabel="adminFeedback.compose.send"
             [onSubmit]="createTopicBound" />
         } @else if (composerOpen()) {
-          <div class="compose-sheet">
+          <div class="compose-sheet" [class.sc-dock-phone]="!embedded()">
             <div class="cs-head">
               <span class="cs-title">{{ 'adminFeedback.compose.newTopic' | translate }}</span>
               <button
@@ -499,7 +501,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
               [onSubmit]="createComposerBound" />
           </div>
         } @else {
-          <button type="button" class="new-topic-bar" (click)="openComposer()">
+          <button type="button" class="new-topic-bar" [class.sc-dock-phone]="!embedded()" (click)="openComposer()">
             <span class="nt-plus" aria-hidden="true">＋</span>
             {{ 'adminFeedback.compose.newTopic' | translate }}
           </button>
@@ -1076,7 +1078,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .search-box:focus-within, .search-box.active { border-color: var(--sc-accent); }
     .search-icon { color: var(--sc-fg-2); flex: 0 0 auto; }
     .search-box input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; color: var(--sc-fg-0); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); outline: none; }
-    .search-clear { flex: 0 0 auto; min-width: 32px; min-height: 32px; background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1.1rem; cursor: pointer; }
+    .search-clear { flex: 0 0 auto; min-width: max(32px, var(--sc-tap-min)); min-height: max(32px, var(--sc-tap-min)); background: transparent; border: 0; color: var(--sc-fg-2); font-size: 1.1rem; cursor: pointer; }
     .tb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 0 12px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .tb-btn:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .tb-btn.active { border-color: var(--sc-accent); color: var(--sc-accent); }
@@ -1359,7 +1361,16 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .decline-input { width: 100%; box-sizing: border-box; padding: 8px 10px 22px; resize: vertical; background: var(--sc-bg-2); border: 1px solid var(--sc-danger); border-radius: 6px; color: var(--sc-fg-0); font: inherit; font-size: max(0.84rem, var(--sc-fs-floor)); }
 
     /* ---- Composer bar ---- */
-    .main-composer { position: sticky; bottom: 12px; z-index: 1; }
+    .main-composer { position: sticky; bottom: calc(12px + var(--sc-safe-bottom)); z-index: 1; }
+    /* Phone, full board: the folded "＋ Neues Thema" bar and the sheet it
+       opens stay pinned to the bottom like the desktop composer (.sc-dock-phone
+       in styles.scss); the sheet draws its own frame there. */
+    @media (max-width: 720px) {
+      .page:not(.embedded) > .compose-sheet {
+        padding: 8px; border: 1px solid var(--sc-border); border-radius: 8px;
+        background: var(--sc-bg-2); max-height: calc(100dvh - 140px); overflow-y: auto;
+      }
+    }
     .page.embedded .main-composer { position: static; }
     .new-topic-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--sc-bg-2); border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
     .new-topic-bar:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
@@ -2160,6 +2171,13 @@ export class AdminFeedbackComponent implements OnInit {
   // ---- Lifecycle -------------------------------------------------------------
 
   constructor() {
+    if (typeof matchMedia === 'function') {
+      const mq = matchMedia('(max-width: 720px)');
+      this.phone.set(mq.matches);
+      const onPhoneChange = (e: MediaQueryListEvent): void => this.phone.set(e.matches);
+      mq.addEventListener('change', onPhoneChange);
+      inject(DestroyRef).onDestroy(() => mq.removeEventListener('change', onPhoneChange));
+    }
     useAutoRefresh(() => this.refresh(), { enabled: () => !this.busy() });
     inject(DestroyRef).onDestroy(() => this.stampLastSeen());
   }
@@ -2369,6 +2387,11 @@ export class AdminFeedbackComponent implements OnInit {
 
   /** Docked panel: the new-topic composer is collapsed to a bar by default. */
   readonly composerOpen = signal(false);
+  /**
+   * Phone width (≤720px, the app's phone breakpoint): the full board folds its
+   * pinned composer into the same "＋ Neues Thema" bar as the docked panel.
+   */
+  readonly phone = signal(false);
   openComposer(): void { this.composerOpen.set(true); }
   /**
    * A page seeded the new-topic box and asked for it (see
@@ -2381,7 +2404,7 @@ export class AdminFeedbackComponent implements OnInit {
     const n = this.seeds.openRequests();
     if (n === this.seenOpenRequests) return;
     this.seenOpenRequests = n;
-    if (untracked(() => this.embedded())) this.composerOpen.set(true);
+    if (untracked(() => this.embedded() || this.phone())) this.composerOpen.set(true);
   });
   closeComposer(): void { this.composerOpen.set(false); }
 

@@ -140,7 +140,11 @@ const MAX_ENTRIES = 200;
     .import.drag { background: color-mix(in srgb, var(--sc-accent) 8%, var(--sc-bg-1)); }
     .head { display: flex; justify-content: space-between; align-items: center; }
     .head h3 { margin: 0; font-size: 0.95rem; font-family: var(--sc-font-display); letter-spacing: 0.04em; }
-    .close { background: transparent; border: 0; color: var(--sc-fg-2); cursor: pointer; }
+    .close {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(36px, var(--sc-tap-min)); min-height: max(36px, var(--sc-tap-min));
+      background: transparent; border: 0; border-radius: 6px; color: var(--sc-fg-2); cursor: pointer;
+    }
     .close:hover { color: var(--sc-fg-0); }
     .hint { color: var(--sc-fg-2); font-size: 0.8rem; margin: 0; line-height: 1.5; }
     .pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -155,8 +159,10 @@ const MAX_ENTRIES = 200;
       padding: 6px 8px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .row.disabled { opacity: 0.65; }
     .row label { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
-    .src { font-size: 0.85rem; color: var(--sc-fg-0); }
-    .nick { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; }
+    /* Pledge names arrive as one long token ("Standalone_Ship_..."): they break
+       anywhere rather than pushing the badge off the row. */
+    .src { font-size: 0.85rem; color: var(--sc-fg-0); overflow-wrap: anywhere; }
+    .nick { font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic; overflow-wrap: anywhere; }
     .badge { font-size: max(0.62rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; white-space: nowrap;
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); }
     .badge.ok { color: var(--sc-success); border-color: color-mix(in srgb, var(--sc-success) 50%, transparent); }

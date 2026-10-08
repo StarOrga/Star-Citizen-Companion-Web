@@ -175,143 +175,148 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
           <p>{{ 'codex.empty.noBuild' | translate }}</p>
         </div>
       } @else {
-        <div class="kb-controls">
-          <div class="devices" role="group" [attr.aria-label]="'codex.keybinds.device' | translate">
-            @for (d of devices; track d) {
-              <button type="button" class="dev"
-                      [class.active]="device() === d" [attr.aria-pressed]="device() === d"
-                      (click)="setDevice(d)">
-                {{ 'codex.keybinds.devices.' + d | translate }}
-              </button>
-            }
-          </div>
-          <input class="search" type="search" [ngModel]="searchInput()"
-                 (ngModelChange)="onSearch($event)"
-                 [attr.placeholder]="'codex.keybinds.searchPlaceholder' | translate"
-                 [attr.aria-label]="'codex.keybinds.search' | translate" />
-          <!-- Name language. Same segmented shape as the news stream's
-               "Beiträge | Gemerkt", because it does the same job: two slices of
-               one list, one active at a time. Hidden when the UI already runs
-               in English — both halves would then say the same thing. -->
-          @if (langSwitchVisible()) {
-            <div class="seg lang" role="group"
-                 [attr.aria-label]="'codex.keybinds.lang.aria' | translate">
-              @for (l of nameLangs; track l) {
-                <button type="button" class="seg-btn" [class.on]="nameLang() === l"
-                        [attr.aria-pressed]="nameLang() === l"
-                        [scTooltip]="'codex.keybinds.lang.hint.' + l | translate"
-                        (click)="setNameLang(l)">
-                  {{ 'codex.keybinds.lang.short.' + l | translate }}
+        <!-- One pinned block: the controls and, in assignment mode, the bar
+             under them stick together, so the bar never needs a guessed
+             offset for a controls row that wraps to two lines. -->
+        <div class="kb-pin">
+          <div class="kb-controls">
+            <div class="devices" role="group" [attr.aria-label]="'codex.keybinds.device' | translate">
+              @for (d of devices; track d) {
+                <button type="button" class="dev"
+                        [class.active]="device() === d" [attr.aria-pressed]="device() === d"
+                        (click)="setDevice(d)">
+                  {{ 'codex.keybinds.devices.' + d | translate }}
                 </button>
               }
             </div>
-          }
-          @if (roles.isAdmin()) {
-            <button type="button" class="assign-toggle" [class.on]="assignMode()"
-                    [attr.aria-pressed]="assignMode()" (click)="toggleAssignMode()">
-              <span class="toggle-label">{{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
-                 | translate }}</span>
-              <!-- Red = elevated access, and said in words too (CLAUDE.md). -->
-              <span class="admin-tag">{{ 'nav.adminOnly' | translate }}</span>
-            </button>
+            <input class="search" type="search" [ngModel]="searchInput()"
+                   (ngModelChange)="onSearch($event)"
+                   [attr.placeholder]="'codex.keybinds.searchPlaceholder' | translate"
+                   [attr.aria-label]="'codex.keybinds.search' | translate" />
+            <!-- Name language. Same segmented shape as the news stream's
+                 "Beiträge | Gemerkt", because it does the same job: two slices of
+                 one list, one active at a time. Hidden when the UI already runs
+                 in English — both halves would then say the same thing. -->
+            @if (langSwitchVisible()) {
+              <div class="seg lang" role="group"
+                   [attr.aria-label]="'codex.keybinds.lang.aria' | translate">
+                @for (l of nameLangs; track l) {
+                  <button type="button" class="seg-btn" [class.on]="nameLang() === l"
+                          [attr.aria-pressed]="nameLang() === l"
+                          [scTooltip]="'codex.keybinds.lang.hint.' + l | translate"
+                          (click)="setNameLang(l)">
+                    {{ 'codex.keybinds.lang.short.' + l | translate }}
+                  </button>
+                }
+              </div>
+            }
+            @if (roles.isAdmin()) {
+              <button type="button" class="assign-toggle" [class.on]="assignMode()"
+                      [attr.aria-pressed]="assignMode()" (click)="toggleAssignMode()">
+                <span class="toggle-label">{{ (assignMode() ? 'codex.keybinds.assign.exit' : 'codex.keybinds.assign.enter')
+                   | translate }}</span>
+                <!-- Red = elevated access, and said in words too (CLAUDE.md). -->
+                <span class="admin-tag">{{ 'nav.adminOnly' | translate }}</span>
+              </button>
+            }
+          </div>
+
+          @if (roles.isAdmin() && assignMode()) {
+            <!-- Assignment bar. Sticky under the controls so the picked hierarchy
+                 stays visible while scrolling through a 1.1k-row profile. -->
+            <div class="assign-bar">
+              <!-- "Am I in assignment mode, and how do I get out?" was the first
+                   thing the mode failed to answer (feedback d8f096a7): the only
+                   marker used to be the pressed state of a button in the row
+                   above. So the bar now names itself, says what to do, and
+                   carries its own way back. -->
+              <div class="assign-head" role="status">
+                <span class="assign-badge">
+                  <span class="dot" aria-hidden="true"></span>
+                  {{ 'codex.keybinds.assign.active' | translate }}
+                </span>
+                <p class="assign-help">{{ 'codex.keybinds.assign.help' | translate }}</p>
+                <button type="button" class="assign-exit" (click)="toggleAssignMode()">
+                  {{ 'codex.keybinds.assign.exit' | translate }}
+                </button>
+              </div>
+
+              <div class="assign-progress">
+                <span class="ap-count">
+                  {{ 'codex.keybinds.assign.progress' | translate:
+                     { assigned: assignedTotal(), total: total() } }}
+                </span>
+                <span class="ap-track" aria-hidden="true">
+                  <span class="ap-fill" [style.width.%]="assignedPercent()"></span>
+                </span>
+                <span class="filters" role="group"
+                      [attr.aria-label]="'codex.keybinds.assign.filter' | translate">
+                  @for (f of filters; track f) {
+                    <button type="button" class="filter" [class.active]="filter() === f"
+                            [attr.aria-pressed]="filter() === f" (click)="setFilter(f)">
+                      {{ 'codex.keybinds.assign.filters.' + f | translate }}
+                    </button>
+                  }
+                </span>
+              </div>
+
+              <!-- Themed listboxes, not native <select>s: the OPEN state of a
+                   native select is drawn by the OS and cannot be styled, which is
+                   what made the first cut look off-theme (fd58a5eb, round 2). The
+                   label is a plain <span> + aria-label on the control, because a
+                   <label> cannot wrap a custom element into an implicit pair. -->
+              <div class="pickers">
+                @for (p of pickers; track p.layer) {
+                  <div class="pick">
+                    <span class="pick-label">
+                      {{ tx('codex.keybinds.assign.layers.' + p.layer) }}
+                    </span>
+                    <sc-select
+                      [options]="p.options()"
+                      [value]="draft()[p.layer]"
+                      [disabled]="p.options().length === 0"
+                      placeholderKey="codex.keybinds.assign.none"
+                      [placeholderLabel]="enText('codex.keybinds.assign.none')"
+                      [ariaLabel]="tx('codex.keybinds.assign.layers.' + p.layer)"
+                      (valueChange)="setLayer(p.layer, $event)"
+                    />
+                  </div>
+                }
+              </div>
+
+              <div class="assign-actions">
+                <span class="sel-count">
+                  {{ 'codex.keybinds.assign.selected' | translate: { count: selectedCount() } }}
+                </span>
+                <button type="button" class="primary"
+                        [disabled]="selectedCount() === 0 || !draftAssigned() || cats.saving()"
+                        (click)="applyToSelection()">
+                  {{ 'codex.keybinds.assign.apply' | translate }}
+                </button>
+                <button type="button"
+                        [disabled]="selectedCount() === 0 || cats.saving()"
+                        (click)="clearSelectionAssignment()">
+                  {{ 'codex.keybinds.assign.clear' | translate }}
+                </button>
+                <button type="button" [disabled]="selectedCount() === 0" (click)="deselectAll()">
+                  {{ 'codex.keybinds.assign.deselect' | translate }}
+                </button>
+                <button type="button" class="export" (click)="exportJson()">
+                  {{ 'codex.keybinds.assign.export' | translate }}
+                </button>
+              </div>
+
+              @if (cats.error(); as cerr) {
+                <p class="assign-error" role="alert">{{ cerr | translate }}</p>
+              }
+              @if (savedAt()) {
+                <p class="assign-ok" role="status">{{ 'codex.keybinds.assign.saved' | translate }}</p>
+              }
+            </div>
           }
         </div>
         @if (langSwitchVisible()) {
           <p class="lang-note">{{ 'codex.keybinds.lang.note' | translate }}</p>
-        }
-
-        @if (roles.isAdmin() && assignMode()) {
-          <!-- Assignment bar. Sticky under the controls so the picked hierarchy
-               stays visible while scrolling through a 1.1k-row profile. -->
-          <div class="assign-bar">
-            <!-- "Am I in assignment mode, and how do I get out?" was the first
-                 thing the mode failed to answer (feedback d8f096a7): the only
-                 marker used to be the pressed state of a button in the row
-                 above. So the bar now names itself, says what to do, and
-                 carries its own way back. -->
-            <div class="assign-head" role="status">
-              <span class="assign-badge">
-                <span class="dot" aria-hidden="true"></span>
-                {{ 'codex.keybinds.assign.active' | translate }}
-              </span>
-              <p class="assign-help">{{ 'codex.keybinds.assign.help' | translate }}</p>
-              <button type="button" class="assign-exit" (click)="toggleAssignMode()">
-                {{ 'codex.keybinds.assign.exit' | translate }}
-              </button>
-            </div>
-
-            <div class="assign-progress">
-              <span class="ap-count">
-                {{ 'codex.keybinds.assign.progress' | translate:
-                   { assigned: assignedTotal(), total: total() } }}
-              </span>
-              <span class="ap-track" aria-hidden="true">
-                <span class="ap-fill" [style.width.%]="assignedPercent()"></span>
-              </span>
-              <span class="filters" role="group"
-                    [attr.aria-label]="'codex.keybinds.assign.filter' | translate">
-                @for (f of filters; track f) {
-                  <button type="button" class="filter" [class.active]="filter() === f"
-                          [attr.aria-pressed]="filter() === f" (click)="setFilter(f)">
-                    {{ 'codex.keybinds.assign.filters.' + f | translate }}
-                  </button>
-                }
-              </span>
-            </div>
-
-            <!-- Themed listboxes, not native <select>s: the OPEN state of a
-                 native select is drawn by the OS and cannot be styled, which is
-                 what made the first cut look off-theme (fd58a5eb, round 2). The
-                 label is a plain <span> + aria-label on the control, because a
-                 <label> cannot wrap a custom element into an implicit pair. -->
-            <div class="pickers">
-              @for (p of pickers; track p.layer) {
-                <div class="pick">
-                  <span class="pick-label">
-                    {{ tx('codex.keybinds.assign.layers.' + p.layer) }}
-                  </span>
-                  <sc-select
-                    [options]="p.options()"
-                    [value]="draft()[p.layer]"
-                    [disabled]="p.options().length === 0"
-                    placeholderKey="codex.keybinds.assign.none"
-                    [placeholderLabel]="enText('codex.keybinds.assign.none')"
-                    [ariaLabel]="tx('codex.keybinds.assign.layers.' + p.layer)"
-                    (valueChange)="setLayer(p.layer, $event)"
-                  />
-                </div>
-              }
-            </div>
-
-            <div class="assign-actions">
-              <span class="sel-count">
-                {{ 'codex.keybinds.assign.selected' | translate: { count: selectedCount() } }}
-              </span>
-              <button type="button" class="primary"
-                      [disabled]="selectedCount() === 0 || !draftAssigned() || cats.saving()"
-                      (click)="applyToSelection()">
-                {{ 'codex.keybinds.assign.apply' | translate }}
-              </button>
-              <button type="button"
-                      [disabled]="selectedCount() === 0 || cats.saving()"
-                      (click)="clearSelectionAssignment()">
-                {{ 'codex.keybinds.assign.clear' | translate }}
-              </button>
-              <button type="button" [disabled]="selectedCount() === 0" (click)="deselectAll()">
-                {{ 'codex.keybinds.assign.deselect' | translate }}
-              </button>
-              <button type="button" class="export" (click)="exportJson()">
-                {{ 'codex.keybinds.assign.export' | translate }}
-              </button>
-            </div>
-
-            @if (cats.error(); as cerr) {
-              <p class="assign-error" role="alert">{{ cerr | translate }}</p>
-            }
-            @if (savedAt()) {
-              <p class="assign-ok" role="status">{{ 'codex.keybinds.assign.saved' | translate }}</p>
-            }
-          </div>
         }
 
         @if (groups().length === 0) {
@@ -422,14 +427,15 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
     .kb { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
 
 
-    .kb-controls {
-      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    .kb-pin {
+      display: flex; flex-direction: column; gap: 12px;
       /* Slides down under sc-impersonation-banner while a preview is active —
          see that component's constructor, which owns this var (0px = no-op). */
       position: sticky; top: var(--sc-imp-banner-h, 0px); z-index: 2; padding: 8px 0;
       background: color-mix(in srgb, var(--sc-bg-0) 88%, transparent);
       backdrop-filter: blur(6px);
     }
+    .kb-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .devices { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); }
     .dev {
       padding: 7px 14px; border: none; background: transparent; color: var(--sc-fg-2);
@@ -486,9 +492,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
       display: flex; flex-direction: column; gap: 12px;
       padding: 14px 16px; border-radius: 12px;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
-      /* Parks below .kb-controls (its own sticky offset above), which itself
-         slides down under sc-impersonation-banner — see that comment. */
-      position: sticky; top: calc(var(--sc-imp-banner-h, 0px) + 60px); z-index: 2;
+      /* Pinned through .kb-pin together with the controls above it. */
     }
     /* The bar is the mode's visible state: accent frame + a named badge, so
        "am I still assigning?" is answerable at a glance. */
@@ -667,7 +671,10 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
     }
 
     @media (max-width: 640px) {
-      .assign-bar { position: static; }
+      /* On a phone the controls wrap to ~250px (device tabs two by two, search,
+         language switch, mode button): pinned, they would cover a third of the
+         screen. They scroll away with the page instead. */
+      .kb-pin { position: static; }
       .sel-count { margin-right: 0; flex: 1 1 100%; }
       /* Phone: the search field takes the full row, the switch and the mode
          button share the next one instead of squeezing into a 3-up line. The

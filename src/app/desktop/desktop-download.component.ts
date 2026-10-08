@@ -171,7 +171,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     }
     .hx-dialog {
       display: flex; flex-direction: column;
-      width: min(1100px, 96vw); max-height: 88vh;
+      width: min(1100px, 96vw); max-height: 88vh; max-height: 88dvh;
       background: var(--sc-bg-1); border: 1px solid var(--sc-border);
       border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
@@ -188,12 +188,19 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     .hx-close {
       background: transparent; border: 0; color: var(--sc-fg-2);
       font-size: 1rem; cursor: pointer; padding: 4px;
+      /* A real hit area, not the glyph's own 16px. */
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: max(36px, var(--sc-tap-min)); min-height: max(36px, var(--sc-tap-min));
+      border-radius: 6px;
     }
     .hx-close:hover { color: var(--sc-fg-0); }
     .hx-scroll { overflow-y: auto; padding: 0 4px 4px; }
 
     @media (max-width: 640px) {
-      .hx-back { padding: 8px; }
+      /* The popup ends above the feedback launcher, which stays on top of
+         every dialog (z-index 1400) and would sit on the version list. */
+      .hx-back { padding: 8px; padding-bottom: var(--sc-fab-clear-block); }
+      .hx-dialog { max-height: 100%; }
     }
   `],
 })
