@@ -77,9 +77,11 @@ export interface HoloPatchComparisonSide {
         [attr.aria-expanded]="open()"
         aria-haspopup="listbox"
         [attr.aria-controls]="panelId"
+        [attr.aria-keyshortcuts]="hotkey()"
         [scTooltip]="'codex.holo.patch.trigger.hotkeyHint' | translate"
       >
         <span>{{ (selected() ? 'codex.holo.patch.trigger.comparing' : 'codex.holo.patch.trigger.idle') | translate: { patch: $safeNavigationMigration(selected()?.patchVersion), active: activeBuild().patchVersion, channel: channel() } }}</span>
+        @if (hotkey(); as hk) { <kbd class="hk" aria-hidden="true">{{ hk }}</kbd> }
         <span class="chev" [class.on]="open()" aria-hidden="true">▾</span>
       </button>
 
@@ -265,6 +267,11 @@ export interface HoloPatchComparisonSide {
     .patch-clear:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
 
     .delta-state { margin: 0; white-space: nowrap; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    /* Hotkey badge (#644): discreet, hidden on touch. */
+    .hk { padding: 0 4px; border: 1px solid var(--sc-border); border-radius: 2px; font-family: var(--font-monospace, monospace); font-size: 9px;
+      color: var(--sc-fg-2); opacity: 0.6; }
+    .patch-trigger:hover .hk, .patch-trigger:focus-visible .hk { opacity: 1; }
+    @media (hover: none), (pointer: coarse) { .hk { display: none; } }
     .delta-reopen { min-height: max(40px, var(--sc-tap-min, 0px)); padding: 4px 10px; border-radius: 4px;
       border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-border)); background: var(--sc-bg-1); color: var(--sc-accent);
       font: inherit; font-size: max(0.72rem, var(--sc-fs-floor)); cursor: pointer; white-space: nowrap; transition: border-color 0.16s ease, color 0.16s ease; }
@@ -326,6 +333,8 @@ export class CodexHoloPatchComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly panelId = 'codex-holo-patch-pop';
+  /** The holodeck's key for this chooser (#644) — shown as a <kbd> in the trigger. */
+  readonly hotkey = input<string | null>(null);
   readonly open = signal(false);
   readonly loading = signal(false);
   readonly compareLoading = signal(false);

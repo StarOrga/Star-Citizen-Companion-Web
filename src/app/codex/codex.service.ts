@@ -15,6 +15,12 @@ import {
 } from './codex-poly-search';
 
 /** One Codex search: the ranked hits plus how many records each kind matched in total. */
+/** Counts the chunks of a batched read that failed — a caller that must not
+ * act on a partial answer (the rank cohort and its cache) passes one in. */
+export interface FetchReport {
+  failed: number;
+}
+
 export interface PolySearchResult {
   hits: PolySearchHit[];
   /** Per-kind match count (server count; the announced feed counts its own). */
@@ -1587,6 +1593,7 @@ export class CodexService {
    */
   async getEntityPayloads(
     classNames: string[],
+    report?: FetchReport,
   ): Promise<Map<string, { kind: CodexKind; payload: unknown }>> {
     const out = new Map<string, { kind: CodexKind; payload: unknown }>();
     const build = await this.loadCurrentBuild();
@@ -1609,6 +1616,7 @@ export class CodexService {
             .in('class_name', slice);
           if (error || !data) {
             logWarn('codex', 'getEntityPayloads chunk failed', { kind, error });
+            if (report) report.failed++;
             return;
           }
           for (const r of data as unknown as Record<string, unknown>[]) {
@@ -1628,7 +1636,7 @@ export class CodexService {
    * `ammoClassNameFor`. Missing names simply don't come back; the caller
    * renders no projectile stats for those.
    */
-  async getAmmoPayloads(classNames: string[]): Promise<Map<string, unknown>> {
+  async getAmmoPayloads(classNames: string[], report?: FetchReport): Promise<Map<string, unknown>> {
     const out = new Map<string, unknown>();
     const build = await this.loadCurrentBuild();
     const names = Array.from(new Set(classNames.filter(Boolean)));
@@ -1642,6 +1650,7 @@ export class CodexService {
           .in('class_name', slice);
         if (error || !data) {
           logWarn('codex', 'getAmmoPayloads chunk failed', { error });
+          if (report) report.failed++;
           return;
         }
         for (const r of data as unknown as Record<string, unknown>[]) {
@@ -1851,11 +1860,23 @@ export class CodexService {
       for (const cn of stockLoadoutClassNames(payload?.defaultLoadout ?? [])) allClassNames.add(cn);
     }
     const names = [...allClassNames];
-    const payloads = await this.getEntityPayloads(names);
+    // A failed chunk (a statement timeout under the fleet-wide read) leaves a
+    // HOLE in the cohort: its ships score with empty sheets and every
+    // percentile is quietly wrong — and the cache below used to keep that
+    // hole for the whole build ("Einordnung" empty on every later load).
+    // One retry; still incomplete = an error the page can offer a retry for,
+    // never a cached half-fleet.
+    let report: FetchReport = { failed: 0 };
+    let payloads = await this.getEntityPayloads(names, report);
+    if (report.failed > 0) {
+      report = { failed: 0 };
+      payloads = await this.getEntityPayloads(names, report);
+    }
     const ammoNames = names
       .map((cn) => ammoClassNameFor(cn, payloads.get(cn)?.payload))
       .filter((cn): cn is string => !!cn);
-    const ammo = await this.getAmmoPayloads(ammoNames);
+    const ammo = await this.getAmmoPayloads(ammoNames, report);
+    if (report.failed > 0) throw new Error(`rank cohort incomplete: ${report.failed} payload chunk(s) failed`);
 
     // Resolving + scoring the WHOLE fleet is far too much work for one tick:
     // measured live on 2026-09-05, 353 ships wedged the renderer for ~45 s and

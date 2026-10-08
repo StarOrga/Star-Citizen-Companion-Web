@@ -52,6 +52,9 @@ import {
   PortPinBadge,
 } from './codex-holo-patch.component';
 import { CodexHoloShareComponent } from './codex-holo-share.component';
+import { CodexHoloSharedBannerComponent, HoloSharedBanner } from './codex-holo-shared-banner.component';
+import { CodexHoloRankStateComponent } from './codex-holo-rank-state.component';
+export type { HoloSharedBanner } from './codex-holo-shared-banner.component';
 import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from './codex-holo-perspectives.component';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
@@ -61,6 +64,7 @@ import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
 import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { HoloHotkeyAction, holoHotkeyFor, holoHotkeyLabel, nextHoloView } from './codex-holo-hotkeys';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
@@ -162,6 +166,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
     HangarPickerComponent,
     CodexHoloPatchComponent,
     CodexHoloShareComponent,
+    CodexHoloSharedBannerComponent,
+    CodexHoloRankStateComponent,
     CodexHoloTableComponent,
     CodexHoloInspectorComponent,
     ScTooltipDirective,
@@ -189,6 +195,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           <!-- slot: patch-delta trigger -->
           @if (buildRef(); as ab) {
             <sc-codex-holo-patch
+              [hotkey]="hkLabel.patch"
               [className]="detail().classNameSlug"
               [channel]="channel()"
               [activeBuild]="ab"
@@ -201,6 +208,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           }
         </div>
       </div>
+
+      <!-- A shared link's loadout on the table, read-only until adopted (#646). -->
+      @if (sharedBanner(); as sb) {
+        <sc-codex-holo-shared-banner [banner]="sb" [adopting]="adoptingShared()"
+          (adopt)="adoptShared.emit()" (exit)="exitShared.emit()" (retry)="retryShared.emit()" />
+      }
 
       <!-- Mobile "Tisch | Daten" tab control (user decision 5, default = stacked) -->
       @if (mobileTabsEnabled()) {
@@ -236,6 +249,10 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                   </div>
                 }
               </div>
+              <!-- No ranking yet: what the panel is doing / why it is empty. -->
+              @if (!rankResult()) {
+                <sc-codex-holo-rank-state [loading]="rankLoading()" [failed]="rankFailed()" (retry)="retryRank.emit()" />
+              } @else {
               <sc-codex-rank-card
                 [holo]="true"
                 [shipName]="displayName()"
@@ -247,6 +264,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                 [disabledReasons]="rankDisabledReasons()"
                 (profileChange)="rankProfileChange.emit($event)"
                 (scopeChange)="rankScopeChange.emit($event)" />
+              }
               @if (topCohortShips().length > 0) {
                 <div class="sub"><span>{{ 'codex.holo.stage.top3' | translate }}</span><i></i></div>
                 <ol class="top3">
@@ -305,15 +323,15 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               </p>
               <div class="tools5" [class.open]="sharePopoverOpen()">
                 @if (has3d()) {
-                  <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}</button>
+                  <button type="button" class="tt" [class.on]="viewMode() === '3d'" [attr.aria-pressed]="viewMode() === '3d'" [attr.aria-keyshortcuts]="hkLabel.view" (click)="toggleViewMode('3d')">{{ 'codex.holo.stage.view3d' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
                 }
                 <span style="display: contents" [scTooltip]="schemaAvailable() ? null : ('codex.holo.stage.viewSchemaUnavailable' | translate)" scTooltipTier="label">
                 <button type="button" class="tt" [class.on]="viewMode() === 'schema'" [attr.aria-pressed]="viewMode() === 'schema'"
-                        [disabled]="!schemaAvailable()"
-                        (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}</button>
+                        [disabled]="!schemaAvailable()" [attr.aria-keyshortcuts]="hkLabel.view"
+                        (click)="toggleViewMode('schema')">{{ 'codex.holo.stage.viewSchema' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.view }}</kbd></button>
                 </span>
                 <span class="share-wrap" (keydown.escape)="closeShare($event)">
-                  <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" (click)="toggleShare()">↗ {{ 'codex.holo.stage.viewShare' | translate }}</button>
+                  <button type="button" class="tt" [class.on]="sharePopoverOpen()" [attr.aria-expanded]="sharePopoverOpen()" [attr.aria-keyshortcuts]="hkLabel.share" (click)="toggleShare()">↗ {{ 'codex.holo.stage.viewShare' | translate }}<kbd class="hk" aria-hidden="true">{{ hkLabel.share }}</kbd></button>
                   @if (sharePopoverOpen()) {
                     <!-- slot: share -->
                     <sc-codex-holo-share
@@ -328,6 +346,9 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
                       [signedIn]="!!userId()"
                       [inHangar]="inHangar()"
                       [unsavedChanges]="draftChangedCount()"
+                      [readOnly]="readOnly()"
+                      [saveDraft]="saveDraftForShare()"
+                      [copyHotkey]="hkLabel.copyLink"
                       (copyCurrentLink)="copyShareLink.emit()"
                       (addToHangar)="addToHangar.emit()"
                       [addBusy]="addBusy()"
@@ -404,6 +425,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
               [saving]="saving()"
               [saveError]="saveError()"
               [inHangar]="inHangar()"
+              [readOnly]="readOnly()"
               (closed)="inspectedPort.set(null)"
               (pinInspect)="inspectPin($event)"
               (hovered)="hovered.emit($event)"
@@ -447,13 +469,22 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
           [shipFactGroups]="shipFactGroups()" />
       </div>
 
-      <!-- Undo toast (concept fb-journal: "Undo gern einfach als toast") -->
-      @if (undoToast()) {
-        <div class="undo-toast" role="status" animate.enter="toast-enter" animate.leave="toast-leave">
-          <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: undoToastLabel() } }}</span>
-          <button type="button" class="btn quiet" (click)="undoToastAction()">{{ 'codex.holo.stage.undo' | translate }}</button>
-        </div>
-      }
+      <!-- Toasts above the strip: the undo (concept fb-journal: "Undo gern
+           einfach als toast") and the L key's "Link kopiert" (#644). -->
+      <div class="toasts">
+        @if (undoToast()) {
+          <div class="undo-toast" role="status" animate.enter="toast-enter" animate.leave="toast-leave">
+            <span>{{ 'codex.holo.stage.journalChanged' | translate: { label: undoToastLabel() } }}</span>
+            <button type="button" class="btn quiet" (click)="undoToastAction()">{{ 'codex.holo.stage.undo' | translate }}</button>
+          </div>
+        }
+        @if (copyToast(); as ct) {
+          <div class="undo-toast copy-toast" [class.failed]="ct === 'failed'" [attr.role]="ct === 'failed' ? 'alert' : 'status'"
+               animate.enter="toast-enter" animate.leave="toast-leave">
+            <span>{{ ct === 'ok' ? '✓ ' + ('codex.detail.linkCopied' | translate) : ('codex.holo.share.copyFailed' | translate) }}</span>
+          </div>
+        }
+      </div>
 
       <!-- A failed save must never depend on the arrival or the right rail:
            when the inspector's save bar is not on screen, the stage says it. -->
@@ -667,6 +698,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .tt.on { color: var(--sc-accent); text-shadow: 0 0 8px var(--a50); }
   .tt:disabled { opacity: 0.4; cursor: not-allowed; }
   .tt:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+  /* Hotkey badges (#644): discreet until the control is hovered or focused;
+     a touch screen has no keyboard to press them with. */
+  .hk { margin-inline-start: 6px; padding: 0 4px; border: 1px solid var(--l1); border-radius: 2px; font-family: var(--m); font-size: 9px;
+  letter-spacing: 0; color: var(--sc-fg-2); opacity: 0.55; transition: opacity 160ms ease; }
+  .tt:hover .hk, .tt:focus-visible .hk, .tt.on .hk { opacity: 1; }
+  @media (hover: none), (pointer: coarse) { .hk { display: none; } }
   .share-wrap { position: relative; display: inline-flex; }
   /* The popover surface (frame, notch, enter/leave) lives in the share
      component's own :host styles. */
@@ -704,9 +741,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .switch input:checked + .track::after { transform: translateX(14px); background: var(--sc-accent); }
   .switch input:focus-visible + .track { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
   /* The toast rides above the strip, whatever height the strip has. */
-  .undo-toast { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
+  .toasts { position: fixed; bottom: calc(var(--holo-strip-h, 64px) + 16px); left: 50%; translate: -50% 0; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .undo-toast { pointer-events: auto;
   display: flex; align-items: center; gap: 10px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent);
   border-radius: 4px; padding: 8px 12px; font-size: max(12px, var(--f)); color: var(--sc-fg-0); box-shadow: 0 8px 24px rgb(0 0 0 / 0.4), 0 0 0 1px var(--a10); }
+  .copy-toast.failed { border-color: var(--sc-danger); }
   .toast-enter { animation: toast-in var(--holo-t-base) var(--e-out); }
   .toast-leave { animation: toast-out var(--holo-t-fast) var(--e-io) forwards; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
@@ -763,7 +803,8 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   .holo-below { grid-template-columns: 1fr; padding: 0 6px; }
   .holo-body.mobile-hide-table .mobile-table { display: none; }
   .holo-body.mobile-hide-data .mobile-data { display: none; }
-  .undo-toast { width: calc(100% - 32px); justify-content: space-between; }
+  .toasts { width: calc(100% - 32px); }
+  .undo-toast { width: 100%; justify-content: space-between; }
   }
   .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation: none !important; transition: none !important; }
   @media (prefers-reduced-motion: reduce) {
@@ -777,6 +818,14 @@ export class CodexHoloStageComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly rolebar = viewChild<ElementRef<HTMLElement>>('rolebar');
+  private readonly patchChooser = viewChild(CodexHoloPatchComponent);
+  /** Badge text per hotkey action ("L") — the template's kbd and aria-keyshortcuts. */
+  readonly hkLabel: Readonly<Record<HoloHotkeyAction, string>> = {
+    copyLink: holoHotkeyLabel('copyLink'),
+    patch: holoHotkeyLabel('patch'),
+    view: holoHotkeyLabel('view'),
+    share: holoHotkeyLabel('share'),
+  };
 
   // ── Identity / chrome ────────────────────────────────────────────
   readonly detail = input.required<CodexDetail>();
@@ -834,6 +883,9 @@ export class CodexHoloStageComponent {
   // ── Rank / radar / top-3 (user decision 1) ─────────────────────────
   readonly rankResult = input<RankResult | null>(null);
   readonly rankLoading = input(false);
+  /** The cohort read failed — the panel offers a retry instead of an empty chart. */
+  readonly rankFailed = input(false);
+  readonly retryRank = output<void>();
   readonly rankProfile = input<RankProfileId>('combat');
   readonly rankScope = input<RankScope>('sizeClass');
   readonly rankDisabledReasons = input<Partial<Record<RankProfileId, string | null>>>({});
@@ -860,6 +912,20 @@ export class CodexHoloStageComponent {
 
   // ── Share popover (slot: share) ─────────────────────────────────────
   readonly myConfig = input<HangarShipConfig | null>(null);
+  /** "Save & share" (#645): the host saves the draft and resolves the config
+   * the link is minted for (null = save failed / fork declined). */
+  readonly saveDraftForShare = input<(() => Promise<HangarShipConfig | null>) | null>(null);
+
+  // ── Shared link on the table (#646) ─────────────────────────────────
+  /** A shared link's loadout is the draft: no swap, revert or save. */
+  readonly readOnly = input(false);
+  /** Draft paths already stored in the hangar config (e.g. after `?config=`). */
+  readonly savedPorts = input<ReadonlySet<string>>(new Set());
+  readonly sharedBanner = input<HoloSharedBanner | null>(null);
+  readonly adoptingShared = input(false);
+  readonly adoptShared = output<void>();
+  readonly exitShared = output<void>();
+  readonly retryShared = output<void>();
 
   // ── HangarPicker (slot: hangar-tab, N4) ─────────────────────────────
   readonly hangarPickerItems = input<readonly HangarPickerItem[]>([]);
@@ -982,6 +1048,14 @@ export class CodexHoloStageComponent {
 
   constructor() {
     void this.blueprints.load();
+    // Letter hotkeys (#644) in the CAPTURE phase: they run before the Codex
+    // type-to-search listener and claim their key with preventDefault(), which
+    // type-to-search respects — see codex-holo-hotkeys.ts.
+    if (typeof document !== 'undefined') {
+      const onKey = (ev: KeyboardEvent): void => this.onHotkey(ev);
+      document.addEventListener('keydown', onKey, true);
+      this.destroyRef.onDestroy(() => document.removeEventListener('keydown', onKey, true));
+    }
     // The arrival (concept hv3-s1), keyed on the ship: every hull switch
     // re-runs it. Reduced motion or a repeat visit in the same session = a
     // hard cut. Otherwise the hero art is fetched (briefly — the table never
@@ -1157,6 +1231,7 @@ export class CodexHoloStageComponent {
     this.destroyRef.onDestroy(() => {
       if (this.pulseTimer) clearTimeout(this.pulseTimer);
       if (this.railTimer) clearTimeout(this.railTimer);
+      if (this.copyToastTimer) clearTimeout(this.copyToastTimer);
       if (this.countUpRaf) cancelAnimationFrame(this.countUpRaf);
       void this.audioCtx?.close().catch(() => undefined);
     });
@@ -1182,7 +1257,9 @@ export class CodexHoloStageComponent {
       const nowPorts = new Set(entries.map((e) => e.port));
       const added = entries.find((e) => !seenPorts.has(e.port));
       seenPorts = nowPorts;
-      if (added) {
+      // A shared link's loadout, or a config that was just put on the table,
+      // is not an edit of the reader's — nothing to undo.
+      if (added && !untracked(this.readOnly) && !untracked(this.savedPorts).has(added.port)) {
         this.undoToast.set(added);
         if (toastTimer) clearTimeout(toastTimer);
         toastTimer = setTimeout(() => this.undoToast.set(null), UNDO_TOAST_MS);
@@ -1267,6 +1344,52 @@ export class CodexHoloStageComponent {
     if (!pin) return;
     ev.preventDefault();
     this.inspectPin(pin.portName);
+  }
+
+  /**
+   * The holodeck's letter hotkeys (#644): L copies the page link (toast),
+   * P opens / closes the patch chooser, V cycles holo → 3D → schema, S opens /
+   * closes the share popover. Ignored while a text field has focus, with a
+   * chord, or while a dialog that is not the stage's own popover is open.
+   */
+  onHotkey(ev: KeyboardEvent): void {
+    const action = holoHotkeyFor(ev, this.host.nativeElement);
+    if (!action) return;
+    ev.preventDefault();
+    switch (action) {
+      case 'copyLink':
+        void this.copyLinkByKey();
+        break;
+      case 'patch':
+        this.patchChooser()?.toggle();
+        break;
+      case 'view':
+        this.viewModeTouched = true;
+        this.viewMode.set(nextHoloView(this.viewMode(), this.has3d(), this.schemaAvailable()));
+        break;
+      case 'share':
+        this.toggleShare();
+        break;
+    }
+  }
+
+  /** L's own feedback: the address of this view, "copied" or "not allowed". */
+  readonly copyToast = signal<'ok' | 'failed' | null>(null);
+  private copyToastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** L (#644): copies this view's address — the same URL "Link kopieren" copies
+   * — and says whether the clipboard took it (a refused copy is not silent). */
+  async copyLinkByKey(): Promise<void> {
+    let result: 'ok' | 'failed' = 'ok';
+    try {
+      await navigator.clipboard.writeText(location.href);
+    } catch (error) {
+      logWarn('codex', 'hotkey link copy failed', error);
+      result = 'failed';
+    }
+    this.copyToast.set(result);
+    if (this.copyToastTimer) clearTimeout(this.copyToastTimer);
+    this.copyToastTimer = setTimeout(() => this.copyToast.set(null), result === 'ok' ? 2000 : 3500);
   }
 
   /** How many pins the digit hotkeys can reach — what the empty inspector may promise. */

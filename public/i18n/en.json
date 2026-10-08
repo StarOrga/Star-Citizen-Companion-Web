@@ -696,7 +696,10 @@
         "eyebrow3d": "3D model · drag to rotate",
         "eyebrowSchema": "Schematic · hardpoint positions",
         "pinListTitle": "All hardpoints",
-        "pinGroupOther": "Hardpoints"
+        "pinGroupOther": "Hardpoints",
+        "rankLoading": "Comparing with the whole fleet … the first visit per patch takes a moment.",
+        "rankFailed": "The fleet comparison could not be loaded.",
+        "rankEmpty": "There are no comparison values for this fleet yet."
       },
       "strip": {
         "einsatz": "Mission",
@@ -711,7 +714,9 @@
         "stealthPreset": "Stealth",
         "expand": "Expand strip",
         "collapse": "Collapse strip",
-        "presetTag": "preset"
+        "presetTag": "preset",
+        "minimize": "Minimise the strip",
+        "restore": "Show the whole strip"
       },
       "hangar": {
         "tab": "Hangar",
@@ -778,13 +783,10 @@
         "followedSince": "as of {{date}}",
         "refresh": "Refresh",
         "refreshing": "Refreshing …",
-        "createLink": "Create share link",
-        "creating": "Creating …",
         "copy": "Copy",
         "copied": "Copied",
         "revoke": "Stop sharing",
         "revokeNote": "Recipients who already follow this link stay connected until the config is deleted.",
-        "revoked": "Sharing stopped.",
         "errorGeneric": "That didn't work. Please try again.",
         "copyLinkHint": "Copies the address of this view — including the Holotable and any unsaved hardpoint changes.",
         "unsavedHint": "{{n}} unsaved change(s) live only in the copied link, not in the hangar link.",
@@ -792,13 +794,34 @@
         "notInHangarHint": "This ship is not in your hangar yet. Add it first, then you can share a configuration.",
         "noConfigHint": "There is no configuration for this ship in your hangar yet — save a loadout first.",
         "addToHangar": "Add to hangar",
-        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand."
+        "copyFailed": "Copying isn't allowed here — select the link and copy it by hand.",
+        "saveAndShare": "Save & share",
+        "shareLink": "Share link",
+        "sharing": "Sharing …",
+        "followedShareHint": "Sharing makes this configuration your own — it stops following its owner.",
+        "linksLoading": "Loading your links …",
+        "linksError": "Your links could not be loaded.",
+        "activeLinks": "Active links ({{n}})",
+        "readOnlyHint": "This is a shared loadout. Adopt it to share a link of your own.",
+        "revokeConfirm": {
+          "title": "Stop sharing this link?",
+          "body": "Nobody can adopt the loadout through this link any more. Recipients who already follow it stay connected."
+        }
       },
       "components": {
         "title": "Components in the model",
         "hint": "Tap or click to mark · Esc clears",
         "unknownPosition": "Position in model unknown",
         "groupCount": "{{count}} installed · {{located}} in model"
+      },
+      "shared": {
+        "loading": "Loading the shared loadout …",
+        "banner": "Shared by {{owner}} — “{{name}}”. Adopt it to edit.",
+        "adopt": "Adopt to edit",
+        "unavailable": "This shared loadout is not available — the link is invalid, expired, revoked or for another ship. The table shows the stock loadout.",
+        "loadError": "The shared loadout could not be loaded.",
+        "exit": "Back to my loadout",
+        "readOnlyHint": "Shared loadout — read-only. Adopt it to change or save it."
       }
     },
     "empty": {
@@ -3595,7 +3618,9 @@
       "unavailable": {
         "title": "This loadout is not available",
         "body": "The link is invalid, expired, or was revoked."
-      }
+      },
+      "viewOnHolotable": "View on the Holotable",
+      "loadError": "The shared loadout could not be loaded"
     },
     "errors": {
       "adoptFailed": "The shared loadout could not be adopted."

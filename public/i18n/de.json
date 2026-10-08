@@ -696,7 +696,10 @@
         "eyebrow3d": "3D-Modell · ziehen zum Drehen",
         "eyebrowSchema": "Schema · Hardpoint-Positionen",
         "pinListTitle": "Alle Hardpoints",
-        "pinGroupOther": "Hardpoints"
+        "pinGroupOther": "Hardpoints",
+        "rankLoading": "Vergleich mit der ganzen Flotte läuft … der erste Besuch pro Patch dauert einen Moment.",
+        "rankFailed": "Der Flottenvergleich konnte nicht geladen werden.",
+        "rankEmpty": "Für diese Flotte gibt es noch keine Vergleichswerte."
       },
       "strip": {
         "einsatz": "Einsatz",
@@ -711,7 +714,9 @@
         "stealthPreset": "Schleichen",
         "expand": "Leiste ausklappen",
         "collapse": "Leiste einklappen",
-        "presetTag": "Preset"
+        "presetTag": "Preset",
+        "minimize": "Leiste minimieren",
+        "restore": "Ganze Leiste einblenden"
       },
       "hangar": {
         "tab": "Hangar",
@@ -778,13 +783,10 @@
         "followedSince": "Stand {{date}}",
         "refresh": "Aktualisieren",
         "refreshing": "Wird aktualisiert …",
-        "createLink": "Freigabe-Link erzeugen",
-        "creating": "Wird erzeugt …",
         "copy": "Kopieren",
         "copied": "Kopiert",
         "revoke": "Teilen beenden",
         "revokeNote": "Bereits folgende Empfänger:innen bleiben verbunden, bis die Konfiguration gelöscht wird.",
-        "revoked": "Teilen beendet.",
         "errorGeneric": "Das hat nicht geklappt. Bitte noch einmal versuchen.",
         "copyLinkHint": "Kopiert die Adresse dieser Ansicht — inklusive Holotisch und ungespeicherter Änderungen an den Hardpoints.",
         "unsavedHint": "{{n}} ungespeicherte Änderung(en) stecken nur im kopierten Link, nicht im Hangar-Link.",
@@ -792,13 +794,34 @@
         "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
         "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
         "addToHangar": "Zum Hangar hinzufügen",
-        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren."
+        "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren.",
+        "saveAndShare": "Speichern & teilen",
+        "shareLink": "Link teilen",
+        "sharing": "Wird geteilt …",
+        "followedShareHint": "Teilen macht diese Konfiguration zu deiner eigenen — sie folgt dann nicht mehr ihrem Besitzer.",
+        "linksLoading": "Deine Links werden geladen …",
+        "linksError": "Deine Links konnten nicht geladen werden.",
+        "activeLinks": "Aktive Links ({{n}})",
+        "readOnlyHint": "Das ist ein geteiltes Loadout. Übernimm es, um einen eigenen Link zu teilen.",
+        "revokeConfirm": {
+          "title": "Diesen Link nicht mehr teilen?",
+          "body": "Über diesen Link kann niemand das Loadout mehr übernehmen. Wer ihm schon folgt, bleibt verbunden."
+        }
       },
       "components": {
         "title": "Komponenten im Modell",
         "hint": "Antippen oder klicken markiert · Esc löst",
         "unknownPosition": "Position im Modell unbekannt",
         "groupCount": "{{count}} verbaut · {{located}} im Modell"
+      },
+      "shared": {
+        "loading": "Geteiltes Loadout wird geladen …",
+        "banner": "Geteilt von {{owner}} — „{{name}}“. Übernimm es, um es zu bearbeiten.",
+        "adopt": "Übernehmen & bearbeiten",
+        "unavailable": "Dieses geteilte Loadout ist nicht verfügbar — der Link ist ungültig, abgelaufen, zurückgezogen oder gehört zu einem anderen Schiff. Der Tisch zeigt das Standard-Loadout.",
+        "loadError": "Das geteilte Loadout konnte nicht geladen werden.",
+        "exit": "Zurück zu meinem Loadout",
+        "readOnlyHint": "Geteiltes Loadout — nur lesen. Übernimm es, um es zu ändern oder zu speichern."
       }
     },
     "empty": {
@@ -3595,7 +3618,9 @@
       "unavailable": {
         "title": "Dieses Loadout ist nicht verfügbar",
         "body": "Der Link ist ungültig, abgelaufen oder wurde deaktiviert."
-      }
+      },
+      "viewOnHolotable": "Auf dem Holotisch ansehen",
+      "loadError": "Das geteilte Loadout konnte nicht geladen werden"
     },
     "errors": {
       "adoptFailed": "Das geteilte Loadout konnte nicht übernommen werden."
