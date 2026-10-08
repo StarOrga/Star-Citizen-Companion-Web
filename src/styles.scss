@@ -708,6 +708,95 @@ button {
   .analysis-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* ============================================================
+   DETAIL PAGE — one shape for every Codex and Hangar detail page
+   header (sc-page-header) → hero (art | name, key facts) → blocks.
+   The Codex item detail (codex-detail.component.ts) drew it first;
+   the blueprint, announced-ship and hangar-ship pages share it from
+   here instead of each inventing a hero, a title size and a section
+   heading of their own (2026-10-08 polish pass). Kept global because
+   the component style budgets are tight.
+   ============================================================ */
+.sc-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(200px, 320px) minmax(0, 1fr);
+  gap: 22px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: none;
+}
+.sc-detail-hero__art {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  min-width: 0;
+  --sc-img-max-h: 320px;
+  --sc-img-shadow: drop-shadow(0 6px 24px rgba(0, 0, 0, 0.55));
+  --sc-icon-max: 132px;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0));
+}
+.sc-detail-hero__art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
+.sc-detail-hero__art > sc-codex-icon { width: 100%; min-height: 120px; }
+.sc-detail-hero__body {
+  padding: 22px 24px 22px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.sc-detail-hero__body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
+.sc-detail-hero__body .sc-detail-mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
+.sc-detail-hero__body sc-class-chip { align-self: flex-start; }
+.sc-kind-tag {
+  align-self: flex-start;
+  font-size: max(0.64rem, var(--sc-fs-floor));
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: color-mix(in srgb, var(--sc-accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent);
+  color: var(--sc-accent);
+}
+.sc-detail-facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sc-detail-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--sc-bg-1);
+  border: 1px solid var(--sc-border);
+}
+.sc-detail-fact.accent { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
+.sc-detail-fact__label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
+.sc-detail-fact__value { font-size: 0.9rem; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
+.sc-detail-fact.accent .sc-detail-fact__value { color: var(--sc-accent); }
+/* A section card under the hero: flat 4px chrome, the small accent heading. */
+.sc-detail-block { border-radius: 4px; box-shadow: none; }
+.sc-detail-block > h2,
+.sc-detail-block > header > h2 {
+  margin: 0 0 12px;
+  font-size: max(10.5px, var(--sc-fs-floor));
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--sc-accent);
+  font-family: inherit;
+}
+@media (max-width: 760px) {
+  .sc-detail-hero { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sc-detail-hero__art { min-height: 180px; }
+  .sc-detail-hero__body { padding: 20px; }
+}
+@media (max-width: 400px) {
+  .sc-detail-hero__body { padding: 16px; }
+  .sc-detail-hero__body h1 { font-size: 1.4rem; }
+}
+
 .sc-btn {
   display: inline-flex;
   align-items: center;

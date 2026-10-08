@@ -218,7 +218,8 @@ import { ALL_KPI_KEYS } from './codex-build-compare';
 import type { BuildRef, PortOccupantMap } from './codex-build-compare';
 import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
-import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
+import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
+import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 
 // Engine placeholders that identify no attach type — never build a fit on them.
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
@@ -226,7 +227,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent],
+  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -331,7 +332,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             <span class="kind-tag">{{ ('codex.kindSingular.' + detail()!.kind) | translate }}</span>
             <h1>{{ displayName() }}</h1>
             @if (manufacturerName(); as mfr) { <p class="mfr">{{ mfr }}</p> }
-            <code class="cls">{{ detail()!.classNameSlug }}</code>
+            <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
 
             <!-- Skin picker (feedback d5e39f86). The list collapses a weapon's
                  paint jobs into ONE entry, so this is where they stay
@@ -1109,6 +1110,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       --sc-icon-max: 132px;
       background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--sc-accent) 12%, var(--sc-bg-1)), var(--sc-bg-0)); }
     .hero-art.icon-only { background: radial-gradient(circle at 50% 40%, var(--sc-bg-2), var(--sc-bg-0)); }
+    /* Non-ship previews are 64px UI renders: shown at native size they sat as a
+       speck in a 320px frame. Scale them up to a readable hero size. */
+    .hero:not(.bay) .hero-art { --sc-img-w: min(60%, 168px); }
     .hero-art .art { flex: 1 1 auto; align-self: stretch; min-width: 0;
       display: flex; align-items: center; justify-content: center; }
     /* Bay scene (ships): dim hangar light + rim glow around the hull. The
@@ -1133,7 +1137,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       background: color-mix(in srgb, var(--sc-accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 35%, transparent); color: var(--sc-accent); }
     .hero-body h1 { margin: 2px 0 0; font-size: 1.7rem; line-height: 1.15; overflow-wrap: anywhere; }
     .hero-body .mfr { margin: 0; color: var(--sc-fg-1); font-size: 0.96rem; overflow-wrap: anywhere; }
-    .cls { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
+    .cls { align-self: flex-start; }
 
     /* Skin / edition picker: sc-codex-variant-picker owns its rules. */
 
@@ -1309,8 +1313,7 @@ export class CodexDetailComponent implements OnInit {
       kind && CODEX_KINDS.includes(kind)
         ? { labelKey: `codex.kinds.${kind}`, link: '/codex/index', queryParams: { kind } }
         : null;
-    const parent = originCrumb(this.navOrigin, fallback);
-    return parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
+    return originTrail(this.navOrigin, fallback);
   });
   readonly kind = computed(() => this.detail()?.kind ?? null);
   /** Ship pages only: whether this ship is already in the user's hangar. */

@@ -3446,7 +3446,8 @@
         "bodyOne": "This ship's configuration is deleted with it. This cannot be undone.",
         "bodyMany": "This ship's {{count}} configurations are deleted with it. This cannot be undone."
       },
-      "loadFailed": "Hangar entry could not be loaded"
+      "loadFailed": "Hangar entry could not be loaded",
+      "codexFailed": "The Codex data for this ship could not be loaded."
     },
     "configs": {
       "title": "Configurations",
@@ -4545,7 +4546,13 @@
       "index": "Index",
       "fps": "FPS Equipment",
       "keybinds": "Keybindings",
-      "hangar": "Hangar"
+      "hangar": "Hangar",
+      "search": "Search “{{term}}”"
     }
+  },
+  "classChip": {
+    "copy": "Copy class name",
+    "copied": "Copied",
+    "copyAria": "Copy class name {{name}}"
   }
 }

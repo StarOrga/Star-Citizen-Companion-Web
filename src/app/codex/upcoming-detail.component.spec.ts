@@ -26,10 +26,18 @@ function conceptShip(name: string, id = name): ConceptShip {
 }
 
 /** Only the surface UpcomingDetailComponent reads off the RSI feed service. */
-function rsiStub(ships: UpcomingShip[]) {
+function rsiStub(ships: UpcomingShip[], error: string | null = null) {
+  const feed = signal<{ ships: UpcomingShip[] } | null>(error ? null : { ships });
+  const err = signal<string | null>(error);
   return {
+    feed,
+    error: err,
     ensureLoaded: jasmine.createSpy('ensureLoaded').and.resolveTo(undefined),
-    shipById: (id: string) => ships.find((s) => s.id === id) ?? null,
+    refresh: jasmine.createSpy('refresh').and.callFake(async () => {
+      err.set(null);
+      feed.set({ ships });
+    }),
+    shipById: (id: string) => (feed()?.ships ?? []).find((s) => s.id === id) ?? null,
   };
 }
 
@@ -60,13 +68,14 @@ describe('UpcomingDetailComponent', () => {
     id: string,
     ships: UpcomingShip[],
     hangar: ReturnType<typeof hangarStub> = hangarStub(),
+    feedError: string | null = null,
   ): Promise<{ fixture: ComponentFixture<UpcomingDetailComponent>; hangar: typeof hangar }> {
     TestBed.configureTestingModule({
       imports: [UpcomingDetailComponent],
       providers: [
         provideTranslateService(),
         provideRouter([]),
-        { provide: UpcomingShipsService, useValue: rsiStub(ships) },
+        { provide: UpcomingShipsService, useValue: rsiStub(ships, feedError) },
         { provide: HangarService, useValue: hangar },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id }) } } },
       ],
@@ -109,6 +118,22 @@ describe('UpcomingDetailComponent', () => {
     expect(el.querySelector<HTMLAnchorElement>('.empty .browse')?.getAttribute('href')).toBe(
       '/codex/upcoming',
     );
+  });
+
+  it('shows a failed feed as an error with a retry, never as "not found"', async () => {
+    const ships = [upcomingShip({ id: 'polaris', name: 'RSI Polaris' })];
+    const { fixture } = await setup('polaris', ships, hangarStub(), 'errors.upcoming.feed');
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.empty')).toBeNull();
+    const retry = el.querySelector<HTMLButtonElement>('.load-err .retry');
+    expect(retry).not.toBeNull();
+
+    retry!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(TestBed.inject(UpcomingShipsService).refresh).toHaveBeenCalled();
+    expect(el.querySelector('.load-err')).toBeNull();
+    expect(el.querySelector('.entity-name')?.textContent?.trim()).toBe('RSI Polaris');
   });
 
   it('adds the hull to the fleet wishlist on the watch toggle, and removes it again', async () => {

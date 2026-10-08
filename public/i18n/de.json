@@ -3446,7 +3446,8 @@
         "bodyOne": "Die Konfiguration dieses Schiffs wird mit gelöscht. Das lässt sich nicht rückgängig machen.",
         "bodyMany": "Die {{count}} Konfigurationen dieses Schiffs werden mit gelöscht. Das lässt sich nicht rückgängig machen."
       },
-      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden"
+      "loadFailed": "Hangar-Eintrag konnte nicht geladen werden",
+      "codexFailed": "Die Codex-Daten zu diesem Schiff konnten nicht geladen werden."
     },
     "configs": {
       "title": "Konfigurationen",
@@ -4545,7 +4546,13 @@
       "index": "Index",
       "fps": "FPS-Ausrüstung",
       "keybinds": "Tastenbelegung",
-      "hangar": "Hangar"
+      "hangar": "Hangar",
+      "search": "Suche „{{term}}“"
     }
+  },
+  "classChip": {
+    "copy": "Klassenname kopieren",
+    "copied": "Kopiert",
+    "copyAria": "Klassenname {{name}} kopieren"
   }
 }

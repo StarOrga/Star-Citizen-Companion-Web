@@ -40,6 +40,7 @@ import { mirrorQueryParams } from './codex-url-state';
 import { FPS_ARMOR_SLOT_ID, FPS_WEAPON_TYPE_ID, fpsArmorWeightKey, fpsWeaponTypeKey } from './fps-labels';
 import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import { isPlainLeftClick } from '../core/modified-click.util';
 import { SET_SLOT_TRANSITION_NAME, SetArsenalTransition } from './set/set-arsenal-transition';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
@@ -85,7 +86,7 @@ interface FacetOption {
 @Component({
   selector: 'sc-fps-list',
   standalone: true,
-  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent],
+  imports: [NeuroFieldDirective, FormsModule, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexCategoryIconComponent, CodexBoardFigureComponent, CodexStatusBannerComponent, ScSelectComponent, ScTooltipDirective, AddToSetComponent, PageHeaderComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="fps-page">
@@ -326,7 +327,6 @@ interface FacetOption {
                     }
                   </div>
                   <h3 class="name">{{ cardName(r) }}</h3>
-                  <code class="cls">{{ r.classNameSlug }}</code>
                   <div class="badges">
                     @if (cardMfr(r); as mfr) { <span class="badge mfr" [scTooltip]="mfr" scTooltipTier="label">{{ mfr }}</span> }
                     <span class="badge cat">{{ ('fps.category.' + category()) | translate }}</span>
@@ -346,6 +346,7 @@ interface FacetOption {
                         {{ (skins === 1 ? 'codex.card.skinsOne' : 'codex.card.skinsMany') | translate: { count: skins } }}
                       </span>
                     }
+                    <sc-class-chip class="cls" [value]="r.classNameSlug" [copyable]="false" />
                   </div>
                   @if (showSizeBar() && r.size != null) {
                     <div class="size-bar" [scTooltip]="'codex.card.size' | translate: { size: r.size }">
@@ -651,7 +652,7 @@ interface FacetOption {
     .card .thumb img { max-height: 88px; max-width: 100%; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
     .card .thumb sc-codex-icon { width: 100%; height: 100%; }
     .card .name { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.25; }
-    .card .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); word-break: break-all; }
+    .card .cls { max-width: 100%; }
     .pin {
       position: absolute; top: 12px; right: 12px;
       width: max(32px, var(--sc-tap-min)); height: max(32px, var(--sc-tap-min));

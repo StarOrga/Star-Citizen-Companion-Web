@@ -11,7 +11,9 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
-import { BlueprintDetail, CodexService, pickLocalized } from './codex.service';
+import { BlueprintDetail, CodexKind, CodexService, ResolvedEntity, pickLocalized } from './codex.service';
+import { CodexCategoryIconComponent } from './codex-category-icon.component';
+import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 import {
   BlueprintPayload,
   CodexBlueprintIngredient,
@@ -34,12 +36,12 @@ import {
 } from './codex-format';
 import { NeuroFieldDirective } from '../core/neuro-field.directive';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
-import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
+import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
 
 @Component({
   selector: 'sc-blueprint-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe],
+  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCategoryIconComponent, ClassChipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
@@ -55,24 +57,37 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
       } @else if (!detail()) {
         <div class="sc-card empty">{{ 'codex.detail.notFound' | translate }}</div>
       } @else {
-        <!-- Hero -->
-        <div class="hero sc-card">
-          <div class="hero-text">
+        <!-- Hero: the shared detail shape (styles.scss, DETAIL PAGE). A
+             blueprint has no render of its own; the glyph is the one of what
+             it crafts, so a weapon recipe reads as a weapon at a glance. -->
+        <header class="hero sc-card sc-detail-hero">
+          <figure class="sc-detail-hero__art icon-only">
+            <sc-codex-icon [kind]="outputKind()" />
+          </figure>
+          <div class="sc-detail-hero__body">
+            <span class="sc-kind-tag">{{ 'codex.kindSingular.blueprint' | translate }}</span>
             <h1 class="entity-name">{{ displayName() }}</h1>
-            <code class="cls">{{ detail()!.classNameSlug }}</code>
-            @if (description(); as desc) {
-              <p class="desc">{{ desc }}</p>
+            @if (outputEntity()?.manufacturerCode; as mfr) { <p class="sc-detail-mfr">{{ mfr }}</p> }
+            <sc-class-chip class="cls" [value]="detail()!.classNameSlug" />
+            @if (facts().length > 0) {
+              <ul class="sc-detail-facts">
+                @for (f of facts(); track f.label) {
+                  <li class="sc-detail-fact" [class.accent]="f.accent">
+                    <span class="sc-detail-fact__label">{{ f.label }}</span>
+                    <span class="sc-detail-fact__value">{{ f.value }}</span>
+                  </li>
+                }
+              </ul>
             }
           </div>
-          <div class="facts">
-            @for (f of facts(); track f.label) {
-              <div class="fact" [class.accent]="f.accent">
-                <span class="fact-label">{{ f.label }}</span>
-                <span class="fact-val">{{ f.value }}</span>
-              </div>
-            }
-          </div>
-        </div>
+        </header>
+
+        @if (description(); as desc) {
+          <section class="section sc-card sc-detail-block">
+            <h2>{{ 'codex.detail.description' | translate }}</h2>
+            <p class="desc">{{ desc }}</p>
+          </section>
+        }
 
         <!-- What goes in, and what comes out of it: side by side on a wide
              frame, stacked below 1120px (the shared .analysis-grid in
@@ -80,8 +95,8 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
         <div class="analysis-grid" [class.single]="!(outputInfo() || qualityStats().length > 0)">
           <div class="analysis-col">
             <!-- Ingredients -->
-            <div class="section sc-card">
-              <h2 class="section-title">{{ 'blueprint.detail.ingredients' | translate }}</h2>
+            <div class="section sc-card sc-detail-block">
+              <h2>{{ 'blueprint.detail.ingredients' | translate }}</h2>
               @if (ingredients().length === 0) {
                 <p class="muted">{{ 'blueprint.detail.noIngredients' | translate }}</p>
               } @else {
@@ -104,7 +119,7 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
                         <!-- The class name is a secondary line, and only when it says
                              something the name does not ("Agricium Agricium", L29). -->
                         @if (showClassLine(ing)) {
-                          <code class="ing-cls">{{ ing.ingredientClassName }}</code>
+                          <sc-class-chip class="ing-cls" [value]="ing.ingredientClassName!" />
                         }
                         <div class="ing-meta">
                           @if (roleLabel(ing); as role) {
@@ -126,8 +141,8 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
             <div class="analysis-col">
               <!-- Output -->
               @if (outputInfo(); as out) {
-                <div class="section sc-card">
-                  <h2 class="section-title">{{ 'blueprint.detail.output' | translate }}</h2>
+                <div class="section sc-card sc-detail-block">
+                  <h2>{{ 'blueprint.detail.output' | translate }}</h2>
                   <div class="output-row">
                     <div class="ing-qty">× {{ formatQuantity(out.quantity) }}</div>
                     <div class="ing-info">
@@ -140,7 +155,7 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
                         <span class="ing-name">{{ out.name }}</span>
                       }
                       @if (out.className) {
-                        <code class="ing-cls">{{ out.className }}</code>
+                        <sc-class-chip class="ing-cls" [value]="out.className" />
                       }
                     </div>
                   </div>
@@ -149,8 +164,8 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
 
               <!-- Static quality summary (v2: interactive sliders) -->
               @if (qualityStats().length > 0) {
-                <div class="section sc-card">
-                  <h2 class="section-title">{{ 'blueprint.detail.qualitySummary' | translate }}</h2>
+                <div class="section sc-card sc-detail-block">
+                  <h2>{{ 'blueprint.detail.qualitySummary' | translate }}</h2>
                   <p class="quality-note muted">{{ 'blueprint.detail.qualityNote' | translate }}</p>
                   <div class="quality-table">
                     @for (qs of qualityStats(); track qs.stat) {
@@ -178,30 +193,10 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
     /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own;
        the sections below share it in two columns. */
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
-
-
-    .sc-card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 10px; padding: 20px 24px; }
+    /* Section cards: the global .sc-card (density padding) + .sc-detail-block. */
     .skel-card { min-height: 200px; }
-
-    .hero { display: flex; flex-direction: column; gap: 16px; }
-    .hero-text { display: flex; flex-direction: column; gap: 6px; }
-    .entity-name { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
-    .cls { font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
-    .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.5; max-width: var(--sc-measure); }
-
-    .facts { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
-    .fact {
-      display: flex; flex-direction: column; gap: 2px;
-      padding: 8px 14px; border-radius: 8px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border);
-      min-width: 100px;
-    }
-    .fact.accent { border-color: color-mix(in srgb, var(--sc-accent) 40%, transparent); }
-    .fact-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
-    .fact-val { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
-    .fact.accent .fact-val { color: var(--sc-accent); }
-
-    .section-title { margin: 0 0 14px; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); padding-bottom: 8px; }
+    .desc { margin: 0; color: var(--sc-fg-1); white-space: pre-wrap; line-height: 1.55; max-width: var(--sc-measure); }
+    .ing-cls { align-self: flex-start; }
 
     .ingredient-list { display: flex; flex-direction: column; gap: 8px; }
     .ing-unit { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; color: var(--sc-fg-2); }
@@ -216,7 +211,6 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
     .ing-name { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); }
     .ing-name.link { color: var(--sc-accent); text-decoration: none; }
     .ing-name.link:hover { text-decoration: underline; }
-    .ing-cls { font-size: max(0.68rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .ing-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 
     .badge { font-size: max(0.66rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); color: var(--sc-fg-0); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
@@ -244,10 +238,6 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
     .err .retry:hover { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
     .err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
 
-    @media (max-width: 680px) {
-      .sc-card { padding: 14px 16px; }
-      .entity-name { font-size: 1.3rem; }
-    }
   `],
 })
 export class BlueprintDetailComponent implements OnInit {
@@ -255,10 +245,9 @@ export class BlueprintDetailComponent implements OnInit {
   /** Codex › where the reader came from, else the blueprint index. */
   readonly crumbs = computed<PageCrumb[]>(() => {
     this.detail();
-    const parent = originCrumb(this.navOrigin, {
+    return originTrail(this.navOrigin, {
       labelKey: 'codex.kinds.blueprint', link: '/codex/index', queryParams: { kind: 'blueprint' },
     });
-    return parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
   });
   readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
@@ -358,12 +347,22 @@ export class BlueprintDetailComponent implements OnInit {
     const className = (d.row['output_class_name'] as string | null) ?? p.outputClassName ?? null;
     if (!className) return null;
     const qty = (d.row['output_quantity'] as number | null) ?? p.outputQuantity ?? 1;
-    // Try to find a name from ingredients list (the payload holds className only)
-    const name = humanizeClassName(className);
-    // entity kind: we don't know without resolving — leave null, route won't deep-link
-    // The detail view shows it with humanized class name; seeded data will have entityKind
-    return { className, quantity: qty, name, entityKind: null as string | null };
+    // The payload holds the class name only; the resolved entity (loaded after
+    // the blueprint) adds its readable name and its kind, which makes the
+    // output a link into its own Codex page.
+    const e = this.outputEntity();
+    const resolved = e?.className === className ? e : null;
+    const name =
+      (resolved?.name ? pickLocalized(resolved.name, this.lang) : '') ||
+      cleanLocaleValue(resolved?.nameLocalized) ||
+      humanizeClassName(className);
+    return { className, quantity: qty, name, entityKind: (resolved?.kind ?? null) as string | null };
   });
+
+  /** What the blueprint crafts, resolved in the catalog; null until known (or unknown). */
+  readonly outputEntity = signal<ResolvedEntity | null>(null);
+  /** The hero glyph: the crafted thing's kind, the generic glyph while unknown. */
+  readonly outputKind = computed<CodexKind>(() => this.outputEntity()?.kind ?? 'blueprint');
 
   readonly qualityStats = computed((): QualityStatSummary[] => {
     return this.payload?.qualityStats ?? [];
@@ -413,17 +412,34 @@ export class BlueprintDetailComponent implements OnInit {
     this.lastClassName = className;
     const seq = ++this.loadSeq;
     this.detail.set(null);
+    this.outputEntity.set(null);
     this.error.set(null);
     this.loading.set(true);
     try {
       const result = await this.svc.getBlueprint(className);
       if (seq !== this.loadSeq) return;
       this.detail.set(result);
+      void this.resolveOutput(seq);
     } catch (err) {
       if (seq !== this.loadSeq) return;
       this.error.set(toErrorKey('codex', 'blueprint', err, { className }));
     } finally {
       if (seq === this.loadSeq) this.loading.set(false);
+    }
+  }
+
+  /**
+   * Best effort: an output the catalog cannot resolve keeps its humanized name
+   * and stays a plain line — the recipe itself is still complete.
+   */
+  private async resolveOutput(seq: number): Promise<void> {
+    const out = this.outputInfo();
+    if (!out?.className) return;
+    try {
+      const map = await this.svc.resolveEntities([out.className]);
+      if (seq === this.loadSeq) this.outputEntity.set(map.get(out.className) ?? null);
+    } catch {
+      /* the plain humanized line stays */
     }
   }
 }
