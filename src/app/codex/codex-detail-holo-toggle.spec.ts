@@ -150,6 +150,8 @@ async function setup(queryParams: Record<string, string> = {}): Promise<Componen
       {
         provide: HangarService,
         useValue: {
+          roleLoadouts: signal([]),
+          listAllConfigs: async () => [],
           ships: signal([]),
           loadAll: async () => undefined,
           addShip: async () => null,

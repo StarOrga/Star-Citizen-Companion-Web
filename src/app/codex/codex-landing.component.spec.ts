@@ -264,7 +264,7 @@ describe('CodexLandingComponent', () => {
     expect(hit).not.toBeNull();
     // The empty stage is a way forward now: a real anchor to where a ship is claimed.
     expect(hit?.tagName.toLowerCase()).toBe('a');
-    expect(hit?.getAttribute('href')).toBe('/hangar');
+    expect(hit?.getAttribute('href')).toBe('/hq/hangar');
   });
 
   it('the person stage shows the "uncommissioned" fallback and the figure when no personal loadout exists', async () => {
@@ -293,74 +293,12 @@ describe('CodexLandingComponent', () => {
 
   // ── HangarPicker ─────────────────────────────────────────────────────────
 
-  it('feeds the ship stage picker HangarService.recentShips(), active = the one on stage', async () => {
-    const rows = new Map([
-      ['A', shipRow({ classNameSlug: 'A' })],
-      ['B', shipRow({ classNameSlug: 'B' })],
-      ['C', shipRow({ classNameSlug: 'C' })],
-      ['D', shipRow({ classNameSlug: 'D' })],
-    ]);
-    const fixture = await setup({
-      hangar: [hangarShip('A'), hangarShip('B'), hangarShip('C'), hangarShip('D')],
-      byClassName: rows,
-      flagship: 'B',
-    });
-    const cmp = fixture.componentInstance;
-    // Nothing picked yet: HangarService's own fallback is the first 3 owned hulls.
-    const items = cmp.shipPickerItems();
-    expect(items.map((i) => i.id)).toEqual(['A', 'B', 'C']);
-    expect(items.find((i) => i.id === 'B')?.active).toBeTrue();
-  });
-
-  it('picking a ship switches the stage subject', async () => {
-    const rows = new Map([
-      ['A', shipRow({ classNameSlug: 'A' })],
-      ['B', shipRow({ classNameSlug: 'B' })],
-    ]);
-    const fixture = await setup({
-      hangar: [hangarShip('A', 'A', '2026-01-02'), hangarShip('B', 'B', '2026-01-01')],
-      byClassName: rows,
-      flagship: 'A',
-    });
-    const cmp = fixture.componentInstance;
-    expect(cmp.stageShipRow()?.classNameSlug).toBe('A');
-    cmp.onShipPick('B');
-    fixture.detectChanges();
-    expect(cmp.stageShipRow()?.classNameSlug).toBe('B');
-    const el: HTMLElement = fixture.nativeElement;
-    expect(el.querySelector('.stage-ship .stage-hit')?.getAttribute('href')).toBe('/codex/ship/B');
-  });
-
-  it('picking a set switches the person stage subject and re-resolves the figure', async () => {
-    const fixture = await setup({
-      hangar: [],
-      roleLoadouts: [fpsLoadout('set1', 'Boarding Kit'), fpsLoadout('set2', 'Salvage Kit')],
-    });
-    const cmp = fixture.componentInstance;
-    expect(cmp.activeLoadout()?.id).toBe('set1');
-    cmp.onSetPick('set2');
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(cmp.activeLoadout()?.id).toBe('set2');
-    expect(fixture.nativeElement.querySelector('.stage-person .stage-title')?.textContent?.trim()).toBe(
-      'Salvage Kit',
-    );
-  });
-
   it('has exactly one h1 (AUD-187)', async () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [fpsLoadout('set1', 'Boarding Kit')] });
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelectorAll('h1').length).toBe(1);
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('codex.title');
     expect(root.querySelector('sc-codex-stage[title]')).toBeNull();
-  });
-
-  it('opening the picker (no overlay in this round) navigates to /hangar', async () => {
-    const fixture = await setup({ hangar: [] });
-    const router = TestBed.inject(Router);
-    spyOn(router, 'navigateByUrl');
-    fixture.componentInstance.onHangarOpen();
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/hangar');
   });
 
   it('the picker and the archive line are siblings of the whole-image anchor, never nested inside it', async () => {
@@ -519,10 +457,10 @@ describe('CodexLandingComponent', () => {
     const fixture = await setup({ hangar: [], roleLoadouts: [] });
     const el: HTMLElement = fixture.nativeElement;
     const shipCta = el.querySelector<HTMLAnchorElement>('.stage-ship a.stage-cta');
-    expect(shipCta?.getAttribute('href')).toBe('/hangar');
+    expect(shipCta?.getAttribute('href')).toBe('/hq/hangar');
     expect(el.querySelector('.stage-ship button.stage-cta')).not.toBeNull();
     const setCta = el.querySelector<HTMLAnchorElement>('.stage-person a.stage-cta');
-    expect(setCta?.getAttribute('href')).toBe('/hangar');
+    expect(setCta?.getAttribute('href')).toBe('/hq/spind');
     // "Unkommissioniert" itself leads somewhere now.
     expect(el.querySelector('.stage-person a.stage-hit, .stage-person a.stage-text--link')).not.toBeNull();
   });

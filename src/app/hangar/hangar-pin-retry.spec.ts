@@ -46,7 +46,7 @@ describe('HangarService unique-slot retry', () => {
         return chain;
       };
       chain.select = () => chain;
-      for (const m of ['eq', 'not', 'order']) {
+      for (const m of ['eq', 'is', 'not', 'order']) {
         chain[m] = (...args: unknown[]) => {
           call.filters.push([m, ...args]);
           return chain;

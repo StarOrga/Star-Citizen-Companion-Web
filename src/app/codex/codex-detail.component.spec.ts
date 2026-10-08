@@ -205,6 +205,8 @@ function configureSetup(
       {
         provide: HangarService,
         useValue: {
+          roleLoadouts: signal([]),
+          listAllConfigs: async () => [],
           ships: signal([]),
           loadAll: async () => undefined,
           addShip: async () => null,
@@ -660,6 +662,8 @@ function configureCharacterisation(opts: CharacterisationOpts): void {
       {
         provide: HangarService,
         useValue: {
+          roleLoadouts: signal([]),
+          listAllConfigs: async () => [],
           ships: signal([]),
           loadAll: async () => undefined,
           addShip: async () => null,
@@ -884,8 +888,8 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       expect(hangar.updateConfig).not.toHaveBeenCalled();
     }));
 
-    it('creates and activates a config when the ship has none, then writes the merged loadout', fakeAsync(() => {
-      const { fixture, cmp, hangar, ensureEditable } = renderDraftPage({
+    it('codex mode never saves; "In dein HQ übernehmen" creates a variant with the draft and opens it as ?v=', fakeAsync(() => {
+      const { fixture, cmp, hangar } = renderDraftPage({
         id: 'c1',
         loadout: [],
         isActive: false,
@@ -893,37 +897,38 @@ describe('CodexDetailComponent — characterisation (D16 step 6, safety net for 
       pickNewGun(cmp);
       flushMicrotasks();
       expect(cmp.saveableEntries().length).withContext('draft is saveable').toBe(1);
+      expect(cmp.personalMode()).withContext('no ?v= = codex mode').toBeFalse();
 
       save(cmp);
+      expect(hangar.updateConfig).withContext('codex mode never writes').not.toHaveBeenCalled();
+
+      void cmp.addToHangar();
+      flushMicrotasks();
       fixture.detectChanges();
 
-      expect(hangar.shipByClassName).toHaveBeenCalledWith('cnou_nomad');
-      expect(hangar.addShip).not.toHaveBeenCalled();
-      expect(hangar.listConfigs).toHaveBeenCalledWith('s1');
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-      expect(hangar.createConfig.calls.mostRecent().args[0]).toBe('s1');
-      expect(hangar.activateConfig).toHaveBeenCalledWith('c1', 's1');
-      expect(ensureEditable).toHaveBeenCalledTimes(1);
-      expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
-      const [id, patch] = hangar.updateConfig.calls.mostRecent().args as [string, { loadout: unknown[] }];
-      expect(id).toBe('c1');
-      expect(patch.loadout).toEqual([
+      const [shipId, , , loadout] = hangar.createConfig.calls.mostRecent().args as [string, string, string, unknown[]];
+      expect(shipId).toBe('s1');
+      expect(loadout).toEqual([
         jasmine.objectContaining({ portName: 'hardpoint_weapon_top_left', className: 'BEHR_LaserCannon_S3' }),
       ]);
-      expect(hangar.forkFollowedLoadout).not.toHaveBeenCalled();
+      expect(hangar.updateConfig).not.toHaveBeenCalled();
+      const nav = TestBed.inject(Router).navigate as jasmine.Spy;
+      expect(nav).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: jasmine.objectContaining({ v: 'c1' }) }));
       expect(cmp.saveError()).toBeNull();
     }));
 
-    it('says the hangar was unreachable when the config cannot be created', fakeAsync(() => {
+    it('says the hangar was unreachable when the variant cannot be created', fakeAsync(() => {
       const { fixture, cmp, hangar } = renderDraftPage(null);
       pickNewGun(cmp);
       flushMicrotasks();
 
-      save(cmp);
+      void cmp.addToHangar();
+      flushMicrotasks();
       fixture.detectChanges();
 
       expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-      expect(hangar.activateConfig).not.toHaveBeenCalled();
+      expect(cmp.addFailed()).toBeTrue();
       expect(hangar.updateConfig).not.toHaveBeenCalled();
       // No translate loader in Karma: instant() hands back the key itself.
       expect(cmp.saveError()).toBe('codex.loadout.saveErrorHangar');

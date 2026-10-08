@@ -157,6 +157,7 @@
       "reload": "App neu laden",
       "dismiss": "Ausblenden"
     },
+    "hq": "HQ",
     "verse": "Verse"
   },
   "impersonation": {
@@ -2132,6 +2133,21 @@
       "WeaponAttachment": "Waffenaufsatz",
       "Gadget": "Gadget",
       "FPS_Consumable": "Verbrauchsgut"
+    },
+    "personal": {
+      "switchGroup": "Ansicht: Codex oder deine Version",
+      "codex": "Codex",
+      "mine": "Meine",
+      "yourVariant": "Deine Variante: {{name}}",
+      "variantsMenu": "Deine Varianten dieses Schiffs",
+      "hqCrumb": "HQ",
+      "foreignVariant": "Diese Variante gehört jemand anderem — geteilt wird über einen Share-Link.",
+      "adopt": "In dein HQ übernehmen",
+      "openVariant": "Deine Variante öffnen",
+      "inHqChip": "{{n}}× in deinem HQ",
+      "usesTitle": "In deinem HQ",
+      "equippedOn": "Verbaut auf: {{ship}} ({{variant}})",
+      "inSet": "In Set {{name}}"
     }
   },
   "blueprint": {
@@ -4597,6 +4613,59 @@
     "copy": "Klassenname kopieren",
     "copied": "Kopiert",
     "copyAria": "Klassenname {{name}} kopieren"
+  },
+  "hq": {
+    "title": "HQ",
+    "eyebrow": "Persönlicher Bereich",
+    "subtitle": "Deine Schiffe, Sets und Einsätze an einem Ort.",
+    "tabsAria": "HQ-Bereiche",
+    "tabs": {
+      "overview": "Übersicht",
+      "locker": "Spind",
+      "hangar": "Hangar",
+      "ops": "Einsätze"
+    },
+    "supplies": {
+      "button": "Nachschub",
+      "buttonAria": "Nachschub öffnen ({{count}} Einträge)",
+      "title": "Nachschub",
+      "close": "Nachschub schließen",
+      "empty": "Noch nichts auf der Nachschub-Liste.",
+      "emptyHint": "Hier sammelst du bald, was deinen Schiffen und Sets noch fehlt — quer über Hangar, Spind und Einsätze."
+    },
+    "ops": {
+      "title": "Einsätze",
+      "subtitle": "Plane, was du mit Schiff und Set vorhast.",
+      "soon": "Kommt bald",
+      "empty": "Die Einsatzplanung ist in Arbeit. Hier planst du bald Missionen mit deinen Schiffen und Sets."
+    },
+    "overview": {
+      "activeShip": "Aktives Schiff",
+      "activeVariant": "Aktive Variante",
+      "noVariant": "Werksausstattung",
+      "activeSet": "Aktives Set",
+      "nextOps": "Nächste Einsätze",
+      "suppliesPreview": "Nachschub",
+      "opsEmpty": "Noch keine Einsätze geplant.",
+      "suppliesEmpty": "Nichts zu besorgen.",
+      "noShip": "Noch kein Schiff im Hangar.",
+      "noSet": "Noch kein Set im Spind.",
+      "setupHangar": "Hangar einrichten",
+      "createSet": "Set anlegen",
+      "openHangar": "Zum Hangar",
+      "openLocker": "Zum Spind",
+      "openCodex": "Im Codex ansehen",
+      "recentShips": "Zuletzt gewählte Schiffe",
+      "recentSets": "Zuletzt gewählte Sets",
+      "loadFailed": "Dein HQ konnte nicht geladen werden."
+    },
+    "locker": {
+      "title": "Spind",
+      "subtitle": "Deine FPS-Sets für jede Rolle.",
+      "details": "Details",
+      "detailsAria": "Details zu {{name}} im Codex"
+    },
+    "signpost": "Deine Schiffe im HQ"
   },
   "verse": {
     "crumb": "Verse",

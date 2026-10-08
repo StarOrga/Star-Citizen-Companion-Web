@@ -4,6 +4,7 @@ import { approvedGuard } from './auth/approved.guard';
 import { authGuard } from './auth/auth.guard';
 import { publicOnlyGuard } from './auth/public-only.guard';
 import { roleGuard } from './auth/role.guard';
+import { hqSet } from './hq/hq-routes';
 
 // Guard policy (access-control design, 2026-08-05, supersedes #131): the app
 // is now a login wall by default — fail closed. `canActivateChild` on the
@@ -21,14 +22,14 @@ const PRIVATE = [authGuard, approvedGuard] as const;
  * decision "2A" on issue #411 point 2 — "hangar nicht explizit, der ist schon
  * auf der codex startseite implizit drin").
  *
- * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hangar/ship/:id`
+ * `:id` is ALWAYS a `hangar_role_loadouts` id: ships live at `/hq/hangar/:id`
  * and `/codex/ship/:className`, and never reached this path. So the destination
- * is unambiguous — that set's Codex set page (`/codex/set/:id`), the on-foot
- * editor that replaced the retired one (concept 2026-09-20, decision T1).
+ * is unambiguous — that set's page in the HQ locker (`/hq/spind/:id`, concept
+ * 2026-10-08 codex/HQ split; before that `/codex/set/:id`).
  * Exported so the mapping has a test instead of only a comment.
  */
 export function hangarLoadoutRedirect({ params }: { params: Params }): UrlTree {
-  return inject(Router).createUrlTree(['/codex', 'set', params['id']]);
+  return inject(Router).createUrlTree(hqSet(params['id']));
 }
 
 /**
@@ -243,13 +244,13 @@ export const routes: Routes = [
           import('./codex/upcoming-detail.component').then((m) => m.UpcomingDetailComponent),
       },
       {
-        // The set page (T1, round 2/17): "Zu Fuß" equivalent of the ship
-        // detail page — the codex is the on-foot loadout editor, not just an
-        // overview. Static segment placed BEFORE codex/:kind/:className so
-        // "set" is never consumed by the :kind wildcard.
+        // The set page moved into the HQ locker (concept 2026-10-08: the codex
+        // shows game knowledge only). Bridge for old links; relative so the
+        // query survives. Static segment BEFORE codex/:kind/:className so "set"
+        // is never consumed by the :kind wildcard.
         path: 'codex/set/:id',
-        loadComponent: () =>
-          import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
+        pathMatch: 'full',
+        redirectTo: 'hq/spind/:id',
       },
       {
         path: 'codex/:kind/:className',
@@ -257,33 +258,70 @@ export const routes: Routes = [
           import('./codex/codex-detail.component').then((m) => m.CodexDetailComponent),
       },
       {
-        // Personal web hangar. Access-control redesign (2026-08-05): the
-        // former signed-out teaser (`publicOrApprovedGuard`) is gone — the
-        // blanket `canActivateChild` gate above already bounces anonymous
-        // visitors to /login before this route is reached, so hangar is now a
-        // plain private route like the rest. All data stays RLS self-only.
-        path: 'hangar',
-        loadComponent: () =>
-          import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
+        // HQ — the personal area (concept 2026-10-08): Übersicht, Hangar
+        // (ships + variants), Spind (FPS role sets), Einsätze (ops, shell).
+        // The HqShell renders the category tabs + the Nachschub button around
+        // the outlet. Gated by the shell's canActivateChild like every child;
+        // all data stays RLS self-only.
+        path: 'hq',
+        loadComponent: () => import('./hq/hq-shell.component').then((m) => m.HqShellComponent),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./hq/hq-overview.component').then((m) => m.HqOverviewComponent),
+          },
+          {
+            path: 'hangar',
+            data: { section: 'hangar' },
+            loadComponent: () =>
+              import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
+          },
+          {
+            // Review/confirm screen for the browser-extension hangar handover
+            // (browser-extension/). Static segment BEFORE hangar/:id so
+            // "import" is never read as a ship id; the payload arrives via
+            // postMessage from the extension's content script.
+            path: 'hangar/import',
+            loadComponent: () =>
+              import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
+          },
+          {
+            path: 'hangar/:id',
+            loadComponent: () =>
+              import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
+          },
+          {
+            path: 'spind',
+            data: { section: 'locker' },
+            loadComponent: () =>
+              import('./hangar/hangar-dashboard.component').then((m) => m.HangarDashboardComponent),
+          },
+          {
+            // The on-foot set editor (T1). The component still lives under
+            // codex/set/ — it renders codex data — but the set is personal.
+            path: 'spind/:id',
+            loadComponent: () =>
+              import('./codex/set/codex-set.component').then((m) => m.CodexSetComponent),
+          },
+          {
+            path: 'einsaetze',
+            loadComponent: () => import('./hq/hq-ops.component').then((m) => m.HqOpsComponent),
+          },
+        ],
       },
+      // Old /hangar urls → HQ. Relative string redirects keep the query
+      // (`/hangar/import?src=extension` — the browser extension still opens
+      // that path, browser-extension/src/lib/hangar-core.js). The public
+      // `hangar/shared/:token` page stays on the public layout above.
+      { path: 'hangar', pathMatch: 'full', redirectTo: 'hq/hangar' },
+      { path: 'hangar/import', pathMatch: 'full', redirectTo: 'hq/hangar/import' },
+      { path: 'hangar/ship/:id', pathMatch: 'full', redirectTo: 'hq/hangar/:id' },
       {
-        // Review/confirm screen for the browser-extension hangar handover
-        // (browser-extension/). Static segment placed BEFORE hangar/ship/:id
-        // for clarity; the payload arrives via postMessage from the
-        // extension's content script, never over the network.
-        path: 'hangar/import',
-        loadComponent: () =>
-          import('./hangar/hangar-import-page.component').then((m) => m.HangarImportPageComponent),
-      },
-      {
-        path: 'hangar/ship/:id',
-        loadComponent: () =>
-          import('./hangar/hangar-ship-detail.component').then((m) => m.HangarShipDetailComponent),
-      },
-      {
-        // BRIDGE, not a page — the standalone role-loadout editor is gone and
-        // nothing in the app links here any more. Kept registered so links
-        // shared before the change keep resolving. See hangarLoadoutRedirect.
+        // BRIDGE, not a page — the standalone role-loadout editor is gone.
+        // Kept registered so links shared before the change keep resolving.
+        // See hangarLoadoutRedirect.
         path: 'hangar/loadout/:id',
         pathMatch: 'full',
         redirectTo: hangarLoadoutRedirect,

@@ -86,7 +86,7 @@ export function reusableShareLink(
             <div class="hangar-share">
               <p class="hint-text state">{{ 'codex.holo.share.notInHangarHint' | translate }}</p>
               <button type="button" class="primary" (click)="addToHangar.emit()"
-                      [disabled]="addBusy()" [attr.aria-busy]="addBusy()">{{ 'codex.holo.share.addToHangar' | translate }}</button>
+                      [disabled]="addBusy()" [attr.aria-busy]="addBusy()">{{ 'codex.personal.adopt' | translate }}</button>
               @if (addFailed()) {
                 <p class="hint-text add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
               }

@@ -8,6 +8,7 @@ import { provideTranslateService } from '@ngx-translate/core';
 import { CodexListComponent } from './codex-list.component';
 import { CodexFacetValues, CodexListRow, CodexService } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
+import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { UpcomingShipsService } from './upcoming-ships.service';
 import { WeaponFacetRow } from './codex-weapon-taxonomy';
@@ -96,6 +97,8 @@ describe('CodexListComponent (Index mode)', () => {
     };
 
     const hangar: Partial<HangarService> = {
+      roleLoadouts: signal([]),
+      listAllConfigs: async () => [],
       ships: signal([]) as never,
       loadAll: jasmine.createSpy('loadAll').and.resolveTo(undefined),
     };
@@ -109,6 +112,7 @@ describe('CodexListComponent (Index mode)', () => {
         provideTranslateService({ fallbackLang: 'en' }),
         { provide: CodexService, useValue: codex },
         { provide: HangarService, useValue: hangar },
+        { provide: AuthService, useValue: { user: signal(null) } as unknown as Partial<AuthService> },
         ...(opts.query
           ? [{ provide: ActivatedRoute, useValue: { snapshot: { data: {}, queryParamMap: convertToParamMap(opts.query) } } }]
           : []),

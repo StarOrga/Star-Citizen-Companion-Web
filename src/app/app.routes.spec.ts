@@ -17,7 +17,7 @@ describe('hangar/loadout/:id bridge', () => {
     const tree = TestBed.runInInjectionContext(() =>
       hangarLoadoutRedirect({ params: { id: 'set-42' } }),
     );
-    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/codex/set/set-42');
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/hq/spind/set-42');
   });
 
   it('escapes an id that would otherwise break out of its path segment', () => {
@@ -25,13 +25,13 @@ describe('hangar/loadout/:id bridge', () => {
       hangarLoadoutRedirect({ params: { id: 'a/b?c=d' } }),
     );
     const url = TestBed.inject(Router).serializeUrl(tree);
-    expect(url.startsWith('/codex/set/')).toBeTrue();
+    expect(url.startsWith('/hq/spind/')).toBeTrue();
     expect(url).not.toContain('?');
     expect(url.split('/').length).toBe(4);
   });
 
   it('still registers the path, so a shared link resolves instead of 404ing', () => {
-    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'hangar'));
+    const shell = routes.find((r) => (r.children ?? []).some((c) => c.path === 'hq'));
     const bridge = (shell?.children ?? []).find((c) => c.path === 'hangar/loadout/:id');
     expect(bridge).toBeDefined();
     // A bridge, not a page: no component may hang off it any more.
@@ -152,4 +152,84 @@ describe('string redirects keep the query (AUD-144)', () => {
       expect(router.url).toBe(to);
     });
   }
+});
+
+/**
+ * HQ (concept 2026-10-08): the personal area moved under /hq. Every old url
+ * still resolves — pinned with the real route entries, query included (the
+ * browser extension opens /hangar/import?src=extension).
+ */
+describe('HQ routes + old hangar urls', () => {
+  const shell = routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'hq'));
+  const hq = shell?.children?.find((c) => c.path === 'hq');
+  const redirect = (path: string) => shell?.children?.find((c) => c.path === path && c.redirectTo);
+  const leaf = { children: [] };
+
+  it('registers overview, hangar, import, ship, locker, set and ops under /hq', () => {
+    expect(hq?.loadComponent).toBeDefined();
+    const paths = (hq?.children ?? []).map((c) => c.path);
+    expect(paths).toEqual(['', 'hangar', 'hangar/import', 'hangar/:id', 'spind', 'spind/:id', 'einsaetze']);
+    // import before :id, so "import" is never read as a ship id
+    expect(paths.indexOf('hangar/import')).toBeLessThan(paths.indexOf('hangar/:id'));
+  });
+
+  it('hands the dashboard its section through route data', () => {
+    const data = (p: string) => hq?.children?.find((c) => c.path === p)?.data;
+    expect(data('hangar')).toEqual({ section: 'hangar' });
+    expect(data('spind')).toEqual({ section: 'locker' });
+  });
+
+  it('keeps the public shared-loadout pages off the gated shell', () => {
+    const pub = routes.find((r) => r.path === '' && r.children?.some((c) => c.path === 'about'));
+    const paths = (pub?.children ?? []).map((c) => c.path);
+    expect(paths).toContain('hangar/shared/:token');
+    expect(paths).toContain('shared/loadout/:token');
+  });
+
+  describe('redirects', () => {
+    beforeEach(() => {
+      TestBed.configureTestingModule({
+        providers: [
+          provideRouter([
+            {
+              path: '',
+              children: [
+                {
+                  path: 'hq',
+                  children: [
+                    { path: 'hangar', ...leaf },
+                    { path: 'hangar/import', ...leaf },
+                    { path: 'hangar/:id', ...leaf },
+                    { path: 'spind/:id', ...leaf },
+                  ],
+                },
+                redirect('hangar')!,
+                redirect('hangar/import')!,
+                redirect('hangar/ship/:id')!,
+                redirect('hangar/loadout/:id')!,
+                redirect('codex/set/:id')!,
+              ],
+            },
+          ]),
+          provideLocationMocks(),
+        ],
+      });
+    });
+
+    const cases: [string, string][] = [
+      ['/hangar', '/hq/hangar'],
+      ['/hangar?tab=x', '/hq/hangar?tab=x'],
+      ['/hangar/import?src=extension', '/hq/hangar/import?src=extension'],
+      ['/hangar/ship/abc', '/hq/hangar/abc'],
+      ['/hangar/loadout/set-1', '/hq/spind/set-1'],
+      ['/codex/set/set-2', '/hq/spind/set-2'],
+    ];
+    for (const [from, to] of cases) {
+      it(`${from} lands on ${to}`, async () => {
+        const router = TestBed.inject(Router);
+        await router.navigateByUrl(from);
+        expect(router.url).toBe(to);
+      });
+    }
+  });
 });

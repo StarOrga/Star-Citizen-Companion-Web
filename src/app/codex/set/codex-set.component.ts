@@ -36,7 +36,11 @@ import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
 import { HangarRoleLoadout } from '../../hangar/hangar.types';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
-import { CODEX_ROOT_CRUMB, HANGAR_ROOT_CRUMB, PageCrumb } from '../../shared/page-header/nav-origin.service';
+import { PageCrumb } from '../../shared/page-header/nav-origin.service';
+import { hqLocker, hqSet } from '../../hq/hq-routes';
+
+/** The set page's crumb row: the HQ locker. */
+export const HQ_LOCKER_CRUMB: PageCrumb = { labelKey: 'hq.tabs.locker', link: hqLocker };
 
 /**
  * The set page (concept 2026-09-20, round 2 decision T1 / round 17 N5) —
@@ -112,7 +116,7 @@ import { CODEX_ROOT_CRUMB, HANGAR_ROOT_CRUMB, PageCrumb } from '../../shared/pag
       } @else if (!activeSet()) {
         <p class="hint">
           {{ 'codex.set.noSets' | translate }}
-          <a class="create-set" routerLink="/hangar">{{ 'codex.set.createInHangar' | translate }}</a>
+          <a class="create-set" [routerLink]="lockerLink">{{ 'codex.set.createInHangar' | translate }}</a>
         </p>
       } @else {
         @if (shareOpen()) {
@@ -206,10 +210,9 @@ import { CODEX_ROOT_CRUMB, HANGAR_ROOT_CRUMB, PageCrumb } from '../../shared/pag
   ],
 })
 export class CodexSetComponent implements OnInit {
-  /** Hangar when the set was opened from the hangar, the Codex otherwise. */
-  readonly crumbs = computed<PageCrumb[]>(() =>
-    this.backLink().path === '/hangar' ? [HANGAR_ROOT_CRUMB] : [CODEX_ROOT_CRUMB],
-  );
+  /** A set is personal: its page sits in the HQ locker, whatever page opened it. */
+  readonly crumbs = computed<PageCrumb[]>(() => [HQ_LOCKER_CRUMB]);
+  readonly lockerLink = hqLocker;
   readonly auth = inject(AuthService);
   readonly hangar = inject(HangarService);
   private readonly svc = inject(CodexService);
@@ -420,11 +423,11 @@ export class CodexSetComponent implements OnInit {
 
   onSetPick(id: string): void {
     this.hangar.markSetPicked(id);
-    void this.router.navigate(['/codex', 'set', id]);
+    void this.router.navigate(hqSet(id));
   }
 
   onHangarOpen(): void {
-    void this.router.navigateByUrl('/hangar');
+    void this.router.navigateByUrl(hqLocker);
   }
 
   /** The Einsatz strip's choice — kept per set in localStorage. */
@@ -454,7 +457,7 @@ function readLens(setId: string | null): SetLensId {
 
 /** The back link's target and label. */
 export interface SetBackLink {
-  path: '/hangar' | '/codex';
+  path: typeof hqLocker | '/codex';
   key: 'codex.set.backToHangar' | 'codex.set.back';
 }
 
@@ -467,7 +470,7 @@ export function backLinkFor(router: Router): SetBackLink {
   const nav = router.currentNavigation() ?? router.lastSuccessfulNavigation();
   const prev = nav?.previousNavigation;
   const url = prev ? router.serializeUrl(prev.finalUrl ?? prev.extractedUrl) : '';
-  return /^\/hangar(?:[/?#]|$)/.test(url)
-    ? { path: '/hangar', key: 'codex.set.backToHangar' }
+  return /^\/(?:hq|hangar)(?:[/?#]|$)/.test(url)
+    ? { path: hqLocker, key: 'codex.set.backToHangar' }
     : { path: '/codex', key: 'codex.set.back' };
 }

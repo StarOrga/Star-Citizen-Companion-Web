@@ -6,10 +6,12 @@ import {
   computed,
   inject,
   signal,
+  input,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { hqHangar, hqSet, hqShip } from '../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
 import { isValidRsiPledgeShipUrl } from '../core/rsi-pledge-link.util';
@@ -84,12 +86,14 @@ const SEARCH_DEBOUNCE_MS = 250;
               </li>
             }
           </ul>
-          <a class="sc-btn cta" routerLink="/login" [queryParams]="{ redirect: '/hangar' }">
+          <a class="sc-btn cta" routerLink="/login" [queryParams]="{ redirect: hangarLink }">
             {{ 'hangar.teaser.cta' | translate }}
           </a>
         </div>
       } @else {
-      <sc-page-header [title]="'hangar.title' | translate" [subtitle]="'hangar.subtitle' | translate">
+      <sc-page-header
+        [title]="(section() === 'locker' ? 'hq.locker.title' : 'hangar.title') | translate"
+        [subtitle]="(section() === 'locker' ? 'hq.locker.subtitle' : 'hangar.subtitle') | translate">
         <div phActions class="counts">
           <div class="count-chip">
             <strong>{{ hangar.ownedCount() }}</strong>
@@ -118,11 +122,12 @@ const SEARCH_DEBOUNCE_MS = 250;
         <sc-hangar-import (closed)="importOpen.set(false)" />
       }
 
+      @if (section() !== 'locker') {
       <!-- Top 3 pinned -->
       @if (hangar.pinnedShips().length > 0) {
         <div class="pinned-strip">
           @for (s of hangar.pinnedShips(); track s.id) {
-            <a class="hero sc-card" [routerLink]="['/hangar/ship', s.id]">
+            <a class="hero sc-card" [routerLink]="shipRoute(s.id)">
               <span class="rank">#{{ s.pinnedRank }}</span>
               <div class="hero-thumb">
                 <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
@@ -257,7 +262,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                    flagship toggle and the Codex link: no interactive content
                    nested in an <a> (the toggle used to sit inside it). -->
               <div class="card fleet-card">
-              <a class="fleet-link" [routerLink]="['/hangar/ship', s.id]">
+              <a class="fleet-link" [routerLink]="shipRoute(s.id)">
                 <div class="thumb">
                   <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
                     <sc-codex-icon class="thumb-icon" kind="ship" />
@@ -357,6 +362,9 @@ const SEARCH_DEBOUNCE_MS = 250;
         }
       </div>
 
+      }
+
+      @if (section() !== 'hangar') {
       <!-- Role loadouts -->
       <div class="loadouts">
         <div class="loadouts-head">
@@ -391,7 +399,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           <div class="grid">
             @for (l of hangar.roleLoadouts(); track l.id) {
               <div class="card loadout-card own-card">
-                <a class="ld-open" [routerLink]="['/codex', 'set', l.id]">
+                <a class="ld-open" [routerLink]="setRoute(l.id)">
                   <div class="card-top">
                     <h3 class="name">{{ l.name }}</h3>
                     <span class="badge role-{{ l.role }}">{{ ('hangar.roles.' + l.role) | translate }}</span>
@@ -506,6 +514,7 @@ const SEARCH_DEBOUNCE_MS = 250;
           </div>
         }
       </div>
+      }
       }
     </section>
   `,
@@ -756,6 +765,22 @@ const SEARCH_DEBOUNCE_MS = 250;
   `],
 })
 export class HangarDashboardComponent implements OnInit {
+  /**
+   * Which HQ section this page renders (route data, concept 2026-10-08):
+   * `hangar` = ships, `locker` = the role sets (Spind). `all` keeps both —
+   * the default for a host that binds nothing (specs, embeds).
+   */
+  readonly section = input<'all' | 'hangar' | 'locker'>('all');
+  readonly hangarLink = hqHangar;
+
+  shipRoute(id: string): string[] {
+    return hqShip(id);
+  }
+
+  setRoute(id: string): string[] {
+    return hqSet(id);
+  }
+
   private readonly router = inject(Router);
   readonly hangar = inject(HangarService);
   private readonly shares = inject(LoadoutShareService);
@@ -968,7 +993,7 @@ export class HangarDashboardComponent implements OnInit {
     this.newLoadoutName.set('');
     // A new set is empty — open it, so the next step (pick gear for a slot) is
     // in front of the reader instead of a list row (Codex UX audit L09).
-    void this.router.navigate(['/codex', 'set', created.id]);
+    void this.router.navigate(hqSet(created.id));
   }
 
   // ── set housekeeping ───────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ export interface PageCrumb {
 /** The first crumb of every Codex page. */
 export const CODEX_ROOT_CRUMB: PageCrumb = { labelKey: 'pageHeader.crumb.codex', link: '/codex' };
 /** The first crumb of every Hangar sub page. */
-export const HANGAR_ROOT_CRUMB: PageCrumb = { labelKey: 'pageHeader.crumb.hangar', link: '/hangar' };
+export const HANGAR_ROOT_CRUMB: PageCrumb = { labelKey: 'pageHeader.crumb.hangar', link: '/hq/hangar' };
 
 /** Where a crumb for a visited page leads: its path plus the query it carried. */
 interface VisitedPage {
@@ -172,9 +172,9 @@ export function originCrumb(origin: NavOriginService, fallback: PageCrumb | null
   }
   if (p === '/codex/fps') return { labelKey: 'pageHeader.crumb.fps', link: p, queryParams: q };
   if (p === '/codex/keybinds') return { labelKey: 'pageHeader.crumb.keybinds', link: p, queryParams: q };
-  if (p === '/hangar') return { labelKey: 'pageHeader.crumb.hangar', link: p, queryParams: q };
+  if (p === '/hq/hangar') return { labelKey: 'pageHeader.crumb.hangar', link: p, queryParams: q };
   const isDetail =
-    /^\/codex\/(?!index$|fps$|keybinds$|upcoming$)[^/]+\/[^/]+$/.test(p) || /^\/hangar\/ship\/[^/]+$/.test(p);
+    /^\/codex\/(?!index$|fps$|keybinds$|upcoming$)[^/]+\/[^/]+$/.test(p) || /^\/hq\/hangar\/[^/]+$/.test(p);
   if (isDetail) {
     const title = origin.titleFor(p);
     if (title) return { label: title, link: p, queryParams: q };
@@ -190,8 +190,8 @@ export function originCrumb(origin: NavOriginService, fallback: PageCrumb | null
 export function originTrail(origin: NavOriginService, fallback: PageCrumb | null): PageCrumb[] {
   const parent = originCrumb(origin, fallback);
   if (!parent) return [CODEX_ROOT_CRUMB];
-  if (typeof parent.link === 'string' && /^\/hangar(\/|$)/.test(parent.link)) {
-    return parent.link === '/hangar' ? [HANGAR_ROOT_CRUMB] : [HANGAR_ROOT_CRUMB, parent];
+  if (typeof parent.link === 'string' && /^\/hq\/hangar(\/|$)/.test(parent.link)) {
+    return parent.link === '/hq/hangar' ? [HANGAR_ROOT_CRUMB] : [HANGAR_ROOT_CRUMB, parent];
   }
   return [CODEX_ROOT_CRUMB, parent];
 }

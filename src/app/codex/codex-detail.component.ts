@@ -44,6 +44,9 @@ import { AddToSetComponent } from './set/add-to-set.component';
 import { roleSlotForAttachType } from './codex-landing-kpi';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarShipConfig, PeekedSharedLoadout } from '../hangar/hangar.types';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
+import { HQ_MINE_PARAM, HQ_ROOT, HQ_VARIANT_PARAM, hqHangar, personalShipLink } from '../hq/hq-routes';
+import { CodexModeSwitchComponent, CodexPersonalUsesComponent } from './detail/codex-personal-mode.component';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import { HangarPickerItem } from './stage/hangar-picker.component';
 import { InfoNoteComponent } from '../shared/info-note.component';
@@ -225,12 +228,15 @@ import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
 
 // Engine placeholders that identify no attach type — never build a fit on them.
 /** Which stored loadout the URL puts on the table (#646): a shared link
- * wins over a config id; neither = the reader's own draft. */
+ * wins over the legacy one-shot `?config=`, which wins over the personal
+ * variant `?v=`; none = codex mode (stock, or the anonymous draft mirror). */
 function loadoutSourceKey(q: ParamMap): string | null {
   const token = q.get('shared')?.trim();
   if (token) return `shared:${token}`;
   const config = q.get('config')?.trim();
-  return config ? `config:${config}` : null;
+  if (config) return `config:${config}`;
+  const variant = q.get(HQ_VARIANT_PARAM)?.trim();
+  return variant ? `v:${variant}` : null;
 }
 
 const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other']);
@@ -238,13 +244,17 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent],
+  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="detail-page">
       <sc-page-header class="crumbrow" [crumbs]="crumbs()" [rememberAs]="detail() ? displayName() : null">
         <div phAside class="crumb-aside">
+        @if (showModeSwitch()) {
+          <sc-codex-mode-switch [kind]="kind()!" [className]="detail()!.classNameSlug" [personal]="personalMode()"
+            [variants]="myVariants()" [activeVariantId]="activeVariantId()" />
+        }
         @if (kind() === 'ship' && dataPill(); as pill) {
           <span class="prov data-pill" [class.pending]="pill.pending">
             {{ 'codex.detail.dataPill' | translate: { build: pill.build, n: pill.schema } }}
@@ -271,6 +281,13 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
         }
         </div>
       </sc-page-header>
+
+      @if (foreignVariant()) {
+        <p class="foreign-note sc-card" role="status">{{ 'codex.personal.foreignVariant' | translate }}</p>
+      }
+      @if (detail() && kind() !== 'ship') {
+        <sc-codex-personal-uses class="personal-uses" [ownership]="myOwnership()" [personal]="personalMode()" />
+      }
 
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
@@ -433,7 +450,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 [options]="skinPickerOptions()" [current]="currentLivery()" />
             }
             <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug" [spacer]="true"
-              [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
+              [inHangar]="personalMode()" [addBusy]="addBusy()" [addFailed]="addFailed()"
               (addToHangar)="addToHangar()" />
           </div>
 
@@ -480,10 +497,10 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [saveable]="saveableEntries().length"
               [saving]="saving()"
               [error]="saveError()"
-              [inHangar]="inHangar()"
+              [inHangar]="personalMode()"
               (save)="saveLoadoutDraft()"
               (discard)="discardLoadoutDraft()"
-              (addAndSave)="saveLoadoutDraft()" />
+              (addAndSave)="addToHangar()" />
           </div>
         }
 
@@ -809,7 +826,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
             [saveableCount]="saveableEntries().length"
             [saving]="saving()"
             [saveError]="saveError()"
-            [inHangar]="inHangar()"
+            [inHangar]="personalMode()"
             [buildRef]="patchActiveBuild()"
             [channel]="build()?.channel ?? 'LIVE'"
             [activeKpiSheet]="stockKpiSheet()"
@@ -870,7 +887,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                   [options]="skinPickerOptions()" [current]="currentLivery()" />
               }
               <sc-codex-ship-actions [classNameSlug]="detail()!.classNameSlug"
-                [inHangar]="inHangar()" [addBusy]="addBusy()" [addFailed]="addFailed()"
+                [inHangar]="personalMode()" [addBusy]="addBusy()" [addFailed]="addFailed()"
                 (addToHangar)="addToHangar()" />
               <!-- Pin to the compare tray (the classic view pins from its stage actions). -->
               <button type="button" class="pin" [class.pinned]="isPinned()" [attr.aria-pressed]="isPinned()" (click)="togglePin()">
@@ -984,6 +1001,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
     </section>
   `,
   styles: [`
+    .foreign-note { margin: 0 0 12px; padding: 10px 14px; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-1); border-left: 3px solid var(--sc-warning); }
+    .personal-uses { margin: 0 0 12px; }
     :host { display: block; }
     /* The full page frame (styles.scss, "PAGE FRAME") — no width of its own. */
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 90px; }
@@ -1336,13 +1355,43 @@ export class CodexDetailComponent implements OnInit {
       kind && CODEX_KINDS.includes(kind)
         ? { labelKey: `codex.kinds.${kind}`, link: '/codex/index', queryParams: { kind } }
         : null;
+    // Personal mode: the reader's own copy belongs to HQ, so the parent crumb goes there.
+    if (this.personalMode()) {
+      return [{ labelKey: 'codex.personal.hqCrumb', link: kind === 'ship' ? hqHangar : HQ_ROOT }];
+    }
     return originTrail(this.navOrigin, fallback);
   });
   readonly kind = computed(() => this.detail()?.kind ?? null);
+  private readonly ownershipSvc = inject(HqOwnershipService);
+  /** Everything the reader has of this entity (HQ ownership index), or null. */
+  readonly myOwnership = computed(() => this.ownershipSvc.lookup(this.detail()?.classNameSlug));
   /** Ship pages only: whether this ship is already in the user's hangar. */
-  readonly inHangar = computed(() => {
-    const d = this.detail();
-    return !!d && this.hangar.ships().some((s) => s.shipClassName === d.classNameSlug);
+  readonly inHangar = computed(() => !!this.myOwnership()?.ship);
+  /** Ships: the reader's variants of this hull, active first. */
+  readonly myVariants = computed(() => this.myOwnership()?.configs ?? []);
+  /** Ships: the personal variant on the table (`?v=`, verified as the reader's own). */
+  readonly activeVariantId = signal<string | null>(null);
+  /** Non-ship pages: the URL asks for "mine" (`?mine`). */
+  readonly mineFlag = signal(false);
+  /** `?v=` named a variant that is not the reader's — codex mode plus a note. */
+  readonly foreignVariant = signal(false);
+  private readonly personalCount = computed(() => {
+    const o = this.myOwnership();
+    return o ? o.equippedOn.length + o.inSets.length : 0;
+  });
+  /**
+   * Personal mode: ships show one of the reader's variants and save into it;
+   * every other kind lists where the reader fitted / packed it. Codex mode is
+   * the game's knowledge, the same for everyone, never saved.
+   */
+  readonly personalMode = computed(() =>
+    this.kind() === 'ship' ? this.activeVariantId() !== null : this.mineFlag() && this.personalCount() > 0,
+  );
+  /** The [Codex | Meine] switch shows only when the reader owns something of it. */
+  readonly showModeSwitch = computed(() => {
+    const k = this.kind();
+    if (!k || !this.detail()) return false;
+    return k === 'ship' ? this.myVariants().length > 0 : this.personalCount() > 0;
   });
   /**
    * Which view the hero stage shows. 2D is the default — the store render is
@@ -1499,19 +1548,34 @@ export class CodexDetailComponent implements OnInit {
   /** `?config=` pinned this config: the active-config lookup must not override it. */
   private pinnedConfigId: string | null = null;
 
-  /** Called once per ship load and on every later `shared` / `config` change. */
+  /** Called once per ship load and on every later `shared` / `config` / `v` change. */
   private async applyLoadoutSource(classNameSlug: string, seq: number): Promise<void> {
     const q = this.route.snapshot.queryParamMap;
     // A shared link is a Holotable view (its banner lives there): the classic
     // view never shows somebody else's loadout without saying whose it is.
     const token = this.holoView() ? q.get('shared')?.trim() || null : null;
     const configId = q.get('config')?.trim() || null;
+    const variantId = q.get(HQ_VARIANT_PARAM)?.trim() || null;
     this.appliedLoadoutSource = loadoutSourceKey(q);
+    this.foreignVariant.set(false);
     if (token) {
+      this.activeVariantId.set(null);
       await this.applySharedLoadout(classNameSlug, token, seq);
     } else if (configId) {
-      await this.applyConfigLoadout(classNameSlug, configId, seq);
+      // Legacy one-shot `?config=`: becomes the persistent `?v=` and opens personal mode.
+      this.appliedLoadoutSource = `v:${configId}`;
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { config: null, [HQ_VARIANT_PARAM]: configId },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+      await this.applyVariantLoadout(classNameSlug, configId, seq);
+    } else if (variantId) {
+      await this.applyVariantLoadout(classNameSlug, variantId, seq);
     } else {
+      this.activeVariantId.set(null);
+      this.activeHangarConfig.set(null);
       this.sharedDraft.set(null);
       this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
     }
@@ -1541,36 +1605,43 @@ export class CodexDetailComponent implements OnInit {
     this.sharedDraft.set({ status: 'ready', ownerName: peek.ownerName, configName: peek.name, errorKey: null });
   }
 
-  private async applyConfigLoadout(classNameSlug: string, configId: string, seq: number): Promise<void> {
+  /**
+   * Personal mode (`?v=<configId>`): the reader's own variant of THIS hull is
+   * the draft and every save goes into it. Anything else — a foreign id, a
+   * variant of another hull, a signed-out reader — falls back to codex mode:
+   * `v` leaves the URL and a note says how variants are shared instead.
+   */
+  private async applyVariantLoadout(classNameSlug: string, configId: string, seq: number): Promise<void> {
     this.sharedDraft.set(null);
     this.pinnedConfigId = configId;
     try {
-      if (this.hangar.ships().length === 0) await this.hangar.loadAll();
-      const ship = this.hangar.shipByClassName(classNameSlug);
-      const configs = ship ? await this.hangar.listConfigs(ship.id) : [];
+      await this.auth.whenReady?.();
+      await this.ownershipSvc.ensureLoaded();
       if (!this.isCurrentLoad(seq)) return;
-      const config = configs.find((c) => c.id === configId) ?? null;
+      const mine = this.ownershipSvc.lookup(classNameSlug)?.configs.some((c) => c.id === configId) ?? false;
+      const config = mine ? this.ownershipSvc.configById(configId) : null;
       if (!config) {
-        // Not (or no longer) the reader's config: their own draft, as without the param.
         this.pinnedConfigId = null;
+        this.activeVariantId.set(null);
+        this.activeHangarConfig.set(null);
+        this.foreignVariant.set(true);
+        this.appliedLoadoutSource = null; // dropping `v` is not a new source
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { [HQ_VARIANT_PARAM]: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
         this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
         return;
       }
+      this.activeVariantId.set(config.id);
       this.activeHangarConfig.set(config);
       this.draftStore.applyStoredLoadout(config.loadout, { configId: config.id });
-      // The draft now mirrors itself into `?loadout=` — the one-shot `config`
-      // param goes, so a reload keeps later edits instead of re-applying it.
-      // (Marked as applied first: dropping the param is not a new source.)
-      this.appliedLoadoutSource = null;
-      void this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { config: null },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
-      });
     } catch (error) {
-      logWarn('codex', 'config loadout failed', { configId, error });
+      logWarn('codex', 'variant loadout failed', { configId, error });
       this.pinnedConfigId = null;
+      this.activeVariantId.set(null);
       if (this.isCurrentLoad(seq)) this.draftStore.restoreDraftFromUrlOrStorage(classNameSlug);
     }
   }
@@ -1609,22 +1680,6 @@ export class CodexDetailComponent implements OnInit {
   onHoloSwapRequested(target: LayoutTarget): void {
     if (this.draftStore.readOnly()) return;
     this.openSwapPicker(target);
-  }
-
-  private async loadActiveHangarConfig(classNameSlug: string): Promise<void> {
-    if (!this.auth.user()) return;
-    // The hangar list is what answers "is this ship mine?" — on a deep link
-    // it is still loading here, so wait for it or the share popover never
-    // sees the config (wave 5 A1.3).
-    if (this.hangar.ships().length === 0) await this.hangar.loadAll();
-    if (this.detail()?.classNameSlug !== classNameSlug) return;
-    const ship = this.hangar.shipByClassName(classNameSlug);
-    if (!ship) return;
-    const configs = await this.hangar.listConfigs(ship.id);
-    if (this.detail()?.classNameSlug !== classNameSlug) return;
-    // `?config=` opened a specific config — that one is the page's config.
-    if (this.pinnedConfigId) return;
-    this.activeHangarConfig.set(configs.find((c) => c.isActive) ?? configs[0] ?? null);
   }
 
   toggleHoloView(): void {
@@ -1853,7 +1908,10 @@ export class CodexDetailComponent implements OnInit {
       loadoutEntities: this.loadoutEntities,
       loadoutAll: this.loadoutAll,
       joinablePorts: this.joinablePorts,
-      onSaved: (config) => this.activeHangarConfig.set(config),
+      onSaved: (config) => {
+        this.activeHangarConfig.set(config);
+        this.ownershipSvc.invalidate();
+      },
     });
     this.shipLinkForm.connect(
       computed(() => {
@@ -1902,6 +1960,7 @@ export class CodexDetailComponent implements OnInit {
     // `?shared=` / `?config=` change without a new ship (adopt → own config,
     // leaving the shared view): the draft follows, the page does not reload.
     this.route.queryParamMap?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((q) => {
+      this.mineFlag.set(q.has(HQ_MINE_PARAM));
       const d = this.detail();
       if (!d || d.kind !== 'ship' || this.loading()) return;
       if (loadoutSourceKey(q) === this.appliedLoadoutSource) return;
@@ -1952,6 +2011,9 @@ export class CodexDetailComponent implements OnInit {
     this.rankCohortLoading.set(false);
     this.rankCohortFailed.set(false);
     this.shipSilhouette.set(null);
+    this.foreignVariant.set(false);
+    this.activeVariantId.set(null);
+    this.mineFlag.set(this.route.snapshot.queryParamMap?.has?.(HQ_MINE_PARAM) ?? false);
     try {
       const d = await this.svc.getDetail(kind, className);
       if (seq !== this.loadSeq) return;
@@ -1982,8 +2044,8 @@ export class CodexDetailComponent implements OnInit {
         }
         // Ships are not craftable either, so skip the forward lookup as well.
         if (kind !== 'ship') void this.loadRecipe(d.classNameSlug, seq);
-        // Ship pages: hangar membership backs the add-to-hangar action.
-        if (kind === 'ship' && this.hangar.ships().length === 0) void this.hangar.loadAll();
+        // HQ ownership backs the mode switch and the signposts on every kind.
+        if (this.auth.user()) void this.ownershipSvc.ensureLoaded();
         // Ship pages: resolve the pinned pledge link (own > global). Best
         // effort — a missing link just falls back to the RSI ships listing.
         if (kind === 'ship') void this.shipLinks.loadForShip(d.classNameSlug);
@@ -2004,8 +2066,6 @@ export class CodexDetailComponent implements OnInit {
           void this.svc.silhouette?.('ship', d.classNameSlug)?.then((s) => this.shipSilhouette.set(s));
           this.recentlyViewedShips.set(this.loadRecentShips());
           this.recordRecentShip(d.classNameSlug);
-          this.activeHangarConfig.set(null);
-          void this.loadActiveHangarConfig(d.classNameSlug);
         }
       }
     } catch (err) {
@@ -2614,6 +2674,8 @@ export class CodexDetailComponent implements OnInit {
    * save; resolves the config the link must be minted for — null when the
    * save failed or the fork question was declined (the save bar says why). */
   readonly saveDraftForShare = async (): Promise<HangarShipConfig | null> => {
+    // Codex mode never saves: sharing first takes the draft into HQ as a variant.
+    if (!this.personalMode()) return this.adoptAndOpen();
     if (this.draftStore.saveableEntries().length === 0) return this.activeHangarConfig();
     return this.draftStore.saveLoadoutDraft();
   };
@@ -3750,15 +3812,31 @@ export class CodexDetailComponent implements OnInit {
     this.addBusy.set(true);
     this.addFailed.set(false);
     try {
-      const ship = await this.hangar.addShip(d.classNameSlug, 'owned');
-      // UC-07: jump straight into the configurator instead of leaving a dead row.
-      if (ship) await this.router.navigate(['/hangar/ship', ship.id]);
-      else this.addFailed.set(true);
+      if (!(await this.adoptAndOpen())) this.addFailed.set(true);
     } catch {
       this.addFailed.set(true);
     } finally {
       this.addBusy.set(false);
     }
+  }
+
+  /**
+   * "In dein HQ übernehmen": the ship (when new) and a fresh variant carrying
+   * the current draft go into the hangar, then the page switches to that
+   * variant (`?v=<id>`) — personal mode, where edits save.
+   */
+  private async adoptAndOpen(): Promise<HangarShipConfig | null> {
+    const d = this.detail();
+    if (d?.kind !== 'ship') return null;
+    const created = await this.draftStore.adoptToHq();
+    if (!created) return null;
+    const link = personalShipLink(d.classNameSlug, created.id);
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { ...link.queryParams, config: null, loadout: null, shared: null },
+      queryParamsHandling: 'merge',
+    });
+    return created;
   }
 
   toggleRaw(): void {

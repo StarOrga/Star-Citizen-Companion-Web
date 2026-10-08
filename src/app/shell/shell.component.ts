@@ -90,12 +90,9 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
           {{ 'nav.verse' | translate }}
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
-        <!-- Hangar is deliberately NOT a top-level entry (feedback f0363cef).
-             It is a subview of Codex: the "Im Hangar" zone on the Codex landing
-             (codex-landing.component.ts) is itself a full-zone entrance link
-             into /hangar, so a dedicated nav slot would be a redundant second
-             door to the same place (correction, 2026-08-16, superseding the
-             short-lived top-level entry added and reverted the same day). -->
+        <!-- HQ — the personal area (concept 2026-10-08) next to the Codex
+             (game knowledge). Normal accent: every signed-in user has one. -->
+        <a routerLink="/hq" routerLinkActive="active">{{ 'nav.hq' | translate }}</a>
         <!-- Data Upload is intentionally NOT a top-level nav entry (admin
              feedback eb9c6ec3): a whole menu slot for a tool only collaborators
              and admins ever open. It now lives as the collapsible

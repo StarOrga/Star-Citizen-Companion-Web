@@ -4,6 +4,68 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.140.0] - 2026-10-08
+
+### Changed
+
+- **Data Uploader 0.50.0: 3D-Modelle in zwei Schritten.** Der Schritt
+  „3D-Modelle“ der Upload-Karte hat jetzt wie der Codex zwei Unterzeilen:
+  „Modelle bauen“ und „Modelle hochladen“, jede mit eigenem Zustand und
+  einer Zahl x/y. Fehlen die Werkzeuge oder scheitert der Bau, warnt nur die
+  Bau-Zeile; gibt es keine Schiffe zu bauen, ist der Bau fertig und das
+  Hochladen übersprungen. Die Zeile „3D-Modelle“ folgt beiden Unterzeilen.
+
+### Fixed
+
+- **Data Uploader: Schrittleiste springt nicht mehr zurück.** Der
+  Upload-Abschnitt der Schrittleiste rechnet jetzt pro Arbeitsschritt
+  (Bundle, Silhouetten, Einträge, Modelle bauen, Modelle hochladen) statt pro
+  Hauptschritt. Vorher sprang die Leiste beim Wechsel zwischen zwei
+  Unterzeilen auf den Anfang des Hauptschritts zurück – auch beim Codex.
+
+## [0.139.0] - 2026-10-08
+
+### Added
+
+- **HQ – dein persönlicher Bereich.** Alles, was dir gehört, liegt jetzt im
+  neuen Bereich „HQ“ neben dem Codex: Übersicht, Hangar, Spind (FPS-Sets)
+  und Einsätze, oben rechts der Knopf „Nachschub“. Einsätze und Nachschub
+  starten als leere Bereiche und werden in den nächsten Etappen gefüllt.
+- **Codex | Meine.** Detailseiten bleiben unter `/codex/…`, haben aber einen
+  Umschalter im Seitenkopf. `?v=<Variante>` öffnet bei Schiffen deine
+  eigene Variante (nur dort wird gespeichert), `?mine` zeigt bei Teilen,
+  auf welchem Schiff sie verbaut sind und in welchem Set sie stecken. Eine
+  fremde Variante öffnet den Codex-Modus mit Hinweis.
+- Loadout-Zeilen und Set-Teile im HQ sind echte Links auf die
+  Codex-Detailseite (Mittelklick, Strg+Klick und „In neuem Tab öffnen“
+  funktionieren).
+
+### Changed
+
+- Der Codex zeigt nur noch Spielwissen. Persönliches erscheint dort nur
+  noch als Wegweiser: „N× in deinem HQ“ und „In dein HQ übernehmen“. Den
+  Hangar-Picker auf der Codex-Startseite gibt es nicht mehr.
+- Alte Links leiten weiter: `/hangar/**`, `/hangar/loadout/:id` und
+  `/codex/set/:id` führen ins HQ, das alte `?config=` wird zu `?v=`.
+  Geteilte Links bleiben unverändert.
+- Eine gemeinsame Besitz-Abfrage ersetzt die vier eigenen „im Hangar?“-
+  Rechnungen in Detail, Liste, Suche und Speicherleiste.
+
+### Fixed
+
+- Admin-Feedback: Die Styles liegen wieder unter dem 18-kB-Budget.
+- Die Überschriften der HQ-Übersicht halten auf dem Handy die
+  Mindestschriftgröße ein.
+
+### Internal
+
+- Migration `20261009090000_hq_sync_contract.sql`: `updated_at` mit Trigger,
+  `deleted_at` als Tombstone und ein Sync-Index für die persönlichen
+  Hangar-Tabellen, als Grundlage für den späteren Abgleich mit der SCC-App.
+  Der Client liest `deleted_at` noch nicht, damit er nicht davon abhängt,
+  dass die Migration angewendet ist.
+- Die Shared-Holo-Specs laufen unter `fakeAsync` und damit deterministisch.
+
 ## [0.138.0] - 2026-10-08
 
 ### Changed
