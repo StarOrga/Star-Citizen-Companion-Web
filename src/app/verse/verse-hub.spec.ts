@@ -15,6 +15,20 @@ import { verseStatusView } from './shared/verse-status.component';
 import { VerseLayoutComponent, verseAreaOf } from './verse-layout.component';
 import { VERSE_ROUTES } from './verse.routes';
 
+/**
+ * A middle click the page code sees, but the browser never acts on: without the
+ * window-level preventDefault Chrome opens a REAL tab (testing/new-tab-guard.spec.ts).
+ */
+function middleClick(el: Element): void {
+  const swallow = (e: Event): void => e.preventDefault();
+  window.addEventListener('auxclick', swallow);
+  try {
+    el.dispatchEvent(new MouseEvent('auxclick', { button: 1, bubbles: true, cancelable: true }));
+  } finally {
+    window.removeEventListener('auxclick', swallow);
+  }
+}
+
 function snap(data: Record<string, unknown>, child: ActivatedRouteSnapshot | null = null): ActivatedRouteSnapshot {
   return { data, firstChild: child } as unknown as ActivatedRouteSnapshot;
 }
@@ -133,10 +147,10 @@ describe('Verse hub — components', () => {
     const gates = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.gates a.gate'));
     expect(gates.map((a) => a.getAttribute('href'))).toEqual(['/verse/news', '/verse/patches', '/verse/gallery']);
     expect(el.querySelector('.cta')?.getAttribute('href')).toBe('/verse/patches/4.3');
-    rows[1].dispatchEvent(new MouseEvent('auxclick', { button: 1 }));
+    middleClick(rows[1]);
     expect(markSeen).toHaveBeenCalledWith(['b']);
     expect(captureVerse).toHaveBeenCalledWith('verse_top_open', { key: 'b', kind: 'patch', rank: 2, pinned: false });
-    gates[2].dispatchEvent(new MouseEvent('auxclick', { button: 1 }));
+    middleClick(gates[2]);
     expect(captureVerse).toHaveBeenCalledWith('verse_door_open', { door: 'gallery' });
     expect(el.querySelector('sc-news-list')).toBeNull();
   });
