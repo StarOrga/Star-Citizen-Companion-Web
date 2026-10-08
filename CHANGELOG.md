@@ -4,6 +4,25 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.132.0] - 2026-10-08
+
+### Added
+
+- **Admin: Kachel „Holotable-Silhouetten“.** Die Admin-Seite zeigt für den
+  aktuellen LIVE-Build, wie viele Schiffe eine Silhouette haben, wie viele davon
+  Hardpoint-Anker tragen und welche keine haben — jede fehlende Hülle verlinkt
+  auf ihre Codex-Seite. Ohne Silhouette wird aufgeteilt nach „Vorschaubild
+  vorhanden“ und „RSI-Bild oder Platzhalter“. Neue Admin-Funktion
+  `silhouette_coverage` in der Datenbank (#647).
+
+### Fixed
+
+- **Data Uploader (Entwicklung): `npm run dev` startet neben der installierten
+  App.** Ein Entwicklungslauf nutzt jetzt ein eigenes Datenverzeichnis
+  (`…-dev`) und verliert die Einzelinstanz-Sperre nicht mehr an den
+  installierten Uploader im Tray; Einstellungen und Upload-Jobs bleiben
+  getrennt. Installierte Builds sind unverändert (#632).
+
 ## [0.131.0] - 2026-10-08
 
 ### Added

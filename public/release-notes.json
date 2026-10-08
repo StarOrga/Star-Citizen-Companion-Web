@@ -1,7 +1,33 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.131.0",
+  "current": "0.132.0",
   "releases": [
+    {
+      "version": "0.132.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Admin: Kachel „Holotable-Silhouetten“.",
+              "text": "Die Admin-Seite zeigt für den aktuellen LIVE-Build, wie viele Schiffe eine Silhouette haben, wie viele davon Hardpoint-Anker tragen und welche keine haben — jede fehlende Hülle verlinkt auf ihre Codex-Seite. Ohne Silhouette wird aufgeteilt nach „Vorschaubild vorhanden“ und „RSI-Bild oder Platzhalter“. Neue Admin-Funktion silhouette_coverage in der Datenbank (#647)."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader (Entwicklung): npm run dev startet neben der installierten App.",
+              "text": "Ein Entwicklungslauf nutzt jetzt ein eigenes Datenverzeichnis (…-dev) und verliert die Einzelinstanz-Sperre nicht mehr an den installierten Uploader im Tray; Einstellungen und Upload-Jobs bleiben getrennt. Installierte Builds sind unverändert (#632)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.131.0",
       "date": "2026-10-08",
