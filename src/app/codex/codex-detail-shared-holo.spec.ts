@@ -12,6 +12,7 @@ import { CodexService, ResolvedEntity } from './codex.service';
 import { HangarService } from '../hangar/hangar.service';
 import { SharedLoadoutAdopter } from '../hangar/shared-loadout-adopter.service';
 import type { PeekedSharedLoadout } from '../hangar/hangar.types';
+import { HqOwnershipService } from '../hq/hq-ownership.service';
 import { AuthService } from '../auth/auth.service';
 import { RoleService } from '../auth/role.service';
 import { UexShopService } from './uex-shop.service';
@@ -144,8 +145,9 @@ const PEEK: PeekedSharedLoadout = {
 };
 
 interface HangarStub {
-  peekSharedLoadout: jasmine.Spy;
-  listConfigs: jasmine.Spy;
+  peekSharedLoadout?: jasmine.Spy;
+  listConfigs?: jasmine.Spy;
+  listAllConfigs?: jasmine.Spy;
 }
 
 async function setup(
@@ -186,7 +188,8 @@ async function setup(
         } as unknown as Partial<HangarService>,
       },
       { provide: SharedLoadoutAdopter, useValue: { adoptAndOpen } },
-      { provide: AuthService, useValue: { user: signal(authUser), whenReady: async () => undefined } as unknown as Partial<AuthService> },
+      { provide: AuthService, useValue: { user: signal(null), whenReady: async () => undefined } as unknown as Partial<AuthService> },
+      { provide: HqOwnershipService, useValue: fakeOwnership() },
       { provide: RoleService, useValue: {} as Partial<RoleService> },
       {
         provide: ShipSkinsService,
@@ -218,13 +221,29 @@ async function setup(
   return fixture;
 }
 
-/** The signed-in reader of the next setup() (null = signed out). */
-let authUser: { id: string } | null = null;
+/** The reader's own variants of the Nomad for the next setup(). */
+let ownedConfigs: { id: string; name: string; isActive: boolean; loadout: unknown[] }[] = [];
+
+/** HQ ownership over `ownedConfigs` — the Nomad is in the hangar, nothing else. */
+function fakeOwnership(): Partial<HqOwnershipService> {
+  const own = () => ({
+    ship: { id: 'ship-1', shipClassName: 'cnou_nomad' },
+    configs: ownedConfigs.map((c) => ({ id: c.id, name: c.name, active: c.isActive })),
+    equippedOn: [],
+    inSets: [],
+  });
+  return {
+    ensureLoaded: async () => undefined,
+    invalidate: () => undefined,
+    lookup: ((cn: string | null | undefined) => (cn?.toLowerCase() === 'cnou_nomad' ? own() : null)) as HqOwnershipService['lookup'],
+    configById: ((id: string | null | undefined) => ownedConfigs.find((c) => c.id === id) ?? null) as HqOwnershipService['configById'],
+  };
+}
 
 describe('CodexDetailComponent — shared link / own config on the Holotable (#646)', () => {
   beforeEach(() => {
     localStorage.removeItem('sc.codex.holoView');
-    authUser = null;
+    ownedConfigs = [];
   });
 
   it('?shared= puts the peeked loadout on the table READ-ONLY with the banner', async () => {
@@ -311,8 +330,8 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
       followsOwner: true,
       ownerName: 'Kestrel',
     };
-    authUser = { id: 'u1' };
     const configs = [{ id: 'other', hangarShipId: 'ship-1', name: 'Stock', isActive: true, loadout: [] }, adopted];
+    ownedConfigs = configs;
     const hangar = {
       peekSharedLoadout: jasmine.createSpy('peek'),
       listConfigs: jasmine.createSpy('listConfigs').and.resolveTo(configs),
@@ -338,9 +357,9 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
   });
 
   it('?v= of the reader puts that variant on the table and keeps v in the URL', async () => {
-    authUser = { id: 'u1' };
     const mine = { id: 'cfg-mine', hangarShipId: 'ship-1', name: 'Brawler', isActive: true,
       loadout: [{ portName: GUN_PORT, className: SHARED_GUN, kind: 'weapon' }] };
+    ownedConfigs = [mine];
     const fixture = await setup({ view: 'holo', v: 'cfg-mine' }, {
       listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([mine]),
     });
@@ -354,7 +373,6 @@ describe('CodexDetailComponent — shared link / own config on the Holotable (#6
   });
 
   it('a foreign ?v= falls back to codex mode, drops v and says how variants are shared', async () => {
-    authUser = { id: 'u1' };
     const fixture = await setup({ view: 'holo', v: 'cfg-someone-else' }, {
       listAllConfigs: jasmine.createSpy('listAllConfigs').and.resolveTo([]),
     });
