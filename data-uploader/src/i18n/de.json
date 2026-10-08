@@ -359,7 +359,8 @@
     "hint": "Der erste Build wandelt jede Hülle und jedes Bauteil einzeln um – das kann etwas dauern.",
     "toolsFailed": "Build-Tools nicht verfügbar – Silhouetten übersprungen",
     "buildFailed": "Silhouetten-Build fehlgeschlagen — der Codex geht ohne Umrisse hoch",
-    "done": "{{written}} Silhouetten erzeugt ({{cached}} zwischengespeichert, {{skipped}} ohne Geometrie)"
+    "done": "{{written}} Silhouetten erzeugt ({{cached}} zwischengespeichert, {{skipped}} ohne Geometrie)",
+    "anchorCoverage": "Hardpoint-Anker: {{withAnchors}}/{{ships}} Schiffe, {{without}} Schiff(e) mit Silhouette ohne Anker"
   },
   "progress": {
     "still": "arbeitet noch",

@@ -28,7 +28,18 @@ ids), so we read them directly. Verified layout (``#ivo`` v0x900):
     ``u32 crc32(name), u16 x3, u16, u16, u16 node_index``, followed by a
     NUL-separated string blob. A name belongs to a node when its CRC-32 is in
     the table — verified 273/273 (AEGS_Gladius) and 209/209
-    (DRAK_Cutlass_Black) names resolved.
+    (DRAK_Cutlass_Black) names resolved on the older v0x900 chunk. On LIVE 4.x
+    the chunk is v0x901 and the entry's last u16 is no longer the node index
+    (it reads ``0xffff``/unrelated values — 1 of 273 names resolved, so every
+    ship's ``hardpointTransforms`` came out empty, #643). There the names come
+    from the node chunk itself (below), and this table is only the fallback.
+  * the NODE chunk's own string table (LIVE 4.x, as cgf-converter reads
+    ``NodeMeshCombo``): header u32 ``[3]`` = count of a u16 list, ``[4]`` =
+    mesh-subset count (u16 each), ``[5]`` = string-table size; after the node
+    records follow those two lists, then one NUL-terminated name per node in
+    node order. Verified 273/273 (AEGS_Gladius), 209/209 (DRAK_Cutlass_Black),
+    every non-LOD ``.cga`` of five ship folders; positions match the
+    converter's node tree to 5e-5 m.
   * chunk type ``0x70697fda`` is the NODE table: u32 header (``[1]`` = node
     count), node records start at byte-offset 64 with a 208-byte stride. Each
     record starts with two row-major ``Matrix34`` (12 float32, translation in
@@ -183,6 +194,32 @@ def _node_names(chunks: List[Tuple[int, int, bytes]]) -> Dict[int, str]:
     return out
 
 
+def _node_chunk_names(seg: bytes, count: int, stride: int) -> Dict[int, str]:
+    """``node_index -> name`` from the node chunk's own string table.
+
+    LIVE 4.x layout (``0x70697fda`` v0x900, the one cgf-converter reads as
+    ``NodeMeshCombo``): header u32s ``[3]`` = count of a u16 index list,
+    ``[4]`` = mesh-subset count (one u16 material index each), ``[5]`` = size
+    of the string table. After the ``count`` node records come those two u16
+    lists, then the table: exactly one NUL-terminated name per node, in node
+    order. Validated by shape — the table must fit the chunk and hold at least
+    ``count`` names, the first ``count`` of them non-empty — else ``{}`` and
+    the caller falls back to the CRC-32 name table.
+    """
+    try:
+        hdr = struct.unpack_from("<8I", seg, 0)
+    except struct.error:
+        return {}
+    n_idx, n_subsets, str_size = hdr[3], hdr[4], hdr[5]
+    start = _NODE_BASE + count * stride + 2 * (n_idx + n_subsets)
+    if str_size <= 0 or start + str_size > len(seg):
+        return {}
+    parts = seg[start:start + str_size].split(b"\x00")
+    if len(parts) < count or not all(parts[:count]):
+        return {}
+    return {i: p.decode("utf-8", "replace") for i, p in enumerate(parts[:count])}
+
+
 def _is_orthonormal(m: Tuple[float, ...]) -> bool:
     """True when the 3x3 rotation block of a row-major Matrix34 is a rotation."""
     for row in (m[0:3], m[4:7], m[8:11]):
@@ -276,8 +313,6 @@ def helpers_from_cga_bytes(raw: bytes) -> Dict[str, Dict[str, Any]]:
     if not chunks:
         return {}
     names = _node_names(chunks)
-    if not names:
-        return {}
     seg = next((s for (t, _v, s) in chunks if t == _NODE_CHUNK_TYPE), None)
     if seg is None or len(seg) < _NODE_BASE + 4:
         return {}
@@ -289,6 +324,12 @@ def helpers_from_cga_bytes(raw: bytes) -> Dict[str, Dict[str, Any]]:
         return {}
     stride = _node_stride(seg, count)
     if stride is None:
+        return {}
+    # The node chunk's own string table is authoritative (LIVE 4.x); the
+    # CRC-32 table only covers the older v0x900 bones-chunk layout.
+    names = _node_chunk_names(seg, count, stride) or names
+
+    if not names:
         return {}
 
     out: Dict[str, Dict[str, Any]] = {}

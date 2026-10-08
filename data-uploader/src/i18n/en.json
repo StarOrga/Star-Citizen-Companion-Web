@@ -359,7 +359,8 @@
     "hint": "The first build converts every hull and part one by one — this can take a while.",
     "toolsFailed": "Build tools unavailable — silhouettes skipped",
     "buildFailed": "Silhouette build failed — the Codex goes up without outlines",
-    "done": "{{written}} silhouettes built ({{cached}} cached, {{skipped}} without geometry)"
+    "done": "{{written}} silhouettes built ({{cached}} cached, {{skipped}} without geometry)",
+    "anchorCoverage": "Hardpoint anchors: {{withAnchors}}/{{ships}} ships, {{without}} ship(s) with a silhouette but no anchors"
   },
   "progress": {
     "still": "still working",

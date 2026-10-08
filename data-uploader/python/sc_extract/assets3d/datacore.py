@@ -112,9 +112,11 @@ class DataCoreSource:
     def __init__(self, df: DataForge, reader: P4KReader,
                  node_helpers: Optional[Callable[..., Dict[str, Dict[str, Any]]]] = None) -> None:
         """``node_helpers`` (normally ``PartStore.helpers``) supplies helper
-        transforms from the converter's node tree when the ``.cga`` chunk scan
-        finds none — on LIVE 4.x it finds none for ships AND items, so in
-        practice this is the source."""
+        transforms from the converter's node tree — the tree the published
+        GLBs come from, so it stays the primary source here (its conversion is
+        reused by ``PartStore.export``). The ``.cga`` chunk scan is the
+        fallback; since #643 it reads LIVE 4.x node names again and agrees
+        with the converter to 5e-5 m on all 273 AEGS_Gladius nodes."""
         self.df, self.reader = df, reader
         self.node_helpers = node_helpers
         self._by_name = {rec.name.split(".", 1)[1].lower(): rec
@@ -167,14 +169,17 @@ class DataCoreSource:
         RESOLVE works in)."""
         key = geometry_path.lower()
         if key not in self._helpers:
-            try:
-                cry = helpers_from_cga_bytes(self.reader.read(geometry_path))
-            except Exception:  # noqa: BLE001 — unreadable mesh = no helpers
-                cry = {}
-            out = {name: _cry_helper_to_gltf(h) for name, h in cry.items()}
-            if not out and self.node_helpers is not None:
+            out: Dict[str, Dict[str, Any]] = {}
+            if self.node_helpers is not None:
                 mtl = self._mtl_by_geo.get(key)
-                out = self.node_helpers(geometry_path, mtl) if mtl else                     self.node_helpers(geometry_path)
+                out = self.node_helpers(geometry_path, mtl) if mtl else \
+                    self.node_helpers(geometry_path)
+            if not out:
+                try:
+                    cry = helpers_from_cga_bytes(self.reader.read(geometry_path))
+                except Exception:  # noqa: BLE001 — unreadable mesh = no helpers
+                    cry = {}
+                out = {name: _cry_helper_to_gltf(h) for name, h in cry.items()}
             self._helpers[key] = out
         return self._helpers[key]
 

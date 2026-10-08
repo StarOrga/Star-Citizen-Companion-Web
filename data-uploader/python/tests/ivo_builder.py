@@ -120,3 +120,64 @@ def ship_mesh(
     chunks.append((NAME_CHUNK, name_chunk(names)))
     chunks.append((NODE_CHUNK, node_chunk(nodes)))
     return ivo(chunks)
+
+
+# ── LIVE 4.x layout (verified on AEGS_Gladius / DRAK_Cutlass_Black, #643) ─────
+def live_node_chunk(
+    nodes: Sequence[Tuple[Sequence[float], Sequence[float]]],
+    names: Sequence[str],
+    n_index_list: int = 3,
+    n_subsets: int = 5,
+    tail: bytes = b"",
+) -> bytes:
+    """Node chunk as LIVE 4.x writes it: header ``[1]`` node count, ``[3]``
+    u16-index-list count, ``[4]`` mesh-subset count, ``[5]`` string-table size;
+    records, then the two u16 lists, then one NUL-terminated name per node in
+    node order (``tail`` lets a test append trailing bytes)."""
+    table = b"".join(n.encode("utf-8") + b"\x00" for n in names)
+    hdr = struct.pack("<8I", 32, len(nodes), 1, n_index_list, n_subsets, len(table), 0, 0)
+    buf = bytearray(hdr)
+    buf.extend(b"\x00" * (NODE_BASE - len(buf)))
+    for world, local in nodes:
+        record = bytearray(matrix34(world) + matrix34(local))
+        record.extend(b"\x00" * (NODE_STRIDE - len(record)))
+        buf.extend(record)
+    buf.extend(b"\x07\x00" * (n_index_list + n_subsets))  # u16 lists, content irrelevant
+    buf.extend(table)
+    buf.extend(tail)
+    return bytes(buf)
+
+
+def live_name_chunk(names: Sequence[str]) -> bytes:
+    """``0xc201973c`` v0x901 as LIVE ships it: ``[count, string-size]`` header
+    and 16-byte entries whose 6th u16 is NOT the node index any more (it reads
+    ``0xffff`` / unrelated values) — the reason the CRC table resolved 1 of 273
+    names on AEGS_Gladius."""
+    blob = b"".join(n.encode("utf-8") + b"\x00" for n in names)
+    buf = bytearray(struct.pack("<II", len(names), len(blob)))
+    buf.extend(b"\x00" * (NAME_TABLE_START - len(buf)))
+    for n in names:
+        buf.extend(struct.pack("<IHHHHHH", zlib.crc32(n.encode("utf-8")) & 0xFFFFFFFF,
+                               1, 3, 0xFFFF, 0xFFFF, 0xFFFF, 0x13))
+    buf.extend(blob)
+    return bytes(buf)
+
+
+def live_ship_mesh(
+    helpers: Dict[str, Sequence[float]],
+    bbox: Optional[Tuple[Sequence[float], Sequence[float]]] = None,
+) -> bytes:
+    """A LIVE-4.x-shaped hull: root node ``Body`` offset from the origin (as on
+    the Cutlass), named helpers parented to it, names only resolvable from the
+    node chunk's string table."""
+    root = (0.0, 6.85, -0.59)
+    names = ["Body"]
+    nodes: List[Tuple[Sequence[float], Sequence[float]]] = [(root, root)]
+    for name, pos in helpers.items():
+        names.append(name)
+        nodes.append((pos, tuple(pos[k] - root[k] for k in range(3))))
+    chunks: List[Tuple[int, bytes]] = [(NAME_CHUNK, live_name_chunk(names))]
+    chunks.append((NODE_CHUNK, live_node_chunk(nodes, names)))
+    if bbox is not None:
+        chunks.append((BBOX_CHUNK, bbox_chunk(bbox[0], bbox[1])))
+    return ivo(chunks)

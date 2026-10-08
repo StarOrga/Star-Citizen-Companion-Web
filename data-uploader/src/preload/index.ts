@@ -215,6 +215,8 @@ interface SilhouetteBuildResult {
   written: number;
   skipped: number;
   cached: number;
+  ships?: number;
+  shipsWithoutAnchors?: number;
 }
 interface SilhouetteBuildFinal {
   ok: boolean;
