@@ -322,14 +322,14 @@ export class CodexSearchBarComponent {
    */
   collapse(clear = false, restoreFocus = false): void {
     const wasActive = this.active();
+    // Taken before the blur: its focusout runs a nested collapse that resets it.
+    const back = this.returnFocus;
+    this.returnFocus = null;
     this.active.set(false);
     this.engine.setActive(-1);
     if (clear) this.engine.clear();
     const el = this.field().nativeElement;
-    const hadFocus = document.activeElement === el;
-    if (hadFocus) el.blur();
-    const back = this.returnFocus;
-    this.returnFocus = null;
+    if (document.activeElement === el) el.blur();
     if (restoreFocus && wasActive && this.tucked()) this.restoreFocus(back);
   }
 
