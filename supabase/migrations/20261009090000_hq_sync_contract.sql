@@ -12,7 +12,8 @@
 --   deleted_at timestamptz null
 --     soft-delete tombstone. A row with deleted_at is not null is gone for
 --     every reader; it survives only so a sync client can learn about the
---     deletion. Clients filter `deleted_at is null` on reads.
+--     deletion. Nothing writes it yet; readers add the filter together with
+--     the first soft delete, so the client never depends on this column.
 --
 -- Rule: every NEW personal table (Nachschub, Einsaetze, ...) ships with
 -- both columns and the trigger from day one.

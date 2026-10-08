@@ -197,13 +197,11 @@ export class HangarService {
         this.sb.client
           .from('hangar_ships')
           .select('*')
-          .is('deleted_at', null)
           .order('pinned_rank', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false }),
         this.sb.client
           .from('hangar_role_loadouts')
           .select('*')
-          .is('deleted_at', null)
           .order('updated_at', { ascending: false }),
         this.sb.client
           .from('hangar_concept_ships')
@@ -379,7 +377,6 @@ export class HangarService {
       .from('hangar_ships')
       .select('*')
       .eq('id', id)
-      .is('deleted_at', null)
       .maybeSingle();
     // A failed read throws: "the ship does not exist" and "the read failed"
     // are different states on the detail page (retry vs. not found).
@@ -482,7 +479,6 @@ export class HangarService {
     const { data, error } = await this.sb.client
       .from('hangar_ships')
       .select('id, pinned_rank')
-      .is('deleted_at', null)
       .not('pinned_rank', 'is', null);
     if (error) return false;
     const ranks = new Map(
@@ -668,7 +664,6 @@ export class HangarService {
       .from('hangar_ship_configs')
       .select('*')
       .eq('hangar_ship_id', hangarShipId)
-      .is('deleted_at', null)
       .order('updated_at', { ascending: false });
     if (error) {
       this.error.set(toErrorKey('hangar', 'listConfigs', error, { hangarShipId }));
@@ -687,7 +682,6 @@ export class HangarService {
     const { data, error } = await this.sb.client
       .from('hangar_ship_configs')
       .select('*')
-      .is('deleted_at', null)
       .order('updated_at', { ascending: false });
     if (error) throw error;
     return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
@@ -824,7 +818,6 @@ export class HangarService {
       .from('hangar_role_loadouts')
       .select('*')
       .eq('id', id)
-      .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
@@ -887,7 +880,6 @@ export class HangarService {
         .from('hangar_role_loadouts')
         .select('*')
         .eq('id', id)
-        .is('deleted_at', null)
         .maybeSingle();
       if (read.error) {
         logWarn('hangar', 'slot write refused', { id, slot, error: read.error });

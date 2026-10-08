@@ -314,8 +314,11 @@ Personal ("HQ") data will sync with the SCC desktop app. Since
 - `updated_at timestamptz not null default now()` — bumped by the
   `BEFORE UPDATE` trigger `public.set_updated_at()` (the sync cursor).
 - `deleted_at timestamptz null` — soft-delete tombstone; a non-null value
-  means "gone". Every client read filters `.is('deleted_at', null)`
-  (`src/app/hangar/hangar.service.ts`).
+  means "gone". Nothing writes it yet (deletes are still hard deletes),
+  so `src/app/hangar/hangar.service.ts` does not filter on it — that keeps
+  the client deployable before the migration is applied. The PR that
+  starts soft-deleting adds `.is('deleted_at', null)` to every read in
+  the same change.
 
 Rule: **every new personal table** (Nachschub, Einsätze, …) ships with both
 columns plus the trigger from its first migration. RLS stays self-only CRUD.
