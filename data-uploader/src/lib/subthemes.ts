@@ -71,10 +71,13 @@ export const SUBTHEMES: readonly Subtheme[] = [
   },
   {
     key: 'ships',
-    revision: 1,
+    // 2: #643 — LIVE 4.x hull node names readable again, so
+    // payload.hardpointTransforms / hardpointFrame are no longer empty.
+    revision: 2,
     phases: ['codex_ships'],
     sources: [
       ...CATALOG_SHARED,
+      'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/ship_discovery.py',
       'data-uploader/python/sc_extract/thresholds.py',
     ],
@@ -84,7 +87,9 @@ export const SUBTHEMES: readonly Subtheme[] = [
   { key: 'items', revision: 1, phases: ['codex_items'], sources: CATALOG_SHARED },
   {
     key: 'codex_extra',
-    revision: 1,
+    // 2: #643 — codex_item_ports.helper_name / position / rotation resolve on
+    // LIVE 4.x again (hull node names from the node chunk's string table).
+    revision: 2,
     phases: [
       'codex_manufacturers',
       'codex_blueprints',
@@ -96,6 +101,7 @@ export const SUBTHEMES: readonly Subtheme[] = [
     ],
     sources: [
       ...CATALOG_SHARED,
+      'data-uploader/python/sc_extract/geometry.py',
       'data-uploader/python/sc_extract/hardpoints.py',
       'data-uploader/python/sc_extract/images.py',
       'data-uploader/python/sc_extract/keybinds.py',
@@ -103,7 +109,8 @@ export const SUBTHEMES: readonly Subtheme[] = [
   },
   {
     key: 'silhouettes',
-    revision: 1,
+    // 2: #643 — ship silhouettes carry hardpoint anchors (were all empty).
+    revision: 2,
     phases: ['codex_silhouettes'],
     sources: [
       'data-uploader/python/sc_extract/silhouette',

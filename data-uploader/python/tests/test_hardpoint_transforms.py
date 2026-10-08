@@ -28,6 +28,9 @@ from ivo_builder import (
     NAME_CHUNK,
     NODE_CHUNK,
     ivo,
+    live_name_chunk,
+    live_node_chunk,
+    live_ship_mesh,
     matrix34,
     name_chunk,
     node_chunk,
@@ -122,6 +125,59 @@ class TestHelpersFromCga:
             ship_mesh({"hardpoint_nan": (float("nan"), 0.0, 0.0), "hardpoint_ok": (1.0, 2.0, 3.0)})
         )
         assert list(helpers) == ["hardpoint_ok"]
+
+
+class TestLiveIvoLayout:
+    """#643: on LIVE 4.x the ``0xc201973c`` table is v0x901 and no longer maps
+    a CRC to a node index, so the names come from the node chunk's own string
+    table. Every prod ship had ``anchors: []`` before this was read."""
+
+    def test_names_come_from_the_node_chunk_string_table(self):
+        helpers = helpers_from_cga_bytes(live_ship_mesh(HELPERS))
+        assert set(helpers) == {"Body"} | set(HELPERS)
+        for name, pos in HELPERS.items():
+            assert helpers[name]["position"] == [round(v, 4) for v in pos]
+        # world vs. parent-relative: root `Body` sits off the origin (Cutlass)
+        assert helpers["Body"]["position"] == [0.0, 6.85, -0.59]
+        assert helpers["hardpoint_weapon_left"]["localPosition"] == [-3.5, -4.85, 1.09]
+
+    def test_v901_crc_table_alone_resolves_nothing(self):
+        # Without the node string table the v901 CRC entries must not be
+        # misread as node indices (0x13 / 0xffff) — no names, no helpers.
+        names = ["Body", "hardpoint_weapon_left"]
+        nodes = [((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)), ((1.0, 2.0, 3.0), (1.0, 2.0, 3.0))]
+        raw = ivo([(NAME_CHUNK, live_name_chunk(names)), (NODE_CHUNK, node_chunk(nodes))])
+        assert helpers_from_cga_bytes(raw) == {}
+
+    def test_node_chunk_names_work_without_any_crc_table(self):
+        names = ["Body", "hardpoint_gun_nose"]
+        nodes = [((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)), ((0.0, 10.6, -1.2), (0.0, 10.6, -1.2))]
+        helpers = helpers_from_cga_bytes(ivo([(NODE_CHUNK, live_node_chunk(nodes, names))]))
+        assert helpers["hardpoint_gun_nose"]["position"] == [0.0, 10.6, -1.2]
+
+    def test_truncated_string_table_is_rejected(self):
+        names = ["Body", "hardpoint_gun_nose"]
+        nodes = [((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)), ((0.0, 10.6, -1.2), (0.0, 10.6, -1.2))]
+        seg = bytearray(live_node_chunk(nodes, names))
+        struct.pack_into("<I", seg, 20, 10_000)  # declared string size > chunk
+        assert helpers_from_cga_bytes(ivo([(NODE_CHUNK, bytes(seg))])) == {}
+
+    def test_too_few_names_is_rejected(self):
+        nodes = [((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)), ((1.0, 2.0, 3.0), (1.0, 2.0, 3.0)),
+                 ((4.0, 5.0, 6.0), (4.0, 5.0, 6.0))]
+        raw = ivo([(NODE_CHUNK, live_node_chunk(nodes, ["Body", "hardpoint_a"]))])
+        assert helpers_from_cga_bytes(raw) == {}
+
+    def test_live_hull_resolves_ports_and_a_bbox_frame(self):
+        raw = live_ship_mesh(HELPERS, bbox=((-4.0, -8.0, -1.5), (4.0, 8.0, 2.5)))
+        helpers = helpers_from_cga_bytes(raw)
+        transforms = resolve_hardpoint_transforms(
+            helpers, item_ports=[], loadout_port_names=["hardpoint_weapon_left"])
+        assert transforms["hardpoint_weapon_left"]["source"] == "portName"
+        assert set(HELPERS) <= set(transforms)  # mesh hardpoints join too
+        frame = hardpoint_frame([t["position"] for t in transforms.values()],
+                                bbox_from_cga_bytes(raw))
+        assert frame["source"] == "bbox"
 
 
 class TestBboxFromCga:

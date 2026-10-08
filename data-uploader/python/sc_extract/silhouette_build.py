@@ -108,6 +108,7 @@ def main() -> int:
     generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     ok = skipped = 0
+    ships = ships_without_anchors = 0
     # One cgf-converter run per DISTINCT mesh: entities sharing a hull (ship
     # editions) or an item mesh (variants) are deduped up front.
     by_mesh: Dict[str, list] = {}
@@ -136,9 +137,16 @@ def main() -> int:
             fname = f"{kind}__{_safe_filename(class_name)}.json"
             (out_dir / fname).write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
             ok += 1
+            if kind == "ship":
+                ships += 1
+                if not row.get("anchors"):
+                    ships_without_anchors += 1
+                    log("warn", f"ship/{class_name}: silhouette without anchors")
         log("info", f"{mesh}: {len(refs)} entit(y/ies) sharing this mesh done")
 
     log("info", f"silhouette build: {ok} written, {skipped} skipped (no usable geometry)")
+    log("info", f"anchor coverage: {ships - ships_without_anchors}/{ships} ship silhouettes "
+                f"with anchors, {ships_without_anchors} without")
     return 0
 
 

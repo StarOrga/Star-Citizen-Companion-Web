@@ -41,6 +41,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gegenstandsauswahl im Hangar** zeigt nie mehr einen Übersetzungsschlüssel
   als Namen.
 
+## [0.134.1] - 2026-10-08
+
+### Fixed
+
+- **Data Uploader 0.48.0: Hardpoint-Anker für Schiffs-Silhouetten auf LIVE 4.x.**
+  Auf dem aktuellen LIVE-Build konnte der Uploader die Knotennamen der
+  Schiffshüllen nicht mehr lesen, deshalb kamen alle Hardpoint-Positionen und
+  damit alle Anker der Silhouetten leer an. Er liest die Namen jetzt aus der
+  Knotentabelle selbst; ein voller LIVE-4.10-Lauf findet Positionen für 348 von
+  349 Schiffen. Am Ende des Silhouetten-Builds zeigt der Uploader, wie viele
+  Schiffe Anker haben. Auf der Website erscheinen die Anker nach dem nächsten
+  Uploader-Lauf auf dem aktuellen LIVE-Build: Schiffe, weitere Codex-Daten und
+  Silhouetten werden dabei neu hochgeladen, statt als unverändert übersprungen.
+
 ## [0.134.0] - 2026-10-08
 
 ### Added
