@@ -366,6 +366,38 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 }
 
 /**
+ * How many chunked payload reads one tab keeps in flight at a time.
+ *
+ * The whole-fleet rank cohort resolves ~5 000 class names: three tables × ~25
+ * chunks, ~75 payload-heavy queries. Fired all at once, one cold tab (no
+ * cohort cache yet — first visit per build, a private window) held PostgREST's
+ * entire connection pool (~10 on this project) for seconds, and four of them
+ * for over ten: every other request queued behind them server-side — measured
+ * 2026-10-08, a `profiles` primary-key read at 7–11 s of origin time. That
+ * read is what `approvedGuard` waits on for at most 5 s, so a fresh page load
+ * next to a cold cohort landed on /unavailable. A small window keeps the
+ * cohort's total time about the same (the pool capped it anyway) while a
+ * light read never waits behind more than a handful of queries.
+ */
+export const PAYLOAD_READS_IN_FLIGHT = 3;
+
+/**
+ * Run `task` over `items` with at most `limit` of them in flight, in order of
+ * `items`. Resolves when all have settled; `task` handles its own failures.
+ */
+export async function forEachLimited<T>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < items.length) await task(items[next++]);
+  };
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), items.length) }, worker));
+}
+
+/**
  * Split locale keys into batches whose encoded `in.(…)` list fits the URL
  * budget. Cost per key is its percent-encoded length plus the `%2C` separator.
  */
@@ -1613,27 +1645,31 @@ export class CodexService {
     // past the URI limit and the request fails outright. Chunk to keep every
     // request well under that limit, and log (never silently swallow) a
     // chunk failure so callers can tell a partial result from a complete one.
-    const chunks = chunk(names, 200);
-    await Promise.all(
-      (['weapon', 'component', 'item'] as CodexKind[]).flatMap((kind) =>
-        chunks.map(async (slice) => {
-          const { data, error } = await this.sb.client
-            .from(CODEX_ENTITY_TABLES[kind])
-            .select('class_name, payload')
-            .eq('build_id', build.id)
-            .in('class_name', slice);
-          if (error || !data) {
-            logWarn('codex', 'getEntityPayloads chunk failed', { kind, error });
-            if (report) report.failed++;
-            return;
-          }
-          for (const r of data as unknown as Record<string, unknown>[]) {
-            const cn = r['class_name'] as string;
-            if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
-          }
-        }),
-      ),
-    );
+    // At most PAYLOAD_READS_IN_FLIGHT at once — see there. The answers are
+    // collected per table and merged in table order afterwards, so "first
+    // table that owns a class name wins" holds however the reads interleave.
+    const kinds = ['weapon', 'component', 'item'] as CodexKind[];
+    const byKind = new Map<CodexKind, Record<string, unknown>[]>(kinds.map((k) => [k, []]));
+    const reads = kinds.flatMap((kind) => chunk(names, 200).map((slice) => ({ kind, slice })));
+    await forEachLimited(reads, PAYLOAD_READS_IN_FLIGHT, async ({ kind, slice }) => {
+      const { data, error } = await this.sb.client
+        .from(CODEX_ENTITY_TABLES[kind])
+        .select('class_name, payload')
+        .eq('build_id', build.id)
+        .in('class_name', slice);
+      if (error || !data) {
+        logWarn('codex', 'getEntityPayloads chunk failed', { kind, error });
+        if (report) report.failed++;
+        return;
+      }
+      byKind.get(kind)!.push(...(data as unknown as Record<string, unknown>[]));
+    });
+    for (const kind of kinds) {
+      for (const r of byKind.get(kind)!) {
+        const cn = r['class_name'] as string;
+        if (!out.has(cn)) out.set(cn, { kind, payload: r['payload'] });
+      }
+    }
     return out;
   }
 
@@ -1649,23 +1685,21 @@ export class CodexService {
     const build = await this.loadCurrentBuild();
     const names = Array.from(new Set(classNames.filter(Boolean)));
     if (!build || names.length === 0) return out;
-    await Promise.all(
-      chunk(names, 200).map(async (slice) => {
-        const { data, error } = await this.sb.client
-          .from('codex_ammunition')
-          .select('class_name, payload')
-          .eq('build_id', build.id)
-          .in('class_name', slice);
-        if (error || !data) {
-          logWarn('codex', 'getAmmoPayloads chunk failed', { error });
-          if (report) report.failed++;
-          return;
-        }
-        for (const r of data as unknown as Record<string, unknown>[]) {
-          out.set(r['class_name'] as string, r['payload']);
-        }
-      }),
-    );
+    await forEachLimited(chunk(names, 200), PAYLOAD_READS_IN_FLIGHT, async (slice) => {
+      const { data, error } = await this.sb.client
+        .from('codex_ammunition')
+        .select('class_name, payload')
+        .eq('build_id', build.id)
+        .in('class_name', slice);
+      if (error || !data) {
+        logWarn('codex', 'getAmmoPayloads chunk failed', { error });
+        if (report) report.failed++;
+        return;
+      }
+      for (const r of data as unknown as Record<string, unknown>[]) {
+        out.set(r['class_name'] as string, r['payload']);
+      }
+    });
     return out;
   }
 

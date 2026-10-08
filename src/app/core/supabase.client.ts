@@ -29,12 +29,6 @@ class InMemoryNoopStorage {
 // matches against (`<url>/rest/v1/<table>` and `<url>/rest/v1/rpc/<name>`).
 const REST_BASE = `${environment.supabase.url.replace(/\/+$/, '')}/rest/v1/`;
 
-// Single-flight lock passthrough shared by both clients — see the comment
-// on `realClient` below for why Navigator-Lock is disabled entirely.
-function lockPassthrough<R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> {
-  return fn();
-}
-
 @Injectable({ providedIn: 'root' })
 export class SupabaseClientProvider {
   private readonly imp = inject(ImpersonationService);
@@ -58,12 +52,12 @@ export class SupabaseClientProvider {
         autoRefreshToken: true,
         storageKey: 'sc.auth',
         flowType: 'pkce',
-        // Disable Navigator-Lock — the iframe-style dev preview (and any
-        // duplicate-tab scenario on the same origin) triggers
-        // `NavigatorLockAcquireTimeoutError: lock:sc.auth` because two
-        // Supabase clients fight over the same lock. PKCE with single-flight
-        // token rotation makes the lock redundant here.
-        lock: lockPassthrough,
+        // No `lock` option: since auth-js 2.107 the default IS lockless (no
+        // Navigator-Lock — which once threw `NavigatorLockAcquireTimeoutError:
+        // lock:sc.auth` in the dev preview and duplicate tabs), with in-tab
+        // refreshes single-flighted. The pass-through lock that used to sit
+        // here bought the same and logged a deprecation warning on every page
+        // load since 2.112.4; the option goes away in v3.
       },
       global: { fetch: createReadDeadlineFetch(REST_BASE) },
     },
@@ -85,7 +79,6 @@ export class SupabaseClientProvider {
           autoRefreshToken: false,
           storageKey: 'sc.anon-preview',
           storage: new InMemoryNoopStorage(),
-          lock: lockPassthrough,
         },
         global: { fetch: createReadDeadlineFetch(REST_BASE) },
       });

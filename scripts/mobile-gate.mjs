@@ -1400,7 +1400,23 @@ async function main() {
     `[mobile-gate] ${target.baseUrl} (${target.mode}) · ${devices.length} devices × ${routes.length} public route(s)${authSuffix}`,
   );
 
-  const concurrency = Math.max(1, Number(args.opts.concurrency || Math.min(devices.length, 2)));
+  // Every signed-in device is a FRESH browser context: no cohort cache, so each
+  // one's first ship page reads the whole fleet from the cloud database, and
+  // each route is a full page load whose approvedGuard waits at most 5 s for
+  // the `profiles` read. Four of those at once are a load test on the shared
+  // project, not a layout check — measured 2026-10-08, the DB answered a
+  // primary-key read in 7–11 s and 1–5 device/route pairs landed on
+  // /unavailable per run. Two at a time stayed under 2 s. The public pass
+  // touches no database, so only the authenticated pass is capped.
+  const AUTH_MAX_CONCURRENCY = 2;
+  let concurrency = Math.max(1, Number(args.opts.concurrency || Math.min(devices.length, 2)));
+  if (auth && concurrency > AUTH_MAX_CONCURRENCY) {
+    console.log(
+      `[mobile-gate] --auth: running ${AUTH_MAX_CONCURRENCY} devices at a time, not ${concurrency} — ` +
+        'more parallel signed-in browsers overload the cloud database and bounce routes to /unavailable.',
+    );
+    concurrency = AUTH_MAX_CONCURRENCY;
+  }
   const queue = [...devices];
   const results = [];
   const workers = Array.from({ length: concurrency }, async () => {

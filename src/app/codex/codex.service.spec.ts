@@ -3,6 +3,8 @@ import {
   CODEX_KINDS,
   CodexKind,
   CodexService,
+  PAYLOAD_READS_IN_FLIGHT,
+  forEachLimited,
   manufacturerFacetOptions,
   manufacturerLabel,
 } from './codex.service';
@@ -962,6 +964,109 @@ describe('CodexService.resolveEntities', () => {
     const resolved = await svc.resolveEntities(['LH86']);
 
     expect(resolved.get('LH86')?.name).toBeNull();
+  });
+});
+
+describe('forEachLimited', () => {
+  it('never runs more than the limit at once, and runs every item once, in order', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const started: number[] = [];
+    const items = Array.from({ length: 10 }, (_, i) => i);
+    await forEachLimited(items, 3, async (i) => {
+      started.push(i);
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await Promise.resolve();
+      await Promise.resolve();
+      inFlight--;
+    });
+    expect(peak).toBe(3);
+    expect(started).toEqual(items);
+  });
+
+  it('settles at once for no items', async () => {
+    const task = jasmine.createSpy('task');
+    await forEachLimited([], 3, task);
+    expect(task).not.toHaveBeenCalled();
+  });
+});
+
+describe('CodexService.getEntityPayloads', () => {
+  /**
+   * Every entity table answers each chunk on a promise the spec releases, so
+   * the number of reads in flight can be read off at any moment. `owners`
+   * says which tables hold a row for a class name.
+   */
+  function setup(owners: Record<string, string[]>) {
+    const pending: { table: string; release: () => void }[] = [];
+    const from = (table: string) => {
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        eq: () => chain,
+        in: (_col: string, names: string[]) =>
+          new Promise((resolve) =>
+            pending.push({
+              table,
+              release: () =>
+                resolve({
+                  data: names
+                    .filter((n) => (owners[n] ?? []).includes(table))
+                    .map((n) => ({ class_name: n, payload: { from: table } })),
+                  error: null,
+                }),
+            }),
+          ),
+        maybeSingle: () =>
+          Promise.resolve({
+            data: { id: BUILD_ID, channel: 'LIVE', patch_version: '4.0', build_number: '1', is_current: true },
+            error: null,
+          }),
+      });
+      return chain;
+    };
+    TestBed.configureTestingModule({
+      providers: [CodexService, { provide: SupabaseClientProvider, useValue: { client: { from } } }],
+    });
+    return { svc: TestBed.inject(CodexService), pending };
+  }
+
+  const settle = async () => {
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+  };
+
+  // 2026-10-08: the whole-fleet cohort fired ~75 payload reads at once and
+  // held PostgREST's pool; a fresh page's `profiles` read then queued past
+  // approvedGuard's 5 s and landed on /unavailable.
+  it('keeps at most PAYLOAD_READS_IN_FLIGHT chunk reads in flight for a fleet-sized list', async () => {
+    const names = Array.from({ length: 1000 }, (_, i) => `CLS_${i}`); // 5 chunks × 3 tables
+    const { svc, pending } = setup({});
+    const done = svc.getEntityPayloads(names);
+    let reads = 0;
+    for (;;) {
+      await settle();
+      if (pending.length === 0) break;
+      expect(pending.length).toBeLessThanOrEqual(PAYLOAD_READS_IN_FLIGHT);
+      reads += pending.length;
+      pending.splice(0).forEach((p) => p.release());
+    }
+    await done;
+    expect(reads).toBe(15);
+  });
+
+  it('lets the first table that owns a class name win, whatever order the answers arrive in', async () => {
+    const { svc, pending } = setup({ SHARED: ['codex_weapons', 'codex_items'], ONLY_ITEM: ['codex_items'] });
+    const done = svc.getEntityPayloads(['SHARED', 'ONLY_ITEM']);
+    for (;;) {
+      await settle();
+      if (pending.length === 0) break;
+      // Answer last-asked first: the items table answers before the weapons table.
+      pending.splice(0).reverse().forEach((p) => p.release());
+    }
+    const out = await done;
+    expect(out.get('SHARED')).toEqual({ kind: 'weapon', payload: { from: 'codex_weapons' } });
+    expect(out.get('ONLY_ITEM')).toEqual({ kind: 'item', payload: { from: 'codex_items' } });
   });
 });
 
