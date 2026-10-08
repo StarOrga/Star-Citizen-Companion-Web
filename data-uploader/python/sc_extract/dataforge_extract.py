@@ -1043,7 +1043,8 @@ class CodexExtractor:
                 ships_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
                     json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
                 n_ship += 1
-                self._note_silhouette_candidate("ship", obj["className"], comps)
+                self._note_silhouette_candidate("ship", obj["className"], comps,
+                                                ground="/groundvehicles/" in fn)
             elif kind == "weapons":
                 obj = self._project_weapon(r, resolved, comps, attach, atype)
                 wpn_d.joinpath(f"{_safe_filename(obj['className'])}.json").write_text(
@@ -1323,7 +1324,8 @@ class CodexExtractor:
                                 f"ref(s) skipped — hull but no resolvable material "
                                 f"(wrecks, debris, non-liveried entities)")
 
-    def _note_silhouette_candidate(self, kind: str, class_name: str, comps) -> None:
+    def _note_silhouette_candidate(self, kind: str, class_name: str, comps,
+                                   ground: bool = False) -> None:
         """Record an entity with a resolvable mesh for the sibling silhouette
         build step (`silhouette_export.py`) — mirrors `_write_skin_build_manifest`
         for the 3D-hull build. An entity without a mesh path is simply not
@@ -1331,8 +1333,12 @@ class CodexExtractor:
         geometry to trace."""
         mesh = self._hull_path(comps)
         if mesh:
-            self._silhouette_candidates.append(
-                {"kind": kind, "class_name": class_name, "mesh": mesh})
+            entry = {"kind": kind, "class_name": class_name, "mesh": mesh}
+            # Ground vehicles stay kind "ship" (one codex table) — the flag only
+            # feeds the Verse-hub constellation's ship/ground label.
+            if ground:
+                entry["ground"] = True
+            self._silhouette_candidates.append(entry)
 
     def _write_silhouette_manifest(self) -> None:
         """Drop silhouettes/_build_manifest.json listing every ship / weapon /
