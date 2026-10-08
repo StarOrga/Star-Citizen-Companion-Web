@@ -157,7 +157,8 @@
       "reload": "Reload app",
       "dismiss": "Dismiss"
     },
-    "hq": "HQ"
+    "hq": "HQ",
+    "verse": "Verse"
   },
   "impersonation": {
     "banner": {
@@ -4665,5 +4666,299 @@
       "detailsAria": "{{name}} details in the codex"
     },
     "signpost": "Your ships in HQ"
+  },
+  "verse": {
+    "crumb": "Verse",
+    "area": {
+      "briefing": "Briefing",
+      "news": "Verse News",
+      "patches": "Patch News",
+      "gallery": "Gallery",
+      "starmap": "Star map"
+    },
+    "kind": {
+      "news": "News",
+      "patch": "Patch",
+      "gallery": "Gallery",
+      "link": "Link"
+    },
+    "beta": {
+      "aria": "New Verse view (β)",
+      "switchFor": "New view for {{area}}",
+      "all": "β switches for every area"
+    },
+    "status": {
+      "aria": "Patch status: {{line}}",
+      "live": "Live",
+      "ptu": "PTU {{line}}",
+      "since": "live for {{n}} d",
+      "next": "next ~ in {{n}} d",
+      "overdue": "next overdue by {{n}} d"
+    },
+    "briefing": {
+      "forYou": "For you",
+      "cta": "Take a look",
+      "headlineQuiet": "Quiet in the Verse — nothing new since your last visit",
+      "unseen": "{{n}} new since your last visit",
+      "allSeen": "You are up to date",
+      "patchLine": "Patch {{line}} is live",
+      "topAria": "What matters right now",
+      "empty": "Nothing new right now.",
+      "pinned": "pinned"
+    },
+    "gates": {
+      "aria": "Areas of the Verse",
+      "total": "{{n}} in total",
+      "news": {
+        "title": "Verse News",
+        "stat": "{{n}} this week",
+        "teaser": "Dev replies, videos and Comm-Links in one place"
+      },
+      "patches": {
+        "title": "Patch News",
+        "stat": "{{n}} new notes",
+        "teaser": "When the next patch lands and what it changes"
+      },
+      "gallery": {
+        "title": "Gallery",
+        "stat": "{{n}} new wallpapers",
+        "teaser": "Browse, share and vote on Starscape wallpapers"
+      }
+    },
+    "patches": {
+      "sub": "Patch status, facts and your pre-flight",
+      "kpi": {
+        "lines": {
+          "label": "patch lines in the archive",
+          "value": "{{n}}"
+        },
+        "leadTime": {
+          "label": "latest test phase",
+          "value": "{{n}} days"
+        },
+        "cadence": {
+          "label": "between main patches (median)",
+          "value": "{{n}} days"
+        },
+        "subCadence": {
+          "label": "between hotfixes (median)",
+          "value": "{{n}} days"
+        },
+        "stable": {
+          "label": "recently landed stable",
+          "value": "{{n}}"
+        }
+      },
+      "ready": {
+        "title": "Pre-flight for {{line}}",
+        "progress": "{{done}} of {{total}} done",
+        "step": {
+          "notes": "Patch notes read",
+          "keybinds": "Keybindings checked",
+          "loadout": "Loadout checked",
+          "shaders": "Shader cache cleared"
+        }
+      },
+      "comet": {
+        "title": "Comet vote: when does {{line}} go live?",
+        "hint": "Cast your vote — you see the community median afterwards.",
+        "label": "Your guess for the LIVE day",
+        "submit": "Cast vote",
+        "yours": "Your vote: {{date}}",
+        "median": "Community median: {{date}} ({{n}} votes)"
+      }
+    },
+    "gallery": {
+      "mine": "My constellations",
+      "connected": "Starscape connected",
+      "share": "Share gallery",
+      "heroTitle": "Starscape brings the gallery to your desktop",
+      "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the constellations you earned."
+    }
+  },
+  "starmap": {
+    "title": "Star map",
+    "eyebrow": "Explorer",
+    "subtitle": "One constellation per patch, drawn from the newest ship. Every task lights a star.",
+    "signedOut": "Sign in to see your star map.",
+    "signIn": "Sign in",
+    "loading": "Loading star map …",
+    "empty": "There is no constellation for this patch yet.",
+    "stageAria": "Constellation of patch {{patch}}",
+    "progress": "{{lit}} of {{total}} stars",
+    "shapeFrom": "Shape: {{name}}",
+    "sun": {
+      "hit": "Your comet hit: the sun has risen next to the constellation.",
+      "how": "If your comet lands within ±2 days of the LIVE date, the sun rises next to the constellation."
+    },
+    "export": {
+      "wallpaper": "Download wallpaper (4K)",
+      "busy": "Rendering …",
+      "gallery": "My constellations",
+      "locked": "At {{total}} stars the constellation becomes your wallpaper.",
+      "failed": "The wallpaper could not be created. Please try again."
+    },
+    "tasksTitle": "What earns a star",
+    "noTasks": "No tasks are available for this patch.",
+    "task": {
+      "done": "done",
+      "open": "open",
+      "notes": {
+        "title": "Read the notes highlights",
+        "how": "Read the patch notes highlights in Patch News.",
+        "link": "Go to Patch News"
+      },
+      "archive": {
+        "title": "Archive find",
+        "how": "Switch the Codex to an older patch and discover what applied back then.",
+        "link": "Go to the Codex"
+      },
+      "loadout": {
+        "title": "Hangar loadout",
+        "how": "Open one of your ships in the hangar and look at its loadout.",
+        "link": "Go to the hangar"
+      },
+      "comet": {
+        "title": "Comet placed",
+        "how": "Guess in Patch News when the patch goes LIVE.",
+        "link": "Place your comet"
+      },
+      "cxNewship": {
+        "title": "New ship viewed",
+        "how": "Open the patch's newest ship in the Codex.",
+        "link": "Go to the ship"
+      },
+      "cxKeybinds": {
+        "title": "Keybinds checked",
+        "how": "Look at the current build's key bindings in the Codex.",
+        "link": "Go to keybinds"
+      },
+      "cxChanged": {
+        "title": "Change spotted",
+        "how": "Compare two patches in a ship's holotable.",
+        "link": "Go to the comparison"
+      },
+      "cxBlueprint": {
+        "title": "Blueprint opened",
+        "how": "Open a blueprint in the Codex.",
+        "link": "Go to blueprints"
+      },
+      "cxFps": {
+        "title": "FPS gear viewed",
+        "how": "Browse the Codex's FPS weapons and armour.",
+        "link": "Go to FPS"
+      },
+      "cxLoadout": {
+        "title": "Codex loadout saved",
+        "how": "Save a customised loadout on a ship page in the Codex.",
+        "link": "Build a loadout"
+      }
+    },
+    "log": {
+      "title": "Explorer log",
+      "summary": "{{patches}} patches · {{stars}} stars · {{suns}} suns"
+    },
+    "streak": {
+      "title": "Streak",
+      "status": "Currently {{current}} patches in a row · longest streak {{best}}",
+      "reserveReady": "Fuel reserve ready: one missed patch will not break the streak.",
+      "reserveUsed": "Fuel reserve used."
+    },
+    "reward": {
+      "unlocked": "unlocked",
+      "locked": "from {{at}} patches",
+      "road": {
+        "title": "Star road",
+        "desc": "Connects your constellations across patches."
+      },
+      "nebula": {
+        "title": "Nebula",
+        "desc": "A glowing nebula behind your constellations."
+      },
+      "live": {
+        "title": "Live wallpaper",
+        "desc": "Twinkling stars, sparingly animated.",
+        "preview": "Live preview of your sky"
+      },
+      "reserve": {
+        "title": "Fuel reserve",
+        "desc": "One missed patch will not break your streak."
+      },
+      "meteor": {
+        "title": "Meteor shower",
+        "desc": "On LIVE day, meteors streak across your constellations.",
+        "today": "It is LIVE day: the meteor shower streaks across your constellations.",
+        "notToday": "The meteor shower only appears on the newest patch's LIVE day."
+      },
+      "supernova": {
+        "title": "Supernova",
+        "desc": "A generated supernova constellation just for you.",
+        "download": "Download supernova (4K)"
+      }
+    },
+    "kartograph": {
+      "title": "Cartographer",
+      "rank": "Rank {{rank}}",
+      "perks": "Early access to beta features, suggestions for the top list and a badge your friends can see.",
+      "locked": "Collect stars to unlock the cartographer rank."
+    },
+    "community": {
+      "title": "Community constellation",
+      "on": "Your stars shine in this patch's community constellation.",
+      "off": "From 3 stars you shine in this patch's community constellation.",
+      "count": "{{explorers}} explorers lit stars in this patch. Brighter stars = more explorers."
+    },
+    "suns": {
+      "title": "Sun collection",
+      "none": "No sun yet. Place your comet in Patch News."
+    },
+    "glyph": {
+      "aria": "Star map: {{lit}} of {{total}} stars"
+    },
+    "gallery": {
+      "crumb": "Gallery",
+      "title": "My constellations",
+      "subtitle": "Every completed constellation lands here automatically.",
+      "empty": "No constellation completed yet.",
+      "toMap": "Go to the star map",
+      "appHint": "The last 7 are in the Starscape app as well.",
+      "inApp": "in Starscape",
+      "thumbAria": "Constellation wallpaper of patch {{patch}}",
+      "download": "Download 4K",
+      "share": "Share",
+      "copied": "Link copied."
+    },
+    "badge": {
+      "share": "Share badge",
+      "caption": "Cartographer · Rank {{rank}}",
+      "captionSub": "Patch {{patch}} · {{stars}} of {{total}} stars · SC Companion",
+      "aria": "Cartographer badge rank {{rank}} with the constellation of patch {{patch}}",
+      "explain": "A cartographer completed whole constellations in SC Companion: every task of a patch is a star.",
+      "cta": "Start your own star map",
+      "invalid": "This badge link is incomplete.",
+      "toVerse": "Go to the Verse"
+    },
+    "suggest": {
+      "title": "Suggest a top item",
+      "url": "Link (https://… or a path like /verse/patches/4.4)",
+      "note": "Why? (optional)",
+      "submit": "Send suggestion",
+      "sent": "Thanks! Your suggestion is with the admin team.",
+      "status": {
+        "open": "open",
+        "pinned": "pinned",
+        "dismissed": "not taken"
+      },
+      "admin": {
+        "title": "Cartographer suggestions (admins only)",
+        "empty": "No open suggestions.",
+        "promote": "Pin",
+        "dismiss": "Dismiss",
+        "promoteTitle": "Pin suggestion",
+        "promoteMessage": "The link {{url}} appears as a pin in the briefing's top list.",
+        "pinTitle": "Pin title",
+        "promoted": "Pinned."
+      }
+    }
   }
 }

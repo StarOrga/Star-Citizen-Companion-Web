@@ -325,3 +325,25 @@ columns plus the trigger from its first migration. RLS stays self-only CRUD.
 The web client still hard-deletes; before switching to soft delete, make
 the unique keys `hangar_ships_user_ship_key` and
 `hangar_ship_configs_one_active` partial on `deleted_at is null`.
+
+## Verse hub
+
+`20261009100000_verse_hub.sql` and `20261009120000_verse_suggestions.sql`
+back the `/verse` tab (briefing, Patch News, gallery, star map). Nothing is
+dropped.
+
+- Own-row tables (RLS `auth.uid() = user_id`): `verse_seen`,
+  `patch_readiness`, `patch_prediction` (insert-only, one vote per patch),
+  `verse_star_progress` (no direct writes — stars are earned only through
+  the SECURITY DEFINER RPC `verse_earn_star`, validated against
+  `verse_star_pool`; the comet star is set by the `patch_prediction`
+  trigger).
+- Public-read tables: `verse_constellations` (written only by
+  `ingest-catalog` with the service role; the Data Uploader precomputes
+  7 points per hull), `verse_pins` (admin write), `verse_suggestions`
+  (Kartograph rank inserts, admin promotes via `verse_promote_suggestion`).
+- Read RPCs: `verse_digest()` (anon + authenticated, must stay inside the
+  anon 3 s budget), `verse_explorer_state()`, `patch_prediction_median()`
+  (only after the caller's own vote), `verse_community_stars()`,
+  `verse_kartograph_rank()`.
+- pgTAP: `supabase/tests/database/verse_hub_rls.test.sql`.

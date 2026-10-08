@@ -30,6 +30,7 @@ from typing import Any, Dict
 # other char outside dataforge_extract's own keep-set) resolved to a
 # DIFFERENT filename than the one the entity's own JSON was written under,
 # so `_ship_anchor_inputs` silently read back no anchors/unresolved for it.
+from .constellation import constellation_from_path
 from .dataforge_extract import _safe_filename
 
 
@@ -134,6 +135,14 @@ def main() -> int:
             if row is None:
                 skipped += 1
                 continue
+            if kind == "ship":
+                # Verse-hub constellation: 7 stars from this hull's top view,
+                # precomputed here so the website never runs geometry. The
+                # edge function picks the patch's newest vehicle among these.
+                stars = constellation_from_path((row.get("silhouette") or {}).get("path") or "")
+                if stars:
+                    row["constellation"] = stars
+                row["ground"] = bool(e.get("ground"))
             fname = f"{kind}__{_safe_filename(class_name)}.json"
             (out_dir / fname).write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
             ok += 1

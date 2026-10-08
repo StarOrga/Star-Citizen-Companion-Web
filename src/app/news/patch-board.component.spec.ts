@@ -17,7 +17,7 @@ import { RoadmapService } from './roadmap.service';
 /**
  * The board as rendered (rethink Ⓚ, 2026-09-04): a time stack with three
  * cards open, the older lines folded, status as a word, and a search that
- * finds PATCHES. `/news/patches` sits behind the auth guard, so this DOM
+ * finds PATCHES. `/verse/patches` sits behind the auth guard, so this DOM
  * assertion is the only place the template is exercised before a human
  * sees it — which is why it renders with the REAL German bundle.
  */
@@ -198,7 +198,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     for (const row of rows()) {
       const a = (row.querySelector('a.card-link') as HTMLAnchorElement | null);
       expect(a).withContext('a card is an anchor').not.toBeNull();
-      expect(a!.getAttribute('href')).toMatch(/^\/news\/patches\/4\.\d+$/);
+      expect(a!.getAttribute('href')).toMatch(/^\/verse\/patches\/4\.\d+$/);
       expect(a!.getAttribute('aria-label'))
         .withContext('a stretched link has no text of its own').toContain('Alpha');
     }
@@ -274,7 +274,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     expect(rest).withContext('and says there is more').not.toBeNull();
     expect(rest.textContent?.trim()).toBe('…');
     expect(rest.getAttribute('aria-label')).toContain('3 weitere');
-    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/news/patches/4.11?focus=r8');
+    expect(rest.getAttribute('href')).withContext('the "…" leads to the first item it hid').toBe('/verse/patches/4.11?focus=r8');
 
     // Narrower card, fewer icons — nothing hardcoded, nothing lost.
     board.onTeaserBox('4.11', { width: 160, item: 84, gap: 6, rest: 34, rows: 2 });
@@ -292,10 +292,10 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     // Pictures first — they are the interesting ones.
     expect(icons[0].querySelector('img')?.getAttribute('src')).toBe('https://cdn.example/r1.jpg');
     expect(icons.map((a) => a.getAttribute('href')).slice(0, 3))
-      .toEqual(['/news/patches/4.11?focus=r1', '/news/patches/4.11?focus=r2', '/news/patches/4.11?focus=r3']);
+      .toEqual(['/verse/patches/4.11?focus=r1', '/verse/patches/4.11?focus=r2', '/verse/patches/4.11?focus=r3']);
     expect(icons[0].getAttribute('aria-label')).toContain('Nyx I');
     // The card itself still opens the dossier — the icons sit on top of it.
-    expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/news/patches/4.11');
+    expect((rows()[0].querySelector('a.card-link') as HTMLAnchorElement).getAttribute('href')).toBe('/verse/patches/4.11');
   });
 
   /**

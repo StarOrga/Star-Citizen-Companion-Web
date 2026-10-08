@@ -115,7 +115,7 @@ describe('Verse News — clickable items are real links (d2171662)', () => {
     const link = el<HTMLAnchorElement>('.verdict .verdict-link');
     if (link) {
       expect(link.tagName).toBe('A');
-      expect(link.getAttribute('href')).toBe('/news/patches');
+      expect(link.getAttribute('href')).toBe('/verse/patches');
     }
   });
 

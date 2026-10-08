@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.140.1",
+  "current": "0.141.0",
   "releases": [
+    {
+      "version": "0.141.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Verse: ein Tab statt Verse News und Starscape.",
+              "text": "Der neue Menüpunkt „Verse“ bündelt alles, was im Verse passiert: das Briefing mit den 3 bis 7 wichtigsten Punkten (die Zahl richtet sich nach dem, was wirklich neu ist), Patch News mit Kennzahlen, Bereitschaft und Kometen-Tipp (der Median der Community erscheint erst nach dem eigenen Tipp), die Galerie mit Teilen-Knopf an jedem Bild und „Meine Sternbilder“. Alte Adressen leiten weiter, auch ?image=. Pro Bereich schaltet ein β-Schalter auf die alten Seiten zurück. Das Menü heißt jetzt Verse, Codex, HQ."
+            },
+            {
+              "title": "Explorer-Sternkarte.",
+              "text": "Pro Patch gibt es 7 Sterne aus einem Pool von 10 Aufgaben, ausgelöst auch in Codex und Hangar; ein richtiger Kometen-Tipp bringt eine Sonne. Das Sternbild ist die Silhouette des neuesten Schiffs, vom Data Uploader ohne KI auf 7 Punkte reduziert (Douglas-Peucker) und von ingest-catalog gespeichert. Belohnungen: Wallpaper, Kartograph-Rang mit Vorschlägen und Freundes-Abzeichen (/badge/kartograph), Community-Sternbild, Serien. Die Patch-Nummer steht als Wasserzeichen."
+            },
+            {
+              "title": "Starscape-App: „Meine Sternbilder“",
+              "text": "im Tray, nativ in 4K gerendert, mit Live- und Meteor-Animation (erscheint mit dem nächsten Starscape-Release)."
+            },
+            {
+              "title": "Datenbank:",
+              "text": "Migrationen 20261009100000_verse_hub.sql und 20261009120000_verse_suggestions.sql (Fortschritt, Tipps, Sternbilder, Pins, Vorschläge, verse_digest-RPC) mit RLS und pgTAP-Tests. Nichts wird gelöscht."
+            },
+            {
+              "title": "Telemetrie:",
+              "text": "Verse-Ereignisse gehen nur nach Cookie-Zustimmung an PostHog."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.140.1",
       "date": "2026-10-08",

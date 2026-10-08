@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -503,6 +504,7 @@ interface PortRow {
   `],
 })
 export class HangarShipDetailComponent implements OnInit {
+  private readonly stars = inject(StarTriggerService);
   protected readonly hangarCrumbs = [HANGAR_ROOT_CRUMB];
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -652,6 +654,7 @@ export class HangarShipDetailComponent implements OnInit {
   }
 
   async ngOnInit(): Promise<void> {
+    void this.stars.earn('loadout');
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.notFound.set(true);

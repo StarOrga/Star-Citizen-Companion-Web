@@ -4,6 +4,34 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.141.0] - 2026-10-08
+
+### Added
+
+- **Verse: ein Tab statt Verse News und Starscape.** Der neue Menüpunkt
+  „Verse“ bündelt alles, was im Verse passiert: das Briefing mit den 3 bis 7
+  wichtigsten Punkten (die Zahl richtet sich nach dem, was wirklich neu ist),
+  Patch News mit Kennzahlen, Bereitschaft und Kometen-Tipp (der Median der
+  Community erscheint erst nach dem eigenen Tipp), die Galerie mit
+  Teilen-Knopf an jedem Bild und „Meine Sternbilder“. Alte Adressen leiten
+  weiter, auch `?image=`. Pro Bereich schaltet ein β-Schalter auf die alten
+  Seiten zurück. Das Menü heißt jetzt Verse, Codex, HQ.
+- **Explorer-Sternkarte.** Pro Patch gibt es 7 Sterne aus einem Pool von 10
+  Aufgaben, ausgelöst auch in Codex und Hangar; ein richtiger Kometen-Tipp
+  bringt eine Sonne. Das Sternbild ist die Silhouette des neuesten Schiffs,
+  vom Data Uploader ohne KI auf 7 Punkte reduziert (Douglas-Peucker) und von
+  `ingest-catalog` gespeichert. Belohnungen: Wallpaper, Kartograph-Rang mit
+  Vorschlägen und Freundes-Abzeichen (`/badge/kartograph`),
+  Community-Sternbild, Serien. Die Patch-Nummer steht als Wasserzeichen.
+- **Starscape-App: „Meine Sternbilder“** im Tray, nativ in 4K gerendert, mit
+  Live- und Meteor-Animation (erscheint mit dem nächsten Starscape-Release).
+- **Datenbank:** Migrationen `20261009100000_verse_hub.sql` und
+  `20261009120000_verse_suggestions.sql` (Fortschritt, Tipps, Sternbilder,
+  Pins, Vorschläge, `verse_digest`-RPC) mit RLS und pgTAP-Tests. Nichts wird
+  gelöscht.
+- **Telemetrie:** Verse-Ereignisse gehen nur nach Cookie-Zustimmung an
+  PostHog.
+
 ## [0.140.1] - 2026-10-08
 
 ### Fixed

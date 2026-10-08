@@ -20,7 +20,7 @@ import { StabilityPanelComponent } from './stability-panel.component';
  * LOADED ON DEMAND. The board lists a hundred-odd notes and nobody reads a
  * hundred, so the outline is fetched the first time a row is opened (or when
  * the board seeds the newest note per channel up front). That is what keeps
- * opening `/news/patches` a single small request.
+ * opening `/verse/patches` a single small request.
  *
  * WHAT IS NOT HERE, ON PURPOSE: a "no contents" row is not an error. RSI's
  * older threads, deleted posts and the odd reshaped payload all land there, and

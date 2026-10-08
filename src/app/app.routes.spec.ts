@@ -91,6 +91,10 @@ describe('string redirects keep the query (AUD-144)', () => {
   const p4k = child('p4k');
   const desktop = child('desktop');
   const integrations = child('admin/integrations');
+  const news = child('news');
+  const newsPatches = child('news/patches');
+  const newsPatchLine = child('news/patches/:line');
+  const starscape = child('starscape');
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -100,7 +104,15 @@ describe('string redirects keep the query (AUD-144)', () => {
           {
             path: '',
             children: [
-              { path: 'news', children: [] },
+              { path: 'verse', children: [] },
+              { path: 'verse/news', children: [] },
+              { path: 'verse/patches', children: [] },
+              { path: 'verse/patches/:line', children: [] },
+              { path: 'verse/gallery', children: [] },
+              news!,
+              newsPatches!,
+              newsPatchLine!,
+              starscape!,
               { path: 'uploader', children: [] },
               { path: 'admin/api-tokens', children: [] },
               p4k!,
@@ -115,19 +127,23 @@ describe('string redirects keep the query (AUD-144)', () => {
     });
   });
 
-  it('finds all five redirect entries, each a relative string', () => {
-    for (const r of [rootRedirect, p4k, desktop, integrations, wildcard]) {
+  it('finds all nine redirect entries, each a relative string', () => {
+    for (const r of [rootRedirect, p4k, desktop, integrations, wildcard, news, newsPatches, newsPatchLine, starscape]) {
       expect(r).toBeDefined();
       expect(typeof r!.redirectTo === 'string' && !r!.redirectTo.startsWith('/')).toBeTrue();
     }
   });
 
   const cases: [string, string][] = [
-    ['/?item=abc#x', '/news?item=abc#x'],
+    ['/?item=abc#x', '/verse?item=abc#x'],
+    ['/news?item=abc', '/verse/news?item=abc'],
+    ['/news/patches', '/verse/patches'],
+    ['/news/patches/4.3', '/verse/patches/4.3'],
+    ['/starscape?image=img1', '/verse/gallery?image=img1'],
     ['/p4k?x=1', '/uploader?x=1'],
     ['/desktop?x=1', '/uploader?x=1'],
     ['/admin/integrations?y=2', '/admin/api-tokens?y=2'],
-    ['/gibtsnicht?item=z', '/news?item=z'],
+    ['/gibtsnicht?item=z', '/verse?item=z'],
   ];
   for (const [from, to] of cases) {
     it(`${from} lands on ${to}`, async () => {

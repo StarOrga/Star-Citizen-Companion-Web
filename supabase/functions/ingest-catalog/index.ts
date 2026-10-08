@@ -22,6 +22,10 @@
 //         §C1. Pinned column set like PORT_COLUMNS.)
 //   POST { op: "clear_silhouettes",build_id }                          -> { ok }
 //        (mirror of clear_ports)
+//   POST { op: "constellation",    build_id, candidates: [...] }       -> { patch_line, class_name, kind }
+//        (candidates: {class_name, kind:'ship'|'ground', points:[[x,y]×7]} —
+//         the Verse-hub stars the uploader precomputed per ship silhouette;
+//         the patch's newest vehicle is upserted into verse_constellations)
 //   POST { op: "preview",          build_number, name, content_base64 } -> { path }
 //   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current, locale_publish }
 //        (then, after the response: publishes the build's locale strings to R2
@@ -56,6 +60,7 @@ import { bucketBytes, deleteObject, listObjects, putObject, r2FromEnv, readUsage
 import { usageGate } from '../ingest-skins/_r2-usage.ts';
 import { BUILD_ID_RE, LANG_RE } from './_locale-shards.ts';
 import { publishLocale } from './_locale-publish.ts';
+import { earliestByClass, patchLineOf, pickNewest, sanitizeCandidates } from './_constellation.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -452,6 +457,68 @@ Deno.serve(async (req: Request): Promise<Response> => {
         (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
       if (!missingTable) throw error;
       return json({ ok: true, degraded: 'no_silhouettes_table' });
+    }
+
+    if (op === 'constellation') {
+      // Verse-hub constellation: the uploader sends every ship silhouette's
+      // precomputed 7 stars; we keep the patch's newest vehicle (see
+      // _constellation.ts). Missing verse_constellations table degrades like
+      // `silhouettes` — the catalog run must not fail over it.
+      const buildId = String(body.build_id ?? '');
+      if (!buildId) return json({ error: 'invalid_body', message: 'build_id required' }, 400);
+      const candidates = sanitizeCandidates(body.candidates);
+      if (candidates.length === 0) return json({ ok: true, skipped: 'no_candidates' });
+
+      const { data: build, error: bErr } = await admin
+        .from('codex_builds').select('patch_version').eq('id', buildId).maybeSingle();
+      if (bErr) throw bErr;
+      if (!build) return json({ error: 'invalid_body', message: 'unknown build_id' }, 400);
+      const patchLine = patchLineOf((build as { patch_version?: string }).patch_version);
+      if (!patchLine) return json({ ok: true, skipped: 'no_patch_line' });
+
+      const names = candidates.map((c) => c.class_name);
+      const PAGE = 1000;
+      const NAME_CHUNK = 100;
+      // Drop AI/template variants the extractor flagged on this build's ships.
+      const playable = new Set<string>();
+      for (let i = 0; i < names.length; i += NAME_CHUNK) {
+        const { data, error } = await admin.from('codex_ships').select('class_name')
+          .eq('build_id', buildId).eq('is_variant', false).in('class_name', names.slice(i, i + NAME_CHUNK));
+        if (error) throw error;
+        for (const r of (data ?? []) as { class_name: string }[]) playable.add(r.class_name);
+      }
+      // No ship rows found (e.g. ships not uploaded yet): judge every candidate.
+      const pool = playable.size > 0 ? candidates.filter((c) => playable.has(c.class_name)) : candidates;
+
+      const seenRows: { class_name: string; created_at: string }[] = [];
+      const poolNames = pool.map((c) => c.class_name);
+      for (let i = 0; i < poolNames.length; i += NAME_CHUNK) {
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await admin.from('codex_ships').select('class_name, created_at')
+            .neq('build_id', buildId).in('class_name', poolNames.slice(i, i + NAME_CHUNK))
+            .order('id', { ascending: true }).range(from, from + PAGE - 1);
+          if (error) throw error;
+          const page = (data ?? []) as { class_name: string; created_at: string }[];
+          seenRows.push(...page);
+          if (page.length < PAGE) break;
+        }
+      }
+      const pick = pickNewest(pool, earliestByClass(seenRows));
+      if (!pick) return json({ ok: true, skipped: 'no_candidates' });
+
+      const { error } = await admin.from('verse_constellations').upsert({
+        patch_line: patchLine,
+        class_name: pick.class_name,
+        kind: pick.kind,
+        points: pick.points,
+        source_build_id: buildId,
+      }, { onConflict: 'patch_line' });
+      if (!error) return json({ ok: true, patch_line: patchLine, class_name: pick.class_name, kind: pick.kind });
+      const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
+      const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
+        (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
+      if (!missingTable) throw error;
+      return json({ ok: true, degraded: 'no_constellations_table' });
     }
 
     if (op === 'ingredients') {

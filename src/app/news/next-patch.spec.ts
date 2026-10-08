@@ -24,7 +24,7 @@ import {
  * (admin feedback ae9f8cba, 2026-09-06).
  *
  * Two surfaces answer "wann kommt der naechste Patch?" — the Build-Stand card
- * on /news and the monitor panel on /news/patches — and on the same afternoon
+ * on /news and the monitor panel on /verse/patches — and on the same afternoon
  * they printed two different dates. Neither was stale. They were computing two
  * different things:
  *
@@ -165,7 +165,7 @@ describe('Next main patch — one estimate, two surfaces (feedback ae9f8cba)', (
     };
   }
 
-  /** The "Wann kommt der naechste Patch?" panel on /news/patches. */
+  /** The "Wann kommt der naechste Patch?" panel on /verse/patches. */
   function monitorPanel(news: VerseNewsItem[]): { date: string; when: string } {
     const groups = notesOf(news);
     TestBed.resetTestingModule();

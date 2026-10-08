@@ -28,6 +28,8 @@ describe('areaForUrl', () => {
     expect(areaForUrl('/codex/blueprint/AEGS_Gladius')).toBe('codex');
     expect(areaForUrl('/codex/keybinds')).toBe('codex');
     expect(areaForUrl('/news/patches')).toBe('news');
+    expect(areaForUrl('/verse/patches/4.3')).toBe('news');
+    expect(areaForUrl('/verse/gallery?image=x')).toBe('starscape');
     expect(areaForUrl('/hangar/ship/42')).toBe('hangar');
     expect(areaForUrl('/admin/telemetry')).toBe('admin');
   });

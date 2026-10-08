@@ -7,8 +7,7 @@ import {
   effect,
   inject,
   signal,
-  untracked,
-} from '@angular/core';
+  untracked, input } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { LocaleService } from '../core/locale/locale.service';
@@ -32,7 +31,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * `/news/patches` — the patch board (2026-09-04 rethink, design Ⓚ).
+ * `/verse/patches` — the patch board (2026-09-04 rethink, design Ⓚ).
  *
  * Four rounds of concept iterations replaced the band stack (search, roadmap
  * wall, cadence carousel, newest-per-channel, two chip rows, history) with
@@ -43,7 +42,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *
  * Nothing that used to be on the board is gone from the app: every detail
  * moved into the patch DOSSIER, a routed overlay one click away
- * (`/news/patches/:line`, rendered through the outlet below so the board stays
+ * (`/verse/patches/:line`, rendered through the outlet below so the board stays
  * behind it). The two chip filters are the one deliberate removal — "die
  * Patch-Auswahl neben der Suche macht keinen Sinn, wir haben die Patches ja
  * schon übersichtlich unten" — the stack IS the selection.
@@ -65,11 +64,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="board">
+      @if (!embedded()) {
       <header class="head">
-        <a class="back" routerLink="/news">← {{ 'news.patch.board.back' | translate }}</a>
+        <a class="back" routerLink="/verse/news">← {{ 'news.patch.board.back' | translate }}</a>
         <h1>{{ 'news.patch.board.title' | translate }}</h1>
         <p class="sub">{{ 'news.patch.board.sub' | translate }}</p>
       </header>
+      }
 
       @if (!svc.feed() && svc.error(); as err) {
         <div class="sc-card err" role="alert">
@@ -153,7 +154,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                        wrapping it, because the roadmap thumbnails inside are
                        links of their own now (feedback fdaad6b7) and an anchor
                        inside an anchor is not HTML. -->
-                  <a class="card-link" [routerLink]="['/news/patches', card.line]"
+                  <a class="card-link" [routerLink]="['/verse/patches', card.line]"
                      [queryParams]="query() ? { q: query() } : null"
                      [attr.aria-label]="cardLabel(card)"></a>
                   <span class="status" [attr.data-status]="card.status">
@@ -175,7 +176,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                              links' accessible names. -->
                         <span class="teaser" (scTeaserStrip)="onTeaserBox(card.line, $event)">
                           @for (item of teaser(card); track item.id) {
-                            <a class="tz" [routerLink]="['/news/patches', card.line]"
+                            <a class="tz" [routerLink]="['/verse/patches', card.line]"
                                [queryParams]="itemParams(item)"
                                [attr.aria-label]="'news.patch.stack.openItem' | translate:{ name: item.name }">
                               @if (item.thumbnail) {
@@ -186,7 +187,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
                             </a>
                           }
                           @if (teaserRest(card); as rest) {
-                            <a class="tz rest" [routerLink]="['/news/patches', card.line]"
+                            <a class="tz rest" [routerLink]="['/verse/patches', card.line]"
                                [queryParams]="itemParams(firstHidden(card))"
                                [attr.aria-label]="'news.patch.stack.moreItems' | translate:{ n: rest }"
                                [scTooltip]="'news.patch.stack.moreItems' | translate:{ n: rest }"
@@ -223,7 +224,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
       }
     </section>
 
-    <!-- The dossier: /news/patches/:line renders here, over the board. -->
+    <!-- The dossier: /verse/patches/:line renders here, over the board. -->
     <router-outlet />
   `,
   styles: [`
@@ -468,6 +469,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   `],
 })
 export class PatchBoardComponent implements OnInit, OnDestroy {
+  /** Inside the Verse hub: the Verse subheader owns crumbs and title. */
+  readonly embedded = input(false);
   readonly svc = inject(NewsService);
 
   /** The feed error card's retry — the service's own refresh. */

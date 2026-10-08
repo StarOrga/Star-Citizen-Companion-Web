@@ -70,9 +70,9 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
            instead of doing nothing (feedback 7532e639). -->
       <a
         class="brand"
-        routerLink="/news"
+        routerLink="/verse"
         [attr.aria-label]="'nav.brandAria' | translate"
-        (click)="onNavActivate($event, '/news')">
+        (click)="onNavActivate($event, '/verse')">
         <img class="logo" src="icons/brand/scc-mark.svg" alt="" width="36" height="36" />
         <span class="wordmark">
           <span class="title">Star Citizen Companion</span>
@@ -84,14 +84,15 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
         <!-- Tapping the ALREADY ACTIVE entry reloads the page's data (feedback
              7532e639) — the router drops a same-URL navigation, so without this
              the second click is a dead control. -->
-        <a routerLink="/news" routerLinkActive="active" (click)="onNavActivate($event, '/news')">
-          {{ 'nav.news' | translate }}
+        <!-- ONE Verse tab (concept 2026-10-08-verse-hub) replaces the former
+             Verse News and Starscape entries; the patch centre lives under it. -->
+        <a routerLink="/verse" routerLinkActive="active" (click)="onNavActivate($event, '/verse')">
+          {{ 'nav.verse' | translate }}
         </a>
         <a routerLink="/codex" routerLinkActive="active">{{ 'nav.codex' | translate }}</a>
         <!-- HQ — the personal area (concept 2026-10-08) next to the Codex
              (game knowledge). Normal accent: every signed-in user has one. -->
         <a routerLink="/hq" routerLinkActive="active">{{ 'nav.hq' | translate }}</a>
-        <a routerLink="/starscape" routerLinkActive="active">{{ 'nav.starscape' | translate }}</a>
         <!-- Data Upload is intentionally NOT a top-level nav entry (admin
              feedback eb9c6ec3): a whole menu slot for a tool only collaborators
              and admins ever open. It now lives as the collapsible

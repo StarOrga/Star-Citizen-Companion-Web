@@ -71,6 +71,8 @@ export function areaForUrl(url: string): FeedbackArea {
   switch (first) {
     case 'news':
       return 'news';
+    case 'verse':
+      return path.split('/')[1] === 'gallery' ? 'starscape' : 'news';
     case 'codex':
       return 'codex';
     case 'hangar':

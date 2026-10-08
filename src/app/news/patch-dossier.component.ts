@@ -67,7 +67,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SPY_CLEARANCE_PX = 24;
 
 /**
- * `/news/patches/:line` — one patch, opened (2026-09-04 rethink, design Ⓚ).
+ * `/verse/patches/:line` — one patch, opened (2026-09-04 rethink, design Ⓚ).
  *
  * A routed overlay over the board: own URL (deep-linkable, browser back
  * closes it), scrim behind, the board still visible. Everything the old band
@@ -120,7 +120,7 @@ function scrollBehavior(): ScrollBehavior {
       <div class="panel" role="dialog" aria-modal="true" scDialog (scDialogEscape)="onEscape()" [attr.aria-label]="title()" (click)="$event.stopPropagation()" #panel>
         @if (card(); as c) {
           <header class="hero" [attr.data-status]="c.status">
-            <a class="close" [routerLink]="['/news/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
+            <a class="close" [routerLink]="['/verse/patches']" [queryParams]="closeParams()" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
             <div class="hero-row">
               <span class="status" [attr.data-status]="c.status">{{ ('news.patch.status.' + c.status) | translate }}</span>
               <h2>{{ title() }}</h2>
@@ -383,7 +383,7 @@ function scrollBehavior(): ScrollBehavior {
           </div>
         } @else {
           <header class="hero">
-            <a class="close" routerLink="/news/patches" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
+            <a class="close" routerLink="/verse/patches" [attr.aria-label]="'news.patch.dossier.close' | translate" [scTooltip]="'news.patch.dossier.close' | translate">✕</a>
             <h2>{{ 'news.patch.line' | translate:{ version: line() } }}</h2>
             <p class="state">{{ 'news.patch.dossier.unknown' | translate:{ line: line() } }}</p>
           </header>
@@ -830,7 +830,7 @@ export class PatchDossierComponent implements OnInit, OnDestroy {
 
   /** Escape inside the panel (ScDialogDirective), the scrim and the ✕ all close. */
   onEscape(): void {
-    void this.router.navigate(['/news/patches'], { queryParams: this.closeParams() });
+    void this.router.navigate(['/verse/patches'], { queryParams: this.closeParams() });
   }
 
   /** A click on the scrim (not the panel) closes — same as Esc and the ✕. */

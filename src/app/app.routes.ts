@@ -47,8 +47,9 @@ export function blueprintListRedirect({ queryParams }: { queryParams: Params }):
 }
 
 /**
- * The string redirects below ('' → news, p4k / desktop → uploader,
- * admin/integrations → admin/api-tokens, '**' → news) are RELATIVE on
+ * The string redirects below ('' → verse, news → verse/news, starscape →
+ * verse/gallery, p4k / desktop → uploader, admin/integrations →
+ * admin/api-tokens, '**' → verse) are RELATIVE on
  * purpose: Angular keeps the incoming query + fragment for a relative
  * `redirectTo` (`/?item=<id>` → `/news?item=<id>`). Never prefix the target
  * with `/` — an absolute string redirect drops the query (see
@@ -58,7 +59,7 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'news',
+    redirectTo: 'verse',
   },
   {
     path: 'login',
@@ -120,6 +121,15 @@ export const routes: Routes = [
           import('./hangar/hangar-shared-loadout.component').then((m) => m.HangarSharedLoadoutComponent),
       },
       {
+        // A shared Kartograph badge (Verse star map, friend badge). Public BY
+        // DESIGN: rank, patch and star count travel in the query string — no
+        // user id, no account lookup — and the constellation shape comes from
+        // the public verse_constellations table.
+        path: 'badge/kartograph',
+        loadComponent: () =>
+          import('./verse/starmap/kartograph-badge.component').then((m) => m.KartographBadgeComponent),
+      },
+      {
         // Where `approvedGuard` sends a session whose approval it could not
         // read (see that guard + AccessUnavailableComponent). It MUST stay
         // on this ungated layout: gated, it would be bounced by the very
@@ -141,31 +151,22 @@ export const routes: Routes = [
     canActivateChild: [...PRIVATE],
     children: [
       {
-        path: 'news',
-        loadComponent: () => import('./news/news-list.component').then((m) => m.NewsListComponent),
+        // The Verse hub (concept 2026-10-08-verse-hub): Verse News, the patch
+        // centre and the Starscape gallery merged into ONE tab. Every child
+        // area sits behind its own β switch (VerseBetaService) — switched off,
+        // the area renders the legacy component it replaced; one backend.
+        path: 'verse',
+        loadComponent: () => import('./verse/verse-layout.component').then((m) => m.VerseLayoutComponent),
+        loadChildren: () => import('./verse/verse.routes').then((m) => m.VERSE_ROUTES),
       },
-      {
-        // The patch depth lives on its own page since the 2026-08-20 rethink:
-        // on the landing page it cost 2,019 px above the first news article.
-        // 2026-09-04 rethink: the board is a time stack, and one patch opens
-        // as a routed overlay (`/news/patches/4.10`) rendered through the
-        // board's outlet — deep-linkable, browser back closes it.
-        path: 'news/patches',
-        loadComponent: () =>
-          import('./news/patch-board.component').then((m) => m.PatchBoardComponent),
-        children: [
-          {
-            path: ':line',
-            loadComponent: () =>
-              import('./news/patch-dossier.component').then((m) => m.PatchDossierComponent),
-          },
-        ],
-      },
-      {
-        path: 'starscape',
-        loadComponent: () =>
-          import('./starscape/starscape.component').then((m) => m.StarscapeComponent),
-      },
+      // Retired entry points of the merged pages. Relative string redirects
+      // keep the query (`/starscape?image=<id>` → `/verse/gallery?image=<id>`,
+      // `/news?item=<id>` → `/verse/news?item=<id>`), and the `:line` param
+      // is carried over — shared links from before the merge keep resolving.
+      { path: 'news', pathMatch: 'full', redirectTo: 'verse/news' },
+      { path: 'news/patches', pathMatch: 'full', redirectTo: 'verse/patches' },
+      { path: 'news/patches/:line', pathMatch: 'full', redirectTo: 'verse/patches/:line' },
+      { path: 'starscape', pathMatch: 'full', redirectTo: 'verse/gallery' },
       {
         // Codex front door = "the composed depth-field landing": Archive
         // Terminal poly-search + ICH/MEINE-FLOTTE hero panels + WELT lanes.
@@ -460,5 +461,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./desktop/desktop-read-auth.component').then((m) => m.DesktopReadAuthComponent),
   },
-  { path: '**', redirectTo: 'news' },
+  { path: '**', redirectTo: 'verse' },
 ];

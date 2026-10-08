@@ -382,7 +382,7 @@ function project(
 //     works on VERSIONS — so a point release sitting in the PTU (4.10.1) got
 //     carried to release by the median lead time and printed under the heading
 //     "nächster Hauptpatch". It was answering "when does 4.10.1 ship";
-//   · the monitor panel on /news/patches took the live LINE's release plus the
+//   · the monitor panel on /verse/patches took the live LINE's release plus the
 //     median LINE cadence — the actual main-patch rhythm.
 //
 // Neither was stale; they were different questions wearing the same label. This

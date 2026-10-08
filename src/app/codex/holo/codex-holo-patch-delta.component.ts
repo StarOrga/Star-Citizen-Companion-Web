@@ -1,9 +1,10 @@
+import { StarTriggerService } from '../../verse/starmap/star-trigger.service';
 // The inspector Δ table (concept p2-table) — one perspective group per
 // section, one row per KPI key, "±0 renders nothing" (03-rules §3.5, the
 // SAME rule `computeKpiDelta` already enforces upstream in
 // `codex-build-compare.ts`; this component only renders what it is given,
 // it never recomputes the delta).
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PerspectiveDelta } from '../codex-build-compare';
 import { formatNumber } from '../codex-format';
@@ -100,6 +101,10 @@ const KPI_LABEL_KEYS: Record<string, string> = {
 })
 export class CodexHoloPatchDeltaComponent {
   readonly group = input.required<PerspectiveDelta>();
+
+  constructor() {
+    void inject(StarTriggerService).earn('cx-changed');
+  }
 
   readonly labelKey = computed(() => PERSPECTIVE_LABEL_KEYS[this.group().perspective]);
   readonly rows = computed(() => this.group().cells.filter((c) => c.delta !== null));

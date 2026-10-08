@@ -166,7 +166,7 @@ describe('StarscapeComponent', () => {
   it('builds a deep link to the wallpaper for sharing', () => {
     const f = setup();
     expect(f.componentInstance.shareUrl(first)).toBe(
-      `${location.origin}/starscape?image=abc123`,
+      `${location.origin}/verse/gallery?image=abc123`,
     );
     f.destroy();
   });
@@ -190,7 +190,7 @@ describe('StarscapeComponent', () => {
     await f.componentInstance.share(first);
     expect(share).toHaveBeenCalledWith({
       title: 'Wallpaper abc123',
-      url: `${location.origin}/starscape?image=abc123`,
+      url: `${location.origin}/verse/gallery?image=abc123`,
     });
     // The native sheet is its own confirmation — no inline hint.
     expect(f.componentInstance.shareHint()).toBeNull();
@@ -203,7 +203,7 @@ describe('StarscapeComponent', () => {
     const writeText = jasmine.createSpy('writeText').and.resolveTo(undefined);
     stubNavigator('clipboard', { writeText });
     await f.componentInstance.share(first);
-    expect(writeText).toHaveBeenCalledWith(`${location.origin}/starscape?image=abc123`);
+    expect(writeText).toHaveBeenCalledWith(`${location.origin}/verse/gallery?image=abc123`);
     expect(f.componentInstance.shareHint()).toBe('starscape.share.copied');
     f.destroy();
   });
