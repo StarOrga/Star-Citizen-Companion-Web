@@ -96,6 +96,8 @@ describe('CodexListComponent (Index mode)', () => {
     };
 
     const hangar: Partial<HangarService> = {
+      roleLoadouts: signal([]),
+      listAllConfigs: async () => [],
       ships: signal([]) as never,
       loadAll: jasmine.createSpy('loadAll').and.resolveTo(undefined),
     };
