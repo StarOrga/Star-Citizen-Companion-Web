@@ -29,7 +29,7 @@ import { PageHeaderComponent } from '../shared/page-header/page-header.component
         border: 1px solid var(--sc-accent);
         border-radius: 999px;
         color: var(--sc-accent);
-        font-size: 0.8rem;
+        font-size: max(0.8rem, var(--sc-fs-floor));
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }

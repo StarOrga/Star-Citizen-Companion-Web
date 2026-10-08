@@ -104,7 +104,7 @@ import { HqLink, hqHangar, hqLocker, hqSet, hqShip, personalShipLink } from './h
       .tile { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
       .tile-eyebrow {
         margin: 0;
-        font-size: 0.75rem;
+        font-size: max(0.75rem, var(--sc-fs-floor));
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
