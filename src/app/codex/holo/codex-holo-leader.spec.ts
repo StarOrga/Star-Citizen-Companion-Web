@@ -86,8 +86,10 @@ describe('layoutLeaderLabels', () => {
     const byName = new Map(lay.labels.map((l) => [l.portName, l.side]));
     expect(byName.get('hardpoint_weapon_top_left')).toBe('left');
     expect(byName.get('hardpoint_weapon_top_right')).toBe('right');
-    expect(byName.get('hardpoint_cooler_left')).toBe('left');
-    expect(byName.get('hardpoint_cooler_right')).toBe('right');
+    expect(byName.get('hardpoint_missiles_wing_left')).toBe('left');
+    expect(byName.get('hardpoint_missiles_wing_right')).toBe('right');
+    expect(byName.get('hardpoint_countermeasure_launcher_left')).toBe('left');
+    expect(byName.get('hardpoint_countermeasure_launcher_right')).toBe('right');
   });
 
   it('degrades the Javelin (47 pins) to the key at every width — more pins than column slots', () => {

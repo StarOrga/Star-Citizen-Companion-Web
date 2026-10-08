@@ -1,3 +1,4 @@
+import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexHoloTableComponent } from './codex-holo-table.component';
@@ -211,7 +212,7 @@ describe('CodexHoloTableComponent', () => {
       return leaderPins(fx).map((p) => pin(p.portName, p.index, { x: p.x, y: p.y, resolved: p.resolved, label: `Label ${p.index}` }));
     }
 
-    async function leaderSetup(fx: HoloAnchorFixture, inputs: Record<string, unknown> = {}) {
+    function leaderSetup(fx: HoloAnchorFixture, inputs: Record<string, unknown> = {}) {
       TestBed.configureTestingModule({
         imports: [CodexHoloTableComponent],
         providers: [provideTranslateService({ fallbackLang: 'en' })],
@@ -224,8 +225,10 @@ describe('CodexHoloTableComponent', () => {
       const pins = stagePins(fx);
       const all: Record<string, unknown> = { pins, silhouette: fx.silhouette, dense: pins.length > 8, ...inputs };
       for (const [k, v] of Object.entries(all)) fixture.componentRef.setInput(k, v);
+      // Render; the frame measures itself after that render (afterNextRender —
+      // run by the application tick; layout is synchronous); render again.
       fixture.detectChanges();
-      await fixture.whenStable();
+      TestBed.inject(ApplicationRef).tick();
       fixture.detectChanges();
       return fixture;
     }
@@ -238,8 +241,8 @@ describe('CodexHoloTableComponent', () => {
       pinButtons(f).find((b) => b.querySelector('i')!.textContent!.trim() === String(index))!;
 
 
-    it('labels every Nomad pin in a side column, joined by a leader line, instead of the key', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS);
+    it('labels every Nomad pin in a side column, joined by a leader line, instead of the key', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS);
       const el = fixture.nativeElement as HTMLElement;
       expect(fixture.componentInstance.leader()).not.toBeNull();
       expect(labels(fixture).length).toBe(17);
@@ -258,8 +261,8 @@ describe('CodexHoloTableComponent', () => {
       expect(pinFor(fixture, 1).getAttribute('tabindex')).toBe('-1');
     });
 
-    it('hovering a label lights its pin and line, hovering a pin lights its label', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS);
+    it('hovering a label lights its pin and line, hovering a pin lights its label', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS);
       const hovered: (string[] | null)[] = [];
       fixture.componentInstance.hovered.subscribe((h) => hovered.push(h));
       const port3 = NOMAD_ANCHORS.pins[2];
@@ -276,8 +279,8 @@ describe('CodexHoloTableComponent', () => {
       expect(labelFor(fixture, port3).classList).not.toContain('active');
     });
 
-    it('selection marks the pin and its label; a label click inspects the port', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS, { inspectedPort: NOMAD_ANCHORS.pins[0] });
+    it('selection marks the pin and its label; a label click inspects the port', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS, { inspectedPort: NOMAD_ANCHORS.pins[0] });
       const label1 = labelFor(fixture, NOMAD_ANCHORS.pins[0]);
       expect(label1.classList).toContain('sel');
       expect(label1.getAttribute('aria-pressed')).toBe('true');
@@ -288,33 +291,33 @@ describe('CodexHoloTableComponent', () => {
       expect(seen).toEqual([NOMAD_ANCHORS.pins[1]]);
     });
 
-    it('lights the label of a port the host marks active (hover elsewhere on the page)', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS, { activePorts: [NOMAD_ANCHORS.pins[6]] });
+    it('lights the label of a port the host marks active (hover elsewhere on the page)', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS, { activePorts: [NOMAD_ANCHORS.pins[6]] });
       expect(labelFor(fixture, NOMAD_ANCHORS.pins[6]).classList).toContain('active');
     });
 
-    it('keeps the numbered key for the Javelin (47 pins)', async () => {
-      const fixture = await leaderSetup(JAVELIN_ANCHORS);
+    it('keeps the numbered key for the Javelin (47 pins)', () => {
+      const fixture = leaderSetup(JAVELIN_ANCHORS);
       const el = fixture.nativeElement as HTMLElement;
       expect(fixture.componentInstance.leader()).toBeNull();
       expect(labels(fixture).length).toBe(0);
       expect(el.querySelectorAll('.pin-key button.pk').length).toBe(47);
     });
 
-    it('keeps the numbered key for a silhouette without anchors', async () => {
+    it('keeps the numbered key for a silhouette without anchors', () => {
       const bare: HoloAnchorFixture = { ...NOMAD_ANCHORS, silhouette: { ...NOMAD_ANCHORS.silhouette, anchors: [] } };
-      const fixture = await leaderSetup(bare);
+      const fixture = leaderSetup(bare);
       expect(labels(fixture).length).toBe(0);
       expect((fixture.nativeElement as HTMLElement).querySelectorAll('.pin-key button.pk').length).toBe(17);
     });
 
-    it('draws no leader lines outside the holo view', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS, { viewMode: 'schema' });
+    it('draws no leader lines outside the holo view', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS, { viewMode: 'schema' });
       expect(fixture.componentInstance.leader()).toBeNull();
     });
 
-    it('shows the leader lines complete under reduced motion (no draw-in)', async () => {
-      const fixture = await leaderSetup(NOMAD_ANCHORS, { still: true });
+    it('shows the leader lines complete under reduced motion (no draw-in)', () => {
+      const fixture = leaderSetup(NOMAD_ANCHORS, { still: true });
       const path = (fixture.nativeElement as HTMLElement).querySelector('svg.leaders path')!;
       expect(getComputedStyle(path).animationName).toBe('none');
       expect(getComputedStyle(path).strokeDashoffset).toMatch(/^0(px)?$/);
