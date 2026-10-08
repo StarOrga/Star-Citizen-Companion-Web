@@ -152,22 +152,25 @@ export const STREAK_REWARDS: readonly { readonly key: StreakRewardKey; readonly 
   { key: 'supernova', at: 7 },
 ];
 
-function ymd(d: Date, utc: boolean): string {
-  const y = utc ? d.getUTCFullYear() : d.getFullYear();
-  const m = (utc ? d.getUTCMonth() : d.getMonth()) + 1;
-  const day = utc ? d.getUTCDate() : d.getDate();
-  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+/** Local calendar date of `d` as `yyyy-mm-dd`. */
+function localYmd(d: Date): string {
+  const m = d.getMonth() + 1;
+  return `${d.getFullYear()}-${String(m).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /**
  * sr-meteor plays only on a patch's LIVE day — the Starscape app's rule: the
- * local calendar date equals the UTC date of `live_at`.
+ * LIVE day is the reader's local calendar day that contains the instant
+ * `live_at` (converted to local time first). A 17:00 UTC release is the same
+ * day in Europe and the Americas and the next day east of UTC+7, and never a
+ * day early anywhere — comparing the UTC date of `live_at` with the local date
+ * got that wrong. The shower ends at local midnight.
  */
 export function isLiveDay(liveAt: string | null | undefined, now: Date = new Date()): boolean {
   if (!liveAt) return false;
   const at = new Date(liveAt);
   if (Number.isNaN(at.getTime())) return false;
-  return ymd(at, true) === ymd(now, false);
+  return localYmd(at) === localYmd(now);
 }
 
 /** What a shared Kartograph badge shows — everything travels in the link, no user id. */

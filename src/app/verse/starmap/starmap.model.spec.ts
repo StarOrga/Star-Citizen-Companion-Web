@@ -79,15 +79,28 @@ describe('starmap model', () => {
 });
 
 describe('starmap model — rewards helpers', () => {
-  it('meteor day = local date equals the UTC date of live_at', () => {
+  it('meteor day = the local calendar day containing live_at', () => {
+    // Instants built from local wall-clock times, so the spec holds in every time zone.
     const now = new Date(2026, 9, 29, 15, 0, 0);
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    expect(isLiveDay(`${y}-${m}-${d}T08:00:00Z`, now)).toBeTrue();
+    expect(isLiveDay(new Date(2026, 9, 29, 0, 0, 0).toISOString(), now)).toBeTrue();
+    expect(isLiveDay(new Date(2026, 9, 29, 23, 59, 0).toISOString(), now)).toBeTrue();
+    expect(isLiveDay(new Date(2026, 9, 28, 23, 59, 0).toISOString(), now)).toBeFalse();
+    expect(isLiveDay(new Date(2026, 9, 30, 0, 0, 0).toISOString(), now)).toBeFalse();
     expect(isLiveDay('2026-10-01T08:00:00Z', now)).toBeFalse();
     expect(isLiveDay(null, now)).toBeFalse();
     expect(isLiveDay('nonsense', now)).toBeFalse();
+  });
+
+  it('meteor day follows the local date of live_at, not its UTC date', () => {
+    // 23:30 local on the 29th: east of UTC its UTC date is still the 29th, west
+    // of UTC it is already the 30th — either way the LIVE day is the local 29th.
+    const at = new Date(2026, 9, 29, 23, 30, 0);
+    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 29, 23, 45, 0))).toBeTrue();
+    expect(isLiveDay(at.toISOString(), new Date(2026, 9, 30, 0, 15, 0))).toBeFalse();
+    // 00:30 local on the 29th — counts on the 29th, not on the 28th.
+    const early = new Date(2026, 9, 29, 0, 30, 0);
+    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 28, 23, 0, 0))).toBeFalse();
+    expect(isLiveDay(early.toISOString(), new Date(2026, 9, 29, 8, 0, 0))).toBeTrue();
   });
 
   it('badge links round-trip and reject junk', () => {
