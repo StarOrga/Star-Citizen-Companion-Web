@@ -51,6 +51,15 @@ export interface PolySearchHit {
    * only thing we honestly know. See `manufacturerLabel` in codex.service.
    */
   manufacturerName: LocalizedText | null;
+  /**
+   * The record's display name in both languages (payload `name`), so a reader
+   * can show the German name in a German UI. `nameLocalized` is the English
+   * column the server searches; absent on announced ships and on rows whose
+   * payload carries no name.
+   */
+  name?: LocalizedText | null;
+  /** Item/weapon `attach_type` — `Paints` marks a livery. */
+  attachType?: string | null;
   size: number | null;
   grade: string | null;
   scope: PolyScope;
@@ -71,7 +80,7 @@ export function scopeForKind(kind: PolyHitKind): PolyScope {
 // one that only exists on a concept page, the flyable one leads. A stronger
 // textual match still wins outright (that is what surfaces "Arrastra" first:
 // nothing in the build matches it exactly).
-const KIND_PRIORITY: readonly PolyHitKind[] = [
+export const KIND_PRIORITY: readonly PolyHitKind[] = [
   'ship',
   'weapon',
   'component',
@@ -155,6 +164,14 @@ export function toUpcomingHit(
   };
 }
 
+/** The payload's `{ de, en }` name, or null when the payload has none. */
+function payloadName(payload: unknown): LocalizedText | null {
+  const n = (payload as { name?: unknown } | null | undefined)?.name;
+  if (!n || typeof n !== 'object') return null;
+  const t = n as Partial<LocalizedText>;
+  return typeof t.en === 'string' || typeof t.de === 'string' ? (t as LocalizedText) : null;
+}
+
 /** Map a generic list row + its kind to a scope-tagged poly hit. */
 export function toPolyHit(kind: CodexKind, row: CodexListRow): PolySearchHit {
   return {
@@ -165,6 +182,8 @@ export function toPolyHit(kind: CodexKind, row: CodexListRow): PolySearchHit {
     manufacturerName:
       (row.payload as { manufacturer?: { name?: LocalizedText } } | undefined)?.manufacturer
         ?.name ?? null,
+    name: payloadName(row.payload),
+    attachType: row.attachType ?? null,
     size: row.size,
     grade: row.grade,
     scope: scopeForKind(kind),

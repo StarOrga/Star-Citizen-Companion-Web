@@ -18,7 +18,7 @@ import {
 } from '@angular/core';
 import { ShipSkinsService } from '../ship-skins.service';
 import { CodexHoloComponentsComponent } from './codex-holo-components.component';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import { CodexDetail } from '../codex.service';
 import { CodexItemPort } from '../codex.types';
@@ -142,7 +142,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
  * weapon detail, compare tray, draft persistence and hover-sync
  * `activePorts` for BOTH views.
  *
- * Layout (hv6-s1 / hv6-s4 / hv10-s1): top bar = search | ship title | patch
+ * Layout (hv6-s1 / hv6-s4 / hv10-s1): top bar = (empty) | ship title | patch
  * chooser; three panels in one frame = Einordnung | Tisch (Einsatz bar as its
  * header, `sc-codex-holo-table` as its surface) | Inspector
  * (`sc-codex-holo-inspector`); below = calm ports list | four perspective
@@ -172,18 +172,12 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
              [class.ph-wait]="phase() === 'wait'" [class.ph-hero]="phase() === 'hero'" [class.ph-reveal]="phase() === 'reveal'"
              [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()" [class.rail-moving]="railMoving()">
 
-      <!-- ── Top bar: search | the ship | patch ─────────────────────── -->
+      <!-- ── Top bar: (empty) | the ship | patch ─────────────────────── -->
       <div class="holo-topbar">
-        <form class="ht-search" role="search" (submit)="submitSearch($event)">
-          <svg class="ht-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-               stroke-linecap="round" aria-hidden="true">
-            <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
-          </svg>
-          <input class="ht-input" type="search" name="q"
-                 [attr.aria-label]="'codex.holo.stage.searchLabel' | translate"
-                 [placeholder]="'codex.holo.stage.searchPlaceholder' | translate" />
-          <kbd>↵</kbd>
-        </form>
+        <!-- The search that sat here was a general Codex search (it handed its
+             term to the landing). The Codex search bar above every Codex page
+             is that search now, so the left cell stays empty and keeps the
+             ship's name centred. -->
         <!-- Keyed on the name: a hull switch re-enters the title with it. -->
         @for (name of [shortName()]; track name) {
           <div class="ht-title">
@@ -537,13 +531,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
   /* ── Top bar: search | the ship (the page's h1) | patch ── */
   .holo-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: 'search title patch'; align-items: center; gap: 16px; }
-  .ht-search { grid-area: search; width: 100%; max-width: 360px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--l2); border-radius: 4px;
-  background: var(--surface-input, var(--sc-bg-0)); color: var(--sc-fg-2); min-height: max(40px, var(--sc-tap-min, 0px)); transition: border-color 160ms ease, box-shadow 160ms ease; }
-  .ht-search:focus-within { border-color: var(--sc-accent); box-shadow: 0 0 0 3px var(--a12); }
-  .ht-icon { width: 15px; height: 15px; flex: none; }
-  .ht-input { flex: 1; min-width: 0; background: none; border: none; color: var(--sc-fg-0); font: inherit; font-size: max(12px, var(--f)); padding: 7px 0; outline: none; }
-  .ht-input::placeholder { color: var(--sc-fg-2); }
-  .ht-search kbd { font-family: var(--m); font-size: 10px; color: var(--sc-fg-2); border: 1px solid var(--l1); padding: 0 5px; border-radius: 2px; }
   /* Capped: a long variant name ("… Wikelo War Special") ellipsizes instead
      of squeezing the search and the patch chooser off the bar. */
   .ht-title { grid-area: title; display: grid; justify-items: center; gap: 3px; min-width: 0; max-width: min(46vw, 640px); text-align: center; }
@@ -731,7 +718,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   }
   @media (max-width: 1000px) {
   .holo-topbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'title title' 'search patch'; gap: 10px; }
-  .ht-search { max-width: none; }
   .ht-title { max-width: 100%; justify-self: center; }
   .holo-body { grid-template-columns: 44px minmax(0, 1fr) 44px; }
   /* Explicit columns: with a rail expanded below, nothing else claims column 1,
@@ -786,7 +772,6 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   `],
 })
 export class CodexHoloStageComponent {
-  private readonly router = inject(Router);
   private readonly t = inject(TranslateService);
   private readonly skins = inject(ShipSkinsService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -1319,13 +1304,6 @@ export class CodexHoloStageComponent {
     : this.viewMode() === 'schema' ? 'codex.holo.stage.eyebrowSchema'
     : 'codex.holo.stage.eyebrowTop',
   );
-
-  submitSearch(ev: Event): void {
-    ev.preventDefault();
-    const form = ev.target as HTMLFormElement;
-    const q = (form.elements.namedItem('q') as HTMLInputElement | null)?.value.trim() ?? '';
-    void this.router.navigate(['/codex'], { queryParams: q ? { q } : {} });
-  }
 
   toggleViewMode(mode: '3d' | 'schema'): void {
     this.viewModeTouched = true;

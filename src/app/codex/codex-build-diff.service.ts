@@ -45,6 +45,18 @@ export function addedClassNames(current: readonly string[], previous: readonly s
 export class CodexBuildDiffService {
   private readonly sb = inject(SupabaseClientProvider);
   private readonly codex = inject(CodexService);
+  private memo: { buildId: string | null; rows: Promise<CodexListRow[]> } | null = null;
+
+  /**
+   * {@link addedShips}, read once per current build — the Codex search shows
+   * "New in this patch" every time its field opens empty, and the diff costs
+   * three reads.
+   */
+  addedShipsMemo(): Promise<CodexListRow[]> {
+    const buildId = this.codex.build()?.id ?? null;
+    if (this.memo?.buildId !== buildId || !this.memo) this.memo = { buildId, rows: this.addedShips() };
+    return this.memo.rows;
+  }
 
   /** Ships new in the current LIVE build, as list rows of the current build. */
   async addedShips(limit = ADDED_SHIPS_LIMIT): Promise<CodexListRow[]> {

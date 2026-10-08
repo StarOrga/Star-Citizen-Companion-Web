@@ -1,7 +1,55 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.130.0",
+  "current": "0.131.0",
   "releases": [
+    {
+      "version": "0.131.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Eine Suche für den ganzen Codex.",
+              "text": "Schnellsuche (Strg+K), Codex-Startseite, eine schlanke Suchleiste auf jeder Codex-Seite, Holotisch und „Schiff hinzufügen“ im Hangar suchen jetzt mit derselben Suche und derselben Rangfolge. Außerhalb des Codex öffnet Strg+K (oder /) das Such-Overlay; im Codex holt es stattdessen die Suchleiste der Seite groß und fokussiert nach vorn. Einfach lostippen genügt — auch schnell getippte erste Buchstaben gehen nicht verloren."
+            },
+            {
+              "title": "Gruppierte Treffer",
+              "text": "nach Art (Schiffe, Fahrzeuge, FPS-Ausrüstung, Gegenstände …) mit Gesamtzahl pro Art und „Alle N im Index“ als Sprung in den gefilterten Index. Pfeiltasten, Enter und Escape steuern die Liste; jeder Treffer ist ein echter Link (Mittelklick, Strg+Klick, neuer Tab)."
+            },
+            {
+              "title": "Fehler werden erklärt.",
+              "text": "Fällt eine Quelle aus, bleiben die geladenen Treffer sichtbar, ein Hinweis nennt, was fehlt, und bietet „Erneut versuchen“. Fällt alles aus, erscheint ein Fehlerzustand mit Wiederholen statt einer leeren Liste."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Auf dem Handy",
+              "text": "öffnet die Suche als Blatt mit eigenem Schließen-Knopf."
+            },
+            {
+              "title": "Hangar: „Schiff hinzufügen“",
+              "text": "nutzt die gemeinsame Rangfolge und findet dieselben Schiffe wie die Codex-Suche."
+            }
+          ]
+        },
+        {
+          "category": "Removed",
+          "label": "",
+          "items": [
+            {
+              "title": "Das eigene Suchfeld des Holotischs",
+              "text": "— die gemeinsame Codex-Suchleiste ersetzt es."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.130.0",
       "date": "2026-10-08",
