@@ -1041,7 +1041,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
   constructor() {
     // A nav re-click on the active tab reloads the feed without a skeleton
     // flash; the freshness line carries the echo instead (feedback 7532e639).
-    this.sameRoute.onRefresh('/news')
+    this.sameRoute.onRefresh('/verse')
       .pipe(takeUntilDestroyed())
       .subscribe(() => void this.svc.refresh(true));
 

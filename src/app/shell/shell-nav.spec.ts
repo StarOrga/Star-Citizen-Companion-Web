@@ -88,7 +88,7 @@ describe('ShellComponent navigation', () => {
     const brand = fixture.nativeElement.querySelector('a.brand') as HTMLAnchorElement | null;
 
     expect(brand).withContext('brand must be an <a>, not a div/button').toBeTruthy();
-    expect(brand!.getAttribute('href')).toBe('/news');
+    expect(brand!.getAttribute('href')).toBe('/verse');
     expect(brand!.querySelector('img.logo')).toBeTruthy();
     expect(brand!.getAttribute('aria-label')).toBeTruthy();
   });
@@ -99,16 +99,16 @@ describe('ShellComponent navigation', () => {
 
     click(brand);
 
-    expect(request).toHaveBeenCalledWith('/news');
+    expect(request).toHaveBeenCalledWith('/verse');
   });
 
   it('asks the current page to reload when the Verse News entry is re-clicked', () => {
     const fixture = setup();
-    const newsLink = fixture.nativeElement.querySelector('nav.nav a[href="/news"]') as HTMLAnchorElement;
+    const newsLink = fixture.nativeElement.querySelector('nav.nav a[href="/verse"]') as HTMLAnchorElement;
 
     click(newsLink);
 
-    expect(request).toHaveBeenCalledWith('/news');
+    expect(request).toHaveBeenCalledWith('/verse');
   });
 
   it('leaves modified and middle clicks to the browser', () => {
@@ -129,14 +129,14 @@ describe('ShellComponent navigation', () => {
    * reached via the "Im Hangar" zone entrance on the Codex landing, not its
    * own nav slot. Pin the count so a future add-back has to be deliberate.
    */
-  it('renders exactly three top-level nav entries: News, Codex, Starscape', () => {
+  it('renders exactly two top-level nav entries: Verse, Codex', () => {
     const fixture = setup();
     const links = Array.from(
       fixture.nativeElement.querySelectorAll('nav.nav > a'),
     ) as HTMLAnchorElement[];
 
-    expect(links.length).toBe(3);
-    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/news', '/codex', '/starscape']);
+    expect(links.length).toBe(2);
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex']);
   });
 
   it('never renders a top-level Hangar nav entry', () => {

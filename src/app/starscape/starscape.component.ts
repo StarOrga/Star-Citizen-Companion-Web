@@ -7,10 +7,12 @@ import {
   effect,
   inject,
   signal,
+  input,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ScDialogDirective } from '../shared/dialog/sc-dialog.directive';
+import { AnalyticsService } from '../core/analytics.service';
 import { StarscapeService, StarscapeRing, Wallpaper, ringsForRole } from './starscape.service';
 import { ScSegmentedComponent, ScSegmentOption } from '../shared/segmented-control.component';
 import { ImgReadyDirective, rsiVariant } from '../news/news-thumb.component';
@@ -106,10 +108,12 @@ const RENDER_CHUNK = 24;
   template: `
     <section class="page">
       <header class="head">
-        <div>
-          <h1>{{ 'starscape.title' | translate }}</h1>
-          <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
-        </div>
+        @if (!embedded()) {
+          <div>
+            <h1>{{ 'starscape.title' | translate }}</h1>
+            <p class="hint">{{ 'starscape.subtitle' | translate }}</p>
+          </div>
+        }
         <!-- Desktop-only: a Windows tray app cannot be installed from a phone,
              so the menu removes itself on a touch device (feedback dccdcc82) and
              the CSS below additionally drops the column on narrow layouts
@@ -308,6 +312,22 @@ const RENDER_CHUNK = 24;
                while the Top-N ranking is on screen - that list only answers
                "is this really everyone's top 7?" if you can read its counts
                without hovering all seven tiles (admin feedback bfd2149a). -->
+          @if (embedded()) {
+            <!-- Share on EVERY image (Verse hub): three connected nodes. -->
+            <button type="button" class="tile-share"
+                    [attr.aria-label]="'starscape.share.label' | translate"
+                    [scTooltip]="'starscape.share.label' | translate"
+                    (click)="share(w, 'tile')">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+                <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <line x1="8.6" y1="10.6" x2="15.4" y2="6.4" /><line x1="8.6" y1="13.4" x2="15.4" y2="17.6" />
+                </g>
+                <circle cx="6" cy="12" r="2.6" fill="currentColor" />
+                <circle cx="18" cy="5" r="2.6" fill="currentColor" />
+                <circle cx="18" cy="19" r="2.6" fill="currentColor" />
+              </svg>
+            </button>
+          }
           <sc-vote-button
             class="tile-vote"
             [class.always-on]="votes.topOnly()"
@@ -328,6 +348,7 @@ const RENDER_CHUNK = 24;
 
     <!-- The download pitch: three seconds in, once per browser session, and only
          on a desktop-sized viewport (admin feedback eb9c6ec3). -->
+    @if (tileHint(); as th) { <p class="tile-toast" role="status">{{ th | translate }}</p> }
     <sc-starscape-app-promo
       [wallpapers]="promoWallpapers()"
       [downloadUrl]="promoDownloadUrl()"
@@ -469,6 +490,20 @@ const RENDER_CHUNK = 24;
        which is most of this gallery's traffic. The hover reveal below is an
        enhancement scoped to precise pointers only. */
     .tile-vote { position: absolute; top: 8px; right: 8px; z-index: 2; }
+    .tile-share {
+      position: absolute; top: 8px; left: 8px; z-index: 2;
+      display: inline-grid; place-items: center; width: var(--sc-tap-min); height: var(--sc-tap-min);
+      border-radius: 50%; border: 1px solid var(--sc-border); cursor: pointer;
+      background: color-mix(in srgb, var(--sc-bg-0) 70%, transparent); color: var(--sc-fg-0);
+    }
+    .tile-share:hover, .tile-share:focus-visible { color: var(--sc-accent); border-color: var(--sc-accent); }
+    .tile-share:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
+    .tile-toast {
+      position: fixed; z-index: 30; left: 50%; transform: translateX(-50%);
+      bottom: var(--sc-float-bottom, 16px); padding: 8px 14px; border-radius: 999px;
+      background: var(--sc-bg-2); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
+      max-width: calc(100vw - 2 * var(--sc-fab-clear-inline, 88px));
+    }
     @media (hover: hover) and (pointer: fine) {
       .tile-vote { opacity: 0; transition: opacity 0.16s ease; }
       /* …but a vote you already cast stays on screen — otherwise you cannot see
@@ -696,6 +731,12 @@ const RENDER_CHUNK = 24;
   `],
 })
 export class StarscapeComponent implements OnInit {
+  /** Inside the Verse hub: the Verse subheader owns the title; every tile gets a share button. */
+  readonly embedded = input(false);
+  /** Clipboard-fallback confirmation of a TILE share (the lightbox has its own). */
+  readonly tileHint = signal<string | null>(null);
+  private tileHintTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly analytics = inject(AnalyticsService);
   readonly svc = inject(StarscapeService);
   readonly votes = inject(StarscapeVotesService);
   /** Decode state that has to survive leaving the page — see the service's doc. */
@@ -996,10 +1037,12 @@ export class StarscapeComponent implements OnInit {
    * Web Share API. Desktop browsers without it fall back to the clipboard, which
    * is confirmed inline — a silent copy reads as a dead button.
    */
-  async share(w: Wallpaper): Promise<void> {
+  async share(w: Wallpaper, from: 'lightbox' | 'tile' = 'lightbox'): Promise<void> {
     const url = this.shareUrl(w);
     const nav = typeof navigator !== 'undefined' ? navigator : undefined;
+    const hint = (key: string) => (from === 'tile' ? this.flashTileHint(key) : this.flashShareHint(key));
     if (nav?.share) {
+      this.analytics.captureVerse('starscape_share', { image_id: w.imageId, channel: 'native' });
       try {
         await nav.share({ title: w.title ?? 'Starscape', url });
       } catch {
@@ -1009,15 +1052,22 @@ export class StarscapeComponent implements OnInit {
     }
     const clipboard = nav?.clipboard;
     if (!clipboard?.writeText) {
-      this.flashShareHint('starscape.share.failed');
+      hint('starscape.share.failed');
       return;
     }
     try {
       await clipboard.writeText(url);
-      this.flashShareHint('starscape.share.copied');
+      this.analytics.captureVerse('starscape_share', { image_id: w.imageId, channel: 'copy' });
+      hint('starscape.share.copied');
     } catch {
-      this.flashShareHint('starscape.share.failed');
+      hint('starscape.share.failed');
     }
+  }
+
+  private flashTileHint(key: string): void {
+    this.tileHint.set(key);
+    if (this.tileHintTimer) clearTimeout(this.tileHintTimer);
+    this.tileHintTimer = setTimeout(() => this.tileHint.set(null), 2600);
   }
 
   private flashShareHint(key: string): void {

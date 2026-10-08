@@ -156,7 +156,8 @@
       "message": "Diese Seite konnte nicht geladen werden — im Browser läuft vermutlich noch eine ältere App-Version.",
       "reload": "App neu laden",
       "dismiss": "Ausblenden"
-    }
+    },
+    "verse": "Verse"
   },
   "impersonation": {
     "banner": {
@@ -4596,5 +4597,114 @@
     "copy": "Klassenname kopieren",
     "copied": "Kopiert",
     "copyAria": "Klassenname {{name}} kopieren"
+  },
+  "verse": {
+    "crumb": "Verse",
+    "area": {
+      "briefing": "Briefing",
+      "news": "Verse News",
+      "patches": "Patch News",
+      "gallery": "Galerie",
+      "starmap": "Sternkarte"
+    },
+    "kind": {
+      "news": "Meldung",
+      "patch": "Patch",
+      "gallery": "Galerie",
+      "link": "Link"
+    },
+    "beta": {
+      "aria": "Neue Verse-Ansicht (β)",
+      "switchFor": "Neue Ansicht für {{area}}",
+      "all": "β-Schalter für alle Bereiche"
+    },
+    "status": {
+      "aria": "Patch-Stand: {{line}}",
+      "live": "Live",
+      "ptu": "PTU {{line}}",
+      "since": "seit {{n}} T live",
+      "next": "nächster ~ in {{n}} T",
+      "overdue": "nächster seit {{n}} T fällig"
+    },
+    "briefing": {
+      "forYou": "Für dich",
+      "cta": "Jetzt ansehen",
+      "headlineQuiet": "Ruhig im Verse — nichts Neues seit deinem letzten Besuch",
+      "unseen": "{{n}} neu seit deinem letzten Besuch",
+      "allSeen": "Du bist auf dem Stand",
+      "patchLine": "Patch {{line}} ist live",
+      "topAria": "Das Wichtigste gerade",
+      "empty": "Gerade gibt es nichts Neues.",
+      "pinned": "angeheftet"
+    },
+    "gates": {
+      "aria": "Bereiche des Verse",
+      "total": "{{n}} insgesamt",
+      "news": {
+        "title": "Verse News",
+        "stat": "{{n}} diese Woche",
+        "teaser": "Dev-Antworten, Videos und Comm-Links an einem Ort"
+      },
+      "patches": {
+        "title": "Patch News",
+        "stat": "{{n}} neue Notes",
+        "teaser": "Wann der nächste Patch kommt und was er ändert"
+      },
+      "gallery": {
+        "title": "Galerie",
+        "stat": "{{n}} neue Wallpaper",
+        "teaser": "Starscape-Wallpaper ansehen, teilen und abstimmen"
+      }
+    },
+    "patches": {
+      "sub": "Stand der Patches, Fakten und dein Pre-Flight",
+      "kpi": {
+        "lines": {
+          "label": "Patch-Linien im Archiv",
+          "value": "{{n}}"
+        },
+        "leadTime": {
+          "label": "letzte Testphase",
+          "value": "{{n}} Tage"
+        },
+        "cadence": {
+          "label": "zwischen Hauptpatches (Median)",
+          "value": "{{n}} Tage"
+        },
+        "subCadence": {
+          "label": "zwischen Hotfixes (Median)",
+          "value": "{{n}} Tage"
+        },
+        "stable": {
+          "label": "zuletzt stabil gelandet",
+          "value": "{{n}}"
+        }
+      },
+      "ready": {
+        "title": "Pre-Flight für {{line}}",
+        "progress": "{{done}} von {{total}} erledigt",
+        "step": {
+          "notes": "Patch Notes gelesen",
+          "keybinds": "Tastenbelegung geprüft",
+          "loadout": "Loadout geprüft",
+          "shaders": "Shader-Cache geleert"
+        }
+      },
+      "comet": {
+        "title": "Kometen-Tipp: Wann geht {{line}} live?",
+        "hint": "Gib deinen Tipp ab — den Community-Median siehst du danach.",
+        "label": "Dein Tipp für den LIVE-Tag",
+        "submit": "Tipp abgeben",
+        "yours": "Dein Tipp: {{date}}",
+        "median": "Community-Median: {{date}} ({{n}} Tipps)"
+      }
+    },
+    "gallery": {
+      "mine": "Meine Sternbilder",
+      "connected": "Starscape verbunden",
+      "share": "Galerie teilen",
+      "heroTitle": "Starscape holt die Galerie auf deinen Desktop",
+      "heroBody": "Die Desktop-App wechselt deine Wallpaper automatisch durch die Galerie und zeigt deine verdienten Sternbilder."
+    }
   }
 }

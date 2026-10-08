@@ -156,7 +156,8 @@
       "message": "This page could not be loaded — your browser is probably still running an older version of the app.",
       "reload": "Reload app",
       "dismiss": "Dismiss"
-    }
+    },
+    "verse": "Verse"
   },
   "impersonation": {
     "banner": {
@@ -4596,5 +4597,114 @@
     "copy": "Copy class name",
     "copied": "Copied",
     "copyAria": "Copy class name {{name}}"
+  },
+  "verse": {
+    "crumb": "Verse",
+    "area": {
+      "briefing": "Briefing",
+      "news": "Verse News",
+      "patches": "Patch News",
+      "gallery": "Gallery",
+      "starmap": "Star map"
+    },
+    "kind": {
+      "news": "News",
+      "patch": "Patch",
+      "gallery": "Gallery",
+      "link": "Link"
+    },
+    "beta": {
+      "aria": "New Verse view (β)",
+      "switchFor": "New view for {{area}}",
+      "all": "β switches for every area"
+    },
+    "status": {
+      "aria": "Patch status: {{line}}",
+      "live": "Live",
+      "ptu": "PTU {{line}}",
+      "since": "live for {{n}} d",
+      "next": "next ~ in {{n}} d",
+      "overdue": "next overdue by {{n}} d"
+    },
+    "briefing": {
+      "forYou": "For you",
+      "cta": "Take a look",
+      "headlineQuiet": "Quiet in the Verse — nothing new since your last visit",
+      "unseen": "{{n}} new since your last visit",
+      "allSeen": "You are up to date",
+      "patchLine": "Patch {{line}} is live",
+      "topAria": "What matters right now",
+      "empty": "Nothing new right now.",
+      "pinned": "pinned"
+    },
+    "gates": {
+      "aria": "Areas of the Verse",
+      "total": "{{n}} in total",
+      "news": {
+        "title": "Verse News",
+        "stat": "{{n}} this week",
+        "teaser": "Dev replies, videos and Comm-Links in one place"
+      },
+      "patches": {
+        "title": "Patch News",
+        "stat": "{{n}} new notes",
+        "teaser": "When the next patch lands and what it changes"
+      },
+      "gallery": {
+        "title": "Gallery",
+        "stat": "{{n}} new wallpapers",
+        "teaser": "Browse, share and vote on Starscape wallpapers"
+      }
+    },
+    "patches": {
+      "sub": "Patch status, facts and your pre-flight",
+      "kpi": {
+        "lines": {
+          "label": "patch lines in the archive",
+          "value": "{{n}}"
+        },
+        "leadTime": {
+          "label": "latest test phase",
+          "value": "{{n}} days"
+        },
+        "cadence": {
+          "label": "between main patches (median)",
+          "value": "{{n}} days"
+        },
+        "subCadence": {
+          "label": "between hotfixes (median)",
+          "value": "{{n}} days"
+        },
+        "stable": {
+          "label": "recently landed stable",
+          "value": "{{n}}"
+        }
+      },
+      "ready": {
+        "title": "Pre-flight for {{line}}",
+        "progress": "{{done}} of {{total}} done",
+        "step": {
+          "notes": "Patch notes read",
+          "keybinds": "Keybindings checked",
+          "loadout": "Loadout checked",
+          "shaders": "Shader cache cleared"
+        }
+      },
+      "comet": {
+        "title": "Comet vote: when does {{line}} go live?",
+        "hint": "Cast your vote — you see the community median afterwards.",
+        "label": "Your guess for the LIVE day",
+        "submit": "Cast vote",
+        "yours": "Your vote: {{date}}",
+        "median": "Community median: {{date}} ({{n}} votes)"
+      }
+    },
+    "gallery": {
+      "mine": "My constellations",
+      "connected": "Starscape connected",
+      "share": "Share gallery",
+      "heroTitle": "Starscape brings the gallery to your desktop",
+      "heroBody": "The desktop app cycles your wallpaper through the gallery and shows the constellations you earned."
+    }
   }
 }

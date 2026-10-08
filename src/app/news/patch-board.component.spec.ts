@@ -198,7 +198,7 @@ describe('Patch board — the time stack (rethink Ⓚ)', () => {
     for (const row of rows()) {
       const a = (row.querySelector('a.card-link') as HTMLAnchorElement | null);
       expect(a).withContext('a card is an anchor').not.toBeNull();
-      expect(a!.getAttribute('href')).toMatch(/^\/news\/patches\/4\.\d+$/);
+      expect(a!.getAttribute('href')).toMatch(/^\/verse\/patches\/4\.\d+$/);
       expect(a!.getAttribute('aria-label'))
         .withContext('a stretched link has no text of its own').toContain('Alpha');
     }
