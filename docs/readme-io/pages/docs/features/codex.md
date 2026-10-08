@@ -76,7 +76,9 @@ follows the same rules:
   base item comes before its skins.
 
 A search that fails shows an error with a retry button instead of an empty
-result. Typos are not corrected yet.
+result. When only some areas fail (say, the items timed out but ships answered),
+the results you got stay and a quiet note above them says some areas could not
+be searched, with a retry. Typos are not corrected yet.
 
 ### Picking gear for an FPS set
 
