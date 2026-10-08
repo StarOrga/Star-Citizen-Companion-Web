@@ -51,7 +51,7 @@ let nextId = 0;
       <div class="dim" aria-hidden="true" (click)="collapse()"></div>
     }
     <div class="shell" [class.active]="active()" (focusout)="onFocusOut($event)" role="search">
-      <div class="field" (click)="onFieldClick($event)">
+      <div class="field" (click)="onFieldClick($event)" (transitionend)="refit()">
         <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
              stroke-linecap="round" aria-hidden="true">
           <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
@@ -234,9 +234,7 @@ export class CodexSearchBarComponent {
     // The panel fits between the field and the bottom of what is visible —
     // a phone keyboard or a resized window changes that while it is open.
     if (typeof window !== 'undefined') {
-      const refit = () => {
-        if (this.active()) this.fitPanel();
-      };
+      const refit = () => this.refit();
       const vv = window.visualViewport;
       window.addEventListener('resize', refit, { passive: true });
       window.addEventListener('scroll', refit, { passive: true });
@@ -283,6 +281,11 @@ export class CodexSearchBarComponent {
     }
     afterNextRender(() => this.fitPanel(), { injector: this.injector });
     if (fromShortcut) this.focusInput(seed == null);
+  }
+
+  /** Re-measure once the field finished growing (its height is part of the sum). */
+  refit(): void {
+    if (this.active()) this.fitPanel();
   }
 
   /** Cap the results panel at the space between the field and the visible viewport's bottom. */

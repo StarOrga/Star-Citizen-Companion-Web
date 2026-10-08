@@ -195,7 +195,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
             <button type="button" class="act pin" [class.pinned]="codex.isPinned(pk, o.hit.classNameSlug)"
                     (click)="codex.togglePin(pk, o.hit.classNameSlug)"
                     [attr.aria-pressed]="codex.isPinned(pk, o.hit.classNameSlug)"
-                    [attr.aria-label]="(codex.isPinned(pk, o.hit.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
+                    [attr.aria-label]="'codex.search.bar.pinAria' | translate: { name: title(o.hit) }"
                     [scTooltip]="(codex.isPinned(pk, o.hit.classNameSlug) ? 'codex.compare.pinned' : 'codex.compare.pin') | translate"
                     scTooltipTier="label">
               <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"

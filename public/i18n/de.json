@@ -422,6 +422,7 @@
         "upcomingBadge": "Noch nicht im Spiel",
         "addToHangarAria": "{{name}} zum Hangar hinzufügen",
         "addToHangar": "Hangar",
+        "pinAria": "{{name}} vergleichen",
         "navHint": "↑↓ navigieren · ↵ öffnen · Strg+↵ neuer Tab · Esc schließen",
         "category": {
           "ships": "Schiffe",
