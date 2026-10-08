@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, input, output, si
 import { TranslatePipe } from '@ngx-translate/core';
 import { LayoutSection } from '../codex-hardpoint-layout.component';
 import { ShipModuleSection } from '../ship-module-sections';
+import { displayItemName } from '../codex-format';
 
 /** One installed component the list offers for highlighting on the 3D hull. */
 export interface HoloComponentEntry {
@@ -49,7 +50,9 @@ export function buildHoloComponentGroups(
       entries.push({
         key,
         section: sec.section,
-        name: slot.name || slot.typeLabel || slot.port,
+        // An item the extract names nothing for arrives as its raw class name
+        // (`AEGS_Gladius_Thruster_Main`); show it readable, as the ports list does.
+        name: (slot.name ? displayItemName(slot.name) : '') || slot.typeLabel || slot.port,
         size: slot.size ?? null,
         ports,
         located: ports.filter((p) => modelPorts.has(p)),
