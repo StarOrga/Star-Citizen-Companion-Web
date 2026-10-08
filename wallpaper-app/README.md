@@ -125,9 +125,13 @@ I* (account), *what is shown* (image selection), *how it is shown* (presentation
    15 fps meteors) and redraws only the sprites' dirty rectangles over a cached
    base. It pauses to a 2 s probe while a fullscreen app, game or presentation
    runs, the foreground window is maximised, the machine is on battery or
-   battery saver, or the screensaver is up. The meteor shower runs on the
-   patch's LIVE day (UTC date of `live_at` = local today) until midnight or
-   *Next wallpaper*. Verse preferences live in `verse.ini` next to
+   battery saver, or the screensaver is up. The process is per-monitor DPI
+   aware (manifest from `build.rs`, runtime fallback in
+   `util::enable_dpi_awareness`), so the animation window is sized in physical
+   pixels and stays sharp at 125-150 % scaling. The meteor shower runs on the
+   patch's LIVE day, the local calendar day that contains `live_at` (the
+   instant converted to local time first; the website's `isLiveDay` uses the
+   same rule), until local midnight or *Next wallpaper*. Verse preferences live in `verse.ini` next to
    `config.ini`.
 
 Config lives at `%APPDATA%\StarscapeWallpaper\config.ini` (rotation interval,

@@ -3382,6 +3382,7 @@
           "lang": "sc.lang — deine Sprachwahl.",
           "consent": "sc.consent — deine Entscheidung zu den Speicher-Kategorien, damit wir nicht bei jedem Besuch neu fragen.",
           "composer": "sc.composer.sendOnEnter — ob die Enter-Taste im Feedback-Feld absendet oder eine neue Zeile macht.",
+          "verseBeta": "sc.verse.beta — welche Verse-Menüpunkte du auf die neue β-Oberfläche umgestellt hast. Eine reine Anzeige-Einstellung, nicht fürs Tracking genutzt.",
           "preferences": "Kategorie „Präferenzen\" — Komfort-Zustand wie News-Filter, gemerkte Artikel und favorisierte Schiffe. Wird nur geschrieben, wenn du sie erlaubst; ein Widerruf löscht die Einträge sofort.",
           "statistics": "Kategorie „Statistik\" — der Zustand der anonymen Produkt-Analytik (PostHog). Entsteht nur, wenn du sie erlaubst; ein Widerruf löscht ihn sofort."
         },

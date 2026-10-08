@@ -3382,6 +3382,7 @@
           "lang": "sc.lang — your language choice.",
           "consent": "sc.consent — your decision about the storage categories, so we do not ask again on every visit.",
           "composer": "sc.composer.sendOnEnter — whether the Enter key sends in the feedback box or adds a new line.",
+          "verseBeta": "sc.verse.beta — which Verse menu items you switched to the new β interface. A pure display preference, not used for tracking.",
           "preferences": "\"Preferences\" category — convenience state such as news filters, saved articles and favorited ships. Only written if you allow it; withdrawing your consent deletes those entries immediately.",
           "statistics": "\"Statistics\" category — the state of the anonymous product analytics (PostHog). Only created if you allow it; withdrawing your consent deletes it immediately."
         },

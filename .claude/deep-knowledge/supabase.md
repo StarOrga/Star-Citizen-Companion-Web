@@ -340,7 +340,8 @@ dropped.
   trigger).
 - Public-read tables: `verse_constellations` (written only by
   `ingest-catalog` with the service role; the Data Uploader precomputes
-  7 points per hull), `verse_pins` (admin write), `verse_suggestions`
+  7 points per hull; locked per patch line: the first pick stays, later
+  builds of the same patch insert with `on conflict do nothing`), `verse_pins` (admin write), `verse_suggestions`
   (Kartograph rank inserts, admin promotes via `verse_promote_suggestion`).
 - Read RPCs: `verse_digest()` (anon + authenticated, must stay inside the
   anon 3 s budget), `verse_explorer_state()`, `patch_prediction_median()`

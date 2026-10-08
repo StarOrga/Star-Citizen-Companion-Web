@@ -1,7 +1,7 @@
 // node --test supabase/functions/ingest-catalog/_constellation.test.mjs
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { earliestByClass, patchLineOf, pickNewest, sanitizeCandidates } from './_constellation.ts';
+import { earliestByClass, lockConstellation, patchLineOf, pickNewest, sanitizeCandidates } from './_constellation.ts';
 
 const STARS = [[0.5, 0], [0.9, 0.4], [0.9, 0.5], [0.51, 1], [0.49, 1], [0.1, 0.5], [0.1, 0.4]];
 const cand = (class_name, kind = 'ship') => ({ class_name, kind, points: STARS });
@@ -73,5 +73,79 @@ describe('earliestByClass', () => {
     ]);
     assert.equal(m.get('A'), '2026-04-01T10:00:00.000Z');
     assert.equal(m.get('B'), '2026-06-01T10:00:00.000Z');
+  });
+});
+
+/** In-memory verse_constellations with the PK on patch_line (ON CONFLICT DO NOTHING). */
+function memoryStore() {
+  const rows = new Map();
+  const calls = { insert: 0, find: 0 };
+  return {
+    rows,
+    calls,
+    async find(line) {
+      calls.find++;
+      return rows.get(line) ?? null;
+    },
+    async insertIfAbsent(row) {
+      calls.insert++;
+      if (rows.has(row.patch_line)) return false;
+      rows.set(row.patch_line, { ...row });
+      return true;
+    },
+  };
+}
+const row = (patch_line, class_name, source_build_id, kind = 'ship') =>
+  ({ patch_line, class_name, kind, points: STARS, source_build_id });
+
+describe('lockConstellation', () => {
+  it('writes the first pick of a patch line', async () => {
+    const store = memoryStore();
+    const res = await lockConstellation(store, row('4.3', 'RSI_Zeus_CL', 'b1'));
+    assert.equal(res.created, true);
+    assert.equal(res.row.class_name, 'RSI_Zeus_CL');
+    assert.equal(store.rows.get('4.3').source_build_id, 'b1');
+  });
+
+  it('keeps the first vehicle when a later build of the same patch picks another', async () => {
+    const store = memoryStore();
+    await lockConstellation(store, row('4.3', 'RSI_Zeus_CL', 'b1'));
+    const res = await lockConstellation(store, row('4.3', 'TMBL_Nova', 'b2', 'ground'));
+    assert.equal(res.created, false);
+    assert.deepEqual([res.row.class_name, res.row.kind, res.row.source_build_id], ['RSI_Zeus_CL', 'ship', 'b1']);
+    assert.deepEqual(
+      [store.rows.get('4.3').class_name, store.rows.get('4.3').source_build_id],
+      ['RSI_Zeus_CL', 'b1'],
+      'stored row untouched',
+    );
+  });
+
+  it('a different patch line writes its own row', async () => {
+    const store = memoryStore();
+    await lockConstellation(store, row('4.3', 'RSI_Zeus_CL', 'b1'));
+    const res = await lockConstellation(store, row('4.4', 'TMBL_Nova', 'b3', 'ground'));
+    assert.equal(res.created, true);
+    assert.deepEqual([...store.rows.keys()].sort(), ['4.3', '4.4']);
+    assert.equal(store.rows.get('4.3').class_name, 'RSI_Zeus_CL');
+    assert.equal(store.rows.get('4.4').class_name, 'TMBL_Nova');
+  });
+
+  it('two concurrent uploads of one patch: exactly one wins, both report it', async () => {
+    const store = memoryStore();
+    const [a, b] = await Promise.all([
+      lockConstellation(store, row('4.5', 'AEGS_Gladius', 'b4')),
+      lockConstellation(store, row('4.5', 'ANVL_Arrow', 'b5')),
+    ]);
+    assert.equal([a, b].filter((r) => r.created).length, 1);
+    assert.equal(a.row.class_name, b.row.class_name);
+    assert.equal(store.rows.size, 1);
+  });
+
+  it('only reads back the stored row after a conflict', async () => {
+    const store = memoryStore();
+    await lockConstellation(store, row('4.3', 'RSI_Zeus_CL', 'b1'));
+    assert.equal(store.calls.find, 0);
+    await lockConstellation(store, row('4.3', 'X', 'b2'));
+    assert.equal(store.calls.find, 1);
   });
 });

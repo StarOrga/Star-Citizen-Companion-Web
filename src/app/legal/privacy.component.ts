@@ -73,7 +73,7 @@ import { TranslatePipe } from '@ngx-translate/core';
         <h2>{{ 'legal.privacy.local.title' | translate }}</h2>
         <p>{{ 'legal.privacy.local.p1' | translate }}</p>
         <ul class="list">
-          @for (key of ['session', 'lang', 'consent', 'composer', 'preferences', 'statistics'];
+          @for (key of ['session', 'lang', 'consent', 'composer', 'verseBeta', 'preferences', 'statistics'];
                 track key) {
             <li>{{ 'legal.privacy.local.keys.' + key | translate }}</li>
           }

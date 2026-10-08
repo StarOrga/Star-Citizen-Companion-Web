@@ -3,7 +3,12 @@
 // The Data Uploader precomputes 7 stars per ship silhouette
 // (data-uploader/python/sc_extract/constellation.py) and sends them all as
 // candidates. This module validates them and picks the patch's newest vehicle;
-// index.ts does the DB reads and the upsert into verse_constellations.
+// index.ts does the DB reads and the write into verse_constellations.
+//
+// Locked per patch line: the first vehicle chosen for a patch_line stays.
+// Later builds of the same patch (hotfixes, re-uploads) never overwrite it —
+// a user's constellation must not change shape under the stars they already
+// earned. A different patch_line writes its own row. See lockConstellation.
 
 export const STAR_COUNT = 7;
 
@@ -86,4 +91,44 @@ export function earliestByClass(rows: { class_name: string; created_at: string }
     if (prev === undefined || iso < prev) out.set(r.class_name, iso);
   }
   return out;
+}
+
+/** One verse_constellations row. */
+export interface ConstellationRow {
+  patch_line: string;
+  class_name: string;
+  kind: 'ship' | 'ground';
+  points: [number, number][];
+  source_build_id: string;
+}
+
+/**
+ * The two DB operations the lock needs; index.ts backs them with PostgREST,
+ * the tests with a Map.
+ */
+export interface ConstellationStore {
+  /** The row already stored for `patchLine`, or null. */
+  find(patchLine: string): Promise<ConstellationRow | null>;
+  /** INSERT ... ON CONFLICT (patch_line) DO NOTHING; true when this call inserted. */
+  insertIfAbsent(row: ConstellationRow): Promise<boolean>;
+}
+
+export interface LockResult {
+  row: ConstellationRow;
+  /** True when this call wrote the row, false when an earlier build had. */
+  created: boolean;
+}
+
+/**
+ * First pick per patch line wins. Inserts `row` only when its patch line has
+ * none yet; otherwise returns the stored row untouched. Safe under two
+ * concurrent uploads of the same patch: the loser's insert is a no-op and it
+ * reads back the winner's row.
+ */
+export async function lockConstellation(store: ConstellationStore, row: ConstellationRow): Promise<LockResult> {
+  if (await store.insertIfAbsent(row)) return { row, created: true };
+  const existing = await store.find(row.patch_line);
+  // A conflict without a readable row cannot happen unless the row was deleted
+  // in between; report the attempted pick as not written.
+  return { row: existing ?? row, created: false };
 }
