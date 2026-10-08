@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.137.0] - 2026-10-08
+
+### Changed
+
+- **Ein Suchfeld pro Seite.** Auf `/codex/index` und `/codex/fps` steht die
+  globale Codex-Suche nicht mehr als zweites großes Feld über dem
+  Listenfilter. Sie sitzt als Schalter „Ganzen Codex durchsuchen (Strg+K)“
+  im Kopf der Seite; ein Klick, Strg+K, „/“ oder einfach lostippen klappt
+  sie groß und fokussiert auf, Esc bringt den Fokus dorthin zurück, wo er
+  vorher war. Die Listenfelder heißen jetzt „Diese Liste filtern …“. Auf dem
+  Handy öffnet die Lupe im Seitenkopf dieselbe Suche.
+- **Ehrliche Trefferzahlen.** Die Gruppen der Codex-Suche zählen
+  zusammengefasste Varianten nur einmal und sagen dazu, wie viele Varianten
+  zusammengefasst wurden. „Alle N im Index“ nennt weiterhin die volle Zahl.
+- **Lesbare Tastenlegende.** Die Legende unter den Suchtreffern zeigt echte
+  Tastenkappen statt einer Zeile Kleingedrucktem.
+- **Kompakter Seitenkopf.** Zwischen 1000 und 1380 px Fensterbreite rückt der
+  Kopf zusammen, statt in eine zweite Zeile umzubrechen. Unter 1180 px
+  klappen die Admin-Links in ein rotes Menü „Admin ▾“ (per Tastatur
+  bedienbar, Einträge mit „Nur Admin“ markiert).
+
+### Fixed
+
+- Nach dem Schließen der Codex-Suche landet der Fokus wieder auf dem Feld,
+  aus dem sie geöffnet wurde.
+
 ## [0.136.1] - 2026-10-08
 
 ### Fixed
