@@ -59,6 +59,7 @@ import { CodexHoloPerspectivesComponent, HoloGhost, HoloPerspectiveView } from '
 import { CodexHoloTableComponent } from './codex-holo-table.component';
 import { CodexHoloInspectorComponent } from './codex-holo-inspector.component';
 import { HoloPhase, JournalEntry, PinGroup, PinRing, StagePin, ringPositions, shipNameWithoutMaker } from './codex-holo-model';
+import { anchorKey } from './codex-holo-leader';
 import { HangarShipConfig } from '../../hangar/hangar.types';
 import type { CodexBuild } from '../codex.types';
 import type { PowerSheet } from '../codex-power';
@@ -1582,6 +1583,18 @@ export class CodexHoloStageComponent {
       .map((p) => ({ raw: p.portName!, known: null }));
   });
 
+  /** The silhouette's anchors by port name (case-folded). An anchor exists
+   * per hardpoint NODE — far more than the table pins (a Nomad: 96 anchors,
+   * 17 pins); only a shown pin whose port name matches one sits on the hull.
+   * The anchor's own portId wins over a helper of the same name. */
+  private readonly anchorByPort = computed<Map<string, SilhouetteAnchor>>(() => {
+    const out = new Map<string, SilhouetteAnchor>();
+    const anchors = this.silhouette()?.anchors ?? [];
+    for (const a of anchors) if (!out.has(anchorKey(a.portId))) out.set(anchorKey(a.portId), a);
+    for (const a of anchors) if (a.helper && !out.has(anchorKey(a.helper))) out.set(anchorKey(a.helper), a);
+    return out;
+  });
+
   /** The fallback ring, as an ellipse that hugs the traced hull's bbox (in %
    * of the canvas) — or the plain ring when there is no silhouette. Pins
    * without an anchor sit on it in list order, starting at the nose. */
@@ -1612,11 +1625,19 @@ export class CodexHoloStageComponent {
    * anchored): a crowded ring (capital ships, 40+ ports) widens until
    * neighbouring dots no longer touch — ~7 % of the canvas per pin. */
   readonly pinRing = computed<PinRing | null>(() => {
-    const s = this.silhouette();
-    const anchored = new Set(s ? s.anchors.map((a) => a.portId) : []);
-    const n = this.pinSource().filter(({ raw }) => !anchored.has(raw)).length;
+    const anchors = this.anchorByPort();
+    const source = this.pinSource();
+    const n = source.filter(({ raw }) => !anchors.has(anchorKey(raw))).length;
     if (n === 0) return null;
     const ring = { ...this.fallbackRing() };
+    // With anchored pins on the table the labels move into columns beside the
+    // hull (#642): the ring stays inside the hull square, so an estimated
+    // pin's dot never sits under a label column.
+    if (n < source.length) {
+      ring.rx = Math.min(ring.rx, ring.cx - 4, 96 - ring.cx);
+      ring.ry = Math.min(ring.ry, ring.cy - 4, 96 - ring.cy);
+      return ring;
+    }
     const needMean = (n * 7) / (2 * Math.PI);
     const mean = Math.sqrt((ring.rx * ring.rx + ring.ry * ring.ry) / 2);
     if (mean < needMean) {
@@ -1630,13 +1651,12 @@ export class CodexHoloStageComponent {
   });
 
   readonly pins = computed<StagePin[]>(() => {
-    const s = this.silhouette();
-    const byPort = new Map<string, SilhouetteAnchor>(s ? s.anchors.map((a) => [a.portId, a]) : []);
+    const byPort = this.anchorByPort();
     const source = this.pinSource();
     const ring = this.pinRing();
     // Estimated positions are spread evenly ALONG the ring (not by angle), in
     // list order from the nose clockwise — see `ringPositions`.
-    const spots = ring ? ringPositions(ring, source.filter(({ raw }) => !byPort.has(raw)).length) : [];
+    const spots = ring ? ringPositions(ring, source.filter(({ raw }) => !byPort.has(anchorKey(raw))).length) : [];
     let nextIndex = 0;
     let spot = 0;
     // A narrow ring (a slim hull — the X1, a Cutter) leaves the flank labels
@@ -1656,7 +1676,7 @@ export class CodexHoloStageComponent {
       .map(({ raw, known }) => {
         const slot = known?.slot ?? null;
         const index = known?.index ?? ++nextIndex;
-        const anchor = byPort.get(raw);
+        const anchor = byPort.get(anchorKey(raw));
         const stat = slot?.stats?.[0] ?? null;
         const base = {
           portName: raw,
@@ -1690,7 +1710,9 @@ export class CodexHoloStageComponent {
     }));
   });
 
-  /** Too many pins for on-canvas labels — the numbered key takes over. */
+  /** Too many pins for labels beside the dots — the numbered key takes over,
+   * unless the table can place anchored pins' labels in leader columns (#642,
+   * decided by the table, which knows its own size). */
   readonly dense = computed(() => this.pins().length > DENSE_PIN_COUNT);
   readonly hasUnresolvedPins = computed(() => this.pins().some((p) => !p.resolved));
   /** The map wants a mutable array; computed once per markers change, never per CD (wave 5 B2.2). */
