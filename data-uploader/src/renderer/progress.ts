@@ -25,6 +25,8 @@
  * all animation/transition durations), so nothing extra is needed here.
  */
 
+import { pruneSamples, throughput } from '../lib/throughput.js';
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"]/g, (c) =>
     c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : '&quot;',
@@ -47,8 +49,6 @@ function fmtSince(ms: number): string {
 // the meta line surfaces a running "…still working (Xs)" timer so the user
 // knows the app is alive, not hung.
 const STALL_MS = 3500;
-// Rolling window over which throughput is averaged (smooths out bursty events).
-const RATE_WINDOW_MS = 6000;
 // How long one observation of real work keeps the bar animated.
 const LIVE_MS = 2500;
 // CPU seconds per wall second below which a worker pulse counts as idle.
@@ -262,15 +262,13 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
   let lastActiveAt = 0;
   let holds = 0;
 
-  // Throughput over the rolling window → items/sec + ETA to the current goal.
+  // Throughput over the rolling window ending NOW (lib/throughput.ts) →
+  // items/sec + ETA to the current goal; a stall decays both.
   const rateInfo = (): { rate: number; etaSec: number | null } | null => {
-    if (samples.length < 2) return null;
-    const first = samples[0];
-    const last = samples[samples.length - 1];
-    const dt = (last.t - first.t) / 1000;
-    const dc = last.current - first.current;
-    if (dt < 1 || dc <= 0) return null;
-    const rate = dc / dt;
+    const now = Date.now();
+    pruneSamples(samples, now);
+    const rate = throughput(samples, now);
+    if (rate === null) return null;
     let etaSec: number | null = null;
     if (
       typeof vm.total === 'number' &&
@@ -449,8 +447,13 @@ export function mountProgress(id: string, opts: MountProgressOptions = {}): Prog
       const hasGoal = typeof vm.total === 'number' && vm.total > 0 && typeof vm.current === 'number';
       vm.indeterminate = u.indeterminate ?? (!hasGoal && typeof vm.current !== 'number');
 
-      if (hasGoal) samples.push({ t: Date.now(), current: vm.current as number });
-      while (samples.length > 2 && Date.now() - samples[0].t > RATE_WINDOW_MS) samples.shift();
+      if (hasGoal) {
+        const last = samples[samples.length - 1];
+        // A counter going backwards is a new goal (tool download → build), not throughput.
+        if (last && (vm.current as number) < last.current) samples.length = 0;
+        samples.push({ t: Date.now(), current: vm.current as number });
+        pruneSamples(samples, Date.now());
+      }
 
       // Reset the stall timer only on a *real* change (new stage, more items,
       // new detail, ticked counter) — not on a no-op repaint.
