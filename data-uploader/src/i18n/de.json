@@ -228,7 +228,9 @@
         "paused": "pausiert",
         "failed": "fehlgeschlagen",
         "skipped": "übersprungen"
-      }
+      },
+      "skinsBuild": "Modelle bauen",
+      "skinsUpload": "Modelle hochladen"
     }
   },
   "update": {

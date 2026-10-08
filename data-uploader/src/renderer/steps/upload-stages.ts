@@ -7,6 +7,8 @@
  *       ✓ Silhouetten bauen  4.494
  *       ○ Einträge hochladen            ← the category bars open under this row
  *   ○ 3D-Modelle                          only while it runs
+ *       ○ Modelle bauen
+ *       ○ Modelle hochladen
  *
  * Every row carries its own state, so nothing reads "done" while its stage is
  * still pending (the old full category bars under a running silhouette build).
@@ -19,7 +21,15 @@
 
 import { t } from '../../lib/i18n.js';
 
-export type StageKey = 'bundle' | 'codex' | 'silhouettes' | 'entries' | 'skins';
+export type StageKey = 'bundle' | 'codex' | 'silhouettes' | 'entries' | 'skins' | 'skinsBuild' | 'skinsUpload';
+/** The rows that do work; `codex` and `skins` only follow their two sub-rows. */
+const LEAVES: StageKey[] = ['bundle', 'silhouettes', 'entries', 'skinsBuild', 'skinsUpload'];
+const PARENT: Partial<Record<StageKey, { parent: StageKey; first: StageKey; second: StageKey }>> = {
+  silhouettes: { parent: 'codex', first: 'silhouettes', second: 'entries' },
+  entries: { parent: 'codex', first: 'silhouettes', second: 'entries' },
+  skinsBuild: { parent: 'skins', first: 'skinsBuild', second: 'skinsUpload' },
+  skinsUpload: { parent: 'skins', first: 'skinsBuild', second: 'skinsUpload' },
+};
 export type StageState = 'pending' | 'active' | 'done' | 'warn' | 'paused' | 'failed' | 'skipped';
 
 const ICON: Record<StageState, string> = {
@@ -38,6 +48,8 @@ const LABEL_KEY: Record<StageKey, string> = {
   silhouettes: 'upload.stages.silhouettes',
   entries: 'upload.stages.entries',
   skins: 'upload.steps.skins',
+  skinsBuild: 'upload.stages.skinsBuild',
+  skinsUpload: 'upload.stages.skinsUpload',
 };
 
 function row(key: StageKey, inner = ''): string {
@@ -65,7 +77,13 @@ export function uploadStagesHtml(barsHtml: string): string {
           ${row('entries', `<div class="upload-stage-bars" id="stage-entries-bars" hidden>${barsHtml}</div>`)}
         </ol>`,
       )}
-      ${row('skins')}
+      ${row(
+        'skins',
+        `<ol class="upload-stages-sub">
+          ${row('skinsBuild')}
+          ${row('skinsUpload')}
+        </ol>`,
+      )}
     </ol>`;
 }
 
@@ -87,10 +105,10 @@ function paint(key: StageKey, state: StageState, meta?: string): void {
   }
 }
 
-/** The Codex parent follows its two sub-rows. */
-function paintCodex(): void {
-  const a = (el('silhouettes')?.dataset.state ?? 'pending') as StageState;
-  const b = (el('entries')?.dataset.state ?? 'pending') as StageState;
+/** A parent row (Codex, 3D-Modelle) follows its two sub-rows. */
+function paintParent(parent: StageKey, first: StageKey, second: StageKey): void {
+  const a = (el(first)?.dataset.state ?? 'pending') as StageState;
+  const b = (el(second)?.dataset.state ?? 'pending') as StageState;
   const both = [a, b];
   const state: StageState = both.includes('failed')
     ? 'failed'
@@ -107,7 +125,7 @@ function paintCodex(): void {
           : a === 'pending'
             ? 'pending'
             : 'active';
-  paint('codex', state);
+  paint(parent, state);
 }
 
 /** Set a row's state and (optionally) its right-hand meta text. */
@@ -117,7 +135,8 @@ export function setStage(key: StageKey, state: StageState, meta?: string): void 
     const bars = document.getElementById('stage-entries-bars');
     if (bars) bars.hidden = state !== 'active';
   }
-  if (key === 'silhouettes' || key === 'entries') paintCodex();
+  const family = PARENT[key];
+  if (family) paintParent(family.parent, family.first, family.second);
 }
 
 /** Only the meta text (a ticking "948 / 4.494"), state untouched. */
@@ -142,7 +161,7 @@ export function tipStage(key: StageKey, text: string): void {
 
 /** The row that is running right now (deepest first), if any. */
 export function activeStage(): StageKey | null {
-  for (const key of ['silhouettes', 'entries', 'bundle', 'skins'] as StageKey[]) {
+  for (const key of LEAVES) {
     if (el(key)?.dataset.state === 'active') return key;
   }
   return null;
@@ -155,9 +174,10 @@ export function pauseActiveStage(): void {
 }
 
 export function resetStages(): void {
-  for (const key of ['bundle', 'silhouettes', 'entries', 'skins'] as StageKey[]) {
+  for (const key of LEAVES) {
     setStage(key, 'pending', '');
     tipStage(key, '');
   }
   tipStage('codex', '');
+  tipStage('skins', '');
 }
