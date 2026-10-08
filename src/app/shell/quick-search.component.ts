@@ -147,6 +147,12 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
     /* The results are the scroll port; the field stays put above them. */
     .qs-results { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
 
+    /* A narrow desktop header (the shell condenses it to one row): the
+       button keeps its label, the Ctrl K hint goes — aria-keyshortcuts stays. */
+    @media (min-width: 721px) and (max-width: 1179px) {
+      .trigger kbd { display: none; }
+    }
+    .trigger kbd { white-space: nowrap; }
     @media (max-width: 720px) {
       .trigger-label { display: none; }
       .trigger kbd { display: none; }

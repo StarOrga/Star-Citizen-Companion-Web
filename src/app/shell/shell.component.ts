@@ -5,7 +5,9 @@ import {
   DestroyRef,
   ElementRef,
   HostListener,
+  Injector,
   NgZone,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -107,12 +109,45 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
             routerLink="/admin"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: true }"
-            class="admin-link">
+            class="admin-link admin-inline">
             {{ 'nav.admin' | translate }}
           </a>
-          <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link">
+          <a routerLink="/admin/telemetry" routerLinkActive="active" class="admin-link admin-inline">
             {{ 'nav.telemetry' | translate }}
           </a>
+          <!-- Between the phone layout and ~1180px the two admin entries fold
+               into this one menu, so the header stays a single row (the CSS
+               swaps .admin-inline for .admin-more). Red like the entries it
+               holds - elevated access - and it says "Admin" in words too. -->
+          <div class="admin-more">
+            <button
+              type="button"
+              class="admin-more-btn"
+              [class.active]="adminRoute()"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="adminMenuOpen()"
+              (click)="toggleAdminMenu($event)"
+              (keydown)="onAdminButtonKeydown($event)">
+              {{ 'nav.adminMenu' | translate }}
+              <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            @if (adminMenuOpen()) {
+              <div class="dropdown admin-dropdown" role="menu" [attr.aria-label]="'nav.adminMenu' | translate"
+                   (keydown)="onAdminMenuKeydown($event)">
+                <a class="dropdown-item elevated" role="menuitem" routerLink="/admin"
+                   (click)="onAdminMenuNavigate($event)">
+                  <span class="di-label">{{ 'nav.admin' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                </a>
+                <a class="dropdown-item elevated" role="menuitem" routerLink="/admin/telemetry"
+                   (click)="onAdminMenuNavigate($event)">
+                  <span class="di-label">{{ 'nav.telemetry' | translate }}</span>
+                  <span class="di-tag">{{ 'nav.adminOnly' | translate }}</span>
+                </a>
+              </div>
+            }
+          </div>
         }
       </nav>
 
@@ -405,7 +440,7 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
       justify-content: center;
       flex-wrap: wrap;
     }
-    .nav a {
+    .nav > a {
       padding: 8px 16px;
       color: var(--sc-fg-1);
       font-family: var(--sc-font-display);
@@ -464,11 +499,26 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
       .nav-scan__bar { animation: none; width: 100%;
         background: color-mix(in srgb, var(--sc-accent) 40%, transparent); box-shadow: none; }
     }
-    .nav a.admin-link {
+    .nav > a.admin-link {
       color: var(--sc-accent-hot);
       &:hover { color: var(--sc-accent-hot); background: rgba(255, 87, 34, 0.1); }
       &.active { color: var(--sc-accent-hot); box-shadow: inset 0 -2px 0 var(--sc-accent-hot); }
     }
+    /* The folded admin menu - only between the phone layout and ~1180px. */
+    .admin-more { display: none; position: relative; }
+    .admin-more-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 8px 10px; border: 0; border-radius: 4px; background: transparent; cursor: pointer;
+      color: var(--sc-accent-hot);
+      font-family: var(--sc-font-display); font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase;
+      transition: all 0.18s ease;
+    }
+    .admin-more-btn:hover { background: rgba(255, 87, 34, 0.1); }
+    .admin-more-btn:focus-visible { outline: 2px solid var(--sc-accent-hot); outline-offset: 1px; }
+    .admin-more-btn.active { box-shadow: inset 0 -2px 0 var(--sc-accent-hot); }
+    .admin-more-btn .caret { width: 14px; height: 14px; transition: transform 0.16s; }
+    .admin-more-btn[aria-expanded='true'] .caret { transform: rotate(180deg); }
+    .admin-dropdown { left: 0; right: auto; min-width: 200px; width: max-content; }
     .actions {
       display: flex;
       gap: 8px;
@@ -724,6 +774,39 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
        to its pinned bar at exactly this width. Above 1080px the header is a
        single ~67px row, where sticky costs almost nothing and keeps search and
        the account menu one click away, so it stays. */
+    /* One row on a desktop window. The three header groups need ~1340px side
+       by side (admin, with its two extra entries), so between the phone layout
+       and 1380px the header used to wrap - onto two rows at 1024px, and the
+       wordmark onto two lines at 1280px. It condenses in steps instead
+       (the quick-search button drops its Ctrl K hint below 1180px itself):
+         <1380  tighter gaps, nav padding and wordmark tracking; the flanks
+                stop sharing the leftover evenly (that centring is what broke
+                the wordmark), the nav takes the space between them;
+         <1180  the two admin entries fold into the red "Admin" menu;
+         <1000  the wordmark gives way to logo + badge, as on a phone;
+         <820   too narrow for one row: the nav takes a row of its own, as on
+                a phone (the header scrolls away here, so the row is cheap). */
+    @media (min-width: 721px) and (max-width: 1379px) {
+      .topbar { gap: 14px; padding: 12px 20px; flex-wrap: nowrap; }
+      .brand { flex: 0 0 auto; min-width: 0; }
+      .brand .title { font-size: 0.94em; letter-spacing: 0.06em; white-space: nowrap; }
+      .nav { flex: 1 1 auto; flex-wrap: nowrap; gap: 2px; }
+      .nav > a { padding: 8px 9px; letter-spacing: 0.06em; white-space: nowrap; }
+      .actions { flex: 0 0 auto; }
+    }
+    @media (min-width: 721px) and (max-width: 1179px) {
+      .nav > a.admin-inline { display: none; }
+      .admin-more { display: block; }
+    }
+    @media (min-width: 721px) and (max-width: 999px) {
+      .brand .title { display: none; }
+      .brand .alpha-badge { position: static; transform: none; }
+    }
+    @media (min-width: 721px) and (max-width: 819px) {
+      .topbar { flex-wrap: wrap; row-gap: 8px; }
+      .nav { order: 3; flex: 1 1 100%; justify-content: flex-start; }
+      .actions { flex: 1 1 auto; justify-content: flex-end; }
+    }
     @media (max-width: 1079px) {
       .topbar { position: static; }
     }
@@ -755,14 +838,14 @@ import { CodexSearchBarComponent } from '../codex/search/codex-search-bar.compon
         margin: 0;
         padding: 0;
       }
-      .nav a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
+      .nav > a { padding: 8px 12px; font-size: max(0.72rem, var(--sc-fs-floor)); white-space: nowrap; flex: 0 0 auto; }
       .actions { flex: 1; justify-content: flex-end; }
       .content { padding: 20px var(--sc-page-gutter); }
     }
     /* Touch baseline: nav entries are the app's primary controls, so they get a
        real finger target rather than the 33px the text padding alone gives. */
     @media (pointer: coarse) {
-      .nav a { display: inline-flex; align-items: center; min-height: 48px; }
+      .nav > a { display: inline-flex; align-items: center; min-height: 48px; }
     }
     @media (max-width: 400px) {
       .topbar { padding: 8px 12px; }
@@ -786,12 +869,17 @@ export class ShellComponent implements AfterViewInit {
   private readonly sameRoute = inject(SameRouteRefreshService);
   readonly routeRecovery = inject(RouteLoadRecoveryService);
   private readonly zone = inject(NgZone);
+  private readonly injector = inject(Injector);
 
   /** A Codex page below the landing — the shell mounts the Codex search bar above it. */
   readonly codexBar = signal(isCodexSubpage(this.router.url));
 
   readonly signingOut = signal(false);
   readonly menuOpen = signal(false);
+  /** The folded admin menu (721-1179px). */
+  readonly adminMenuOpen = signal(false);
+  /** On /admin or /admin/telemetry - the folded menu's button carries the active mark. */
+  readonly adminRoute = signal(isAdminNavRoute(this.router.url));
 
   // Bumped each time a routed view mounts so the [@routeReveal] animation replays.
   readonly reveal = signal(0);
@@ -813,7 +901,10 @@ export class ShellComponent implements AfterViewInit {
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
-      if (e instanceof NavigationEnd) this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
+      if (e instanceof NavigationEnd) {
+        this.codexBar.set(isCodexSubpage(e.urlAfterRedirects));
+        this.adminRoute.set(isAdminNavRoute(e.urlAfterRedirects));
+      }
       if (e instanceof NavigationStart) {
         this.startNavIndicator();
       } else if (
@@ -966,7 +1057,67 @@ export class ShellComponent implements AfterViewInit {
 
   toggleMenu(event: Event) {
     event.stopPropagation();
+    this.adminMenuOpen.set(false);
     this.menuOpen.update((open) => !open);
+  }
+
+  toggleAdminMenu(event: Event) {
+    event.stopPropagation();
+    this.menuOpen.set(false);
+    this.adminMenuOpen.update((open) => !open);
+  }
+
+  /** ArrowDown/ArrowUp on the button opens the menu on its first/last entry (menu-button pattern). */
+  onAdminButtonKeydown(event: KeyboardEvent) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    this.menuOpen.set(false);
+    this.adminMenuOpen.set(true);
+    const last = event.key === 'ArrowUp';
+    afterNextRender(
+      () => {
+        const items = this.adminMenuItems();
+        items[last ? items.length - 1 : 0]?.focus();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  onAdminMenuKeydown(event: KeyboardEvent) {
+    const items = this.adminMenuItems();
+    if (items.length === 0) return;
+    const idx = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      items[(idx + 1 + items.length) % items.length].focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      items[(idx - 1 + items.length) % items.length].focus();
+    } else if (event.key === 'Escape') {
+      event.stopPropagation();
+      this.closeAdminMenu(true);
+    } else if (event.key === 'Tab') {
+      this.closeAdminMenu();
+    }
+  }
+
+  /** Same rule as the account menu: only a plain left click (which leaves the view) folds it away. */
+  onAdminMenuNavigate(event: MouseEvent): void {
+    if (!isPlainLeftClick(event)) return;
+    this.closeAdminMenu();
+  }
+
+  closeAdminMenu(returnFocus = false) {
+    this.adminMenuOpen.set(false);
+    if (returnFocus) {
+      (this.host.nativeElement as HTMLElement).querySelector<HTMLElement>('.admin-more-btn')?.focus();
+    }
+  }
+
+  private adminMenuItems(): HTMLElement[] {
+    return Array.from(
+      (this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.admin-dropdown .dropdown-item'),
+    );
   }
 
   closeMenu() {
@@ -976,6 +1127,10 @@ export class ShellComponent implements AfterViewInit {
   // Close on any click outside the profile-menu subtree.
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
+    if (this.adminMenuOpen()) {
+      const adminEl = (this.host.nativeElement as HTMLElement).querySelector('.admin-more');
+      if (adminEl && !adminEl.contains(event.target as Node)) this.closeAdminMenu();
+    }
     if (!this.menuOpen()) return;
     const menuEl = (this.host.nativeElement as HTMLElement).querySelector('.profile-menu');
     if (menuEl && !menuEl.contains(event.target as Node)) {
@@ -986,11 +1141,12 @@ export class ShellComponent implements AfterViewInit {
   @HostListener('document:keydown.escape')
   onEscape() {
     if (this.menuOpen()) this.closeMenu();
+    if (this.adminMenuOpen()) this.closeAdminMenu();
   }
 
   onMenuKeydown(event: KeyboardEvent) {
     const items = Array.from(
-      (this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.dropdown-item'),
+      (this.host.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.profile-menu .dropdown-item'),
     );
     if (items.length === 0) return;
     const idx = items.indexOf(document.activeElement as HTMLElement);
@@ -1038,6 +1194,12 @@ export class ShellComponent implements AfterViewInit {
       this.signingOut.set(false);
     }
   }
+}
+
+/** The routes behind the header's admin entries (`/admin`, `/admin/telemetry`) - not the account menu's tokens page. */
+export function isAdminNavRoute(url: string): boolean {
+  const path = url.split(/[?#]/)[0];
+  return path === '/admin' || path === '/admin/telemetry' || path.startsWith('/admin/telemetry/');
 }
 
 /** `/codex/…` but not the landing `/codex` itself (it carries the bar in its terminal row). */

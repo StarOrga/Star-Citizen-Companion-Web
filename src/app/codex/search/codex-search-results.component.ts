@@ -238,7 +238,7 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
     }
     /* Quiet: says why "Waffen 1" sits above a single row and "all 49" below it. */
     .folded {
-      font-family: inherit; text-transform: none; letter-spacing: 0;
+      font-family: var(--sc-font-body); text-transform: none; letter-spacing: 0;
       font-size: max(0.72rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-style: italic;
     }
     .head-action {
