@@ -18,7 +18,8 @@
   ],
   "routes": [
     "/about",
-    "/login"
+    "/login",
+    "/badge/kartograph?rank=1&patch=4.3&stars=7&sun=1"
   ],
   "quickRoutes": [
     "/about",
@@ -26,20 +27,24 @@
   ],
   "auth": {
     "routes": [
-      "/news",
+      "/verse",
+      "/verse/news",
+      "/verse/patches",
+      "/verse/gallery",
+      "/verse/explorer",
+      "/verse/gallery/constellations",
       "/codex",
       "/codex/index",
       "/codex/keybinds",
       "/codex/ship/CNOU_Nomad",
       "/codex/ship/CNOU_Nomad?view=classic",
-      "/starscape",
       "/hq",
       "/hq/hangar",
       "/release-notes",
       "/admin/feedback"
     ],
     "panelRoutes": [
-      "/news"
+      "/verse/news"
     ]
   },
   "thresholds": {
