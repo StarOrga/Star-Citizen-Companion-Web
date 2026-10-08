@@ -515,7 +515,11 @@ export function stripMiniKey(userId: string | null | undefined): string {
         .rankpips { display: none; }
         .sig .lab { max-inline-size: none; }
         .tip-trigger { display: none; }
-        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; }
+        /* The mission segment sizes to its own label: as an equal flex share
+           its nowrap "EINSATZ" / "◈ ALLES" spilled over the first value. */
+        .einsatz { flex: none; }
+        .einsatz .lab { letter-spacing: 0.08em; }
+        .einsatz .val { font-size: max(10px, var(--sc-fs-floor)); letter-spacing: 0.08em; white-space: nowrap; }
         .hs-toggle { min-inline-size: max(36px, var(--sc-tap-min)); }
         .hs-panel { position: fixed; inset-inline: 0; inset-block-end: 0; max-block-size: 70vh; max-block-size: 70dvh; overflow-y: auto;
           /* The last row scrolls clear of the home indicator and the feedback launcher. */
