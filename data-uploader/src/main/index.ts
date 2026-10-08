@@ -1,3 +1,5 @@
+// FIRST: a dev run gets its own userData before anything reads it (#632).
+import './dev-user-data.js';
 import { app, BrowserWindow, Menu, ipcMain, dialog, shell, clipboard } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

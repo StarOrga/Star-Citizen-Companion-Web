@@ -3160,6 +3160,21 @@
         "forbidden": "You do not have the rights for that.",
         "generic": "That did not work. Please try again."
       }
+    },
+    "silhouettes": {
+      "title": "Holotable silhouettes",
+      "subtitle": "Silhouette coverage of the current build.",
+      "build": "Current build: {{channel}} {{patch}} ({{build}})",
+      "total": "Ships total",
+      "withSilhouette": "With silhouette",
+      "withAnchors": "With anchors",
+      "without": "Without silhouette",
+      "withoutTip": "Hulls of this build without a silhouette from the uploader. The Holotable shows its placeholder for them; their tiles use the datamined preview icon if one exists, otherwise the RSI store art — or the generic glyph when no image loads. Which of the last two applies is only decided in the browser.",
+      "barLabel": "{{pct}} % with silhouette",
+      "fallbackSplit": "without: {{icon}} with preview icon, {{none}} RSI art or glyph",
+      "missingToggle": "Show the {{count}} hulls without silhouette",
+      "noBuild": "No current build — nothing to count yet.",
+      "retry": "Try again"
     }
   },
   "desktop": {
