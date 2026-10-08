@@ -245,13 +245,13 @@ impl<'a> Canvas<'a> {
             while s < len {
                 let in_period = (phase + s) % period;
                 if in_period < dash {
-                    let e = (s + dash - in_period).min(len);
+                    let e = (s + (dash - in_period).max(1e-3)).min(len);
                     let p = |k: f64| (a.0 + (b.0 - a.0) * k / len, a.1 + (b.1 - a.1) * k / len);
                     let (p0, p1) = (p(s), p(e));
                     self.line(p0.0, p0.1, p1.0, p1.1, lw, c, 1.0, 0.0, Blend::Over);
                     s = e;
                 } else {
-                    s += period - in_period;
+                    s += (period - in_period).max(1e-3);
                 }
             }
             phase = (phase + len) % period;
@@ -714,5 +714,32 @@ mod tests {
         assert_eq!(&bmp[0..2], b"BM");
         assert_eq!(bmp.len(), 54 + 12 * 2);
         assert_eq!(&bmp[54..57], &[0x33, 0x22, 0x11]);
+    }
+}
+
+#[cfg(test)]
+mod preview {
+    use super::*;
+
+    /// Manual visual check: `STARMAP_PREVIEW=<dir> cargo test --release -- --ignored preview`.
+    #[test]
+    #[ignore]
+    fn preview_4k() {
+        let Ok(dir) = std::env::var("STARMAP_PREVIEW") else { return };
+        let ship = vec![(0.5, 0.05), (0.38, 0.35), (0.62, 0.35), (0.12, 0.66), (0.88, 0.66), (0.42, 0.95), (0.58, 0.95)];
+        let older = |l: &str, n: u32, sun: bool| RenderConstellation { patch_line: l.into(), points: supernova_points(l).to_vec(), star_count: n, sun };
+        for (name, nova) in [("patch", false), ("supernova", true)] {
+            let mut list = vec![RenderConstellation { patch_line: "4.4".into(), points: ship.clone(), star_count: 7, sun: true }];
+            if nova {
+                list[0].points = supernova_points("4.4").to_vec();
+                list[0].sun = false;
+            }
+            list.extend([older("4.3", 7, true), older("4.2", 4, false), older("4.1", 2, true)]);
+            let o = RenderOptions { width: 3840, height: 2160, seed: "4.4".into(), constellations: list, nebula: true, road: true, supernova: nova };
+            let t0 = std::time::Instant::now();
+            let (px, _) = render(&o);
+            eprintln!("{name}: 3840x2160 in {} ms", t0.elapsed().as_millis());
+            std::fs::write(format!("{dir}/{name}.bmp"), encode_bmp(&px, 3840, 2160)).unwrap();
+        }
     }
 }

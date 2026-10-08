@@ -52,6 +52,13 @@ I* (account), *what is shown* (image selection), *how it is shown* (presentation
     first wallpaper after boot/login (once per day, on by default)
   - *Show Verse News summary now* — re-fetch it and set it as the wallpaper
     immediately, useful for testing without a reboot
+- **My constellations ▸** (*Meine Sternbilder*): the signed-in account's earned
+  Verse constellations, **at most the last 7 patches** (the website keeps the
+  full list). Picking one renders it natively and *pins* it as the wallpaper;
+  the gallery rotation stands still until *Next wallpaper* or a new image
+  selection unpins it. Below the list, the streak rewards once unlocked:
+  *Supernova* (streak 7), *Living constellation* (streak 4) and *Meteor shower
+  on LIVE day* (streak 6). Locked rewards are greyed, not hidden.
 
 **3 · App**
 
@@ -100,6 +107,28 @@ I* (account), *what is shown* (image selection), *how it is shown* (presentation
    turns on "Start with Windows" automatically. Existing installs are migrated
    once (a flag is persisted) without changing their current autostart choice —
    nobody gets silently opted in later.
+
+7. **Verse constellations** (`src/verse.rs`, `src/starmap.rs`,
+   `src/live.rs`, `src/constellations.rs`): one authenticated call,
+   `rpc/verse_explorer_state()`, returns per patch the stars, the sun, the
+   server's `unlocks.wallpaper` verdict (7★) and the uploader's 7-point shape,
+   plus the streak rewards. It runs 25 s after start, after a sign-in and every
+   3 h. The thresholds are server-side only. The wallpaper is rendered by a
+   software rasteriser that mirrors the web renderer
+   `src/app/verse/starmap/constellation-render.ts` step for step (FNV-1a +
+   mulberry32 seeded by the patch line, same random-number order, same
+   symmetric light order). It renders at the display's physical resolution,
+   capped at 4K (~1 s in release), and writes a 24-bit BMP to the cache.
+   **sr-live / sr-meteor** animate it in a child window inside Explorer's
+   wallpaper layer, the same placement as the crossfade overlay (never
+   topmost, never focusable). The animation runs on a `SetTimer` (6 fps live,
+   15 fps meteors) and redraws only the sprites' dirty rectangles over a cached
+   base. It pauses to a 2 s probe while a fullscreen app, game or presentation
+   runs, the foreground window is maximised, the machine is on battery or
+   battery saver, or the screensaver is up. The meteor shower runs on the
+   patch's LIVE day (UTC date of `live_at` = local today) until midnight or
+   *Next wallpaper*. Verse preferences live in `verse.ini` next to
+   `config.ini`.
 
 Config lives at `%APPDATA%\StarscapeWallpaper\config.ini` (rotation interval,
 fade, paused, mode, image selection, screensaver delay, autostart-initialized
