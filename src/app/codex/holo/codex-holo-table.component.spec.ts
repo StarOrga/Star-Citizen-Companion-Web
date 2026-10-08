@@ -6,6 +6,7 @@ import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
 import { fakeShipBlueprints } from '../ship-blueprint/ship-blueprint.testing';
 import { AssetPackageService } from '../asset-package/asset-package.service';
 import type { HardpointFrame, HardpointMarker } from '../hardpoint-map';
+import { HoloAnchorFixture, JAVELIN_ANCHORS, NOMAD_ANCHORS, leaderPins } from '../testing/holo-anchors.fixture';
 
 function pin(portName: string, index: number, over: Partial<StagePin> = {}): StagePin {
   return {
@@ -201,6 +202,122 @@ describe('CodexHoloTableComponent', () => {
       const el = fixture.nativeElement as HTMLElement;
       expect(el.querySelector('sc-ship-blueprint-schema')).toBeNull();
       expect(el.querySelector('sc-ship-hardpoint-map')).not.toBeNull();
+    });
+  });
+
+  describe('leader lines (#642)', () => {
+    /** StagePins as the stage builds them from a fixture: anchored pins resolved. */
+    function stagePins(fx: HoloAnchorFixture): StagePin[] {
+      return leaderPins(fx).map((p) => pin(p.portName, p.index, { x: p.x, y: p.y, resolved: p.resolved, label: `Label ${p.index}` }));
+    }
+
+    async function leaderSetup(fx: HoloAnchorFixture, inputs: Record<string, unknown> = {}) {
+      TestBed.configureTestingModule({
+        imports: [CodexHoloTableComponent],
+        providers: [provideTranslateService({ fallbackLang: 'en' })],
+      });
+      const fixture = TestBed.createComponent(CodexHoloTableComponent);
+      // A desktop-sized surface: Karma's own window is only 749px wide.
+      const host = fixture.nativeElement as HTMLElement;
+      host.style.width = '980px';
+      host.style.height = '640px';
+      const pins = stagePins(fx);
+      const all: Record<string, unknown> = { pins, silhouette: fx.silhouette, dense: pins.length > 8, ...inputs };
+      for (const [k, v] of Object.entries(all)) fixture.componentRef.setInput(k, v);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    const labels = (f: ComponentFixture<CodexHoloTableComponent>) =>
+      Array.from((f.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.leader-labels button.ll'));
+    const labelFor = (f: ComponentFixture<CodexHoloTableComponent>, port: string) =>
+      labels(f).find((b) => b.dataset['port'] === port)!;
+    const pinFor = (f: ComponentFixture<CodexHoloTableComponent>, index: number) =>
+      pinButtons(f).find((b) => b.querySelector('i')!.textContent!.trim() === String(index))!;
+
+
+    it('labels every Nomad pin in a side column, joined by a leader line, instead of the key', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(fixture.componentInstance.leader()).not.toBeNull();
+      expect(labels(fixture).length).toBe(17);
+      expect(el.querySelectorAll('svg.leaders path').length).toBe(17);
+      expect(el.querySelector('.pin-key')).toBeNull();
+      // The rendered label boxes never overlap.
+      const rects = labels(fixture).map((b) => b.getBoundingClientRect());
+      for (let i = 0; i < rects.length; i++) {
+        for (let j = i + 1; j < rects.length; j++) {
+          const [a, b] = [rects[i], rects[j]];
+          const hit = a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          expect(hit).withContext(`label ${i + 1} × ${j + 1}`).toBeFalse();
+        }
+      }
+      // The dots stay keyboard-silent: the labels are the tab stops.
+      expect(pinFor(fixture, 1).getAttribute('tabindex')).toBe('-1');
+    });
+
+    it('hovering a label lights its pin and line, hovering a pin lights its label', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS);
+      const hovered: (string[] | null)[] = [];
+      fixture.componentInstance.hovered.subscribe((h) => hovered.push(h));
+      const port3 = NOMAD_ANCHORS.pins[2];
+      labelFor(fixture, port3).dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+      expect(pinFor(fixture, 3).classList).toContain('active');
+      expect((fixture.nativeElement as HTMLElement).querySelectorAll('svg.leaders path.active').length).toBe(1);
+      expect(hovered).toEqual([[port3]]);
+      labelFor(fixture, port3).dispatchEvent(new MouseEvent('mouseleave'));
+      pinFor(fixture, 5).dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+      expect(labelFor(fixture, NOMAD_ANCHORS.pins[4]).classList).toContain('active');
+      expect(pinFor(fixture, 3).classList).not.toContain('active');
+      expect(labelFor(fixture, port3).classList).not.toContain('active');
+    });
+
+    it('selection marks the pin and its label; a label click inspects the port', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS, { inspectedPort: NOMAD_ANCHORS.pins[0] });
+      const label1 = labelFor(fixture, NOMAD_ANCHORS.pins[0]);
+      expect(label1.classList).toContain('sel');
+      expect(label1.getAttribute('aria-pressed')).toBe('true');
+      expect(pinFor(fixture, 1).classList).toContain('sel');
+      const seen: string[] = [];
+      fixture.componentInstance.pinInspect.subscribe((p) => seen.push(p));
+      labelFor(fixture, NOMAD_ANCHORS.pins[1]).click();
+      expect(seen).toEqual([NOMAD_ANCHORS.pins[1]]);
+    });
+
+    it('lights the label of a port the host marks active (hover elsewhere on the page)', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS, { activePorts: [NOMAD_ANCHORS.pins[6]] });
+      expect(labelFor(fixture, NOMAD_ANCHORS.pins[6]).classList).toContain('active');
+    });
+
+    it('keeps the numbered key for the Javelin (47 pins)', async () => {
+      const fixture = await leaderSetup(JAVELIN_ANCHORS);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(fixture.componentInstance.leader()).toBeNull();
+      expect(labels(fixture).length).toBe(0);
+      expect(el.querySelectorAll('.pin-key button.pk').length).toBe(47);
+    });
+
+    it('keeps the numbered key for a silhouette without anchors', async () => {
+      const bare: HoloAnchorFixture = { ...NOMAD_ANCHORS, silhouette: { ...NOMAD_ANCHORS.silhouette, anchors: [] } };
+      const fixture = await leaderSetup(bare);
+      expect(labels(fixture).length).toBe(0);
+      expect((fixture.nativeElement as HTMLElement).querySelectorAll('.pin-key button.pk').length).toBe(17);
+    });
+
+    it('draws no leader lines outside the holo view', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS, { viewMode: 'schema' });
+      expect(fixture.componentInstance.leader()).toBeNull();
+    });
+
+    it('shows the leader lines complete under reduced motion (no draw-in)', async () => {
+      const fixture = await leaderSetup(NOMAD_ANCHORS, { still: true });
+      const path = (fixture.nativeElement as HTMLElement).querySelector('svg.leaders path')!;
+      expect(getComputedStyle(path).animationName).toBe('none');
+      expect(getComputedStyle(path).strokeDashoffset).toMatch(/^0(px)?$/);
     });
   });
 });

@@ -1631,10 +1631,11 @@ export class CodexHoloStageComponent {
     if (n === 0) return null;
     const ring = { ...this.fallbackRing() };
     // With anchored pins on the table the labels move into columns beside the
-    // hull (#642): the ring stays inside the hull square, so an estimated
-    // pin's dot never sits under a label column.
+    // hull (#642): the ring hugs the outline's width (2 % out instead of 8 %)
+    // and stays inside the hull square — the columns sit beside the outline
+    // and its dots, so a wide ring would only push them apart.
     if (n < source.length) {
-      ring.rx = Math.min(ring.rx, ring.cx - 4, 96 - ring.cx);
+      ring.rx = Math.min(ring.rx - 6, ring.cx - 4, 96 - ring.cx);
       ring.ry = Math.min(ring.ry, ring.cy - 4, 96 - ring.cy);
       return ring;
     }

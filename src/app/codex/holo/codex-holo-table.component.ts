@@ -45,6 +45,14 @@ const GENERIC_HULL_PATH =
 
 let hullFillSeq = 0;
 
+/** The outline's horizontal extent in % of the (square) hull box — what the
+ * leader columns hug. Undefined for a viewBox that is not a plain square. */
+function hullSpanOf(s: HoloSilhouette): { x0: number; x1: number } | undefined {
+  const vb = s.viewBox.trim().split(/[\s,]+/).map(Number);
+  if (vb.length !== 4 || vb.some((v) => !Number.isFinite(v)) || vb[2] <= 0 || vb[2] !== vb[3]) return undefined;
+  return { x0: ((s.bbox.x - vb[0]) / vb[2]) * 100, x1: ((s.bbox.x + s.bbox.w - vb[0]) / vb[2]) * 100 };
+}
+
 /**
  * The Holotable's projection surface: rings, the hull (traced outline, the
  * game's own icon, the artwork, or a generic glyph — never two empty rings),
@@ -583,10 +591,11 @@ export class CodexHoloTableComponent {
    * or the pins outnumber the column slots — see layoutLeaderLabels().
    */
   readonly leader = computed<LeaderLayout | null>(() => {
-    if (this.viewMode() !== 'holo' || !this.silhouette()) return null;
+    const s = this.silhouette();
+    if (this.viewMode() !== 'holo' || !s) return null;
     const pins = this.pins();
     if (!pins.some((p) => p.resolved)) return null;
-    return layoutLeaderLabels(pins, { width: this.frameW(), height: this.frameH(), coarse: this.coarse() });
+    return layoutLeaderLabels(pins, { width: this.frameW(), height: this.frameH(), coarse: this.coarse(), hullSpan: hullSpanOf(s) });
   });
   /** The numbered key under the table: a dense table the leader layout could not take. */
   readonly keyMode = computed(() => this.dense() && !this.leader());
