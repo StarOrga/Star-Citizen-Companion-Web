@@ -1,7 +1,75 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.134.0",
+  "current": "0.135.0",
   "releases": [
+    {
+      "version": "0.135.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Klassenname als Chip.",
+              "text": "Der technische Klassenname eines Codex-Eintrags steht jetzt als kopierbarer Mono-Chip neben dem Titel, nie mehr als Untertitel. Ein Klick kopiert ihn, der Tooltip bestätigt es."
+            },
+            {
+              "title": "Zurück zur Suche.",
+              "text": "Wer aus der Codex-Suche eine Detailseite öffnet, bekommt den Brotkrumen „Suche „…““ und landet mit einem Klick wieder bei denselben Treffern."
+            },
+            {
+              "title": "Hangar-Schiffsseite mit Brotkrumen",
+              "text": "„Hangar › Schiff“ zurück zur Flotte."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Einheitliche Codex-Detailseiten.",
+              "text": "Gegenstände, Waffen, Komponenten, Blaupausen und angekündigte Schiffe öffnen mit derselben Kopfzeile und denselben Abschnitten; die Vorschaubilder sind deutlich größer."
+            },
+            {
+              "title": "Blaupausen nennen das hergestellte Teil",
+              "text": "mit seinem echten Namen und verlinken es."
+            },
+            {
+              "title": "Index- und FPS-Karten",
+              "text": "zeigen den Klassennamen als Chip statt als Fließtext und sind dadurch lesbarer."
+            },
+            {
+              "title": "Hangar-Flottenkarten",
+              "text": "haben echte Vorschaubilder, je Karte einen eigenen Codex-Link, und der Flaggschiff-Knopf liegt außerhalb des Links."
+            },
+            {
+              "title": "Hangar-Schiffsseite",
+              "text": "öffnet mit einer Kopfzeile samt Ladeskelett statt mit dem rohen Klassennamen als Titel."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Hangar-Vorschaubilder fehlten",
+              "text": "bei den meisten Schiffen: die Karte nutzte nur die datengewonnene Vorschau. Sie nimmt jetzt das RSI-Render, dann die Vorschau, dann Blaupause bzw. Symbol."
+            },
+            {
+              "title": "Fehlgeschlagene Ladevorgänge",
+              "text": "auf angekündigten Schiffen und beim Codex-Abgleich im Hangar zeigen einen Fehler mit „Erneut versuchen“ statt einer leeren Seite."
+            },
+            {
+              "title": "Gegenstandsauswahl im Hangar",
+              "text": "zeigt nie mehr einen Übersetzungsschlüssel als Namen."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.134.0",
       "date": "2026-10-08",
