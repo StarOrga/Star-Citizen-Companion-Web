@@ -4817,7 +4817,9 @@
       },
       "meteor": {
         "title": "Meteor shower",
-        "desc": "On LIVE day, meteors streak across your constellations."
+        "desc": "On LIVE day, meteors streak across your constellations.",
+        "today": "It is LIVE day: the meteor shower streaks across your constellations.",
+        "notToday": "The meteor shower only appears on the newest patch's LIVE day."
       },
       "supernova": {
         "title": "Supernova",
@@ -4834,7 +4836,8 @@
     "community": {
       "title": "Community constellation",
       "on": "Your stars shine in this patch's community constellation.",
-      "off": "From 3 stars you shine in this patch's community constellation."
+      "off": "From 3 stars you shine in this patch's community constellation.",
+      "count": "{{explorers}} explorers lit stars in this patch. Brighter stars = more explorers."
     },
     "suns": {
       "title": "Sun collection",
@@ -4855,6 +4858,38 @@
       "download": "Download 4K",
       "share": "Share",
       "copied": "Link copied."
+    },
+    "badge": {
+      "share": "Share badge",
+      "caption": "Cartographer · Rank {{rank}}",
+      "captionSub": "Patch {{patch}} · {{stars}} of {{total}} stars · SC Companion",
+      "aria": "Cartographer badge rank {{rank}} with the constellation of patch {{patch}}",
+      "explain": "A cartographer completed whole constellations in SC Companion: every task of a patch is a star.",
+      "cta": "Start your own star map",
+      "invalid": "This badge link is incomplete.",
+      "toVerse": "Go to the Verse"
+    },
+    "suggest": {
+      "title": "Suggest a top item",
+      "url": "Link (https://… or a path like /verse/patches/4.4)",
+      "note": "Why? (optional)",
+      "submit": "Send suggestion",
+      "sent": "Thanks! Your suggestion is with the admin team.",
+      "status": {
+        "open": "open",
+        "pinned": "pinned",
+        "dismissed": "not taken"
+      },
+      "admin": {
+        "title": "Cartographer suggestions (admins only)",
+        "empty": "No open suggestions.",
+        "promote": "Pin",
+        "dismiss": "Dismiss",
+        "promoteTitle": "Pin suggestion",
+        "promoteMessage": "The link {{url}} appears as a pin in the briefing's top list.",
+        "pinTitle": "Pin title",
+        "promoted": "Pinned."
+      }
     }
   }
 }

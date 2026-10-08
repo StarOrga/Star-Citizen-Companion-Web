@@ -10,24 +10,33 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../auth/auth.service';
+import { RoleService } from '../../auth/role.service';
+import { AnalyticsService } from '../../core/analytics.service';
+import { ScConfirmService } from '../../shared/dialog/sc-confirm.service';
 import { logWarn } from '../../core/log';
 import { VerseHeaderComponent } from '../shared/verse-header.component';
 import { VerseApiService } from '../data/verse-api.service';
-import type { VerseExplorerPatch, VerseExplorerState } from '../data/verse.models';
+import type { VerseCommunityStars, VerseExplorerPatch, VerseExplorerState, VerseSuggestion } from '../data/verse.models';
+import { badgeCaption } from './kartograph-badge.component';
+import { shareImage } from './share-image';
 import { ConstellationFigureComponent } from './constellation-figure.component';
 import {
   RenderConstellation,
   animateConstellation,
   downloadBlob,
   renderConstellationPng,
+  renderKartographBadgePng,
 } from './constellation-render';
 import {
   FALLBACK_POINTS,
   STARS_PER_PATCH,
   STREAK_REWARDS,
   StreakRewardKey,
+  badgeQuery,
+  communityLevels,
+  isLiveDay,
   starTask,
   supernovaPoints,
   taskLink,
@@ -168,6 +177,9 @@ export function wallpaperConstellations(
           @if (st.rewards.live) {
             <canvas #live class="live" width="640" height="360" [attr.aria-label]="'starmap.reward.live.preview' | translate" role="img"></canvas>
           }
+          @if (st.rewards.meteor) {
+            <p class="muted small">{{ (meteorToday() ? 'starmap.reward.meteor.today' : 'starmap.reward.meteor.notToday') | translate }}</p>
+          }
         </section>
 
         <section class="card side">
@@ -175,10 +187,57 @@ export function wallpaperConstellations(
           @if (st.kartograph.unlocked) {
             <p><strong>{{ 'starmap.kartograph.rank' | translate: { rank: st.kartograph.rank } }}</strong></p>
             <p class="muted">{{ 'starmap.kartograph.perks' | translate }}</p>
+            <button type="button" class="btn ghost" [disabled]="sharing()" (click)="shareBadge()">
+              <svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <circle cx="18" cy="5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="19" r="2.6" />
+                <path d="M8.3 10.8 15.7 6.3M8.3 13.2l7.4 4.5" />
+              </svg>
+              {{ 'starmap.badge.share' | translate }}
+            </button>
+            <form class="suggest" (submit)="$event.preventDefault(); submitSuggestion()">
+              <h3>{{ 'starmap.suggest.title' | translate }}</h3>
+              <label for="sg-url">{{ 'starmap.suggest.url' | translate }}</label>
+              <input id="sg-url" type="text" inputmode="url" maxlength="500" autocomplete="off"
+                     [value]="sgUrl()" (input)="sgUrl.set($any($event.target).value)"
+                     [attr.aria-invalid]="sgUrl() !== '' && !sgUrlValid()" />
+              <label for="sg-note">{{ 'starmap.suggest.note' | translate }}</label>
+              <textarea id="sg-note" rows="2" maxlength="500" [value]="sgNote()" (input)="sgNote.set($any($event.target).value)"></textarea>
+              <button type="submit" class="btn" [disabled]="!sgUrlValid() || sgBusy()">{{ 'starmap.suggest.submit' | translate }}</button>
+              @if (sgStatus()) { <p class="small" [class.err]="sgStatusError()" role="status">{{ sgStatus()! | translate }}</p> }
+            </form>
+            @if (ownSuggestions().length) {
+              <ul class="sg-list">
+                @for (s of ownSuggestions(); track s.id) {
+                  <li><span class="sg-url">{{ s.itemUrl }}</span><span class="muted small">{{ 'starmap.suggest.status.' + s.status | translate }}</span></li>
+                }
+              </ul>
+            }
           } @else {
             <p class="muted">{{ 'starmap.kartograph.locked' | translate }}</p>
           }
+          @if (isAdmin()) {
+            <section class="admin-queue" [attr.aria-label]="'starmap.suggest.admin.title' | translate">
+              <h3>{{ 'starmap.suggest.admin.title' | translate }}</h3>
+              @for (s of adminQueue(); track s.id) {
+                <div class="sg-row">
+                  <a [href]="s.itemUrl" target="_blank" rel="noopener noreferrer" class="sg-url">{{ s.itemUrl }}</a>
+                  @if (s.note) { <span class="muted small">{{ s.note }}</span> }
+                  <span class="sg-actions">
+                    <button type="button" class="btn small-btn" (click)="promote(s)">{{ 'starmap.suggest.admin.promote' | translate }}</button>
+                    <button type="button" class="btn ghost small-btn" (click)="dismiss(s)">{{ 'starmap.suggest.admin.dismiss' | translate }}</button>
+                  </span>
+                </div>
+              } @empty {
+                <p class="muted small">{{ 'starmap.suggest.admin.empty' | translate }}</p>
+              }
+            </section>
+          }
           <h2>{{ 'starmap.community.title' | translate }}</h2>
+          @if (community(); as c) {
+            <sc-constellation-figure class="community-fig" size="small" [points]="p.constellation?.points"
+                                     [levels]="communityLevelsOf(p, c)" />
+            <p class="muted small">{{ 'starmap.community.count' | translate: { explorers: c.explorers } }}</p>
+          }
           <p class="muted">{{ (p.unlocks.community ? 'starmap.community.on' : 'starmap.community.off') | translate }}</p>
           <h2>{{ 'starmap.suns.title' | translate }}</h2>
           @if (st.suns.length) {
@@ -242,6 +301,24 @@ export function wallpaperConstellations(
       .sun-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sc-warning); box-shadow: 0 0 6px var(--sc-warning); }
       .suns li.big .sun-dot { width: 14px; height: 14px; }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+      h3 { font: 600 0.9rem var(--sc-font-display); margin: var(--sc-gap-2) 0 var(--sc-pad-1); color: var(--sc-fg-0); }
+      .ico { fill: currentColor; stroke: currentColor; stroke-width: 1.6; margin-right: 6px; }
+      .suggest { display: flex; flex-direction: column; gap: 4px; margin-top: var(--sc-gap-2); }
+      .suggest label { font-size: 0.8rem; color: var(--sc-fg-2); }
+      .suggest input, .suggest textarea { font: inherit; color: var(--sc-fg-0); background: var(--sc-bg-0); border: 1px solid var(--sc-border);
+        border-radius: 8px; padding: var(--sc-pad-1); min-height: var(--sc-tap-min, 44px); resize: vertical; }
+      .suggest input:focus-visible, .suggest textarea:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
+      .suggest input[aria-invalid='true'] { border-color: var(--sc-warning); }
+      .suggest .btn { align-self: flex-start; margin-top: 4px; }
+      .sg-list { margin-top: var(--sc-gap-2); }
+      .sg-list li, .sg-row { display: flex; gap: var(--sc-gap-2); align-items: center; flex-wrap: wrap; padding: 4px 0; }
+      .sg-url { overflow-wrap: anywhere; color: var(--sc-fg-1); }
+      .admin-queue { margin-top: var(--sc-gap-3); padding: var(--sc-pad-2); border: 1px solid var(--sc-accent-hot); border-radius: 10px; }
+      .admin-queue h3 { color: var(--sc-accent-hot); margin-top: 0; }
+      .sg-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+      .small-btn { min-height: 36px; font-size: 0.8rem; }
+      .community-fig { width: 120px; margin: var(--sc-pad-1) 0; }
+      @media (pointer: coarse) { .small-btn { min-height: var(--sc-tap-min, 44px); } }
       @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
     `,
   ],
@@ -264,9 +341,40 @@ export class ExplorerPageComponent {
   });
   readonly exporting = signal(false);
   readonly exportError = signal<string | null>(null);
+  private readonly t = inject(TranslateService);
+  private readonly roles = inject(RoleService);
+  private readonly dialog = inject(ScConfirmService);
+  private readonly analytics = inject(AnalyticsService);
+  readonly isAdmin = this.roles.isAdmin;
+  /** sr-meteor only on the newest patch's LIVE day (the Starscape app's rule). */
+  readonly meteorToday = computed(() => isLiveDay(this.current()?.liveAt));
+  readonly community = signal<VerseCommunityStars | null>(null);
+  readonly sharing = signal(false);
+  readonly sgUrl = signal('');
+  readonly sgNote = signal('');
+  readonly sgBusy = signal(false);
+  readonly sgStatus = signal<string | null>(null);
+  readonly sgStatusError = signal(false);
+  readonly sgUrlValid = computed(() => /^(https:\/\/\S+|\/\S*)$/.test(this.sgUrl().trim()));
+  private readonly suggestionsList = signal<VerseSuggestion[]>([]);
+  /** RLS returns a Kartograph only their own rows; an admin sees the queue instead. */
+  readonly ownSuggestions = computed(() => (this.isAdmin() ? [] : this.suggestionsList().slice(0, 5)));
+  readonly adminQueue = computed(() => this.suggestionsList().filter((s) => s.status === 'open'));
   private readonly liveCanvas = viewChild<ElementRef<HTMLCanvasElement>>('live');
 
   constructor() {
+    effect(() => {
+      const p = this.selected();
+      this.community.set(null);
+      if (!p) return;
+      const line = p.patchLine;
+      void this.api.communityStars(line).then((r) => {
+        if (r.ok && this.selected()?.patchLine === line) this.community.set(r.data);
+      });
+    });
+    effect(() => {
+      if (this.state()?.kartograph.unlocked || this.isAdmin()) void this.loadSuggestions();
+    });
     effect(() => {
       if (this.signedIn() && this.api.explorerState() === 'idle') void this.api.loadExplorer();
     });
@@ -285,10 +393,87 @@ export class ExplorerPageComponent {
         constellations: wallpaperConstellations(st, p),
         nebula: st.rewards.nebula,
         road: st.rewards.road,
-        meteor: st.rewards.meteor,
+        meteor: st.rewards.meteor && isLiveDay(p.liveAt),
       });
     });
     this.destroyRef.onDestroy(() => stop?.());
+  }
+
+  communityLevelsOf(p: VerseExplorerPatch, c: VerseCommunityStars): number[] {
+    return communityLevels(p.offered, c.stars, c.explorers);
+  }
+
+  private async loadSuggestions(): Promise<void> {
+    const r = await this.api.suggestions();
+    if (r.ok) this.suggestionsList.set(r.data);
+  }
+
+  async submitSuggestion(): Promise<void> {
+    if (!this.sgUrlValid() || this.sgBusy()) return;
+    this.sgBusy.set(true);
+    this.sgStatus.set(null);
+    const r = await this.api.suggest(this.sgUrl().trim(), this.sgNote().trim() || null);
+    this.sgBusy.set(false);
+    this.sgStatusError.set(!r.ok);
+    if (r.ok) {
+      this.sgUrl.set('');
+      this.sgNote.set('');
+      this.sgStatus.set('starmap.suggest.sent');
+      void this.loadSuggestions();
+    } else {
+      this.sgStatus.set(r.errorKey);
+    }
+  }
+
+  async promote(s: VerseSuggestion): Promise<void> {
+    const title = await this.dialog.prompt({
+      titleKey: 'starmap.suggest.admin.promoteTitle',
+      messageKey: 'starmap.suggest.admin.promoteMessage',
+      params: { url: s.itemUrl },
+      inputLabelKey: 'starmap.suggest.admin.pinTitle',
+      inputMaxLength: 200,
+      confirmKey: 'starmap.suggest.admin.promote',
+    });
+    if (!title?.trim()) return;
+    const r = await this.api.promoteSuggestion(s.id, title.trim());
+    this.sgStatusError.set(!r.ok);
+    this.sgStatus.set(r.ok ? 'starmap.suggest.admin.promoted' : r.errorKey);
+    void this.loadSuggestions();
+  }
+
+  async dismiss(s: VerseSuggestion): Promise<void> {
+    const r = await this.api.dismissSuggestion(s.id);
+    if (!r.ok) {
+      this.sgStatusError.set(true);
+      this.sgStatus.set(r.errorKey);
+    }
+    void this.loadSuggestions();
+  }
+
+  /** Friend badge: rank + newest constellation as an image, link to the public badge page. */
+  async shareBadge(): Promise<void> {
+    const st = this.state();
+    const p = this.current();
+    if (!st || !p || !st.kartograph.unlocked) return;
+    this.sharing.set(true);
+    const badge = { rank: st.kartograph.rank, patch: p.patchLine, stars: this.lit(p), sun: p.sun };
+    const url = `${location.origin}/badge/kartograph?${new URLSearchParams(badgeQuery(badge)).toString()}`;
+    try {
+      const blob = await renderKartographBadgePng({
+        ...badgeCaption(this.t, badge),
+        constellation: wallpaperConstellations(st, p)[0],
+      });
+      const channel = await shareImage(blob, `sc-kartograph-${badge.rank}.png`, badgeCaption(this.t, badge).title, url);
+      if (channel) this.analytics.captureVerse('starscape_share', { image_id: `kartograph-${badge.rank}-${badge.patch}`, channel });
+      if (channel === 'copy') {
+        this.sgStatusError.set(false);
+        this.sgStatus.set('starmap.gallery.copied');
+      }
+    } catch (err) {
+      logWarn('starmap', 'badge share failed', err);
+    } finally {
+      this.sharing.set(false);
+    }
   }
 
   reload(): void {

@@ -120,6 +120,15 @@ export const routes: Routes = [
           import('./hangar/hangar-shared-loadout.component').then((m) => m.HangarSharedLoadoutComponent),
       },
       {
+        // A shared Kartograph badge (Verse star map, friend badge). Public BY
+        // DESIGN: rank, patch and star count travel in the query string — no
+        // user id, no account lookup — and the constellation shape comes from
+        // the public verse_constellations table.
+        path: 'badge/kartograph',
+        loadComponent: () =>
+          import('./verse/starmap/kartograph-badge.component').then((m) => m.KartographBadgeComponent),
+      },
+      {
         // Where `approvedGuard` sends a session whose approval it could not
         // read (see that guard + AccessUnavailableComponent). It MUST stay
         // on this ungated layout: gated, it would be bounced by the very

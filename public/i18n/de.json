@@ -4817,7 +4817,9 @@
       },
       "meteor": {
         "title": "Meteorschauer",
-        "desc": "Am LIVE-Tag ziehen Meteore über deine Sternbilder."
+        "desc": "Am LIVE-Tag ziehen Meteore über deine Sternbilder.",
+        "today": "Heute ist LIVE-Tag: Der Meteorschauer zieht über deine Sternbilder.",
+        "notToday": "Der Meteorschauer erscheint nur am LIVE-Tag des neuesten Patches."
       },
       "supernova": {
         "title": "Supernova",
@@ -4834,7 +4836,8 @@
     "community": {
       "title": "Community-Sternbild",
       "on": "Deine Sterne leuchten in diesem Patch im Community-Sternbild mit.",
-      "off": "Ab 3 Sternen leuchtest du im Community-Sternbild dieses Patches mit."
+      "off": "Ab 3 Sternen leuchtest du im Community-Sternbild dieses Patches mit.",
+      "count": "{{explorers}} Explorer haben in diesem Patch Sterne entzündet. Hellere Sterne = mehr Explorer."
     },
     "suns": {
       "title": "Sonnensammlung",
@@ -4855,6 +4858,38 @@
       "download": "4K herunterladen",
       "share": "Teilen",
       "copied": "Link kopiert."
+    },
+    "badge": {
+      "share": "Abzeichen teilen",
+      "caption": "Kartograph · Rang {{rank}}",
+      "captionSub": "Patch {{patch}} · {{stars}} von {{total}} Sternen · SC Companion",
+      "aria": "Kartograph-Abzeichen Rang {{rank}} mit dem Sternbild von Patch {{patch}}",
+      "explain": "Ein Kartograph hat in SC Companion ganze Sternbilder vollendet: jede Aufgabe eines Patches ein Stern.",
+      "cta": "Eigene Sternkarte starten",
+      "invalid": "Dieser Abzeichen-Link ist unvollständig.",
+      "toVerse": "Zum Verse"
+    },
+    "suggest": {
+      "title": "Top-Eintrag vorschlagen",
+      "url": "Link (https://… oder ein Pfad wie /verse/patches/4.4)",
+      "note": "Warum? (optional)",
+      "submit": "Vorschlag senden",
+      "sent": "Danke! Dein Vorschlag liegt beim Admin-Team.",
+      "status": {
+        "open": "offen",
+        "pinned": "angepinnt",
+        "dismissed": "nicht übernommen"
+      },
+      "admin": {
+        "title": "Vorschläge der Kartographen (nur für Admins)",
+        "empty": "Keine offenen Vorschläge.",
+        "promote": "Anpinnen",
+        "dismiss": "Verwerfen",
+        "promoteTitle": "Vorschlag anpinnen",
+        "promoteMessage": "Der Link {{url}} erscheint als Pin in der Top-Liste des Briefings.",
+        "pinTitle": "Titel des Pins",
+        "promoted": "Angepinnt."
+      }
     }
   }
 }

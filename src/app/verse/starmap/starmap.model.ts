@@ -151,3 +151,66 @@ export const STREAK_REWARDS: readonly { readonly key: StreakRewardKey; readonly 
   { key: 'meteor', at: 6 },
   { key: 'supernova', at: 7 },
 ];
+
+function ymd(d: Date, utc: boolean): string {
+  const y = utc ? d.getUTCFullYear() : d.getFullYear();
+  const m = (utc ? d.getUTCMonth() : d.getMonth()) + 1;
+  const day = utc ? d.getUTCDate() : d.getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/**
+ * sr-meteor plays only on a patch's LIVE day — the Starscape app's rule: the
+ * local calendar date equals the UTC date of `live_at`.
+ */
+export function isLiveDay(liveAt: string | null | undefined, now: Date = new Date()): boolean {
+  if (!liveAt) return false;
+  const at = new Date(liveAt);
+  if (Number.isNaN(at.getTime())) return false;
+  return ymd(at, true) === ymd(now, false);
+}
+
+/** What a shared Kartograph badge shows — everything travels in the link, no user id. */
+export interface KartographBadge {
+  readonly rank: number;
+  readonly patch: string;
+  readonly stars: number;
+  readonly sun: boolean;
+}
+
+const PATCH_RE = /^\d{1,2}\.\d{1,2}$/;
+
+export function badgeQuery(b: KartographBadge): Record<string, string> {
+  return { rank: String(b.rank), patch: b.patch, stars: String(b.stars), sun: b.sun ? '1' : '0' };
+}
+
+/** Parses (and clamps) badge query params; null when the link is unusable. */
+export function parseBadge(q: { get(name: string): string | null }): KartographBadge | null {
+  const patch = q.get('patch') ?? '';
+  const rank = Number(q.get('rank'));
+  const stars = Number(q.get('stars'));
+  if (!PATCH_RE.test(patch) || !Number.isInteger(rank) || rank < 1 || rank > 999) return null;
+  return {
+    rank,
+    patch,
+    stars: Number.isInteger(stars) ? Math.max(0, Math.min(STARS_PER_PATCH, stars)) : 0,
+    sun: q.get('sun') === '1',
+  };
+}
+
+/**
+ * Community constellation: per lighting rank (centre → outside) the share of
+ * explorers who earned the offered key in that slot, 0..1. Offered key i sits
+ * on the i-th star of the symmetric order, the same mapping the own map uses.
+ */
+export function communityLevels(
+  offered: readonly VerseStarKey[],
+  stars: Readonly<Partial<Record<VerseStarKey, number>>>,
+  explorers: number,
+): number[] {
+  return Array.from({ length: STARS_PER_PATCH }, (_, i) => {
+    const key = offered[i];
+    if (!key || explorers <= 0) return 0;
+    return Math.max(0, Math.min(1, (stars[key] ?? 0) / explorers));
+  });
+}

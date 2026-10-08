@@ -15,7 +15,7 @@ import { FALLBACK_POINTS, lightRank, litIndices } from './starmap.model';
     <svg viewBox="-8 -14 122 122" [class.small]="size() === 'small'" aria-hidden="true" focusable="false">
       <polygon class="outline" [class.on]="lit().size > 0" [attr.points]="outline()" />
       @for (s of stars(); track s.i) {
-        <g class="star" [class.lit]="s.lit" [style.--rank]="s.rank" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'">
+        <g class="star" [class.lit]="s.lit" [style.--rank]="s.rank" [style.opacity]="s.level" [attr.transform]="'translate(' + s.x + ' ' + s.y + ')'">
           <circle class="halo" r="7" />
           <circle class="core" r="2.2" />
         </g>
@@ -60,16 +60,34 @@ export class ConstellationFigureComponent {
   readonly size = input<'large' | 'small'>('large');
   /** Patch number, rendered as the faint catalogue mark (large only). */
   readonly watermark = input<string | null>(null);
+  /**
+   * Community mode: brightness per lighting rank (0..1, see communityLevels).
+   * A star is lit when its level is above 0 and fades with a lower share.
+   */
+  readonly levels = input<readonly number[] | null>(null);
 
   private readonly pts = computed(() => {
     const p = this.points();
     return p && p.length === 7 ? p : FALLBACK_POINTS;
   });
-  readonly lit = computed(() => litIndices(this.pts(), this.starCount()));
+  readonly lit = computed(() => {
+    const levels = this.levels();
+    if (!levels) return litIndices(this.pts(), this.starCount());
+    const rank = lightRank(this.pts());
+    return new Set(this.pts().map((_, i) => i).filter((i) => (levels[rank[i]] ?? 0) > 0));
+  });
   readonly stars = computed(() => {
     const rank = lightRank(this.pts());
     const lit = this.lit();
-    return this.pts().map((p, i) => ({ i, x: p[0] * 100, y: p[1] * 100, lit: lit.has(i), rank: rank[i] }));
+    const levels = this.levels();
+    return this.pts().map((p, i) => ({
+      i,
+      x: p[0] * 100,
+      y: p[1] * 100,
+      lit: lit.has(i),
+      rank: rank[i],
+      level: levels && lit.has(i) ? 0.35 + 0.65 * (levels[rank[i]] ?? 0) : null,
+    }));
   });
   readonly outline = computed(() => this.stars().map((s) => `${s.x},${s.y}`).join(' '));
   readonly markAt = computed<[number, number]>(() => {

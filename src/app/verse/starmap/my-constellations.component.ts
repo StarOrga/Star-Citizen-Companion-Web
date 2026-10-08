@@ -20,6 +20,7 @@ import { VerseApiService } from '../data/verse-api.service';
 import type { VerseExplorerPatch } from '../data/verse.models';
 import { downloadBlob, renderConstellationPng, renderConstellationWallpaper } from './constellation-render';
 import { wallpaperConstellations } from './explorer-page.component';
+import { shareImage } from './share-image';
 
 const THUMB = { width: 480, height: 270 } as const;
 
@@ -165,19 +166,18 @@ export class MyConstellationsComponent implements AfterViewInit {
 
   async share(p: VerseExplorerPatch): Promise<void> {
     this.status.set(null);
-    const url = `${location.origin}/verse/explorer`;
     try {
-      const file = new File([await this.png(p)], `sc-constellation-${p.patchLine}.png`, { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: `SC Companion · ${p.patchLine}`, url });
-        this.analytics.captureVerse('starscape_share', { image_id: `constellation-${p.patchLine}`, channel: 'native' });
-      } else {
-        await navigator.clipboard.writeText(url);
-        this.analytics.captureVerse('starscape_share', { image_id: `constellation-${p.patchLine}`, channel: 'copy' });
-        this.status.set('starmap.gallery.copied');
-      }
-    } catch {
-      /* the user dismissed the share sheet, or the clipboard is unavailable */
+      const channel = await shareImage(
+        await this.png(p),
+        `sc-constellation-${p.patchLine}.png`,
+        `SC Companion · ${p.patchLine}`,
+        `${location.origin}/verse/explorer`,
+      );
+      if (channel) this.analytics.captureVerse('starscape_share', { image_id: `constellation-${p.patchLine}`, channel });
+      if (channel === 'copy') this.status.set('starmap.gallery.copied');
+    } catch (err) {
+      logWarn('starmap', 'share render failed', err);
+      this.status.set('starmap.export.failed');
     }
   }
 }

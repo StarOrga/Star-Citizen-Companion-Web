@@ -6,7 +6,9 @@ import {
   PatchPrediction,
   PatchReadiness,
   PredictionMedian,
+  VerseCommunityStars,
   VerseConstellation,
+  VerseSuggestion,
   VerseDigest,
   VerseDigestItem,
   VerseExplorerState,
@@ -14,7 +16,9 @@ import {
   VerseResult,
   VerseStarKey,
   VERSE_STAR_KEYS,
+  mapCommunityStars,
   mapConstellation,
+  mapSuggestion,
   mapDigest,
   mapExplorer,
   rankTopItems,
@@ -227,5 +231,44 @@ export class VerseApiService {
       .limit(limit);
     if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'constellations', error) };
     return { ok: true, data: (data ?? []).map(mapConstellation).filter((c): c is VerseConstellation => c !== null) };
+  }
+
+  /** Community constellation of a patch: explorer count + count per star (no user ids). */
+  async communityStars(patchLine: string): Promise<VerseResult<VerseCommunityStars | null>> {
+    const { data, error } = await this.sb.client.rpc('verse_community_stars', { p_patch_line: patchLine });
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'communityStars', error) };
+    return { ok: true, data: mapCommunityStars(data) };
+  }
+
+  /** Kartograph (rank >= 1): suggest a top item. RLS refuses lower ranks. */
+  async suggest(itemUrl: string, note: string | null): Promise<VerseResult<void>> {
+    const { error } = await this.sb.client.from('verse_suggestions').insert({ item_url: itemUrl, note: note || null });
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'suggest', error) };
+    return { ok: true, data: undefined };
+  }
+
+  /** Own suggestions — or, for an admin, everyone's (RLS decides). Newest first. */
+  async suggestions(limit = 50): Promise<VerseResult<VerseSuggestion[]>> {
+    const { data, error } = await this.sb.client
+      .from('verse_suggestions')
+      .select('id, item_url, note, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'suggestions', error) };
+    return { ok: true, data: (data ?? []).map(mapSuggestion) };
+  }
+
+  /** Admin: turn a suggestion into a briefing pin. Returns the pin's item key. */
+  async promoteSuggestion(id: string, title: string): Promise<VerseResult<string>> {
+    const { data, error } = await this.sb.client.rpc('verse_promote_suggestion', { p_id: id, p_title: title });
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'promoteSuggestion', error) };
+    return { ok: true, data: String(data ?? '') };
+  }
+
+  /** Admin: dismiss a suggestion. */
+  async dismissSuggestion(id: string): Promise<VerseResult<void>> {
+    const { error } = await this.sb.client.from('verse_suggestions').update({ status: 'dismissed' }).eq('id', id);
+    if (error) return { ok: false, errorKey: toErrorKey(SCOPE, 'dismissSuggestion', error) };
+    return { ok: true, data: undefined };
   }
 }

@@ -139,6 +139,24 @@ export interface VerseExplorerState {
   };
 }
 
+/** Anon-safe aggregate of a patch line (verse_community_stars): counts only. */
+export interface VerseCommunityStars {
+  readonly patchLine: string;
+  readonly explorers: number;
+  readonly stars: Readonly<Partial<Record<VerseStarKey, number>>>;
+}
+
+export type VerseSuggestionStatus = 'open' | 'pinned' | 'dismissed';
+
+/** A Kartograph's top-item suggestion (verse_suggestions). */
+export interface VerseSuggestion {
+  readonly id: string;
+  readonly itemUrl: string;
+  readonly note: string | null;
+  readonly status: VerseSuggestionStatus;
+  readonly createdAt: string;
+}
+
 /** Outcome of a user action; `errorKey` is an `errors.*` i18n key. */
 export type VerseResult<T> = { readonly ok: true; readonly data: T } | { readonly ok: false; readonly errorKey: string };
 
@@ -245,6 +263,27 @@ export function mapExplorer(raw: unknown): VerseExplorerState | null {
       supernova: b(rw['supernova']),
       sunCollection: b(rw['sun_collection']),
     },
+  };
+}
+
+export function mapCommunityStars(raw: unknown): VerseCommunityStars | null {
+  if (raw === null || raw === undefined) return null;
+  const r = obj(raw);
+  const st = obj(r['stars']);
+  const stars: Partial<Record<VerseStarKey, number>> = {};
+  for (const k of VERSE_STAR_KEYS) if (st[k] !== undefined) stars[k] = n(st[k]);
+  return { patchLine: s(r['patch_line']), explorers: n(r['explorers']), stars };
+}
+
+export function mapSuggestion(raw: unknown): VerseSuggestion {
+  const r = obj(raw);
+  const st = s(r['status']);
+  return {
+    id: s(r['id']),
+    itemUrl: s(r['item_url']),
+    note: sn(r['note']),
+    status: st === 'pinned' || st === 'dismissed' ? st : 'open',
+    createdAt: s(r['created_at']),
   };
 }
 

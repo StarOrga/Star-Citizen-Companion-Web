@@ -452,3 +452,56 @@ export function animateConstellation(
     io?.disconnect();
   };
 }
+
+/** Social-card size of the shared Kartograph badge. */
+export const BADGE_SIZE = { width: 1200, height: 630 } as const;
+
+export interface KartographBadgeRender {
+  readonly width: number;
+  readonly height: number;
+  readonly constellation: RenderConstellation;
+  /** Already translated, e.g. "Kartograph · Rang 2". */
+  readonly title: string;
+  /** Already translated, e.g. "Patch 4.4 · 7 von 7 Sternen". */
+  readonly subtitle: string;
+}
+
+/**
+ * The friend badge: the newest constellation as a wallpaper (seed = patch line,
+ * same as the Starscape app) with a calm caption panel bottom-left.
+ */
+export function renderKartographBadge(ctx: Ctx2D, b: KartographBadgeRender): void {
+  renderConstellationWallpaper(ctx, {
+    width: b.width,
+    height: b.height,
+    seed: b.constellation.patchLine,
+    constellations: [b.constellation],
+    nebula: true,
+  });
+  const u = Math.min(b.width, b.height) / 1000;
+  ctx.save();
+  const panel = ctx.createLinearGradient(0, b.height * 0.62, 0, b.height);
+  panel.addColorStop(0, 'rgba(3,5,12,0)');
+  panel.addColorStop(1, 'rgba(3,5,12,0.85)');
+  ctx.fillStyle = panel;
+  ctx.fillRect(0, b.height * 0.62, b.width, b.height * 0.38);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#eef3ff';
+  ctx.font = `700 ${Math.round(64 * u)}px Rajdhani, sans-serif`;
+  ctx.fillText(b.title, 60 * u, b.height - 120 * u);
+  ctx.fillStyle = '#9fb3d9';
+  ctx.font = `500 ${Math.round(34 * u)}px Rajdhani, sans-serif`;
+  ctx.fillText(b.subtitle, 60 * u, b.height - 60 * u);
+  ctx.restore();
+}
+
+export function renderKartographBadgePng(b: Omit<KartographBadgeRender, 'width' | 'height'>): Promise<Blob> {
+  const canvas = makeCanvas(BADGE_SIZE.width, BADGE_SIZE.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('canvas 2d unavailable'));
+  renderKartographBadge(ctx, { ...b, ...BADGE_SIZE });
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('toBlob failed'))), 'image/png'),
+  );
+}
