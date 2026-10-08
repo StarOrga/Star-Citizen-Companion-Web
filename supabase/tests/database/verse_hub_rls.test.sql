@@ -1,4 +1,4 @@
--- Verse hub RLS + RPC contracts (migration 20261009090000_verse_hub.sql).
+-- Verse hub RLS + RPC contracts (migration 20261009100000_verse_hub.sql).
 --
 -- Pins: own-rows isolation on verse_seen / patch_readiness / patch_prediction,
 -- the comet vote is insert-only and refused once a patch is LIVE, the median

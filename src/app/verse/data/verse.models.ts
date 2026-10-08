@@ -5,7 +5,7 @@ export type { VerseBetaArea } from '../../core/analytics.service';
 /** Every opt-in area of the β switch, in menu order. */
 export const VERSE_BETA_AREAS: readonly VerseBetaArea[] = ['briefing', 'news', 'patches', 'gallery', 'starmap'];
 
-/** The server-validated star pool (migration 20261009090000_verse_hub.sql). */
+/** The server-validated star pool (migration 20261009100000_verse_hub.sql). */
 export type VerseStarKey =
   | 'notes'
   | 'archive'

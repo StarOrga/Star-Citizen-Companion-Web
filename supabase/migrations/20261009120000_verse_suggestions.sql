@@ -1,6 +1,6 @@
 -- Verse hub, part 2: Kartograph suggestions + community constellation.
 --
--- Builds on 20261009090000_verse_hub.sql. Nothing is dropped.
+-- Builds on 20261009100000_verse_hub.sql. Nothing is dropped.
 --
 --   verse_kartograph_rank()      the caller's rank = patches with all 7 stars
 --                                (same rule as verse_explorer_state().kartograph)

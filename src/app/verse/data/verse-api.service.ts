@@ -27,7 +27,7 @@ import {
 const SCOPE = 'verse';
 
 /**
- * Data layer of the Verse hub (migration 20261009090000_verse_hub.sql).
+ * Data layer of the Verse hub (migration 20261009100000_verse_hub.sql).
  *
  * Shared state (digest, seen keys, explorer state) lives in signals; one-off
  * reads and writes return a {@link VerseResult} whose `errorKey` is an
