@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, NgZone, inject } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { AnalyticsService } from '../../core/analytics.service';
 import { VerseApiService } from '../data/verse-api.service';
@@ -13,20 +13,44 @@ export type EarnableStarKey = Exclude<VerseStarKey, 'comet'>;
  * star only when the key is in that patch's offered pool, and reports
  * `verse_star_earned` (consent-gated inside AnalyticsService) when it was new.
  * It never throws and is a silent no-op when signed out — a source page must
- * not care whether the star map exists.
+ * not care whether the star map exists. All dependencies are resolved lazily
+ * so injecting this service costs a source page nothing.
  */
 @Injectable({ providedIn: 'root' })
 export class StarTriggerService {
-  private readonly api = inject(VerseApiService);
-  private readonly auth = inject(AuthService);
-  private readonly analytics = inject(AnalyticsService);
+  private readonly injector = inject(Injector);
+  private readonly zone = inject(NgZone);
+  // Resolved lazily and outside the zone: a source page never instantiates the
+  // auth/Verse/analytics stack (or its timers) inside its own stability window.
+  private get auth(): AuthService {
+    return this.injector.get(AuthService);
+  }
+  private get api(): VerseApiService {
+    return this.injector.get(VerseApiService);
+  }
+  private get analytics(): AnalyticsService {
+    return this.injector.get(AnalyticsService);
+  }
 
   private readonly pools = new Map<string, Promise<readonly VerseStarKey[]>>();
   private readonly newShips = new Map<string, Promise<string | null>>();
   /** `line|key` already claimed (or tried) this session — no repeated RPCs. */
   private readonly done = new Set<string>();
 
-  async earn(key: EarnableStarKey): Promise<void> {
+  /** Runs outside the Angular zone: a star round-trip never holds a page's stability. */
+  earn(key: EarnableStarKey): Promise<void> {
+    return this.zone.runOutsideAngular(() => this.claim(key));
+  }
+
+  /**
+   * Codex detail opened: `cx-newship` when it is the vehicle this patch's
+   * constellation was drawn from (= the patch's newest ship/ground vehicle).
+   */
+  codexDetail(kind: string, className: string): Promise<void> {
+    return this.zone.runOutsideAngular(() => this.claimNewShip(kind, className));
+  }
+
+  private async claim(key: EarnableStarKey): Promise<void> {
     try {
       if (!this.auth.isAuthenticated()) return;
       const line = await this.currentLine();
@@ -47,17 +71,13 @@ export class StarTriggerService {
     }
   }
 
-  /**
-   * Codex detail opened: `cx-newship` when it is the vehicle this patch's
-   * constellation was drawn from (= the patch's newest ship/ground vehicle).
-   */
-  async codexDetail(kind: string, className: string): Promise<void> {
+  private async claimNewShip(kind: string, className: string): Promise<void> {
     try {
       if (!this.auth.isAuthenticated() || (kind !== 'ship' && kind !== 'vehicle')) return;
       const line = await this.currentLine();
       if (!line) return;
       const newest = await this.newShip(line);
-      if (newest && newest.toLowerCase() === className.toLowerCase()) await this.earn('cx-newship');
+      if (newest && newest.toLowerCase() === className.toLowerCase()) await this.claim('cx-newship');
     } catch {
       /* see earn() */
     }

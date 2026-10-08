@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { rankBySearch, searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -1007,6 +1008,7 @@ export class FpsListComponent {
   );
 
   constructor() {
+    void inject(StarTriggerService).earn('cx-fps');
     // A new LIVE build replaced the one on screen (tab came back): reload.
     reloadOnBuildRefresh(this.svc, () => void this.loadCatalog(this.category(), this.includeVariants()));
     this.t.onLangChange

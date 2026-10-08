@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { searchMatcher } from './codex-search';
 import { toErrorKey } from '../core/describe-error';
 import {
@@ -695,6 +696,7 @@ const KEYBIND_URL_DEBOUNCE_MS = 300;
   `],
 })
 export class KeybindsComponent implements OnInit {
+  private readonly stars = inject(StarTriggerService);
   protected readonly codexCrumbs = [CODEX_ROOT_CRUMB];
   readonly svc = inject(CodexService);
   readonly roles = inject(RoleService);
@@ -763,6 +765,7 @@ export class KeybindsComponent implements OnInit {
   ];
 
   constructor() {
+    void this.stars.earn('cx-keybinds');
     // The datamined names are fetched for ONE language in ngOnInit, so an app
     // language switch has to re-resolve them — otherwise the page keeps serving
     // the previous language's labels (and the DE|EN switch would label itself

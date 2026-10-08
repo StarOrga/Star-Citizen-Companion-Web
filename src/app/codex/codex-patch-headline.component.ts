@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -387,6 +388,7 @@ import { formatScDate } from '../core/locale/date-format';
   ],
 })
 export class CodexPatchHeadlineComponent {
+  private readonly stars = inject(StarTriggerService);
   readonly svc = inject(CodexService);
   private readonly news = inject(NewsService);
   private readonly locale = inject(LocaleService);
@@ -456,6 +458,8 @@ export class CodexPatchHeadlineComponent {
     const changed = this.svc.selectBuild(e.build);
     this.close();
     if (changed) this.patchChange.emit();
+    // An older patch than the newest we hold = an archive find (Verse star map).
+    if (changed && e !== this.visible().find((v) => v.hasData)) void this.stars.earn('archive');
   }
 
   /** Back to the newest patch we hold data for — the page's default. */

@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
@@ -241,6 +242,7 @@ import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/
   `],
 })
 export class BlueprintDetailComponent implements OnInit {
+  private readonly stars = inject(StarTriggerService);
   private readonly navOrigin = inject(NavOriginService);
   /** Codex › where the reader came from, else the blueprint index. */
   readonly crumbs = computed<PageCrumb[]>(() => {
@@ -396,6 +398,7 @@ export class BlueprintDetailComponent implements OnInit {
    * loads exactly as before.
    */
   ngOnInit(): void {
+    void this.stars.earn('cx-blueprint');
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       void this.load(params.get('className') ?? '');
     });

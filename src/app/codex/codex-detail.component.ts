@@ -1,3 +1,4 @@
+import { StarTriggerService } from '../verse/starmap/star-trigger.service';
 import { logWarn } from '../core/log';
 import { toErrorKey } from '../core/describe-error';
 import { AccountPrefsService } from '../core/account-prefs.service';
@@ -1305,6 +1306,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
  * This component keeps loading, the derived loadout views and the wiring.
  */
 export class CodexDetailComponent implements OnInit {
+  private readonly stars = inject(StarTriggerService);
   private readonly svc = inject(CodexService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -1895,6 +1897,7 @@ export class CodexDetailComponent implements OnInit {
       // lands, and a failed fetch is absorbed by the service.
       if (kind === 'ship') void this.rsi.ensureLoaded();
       void this.load(kind, className);
+      void this.stars.codexDetail(kind, className);
     });
     // `?shared=` / `?config=` change without a new ship (adopt → own config,
     // leaving the shared view): the draft follows, the page does not reload.
@@ -2601,7 +2604,10 @@ export class CodexDetailComponent implements OnInit {
 
   /** Write the draft into the ship's active hangar config (CodexLoadoutDraftStore). */
   saveLoadoutDraft(): Promise<HangarShipConfig | null> {
-    return this.draftStore.saveLoadoutDraft();
+    return this.draftStore.saveLoadoutDraft().then((saved) => {
+      if (saved) void this.stars.earn('cx-loadout');
+      return saved;
+    });
   }
 
   /** "Save & share" (#645): saves the draft first when there is anything to
