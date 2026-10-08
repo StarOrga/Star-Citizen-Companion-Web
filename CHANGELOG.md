@@ -4,6 +4,37 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.131.0] - 2026-10-08
+
+### Added
+
+- **Eine Suche für den ganzen Codex.** Schnellsuche (Strg+K), Codex-Startseite,
+  eine schlanke Suchleiste auf jeder Codex-Seite, Holotisch und „Schiff
+  hinzufügen“ im Hangar suchen jetzt mit derselben Suche und derselben
+  Rangfolge. Außerhalb des Codex öffnet Strg+K (oder `/`) das Such-Overlay;
+  im Codex holt es stattdessen die Suchleiste der Seite groß und fokussiert
+  nach vorn. Einfach lostippen genügt — auch schnell getippte erste Buchstaben
+  gehen nicht verloren.
+- **Gruppierte Treffer** nach Art (Schiffe, Fahrzeuge, FPS-Ausrüstung,
+  Gegenstände …) mit Gesamtzahl pro Art und „Alle N im Index“ als Sprung in
+  den gefilterten Index. Pfeiltasten, Enter und Escape steuern die Liste;
+  jeder Treffer ist ein echter Link (Mittelklick, Strg+Klick, neuer Tab).
+- **Fehler werden erklärt.** Fällt eine Quelle aus, bleiben die geladenen
+  Treffer sichtbar, ein Hinweis nennt, was fehlt, und bietet „Erneut
+  versuchen“. Fällt alles aus, erscheint ein Fehlerzustand mit Wiederholen
+  statt einer leeren Liste.
+
+### Changed
+
+- **Auf dem Handy** öffnet die Suche als Blatt mit eigenem Schließen-Knopf.
+- **Hangar: „Schiff hinzufügen“** nutzt die gemeinsame Rangfolge und findet
+  dieselben Schiffe wie die Codex-Suche.
+
+### Removed
+
+- **Das eigene Suchfeld des Holotischs** — die gemeinsame Codex-Suchleiste
+  ersetzt es.
+
 ## [0.130.0] - 2026-10-08
 
 ### Changed

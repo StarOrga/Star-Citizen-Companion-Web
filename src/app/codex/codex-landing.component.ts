@@ -3,22 +3,18 @@ import { toErrorKey } from '../core/describe-error';
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   OnInit,
   computed,
-  effect,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { reloadOnBuildRefresh } from './build-refresh.util';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   CodexListRow,
-  CodexKind,
   CodexService,
   manufacturerLabel,
   pickLocalized,
@@ -26,13 +22,6 @@ import {
 } from './codex.service';
 import { cleanLocaleValue, formatNumber, humanizeClassName } from './codex-format';
 import { LocalizedText, Lang } from './codex.types';
-import {
-  PolySearchHit,
-  isUpcomingHit,
-  polyHitIconKind,
-  polyHitLink,
-  polyHitQueryParams,
-} from './codex-poly-search';
 import { CodexPatchHeadlineComponent } from './codex-patch-headline.component';
 import { CodexStageComponent } from './stage/codex-stage.component';
 import { HangarPickerItem } from './stage/hangar-picker.component';
@@ -47,7 +36,6 @@ import {
 } from './codex-landing-kpi';
 
 import { CodexCompareTrayComponent } from './codex-compare-tray.component';
-import { CodexCategoryIconComponent } from './codex-category-icon.component';
 import { StageArt, UpcomingShipsService } from './upcoming-ships.service';
 import { HangarService } from '../hangar/hangar.service';
 import { HangarRoleLoadout } from '../hangar/hangar.types';
@@ -56,17 +44,7 @@ import { AppDownloadMenuComponent } from '../desktop/app-download-menu.component
 import { formatScDate } from '../core/locale/date-format';
 import { LocaleService } from '../core/locale/locale.service';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
-import { ShipBlueprintIconComponent } from './ship-blueprint/ship-blueprint-icon.component';
-import { CodexDidYouMeanComponent, mergeSuggestions } from './codex-did-you-mean.component';
-
-const SEARCH_DEBOUNCE_MS = 250;
-
-/** Columns of a rendered auto-fill grid: the hits sharing the first one's row. */
-export function gridColumns(items: readonly HTMLElement[]): number {
-  if (items.length === 0) return 1;
-  const top = items[0].offsetTop;
-  return Math.max(1, items.filter((el) => el.offsetTop === top).length);
-}
+import { CodexSearchBarComponent } from './search/codex-search-bar.component';
 
 /**
  * The Codex landing — the "Spot" stage (concept 2026-09-20, rounds 14-17,
@@ -95,18 +73,15 @@ export function gridColumns(items: readonly HTMLElement[]): number {
   selector: 'sc-codex-landing',
   standalone: true,
   imports: [
-    FormsModule,
     RouterLink,
     TranslatePipe,
     CodexCompareTrayComponent,
-    CodexCategoryIconComponent,
     AppDownloadMenuComponent,
     CodexPatchHeadlineComponent,
     CodexStageComponent,
     CodexBoardFigureComponent,
     ScTooltipDirective,
-    CodexDidYouMeanComponent,
-    ShipBlueprintIconComponent,
+    CodexSearchBarComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -114,36 +89,9 @@ export function gridColumns(items: readonly HTMLElement[]): number {
       <h1 class="sc-sr-only">{{ 'codex.title' | translate }}</h1>
       <!-- ── TOP: Archive Terminal + patch headline + app menu ──────────────── -->
       <header class="terminal">
-        <div class="terminal-bar">
-          <svg class="icon terminal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="10.5" cy="10.5" r="6.5" /><line x1="15.5" y1="15.5" x2="21" y2="21" />
-          </svg>
-          <input
-            #terminalInput
-            class="terminal-input"
-            type="search"
-            (keydown)="onTerminalKeydown($event)"
-            [ngModel]="searchInput()"
-            (ngModelChange)="onSearchInput($event)"
-            [attr.aria-label]="'codex.landing.terminal.label' | translate"
-            [attr.placeholder]="'codex.landing.terminal.placeholder' | translate"
-          />
-          @if (searchInput()) {
-            <button
-              class="terminal-clear"
-              type="button"
-              (click)="clearSearch()"
-              [attr.aria-label]="'codex.landing.terminal.clear' | translate"
-              [scTooltip]="'codex.landing.terminal.clear' | translate"
-            >
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                   stroke-linecap="round" aria-hidden="true">
-                <line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" />
-              </svg>
-            </button>
-          }
-        </div>
+        <!-- The ONE Codex search (also behind Ctrl+K and above every other
+             Codex page). Activated, it spans this whole row and leads the page. -->
+        <sc-codex-search-bar #searchBar class="terminal-search" variant="terminal" [query]="routeQuery()" />
 
         <!-- ONE headline (admin feedback 463872dd): the patch that produced
              everything below it. Round two of that feedback dropped the
@@ -200,103 +148,6 @@ export function gridColumns(items: readonly HTMLElement[]): number {
         </div>
       }
 
-      <!-- ── SEARCH-ACTIVE: cross-entity results staged in the field ────────── -->
-      @if (searchActive()) {
-        <section class="results" aria-live="polite">
-          <header class="results-head">
-            <h2>{{ 'codex.landing.results.title' | translate }}</h2>
-            <span class="results-term">"{{ searchTerm() }}"</span>
-          </header>
-          @if (searching()) {
-            <p class="results-note">{{ 'codex.landing.results.searching' | translate }}</p>
-          } @else if (searchError(); as err) {
-            <!-- A failed archive read is an error with a way forward, never "no results". -->
-            <p class="results-note err" role="alert">{{ err | translate }}</p>
-            <button type="button" class="results-retry" (click)="retrySearch()">{{ 'codex.error.retry' | translate }}</button>
-          } @else if (searchResults().length === 0) {
-            <p class="results-note">{{
-              'codex.landing.results.empty' | translate: { term: searchTerm() }
-            }}</p>
-            <sc-codex-did-you-mean [names]="suggestions()" (pick)="searchFor($event)" />
-          } @else {
-            <div class="hit-grid" #hitGrid (keydown)="onHitKeydown($event)">
-              @for (hit of searchResults(); track hit.kind + ':' + hit.classNameSlug) {
-                <a
-                  class="hit"
-                  [class.meta]="hit.scope === 'meta'"
-                  [class.upcoming]="hit.scope === 'upcoming'"
-                  [routerLink]="hitLink(hit)"
-                  [queryParams]="hitQueryParams(hit)"
-                >
-                  <span class="hit-icon" aria-hidden="true">
-                    @if (hit.kind === 'ship') {
-                      <!-- The hull's own blueprint once it is there; the kind icon until then and without one. -->
-                      <sc-ship-blueprint-icon [shipId]="hit.classNameSlug">
-                        <sc-codex-icon [kind]="hitIcon(hit)" />
-                      </sc-ship-blueprint-icon>
-                    } @else {
-                      <sc-codex-icon [kind]="hitIcon(hit)" />
-                    }
-                  </span>
-                  <span class="hit-body">
-                    <span class="hit-name">{{ hitName(hit) }}</span>
-                    <span class="hit-meta">
-                      <span class="hit-kind">{{
-                        'codex.kindSingular.' + hit.kind | translate
-                      }}</span>
-                      @if (hitMfr(hit); as mfr) {
-                        <span class="hit-mfr">{{ mfr }}</span>
-                      }
-                      @if (hit.size != null) {
-                        <span class="hit-badge">{{
-                          'codex.card.size' | translate: { size: hit.size }
-                        }}</span>
-                      }
-                      <!-- Says in words what the amber tint says in colour: RSI
-                           announced this hull, the live build has no data for it. -->
-                      @if (isUpcoming(hit)) {
-                        <span class="hit-badge soon">{{
-                          'codex.landing.results.upcomingBadge' | translate
-                        }}</span>
-                      }
-                    </span>
-                  </span>
-                  <!-- Nothing to compare on a ship with no datamined stats, so
-                       announced hits carry no pin. -->
-                  @if (hitCompareKind(hit); as pinKind) {
-                    <button
-                      type="button"
-                      class="pin"
-                      [class.pinned]="svc.isPinned(pinKind, hit.classNameSlug)"
-                      (click)="togglePin($event, pinKind, hit.classNameSlug)"
-                      [attr.aria-label]="
-                        (svc.isPinned(pinKind, hit.classNameSlug)
-                          ? 'codex.compare.pinned'
-                          : 'codex.compare.pin'
-                        ) | translate
-                      "
-                      [scTooltip]="
-                        (svc.isPinned(pinKind, hit.classNameSlug)
-                          ? 'codex.compare.pinned'
-                          : 'codex.compare.pin'
-                        ) | translate
-                      "
-                      scTooltipTier="label"
-                    >
-                      <svg class="icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                           stroke-linejoin="round" aria-hidden="true"
-                           [attr.fill]="svc.isPinned(pinKind, hit.classNameSlug) ? 'currentColor' : 'none'">
-                        <path d="M12 3 L14.7 9.2 L21.5 9.9 L16.4 14.3 L17.9 21 L12 17.4 L6.1 21 L7.6 14.3 L2.5 9.9 L9.3 9.2 Z" />
-                      </svg>
-                    </button>
-                  }
-                </a>
-              }
-            </div>
-          }
-        </section>
-      }
-
       <!-- ── STAGE: ship ⅔ · person ⅓ — the Codex "Spot" stage ────────────────
            Concept 2026-09-20, rounds 14-17 (N6 scope). Replaces the old AN
            BORD ⇄ IM HANGAR switcher (feedback e80cc831/77668f11 are now moot:
@@ -306,7 +157,7 @@ export function gridColumns(items: readonly HTMLElement[]): number {
            nebula frames it — see codex-stage.component.ts. The HangarPicker
            ("⌂ Hangar" / "⛨ Sets") lives INSIDE the picture, top-left, and
            switches the stage's subject without navigating (M1-M6, N1-N3). -->
-      <div class="stage-split" [class.dimmed]="searchActive()">
+      <div class="stage-split">
         <sc-codex-stage
           kind="ship"
           class="stage-ship"
@@ -404,48 +255,10 @@ export function gridColumns(items: readonly HTMLElement[]): number {
         align-items: center;
         justify-content: space-between;
       }
-      .terminal-bar {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1 1 340px;
-        padding: 0 12px;
-        min-height: var(--sc-tap-min, 44px);
-        border-radius: 3px;
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, var(--sc-border));
-        background:
-          radial-gradient(140% 160% at 0% 0%, color-mix(in srgb, var(--sc-accent) 10%, transparent), transparent 60%),
-          var(--sc-bg-1);
-      }
-      .terminal-icon { width: 18px; height: 18px; color: var(--sc-accent); }
-      .terminal-input {
-        flex: 1;
-        min-width: 0;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: var(--sc-fg-0);
-        font-size: max(0.95rem, var(--sc-fs-floor, 0.9rem));
-        padding: 10px 0;
-      }
-      .terminal-bar:focus-within {
-        border-color: var(--sc-accent);
-        box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.22);
-      }
-      .terminal-clear {
-        width: 22px;
-        height: 22px;
-        background: none;
-        border: none;
-        color: var(--sc-fg-2);
-        cursor: pointer;
-        min-height: var(--sc-tap-min, 44px);
-        min-width: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
+      /* The search bar takes the row's free width; activated, it positions
+         itself against the whole row (position: relative here). */
+      .terminal { position: relative; }
+      .terminal-search { flex: 1 1 340px; min-width: 0; }
 
       /* The patch headline is its own component (sc-codex-patch-headline) — it
          owns the pill chrome and the patch-switch overlay. Only its slot in the
@@ -479,83 +292,6 @@ export function gridColumns(items: readonly HTMLElement[]): number {
       }
       .sc-card.err button { margin-top: 8px; }
 
-      /* ── search results ───────────────────────────────────────────────── */
-      .results-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
-      .results-head h2 { margin: 0; font-size: 1.05rem; }
-      .results-term { color: var(--sc-accent); font-family: var(--sc-font-display); }
-      .results-note { color: var(--sc-fg-2); }
-      .results-note.err { color: var(--sc-danger); }
-      .results-retry { align-self: flex-start; padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-family: inherit; cursor: pointer; }
-      .results-retry:hover { background: color-mix(in srgb, var(--sc-accent) 14%, transparent); }
-      .results-retry:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-      @media (pointer: coarse) { .results-retry { min-height: 44px; } }
-      .hit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
-      .hit {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 3px;
-        text-decoration: none;
-        color: inherit;
-        border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, var(--sc-border));
-        background:
-          linear-gradient(90deg, color-mix(in srgb, var(--sc-accent) 10%, transparent), transparent 70%),
-          var(--sc-bg-1);
-        transition: border-color 0.16s, box-shadow 0.16s;
-      }
-      .hit.meta {
-        --meta: #b98bff;
-        border-color: color-mix(in srgb, var(--meta) 32%, var(--sc-border));
-        background: linear-gradient(90deg, color-mix(in srgb, var(--meta) 12%, transparent), transparent 70%),
-          var(--sc-bg-1);
-      }
-      /* Announced-but-not-in-the-build ships: amber, the app's "not yet" colour.
-         Distinct from cyan (flyable today) and violet (meta), and never the hot
-         red, which is reserved for elevated access. */
-      .hit.upcoming {
-        --soon: #f0b44a;
-        border-color: color-mix(in srgb, var(--soon) 32%, var(--sc-border));
-        background: linear-gradient(90deg, color-mix(in srgb, var(--soon) 12%, transparent), transparent 70%),
-          var(--sc-bg-1);
-      }
-      .hit:hover { border-color: var(--sc-accent); box-shadow: 0 0 16px color-mix(in srgb, var(--sc-accent) 22%, transparent); }
-      .hit.meta:hover { border-color: var(--meta); }
-      .hit.upcoming:hover { border-color: var(--soon); box-shadow: 0 0 16px color-mix(in srgb, var(--soon) 22%, transparent); }
-      .hit.upcoming .hit-icon, .hit.upcoming .hit-kind { color: var(--soon); }
-      .hit-badge.soon {
-        padding: 1px 6px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase;
-        font-size: max(0.62rem, var(--sc-fs-floor));
-        color: var(--soon); border: 1px solid color-mix(in srgb, var(--soon) 40%, transparent);
-        background: color-mix(in srgb, var(--soon) 14%, transparent);
-      }
-      .hit-icon { display: inline-flex; width: 34px; height: 34px; align-items: center; justify-content: center; color: var(--sc-accent); }
-      /* A ship's blueprint is wider than tall (nose to the right): the slot widens for it. */
-      .hit-icon:has(sc-ship-blueprint-art) { width: 48px; }
-      .hit.meta .hit-icon { color: var(--meta); }
-      .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-      .hit-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      /* Wraps since the manufacturer is spelled out now — "Consolidated Outland"
-         next to the kind and size chips overruns a single line on a narrow card. */
-      .hit-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 0.72rem; color: var(--sc-fg-2); }
-      .hit-mfr { overflow: hidden; text-overflow: ellipsis; }
-      .hit-kind { font-family: var(--sc-font-display); text-transform: uppercase; letter-spacing: 0.04em; color: var(--sc-accent); }
-      /* The compare pin had no rule of its own, so the generic .icon (100% x 100%)
-         blew its star up over the whole hit card (Codex UX audit L01). */
-      .hit .pin {
-        flex: none; align-self: center; display: inline-flex; align-items: center; justify-content: center;
-        width: 32px; height: 32px; padding: 0; border-radius: 6px;
-        background: transparent; border: 1px solid transparent; color: var(--sc-fg-2); cursor: pointer;
-      }
-      .hit .pin .icon { width: 16px; height: 16px; }
-      /* The terminal has its own clear button; the browser's would be a second x (audit L16). */
-      input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
-      .hit .pin:hover, .hit .pin.pinned { color: var(--sc-accent); }
-      .hit .pin:hover { border-color: var(--sc-border); }
-      .hit .pin:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; }
-      @media (pointer: coarse) { .hit .pin { width: 44px; height: 44px; } }
-      .hit.meta .hit-kind { color: var(--meta); }
-
       /* ── STAGE SPLIT: ship ⅔ · person ⅓ (concept 2026-09-20, rounds 14-17) ──
          Replaces the old AN BORD ⇄ IM HANGAR switcher and its --surface-h
          viewport maths (S1) — the final design fixes the height outright
@@ -569,9 +305,7 @@ export function gridColumns(items: readonly HTMLElement[]): number {
         border-radius: 4px;
         overflow: hidden;
         border: 1px solid var(--sc-border);
-        transition: opacity 0.2s ease;
       }
-      .stage-split.dimmed { opacity: 0.35; pointer-events: none; }
       .stage-ship, .stage-person { min-width: 0; min-height: 0; }
 
       /* ── Archive line, drawn INSIDE the picture (Q3: nothing left to pin
@@ -624,9 +358,6 @@ export function gridColumns(items: readonly HTMLElement[]): number {
       @media (max-width: 520px) {
         .stage-split { grid-template-columns: 1fr; grid-template-rows: 300px 300px; height: auto; }
       }
-      @media (prefers-reduced-motion: reduce) {
-        .stage-split, .hit { transition: none; }
-      }
     `,
   ],
 })
@@ -644,17 +375,9 @@ export class CodexLandingComponent implements OnInit {
   /** i18n key, never raw text. */
   readonly error = signal<string | null>(null);
 
-  // Archive Terminal (poly-search)
-  readonly searchInput = signal('');
-  private readonly terminalInput = viewChild<ElementRef<HTMLInputElement>>('terminalInput');
-  private readonly hitGrid = viewChild<ElementRef<HTMLElement>>('hitGrid');
-  readonly searchTerm = signal('');
-  readonly searching = signal(false);
-  readonly searchResults = signal<PolySearchHit[]>([]);
-  /** i18n key of a failed terminal search; null while the last search answered. */
-  readonly searchError = signal<string | null>(null);
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
-  private searchSeq = 0;
+  /** `?q=` — a term handed to the Codex search (did-you-mean links, recent searches, old Holotable links). */
+  readonly routeQuery = signal<string | null>(null);
+  private readonly searchBar = viewChild<CodexSearchBarComponent>('searchBar');
 
   // Fleet — public: the template's fleet lane reads the raw row list for its
   // count and its "is the fleet empty" guard.
@@ -691,7 +414,6 @@ export class CodexLandingComponent implements OnInit {
   // AN BORD: the sets, most recently touched (or URL-named) first.
   readonly personalLoadouts = signal<HangarRoleLoadout[]>([]);
 
-  readonly searchActive = computed(() => this.searchTerm().trim().length > 0);
 
   private readonly ownedClassNames = computed(() =>
     this.hangar
@@ -864,14 +586,8 @@ export class CodexLandingComponent implements OnInit {
     // middle-clicked link into a specific set has to keep applying, not just
     // on the first load — a snapshot read would only ever catch that one.
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((q) => {
-      // `?q=` seeds the Archive Terminal — the Holotable's top-bar search
-      // hands its term over here ("durchgezogen wie auf der Codex-Startseite").
-      const term = q.get('q');
-      if (term != null && term !== this.searchInput()) {
-        if (this.searchTimer) clearTimeout(this.searchTimer);
-        this.searchInput.set(term);
-        this.searchTerm.set(term);
-      }
+      // `?q=` seeds the Codex search bar in the terminal row.
+      this.routeQuery.set(q.get('q'));
       const set = q.get('set');
       if (set !== this.selectedSetId()) {
         this.selectedSetId.set(set);
@@ -881,18 +597,6 @@ export class CodexLandingComponent implements OnInit {
       }
     });
 
-    effect(() => {
-      const term = this.searchTerm().trim();
-      if (!term) {
-        // Invalidate a search still in flight, or its hits land after the clear.
-        this.searchSeq++;
-        this.searchError.set(null);
-        this.searchResults.set([]);
-        this.searching.set(false);
-        return;
-      }
-      void this.runSearch(term);
-    });
   }
 
   async ngOnInit(): Promise<void> {
@@ -1013,183 +717,9 @@ export class CodexLandingComponent implements OnInit {
     this.personalLoadouts.set(withSelectedFirst(sortByRecency(this.hangar.roleLoadouts()), this.selectedSetId()));
   }
 
-  // ── Archive Terminal ──────────────────────────────────────────────────────
-  onSearchInput(value: string): void {
-    this.searchInput.set(value);
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchTerm.set(value), SEARCH_DEBOUNCE_MS);
-  }
-
-  clearSearch(): void {
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchInput.set('');
-    this.searchTerm.set('');
-  }
-
-  /** Move focus to the Archive Terminal (empty-hangar CTA "search a ship"). */
+  /** Move focus to the Codex search (empty-hangar CTA "search a ship"). */
   focusTerminal(): void {
-    this.terminalInput()?.nativeElement.focus();
-  }
-
-  /**
-   * Keyboard model of the terminal (audit L15): ArrowDown enters the hit grid,
-   * Enter opens the first hit (the same navigation its anchor performs),
-   * Escape clears — and blurs once there is nothing left to clear.
-   */
-  onTerminalKeydown(ev: KeyboardEvent): void {
-    if (ev.key === 'ArrowDown') {
-      const first = this.hitAnchors()[0];
-      if (!first) return;
-      ev.preventDefault();
-      first.focus();
-    } else if (ev.key === 'Enter') {
-      if (this.searchInput().trim() !== this.searchTerm().trim()) {
-        // Debounce still pending: commit the term now; the hits are not here yet.
-        if (this.searchTimer) clearTimeout(this.searchTimer);
-        this.searchTerm.set(this.searchInput());
-        ev.preventDefault();
-        return;
-      }
-      const first = this.searchResults()[0];
-      if (!first) return;
-      ev.preventDefault();
-      const queryParams = this.hitQueryParams(first) ?? undefined;
-      void this.router.navigate(this.hitLink(first), { queryParams });
-    } else if (ev.key === 'Escape') {
-      ev.preventDefault();
-      if (this.searchInput()) this.clearSearch();
-      else (ev.target as HTMLElement | null)?.blur();
-    }
-  }
-
-  /**
-   * Arrow keys inside the hit grid. Left/Right step through the hits, Up/Down
-   * jump a row (the column count is read from the rendered layout, so the
-   * auto-fill grid stays right at every width), Home/End go to the ends and
-   * Up from the first row returns to the terminal. Hits stay ordinary anchors
-   * in the Tab order — the arrows are a shortcut, not a replacement.
-   */
-  onHitKeydown(ev: KeyboardEvent): void {
-    const hits = this.hitAnchors();
-    const idx = hits.findIndex((a) => a === document.activeElement);
-    if (idx < 0) return;
-    const cols = gridColumns(hits);
-    let next: number;
-    switch (ev.key) {
-      case 'ArrowRight': next = Math.min(idx + 1, hits.length - 1); break;
-      case 'ArrowLeft': next = Math.max(idx - 1, 0); break;
-      case 'ArrowDown': next = Math.min(idx + cols, hits.length - 1); break;
-      case 'ArrowUp':
-        if (idx < cols) {
-          ev.preventDefault();
-          this.focusTerminal();
-          return;
-        }
-        next = idx - cols;
-        break;
-      case 'Home': next = 0; break;
-      case 'End': next = hits.length - 1; break;
-      case 'Escape':
-        ev.preventDefault();
-        this.clearSearch();
-        this.focusTerminal();
-        return;
-      default: return;
-    }
-    ev.preventDefault();
-    hits[next].focus();
-  }
-
-  private hitAnchors(): HTMLAnchorElement[] {
-    const grid = this.hitGrid()?.nativeElement;
-    return grid ? Array.from(grid.querySelectorAll<HTMLAnchorElement>(':scope > a.hit')) : [];
-  }
-
-  /** Run the current terminal search again after a failure. */
-  retrySearch(): void {
-    const term = this.searchTerm().trim();
-    if (term) void this.runSearch(term);
-  }
-
-  /** "Did you mean" names for a terminal search that found nothing (L06). */
-  readonly suggestions = signal<string[]>([]);
-
-  /** Run a suggested name as the terminal search, in place (the anchor carries the same `?q=`). */
-  searchFor(name: string): void {
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchInput.set(name);
-    this.searchTerm.set(name);
-  }
-
-  /** Fire-and-forget across the three kinds; the empty note is already on screen. */
-  private async loadSuggestions(seq: number, term: string): Promise<void> {
-    const lists = await Promise.all(
-      (['ship', 'weapon', 'item'] as const).map((k) => this.svc.suggestNames(k, term)),
-    );
-    if (seq !== this.searchSeq) return; // an older term's answer
-    this.suggestions.set(mergeSuggestions(lists, 3));
-  }
-
-  private async runSearch(term: string): Promise<void> {
-    const seq = ++this.searchSeq;
-    this.searching.set(true);
-    this.searchError.set(null);
-    this.suggestions.set([]);
-    try {
-      const hits = await this.svc.searchAll(term, 6);
-      if (seq !== this.searchSeq) return; // a newer search superseded this one
-      this.searchResults.set(hits);
-      if (hits.length === 0) void this.loadSuggestions(seq, term);
-    } catch (error) {
-      if (seq === this.searchSeq) {
-        this.searchResults.set([]);
-        this.searchError.set(toErrorKey('codex', 'landingSearch', error, { term }));
-      }
-    } finally {
-      if (seq === this.searchSeq) this.searching.set(false);
-    }
-  }
-
-  hitLink(hit: PolySearchHit): string[] {
-    return polyHitLink(hit);
-  }
-
-  /** Query params for the hit's anchor (`?q=` for announced ships), else none. */
-  hitQueryParams(hit: PolySearchHit): Record<string, string> | null {
-    return polyHitQueryParams(hit);
-  }
-
-  /** Category glyph for a hit; announced ships borrow the ship icon. */
-  hitIcon(hit: PolySearchHit): CodexKind {
-    return polyHitIconKind(hit);
-  }
-
-  isUpcoming(hit: PolySearchHit): boolean {
-    return isUpcomingHit(hit);
-  }
-
-  /**
-   * The compare-tray kind for a hit, or `null` when it cannot be pinned.
-   * Announced ships have no build row, so there is nothing to line up against.
-   */
-  hitCompareKind(hit: PolySearchHit): CodexKind | null {
-    return isUpcomingHit(hit) ? null : (hit.kind as CodexKind);
-  }
-
-  hitName(hit: PolySearchHit): string {
-    return cleanLocaleValue(hit.nameLocalized) || humanizeClassName(hit.classNameSlug);
-  }
-
-  /** Full manufacturer name of a search hit, code-only as the honest fallback. */
-  hitMfr(hit: PolySearchHit): string | null {
-    return pickLocalized(hit.manufacturerName, this.lang()) || hit.manufacturerCode || null;
-  }
-
-  // ── compare tray ──────────────────────────────────────────────────────────
-  togglePin(ev: Event, kind: CodexKind, className: string): void {
-    ev.preventDefault();
-    ev.stopPropagation();
-    this.svc.togglePin(kind, className);
+    this.searchBar()?.activate(undefined, true);
   }
 
   // ── fleet rendering helpers ────────────────────────────────────────────────

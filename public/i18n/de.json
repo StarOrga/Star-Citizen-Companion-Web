@@ -176,9 +176,6 @@
     "subtitle": "Jedes Schiff, jede Waffe, Komponente, jedes Item, Munition & Hersteller — durchsuchbar, aus dem Live-Build extrahiert.",
     "landing": {
       "terminal": {
-        "label": "Arsenal durchsuchen",
-        "placeholder": "Arsenal-Terminal — Schiff, Komponente, Waffe, Item, Hersteller, Bauplan …",
-        "clear": "Suche löschen",
         "keybinds": "Tastenbelegungen"
       },
       "archive": {
@@ -211,12 +208,6 @@
         "archive": "{{count}} Datensätze im Arsenal",
         "extracted": "Eingelesen {{date}}",
         "build": "Build „{{build}}“ (Platzhalter)"
-      },
-      "results": {
-        "title": "Arsenal-Treffer",
-        "searching": "Durchsuche das Arsenal …",
-        "empty": "Keine Treffer für „{{term}}“.",
-        "upcomingBadge": "Noch nicht im Spiel"
       },
       "surface": {
         "expandBoard": "An Bord aufklappen",
@@ -408,7 +399,41 @@
       "clear": "Suche löschen",
       "upcomingHint": "Nicht in den Spieldaten, aber von RSI angekündigt: {{names}}",
       "alsoIn": "Auch gefunden in:",
-      "upcomingLink": "Bei „Kommende Schiffe“ ansehen"
+      "upcomingLink": "Bei „Kommende Schiffe“ ansehen",
+      "bar": {
+        "label": "Codex durchsuchen",
+        "placeholder": "Codex durchsuchen — Schiff, Komponente, Waffe, Ausrüstung, Hersteller …",
+        "clear": "Suche löschen",
+        "shortcut": "Strg K",
+        "suggestionsAria": "Vorschläge",
+        "resultsAria": "Suchergebnisse",
+        "recent": "Zuletzt gesucht",
+        "clearRecent": "Verlauf löschen",
+        "fresh": "Neu in diesem Patch",
+        "areas": "Bereiche",
+        "failed": "Suche fehlgeschlagen",
+        "partial": "Einige Bereiche konnten nicht durchsucht werden",
+        "searching": "Durchsuche den Codex …",
+        "empty": "Keine Treffer für „{{term}}“.",
+        "allInIndex": "Alle {{n}} im Index",
+        "allUpcoming": "Alle {{n}} bei „Kommende Schiffe“",
+        "grade": "Klasse {{grade}}",
+        "livery": "Lackierung",
+        "upcomingBadge": "Noch nicht im Spiel",
+        "addToHangarAria": "{{name}} zum Hangar hinzufügen",
+        "addToHangar": "Hangar",
+        "pinAria": "{{name}} vergleichen",
+        "navHint": "↑↓ navigieren · ↵ öffnen · Strg+↵ neuer Tab · Esc schließen",
+        "category": {
+          "ships": "Schiffe",
+          "components": "Komponenten",
+          "shipWeapons": "Schiffswaffen",
+          "fps": "FPS-Ausrüstung",
+          "upcoming": "Kommende Schiffe",
+          "keybinds": "Tastenbelegungen"
+        },
+        "close": "Suche schließen"
+      }
     },
     "kinds": {
       "ship": "Schiffe",
@@ -630,8 +655,6 @@
           "movement": "Bewegung",
           "signature": "Signatur & Kühlung"
         },
-        "searchLabel": "Codex durchsuchen",
-        "searchPlaceholder": "Schiffe, Komponenten, Hersteller …",
         "staticCrew": "Crew",
         "staticMass": "Masse",
         "staticCargo": "Laderaum",
@@ -3564,22 +3587,7 @@
   },
   "quickSearch": {
     "open": "Suche",
-    "placeholder": "Schiffe, Waffen, Komponenten durchsuchen…",
-    "searching": "Suche…",
-    "noResults": "Keine Treffer.",
-    "hint": "Tippe um zu suchen — ↑↓ zum Navigieren, Enter öffnet den markierten Treffer. Strg+K öffnet die Suche überall.",
-    "addToHangar": "→ Hangar",
-    "navHint": "↑↓ navigieren · ↵ öffnen · esc schließen",
-    "otherMatches": "Weitere Treffer",
-    "noneInCategory": "Keine {{category}} gefunden — zeige andere Treffer",
-    "category": {
-      "groupAria": "Suche nach Kategorie eingrenzen",
-      "all": "Alle",
-      "ship": "Schiffe",
-      "weapon": "Waffen",
-      "component": "Komponenten"
-    },
-    "error": "Suche fehlgeschlagen"
+    "addToHangar": "→ Hangar"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",
