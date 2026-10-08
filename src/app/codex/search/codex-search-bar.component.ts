@@ -139,7 +139,9 @@ let nextId = 0;
       color: var(--sc-fg-0); font: inherit; font-size: max(0.92rem, var(--sc-fs-floor, 0.9rem));
       transition: font-size 0.18s;
     }
-    .input::placeholder { color: var(--sc-fg-2); }
+    /* A phone shows the start of the placeholder and an ellipsis, not a hard cut. */
+    .input { text-overflow: ellipsis; }
+    .input::placeholder { color: var(--sc-fg-2); text-overflow: ellipsis; }
     .input::-webkit-search-cancel-button { display: none; }
     .shell.active .input { font-size: 1.15rem; }
     .clear {
