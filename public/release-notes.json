@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.140.0",
+  "current": "0.140.1",
   "releases": [
+    {
+      "version": "0.140.1",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Tests: API-Token-Spec hängt nicht mehr im sichtbaren Chrome.",
+              "text": "Der Spec „create shows the plaintext token exactly once“ lief in einen 5-s-Timeout, sobald die Karma-Seite verdeckt war (sichtbares Chrome hinter anderen Fenstern, z. B. nach dem Search-Bar-Spec). Der schließende Dialog gibt den Fokus per Animation-Frame zurück, und eine verdeckte Seite rendert keine Frames. Der Spec steuert die Frames jetzt selbst (installFrameClock)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.140.0",
       "date": "2026-10-08",

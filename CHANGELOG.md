@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.140.1] - 2026-10-08
+
+### Fixed
+
+- **Tests: API-Token-Spec hängt nicht mehr im sichtbaren Chrome.** Der
+  Spec „create shows the plaintext token exactly once“ lief in einen
+  5-s-Timeout, sobald die Karma-Seite verdeckt war (sichtbares Chrome hinter
+  anderen Fenstern, z. B. nach dem Search-Bar-Spec). Der schließende Dialog
+  gibt den Fokus per Animation-Frame zurück, und eine verdeckte Seite rendert
+  keine Frames. Der Spec steuert die Frames jetzt selbst (`installFrameClock`).
+
 ## [0.140.0] - 2026-10-08
 
 ### Changed
