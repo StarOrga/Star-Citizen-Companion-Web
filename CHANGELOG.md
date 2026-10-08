@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.141.1] - 2026-10-09
+
+### Fixed
+
+- **Explorer-Sternkarte: ein Sternbild pro Patch.** `ingest-catalog` hält das
+  zuerst gewählte Schiff einer Patch-Linie fest (`insert … on conflict do
+  nothing` plus Rücklesen). Ein Hotfix-Build tauscht das Sternbild nicht mehr
+  mitten im Patch aus.
+- **LIVE-Tag unabhängig von der Zeitzone.** Die Meteor-Vorschau im Web und die
+  Starscape-App nehmen jetzt den lokalen Kalendertag, in dem `live_at` liegt.
+  Vorher wurde das UTC-Datum mit dem lokalen Datum verglichen, was in Berlin,
+  Los Angeles oder Tokio den falschen Tag treffen konnte. Das Ausblenden pro
+  Tag und das Ende um Mitternacht bleiben wie gehabt.
+- **Starscape-App: scharf bei 125–150 % Skalierung.** Die App meldet sich per
+  Manifest und Laufzeit-Aufruf als per-Monitor-DPI-fähig, damit die Live- und
+  Meteor-Animation nicht mehr hochskaliert und unscharf wirkt (erscheint mit
+  dem nächsten Starscape-Release).
+- **Datenschutz:** `sc.verse.beta` (welche Verse-Bereiche auf die neue
+  β-Oberfläche umgestellt sind) steht jetzt als notwendiger Speicher-Eintrag
+  auf der Datenschutzseite (DE/EN) und im Consent-Service.
+
 ## [0.141.0] - 2026-10-08
 
 ### Added
