@@ -25,7 +25,9 @@
 //   POST { op: "constellation",    build_id, candidates: [...] }       -> { patch_line, class_name, kind }
 //        (candidates: {class_name, kind:'ship'|'ground', points:[[x,y]×7]} —
 //         the Verse-hub stars the uploader precomputed per ship silhouette;
-//         the patch's newest vehicle is upserted into verse_constellations)
+//         the patch's newest vehicle is written into verse_constellations;
+//         locked per patch line — a later build of the same patch keeps the
+//         first pick and answers { locked: true } with the stored row)
 //   POST { op: "preview",          build_number, name, content_base64 } -> { path }
 //   POST { op: "finalize",         build_id, entity_counts? }          -> { ok, current, locale_publish }
 //        (then, after the response: publishes the build's locale strings to R2
@@ -60,7 +62,15 @@ import { bucketBytes, deleteObject, listObjects, putObject, r2FromEnv, readUsage
 import { usageGate } from '../ingest-skins/_r2-usage.ts';
 import { BUILD_ID_RE, LANG_RE } from './_locale-shards.ts';
 import { publishLocale } from './_locale-publish.ts';
-import { earliestByClass, patchLineOf, pickNewest, sanitizeCandidates } from './_constellation.ts';
+import {
+  type ConstellationRow,
+  type ConstellationStore,
+  earliestByClass,
+  lockConstellation,
+  patchLineOf,
+  pickNewest,
+  sanitizeCandidates,
+} from './_constellation.ts';
 import type { PublishDeps, PublishResult } from './_locale-publish.ts';
 
 const CORS = {
@@ -462,8 +472,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (op === 'constellation') {
       // Verse-hub constellation: the uploader sends every ship silhouette's
       // precomputed 7 stars; we keep the patch's newest vehicle (see
-      // _constellation.ts). Missing verse_constellations table degrades like
-      // `silhouettes` — the catalog run must not fail over it.
+      // _constellation.ts). The first pick per patch line is locked: a later
+      // build of the same patch never overwrites it. Missing
+      // verse_constellations table degrades like `silhouettes` — the catalog
+      // run must not fail over it.
       const buildId = String(body.build_id ?? '');
       if (!buildId) return json({ error: 'invalid_body', message: 'build_id required' }, 400);
       const candidates = sanitizeCandidates(body.candidates);
@@ -475,6 +487,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!build) return json({ error: 'invalid_body', message: 'unknown build_id' }, 400);
       const patchLine = patchLineOf((build as { patch_version?: string }).patch_version);
       if (!patchLine) return json({ ok: true, skipped: 'no_patch_line' });
+
+      const constellationMissing = (error: unknown) => {
+        const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
+        const code = (error as { code?: string })?.code;
+        return msg.includes('could not find the table') || msg.includes('does not exist') ||
+          code === 'PGRST205' || code === '42P01';
+      };
+      const store: ConstellationStore = {
+        async find(line) {
+          const { data, error } = await admin.from('verse_constellations')
+            .select('patch_line, class_name, kind, points, source_build_id')
+            .eq('patch_line', line).maybeSingle();
+          if (error) throw error;
+          return (data as ConstellationRow | null) ?? null;
+        },
+        async insertIfAbsent(row) {
+          // ignoreDuplicates = INSERT ... ON CONFLICT (patch_line) DO NOTHING;
+          // the returned rows are empty when the patch line already had one.
+          const { data, error } = await admin.from('verse_constellations')
+            .upsert(row, { onConflict: 'patch_line', ignoreDuplicates: true })
+            .select('patch_line');
+          if (error) throw error;
+          return (data ?? []).length > 0;
+        },
+      };
+      const lockedReply = (row: ConstellationRow) =>
+        json({ ok: true, locked: true, patch_line: row.patch_line, class_name: row.class_name, kind: row.kind });
+
+      // Already locked: skip the candidate scoring (two paged scans) entirely.
+      let existing: ConstellationRow | null;
+      try {
+        existing = await store.find(patchLine);
+      } catch (e) {
+        if (!constellationMissing(e)) throw e;
+        return json({ ok: true, degraded: 'no_constellations_table' });
+      }
+      if (existing) return lockedReply(existing);
 
       const names = candidates.map((c) => c.class_name);
       const PAGE = 1000;
@@ -506,19 +555,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const pick = pickNewest(pool, earliestByClass(seenRows));
       if (!pick) return json({ ok: true, skipped: 'no_candidates' });
 
-      const { error } = await admin.from('verse_constellations').upsert({
-        patch_line: patchLine,
-        class_name: pick.class_name,
-        kind: pick.kind,
-        points: pick.points,
-        source_build_id: buildId,
-      }, { onConflict: 'patch_line' });
-      if (!error) return json({ ok: true, patch_line: patchLine, class_name: pick.class_name, kind: pick.kind });
-      const msg = ((error as { message?: string })?.message ?? '').toLowerCase();
-      const missingTable = msg.includes('could not find the table') || msg.includes('does not exist') ||
-        (error as { code?: string })?.code === 'PGRST205' || (error as { code?: string })?.code === '42P01';
-      if (!missingTable) throw error;
-      return json({ ok: true, degraded: 'no_constellations_table' });
+      try {
+        const { row, created } = await lockConstellation(store, {
+          patch_line: patchLine,
+          class_name: pick.class_name,
+          kind: pick.kind,
+          points: pick.points,
+          source_build_id: buildId,
+        });
+        // Lost a race against a parallel upload of the same patch.
+        if (!created) return lockedReply(row);
+        return json({ ok: true, patch_line: patchLine, class_name: pick.class_name, kind: pick.kind });
+      } catch (e) {
+        if (!constellationMissing(e)) throw e;
+        return json({ ok: true, degraded: 'no_constellations_table' });
+      }
     }
 
     if (op === 'ingredients') {
