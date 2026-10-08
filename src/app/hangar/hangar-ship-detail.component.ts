@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { HqLink, hqHangar, personalItemLink, personalShipLink } from '../hq/hq-routes';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
   CodexService,
@@ -144,7 +145,7 @@ interface PortRow {
               <button class="sc-btn small" type="button" (click)="toggleStatus()">
                 {{ (s.status === 'owned' ? 'hangar.detail.moveToWishlist' : 'hangar.detail.moveToOwned') | translate }}
               </button>
-              <a class="sc-btn small" [routerLink]="['/codex', 'ship', s.shipClassName]">
+              <a class="sc-btn small" [routerLink]="codexLink(s.shipClassName).commands" [queryParams]="codexLink(s.shipClassName).queryParams">
                 {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
               </a>
               <button class="sc-btn small danger" type="button" (click)="remove()">
@@ -225,7 +226,11 @@ interface PortRow {
                 <div class="std-list">
                   @for (row of stockPortsByCategory(cat); track row.port.portName) {
                     <div class="std-item">
-                      <span class="std-name">{{ resolvedName(row.stockClassName!) }}</span>
+                      @if (itemLink(row.stockClassName!); as il) {
+                        <a class="std-name item-link" [routerLink]="il.commands" [queryParams]="il.queryParams">{{ resolvedName(row.stockClassName!) }}</a>
+                      } @else {
+                        <span class="std-name">{{ resolvedName(row.stockClassName!) }}</span>
+                      }
                       <span class="std-meta">
                         @if (row.port.portName) { <span class="std-port">{{ row.port.portName }}</span> }
                         @if (row.port.minSize != null || row.port.maxSize != null) {
@@ -315,9 +320,15 @@ interface PortRow {
                       </div>
                       <div class="port-assign">
                         @if (row.assigned) {
-                          <span class="assign-name" [class.custom]="row.overridden">
-                            {{ resolvedName(row.assigned) }}
-                          </span>
+                          @if (itemLink(row.assigned); as il) {
+                            <a class="assign-name item-link" [class.custom]="row.overridden" [routerLink]="il.commands" [queryParams]="il.queryParams">
+                              {{ resolvedName(row.assigned) }}
+                            </a>
+                          } @else {
+                            <span class="assign-name" [class.custom]="row.overridden">
+                              {{ resolvedName(row.assigned) }}
+                            </span>
+                          }
                         } @else {
                           <span class="assign-name empty">{{ 'hangar.loadout.empty' | translate }}</span>
                         }
@@ -376,6 +387,9 @@ interface PortRow {
     </section>
   `,
   styles: [`
+    .item-link { color: inherit; text-decoration: none; }
+    .item-link:hover { color: var(--sc-accent); text-decoration: underline; }
+    .item-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     :host { display: block; }
     .page { display: flex; flex-direction: column; gap: 16px; }
 
@@ -822,6 +836,26 @@ export class HangarShipDetailComponent implements OnInit {
     this.dirty.set(true);
   }
 
+  /**
+   * The codex page of a loadout component in "mine" mode; null until its kind
+   * is known (resolved entity, else the draft entry the picker wrote).
+   */
+  itemLink(className: string): HqLink | null {
+    const kind = this.resolved().get(className)?.kind ?? this.kindFromDraft(className);
+    return kind ? personalItemLink(kind, className) : null;
+  }
+
+  private kindFromDraft(className: string): string | null {
+    for (const e of this.draft().values()) if (e.className === className && e.kind) return e.kind;
+    return null;
+  }
+
+  /** "Open in codex": the selected variant when there is one, else the plain ship page. */
+  codexLink(shipClassName: string): HqLink {
+    const cfg = this.selectedConfigId();
+    return cfg ? personalShipLink(shipClassName, cfg) : { commands: ['/codex', 'ship', shipClassName], queryParams: {} };
+  }
+
   resolvedName(className: string): string {
     const r = this.resolved().get(className);
     return r?.nameLocalized || humanizeClassName(className);
@@ -937,7 +971,7 @@ export class HangarShipDetailComponent implements OnInit {
     });
     if (!ok) return;
     if (await this.hangar.removeShip(ship.id)) {
-      void this.router.navigate(['/hangar']);
+      void this.router.navigate([hqHangar]);
     }
   }
 

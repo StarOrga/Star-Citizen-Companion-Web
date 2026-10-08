@@ -32,6 +32,7 @@ describe('HangarService.setRoleLoadoutSlot', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {
         select: () => chain,
+        is: () => chain,
         eq: (column: string, value: string) => {
           if (column === 'updated_at') guard = value;
           return chain;
@@ -157,6 +158,7 @@ describe('HangarService.setRoleLoadoutSlot', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {
         select: () => chain,
+        is: () => chain,
         eq: () => chain,
         update: () => chain,
         maybeSingle: () => Promise.resolve(read),
@@ -209,6 +211,7 @@ describe('HangarService.getShip / getRoleLoadout', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {
         select: () => chain,
+        is: () => chain,
         eq: () => chain,
         maybeSingle: () => Promise.resolve(answer),
       };

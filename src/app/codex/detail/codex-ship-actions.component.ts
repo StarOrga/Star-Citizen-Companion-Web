@@ -25,7 +25,7 @@ import { ShipLinkFormStore } from './ship-link-form.store';
     @if (!inHangar()) {
       <button type="button" class="btn add-hangar" (click)="addToHangar.emit()"
               [disabled]="addBusy()" [attr.aria-busy]="addBusy()">
-        {{ 'quickSearch.addToHangar' | translate }}
+        {{ 'codex.personal.adopt' | translate }}
       </button>
       @if (addFailed()) {
         <p class="err-inline add-err" role="alert">{{ 'codex.card.addToHangarFailed' | translate }}</p>
@@ -88,6 +88,7 @@ export class CodexShipActionsComponent {
   readonly classNameSlug = input.required<string>();
   /** Classic tool row: a flexible gap pushes the actions to the row's end. */
   readonly spacer = input(false);
+  /** Personal mode: the page already shows the reader's variant — no "In dein HQ übernehmen". */
   readonly inHangar = input(false);
   readonly addBusy = input(false);
   readonly addFailed = input(false);

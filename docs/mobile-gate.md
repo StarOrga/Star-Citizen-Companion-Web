@@ -263,7 +263,7 @@ forged session would skip exactly the sign-in code that could be broken on a
 phone — and then audits:
 
 - every route in `auth.routes` — which is most of the app: `/news`, `/codex`,
-  `/codex/index`, `/codex/keybinds`, `/codex/ship/…`, `/starscape`, `/hangar`,
+  `/codex/index`, `/codex/keybinds`, `/codex/ship/…`, `/starscape`, `/hq`, `/hq/hangar`,
   `/release-notes` and `/admin/feedback` all sit behind the shell's guard — and
 - the feedback panel opened on top of each route in `auth.panelRoutes`
   (default: `/news`), reported as `/news [panel]`.

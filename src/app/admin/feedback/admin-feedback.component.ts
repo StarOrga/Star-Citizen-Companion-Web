@@ -1087,7 +1087,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        the active accent reach it too (admin feedback a33ba528). */
     .tb-icon { display: block; flex: none; width: 18px; height: 18px; }
     .tb-icon.head { color: var(--sc-accent); }
-    .tb-icon svg { display: block; width: 100%; height: 100%; }
+    .tb-icon svg, .fp i svg { display: block; width: 100%; height: 100%; }
     .tb-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--sc-accent); color: var(--sc-bg-0); font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 700; text-align: center; }
     @media (max-width: 420px) { .tb-btn.filter .tb-label, .tb-btn.progress .tb-label { display: none; } }
     /* Large board (page / maximized panel): the search field stops at the
@@ -1127,7 +1127,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .day-head { display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; font-size: max(0.7rem, var(--sc-fs-floor)); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sc-fg-2); }
     .dh-count { font-weight: 400; }
     .load-more { min-height: 44px; background: transparent; border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.8rem, var(--sc-fs-floor)); cursor: pointer; }
-    .load-more:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
 
     /* ---- Card ----
        A row sits ON the panel surface: outline only, no fill and no glow.
@@ -1213,8 +1212,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .baton.t-nobody { color: var(--sc-fg-2); font-weight: 500; }
     .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--sc-border); font-size: max(0.68rem, var(--sc-fs-floor)); font-weight: 600; color: var(--sc-fg-2); white-space: nowrap; }
     .chip.area { border-style: dashed; }
-    .chip.new { border-color: var(--sc-accent); color: var(--sc-accent); }
-    .chip.hot { border-color: var(--sc-accent); color: var(--sc-accent); }
+    .chip.new, .chip.hot { border-color: var(--sc-accent); color: var(--sc-accent); }
     .card-links, .inline-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .link-btn { display: inline-flex; align-items: center; min-height: 36px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--sc-accent); color: var(--sc-accent); font-size: max(0.78rem, var(--sc-fs-floor)); font-weight: 600; text-decoration: none; }
     .link-btn.quiet { border-color: var(--sc-border); color: var(--sc-fg-1); }
@@ -1237,7 +1235,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
        loop arrow stay tellable apart, and the row it lives in is 16px tall. */
     .fp { display: inline-flex; align-items: center; gap: 0; flex: 0 0 auto; }
     .fp i { display: block; width: 13px; height: 13px; box-sizing: border-box; position: relative; color: var(--sc-fg-2); opacity: 0.45; }
-    .fp i svg { display: block; width: 100%; height: 100%; }
     .fp i + i { margin-left: 7px; }
     .fp i + i::before { content: ''; position: absolute; right: 100%; top: 50%; width: 7px; height: 1px; background: var(--sc-fg-2); opacity: 0.6; }
     .fp.s0 i:nth-child(-n+1), .fp.s1 i:nth-child(-n+2), .fp.s2 i:nth-child(-n+3), .fp.s3 i:nth-child(-n+4) { opacity: 1; }
@@ -1272,20 +1269,15 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .thread { display: flex; flex-direction: column; gap: 6px; }
     /* A message that enters the thread — one more revealed behind "…", or the
        reply just sent — rises in the same way a row does. */
-    .thread .msg { animation: fb-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-    .band-empty { animation: fb-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-    .answer-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .thread .msg, .band-empty { animation: fb-rise 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     .sc-btn.micro { padding: 6px 12px; min-height: 40px; font-size: max(0.72rem, var(--sc-fs-floor)); letter-spacing: 0.04em; }
     .sc-btn.micro.option { min-height: 44px; }
-    /* Touch: links and micro buttons reach the 48px touch minimum; the dense
-       36/40px rows stay for mouse users. */
+    /* Touch: links reach the 48px touch minimum (micro buttons via the global
+       .sc-btn.sc-btn.micro.micro rule); the dense 36/40px rows stay for mouse users. */
     @media (pointer: coarse) {
-      .link-btn, .sc-btn.micro, .sc-btn.micro.option { min-height: var(--sc-tap-min); }
+      .link-btn { min-height: var(--sc-tap-min); }
       .link-btn.ref { min-width: var(--sc-tap-min); }
     }
-    .sc-btn.hot { background: var(--sc-accent-hot); border-color: var(--sc-accent-hot); color: var(--sc-bg-0); }
-    .sc-btn.hot:hover:not(:disabled) { background: var(--sc-accent-hot); filter: brightness(1.12); box-shadow: none; }
-    .sc-btn.ghost { border-color: var(--sc-border); color: var(--sc-fg-1); }
     .sc-btn.danger { border-color: var(--sc-danger); color: var(--sc-danger); }
     .sc-btn.danger:hover:not(:disabled) { background: var(--sc-danger); color: #fff; box-shadow: none; }
     .proc-note { margin: 0; font-size: max(0.8rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
@@ -1341,9 +1333,9 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     .f-row.on { color: var(--sc-fg-0); background: rgba(0, 212, 255, 0.1); box-shadow: inset 3px 0 0 var(--sc-accent); }
     /* Filter answers: chips that wrap instead of stacking, so a three-question
        sheet stays one screen tall at 490 px and every option stays visible. */
-    .f-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .answer-options, .f-chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .f-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 48px; padding: 0 14px; background: var(--sc-bg-2); border: 1px solid var(--sc-border); border-radius: 999px; color: var(--sc-fg-1); font: inherit; font-size: max(0.86rem, var(--sc-fs-floor)); text-align: left; cursor: pointer; }
-    .f-chip:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
+    .f-chip:hover, .load-more:hover, .new-topic-bar:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .f-chip:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
     .f-chip.sub { border-style: dashed; }
     /* Selected is a filled pill with a tick — the state has to read without
@@ -1373,7 +1365,6 @@ type AvatarTone = 'adm' | 'col' | 'usr';
     }
     .page.embedded .main-composer { position: static; }
     .new-topic-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; background: var(--sc-bg-2); border: 1px dashed var(--sc-border); border-radius: 8px; color: var(--sc-fg-1); font: inherit; font-size: max(0.82rem, var(--sc-fs-floor)); cursor: pointer; }
-    .new-topic-bar:hover { border-color: var(--sc-accent); color: var(--sc-fg-0); }
     .nt-plus { font-size: 1.1rem; color: var(--sc-accent); }
     /* No box of its own (admin feedback ae072e63: "4 Randverschachtelungen im
        Feedback Panel mit der Außenwand, ich finde 3 maximal, wenn nicht sogar

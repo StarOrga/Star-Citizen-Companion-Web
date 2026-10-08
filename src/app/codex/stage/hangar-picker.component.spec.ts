@@ -198,14 +198,14 @@ describe('HangarPickerComponent', () => {
     expect(on?.textContent?.trim()).toBe('Avenger Stalker');
   });
 
-  it('kind="set" routes chain items to /codex/set/:id', async () => {
+  it('kind="set" routes chain items to /hq/spind/:id', async () => {
     const fixture = await setup();
     fixture.componentRef.setInput('kind', 'set');
     fixture.componentInstance.expanded.set(true);
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     const items = el.querySelectorAll<HTMLAnchorElement>('.picker-chain__item');
-    expect(items[1].getAttribute('href')).toContain('/codex/set/b');
+    expect(items[1].getAttribute('href')).toContain('/hq/spind/b');
   });
 
   it('docked=true drops the absolute positioning so a wrapper alone places it', async () => {

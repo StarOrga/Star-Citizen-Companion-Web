@@ -29,7 +29,7 @@ describe('HangarService flagship', () => {
           : { data: [], error: null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chain: any = {};
-      for (const m of ['select', 'eq', 'order', 'insert', 'delete']) {
+      for (const m of ['select', 'eq', 'is', 'order', 'insert', 'delete']) {
         chain[m] = () => chain;
       }
       chain.update = (values: Record<string, unknown>) => {

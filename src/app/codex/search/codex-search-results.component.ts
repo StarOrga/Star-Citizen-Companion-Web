@@ -5,6 +5,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { AuthService } from '../../auth/auth.service';
 import { HangarService } from '../../hangar/hangar.service';
+import { HqOwnershipService } from '../../hq/hq-ownership.service';
+import { HqLink, personalShipLink } from '../../hq/hq-routes';
 import { CodexService } from '../codex.service';
 import { CodexCategoryIconComponent } from '../codex-category-icon.component';
 import { ShipBlueprintIconComponent } from '../ship-blueprint/ship-blueprint-icon.component';
@@ -188,7 +190,10 @@ import { SearchOption, hitManufacturer, hitTitle, isLivery, pinKindOf } from './
           </a>
           @if (o.hit.kind === 'ship' && auth.user()) {
             <!-- Add-to-hangar needs a session (RLS self-only) — hidden for anon (#131). -->
-            @if (inHangar(o.hit.classNameSlug)) {
+            @if (shipVariantLink(o.hit.classNameSlug); as l) {
+              <a class="in-hangar" [routerLink]="l.commands" [queryParams]="l.queryParams"
+                 [scTooltip]="'codex.personal.openVariant' | translate">{{ 'hangar.add.already' | translate }}</a>
+            } @else if (inHangar(o.hit.classNameSlug)) {
               <span class="in-hangar">{{ 'hangar.add.already' | translate }}</span>
             } @else {
               <button type="button" class="act add" (click)="addToHangar(o.hit.classNameSlug)"
@@ -411,11 +416,11 @@ export class CodexSearchResultsComponent {
   readonly recentOptions = computed(() => this.engine().options().filter((o) => o.type === 'recent'));
   readonly freshOptions = computed(() => this.engine().options().filter((o) => o.type === 'fresh'));
   readonly categoryOptions = computed(() => this.engine().options().filter((o) => o.type === 'category'));
-  private readonly hangarClassNames = computed(() => new Set(this.hangar.ships().map((s) => s.shipClassName)));
+  private readonly ownership = inject(HqOwnershipService);
 
   constructor() {
     // The "already in hangar" marks need the hangar list — load it once, lazily.
-    if (this.auth.user() && this.hangar.ships().length === 0) void this.hangar.loadAll();
+    if (this.auth.user()) void this.ownership.ensureLoaded();
   }
 
   groupOptions(kind: string): SearchOption[] {
@@ -497,7 +502,13 @@ export class CodexSearchResultsComponent {
   }
 
   inHangar(classNameSlug: string): boolean {
-    return this.hangarClassNames().has(classNameSlug);
+    return this.ownership.ownsShip(classNameSlug);
+  }
+
+  /** Signpost into the reader's own copy: their active (else first) variant of this hull. */
+  shipVariantLink(classNameSlug: string): HqLink | null {
+    const c = this.ownership.lookup(classNameSlug)?.configs[0];
+    return c ? personalShipLink(classNameSlug, c.id) : null;
   }
 
   async addToHangar(slug: string): Promise<void> {

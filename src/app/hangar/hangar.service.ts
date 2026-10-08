@@ -672,6 +672,21 @@ export class HangarService {
     return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
   }
 
+  /**
+   * Every config of every hangar ship in one round trip — the HQ ownership
+   * index ("which piece is fitted where") needs them all at once. Throws on a
+   * failed read so the caller can tell "no configs" from "read failed".
+   */
+  async listAllConfigs(): Promise<HangarShipConfig[]> {
+    if (!this.userId) return [];
+    const { data, error } = await this.sb.client
+      .from('hangar_ship_configs')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
+  }
+
   async createConfig(
     hangarShipId: string,
     name: string,
@@ -861,7 +876,11 @@ export class HangarService {
     expect?: string,
   ): Promise<HangarRoleLoadout | null> {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
+      const read = await this.sb.client
+        .from('hangar_role_loadouts')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
       if (read.error) {
         logWarn('hangar', 'slot write refused', { id, slot, error: read.error });
         return null;

@@ -162,7 +162,7 @@ describe('CodexSetComponent', () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A, SET_B] });
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
     fixture.componentInstance.onSetPick('set-b');
-    expect(navigate).toHaveBeenCalledWith(['/codex', 'set', 'set-b']);
+    expect(navigate).toHaveBeenCalledWith(['/hq/spind', 'set-b']);
   });
 
   it('loads the rating of the equipped armour for the card and the lens', async () => {
@@ -364,7 +364,7 @@ describe('CodexSetComponent', () => {
   it('points a reader without sets to the hangar, where sets are created', async () => {
     const fixture = await setup({ id: null, loadouts: [] });
     const link = (fixture.nativeElement as HTMLElement).querySelector('.hint a');
-    expect(link?.getAttribute('href')).toBe('/hangar');
+    expect(link?.getAttribute('href')).toBe('/hq/spind');
   });
 
   it('shows a sign-in hint when the visitor is signed out', async () => {
@@ -525,12 +525,12 @@ describe('CodexSetComponent — flow hint and back link', () => {
     expect((filled.nativeElement as HTMLElement).querySelector('.flow-hint')).toBeNull();
   });
 
-  it('points the back link at the Codex by default — a real anchor', async () => {
+  it('crumbs the set page into the HQ locker, whatever opened it — a real anchor', async () => {
     const fixture = await setup({ id: 'set-a', loadouts: [SET_A] });
     const crumbs = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('nav.crumbs a');
     expect(crumbs.length).toBe(1);
-    expect(crumbs[0].getAttribute('href')).toBe('/codex');
-    expect(crumbs[0].textContent?.trim()).toBe('pageHeader.crumb.codex');
+    expect(crumbs[0].getAttribute('href')).toBe('/hq/spind');
+    expect(crumbs[0].textContent?.trim()).toBe('hq.tabs.locker');
   });
 
   it('points the back link at the Hangar when the page was opened from there', async () => {
@@ -557,7 +557,7 @@ describe('CodexSetComponent — flow hint and back link', () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/hangar');
     await harness.navigateByUrl('/codex/set/set-a');
-    expect(seen).toEqual(jasmine.objectContaining({ path: '/hangar', key: 'codex.set.backToHangar' }));
+    expect(seen).toEqual(jasmine.objectContaining({ path: '/hq/spind', key: 'codex.set.backToHangar' }));
 
     await harness.navigateByUrl('/codex');
     await harness.navigateByUrl('/codex/set/set-a');

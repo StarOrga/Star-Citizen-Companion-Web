@@ -158,19 +158,42 @@ describe('CodexLoadoutDraftStore', () => {
     expect(store.draft().get(PORT)).toBe('LOCAL_GUN');
   });
 
-  it('creates and activates a config when the ship has none, then hands the result back', async () => {
+  it('codex mode (no variant) never saves', async () => {
+    store.applySwap(pick('BEHR_LaserCannon_S3'));
+    expect(await store.saveLoadoutDraft()).toBeNull();
+    expect(hangar.listConfigs).not.toHaveBeenCalled();
+    expect(hangar.createConfig).not.toHaveBeenCalled();
+    expect(hangar.updateConfig).not.toHaveBeenCalled();
+  });
+
+  it('a save in personal mode writes into THAT variant and hands the result back', async () => {
+    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    store.applyStoredLoadout([], { configId: 'c1' });
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     await store.saveLoadoutDraft();
-    expect(hangar.createConfig).toHaveBeenCalledTimes(1);
-    expect(hangar.activateConfig).toHaveBeenCalledWith('c1', 's1');
-    expect(hangar.updateConfig).toHaveBeenCalledTimes(1);
+    expect(hangar.createConfig).not.toHaveBeenCalled();
+    expect(hangar.updateConfig).toHaveBeenCalledOnceWith('c1', jasmine.anything());
     expect(onSaved).toHaveBeenCalledOnceWith(jasmine.objectContaining({ id: 'c1' }));
     expect(store.saveError()).toBeNull();
     expect(store.saving()).toBeFalse();
     expect(store.savedPaths().has(PORT)).toBeTrue();
   });
 
+  it('adoptToHq creates a NEW variant carrying the draft and never edits an existing one', async () => {
+    store.applySwap(pick('BEHR_LaserCannon_S3'));
+    const created = await store.adoptToHq();
+    expect(created?.id).toBe('c1');
+    expect(hangar.createConfig).toHaveBeenCalledTimes(1);
+    const [shipId, , , loadout] = hangar.createConfig.calls.mostRecent().args as [string, string, string, { portName: string }[]];
+    expect(shipId).toBe('s1');
+    expect(loadout.map((e) => e.portName)).toContain(PORT);
+    expect(hangar.updateConfig).not.toHaveBeenCalled();
+    expect(onSaved).toHaveBeenCalledOnceWith(jasmine.objectContaining({ id: 'c1' }));
+  });
+
   it('writes nothing when the fork guard is declined', async () => {
+    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    store.applyStoredLoadout([], { configId: 'c1' });
     ensureEditable.and.resolveTo('cancelled');
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     await store.saveLoadoutDraft();
@@ -232,6 +255,8 @@ describe('CodexLoadoutDraftStore', () => {
 
   it('saveLoadoutDraft resolves the written config, or null when nothing was written', async () => {
     expect(await store.saveLoadoutDraft()).toBeNull(); // nothing to save
+    hangar.listConfigs.and.resolveTo([{ id: 'c1', loadout: [], isActive: true }]);
+    store.applyStoredLoadout([], { configId: 'c1' });
     store.applySwap(pick('BEHR_LaserCannon_S3'));
     ensureEditable.and.resolveTo('cancelled');
     expect(await store.saveLoadoutDraft()).toBeNull();
