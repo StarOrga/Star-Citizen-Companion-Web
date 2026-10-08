@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { PageHeaderComponent } from './page-header.component';
-import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from './nav-origin.service';
+import { CODEX_ROOT_CRUMB, HANGAR_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb, originTrail } from './nav-origin.service';
 
 @Component({ standalone: true, template: '' })
 class BlankComponent {}
@@ -38,6 +38,7 @@ describe('PageHeaderComponent', () => {
           { path: 'codex/index', component: BlankComponent },
           { path: 'codex/fps', component: BlankComponent },
           { path: 'hangar', component: BlankComponent },
+          { path: 'hangar/ship/:id', component: BlankComponent },
           { path: 'codex/:kind/:className', component: BlankComponent },
         ]),
       ],
@@ -106,6 +107,47 @@ describe('PageHeaderComponent', () => {
       origin.rememberTitle('/codex/ship/AEGS_Gladius', 'Gladius');
       await router.navigateByUrl('/codex/weapon/X');
       expect(originCrumb(origin, fallback)).toEqual({ label: 'Gladius', link: '/codex/ship/AEGS_Gladius', queryParams: null });
+    });
+
+    it('leads back to the search results when a search hit opened the page', async () => {
+      const origin = TestBed.inject(NavOriginService);
+      await router.navigateByUrl('/codex/index?kind=weapon');
+      origin.noteSearchArrival('mantis', ['/codex', 'weapon', 'X']);
+      await router.navigateByUrl('/codex/weapon/X');
+      expect(originCrumb(origin, fallback)).toEqual({
+        labelKey: 'pageHeader.crumb.search',
+        labelParams: { term: 'mantis' },
+        link: '/codex',
+        queryParams: { q: 'mantis' },
+      });
+      // A filter-only url change on the page keeps it.
+      await router.navigateByUrl('/codex/weapon/X?tab=2');
+      expect(originCrumb(origin, fallback)?.labelKey).toBe('pageHeader.crumb.search');
+    });
+
+    it('drops a search note the next navigation does not land on (Ctrl+click opened a tab)', async () => {
+      const origin = TestBed.inject(NavOriginService);
+      await router.navigateByUrl('/codex/fps');
+      origin.noteSearchArrival('mantis', ['/codex', 'weapon', 'X']);
+      await router.navigateByUrl('/codex/weapon/Y');
+      expect(originCrumb(origin, fallback)?.labelKey).toBe('pageHeader.crumb.fps');
+      await router.navigateByUrl('/codex/weapon/X');
+      expect(originCrumb(origin, fallback)?.labelKey).not.toBe('pageHeader.crumb.search');
+    });
+
+    it('starts the trail at the hangar for a page opened from the hangar', async () => {
+      const origin = TestBed.inject(NavOriginService);
+      await router.navigateByUrl('/hangar/ship/s1');
+      origin.rememberTitle('/hangar/ship/s1', 'Rusty Bucket');
+      await router.navigateByUrl('/codex/ship/AEGS_Avenger_Titan');
+      expect(originTrail(origin, fallback)).toEqual([
+        HANGAR_ROOT_CRUMB,
+        { label: 'Rusty Bucket', link: '/hangar/ship/s1', queryParams: null },
+      ]);
+
+      await router.navigateByUrl('/hangar');
+      await router.navigateByUrl('/codex/weapon/X');
+      expect(originTrail(origin, fallback)).toEqual([HANGAR_ROOT_CRUMB]);
     });
 
     it('uses the fallback when the reader came from the Codex front door', async () => {

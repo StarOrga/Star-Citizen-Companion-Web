@@ -124,9 +124,11 @@ const SEARCH_DEBOUNCE_MS = 250;
           @for (s of hangar.pinnedShips(); track s.id) {
             <a class="hero sc-card" [routerLink]="['/hangar/ship', s.id]">
               <span class="rank">#{{ s.pinnedRank }}</span>
-              @if (thumb(s); as src) {
-                <div class="hero-thumb"><sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="[src]" [alt]="displayName(s)" /></div>
-              }
+              <div class="hero-thumb">
+                <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
+                  <sc-codex-icon class="thumb-icon" kind="ship" />
+                </sc-ship-tile-art>
+              </div>
               <h3>{{ s.customName || displayName(s) }}</h3>
               @if (s.customName) { <span class="hero-sub">{{ displayName(s) }}</span> }
               <div class="badges">
@@ -251,10 +253,16 @@ const SEARCH_DEBOUNCE_MS = 250;
         } @else {
           <div class="grid">
             @for (s of hangar.ships(); track s.id) {
-              <a class="card" [routerLink]="['/hangar/ship', s.id]">
-                @if (thumb(s); as src) {
-                  <div class="thumb"><sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="[src]" [alt]="displayName(s)" /></div>
-                }
+              <!-- The card frame holds the link and, as its siblings, the
+                   flagship toggle and the Codex link: no interactive content
+                   nested in an <a> (the toggle used to sit inside it). -->
+              <div class="card fleet-card">
+              <a class="fleet-link" [routerLink]="['/hangar/ship', s.id]">
+                <div class="thumb">
+                  <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="thumbs(s)" [alt]="displayName(s)">
+                    <sc-codex-icon class="thumb-icon" kind="ship" />
+                  </sc-ship-tile-art>
+                </div>
                 <div class="card-top">
                   <h3 class="name">{{ s.customName || displayName(s) }}</h3>
                   <div class="card-top-right">
@@ -265,7 +273,7 @@ const SEARCH_DEBOUNCE_MS = 250;
                     @if (s.pinnedRank) { <span class="rank-sm">#{{ s.pinnedRank }}</span> }
                   </div>
                 </div>
-                @if (s.customName) { <code class="cls">{{ displayName(s) }}</code> }
+                @if (s.customName) { <p class="card-sub">{{ displayName(s) }}</p> }
                 <div class="badges">
                   <span class="badge" [class.wishlist]="s.status === 'wishlist'">
                     {{ ('hangar.status.' + s.status) | translate }}
@@ -275,12 +283,18 @@ const SEARCH_DEBOUNCE_MS = 250;
                     <span class="badge">{{ 'codex.card.crew' | translate: { count: $safeNavigationMigration(cardFor(s)?.crewSize) } }}</span>
                   }
                 </div>
+              </a>
+              <div class="fleet-actions">
                 <button type="button" class="flag-toggle" [class.is-flagship]="isFlagship(s)"
                         (click)="toggleFlagship($event, s)"
                         [attr.aria-pressed]="isFlagship(s)">
                   {{ (isFlagship(s) ? 'hangar.flagship.pinned' : 'hangar.flagship.set') | translate }}
                 </button>
-              </a>
+                <a class="codex-link" [routerLink]="['/codex', 'ship', s.shipClassName]">
+                  {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
+                </a>
+              </div>
+              </div>
             }
           </div>
         }
@@ -526,6 +540,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .hero-thumb { height: 110px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
     /* sc-ship-tile-art owns the <img>; its size crosses the boundary as a var. */
     .hero-thumb { --sc-img-max-h: 100px; }
+    .hero-thumb .thumb-icon { --sc-icon-max: 52px; }
     .hero h3 { margin: 0; font-size: 1.05rem; }
     .hero-sub { font-size: max(0.74rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
 
@@ -639,19 +654,29 @@ const SEARCH_DEBOUNCE_MS = 250;
     .card:hover { transform: translateY(-2px); border-color: var(--sc-accent); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 14px color-mix(in srgb, var(--sc-accent) 28%, transparent); }
     .card .thumb { height: 90px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: radial-gradient(circle at 50% 45%, var(--sc-bg-2), var(--sc-bg-0)); }
     .card .thumb { --sc-img-max-h: 82px; }
+    /* No render anywhere: the ship glyph, small and quiet - never an empty box. */
+    .thumb-icon { width: 100%; height: 100%; --sc-icon-max: 44px; opacity: 0.6; }
+    .fleet-link { flex: 1; display: flex; flex-direction: column; gap: 8px; color: inherit; text-decoration: none; border-radius: 6px; }
+    .fleet-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 4px; }
+    .fleet-card:has(.fleet-link:focus-visible) { border-color: var(--sc-accent); }
+    .card-sub { margin: 0; font-size: max(0.78rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
+    .fleet-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .codex-link { color: var(--sc-accent); text-decoration: none; font-size: max(0.78rem, var(--sc-fs-floor));
+      min-height: var(--sc-tap-min); display: inline-flex; align-items: center; gap: 4px; }
+    .codex-link:hover { text-decoration: underline; }
+    .codex-link:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; border-radius: 4px; }
     .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .card .name { margin: 0; font-size: 0.98rem; font-weight: 600; line-height: 1.25; }
     .rank-sm { font-family: var(--sc-font-display); color: var(--sc-accent); font-size: 0.82rem; }
     .card-top-right { display: flex; align-items: center; gap: 6px; }
     .flag-badge { color: var(--sc-warning, #ffc14d); font-size: 0.92rem; line-height: 1; }
-    .flag-toggle { margin-top: 4px; padding: 5px 10px; border-radius: 6px; background: transparent;
+    .flag-toggle { padding: 5px 10px; min-height: var(--sc-tap-min); border-radius: 6px; background: transparent;
       border: 1px solid var(--sc-border); color: var(--sc-fg-2); font-family: var(--sc-font-display);
       font-size: max(0.62rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; align-self: flex-start;
       transition: color 0.16s, border-color 0.16s, background 0.16s; }
     .flag-toggle:hover { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d); }
     .flag-toggle.is-flagship { color: var(--sc-warning, #ffc14d); border-color: var(--sc-warning, #ffc14d);
       background: color-mix(in srgb, var(--sc-warning, #ffc14d) 16%, transparent); }
-    .cls { font-size: max(0.7rem, var(--sc-fs-floor)); color: var(--sc-fg-2); font-family: var(--sc-font-mono, monospace); overflow-wrap: anywhere; }
     .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
     .badge { font-size: max(0.64rem, var(--sc-fs-floor)); padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
@@ -841,10 +866,22 @@ export class HangarDashboardComponent implements OnInit {
     return en || cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
-  thumb(s: HangarShip): string | null {
+  /**
+   * Art candidates for a hangar ship, best first - the order the Codex index
+   * uses: the RSI store render (matched on the ship name, the key the edge
+   * function publishes it under), then our datamined preview. The hangar used
+   * to ask for the datamined preview alone, which almost no hull has, so nearly
+   * every card rendered without a picture - and without the box at all.
+   * sc-ship-tile-art walks the list and falls back to the blueprint drawing,
+   * then the ship glyph.
+   */
+  thumbs(s: HangarShip): string[] {
     const card = this.cardFor(s);
+    const out = [...this.rsi.artFor(card?.nameLocalized ?? this.displayName(s))];
     const p = card?.payload as { previewImage?: string | null } | undefined;
-    return this.codex.previewUrl(p?.previewImage);
+    const local = this.codex.previewUrl(p?.previewImage);
+    if (local) out.push(local);
+    return out;
   }
 
   inHangar(classNameSlug: string): boolean {
@@ -977,10 +1014,9 @@ export class HangarDashboardComponent implements OnInit {
     return this.hangar.isFlagship(s.shipClassName);
   }
 
-  /** Toggle the flagship from a fleet card (swallow the anchor navigation). */
+  /** Toggle the flagship from a fleet card. */
   toggleFlagship(ev: Event, s: HangarShip): void {
     ev.preventDefault();
-    ev.stopPropagation();
     this.hangar.toggleFlagship(s.shipClassName);
   }
 

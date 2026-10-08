@@ -416,7 +416,7 @@ export class CodexSearchResultsComponent {
    * middle clicks are the browser's (new tab) and leave the search open.
    */
   onClick(ev: MouseEvent, o: SearchOption): void {
-    if (o.type === 'hit' || o.type === 'more') this.engine().remember();
+    this.engine().opening(o);
     if (!isPlainLeftClick(ev)) return;
     if (o.type === 'recent') {
       ev.preventDefault();

@@ -66,6 +66,14 @@ shortcuts into the Codex areas.
 Keyboard: ↑/↓ move through all groups, Enter opens the highlighted result,
 Ctrl+Enter (⌘+Enter) opens it in a new tab, Esc clears the field and then
 closes the search. Every result is a real link, so middle click works too.
+A page opened from a result keeps the way back: its breadcrumb reads
+*Search "term"* and returns to the results.
+
+Every detail page has the same shape — breadcrumb, a hero with the picture (or
+the category glyph when there is none), the readable name and the key facts,
+then the sections. The technical class name (`AEGS_Gladius`) is never the title:
+it sits in a small chip under the name, and a click copies it. On the list
+cards it is the last chip.
 
 ### How search works
 

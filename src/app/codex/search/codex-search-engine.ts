@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router } from '@angular/router';
+import { NavOriginService } from '../../shared/page-header/nav-origin.service';
 import { TranslateService } from '@ngx-translate/core';
 import { toErrorKey } from '../../core/describe-error';
 import { CodexService, toLang } from '../codex.service';
@@ -47,6 +48,7 @@ export class CodexSearchEngine {
   private readonly t = inject(TranslateService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly navOrigin = inject(NavOriginService);
 
   /** Hits shown per kind (5 in the overlay, more on the landing). */
   readonly perGroup = signal(5);
@@ -135,6 +137,17 @@ export class CodexSearchEngine {
     if (term.trim()) this.recent.set(pushRecentSearch(storage(), this.recent(), term));
   }
 
+  /**
+   * A hit or a "show all" row is being opened: keep the term as a recent
+   * search, and tell the page history that a hit's page was reached from this
+   * search, so its breadcrumb leads back to the results (NavOriginService).
+   */
+  opening(opt: SearchOption): void {
+    if (opt.type !== 'hit' && opt.type !== 'more') return;
+    this.remember();
+    if (opt.type === 'hit') this.navOrigin.noteSearchArrival(this.term(), opt.target.link);
+  }
+
   forgetRecent(): void {
     clearRecentSearches(storage());
     this.recent.set([]);
@@ -208,7 +221,7 @@ export class CodexSearchEngine {
       this.searchFor(opt.term);
       return 'searched';
     }
-    if (opt.type === 'hit' || opt.type === 'more') this.remember();
+    this.opening(opt);
     if (newTab) {
       window.open(this.location.prepareExternalUrl(targetUrl(opt.target)), '_blank', 'noopener');
       return 'new-tab';

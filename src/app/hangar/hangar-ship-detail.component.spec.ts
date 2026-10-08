@@ -9,6 +9,11 @@ import { CodexHoloForkGuard } from '../codex/holo/codex-holo-fork-guard';
 import { ScConfirmService } from '../shared/dialog/sc-confirm.service';
 import { HangarShipConfig } from './hangar.types';
 import { ShipSkinViewerComponent } from '../codex/ship-skin-viewer.component';
+import { UpcomingShipsService } from '../codex/upcoming-ships.service';
+import { provideNoShipBlueprints } from '../codex/ship-blueprint/ship-blueprint.testing';
+
+/** The RSI feed only adds the hero picture; specs get none. */
+const rsiStub = { ensureLoaded: () => Promise.resolve(), heroArtFor: () => [] as string[] };
 
 @Component({ selector: 'sc-ship-skin-viewer', standalone: true, template: '' })
 class StubSkinViewerComponent {
@@ -44,6 +49,8 @@ describe('HangarShipDetailComponent load failure', () => {
           },
         },
         { provide: CodexService, useValue: {} },
+        { provide: UpcomingShipsService, useValue: rsiStub },
+        provideNoShipBlueprints(),
         { provide: CodexHoloForkGuard, useValue: {} },
         { provide: ScConfirmService, useValue: {} },
         { provide: ActivatedRoute, useValue: makeRoute('ship-1') },
@@ -98,6 +105,7 @@ describe('HangarShipDetailComponent writes', () => {
   let hangar: Record<string, jasmine.Spy>;
   let confirm: jasmine.Spy;
   let ensureEditable: jasmine.Spy;
+  let codexDetail: jasmine.Spy;
 
   const SHIP = {
     id: 'ship-1',
@@ -135,7 +143,11 @@ describe('HangarShipDetailComponent writes', () => {
     fixture.detectChanges();
   }
 
-  async function setup(configs: HangarShipConfig[] = []): Promise<void> {
+  /** `detail`: what the Codex lookup answers; an Error makes it fail. */
+  async function setup(configs: HangarShipConfig[] = [], detail: unknown = null): Promise<void> {
+    codexDetail = jasmine.createSpy('getDetail');
+    if (detail instanceof Error) codexDetail.and.rejectWith(detail);
+    else codexDetail.and.resolveTo(detail);
     confirm = jasmine.createSpy('confirm').and.resolveTo(true);
     ensureEditable = jasmine.createSpy('ensureEditable').and.resolveTo('own');
     hangar = {
@@ -158,11 +170,14 @@ describe('HangarShipDetailComponent writes', () => {
         {
           provide: CodexService,
           useValue: {
-            getDetail: jasmine.createSpy('getDetail').and.resolveTo(null),
+            getDetail: codexDetail,
             resolveEntities: jasmine.createSpy('resolveEntities').and.resolveTo(new Map()),
             getEntityPayloads: jasmine.createSpy('getEntityPayloads').and.resolveTo(new Map()),
+            previewUrl: () => null,
           },
         },
+        { provide: UpcomingShipsService, useValue: rsiStub },
+        provideNoShipBlueprints(),
         { provide: CodexHoloForkGuard, useValue: { ensureEditable } },
         { provide: ScConfirmService, useValue: { confirm } },
         { provide: ActivatedRoute, useValue: makeRoute('ship-1') },
@@ -383,6 +398,44 @@ describe('HangarShipDetailComponent writes', () => {
       expect(hangar['updateShip']).toHaveBeenCalledWith('ship-1', { notes: 'Fuel first' });
       expect(q('.notes .sc-btn')).toBeTruthy();
       expect(q<HTMLTextAreaElement>('.notes textarea')!.value).toBe('Fuel first');
+    });
+  });
+
+  describe('hero', () => {
+    it('names the ship readably, never by its raw class name, and shows the class as a chip', async () => {
+      await setup();
+      expect(q('h1')!.textContent!.trim()).toBe('ANVL Carrack');
+      expect(q('sc-class-chip')!.textContent).toContain('ANVL_Carrack');
+      // No render anywhere: the ship glyph stands in, never an empty frame.
+      expect(q('.hero-art sc-codex-icon')).toBeTruthy();
+    });
+
+    it('takes the catalog name and maker once the Codex data is there', async () => {
+      await setup([], {
+        payload: { name: { de: 'Carrack', en: 'Carrack', key: 'k' }, manufacturer: { code: 'ANVL', name: { de: 'Anvil Aerospace', en: 'Anvil Aerospace', key: 'm' } } },
+        ports: [],
+        row: { name_localized: 'Anvil Carrack' },
+      });
+      expect(q('h1')!.textContent!.trim()).toBe('Carrack');
+      expect(q('.sc-detail-mfr')!.textContent!.trim()).toBe('Anvil Aerospace');
+      expect(q('.codex-err')).toBeNull();
+    });
+
+    it('says when the Codex data failed, with a retry, and keeps the rest of the page', async () => {
+      await setup([], new TypeError('Failed to fetch'));
+      expect(q('.codex-err[role="alert"]')).toBeTruthy();
+      expect(q('sc-select.pin-select')).toBeTruthy();
+
+      codexDetail.and.resolveTo(null);
+      await click('.codex-err .retry');
+      expect(codexDetail).toHaveBeenCalledTimes(2);
+      expect(q('.codex-err')).toBeNull();
+    });
+
+    it('links into the ship\'s Codex page', async () => {
+      await setup();
+      const link = Array.from(fixture.nativeElement.querySelectorAll('.head-actions a')) as HTMLAnchorElement[];
+      expect(link.map((a) => a.getAttribute('href'))).toContain('/codex/ship/ANVL_Carrack');
     });
   });
 

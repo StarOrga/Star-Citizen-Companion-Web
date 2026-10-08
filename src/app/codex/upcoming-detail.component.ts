@@ -20,7 +20,7 @@ import {
   upcomingRoleLabel,
 } from './upcoming-ships.service';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
-import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../shared/page-header/nav-origin.service';
+import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
 
 /**
  * Detail page for one ANNOUNCED ship — `/codex/upcoming/:id`.
@@ -57,18 +57,21 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
       @if (loading()) {
         <div class="sc-card skel-card sc-skel-field" scNeuroField></div>
       } @else if (ship(); as s) {
-        <article class="hero sc-card">
-          <div class="hero-art" [class.icon-only]="art().length === 0">
+        <!-- The shared detail shape (styles.scss, DETAIL PAGE), with a wider
+             art column: the RSI render is a landscape picture, not a glyph. -->
+        <article class="hero sc-card sc-detail-hero">
+          <figure class="hero-art sc-detail-hero__art" [class.icon-only]="art().length === 0">
             <sc-fallback-image [candidates]="art()" [alt]="s.name" [eager]="true">
               <sc-codex-icon kind="ship" />
             </sc-fallback-image>
-          </div>
+          </figure>
 
-          <div class="hero-text">
-            @if (s.manufacturer) {
-              <span class="mfr">{{ s.manufacturer }}</span>
-            }
+          <div class="hero-text sc-detail-hero__body">
+            <span class="sc-kind-tag">{{ 'codex.kindSingular.upcoming' | translate }}</span>
             <h1 class="entity-name">{{ s.name }}</h1>
+            @if (s.manufacturer) {
+              <p class="mfr sc-detail-mfr">{{ s.manufacturer }}</p>
+            }
 
             <div class="badges">
               <span class="badge status" [class.concept]="isConcept()">
@@ -117,25 +120,31 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
         </article>
 
         @if (facts().length > 0) {
-          <div class="section sc-card">
-            <h2 class="section-title">{{ 'codex.upcomingDetail.facts' | translate }}</h2>
-            <div class="facts">
+          <section class="section sc-card sc-detail-block">
+            <h2>{{ 'codex.upcomingDetail.facts' | translate }}</h2>
+            <ul class="sc-detail-facts facts">
               @for (f of facts(); track f.label) {
-                <div class="fact">
-                  <span class="fact-label">{{ f.label }}</span>
-                  <span class="fact-val">{{ f.value }}</span>
-                </div>
+                <li class="sc-detail-fact fact">
+                  <span class="sc-detail-fact__label">{{ f.label }}</span>
+                  <span class="sc-detail-fact__value">{{ f.value }}</span>
+                </li>
               }
-            </div>
-          </div>
+            </ul>
+          </section>
         }
 
-        <div class="section sc-card">
-          <h2 class="section-title">{{ 'codex.upcomingDetail.noData.title' | translate }}</h2>
+        <section class="section sc-card sc-detail-block">
+          <h2>{{ 'codex.upcomingDetail.noData.title' | translate }}</h2>
           <p class="muted">{{ 'codex.upcomingDetail.noData.body' | translate }}</p>
           <a class="browse" routerLink="/codex/upcoming">
             {{ 'codex.upcomingDetail.noData.browse' | translate }} →
           </a>
+        </section>
+      } @else if (feedError(); as err) {
+        <!-- The RSI feed could not be read: that is not "this ship is gone". -->
+        <div class="sc-card load-err" role="alert">
+          <span><strong>{{ 'codex.error.title' | translate }}:</strong> {{ err | translate }}</span>
+          <button type="button" class="retry" [disabled]="retrying()" (click)="retry()">{{ 'codex.error.retry' | translate }}</button>
         </div>
       } @else {
         <div class="sc-card empty">
@@ -154,24 +163,14 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
     .detail-page { display: flex; flex-direction: column; gap: 16px; padding-bottom: 80px; }
 
 
-    .sc-card { background: var(--sc-bg-1); border: 1px solid var(--sc-border); border-radius: 10px; padding: 20px 24px; }
     .skel-card { min-height: 260px; }
-
-    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; }
-    .hero-art {
-      display: flex; align-items: center; justify-content: center;
-      aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden;
-      background: radial-gradient(circle at 50% 44%, var(--sc-bg-2), var(--sc-bg-0));
+    /* The art column is wider than the glyph heroes': a landscape render, full bleed. */
+    .hero.sc-detail-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; }
+    .hero-art { aspect-ratio: 16 / 10; min-height: 0; overflow: hidden;
       /* sc-fallback-image owns the <img>; sizing crosses the boundary as vars. */
-      --sc-img-w: 100%; --sc-img-h: 100%; --sc-img-fit: cover;
-    }
+      --sc-img-w: 100%; --sc-img-h: 100%; --sc-img-fit: cover; --sc-img-max-h: none; --sc-img-shadow: none; }
     .hero-art.icon-only sc-codex-icon { width: 34%; height: 34%; opacity: 0.55; color: var(--sc-accent); }
-
-    .hero-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .mfr { font-family: var(--sc-font-display); font-size: max(0.68rem, var(--sc-fs-floor));
-      letter-spacing: 0.09em; text-transform: uppercase; color: var(--sc-accent); }
-    .entity-name { margin: 0; font-size: 1.6rem; font-weight: 700; line-height: 1.15; }
-
+    .hero-text { align-self: center; }
     .badges { display: flex; flex-wrap: wrap; gap: 6px; }
     .badge { font-size: max(0.64rem, var(--sc-fs-floor)); letter-spacing: 0.05em; text-transform: uppercase;
       padding: 3px 8px; border-radius: 6px; background: var(--sc-bg-2); color: var(--sc-fg-1);
@@ -193,27 +192,24 @@ import { CODEX_ROOT_CRUMB, NavOriginService, PageCrumb, originCrumb } from '../s
     .hangar-link { color: var(--sc-accent); text-decoration: none; }
     .hangar-link:hover { text-decoration: underline; }
 
-    .section-title { margin: 0 0 14px; font-size: 1rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--sc-fg-2); border-bottom: 1px solid var(--sc-border); padding-bottom: 8px; }
 
-    .facts { display: flex; flex-wrap: wrap; gap: 10px; }
-    .fact { display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; border-radius: 8px;
-      background: var(--sc-bg-0); border: 1px solid var(--sc-border); min-width: 110px; }
-    .fact-label { font-size: max(0.6rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.1em; color: var(--sc-fg-2); }
-    .fact-val { font-size: 0.92rem; font-weight: 600; color: var(--sc-fg-0); font-family: var(--sc-font-display); }
 
     .browse { display: inline-block; margin-top: 10px; color: var(--sc-accent); text-decoration: none; font-size: 0.85rem; }
     .browse:hover { text-decoration: underline; }
 
     .muted { color: var(--sc-fg-2); margin: 0; line-height: 1.55; max-width: var(--sc-measure); }
+    @media (max-width: 760px) {
+      .hero.sc-detail-hero { grid-template-columns: minmax(0, 1fr); }
+    }
     .empty { text-align: center; padding: 40px 20px; color: var(--sc-fg-1); display: flex; flex-direction: column; gap: 8px; align-items: center; }
     .err { color: var(--sc-danger); margin: 4px 0 0; font-size: 0.84rem; }
+    .load-err { color: var(--sc-danger); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .load-err .retry { margin-left: auto; min-height: max(36px, var(--sc-tap-min)); padding: 6px 14px; border-radius: 6px; background: transparent;
+      border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .load-err .retry:hover:not(:disabled) { background: color-mix(in srgb, var(--sc-danger) 12%, transparent); }
+    .load-err .retry:focus-visible { outline: 2px solid var(--sc-danger); outline-offset: 2px; }
+    .load-err .retry:disabled { opacity: 0.5; cursor: default; }
 
-    @media (max-width: 760px) {
-      .hero { grid-template-columns: 1fr; }
-      .sc-card { padding: 14px 16px; }
-      .entity-name { font-size: 1.3rem; }
-    }
   `],
 })
 export class UpcomingDetailComponent implements OnInit {
@@ -221,10 +217,9 @@ export class UpcomingDetailComponent implements OnInit {
   /** Codex › where the reader came from (hangar drawing board, index), else the upcoming index. */
   readonly crumbs = computed<PageCrumb[]>(() => {
     this.ship();
-    const parent = originCrumb(this.navOrigin, {
+    return originTrail(this.navOrigin, {
       labelKey: 'codex.kinds.upcoming', link: '/codex/upcoming',
     });
-    return parent?.link === '/hangar' ? [parent] : parent ? [CODEX_ROOT_CRUMB, parent] : [CODEX_ROOT_CRUMB];
   });
   private readonly route = inject(ActivatedRoute);
   private readonly rsi = inject(UpcomingShipsService);
@@ -238,6 +233,9 @@ export class UpcomingDetailComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly watchPending = signal(false);
+  readonly retrying = signal(false);
+  /** The feed failed and holds no ships: an error with a retry, never the not-found page. */
+  readonly feedError = computed(() => (this.rsi.feed() ? null : this.rsi.error()));
   private readonly shipId = signal('');
 
   /**
@@ -282,6 +280,16 @@ export class UpcomingDetailComponent implements OnInit {
     }
     return out;
   });
+
+  /** Retry of the feed error card. */
+  async retry(): Promise<void> {
+    this.retrying.set(true);
+    try {
+      await this.rsi.refresh(true);
+    } finally {
+      this.retrying.set(false);
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     this.shipId.set(this.route.snapshot.paramMap.get('id') ?? '');

@@ -34,7 +34,7 @@ import { NavOriginService, PageCrumb } from './nav-origin.service';
             @for (c of crumbs(); track $index) {
               <li>
                 <a class="crumb" [routerLink]="$any(c.link)" [queryParams]="c.queryParams ?? null">{{
-                  c.label ?? (c.labelKey! | translate)
+                  c.label ?? (c.labelKey! | translate: (c.labelParams ?? undefined))
                 }}</a>
               </li>
             }

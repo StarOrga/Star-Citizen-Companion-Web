@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.135.0] - 2026-10-08
+
+### Added
+
+- **Klassenname als Chip.** Der technische Klassenname eines Codex-Eintrags
+  steht jetzt als kopierbarer Mono-Chip neben dem Titel, nie mehr als
+  Untertitel. Ein Klick kopiert ihn, der Tooltip bestätigt es.
+- **Zurück zur Suche.** Wer aus der Codex-Suche eine Detailseite öffnet,
+  bekommt den Brotkrumen „Suche „…““ und landet mit einem Klick wieder bei
+  denselben Treffern.
+- **Hangar-Schiffsseite mit Brotkrumen** „Hangar › Schiff“ zurück zur Flotte.
+
+### Changed
+
+- **Einheitliche Codex-Detailseiten.** Gegenstände, Waffen, Komponenten,
+  Blaupausen und angekündigte Schiffe öffnen mit derselben Kopfzeile und
+  denselben Abschnitten; die Vorschaubilder sind deutlich größer.
+- **Blaupausen nennen das hergestellte Teil** mit seinem echten Namen und
+  verlinken es.
+- **Index- und FPS-Karten** zeigen den Klassennamen als Chip statt als
+  Fließtext und sind dadurch lesbarer.
+- **Hangar-Flottenkarten** haben echte Vorschaubilder, je Karte einen eigenen
+  Codex-Link, und der Flaggschiff-Knopf liegt außerhalb des Links.
+- **Hangar-Schiffsseite** öffnet mit einer Kopfzeile samt Ladeskelett statt
+  mit dem rohen Klassennamen als Titel.
+
+### Fixed
+
+- **Hangar-Vorschaubilder fehlten** bei den meisten Schiffen: die Karte nutzte
+  nur die datengewonnene Vorschau. Sie nimmt jetzt das RSI-Render, dann die
+  Vorschau, dann Blaupause bzw. Symbol.
+- **Fehlgeschlagene Ladevorgänge** auf angekündigten Schiffen und beim
+  Codex-Abgleich im Hangar zeigen einen Fehler mit „Erneut versuchen“ statt
+  einer leeren Seite.
+- **Gegenstandsauswahl im Hangar** zeigt nie mehr einen Übersetzungsschlüssel
+  als Namen.
+
 ## [0.134.1] - 2026-10-08
 
 ### Fixed

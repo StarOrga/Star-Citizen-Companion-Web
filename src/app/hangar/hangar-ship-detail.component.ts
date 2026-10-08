@@ -49,6 +49,11 @@ import { ScSelectComponent, ScSelectOption } from '../shared/sc-select.component
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { HANGAR_ROOT_CRUMB } from '../shared/page-header/nav-origin.service';
+import { ShipTileArtComponent } from '../codex/ship-blueprint/ship-tile-art.component';
+import { CodexCategoryIconComponent } from '../codex/codex-category-icon.component';
+import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
+import { NeuroFieldDirective } from '../core/neuro-field.directive';
+import { UpcomingShipsService } from '../codex/upcoming-ships.service';
 
 interface PortRow {
   port: CodexItemPort;
@@ -69,11 +74,11 @@ interface PortRow {
 @Component({
   selector: 'sc-hangar-ship-detail',
   standalone: true,
-  imports: [PageHeaderComponent, FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective],
+  imports: [PageHeaderComponent, FormsModule, RouterLink, TranslatePipe, ShipSkinViewerComponent, HangarItemPickerComponent, ScSelectComponent, ScTooltipDirective, ShipTileArtComponent, CodexCategoryIconComponent, ClassChipComponent, NeuroFieldDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
-      <sc-page-header [crumbs]="hangarCrumbs" />
+      <sc-page-header [crumbs]="hangarCrumbs" [rememberAs]="heroName()" />
 
       @if (loadError(); as err) {
         <div class="sc-card err" role="alert">
@@ -85,8 +90,17 @@ interface PortRow {
           <strong>{{ 'hangar.detail.notFound' | translate }}</strong>
         </div>
       } @else if (ship(); as s) {
-        <header class="head">
-          <div class="title-block">
+        <!-- The shared detail shape (styles.scss, DETAIL PAGE): the same hero
+             as the ship's Codex page — art, name, maker, class chip, facts —
+             with the hangar's own actions underneath. -->
+        <header class="head sc-card sc-detail-hero">
+          <figure class="sc-detail-hero__art hero-art">
+            <sc-ship-tile-art [shipId]="s.shipClassName" [candidates]="heroArt()" [alt]="heroName() ?? ''" [eager]="true">
+              <sc-codex-icon class="hero-icon" kind="ship" />
+            </sc-ship-tile-art>
+          </figure>
+          <div class="title-block sc-detail-hero__body">
+            <span class="sc-kind-tag">{{ 'codex.kindSingular.ship' | translate }}</span>
             <div class="name-row">
               @if (editingName()) {
                 <input class="name-input" type="text" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)"
@@ -102,33 +116,41 @@ interface PortRow {
               }
             </div>
             @if (s.customName) { <p class="sub">{{ shipDisplayName() }}</p> }
+            @if (manufacturer(); as mfr) { <p class="sc-detail-mfr">{{ mfr }}</p> }
+            <sc-class-chip [value]="s.shipClassName" />
             <div class="badges">
-              @if (manufacturer()) { <span class="badge mfr">{{ manufacturer() }}</span> }
               @if (crewSize() != null) { <span class="badge">{{ 'codex.card.crew' | translate: { count: crewSize() } }}</span> }
               <span class="badge" [class.wishlist]="s.status === 'wishlist'">
                 {{ ('hangar.status.' + s.status) | translate }}
               </span>
               @if (s.pinnedRank) { <span class="badge pin">#{{ s.pinnedRank }}</span> }
             </div>
-          </div>
-          <div class="head-actions">
-            <!-- A div, not a label: a label forwards clicks on the listbox's
-                 options to the trigger and would snap the list shut again. -->
-            <div class="facet">
-              <span>{{ 'hangar.detail.pinLabel' | translate }}</span>
-              <sc-select class="pin-select" [options]="pinOptions" [value]="pinValue() || null"
-                         placeholderLabel="—" [ariaLabel]="'hangar.detail.pinLabel' | translate"
-                         (valueChange)="setPin($event ?? '')" />
+            @if (codexError()) {
+              <!-- The Codex data is an extra here; its failure is said, not hidden. -->
+              <p class="codex-err" role="alert">
+                <span>{{ 'hangar.detail.codexFailed' | translate }}</span>
+                <button type="button" class="retry" [disabled]="codexLoading()" (click)="retryCodex()">{{ 'errors.retry' | translate }}</button>
+              </p>
+            }
+            <div class="head-actions">
+              <!-- A div, not a label: a label forwards clicks on the listbox's
+                   options to the trigger and would snap the list shut again. -->
+              <div class="facet">
+                <span>{{ 'hangar.detail.pinLabel' | translate }}</span>
+                <sc-select class="pin-select" [options]="pinOptions" [value]="pinValue() || null"
+                           placeholderLabel="—" [ariaLabel]="'hangar.detail.pinLabel' | translate"
+                           (valueChange)="setPin($event ?? '')" />
+              </div>
+              <button class="sc-btn small" type="button" (click)="toggleStatus()">
+                {{ (s.status === 'owned' ? 'hangar.detail.moveToWishlist' : 'hangar.detail.moveToOwned') | translate }}
+              </button>
+              <a class="sc-btn small" [routerLink]="['/codex', 'ship', s.shipClassName]">
+                {{ 'hangar.detail.openCodex' | translate }} <span aria-hidden="true">→</span>
+              </a>
+              <button class="sc-btn small danger" type="button" (click)="remove()">
+                {{ 'hangar.detail.remove' | translate }}
+              </button>
             </div>
-            <button class="sc-btn small" type="button" (click)="toggleStatus()">
-              {{ (s.status === 'owned' ? 'hangar.detail.moveToWishlist' : 'hangar.detail.moveToOwned') | translate }}
-            </button>
-            <a class="sc-btn small ghost" [routerLink]="['/codex', 'ship', s.shipClassName]">
-              {{ 'hangar.detail.openCodex' | translate }}
-            </a>
-            <button class="sc-btn small danger" type="button" (click)="remove()">
-              {{ 'hangar.detail.remove' | translate }}
-            </button>
           </div>
         </header>
 
@@ -349,7 +371,7 @@ interface PortRow {
           }
         </div>
       } @else {
-        <div class="sc-card empty">{{ 'hangar.detail.loading' | translate }}</div>
+        <div class="sc-card skel-card sc-skel-field" scNeuroField role="status" [attr.aria-label]="'hangar.detail.loading' | translate"></div>
       }
     </section>
   `,
@@ -357,14 +379,19 @@ interface PortRow {
     :host { display: block; }
     .page { display: flex; flex-direction: column; gap: 16px; }
 
-    .head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
-    .name-row { display: flex; align-items: center; gap: 10px; }
-    .name-row h1 { margin: 0; }
+    .skel-card { min-height: 260px; }
+    .hero-art { --sc-img-max-h: 220px; }
+    .hero-art .hero-icon { --sc-icon-max: 96px; opacity: 0.6; }
+    .name-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .name-row h1 { margin: 0; overflow-wrap: anywhere; }
     .name-input { padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-accent); color: var(--sc-fg-0); font-size: 1.2rem; font-family: inherit; }
     .icon-btn { border: none; background: transparent; color: var(--sc-fg-2); cursor: pointer; font-size: 1rem; }
     .icon-btn:hover { color: var(--sc-accent); }
     .sub { margin: 2px 0 0; color: var(--sc-fg-2); }
-    .badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .codex-err { margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--sc-danger); font-size: 0.84rem; }
+    .codex-err .retry { min-height: max(36px, var(--sc-tap-min)); padding: 4px 12px; border-radius: 6px; background: transparent; border: 1px solid var(--sc-danger); color: var(--sc-danger); cursor: pointer; font-family: inherit; }
+    .codex-err .retry:disabled { opacity: 0.5; cursor: default; }
     .badge { font-size: max(0.68rem, var(--sc-fs-floor)); padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--sc-accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent); }
     /* Neutral: red (--sc-accent-hot) means elevated access (CLAUDE.md). */
     .badge.mfr { background: var(--sc-bg-2); border-color: var(--sc-border); color: var(--sc-fg-1); }
@@ -372,7 +399,7 @@ interface PortRow {
     .badge.wishlist { background: color-mix(in srgb, var(--sc-warning) 16%, transparent); border-color: color-mix(in srgb, var(--sc-warning) 40%, transparent); }
     .badge.pin { background: color-mix(in srgb, var(--sc-accent) 30%, transparent); }
 
-    .head-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .head-actions { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: auto; padding-top: 12px; }
     .facet { display: flex; flex-direction: column; gap: 4px; }
     .facet > span { font-size: max(0.64rem, var(--sc-fs-floor)); text-transform: uppercase; letter-spacing: 0.08em; color: var(--sc-fg-2); }
     /* The themed select (shared/sc-select) draws itself; these only size it. */
@@ -469,6 +496,7 @@ export class HangarShipDetailComponent implements OnInit {
   private readonly forkGuard = inject(CodexHoloForkGuard);
   private readonly dialog = inject(ScConfirmService);
   private readonly codex = inject(CodexService);
+  private readonly rsi = inject(UpcomingShipsService);
 
   readonly roles = SHIP_CONFIG_ROLES;
   readonly configRoleOptions = computed<ScSelectOption[]>(() =>
@@ -512,16 +540,39 @@ export class HangarShipDetailComponent implements OnInit {
     () => this.configs().find((c) => c.id === this.selectedConfigId()) ?? null,
   );
 
+  /** The catalog row's denormalized name — the key RSI art is published under. */
+  private readonly nameLocalized = signal<string | null>(null);
+  /** The Codex lookup failed (the ship itself loaded). i18n-free flag; the card says so. */
+  readonly codexError = signal(false);
+  readonly codexLoading = signal(false);
+
+  /**
+   * The ship's name: the catalog name, else the humanized class name. Never
+   * the raw class name — before, a missing (or not yet loaded) payload put
+   * `AEGS_Gladius` into the h1, because cleanLocaleValue passes any string
+   * through that is not a locale key.
+   */
   readonly shipDisplayName = computed(() => {
     const p = this.shipPayload();
     const en = p?.name ? pickLocalized(p.name, 'en') : '';
-    return (
-      en ||
-      cleanLocaleValue(this.ship()?.shipClassName ?? null) ||
-      humanizeClassName(this.ship()?.shipClassName)
-    );
+    return en || cleanLocaleValue(this.nameLocalized()) || humanizeClassName(this.ship()?.shipClassName);
   });
-  readonly manufacturer = computed(() => this.shipPayload()?.manufacturer?.code ?? null);
+  /** What the page header remembers for crumbs back here, and the art's alt text. */
+  readonly heroName = computed(() => {
+    const s = this.ship();
+    return s ? s.customName || this.shipDisplayName() : null;
+  });
+  /** Hero art, best first: the RSI store render, then the datamined preview. */
+  readonly heroArt = computed<string[]>(() => {
+    const out = [...this.rsi.heroArtFor(this.nameLocalized() ?? this.shipDisplayName())];
+    const preview = this.codex.previewUrl((this.shipPayload() as { previewImage?: string | null } | null)?.previewImage);
+    if (preview) out.push(preview);
+    return out;
+  });
+  readonly manufacturer = computed(() => {
+    const m = this.shipPayload()?.manufacturer as { code?: string; name?: { de: string; en: string; key: string } } | undefined;
+    return (m?.name ? pickLocalized(m.name, 'en') : '') || m?.code || null;
+  });
   readonly crewSize = computed(() => this.shipPayload()?.crew?.size ?? null);
   readonly pinValue = computed(() => (this.ship()?.pinnedRank ? String(this.ship()!.pinnedRank) : ''));
 
@@ -623,19 +674,43 @@ export class HangarShipDetailComponent implements OnInit {
     this.ship.set(ship);
     this.notesDraft.set(ship.notes ?? '');
 
-    const [detail, configs] = await Promise.all([
-      // Codex data is an extra here: a failed lookup must not take the configs down with it.
-      this.codex.getDetail('ship', ship.shipClassName).catch(() => null),
-      this.hangar.listConfigs(ship.id),
-    ]);
-    if (detail) {
-      this.shipPayload.set(detail.payload as ShipPayload);
-      this.ports.set(detail.ports);
-    }
+    // Fire-and-forget: the RSI feed only adds the hero picture.
+    void this.rsi.ensureLoaded().catch(() => undefined);
+    const [, configs] = await Promise.all([this.loadCodex(ship.shipClassName), this.hangar.listConfigs(ship.id)]);
     this.configs.set(configs);
     const active = configs.find((c) => c.isActive) ?? configs[0];
     if (active) this.selectConfig(active);
     else await this.refreshResolved();
+  }
+
+  /**
+   * The ship's Codex data — name, maker, ports, stock loadout. An extra on
+   * this page: a failed lookup must not take the configs down with it, but it
+   * is said (with a retry) instead of leaving a nameless, portless page.
+   */
+  private async loadCodex(className: string): Promise<void> {
+    this.codexError.set(false);
+    this.codexLoading.set(true);
+    try {
+      const detail = await this.codex.getDetail('ship', className);
+      if (detail) {
+        this.shipPayload.set(detail.payload as ShipPayload);
+        this.ports.set(detail.ports);
+        this.nameLocalized.set((detail.row['name_localized'] as string | null) ?? null);
+      }
+    } catch {
+      this.codexError.set(true);
+    } finally {
+      this.codexLoading.set(false);
+    }
+  }
+
+  /** Retry of the Codex-data note in the hero. */
+  async retryCodex(): Promise<void> {
+    const ship = this.ship();
+    if (!ship) return;
+    await this.loadCodex(ship.shipClassName);
+    await this.refreshResolved();
   }
 
   selectConfig(cfg: HangarShipConfig): void {

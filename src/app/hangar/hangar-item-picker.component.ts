@@ -18,7 +18,7 @@ import {
   CompatibleItem,
   PortQuery,
 } from '../codex/codex.service';
-import { humanizeClassName } from '../codex/codex-format';
+import { cleanLocaleValue, humanizeClassName } from '../codex/codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** What the picker hands back when the user chooses an entry. */
@@ -72,7 +72,7 @@ export interface PickedItem {
           @for (r of results(); track r.classNameSlug) {
             <li>
               <button type="button" class="result" role="option" (click)="pick(r)">
-                <span class="r-name">{{ r.nameLocalized || humanize(r.classNameSlug) }}</span>
+                <span class="r-name">{{ itemName(r) }}</span>
                 <span class="r-badges">
                   @if (r.manufacturerCode) { <span class="badge mfr">{{ r.manufacturerCode }}</span> }
                   <span class="badge subtle">{{ ('codex.kindSingular.' + r.kind) | translate }}</span>
@@ -194,6 +194,11 @@ export class HangarItemPickerComponent implements OnInit {
 
   humanize(cls: string): string {
     return humanizeClassName(cls);
+  }
+
+  /** A row's readable name: a locale key or "translation not found" marker never shows. */
+  itemName(r: CompatibleItem): string {
+    return cleanLocaleValue(r.nameLocalized) || humanizeClassName(r.classNameSlug);
   }
 
   onQuery(value: string): void {

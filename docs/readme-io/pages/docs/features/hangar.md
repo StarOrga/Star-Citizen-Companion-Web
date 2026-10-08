@@ -16,8 +16,12 @@ Each hangar entry carries:
 
 - a **pin** so it sorts to the front,
 - free-form **notes**,
-- a link back to its Codex entry,
+- a link back to its Codex entry — on the card and on the entry's page,
 - and the ★ if it is your **flagship**.
+
+Cards and entry pages show the ship's store render where RSI publishes one, and
+the ship glyph where it does not. A Codex page opened from your hangar leads
+back to it in its breadcrumb (*Hangar › your ship's name*).
 
 ## On the drawing board
 
