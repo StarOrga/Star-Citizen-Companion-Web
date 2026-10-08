@@ -1,7 +1,31 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.136.0",
+  "current": "0.136.1",
   "releases": [
+    {
+      "version": "0.136.1",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Angemeldet plötzlich auf „Nicht verfügbar“.",
+              "text": "Eine frisch geöffnete Schiffsseite schickte rund 75 Codex-Abfragen gleichzeitig ab, und jede davon war ohne passenden Index langsam. Das belegte alle Datenbank- Verbindungen, die Rollenprüfung beim Seitenaufruf lief in ihr Zeitlimit, und man landete auf /unavailable. Ein neuer Datenbank-Index macht diese Abfragen rund hundertmal schneller, und jeder Tab stellt höchstens drei davon gleichzeitig."
+            },
+            {
+              "title": "Komponenten im Modell",
+              "text": "zeigt Teile ohne eigenen Namen lesbar statt als rohen Klassennamen."
+            },
+            {
+              "title": "",
+              "text": "Die Konsole meldet beim Laden keine veraltete Auth-Lock-Option mehr."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.136.0",
       "date": "2026-10-08",
