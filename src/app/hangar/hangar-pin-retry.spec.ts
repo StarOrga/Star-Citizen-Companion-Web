@@ -46,7 +46,7 @@ describe('HangarService unique-slot retry', () => {
         return chain;
       };
       chain.select = () => chain;
-      for (const m of ['eq', 'not', 'order']) {
+      for (const m of ['eq', 'is', 'not', 'order']) {
         chain[m] = (...args: unknown[]) => {
           call.filters.push([m, ...args]);
           return chain;
@@ -130,6 +130,7 @@ describe('HangarService unique-slot retry', () => {
     expect(updates[1].filters).toContain(['eq', 'id', 'B']);
     const reread = stub.calls.find((c) => c.op === 'select');
     expect(reread?.filters).toContain(['not', 'pinned_rank', 'is', null]);
+    expect(reread?.filters).toContain(['is', 'deleted_at', null]);
   });
 
   it('pinShip: a second 23505 fails with the error set, after exactly two attempts', async () => {

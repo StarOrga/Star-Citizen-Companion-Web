@@ -197,11 +197,13 @@ export class HangarService {
         this.sb.client
           .from('hangar_ships')
           .select('*')
+          .is('deleted_at', null)
           .order('pinned_rank', { ascending: true, nullsFirst: false })
           .order('created_at', { ascending: false }),
         this.sb.client
           .from('hangar_role_loadouts')
           .select('*')
+          .is('deleted_at', null)
           .order('updated_at', { ascending: false }),
         this.sb.client
           .from('hangar_concept_ships')
@@ -377,6 +379,7 @@ export class HangarService {
       .from('hangar_ships')
       .select('*')
       .eq('id', id)
+      .is('deleted_at', null)
       .maybeSingle();
     // A failed read throws: "the ship does not exist" and "the read failed"
     // are different states on the detail page (retry vs. not found).
@@ -479,6 +482,7 @@ export class HangarService {
     const { data, error } = await this.sb.client
       .from('hangar_ships')
       .select('id, pinned_rank')
+      .is('deleted_at', null)
       .not('pinned_rank', 'is', null);
     if (error) return false;
     const ranks = new Map(
@@ -664,11 +668,28 @@ export class HangarService {
       .from('hangar_ship_configs')
       .select('*')
       .eq('hangar_ship_id', hangarShipId)
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false });
     if (error) {
       this.error.set(toErrorKey('hangar', 'listConfigs', error, { hangarShipId }));
       return [];
     }
+    return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
+  }
+
+  /**
+   * Every config of every hangar ship in one round trip — the HQ ownership
+   * index ("which piece is fitted where") needs them all at once. Throws on a
+   * failed read so the caller can tell "no configs" from "read failed".
+   */
+  async listAllConfigs(): Promise<HangarShipConfig[]> {
+    if (!this.userId) return [];
+    const { data, error } = await this.sb.client
+      .from('hangar_ship_configs')
+      .select('*')
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
     return ((data ?? []) as HangarShipConfigRow[]).map(mapHangarShipConfig);
   }
 
@@ -803,6 +824,7 @@ export class HangarService {
       .from('hangar_role_loadouts')
       .select('*')
       .eq('id', id)
+      .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
@@ -861,7 +883,12 @@ export class HangarService {
     expect?: string,
   ): Promise<HangarRoleLoadout | null> {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const read = await this.sb.client.from('hangar_role_loadouts').select('*').eq('id', id).maybeSingle();
+      const read = await this.sb.client
+        .from('hangar_role_loadouts')
+        .select('*')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .maybeSingle();
       if (read.error) {
         logWarn('hangar', 'slot write refused', { id, slot, error: read.error });
         return null;

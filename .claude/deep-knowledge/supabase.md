@@ -304,3 +304,21 @@ this project on 2026-09-13, and a non-interactive scheduled-task session cannot 
 ## Alpha-phase data policy
 
 The app is in alpha until `appPhase` in `src/environments/environment*.ts` flips to `beta`. Migrations are allowed to drop legacy data, **except** anything in `auth.users` and `public.profiles`. Always document drops in the migration comment.
+
+## HQ sync contract
+
+Personal ("HQ") data will sync with the SCC desktop app. Since
+`20261009090000_hq_sync_contract.sql` the personal tables
+`hangar_ships`, `hangar_ship_configs` and `hangar_role_loadouts` carry:
+
+- `updated_at timestamptz not null default now()` — bumped by the
+  `BEFORE UPDATE` trigger `public.set_updated_at()` (the sync cursor).
+- `deleted_at timestamptz null` — soft-delete tombstone; a non-null value
+  means "gone". Every client read filters `.is('deleted_at', null)`
+  (`src/app/hangar/hangar.service.ts`).
+
+Rule: **every new personal table** (Nachschub, Einsätze, …) ships with both
+columns plus the trigger from its first migration. RLS stays self-only CRUD.
+The web client still hard-deletes; before switching to soft delete, make
+the unique keys `hangar_ships_user_ship_key` and
+`hangar_ship_configs_one_active` partial on `deleted_at is null`.
