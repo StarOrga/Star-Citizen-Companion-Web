@@ -1,7 +1,77 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.138.0",
+  "current": "0.139.0",
   "releases": [
+    {
+      "version": "0.139.0",
+      "date": "2026-10-08",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "HQ – dein persönlicher Bereich.",
+              "text": "Alles, was dir gehört, liegt jetzt im neuen Bereich „HQ“ neben dem Codex: Übersicht, Hangar, Spind (FPS-Sets) und Einsätze, oben rechts der Knopf „Nachschub“. Einsätze und Nachschub starten als leere Bereiche und werden in den nächsten Etappen gefüllt."
+            },
+            {
+              "title": "Codex | Meine.",
+              "text": "Detailseiten bleiben unter /codex/…, haben aber einen Umschalter im Seitenkopf. ?v=<Variante> öffnet bei Schiffen deine eigene Variante (nur dort wird gespeichert), ?mine zeigt bei Teilen, auf welchem Schiff sie verbaut sind und in welchem Set sie stecken. Eine fremde Variante öffnet den Codex-Modus mit Hinweis."
+            },
+            {
+              "title": "",
+              "text": "Loadout-Zeilen und Set-Teile im HQ sind echte Links auf die Codex-Detailseite (Mittelklick, Strg+Klick und „In neuem Tab öffnen“ funktionieren)."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Der Codex zeigt nur noch Spielwissen. Persönliches erscheint dort nur noch als Wegweiser: „N× in deinem HQ“ und „In dein HQ übernehmen“. Den Hangar-Picker auf der Codex-Startseite gibt es nicht mehr."
+            },
+            {
+              "title": "",
+              "text": "Alte Links leiten weiter: /hangar/**, /hangar/loadout/:id und /codex/set/:id führen ins HQ, das alte ?config= wird zu ?v=. Geteilte Links bleiben unverändert."
+            },
+            {
+              "title": "",
+              "text": "Eine gemeinsame Besitz-Abfrage ersetzt die vier eigenen „im Hangar?“- Rechnungen in Detail, Liste, Suche und Speicherleiste."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Admin-Feedback: Die Styles liegen wieder unter dem 18-kB-Budget."
+            },
+            {
+              "title": "",
+              "text": "Die Überschriften der HQ-Übersicht halten auf dem Handy die Mindestschriftgröße ein."
+            }
+          ]
+        },
+        {
+          "category": "Internal",
+          "label": "",
+          "items": [
+            {
+              "title": "",
+              "text": "Migration 20261009090000_hq_sync_contract.sql: updated_at mit Trigger, deleted_at als Tombstone und ein Sync-Index für die persönlichen Hangar-Tabellen, als Grundlage für den späteren Abgleich mit der SCC-App. Der Client liest deleted_at noch nicht, damit er nicht davon abhängt, dass die Migration angewendet ist."
+            },
+            {
+              "title": "",
+              "text": "Die Shared-Holo-Specs laufen unter fakeAsync und damit deterministisch."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.138.0",
       "date": "2026-10-08",
