@@ -392,7 +392,9 @@ export function writeRankScopePref(scope: RankScope): void {
 // v2: the cohort drops salvage wrecks, sentries, probes and nameless records
 // (archive audit 2026-09-25) — a v1 entry holds the old fleet.
 // v3: every member carries its `role` (the third comparison group).
-const COHORT_CACHE_PREFIX = 'scc-codex-rank:v3';
+// v4: a cohort with a failed payload chunk is never cached (holodeck polish 2026-10-08) —
+// a v3 entry may hold such a half-fleet.
+const COHORT_CACHE_PREFIX = 'scc-codex-rank:v4';
 
 export function cohortCacheKey(buildId: string, scope: RankScope, discriminator = ''): string {
   return `${COHORT_CACHE_PREFIX}:${buildId}:${scope}${discriminator ? `:${discriminator}` : ''}`;
@@ -437,7 +439,8 @@ export function pruneCohortCache(buildId: string): void {
     const doomed: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k?.startsWith(`${COHORT_CACHE_PREFIX}:`) && !k.startsWith(`${COHORT_CACHE_PREFIX}:${buildId}:`)) {
+      // Older cache versions go too, whatever their build.
+      if (k?.startsWith('scc-codex-rank:') && !k.startsWith(`${COHORT_CACHE_PREFIX}:${buildId}:`)) {
         doomed.push(k);
       }
     }

@@ -48,6 +48,14 @@ page: the bar grows, takes focus and shows its results below itself while the
 rest of the page dims. Outside the Codex, Ctrl+K and the header's search button
 open the same search as an overlay (a full-screen sheet on a phone).
 
+On a ship's Holotable four letters belong to the table instead, as long as no
+text field has focus: **L** copies the link to this view, **P** opens or
+closes the patch chooser, **V** switches the table between top-down, 3D and
+schematic, and **S** opens the Share popover. Each control shows its key as a
+small badge (not on touch screens). The digits **1–9** and **0** pick a
+hardpoint, **Esc** closes what is open; every other letter still starts a
+search.
+
 Results are grouped by kind — ships, weapons, components, items and so on —
 with the best few of each, how many matched in total, and an **All N in the
 index** link that opens the full list with your term. Liveries carry a
