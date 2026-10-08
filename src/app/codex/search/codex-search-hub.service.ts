@@ -56,7 +56,7 @@ export class CodexSearchHub {
     const t = list[list.length - 1];
     if (!t) return false;
     t.focus();
-    return true;
+    return true; // a hidden trigger (phone) cannot take focus — the browser keeps it on the page
   }
 
   /** Register a bar; the returned function unregisters it. The newest bar wins. */

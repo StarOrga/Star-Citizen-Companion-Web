@@ -56,14 +56,14 @@ import { CodexSearchHub } from './codex-search-hub.service';
       background: var(--sc-bg-2); border: 1px solid var(--sc-border); color: var(--sc-fg-2);
     }
     @media (pointer: coarse) {
-      .trigger { min-height: 48px; min-width: 48px; justify-content: center; }
+      .trigger { min-height: 48px; }
       .key { display: none; }
     }
-    /* A phone header: the magnifier alone, the aria-label and tooltip say it. */
+    /* A phone: the app header's magnifier already opens this same search
+       (it calls the hub too), and here the button would cost a row of its
+       own above the title. It stays mounted, so the slim bar stays tucked. */
     @media (max-width: 720px) {
-      .label, .key { display: none; }
-      .trigger { padding: 4px; min-width: 40px; justify-content: center; }
-      .icon { width: 20px; height: 20px; }
+      :host { display: none; }
     }
   `],
 })
