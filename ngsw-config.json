@@ -54,6 +54,19 @@
         "timeout": "10s",
         "strategy": "freshness"
       }
+    },
+    {
+      "name": "verse-digest",
+      "urls": [
+        "https://hcnqhvzlavdycidqyaai.supabase.co/rest/v1/rpc/verse_digest",
+        "https://hcnqhvzlavdycidqyaai.supabase.co/rest/v1/rpc/verse_digest?*"
+      ],
+      "cacheConfig": {
+        "maxSize": 2,
+        "maxAge": "60s",
+        "timeout": "5s",
+        "strategy": "freshness"
+      }
     }
   ]
 }

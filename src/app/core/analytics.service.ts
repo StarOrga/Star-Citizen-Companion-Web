@@ -1,10 +1,32 @@
 import { logWarn } from './log';
-import { Injectable, Injector, effect, inject } from '@angular/core';
+import { Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import type { PostHog } from 'posthog-js';
 import { environment } from '../../environments/environment';
 import { ConsentService } from './consent.service';
+
+/** Opt-in areas of the Verse hub β switch (one per menu item). */
+export type VerseBetaArea = 'briefing' | 'news' | 'patches' | 'gallery' | 'starmap';
+
+/**
+ * Typed Verse hub product events and their properties. Properties carry no
+ * personal data — keys, kinds and positions only.
+ */
+export interface VerseEventProps {
+  /** A briefing top-list entry was opened. */
+  verse_top_open: { key: string; kind: string; rank: number; pinned: boolean };
+  /** One of the three jump gates was opened. */
+  verse_door_open: { door: 'news' | 'patches' | 'gallery' };
+  /** The per-menu-item β switch was flipped. */
+  verse_beta_toggle: { area: VerseBetaArea; enabled: boolean };
+  /** A Starscape image was shared. */
+  starscape_share: { image_id: string; channel: 'native' | 'copy' };
+  /** An Explorer star was earned (sun = comet hit). */
+  verse_star_earned: { patch_line: string; star_key: string; sun?: boolean };
+}
+
+export type VerseEvent = keyof VerseEventProps;
 
 /**
  * Anonymous product analytics via PostHog (issue #139).
@@ -34,6 +56,10 @@ export class AnalyticsService {
   private readonly injector = inject(Injector);
 
   private client: PostHog | null = null;
+  /** Feature flags as last reported by PostHog; empty until consent + load. */
+  private readonly flagValues = signal<Readonly<Record<string, boolean | string>>>({});
+  /** Flags, but only while statistics consent holds — never read before it. */
+  readonly flags = computed(() => (this.consent.statisticsAllowed() ? this.flagValues() : {}));
   /** Guards against a second concurrent lazy-load while the first is in flight. */
   private loading = false;
   private routerBound = false;
@@ -73,6 +99,19 @@ export class AnalyticsService {
   capture(event: string, properties?: Record<string, unknown>): void {
     if (!this.consent.statisticsAllowed()) return;
     this.client?.capture(event, properties);
+  }
+
+  /** Typed Verse hub event; same consent gate as `capture()`. */
+  captureVerse<E extends VerseEvent>(event: E, properties: VerseEventProps[E]): void {
+    this.capture(event, properties as Record<string, unknown>);
+  }
+
+  /**
+   * A PostHog feature flag, or `undefined` without consent, without a loaded
+   * client, or when the flag is unknown. Reactive (reads a signal).
+   */
+  featureFlag(key: string): boolean | string | undefined {
+    return this.flags()[key];
   }
 
   /**
@@ -151,6 +190,7 @@ export class AnalyticsService {
         person_profiles: 'never',
       });
       this.client = posthog;
+      posthog.onFeatureFlags((_flags, variants) => this.flagValues.set({ ...variants }));
       this.bindRouter();
       this.applyPendingLandingUtm();
     } catch (error) {
@@ -164,6 +204,7 @@ export class AnalyticsService {
   }
 
   private disable(): void {
+    this.flagValues.set({});
     if (!this.client) return;
     this.client.opt_out_capturing();
     this.client.reset();
