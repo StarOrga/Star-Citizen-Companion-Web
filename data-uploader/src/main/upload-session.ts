@@ -38,7 +38,7 @@ import {
   type SkinHookSet,
 } from '../lib/upload-hooks.js';
 import { createPauseControl, type PauseControl, type RunSignal } from '../lib/pause-control.js';
-import * as throttle from './throttle.js';
+import * as resources from './resources.js';
 
 const JOB_FILE = 'upload-job.json';
 
@@ -115,12 +115,12 @@ export function update(fn: (s: UploadJobState) => UploadJobState): UploadJobStat
 
 /** Resume wiring for the catalog stage, bound to this job + pause signal. */
 export function hooksForCatalog(): CatalogHookSet {
-  return catalogHooks(store(), control(), throttle.control());
+  return catalogHooks(store(), control(), resources.pacer());
 }
 
 /** Resume wiring for the skin stage. */
 export function hooksForSkins(): SkinHookSet {
-  return skinHooks(store(), control(), throttle.control());
+  return skinHooks(store(), control(), resources.pacer());
 }
 
 export function pause(): JobView {

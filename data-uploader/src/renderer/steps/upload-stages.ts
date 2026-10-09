@@ -1,35 +1,35 @@
 /**
- * The Upload card's stage list — a checklist that replaces the step chips,
- * the detail line and the stack of success lines that used to fill the card:
+ * The stage list of a run step. A run is cut vertically — every step takes ONE
+ * topic all the way from the game files to the server before the next starts:
  *
- *   ✓ Bundle                 +12 / −3
- *   ● Codex
- *       ✓ Silhouetten bauen  4.494
- *       ○ Einträge hochladen            ← the category bars open under this row
- *   ○ 3D-Modelle                          only while it runs
- *       ○ Modelle bauen
- *       ○ Modelle hochladen
+ *   1 · Codex        ○ Daten extrahieren   ○ Bundle hochladen   ○ Einträge hochladen
+ *   2 · Silhouetten  ○ Silhouetten bauen   ○ Silhouetten hochladen
+ *   3 · 3D-Modelle   ○ Modelle bauen       ○ Modelle hochladen
  *
- * Every row carries its own state, so nothing reads "done" while its stage is
- * still pending (the old full category bars under a running silhouette build).
+ * Each step is its own screen; only its rows are in the DOM. The state of
+ * every row lives HERE (not in the DOM), so a re-render — the next step's
+ * screen, a language switch, coming back after a pause — paints each row the
+ * way it actually stands instead of "pending".
+ *
  * What used to be a line of text — bundle id, first-upload note, build counts,
  * category totals — is the row's tooltip (`data-tip`, info tier).
- *
- * Plain functions looking elements up by id: a call after the view is gone is
- * a no-op, same as the rest of the renderer.
  */
 
 import { t } from '../../lib/i18n.js';
 
-export type StageKey = 'bundle' | 'codex' | 'silhouettes' | 'entries' | 'skins' | 'skinsBuild' | 'skinsUpload';
-/** The rows that do work; `codex` and `skins` only follow their two sub-rows. */
-const LEAVES: StageKey[] = ['bundle', 'silhouettes', 'entries', 'skinsBuild', 'skinsUpload'];
-const PARENT: Partial<Record<StageKey, { parent: StageKey; first: StageKey; second: StageKey }>> = {
-  silhouettes: { parent: 'codex', first: 'silhouettes', second: 'entries' },
-  entries: { parent: 'codex', first: 'silhouettes', second: 'entries' },
-  skinsBuild: { parent: 'skins', first: 'skinsBuild', second: 'skinsUpload' },
-  skinsUpload: { parent: 'skins', first: 'skinsBuild', second: 'skinsUpload' },
+export type PipelineStep = 'codex' | 'silhouettes' | 'models';
+export const PIPELINE_STEPS: readonly PipelineStep[] = ['codex', 'silhouettes', 'models'];
+
+export type StageKey = 'extract' | 'bundle' | 'entries' | 'silBuild' | 'silUpload' | 'skinsBuild' | 'skinsUpload';
+
+export const STEP_STAGES: Record<PipelineStep, readonly StageKey[]> = {
+  codex: ['extract', 'bundle', 'entries'],
+  silhouettes: ['silBuild', 'silUpload'],
+  models: ['skinsBuild', 'skinsUpload'],
 };
+
+const ALL: readonly StageKey[] = PIPELINE_STEPS.flatMap((s) => STEP_STAGES[s]);
+
 export type StageState = 'pending' | 'active' | 'done' | 'warn' | 'paused' | 'failed' | 'skipped';
 
 const ICON: Record<StageState, string> = {
@@ -42,129 +42,95 @@ const ICON: Record<StageState, string> = {
   skipped: '–',
 };
 
-const LABEL_KEY: Record<StageKey, string> = {
-  bundle: 'upload.steps.bundle',
-  codex: 'upload.steps.codex',
-  silhouettes: 'upload.stages.silhouettes',
-  entries: 'upload.stages.entries',
-  skins: 'upload.steps.skins',
-  skinsBuild: 'upload.stages.skinsBuild',
-  skinsUpload: 'upload.stages.skinsUpload',
-};
+interface Row {
+  state: StageState;
+  meta: string;
+  tip: string;
+}
 
-function row(key: StageKey, inner = ''): string {
+const rows = new Map<StageKey, Row>(ALL.map((k) => [k, { state: 'pending', meta: '', tip: '' }]));
+
+const row = (key: StageKey): Row => rows.get(key) as Row;
+
+function rowHtml(key: StageKey): string {
+  const r = row(key);
+  const tip = r.tip ? ` data-tip="${escapeAttr(r.tip)}" tabindex="0"` : '';
   return `
-    <li class="upload-stage" id="stage-${key}" data-stage="${key}" data-state="pending">
-      <div class="upload-stage-line" id="stage-${key}-line">
-        <span class="upload-stage-icon" aria-hidden="true">${ICON.pending}</span>
-        <span class="upload-stage-label">${t(LABEL_KEY[key])}</span>
-        <span class="upload-stage-meta" id="stage-${key}-meta"></span>
-        <span class="sr-only" id="stage-${key}-state">${t('upload.stages.state.pending')}</span>
+    <li class="upload-stage" id="stage-${key}" data-stage="${key}" data-state="${r.state}"${r.state === 'active' ? ' aria-current="step"' : ''}>
+      <div class="upload-stage-line" id="stage-${key}-line"${tip}>
+        <span class="upload-stage-icon" aria-hidden="true">${ICON[r.state]}</span>
+        <span class="upload-stage-label">${t(`pipeline.stage.${key}`)}</span>
+        <span class="upload-stage-meta" id="stage-${key}-meta">${escapeText(r.meta)}</span>
+        <span class="sr-only" id="stage-${key}-state">${t(`upload.stages.state.${r.state}`)}</span>
       </div>
-      ${inner}
     </li>`;
 }
 
-/** `barsHtml` (the category bars) is mounted under the entries row. */
-export function uploadStagesHtml(barsHtml: string): string {
-  return `
-    <ol class="upload-stages" aria-label="${t('upload.stages.aria')}">
-      ${row('bundle')}
-      ${row(
-        'codex',
-        `<ol class="upload-stages-sub">
-          ${row('silhouettes')}
-          ${row('entries', `<div class="upload-stage-bars" id="stage-entries-bars" hidden>${barsHtml}</div>`)}
-        </ol>`,
-      )}
-      ${row(
-        'skins',
-        `<ol class="upload-stages-sub">
-          ${row('skinsBuild')}
-          ${row('skinsUpload')}
-        </ol>`,
-      )}
-    </ol>`;
+function escapeAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
-const el = (key: StageKey): HTMLElement | null => document.getElementById(`stage-${key}`);
+function escapeText(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+}
 
-function paint(key: StageKey, state: StageState, meta?: string): void {
-  const li = el(key);
+/** The rows of `step`. */
+export function stagesHtml(step: PipelineStep): string {
+  const items = STEP_STAGES[step].map((key) => rowHtml(key)).join('');
+  return `<ol class="upload-stages" aria-label="${t('upload.stages.aria')}">${items}</ol>`;
+}
+
+function paint(key: StageKey): void {
+  const li = document.getElementById(`stage-${key}`);
   if (!li) return;
-  li.dataset.state = state;
-  if (state === 'active') li.setAttribute('aria-current', 'step');
+  const r = row(key);
+  li.dataset.state = r.state;
+  if (r.state === 'active') li.setAttribute('aria-current', 'step');
   else li.removeAttribute('aria-current');
   const icon = li.querySelector(':scope > .upload-stage-line > .upload-stage-icon');
-  if (icon) icon.textContent = ICON[state];
+  if (icon) icon.textContent = ICON[r.state];
   const stateEl = document.getElementById(`stage-${key}-state`);
-  if (stateEl) stateEl.textContent = t(`upload.stages.state.${state}`);
-  if (meta !== undefined) {
-    const metaEl = document.getElementById(`stage-${key}-meta`);
-    if (metaEl) metaEl.textContent = meta;
-  }
-}
-
-/** A parent row (Codex, 3D-Modelle) follows its two sub-rows. */
-function paintParent(parent: StageKey, first: StageKey, second: StageKey): void {
-  const a = (el(first)?.dataset.state ?? 'pending') as StageState;
-  const b = (el(second)?.dataset.state ?? 'pending') as StageState;
-  const both = [a, b];
-  const state: StageState = both.includes('failed')
-    ? 'failed'
-    : both.includes('paused')
-      ? 'paused'
-      : both.includes('active')
-        ? 'active'
-        : b === 'done' || b === 'skipped'
-          ? a === 'warn'
-            ? 'warn'
-            : b === 'skipped' && (a === 'skipped' || a === 'pending')
-              ? 'skipped'
-              : 'done'
-          : a === 'pending'
-            ? 'pending'
-            : 'active';
-  paint(parent, state);
+  if (stateEl) stateEl.textContent = t(`upload.stages.state.${r.state}`);
+  const metaEl = document.getElementById(`stage-${key}-meta`);
+  if (metaEl) metaEl.textContent = r.meta;
 }
 
 /** Set a row's state and (optionally) its right-hand meta text. */
 export function setStage(key: StageKey, state: StageState, meta?: string): void {
-  paint(key, state, meta);
-  if (key === 'entries') {
-    const bars = document.getElementById('stage-entries-bars');
-    if (bars) bars.hidden = state !== 'active';
-  }
-  const family = PARENT[key];
-  if (family) paintParent(family.parent, family.first, family.second);
+  const r = row(key);
+  r.state = state;
+  if (meta !== undefined) r.meta = meta;
+  paint(key);
 }
 
 /** Only the meta text (a ticking "948 / 4.494"), state untouched. */
 export function setStageMeta(key: StageKey, meta: string): void {
+  row(key).meta = meta;
   const metaEl = document.getElementById(`stage-${key}-meta`);
   if (metaEl) metaEl.textContent = meta;
 }
 
 /** The row's tooltip — the details that used to be lines of text. */
 export function tipStage(key: StageKey, text: string): void {
-  // On the row's own line, not the <li>: a sub-row must not show its parent's tip.
-  const li = document.getElementById(`stage-${key}-line`);
-  if (!li) return;
+  row(key).tip = text;
+  const line = document.getElementById(`stage-${key}-line`);
+  if (!line) return;
   if (text) {
-    li.dataset.tip = text;
-    li.tabIndex = 0; // the tooltip also opens on keyboard focus
+    line.dataset.tip = text;
+    line.tabIndex = 0; // the tooltip also opens on keyboard focus
   } else {
-    delete li.dataset.tip;
-    li.removeAttribute('tabindex');
+    delete line.dataset.tip;
+    line.removeAttribute('tabindex');
   }
 }
 
-/** The row that is running right now (deepest first), if any. */
+export function stageState(key: StageKey): StageState {
+  return row(key).state;
+}
+
+/** The row that is running right now, if any. */
 export function activeStage(): StageKey | null {
-  for (const key of LEAVES) {
-    if (el(key)?.dataset.state === 'active') return key;
-  }
-  return null;
+  return ALL.find((k) => row(k).state === 'active') ?? null;
 }
 
 /** A pause lands on whichever row was running. */
@@ -173,11 +139,16 @@ export function pauseActiveStage(): void {
   if (key) setStage(key, 'paused');
 }
 
-export function resetStages(): void {
-  for (const key of LEAVES) {
-    setStage(key, 'pending', '');
+/** A step is finished once none of its rows is pending, running or paused. */
+export function stepFinished(step: PipelineStep): boolean {
+  return STEP_STAGES[step].every((k) => !['pending', 'active', 'paused'].includes(row(k).state));
+}
+
+/** Back to "pending" — all rows, or only the given ones. */
+export function resetStages(keys: readonly StageKey[] = ALL): void {
+  for (const key of keys) {
+    rows.set(key, { state: 'pending', meta: '', tip: '' });
+    paint(key);
     tipStage(key, '');
   }
-  tipStage('codex', '');
-  tipStage('skins', '');
 }

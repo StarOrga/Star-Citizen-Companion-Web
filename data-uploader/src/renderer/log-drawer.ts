@@ -22,6 +22,29 @@ export function resetLog(): void {
   if (body) body.innerHTML = '';
 }
 
+/**
+ * Repaint a freshly mounted drawer from the transcript kept in memory — a run
+ * moves through several step screens, and each one mounts its own drawer.
+ */
+export function replayLog(): void {
+  const last = document.getElementById('log-lastline');
+  const tail = lines[lines.length - 1];
+  if (last && tail) {
+    last.textContent = tail.text;
+    last.className = `log-lastline log-${tail.level}`;
+  }
+  const body = document.getElementById('log-drawer-body');
+  if (!body) return;
+  body.innerHTML = '';
+  for (const l of lines) {
+    const line = document.createElement('div');
+    line.className = `log-line log-${l.level}`;
+    line.textContent = l.text;
+    body.appendChild(line);
+  }
+  body.scrollTop = body.scrollHeight;
+}
+
 export function appendLog(msg: string, level: LogLevel = 'info'): void {
   const prefix = level === 'error' ? '[err] ' : level === 'warn' ? '[warn] ' : '';
   const text = prefix + msg;

@@ -26,14 +26,14 @@ import { closeLogDrawer } from './log-drawer.js';
 import * as InstallStep from './steps/install.js';
 import * as DoneStep from './steps/done.js';
 import {
-  throttleChipHtml,
-  wireThrottleChip,
-  toggleThrottlePopover,
-  refreshThrottleChip,
-  closeThrottlePopoverIfOpen,
-} from './throttle-chip.js';
+  initResourceDock,
+  toggleResourceDock,
+  collapseResourceDockIfOpen,
+  noteInstallPath,
+  repaintResourceDock,
+} from './resource-dock.js';
 import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
-import { resetLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
+import { resetLog, replayLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import {
   updateCategoryBars,
   categoryBarsHtml,
@@ -43,13 +43,16 @@ import {
   categoryTotalsLine,
 } from './steps/category-bars.js';
 import {
-  uploadStagesHtml,
+  stagesHtml,
   setStage,
   setStageMeta,
   tipStage,
   pauseActiveStage,
   activeStage,
   resetStages,
+  stageState,
+  PIPELINE_STEPS,
+  type PipelineStep,
   type StageKey,
 } from './steps/upload-stages.js';
 // Local mirrors of the shapes the preload bridge hands us, following this
@@ -58,8 +61,8 @@ import {
 // these from `src/main` / `src/preload` would drag Node/Electron-only modules
 // into a DOM-only program.
 interface ResumeSummaryLike {
-  stages: { stage: 'bundle' | 'catalog' | 'skins'; state: 'done' | 'active' | 'pending' }[];
-  activeStage: 'bundle' | 'catalog' | 'skins' | null;
+  stages: { stage: 'bundle' | 'catalog' | 'silhouettes' | 'skins'; state: 'done' | 'active' | 'pending' }[];
+  activeStage: 'bundle' | 'catalog' | 'silhouettes' | 'skins' | null;
   macroStep: number | null;
   macroTotal: number;
   catalog?: { step: number; total: number; phase: string };
@@ -70,7 +73,7 @@ interface JobViewLike {
   resumable: boolean;
   resumeHint: string | null;
   resumeSummary: ResumeSummaryLike | null;
-  state: { status: string } | null;
+  state: { status: string; silhouettes?: { status: string } } | null;
 }
 
 /** Mirror of `main/catalog-bridge.ts:CatalogUploadResult` (see the note above). */
@@ -81,25 +84,6 @@ interface CatalogUploadResult {
   error?: string;
   errorCode?: string;
   errorPhase?: string;
-}
-
-/** Performance profiles the operator can pick — mirrors `lib/performance.ts`. */
-type LiveProfile = 'minimal' | 'standard' | 'maximum' | 'auto';
-
-/** Mirror of the `PerformanceProfile` shape the bridge hands back. */
-interface ProfileDefLike {
-  id: string;
-  label: { en: string };
-  description: { en: string };
-}
-
-/** Mirror of `main/throttle.ts:ThrottleSetResult`. */
-interface ThrottleViewLike {
-  profile: LiveProfile;
-  liveJobs: number;
-  supported: boolean;
-  changed?: boolean;
-  applied?: number;
 }
 
 export interface PublicSettings {
@@ -118,7 +102,6 @@ import {
   progressCardHtml,
   mountProgress,
   type ProgressController,
-  type ProgressStep,
   type ProgressLabels,
 } from './progress.js';
 
@@ -156,24 +139,18 @@ function installRendererCrashCapture(): void {
 }
 installRendererCrashCapture();
 
-// Internal view names kept from the original view routing (discover →
-// run → auth-upload) — the one-screen shell maps each onto a
-// step-rail node (see `viewToStep` below) without renaming the state field
-// everywhere it's referenced. 'done' is new: the post-upload summary/countdown.
-type ViewName = 'discover' | 'run' | 'auth-upload' | 'done';
+// One view per step-rail node. A run is cut vertically: Codex, Silhouetten
+// and 3D-Modelle are each a screen that takes its topic from the game files
+// all the way onto the server (build, then upload) before the next starts.
+type ViewName = 'discover' | PipelineStep | 'done';
 type LogLevel = 'info' | 'success' | 'warn' | 'error';
 
 function viewToStep(v: ViewName): StepKey {
-  switch (v) {
-    case 'discover':
-      return 'install';
-    case 'run':
-      return 'extract';
-    case 'auth-upload':
-      return 'upload';
-    case 'done':
-      return 'done';
-  }
+  return v === 'discover' ? 'install' : v;
+}
+
+function isPipelineView(v: ViewName = state.view): v is PipelineStep {
+  return (PIPELINE_STEPS as readonly string[]).includes(v);
 }
 
 interface SkinShipResult {
@@ -263,12 +240,6 @@ export const state = {
     source: string;
     selected: boolean;
   }>,
-  // Display mirror of the profile MAIN holds. Main owns it because it is live:
-  // switching mid-run has to reach the already-spawned sidecar, whose pid only
-  // main knows. Never write this directly — go through `applyProfile()`.
-  profile: 'standard' as LiveProfile,
-  /** False on a platform with no live priority control — the UI must not imply one. */
-  throttleSupported: true,
   // Per-run "when done" pick (nothing / quit / shutdown) — renderer memory
   // only, never persisted. Reset to 'nothing' at the start of every run.
   whenDone: 'nothing' as WhenDone,
@@ -285,10 +256,6 @@ export const state = {
   // Flips true the moment the extract finishes OK — drives the clear
   // "Bundle fertig, du kannst hochladen" affordance on the Run screen.
   extractDone: false,
-  // Outcome of the silhouette build that ran inside the extraction, keyed by
-  // the extract it belongs to. The upload only builds them itself when this
-  // does not name its out_dir (a resume after a restart, an older extract).
-  silhouettes: null as { outDir: string; outcome: SilhouetteOutcome } | null,
   authToken: null as string | null,
   // 3D-livery build result from the upload step (skins ride along the normal
   // extract → upload flow — no separate view).
@@ -366,11 +333,10 @@ async function init(): Promise<void> {
     state.settings = null;
   }
 
-  // Adopt the profile MAIN currently holds (it may already be steering an
-  // auto-run that started before this window existed), and follow every later
-  // switch — including ones made from another view or another window.
-  await refreshProfileFromMain();
-  window.sc.perf.onChanged((v: ThrottleViewLike) => adoptThrottle(v));
+  // The resource dock mirrors the limits MAIN holds (it may already be
+  // governing an auto-run that started before this window existed) and
+  // follows every later change.
+  await initResourceDock();
 
   // Connection chip (top strip) → popover with today's connection-tile content.
   $('#connection-chip')?.addEventListener('click', () => toggleConnectionPopover(paintConnection));
@@ -389,7 +355,7 @@ async function init(): Promise<void> {
     },
     escHandlers: [
       closeWhenDonePopoverIfOpen,
-      closeThrottlePopoverIfOpen,
+      collapseResourceDockIfOpen,
       closeSettingsDialogIfOpen,
       () => {
         if (!isConnectionPopoverOpen()) return false;
@@ -398,33 +364,34 @@ async function init(): Promise<void> {
       },
       closeLogDrawer,
       () => (state.view === 'done' ? DoneStep.cancelCountdown() : false),
-      // Esc on the Extract card = the red "Lauf abbrechen…" (its confirm dialog
-      // guards the destructive part); after the bundle is ready it is "Zurück".
+      // Esc during the extraction = the red "Lauf abbrechen…" (its confirm
+      // dialog guards the destructive part).
       () => {
-        if (state.view !== 'run') return false;
+        if (!isPipelineView() || !extractRunning) return false;
         const btn = $('#btn-cancel-extract') as HTMLButtonElement | null;
         if (!btn) return false;
         btn.click();
         return true;
       },
-      // Esc on an idle Upload card = its "Zurück" (nothing in flight to lose).
+      // Esc on an idle step card = its "Zurück" (nothing in flight to lose).
       () => {
-        if (state.view !== 'auth-upload' || !canGoBack()) return false;
+        if (!isPipelineView() || !canGoBack()) return false;
         goBack();
         return true;
       },
     ],
-    onTempo: () => {
-      if (state.view === 'run' || state.view === 'auth-upload') toggleThrottlePopover();
-    },
+    onTempo: () => toggleResourceDock(),
     onEnter: () => {
       if (state.view === 'discover') InstallStep.primaryAction();
-      else if (state.view === 'run') ($('#btn-upload-now') as HTMLButtonElement | null)?.click();
+      else if (isPipelineView()) {
+        const start = $('#btn-start-upload') as HTMLButtonElement | null;
+        if (start && !start.hidden && !start.disabled) start.click();
+      }
       else if (state.view === 'done') DoneStep.primaryAction();
     },
     onSpace: () => toggleUploadPauseResume(),
     onToggleLog: () => {
-      if (state.view === 'run') toggleLogDrawer();
+      if (isPipelineView()) toggleLogDrawer();
     },
   });
 
@@ -442,8 +409,8 @@ async function init(): Promise<void> {
     // renderer is still unwinding the stage — resuming then would start a second
     // pipeline on the same job. Only an idle renderer may pick it up.
     if (uploadRunning || resumeInFlight) return;
-    if (state.view !== 'auth-upload') {
-      state.view = 'auth-upload';
+    if (!isPipelineView()) {
+      state.view = resumeStep();
       render();
     }
     // Same restart caveat as the in-window button: the tray is typically used
@@ -520,7 +487,7 @@ async function maybeAutoRun(): Promise<void> {
   // pressed Start) must not be yanked into Upload or get a second run.
   if (operatorHasMoved()) return;
   if (state.resumableJob?.resumable) {
-    state.view = 'auth-upload';
+    state.view = resumeStep();
     render();
     const status = state.resumableJob.state?.status;
     const resume = shouldAutoResume({
@@ -747,7 +714,7 @@ async function revalidateSession(force = false): Promise<void> {
   paintConnection();
   // Only just discovered the session died → also refresh the auth-upload
   // warning if that view is currently showing.
-  if (was && !next.connected && state.view === 'auth-upload') paintReconnectNotice();
+  if (was && !next.connected && isPipelineView()) paintReconnectNotice();
 }
 
 export async function connectNow(): Promise<void> {
@@ -1129,14 +1096,7 @@ export function setStatus(msg: string): void {
  * or upload keeps "back" an explicit, confirmed abort.
  */
 function canGoBack(): boolean {
-  switch (state.view) {
-    case 'run':
-      return !extractRunning;
-    case 'auth-upload':
-      return !uploadRunning && !resumeInFlight;
-    default:
-      return false;
-  }
+  return isPipelineView() && !extractRunning && !uploadRunning && !resumeInFlight;
 }
 
 /** One step back: always to Install — a new run starts there. */
@@ -1151,6 +1111,8 @@ function paintNav(): void {
   paintChevrons(canGoBack(), state.view === 'discover');
   const back = $('#btn-upload-back') as HTMLButtonElement | null;
   if (back) back.hidden = !canGoBack();
+  const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
+  if (cancel) cancel.hidden = !extractRunning;
 }
 
 function render(): void {
@@ -1182,13 +1144,11 @@ function render(): void {
       app.innerHTML = InstallStep.renderInstall();
       InstallStep.wireInstall();
       break;
-    case 'run':
-      app.innerHTML = renderRun();
-      wireRun();
-      break;
-    case 'auth-upload':
-      app.innerHTML = renderAuthUpload();
-      wireAuthUpload();
+    case 'codex':
+    case 'silhouettes':
+    case 'models':
+      app.innerHTML = renderPipeline(state.view);
+      wirePipeline(state.view);
       break;
     case 'done':
       app.innerHTML = DoneStep.renderDone();
@@ -1214,18 +1174,25 @@ let lastStepIdx = 0;
  * the DOM it paints into exists.
  */
 export async function startRun(plan: RunPlan): Promise<void> {
+  noteInstallPath(state.channels.find((c) => c.selected)?.dataP4kPath);
   state.runPlan = plan;
   state.whenDone = plan.whenDone;
-  state.view = 'run';
+  // A fresh run: every row of every step starts open again.
+  state.lastResult = null;
+  state.extractDone = false;
+  resetStages();
+  resetLog();
+  resetUploadCategories();
+  clearUploadFeedback();
+  state.view = 'codex';
   render();
-  await runRealExtract();
+  if (await runRealExtract()) await continueAfterExtract();
 }
 
 /** Done step's "Neuen Lauf starten" — back to Install with run state reset. */
 export function resetForNewRun(): void {
   state.lastResult = null;
   state.extractDone = false;
-  state.silhouettes = null;
   state.skinResult = null;
   state.skinUploadStatus = null;
   state.runPlan = null;
@@ -1241,8 +1208,8 @@ export function resetForNewRun(): void {
 
 /**
  * The Install step's Start: straight into the extraction. There is no setup
- * step in between any more — the run's two knobs (tempo, when done) sit as
- * chips on the Extract/Upload cards and stay changeable while it runs.
+ * step in between any more — "when done" is a chip on the run cards, the
+ * resource limits live in the dock; both stay changeable while it runs.
  */
 export async function startRunFromInstall(): Promise<void> {
   // A run reads exactly one install — with none picked, Start would be a
@@ -1273,7 +1240,7 @@ export function connSnapshotFor(channel: string): ConnChannelState | null {
 
 /** The Install step's "Fortsetzen" resumable-job action — jumps into Upload. */
 export async function jumpToResumeUpload(): Promise<void> {
-  state.view = 'auth-upload';
+  state.view = resumeStep();
   render();
   if (await ensureResultForResume()) void doResumeUpload();
 }
@@ -1296,23 +1263,18 @@ export function allowedChannels(): Array<'alpha' | 'beta' | 'stable'> {
 // connection bar (see paintConnection). `allowedChannels()` above is shared.
 
 /**
- * The run's two knobs — ⚡ tempo and ⏻ when done — as chips in the Extract and
- * Upload card heads. Both stay changeable while the run is going.
+ * The run's ⏻ "when done" chip in the card heads — changeable while the run
+ * is going. How much of the PC a run may take lives in the resource dock at
+ * the bottom of the window (`resource-dock.ts`).
  */
 function runChipsHtml(): string {
   const wd = state.runPlan?.whenDone ?? state.whenDone;
   return `<div class="run-chips">
-      ${throttleChipHtml(state.profile === 'auto' ? 'standard' : state.profile)}
       ${whenDoneChipHtml(wd)}
     </div>`;
 }
 
 function wireRunChips(): void {
-  wireThrottleChip({
-    getProfile: () => state.profile,
-    applyProfile: (next) => applyProfile(next),
-    onMessage: (msg) => showSnackbar(msg),
-  });
   wireWhenDoneChip({
     get: () => state.runPlan?.whenDone ?? state.whenDone,
     set: (next) => {
@@ -1335,81 +1297,45 @@ export function openAppSettingsDialog(): void {
     },
     onLocaleChanged: () => {
       render();
+      repaintResourceDock();
       paintConnection();
       pushTrayLabels();
     },
   });
 }
 
-// ============= Live performance switch =============
+// ============= Pipeline views: Codex · Silhouetten · 3D-Modelle =============
 //
-// The profile is deliberately NOT a start-time snapshot: the operator's case is
-// "I'm about to play — throttle down" / "I'm away for half an hour — throttle
-// up", and cancelling a multi-hour extract to change a setting is no answer.
-// So the same picker is mounted on Configure (large) and on the Run + Upload
-// views (compact), all writing through `applyProfile`, and main pushes the new
-// profile into the running sidecar.
+// A run is cut vertically. Each step is one screen that takes ONE topic from
+// the game files all the way onto the server before the next one starts:
+//
+//   Codex        extract the game data → bundle → codex entries (goes live)
+//   Silhouetten  build the outlines     → send them to that codex build
+//   3D-Modelle   build the ship models  → upload them
+//
+// So the heavy local work comes in three separate blocks instead of one long
+// one, and each topic is on the website as soon as its own step is through.
 
-/**
- * The single write path for the profile — main is the source of truth.
- * Returns a human status message (applied / armed / unsupported) for the
- * caller (the throttle chip) to route to the bottom-strip snackbar — never
- * paints a DOM status line itself, unlike the old per-view pickers.
- */
-export async function applyProfile(next: LiveProfile): Promise<{ message: string } | null> {
-  let result: ThrottleViewLike;
-  try {
-    result = await window.sc.perf.set(next);
-  } catch {
-    // A failed switch must not leave the UI showing a mode that is not in
-    // effect — re-read main's truth.
-    await refreshProfileFromMain();
-    return null;
-  }
-  adoptThrottle(result);
-  return { message: throttleStatusMessage(result) };
-}
-
-/**
- * Tell the operator what the switch actually did. Deliberately three different
- * answers: a switch that reached a running sidecar, a switch that only arms the
- * next run, and a platform where we cannot re-prioritise at all — collapsing
- * them into one cheerful "saved" would be the failure mode where they trust a
- * throttle that never happened and go play anyway.
- */
-export function throttleStatusMessage(v: ThrottleViewLike): string {
-  if (!v.supported) return t('configure.speed.unsupported');
-  if ((v.applied ?? 0) > 0) return t('configure.speed.applied');
-  if (v.liveJobs > 0) return t('configure.speed.appliedPartly');
-  return t('configure.speed.armed');
-}
-
-function adoptThrottle(v: ThrottleViewLike): void {
-  state.profile = v.profile;
-  state.throttleSupported = v.supported;
-  refreshThrottleChip(v.profile);
-}
-
-export async function refreshProfileFromMain(): Promise<void> {
-  try {
-    adoptThrottle(await window.sc.perf.get());
-  } catch {
-    /* keep the last known mirror — the chip still works, it just may lag */
-  }
-}
-
-// ============= View: Run (Phase 1 stub UI) =============
-
-function renderRun(): string {
+function renderPipeline(step: PipelineStep): string {
+  const n = PIPELINE_STEPS.indexOf(step) + 1;
+  const codex = step === 'codex';
   return `
-    <div class="view step-run">
-      <section class="card run-card">
-        <div class="run-card-head">
-          <h1>${t('run.title')}</h1>
+    <div class="view step-run step-pipeline step-${step}">
+      <section class="card upload-card">
+        <div class="upload-card-head">
+          <div class="pipeline-title">
+            <span class="pipeline-eyebrow">${t('pipeline.stepOf', { n, total: PIPELINE_STEPS.length })}</span>
+            <h1>${t(`pipeline.step.${step}`)}</h1>
+          </div>
           ${runChipsHtml()}
         </div>
-        ${progressCardHtml('run-progress', runSteps())}
-        ${categoryBarsHtml()}
+        <p class="pipeline-intro">${t(`pipeline.intro.${step}`)}</p>
+        <div id="reconnect-notice" class="reconnect-notice" hidden></div>
+        <div id="resume-notice" class="reconnect-notice" hidden></div>
+        ${stagesHtml(step)}
+        ${progressCardHtml('pipe-progress', undefined, { compact: true })}
+        ${codex ? categoryBarsHtml() : ''}
+        <div id="auth-status" class="upload-status" hidden></div>
         <div class="log-line-row">
           <div class="log-lastline" id="log-lastline"></div>
           <button type="button" id="log-drawer-toggle" class="btn-link" data-tip="${t('run.logTitle')}" data-tip-key="Ctrl+L">${t('run.logTitle')}</button>
@@ -1423,18 +1349,118 @@ function renderRun(): string {
         </div>
       </section>
       <p id="run-ready-note" class="run-ready-note" hidden></p>
-      <div class="btn-row view-footer" id="run-footer">
-        <button id="btn-cancel-extract" class="btn btn-danger-ghost" data-tip="${t('run.cancel')}" data-tip-key="Esc">${t('run.cancel')}</button>
+      <div class="btn-row view-footer" id="upload-footer">
+        <button type="button" id="btn-upload-back" class="btn" data-tip="${t('common.back')}" data-tip-key="Esc">${t('common.back')}</button>
+        <button type="button" id="btn-cancel-extract" class="btn btn-danger-ghost" hidden data-tip="${t('run.cancel')}" data-tip-key="Esc">${t('run.cancel')}</button>
+        <button type="button" id="btn-start-upload" class="btn btn-primary" hidden data-tip-key="Enter"></button>
+        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
+        <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
+        <button type="button" id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
       </div>
+      ${codex ? '<div id="upload-bundle-details"></div><div id="upload-result"></div>' : ''}
     </div>
   `;
 }
 
-// Flip the Run footer into a clear "bundle is ready" state once the
-// extraction succeeds. When the plan asked for an automatic upload, that
-// transition already happens on its own (see `runRealExtract`) — this only
-// adds a CTA for the "extract only" case, requiring a session before it lets
-// the operator continue (connects first if none is live yet).
+// Progress-card controller for the currently-mounted step screen — created
+// fresh on every `wirePipeline()` (i.e. every time a step screen is
+// (re)rendered), read by the extract/upload sub-flows below.
+let uploadProgress: ProgressController | null = null;
+/** Release of the "work in flight" animation hold on the mounted card. */
+let progressHold: (() => void) | null = null;
+
+/**
+ * Share of the step rail's segment per working row: the bar restarts at every
+ * row, the rail fills across the whole step.
+ */
+const STAGE_SPAN: Record<StageKey, { from: number; width: number }> = {
+  extract: { from: 0, width: 70 },
+  bundle: { from: 70, width: 5 },
+  entries: { from: 75, width: 25 },
+  silBuild: { from: 0, width: 80 },
+  silUpload: { from: 80, width: 20 },
+  skinsBuild: { from: 0, width: 75 },
+  skinsUpload: { from: 75, width: 25 },
+};
+let railStage: StageKey = 'extract';
+
+/** Make `key` the running row; the bar restarts for it. */
+function startStage(key: StageKey, meta = ''): void {
+  railStage = key;
+  setStage(key, 'active', meta);
+  uploadProgress?.update({ overallPct: 0 });
+}
+
+/** Move the run onto `step`'s screen (no-op when it is already there). */
+function goStep(step: PipelineStep): void {
+  if (state.view === step) return;
+  state.view = step;
+  render();
+}
+
+function wirePipeline(step: PipelineStep): void {
+  wireLogDrawer();
+  replayLog();
+  wireRunChips();
+  // A new screen, a new card: the old controller's clocks stop with it.
+  progressHold?.();
+  progressHold = null;
+  uploadProgress?.stop();
+  noteOverallPct(0);
+  uploadProgress = mountProgress('pipe-progress', {
+    counterLabel,
+    labels: progressLabels(),
+    // The bar shows the running row; the rail fills across the whole step.
+    onOverallPct: (pct) => noteOverallPct(STAGE_SPAN[railStage].from + (pct / 100) * STAGE_SPAN[railStage].width),
+  });
+  // Work that carries on from the previous screen keeps its card alive.
+  if (extractRunning || uploadRunning) {
+    uploadProgress.start();
+    if (uploadRunning) progressHold = uploadProgress.hold();
+  }
+  if (step === 'codex') paintBundleDetails();
+  $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
+  $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
+  $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
+  $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
+  $('#btn-upload-back')?.addEventListener('click', () => goBack());
+  $('#btn-cancel-extract')?.addEventListener('click', (e) => void cancelExtract(e.currentTarget as HTMLButtonElement));
+  const note = $('#run-ready-note');
+  if (note && state.extractDone && step === 'codex' && !uploadRunning) {
+    note.textContent = t('run.bundleReady');
+    note.hidden = false;
+  }
+  // Force a fresh session check on entry so a "re-authorise needed" hint shows
+  // up-front here, not only after the upload attempt fails.
+  paintReconnectNotice();
+  void revalidateSession(true).then(paintReconnectNotice);
+  // Surface an upload the last session left unfinished (paused, or killed
+  // mid-run) so the operator can continue it instead of starting over.
+  void refreshJobView();
+}
+
+/** The step screen a resume re-enters: the one owning the job's next stage. */
+function resumeStep(): PipelineStep {
+  switch (state.resumableJob?.resumeSummary?.activeStage) {
+    case 'silhouettes':
+      return 'silhouettes';
+    case 'skins':
+      return 'models';
+    default:
+      return 'codex';
+  }
+}
+
+/** Space shortcut on a step screen — pause/resume, no-op otherwise. */
+export function toggleUploadPauseResume(): void {
+  if (!isPipelineView()) return;
+  if (uploadRunning) void doPauseUpload();
+  else if (state.resumableJob?.resumable) void doResumeUpload();
+}
+
+// The extraction finished: the Codex step's first row is done. With a live
+// session (and a run plan that asked for it) the upload follows on its own;
+// otherwise the footer offers it — `doStartUpload` signs in first if needed.
 function markBundleReady(): void {
   const note = $('#run-ready-note');
   if (note) {
@@ -1442,125 +1468,55 @@ function markBundleReady(): void {
     note.hidden = false;
   }
   markCategoriesComplete();
-  // Nothing left to abort: the red "cancel" becomes a plain "back" so the
-  // finished card no longer offers a destructive action next to its CTA.
-  const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
-  if (cancel) {
-    cancel.textContent = t('common.back');
-    cancel.dataset.tip = t('common.back');
-    cancel.dataset.tipKey = 'Esc';
-    cancel.classList.remove('btn-danger-ghost');
-  }
-  // Auto-continues into Upload — but only with a live session; one lost during
-  // the extraction (sign-out, expired) would otherwise leave no way forward.
-  if (state.runPlan?.uploadAfter && state.authToken) return;
-  const footer = $('#run-footer');
-  if (!footer || $('#btn-upload-now')) return;
-  const btn = document.createElement('button');
-  btn.id = 'btn-upload-now';
-  btn.type = 'button';
-  btn.className = 'btn btn-primary btn-ready';
-  btn.textContent = `✓ ${t('run.bundleReadyCta')}`;
-  btn.dataset.tip = t('run.bundleReadyCta');
-  btn.dataset.tipKey = 'Enter';
-  btn.addEventListener('click', () => void goToUploadNow());
-  footer.appendChild(btn);
+  paintJobNotice();
 }
 
-/**
- * A failed extraction leaves nothing to abort: the red "Lauf abbrechen" turns
- * into a plain "Zurück" (to Setup, where the run can be started again).
- */
-function markExtractFailed(): void {
-  const cancel = $('#btn-cancel-extract') as HTMLButtonElement | null;
-  if (!cancel) return;
-  cancel.textContent = t('common.back');
-  cancel.dataset.tip = t('common.back');
-  cancel.dataset.tipKey = 'Esc';
-  cancel.classList.remove('btn-danger-ghost');
-}
-
-/** "Jetzt hochladen" on a bundle-ready Extract card without auto-upload — needs a session first. */
-async function goToUploadNow(): Promise<void> {
-  if (!state.authToken) {
-    const btn = $('#btn-upload-now') as HTMLButtonElement | null;
-    if (btn?.disabled) return; // a sign-in is already open in the browser
-    if (btn) btn.disabled = true;
-    let token: string | null;
+async function cancelExtract(btn: HTMLButtonElement): Promise<void> {
+  if (btn.disabled) return;
+  const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
+  if (!ok) return;
+  // Flag first: main purges old extracts before the sidecar's first event
+  // carries a job id, so a cancel in that window has nothing to address yet.
+  // The flag makes the first event cancel it and keeps a result that lands
+  // anyway from being adopted (and auto-uploaded) behind the operator's back.
+  if (extractRunning) extractCancelled = true;
+  if (currentExtractJobId) {
+    // The abort can take a moment to land — say so and take the button out of
+    // reach so a second click (or Esc) cannot fire it again.
+    btn.disabled = true;
+    btn.textContent = t('run.cancelling');
     try {
-      token = await ensureUploadToken();
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-    if (!token) {
-      showSnackbar(t('upload.signInFailed'), 'error');
-      return;
+      await window.sc.extract.cancel(currentExtractJobId);
+    } catch {
+      /* best-effort */
     }
   }
-  state.view = 'auth-upload';
+  state.view = 'discover';
   render();
 }
 
-function wireRun(): void {
-  wireLogDrawer();
-  wireRunChips();
-  $('#btn-cancel-extract')?.addEventListener('click', (e) => {
-    const btn = e.currentTarget as HTMLButtonElement;
-    void (async () => {
-      if (btn.disabled) return;
-      const ok = await confirmLeave(extractRunning, 'confirm.leave.extract', '');
-      if (!ok) return;
-      // Flag first: main purges old extracts before the sidecar's first event
-      // carries a job id, so a cancel in that window has nothing to address yet.
-      // The flag makes the first event cancel it and keeps a result that lands
-      // anyway from being adopted (and auto-uploaded) behind the operator's back.
-      if (extractRunning) extractCancelled = true;
-      if (currentExtractJobId) {
-        // The abort can take a moment to land — say so and take the button
-        // out of reach so a second click (or Esc) cannot fire it again.
-        btn.disabled = true;
-        btn.textContent = t('run.cancelling');
-        try {
-          await window.sc.extract.cancel(currentExtractJobId);
-        } catch {
-          /* best-effort */
-        }
-      }
-      if (currentSilhouetteJobId) {
-        await window.sc.silhouette.cancel(currentSilhouetteJobId).catch(() => undefined);
-      }
-      state.view = 'discover';
-      render();
-    })();
-  });
-}
-
-async function runRealExtract(): Promise<void> {
-  const progress = mountProgress('run-progress', {
-    counterLabel,
-    steps: runSteps(),
-    labels: progressLabels(),
-    onOverallPct: noteOverallPct,
-  });
+/** Codex step, first row: read the game data out of the Data.p4k. Returns true on success. */
+async function runRealExtract(): Promise<boolean> {
+  const progress = uploadProgress;
+  if (!progress) return false;
   const appendLog = (msg: string, level: LogLevel = 'info') => drawerAppendLog(msg, level);
   const countMap: Record<string, number> = {};
   // Planned totals per counter ("x von y") — announced by the sidecar's
   // classification pre-pass / the final value of one-shot counters.
   const expectedMap: Record<string, number> = {};
 
-  resetLog();
   resetCategoryBars();
   noteOverallPct(0);
 
   const channel = state.channels.find((c) => c.selected);
   if (!channel) {
     appendLog(t('run.noChannel'), 'error');
-    return;
+    return false;
   }
   // Started only past the early return above: that return sits outside the
-  // try/finally that stops the meta ticker, so starting first leaked its
-  // 500 ms interval for the rest of the session.
+  // try/finally that stops the meta ticker.
   progress.start();
+  startStage('extract');
 
   // Per-tool extract-output dir — Electron's app.getPath('userData') would
   // be cleaner; for now use a sibling of the install path.
@@ -1592,10 +1548,14 @@ async function runRealExtract(): Promise<void> {
       // extraction, no upload. "Alles neu erzwingen" on the Install step overrides.
       appendLog(t('subthemes.allCurrent'), 'success');
       setStatus(t('subthemes.allCurrent'));
+      for (const key of ['extract', 'bundle', 'entries', 'silBuild', 'silUpload', 'skinsBuild', 'skinsUpload'] as const) {
+        setStage(key, 'skipped');
+      }
+      tipStage('extract', t('subthemes.allCurrent'));
       progress.update({ overallPct: 100, indeterminate: false });
       progress.stop();
       noteOverallPct(100);
-      return;
+      return false;
     }
   }
 
@@ -1606,17 +1566,18 @@ async function runRealExtract(): Promise<void> {
       if (firstEvent) void window.sc.extract.cancel(ev.jobId).catch(() => undefined);
       return;
     }
+    // Always the card mounted NOW: a language switch re-renders the screen.
+    const p = uploadProgress ?? progress;
     switch (ev.type) {
       case 'pulse':
         // The sidecar's CPU heartbeat — keeps the bar's activity animation
         // honest through stretches where no counter moves.
-        progress.pulse(ev.busy ?? 0);
+        p.pulse(ev.busy ?? 0);
         return;
       case 'phase': {
         const label = phaseLabel(ev.phase ?? 'unknown');
-        const si = RUN_STEP_INDEX[ev.phase ?? ''];
-        if (si !== undefined) progress.setStep(si);
-        progress.update({ phaseLabel: label, overallPct: ev.pct });
+        p.update({ phaseLabel: label, overallPct: ev.pct });
+        setStageMeta('extract', label);
         if (ev.phase === 'validate' || ev.phase === 'bundle') markCategoriesComplete();
         appendLog(`▶ ${label}`);
         return;
@@ -1630,7 +1591,7 @@ async function runRealExtract(): Promise<void> {
             : ev.stage === 'datacore'
               ? t('run.hint.datacore')
               : '';
-        progress.update({
+        p.update({
           overallPct: ev.pct,
           stageLabel: stageLabel(ev.stage ?? ''),
           current: ev.current,
@@ -1641,11 +1602,9 @@ async function runRealExtract(): Promise<void> {
         return;
       }
       case 'file':
-        progress.update({ overallPct: ev.pct });
+        p.update({ overallPct: ev.pct });
         return;
       case 'count':
-        // The category bars are the Extract card's only count display — the
-        // generic counter tiles repeated the same numbers a second time.
         if (ev.counter) {
           countMap[ev.counter.key] = Math.max(countMap[ev.counter.key] ?? 0, ev.counter.value);
           if (typeof ev.counter.expected === 'number') expectedMap[ev.counter.key] = ev.counter.expected;
@@ -1659,13 +1618,11 @@ async function runRealExtract(): Promise<void> {
         appendLog(ev.message ?? t('run.warningFallback'), 'warn');
         return;
       case 'done':
-        // Past the sidecar's last phase: the silhouette build runs next.
-        progress.setStep(RUN_STEP_SILHOUETTES);
-        progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
+        p.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
         markCategoriesComplete();
         return;
       case 'error':
-        progress.update({ indeterminate: false });
+        p.update({ indeterminate: false });
         appendLog(ev.message ?? t('run.errorFallback'), 'error');
         return;
     }
@@ -1684,84 +1641,66 @@ async function runRealExtract(): Promise<void> {
       // server then files the build as 'desktop' and nothing is skipped).
       buildNumber: channel.buildNumber ?? '',
       // Always the full data set: what lands on the server must not depend on
-      // which uploader ran or what it picked. Only the speed (PC load) is a choice.
+      // which uploader ran or what it picked. Only the PC load is a choice.
       scope: { hdIcons: true, renderPngs: true, componentTree: true },
       toolVersion: (await window.sc.env()).toolVersion,
     });
 
     if (extractCancelled) {
       // Aborted by the operator — whatever came back is not theirs to upload.
-    } else if (final.ok && final.result) {
-      // Silhouettes are built here, not during the upload: the upload step
-      // should only upload, and the Codex phase sends these rows with it.
-      const silhouettes = await buildRunSilhouettes(final.result, progress, appendLog);
-      if (extractCancelled) return;
-      state.silhouettes = { outDir: final.result.output_dir, outcome: silhouettes };
-      progress.setStep(RUN_STEP_SILHOUETTES + 1); // all step chips done
-      progress.update({ overallPct: 100, phaseLabel: phaseLabel('done'), stageLabel: '', detail: '', indeterminate: false, hint: '' });
+      return false;
+    }
+    if (final.ok && final.result) {
       state.lastResult = final.result;
       state.extractDone = true;
       const totalEntities = Object.values(final.result.entity_counts)
         .reduce((a, b) => a + b, 0)
         .toLocaleString();
-      const elapsed = fmtElapsed(progress.elapsedMs());
-      appendLog(
-        tOr(
-          'run.doneSummary',
-          `done — quality ${final.result.quality_score.toFixed(0)}/100, ${totalEntities} entities in ${elapsed}`,
-          {
-            score: final.result.quality_score.toFixed(0),
-            entities: totalEntities,
-            time: elapsed,
-          },
-        ),
-        'success',
+      const elapsed = fmtElapsed((uploadProgress ?? progress).elapsedMs());
+      const summary = tOr(
+        'run.doneSummary',
+        `done — quality ${final.result.quality_score.toFixed(0)}/100, ${totalEntities} entities in ${elapsed}`,
+        {
+          score: final.result.quality_score.toFixed(0),
+          entities: totalEntities,
+          time: elapsed,
+        },
       );
-      markBundleReady();
-      // Auto-upload only when the run plan asked for it AND a session is
-      // already live — never trigger an interactive browser login unattended.
-      if (state.runPlan?.uploadAfter && state.authToken) {
-        appendLog(t('run.autoUploading'), 'info');
-        state.view = 'auth-upload';
-        render();
-        void doStartUpload();
-      }
-    } else {
-      appendLog(final.error ?? t('run.failedUnknown'), 'error');
-      markExtractFailed();
+      appendLog(summary, 'success');
+      setStage('extract', 'done', totalEntities);
+      tipStage('extract', summary);
+      return true;
     }
+    appendLog(final.error ?? t('run.failedUnknown'), 'error');
+    setStage('extract', 'failed');
+    tipStage('extract', final.error ?? t('run.failedUnknown'));
+    return false;
   } finally {
     extractRunning = false;
-    paintNav();
     currentExtractJobId = null;
     unsubscribe();
-    progress.stop();
-    progress.update({ indeterminate: false });
+    const p = uploadProgress ?? progress;
+    p.stop();
+    p.update({ indeterminate: false });
+    paintNav();
+    paintJobNotice();
   }
 }
 
-// ============= View: Auth-Upload =============
-
-// The stages of one upload run (Bundle → Codex [silhouettes, entries] →
-// 3D models) are the Upload card's stage list — steps/upload-stages.ts.
-
-// The extract pipeline's fixed phases, surfaced as the same step-chip journey
-// the upload flow uses — so both views read as siblings. `phaseLabel` reuses
-// the existing run.phase.* i18n keys.
-function runSteps(): ProgressStep[] {
-  return [
-    { key: 'discover', label: phaseLabel('discover') },
-    { key: 'plan', label: phaseLabel('plan') },
-    { key: 'extract', label: phaseLabel('extract') },
-    { key: 'validate', label: phaseLabel('validate') },
-    { key: 'bundle', label: phaseLabel('bundle') },
-    // Built locally right after the bundle, so the upload only uploads.
-    { key: 'silhouettes', label: phaseLabel('silhouettes') },
-  ];
+/**
+ * The run after a successful extraction: straight into the uploads when the
+ * plan asked for it and a session is live — never an interactive browser
+ * login unattended. Otherwise the footer's Start button offers it.
+ */
+async function continueAfterExtract(): Promise<void> {
+  markBundleReady();
+  if (state.runPlan?.uploadAfter && state.authToken) {
+    drawerAppendLog(t('run.autoUploading'), 'info');
+    await doStartUpload();
+  }
 }
-const RUN_STEP_INDEX: Record<string, number> = { discover: 0, plan: 1, extract: 2, validate: 3, bundle: 4 };
-/** Step index of the silhouette build — the extract sidecar's `done` lands here. */
-const RUN_STEP_SILHOUETTES = 5;
+
+// ============= Upload flow helpers =============
 
 // Localized labels for the shared progress meta line (throughput / ETA / stall).
 function progressLabels(): Partial<ProgressLabels> {
@@ -1809,96 +1748,6 @@ function paintBundleDetails(): void {
     </details>`;
 }
 
-function renderAuthUpload(): string {
-  const hasResult = state.lastResult !== null;
-  return `
-    <div class="view step-upload">
-      <section class="card upload-card">
-        <div class="upload-card-head">
-          <h1>${t('upload.title')}</h1>
-          ${runChipsHtml()}
-        </div>
-        <div id="reconnect-notice" class="reconnect-notice" hidden></div>
-        <div id="resume-notice" class="reconnect-notice" hidden></div>
-        ${uploadStagesHtml(categoryBarsHtml())}
-        ${progressCardHtml('upload-progress', undefined, { compact: true })}
-        <div id="auth-status" class="upload-status" hidden></div>
-      </section>
-      <div class="btn-row view-footer" id="upload-footer">
-        <button type="button" id="btn-upload-back" class="btn" data-tip="${t('common.back')}" data-tip-key="Esc">${t('common.back')}</button>
-        <button id="btn-start-upload" class="btn btn-primary" data-tip="${t('upload.intro')}" ${hasResult ? '' : 'disabled'}>${t('upload.start')}</button>
-        <button type="button" id="btn-resume-upload" class="btn btn-primary" hidden data-tip="${t('upload.job.resumeAction')}" data-tip-key="Space">▶ ${t('upload.job.resumeAction')}</button>
-        <button type="button" id="btn-pause-upload" class="btn" hidden data-tip="${t('upload.job.pause')}" data-tip-key="Space">⏸ ${t('upload.job.pause')}</button>
-        <button id="btn-discard-upload" class="btn btn-danger-ghost" hidden>${t('upload.job.discard')}</button>
-      </div>
-      <div id="upload-bundle-details"></div>
-      <div id="upload-result"></div>
-    </div>
-  `;
-}
-
-// Progress-card controller for the currently-mounted upload view — created
-// fresh on every `wireAuthUpload()` (i.e. every time the view is (re)rendered),
-// read by the upload sub-flow functions below.
-let uploadProgress: ProgressController | null = null;
-
-/**
- * Share of the step rail's Upload segment per working row (the silhouette build
- * dominates). Per row, not per parent: the bar restarts at every row, and a
- * shared span would send the rail back to the parent's start.
- */
-type RailStage = 'bundle' | 'silhouettes' | 'entries' | 'skinsBuild' | 'skinsUpload';
-const STAGE_SPAN: Record<RailStage, { from: number; width: number }> = {
-  bundle: { from: 0, width: 5 },
-  silhouettes: { from: 5, width: 45 },
-  entries: { from: 50, width: 20 },
-  skinsBuild: { from: 70, width: 15 },
-  skinsUpload: { from: 85, width: 15 },
-};
-let railStage: RailStage = 'bundle';
-
-/** Make `key` the running row; the bar restarts for it. */
-function startStage(key: RailStage, meta = ''): void {
-  railStage = key;
-  setStage(key, 'active', meta);
-  uploadProgress?.update({ overallPct: 0 });
-}
-
-function wireAuthUpload(): void {
-  wireRunChips();
-  // Fresh view, fresh rail: the extract's 100 % must not sit on the Upload
-  // node's segment while the bundle POST is still indeterminate.
-  noteOverallPct(0);
-  uploadProgress = mountProgress('upload-progress', {
-    counterLabel,
-    labels: progressLabels(),
-    // The bar shows the running stage; the rail gets the whole upload.
-    onOverallPct: (pct) => noteOverallPct(STAGE_SPAN[railStage].from + (pct / 100) * STAGE_SPAN[railStage].width),
-  });
-  resetStages();
-  resetUploadCategories();
-  paintBundleDetails();
-  $('#btn-start-upload')?.addEventListener('click', () => void doStartUpload());
-  $('#btn-pause-upload')?.addEventListener('click', () => void doPauseUpload());
-  $('#btn-resume-upload')?.addEventListener('click', () => void doResumeUpload());
-  $('#btn-discard-upload')?.addEventListener('click', () => void doDiscardUpload());
-  $('#btn-upload-back')?.addEventListener('click', () => goBack());
-  // Force a fresh session check on entry so a "re-authorise needed" hint shows
-  // up-front here, not only after the upload attempt fails.
-  paintReconnectNotice();
-  void revalidateSession(true).then(paintReconnectNotice);
-  // Surface an upload the last session left unfinished (paused, or killed
-  // mid-run) so the operator can continue it instead of starting over.
-  void refreshJobView();
-}
-
-/** Space shortcut while the Upload step is mounted — pause/resume, no-op otherwise. */
-export function toggleUploadPauseResume(): void {
-  if (state.view !== 'auth-upload') return;
-  if (uploadRunning) void doPauseUpload();
-  else if (state.resumableJob?.resumable) void doResumeUpload();
-}
-
 // ============= Durable upload job (pause / resume / kill-recovery) =============
 
 /** Pull the main process's job view and repaint the pause/resume affordances. */
@@ -1917,12 +1766,14 @@ async function refreshJobView(): Promise<void> {
 //  3D-Skins offen — fortsetzen?" — so the operator sees exactly what is done and
 // what a resume picks up, instead of the raw `catalog:codex_ships@1200` hint.
 function formatResumeBanner(sum: ResumeSummaryLike): string {
-  const stageName = (st: 'bundle' | 'catalog' | 'skins'): string =>
+  const stageName = (st: ResumeSummaryLike['stages'][number]['stage']): string =>
     st === 'bundle'
       ? tOr('upload.steps.bundle', 'Bundle')
       : st === 'catalog'
         ? tOr('upload.steps.codex', 'Codex')
-        : tOr('upload.steps.skins', '3D-Skins');
+        : st === 'silhouettes'
+          ? t('pipeline.step.silhouettes')
+          : tOr('upload.steps.skins', '3D-Skins');
 
   const parts = sum.stages.map((s) => {
     const name = stageName(s.stage);
@@ -1970,7 +1821,11 @@ function paintJobNotice(): void {
   pauseBtn.hidden = !running || uploadSigningIn;
   // A re-render mid-upload (language switch) mounts a fresh, enabled Start
   // button — it must not be able to launch a second, parallel upload.
-  startBtn.disabled = running || !state.lastResult;
+  startBtn.disabled = running || extractRunning || !state.lastResult;
+  // Without a session the button signs in first — say so on it.
+  const startLabel = state.authToken ? t('upload.start') : `✓ ${t('run.bundleReadyCta')}`;
+  startBtn.textContent = startLabel;
+  startBtn.dataset.tip = state.authToken ? t('upload.intro') : t('run.bundleReadyCta');
   // A finished/paused run re-arms the button for the next one.
   if (!running) {
     pauseBtn.disabled = false;
@@ -1982,13 +1837,16 @@ function paintJobNotice(): void {
   // operator resumes rather than silently re-uploading everything. Without an
   // extraction result there is nothing to start either (e.g. right after a
   // discarded job on a fresh launch): then "Zurück" is the way on.
-  startBtn.hidden = (!running && resumable) || !state.lastResult;
+  startBtn.hidden = running || extractRunning || resumable || !state.lastResult;
   paintNav();
 
   if (!running && resumable && job?.resumeSummary) {
     // The stage list shows where the paused run stands, not a row of "open".
+    if (stageState('extract') === 'pending') setStage('extract', 'done');
     for (const s of job.resumeSummary.stages) {
-      const key: StageKey = s.stage === 'catalog' ? 'entries' : s.stage === 'skins' ? 'skinsUpload' : s.stage;
+      const key: StageKey =
+        s.stage === 'catalog' ? 'entries' : s.stage === 'silhouettes' ? 'silUpload' : s.stage === 'skins' ? 'skinsUpload' : s.stage;
+      if (s.stage === 'silhouettes' && s.state === 'done') setStage('silBuild', 'done');
       if (s.stage === 'skins' && s.state === 'done') setStage('skinsBuild', 'done');
       setStage(key, s.state === 'done' ? 'done' : s.state === 'pending' ? 'pending' : 'paused');
     }
@@ -2231,8 +2089,14 @@ async function doStartUpload(): Promise<void> {
   clearUploadFeedback();
   lastCatalogFailure = null;
   paintJobNotice();
+  paintNav();
+  const ready = $('#run-ready-note');
+  if (ready) ready.hidden = true;
   uploadProgress?.start();
-  resetStages();
+  // The extraction row stays as it ended; every upload-side row starts over
+  // (a resume re-derives done stages from the job as it goes).
+  if (state.lastResult && stageState('extract') === 'pending') setStage('extract', 'done');
+  resetStages(['bundle', 'entries', 'silBuild', 'silUpload', 'skinsBuild', 'skinsUpload']);
   resetUploadCategories();
   startStage('bundle');
   try {
@@ -2259,12 +2123,14 @@ async function doStartUpload(): Promise<void> {
       }
     }
     // Animate the bar for as long as upload work is in flight — not while the
-    // sign-in above waits on the operator's browser.
-    const release = uploadProgress?.hold();
+    // sign-in above waits on the operator's browser. Each step screen mounts
+    // its own card and takes the hold over (`wirePipeline`).
+    progressHold = uploadProgress?.hold() ?? null;
     try {
       await doUploadAfterAuth();
     } finally {
-      release?.();
+      progressHold?.();
+      progressHold = null;
     }
   } finally {
     // Idempotent. doUploadAfterAuth has exits (paused mid-stage, a rejected
@@ -2334,6 +2200,7 @@ function friendlyUploadError(r: { error?: string; details?: unknown }): string {
 async function doUploadAfterAuth(): Promise<void> {
   if (!state.authToken || !state.lastResult) return;
   const result = state.lastResult;
+  goStep('codex');
   // Register (or adopt) the durable job BEFORE any network call, so even a kill
   // during the very first request leaves a resumable record behind. Adopting an
   // existing job for the same out_dir is what turns "reopen the app" into
@@ -2343,19 +2210,23 @@ async function doUploadAfterAuth(): Promise<void> {
     patchVersion: result.patch_version,
     buildNumber: result.build_number,
   });
+  const skipped = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
+  const ledgerKey = {
+    channel: result.channel,
+    patchVersion: result.patch_version,
+    buildNumber: result.build_number,
+  };
+
+  // ── Step 1 · Codex: bundle → entries (the build goes live) ───────────────
   // On a resume whose bundle already landed, the bundle POST returns instantly
   // from the main process — so skip the bundle spinner and open the card
-  // straight on the Codex step that runs next, instead of flashing
-  // "1/3 · Bundle" then jumping.
+  // straight on the entries row.
   const resumingPastBundle = job?.bundle?.status === 'done';
   if (resumingPastBundle) {
     setStage('bundle', 'done');
-    startStage('silhouettes');
   }
   uploadProgress?.update({
-    phaseLabel: resumingPastBundle
-      ? t('catalog.publishing')
-      : t('upload.bundleUploading'),
+    phaseLabel: resumingPastBundle ? t('catalog.publishing') : t('upload.bundleUploading'),
     indeterminate: true,
     detail: '',
   });
@@ -2373,7 +2244,7 @@ async function doUploadAfterAuth(): Promise<void> {
   });
   // `duplicate`: this patch's bundle is already on the server (a re-run, or a
   // resume whose first POST landed before the app died). Nothing to fix there —
-  // carry on with codex + skins, which is what the operator came back for.
+  // carry on with the rest, which is what the operator came back for.
   const bundleAlreadyThere = !r.ok && r.error === 'duplicate';
   if (!r.ok && !bundleAlreadyThere) {
     uploadProgress?.update({ indeterminate: false });
@@ -2385,8 +2256,6 @@ async function doUploadAfterAuth(): Promise<void> {
     await window.sc.uploadJob.fail(r.error ?? 'bundle_failed');
     return;
   }
-  // Only claim the bundle step as 100% on a fresh run; on a resume the card is
-  // already on the catalog stage and promoteToCodex owns the bar from here.
   if (!resumingPastBundle) uploadProgress?.update({ indeterminate: false, overallPct: 100 });
   // Done is a check mark; the bundle id and the diff note live in its tooltip.
   const diff = paintDiffSummary(r.diffSummary);
@@ -2401,77 +2270,54 @@ async function doUploadAfterAuth(): Promise<void> {
       .join('\n'),
   );
 
-  // Silhouettes are built in the extraction; the Codex phase `codex_silhouettes`
-  // reads their `<output_dir>/silhouettes/rows/*.json`. Only when this session
-  // has no outcome for this extract (a resume after a restart, an extract from
-  // an older uploader) are they built here — mostly cache hits then. Non-fatal:
-  // without them the Codex simply goes up without outlines.
-  const skipped = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
-  let silhouettes: SilhouetteOutcome | 'skipped' = skipped.has('silhouettes') ? 'skipped' : 'failed';
-  if (silhouettes === 'skipped') {
-    setStage('silhouettes', 'skipped');
-  } else if (state.silhouettes?.outDir === result.output_dir) {
-    // Built in this session's extraction already.
-    silhouettes = state.silhouettes.outcome;
-    setStage('silhouettes', silhouettes === 'ok' ? 'done' : 'warn');
-  } else {
-    startStage('silhouettes');
-    // The row carries the numbers and, in its tooltip, every outcome line.
-    const notes: string[] = [];
-    let warned = false;
-    try {
-      silhouettes = await buildSilhouettes(result, uploadProgress, {
-        shouldStop: pauseRequested,
-        report: (msg, cls, extras) => {
-          notes.push(extras?.detail ? `${msg}: ${extras.detail}` : msg);
-          if (cls !== 'ok') warned = true;
-          tipStage('silhouettes', notes.join('\n'));
-        },
-        onProgress: (current, total) =>
-          setStageMeta('silhouettes', `${current.toLocaleString()} / ${total.toLocaleString()}`),
-      });
-      state.silhouettes = { outDir: result.output_dir, outcome: silhouettes };
-    } catch (err) {
-      uploadProgress?.update({ indeterminate: false });
-      warned = true;
-      tipStage('silhouettes', `${t('silhouettes.buildFailed')}: ${(err as Error).message}`);
-    }
-    if (silhouettes === 'stopped') {
-      uploadProgress?.stop();
-      setStage('silhouettes', 'paused');
-    } else {
-      setStage('silhouettes', warned || silhouettes !== 'ok' ? 'warn' : 'done');
-    }
-  }
-
-  // Promote the extract into the public Codex (codex_* tables) BEFORE cleanup,
-  // so the out_dir still exists. Non-fatal: the bundle upload already succeeded;
-  // a codex failure only means the public catalog isn't refreshed this run.
-  const codex = await promoteToCodex(result.output_dir, uploadProgress);
-  // Stop the whole run on a pause. Falling through would upload skins and —
-  // worse — reach the cleanup below, deleting the out_dir that a resume needs.
+  // Promote the extract into the public Codex (codex_* tables). The outlines
+  // are NOT part of it any more — they are the next step's, for this build.
+  // A resume past this step (paused in Silhouetten / 3D-Modelle) must not
+  // finalize the build a second time.
+  const codexDone = job?.catalog?.status === 'done';
+  if (codexDone) setStage('entries', 'done');
+  const codex = codexDone ? 'ok' : await promoteToCodex(result.output_dir, uploadProgress);
+  // Stop the whole run on a pause. Falling through would reach the cleanup
+  // below, deleting the out_dir that a resume needs.
   if (codex === 'paused') {
     pauseActiveStage();
     setAuthStatus(tOr('upload.job.paused', 'Upload pausiert — der Fortschritt ist gespeichert.'), 'warn');
     return;
   }
-  const ledgerKey = {
-    channel: result.channel,
-    patchVersion: result.patch_version,
-    buildNumber: result.build_number,
-  };
-  if (codex === 'ok') {
-    // Only what this run actually sent lands in the ledger: skipped subthemes
-    // already have their row, and silhouettes count only when they were built.
-    const landed = CATALOG_SUBTHEMES.filter((k) => !skipped.has(k));
-    if (silhouettes === 'ok') landed.push('silhouettes');
-    if (landed.length) void window.sc.subthemes.record(ledgerKey, landed);
+  // A failed codex step is NOT "every stage confirmed": the next steps attach
+  // to its build row, and cleaning up would destroy the extract a retry needs.
+  // Keep the job resumable and stop; `promoteToCodex` already said why.
+  if (codex === 'failed') {
+    paintCatalogFailure();
+    if (lastCatalogFailure && !lastCatalogFailure.resumable) {
+      // Missing/empty extract: a resume can only fail the same way again, so
+      // offering one would be a trap — drop the job; the hint says re-extract.
+      state.resumableJob = await window.sc.uploadJob.cancel();
+    } else {
+      await window.sc.uploadJob.fail('catalog_failed');
+    }
+    await refreshJobView();
+    return;
   }
+  // Only what this run actually sent lands in the ledger: skipped subthemes
+  // already have their row.
+  const landed = CATALOG_SUBTHEMES.filter((k) => !skipped.has(k));
+  if (landed.length && !codexDone) void window.sc.subthemes.record(ledgerKey, landed);
 
-  // Build + upload the 3D liveries as part of the SAME upload — skins are a
-  // sub-property of every ship, not a separate step. Reads the extract's build
-  // manifest, cached per patch version. Runs BEFORE cleanup (manifest lives in
-  // out_dir). Fully non-fatal: the bundle is already confirmed.
+  // ── Step 2 · Silhouetten: build → send to that build ─────────────────────
+  goStep('silhouettes');
+  const sil = await runSilhouetteStep(result, skipped.has('silhouettes'));
+  if (sil === 'paused') {
+    pauseActiveStage();
+    setAuthStatus(t('upload.job.paused'), 'warn');
+    return;
+  }
+  if (sil === 'ok') void window.sc.subthemes.record(ledgerKey, ['silhouettes']);
+
+  // ── Step 3 · 3D-Modelle: build → upload ──────────────────────────────────
+  goStep('models');
+  // Reads the extract's build manifest, cached per patch version. Fully
+  // non-fatal: the codex is already confirmed.
   try {
     if (skipped.has('hulls')) {
       setStage('skinsBuild', 'skipped');
@@ -2494,8 +2340,7 @@ async function doUploadAfterAuth(): Promise<void> {
   }
   uploadProgress?.stop();
 
-  // Paused during the skin stage — same reasoning as the codex stage above:
-  // never clean up an out_dir a resume still needs.
+  // Paused during the model step — never clean up an out_dir a resume needs.
   const jobAfterSkins = await window.sc.uploadJob.get();
   if (jobAfterSkins.state?.status === 'paused') {
     pauseActiveStage();
@@ -2503,28 +2348,7 @@ async function doUploadAfterAuth(): Promise<void> {
     return;
   }
 
-  // A failed codex stage is NOT "every stage confirmed". Falling through here
-  // used to delete the job file and then purge the out_dir, so a single
-  // transient database timeout silently destroyed both the catalog progress and
-  // the extract needed to retry it — turning a 30-second retry into a full
-  // re-extraction. Keep the job resumable and stop; the message from
-  // `promoteToCodex` already tells the operator to continue.
-  if (codex === 'failed') {
-    // The skin stage's own status line has since overwritten ours — put the
-    // thing the operator actually has to act on back on screen.
-    paintCatalogFailure();
-    if (lastCatalogFailure && !lastCatalogFailure.resumable) {
-      // Missing/empty extract: a resume can only fail the same way again, so
-      // offering one would be a trap — drop the job; the hint says re-extract.
-      state.resumableJob = await window.sc.uploadJob.cancel();
-    } else {
-      await window.sc.uploadJob.fail('catalog_failed');
-    }
-    await refreshJobView();
-    return;
-  }
-
-  // Every stage confirmed — drop the job file so the next launch doesn't offer
+  // Every step confirmed — drop the job file so the next launch doesn't offer
   // to resume an upload that already finished.
   await window.sc.uploadJob.finish();
 
@@ -2538,25 +2362,119 @@ async function doUploadAfterAuth(): Promise<void> {
       version: result.patch_version,
     });
     if (cleaned.ok) {
-      // A skin stage that lost ships must not be papered over by "Upload OK":
-      // the bundle IS confirmed, but the operator still has to act on the
+      // A model step that lost ships must not be papered over by "Upload OK":
+      // the codex IS confirmed, but the operator still has to act on the
       // failed liveries, so that verdict stays on screen — as a warning.
       const skinsWarn = state.skinUploadStatus;
       setAuthStatus(
-        `${t('upload.uploadOk')} · ` +
-          (t('upload.cleaned')) +
-          (skinsWarn ? ` · ${skinsWarn}` : ''),
+        `${t('upload.uploadOk')} · ` + t('upload.cleaned') + (skinsWarn ? ` · ${skinsWarn}` : ''),
         skinsWarn ? 'warn' : 'ok',
       );
     }
   }
 
-  // Every stage confirmed and cleaned up — hand off to the Done step, which
+  // Every step confirmed and cleaned up — hand off to the Done step, which
   // owns the summary and (when armed) the shutdown/quit countdown.
   state.view = 'done';
   render();
   await maybeShutdownAfterUpload();
   await maybeQuitAfterUpload();
+}
+
+/**
+ * Step 2 · Silhouetten. Builds the top-down outlines (Holotable + tile art)
+ * locally, then sends them to the build row the Codex step created. Non-fatal
+ * like before: without outlines the Codex simply shows its entries without
+ * geometry — only a pause stops the run here.
+ */
+async function runSilhouetteStep(result: ExtractResultPayload, skip: boolean): Promise<'ok' | 'warn' | 'skipped' | 'paused'> {
+  if (skip) {
+    setStage('silBuild', 'skipped');
+    setStage('silUpload', 'skipped');
+    drawerAppendLog(t('subthemes.skipped', { name: subthemeName('silhouettes') }));
+    await window.sc.catalog.silhouettesSkipped();
+    return 'skipped';
+  }
+  const job = await window.sc.uploadJob.get();
+  if (job.state?.silhouettes?.status === 'done') {
+    // A resume past this step: its rows are on the server already.
+    setStage('silBuild', 'done');
+    setStage('silUpload', 'done');
+    return 'ok';
+  }
+
+  // 1. build
+  startStage('silBuild');
+  drawerAppendLog(`▶ ${t('pipeline.stage.silBuild')}`);
+  const notes: string[] = [];
+  let warned = false;
+  let built: SilhouetteOutcome = 'failed';
+  try {
+    built = await buildSilhouettes(result, uploadProgress, {
+      shouldStop: pauseRequested,
+      report: (msg, cls, extras) => {
+        const line = extras?.detail ? `${msg}: ${extras.detail}` : msg;
+        notes.push(line);
+        drawerAppendLog(line, cls === 'ok' ? 'success' : cls);
+        if (cls !== 'ok') warned = true;
+        tipStage('silBuild', notes.join('\n'));
+      },
+      onProgress: (current, total) =>
+        setStageMeta('silBuild', `${current.toLocaleString()} / ${total.toLocaleString()}`),
+    });
+  } catch (err) {
+    warned = true;
+    tipStage('silBuild', `${t('silhouettes.buildFailed')}: ${(err as Error).message}`);
+  }
+  uploadProgress?.update({ indeterminate: false });
+  if (built === 'stopped') {
+    setStage('silBuild', 'paused');
+    return 'paused';
+  }
+  if (built !== 'ok') {
+    setStage('silBuild', 'warn');
+    setStage('silUpload', 'skipped');
+    await window.sc.catalog.silhouettesSkipped();
+    return 'warn';
+  }
+  setStage('silBuild', warned ? 'warn' : 'done');
+
+  // 2. upload
+  if (!state.authToken) return 'warn';
+  startStage('silUpload');
+  uploadProgress?.update({ phaseLabel: t('pipeline.stage.silUpload'), indeterminate: true, detail: '', hint: '' });
+  const unsub = window.sc.catalog.onEvent((ev) => {
+    if (ev.phase !== 'codex_silhouettes') return;
+    setStageMeta('silUpload', `${ev.current.toLocaleString()} / ${ev.total.toLocaleString()}`);
+    uploadProgress?.update({
+      phaseLabel: t('pipeline.stage.silUpload'),
+      current: ev.current,
+      total: ev.total > 0 ? ev.total : undefined,
+      overallPct: ev.total > 0 ? (ev.current / ev.total) * 100 : undefined,
+      indeterminate: false,
+    });
+  });
+  try {
+    const res = await window.sc.catalog.silhouettes(state.authToken, result.output_dir);
+    if (res.ok) {
+      const n = res.counts?.['silhouettes'] ?? 0;
+      uploadProgress?.update({ overallPct: 100, indeterminate: false });
+      setStage('silUpload', 'done', n.toLocaleString());
+      return warned ? 'warn' : 'ok';
+    }
+    if (res.error === 'paused' || res.error === 'cancelled') return 'paused';
+    setStage('silUpload', 'warn');
+    tipStage('silUpload', `${t('pipeline.silUploadFailed')}: ${res.error ?? '—'}`);
+    drawerAppendLog(`${t('pipeline.silUploadFailed')}: ${res.error ?? '—'}`, 'warn');
+    return 'warn';
+  } catch (err) {
+    setStage('silUpload', 'warn');
+    tipStage('silUpload', `${t('pipeline.silUploadFailed')}: ${(err as Error).message}`);
+    return 'warn';
+  } finally {
+    unsub();
+    uploadProgress?.update({ indeterminate: false });
+  }
 }
 
 /**
@@ -2732,8 +2650,7 @@ async function promoteToCodex(
       progress?.update({ overallPct: 100, indeterminate: false });
       markCategoriesComplete();
       setStage('entries', 'done', '');
-      tipStage('entries', categoryTotalsLine());
-      tipStage('codex', `${t('catalog.published')} · ${ships} ${t('catalog.ships')}`);
+      tipStage('entries', `${t('catalog.published')} · ${ships} ${t('catalog.ships')}\n${categoryTotalsLine()}`);
       return 'ok';
     }
     // A pause is not a failure — the cursor is safe on disk and the operator
@@ -2911,33 +2828,6 @@ function installFor(result: ExtractResultPayload): (typeof state.channels)[numbe
   const ch = matching.find((c) => c.selected) ?? matching[0];
   if (!ch) throw new Error(t('upload.installMissing', { channel: result.channel }));
   return ch;
-}
-
-/**
- * The extraction's silhouette step. Skipped when the server already holds this
- * build's silhouettes at the current revision (lib/subthemes.ts); a failure is
- * logged and the run carries on — the Codex then goes up without outlines.
- */
-async function buildRunSilhouettes(
-  result: ExtractResultPayload,
-  progress: ProgressController,
-  appendLog: (msg: string, level?: LogLevel) => void,
-): Promise<SilhouetteOutcome> {
-  if (state.subthemePlan?.skip.includes('silhouettes')) {
-    appendLog(t('subthemes.skipped', { name: subthemeName('silhouettes') }));
-    return 'ok';
-  }
-  appendLog(`▶ ${phaseLabel('silhouettes')}`);
-  const level = (cls: 'ok' | 'warn' | 'error'): LogLevel => (cls === 'ok' ? 'success' : cls);
-  try {
-    return await buildSilhouettes(result, progress, {
-      shouldStop: () => Promise.resolve(extractCancelled),
-      report: (msg, cls, extras) => appendLog(extras?.detail ? `${msg}: ${extras.detail}` : msg, level(cls)),
-    });
-  } catch (err) {
-    appendLog(`${t('silhouettes.buildFailed')}: ${(err as Error).message}`, 'warn');
-    return 'failed';
-  }
 }
 
 /** How a silhouette build ended — `stopped` is a pause/abort, not a failure. */

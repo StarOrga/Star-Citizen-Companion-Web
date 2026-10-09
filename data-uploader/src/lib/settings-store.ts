@@ -47,6 +47,14 @@ export interface Settings {
    */
   speedProfile: 'minimal' | 'standard' | 'maximum';
   /**
+   * The operator's resource limits (CPU / RAM / disk) and the preset they came
+   * from — supersedes `speedProfile`, which stays only so the first launch
+   * after the change maps the old pick onto the matching preset. Values are
+   * clamped to the machine by `main/resources.ts`, not here. Undefined until
+   * the operator (or that migration) sets them.
+   */
+  resourceLimits?: StoredResourceLimits;
+  /**
    * Auto-update ring the operator opted into (role-gated in the UI). Default
    * 'stable'; only admins/collaborators ever see the picker to change it. The
    * renderer maps it onto electron-updater's channel via the main process.
@@ -57,6 +65,29 @@ export interface Settings {
    * `patch()`. Undefined means "use the renderer's own detection/fallback".
    */
   language?: string;
+}
+
+/** Persisted resource limits — see `lib/resource-limits.ts`. */
+export interface StoredResourceLimits {
+  preset?: 'gaming' | 'balanced' | 'full' | null;
+  cpuPct?: number;
+  ramMb?: number;
+  readMBs?: number;
+  writeMBs?: number;
+  iops?: number;
+}
+
+function readResourceLimits(raw: unknown): StoredResourceLimits | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: StoredResourceLimits = {};
+  if (r.preset === 'gaming' || r.preset === 'balanced' || r.preset === 'full') out.preset = r.preset;
+  else if (r.preset === null) out.preset = null;
+  for (const key of ['cpuPct', 'ramMb', 'readMBs', 'writeMBs', 'iops'] as const) {
+    const v = r[key];
+    if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
+  }
+  return out;
 }
 
 /** Injectable text persistence (file-backed in production). */
@@ -127,6 +158,9 @@ export class SettingsStore {
         parsed?.speedProfile === 'maximum'
           ? parsed.speedProfile
           : 'standard',
+      ...(readResourceLimits(parsed?.resourceLimits)
+        ? { resourceLimits: readResourceLimits(parsed?.resourceLimits) }
+        : {}),
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
           ? parsed.updateChannel

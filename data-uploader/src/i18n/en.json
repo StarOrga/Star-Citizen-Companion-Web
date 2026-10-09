@@ -18,8 +18,9 @@
   },
   "steprail": {
     "install": "Install",
-    "extract": "Extract",
-    "upload": "Upload",
+    "codex": "Codex",
+    "silhouettes": "Silhouettes",
+    "models": "3D models",
     "done": "Done",
     "ariaLabel": "Progress"
   },
@@ -63,14 +64,7 @@
     "found": "Detected channels",
     "next": "Start extraction"
   },
-  "configure": {
-    "speed": {
-      "applied": "Mode changed — takes effect from the next file.",
-      "appliedPartly": "Mode changed — but it could not be delivered to the running process (see log).",
-      "armed": "Mode set — it applies as soon as a run starts.",
-      "unsupported": "This platform has no live priority control."
-    }
-  },
+  "configure": {},
   "run": {
     "title": "Extracting — game data",
     "next": "Continue to upload",
@@ -131,9 +125,7 @@
     "noChannel": "No channel selected — back to Setup.",
     "warningFallback": "Warning",
     "errorFallback": "Extraction error",
-    "failedUnknown": "Extraction failed for an unknown reason.",
-    "tempo": "Speed",
-    "tempoHint": "How hard the uploader loads your PC — switch any time, even mid-run. Saved."
+    "failedUnknown": "Extraction failed for an unknown reason."
   },
   "upload": {
     "title": "Upload",
@@ -215,8 +207,6 @@
     },
     "stages": {
       "aria": "Upload steps",
-      "silhouettes": "Build silhouettes",
-      "entries": "Upload entries",
       "phaseOf": "Step {{n}} / {{total}}",
       "partial": "partly uploaded",
       "bundleId": "Bundle ID {{id}}",
@@ -228,9 +218,7 @@
         "paused": "paused",
         "failed": "failed",
         "skipped": "skipped"
-      },
-      "skinsBuild": "Build models",
-      "skinsUpload": "Upload models"
+      }
     }
   },
   "update": {
@@ -402,14 +390,6 @@
     "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
     "resuming": "Found an interrupted upload — resuming it automatically."
   },
-  "speed": {
-    "minimal": "Minimal",
-    "standard": "Standard",
-    "maximum": "Maximum",
-    "minimalDesc": "Play alongside: 1 core, lowest priority. Takes the longest.",
-    "standardDesc": "Browse or stream alongside: half the cores, lowered priority. Too much for gaming.",
-    "maximumDesc": "The PC belongs to the uploader: every core but one. Little else runs alongside."
-  },
   "subthemes": {
     "allCurrent": "The server already holds this build in full — nothing changed, extraction and upload are skipped. \"Force everything\" runs anyway.",
     "skipping": "Unchanged, skipped: {{list}}",
@@ -424,5 +404,68 @@
       "silhouettes": "Silhouettes",
       "hulls": "3D hulls"
     }
+  },
+  "res": {
+    "title": "Resources",
+    "toggleHint": "Set how much of the PC the uploader may use",
+    "cpu": "Processor",
+    "ram": "Memory",
+    "read": "Disk read",
+    "write": "Disk write",
+    "iops": "Disk operations",
+    "gpu": "Graphics card",
+    "gpuNote": "Not used — extraction, silhouettes and the 3D build run on the processor only.",
+    "of": "limit {{limit}}",
+    "presetsAria": "Presets",
+    "preset": {
+      "gaming": "While gaming",
+      "gamingDesc": "A sliver of everything — play alongside without noticing. Takes the longest.",
+      "balanced": "Balanced",
+      "balancedDesc": "About half — browsing, streaming and work stay smooth.",
+      "full": "Full power",
+      "fullDesc": "Up to 85–90 % — fastest run, a share always stays free for Windows.",
+      "custom": "Custom"
+    },
+    "note": {
+      "cpu": "{{cores}} threads · other programs now {{others}} % · 10 % always stays with Windows",
+      "ram": "{{total}} total · other programs {{others}} · uploader app {{app}}",
+      "disk": {
+        "nvme": "NVMe SSD detected",
+        "ssd": "SATA SSD detected",
+        "hdd": "Hard disk (HDD) detected — operations are the bottleneck here",
+        "unknown": "Drive type unknown — scale estimated"
+      }
+    },
+    "status": {
+      "idle": "Applies to the next run — changes also take effect mid-run, immediately.",
+      "live": "Live: changes apply to the running step immediately.",
+      "heldBack": "Disk limit active: the run is held {{pct}} % of the time.",
+      "noHardCap": "The hard CPU limit could not be set — the run continues at low priority.",
+      "unsupported": "On this system only the number of parallel workers applies; hard limits are Windows-only."
+    },
+    "foot": "Drag the dial's handle or use the arrow keys. The needle shows what the run uses right now; the hatched part is held by Windows and other programs. Memory decides how many workers the next step starts."
+  },
+  "pipeline": {
+    "stepOf": "Step {{n}} of {{total}}",
+    "step": {
+      "codex": "Codex",
+      "silhouettes": "Silhouettes",
+      "models": "3D models"
+    },
+    "intro": {
+      "codex": "Read the game data from Data.p4k and upload it as the Codex — after this the new data is on the website.",
+      "silhouettes": "Build the outlines from the ship and item models and attach them to the same Codex build.",
+      "models": "Build the ships' 3D models with their liveries and upload them."
+    },
+    "stage": {
+      "extract": "Extract data",
+      "bundle": "Upload bundle",
+      "entries": "Upload entries",
+      "silBuild": "Build silhouettes",
+      "silUpload": "Upload silhouettes",
+      "skinsBuild": "Build models",
+      "skinsUpload": "Upload models"
+    },
+    "silUploadFailed": "Silhouettes could not be uploaded — the Codex stays without outlines"
   }
 }

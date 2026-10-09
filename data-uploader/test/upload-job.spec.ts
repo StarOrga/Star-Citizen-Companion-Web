@@ -118,12 +118,14 @@ describe('rehydrateResult', () => {
 });
 
 describe('nextStage', () => {
-  it('walks bundle → catalog → skins → null in order', () => {
+  it('walks bundle → catalog → silhouettes → skins → null in order', () => {
     const s = job();
     expect(nextStage(s)).toBe('bundle');
     s.bundle.status = 'done';
     expect(nextStage(s)).toBe('catalog');
     s.catalog.status = 'done';
+    expect(nextStage(s)).toBe('silhouettes');
+    s.silhouettes.status = 'done';
     expect(nextStage(s)).toBe('skins');
     s.skins.status = 'done';
     expect(nextStage(s)).toBeNull();
@@ -162,6 +164,7 @@ describe('isResumable', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'done';
+    s.silhouettes.status = 'done';
     s.skins.status = 'done';
     expect(isResumable(s)).toBe(false);
   });
@@ -232,6 +235,7 @@ describe('describeResume', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'done';
+    s.silhouettes.status = 'done';
     s.skins.doneShips = ['aurora', 'gladius'];
     expect(describeResume(s)).toBe('skins:2 ships done');
   });
@@ -240,18 +244,19 @@ describe('describeResume', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'done';
+    s.silhouettes.status = 'done';
     s.skins.status = 'done';
     expect(describeResume(s)).toBe('complete');
   });
 });
 
 describe('resumeSummary', () => {
-  it('a fresh job resumes at the bundle stage (macro 1 / 3)', () => {
+  it('a fresh job resumes at the bundle stage (macro 1 / 4)', () => {
     const sum = resumeSummary(job());
     expect(sum.activeStage).toBe('bundle');
     expect(sum.macroStep).toBe(1);
-    expect(sum.macroTotal).toBe(3);
-    expect(sum.stages.map((s) => s.state)).toEqual(['active', 'pending', 'pending']);
+    expect(sum.macroTotal).toBe(4);
+    expect(sum.stages.map((s) => s.state)).toEqual(['active', 'pending', 'pending', 'pending']);
     expect(sum.catalog).toBeUndefined();
     expect(sum.skinsDone).toBeUndefined();
   });
@@ -264,7 +269,7 @@ describe('resumeSummary', () => {
     const sum = resumeSummary(s);
     expect(sum.activeStage).toBe('catalog');
     expect(sum.macroStep).toBe(2);
-    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'active', 'pending']);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'active', 'pending', 'pending']);
     // codex_ships is the 4th of the 16 publish phases — the SAME number the live
     // bar shows, so banner and bar agree.
     expect(sum.catalog).toEqual({ step: 4, total: 16, phase: 'codex_ships' });
@@ -281,15 +286,26 @@ describe('resumeSummary', () => {
     expect(sum.catalog).toEqual({ step: 5, total: 16, phase: 'codex_components' });
   });
 
-  it('reports committed ships for a skin-stage resume (macro 3 / 3)', () => {
+  it('resumes at the silhouette step once the codex went live (macro 3 / 4)', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'done';
+    const sum = resumeSummary(s);
+    expect(sum.activeStage).toBe('silhouettes');
+    expect(sum.macroStep).toBe(3);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'active', 'pending']);
+  });
+
+  it('reports committed ships for a skin-stage resume (macro 4 / 4)', () => {
+    const s = job();
+    s.bundle.status = 'done';
+    s.catalog.status = 'done';
+    s.silhouettes.status = 'done';
     s.skins.doneShips = ['aurora', 'gladius'];
     const sum = resumeSummary(s);
     expect(sum.activeStage).toBe('skins');
-    expect(sum.macroStep).toBe(3);
-    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'active']);
+    expect(sum.macroStep).toBe(4);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'done', 'active']);
     expect(sum.skinsDone).toBe(2);
   });
 
@@ -297,11 +313,12 @@ describe('resumeSummary', () => {
     const s = job();
     s.bundle.status = 'done';
     s.catalog.status = 'done';
+    s.silhouettes.status = 'done';
     s.skins.status = 'done';
     const sum = resumeSummary(s);
     expect(sum.activeStage).toBeNull();
     expect(sum.macroStep).toBeNull();
-    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'done']);
+    expect(sum.stages.map((s) => s.state)).toEqual(['done', 'done', 'done', 'done']);
   });
 });
 
