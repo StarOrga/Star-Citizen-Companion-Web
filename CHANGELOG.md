@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.141.2] - 2026-10-09
+
+### Added
+
+- **Orte-Katalog für die Desktop-App:** neue Tabelle `codex_locations`
+  (803 Orte, öffentlich lesbar). Die Verse-Navigation der Desktop-App spiegelt
+  sie statt einer mitgelieferten Liste.
+- **Spots-Sync:** neue Tabelle `user_spots` — eigene Spots der Desktop-App
+  werden pro Konto synchronisiert (nur der Besitzer liest und schreibt, neuester
+  Stand gewinnt, Löschungen als Tombstone).
+
 ## [0.141.1] - 2026-10-09
 
 ### Fixed
