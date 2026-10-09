@@ -4,6 +4,43 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.142.0] - 2026-10-09
+
+### Added
+
+- **Data Uploader 0.51.0: Ressourcen-Dock statt Tempo-Profilen.** Am unteren
+  Fensterrand steht jetzt dauerhaft ein Ressourcen-Dock: eingeklappt eine Zeile
+  mit Verbrauch und Grenze, ausgeklappt (Taste T) ein Tacho pro Ressource –
+  Prozessor (höchstens 90 %), Arbeitsspeicher, Disk lesen, Disk schreiben und
+  Disk-Zugriffe. Die Skalen kommen aus dem PC (Kerne, RAM, NVMe/SSD/HDD), was
+  andere Programme gerade belegen, ist schraffiert, die Grenze wird am Griff
+  gezogen. Ein Wächter-Prozess setzt sie unter Windows hart durch: CPU-Deckel
+  per Job Object über alle Unterprozesse, Disk-Budgets durch kurzes Anhalten,
+  niedrige CPU-, I/O- und Speicher-Priorität. Änderungen wirken sofort, auch
+  mitten im Lauf. Voreinstellungen: „Beim Spielen“, „Ausgewogen“,
+  „Volle Leistung“.
+
+### Changed
+
+- **Data Uploader: vertikale Schritte.** Ein Lauf heißt jetzt Codex →
+  Silhouetten → 3D-Modelle, jeder Schritt ein eigener Bildschirm, der sein Thema
+  bis auf den Server bringt (bauen, dann hochladen), bevor der nächste beginnt.
+  Die Silhouetten hängen sich an denselben Codex-Stand; Pause und Fortsetzen
+  gehen in allen drei Schritten.
+- **Data Uploader: nichts mehr doppelt.** Die Extraktion schreibt nicht mehr
+  jeden einzelnen DataCore-Eintrag als eigene Datei auf die Platte – das las
+  niemand, und es war die größte Plattenlast eines Laufs. Silhouetten lesen und
+  konvertieren jedes Mesh genau einmal (parallel), Vorschaubilder, Silhouetten,
+  3D-Hüllen, Teile und Interieur werden inhaltsbasiert über Läufe und Patches
+  hinweg wiederverwendet und nur neu gebaut, wenn sich ihre Quelldateien oder
+  der Code geändert haben.
+
+### Fixed
+
+- **Data Uploader: Verse-Sternbild aus dem Uploader.** Der Silhouetten-Bau der
+  App schrieb das Sternbild und das Bodenfahrzeug-Flag nie mit – nur das
+  Kommandozeilen-Werkzeug tat es. Beide teilen sich jetzt denselben Ablauf.
+
 ## [0.141.2] - 2026-10-09
 
 ### Added
