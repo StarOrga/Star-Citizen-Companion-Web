@@ -17,14 +17,13 @@ CLI:
 from __future__ import annotations
 
 import argparse
-import datetime
 import json
 import sys
 from pathlib import Path
 from typing import Any, Dict
 
 from .events import count, done, error, log, phase, progress
-from .silhouette_build import _safe_filename, _ship_anchor_inputs
+from .silhouette_build import build_rows, cache_dir_for
 
 
 def main() -> int:
@@ -40,6 +39,8 @@ def main() -> int:
     ap.add_argument("--manifest", type=Path, default=None,
                     help="defaults to <out>/silhouettes/_build_manifest.json")
     ap.add_argument("--tolerance-m", type=float, default=0.15)
+    ap.add_argument("--workers", type=int, default=1,
+                    help="meshes converted at once (threads; the host sizes it from the resource limits)")
     args = ap.parse_args()
 
     def on_log(level: str, msg: str) -> None:
@@ -69,74 +70,31 @@ def main() -> int:
         p4k = P4KFile(str(args.p4k))
         log("info", f"opened: {len(p4k.namelist())} entries; {len(entities)} entities to silhouette")
 
-        cache_dir = args.out / "silhouette_cache"
         cfg = SilhouetteExportConfig(
             cgf_converter=args.converter, work_dir=args.out / "_silhouette_work",
-            cache_dir=cache_dir, tool_version=args.tool_version, on_log=on_log,
+            cache_dir=cache_dir_for(args.out), tool_version=args.tool_version, on_log=on_log,
         )
         exporter = SilhouetteExporter(p4k, cfg)
+        pruned = exporter.prune_cache()
+        if pruned:
+            log("info", f"silhouette cache: dropped {pruned} entr(y/ies) of older silhouette code")
 
-        out_dir = args.out / "silhouettes" / "rows"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        phase("extract", pct=0)
+        last_pct = -1
 
-        by_mesh: Dict[str, list] = {}
-        for e in entities:
-            by_mesh.setdefault(e["mesh"], []).append(e)
+        def on_progress(current: int, total: int, detail: str) -> None:
+            nonlocal last_pct
+            pct = int(current / max(total, 1) * 100)
+            if pct != last_pct:
+                last_pct = pct
+                phase("extract", pct=pct)
+            progress("entities", current=current, total=total, detail=detail)
 
-        ok = skipped = cached = 0
-        # #643 coverage: ships whose row was written but carries no anchor
-        # (no hardpoint transform reached the silhouette) — named in the log.
-        ships = ships_without_anchors = 0
-        no_anchor_names: list = []
-        total = len(entities)
-        done_so_far = 0
-        for mesh, refs in by_mesh.items():
-            mesh_id = _safe_filename(Path(mesh).stem)
-            for e in refs:
-                kind, class_name = e["kind"], e["class_name"]
-                phase("extract", pct=int(done_so_far / max(total, 1) * 100))
-                progress("entities", current=done_so_far + 1, total=total,
-                        detail=f"{kind}/{class_name}")
-                anchor_in = (_ship_anchor_inputs(args.out, class_name)
-                            if kind == "ship" else {"frame": None, "transforms": {}, "port_names": ()})
-                try:
-                    cache_hit = exporter.is_cached(
-                        mesh, exporter.read_mesh_bytes(mesh), args.tolerance_m)
-                    row = exporter.export_entity(
-                        kind=kind, class_name=class_name, mesh_path=mesh, mesh_id=mesh_id,
-                        build=build, generated_at=generated_at, tolerance_m=args.tolerance_m,
-                        frame=anchor_in["frame"], hardpoint_transforms=anchor_in["transforms"],
-                        all_port_names=anchor_in["port_names"],
-                    )
-                except Exception as exc:  # noqa: BLE001 — one bad entity must not kill the run
-                    log("warn", f"{kind}/{class_name}: {type(exc).__name__}: {exc}")
-                    row, cache_hit = None, False
-                done_so_far += 1
-                if row is None:
-                    skipped += 1
-                    continue
-                if cache_hit:
-                    cached += 1
-                    log("info", f"{kind}/{class_name}: cached")
-                fname = f"{kind}__{_safe_filename(class_name)}.json"
-                (out_dir / fname).write_text(json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8")
-                ok += 1
-                count(kind, ok)
-                if kind == "ship":
-                    ships += 1
-                    if not row.get("anchors"):
-                        ships_without_anchors += 1
-                        no_anchor_names.append(class_name)
-
-        log("info", f"silhouette build: {ok} written ({cached} from cache), "
-                    f"{skipped} skipped (no usable geometry)")
-        if ships_without_anchors:
-            log("warn", f"{ships_without_anchors}/{ships} ship silhouettes without anchors: "
-                        + ", ".join(sorted(no_anchor_names)[:40])
-                        + (" …" if ships_without_anchors > 40 else ""))
-        done(result={"written": ok, "skipped": skipped, "cached": cached,
-                     "ships": ships, "shipsWithoutAnchors": ships_without_anchors})
+        stats = build_rows(
+            exporter, entities, out_dir=args.out, build=build, tolerance_m=args.tolerance_m,
+            workers=args.workers, log=on_log, on_progress=on_progress, on_count=count,
+        )
+        done(result=stats)
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
         error(f"{type(exc).__name__}: {exc}")

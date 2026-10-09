@@ -1105,6 +1105,8 @@ ipcMain.handle(
       timeoutMs: JOB_STALL_MS,
       onTimeout: (idle) => reportJobStall('silhouette', idle, jobId),
     });
+    // Conversions at once follow the limits live at start, like the other builds.
+    req = { ...req, workers: resources.workers().silhouette };
     const job = newActiveJob('silhouette', req.outDir);
     const handle = startSilhouetteBuild(req, (ev) => {
       watchdog.pet();

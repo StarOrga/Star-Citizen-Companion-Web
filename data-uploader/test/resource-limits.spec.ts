@@ -11,6 +11,7 @@ import {
   presetLimits,
   rangesFor,
   ramOthersMb,
+  silhouetteWorkers,
   skinWorkers,
   type MachineInfo,
 } from '../src/lib/resource-limits.js';
@@ -63,6 +64,12 @@ describe('resource limits', () => {
     expect(dumpWorkers({ ...presetLimits('full', pc), cpuPct: 90 }, 16)).toBe(14);
     expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 90, ramMb: 4096 }, 16)).toBe(1);
     expect(skinWorkers({ ...presetLimits('full', pc), cpuPct: 90, ramMb: 20000 }, 16)).toBe(4);
+  });
+
+  it('sizes the silhouette threads by CPU share, capped', () => {
+    expect(silhouetteWorkers({ ...presetLimits('full', pc), cpuPct: 90 }, 16)).toBe(8);
+    expect(silhouetteWorkers({ ...presetLimits('gaming', pc), cpuPct: 15 }, 16)).toBe(2);
+    expect(silhouetteWorkers({ ...presetLimits('gaming', pc), ramMb: 1024 }, 16)).toBe(2);
   });
 
   it('hands the governor bytes and a background priority', () => {

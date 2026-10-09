@@ -25,6 +25,8 @@ export interface SilhouetteBuildRequest {
   /** Overrides `<outDir>/silhouettes/_build_manifest.json`. */
   manifestPath?: string;
   toleranceM?: number;
+  /** Meshes converted at once (threads in the sidecar) — main sizes it from the resource limits. */
+  workers?: number;
 }
 
 /**
@@ -50,5 +52,6 @@ export function silhouetteBuildArgs(req: SilhouetteBuildRequest): string[] {
   ];
   if (req.manifestPath) args.push('--manifest', req.manifestPath);
   if (req.toleranceM != null) args.push('--tolerance-m', String(req.toleranceM));
+  if (req.workers && req.workers > 1) args.push('--workers', String(Math.floor(req.workers)));
   return args;
 }

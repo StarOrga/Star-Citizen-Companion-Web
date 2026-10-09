@@ -39,6 +39,7 @@ import {
   presetFromLegacyProfile,
   presetLimits,
   rangesFor,
+  silhouetteWorkers,
   skinWorkers,
   type MachineInfo,
   type PresetId,
@@ -137,10 +138,11 @@ export function applyPreset(id: unknown): ResourceView {
 }
 
 /** Worker counts for a stage starting NOW, from the limits in effect now. */
-export function workers(): { dump: number; skin: number; memCapMb: number } {
+export function workers(): { dump: number; skin: number; silhouette: number; memCapMb: number } {
   return {
     dump: dumpWorkers(limits, machine.cores),
     skin: skinWorkers(limits, machine.cores),
+    silhouette: silhouetteWorkers(limits, machine.cores),
     memCapMb: limits.ramMb,
   };
 }

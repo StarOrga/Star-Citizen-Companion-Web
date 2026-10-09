@@ -48,4 +48,9 @@ describe('silhouetteBuildArgs', () => {
     const args = silhouetteBuildArgs({ ...BASE, toleranceM: 0 });
     expect(args[args.indexOf('--tolerance-m') + 1]).toBe('0');
   });
+
+  it('passes the conversion thread count only when it is more than one', () => {
+    expect(silhouetteBuildArgs({ ...BASE, workers: 4 }).join(' ')).toContain('--workers 4');
+    expect(silhouetteBuildArgs({ ...BASE, workers: 1 })).not.toContain('--workers');
+  });
 });

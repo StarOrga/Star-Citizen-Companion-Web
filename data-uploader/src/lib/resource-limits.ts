@@ -197,6 +197,17 @@ export function skinWorkers(limits: ResourceLimits, cores: number): number {
   return Math.max(1, Math.min(4, byCpu, byRam));
 }
 
+/**
+ * Meshes the silhouette step converts at once. One conversion is one
+ * cgf-converter process plus a numpy raster — about a core and a few hundred
+ * MB — so the CPU share decides, capped at 8 (beyond that the single P4K
+ * reader feeding them is the bottleneck).
+ */
+export function silhouetteWorkers(limits: ResourceLimits, cores: number): number {
+  const byRam = Math.floor(limits.ramMb / 512);
+  return Math.max(1, Math.min(8, dumpWorkers(limits, cores), byRam));
+}
+
 export type PriorityClass = 'idle' | 'below_normal';
 
 /** What the governor process is told — bytes, not MB, and the priorities to use. */
