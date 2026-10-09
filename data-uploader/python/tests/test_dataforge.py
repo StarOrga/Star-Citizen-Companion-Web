@@ -85,3 +85,11 @@ def test_generic_dump_writes_every_record(df: DataForge, tmp_path: Path) -> None
     assert len(files) == 1
     blob = json.loads(files[0].read_text())
     assert blob["_RecordValue_"]["Value"] == 42
+
+
+def test_skipped_generic_dump_still_counts_every_record(df: DataForge, tmp_path: Path) -> None:
+    ex = CodexExtractor(df, Localizer.empty(), tmp_path,
+                        {"channel": "TEST", "patch": "0", "build": "0"}, dump_generic=False)
+    counts = ex.run()
+    assert counts["records_total"] == len(df.records)
+    assert not (tmp_path / "records").exists()

@@ -471,7 +471,12 @@ class CodexExtractor:
         if self.dump_generic:
             self.dump_all_records()   # exhaustive generic guarantee
         else:
+            # The uploader never reads records/ (nothing uploads it, and the
+            # extract dir is deleted after the upload) — writing every record
+            # of every type was hundreds of thousands of files of pure disk
+            # load. The count stays honest without them.
             self.on_log("info", "skipping generic record dump (--skip-generic)")
+            self._bump("records_total", len(self.df.records))
         return self.counts
 
     # ── full localization tables ──────────────────────────────────────────────

@@ -230,6 +230,10 @@ export function startExtraction(
     '--build', req.buildNumber,
     '--scope', scopeToString(req.scope),
     '--tool-version', req.toolVersion,
+    // No exhaustive per-record dump: nothing the uploader sends reads
+    // records/, and writing every record of every type (hundreds of thousands
+    // of files, deleted again after the upload) was the run's biggest disk load.
+    '--skip-generic',
     '--workers', String(Math.max(1, Math.floor(req.workers ?? 1))),
     '--mem-cap-mb', String(Math.max(0, Math.floor(req.memCapMb ?? 0))),
   ];
