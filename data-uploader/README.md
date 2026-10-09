@@ -139,6 +139,42 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 - Außerhalb von Windows gibt es keinen Governor; dort wirkt nur die Worker-Zahl,
   und das Dock sagt das.
 
+## Nichts doppelt: Caches über Läufe und Patches
+
+Ein Lauf liest und baut jede Sache genau einmal — und was sich seit dem letzten
+Patch nicht geändert hat, gar nicht. Jeder Cache ist **inhaltsbasiert** (Bytes
+der gelesenen P4K-Dateien + Hash des erzeugenden Codes/Werkzeugs); was sich
+nicht beweisbar gleicht, wird neu gebaut.
+
+| Was | Wo | Schlüssel |
+|---|---|---|
+| Vorschaubilder (DDS → WebP) | `.sc-companion-extracts/preview-cache/` | DDS-Bytes + Ausgabe-Einstellungen; auf den aktuellen Satz beschnitten |
+| Silhouetten | `.sc-companion-extracts/silhouette-cache/` | Mesh + `.cgam` + Tuning + Hash des Silhouetten-Codes; Einträge älteren Codes werden gelöscht |
+| 3D-Hüllen | `skins-<patch>/<ship>/skins.json` (`hull_src`) | Hülle + `.cgam` + Lack-`.mtl` + Pipeline-Tag + Budget-Einstellungen |
+| 3D-Teile, Interieur | `skins-<patch>/_parts`, `_interiors` (+ Index-`src`) | dieselbe Art Schlüssel; ein neuer Patch-Ordner wird aus dem vorigen per Hardlink vorbefüllt |
+
+Der Pipeline-Tag (`python/sc_extract/build_cache.py`) umfasst den Python-Code
+des 3D-Pfads, das cgf-converter-Binary und die vom Host übergebenen Versionen
+von gltf-transform/meshoptimizer (`--cache-salt`). Beide Cache-Ordner neben den
+Extrakten überleben jede Aufräum-Runde (`PERSISTENT_CACHE_DIRS` in
+`main/cleanup.ts`).
+
+Außerdem bewusst **nicht** mehr getan:
+- **Kein Roh-Dump aller DataCore-Records** (`records/`, hunderttausende
+  JSON-Dateien): nichts liest ihn, er wurde nach dem Upload gelöscht — und war
+  die größte Plattenlast eines Laufs. Der Host übergibt `--skip-generic`;
+  `records_total` wird weiterhin gezählt.
+- Silhouetten lesen jedes Mesh einmal (nicht bis zu dreimal pro Eintrag) und
+  konvertieren jedes **distinkte** Mesh einmal, parallel (Threads nach
+  Ressourcen-Grenze). Groß-/Kleinschreibungs-Suche in der P4K ist ein Index
+  statt eines linearen Durchlaufs über 1,37 Mio. Einträge pro Fehltreffer.
+
+Bewusst offen: Schiffshüllen werden für Silhouette (ohne `.mtl`) und 3D-Modell
+(mit `.mtl`) je einmal konvertiert — beide Ergebnisse sind gecacht, so dass das
+nur bei einer geänderten Hülle anfällt. Vorschaubilder liegen serverseitig pro
+Build (`codex-previews/<build>/…`) und gehen deshalb jeden Lauf neu hoch; das
+inhaltsbasiert zu machen bräuchte eine Änderung an Edge-Function und Website.
+
 ## Pause, Fortsetzen & Fehlertoleranz
 
 Ein Voll-Upload läuft Stunden und besteht aus tausenden Requests. Beides —
