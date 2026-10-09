@@ -85,13 +85,13 @@ describe('purgeExtracts', () => {
     expect(await extractDirs(root)).toEqual(['skins-4.2']);
   });
 
-  it('never removes the silhouette cache — the next patch builds from it', async () => {
-    const root = await makeInstall(['LIVE-4.2', 'silhouette-cache', 'skins-4.1']);
+  it('never removes the content-keyed caches — the next patch builds from them', async () => {
+    const root = await makeInstall(['LIVE-4.2', 'preview-cache', 'silhouette-cache', 'skins-4.1']);
     const res = await purgeExtracts([root], [], { keepSkinsVersion: '4.2' });
     expect(res.removed).toBe(2);
-    expect(await extractDirs(root)).toEqual(['silhouette-cache']);
+    expect(await extractDirs(root)).toEqual(['preview-cache', 'silhouette-cache']);
     await scanAndCleanupOrphans([root]);
-    expect(await extractDirs(root)).toEqual(['silhouette-cache']);
+    expect(await extractDirs(root)).toEqual(['preview-cache', 'silhouette-cache']);
   });
 
   it('keeps the dirs a live job still owns', async () => {

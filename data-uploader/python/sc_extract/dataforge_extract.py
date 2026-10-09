@@ -413,8 +413,9 @@ class CodexExtractor:
         self._assets = None
         if extract_assets and p4k is not None:
             try:
-                from .images import AssetExtractor
-                self._assets = AssetExtractor(p4k, out_dir / "previews", on_log=on_log)
+                from .images import AssetExtractor, preview_cache_dir
+                self._assets = AssetExtractor(p4k, out_dir / "previews", on_log=on_log,
+                                              cache_dir=preview_cache_dir(out_dir))
             except Exception as exc:  # noqa: BLE001
                 on_log("warn", f"asset extractor unavailable: {exc}")
         self._dim_cache: Dict[str, Optional[Dict[str, Any]]] = {}
@@ -468,6 +469,7 @@ class CodexExtractor:
             self.on_log("info", f"preview images: {self._assets.converted} converted, "
                                 f"{self._assets.misses} missing")
             self._bump("previews", self._assets.converted)
+            self._assets.prune_cache()
         if self.dump_generic:
             self.dump_all_records()   # exhaustive generic guarantee
         else:

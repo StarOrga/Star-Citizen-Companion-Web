@@ -12,7 +12,9 @@ files actually referenced, so the cloud stores just the final used art.
 
 from __future__ import annotations
 
+import hashlib
 import io
+import shutil
 from pathlib import Path
 from typing import Callable, Dict, Optional
 
@@ -67,9 +69,18 @@ class AssetExtractor:
     """
 
     def __init__(self, p4k, previews_dir: Path,
-                 on_log: Callable[[str, str], None] = lambda lvl, m: None) -> None:
+                 on_log: Callable[[str, str], None] = lambda lvl, m: None,
+                 cache_dir: Optional[Path] = None) -> None:
         self.p4k = p4k
         self.dir = previews_dir
+        # Encoded WebPs keyed by the source DDS bytes + output settings. The
+        # extract dir is purged before every run, so without this every run
+        # re-decoded and re-encoded (WebP method 6, the slowest) every icon —
+        # most of which never change between patches.
+        self.cache_dir = cache_dir
+        self._used: set = set()
+        if cache_dir is not None:
+            cache_dir.mkdir(parents=True, exist_ok=True)
         self.on_log = on_log
         self.dir.mkdir(parents=True, exist_ok=True)
         self._lower = {n.lower(): n for n in p4k.namelist()}
@@ -134,13 +145,49 @@ class AssetExtractor:
         try:
             with self.p4k.open(self.p4k.getinfo(real)) as f:
                 raw = f.read()
+            cached = None
+            if self.cache_dir is not None:
+                key = hashlib.sha256(raw + f"|{max_size}|{_WEBP_QUALITY}|6".encode()).hexdigest()
+                cached = self.cache_dir / f"{key}.webp"
+                self._used.add(cached.name)
+                if cached.exists():
+                    shutil.copyfile(cached, out_path)
+                    self.converted += 1
+                    return out_name
             img = Image.open(io.BytesIO(raw)).convert("RGBA")
             # thumbnail() only ever shrinks — a smaller-than-max source is kept
             # at native resolution (no blurry upscale).
             img.thumbnail((max_size, max_size), Image.LANCZOS)
             img.save(out_path, "WEBP", quality=_WEBP_QUALITY, method=6)
+            if cached is not None:
+                try:
+                    shutil.copyfile(out_path, cached)
+                except OSError:
+                    pass  # the cache is an optimization only
             self.converted += 1
             return out_name
         except Exception as exc:  # noqa: BLE001 — best-effort, never abort extract
             self.on_log("warn", f"icon convert failed {real}: {exc}")
             return None
+
+    def prune_cache(self) -> int:
+        """Drop cached WebPs this run did not use — the cache then holds exactly
+        the current art set, never a growing pile of old patches' icons."""
+        if self.cache_dir is None or not self._used:
+            return 0
+        removed = 0
+        for f in self.cache_dir.glob("*.webp"):
+            if f.name not in self._used:
+                try:
+                    f.unlink()
+                    removed += 1
+                except OSError:
+                    pass
+        return removed
+
+
+def preview_cache_dir(out_dir: Path) -> Optional[Path]:
+    """`.sc-companion-extracts/preview-cache` for an extract dir there (kept by
+    the host's cleanup sweeps), else no cache."""
+    parent = out_dir.resolve().parent
+    return parent / "preview-cache" if parent.name == ".sc-companion-extracts" else None
