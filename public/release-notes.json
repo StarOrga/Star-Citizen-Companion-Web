@@ -1,7 +1,67 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.141.1",
+  "current": "0.142.0",
   "releases": [
+    {
+      "version": "0.142.0",
+      "date": "2026-10-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.51.0: Ressourcen-Dock statt Tempo-Profilen.",
+              "text": "Am unteren Fensterrand steht jetzt dauerhaft ein Ressourcen-Dock: eingeklappt eine Zeile mit Verbrauch und Grenze, ausgeklappt (Taste T) ein Tacho pro Ressource – Prozessor (höchstens 90 %), Arbeitsspeicher, Disk lesen, Disk schreiben und Disk-Zugriffe. Die Skalen kommen aus dem PC (Kerne, RAM, NVMe/SSD/HDD), was andere Programme gerade belegen, ist schraffiert, die Grenze wird am Griff gezogen. Ein Wächter-Prozess setzt sie unter Windows hart durch: CPU-Deckel per Job Object über alle Unterprozesse, Disk-Budgets durch kurzes Anhalten, niedrige CPU-, I/O- und Speicher-Priorität. Änderungen wirken sofort, auch mitten im Lauf. Voreinstellungen: „Beim Spielen“, „Ausgewogen“, „Volle Leistung“."
+            }
+          ]
+        },
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: vertikale Schritte.",
+              "text": "Ein Lauf heißt jetzt Codex → Silhouetten → 3D-Modelle, jeder Schritt ein eigener Bildschirm, der sein Thema bis auf den Server bringt (bauen, dann hochladen), bevor der nächste beginnt. Die Silhouetten hängen sich an denselben Codex-Stand; Pause und Fortsetzen gehen in allen drei Schritten."
+            },
+            {
+              "title": "Data Uploader: nichts mehr doppelt.",
+              "text": "Die Extraktion schreibt nicht mehr jeden einzelnen DataCore-Eintrag als eigene Datei auf die Platte – das las niemand, und es war die größte Plattenlast eines Laufs. Silhouetten lesen und konvertieren jedes Mesh genau einmal (parallel), Vorschaubilder, Silhouetten, 3D-Hüllen, Teile und Interieur werden inhaltsbasiert über Läufe und Patches hinweg wiederverwendet und nur neu gebaut, wenn sich ihre Quelldateien oder der Code geändert haben."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: Verse-Sternbild aus dem Uploader.",
+              "text": "Der Silhouetten-Bau der App schrieb das Sternbild und das Bodenfahrzeug-Flag nie mit – nur das Kommandozeilen-Werkzeug tat es. Beide teilen sich jetzt denselben Ablauf."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.141.2",
+      "date": "2026-10-09",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Orte-Katalog für die Desktop-App:",
+              "text": "neue Tabelle codex_locations (803 Orte, öffentlich lesbar). Die Verse-Navigation der Desktop-App spiegelt sie statt einer mitgelieferten Liste."
+            },
+            {
+              "title": "Spots-Sync:",
+              "text": "neue Tabelle user_spots — eigene Spots der Desktop-App werden pro Konto synchronisiert (nur der Besitzer liest und schreibt, neuester Stand gewinnt, Löschungen als Tombstone)."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.141.1",
       "date": "2026-10-09",

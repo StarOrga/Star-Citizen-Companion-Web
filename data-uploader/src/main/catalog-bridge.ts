@@ -196,6 +196,12 @@ export interface CatalogHooks {
   pace?: () => Promise<void>;
   /** Reuse a build row from an interrupted run instead of `init`-ing a new one. */
   buildId?: string | null;
+  /**
+   * `catalog` (default): init → every codex phase → finalize, WITHOUT the
+   * silhouettes. `silhouettes`: only the silhouette rows + constellation for
+   * the existing `buildId` — the run's own Silhouetten step.
+   */
+  mode?: 'catalog' | 'silhouettes';
   /** Phases already fully sent — their network calls are skipped. */
   donePhases?: string[];
   /** Rows of `phase` already sent, for a mid-phase resume. */
@@ -438,6 +444,12 @@ export async function uploadCatalog(
     // restart the whole catalog from zero.
     progress({ phase: 'init', current: 0, total: 1 });
     let buildId = hooks.buildId ?? '';
+    const mode = hooks.mode ?? 'catalog';
+    if (mode === 'silhouettes' && !buildId) {
+      // Outlines belong to the build the Codex step created — without its id
+      // there is nothing to attach them to (and init would mint a stray row).
+      return { ok: false, error: 'no_build_id', errorCode: 'no_build_id' };
+    }
     if (buildId) {
       log.info(`[catalog] resuming build ${buildId}`);
     } else {
@@ -461,6 +473,58 @@ export async function uploadCatalog(
     const strings: StringRow[] = [];
     const ports: PortRow[] = [];
     const counts: Record<string, number> = {};
+
+    // Silhouettes (ships + weapons/components/armor tile art) and the
+    // Verse-hub constellation are their OWN run step since the uploader works
+    // in vertical slices (Codex → Silhouetten → 3D-Modelle): the codex build
+    // goes live first, and its outlines follow once they are built. They go to
+    // the SAME build row, so the catalog run never sends them
+    // (`mode: 'silhouettes'` is the only path that does).
+    const sendSilhouettes = async (): Promise<void> => {
+      // 10b. silhouettes (ships + weapons/components/armor tile art) ----------
+      // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
+      // this build's existing rows before the first chunk (never on a mid-phase
+      // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
+      // upserts. Missing directory (an out_dir from before this phase existed,
+      // or a run where the silhouette build step did not execute) just sends
+      // nothing — never invents rows for entities without geometry.
+      {
+        const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
+        const rows = mapSilhouettes(list, tag);
+        counts.silhouettes = await sendChunks(
+          'codex_silhouettes',
+          rows,
+          CHUNK,
+          (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
+          { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
+        );
+      }
+
+      // 10c. Verse-hub constellation -------------------------------------------
+      // Every ship silhouette carries its precomputed 7 stars; one request hands
+      // them all over and the server keeps the patch's newest vehicle. Optional:
+      // a server without the op (or without verse_constellations) must not fail
+      // the catalog run, so a failure here is only a warning.
+      {
+        const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
+        const candidates = mapConstellationCandidates(list);
+        if (candidates.length > 0) {
+          try {
+            const res = await post('constellation', { build_id: buildId, candidates });
+            log.info(`[catalog] constellation from ${candidates.length} hull(s): ${JSON.stringify(res)}`);
+          } catch (e) {
+            if (isInterrupt(e)) throw e;
+            log.warn(`[catalog] constellation skipped: ${(e as Error).message}`);
+          }
+        }
+      }
+    };
+
+    if (mode === 'silhouettes') {
+      await sendSilhouettes();
+      log.info(`[catalog] silhouettes sent for build ${buildId}: ${counts.silhouettes ?? 0}`);
+      return { ok: true, buildId, counts };
+    }
 
     // 2. full localization tables ------------------------------------------
     // First, then ships → components → weapons → items: the same left-to-right
@@ -602,44 +666,6 @@ export async function uploadCatalog(
         (slice) => post('ports', { build_id: buildId, rows: slice }),
         { onFirstChunk: () => post('clear_ports', { build_id: buildId }).then(() => undefined) },
       );
-    }
-
-    // 10b. silhouettes (ships + weapons/components/armor tile art) ----------
-    // Same resumable clear+send shape as item ports: `clear_silhouettes` wipes
-    // this build's existing rows before the first chunk (never on a mid-phase
-    // resume, `onFirstChunk` only fires when `skip === 0`), then `silhouettes`
-    // upserts. Missing directory (an out_dir from before this phase existed,
-    // or a run where the silhouette build step did not execute) just sends
-    // nothing — never invents rows for entities without geometry.
-    {
-      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
-      const rows = mapSilhouettes(list, tag);
-      counts.silhouettes = await sendChunks(
-        'codex_silhouettes',
-        rows,
-        CHUNK,
-        (slice) => post('silhouettes', { build_id: buildId, rows: slice }),
-        { onFirstChunk: () => post('clear_silhouettes', { build_id: buildId }).then(() => undefined) },
-      );
-    }
-
-    // 10c. Verse-hub constellation -------------------------------------------
-    // Every ship silhouette carries its precomputed 7 stars; one request hands
-    // them all over and the server keeps the patch's newest vehicle. Optional:
-    // a server without the op (or without verse_constellations) must not fail
-    // the catalog run, so a failure here is only a warning.
-    {
-      const list = await readJsonDir(outDir, join('silhouettes', 'rows'));
-      const candidates = mapConstellationCandidates(list);
-      if (candidates.length > 0) {
-        try {
-          const res = await post('constellation', { build_id: buildId, candidates });
-          log.info(`[catalog] constellation from ${candidates.length} hull(s): ${JSON.stringify(res)}`);
-        } catch (e) {
-          if (isInterrupt(e)) throw e;
-          log.warn(`[catalog] constellation skipped: ${(e as Error).message}`);
-        }
-      }
     }
 
     // 11. preview images ----------------------------------------------------

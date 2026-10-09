@@ -4,8 +4,8 @@ import type { PerformanceProfile, ProfileId, ETA } from '../lib/performance.js';
 import type { UploadPayload, UploadResult } from '../lib/uploader.js';
 import type { UploadJobState, JobNat, RehydrateResult } from '../lib/upload-job.js';
 import type { JobView } from '../main/upload-session.js';
-import type { ThrottleView, ThrottleSetResult } from '../main/throttle.js';
-import type { LiveProfileId } from '../lib/throttle-control.js';
+import type { ResourceView } from '../main/resources.js';
+import type { PresetId, ResourceLimits, ResourceSample } from '../lib/resource-limits.js';
 import type { AutoRunDecision } from '../lib/auto-run.js';
 import type { SubthemeKey, SubthemePlan } from '../lib/subthemes.js';
 import type { LedgerKey } from '../lib/subtheme-ledger.js';
@@ -235,18 +235,25 @@ export const api = {
   estimate: (profileId: ProfileId, sizeBytes: number): Promise<ETA> =>
     ipcRenderer.invoke('sc:estimate', profileId, sizeBytes),
   /**
-   * The LIVE performance profile. Separate from `profiles()` (which only lists
-   * the definitions) because this one is mutable while a job runs: main owns
-   * the current value and pushes it to the running sidecars.
+   * The operator's resource limits (CPU / RAM / disk) — owned by main, pushed
+   * live to the governor of every running sidecar. `watch(true)` starts the
+   * once-a-second live samples while a window shows them.
    */
-  perf: {
-    get: (): Promise<ThrottleView> => ipcRenderer.invoke('sc:perf:get'),
-    set: (profileId: LiveProfileId): Promise<ThrottleSetResult> =>
-      ipcRenderer.invoke('sc:perf:set', profileId),
-    onChanged: (cb: (v: ThrottleSetResult) => void): (() => void) => {
-      const listener = (_e: unknown, payload: ThrottleSetResult): void => cb(payload);
-      ipcRenderer.on('sc:perf:changed', listener);
-      return () => ipcRenderer.removeListener('sc:perf:changed', listener);
+  resources: {
+    get: (): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:get'),
+    set: (partial: Partial<ResourceLimits>): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:set', partial),
+    preset: (id: PresetId): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:preset', id),
+    detectDisk: (path: string): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:detectDisk', path),
+    watch: (on: boolean): Promise<void> => ipcRenderer.invoke('sc:resources:watch', on),
+    onChanged: (cb: (v: ResourceView) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ResourceView): void => cb(payload);
+      ipcRenderer.on('sc:resources:changed', listener);
+      return () => ipcRenderer.removeListener('sc:resources:changed', listener);
+    },
+    onSample: (cb: (s: ResourceSample) => void): (() => void) => {
+      const listener = (_e: unknown, payload: ResourceSample): void => cb(payload);
+      ipcRenderer.on('sc:resources:sample', listener);
+      return () => ipcRenderer.removeListener('sc:resources:sample', listener);
     },
   },
   authenticate: (): Promise<AuthResult> => ipcRenderer.invoke('sc:authenticate'),
@@ -391,6 +398,14 @@ export const api = {
       /** Publish phase that failed, so the UI can name where it stopped. */
       errorPhase?: string;
     }> => ipcRenderer.invoke('sc:catalog:upload', accessToken, outDir, skipPhases),
+    /** The Silhouetten step: the built outlines (+ constellation) for the Codex step's build row. */
+    silhouettes: (
+      accessToken: string,
+      outDir: string,
+    ): Promise<{ ok: boolean; buildId?: string; counts?: Record<string, number>; error?: string; errorCode?: string }> =>
+      ipcRenderer.invoke('sc:catalog:silhouettes', accessToken, outDir),
+    /** Mark the Silhouetten step as passed without sending (ledger skip / nothing built). */
+    silhouettesSkipped: (): Promise<void> => ipcRenderer.invoke('sc:catalog:silhouettesSkipped'),
     onEvent: (
       cb: (ev: { phase: string; current: number; total: number; phaseIndex?: number; phaseTotal?: number }) => void,
     ): (() => void) => {

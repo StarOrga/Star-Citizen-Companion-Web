@@ -7,6 +7,7 @@
  * Not signed in: primary = connect, secondary = continue extract-only.
  */
 
+import { noteInstallPath } from '../resource-dock.js';
 import { t } from '../../lib/i18n.js';
 import { $, escapeHtml } from '../dom.js';
 import { showSnackbar } from '../shell/bottom-strip.js';
@@ -201,11 +202,14 @@ function paintChannels(): void {
       const idx = Number((e.target as HTMLInputElement).dataset['idx']);
       if (!Number.isInteger(idx)) return;
       state.channels.forEach((c, i) => (c.selected = i === idx));
+      noteInstallPath(state.channels[idx]?.dataP4kPath);
       mount.querySelectorAll('.channel-card').forEach((el2, i) => el2.classList.toggle('selected', i === idx));
       syncNextButton();
     });
   });
   $('#btn-manual')?.addEventListener('click', () => void addManualFolder());
+  // The disk dials of the resource dock follow the drive the picked install is on.
+  noteInstallPath(state.channels.find((c) => c.selected)?.dataP4kPath);
 
   if (nextRow) nextRow.hidden = !hasChannels;
   syncNextButton();

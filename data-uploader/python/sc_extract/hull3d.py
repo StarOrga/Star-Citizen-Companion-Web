@@ -144,6 +144,10 @@ class HullExportConfig:
     max_hole_ratio: float = 0.002
     on_log: LogFn = _noop
     keep_work: bool = False       # keep scratch for debugging
+    # Cross-patch reuse (build_cache): earlier `skins-<patch>` dirs to take an
+    # identical hull from, and the pipeline tag folded into its content key.
+    reuse_dirs: List[Path] = field(default_factory=list)
+    pipeline: str = ""
 
 
 # Written into skins.json. A cached ship built by an older pipeline carries no or
@@ -179,6 +183,9 @@ class Hull3DExporter:
         self.cfg = cfg
         self.log = cfg.on_log
         self._byname = {i.filename.replace("\\", "/"): i for i in p4k.infolist()}
+        # Case-insensitive fallback as one dict, built on first miss — it used
+        # to be a linear scan of every archive entry per miss.
+        self._lower: Optional[Dict[str, object]] = None
         self._ddsidx: Dict[str, object] = {}
         for i in p4k.infolist():
             fn = i.filename.lower().replace("\\", "/")
@@ -192,15 +199,22 @@ class Hull3DExporter:
         self.raw_hook: Optional[Callable[[ShipSpec, Path], None]] = None
 
     # ---- P4K helpers -------------------------------------------------------
+    def _info(self, p4k_path: str):
+        key = p4k_path.replace("\\", "/")
+        info = self._byname.get(key)
+        if info is None:
+            if self._lower is None:
+                self._lower = {}
+                for fn, i in self._byname.items():
+                    self._lower.setdefault(fn.lower(), i)
+            info = self._lower.get(key.lower())
+        return info
+
+    def _exists(self, p4k_path: str) -> bool:
+        return self._info(p4k_path) is not None
+
     def _read(self, p4k_path: str) -> bytes:
-        info = self._byname.get(p4k_path.replace("\\", "/"))
-        if not info:
-            # case-insensitive fallback
-            low = p4k_path.lower().replace("\\", "/")
-            for fn, i in self._byname.items():
-                if fn.lower() == low:
-                    info = i
-                    break
+        info = self._info(p4k_path)
         if not info:
             raise FileNotFoundError(p4k_path)
         with stage_timing.timed("~p4k-read"):
@@ -475,13 +489,62 @@ class Hull3DExporter:
                          f"paint icons in {time.time()-t0:.0f}s")
         return {"ship": spec.ship_id, "skins": catalog, "catalog_path": str(cat_path)}
 
+    def hull_src(self, spec: ShipSpec, paint: Paint) -> str:
+        """Content key of one hull build: the P4K files it reads, the pipeline
+        tag, and every setting that changes the glb."""
+        from .build_cache import content_key
+        c = self.cfg
+        settings = (f"{EXPORT_FORMAT}|{c.texture_size}|{c.simplify_error}|{c.max_model_bytes}|"
+                    f"{c.strip_interior}|{c.max_hole_ratio}|{SIMPLIFY_LADDER}")
+        return content_key(self._read, self._exists,
+                           [spec.hull_cga, spec.hull_cga[:-4] + ".cgam", paint.mtl],
+                           c.pipeline, settings)
+
+    def _reuse_hull(self, spec: ShipSpec, paint: Paint, ship_out: Path, src: str) -> Optional[dict]:
+        """Take the hull from an earlier patch's build when its inputs and the
+        pipeline are byte-identical — the same glb, without converting,
+        optimizing and hole-checking it again."""
+        for d in self.cfg.reuse_dirs:
+            cat_path = Path(d) / spec.ship_id / "skins.json"
+            try:
+                cat = json.loads(cat_path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001 — no catalog there = nothing to reuse
+                continue
+            if cat.get("format") != EXPORT_FORMAT:
+                continue
+            for entry in cat.get("skins", []):
+                if entry.get("hull_src") != src or not entry.get("model"):
+                    continue
+                prev_glb = Path(d) / spec.ship_id / entry["model"]
+                if not prev_glb.is_file():
+                    continue
+                web_glb = ship_out / "models" / f"{spec.ship_id}_{paint.id}.glb"
+                shutil.copyfile(prev_glb, web_glb)
+                self.log("info", f"  {paint.id}: hull unchanged since {Path(d).name} — reused")
+                return {"model": f"models/{web_glb.name}", "model_mb": entry.get("model_mb"),
+                        "hull_src": src, "reused": True}
+        return None
+
     def _export_hull(self, spec: ShipSpec, paint: Paint, ship_out: Path) -> dict:
         safe_id(paint.id, "skin_id")  # flows into filenames + storage paths + cmdline
+        src: Optional[str] = None
+        if self.cfg.pipeline:
+            try:
+                src = self.hull_src(spec, paint)
+                reused = self._reuse_hull(spec, paint, ship_out, src)
+                if reused is not None:
+                    return reused
+            except Exception as exc:  # noqa: BLE001 — reuse is an optimization only
+                self.log("warn", f"  {paint.id}: hull reuse check failed: {type(exc).__name__}: {exc}")
+                src = None
         mirror = self.cfg.work_dir / paint.id
         if mirror.exists():
             shutil.rmtree(mirror, ignore_errors=True)
         try:
-            return self._export_hull_inner(spec, paint, ship_out, mirror)
+            result = self._export_hull_inner(spec, paint, ship_out, mirror)
+            if src:
+                result["hull_src"] = src
+            return result
         finally:
             if not self.cfg.keep_work:
                 shutil.rmtree(mirror, ignore_errors=True)  # free the mirror's GBs now

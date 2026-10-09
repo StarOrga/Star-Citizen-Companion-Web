@@ -9,7 +9,10 @@
  */
 
 import type { PauseControl } from './pause-control.js';
-import type { ThrottleControl } from './throttle-control.js';
+/** Anything that can pause between upload work units (`main/resources.ts` pacer). */
+export interface Pacer {
+  pace(): Promise<void>;
+}
 import { UploadJobStore, sentFor } from './upload-job.js';
 
 /** Structural mirror of `main/catalog-bridge.ts:CatalogHooks`. */
@@ -33,18 +36,18 @@ export interface SkinHookSet {
 }
 
 /**
- * Bind the throttle as a per-call getter, never as a captured value: the whole
- * point is that a stage started under "maximum" observes a later switch to
- * "minimal" at its next work unit.
+ * Bind the pacer as a per-call getter, never as a captured value: a stage
+ * started with generous limits must observe a later tightening at its next
+ * work unit.
  */
-function pacer(throttle?: ThrottleControl): (() => Promise<void>) | undefined {
+function pacer(throttle?: Pacer): (() => Promise<void>) | undefined {
   return throttle ? () => throttle.pace() : undefined;
 }
 
 export function catalogHooks(
   store: UploadJobStore,
   control?: PauseControl,
-  throttle?: ThrottleControl,
+  throttle?: Pacer,
 ): CatalogHookSet {
   const job = store.load();
   return {
@@ -85,7 +88,7 @@ export function catalogHooks(
 export function skinHooks(
   store: UploadJobStore,
   control?: PauseControl,
-  throttle?: ThrottleControl,
+  throttle?: Pacer,
 ): SkinHookSet {
   const job = store.load();
   return {

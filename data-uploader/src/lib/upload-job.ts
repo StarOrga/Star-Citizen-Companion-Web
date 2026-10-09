@@ -2,11 +2,14 @@
  * Durable upload-job state — lets an upload resume after a pause OR after the
  * process is closed/killed mid-run.
  *
- * One upload run is three sequential stages against the server:
+ * One upload run is four sequential stages against the server, in the order
+ * the run's vertical slices go (Codex → Silhouetten → 3D-Modelle):
  *
- *   bundle  → one atomic POST to `ingest-bundle`
- *   catalog → init → ~14 phases of chunked upserts → finalize (`ingest-catalog`)
- *   skins   → per-ship sign → PUT assets → commit (`ingest-skins`)
+ *   bundle      → one atomic POST to `ingest-bundle`
+ *   catalog     → init → ~14 phases of chunked upserts → finalize (`ingest-catalog`)
+ *   silhouettes → build the outlines locally, then clear + chunked upserts for
+ *                 the same build row (`ingest-catalog`, phase `codex_silhouettes`)
+ *   skins       → per-ship sign → PUT assets → commit (`ingest-skins`)
  *
  * Catalog and skins are the long poles (hundreds of requests, potentially
  * GBs), so both are checkpointed at chunk / per-ship granularity. Every
@@ -59,6 +62,11 @@ export interface CatalogStage {
   cursor?: { phase: string; sent: number } | null;
 }
 
+/** The silhouette step: its rows share the catalog's cursor (phase `codex_silhouettes`). */
+export interface SilhouetteStage {
+  status: StageStatus;
+}
+
 export interface SkinStage {
   status: StageStatus;
   /** Ship ids fully uploaded + committed. */
@@ -76,6 +84,7 @@ export interface UploadJobState {
   nat: JobNat;
   bundle: BundleStage;
   catalog: CatalogStage;
+  silhouettes: SilhouetteStage;
   skins: SkinStage;
   error?: string | null;
 }
@@ -105,6 +114,7 @@ export function createJob(
     nat,
     bundle: { status: 'pending' },
     catalog: { status: 'pending', donePhases: [], cursor: null },
+    silhouettes: { status: 'pending' },
     skins: { status: 'pending', doneShips: [] },
     error: null,
   };
@@ -114,9 +124,10 @@ export function createJob(
  * The stage a (re)start should enter, or null when everything is done.
  * Stages run strictly in order, so the first non-`done` one wins.
  */
-export function nextStage(s: UploadJobState): 'bundle' | 'catalog' | 'skins' | null {
+export function nextStage(s: UploadJobState): MacroStage | null {
   if (s.bundle.status !== 'done') return 'bundle';
   if (s.catalog.status !== 'done') return 'catalog';
+  if (s.silhouettes.status !== 'done') return 'silhouettes';
   if (s.skins.status !== 'done') return 'skins';
   return null;
 }
@@ -175,7 +186,7 @@ export interface StageProgress {
   state: 'done' | 'active' | 'pending';
 }
 
-export type MacroStage = 'bundle' | 'catalog' | 'skins';
+export type MacroStage = 'bundle' | 'catalog' | 'silhouettes' | 'skins';
 
 /**
  * Structured, localization-ready picture of where an interrupted upload would
@@ -187,13 +198,13 @@ export type MacroStage = 'bundle' | 'catalog' | 'skins';
  * renderer knows the operator's language.
  */
 export interface ResumeSummary {
-  /** All three macro stages, in execution order, each done / active / pending. */
+  /** All four macro stages, in execution order, each done / active / pending. */
   stages: StageProgress[];
   /** The stage a resume re-enters, or null when the job is already complete. */
   activeStage: MacroStage | null;
-  /** 1-based macro position of the active stage (bundle = 1 … skins = 3). */
+  /** 1-based macro position of the active stage (bundle = 1 … skins = 4). */
   macroStep: number | null;
-  /** How many macro stages there are (always 3) — the "/ N" of the macro line. */
+  /** How many macro stages there are (always 4) — the "/ N" of the macro line. */
   macroTotal: number;
   /** Present when the active stage is `catalog`: where in the publish order it resumes. */
   catalog?: { step: number; total: number; phase: string };
@@ -202,7 +213,7 @@ export interface ResumeSummary {
 }
 
 /** Macro stages in the exact order the renderer sequences them. */
-export const MACRO_STAGES: MacroStage[] = ['bundle', 'catalog', 'skins'];
+export const MACRO_STAGES: MacroStage[] = ['bundle', 'catalog', 'silhouettes', 'skins'];
 
 /**
  * Turn a durable job into the structured resume picture above. Pure: no I/O, so
@@ -348,6 +359,9 @@ export class UploadJobStore {
           donePhases: parsed.catalog?.donePhases ?? [],
           cursor: parsed.catalog?.cursor ?? null,
         },
+        // A job written before the silhouettes were their own step has none:
+        // pending re-sends them (clear + upsert, idempotent) — never skips them.
+        silhouettes: { status: parsed.silhouettes?.status ?? 'pending' },
         skins: {
           status: parsed.skins?.status ?? 'pending',
           doneShips: parsed.skins?.doneShips ?? [],

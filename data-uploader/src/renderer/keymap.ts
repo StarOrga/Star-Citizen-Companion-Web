@@ -19,7 +19,7 @@ export interface KeymapCtx {
   onSpace: () => void;
   /** Ctrl+L — toggle the log drawer. No-op when the Extract step isn't mounted. */
   onToggleLog: () => void;
-  /** T — open/close the tempo (throttle) picker on the Extract/Upload card. */
+  /** T — fold the resource dock (CPU / RAM / disk limits) open or closed. */
   onTempo: () => void;
   /** Ordered Esc handlers — first one that returns true "wins" and stops there. */
   escHandlers: Array<() => boolean>;

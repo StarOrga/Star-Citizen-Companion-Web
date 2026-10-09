@@ -1,16 +1,20 @@
 /**
  * Step rail — the position indicator for the whole one-screen flow
- * (Install · Extract · Upload · Done). Paints into `#step-rail`
- * (see index.html). The active Extract/Upload node's incoming line segment
+ * (Install · Codex · Silhouetten · 3D-Modelle · Done). A run is cut
+ * vertically: each middle node is one topic taken from the game files all the
+ * way onto the server (build, then upload) before the next starts. Paints into `#step-rail`
+ * (see index.html). The active run node's incoming line segment
  * fills with the overall run percentage, so the rail doubles as a macro
  * progress bar without a second progress element competing for attention.
  */
 
 import { t } from '../../lib/i18n.js';
 
-export type StepKey = 'install' | 'extract' | 'upload' | 'done';
+export type StepKey = 'install' | 'codex' | 'silhouettes' | 'models' | 'done';
 
-export const STEP_ORDER: StepKey[] = ['install', 'extract', 'upload', 'done'];
+export const STEP_ORDER: StepKey[] = ['install', 'codex', 'silhouettes', 'models', 'done'];
+
+const RUN_STEPS: readonly StepKey[] = ['codex', 'silhouettes', 'models'];
 
 function labelFor(step: StepKey): string {
   return t(`steprail.${step}`);
@@ -18,7 +22,7 @@ function labelFor(step: StepKey): string {
 
 export interface StepRailState {
   current: StepKey;
-  /** 0-100 fill for the incoming segment of the active extract/upload node. */
+  /** 0-100 fill for the incoming segment of the active run node. */
   activePct: number;
 }
 
@@ -39,7 +43,7 @@ export function paintStepRail(s: StepRailState): void {
   mount.innerHTML = STEP_ORDER.map((step, i) => {
     const state = i < curIdx ? 'done' : i === curIdx ? 'active' : 'locked';
     const fill =
-      i === curIdx && (step === 'extract' || step === 'upload')
+      i === curIdx && RUN_STEPS.includes(step)
         ? `<span class="step-rail-fill" style="width:${Math.max(0, Math.min(100, s.activePct))}%"></span>`
         : '';
     const segment =

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { exec } from 'node:child_process';
-import { cpus } from 'node:os';
 import log from 'electron-log';
 import { initLogging, logFromRenderer } from './logging.js';
 import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } from './settings.js';
@@ -13,14 +12,7 @@ import { reportCrash, reportError, reportExtractAbort, reportJobDiagnostics } fr
 import { collectDiagnostic, newJobDiagnostics, type JobDiagnostics, type JobOutcome } from '../lib/job-diagnostics.js';
 import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
 import { discoverAll, discoverManual } from '../lib/discovery.js';
-import {
-  PROFILES,
-  DEFAULT_PROFILE,
-  SELECTABLE_PROFILES,
-  estimateForSize,
-  skinWorkersFor,
-  workersFor,
-} from '../lib/performance.js';
+import { PROFILES, DEFAULT_PROFILE, SELECTABLE_PROFILES, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { raiseWindow } from '../lib/window-focus.js';
 import { settleInitialVisibility, shouldStartHidden } from '../lib/window-visibility.js';
@@ -72,7 +64,7 @@ import {
   runSync,
 } from './session.js';
 import * as uploadJob from './upload-session.js';
-import * as throttle from './throttle.js';
+import * as resources from './resources.js';
 import { isInterrupt, PausedError } from '../lib/pause-control.js';
 import { ProgressHub } from '../lib/progress-hub.js';
 import { initTray, updateTray, destroyTray, notifyHidden, hasTray, type TrayMenuLabels } from './tray.js';
@@ -521,32 +513,18 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
   estimateForSize(profileId, sizeBytes),
 );
 
-// ============= Live performance-profile IPC =============
+// ============= Resource limits IPC =============
 //
-// The profile is owned by MAIN, not by the renderer's `state.profile`, because
-// it has to keep steering sidecars that outlive a renderer reload — and because
-// only main knows their pids. The renderer holds a display mirror and re-reads
-// this on every switch.
+// The limits are owned by MAIN (`main/resources.ts`): they have to keep
+// steering sidecars that outlive a renderer reload, and only main knows their
+// pids. The renderer's panel holds a display mirror; every change is pushed to
+// the running governors at once and broadcast to every window.
 
-ipcMain.handle('sc:perf:get', () => throttle.view());
-
-// The one write path. Returns how many running sidecars the new profile
-// actually reached, so the UI can say "applied to the running job" instead of
-// implying an effect that never left the process.
-ipcMain.handle('sc:perf:set', (_e, profileId: unknown) => {
-  const result = throttle.set(profileId);
-  // Remember the operator's pick for the next launch — only the modes they can
-  // actually choose; `auto` stays an internal, non-persisted value.
-  if (result.changed && (SELECTABLE_PROFILES as readonly string[]).includes(result.profile)) {
-    patchSettings({ speedProfile: result.profile as (typeof SELECTABLE_PROFILES)[number] });
-  }
-  // Every window mirrors the switch — including the one that did not send it,
-  // and the Configure screen when the change came from the Run screen.
-  for (const w of BrowserWindow.getAllWindows()) {
-    w.webContents.send('sc:perf:changed', result);
-  }
-  return result;
-});
+ipcMain.handle('sc:resources:get', () => resources.view());
+ipcMain.handle('sc:resources:set', (_e, partial: unknown) => resources.setLimits(partial));
+ipcMain.handle('sc:resources:preset', (_e, id: unknown) => resources.applyPreset(id));
+ipcMain.handle('sc:resources:detectDisk', (_e, path: unknown) => resources.detectDisk(path));
+ipcMain.handle('sc:resources:watch', (_e, on: unknown) => resources.watch(on === true));
 
 ipcMain.handle('sc:authenticate', async () => {
   const result = await runOAuthFlow(WEB_BASE);
@@ -905,16 +883,10 @@ ipcMain.handle('sc:extract:env', () => {
 
 ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<ExtractFinal> => {
   const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // Resolve the parallelism HERE, from the profile that is live at the moment
-  // the sidecar starts — not from whatever the renderer had on screen when the
-  // operator first opened Configure. Main owns the live profile (see
-  // `main/throttle.ts`), so this is the only place that can be right.
-  const liveProfile = throttle.control().profile();
-  req = {
-    ...req,
-    workers: workersFor(liveProfile, cpus().length || 1),
-    memCapMb: PROFILES[liveProfile].ramCapMb,
-  };
+  // Resolve the parallelism HERE, from the limits in effect at the moment the
+  // sidecar starts — main owns them (see `main/resources.ts`).
+  const w = resources.workers();
+  req = { ...req, workers: w.dump, memCapMb: w.memCapMb };
   const watchdog = createWatchdog({
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('extract', idle, jobId),
@@ -963,9 +935,9 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
-  // Hand the sidecar to the live throttle: it gets the profile in effect NOW,
+  // Hand the sidecar to its governor: it gets the limits in effect NOW,
   // and every later switch reaches it without restarting the extraction.
-  throttle.registerJob(jobId, handle.pid);
+  resources.registerJob(jobId, handle.pid);
   watchdog.start();
   try {
     const final = await handle.promise;
@@ -987,7 +959,7 @@ ipcMain.handle('sc:extract:start', async (event, req: ExtractRequest): Promise<E
     activeJobs.delete(jobId);
     // Deregister BEFORE the OS can recycle the pid — a later switch must never
     // re-prioritise whatever process inherited this number.
-    throttle.unregisterJob(jobId);
+    resources.unregisterJob(jobId);
   }
 });
 
@@ -1009,8 +981,8 @@ ipcMain.handle('sc:skin:ensureTools', async (event) => {
 
 ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<SkinExportFinal> => {
   const jobId = `skin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // Same rule as the extract: parallelism follows the profile live at start.
-  req = { ...req, workers: skinWorkersFor(throttle.control().profile(), cpus().length || 1) };
+  // Same rule as the extract: parallelism follows the limits live at start.
+  req = { ...req, workers: resources.workers().skin };
   const watchdog = createWatchdog({
     timeoutMs: JOB_STALL_MS,
     onTimeout: (idle) => reportJobStall('skin', idle, jobId),
@@ -1023,7 +995,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   });
   job.cancel = handle.cancel;
   activeJobs.set(jobId, job);
-  throttle.registerJob(jobId, handle.pid);
+  resources.registerJob(jobId, handle.pid);
   watchdog.start();
   try {
     const final = await handle.promise;
@@ -1045,7 +1017,7 @@ ipcMain.handle('sc:skin:start', async (event, req: SkinExportRequest): Promise<S
   } finally {
     watchdog.stop();
     activeJobs.delete(jobId);
-    throttle.unregisterJob(jobId);
+    resources.unregisterJob(jobId);
   }
 });
 
@@ -1133,6 +1105,8 @@ ipcMain.handle(
       timeoutMs: JOB_STALL_MS,
       onTimeout: (idle) => reportJobStall('silhouette', idle, jobId),
     });
+    // Conversions at once follow the limits live at start, like the other builds.
+    req = { ...req, workers: resources.workers().silhouette };
     const job = newActiveJob('silhouette', req.outDir);
     const handle = startSilhouetteBuild(req, (ev) => {
       watchdog.pet();
@@ -1141,7 +1115,7 @@ ipcMain.handle(
     });
     job.cancel = handle.cancel;
     activeJobs.set(jobId, job);
-    throttle.registerJob(jobId, handle.pid);
+    resources.registerJob(jobId, handle.pid);
     watchdog.start();
     try {
       const final = await handle.promise;
@@ -1160,7 +1134,7 @@ ipcMain.handle(
     } finally {
       watchdog.stop();
       activeJobs.delete(jobId);
-      throttle.unregisterJob(jobId);
+      resources.unregisterJob(jobId);
     }
   },
 );
@@ -1213,6 +1187,39 @@ ipcMain.handle(
     }
   },
 );
+
+// The run's Silhouetten step: send the outlines the step just built to the
+// build row the Codex step created (the job's catalog.buildId). Same resume
+// wiring as the catalog — its rows are phase `codex_silhouettes` of that cursor.
+ipcMain.handle(
+  'sc:catalog:silhouettes',
+  async (event, accessToken: string, outDir: string): Promise<CatalogUploadResult> => {
+    try {
+      const result = await uploadCatalog(
+        () => freshToken(accessToken),
+        outDir,
+        (p) => {
+          hub.update('upload', p.phase, p.total > 0 ? (p.current / p.total) * 100 : null);
+          event.sender.send('sc:catalog:event', p);
+        },
+        { ...uploadJob.hooksForCatalog(), mode: 'silhouettes' },
+      );
+      if (result.ok) uploadJob.update((s) => ({ ...s, silhouettes: { status: 'done' } }));
+      return result;
+    } catch (err) {
+      if (isInterrupt(err)) {
+        event.sender.send('sc:upload:paused', uploadJob.view());
+        return { ok: false, error: err instanceof PausedError ? 'paused' : 'cancelled' };
+      }
+      throw err;
+    }
+  },
+);
+
+/** The Silhouetten step had nothing to send (skipped by the ledger, or no build) — record it as passed. */
+ipcMain.handle('sc:catalog:silhouettesSkipped', () => {
+  uploadJob.update((s) => ({ ...s, silhouettes: { status: 'done' } }));
+});
 
 // ============= Cleanup IPC =============
 
@@ -1268,10 +1275,13 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   app.setAppUserModelId('com.sc-companion.data-uploader');
-  // Seed the live throttle with the speed mode picked last time, BEFORE any
-  // window or auto-run can start a sidecar — otherwise every launch silently
-  // fell back to Standard and "minimal, I'm playing" did not survive a restart.
-  throttle.set(getSettings().speedProfile);
+  // Seed the resource limits picked last time, BEFORE any window or auto-run
+  // can start a sidecar — "a sliver, I'm playing" must survive a restart.
+  resources.init({
+    stored: getSettings().resourceLimits,
+    legacyProfile: getSettings().speedProfile,
+    persist: (stored) => patchSettings({ resourceLimits: stored }),
+  });
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
   // Tray first, then the close handler can safely rely on hasTray().
@@ -1349,6 +1359,7 @@ app.on('before-quit', (e) => {
   // but the process would normally die before the POST leaves. Hold the quit
   // for a bounded grace window, exactly once, then go regardless of outcome.
   const pending = cancelAllJobs('quit');
+  resources.shutdown();
   if (!pending.length || quitDeferredForTelemetry) return;
   quitDeferredForTelemetry = true;
   e.preventDefault();

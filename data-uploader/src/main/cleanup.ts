@@ -29,6 +29,22 @@ export const EXTRACTS_DIR_NAME = '.sc-companion-extracts';
 export const UPLOAD_MARKER = '_uploaded.json';
 /** Dir-name prefix of a 3D-livery build cache (`skins-<patch version>`). */
 export const SKINS_CACHE_PREFIX = 'skins-';
+/**
+ * The silhouette cache (`sc_extract/silhouette_build.py` `cache_dir_for`):
+ * one small JSON per distinct mesh, keyed by the mesh's content and the
+ * silhouette code. It is what makes the next patch's silhouette step cheap —
+ * most meshes do not change between patches — so no sweep ever removes it;
+ * the sidecar prunes entries of older silhouette code itself.
+ */
+export const SILHOUETTE_CACHE_DIR = 'silhouette-cache';
+/**
+ * Encoded preview WebPs keyed by their source DDS (`sc_extract/images.py`
+ * `preview_cache_dir`) — same reasoning; the extraction prunes it to the art
+ * set of the current run.
+ */
+export const PREVIEW_CACHE_DIR = 'preview-cache';
+/** Content-keyed caches that outlive every extract and are never swept. */
+export const PERSISTENT_CACHE_DIRS: readonly string[] = [SILHOUETTE_CACHE_DIR, PREVIEW_CACHE_DIR];
 
 /**
  * Patch version behind a `skins-<version>` build cache, or null for a normal
@@ -214,7 +230,7 @@ export async function scanAndCleanupOrphans(
         }
         // The livery build cache has no upload marker by design, so the age
         // gate below would eat it a day after the build that produced it.
-        if (skinsCacheVersion(ent.name) !== null) {
+        if (skinsCacheVersion(ent.name) !== null || PERSISTENT_CACHE_DIRS.includes(ent.name)) {
           kept.push(dir);
           continue;
         }
@@ -328,6 +344,10 @@ export async function purgeExtracts(
         if (!ent.isDirectory()) continue;
         const dir = join(extractsRoot, ent.name);
         if (protectedDirs.has(pathKey(dir))) {
+          kept++;
+          continue;
+        }
+        if (PERSISTENT_CACHE_DIRS.includes(ent.name)) {
           kept++;
           continue;
         }

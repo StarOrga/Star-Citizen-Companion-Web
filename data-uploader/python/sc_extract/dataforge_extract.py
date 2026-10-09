@@ -407,14 +407,18 @@ class CodexExtractor:
         self.on_log = on_log
         self.on_progress = on_progress
         self.dump_generic = dump_generic
+        # Without the generic dump its slice of the bar belongs to the typed
+        # projection, so the bar fills steadily instead of jumping 55 → 84.
+        self._pct_entities = _PCT_ENTITIES if dump_generic else (_PCT_ENTITIES[0], _PCT_RECORDS[1])
         self.p4k = p4k
         self.counts: Dict[str, int] = {}
         # Preview-image + dimension extraction needs the open P4K. Lazily built.
         self._assets = None
         if extract_assets and p4k is not None:
             try:
-                from .images import AssetExtractor
-                self._assets = AssetExtractor(p4k, out_dir / "previews", on_log=on_log)
+                from .images import AssetExtractor, preview_cache_dir
+                self._assets = AssetExtractor(p4k, out_dir / "previews", on_log=on_log,
+                                              cache_dir=preview_cache_dir(out_dir))
             except Exception as exc:  # noqa: BLE001
                 on_log("warn", f"asset extractor unavailable: {exc}")
         self._dim_cache: Dict[str, Optional[Dict[str, Any]]] = {}
@@ -468,10 +472,16 @@ class CodexExtractor:
             self.on_log("info", f"preview images: {self._assets.converted} converted, "
                                 f"{self._assets.misses} missing")
             self._bump("previews", self._assets.converted)
+            self._assets.prune_cache()
         if self.dump_generic:
             self.dump_all_records()   # exhaustive generic guarantee
         else:
+            # The uploader never reads records/ (nothing uploads it, and the
+            # extract dir is deleted after the upload) — writing every record
+            # of every type was hundreds of thousands of files of pure disk
+            # load. The count stays honest without them.
             self.on_log("info", "skipping generic record dump (--skip-generic)")
+            self._bump("records_total", len(self.df.records))
         return self.counts
 
     # ── full localization tables ──────────────────────────────────────────────
@@ -1090,9 +1100,9 @@ class CodexExtractor:
                 self.on_count("items", n_item)
                 self.on_count("skins", self._skins_total)
                 self.on_progress("entities", current=i, total=total,
-                                 pct=_mapped_pct(i, total, *_PCT_ENTITIES))
+                                 pct=_mapped_pct(i, total, *self._pct_entities))
 
-        self.on_progress("entities", current=total, total=total, pct=_PCT_ENTITIES[1])
+        self.on_progress("entities", current=total, total=total, pct=self._pct_entities[1])
         self.on_log("info", f"catalog: {n_ship} ships · {n_wpn} weapons · "
                             f"{n_comp} components · {n_item} items · "
                             f"{self._skins_total} skins "
@@ -1136,7 +1146,7 @@ class CodexExtractor:
                 expected[kind] += 1
                 self._planned_kinds[i] = kind
             if i % 2000 == 0:
-                self.on_progress("classify", current=i, total=total, pct=_PCT_ENTITIES[0])
+                self.on_progress("classify", current=i, total=total, pct=self._pct_entities[0])
         self.on_log("info", "planned catalog: " + " · ".join(
             f"{expected.get(k, 0)} {k}" for k in ("ships", "weapons", "components", "items")))
         return dict(expected)

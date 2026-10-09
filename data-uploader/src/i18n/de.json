@@ -18,8 +18,9 @@
   },
   "steprail": {
     "install": "Installation",
-    "extract": "Extraktion",
-    "upload": "Upload",
+    "codex": "Codex",
+    "silhouettes": "Silhouetten",
+    "models": "3D-Modelle",
     "done": "Fertig",
     "ariaLabel": "Fortschritt"
   },
@@ -63,14 +64,7 @@
     "found": "Gefundene Channels",
     "next": "Extraktion starten"
   },
-  "configure": {
-    "speed": {
-      "applied": "Modus geändert — wirkt ab der nächsten Datei.",
-      "appliedPartly": "Modus geändert — konnte dem laufenden Prozess aber nicht zugestellt werden (siehe Protokoll).",
-      "armed": "Modus gesetzt — er gilt, sobald ein Lauf startet.",
-      "unsupported": "Auf dieser Plattform lässt sich die Priorität nicht live ändern."
-    }
-  },
+  "configure": {},
   "run": {
     "title": "Auslesen — Spieldaten",
     "next": "Upload anbieten",
@@ -131,9 +125,7 @@
     "noChannel": "Kein Channel ausgewählt — zurück zum Setup.",
     "warningFallback": "Warnung",
     "errorFallback": "Fehler bei der Extraktion",
-    "failedUnknown": "Die Extraktion ist aus unbekanntem Grund fehlgeschlagen.",
-    "tempo": "Tempo",
-    "tempoHint": "Wie stark der Uploader deinen PC auslastet — jederzeit umschaltbar, auch mitten im Lauf. Wird gespeichert."
+    "failedUnknown": "Die Extraktion ist aus unbekanntem Grund fehlgeschlagen."
   },
   "upload": {
     "title": "Upload",
@@ -215,8 +207,6 @@
     },
     "stages": {
       "aria": "Upload-Schritte",
-      "silhouettes": "Silhouetten bauen",
-      "entries": "Einträge hochladen",
       "phaseOf": "Schritt {{n}} / {{total}}",
       "partial": "teilweise oben",
       "bundleId": "Bundle-ID {{id}}",
@@ -228,9 +218,7 @@
         "paused": "pausiert",
         "failed": "fehlgeschlagen",
         "skipped": "übersprungen"
-      },
-      "skinsBuild": "Modelle bauen",
-      "skinsUpload": "Modelle hochladen"
+      }
     }
   },
   "update": {
@@ -402,14 +390,6 @@
     "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen.",
     "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt."
   },
-  "speed": {
-    "minimal": "Minimal",
-    "standard": "Standard",
-    "maximum": "Maximal",
-    "minimalDesc": "Nebenbei spielen: 1 Kern, niedrigste Priorität. Dauert am längsten.",
-    "standardDesc": "Nebenbei surfen oder streamen: halbe Kerne, gesenkte Priorität. Zum Spielen zu viel.",
-    "maximumDesc": "Der PC gehört dem Uploader: alle Kerne bis auf einen. Nebenbei geht kaum etwas."
-  },
   "subthemes": {
     "allCurrent": "Der Server hat diesen Build bereits vollständig – nichts hat sich geändert, Extraktion und Upload entfallen. „Alles neu erzwingen“ startet trotzdem.",
     "skipping": "Unverändert, wird übersprungen: {{list}}",
@@ -424,5 +404,68 @@
       "silhouettes": "Silhouetten",
       "hulls": "3D-Hüllen"
     }
+  },
+  "res": {
+    "title": "Ressourcen",
+    "toggleHint": "Festlegen, wie viel vom PC der Uploader nutzen darf",
+    "cpu": "Prozessor",
+    "ram": "Arbeitsspeicher",
+    "read": "Disk lesen",
+    "write": "Disk schreiben",
+    "iops": "Disk-Zugriffe",
+    "gpu": "Grafikkarte",
+    "gpuNote": "Wird nicht genutzt — Extraktion, Silhouetten und 3D-Build rechnen ausschließlich auf dem Prozessor.",
+    "of": "Grenze {{limit}}",
+    "presetsAria": "Voreinstellungen",
+    "preset": {
+      "gaming": "Beim Spielen",
+      "gamingDesc": "Ein kleiner Teil von allem — nebenbei spielen, ohne etwas zu merken. Dauert am längsten.",
+      "balanced": "Ausgewogen",
+      "balancedDesc": "Etwa die Hälfte — Surfen, Streamen und Arbeiten laufen flüssig weiter.",
+      "full": "Volle Leistung",
+      "fullDesc": "Bis zu 85–90 % — schnellster Lauf, ein Rest bleibt für Windows immer frei.",
+      "custom": "Eigene Werte"
+    },
+    "note": {
+      "cpu": "{{cores}} Threads · andere Programme gerade {{others}} % · 10 % bleiben immer für Windows",
+      "ram": "{{total}} gesamt · andere Programme {{others}} · Uploader-App {{app}}",
+      "disk": {
+        "nvme": "NVMe-SSD erkannt",
+        "ssd": "SATA-SSD erkannt",
+        "hdd": "Festplatte (HDD) erkannt — Zugriffe sind hier der Engpass",
+        "unknown": "Laufwerkstyp unbekannt — Skala geschätzt"
+      }
+    },
+    "status": {
+      "idle": "Gilt für den nächsten Lauf — Änderungen wirken auch mitten im Lauf sofort.",
+      "live": "Live: Änderungen wirken sofort auf den laufenden Schritt.",
+      "heldBack": "Disk-Grenze greift: der Lauf wird gerade zu {{pct}} % angehalten.",
+      "noHardCap": "Die harte CPU-Grenze ließ sich nicht setzen — der Lauf läuft mit niedriger Priorität weiter.",
+      "unsupported": "Auf diesem System wirkt nur die Anzahl paralleler Worker; harte Grenzen gibt es nur unter Windows."
+    },
+    "foot": "Ziehe den Griff am Tacho oder nutze die Pfeiltasten. Die Nadel zeigt den aktuellen Verbrauch des Laufs, der schraffierte Bereich ist von Windows und anderen Programmen belegt. Der Arbeitsspeicher bestimmt, wie viele Worker der nächste Schritt startet."
+  },
+  "pipeline": {
+    "stepOf": "Schritt {{n}} von {{total}}",
+    "step": {
+      "codex": "Codex",
+      "silhouettes": "Silhouetten",
+      "models": "3D-Modelle"
+    },
+    "intro": {
+      "codex": "Spieldaten aus der Data.p4k lesen und als Codex hochladen — danach ist der neue Datenstand auf der Website.",
+      "silhouettes": "Aus den Schiffs- und Item-Modellen die Umrisse bauen und an denselben Codex-Stand hängen.",
+      "models": "Die 3D-Modelle der Schiffe samt Lackierungen bauen und hochladen."
+    },
+    "stage": {
+      "extract": "Daten extrahieren",
+      "bundle": "Bundle hochladen",
+      "entries": "Einträge hochladen",
+      "silBuild": "Silhouetten bauen",
+      "silUpload": "Silhouetten hochladen",
+      "skinsBuild": "Modelle bauen",
+      "skinsUpload": "Modelle hochladen"
+    },
+    "silUploadFailed": "Silhouetten konnten nicht hochgeladen werden — der Codex bleibt ohne Umrisse"
   }
 }

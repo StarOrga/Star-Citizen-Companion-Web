@@ -42,11 +42,11 @@ export interface ExtractRequest {
   toolVersion: string;
   /**
    * Worker processes for the record dump, and the advisory memory budget that
-   * clamps them. Resolved from the performance profile at START time.
+   * clamps them. Resolved from the resource limits at START time.
    *
-   * Pinned for the run, exactly like `scope`: a live mode switch re-prioritises
-   * the process tree (see `main/throttle.ts`) but cannot un-spawn a worker that
-   * is mid-record. The sidecar must be told the number — it must never infer it
+   * Pinned for the run, exactly like `scope`: a live limit change reaches the
+   * process tree through its governor (see `main/resources.ts`) but cannot
+   * un-spawn a worker that is mid-record. The sidecar must be told the number — it must never infer it
    * from cpu_count, which is blind to the affinity mask a throttled run carries.
    */
   workers?: number;
@@ -189,10 +189,9 @@ export interface ExtractHandle {
   promise: Promise<ExtractFinal>;
   cancel: () => void;
   /**
-   * OS pid of the sidecar, or null when it never spawned. Exposed so the live
-   * performance switch can re-prioritise this exact process mid-run (see
-   * `main/throttle.ts`) — the sidecar owns the CPU/disk load, so a mode change
-   * that does not reach it changes nothing the operator can feel.
+   * OS pid of the sidecar, or null when it never spawned. Exposed so the
+   * resource governor can put this exact process tree under the operator's
+   * limits (see `main/resources.ts`) — the sidecar owns the CPU/disk load.
    */
   pid: number | null;
 }
@@ -231,6 +230,10 @@ export function startExtraction(
     '--build', req.buildNumber,
     '--scope', scopeToString(req.scope),
     '--tool-version', req.toolVersion,
+    // No exhaustive per-record dump: nothing the uploader sends reads
+    // records/, and writing every record of every type (hundreds of thousands
+    // of files, deleted again after the upload) was the run's biggest disk load.
+    '--skip-generic',
     '--workers', String(Math.max(1, Math.floor(req.workers ?? 1))),
     '--mem-cap-mb', String(Math.max(0, Math.floor(req.memCapMb ?? 0))),
   ];

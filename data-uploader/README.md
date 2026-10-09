@@ -6,17 +6,29 @@ Upload zur Web-App. Eigenständiges Desktop-Tool, getrennt von der Haupt-App
 
 ## Status
 
-**Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run:
-Schritt-Schiene Installation → Extraktion → Upload → Fertig (seit 0.44.0 ohne eigenen
-Einrichtungs-Schritt). Nach einer erfolgreichen Extraktion folgt der Upload immer
-automatisch (angemeldet vorausgesetzt). Ein Lauf hat genau zwei Knöpfe, beide als Chips
-im Kopf der Extraktions- und Upload-Karte und jederzeit umschaltbar: ⚡ Tempo (gespeichert)
-und ⏻ "Wenn fertig": nichts / Programm beenden / PC herunterfahren (pro Lauf, nie
-gespeichert). Die Automatik (neue Patches ohne Zutun hochladen) und alles andere
-Dauerhafte liegt hinter ⚙ (Ctrl+,).
+**Phase 1 (Foundation) — implementiert.** Seit 0.33.0 als One-Screen Guided Run,
+heute **vertikal geschnitten**: Schritt-Schiene Installation → Codex →
+Silhouetten → 3D-Modelle → Fertig. Jeder mittlere Schritt ist ein eigener Screen
+und bringt EIN Thema komplett von der Data.p4k bis auf den Server, bevor der
+nächste beginnt:
+
+| Schritt | bauen | hochladen |
+|---|---|---|
+| Codex | Daten extrahieren | Bundle · Einträge (Build geht live) |
+| Silhouetten | Umrisse bauen | an denselben Codex-Build hängen (`mode: 'silhouettes'`) |
+| 3D-Modelle | Modelle bauen | Modelle hochladen |
+
+Die schwere lokale Arbeit kommt so in drei getrennten Blöcken statt einem langen,
+und jedes Thema ist auf der Website, sobald sein Schritt durch ist. Nach einer
+erfolgreichen Extraktion folgt der Upload automatisch (angemeldet vorausgesetzt;
+sonst bietet der Fuß „Anmelden & hochladen“). Pro Lauf gibt es einen Chip:
+⏻ "Wenn fertig": nichts / Programm beenden / PC herunterfahren (pro Lauf, nie
+gespeichert). Wie viel vom PC ein Lauf nehmen darf, regelt das **Ressourcen-Dock**
+am unteren Fensterrand (siehe unten). Die Automatik (neue Patches ohne Zutun
+hochladen) und alles andere Dauerhafte liegt hinter ⚙ (Ctrl+,).
 Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
-FS-Scan → Manual), 4 Performance-Profilen, OAuth-Loopback + Release-Token-Header,
+FS-Scan → Manual), Ressourcen-Dock mit Governor, OAuth-Loopback + Release-Token-Header,
 i18n (DE/EN + Stubs für ES/FR/PT/RU/ZH).
 
 **Phase 2 (Domain) — offen.**
@@ -60,18 +72,18 @@ src/
 ├── renderer/     # Browser-UI (SCC-Brand-Theme) — ein Bildschirm, geführter Lauf
 │   ├── index.html         # Shell: Kopfstreifen (Schiene, Verbindungs-Chip, ⚙), Bühne, Bodenleiste
 │   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
-│   ├── steps/             # install (Startrampe + Start), done, category-bars
+│   ├── steps/             # install (Startrampe + Start), done, category-bars, upload-stages (Zeilen je Schritt)
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
-│   ├── throttle-chip.ts · when-done-chip.ts # die zwei Lauf-Knöpfe (⚡ Tempo, ⏻ Wenn fertig)
+│   ├── resource-dock.ts   # Ressourcen-Dock: Tachos für CPU / RAM / Disk (Taste T)
+│   ├── when-done-chip.ts  # ⏻ Wenn fertig
 │   ├── settings-dialog.ts # Automatik (neue Patches ohne Zutun) + Allgemein (Tray, Ring, Sprache, Telemetrie)
 │   ├── connection-popover.ts · log-drawer.ts · keymap.ts
 │   ├── progress.ts        # Progress-Karte (unverändert)
 │   └── styles.css
 ├── lib/          # Domain-Logic (im Main-Prozess geladen)
 │   ├── discovery.ts       # 3-Stufen-Cascade
-│   ├── performance.ts     # Profil-Definitionen + ETA
-│   ├── throttle-control.ts # Live-Profil (mid-run umschaltbar) + Pacing
-│   ├── process-throttle.ts # OS-Kommando für Priorität/Affinität
+│   ├── performance.ts     # alte Profil-Definitionen + ETA (nur noch für sc:estimate)
+│   ├── resource-limits.ts # Ressourcen-Grenzen: Skalen, Voreinstellungen, Worker-Zahl
 │   ├── extractor.ts       # P4K-Pipeline (Phase 2)
 │   ├── validator.ts       # Quality-Score (Phase 2)
 │   ├── oauth.ts           # Loopback-OAuth-Flow
@@ -84,31 +96,84 @@ src/
     └── {fr,es,pt,ru,zh}.json   # Stubs (English-Fallback)
 ```
 
-## Performance-Profil (live umschaltbar)
+## Ressourcen-Dock (CPU · RAM · Disk, live)
 
-Das Profil (`minimal` / `standard` / `maximum` / `auto`) ist **kein**
-Start-Snapshot: es lässt sich mitten im laufenden Job wechseln — runter, wenn
-gezockt wird, hoch, wenn der PC ohnehin ungenutzt ist. Der Job wird dafür
-weder abgebrochen noch neu gestartet.
+Die drei Tempo-Profile (Minimal / Standard / Maximal) sind ersetzt. Sie stellten
+nur Worker-Zahl und Prioritätsklasse ein — und keiner der beiden Hebel erreicht
+das, was PCs lahmgelegt hat: die **Disk**. Auch auf „Minimal“ las die Extraktion
+die P4K so schnell, wie das Laufwerk konnte; Disk 100 %, Windows hing mit.
 
-- **Quelle der Wahrheit** ist der Main-Prozess (`main/throttle.ts`), nicht der
-  Renderer: nur er kennt die PIDs der laufenden Sidecars, und er überlebt einen
-  Renderer-Reload. Der Renderer hält nur einen Spiegel und schreibt über
-  `sc:perf:set`.
-- **Python-Sidecar** (der eigentliche CPU-/Disk-Fresser) ist nicht unsere
-  Schleife und kann nichts nachlesen. Stattdessen setzt jeder Wechsel
-  Prioritätsklasse + CPU-Affinität des laufenden Prozesses neu
-  (`lib/process-throttle.ts`; Windows via PowerShell, POSIX via `renice`). Das
-  greift sofort und kann per Konstruktion keine halb geschriebene Datei
-  beschädigen, weil es die Job-Logik nicht anfasst.
-- **Upload-Stufen** (Catalog-Chunks, Skin-PUTs) sind unsere Schleife: sie rufen
-  an denselben sicheren Grenzen wie `PauseControl.checkpoint()` zusätzlich
-  `throttle.pace()` auf. Das liest das Profil **pro Work-Unit** neu — ein
-  Wechsel wirkt ab der nächsten Unit, nie mitten in einem Request.
-Das Umschalt-UI ist der ⚡-Tempo-Chip im Kopf der Extraktions- und Upload-Karte
-(Popover mit den drei Modi samt Kurzbeschreibung, Hotkey T) — die einzige Stelle,
-an der das Tempo gewählt wird. Einen Umfang gibt es nicht mehr: jeder Lauf
-extrahiert den kompletten Datenstand.
+Jetzt hat jede Ressource ihre eigene Grenze, auf einer Skala, die aus dem PC
+abgeleitet ist (`src/lib/resource-limits.ts`):
+
+| Ressource | Skala | Durchsetzung |
+|---|---|---|
+| Prozessor | 0–100 % der ganzen Maschine, Grenze max. **90 %** | harte CPU-Grenze per Windows **Job Object** um den ganzen Sidecar-Baum |
+| Arbeitsspeicher | Gesamt-RAM − 2 GB für Windows; belegt von anderen Programmen + Uploader-App wird live abgezogen | bestimmt die Worker-Zahl des nächsten Schritts (ein hartes Commit-Limit würde Allokationen scheitern lassen und den Lauf abstürzen) |
+| Disk lesen / schreiben (MB/s), Disk-Zugriffe (/s) | Laufwerksklasse der Data.p4k (NVMe / SATA-SSD / HDD, per `Get-PhysicalDisk`) | Governor pausiert den Baum genau so lange, bis das Budget wieder im Plus ist (Duty-Cycle, 250 ms Auflösung) |
+| Grafikkarte | — | wird nicht genutzt (alles läuft auf der CPU); das Dock sagt das |
+
+- **Governor** (`python/sc_extract/governor.py`): ein kleiner Prozess pro
+  laufendem Sidecar (`main/resources.ts` startet ihn in `registerJob`). Er legt
+  den Sidecar in ein Job Object — jeder Worker, `cgf-converter` und der
+  glTF-Worker entstehen danach darin —, setzt Idle/BelowNormal-CPU-, sehr
+  niedrige/niedrige I/O- und niedrige Speicher-Priorität, misst CPU/RAM/I/O
+  über die Job-Accounting-Zähler und meldet einmal pro Sekunde einen Messwert.
+  Grenzen kommen als JSON-Zeilen über stdin und wirken **sofort**, mitten im
+  Schritt. stdin zu (Uploader weg) = alles fortsetzen und beenden — ein
+  angehaltener Baum bleibt nie zurück.
+- **Main ist die Quelle der Wahrheit** (`main/resources.ts`), gespeichert in den
+  Settings (`resourceLimits`; das alte `speedProfile` wird beim ersten Start
+  auf die passende Voreinstellung abgebildet). Der Renderer spiegelt nur.
+- **Dock** (`renderer/resource-dock.ts`): eingeklappt eine Zeile (Verbrauch /
+  Grenze je Ressource), ausgeklappt (Taste T) ein Tacho pro Ressource: Skala des
+  PCs, schraffiert was andere Programme gerade belegen, heller Bogen bis zum
+  Griff = Grenze (ziehen oder Pfeiltasten), Nadel = aktueller Verbrauch des
+  Laufs. Voreinstellungen „Beim Spielen“ / „Ausgewogen“ / „Volle Leistung“
+  füllen nur die Regler.
+- **Upload-Schleifen** (Catalog-Chunks, Livery-PUTs) laufen im Main-Prozess, nicht
+  im Sidecar; sie pausieren bei kleiner CPU-Grenze kurz zwischen den Work-Units
+  (`pacer()`), nie mitten in einem Request.
+- Live-Messwerte gibt es nur, solange ein Lauf läuft oder ein sichtbares
+  Fenster zusieht — das Tray-Idle-Budget bleibt bei null periodischer Arbeit.
+- Außerhalb von Windows gibt es keinen Governor; dort wirkt nur die Worker-Zahl,
+  und das Dock sagt das.
+
+## Nichts doppelt: Caches über Läufe und Patches
+
+Ein Lauf liest und baut jede Sache genau einmal — und was sich seit dem letzten
+Patch nicht geändert hat, gar nicht. Jeder Cache ist **inhaltsbasiert** (Bytes
+der gelesenen P4K-Dateien + Hash des erzeugenden Codes/Werkzeugs); was sich
+nicht beweisbar gleicht, wird neu gebaut.
+
+| Was | Wo | Schlüssel |
+|---|---|---|
+| Vorschaubilder (DDS → WebP) | `.sc-companion-extracts/preview-cache/` | DDS-Bytes + Ausgabe-Einstellungen; auf den aktuellen Satz beschnitten |
+| Silhouetten | `.sc-companion-extracts/silhouette-cache/` | Mesh + `.cgam` + Tuning + Hash des Silhouetten-Codes; Einträge älteren Codes werden gelöscht |
+| 3D-Hüllen | `skins-<patch>/<ship>/skins.json` (`hull_src`) | Hülle + `.cgam` + Lack-`.mtl` + Pipeline-Tag + Budget-Einstellungen |
+| 3D-Teile, Interieur | `skins-<patch>/_parts`, `_interiors` (+ Index-`src`) | dieselbe Art Schlüssel; ein neuer Patch-Ordner wird aus dem vorigen per Hardlink vorbefüllt |
+
+Der Pipeline-Tag (`python/sc_extract/build_cache.py`) umfasst den Python-Code
+des 3D-Pfads, das cgf-converter-Binary und die vom Host übergebenen Versionen
+von gltf-transform/meshoptimizer (`--cache-salt`). Beide Cache-Ordner neben den
+Extrakten überleben jede Aufräum-Runde (`PERSISTENT_CACHE_DIRS` in
+`main/cleanup.ts`).
+
+Außerdem bewusst **nicht** mehr getan:
+- **Kein Roh-Dump aller DataCore-Records** (`records/`, hunderttausende
+  JSON-Dateien): nichts liest ihn, er wurde nach dem Upload gelöscht — und war
+  die größte Plattenlast eines Laufs. Der Host übergibt `--skip-generic`;
+  `records_total` wird weiterhin gezählt.
+- Silhouetten lesen jedes Mesh einmal (nicht bis zu dreimal pro Eintrag) und
+  konvertieren jedes **distinkte** Mesh einmal, parallel (Threads nach
+  Ressourcen-Grenze). Groß-/Kleinschreibungs-Suche in der P4K ist ein Index
+  statt eines linearen Durchlaufs über 1,37 Mio. Einträge pro Fehltreffer.
+
+Bewusst offen: Schiffshüllen werden für Silhouette (ohne `.mtl`) und 3D-Modell
+(mit `.mtl`) je einmal konvertiert — beide Ergebnisse sind gecacht, so dass das
+nur bei einer geänderten Hülle anfällt. Vorschaubilder liegen serverseitig pro
+Build (`codex-previews/<build>/…`) und gehen deshalb jeden Lauf neu hoch; das
+inhaltsbasiert zu machen bräuchte eine Änderung an Edge-Function und Website.
 
 ## Pause, Fortsetzen & Fehlertoleranz
 
