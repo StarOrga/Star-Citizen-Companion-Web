@@ -13,7 +13,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { createRequire } from 'node:module';
-import { createWriteStream, existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { app } from 'electron';
 import log from 'electron-log';
@@ -168,6 +168,35 @@ function optimizerEnv(): Record<string, string> {
   }
 }
 
+/**
+ * Versions of the bundled 3D tools (gltf-transform, meshoptimizer), folded
+ * into the sidecar's cross-patch reuse key (`build_cache.py`): an app update
+ * that ships another optimizer rebuilds the models instead of reusing ones
+ * the old optimizer produced. Empty when a version cannot be read — reuse
+ * then keys on the Python code and the converter binary alone.
+ */
+function toolSalt(): string {
+  const req = createRequire(import.meta.url);
+  const versionOf = (pkg: string): string => {
+    try {
+      const lib = req.resolve(pkg);
+      let dir = dirname(lib);
+      for (let i = 0; i < 4; i++) {
+        const pj = resolve(dir, 'package.json');
+        if (existsSync(pj)) {
+          const parsed = JSON.parse(readFileSync(pj, 'utf-8')) as { name?: string; version?: string };
+          if (parsed.name === pkg) return `${pkg}@${parsed.version ?? '?'}`;
+        }
+        dir = dirname(dir);
+      }
+    } catch {
+      /* not resolvable here */
+    }
+    return `${pkg}@?`;
+  };
+  return [versionOf('@gltf-transform/cli'), versionOf('meshoptimizer')].join('|');
+}
+
 export function startSkinExport(
   req: SkinExportRequest,
   onEvent: (ev: PythonExtractEvent) => void,
@@ -198,6 +227,7 @@ export function startSkinExport(
   if (req.skipExisting) args.push('--skip-existing');
   if (req.limitSkins) args.push('--limit-skins', String(req.limitSkins));
   if (req.workers) args.push('--workers', String(req.workers));
+  args.push('--cache-salt', toolSalt());
   args.push(...packageExportArgs(req));
 
   let child: ChildProcessWithoutNullStreams;

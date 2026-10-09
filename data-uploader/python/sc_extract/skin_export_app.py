@@ -93,7 +93,8 @@ class _PackageBuilder:
                                args.converter, self.optimize,
                                self.out / f"_work_parts{worker}", on_log=on_log,
                                index_name=f"index.{worker.strip('_')}.json" if worker
-                               else "index.json")
+                               else "index.json",
+                               pipeline=getattr(args, "pipeline_tag", "") or "")
         self.source = DataCoreSource(load_datacore(self.reader), self.reader,
                                      node_helpers=self.store.helpers)
         self.rows: list[dict] = []
@@ -110,6 +111,10 @@ class _PackageBuilder:
         nodes = glb_node_transforms(glb_materials.read_glb(raw_glb)[0])
         if nodes:
             self._hull_nodes[_geo_key(spec.hull_cga)] = nodes
+            # Fresh from the converter: authoritative, also over a primed row.
+            key = _geo_key(spec.hull_cga)
+            self.store.index["helpers:" + key] = nodes
+            self.store.index["helpers-src:" + key] = self.store.helpers_src(spec.hull_cga)
         if self.interior:
             self.store.work.mkdir(parents=True, exist_ok=True)
             dest = self.store.work / "hull_raw_for_interior.glb"
@@ -121,11 +126,6 @@ class _PackageBuilder:
         from .hull3d import hull_paint
         res = None
         try:
-            if spec is not None:
-                key = _geo_key(spec.hull_cga)
-                nodes = self._hull_nodes.get(key)
-                if nodes and not isinstance(self.store.index.get("helpers:" + key), dict):
-                    self.store.index["helpers:" + key] = nodes
             interior = None
             if self.interior and spec is not None:
                 paint = hull_paint(spec.paints)
@@ -297,6 +297,11 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--max-packages", type=int, default=None,
                     help="cap for --fps / --items: per glob pattern, or overall "
                          "when no class filter is given")
+    ap.add_argument("--cache-salt", default="",
+                    help="host tool versions (gltf-transform, meshoptimizer) folded into the "
+                         "cross-patch reuse key, so a tool upgrade rebuilds instead of reusing")
+    ap.add_argument("--no-reuse", action="store_true",
+                    help="do not take hulls/parts from an earlier patch's build")
     ap.add_argument("--workers", type=int, default=0,
                     help="ships built at once in separate processes (0 = auto from "
                          "cores and RAM, 1 = one after another)")
@@ -370,6 +375,8 @@ class _ShipRun:
             work_dir=args.out / f"_work{worker}", texture_size=args.texture_size,
             max_model_bytes=int(args.max_model_mb * 1e6),
             on_log=_on_log,
+            reuse_dirs=[args.reuse_dir] if getattr(args, "reuse_dir", None) else [],
+            pipeline=getattr(args, "pipeline_tag", "") or "",
         )
         self.exporter = Hull3DExporter(self.p4k, self.cfg)
         # Whole-catalog builds go through many ships — pre-bucket icons/materials
@@ -637,6 +644,18 @@ def main() -> int:
                 results[i] = (entry, None)
             else:
                 jobs.append((i, ref))
+        # Cross-patch reuse (build_cache): a new patch's dir starts from the
+        # previous patch's content-addressed stores, and every hull, part and
+        # interior whose P4K inputs and pipeline are byte-identical is taken
+        # from there instead of being converted again. Keyed by content, so a
+        # changed mesh is always rebuilt.
+        args.pipeline_tag = ""
+        args.reuse_dir = None
+        if jobs and not args.no_reuse:
+            from .build_cache import pipeline_tag, seed_from_previous
+            args.pipeline_tag = pipeline_tag(args.converter, args.cache_salt)
+            prev = seed_from_previous(args.out, log=_on_log)
+            args.reuse_dir = prev
         if args.workers > 0:
             # The host asks per speed profile; RAM still caps it (each worker
             # holds its own P4K index + DataCore).

@@ -81,8 +81,18 @@ def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
     no interior geometry. ``raw_glb`` = a copy of the hull's own raw,
     un-rigged converter output (same mesh, same paint) — it is consumed, and
     saves converting the whole hull a second time."""
+    # Same mesh, same paint, same pipeline → same interior: reuse it (also
+    # across patches, via the primed store index — see build_cache).
+    src = store.src_key([hull_cga, hull_cga + "m", paint_mtl], extra=f"interior|{simplify_error}")
+    hit, cached = store.cached_blob("interior:" + hull_cga, src, out_dir)
+    if hit:
+        if raw_glb is not None:
+            raw_glb.unlink(missing_ok=True)
+        store.log("info", "  interior: reused")
+        return cached
     scratch = store.work / "interior"
     shutil.rmtree(scratch, ignore_errors=True)
+    result: Optional[Path] = None
     try:
         if raw_glb is not None and raw_glb.exists():
             scratch.mkdir(parents=True, exist_ok=True)
@@ -91,6 +101,7 @@ def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
         else:
             raw = store.convert_raw(hull_cga, paint_mtl, scratch)
         if keep_only_interior(raw, store.log) == 0:
+            store.remember_blob("interior:" + hull_cga, src, None)
             return None
         glb_materials.strip_to_geometry(raw, store.log)
         opt = scratch / "interior_opt.glb"
@@ -99,7 +110,9 @@ def export_interior(store: PartStore, hull_cga: str, paint_mtl: Optional[str],
         out_dir.mkdir(parents=True, exist_ok=True)
         dest = out_dir / f"{sha}.glb"
         publish_blob(opt, dest)
-        return dest
+        result = dest
+        store.remember_blob("interior:" + hull_cga, src, dest)
+        return result
     finally:
         if not store.keep_work:
             shutil.rmtree(scratch, ignore_errors=True)

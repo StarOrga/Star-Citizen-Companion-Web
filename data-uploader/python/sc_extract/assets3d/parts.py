@@ -3,7 +3,11 @@ distinct item geometry.
 
 A part is keyed by its P4K geometry path (``Data/Objects/.../gun.cga``) and
 stored as ``<store>/<sha256>.glb``: one Behring gun model is converted once
-and reused by every ship (and every run, via ``index.json``). The GLB origin
+and reused by every ship (and every run, via ``index.json``). Every index row
+also carries ``src`` — the content key of the P4K files the conversion read
+plus the pipeline tag (`build_cache`) — and is only reused while it still
+matches, which is what lets a new patch start from the previous patch's store
+(`build_cache.seed_from_previous`) without ever serving a changed mesh. The GLB origin
 is the item's own model origin, which in CryEngine is its attach point, so a
 manifest placement transform positions it directly.
 
@@ -29,7 +33,8 @@ LogFn = Callable[[str, str], None]
 OptimizeFn = Callable[[Path, Path, int, float], None]
 
 # Bump when the part pipeline changes output; older index rows are rebuilt.
-PART_FORMAT = "part-geometry-v1"
+# v2: rows carry `src` (content key) — v1 rows had none and are rebuilt once.
+PART_FORMAT = "part-geometry-v2"
 
 
 @dataclass
@@ -172,7 +177,8 @@ class PartStore:
     def __init__(self, store_dir: Path, read: Callable[[str], bytes], exists: Callable[[str], bool],
                  converter: Path, optimize: OptimizeFn, work_dir: Path,
                  on_log: LogFn = lambda lvl, m: None, simplify_error: float = 0.0,
-                 keep_work: bool = False, index_name: str = "index.json") -> None:
+                 keep_work: bool = False, index_name: str = "index.json",
+                 pipeline: str = "") -> None:
         self.dir = store_dir.resolve()
         self.dir.mkdir(parents=True, exist_ok=True)
         self.read, self.exists = read, exists
@@ -197,6 +203,9 @@ class PartStore:
                 self.index.update(idx)
         self.index["_format"] = PART_FORMAT
         self.hits = self.misses = 0
+        # Pipeline tag folded into every content key (`build_cache.pipeline_tag`).
+        self.pipeline = pipeline
+        self._src_memo: Dict[Tuple[str, Optional[str]], str] = {}
         # Raw converter output kept between `helpers()` and `export()` of the
         # same geometry: a parent item (turret, rack) is converted once for its
         # node tree and once more as a part otherwise.
@@ -217,12 +226,47 @@ class PartStore:
     def path_of(self, sha: str) -> Path:
         return self.dir / f"{sha}.glb"
 
+    def src_key(self, paths: Sequence[Optional[str]], extra: str = "") -> str:
+        """Content key of the P4K files one conversion reads (memoized per run)."""
+        from ..build_cache import content_key
+        memo = ("|".join((p or "").lower() for p in paths), extra)
+        key = self._src_memo.get(memo)
+        if key is None:
+            key = content_key(self.read, self.exists, paths, self.pipeline, extra)
+            self._src_memo[memo] = key
+        return key
+
+    def part_src(self, geometry_path: str, material_path: Optional[str] = None) -> str:
+        return self.src_key([geometry_path, geometry_path + "m", material_path])
+
+    def _hit(self, row: object, src: str) -> bool:
+        """A stored row is reusable: same inputs, and its blob is still there."""
+        return (isinstance(row, dict) and row.get("src") == src
+                and (row.get("sha256") is None or self.path_of(row["sha256"]).exists()))
+
+    def cached_blob(self, name: str, src: str, blob_dir: Path) -> Tuple[bool, Optional[Path]]:
+        """(hit, path) for a named content-addressed output outside the part
+        store (the interior layer). A hit with ``None`` = "known to be empty"."""
+        row = self.index.get("blob:" + name.lower())
+        if not (isinstance(row, dict) and row.get("src") == src):
+            return False, None
+        sha = row.get("sha256")
+        if sha is None:
+            return True, None
+        path = blob_dir / f"{sha}.glb"
+        return (True, path) if path.exists() else (False, None)
+
+    def remember_blob(self, name: str, src: str, path: Optional[Path]) -> None:
+        self.index["blob:" + name.lower()] = {
+            "src": src, "sha256": path.stem if path is not None else None}
+
     def export(self, geometry_path: str, material_path: Optional[str] = None) -> PartRef:
         """Part for one geometry path; cached by path, deduped by content."""
         key = geometry_path.lower()
+        src = self.part_src(geometry_path, material_path)
         row = self.index.get(key)
-        if isinstance(row, dict) and (row.get("sha256") is None
-                                      or self.path_of(row["sha256"]).exists()):
+        if self._hit(row, src):
+            assert isinstance(row, dict)
             self.hits += 1
             return PartRef(sha256=row.get("sha256"), bytes=row.get("bytes", 0),
                            geometry_path=geometry_path, bounds=row.get("bounds"),
@@ -235,7 +279,7 @@ class PartStore:
                           error=f"{type(exc).__name__}: {exc}"[:300])
             self.log("warn", f"  part {geometry_path}: {ref.error}")
         self.index[key] = {"sha256": ref.sha256, "bytes": ref.bytes,
-                           "bounds": ref.bounds, "error": ref.error}
+                           "bounds": ref.bounds, "error": ref.error, "src": src}
         return ref
 
     def helpers(self, geometry_path: str, material_path: Optional[str] = None) -> Dict[str, dict]:
@@ -249,12 +293,12 @@ class PartStore:
         same mesh twice (`release_raw` drops what no export claimed)."""
         key = "helpers:" + geometry_path.lower()
         row = self.index.get(key)
-        if isinstance(row, dict):
+        if isinstance(row, dict) and self.index.get("helpers-src:" + geometry_path.lower()) \
+                == self.helpers_src(geometry_path):
             return row
         part_row = self.index.get(geometry_path.lower())
-        reuse = material_path is not None and not (
-            isinstance(part_row, dict) and (part_row.get("sha256") is None
-                                            or self.path_of(part_row["sha256"]).exists()))
+        reuse = material_path is not None and not self._hit(
+            part_row, self.part_src(geometry_path, material_path))
         scratch = self._scratch("part" if reuse else "nodes", geometry_path)
         shutil.rmtree(scratch, ignore_errors=True)
         kept = False
@@ -270,8 +314,17 @@ class PartStore:
         finally:
             if not kept and not self.keep_work:
                 shutil.rmtree(scratch, ignore_errors=True)
-        self.index[key] = row
+        self.set_helpers(geometry_path, row)
         return row
+
+    def helpers_src(self, geometry_path: str) -> str:
+        """Node transforms depend on the mesh alone, not on a material."""
+        return self.src_key([geometry_path, geometry_path + "m"])
+
+    def set_helpers(self, geometry_path: str, nodes: Dict[str, dict]) -> None:
+        """Store a mesh's node tree with the content key it was read from."""
+        self.index["helpers:" + geometry_path.lower()] = nodes
+        self.index["helpers-src:" + geometry_path.lower()] = self.helpers_src(geometry_path)
 
     def _scratch(self, prefix: str, geometry_path: str) -> Path:
         return self.work / f"{prefix}_{hashlib.sha1(geometry_path.lower().encode()).hexdigest()[:12]}"
@@ -317,8 +370,13 @@ class PartStore:
         :meth:`export`, deduped by content into the same store."""
         k = key.lower()
         row = self.index.get(k)
-        if isinstance(row, dict) and (row.get("sha256") is None
-                                      or self.path_of(row["sha256"]).exists()):
+        paths: List[Optional[str]] = []
+        for geo, mtl, _m in sources:
+            paths += [geo, geo + "m", mtl]
+        src = self.src_key([*paths, *extra_files],
+                           extra=repr([m for _g, _t, m in sources]))
+        if self._hit(row, src):
+            assert isinstance(row, dict)
             self.hits += 1
             return PartRef(sha256=row.get("sha256"), bytes=row.get("bytes", 0),
                            geometry_path=key, bounds=row.get("bounds"),
@@ -353,7 +411,7 @@ class PartStore:
             if not self.keep_work:
                 shutil.rmtree(scratch, ignore_errors=True)
         self.index[k] = {"sha256": ref.sha256, "bytes": ref.bytes,
-                         "bounds": ref.bounds, "error": ref.error}
+                         "bounds": ref.bounds, "error": ref.error, "src": src}
         return ref
 
     def _publish(self, raw: Path, scratch: Path, geometry_path: str) -> PartRef:
@@ -385,8 +443,8 @@ class PartStore:
         shutil.rmtree(scratch, ignore_errors=True)
         try:
             raw = self.convert_raw(geometry_path, material_path, scratch)
-            self.index.setdefault("helpers:" + geometry_path.lower(),
-                                  glb_node_transforms(glb_materials.read_glb(raw)[0]))
+            if self.index.get("helpers-src:" + geometry_path.lower()) != self.helpers_src(geometry_path):
+                self.set_helpers(geometry_path, glb_node_transforms(glb_materials.read_glb(raw)[0]))
             return self._publish(raw, scratch, geometry_path)
         finally:
             if not self.keep_work:
