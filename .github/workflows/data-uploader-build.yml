@@ -15,6 +15,11 @@ on:
       - 'supabase/functions/ingest-skins/**'
       - 'scripts/check-subtheme-revisions.mjs'
       - '.github/workflows/data-uploader-build.yml'
+  # Release without a local tag push (cloud sessions cannot push tags,
+  # dotclaude#566): builds the version in data-uploader/package.json, creates
+  # `data-uploader-v<version>` itself and registers the build on the ALPHA ring
+  # (never beta/stable — promotion stays a deliberate step in /admin).
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -84,7 +89,7 @@ jobs:
         run: python -m pytest tests/ -v
 
   build-windows:
-    if: startsWith(github.ref, 'refs/tags/data-uploader-v')
+    if: startsWith(github.ref, 'refs/tags/data-uploader-v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: [typecheck-and-test, python-sidecar-test]
     runs-on: windows-latest
     defaults:
@@ -111,6 +116,24 @@ jobs:
       SC_TELEMETRY_HMAC_KEY: ${{ secrets.SC_TELEMETRY_HMAC_KEY }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Resolve release tag
+        id: rel
+        # A tag push releases that tag. A manual dispatch releases the version
+        # in package.json as `data-uploader-v<version>` and refuses one that
+        # already exists — tags are monotonic, never re-used (ship rule 4).
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/data-uploader-v*') {
+            $tag = $env:GITHUB_REF_NAME
+          } else {
+            $ver = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            $tag = "data-uploader-v$ver"
+            if (git tag -l $tag) { Write-Error "$tag already exists - bump data-uploader/package.json first"; exit 1 }
+          }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "release tag: $tag"
       - name: Require telemetry signing key
         shell: pwsh
         run: |
@@ -176,16 +199,19 @@ jobs:
       - name: Publish to PRIVATE source-repo release (for maintainers + token artefact handoff)
         uses: softprops/action-gh-release@v3
         with:
+          # On a dispatch this also creates the tag, at the commit just built.
+          tag_name: ${{ steps.rel.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             data-uploader/release-builds/*.exe
             data-uploader/release-builds/*.blockmap
             data-uploader/release-builds/latest*.yml
           fail_on_unmatched_files: false
           body: |
-            Automated build from tag ${{ github.ref_name }}.
+            Automated build from tag ${{ steps.rel.outputs.tag }}.
 
             **Public download (end-users):** see the matching release in
-            [StarOrga/Star-Citizen-Companion-Binaries](https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/tag/${{ github.ref_name }})
+            [StarOrga/Star-Citizen-Companion-Binaries](https://github.com/StarOrga/Star-Citizen-Companion-Binaries/releases/tag/${{ steps.rel.outputs.tag }})
             — that's the URL `electron-updater` and the `desktop_releases`
             row should point at.
 
@@ -203,15 +229,15 @@ jobs:
         with:
           repository: StarOrga/Star-Citizen-Companion-Binaries
           token: ${{ secrets.BINARIES_RELEASE_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.rel.outputs.tag }}
+          name: ${{ steps.rel.outputs.tag }}
           files: |
             data-uploader/release-builds/*.exe
             data-uploader/release-builds/*.blockmap
             data-uploader/release-builds/latest*.yml
           fail_on_unmatched_files: false
           body: |
-            Automated mirror of [source release](https://github.com/StarOrga/Star-Citizen-Companion-Web/releases/tag/${{ github.ref_name }}).
+            Automated mirror of [source release](https://github.com/StarOrga/Star-Citizen-Companion-Web/releases/tag/${{ steps.rel.outputs.tag }}).
 
             Binaries are signed by the build, not by a code-signing cert
             (Phase-2 limitation — Windows SmartScreen will warn on first
@@ -241,7 +267,7 @@ jobs:
         #      the ring soak.
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"
+          $tag = "${{ steps.rel.outputs.tag }}"
           # Read the binary version from the build output filename — that's
           # the truth (matches __SC_TOOL_VERSION__ inside the binary), not
           # the tag (which can be a CI-retry cookie on the same source).
