@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.144.0] - 2026-10-12
+
+### Changed
+
+- **Data Uploader 0.52.0: Performance-Dock zeigt die echte PC-Auslastung.**
+  Das Dock heißt jetzt „Performance“ statt „Ressourcen“. Nadel und große Zahl
+  jedes Tachos zeigen die Last des ganzen PCs wie im Task-Manager (Prozessor,
+  Arbeitsspeicher, Disk lesen/schreiben, Disk-Zugriffe), ein dünner innerer
+  Bogen den Anteil des Uploader-Laufs, der helle Bogen bis zum Griff die
+  Grenze. Bisher zeigten die Tachos nur den eigenen Lauf und blieben im
+  Leerlauf auf null. Die Zeile im eingeklappten Dock zeigt die PC-Last,
+  Lauf und Grenze stehen im Tooltip. Werte unter 1 GB Arbeitsspeicher stehen
+  in MB, Zugriffe kompakt als „3.0k“.
+
+### Fixed
+
+- **Data Uploader: Laufwerkstyp wird wieder erkannt.** Auf einem
+  ausgelasteten PC brauchte die erste Laufwerksabfrage länger als 15 Sekunden,
+  dann blieb das Laufwerk „unbekannt“ und die Disk-Skalen falsch. Die Abfrage
+  hat jetzt 60 Sekunden, und ein Fehlschlag wird nicht mehr gespeichert, sodass
+  der nächste Versuch neu fragt.
+
 ## [0.143.0] - 2026-10-12
 
 ### Added

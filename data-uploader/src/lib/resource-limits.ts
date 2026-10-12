@@ -269,6 +269,10 @@ export interface ResourceSample {
   readMBs: number;
   writeMBs: number;
   iops: number;
+  /** The whole PC's disk load (Task Manager), null until the monitor reports. */
+  sysReadMBs: number | null;
+  sysWriteMBs: number | null;
+  sysIops: number | null;
   /** Share of the last second the governor held the run back for a disk budget, 0..1. */
   heldBack: number;
   /** True while a sidecar is running under the governor. */

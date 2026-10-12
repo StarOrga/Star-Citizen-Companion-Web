@@ -406,7 +406,7 @@
     }
   },
   "res": {
-    "title": "Resources",
+    "title": "Performance",
     "toggleHint": "Set how much of the PC the uploader may use",
     "cpu": "Processor",
     "ram": "Memory",
@@ -416,6 +416,9 @@
     "gpu": "Graphics card",
     "gpuNote": "Not used — extraction, silhouettes and the 3D build run on the processor only.",
     "of": "limit {{limit}}",
+    "runOf": "uploader {{run}} / {{limit}}",
+    "mini": "Whole-PC load · uploader {{run}} / {{limit}}",
+    "miniIdle": "Whole-PC load · uploader limit {{limit}}",
     "presetsAria": "Presets",
     "preset": {
       "gaming": "While gaming",
@@ -443,7 +446,7 @@
       "noHardCap": "The hard CPU limit could not be set — the run continues at low priority.",
       "unsupported": "On this system only the number of parallel workers applies; hard limits are Windows-only."
     },
-    "foot": "Drag the dial's handle or use the arrow keys. The needle shows what the run uses right now; the hatched part is held by Windows and other programs. Memory decides how many workers the next step starts."
+    "foot": "Drag the dial's handle or use the arrow keys. The needle and the big number show the whole PC's load as in Task Manager, the inner arc the uploader's share, the bright arc up to the handle its limit. Memory decides how many workers the next step starts."
   },
   "pipeline": {
     "stepOf": "Step {{n}} of {{total}}",
