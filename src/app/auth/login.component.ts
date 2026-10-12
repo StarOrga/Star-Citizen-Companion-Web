@@ -138,8 +138,11 @@ type Panel = 'signIn' | 'apply' | 'reset';
 
               <div class="sep"><span>{{ 'auth.or' | translate }}</span></div>
 
-              <button type="button" class="sc-btn google" (click)="signInWithGoogle()" [disabled]="busy()">
+              <button type="button" class="sc-btn oauth" (click)="signInWithGoogle()" [disabled]="busy()">
                 {{ 'auth.continueGoogle' | translate }}
+              </button>
+              <button type="button" class="sc-btn oauth" (click)="signInWithDiscord()" [disabled]="busy()">
+                {{ 'auth.continueDiscord' | translate }}
               </button>
 
               <p class="invite-only">
@@ -462,7 +465,8 @@ type Panel = 'signIn' | 'apply' | 'reset';
       height: 1px;
       background: var(--sc-border);
     }
-    .google { width: 100%; justify-content: center; }
+    .oauth { width: 100%; justify-content: center; }
+    .oauth + .oauth { margin-top: 8px; }
 
     /* Stacked layout: brand first — the point of the page is that a visitor
        knows what this is before anything else. The prose is what gives way so
@@ -688,7 +692,15 @@ export class LoginComponent {
     );
   }
 
-  async signInWithGoogle() {
+  signInWithGoogle() {
+    return this.signInWithOAuthProvider('google');
+  }
+
+  signInWithDiscord() {
+    return this.signInWithOAuthProvider('discord');
+  }
+
+  private async signInWithOAuthProvider(provider: 'google' | 'discord') {
     if (this.previewLocked()) {
       // Same reasoning as onSubmit(): sc.viewAs is sessionStorage, so it
       // survives the OAuth round trip and would loop back to /login too.
@@ -713,12 +725,14 @@ export class LoginComponent {
       } catch { /* private mode / disabled storage — fall back to URL */ }
       target = target.slice(0, qIdx);
     }
-    const { error } = await this.auth.signInWithGoogle(target);
+    const { error } = provider === 'discord'
+      ? await this.auth.signInWithDiscord(target)
+      : await this.auth.signInWithGoogle(target);
     if (error) {
-      this.errorMsg.set(authErrorKey(error, 'google sign-in'));
+      this.errorMsg.set(authErrorKey(error, `${provider} sign-in`));
       this.busy.set(false);
     } else {
-      this.analytics.capture('user_signed_in_with_google', { provider: 'google' });
+      this.analytics.capture(`user_signed_in_with_${provider}`, { provider });
     }
   }
 }

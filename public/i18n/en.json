@@ -71,6 +71,7 @@
     "haveAccount": "Have an account?",
     "or": "or",
     "continueGoogle": "Continue with Google",
+    "continueDiscord": "Continue with Discord",
     "inviteOnly": "Access is invite-only. Ask an admin to invite you.",
     "deniedInvite": "This account hasn't been invited yet. The site is invite-only — ask an admin to send you an invitation.",
     "unavailable": {
