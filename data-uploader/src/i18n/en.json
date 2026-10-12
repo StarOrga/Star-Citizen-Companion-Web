@@ -406,7 +406,7 @@
     }
   },
   "res": {
-    "title": "Resources",
+    "title": "Performance",
     "toggleHint": "Set how much of the PC the uploader may use",
     "cpu": "Processor",
     "ram": "Memory",

@@ -95,6 +95,8 @@ function num(key: ResourceKey, v: number): string {
 }
 
 function fmt(key: ResourceKey, v: number): string {
+  // A run that holds a few dozen MB is not "0.0 GB".
+  if (key === 'ramMb' && v > 0 && v < 1024) return `${Math.round(v)} MB`;
   return `${num(key, v)} ${unit(key)}`;
 }
 

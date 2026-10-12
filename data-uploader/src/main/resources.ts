@@ -177,6 +177,7 @@ export async function detectDisk(path: unknown): Promise<ResourceView> {
       `$n=(Get-Partition -DriveLetter ${letter}).DiskNumber;` +
       `$p=Get-PhysicalDisk | Where-Object { $_.DeviceId -eq "$n" } | Select-Object -First 1;` +
       `Write-Output "$($p.MediaType)|$($p.BusType)"`;
+    const started = Date.now();
     const out = await new Promise<string>((resolve) => {
       let text = '';
       try {
@@ -185,19 +186,25 @@ export async function detectDisk(path: unknown): Promise<ResourceView> {
         });
         child.stdout.on('data', (d: Buffer) => (text += d.toString('utf-8')));
         child.on('error', () => resolve(''));
-        child.on('exit', () => resolve(text.trim()));
+        // 'close', not 'exit': 'exit' can fire before stdout is drained, which
+        // read as "" and left every drive "unknown".
+        child.on('close', () => resolve(text.trim()));
         setTimeout(() => {
           child.kill();
           resolve(text.trim());
-        }, 15_000).unref();
+        // The Storage WMI provider loads cold on the first query; right after
+        // app start on a busy PC that took longer than 15 s and the drive
+        // stayed "unknown" for the whole session.
+        }, 60_000).unref();
       } catch {
         resolve('');
       }
     });
     const [media, bus] = out.split('|');
     caps = DISK_CAPS[diskKindFrom(media, bus)];
-    diskCache.set(letter, caps);
-    log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind}`);
+    // A failed query is not cached — the next selection of that drive asks again.
+    if (out) diskCache.set(letter, caps);
+    log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind} (${Date.now() - started} ms)`);
   }
   if (caps.kind === machine.disk.kind) return view();
   machine.disk = caps;
