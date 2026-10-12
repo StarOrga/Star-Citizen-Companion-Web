@@ -22,12 +22,14 @@ import { ViewAs } from './impersonation-policy';
 describe('LoginComponent — signed-out preview lock', () => {
   let signInWithPassword: jasmine.Spy;
   let signInWithGoogle: jasmine.Spy;
+  let signInWithDiscord: jasmine.Spy;
   let exit: jasmine.Spy;
   let viewAs: ViewAs | null;
 
   function setup() {
     signInWithPassword = jasmine.createSpy('signInWithPassword').and.resolveTo({ error: null });
     signInWithGoogle = jasmine.createSpy('signInWithGoogle').and.resolveTo({ error: null });
+    signInWithDiscord = jasmine.createSpy('signInWithDiscord').and.resolveTo({ error: null });
     exit = jasmine.createSpy('exit');
     TestBed.configureTestingModule({
       imports: [LoginComponent],
@@ -35,7 +37,7 @@ describe('LoginComponent — signed-out preview lock', () => {
         provideTranslateService(),
         provideRouter([]),
         { provide: AccessRequestService, useValue: { submit: () => Promise.resolve({ kind: 'ok' }) } },
-        { provide: AuthService, useValue: { ready: () => false, realUser: () => null, signInWithPassword, signInWithGoogle } },
+        { provide: AuthService, useValue: { ready: () => false, realUser: () => null, signInWithPassword, signInWithGoogle, signInWithDiscord } },
         { provide: AnalyticsService, useValue: { capture: () => {} } },
         { provide: SupabaseClientProvider, useValue: { client: {} } },
         { provide: ImpersonationService, useValue: { viewAs: () => viewAs, exit } },
@@ -80,6 +82,34 @@ describe('LoginComponent — signed-out preview lock', () => {
 
     expect(signInWithGoogle).not.toHaveBeenCalled();
     expect(comp.errorMsg()).toBeTruthy();
+  });
+
+  it('refuses signInWithDiscord() while previewing as anon', async () => {
+    viewAs = 'anon';
+    const fixture = setup();
+    const comp = fixture.componentInstance;
+
+    await comp.signInWithDiscord();
+
+    expect(signInWithDiscord).not.toHaveBeenCalled();
+    expect(comp.errorMsg()).toBeTruthy();
+  });
+
+  it('signInWithDiscord() starts the Discord OAuth flow, not Google', async () => {
+    viewAs = null;
+    const fixture = setup();
+    const comp = fixture.componentInstance;
+
+    await comp.signInWithDiscord();
+
+    expect(signInWithDiscord).toHaveBeenCalledTimes(1);
+    expect(signInWithGoogle).not.toHaveBeenCalled();
+  });
+
+  it('renders a Discord button next to Google', () => {
+    viewAs = null;
+    const fixture = setup();
+    expect(fixture.nativeElement.querySelectorAll('button.oauth').length).toBe(2);
   });
 
   it('leavePreview() calls ImpersonationService.exit()', () => {

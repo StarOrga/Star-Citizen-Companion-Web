@@ -153,10 +153,18 @@ export class AuthService {
   }
 
   async signInWithGoogle(returnPath = '/news') {
+    return this.signInWithOAuthProvider('google', returnPath);
+  }
+
+  async signInWithDiscord(returnPath = '/news') {
+    return this.signInWithOAuthProvider('discord', returnPath);
+  }
+
+  private async signInWithOAuthProvider(provider: 'google' | 'discord', returnPath: string) {
     // returnPath must be a same-origin absolute path; the caller is
     // responsible for sanitizing it (see LoginComponent.safeRedirectTarget).
     return this.sb.realClient.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: {
         redirectTo:
           typeof window !== 'undefined' ? `${window.location.origin}${returnPath}` : undefined,
