@@ -14,8 +14,10 @@
  *  2. the worker count of the NEXT stage is sized from them ({@link workers});
  *  3. the upload loops pace themselves at their work-unit boundaries.
  *
- * It also measures: machine-wide CPU and RAM, this app's own memory, and the
- * run's share from the governors' samples — the panel draws all of it. The
+ * It also measures: the whole PC's CPU and disk load the way Task Manager
+ * shows it (`python/sc_extract/sysmon.py`, Windows performance counters),
+ * machine-wide RAM, this app's own memory, and the run's share from the
+ * governors' samples — the panel draws all of it. The
  * sampler only ticks while a job runs or a visible window watches, so the idle
  * tray budget (README "Idle behaviour") stays at zero periodic work.
  */
@@ -177,6 +179,7 @@ export async function detectDisk(path: unknown): Promise<ResourceView> {
       `$n=(Get-Partition -DriveLetter ${letter}).DiskNumber;` +
       `$p=Get-PhysicalDisk | Where-Object { $_.DeviceId -eq "$n" } | Select-Object -First 1;` +
       `Write-Output "$($p.MediaType)|$($p.BusType)"`;
+    const started = Date.now();
     const out = await new Promise<string>((resolve) => {
       let text = '';
       try {
@@ -185,19 +188,25 @@ export async function detectDisk(path: unknown): Promise<ResourceView> {
         });
         child.stdout.on('data', (d: Buffer) => (text += d.toString('utf-8')));
         child.on('error', () => resolve(''));
-        child.on('exit', () => resolve(text.trim()));
+        // 'close', not 'exit': 'exit' can fire before stdout is drained, which
+        // read as "" and left every drive "unknown".
+        child.on('close', () => resolve(text.trim()));
         setTimeout(() => {
           child.kill();
           resolve(text.trim());
-        }, 15_000).unref();
+        // The Storage WMI provider loads cold on the first query; right after
+        // app start on a busy PC that took longer than 15 s and the drive
+        // stayed "unknown" for the whole session.
+        }, 60_000).unref();
       } catch {
         resolve('');
       }
     });
     const [media, bus] = out.split('|');
     caps = DISK_CAPS[diskKindFrom(media, bus)];
-    diskCache.set(letter, caps);
-    log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind}`);
+    // A failed query is not cached — the next selection of that drive asks again.
+    if (out) diskCache.set(letter, caps);
+    log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind} (${Date.now() - started} ms)`);
   }
   if (caps.kind === machine.disk.kind) return view();
   machine.disk = caps;
@@ -311,6 +320,78 @@ let sampler: NodeJS.Timeout | null = null;
 let watchers = 0;
 let prevCpu: { idle: number; total: number } | null = null;
 
+// ── Whole-PC monitor ────────────────────────────────────────────────────────
+
+interface SystemLoad {
+  cpuPct: number;
+  readBps: number;
+  writeBps: number;
+  iops: number;
+}
+
+let sysmon: ChildProcessWithoutNullStreams | null = null;
+let systemLoad: SystemLoad | null = null;
+
+/** Task Manager's numbers for the whole PC; runs exactly as long as the sampler. */
+function startSysmon(): void {
+  if (sysmon || !SUPPORTED) return;
+  const { interpreter, cwd } = resolvePythonPaths();
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    child = spawn(interpreter, ['-E', '-s', '-B', '-u', '-X', 'utf8', '-m', 'sc_extract.sysmon'], {
+      cwd,
+      env: process.env,
+      windowsHide: true,
+    });
+  } catch (err) {
+    log.warn('[resources] sysmon spawn failed:', err instanceof Error ? err.message : String(err));
+    return;
+  }
+  sysmon = child;
+  child.on('error', (err) => log.warn('[resources] sysmon:', err.message));
+  child.stderr.on('data', (d: Buffer) => log.warn(`[resources] sysmon stderr: ${d.toString('utf-8').trim().slice(0, 300)}`));
+  child.stdin.on('error', () => undefined);
+  createInterface({ input: child.stdout }).on('line', (line) => {
+    let ev: Record<string, unknown>;
+    try {
+      ev = JSON.parse(line) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    if (ev.type === 'sample') {
+      systemLoad = {
+        cpuPct: Number(ev.cpuPct) || 0,
+        readBps: Number(ev.readBps) || 0,
+        writeBps: Number(ev.writeBps) || 0,
+        iops: Number(ev.iops) || 0,
+      };
+    } else if (ev.type === 'error') {
+      log.warn(`[resources] sysmon: ${String(ev.message)}`);
+    }
+  });
+  child.on('exit', () => {
+    if (sysmon === child) {
+      sysmon = null;
+      systemLoad = null;
+    }
+  });
+}
+
+function stopSysmon(): void {
+  const child = sysmon;
+  sysmon = null;
+  systemLoad = null;
+  if (!child) return;
+  try {
+    child.stdin.end();
+  } catch {
+    /* already closed */
+  }
+  setTimeout(() => {
+    if (child.exitCode === null) child.kill();
+  }, 3000).unref();
+}
+
 function cpuTimes(): { idle: number; total: number } {
   let idle = 0;
   let total = 0;
@@ -347,6 +428,9 @@ function takeSample(): ResourceSample {
     hardCap = hardCap && g.sample.hardCap;
   }
   const mb = 1024 * 1024;
+  const sys = systemLoad;
+  // Task Manager's value when the monitor runs; the idle-time estimate until then.
+  if (sys) cpuTotalPct = sys.cpuPct;
   return {
     t: Date.now(),
     cpuTotalPct: Math.round(Math.max(0, Math.min(100, cpuTotalPct)) * 10) / 10,
@@ -357,6 +441,9 @@ function takeSample(): ResourceSample {
     readMBs: Math.round((run.readBps / mb) * 10) / 10,
     writeMBs: Math.round((run.writeBps / mb) * 10) / 10,
     iops: run.iops,
+    sysReadMBs: sys ? Math.round((sys.readBps / mb) * 10) / 10 : null,
+    sysWriteMBs: sys ? Math.round((sys.writeBps / mb) * 10) / 10 : null,
+    sysIops: sys ? Math.round(sys.iops) : null,
     heldBack: run.heldBack,
     running: governors.size > 0,
     hardCap,
@@ -372,12 +459,14 @@ function tick(): void {
 function ensureSampler(): void {
   if (sampler) return;
   prevCpu = cpuTimes();
+  startSysmon();
   sampler = setInterval(tick, 1000);
 }
 
 function stopSampler(): void {
   if (sampler) clearInterval(sampler);
   sampler = null;
+  stopSysmon();
 }
 
 /** A visible window wants live numbers (true) or stopped looking (false). */
