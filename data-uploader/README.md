@@ -113,6 +113,13 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 | Disk lesen / schreiben (MB/s), Disk-Zugriffe (/s) | Laufwerksklasse der Data.p4k (NVMe / SATA-SSD / HDD, per `Get-PhysicalDisk`) | Governor pausiert den Baum genau so lange, bis das Budget wieder im Plus ist (Duty-Cycle, 250 ms Auflösung) |
 | Grafikkarte | — | wird nicht genutzt (alles läuft auf der CPU); das Dock sagt das |
 
+- **Tacho**: Nadel und große Zahl zeigen die **Gesamtlast des PCs** wie im
+  Task-Manager, der innere Bogen den Anteil des Uploader-Laufs, der helle Bogen
+  bis zum Griff dessen Grenze. Die Gesamtlast liefert
+  `python/sc_extract/sysmon.py` (Windows-Leistungsindikatoren über
+  `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = `% Processor Utility`
+  wie im Task-Manager). Er läuft nur, solange der Sampler tickt (sichtbares
+  Fenster oder laufender Job).
 - **Governor** (`python/sc_extract/governor.py`): ein kleiner Prozess pro
   laufendem Sidecar (`main/resources.ts` startet ihn in `registerJob`). Er legt
   den Sidecar in ein Job Object — jeder Worker, `cgf-converter` und der

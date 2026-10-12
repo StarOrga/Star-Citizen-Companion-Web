@@ -7,12 +7,12 @@
  * speedometer:
  *
  *   - the scale is this machine's (cores → 100 %, total RAM, the drive class);
- *   - the hatched end of the dial is what the run can never have: RAM and CPU
- *     other programs (and this app itself) hold right now, and the CPU share
- *     always kept for Windows;
+ *   - the hatched end of the dial is what the run can never have (the CPU
+ *     share always kept for Windows, the RAM the limit range leaves out);
  *   - the bright arc up to the handle is the operator's limit — drag the handle
  *     (or focus the dial and use the arrow keys) to move it;
- *   - the needle is what the run uses right now.
+ *   - the needle is the whole PC's load, the number Task Manager shows;
+ *   - the solid inner arc is the run's share of it.
  *
  * Main owns the limits (`main/resources.ts`); this module only mirrors them and
  * writes through `window.sc.resources`. Every change reaches the running
@@ -90,7 +90,9 @@ function num(key: ResourceKey, v: number): string {
     case 'writeMBs':
       return v >= 100 ? String(Math.round(v)) : v.toFixed(v >= 10 ? 0 : 1);
     case 'iops':
-      return v >= 10000 ? `${Math.round(v / 1000)}k` : Math.round(v).toLocaleString();
+      // No locale grouping: "3.314" reads as a decimal next to "0.2 MB/s".
+      if (v >= 10000) return `${Math.round(v / 1000)}k`;
+      return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
   }
 }
 
@@ -132,7 +134,29 @@ function current(key: ResourceKey, s: ResourceSample | null): number {
   }
 }
 
-/** The part of the scale the run cannot have right now (drawn hatched at the end). */
+/** The whole PC's load — Task Manager's number; the run's own value until the monitor reports. */
+function total(key: ResourceKey, s: ResourceSample | null): number {
+  if (!s) return 0;
+  switch (key) {
+    case 'cpuPct':
+      return s.cpuTotalPct;
+    case 'ramMb':
+      return s.ramUsedMb;
+    case 'readMBs':
+      return s.sysReadMBs ?? s.readMBs;
+    case 'writeMBs':
+      return s.sysWriteMBs ?? s.writeMBs;
+    case 'iops':
+      return s.sysIops ?? s.iops;
+  }
+}
+
+/** The part of the scale no limit can reach (drawn hatched at the end). */
+function reserved(key: ResourceKey, v: ResourceViewLike): number {
+  return Math.max(0, scaleMax(key, v) - v.ranges[key].max);
+}
+
+/** The part of the scale the run cannot have right now — caps the RAM handle. */
 function taken(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | null): number {
   if (key === 'cpuPct') {
     const others = s ? Math.max(0, s.cpuTotalPct - s.cpuRunPct) : 0;
@@ -188,12 +212,13 @@ function dialSvg(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | null
   const max = scaleMax(key, v);
   const limit = limitOf(key);
   const use = current(key, s);
-  const takenAmt = taken(key, v, s);
-  const free = max - takenAmt;
+  const pc = total(key, s);
+  const reserve = reserved(key, v);
   const aLimit = angleFor(limit, max);
   const aUse = angleFor(use, max);
-  const aTaken = angleFor(free, max);
-  const over = (s?.running && use > limit * 1.05) || limit > free;
+  const aPc = angleFor(pc, max);
+  const aReserve = angleFor(max - reserve, max);
+  const over = (s?.running && use > limit * 1.05) || limit > max - taken(key, v, s);
   const ticks = Array.from({ length: 9 }, (_, i) => {
     const a = START + (SWEEP * i) / 8;
     const [x1, y1] = pt(a, R + 7);
@@ -201,17 +226,18 @@ function dialSvg(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | null
     return `<line class="dial-tick" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
   }).join('');
   const [hx, hy] = pt(aLimit);
-  const [nx, ny] = pt(aUse, R - 12);
+  const [nx, ny] = pt(aPc, R - 12);
   return `
     <path class="dial-track" d="${arc(START, START + SWEEP)}"/>
-    ${takenAmt > 0 ? `<path class="dial-taken" d="${arc(aTaken, START + SWEEP)}"/>` : ''}
+    ${reserve > 0 ? `<path class="dial-taken" d="${arc(aReserve, START + SWEEP)}"/>` : ''}
     <path class="dial-limit ${over ? 'is-over' : ''}" d="${arc(START, aLimit)}"/>
+    ${use > 0 ? `<path class="dial-run" d="${arc(START, aUse, R - 9)}"/>` : ''}
     ${ticks}
     <line class="dial-needle" x1="${CX}" y1="${CY}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}"/>
     <circle class="dial-hub" cx="${CX}" cy="${CY}" r="4"/>
     <circle class="dial-handle ${over ? 'is-over' : ''}" cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" r="7"/>
-    <text class="dial-value" x="${CX}" y="${CY + 26}" text-anchor="middle">${fmt(key, use)}</text>
-    <text class="dial-limit-text" x="${CX}" y="${CY + 40}" text-anchor="middle">${t('res.of', { limit: fmt(key, limit) })}</text>`;
+    <text class="dial-value" x="${CX}" y="${CY + 26}" text-anchor="middle">${fmt(key, pc)}</text>
+    <text class="dial-limit-text" x="${CX}" y="${CY + 40}" text-anchor="middle">${s?.running ? t('res.runOf', { run: num(key, use), limit: fmt(key, limit) }) : t('res.of', { limit: fmt(key, limit) })}</text>`;
 }
 
 function dialNote(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | null): string {
@@ -249,11 +275,15 @@ function miniHtml(key: ResourceKey): string {
   if (!view) return '';
   const limit = limitOf(key);
   const use = current(key, sample);
-  const pct = limit > 0 ? Math.min(100, (use / limit) * 100) : 0;
-  return `<span class="res-mini" id="res-mini-${key}">
+  const max = scaleMax(key, view);
+  const pct = max > 0 ? Math.min(100, (total(key, sample) / max) * 100) : 0;
+  const tip = sample?.running
+    ? t('res.mini', { run: num(key, use), limit: fmt(key, limit) })
+    : t('res.miniIdle', { limit: fmt(key, limit) });
+  return `<span class="res-mini" id="res-mini-${key}" data-tip="${tip}">
       <span class="res-mini-label">${t(LABEL[key])}</span>
       <span class="res-mini-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
-      <span class="res-mini-val">${sample?.running ? `${num(key, use)} / ` : ''}${fmt(key, limit)}</span>
+      <span class="res-mini-val">${fmt(key, total(key, sample))}</span>
     </span>`;
 }
 

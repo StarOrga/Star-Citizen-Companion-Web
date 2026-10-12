@@ -416,6 +416,9 @@
     "gpu": "Grafikkarte",
     "gpuNote": "Wird nicht genutzt — Extraktion, Silhouetten und 3D-Build rechnen ausschließlich auf dem Prozessor.",
     "of": "Grenze {{limit}}",
+    "runOf": "Uploader {{run}} / {{limit}}",
+    "mini": "Gesamtlast des PCs · Uploader {{run}} / {{limit}}",
+    "miniIdle": "Gesamtlast des PCs · Grenze für den Uploader {{limit}}",
     "presetsAria": "Voreinstellungen",
     "preset": {
       "gaming": "Beim Spielen",
@@ -443,7 +446,7 @@
       "noHardCap": "Die harte CPU-Grenze ließ sich nicht setzen — der Lauf läuft mit niedriger Priorität weiter.",
       "unsupported": "Auf diesem System wirkt nur die Anzahl paralleler Worker; harte Grenzen gibt es nur unter Windows."
     },
-    "foot": "Ziehe den Griff am Tacho oder nutze die Pfeiltasten. Die Nadel zeigt den aktuellen Verbrauch des Laufs, der schraffierte Bereich ist von Windows und anderen Programmen belegt. Der Arbeitsspeicher bestimmt, wie viele Worker der nächste Schritt startet."
+    "foot": "Ziehe den Griff am Tacho oder nutze die Pfeiltasten. Die Nadel und die große Zahl zeigen die Gesamtlast des PCs wie im Task-Manager, der innere Bogen den Anteil des Uploaders, der helle Bogen bis zum Griff seine Grenze. Der Arbeitsspeicher bestimmt, wie viele Worker der nächste Schritt startet."
   },
   "pipeline": {
     "stepOf": "Schritt {{n}} von {{total}}",
