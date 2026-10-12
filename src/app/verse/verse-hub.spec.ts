@@ -164,6 +164,21 @@ describe('Verse hub — components', () => {
     beta.set({ ...beta(), briefing: true });
   });
 
+  it('layout sub-nav reaches Patch News and the Starscape gallery with every β off', () => {
+    const before = beta();
+    beta.set({ briefing: false, news: false, patches: false, gallery: false, starmap: false });
+    const fixture = TestBed.createComponent(VerseLayoutComponent);
+    fixture.detectChanges();
+    const hrefs = () =>
+      Array.from(fixture.nativeElement.querySelectorAll('nav.verse-nav a') as NodeListOf<HTMLAnchorElement>)
+        .map((a) => a.getAttribute('href'));
+    expect(hrefs()).toEqual(['/verse', '/verse/patches', '/verse/gallery']);
+    beta.set({ ...beta(), briefing: true, starmap: true });
+    fixture.detectChanges();
+    expect(hrefs()).toEqual(['/verse', '/verse/news', '/verse/patches', '/verse/gallery', '/verse/explorer']);
+    beta.set(before);
+  });
+
   it('layout β pill toggles the current area', () => {
     const fixture = TestBed.createComponent(VerseLayoutComponent);
     fixture.detectChanges();

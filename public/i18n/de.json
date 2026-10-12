@@ -4678,6 +4678,9 @@
       "gallery": "Galerie",
       "starmap": "Sternkarte"
     },
+    "nav": {
+      "aria": "Verse-Bereiche"
+    },
     "kind": {
       "news": "Meldung",
       "patch": "Patch",
