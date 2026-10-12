@@ -1,7 +1,49 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.142.0",
+  "current": "0.144.0",
   "releases": [
+    {
+      "version": "0.144.0",
+      "date": "2026-10-12",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.52.0: Performance-Dock zeigt die echte PC-Auslastung.",
+              "text": "Das Dock heißt jetzt „Performance“ statt „Ressourcen“. Nadel und große Zahl jedes Tachos zeigen die Last des ganzen PCs wie im Task-Manager (Prozessor, Arbeitsspeicher, Disk lesen/schreiben, Disk-Zugriffe), ein dünner innerer Bogen den Anteil des Uploader-Laufs, der helle Bogen bis zum Griff die Grenze. Bisher zeigten die Tachos nur den eigenen Lauf und blieben im Leerlauf auf null. Die Zeile im eingeklappten Dock zeigt die PC-Last, Lauf und Grenze stehen im Tooltip. Werte unter 1 GB Arbeitsspeicher stehen in MB, Zugriffe kompakt als „3.0k“."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader: Laufwerkstyp wird wieder erkannt.",
+              "text": "Auf einem ausgelasteten PC brauchte die erste Laufwerksabfrage länger als 15 Sekunden, dann blieb das Laufwerk „unbekannt“ und die Disk-Skalen falsch. Die Abfrage hat jetzt 60 Sekunden, und ein Fehlschlag wird nicht mehr gespeichert, sodass der nächste Versuch neu fragt."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.143.0",
+      "date": "2026-10-12",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Anmeldung mit Discord.",
+              "text": "Auf der Login-Seite steht jetzt neben Google „Mit Discord fortfahren“. Das gilt auch für die Verbindung der Desktop-App (/desktop/connect), die abgemeldete Nutzer über die Login-Seite schickt. Neue Konten bleiben wie bisher einladungspflichtig."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.142.0",
       "date": "2026-10-09",
