@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -17,13 +17,6 @@ export function verseAreaOf(root: ActivatedRouteSnapshot | null): VerseBetaArea 
   return area;
 }
 
-/** One entry of the Verse sub-navigation. */
-export interface VerseNavLink {
-  link: string;
-  labelKey: string;
-  exact: boolean;
-}
-
 /**
  * Frame of the Verse tab: the routed area plus the sticky β dock in the
  * free bottom-left corner. The dock switches the CURRENT area between the new
@@ -33,19 +26,9 @@ export interface VerseNavLink {
 @Component({
   selector: 'sc-verse-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslatePipe, ScTooltipDirective],
+  imports: [RouterOutlet, TranslatePipe, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- The areas of the ONE Verse tab, independent of the β switches: the
-         briefing gates are the only other way into Patch News and the
-         Starscape gallery, and they only exist with the briefing β on. -->
-    <nav class="verse-nav" [attr.aria-label]="'verse.nav.aria' | translate">
-      @for (l of links(); track l.link) {
-        <a [routerLink]="l.link" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: l.exact }"
-           ariaCurrentWhenActive="page">{{ l.labelKey | translate }}</a>
-      }
-    </nav>
-
     <router-outlet />
 
     <aside class="beta-dock" [attr.aria-label]="'verse.beta.aria' | translate" (keydown.escape)="open.set(false)">
@@ -90,21 +73,6 @@ export interface VerseNavLink {
   `,
   styles: [`
     :host { display: block; }
-    .verse-nav {
-      display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none;
-    }
-    .verse-nav::-webkit-scrollbar { display: none; }
-    .verse-nav a {
-      flex: none; display: inline-flex; align-items: center; min-height: var(--sc-tap-min); padding: 0 14px;
-      border-radius: 999px; border: 1px solid var(--sc-border); color: var(--sc-fg-1); text-decoration: none;
-      font-size: max(0.88rem, var(--sc-fs-floor));
-    }
-    .verse-nav a:hover, .verse-nav a:focus-visible { border-color: var(--sc-accent); color: var(--sc-accent); text-decoration: none; }
-    .verse-nav a:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 2px; }
-    .verse-nav a.active {
-      border-color: var(--sc-accent); color: var(--sc-accent);
-      background: color-mix(in srgb, var(--sc-accent) 12%, transparent);
-    }
     .beta-dock {
       position: fixed; z-index: 40;
       left: max(12px, env(safe-area-inset-left));
@@ -170,24 +138,6 @@ export class VerseLayoutComponent {
   protected readonly areas = VERSE_BETA_AREAS;
   protected readonly open = signal(false);
   private readonly snapshotArea = signal<VerseBetaArea | null>(verseAreaOf(this.router.routerState.snapshot.root));
-  /**
-   * The Verse sub-navigation. With the briefing β off `/verse` IS the Verse
-   * News list, so it carries that name and `/verse/news` is not repeated; the
-   * star map has no legacy view, so it is only offered with its β on.
-   */
-  readonly links = computed<readonly VerseNavLink[]>(() => {
-    const on = this.beta.state();
-    const out: VerseNavLink[] = [
-      { link: '/verse', labelKey: on.briefing ? 'verse.area.briefing' : 'verse.area.news', exact: true },
-    ];
-    if (on.briefing) out.push({ link: '/verse/news', labelKey: 'verse.area.news', exact: false });
-    out.push(
-      { link: '/verse/patches', labelKey: 'verse.area.patches', exact: false },
-      { link: '/verse/gallery', labelKey: 'nav.starscape', exact: false },
-    );
-    if (on.starmap) out.push({ link: '/verse/explorer', labelKey: 'verse.area.starmap', exact: false });
-    return out;
-  });
   /** The β area of the page on screen. */
   readonly area = computed(() => this.snapshotArea());
 
