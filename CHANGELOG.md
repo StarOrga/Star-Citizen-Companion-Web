@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.144.1] - 2026-10-12
+
+### Fixed
+
+- **Starscape wieder im Menü.** Seit dem Verse-Tab (0.141.0) führte nur das
+  β-Briefing in die Starscape-Galerie; ohne β war sie über die Navigation
+  nicht mehr zu finden. Solange das Briefing-β aus ist, steht Starscape wieder
+  als eigener Eintrag im oberen Menü und ist dort auf der Galerie markiert.
+  Mit β führt weiterhin das Briefing hin.
+
 ## [0.144.0] - 2026-10-12
 
 ### Changed

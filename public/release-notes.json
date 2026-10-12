@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.144.0",
+  "current": "0.144.1",
   "releases": [
+    {
+      "version": "0.144.1",
+      "date": "2026-10-12",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Starscape wieder im Menü.",
+              "text": "Seit dem Verse-Tab (0.141.0) führte nur das β-Briefing in die Starscape-Galerie; ohne β war sie über die Navigation nicht mehr zu finden. Solange das Briefing-β aus ist, steht Starscape wieder als eigener Eintrag im oberen Menü und ist dort auf der Galerie markiert. Mit β führt weiterhin das Briefing hin."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.144.0",
       "date": "2026-10-12",
