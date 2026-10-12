@@ -8,11 +8,12 @@ import { AuthService } from '../auth/auth.service';
 import { ProfileService } from '../auth/profile.service';
 import { RoleService } from '../auth/role.service';
 import { SameRouteRefreshService } from '../core/same-route-refresh.service';
+import { VerseBetaService } from '../verse/data/verse-beta.service';
 import { VerseStatusChipComponent } from '../news/verse-status-chip.component';
 import { FeedbackFabComponent } from './feedback-fab.component';
 import { FooterComponent } from './footer.component';
 import { QuickSearchComponent } from './quick-search.component';
-import { ShellComponent } from './shell.component';
+import { ShellComponent, isVerseGallery } from './shell.component';
 import { UserFeedbackFabComponent } from './user-feedback-fab.component';
 
 // The header's neighbours pull in Supabase-backed services of their own; the
@@ -49,6 +50,7 @@ function click(el: HTMLElement, init: MouseEventInit = {}): void {
  */
 describe('ShellComponent navigation', () => {
   let request: jasmine.Spy;
+  const briefingBeta = signal(false);
 
   function setup() {
     request = jasmine.createSpy('request').and.returnValue(true);
@@ -62,6 +64,7 @@ describe('ShellComponent navigation', () => {
         { provide: AuthService, useValue: { ready: () => false, realUser: () => null, user: signal(null), signOut: () => Promise.resolve() } },
         { provide: RoleService, useValue: { isAdmin: signal(false) } },
         { provide: ProfileService, useValue: { username: signal(null) } },
+        { provide: VerseBetaService, useValue: { isEnabled: (a: string) => () => a === 'briefing' && briefingBeta() } },
       ],
     });
     TestBed.overrideComponent(ShellComponent, {
@@ -128,14 +131,35 @@ describe('ShellComponent navigation', () => {
    * the Codex; the hangar is one of its tabs, not a nav slot of its own. Pin
    * the count so a future add has to be deliberate.
    */
-  it('renders exactly three top-level nav entries: Verse, Codex, HQ', () => {
+  it('renders exactly three top-level nav entries with the briefing β on: Verse, Codex, HQ', () => {
+    briefingBeta.set(true);
     const fixture = setup();
+    briefingBeta.set(false);
     const links = Array.from(
       fixture.nativeElement.querySelectorAll('nav.nav > a'),
     ) as HTMLAnchorElement[];
 
     expect(links.length).toBe(3);
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex', '/hq']);
+  });
+
+  /**
+   * With the briefing β off, /verse is the legacy Verse News list, which has no
+   * way into the Starscape gallery — so Starscape keeps its own entry, and on
+   * the gallery that entry is the active one, not the Verse tab.
+   */
+  it('adds a Starscape entry to the gallery while the briefing β is off', () => {
+    const fixture = setup();
+    const links = Array.from(fixture.nativeElement.querySelectorAll('nav.nav > a')) as HTMLAnchorElement[];
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['/verse', '/codex', '/hq', '/verse/gallery']);
+    expect(links[3].classList.contains('admin-link')).toBeFalse();
+  });
+
+  it('marks only the Starscape entry on the gallery', () => {
+    expect(isVerseGallery('/verse/gallery?image=x')).toBeTrue();
+    expect(isVerseGallery('/verse/gallery/constellations')).toBeTrue();
+    expect(isVerseGallery('/verse/galleryx')).toBeFalse();
+    expect(isVerseGallery('/verse/news')).toBeFalse();
   });
 
   it('reaches the hangar only through HQ, never as its own top-level entry', () => {
