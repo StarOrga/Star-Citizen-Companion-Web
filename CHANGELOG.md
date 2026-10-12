@@ -4,6 +4,15 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.143.0] - 2026-10-12
+
+### Added
+
+- **Anmeldung mit Discord.** Auf der Login-Seite steht jetzt neben Google
+  „Mit Discord fortfahren“. Das gilt auch für die Verbindung der Desktop-App
+  (`/desktop/connect`), die abgemeldete Nutzer über die Login-Seite schickt.
+  Neue Konten bleiben wie bisher einladungspflichtig.
+
 ## [0.142.0] - 2026-10-09
 
 ### Added
