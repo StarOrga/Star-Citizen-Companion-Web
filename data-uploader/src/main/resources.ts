@@ -328,6 +328,44 @@ function detectGpu(): void {
     log.info(`[resources] gpu: ${JSON.stringify(gpuName)} (${Date.now() - started} ms)`);
     syncSidecarGpu();
     notify();
+    if (gpuName) probeGpuCapability();
+  });
+}
+
+/**
+ * Ask the sidecar whether its GPU path can really run here
+ * (`python -m sc_extract.gpu_probe` → one JSON line `{available, name, reason}`).
+ * No answer (module absent in this build, crash, timeout) leaves the
+ * "a GPU name was detected" default in place.
+ */
+function probeGpuCapability(): void {
+  const { interpreter, cwd } = resolvePythonPaths();
+  let text = '';
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    child = spawn(interpreter, ['-E', '-s', '-B', '-u', '-X', 'utf8', '-m', 'sc_extract.gpu_probe'], {
+      cwd,
+      env: process.env,
+      windowsHide: true,
+    });
+  } catch {
+    return;
+  }
+  const timer = setTimeout(() => child.kill(), 30_000);
+  timer.unref();
+  child.stdin.end();
+  child.stdout.on('data', (d: Buffer) => (text += d.toString('utf-8')));
+  child.on('error', () => undefined);
+  child.on('close', () => {
+    clearTimeout(timer);
+    try {
+      const res = JSON.parse(text.trim().split(/\r?\n/).pop() ?? '') as { available?: unknown; reason?: unknown };
+      if (typeof res.available !== 'boolean') return;
+      log.info(`[resources] gpu probe: available=${res.available}${res.reason ? ` (${String(res.reason)})` : ''}`);
+      setGpuAvailable(res.available);
+    } catch {
+      /* no probe in this build — keep the default */
+    }
   });
 }
 

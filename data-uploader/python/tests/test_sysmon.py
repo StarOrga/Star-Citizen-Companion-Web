@@ -1,7 +1,36 @@
-"""Per-disk folding of sysmon.py — the platform-independent part."""
+"""Whole-PC monitor — the platform-independent part of sysmon.py."""
 
 from sc_extract import sysmon
-from sc_extract.sysmon import build_drives, clean, instance_letters
+from sc_extract.sysmon import COUNTERS, DRIVE_COUNTERS, build_drives, clean, instance_letters
+
+
+def test_cpu_is_rounded_and_capped_at_100():
+    # % Processor Utility can exceed 100 with turbo clocks; Task Manager caps it.
+    assert clean("cpuPct", 37.26) == 37.3
+    assert clean("cpuPct", 131.0) == 100.0
+
+
+def test_rates_are_whole_numbers():
+    assert clean("readBps", 1234567.8) == 1234568.0
+    assert clean("iops", 0.4) == 0.0
+
+
+def test_glitches_read_as_zero():
+    assert clean("readBps", float("nan")) == 0.0
+    assert clean("writeBps", -5.0) == 0.0
+
+
+def test_counters_use_english_names_with_a_cpu_fallback():
+    paths = dict(COUNTERS)
+    assert set(paths) == {"cpuPct", "readBps", "writeBps", "iops"}
+    assert paths["cpuPct"][0].endswith("% Processor Utility")
+    assert len(paths["cpuPct"]) == 2
+
+
+def test_drive_counters_are_english_physical_disk_wildcards():
+    paths = dict(DRIVE_COUNTERS)
+    assert set(paths) == {"idlePct", "secPerTransfer", "readBps", "writeBps", "iops"}
+    assert all(p.startswith(r"\PhysicalDisk(*)" + "\\") for p in paths.values())
 
 
 def test_instance_letters():
@@ -40,11 +69,6 @@ def test_missing_counters_are_omitted_not_zero():
     assert build_drives({}) == []
     (g,) = build_drives({"iops": {"0 C:": float("nan")}})
     assert "iops" not in g
-
-
-def test_clean_still_rounds_totals():
-    assert clean("cpuPct", 123.4) == 100.0
-    assert clean("readBps", -1) == 0.0
 
 
 def test_non_windows_reports_unsupported(monkeypatch, capsys):
