@@ -27,6 +27,7 @@ import {
   TOOL_VERSION,
 } from '../lib/release-token.js';
 import { isNewerVersion } from '../lib/semver.js';
+import { isStagedSuperseded, shouldReplaceStaged } from '../lib/update-staleness.js';
 import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 import { reportCrash } from './telemetry-reporter.js';
 
@@ -73,12 +74,13 @@ let initialized = false;
 let lastEvent: UpdateEventPayload = { type: 'not-available', currentVersion: TOOL_VERSION };
 
 /**
- * True while an update is downloading or already staged. Re-checking then is
- * pointless (electron-updater is already on it) and could restart the download,
- * so the periodic poll skips these states.
+ * True while an update is downloading. Re-checking then could restart the
+ * download, so the periodic poll skips it. A STAGED update is not busy: a
+ * session left open across two releases must still notice the newer one and
+ * offer that instead (see checkForUpdatesSilently).
  */
 function isUpdateBusy(type: UpdateEventPayload['type']): boolean {
-  return type === 'available' || type === 'progress' || type === 'downloaded';
+  return type === 'available' || type === 'progress';
 }
 
 function broadcast(payload: UpdateEventPayload): void {
@@ -216,7 +218,11 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('checking-for-update', () => broadcast({ type: 'checking' }));
+  // While an update is staged, a background re-check stays invisible: the install
+  // banner must not flicker to 'checking' every 30 min.
+  autoUpdater.on('checking-for-update', () => {
+    if (!stagedUpdate) broadcast({ type: 'checking' });
+  });
   autoUpdater.on('update-available', (info: UpdateInfo) => {
     // Downgrade guard. electron-updater compares the feed version against the
     // packaged app.getVersion(); we additionally gate on TOOL_VERSION — the
@@ -231,6 +237,14 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
       broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
       return;
     }
+    // Already staged and the feed offers nothing newer: keep the staged update
+    // (and its "install" banner) instead of downloading the same version again.
+    const staged = stagedVersion();
+    if (!shouldReplaceStaged(staged, info.version)) {
+      broadcast({ type: 'downloaded', version: staged as string });
+      return;
+    }
+    if (staged) log.info(`[updater] v${info.version} supersedes staged v${staged} — downloading the newer one`);
     broadcast({
       type: 'available',
       version: info.version,
@@ -242,9 +256,12 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
       log.warn('[updater] downloadUpdate failed:', err);
     });
   });
-  autoUpdater.on('update-not-available', () =>
-    broadcast({ type: 'not-available', currentVersion: TOOL_VERSION }),
-  );
+  autoUpdater.on('update-not-available', () => {
+    // A re-check while an update is staged must not drop its install banner.
+    const staged = stagedVersion();
+    if (staged) broadcast({ type: 'downloaded', version: staged });
+    else broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
+  });
   autoUpdater.on('download-progress', (p) =>
     broadcast({
       type: 'progress',
@@ -254,16 +271,20 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
       total: p.total,
     }),
   );
-  autoUpdater.on('update-downloaded', (info: UpdateInfo) =>
-    broadcast({ type: 'downloaded', version: info.version }),
-  );
+  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    stagedUpdate = info.version;
+    broadcast({ type: 'downloaded', version: info.version });
+  });
   // electron-updater's canonical error channel — fires for check AND download
   // failures (the rejected promises below emit through here too), so this is the
   // single choke point where update errors reach both the banner and telemetry.
   autoUpdater.on('error', (err) => {
     installRequested = false;
-    broadcast({ type: 'error', message: err?.message ?? String(err) });
     reportUpdateError(err);
+    // A failed re-check (or a failed download of a newer release) must not take
+    // away the install button of the update that is already staged.
+    if (stagedUpdate) broadcast({ type: 'downloaded', version: stagedUpdate });
+    else broadcast({ type: 'error', message: err?.message ?? String(err) });
   });
 
   // Defer first check so the UI is interactive before any network call.
@@ -376,16 +397,41 @@ function checkPendingUpdate(): void {
   lastEvent = { type: 'error', message };
 }
 
-/** Version of the staged update, from the last 'downloaded' event. */
+/**
+ * Version of the staged update, from the last 'update-downloaded'. Kept apart
+ * from lastEvent: a background re-check broadcasts other states in between, and
+ * the staged installer stays valid through them.
+ */
+let stagedUpdate: string | null = null;
+
 function stagedVersion(): string | null {
-  return lastEvent.type === 'downloaded' ? lastEvent.version : null;
+  return stagedUpdate;
 }
 
 export function installUpdateNow(): void {
   if (IS_UNSIGNED_DEV_BUILD) return;
   if (installRequested) return;
   installRequested = true;
-  rememberPendingUpdate(stagedVersion());
+  void installNewestStaged();
+}
+
+/**
+ * Install what is staged — unless the feed meanwhile has a newer release: then
+ * fetch that one instead (its banner returns once downloaded) rather than
+ * installing a version that is already outdated. An unreachable feed installs
+ * the staged update as before.
+ */
+async function installNewestStaged(): Promise<void> {
+  const staged = stagedVersion();
+  if (isStagedSuperseded(staged, await fetchLatestVersion())) {
+    log.info(`[updater] staged v${staged} is outdated — fetching the newest release before installing`);
+    installRequested = false;
+    autoUpdater.checkForUpdates().catch((err) => {
+      log.warn('[updater] re-check before install failed:', err);
+    });
+    return;
+  }
+  rememberPendingUpdate(staged);
   // setImmediate so the IPC reply can finish before the app quits.
   setImmediate(() => {
     autoUpdater.quitAndInstall(UPDATE_SILENT, true);
