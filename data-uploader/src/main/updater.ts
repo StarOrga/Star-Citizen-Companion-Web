@@ -276,6 +276,7 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   );
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     stagedUpdate = info.version;
+    autoUpdater.autoInstallOnAppQuit = true;
     broadcast({ type: 'downloaded', version: info.version });
   });
   // electron-updater's canonical error channel — fires for check AND download
@@ -332,8 +333,17 @@ export function checkForUpdatesSilently(): void {
  * re-checks so the banner reflects the newly-selected channel.
  */
 export function setUpdateChannel(channel: ReleaseChannel): void {
+  const switched = channel !== currentChannel;
   currentChannel = channel;
   if (IS_UNSIGNED_DEV_BUILD) return;
+  // An update staged from the previous channel belongs to that channel: forget
+  // it and hold the on-quit install, so the new channel's offer decides —
+  // even when that offer is lower than what the old channel had staged.
+  if (switched && stagedUpdate) {
+    log.info(`[updater] channel switched to ${channel} — dropping staged v${stagedUpdate} from the previous channel`);
+    stagedUpdate = null;
+    autoUpdater.autoInstallOnAppQuit = false;
+  }
   if (IS_PORTABLE_BUILD) {
     void checkPortableForUpdate();
     return;
