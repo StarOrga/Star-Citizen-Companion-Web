@@ -9,14 +9,11 @@
  */
 
 import { app, safeStorage } from 'electron';
+import log from 'electron-log';
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  SessionStore,
-  isAccessTokenFresh,
-  type PersistedSession,
-  type BlobIO,
-} from '../lib/session-store.js';
+import { SessionStore, type PersistedSession, type BlobIO } from '../lib/session-store.js';
+import { createTokenBroker, type TokenBroker, type TokenResult } from '../lib/token-broker.js';
 import { VersionStore, type TextIO } from '../lib/version-store.js';
 import { refreshSession } from '../lib/token-refresh.js';
 import { fetchWithTimeout } from '../lib/fetch-timeout.js';
@@ -34,6 +31,7 @@ const SYNC_FILE = 'sync-state.json';
 
 let _sessionStore: SessionStore | null = null;
 let _versionStore: VersionStore | null = null;
+let _tokenBroker: TokenBroker | null = null;
 
 function nowSec(): number {
   return Math.floor(Date.now() / 1000);
@@ -75,6 +73,22 @@ function versionStore(): VersionStore {
   return _versionStore;
 }
 
+function tokenBroker(): TokenBroker {
+  if (_tokenBroker) return _tokenBroker;
+  const store = sessionStore();
+  _tokenBroker = createTokenBroker({
+    load: () => store.load(),
+    save: (s) => {
+      store.save(s);
+    },
+    clear: () => store.clear(),
+    refresh: (rt) => refreshSession(API_BASE, SUPABASE_ANON_KEY, rt),
+    nowSeconds: nowSec,
+    warn: (m) => log.warn(m),
+  });
+  return _tokenBroker;
+}
+
 export interface SessionStatus {
   connected: boolean;
   email: string | null;
@@ -84,13 +98,15 @@ export interface SessionStatus {
   canPersist: boolean;
   /** A stored session is dead → user must reconnect with one click. */
   needsReconnect: boolean;
+  /**
+   * A stored session exists but could not be refreshed just now (offline,
+   * timeout, server hiccup). Still signed in — the UI retries on its own
+   * instead of asking for a new login.
+   */
+  retrying: boolean;
 }
 
-export interface TokenResult {
-  token: string | null;
-  email: string | null;
-  reconnect: boolean;
-}
+export type { TokenResult };
 
 /** Persist a fresh OAuth result. Returns whether it was written to disk. */
 export function persistAuthResult(auth: AuthResult): boolean {
@@ -108,35 +124,11 @@ export function persistAuthResult(auth: AuthResult): boolean {
 /**
  * Return a valid access token, refreshing silently if the stored one expired.
  * `token: null` = no usable session; `reconnect: true` = the refresh lineage is
- * dead and the UI should prompt for a fresh login.
+ * dead and the UI should prompt for a fresh login; `retry: true` = transient
+ * failure, the session is kept. Concurrent callers share one refresh.
  */
-export async function ensureAccessToken(): Promise<TokenResult> {
-  const store = sessionStore();
-  const session = store.load();
-  if (!session) return { token: null, email: null, reconnect: false };
-
-  if (isAccessTokenFresh(session, nowSec())) {
-    return { token: session.accessToken, email: session.email, reconnect: false };
-  }
-  if (!session.refreshToken) {
-    return { token: null, email: session.email, reconnect: true };
-  }
-
-  const refreshed = await refreshSession(API_BASE, SUPABASE_ANON_KEY, session.refreshToken);
-  if (!refreshed.ok || !refreshed.accessToken) {
-    if (refreshed.invalid) store.clear();
-    return { token: null, email: session.email, reconnect: refreshed.invalid ?? false };
-  }
-
-  const updated: PersistedSession = {
-    accessToken: refreshed.accessToken,
-    refreshToken: refreshed.refreshToken ?? session.refreshToken,
-    email: refreshed.email ?? session.email,
-    expiresAt: refreshed.expiresAt ?? null,
-    savedAt: nowSec(),
-  };
-  store.save(updated);
-  return { token: updated.accessToken, email: updated.email, reconnect: false };
+export function ensureAccessToken(): Promise<TokenResult> {
+  return tokenBroker().ensureAccessToken();
 }
 
 export async function getSessionStatus(): Promise<SessionStatus> {
@@ -144,7 +136,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
   const canPersist = store.canPersist();
   const session = store.load();
   if (!session) {
-    return { connected: false, email: null, expiresAt: null, canPersist, needsReconnect: false };
+    return { connected: false, email: null, expiresAt: null, canPersist, needsReconnect: false, retrying: false };
   }
   const tokenRes = await ensureAccessToken();
   if (!tokenRes.token) {
@@ -154,6 +146,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
       expiresAt: session.expiresAt,
       canPersist,
       needsReconnect: tokenRes.reconnect,
+      retrying: tokenRes.retry,
     };
   }
   const fresh = store.load();
@@ -163,6 +156,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
     expiresAt: fresh?.expiresAt ?? null,
     canPersist,
     needsReconnect: false,
+    retrying: false,
   };
 }
 

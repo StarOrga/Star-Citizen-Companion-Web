@@ -306,8 +306,25 @@ export function setUpdateChannel(channel: ReleaseChannel): void {
   checkForUpdatesSilently();
 }
 
+/**
+ * An update installs SILENTLY into the existing installation. The installer is
+ * the assisted NSIS one (so a first install can pick "only me / all users" and
+ * the folder), but run with UI it walked the operator through that wizard again
+ * on every update — defaulting to "only me", which would put a second copy in
+ * %LOCALAPPDATA%\Programs next to a C:\Program Files install. Silent mode
+ * (`/S --updated`) reuses the install mode and folder recorded in the registry
+ * (`InstallLocation` under the app's GUID key) and elevates via UAC only when
+ * the existing install is per-machine.
+ */
+const UPDATE_SILENT = true;
+
+/** quitAndInstall fired once already — a second click must not queue another run. */
+let installRequested = false;
+
 export function installUpdateNow(): void {
   if (IS_UNSIGNED_DEV_BUILD) return;
+  if (installRequested) return;
+  installRequested = true;
   // setImmediate so the IPC reply can finish before the app quits.
-  setImmediate(() => autoUpdater.quitAndInstall(false, true));
+  setImmediate(() => autoUpdater.quitAndInstall(UPDATE_SILENT, true));
 }

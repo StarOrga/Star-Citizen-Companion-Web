@@ -65,12 +65,14 @@ interface SessionStatus {
   expiresAt: number | null;
   canPersist: boolean;
   needsReconnect: boolean;
+  retrying: boolean;
 }
 
 interface TokenResult {
   token: string | null;
   email: string | null;
   reconnect: boolean;
+  retry: boolean;
 }
 
 interface ChannelState {

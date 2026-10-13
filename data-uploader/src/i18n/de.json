@@ -234,6 +234,7 @@
     "title": "Web-Verbindung",
     "offline": "Nicht verbunden",
     "checking": "Prüfe…",
+    "retrying": "Verbindung wird wiederhergestellt…",
     "connected": "Verbunden",
     "expired": "Sitzung abgelaufen",
     "connect": "Mit Web verbinden",

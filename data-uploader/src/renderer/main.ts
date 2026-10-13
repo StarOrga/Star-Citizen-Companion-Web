@@ -588,6 +588,8 @@ interface ConnStatus {
   expiresAt: number | null;
   canPersist: boolean;
   needsReconnect: boolean;
+  /** Signed in, but the token refresh failed transiently — retrying on its own. */
+  retrying?: boolean;
 }
 
 const conn = {
@@ -643,6 +645,7 @@ async function refreshConnection(): Promise<void> {
   }
   conn.resolved = true;
   paintConnection();
+  scheduleSessionRetry();
   if (conn.status?.connected) {
     // Mirror the token into the upload/skin flows so they skip the re-login.
     try {
@@ -669,6 +672,31 @@ async function refreshConnection(): Promise<void> {
     }
     void autoSync();
   }
+}
+
+// A stored session whose refresh failed for a transient reason (offline right
+// after an update or wake-up, a timeout, a server hiccup) is still a signed-in
+// session. Retry on a backoff instead of showing "Nicht verbunden" and waiting
+// for the operator to log in again; the first success runs the normal
+// connect path (role + catalog sync).
+const SESSION_RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, 300_000];
+let sessionRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let sessionRetryAttempt = 0;
+
+function scheduleSessionRetry(): void {
+  if (!conn.status?.retrying) {
+    if (sessionRetryTimer !== null) clearTimeout(sessionRetryTimer);
+    sessionRetryTimer = null;
+    sessionRetryAttempt = 0;
+    return;
+  }
+  if (sessionRetryTimer !== null) return;
+  const delay = SESSION_RETRY_DELAYS_MS[Math.min(sessionRetryAttempt, SESSION_RETRY_DELAYS_MS.length - 1)];
+  sessionRetryAttempt++;
+  sessionRetryTimer = setTimeout(() => {
+    sessionRetryTimer = null;
+    void refreshConnection();
+  }, delay);
 }
 
 async function autoSync(): Promise<void> {
@@ -709,9 +737,15 @@ async function revalidateSession(force = false): Promise<void> {
     return; // transient failure — keep the last known pill rather than flapping
   }
   const was = conn.status?.connected ?? false;
+  if (!was && next.connected) {
+    // Back from a transient outage — run the full connect path (role + sync).
+    await refreshConnection();
+    return;
+  }
   conn.status = next;
   if (!next.connected) state.authToken = null; // force a fresh token on next upload
   paintConnection();
+  scheduleSessionRetry();
   // Only just discovered the session died → also refresh the auth-upload
   // warning if that view is currently showing.
   if (was && !next.connected && isPipelineView()) paintReconnectNotice();
@@ -831,6 +865,9 @@ function paintConnection(): void {
   } else if (s?.needsReconnect) {
     pillCls = 'warn';
     pillText = t('session.expired');
+  } else if (s?.retrying) {
+    pillCls = 'pending';
+    pillText = t('session.retrying');
   }
 
   // Compact top-strip chip: dot + short identity + first server chip. Always
@@ -852,6 +889,8 @@ function paintConnection(): void {
   let idBlock: string;
   if (s?.connected) {
     idBlock = `<span class="conn-email" data-tip="${escapeHtml(s.email ?? '')}" data-tip-tier="label">${escapeHtml(s.email ?? '')}</span>`;
+  } else if (s?.retrying) {
+    idBlock = `<span class="conn-state">${pillText}</span>`;
   } else if (conn.resolved) {
     const label = s?.needsReconnect
       ? t('session.reconnect')
@@ -2066,7 +2105,9 @@ function paintReconnectNotice(): void {
   if (needsReconnect) {
     const msg = conn.status?.needsReconnect
       ? t('upload.reconnectExpired')
-      : t('upload.reconnectOffline');
+      : conn.status?.retrying
+        ? t('session.retrying')
+        : t('upload.reconnectOffline');
     el.textContent = msg;
     el.hidden = false;
   } else {

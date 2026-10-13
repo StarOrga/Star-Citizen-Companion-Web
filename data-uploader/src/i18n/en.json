@@ -234,6 +234,7 @@
     "title": "Web connection",
     "offline": "Not connected",
     "checking": "Checking…",
+    "retrying": "Restoring connection…",
     "connected": "Connected",
     "expired": "Session expired",
     "connect": "Connect to web",
