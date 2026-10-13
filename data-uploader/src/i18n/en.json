@@ -142,6 +142,7 @@
     "signingIn": "Signing in via browser…",
     "signedIn": "Signed in as {{email}} — uploading bundle…",
     "signInFailed": "Sign-in failed",
+    "connectionRetry": "No connection to the web right now — you are still signed in. Try again in a moment.",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
     "bundleAlreadyThere": "Bundle is already on the server — updating the Codex and 3D data.",
@@ -226,6 +227,7 @@
     "progress": "Downloading update: {{pct}}%",
     "downloaded": "Update v{{version}} ready — please restart.",
     "install": "Install now",
+    "busy": "An extraction is running — the update installs when you quit the app.",
     "error": "Update error: {{message}}",
     "manual": "New version v{{version}} available — the portable build can't self-update, please download it manually.",
     "openDownload": "Open download page"
@@ -234,6 +236,7 @@
     "title": "Web connection",
     "offline": "Not connected",
     "checking": "Checking…",
+    "retrying": "Restoring connection…",
     "connected": "Connected",
     "expired": "Session expired",
     "connect": "Connect to web",

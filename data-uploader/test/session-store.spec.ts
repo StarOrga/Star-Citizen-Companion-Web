@@ -78,6 +78,15 @@ describe('SessionStore', () => {
     expect(new SessionStore(fakeSafe(), io).load()).toBeNull();
   });
 
+  it('says why a stored session could not be read', () => {
+    const io = fakeIO();
+    io.write(Buffer.from('garbage-not-ours', 'utf-8'));
+    const warnings: string[] = [];
+    new SessionStore(fakeSafe(), io, (m) => warnings.push(m)).load();
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('unreadable');
+  });
+
   it('clears the stored session', () => {
     const io = fakeIO();
     const store = new SessionStore(fakeSafe(), io);

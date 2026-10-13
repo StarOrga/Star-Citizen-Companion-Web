@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.144.2] - 2026-10-13
+
+### Fixed
+
+- **Data Uploader 0.52.1: Updates bleiben im Installationsordner, die
+  Anmeldung bleibt erhalten.** „Jetzt installieren“ führt nicht mehr durch
+  den Installer-Assistenten (der stand jedes Mal auf „nur ich“ und hätte
+  neben einer Installation unter Programme eine zweite Kopie angelegt),
+  sondern aktualisiert still genau die laufende Installation. Schlägt ein
+  stilles Update fehl (z. B. UAC abgelehnt), meldet der nächste Start das.
+  Läuft gerade eine Extraktion, installiert sich das Update beim Beenden.
+  Nach einem Update oder Neustart fragen mehrere Stellen gleichzeitig nach
+  einem frischen Token; das passiert jetzt nur noch einmal, und ein kurzer
+  Netzausfall meldet nicht mehr „Nicht verbunden“ mit Login-Button, sondern
+  „Verbindung wird wiederhergestellt…“ und versucht es selbst erneut. Die
+  Sitzung wird atomar gespeichert, Abmelden oder ein neuer Login während
+  einer Erneuerung gewinnt, und Lese- oder Schreibfehler stehen im Log.
+
 ## [0.144.1] - 2026-10-12
 
 ### Fixed

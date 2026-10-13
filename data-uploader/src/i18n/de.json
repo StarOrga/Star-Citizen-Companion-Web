@@ -142,6 +142,7 @@
     "signingIn": "Im Browser anmelden…",
     "signedIn": "Angemeldet als {{email}} — lade Bundle hoch…",
     "signInFailed": "Anmeldung fehlgeschlagen",
+    "connectionRetry": "Gerade keine Verbindung zum Web — du bleibst angemeldet. Versuch es gleich noch einmal.",
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
     "bundleAlreadyThere": "Bundle ist bereits auf dem Server — Codex und 3D-Daten werden aktualisiert.",
@@ -226,6 +227,7 @@
     "progress": "Update wird geladen: {{pct}}%",
     "downloaded": "Update v{{version}} bereit — bitte App neu starten.",
     "install": "Jetzt installieren",
+    "busy": "Gerade läuft eine Extraktion — das Update installiert sich, wenn du die App beendest.",
     "error": "Update-Fehler: {{message}}",
     "manual": "Neue Version v{{version}} verfügbar — der Portable-Build kann sich nicht selbst updaten, bitte manuell laden.",
     "openDownload": "Download-Seite öffnen"
@@ -234,6 +236,7 @@
     "title": "Web-Verbindung",
     "offline": "Nicht verbunden",
     "checking": "Prüfe…",
+    "retrying": "Verbindung wird wiederhergestellt…",
     "connected": "Verbunden",
     "expired": "Sitzung abgelaufen",
     "connect": "Mit Web verbinden",

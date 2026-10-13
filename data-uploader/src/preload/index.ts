@@ -65,12 +65,14 @@ interface SessionStatus {
   expiresAt: number | null;
   canPersist: boolean;
   needsReconnect: boolean;
+  retrying: boolean;
 }
 
 interface TokenResult {
   token: string | null;
   email: string | null;
   reconnect: boolean;
+  retry: boolean;
 }
 
 interface ChannelState {
@@ -366,7 +368,7 @@ export const api = {
     // Update checks are automatic now (startup, navigation, periodic poll) —
     // there is no manual "check" entry point.
     checkSilent: (): void => ipcRenderer.send('sc:update:check-silent'),
-    install: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('sc:update:install'),
+    install: (): Promise<{ ok: boolean; busy?: boolean }> => ipcRenderer.invoke('sc:update:install'),
     onEvent: (cb: (ev: UpdateEvent) => void): (() => void) => {
       const listener = (_e: unknown, payload: UpdateEvent): void => cb(payload);
       ipcRenderer.on('sc:update:event', listener);
