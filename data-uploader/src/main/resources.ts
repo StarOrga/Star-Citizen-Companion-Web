@@ -190,8 +190,22 @@ function broadcast(channel: string, payload: unknown): void {
   }
 }
 
-function changed(): ResourceView {
-  persist({ ...limits, preset });
+/**
+ * The operator's own (persisted) limits while a run the uploader started
+ * itself runs on its `autoRunPreset` ({@link applyAutoRunPreset}); null when no
+ * such override is in effect.
+ */
+let operatorStored: StoredLimits | null = null;
+
+/**
+ * Persist + push + broadcast. `operator` = the change came from the dock: it
+ * becomes the operator's pick and ends an auto-run override. A rescale while
+ * an override is in effect (drive detection) is not persisted — the stored
+ * limits stay the operator's.
+ */
+function changed(operator = true): ResourceView {
+  if (operator) operatorStored = null;
+  if (!operatorStored) persist({ ...limits, preset });
   pushToGovernors();
   const v = view();
   broadcast('sc:resources:changed', v);
@@ -203,14 +217,37 @@ export function setLimits(partial: unknown): ResourceView {
   const next = clampLimits({ ...limits, ...(partial && typeof partial === 'object' ? partial : {}) }, machine, limits);
   limits = next;
   preset = matchPreset(limits, machine);
-  return changed();
+  return changed(true);
 }
 
 export function applyPreset(id: unknown): ResourceView {
   if (typeof id !== 'string' || !PRESET_IDS.includes(id as PresetId)) return view();
   preset = id as PresetId;
   limits = presetLimits(preset, machine);
-  return changed();
+  return changed(true);
+}
+
+/**
+ * Start a run the uploader started itself on its own preset (the ⚙ sentence's
+ * "mit … Leistung"), WITHOUT writing it over the dock's persisted limits. The
+ * dock shows it and may change it while the run goes — such a change is an
+ * ordinary operator pick from then on. {@link restoreOperatorLimits} undoes it.
+ */
+export function applyAutoRunPreset(id: unknown): ResourceView {
+  if (typeof id !== 'string' || !PRESET_IDS.includes(id as PresetId)) return view();
+  if (!operatorStored) operatorStored = { ...limits, preset };
+  preset = id as PresetId;
+  limits = presetLimits(preset, machine);
+  return changed(false);
+}
+
+/** Back to the operator's own limits before a run they start themselves. */
+export function restoreOperatorLimits(): ResourceView {
+  const stored = operatorStored;
+  if (!stored) return view();
+  preset = stored.preset && PRESET_IDS.includes(stored.preset) ? stored.preset : null;
+  limits = preset ? presetLimits(preset, machine) : clampLimits(stored, machine);
+  return changed(true);
 }
 
 /** Worker counts for a stage starting NOW, from the limits in effect now. */
@@ -307,7 +344,7 @@ export async function detectDisk(path: unknown, workPath?: unknown): Promise<Res
   machine.disk = caps;
   // A preset follows the new scale; a custom mix keeps its values, clamped.
   limits = preset ? presetLimits(preset, machine) : clampLimits(limits, machine, limits);
-  return changed();
+  return changed(false);
 }
 
 /** Push the view without touching the limits (drive layout, GPU). */

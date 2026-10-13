@@ -4,6 +4,9 @@ import {
   describeDecision,
   shouldAutoResume,
   shouldQuitAfterAutoRun,
+  launchAction,
+  formatCountdown,
+  AUTO_RUN_COUNTDOWN_S,
   type AutoRunInputs,
 } from '../src/lib/auto-run.js';
 import type { DiscoveredChannel, ChannelTag } from '../src/lib/discovery.js';
@@ -37,7 +40,6 @@ function snapshot(entries: Array<[string, string]>): CatalogSnapshot {
 }
 
 const base: AutoRunInputs = {
-  enabled: true,
   signedIn: true,
   channels: [channel('LIVE', '4.0.1')],
   snapshot: snapshot([['live', '4.0.0']]),
@@ -70,11 +72,6 @@ describe('decideAutoRun', () => {
     const d = decideAutoRun({ ...base, snapshot: snapshot([['LIVE', '4.0.1']]) });
     expect(d.run).toBe(false);
     expect(d.reason).toBe('already-uploaded');
-  });
-
-  it('does nothing when the toggle is off', () => {
-    const d = decideAutoRun({ ...base, enabled: false });
-    expect(d).toEqual({ run: false, reason: 'disabled' });
   });
 
   it('does nothing when signed out — an unattended run must not open a browser login', () => {
@@ -139,7 +136,7 @@ describe('describeDecision', () => {
   });
 
   it('describes a skip', () => {
-    expect(describeDecision(decideAutoRun({ ...base, enabled: false }))).toBe('no auto-run (disabled)');
+    expect(describeDecision(decideAutoRun({ ...base, signedIn: false }))).toBe('no auto-run (no-session)');
   });
 });
 
@@ -151,7 +148,7 @@ describe('describeDecision', () => {
  * login would hide exactly those.
  */
 describe('shouldQuitAfterAutoRun', () => {
-  const on = { startedHidden: true, enabled: true } as const;
+  const on = { startedHidden: true, afterAutoRun: 'quit' } as const;
 
   it('quits the unattended launch when the build is already uploaded', () => {
     expect(shouldQuitAfterAutoRun({ ...on, reason: 'already-uploaded' })).toBe(true);
@@ -159,7 +156,6 @@ describe('shouldQuitAfterAutoRun', () => {
 
   it('stays open on every skip that is not a proven "nothing to do"', () => {
     for (const reason of [
-      'disabled',
       'no-session',
       'no-snapshot',
       'no-channels',
@@ -172,19 +168,25 @@ describe('shouldQuitAfterAutoRun', () => {
 
   it('never closes a window the operator opened themselves', () => {
     expect(
-      shouldQuitAfterAutoRun({ startedHidden: false, enabled: true, reason: 'already-uploaded' }),
+      shouldQuitAfterAutoRun({ startedHidden: false, afterAutoRun: 'quit', reason: 'already-uploaded' }),
     ).toBe(false);
   });
 
-  it('respects the opt-out', () => {
+  it('is a fixed rule — also for "shut down afterwards"', () => {
     expect(
-      shouldQuitAfterAutoRun({ startedHidden: true, enabled: false, reason: 'already-uploaded' }),
+      shouldQuitAfterAutoRun({ startedHidden: true, afterAutoRun: 'shutdown', reason: 'already-uploaded' }),
+    ).toBe(true);
+  });
+
+  it('keeps the launch open when the danach slot says "bleibt danach offen"', () => {
+    expect(
+      shouldQuitAfterAutoRun({ startedHidden: true, afterAutoRun: 'keep', reason: 'already-uploaded' }),
     ).toBe(false);
   });
 });
 
 describe('shouldAutoResume', () => {
-  const on = { enabled: true, signedIn: true, startedHidden: false } as const;
+  const on = { signedIn: true, startedHidden: false } as const;
 
   it('resumes a job killed mid-stage on any launch', () => {
     expect(shouldAutoResume({ ...on, status: 'running' })).toBe(true);
@@ -196,10 +198,49 @@ describe('shouldAutoResume', () => {
     expect(shouldAutoResume({ ...on, startedHidden: true, status: 'paused' })).toBe(true);
   });
 
-  it('never resumes without auto-run, a session or a job', () => {
-    expect(shouldAutoResume({ ...on, enabled: false, status: 'running' })).toBe(false);
+  it('never resumes without a session or a job', () => {
     expect(shouldAutoResume({ ...on, signedIn: false, status: 'running' })).toBe(false);
     expect(shouldAutoResume({ ...on, status: null })).toBe(false);
     expect(shouldAutoResume({ ...on, status: 'done' })).toBe(false);
+  });
+});
+
+describe('launchAction', () => {
+  const found = { run: true, startedHidden: false, cancelled: false, operatorBusy: false };
+
+  it('counts down on a launch the operator opened', () => {
+    expect(launchAction(found)).toBe('countdown');
+    expect(AUTO_RUN_COUNTDOWN_S).toBe(120);
+  });
+
+  it('starts at once on the unattended launch', () => {
+    expect(launchAction({ ...found, startedHidden: true })).toBe('run');
+  });
+
+  it('does nothing without a new patch', () => {
+    expect(launchAction({ ...found, run: false })).toBe('none');
+    expect(launchAction({ ...found, run: false, startedHidden: true })).toBe('none');
+  });
+
+  it('stays quiet for the rest of the app start once "Abbrechen" was pressed', () => {
+    expect(launchAction({ ...found, cancelled: true })).toBe('none');
+  });
+
+  it('never starts while the operator already started something', () => {
+    expect(launchAction({ ...found, operatorBusy: true })).toBe('none');
+    expect(launchAction({ ...found, startedHidden: true, operatorBusy: true })).toBe('none');
+  });
+});
+
+describe('formatCountdown', () => {
+  it('formats minutes and zero-padded seconds', () => {
+    expect(formatCountdown(120)).toBe('2:00');
+    expect(formatCountdown(107)).toBe('1:47');
+    expect(formatCountdown(9)).toBe('0:09');
+  });
+
+  it('rounds partial seconds up and never goes negative', () => {
+    expect(formatCountdown(0.2)).toBe('0:01');
+    expect(formatCountdown(-3)).toBe('0:00');
   });
 });

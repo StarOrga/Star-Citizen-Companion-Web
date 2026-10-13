@@ -17,7 +17,6 @@ import type { ChannelTag, DiscoveredChannel } from './discovery.js';
 import type { CatalogSnapshot } from './sync.js';
 
 export type SkipReason =
-  | 'disabled'
   | 'no-session'
   | 'no-snapshot'
   | 'no-channels'
@@ -36,7 +35,6 @@ export interface AutoRunDecision {
 }
 
 export interface AutoRunInputs {
-  enabled: boolean;
   signedIn: boolean;
   channels: DiscoveredChannel[];
   snapshot: CatalogSnapshot | null;
@@ -53,7 +51,6 @@ function serverVersionFor(snapshot: CatalogSnapshot, channel: ChannelTag): strin
 }
 
 export function decideAutoRun(input: AutoRunInputs): AutoRunDecision {
-  if (!input.enabled) return { run: false, reason: 'disabled' };
   // An unattended run must never pop a browser login — that would leave the
   // machine sitting on an OAuth page instead of uploading.
   if (!input.signedIn) return { run: false, reason: 'no-session' };
@@ -112,13 +109,16 @@ export function describeDecision(d: AutoRunDecision): string {
  * Should an unattended launch close itself again?
  *
  * The operator asked for an autostart that does not leave a tray icon behind
- * when there was nothing to do (feedback 71b1e402). "Nothing to do" is a
- * narrower claim than "we did not start a run": of the six skip reasons, only
- * `already-uploaded` is the tool saying *the server already has this build*.
- * The others mean it could not tell (`no-snapshot`, `unknown-local-version`,
- * `no-channels`), was not allowed to (`no-session`), or was never asked
- * (`disabled`) — quitting on those would hide a problem behind a process that
- * silently vanishes at every login.
+ * when there was nothing to do (feedback 71b1e402). This is a fixed rule since
+ * the ⚙ sentence replaced the old `quitAfterAutoRun` switch: the one way to
+ * keep such a launch around is "bleibt danach offen" (`afterAutoRun: 'keep'`).
+ *
+ * "Nothing to do" is a narrower claim than "we did not start a run": of the
+ * skip reasons, only `already-uploaded` is the tool saying *the server already
+ * has this build*. The others mean it could not tell (`no-snapshot`,
+ * `unknown-local-version`, `no-channels`) or was not allowed to
+ * (`no-session`) — quitting on those would hide a problem behind a process
+ * that silently vanishes at every login.
  *
  * Foreground starts are never affected: the operator opened the window, so the
  * window stays.
@@ -126,12 +126,12 @@ export function describeDecision(d: AutoRunDecision): string {
 export function shouldQuitAfterAutoRun(input: {
   /** Launched by the login item with `--hidden`, i.e. nobody is watching. */
   startedHidden: boolean;
-  /** The `quitAfterAutoRun` preference. */
-  enabled: boolean;
+  /** The "danach" slot — 'keep' keeps the unattended launch open. */
+  afterAutoRun: 'keep' | 'quit' | 'shutdown';
   /** Why the auto-run decided not to run. */
   reason?: SkipReason;
 }): boolean {
-  if (!input.startedHidden || !input.enabled) return false;
+  if (!input.startedHidden || input.afterAutoRun === 'keep') return false;
   return input.reason === 'already-uploaded';
 }
 
@@ -139,10 +139,10 @@ export function shouldQuitAfterAutoRun(input: {
  * Should a launch pick a leftover upload job back up on its own?
  *
  * A resumable job outranks a new extraction (it is already paid for), and it
- * deserves the same treatment a new build gets: when auto-run is on and a
- * session exists, it continues without a click. Before this, an autostart that
- * found an interrupted upload only printed "skipped the automatic run" and sat
- * in the tray until someone noticed.
+ * deserves the same treatment a new build gets: when a session exists, it
+ * continues without a click. Before this, an autostart that found an
+ * interrupted upload only printed "skipped the automatic run" and sat in the
+ * tray until someone noticed.
  *
  * `paused` is the one status that needs care: the operator stopped it on
  * purpose. A foreground launch respects that and leaves the Resume button to
@@ -151,15 +151,46 @@ export function shouldQuitAfterAutoRun(input: {
  * was killed mid-stage, so it resumes on every launch.
  */
 export function shouldAutoResume(input: {
-  /** The `autoRunOnNewVersion` preference — the one switch for unattended work. */
-  enabled: boolean;
   signedIn: boolean;
   startedHidden: boolean;
   /** Persisted job status; null when there is no resumable job. */
   status: 'running' | 'paused' | 'done' | 'error' | null;
 }): boolean {
-  if (!input.enabled || !input.signedIn || !input.status) return false;
+  if (!input.signedIn || !input.status) return false;
   if (input.status === 'done') return false;
   if (input.status === 'paused') return input.startedHidden;
   return true;
+}
+
+/** How long a launch the operator opened waits before it uploads a new patch. */
+export const AUTO_RUN_COUNTDOWN_S = 120;
+
+/**
+ * What a launch does with a decision that found a new game patch:
+ *
+ * - `run`: the unattended (`--hidden`) launch starts at once — nobody is there
+ *   to ask.
+ * - `countdown`: a launch the operator opened shows the game-patch banner and
+ *   starts after {@link AUTO_RUN_COUNTDOWN_S} unless they press "Abbrechen"
+ *   (or "Jetzt hochladen" earlier).
+ * - `none`: nothing to start, the countdown was cancelled for this app start,
+ *   or the operator already started something themselves.
+ */
+export function launchAction(input: {
+  run: boolean;
+  startedHidden: boolean;
+  /** "Abbrechen" was pressed on the banner during this app start. */
+  cancelled: boolean;
+  /** The operator left the Install step or already started a run. */
+  operatorBusy: boolean;
+}): 'run' | 'countdown' | 'none' {
+  if (!input.run || input.operatorBusy) return 'none';
+  if (input.startedHidden) return 'run';
+  return input.cancelled ? 'none' : 'countdown';
+}
+
+/** "1:47" — whole seconds left on the countdown, never negative. */
+export function formatCountdown(seconds: number): string {
+  const s = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

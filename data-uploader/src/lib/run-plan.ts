@@ -11,15 +11,35 @@
 import type { ChannelTag } from './discovery.js';
 import type { Settings } from './settings-store.js';
 
-/** Per-run "when done" choice. Manual runs pick this live; never persisted. */
+/**
+ * Per-run "when done" choice ("Offen lassen · Beenden · PC herunterfahren").
+ * Manual runs pick it live on the ⏻ chip; the last pick is remembered as
+ * `settings.whenDoneLast` — except 'shutdown', see {@link rememberedWhenDone}.
+ */
 export type WhenDone = 'nothing' | 'quit' | 'shutdown';
+
+/**
+ * The value `whenDoneLast` takes after the operator picked `next` on the chip.
+ * "PC herunterfahren" is never remembered (a forgotten shutdown on the next
+ * run would be the one surprise nobody forgives), so it keeps `previous`.
+ */
+export function rememberedWhenDone(
+  next: WhenDone,
+  previous: Settings['whenDoneLast'],
+): Settings['whenDoneLast'] {
+  return next === 'shutdown' ? previous : next;
+}
 
 export interface RunPlan {
   channel: ChannelTag;
   /** Only ever true when the operator is signed in. */
   uploadAfter: boolean;
   whenDone: WhenDone;
-  /** True for a run started hidden/unattended (the `--hidden` login item). */
+  /**
+   * True for a run the uploader started itself — the `--hidden` login item or
+   * the countdown on a launch the operator opened. Such a run starts with
+   * `settings.autoRunPreset` and ends as `settings.afterAutoRun` says.
+   */
   unattended: boolean;
 }
 

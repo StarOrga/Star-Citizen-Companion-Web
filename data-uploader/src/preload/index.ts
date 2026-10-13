@@ -16,10 +16,12 @@ export interface PublicSettings {
   telemetryEnabled: boolean;
   minimizeToTray: boolean;
   autoStart: boolean;
-  autoRunOnNewVersion: boolean;
-  quitAfterAutoRun: boolean;
   /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  /** Preset a run the uploader started itself starts with. Default 'balanced'. */
+  autoRunPreset: 'gaming' | 'balanced' | 'full';
+  /** Last remembered ⏻ choice on the operator's own runs (never 'shutdown'). */
+  whenDoneLast: 'nothing' | 'quit';
   updateChannel: 'alpha' | 'beta' | 'stable';
   /** Persisted UI locale; undefined = renderer's own detection/fallback. */
   language?: string;
@@ -245,6 +247,10 @@ export const api = {
     get: (): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:get'),
     set: (partial: Partial<ResourceLimits>): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:set', partial),
     preset: (id: PresetId): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:preset', id),
+    /** A self-started run's preset, applied without touching the persisted limits. */
+    autoRunPreset: (id: PresetId): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:autoRunPreset', id),
+    /** Back to the operator's persisted limits (no-op without an auto-run preset). */
+    restoreOperator: (): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:restoreOperator'),
     /**
      * The selected install (game drive) and, optionally, where the run writes
      * (work drive; default: the install itself — the output goes to

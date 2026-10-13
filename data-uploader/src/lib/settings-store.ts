@@ -16,30 +16,40 @@ export interface Settings {
   installId: string;
   /** Closing the window hides to the tray instead of quitting. Default ON. */
   minimizeToTray: boolean;
-  /** Launch with Windows (registered via Electron's login-item API). Default OFF. */
+  /**
+   * Launch with Windows (registered via Electron's login-item API) — the
+   * "PC-Start" slot of the ⚙ sentence. Default ON for a new install; an
+   * existing install keeps the value it stored.
+   *
+   * Uploading a new game patch has no switch of its own (the retired
+   * `autoRunOnNewVersion`): whenever the uploader runs and a session exists, a
+   * new patch is uploaded — unattended right away, on a launch the operator
+   * opened after a 120 s countdown. Neither is the retired `quitAfterAutoRun`
+   * a setting any more: an unattended launch with nothing new always quits
+   * again, unless `afterAutoRun` is 'keep' (`lib/auto-run.ts`).
+   */
   autoStart: boolean;
   /**
-   * On launch, compare the local data.p4k against what's already uploaded and
-   * run the whole pipeline unattended when it differs. Default OFF — it starts
-   * hours of CPU work, so it must be a deliberate opt-in.
-   */
-  autoRunOnNewVersion: boolean;
-  /**
-   * After an UNATTENDED launch (the `--hidden` autostart login item), close the
-   * program again once there is nothing left for it to do: immediately when the
-   * auto-run decided the server already holds this build, and right after a
-   * fully-confirmed upload. Default ON — an autostart that leaves a tray icon
-   * sitting there forever is the thing nobody asked for; a foreground start the
-   * operator opened themselves is never touched by this.
-   */
-  quitAfterAutoRun: boolean;
-  /**
-   * What happens after an UNATTENDED run that uploaded successfully. Replaces
-   * the old boolean `shutdownAfterUpload` (removed in schema v2) — a foreground
-   * run's "when done" choice lives only in renderer memory and is never
-   * persisted here. Default 'quit'.
+   * What happens after a run the uploader started itself (unattended launch or
+   * the countdown). Replaces the old boolean `shutdownAfterUpload` (removed in
+   * schema v2). 'keep' also keeps an unattended launch with nothing new open.
+   * Default 'quit'.
    */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  /**
+   * The resource preset a run the uploader started itself STARTS with — the
+   * "mit … Leistung" slot. Applied for that run only (never written over the
+   * dock's own persisted limits); the dock can change it while it runs.
+   * Default 'balanced': an autostart run usually meets someone who just sat
+   * down at the PC, so it neither crawls nor takes the whole machine.
+   */
+  autoRunPreset: 'gaming' | 'balanced' | 'full';
+  /**
+   * The ⏻ "when done" choice the operator last picked on a run of their own.
+   * 'shutdown' is never stored — it applies to the one run it was picked for.
+   * Default 'nothing' ("Offen lassen").
+   */
+  whenDoneLast: 'nothing' | 'quit';
   /**
    * The speed (load) mode the operator last picked. Main seeds its live throttle from this on launch, so the
    * mode picked once (e.g. "minimal, I want to play") is still the mode when
@@ -102,9 +112,13 @@ export interface TextIO {
   write(text: string): void;
 }
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 /**
+ * v3 retired `autoRunOnNewVersion` (uploading a new patch is always on) and
+ * `quitAfterAutoRun` (a fixed rule now) — both are simply not read, so they
+ * vanish on the next save; `autoStart` keeps whatever a v1/v2 install stored.
+ *
  * The retired `extractScope` (every run now extracts the full data set — the
  * upload must not depend on which uploader produced it) is dropped the same
  * way: `load()` only carries known keys, so it vanishes on the next save.
@@ -117,7 +131,7 @@ const SCHEMA_VERSION = 2;
  * the same way. Any other
  * version is treated as unreadable and resets to defaults entirely.
  */
-const READABLE_VERSIONS = new Set([1, SCHEMA_VERSION]);
+const READABLE_VERSIONS = new Set([1, 2, SCHEMA_VERSION]);
 
 interface Envelope {
   v: number;
@@ -145,13 +159,16 @@ export class SettingsStore {
           ? parsed.installId
           : this.makeId(),
       minimizeToTray: typeof parsed?.minimizeToTray === 'boolean' ? parsed.minimizeToTray : true,
-      autoStart: typeof parsed?.autoStart === 'boolean' ? parsed.autoStart : false,
-      autoRunOnNewVersion:
-        typeof parsed?.autoRunOnNewVersion === 'boolean' ? parsed.autoRunOnNewVersion : false,
-      // Default ON (unlike the row above): this one only ever ENDS a process
-      // nobody is looking at, so the safe direction is to do it.
-      quitAfterAutoRun:
-        typeof parsed?.quitAfterAutoRun === 'boolean' ? parsed.quitAfterAutoRun : true,
+      // Default ON for a new install (the ⚙ sentence's "mit Windows"); a stored
+      // value — including the old default OFF — is kept as it is.
+      autoStart: typeof parsed?.autoStart === 'boolean' ? parsed.autoStart : true,
+      autoRunPreset:
+        parsed?.autoRunPreset === 'gaming' ||
+        parsed?.autoRunPreset === 'balanced' ||
+        parsed?.autoRunPreset === 'full'
+          ? parsed.autoRunPreset
+          : 'balanced',
+      whenDoneLast: parsed?.whenDoneLast === 'quit' ? 'quit' : 'nothing',
       afterAutoRun:
         parsed?.afterAutoRun === 'keep' ||
         parsed?.afterAutoRun === 'quit' ||
