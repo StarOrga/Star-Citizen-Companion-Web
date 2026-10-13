@@ -84,7 +84,7 @@ export function chunk<T>(items: T[], size: number): T[][] {
 export async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let next = 0;
   const worker = async (): Promise<void> => {
-    while (next < items.length) await fn(items[next++]);
+    while (next < items.length) await fn(items[next++]!);
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
 }

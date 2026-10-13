@@ -4,17 +4,31 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "out/main",
-    "types": ["node", "electron"],
+    "outDir": ".tsbuild/node",
+    "types": [
+      "node",
+      "electron"
+    ],
     "allowImportingTsExtensions": false,
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "emitDeclarationOnly": true,
+    "tsBuildInfoFile": ".tsbuild/node.tsbuildinfo"
   },
-  "include": ["src/main/**/*", "src/preload/**/*", "src/lib/**/*", "electron.vite.config.ts", "test/**/*"]
+  "include": [
+    "src/main/**/*",
+    "src/preload/**/*",
+    "src/lib/**/*",
+    "src/i18n/*.json",
+    "electron.vite.config.ts",
+    "test/**/*"
+  ]
 }

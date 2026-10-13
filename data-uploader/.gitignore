@@ -13,3 +13,6 @@ release-builds/
 
 # Generated icon (`npm run icon` -> ../scripts/build-brand-icons.mjs --only=uploader)
 build/icon.ico
+
+# tsc -b declaration output (npm run typecheck)
+.tsbuild/

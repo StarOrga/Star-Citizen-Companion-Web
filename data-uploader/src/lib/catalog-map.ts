@@ -300,7 +300,7 @@ export function mapBlueprints(list: Record<string, unknown>[], tag: Tag): Entity
   return list.map((bp) => {
     const outputs = bp.outputs as { className?: string }[] | undefined;
     const outputClassName =
-      Array.isArray(outputs) && outputs.length > 0 ? (outputs[0].className ?? null) : null;
+      Array.isArray(outputs) && outputs.length > 0 ? (outputs[0]!.className ?? null) : null;
     return tag({
       class_name: bp.className,
       guid: bp.guid ?? null,

@@ -20,7 +20,7 @@ export function isNewerVersion(latest: string, current: string): boolean {
 /** -1 | 0 | 1 SemVer comparison of two `x.y.z[-prerelease]` strings. */
 export function compareSemver(a: string, b: string): number {
   const parse = (v: string): { main: number[]; pre: string[] } => {
-    const raw = v.trim().replace(/^v/, '').split('+', 1)[0]; // drop build metadata
+    const raw = v.trim().replace(/^v/, '').split('+', 1)[0] ?? ''; // drop build metadata
     const dash = raw.indexOf('-');
     const core = dash === -1 ? raw : raw.slice(0, dash);
     const preStr = dash === -1 ? '' : raw.slice(dash + 1);
@@ -31,7 +31,9 @@ export function compareSemver(a: string, b: string): number {
   const pa = parse(a);
   const pb = parse(b);
   for (let i = 0; i < 3; i++) {
-    if (pa.main[i] !== pb.main[i]) return pa.main[i] > pb.main[i] ? 1 : -1;
+    const x = pa.main[i] ?? 0;
+    const y = pb.main[i] ?? 0;
+    if (x !== y) return x > y ? 1 : -1;
   }
   // Equal core: a build WITHOUT a pre-release outranks one that has one.
   if (pa.pre.length === 0 || pb.pre.length === 0) {

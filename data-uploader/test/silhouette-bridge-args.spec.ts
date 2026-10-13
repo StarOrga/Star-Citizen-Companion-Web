@@ -27,7 +27,7 @@ describe('silhouetteBuildArgs', () => {
   it('serialises build identity as a single --build-json blob', () => {
     const args = silhouetteBuildArgs(BASE);
     const raw = args[args.indexOf('--build-json') + 1];
-    expect(JSON.parse(raw)).toEqual({
+    expect(JSON.parse(raw!)).toEqual({
       channel: 'LIVE', patchVersion: '4.9.0', buildNumber: '123456',
     });
   });

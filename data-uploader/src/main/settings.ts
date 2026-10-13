@@ -48,7 +48,8 @@ export function patchSettings(partial: Partial<Omit<Settings, 'installId'>>): Se
 /**
  * Register/unregister the app as a login item.
  *
- * `openAsHidden` is macOS-only; on Windows we pass `--hidden` as an arg and the
+ * Electron no longer has the macOS-only `openAsHidden` option; we pass
+ * `--hidden` as an arg instead and the
  * app reads it to start straight into the tray — an unattended auto-run should
  * not steal focus at login.
  *
@@ -60,7 +61,6 @@ export function applyAutoStart(enabled: boolean): void {
   try {
     app.setLoginItemSettings({
       openAtLogin: enabled,
-      openAsHidden: enabled,
       args: enabled ? ['--hidden'] : [],
     });
   } catch {

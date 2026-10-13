@@ -154,7 +154,7 @@ function fillTriangle(r: DepthRaster, sx: Float64Array, sy: Float64Array, sd: Fl
 
 /** Coverage mask of a raster, morphologically closed by `radius` px (fills hairline cracks). */
 export function coverageMask(r: DepthRaster, radius = 1): Uint8Array {
-  let m = new Uint8Array(r.w * r.h);
+  let m: Uint8Array = new Uint8Array(r.w * r.h);
   for (let i = 0; i < m.length; i++) m[i] = r.depth[i]! > -Infinity ? 1 : 0;
   for (let i = 0; i < radius; i++) m = morph(m, r.w, r.h, true);
   for (let i = 0; i < radius; i++) m = morph(m, r.w, r.h, false);

@@ -39,7 +39,7 @@ interface ManualRunInput {
   unattended?: false;
   /** Game version/channel picked on the launch pad. */
   channel: ChannelTag;
-  settings: Settings;
+  settings: Pick<Settings, 'afterAutoRun'>;
   signedIn: boolean;
   /** The operator's live "when done" pick for this run. */
   whenDone: WhenDone;
@@ -49,7 +49,7 @@ interface UnattendedRunInput {
   unattended: true;
   /** The channel `decideAutoRun` picked. */
   channel: ChannelTag;
-  settings: Settings;
+  settings: Pick<Settings, 'afterAutoRun'>;
   signedIn: boolean;
 }
 

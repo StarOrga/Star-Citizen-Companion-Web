@@ -12,6 +12,7 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     quitAfterAutoRun: true,
     afterAutoRun: 'quit',
     speedProfile: 'standard',
+    useGpu: false,
     updateChannel: 'stable',
     ...overrides,
   };
