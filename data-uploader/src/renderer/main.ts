@@ -1122,7 +1122,11 @@ function paintManualBanner(): void {
   wireDiscoverUpdateBanner();
 }
 
+// The last update event, so a language switch can repaint the banner in place.
+let lastUpdateEvent: UpdateEvent | null = null;
+
 function paintUpdateBanner(ev: UpdateEvent): void {
+  lastUpdateEvent = ev;
   const banner = $('#update-banner');
   const text = $('#update-banner-text');
   const action = $('#update-banner-action') as HTMLButtonElement | null;
@@ -1418,6 +1422,7 @@ export function openAppSettingsDialog(): void {
     },
     onLocaleChanged: () => {
       render();
+      if (lastUpdateEvent) paintUpdateBanner(lastUpdateEvent);
       repaintPatchCountdown();
       repaintResourceDock();
       paintConnection();
