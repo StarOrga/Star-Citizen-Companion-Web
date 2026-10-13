@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRunPlan } from '../src/lib/run-plan.js';
+import { buildRunPlan, rememberedWhenDone } from '../src/lib/run-plan.js';
 import type { Settings } from '../src/lib/settings-store.js';
 
 function baseSettings(overrides: Partial<Settings> = {}): Settings {
@@ -7,10 +7,10 @@ function baseSettings(overrides: Partial<Settings> = {}): Settings {
     telemetryEnabled: true,
     installId: 'id-1',
     minimizeToTray: true,
-    autoStart: false,
-    autoRunOnNewVersion: false,
-    quitAfterAutoRun: true,
+    autoStart: true,
     afterAutoRun: 'quit',
+    autoRunPreset: 'balanced',
+    whenDoneLast: 'nothing',
     speedProfile: 'standard',
     useGpu: false,
     updateChannel: 'stable',
@@ -110,5 +110,17 @@ describe('buildRunPlan', () => {
   it('carries no scope — every run extracts the full data set', () => {
     const plan = buildRunPlan({ channel: 'LIVE', settings: baseSettings(), signedIn: true, whenDone: 'nothing' });
     expect('scope' in plan).toBe(false);
+  });
+});
+
+describe('rememberedWhenDone', () => {
+  it('remembers "Offen lassen" and "Beenden"', () => {
+    expect(rememberedWhenDone('nothing', 'quit')).toBe('nothing');
+    expect(rememberedWhenDone('quit', 'nothing')).toBe('quit');
+  });
+
+  it('never remembers "PC herunterfahren" — the previous choice stays', () => {
+    expect(rememberedWhenDone('shutdown', 'quit')).toBe('quit');
+    expect(rememberedWhenDone('shutdown', 'nothing')).toBe('nothing');
   });
 });

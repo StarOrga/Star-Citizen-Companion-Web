@@ -1,7 +1,47 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.146.0",
+  "current": "0.147.0",
   "releases": [
+    {
+      "version": "0.147.0",
+      "date": "2026-10-14",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.55.0: Einstellungen als ein Satz.",
+              "text": "Das ⚙-Fenster liest sich jetzt wie ein Satz mit drei Auswahlfeldern: wann der Uploader startet (mit Windows oder nur, wenn du ihn öffnest), mit welcher Leistung er selbst gestartete Läufe beginnt (Beim Spielen / Ausgewogen / Volle Leistung) und was danach passiert (bleibt offen / beendet sich / fährt den PC herunter). Sprache, Tray, Fehlerberichte und der Update-Ring (nur für Admins) stehen als Chips darunter; jede Änderung gilt sofort, auch der Sprachwechsel."
+            },
+            {
+              "title": "Hochladen nach einem neuen Spiel-Patch passiert immer.",
+              "text": "Der Schalter für den automatischen Upload entfällt; ein unbeaufsichtigter Start ohne Neues beendet sich wieder, außer „danach“ steht auf „bleibt offen“. Neue Installationen starten mit Windows, bestehende behalten ihre Einstellung. Das Leistungsprofil ist nur der Startwert, das Performance-Dock kann es jederzeit ändern. Der Chip „Wenn fertig“ merkt sich die letzte Wahl (außer „PC herunterfahren“)."
+            }
+          ]
+        },
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Countdown-Banner für einen neuen Spiel-Patch.",
+              "text": "Öffnest du den Uploader selbst und es gibt einen Patch, den der Server noch nicht hat, startet der Upload nach 120 s von allein – mit „Jetzt hochladen“ und „Abbrechen“ (bis zum nächsten App-Start). Solange das ⚙-Fenster offen ist, hält der Countdown an."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Update-Banner des Uploaders wechselt die Sprache mit.",
+              "text": "Bisher blieb ein sichtbares Update-Banner nach dem Sprachwechsel in der alten Sprache."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.146.0",
       "date": "2026-10-13",

@@ -246,9 +246,9 @@ function publicSettings(): {
   telemetryEnabled: boolean;
   minimizeToTray: boolean;
   autoStart: boolean;
-  autoRunOnNewVersion: boolean;
-  quitAfterAutoRun: boolean;
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  autoRunPreset: 'gaming' | 'balanced' | 'full';
+  whenDoneLast: 'nothing' | 'quit';
   updateChannel: 'alpha' | 'beta' | 'stable';
   language?: string;
 } {
@@ -259,9 +259,9 @@ function publicSettings(): {
     telemetryEnabled: s.telemetryEnabled,
     minimizeToTray: s.minimizeToTray,
     autoStart: s.autoStart,
-    autoRunOnNewVersion: s.autoRunOnNewVersion,
-    quitAfterAutoRun: s.quitAfterAutoRun,
     afterAutoRun: s.afterAutoRun,
+    autoRunPreset: s.autoRunPreset,
+    whenDoneLast: s.whenDoneLast,
     updateChannel: s.updateChannel,
     ...(s.language !== undefined ? { language: s.language } : {}),
   };
@@ -281,9 +281,9 @@ ipcMain.handle(
     partial: {
       minimizeToTray?: boolean;
       autoStart?: boolean;
-      autoRunOnNewVersion?: boolean;
-      quitAfterAutoRun?: boolean;
       afterAutoRun?: 'keep' | 'quit' | 'shutdown';
+      autoRunPreset?: 'gaming' | 'balanced' | 'full';
+      whenDoneLast?: 'nothing' | 'quit';
       updateChannel?: 'alpha' | 'beta' | 'stable';
       language?: string;
     },
@@ -293,11 +293,15 @@ ipcMain.handle(
     const clean: Parameters<typeof patchSettings>[0] = {};
     if (typeof partial?.minimizeToTray === 'boolean') clean.minimizeToTray = partial.minimizeToTray;
     if (typeof partial?.autoStart === 'boolean') clean.autoStart = partial.autoStart;
-    if (typeof partial?.autoRunOnNewVersion === 'boolean') {
-      clean.autoRunOnNewVersion = partial.autoRunOnNewVersion;
+    if (
+      partial?.autoRunPreset === 'gaming' ||
+      partial?.autoRunPreset === 'balanced' ||
+      partial?.autoRunPreset === 'full'
+    ) {
+      clean.autoRunPreset = partial.autoRunPreset;
     }
-    if (typeof partial?.quitAfterAutoRun === 'boolean') {
-      clean.quitAfterAutoRun = partial.quitAfterAutoRun;
+    if (partial?.whenDoneLast === 'nothing' || partial?.whenDoneLast === 'quit') {
+      clean.whenDoneLast = partial.whenDoneLast;
     }
     if (
       partial?.afterAutoRun === 'keep' ||
@@ -394,10 +398,9 @@ ipcMain.on('sc:tray:labels', (_e, labels: Partial<TrayMenuLabels>) => {
  * inputs. The renderer performs the run, because it owns the stage sequencing.
  */
 ipcMain.handle('sc:autorun:decide', async (_e, signedIn: boolean): Promise<AutoRunDecision> => {
-  const settings = getSettings();
-  const channels = settings.autoRunOnNewVersion ? await discoverAll() : [];
+  // Uploading a new game patch has no switch any more — every launch looks.
+  const channels = await discoverAll();
   const decision = decideAutoRun({
-    enabled: settings.autoRunOnNewVersion,
     signedIn: Boolean(signedIn),
     channels,
     snapshot: getCachedSnapshot(),
@@ -524,6 +527,8 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
 ipcMain.handle('sc:resources:get', () => resources.view());
 ipcMain.handle('sc:resources:set', (_e, partial: unknown) => resources.setLimits(partial));
 ipcMain.handle('sc:resources:preset', (_e, id: unknown) => resources.applyPreset(id));
+ipcMain.handle('sc:resources:autoRunPreset', (_e, id: unknown) => resources.applyAutoRunPreset(id));
+ipcMain.handle('sc:resources:restoreOperator', () => resources.restoreOperatorLimits());
 ipcMain.handle('sc:resources:detectDisk', (_e, path: unknown, workPath?: unknown) => resources.detectDisk(path, workPath));
 ipcMain.handle('sc:resources:setUseGpu', (_e, on: unknown) => resources.setUseGpu(on));
 ipcMain.handle('sc:resources:watch', (_e, on: unknown) => resources.watch(on === true));

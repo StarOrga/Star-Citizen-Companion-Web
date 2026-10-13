@@ -79,10 +79,10 @@
     "autoUploading": "Auto-Upload aktiv — wechsle zum Upload…",
     "whenDone": {
       "label": "Wenn fertig",
-      "nothing": "Nichts",
-      "quit": "Programm beenden",
+      "nothing": "Offen lassen",
+      "quit": "Beenden",
       "shutdown": "PC herunterfahren",
-      "hint": "Was nach diesem Lauf passiert. 60-s-Countdown zum Abbrechen · gilt nur für diesen Lauf, wird nie gespeichert."
+      "hint": "Was nach diesem Lauf passiert. Merkt sich deine letzte Wahl — außer „PC herunterfahren“: das gilt nur für diesen Lauf (60-s-Countdown zum Abbrechen)."
     },
     "phase": {
       "discover": "Spiel lesen",
@@ -264,15 +264,6 @@
     "title": "Einstellungen",
     "adminOnly": "nur Admin/Collaborator",
     "language": "Sprache",
-    "afterAutoRun": {
-      "label": "Nach dem automatischen Upload",
-      "keep": "Weiterlaufen",
-      "quit": "Programm beenden",
-      "shutdown": "PC herunterfahren"
-    },
-    "diagnostics": {
-      "title": "Diagnose"
-    },
     "updateChannel": {
       "label": "Update-Ring",
       "hint": "Welchem Release-Ring automatische Updates folgen.",
@@ -280,22 +271,52 @@
       "beta": "Beta",
       "stable": "Stabil"
     },
-    "auto": {
-      "title": "Automatik — ohne dich",
-      "label": "Neue Patches automatisch hochladen",
-      "hint": "Startet mit Windows im Tray. Sobald eine neue data.p4k-Version da ist, extrahiert das Programm sie und lädt sie selbstständig hoch — mit dem zuletzt gewählten Tempo.",
-      "manualNote": "Startest du einen Lauf selbst, stellst du Tempo (⚡) und „Wenn fertig“ (⏻) direkt am Lauf ein — diese Automatik-Einstellungen gelten dafür nicht."
+    "when": {
+      "title": "Wann er arbeitet",
+      "sentenceAuto": "Der Uploader startet {{start}} und wartet unsichtbar im Tray. Erscheint ein neuer Patch, lädt er ihn hoch — mit {{preset}} — und {{after}}.",
+      "sentenceManual": "Der Uploader startet {{start}}. Ist dann ein neuer Patch da, lädt er ihn hoch — mit {{preset}} — und {{after}}.",
+      "noteAuto": "Neue Patches lädt er immer selbst hoch, sobald er läuft und du angemeldet bist. Ist nichts Neues da, beendet er sich nach dem Windows-Start gleich wieder.",
+      "noteAutoKeep": "Neue Patches lädt er immer selbst hoch, sobald er läuft und du angemeldet bist. Ist nichts Neues da, bleibt er nach dem Windows-Start im Tray.",
+      "noteManual": "Neue Patches lädt er immer selbst hoch, sobald er läuft und du angemeldet bist — beim Öffnen nach 120 s Countdown."
     },
-    "quitIfNothing": {
-      "label": "Ohne neuen Patch gleich wieder beenden",
-      "hint": "Ist beim Windows-Start nichts Neues hochzuladen, beendet sich das Programm sofort wieder, statt im Tray zu bleiben."
+    "start": {
+      "label": "Wann er startet",
+      "withWindows": "mit Windows",
+      "withWindowsDesc": "Startet unsichtbar im Tray und schaut nach neuen Patches. Bei Neuinstallation vorausgewählt.",
+      "manual": "nur, wenn du ihn öffnest",
+      "manualDesc": "Kein Autostart. Neue Patches lädt er dann beim Öffnen hoch."
     },
-    "general": {
-      "title": "Allgemein"
-    }
+    "preset": {
+      "label": "Leistung für Läufe, die er selbst startet",
+      "hint": "Nur der Startwert für Läufe, die er selbst startet — die Performance-Leiste unten ändert ihn jederzeit. Deine eigenen Läufe nutzen die Leiste."
+    },
+    "after": {
+      "label": "Was danach passiert",
+      "keep": "bleibt danach offen",
+      "keepDesc": "Im Tray, bereit für den nächsten Patch.",
+      "quit": "beendet sich danach",
+      "quitDesc": "Programm zu, PC bleibt an.",
+      "shutdown": "fährt danach den PC herunter",
+      "shutdownDesc": "60-Sekunden-Countdown zum Abbrechen.",
+      "hint": "Nur für Läufe, die er selbst startet. Deine eigenen Läufe: ⏻ am Lauf."
+    },
+    "app": {
+      "title": "App",
+      "tray": "schließt in den Tray",
+      "trayOffDesc": "✕ beendet das Programm.",
+      "telemetry": "Fehlerberichte",
+      "telemetryOffDesc": "Es werden keine Absturzberichte gesendet."
+    },
+    "on": "an",
+    "off": "aus",
+    "adminBadge": "Admin",
+    "languageName": {
+      "de": "Deutsch",
+      "en": "English"
+    },
+    "footer": "Data Uploader v{{version}}"
   },
   "telemetry": {
-    "toggle": "Fehlerberichte senden",
     "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."
   },
   "catalog": {
@@ -385,13 +406,18 @@
     "upload": "Upload",
     "done": "fertig",
     "error": "fehlgeschlagen",
-    "minimize": "Beim Schließen in den Tray minimieren",
     "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden."
   },
   "autorun": {
     "starting": "Neue Version erkannt ({{channel}}: {{local}} vs. {{server}}) — starte automatisch.",
     "resumeFirst": "Unterbrochener Upload gefunden — Auto-Lauf übersprungen.",
-    "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt."
+    "resuming": "Unterbrochener Upload gefunden — wird automatisch fortgesetzt.",
+    "banner": {
+      "aria": "Neuer Spiel-Patch",
+      "text": "Neuer Spiel-Patch {{patch}} — Upload startet automatisch in",
+      "now": "Jetzt hochladen",
+      "cancel": "Abbrechen"
+    }
   },
   "subthemes": {
     "allCurrent": "Der Server hat diesen Build bereits vollständig – nichts hat sich geändert, Extraktion und Upload entfallen. „Alles neu erzwingen“ startet trotzdem.",

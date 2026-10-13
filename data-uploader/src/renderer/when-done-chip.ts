@@ -1,9 +1,11 @@
 /**
- * "⏻ Wenn fertig: Nichts ▾" chip — the per-run "when done" pick, mounted next
- * to the ⚡ tempo chip on the Extract and Upload cards. Both chips are the run's
- * only knobs, and both stay changeable while it runs; nothing here is persisted
- * (the unattended auto-run has its own "after" setting in ⚙ Settings).
- * An armed choice (quit / shutdown) shows in the warning tone.
+ * "⏻ Wenn fertig: Offen lassen ▾" chip — the per-run "when done" pick on the
+ * Extract and Upload cards, changeable while the run goes. Same vocabulary as
+ * the ⚙ sentence's "danach" slot (Offen lassen · Beenden · PC herunterfahren).
+ * The last pick is remembered (`settings.whenDoneLast`, see
+ * `rememberedWhenDone`) — except "PC herunterfahren", which only ever holds
+ * for the run it was picked on. How much of the PC the run takes lives in the
+ * performance dock. An armed choice (quit / shutdown) shows in the warning tone.
  */
 
 import { t } from '../lib/i18n.js';

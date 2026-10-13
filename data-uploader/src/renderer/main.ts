@@ -10,10 +10,11 @@
 // build can strip their remote Google-Fonts @import — see electron.vite.config.ts.
 import '@starorga/star-ui/lib/design-tokens.css';
 import { load as loadI18n, t } from '../lib/i18n.js';
-import { shouldAutoResume, shouldQuitAfterAutoRun } from '../lib/auto-run.js';
+import { shouldAutoResume, shouldQuitAfterAutoRun, launchAction } from '../lib/auto-run.js';
+import { startPatchCountdown, repaintPatchCountdown } from './patch-countdown.js';
 import { initTooltips } from './tooltip.js';
 import { tallySkinUpload, skinUploadFrame, skinUploadStatus } from '../lib/skin-upload-summary.js';
-import { buildRunPlan, type RunPlan, type WhenDone } from '../lib/run-plan.js';
+import { buildRunPlan, rememberedWhenDone, type RunPlan, type WhenDone } from '../lib/run-plan.js';
 import { CATALOG_SUBTHEMES, phasesOf, type SubthemeKey, type SubthemePlan } from '../lib/subthemes.js';
 import { openSettingsDialog, closeSettingsDialogIfOpen } from './settings-dialog.js';
 import { $, escapeHtml } from './dom.js';
@@ -89,11 +90,14 @@ interface CatalogUploadResult {
 export interface PublicSettings {
   telemetryEnabled: boolean;
   minimizeToTray: boolean;
+  /** "PC-Start" slot: launch with Windows. Default ON for a new install. */
   autoStart: boolean;
-  autoRunOnNewVersion: boolean;
-  quitAfterAutoRun: boolean;
-  /** What happens after an UNATTENDED run that uploaded. Default 'quit'. */
+  /** "danach" slot: what a run the uploader started itself does afterwards. Default 'quit'. */
   afterAutoRun: 'keep' | 'quit' | 'shutdown';
+  /** "mit … Leistung" slot: the preset such a run starts with. Default 'balanced'. */
+  autoRunPreset: 'gaming' | 'balanced' | 'full';
+  /** Last remembered ⏻ choice on the operator's own runs (never 'shutdown'). */
+  whenDoneLast: 'nothing' | 'quit';
   updateChannel: 'alpha' | 'beta' | 'stable';
   /** Persisted UI locale; undefined = renderer's own detection/fallback. */
   language?: string;
@@ -240,8 +244,8 @@ export const state = {
     source: string;
     selected: boolean;
   }>,
-  // Per-run "when done" pick (nothing / quit / shutdown) — renderer memory
-  // only, never persisted. Reset to 'nothing' at the start of every run.
+  // Per-run "when done" pick (nothing / quit / shutdown) on the ⏻ chip. Starts
+  // from `settings.whenDoneLast` (the last pick, never a shutdown).
   whenDone: 'nothing' as WhenDone,
   // The plan the currently active (or last) run was started from — built by
   // `buildRunPlan()` at the single `startRun()` entry point. Drives
@@ -271,8 +275,8 @@ export const state = {
   // an upload resume after the app is closed or killed.
   uploadPaused: false,
   resumableJob: null as JobViewLike | null,
-  // Persisted prefs owned by main (tray / autostart / auto-run). Cached here
-  // only so the Configure view can render the checkboxes synchronously.
+  // Persisted prefs owned by main (⚙ sentence, app chips, ⏻ memory). Cached
+  // here so the dialog and the run chips can render synchronously.
   settings: null as PublicSettings | null,
   // The signed-in user's role — gates the update-channel picker (viewer: hidden).
   role: null as 'admin' | 'collaborator' | 'viewer' | null,
@@ -329,6 +333,7 @@ async function init(): Promise<void> {
   // Cache the persisted prefs so the Configure view can render its checkboxes.
   try {
     state.settings = await window.sc.settings.get();
+    state.whenDone = state.settings.whenDoneLast;
   } catch {
     state.settings = null;
   }
@@ -491,7 +496,6 @@ async function maybeAutoRun(): Promise<void> {
     render();
     const status = state.resumableJob.state?.status;
     const resume = shouldAutoResume({
-      enabled: Boolean(state.settings?.autoRunOnNewVersion),
       signedIn: Boolean(state.authToken),
       startedHidden,
       status:
@@ -500,12 +504,11 @@ async function maybeAutoRun(): Promise<void> {
           : null,
     });
     if (!resume) {
-      // Only worth saying when an auto-run was actually on the table; the
-      // card's resume banner already explains the job itself.
-      if (state.settings?.autoRunOnNewVersion) setStatus(t('autorun.resumeFirst'));
+      setStatus(t('autorun.resumeFirst'));
       return;
     }
     setStatus(t('autorun.resuming'));
+    await applyAutoRunPreset();
     await doResumeUpload();
     return;
   }
@@ -519,13 +522,14 @@ async function maybeAutoRun(): Promise<void> {
   if (operatorHasMoved()) return;
   if (!decision.run || !decision.channel) {
     // Nothing to upload and nobody watching → close again instead of leaving a
-    // tray icon behind for the rest of the day (feedback 71b1e402). Only for the
-    // one skip reason that actually means "the server already has this build";
-    // every other reason is something the operator should still be able to see.
+    // tray icon behind for the rest of the day (feedback 71b1e402), unless the
+    // ⚙ sentence says "bleibt danach offen". Only for the one skip reason that
+    // actually means "the server already has this build"; every other reason is
+    // something the operator should still be able to see.
     if (
       shouldQuitAfterAutoRun({
         startedHidden,
-        enabled: Boolean(state.settings?.quitAfterAutoRun),
+        afterAutoRun: state.settings?.afterAutoRun ?? 'quit',
         reason: decision.reason,
       })
     ) {
@@ -534,6 +538,46 @@ async function maybeAutoRun(): Promise<void> {
     return;
   }
 
+  const action = launchAction({
+    run: true,
+    startedHidden,
+    cancelled: patchCountdownCancelled,
+    operatorBusy: operatorHasMoved(),
+  });
+  if (action === 'none') return;
+  if (action === 'countdown') {
+    // A launch the operator opened: say what is about to happen and give them
+    // 120 s to stop it (#patch-banner — not the uploader-update banner).
+    const found = decision;
+    startPatchCountdown({
+      channel: found.channel?.channel ?? '',
+      version: found.localVersion ?? found.channel?.version ?? '?',
+      isBusy: operatorHasMoved,
+      onStart: () => void startAutoRun(found),
+      onCancel: () => {
+        patchCountdownCancelled = true;
+      },
+    });
+    return;
+  }
+  await startAutoRun(decision);
+}
+
+/** "Abbrechen" on the game-patch banner — holds until the next app start. */
+let patchCountdownCancelled = false;
+
+/**
+ * A run the uploader starts itself begins on the ⚙ sentence's preset — applied
+ * over, never written into, the dock's own limits (`resources.applyAutoRunPreset`).
+ */
+async function applyAutoRunPreset(): Promise<void> {
+  if (!state.settings) return;
+  await window.sc.resources.autoRunPreset(state.settings.autoRunPreset).catch(() => undefined);
+}
+
+/** Select the decided channel and start the run like the unattended launch does. */
+async function startAutoRun(decision: Awaited<ReturnType<typeof window.sc.autoRun.decide>>): Promise<void> {
+  if (!decision.channel || operatorHasMoved()) return;
   // Adopt the decided channel as the selection the run operates on.
   state.channels = [
     {
@@ -556,9 +600,9 @@ async function maybeAutoRun(): Promise<void> {
       server: decision.serverVersion ?? '—',
     }),
   );
-  // The unattended plan always rolls the extraction straight into the upload
+  // The self-started plan always rolls the extraction straight into the upload
   // (when signed in) — see `buildRunPlan`. `startRun` is the single entry
-  // point into a run for both this (unattended) and the manual Setup path.
+  // point into a run for both this and the manual Install path.
   await startRun(
     buildRunPlan({
       unattended: true,
@@ -1078,7 +1122,11 @@ function paintManualBanner(): void {
   wireDiscoverUpdateBanner();
 }
 
+// The last update event, so a language switch can repaint the banner in place.
+let lastUpdateEvent: UpdateEvent | null = null;
+
 function paintUpdateBanner(ev: UpdateEvent): void {
+  lastUpdateEvent = ev;
   const banner = $('#update-banner');
   const text = $('#update-banner-text');
   const action = $('#update-banner-action') as HTMLButtonElement | null;
@@ -1237,6 +1285,10 @@ let lastStepIdx = 0;
  */
 export async function startRun(plan: RunPlan): Promise<void> {
   noteInstallPath(state.channels.find((c) => c.selected)?.dataP4kPath);
+  // A self-started run begins on the ⚙ sentence's preset; the operator's own
+  // run on the dock's persisted limits (undoing such a preset if one is left).
+  if (plan.unattended) await applyAutoRunPreset();
+  else await window.sc.resources.restoreOperator().catch(() => undefined);
   state.runPlan = plan;
   state.whenDone = plan.whenDone;
   // A fresh run: every row of every step starts open again.
@@ -1260,7 +1312,7 @@ export function resetForNewRun(): void {
   state.runPlan = null;
   state.subthemePlan = null;
   state.forceAll = false;
-  state.whenDone = 'nothing';
+  state.whenDone = state.settings?.whenDoneLast ?? 'nothing';
   state.view = 'discover';
   noteOverallPct(0);
   render();
@@ -1342,6 +1394,17 @@ function wireRunChips(): void {
     set: (next) => {
       state.whenDone = next;
       if (state.runPlan) state.runPlan = { ...state.runPlan, whenDone: next };
+      // Remembered for the next run — except "PC herunterfahren".
+      const prev = state.settings?.whenDoneLast ?? 'nothing';
+      const keep = rememberedWhenDone(next, prev);
+      if (keep !== prev) {
+        void window.sc.settings
+          .patch({ whenDoneLast: keep })
+          .then((s) => {
+            state.settings = s;
+          })
+          .catch(() => undefined);
+      }
     },
   });
 }
@@ -1359,6 +1422,8 @@ export function openAppSettingsDialog(): void {
     },
     onLocaleChanged: () => {
       render();
+      if (lastUpdateEvent) paintUpdateBanner(lastUpdateEvent);
+      repaintPatchCountdown();
       repaintResourceDock();
       paintConnection();
       pushTrayLabels();

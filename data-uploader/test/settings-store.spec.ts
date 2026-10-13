@@ -68,15 +68,50 @@ describe('SettingsStore', () => {
     expect(second.installId).toBe(first.installId);
   });
 
-  it('defaults quitAfterAutoRun ON and persists a deliberate opt-out', () => {
+  it('defaults autoStart ON for a new install but keeps a stored OFF', () => {
+    const io = fakeIO();
+    expect(new SettingsStore(io, seqIds()).load().autoStart).toBe(true);
+    const old = fakeIO();
+    old.data = JSON.stringify({ v: 2, settings: { installId: 'x', autoStart: false } });
+    expect(new SettingsStore(old, seqIds()).load().autoStart).toBe(false);
+  });
+
+  it('drops the retired autoRunOnNewVersion / quitAfterAutoRun keys on load and on the next save', () => {
+    const io = fakeIO();
+    io.data = JSON.stringify({
+      v: 2,
+      settings: { installId: 'x', autoStart: true, autoRunOnNewVersion: false, quitAfterAutoRun: false, afterAutoRun: 'keep' },
+    });
+    const store = new SettingsStore(io, seqIds());
+    const s = store.load() as unknown as Record<string, unknown>;
+    expect(s.autoRunOnNewVersion).toBeUndefined();
+    expect(s.quitAfterAutoRun).toBeUndefined();
+    expect(s.afterAutoRun).toBe('keep');
+    store.patch({ minimizeToTray: false });
+    const persisted = JSON.parse(io.data as string) as { v: number; settings: Record<string, unknown> };
+    expect(persisted.v).toBe(3);
+    expect(persisted.settings.autoRunOnNewVersion).toBeUndefined();
+    expect(persisted.settings.quitAfterAutoRun).toBeUndefined();
+  });
+
+  it('defaults autoRunPreset to balanced, round-trips a patch and rejects unknown ids', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());
-    // ON by default, unlike the other two unattended options: this one only ever
-    // ENDS a process nobody is looking at (feedback 71b1e402).
-    expect(store.load().quitAfterAutoRun).toBe(true);
-    store.patch({ quitAfterAutoRun: false });
-    const reloaded = new SettingsStore(io, seqIds());
-    expect(reloaded.load().quitAfterAutoRun).toBe(false);
+    expect(store.load().autoRunPreset).toBe('balanced');
+    store.patch({ autoRunPreset: 'gaming' });
+    expect(new SettingsStore(io, seqIds()).load().autoRunPreset).toBe('gaming');
+    io.data = JSON.stringify({ v: 3, settings: { installId: 'x', autoRunPreset: 'turbo' } });
+    expect(new SettingsStore(io, seqIds()).load().autoRunPreset).toBe('balanced');
+  });
+
+  it('defaults whenDoneLast to nothing and never loads a stored shutdown', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().whenDoneLast).toBe('nothing');
+    store.patch({ whenDoneLast: 'quit' });
+    expect(new SettingsStore(io, seqIds()).load().whenDoneLast).toBe('quit');
+    io.data = JSON.stringify({ v: 3, settings: { installId: 'x', whenDoneLast: 'shutdown' } });
+    expect(new SettingsStore(io, seqIds()).load().whenDoneLast).toBe('nothing');
   });
 
   it('defaults updateChannel to stable and round-trips a patch', () => {
@@ -187,7 +222,7 @@ describe('SettingsStore', () => {
     expect(s.telemetryEnabled).toBe(false);
   });
 
-  it('upgrades a loaded v1 envelope to v2 on the next persist', () => {
+  it('upgrades a loaded v1 envelope to v3 on the next persist', () => {
     const io = fakeIO();
     io.data = JSON.stringify({
       v: 1,
@@ -197,7 +232,7 @@ describe('SettingsStore', () => {
     store.load();
     store.patch({ minimizeToTray: false });
     const persisted = JSON.parse(io.data as string) as { v: number; settings: Record<string, unknown> };
-    expect(persisted.v).toBe(2);
+    expect(persisted.v).toBe(3);
     expect(persisted.settings.shutdownAfterUpload).toBeUndefined();
   });
 });
