@@ -79,10 +79,10 @@
     "autoUploading": "Auto-upload on — switching to upload…",
     "whenDone": {
       "label": "When done",
-      "nothing": "Nothing",
-      "quit": "Quit app",
+      "nothing": "Keep open",
+      "quit": "Quit",
       "shutdown": "Shut down PC",
-      "hint": "What happens after this run. 60 s cancelable countdown · applies to this run only, never saved."
+      "hint": "What happens after this run. Remembers your last choice — except \"Shut down PC\", which applies to this run only (60 s countdown to cancel)."
     },
     "phase": {
       "discover": "Read game",
@@ -264,15 +264,6 @@
     "title": "Settings",
     "adminOnly": "admin/collaborator only",
     "language": "Language",
-    "afterAutoRun": {
-      "label": "After the automatic upload",
-      "keep": "Keep running",
-      "quit": "Quit app",
-      "shutdown": "Shut down PC"
-    },
-    "diagnostics": {
-      "title": "Diagnostics"
-    },
     "updateChannel": {
       "label": "Update ring",
       "hint": "Which release ring auto-updates follow.",
@@ -280,19 +271,50 @@
       "beta": "Beta",
       "stable": "Stable"
     },
-    "auto": {
-      "title": "Automatic — without you",
-      "label": "Upload new patches automatically",
-      "hint": "Starts with Windows in the tray. As soon as a new data.p4k version is there, it extracts and uploads it on its own — at the speed you picked last.",
-      "manualNote": "When you start a run yourself, set speed (⚡) and \"when done\" (⏻) right on the run — these automatic settings do not apply to it."
+    "when": {
+      "title": "When it works",
+      "sentenceAuto": "The uploader starts {{start}} and waits invisibly in the tray. When a new patch appears, it uploads it — on {{preset}} — and {{after}}.",
+      "sentenceManual": "The uploader starts {{start}}. If a new patch is there by then, it uploads it — on {{preset}} — and {{after}}.",
+      "noteAuto": "It always uploads new patches on its own while it runs and you are signed in. With nothing new, it closes again right after Windows starts.",
+      "noteAutoKeep": "It always uploads new patches on its own while it runs and you are signed in. With nothing new, it stays in the tray after Windows starts.",
+      "noteManual": "It always uploads new patches on its own while it runs and you are signed in — when you open it, after a 120 s countdown."
     },
-    "quitIfNothing": {
-      "label": "Close again when there is no new patch",
-      "hint": "If there is nothing new to upload at Windows start, the program closes right away instead of staying in the tray."
+    "start": {
+      "label": "When it starts",
+      "withWindows": "with Windows",
+      "withWindowsDesc": "Starts invisibly in the tray and looks for new patches. Preselected on a new install.",
+      "manual": "only when you open it",
+      "manualDesc": "No autostart. It then uploads new patches when you open it."
     },
-    "general": {
-      "title": "General"
-    }
+    "preset": {
+      "label": "Performance for runs it starts itself",
+      "hint": "Only the starting value for runs it starts itself — the performance dock below changes it any time. Your own runs use the dock."
+    },
+    "after": {
+      "label": "What happens afterwards",
+      "keep": "stays open afterwards",
+      "keepDesc": "In the tray, ready for the next patch.",
+      "quit": "quits afterwards",
+      "quitDesc": "App closes, the PC stays on.",
+      "shutdown": "shuts down the PC afterwards",
+      "shutdownDesc": "60-second countdown to cancel.",
+      "hint": "Only for runs it starts itself. Your own runs: ⏻ on the run."
+    },
+    "app": {
+      "title": "App",
+      "tray": "closes to the tray",
+      "trayOffDesc": "✕ quits the app.",
+      "telemetry": "Error reports",
+      "telemetryOffDesc": "No crash reports are sent."
+    },
+    "on": "on",
+    "off": "off",
+    "adminBadge": "Admin",
+    "languageName": {
+      "de": "Deutsch",
+      "en": "English"
+    },
+    "footer": "Data Uploader v{{version}}"
   },
   "telemetry": {
     "toggle": "Send error reports",
@@ -391,7 +413,13 @@
   "autorun": {
     "starting": "New version detected ({{channel}}: {{local}} vs {{server}}) — starting automatically.",
     "resumeFirst": "Found an interrupted upload — skipped the automatic run.",
-    "resuming": "Found an interrupted upload — resuming it automatically."
+    "resuming": "Found an interrupted upload — resuming it automatically.",
+    "banner": {
+      "aria": "New game patch",
+      "text": "New game patch {{patch}} — upload starts automatically in",
+      "now": "Upload now",
+      "cancel": "Cancel"
+    }
   },
   "subthemes": {
     "allCurrent": "The server already holds this build in full — nothing changed, extraction and upload are skipped. \"Force everything\" runs anyway.",
