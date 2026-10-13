@@ -4,6 +4,38 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.147.0] - 2026-10-14
+
+### Changed
+
+- **Data Uploader 0.55.0: Einstellungen als ein Satz.** Das ⚙-Fenster liest
+  sich jetzt wie ein Satz mit drei Auswahlfeldern: wann der Uploader startet
+  (mit Windows oder nur, wenn du ihn öffnest), mit welcher Leistung er selbst
+  gestartete Läufe beginnt (Beim Spielen / Ausgewogen / Volle Leistung) und
+  was danach passiert (bleibt offen / beendet sich / fährt den PC herunter).
+  Sprache, Tray, Fehlerberichte und der Update-Ring (nur für Admins) stehen
+  als Chips darunter; jede Änderung gilt sofort, auch der Sprachwechsel.
+- **Hochladen nach einem neuen Spiel-Patch passiert immer.** Der Schalter für
+  den automatischen Upload entfällt; ein unbeaufsichtigter Start ohne Neues
+  beendet sich wieder, außer „danach“ steht auf „bleibt offen“. Neue
+  Installationen starten mit Windows, bestehende behalten ihre Einstellung.
+  Das Leistungsprofil ist nur der Startwert, das Performance-Dock kann es
+  jederzeit ändern. Der Chip „Wenn fertig“ merkt sich die letzte Wahl (außer
+  „PC herunterfahren“).
+
+### Added
+
+- **Countdown-Banner für einen neuen Spiel-Patch.** Öffnest du den Uploader
+  selbst und es gibt einen Patch, den der Server noch nicht hat, startet der
+  Upload nach 120 s von allein – mit „Jetzt hochladen“ und „Abbrechen“ (bis
+  zum nächsten App-Start). Solange das ⚙-Fenster offen ist, hält der Countdown
+  an.
+
+### Fixed
+
+- **Update-Banner des Uploaders wechselt die Sprache mit.** Bisher blieb ein
+  sichtbares Update-Banner nach dem Sprachwechsel in der alten Sprache.
+
 ## [0.146.0] - 2026-10-13
 
 ### Added
