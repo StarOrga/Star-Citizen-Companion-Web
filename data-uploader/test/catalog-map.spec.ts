@@ -69,7 +69,7 @@ describe('mapShips', () => {
       is_variant: false,
       name_localized: 'Gladius',
     });
-    expect(rows[0].payload).toBeTruthy();
+    expect(rows[0]!.payload).toBeTruthy();
   });
 });
 
@@ -204,11 +204,11 @@ describe('mapKeybinds', () => {
       binding_keyboard: 'space', binding_joystick: 'js1_b1', binding_mouse: null, binding_gamepad: null,
       sort: 0,
     });
-    expect(rows[0].payload).toEqual(data.actions[0]);
+    expect(rows[0]!.payload).toEqual(data.actions[0]);
   });
 
   it('resolves category_label_key from the action’s actionmap label', () => {
-    expect(mapKeybinds(data, BUILD, nat)[1].category_label_key).toBe('@ui_CGNotification');
+    expect(mapKeybinds(data, BUILD, nat)[1]!.category_label_key).toBe('@ui_CGNotification');
   });
 
   it('skips actions missing actionmap or name; empty input → []', () => {
@@ -216,8 +216,8 @@ describe('mapKeybinds', () => {
     const partial = { actions: [{ name: 'x' }, { actionmap: 'm' }, { actionmap: 'm', name: 'ok', bindings: {} }] };
     const rows = mapKeybinds(partial, BUILD, nat);
     expect(rows).toHaveLength(1);
-    expect(rows[0].action_name).toBe('ok');
-    expect(rows[0].category_label_key).toBeNull();
+    expect(rows[0]!.action_name).toBe('ok');
+    expect(rows[0]!.category_label_key).toBeNull();
   });
 });
 
@@ -257,9 +257,9 @@ describe('mapSilhouettes', () => {
       bbox: { x: 1, y: 2, w: 3, h: 4 },
       generated_at: '2026-09-20T00:00:00Z',
     });
-    expect(rows[0].anchors).toEqual(shipFile.anchors);
-    expect(rows[0].unresolved).toEqual(['hardpoint_shield_generator_2']);
-    expect(rows[0].meta).toMatchObject({
+    expect(rows[0]!.anchors).toEqual(shipFile.anchors);
+    expect(rows[0]!.unresolved).toEqual(['hardpoint_shield_generator_2']);
+    expect(rows[0]!.meta).toMatchObject({
       toolVersion: '0.31.0',
       scaleMPerUnit: 0.01,
       pointCount: 3,
@@ -271,8 +271,8 @@ describe('mapSilhouettes', () => {
   it('defaults anchors/unresolved to empty arrays for non-ship kinds', () => {
     const weaponFile = { ...shipFile, kind: 'weapon', className: 'TEST_Gun', anchors: undefined, unresolved: undefined };
     const rows = mapSilhouettes([weaponFile], tag);
-    expect(rows[0].anchors).toEqual([]);
-    expect(rows[0].unresolved).toEqual([]);
+    expect(rows[0]!.anchors).toEqual([]);
+    expect(rows[0]!.unresolved).toEqual([]);
   });
 
   it('skips a file with no usable geometry (no path) — never a placeholder row', () => {

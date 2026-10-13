@@ -38,7 +38,7 @@ function makeOutDir(): string {
 /** Stub server that records the Authorization header of every request. */
 function stubFetchCapturingAuth(auths: string[]): void {
   vi.stubGlobal('fetch', async (_url: string, init: { headers: Record<string, string> }) => {
-    auths.push(init.headers.authorization);
+    auths.push(init.headers.authorization!);
     return { ok: true, status: 200, json: async () => ({ build_id: 'build-fixed-1' }) };
   });
 }

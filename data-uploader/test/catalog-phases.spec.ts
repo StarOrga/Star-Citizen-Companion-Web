@@ -24,7 +24,7 @@ describe('CATALOG_PHASE_ORDER', () => {
   it('uploads in the category-bar order: Texte, Schiffe, Komponenten, Waffen, Gegenstände', () => {
     const at = (p: string): number => catalogPhaseIndex(p) ?? -1;
     const seq = ['codex_locale_strings', 'codex_ships', 'codex_components', 'codex_weapons', 'codex_items'].map(at);
-    expect(seq.every((v, i) => v > 0 && (i === 0 || v > seq[i - 1]))).toBe(true);
+    expect(seq.every((v, i) => v > 0 && (i === 0 || v > seq[i - 1]!))).toBe(true);
   });
 });
 

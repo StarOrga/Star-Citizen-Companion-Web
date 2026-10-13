@@ -111,7 +111,7 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 | Prozessor | 0–100 % der ganzen Maschine, Grenze max. **90 %** | harte CPU-Grenze per Windows **Job Object** um den ganzen Sidecar-Baum |
 | Arbeitsspeicher | Gesamt-RAM − 2 GB für Windows; belegt von anderen Programmen + Uploader-App wird live abgezogen | bestimmt die Worker-Zahl des nächsten Schritts (ein hartes Commit-Limit würde Allokationen scheitern lassen und den Lauf abstürzen) |
 | Disk lesen / schreiben (MB/s), Disk-Zugriffe (/s) | Laufwerksklasse der Data.p4k (NVMe / SATA-SSD / HDD, per `Get-PhysicalDisk`) | Governor pausiert den Baum genau so lange, bis das Budget wieder im Plus ist (Duty-Cycle, 250 ms Auflösung) |
-| Grafikkarte | — | wird nicht genutzt (alles läuft auf der CPU); das Dock sagt das |
+| Grafikkarte | — | Schalter „GPU nutzen“ (Settings `useGpu`, Standard aus); jeder Sidecar bekommt `SC_USE_GPU=1` nur, wenn er an ist und eine GPU erkannt wurde (`Win32_VideoController`, einmal pro Sitzung), sonst `0` — ein GPU-Pfad fällt bei Fehlern selbst auf die CPU zurück |
 
 - **Tacho**: Nadel und große Zahl zeigen die **Gesamtlast des PCs** wie im
   Task-Manager, der innere Bogen den Anteil des Uploader-Laufs, der helle Bogen
@@ -120,6 +120,15 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
   `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = `% Processor Utility`
   wie im Task-Manager). Er läuft nur, solange der Sampler tickt (sichtbares
   Fenster oder laufender Job).
+- **Laufwerke**: `sysmon.py` liest zusätzlich jedes physische Laufwerk
+  (`\PhysicalDisk(*)`: Aktivzeit = 100 − `% Idle Time`, Antwortzeit,
+  Lesen/Schreiben, Zugriffe). Das Dock zeigt das **Spiel-Laufwerk** (die
+  Installation) und das **Arbeitslaufwerk** (wohin der Lauf schreibt, heute
+  `<Installation>/.sc-companion-extracts`, also meist dasselbe — dann eine
+  Zelle mit Rolle `both`). Der Anteil des Laufs ist pro Prozessbaum gemessen,
+  nicht pro Laufwerk: bei zwei Laufwerken zählen seine Lesezugriffe zum
+  Spiel-, seine Schreibzugriffe zum Arbeitslaufwerk (Vertrag in
+  `src/lib/drive-load.ts`).
 - **Governor** (`python/sc_extract/governor.py`): ein kleiner Prozess pro
   laufendem Sidecar (`main/resources.ts` startet ihn in `registerJob`). Er legt
   den Sidecar in ein Job Object — jeder Worker, `cgf-converter` und der

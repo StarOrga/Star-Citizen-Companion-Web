@@ -4,7 +4,7 @@ const electronApp = vi.hoisted(() => ({
   isPackaged: false,
   paths: { userData: 'C:/Users/x/AppData/Roaming/sc-data-uploader' } as Record<string, string>,
   getPath(name: string): string {
-    return this.paths[name];
+    return this.paths[name]!;
   },
   setPath: vi.fn(function (this: { paths: Record<string, string> }, name: string, value: string) {
     this.paths[name] = value;

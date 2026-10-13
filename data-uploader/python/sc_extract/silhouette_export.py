@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .glb_materials import read_glb, strip_noop_skins
+from .stage_timing import timed
 from .hull3d import _safe_join, safe_id
 from .silhouette import Triangle
 
@@ -199,7 +200,7 @@ def algo_tag() -> str:
     cached mesh."""
     h = hashlib.sha256()
     here = Path(__file__).resolve().parent
-    for name in ("silhouette.py", "silhouette_export.py"):
+    for name in ("silhouette.py", "silhouette_export.py", "silhouette_gpu.py"):
         try:
             h.update((here / name).read_bytes())
         except OSError:
@@ -267,7 +268,8 @@ class SilhouetteExporter:
         info = self._info(p4k_path)
         if not info:
             raise FileNotFoundError(p4k_path)
-        return self.p4k.open(info).read()
+        with timed("silhouette.p4k_read"):
+            return self.p4k.open(info).read()
 
     def source(self, mesh_path: str, tolerance_m: float) -> MeshSource:
         """Read a mesh (+ its `.cgam`) once and derive its cache key."""
@@ -360,10 +362,12 @@ class SilhouetteExporter:
             if src.cgam is not None:
                 _safe_join(mirror, (src.path[:-4] + ".cgam").replace("\\", "/")).write_bytes(src.cgam)
             raw_glb = mirror / f"{mesh_id}.glb"
-            self._cgf_to_glb(mesh_disk, mirror / "Data", raw_glb)
-            gltf, binary = read_glb(raw_glb)
-            strip_noop_skins(gltf, binary, self.cfg.on_log)
-            return world_triangles_from_glb(gltf, binary)
+            with timed("silhouette.convert"):
+                self._cgf_to_glb(mesh_disk, mirror / "Data", raw_glb)
+            with timed("silhouette.glb_parse"):
+                gltf, binary = read_glb(raw_glb)
+                strip_noop_skins(gltf, binary, self.cfg.on_log)
+                return world_triangles_from_glb(gltf, binary)
         except Exception as exc:  # noqa: BLE001 — one bad mesh must not abort the run
             self.cfg.on_log("warn", f"silhouette mesh {mesh_id}: {type(exc).__name__}: {exc}")
             return None

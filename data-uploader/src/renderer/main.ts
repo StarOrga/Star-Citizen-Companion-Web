@@ -3124,7 +3124,8 @@ async function buildAndUploadSkins(
     setStage('skinsBuild', 'warn');
     return false;
   }
-  state.skinResult = built.ships;
+  const ships = built.ships;
+  state.skinResult = ships;
   if (built.ships.length === 0) {
     progress?.update({ indeterminate: false });
     setStage('skinsBuild', 'done');
@@ -3152,8 +3153,8 @@ async function buildAndUploadSkins(
   });
   const unsubUpload = window.sc.skin.onEvent((ev) => {
     if (ev.type === 'progress') {
-      if (typeof ev.current === 'number') setStageMeta('skinsUpload', `${ev.current} / ${ev.total ?? built.ships.length}`);
-      const total = ev.total ?? built.ships.length;
+      if (typeof ev.current === 'number') setStageMeta('skinsUpload', `${ev.current} / ${ev.total ?? ships.length}`);
+      const total = ev.total ?? ships.length;
       progress?.update({
         current: ev.current,
         total,

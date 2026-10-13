@@ -30,6 +30,8 @@
  * tests share one definition.
  */
 
+import type { DriveLoad } from './drive-load.js';
+
 export type DiskKind = 'nvme' | 'ssd' | 'hdd' | 'unknown';
 
 /** Nominal capability of a drive class — the top of the disk scales. */
@@ -273,6 +275,11 @@ export interface ResourceSample {
   sysReadMBs: number | null;
   sysWriteMBs: number | null;
   sysIops: number | null;
+  /**
+   * Per physical disk the run touches (game / work / both) — see
+   * `lib/drive-load.ts` for the contract. Empty until an install is selected.
+   */
+  drives: DriveLoad[];
   /** Share of the last second the governor held the run back for a disk budget, 0..1. */
   heldBack: number;
   /** True while a sidecar is running under the governor. */

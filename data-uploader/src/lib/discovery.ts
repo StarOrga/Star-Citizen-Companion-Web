@@ -192,7 +192,7 @@ async function readVersionFile(
  */
 export function parseBuildNumber(raw: string): string | null {
   const m = raw.match(/"RequestedP4ChangeNum"\s*:\s*"?(\d+)"?/);
-  return m ? m[1] : null;
+  return m?.[1] ?? null;
 }
 
 function dedupe(channels: DiscoveredChannel[]): DiscoveredChannel[] {

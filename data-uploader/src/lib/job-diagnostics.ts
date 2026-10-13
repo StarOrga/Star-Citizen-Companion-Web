@@ -167,6 +167,7 @@ export function formatTranscript(diag: JobDiagnostics, max = MAX_TRANSCRIPT_CHAR
   while (i <= j) {
     const fromHead = head.length <= tail.length;
     const line = fromHead ? rendered[i] : rendered[j];
+    if (line === undefined) break; // unreachable: i..j stays inside `rendered`
     if (line.length + 1 > budget) break;
     budget -= line.length + 1;
     if (fromHead) {

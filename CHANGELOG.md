@@ -4,6 +4,32 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.146.0] - 2026-10-13
+
+### Added
+
+- **Data Uploader 0.54.0: neues Performance-Dock, vergleichbar mit dem
+  Task-Manager.** Die Leiste zeigt CPU, RAM und jedes beteiligte Laufwerk
+  (Spiel- und Arbeitslaufwerk, auf derselben Platte zusammengefasst); jeder
+  Balken trennt den Anteil des Uploaders vom Rest des PCs. Laufwerke werden
+  wie im Task-Manager nach aktiver Zeit pro physischem Datenträger bewertet,
+  dazu Antwortzeit, MB/s und Zugriffe/s. Aufgeklappt (höchstens 30 % des
+  Fensters) gibt es Tachos mit ziehbaren Tempomat-Punkten für die Limits,
+  ein leuchtender Engpass und ein Boost-Symbol für beschleunigte Schritte;
+  jeder Tooltip zeigt aktuellen Wert, Mittel und Spitze der letzten 60 s.
+- **GPU-Schalter für den Uploader.** Erscheint, wenn der PC einen nutzbaren
+  OpenGL-Kontext hat, und rastert Silhouetten und die Lochprüfung der
+  3D-Rümpfe auf der Grafikkarte. Unabhängig davon ist das Silhouetten-Rastern
+  auf der CPU jetzt etwa 13× schneller (bitgenau gleiches Ergebnis); die
+  Silhouetten-Caches bauen sich einmal neu auf.
+
+### Fixed
+
+- **Updater bietet immer das neueste Release an.** Lag schon ein Update
+  bereit und erschien ein noch neueres, wurde das ältere installiert; jetzt
+  wird das neueste geladen und vor der Installation erneut geprüft. Ein
+  Kanalwechsel verwirft ein bereitliegendes Update des alten Kanals.
+
 ## [0.145.0] - 2026-10-13
 
 ### Changed

@@ -245,7 +245,15 @@ export const api = {
     get: (): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:get'),
     set: (partial: Partial<ResourceLimits>): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:set', partial),
     preset: (id: PresetId): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:preset', id),
-    detectDisk: (path: string): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:detectDisk', path),
+    /**
+     * The selected install (game drive) and, optionally, where the run writes
+     * (work drive; default: the install itself — the output goes to
+     * `<install>/.sc-companion-extracts`).
+     */
+    detectDisk: (path: string, workPath?: string): Promise<ResourceView> =>
+      ipcRenderer.invoke('sc:resources:detectDisk', path, workPath),
+    /** Persisted "use GPU" switch; the view comes back with `gpu.enabled` updated. */
+    setUseGpu: (on: boolean): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:setUseGpu', on),
     watch: (on: boolean): Promise<void> => ipcRenderer.invoke('sc:resources:watch', on),
     onChanged: (cb: (v: ResourceView) => void): (() => void) => {
       const listener = (_e: unknown, payload: ResourceView): void => cb(payload);

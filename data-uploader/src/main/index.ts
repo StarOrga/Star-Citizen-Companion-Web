@@ -524,7 +524,8 @@ ipcMain.handle('sc:estimate', (_e, profileId: keyof typeof PROFILES, sizeBytes: 
 ipcMain.handle('sc:resources:get', () => resources.view());
 ipcMain.handle('sc:resources:set', (_e, partial: unknown) => resources.setLimits(partial));
 ipcMain.handle('sc:resources:preset', (_e, id: unknown) => resources.applyPreset(id));
-ipcMain.handle('sc:resources:detectDisk', (_e, path: unknown) => resources.detectDisk(path));
+ipcMain.handle('sc:resources:detectDisk', (_e, path: unknown, workPath?: unknown) => resources.detectDisk(path, workPath));
+ipcMain.handle('sc:resources:setUseGpu', (_e, on: unknown) => resources.setUseGpu(on));
 ipcMain.handle('sc:resources:watch', (_e, on: unknown) => resources.watch(on === true));
 
 ipcMain.handle('sc:authenticate', async () => {
@@ -1286,6 +1287,8 @@ app.whenReady().then(() => {
     stored: getSettings().resourceLimits,
     legacyProfile: getSettings().speedProfile,
     persist: (stored) => patchSettings({ resourceLimits: stored }),
+    useGpu: getSettings().useGpu,
+    persistUseGpu: (on) => patchSettings({ useGpu: on }),
   });
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();

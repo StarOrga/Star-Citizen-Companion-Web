@@ -7,6 +7,12 @@
  *   data-tip-key="Space"    optional hotkey, shown as a key badge in the tip —
  *                           the one place hotkey hints live, so buttons no
  *                           longer carry a permanent <kbd> badge
+ *   data-tip-title="…"      optional bold first line (a state such as "held back")
+ *   data-tip-nums="…"       optional live numbers: rows split by a newline,
+ *                           cells by a tab, first row = column heads; drawn as a grid in a
+ *                           fixed-width tip. The caller pads values to a fixed
+ *                           width, so {@link refreshTooltip} can rewrite them in
+ *                           place while the tip is open without it jumping.
  *   data-tip-tier="label"   only when the tip is the element's only name
  *                           (icon-only control), shows truncated content, or
  *                           says why a control is disabled. Default: info.
@@ -58,17 +64,71 @@ function place(el: HTMLElement): void {
   tipEl.style.left = `${Math.round(left)}px`;
 }
 
+function numsHtml(nums: string): string {
+  const rows = nums.split('\n').map((r) => r.split('\t'));
+  const cols = Math.max(...rows.map((r) => r.length));
+  const cells = rows
+    .map((r, i) =>
+      Array.from({ length: cols }, (_, c) => {
+        const tag = i === 0 || c === 0 ? 'span' : 'b';
+        const cls = i === 0 && c > 0 ? ' class="sc-tip-h"' : '';
+        return `<${tag}${cls}>${escapeText(r[c] ?? '')}</${tag}>`;
+      }).join(''),
+    )
+    .join('');
+  return `<span class="sc-tip-nums" style="grid-template-columns: auto repeat(${cols - 1}, max-content)">${cells}</span>`;
+}
+
+/** What the tip shows for an element; the signature tells whether a repaint must re-place it. */
+function content(el: HTMLElement): { html: string; shape: string } {
+  const text = el.dataset.tip ?? '';
+  const key = el.dataset.tipKey ?? '';
+  const title = el.dataset.tipTitle ?? '';
+  const nums = el.dataset.tipNums ?? '';
+  const body =
+    (title ? `<strong class="sc-tip-title">${escapeText(title)}</strong>` : '') +
+    `<span class="sc-tip-text">${escapeText(text)}</span>` +
+    (nums ? numsHtml(nums) : '');
+  const html =
+    (title || nums ? `<span class="sc-tip-body">${body}</span>` : body) +
+    (key ? `<kbd class="sc-kbd">${escapeText(key)}</kbd>` : '');
+  return { html, shape: [title, text, key].join('\n') };
+}
+
+let shownShape = '';
+
 function show(el: HTMLElement): void {
   const text = el.dataset.tip ?? '';
   const key = el.dataset.tipKey ?? '';
   if (!tipEl || (!text && !key)) return;
   owner = el;
-  tipEl.innerHTML =
-    `<span class="sc-tip-text">${escapeText(text)}</span>` +
-    (key ? `<kbd class="sc-kbd">${escapeText(key)}</kbd>` : '');
+  const c = content(el);
+  tipEl.classList.toggle('sc-tooltip--nums', Boolean(el.dataset.tipNums));
+  tipEl.innerHTML = c.html;
+  shownShape = c.shape;
   tipEl.hidden = false;
   place(el);
   if (!el.hasAttribute('aria-describedby')) el.setAttribute('aria-describedby', 'sc-tooltip');
+}
+
+/**
+ * Repaint an open tip from its owner's current data attributes — for live
+ * numbers. Only a changed text or title re-places it; numbers alone are padded
+ * to fixed widths by the caller and update in place.
+ */
+export function refreshTooltip(): void {
+  if (!owner || !tipEl || tipEl.hidden) return;
+  if (!owner.isConnected) {
+    hideTooltip();
+    return;
+  }
+  const c = content(owner);
+  if (tipEl.innerHTML === c.html) return;
+  tipEl.innerHTML = c.html;
+  if (c.shape !== shownShape) {
+    shownShape = c.shape;
+    place(owner);
+  }
 }
 
 export function hideTooltip(): void {

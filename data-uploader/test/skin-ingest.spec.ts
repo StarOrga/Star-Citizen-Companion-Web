@@ -94,7 +94,7 @@ describe('uploadSkins', () => {
     const res = await uploadSkins('jwt', [{ shipId: 'SHIP_A', dir }], () => {});
 
     expect(res[0]).toMatchObject({ ok: true, ship_id: 'SHIP_A', uploaded: 1, committed: 1 });
-    expect(res[0].empty).toBeUndefined();
+    expect(res[0]!.empty).toBeUndefined();
     expect(await exists(join(dir, '.uploaded'))).toBe(true);
   });
 
@@ -133,11 +133,11 @@ describe('uploadSkins', () => {
     const res = await uploadSkins('jwt', [{ shipId: 'SHIP_A', dir }], () => {});
 
     expect(res[0]).toMatchObject({ ok: true, uploaded: 2, committed: 2 });
-    expect(bodies[0]['objects']).toEqual([
+    expect(bodies[0]!['objects']).toEqual([
       { skin_id: 'standard', ext: 'glb', sha256: GLB_SHA },
       { skin_id: 'pirate', ext: 'webp' },
     ]);
-    const rows = bodies[1]['skins'] as { skin_id: string; has_model: boolean; has_icon: boolean }[];
+    const rows = bodies[1]!['skins'] as { skin_id: string; has_model: boolean; has_icon: boolean }[];
     expect(rows.map((r) => [r.skin_id, r.has_model, r.has_icon])).toEqual([
       ['standard', true, false],
       ['pirate', false, true],
@@ -212,7 +212,7 @@ describe('uploadSkins', () => {
 
     expect(res[0]).toMatchObject({ ok: true, uploaded: 0, committed: 1 });
     expect(puts).toEqual([]);
-    const rows = bodies[1]['skins'] as { skin_id: string; model_sha256?: string }[];
+    const rows = bodies[1]!['skins'] as { skin_id: string; model_sha256?: string }[];
     expect(rows[0]).toMatchObject({ skin_id: 'standard', model_sha256: GLB_SHA });
     expect(logs.some((m) => m.includes('reused 1 shared 3D model'))).toBe(true);
   });

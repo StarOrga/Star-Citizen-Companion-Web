@@ -323,7 +323,7 @@ export async function uploadCatalog(
         if (isInterrupt(err)) throw err;
         last = err;
         if (attempt === MAX_ATTEMPTS || !isTransientFailure(err)) throw err;
-        const wait = hooks.backoffMs?.(attempt) ?? BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)];
+        const wait = hooks.backoffMs?.(attempt) ?? BACKOFF_MS[Math.min(attempt - 1, BACKOFF_MS.length - 1)]!;
         log.warn(
           `[catalog] ${op}: ${(err as Error).message} — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${wait}ms`,
         );

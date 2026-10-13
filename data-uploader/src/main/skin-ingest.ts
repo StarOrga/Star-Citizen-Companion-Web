@@ -377,7 +377,7 @@ export async function uploadSkins(
   // FPS weapon (`<out>/_fps/<className>/`) and vehicle item (`<out>/_items/<className>/`)
   // packages share the export root with the ships and ride the same run; they need no hull.
   if (!packageGate && ships.length > 0) {
-    const root = exportRootOf(ships[0].dir);
+    const root = exportRootOf(ships[0]!.dir);
     for (const [kind, sub, label] of [
       ['fps_weapon', '_fps', 'FPS weapon'],
       ['item', '_items', 'Item'],

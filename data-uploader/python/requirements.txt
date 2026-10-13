@@ -42,3 +42,12 @@ rsa==4.9.1
 cryptography==50.0.1   # AES-backed P4K decryption — pinned; supply-chain sensitive (cp39-abi3 wheel → embedded py3.10 OK)
 lz4==4.4.5
 Pillow==12.3.0         # DDS → PNG icon conversion (icons currently deferred); cp310 win wheel → embedded py3.10 OK
+# Optional GPU path (SC_USE_GPU=1): headless OpenGL 3.3 for the silhouette mask
+# raster and the 3D hole gate's depth maps (sc_extract/silhouette_gpu.py,
+# probe: python -m sc_extract.gpu_probe). Both have cp310 win_amd64 wheels; the
+# native .pyd files land in the embedded runtime's site-packages like every
+# other wheel here (electron-builder ships resources/python whole), and
+# glcontext loads the system opengl32.dll — nothing extra to bundle. Without a
+# usable driver both steps fall back to numpy, so a missing GPU never fails a build.
+moderngl==5.12.0
+glcontext==3.1.0       # moderngl's context backend (WGL on Windows)

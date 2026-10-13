@@ -251,6 +251,32 @@ anything else busy on the machine (a game, a build, another heavy job) wins
 the scheduler, and the export then waits at 0 % CPU. The step timing shows it
 as `other`.
 
+## GPU (`SC_USE_GPU=1`)
+
+Evaluated step by step against the step timing (LIVE 4.x, RTX 2080 SUPER):
+
+- **cgf-converter** — the biggest single step (silhouette sample: ~71 s per
+  hull, 5 hulls 356 s). An external CPU-only exe (format parsing, no numeric
+  kernel); nothing to offload. Parallel workers are the lever.
+- **gltf-transform optimize / meshopt** (`gltf_worker.mjs`) — weld, simplify
+  and meshopt encoding are sequential CPU algorithms in a JS/WASM library with
+  no GPU backend; already one long-lived Node (60 s -> 11 s).
+- **P4K reads** — zstd/AES + disk I/O; not GPU work.
+- **Hole gate** (`mesh_integrity.coverage_loss`) — **on the GPU when
+  available.** 26 views x 2 meshes of point splats into 384 px depth maps: the
+  numpy splat spends ~0.2 s per map on vector math over up to 3 M points
+  (13.7 s for a synthetic 600k-triangle hull); OpenGL renders the same sample
+  points as size-1 points with `MIN` blending in 1.2 s (~11x). Same points,
+  same `floor` binning, nearest depth per pixel — only float32 vertex math
+  differs: on that hull 267 vs 265 hole pixels of 607 025 (0.0440 % vs
+  0.0437 %; the gate is 0.2 %). A rung within float noise of the threshold
+  can flip; everything else gates identically. Sampling (`_sample`) and
+  `mesh_stats` (~8 s per 600k hull, edge welding = sorting) stay on the CPU.
+
+The host passes `SC_USE_GPU=1|0`; the GPU is used only if a hardware OpenGL
+3.3 context can be created (`python -m sc_extract.gpu_probe`), otherwise the
+numpy path runs. Code: `silhouette_gpu.py`.
+
 ## Size budget (`--max-model-mb`, default 1.5)
 
 Each web glb carries a size budget. A hull over budget is re-optimized up the

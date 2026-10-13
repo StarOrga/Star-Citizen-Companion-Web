@@ -54,7 +54,7 @@ describe('collectDiagnostic', () => {
       { type: 'warning', message: 'cannot write C:\\Users\\jerry\\AppData\\out\\x.json' },
       0,
     );
-    expect(diag.lines[0].message).toBe('cannot write C:\\Users\\<user>\\AppData\\out\\x.json');
+    expect(diag.lines[0]!.message).toBe('cannot write C:\\Users\\<user>\\AppData\\out\\x.json');
   });
 });
 

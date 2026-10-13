@@ -23,6 +23,7 @@ import { app } from 'electron';
 import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
+import { sidecarEnv } from './sidecar-env.js';
 import { silhouetteBuildArgs, type SilhouetteBuildRequest } from '../lib/silhouette-bridge-args.js';
 
 export type { SilhouetteBuildRequest };
@@ -66,7 +67,7 @@ export function startSilhouetteBuild(
 
   let child: ChildProcessWithoutNullStreams;
   try {
-    child = spawn(interpreter, args, { cwd, env: process.env, windowsHide: true });
+    child = spawn(interpreter, args, { cwd, env: sidecarEnv(), windowsHide: true });
   } catch (err) {
     return {
       promise: Promise.resolve({ ok: false, error: `spawn failed: ${(err as Error).message}` }),
