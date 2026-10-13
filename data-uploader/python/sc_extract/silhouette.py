@@ -13,8 +13,9 @@ doorstep):
 
     triangles (world-space metres, CryEngine axes +X right, +Y nose, +Z up)
         -> project to XY (drop Z, top-down)
-        -> rasterise into a boolean mask (numpy; aspect-preserving, longer
-           span -> `MASK_SIZE` px)
+        -> rasterise into a boolean mask (vectorised numpy scanline, or the
+           optional OpenGL path in `silhouette_gpu.py` when the host sets
+           SC_USE_GPU=1; aspect-preserving, longer span -> `MASK_SIZE` px)
         -> morphological close+open (denoise: fills 1px gaps, drops speckle)
         -> trace the outer contour + interior holes (Moore-neighbour boundary
            following in pure Python — no opencv dependency in the uploader,
@@ -39,9 +40,12 @@ labelling below sorts before iterating).
 from __future__ import annotations
 
 import math
+import os
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+
+from .stage_timing import timed
 
 Vec2 = Tuple[float, float]
 Vec3 = Tuple[float, float, float]
@@ -95,8 +99,13 @@ def rasterize_mask(
     tris_2d: Sequence[Tuple[Vec2, Vec2, Vec2]],
     bounds: Tuple[float, float, float, float],
     mask_size: int = MASK_SIZE,
+    backend: Optional[str] = None,
 ) -> Tuple[np.ndarray, float, int, int]:
     """Fill every triangle's XY projection into a boolean raster mask.
+
+    ``backend``: ``"cpu"`` (vectorised scanline, the reference rule),
+    ``"gpu"`` (OpenGL, `silhouette_gpu.py` — falls back to cpu on any error)
+    or None = `raster_backend()` (env ``SC_USE_GPU``).
 
     Returns ``(mask, px_per_m, width, height)``. Aspect-preserving: the LONGER
     world-space span maps to ``mask_size`` pixels; the mask is only as
@@ -108,38 +117,154 @@ def rasterize_mask(
     px_per_m = mask_size / max(span_x, span_y)
     width = max(1, min(mask_size, round(span_x * px_per_m)))
     height = max(1, min(mask_size, round(span_y * px_per_m)))
-    mask = np.zeros((height, width), dtype=bool)
-    for a, b, c in tris_2d:
-        _fill_triangle(mask, a, b, c, min_x, min_y, px_per_m, width, height)
-    return mask, px_per_m, width, height
+    px = _triangles_px(tris_2d, min_x, min_y, px_per_m)
+    if backend is None:
+        backend = raster_backend()
+    if backend == "gpu":
+        from . import silhouette_gpu
+        try:
+            mask = silhouette_gpu.rasterize(px, width, height)
+            return mask, px_per_m, width, height
+        except Exception as exc:  # noqa: BLE001 — a driver hiccup must never cost a silhouette
+            silhouette_gpu.disable(f"{type(exc).__name__}: {exc}")
+    return rasterize_px_cpu(px, width, height), px_per_m, width, height
 
 
-def _fill_triangle(mask: np.ndarray, a: Vec2, b: Vec2, c: Vec2,
-                    min_x: float, min_y: float, px_per_m: float,
-                    width: int, height: int) -> None:
-    def to_px(p: Vec2) -> Vec2:
-        return (p[0] - min_x) * px_per_m, (p[1] - min_y) * px_per_m
+# Barycentric inclusion slack of the original per-triangle rasteriser — kept
+# verbatim so the vectorised scanline below selects the SAME pixels.
+_BARY_EPS = 1e-6
 
-    ax, ay = to_px(a)
-    bx, by = to_px(b)
-    cx, cy = to_px(c)
-    x0 = max(0, int(math.floor(min(ax, bx, cx))))
-    x1 = min(width - 1, int(math.ceil(max(ax, bx, cx))))
-    y0 = max(0, int(math.floor(min(ay, by, cy))))
-    y1 = min(height - 1, int(math.ceil(max(ay, by, cy))))
-    if x0 > x1 or y0 > y1:
-        return
+
+def raster_backend() -> str:
+    """``"gpu"`` when the host asked for it (``SC_USE_GPU=1``) AND an OpenGL
+    context can be created in this process, else ``"cpu"``. The probe runs
+    once per process; a failure is remembered with its reason
+    (``silhouette_gpu.status()``) and never retried."""
+    if os.environ.get("SC_USE_GPU", "").strip() != "1":
+        return "cpu"
+    from . import silhouette_gpu
+    return "gpu" if silhouette_gpu.status()["available"] else "cpu"
+
+
+def _triangles_px(tris_2d: Sequence[Tuple[Vec2, Vec2, Vec2]],
+                  min_x: float, min_y: float, px_per_m: float) -> np.ndarray:
+    """``(n, 3, 2)`` float64 pixel coordinates, non-finite triangles dropped
+    (the old per-triangle loop crashed on them; `xy_bounds` already ignored
+    them). Same float64 arithmetic as the old ``to_px`` — bit-identical."""
+    arr = np.asarray(tris_2d, dtype=np.float64).reshape(-1, 3, 2)
+    if arr.size:
+        arr = arr[np.isfinite(arr).all(axis=(1, 2))]
+    out = np.empty_like(arr)
+    out[..., 0] = (arr[..., 0] - min_x) * px_per_m
+    out[..., 1] = (arr[..., 1] - min_y) * px_per_m
+    return out
+
+
+def rasterize_px_cpu(px: np.ndarray, width: int, height: int) -> np.ndarray:
+    """Vectorised scanline fill of ``(n, 3, 2)`` pixel-space triangles.
+
+    Pixel ``(row, col)`` is set when its centre ``(col + .5, row + .5)`` lies
+    inside a triangle under the barycentric test with ``_BARY_EPS`` slack —
+    exactly the rule the old per-triangle numpy loop applied (kept as the
+    test-only reference in ``tests/silhouette_reference.py``; the equivalence
+    test pins identical masks). Instead of one Python iteration + one meshgrid
+    per triangle, every (triangle, row) pair is solved at once: each
+    barycentric weight is linear in x along a row, so the inside pixels of a
+    row are one span ``[lo, hi]``. The span is solved analytically, then its
+    two ends are re-checked with the ORIGINAL float expressions (a few
+    vectorised fix-up passes), so rounding at an edge resolves exactly as the
+    old code resolved it. Spans land in the mask via a run-length difference
+    array (one ``bincount`` + one ``cumsum``).
+
+    Pillow's ``ImageDraw.polygon`` was measured first (the concept's plan) and
+    rejected: its fill is conservative (round-half-up span ends, edges always
+    drawn) — ~11% extra pixels per triangle against this rule, which moves the
+    traced outline by a pixel and breaks the byte-identical path promise.
+    """
+    mask_flat_len = height * (width + 1)
+    if px.shape[0] == 0:
+        return np.zeros((height, width), dtype=bool)
+    ax, ay = px[:, 0, 0], px[:, 0, 1]
+    bx, by = px[:, 1, 0], px[:, 1, 1]
+    cx, cy = px[:, 2, 0], px[:, 2, 1]
+    x0 = np.maximum(0, np.floor(np.minimum(np.minimum(ax, bx), cx))).astype(np.int64)
+    x1 = np.minimum(width - 1, np.ceil(np.maximum(np.maximum(ax, bx), cx))).astype(np.int64)
+    y0 = np.maximum(0, np.floor(np.minimum(np.minimum(ay, by), cy))).astype(np.int64)
+    y1 = np.minimum(height - 1, np.ceil(np.maximum(np.maximum(ay, by), cy))).astype(np.int64)
     denom = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
-    if abs(denom) < 1e-9:
-        return  # degenerate (zero-area) triangle in the top-down projection
-    xs = np.arange(x0, x1 + 1) + 0.5
-    ys = np.arange(y0, y1 + 1) + 0.5
-    gx, gy = np.meshgrid(xs, ys)
-    w0 = ((by - cy) * (gx - cx) + (cx - bx) * (gy - cy)) / denom
-    w1 = ((cy - ay) * (gx - cx) + (ax - cx) * (gy - cy)) / denom
-    w2 = 1.0 - w0 - w1
-    inside = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
-    mask[y0:y1 + 1, x0:x1 + 1] |= inside
+    keep = (x0 <= x1) & (y0 <= y1) & (np.abs(denom) >= 1e-9)
+    if not keep.any():
+        return np.zeros((height, width), dtype=bool)
+    ax, ay, bx, by, cx, cy, denom = (v[keep] for v in (ax, ay, bx, by, cx, cy, denom))
+    x0, x1, y0, y1 = x0[keep], x1[keep], y0[keep], y1[keep]
+
+    # One entry per (triangle, row) pair.
+    rows_per = y1 - y0 + 1
+    t = np.repeat(np.arange(rows_per.size), rows_per)
+    starts = np.cumsum(rows_per) - rows_per
+    y = y0[t] + (np.arange(t.size) - np.repeat(starts, rows_per))
+    gy = y + 0.5
+    ax, ay, bx, by, cx, cy, denom = (v[t] for v in (ax, ay, bx, by, cx, cy, denom))
+    rx0, rx1 = x0[t], x1[t]
+
+    # The original expressions, evaluated at column(s) ``col`` of each row.
+    p0, q0 = by - cy, (cx - bx) * (gy - cy)
+    p1, q1 = cy - ay, (ax - cx) * (gy - cy)
+
+    def inside(col: np.ndarray) -> np.ndarray:
+        gx = col + 0.5
+        w0 = (p0 * (gx - cx) + q0) / denom
+        w1 = (p1 * (gx - cx) + q1) / denom
+        w2 = 1.0 - w0 - w1
+        return (w0 >= -_BARY_EPS) & (w1 >= -_BARY_EPS) & (w2 >= -_BARY_EPS)
+
+    # Analytic span: w_i(gx) = s_i * gx + k_i, need w_i >= -eps.
+    s0, k0 = p0 / denom, (q0 - p0 * cx) / denom
+    s1, k1 = p1 / denom, (q1 - p1 * cx) / denom
+    s2, k2 = -(s0 + s1), 1.0 - k0 - k1
+    lo = rx0.astype(np.float64)
+    hi = rx1.astype(np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        for s, k in ((s0, k0), (s1, k1), (s2, k2)):
+            root = (-_BARY_EPS - k) / s - 0.5  # pixel index where w_i == -eps
+            pos, neg = s > 0, s < 0
+            lo = np.where(pos, np.maximum(lo, np.ceil(np.clip(root, -2.0, width + 2.0))), lo)
+            hi = np.where(neg, np.minimum(hi, np.floor(np.clip(root, -2.0, width + 2.0))), hi)
+            flat_out = (s == 0) & (k < -_BARY_EPS)
+            hi = np.where(flat_out, lo - 1, hi)
+    lo = lo.astype(np.int64)
+    hi = hi.astype(np.int64)
+
+    # Snap both ends onto the original rule (analytic roots can be one pixel
+    # off when a centre sits within float noise of an edge).
+    for _ in range(8):
+        changed = False
+        grow = (lo - 1 >= rx0) & inside(lo - 1)
+        if grow.any():
+            lo = np.where(grow, lo - 1, lo)
+            changed = True
+        shrink = (lo <= hi) & ~inside(np.minimum(lo, rx1))
+        if shrink.any():
+            lo = np.where(shrink, lo + 1, lo)
+            changed = True
+        grow = (hi + 1 <= rx1) & inside(hi + 1)
+        if grow.any():
+            hi = np.where(grow, hi + 1, hi)
+            changed = True
+        shrink = (hi >= lo) & ~inside(np.maximum(hi, rx0))
+        if shrink.any():
+            hi = np.where(shrink, hi - 1, hi)
+            changed = True
+        if not changed:
+            break
+
+    filled = lo <= hi
+    y, lo, hi = y[filled], lo[filled], hi[filled]
+    stride = width + 1
+    diff = (np.bincount(y * stride + lo, minlength=mask_flat_len)
+            - np.bincount(y * stride + hi + 1, minlength=mask_flat_len))
+    cover = np.cumsum(diff.reshape(height, stride), axis=1)[:, :width]
+    return cover > 0
 
 
 # ── 2. morphological denoise ────────────────────────────────────────────────
@@ -498,17 +623,21 @@ def build_silhouette(
     (should-fix "components") — both wave1-redteam.md. Purely diagnostic,
     never affects the returned object.
     """
-    tris_2d = project_topdown(triangles)
-    bounds = xy_bounds(tris_2d)
+    with timed("silhouette.project"):
+        tris_2d = project_topdown(triangles)
+        bounds = xy_bounds(tris_2d)
     if bounds is None:
         return None
-    mask, px_per_m, width, height = rasterize_mask(tris_2d, bounds, mask_size)
+    with timed("silhouette.raster"):
+        mask, px_per_m, width, height = rasterize_mask(tris_2d, bounds, mask_size)
     if not mask.any():
         return None
-    mask = denoise_mask(mask, iterations=1)
+    with timed("silhouette.denoise"):
+        mask = denoise_mask(mask, iterations=1)
     if not mask.any():
         return None
-    contours = trace_contours(mask, min_hole_area_px, min_component_area_px)
+    with timed("silhouette.trace"):
+        contours = trace_contours(mask, min_hole_area_px, min_component_area_px)
     components_px = [
         comp for comp in contours["components"]
         if comp["outer"] and len(comp["outer"]) >= MIN_CONTOUR_POINTS
@@ -551,6 +680,8 @@ def build_silhouette(
 
     path_parts: List[str] = []
     point_count = 0
+    simplify_t = timed("silhouette.simplify")
+    simplify_t.__enter__()
     for comp in components_px:
         outer_vb = to_vb(polygon(comp["outer"]))
         holes_vb = [to_vb(polygon(h)) for h in comp["holes"] if len(h) >= MIN_CONTOUR_POINTS]
@@ -562,6 +693,7 @@ def build_silhouette(
             path_parts.append(_ring_to_path(hole_vb, reverse=True))
             point_count += len(hole_vb)
     path = " ".join(p for p in path_parts if p)
+    simplify_t.__exit__(None, None, None)
     if on_log:
         on_log("info", f"silhouette: {point_count} point(s), "
                        f"{len(components_px)} component(s), tol={tolerance_m:.4f}m")

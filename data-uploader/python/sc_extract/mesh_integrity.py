@@ -18,7 +18,9 @@ that, so the export can refuse such a hull instead of uploading it:
   stripped legitimately never shows up, because the exterior covers it in
   both maps.
 
-Everything is plain numpy; no renderer, no GPU. Meshopt-compressed glbs
+Plain numpy by default; with ``SC_USE_GPU=1`` the depth maps are splatted
+by OpenGL instead (`silhouette_gpu.splat_depth_maps`, same points, same
+binning, MIN blending), falling back to numpy whenever no context exists. Meshopt-compressed glbs
 (``EXT_meshopt_compression``) cannot be read — measure the uncompressed
 optimize output instead (`hull3d` does).
 """
@@ -303,6 +305,30 @@ def _erode(mask: np.ndarray) -> np.ndarray:
     return m
 
 
+def _gpu_depth_maps(ref_pts, cand_pts, center, views, pix, res):
+    """Both meshes' depth maps on the GPU when the host set ``SC_USE_GPU=1``
+    and an OpenGL context exists, else None (-> the numpy splat). The GPU
+    renders the very same sample points with MIN blending, so the gate
+    measures the same thing; float32 vertex math moves a point across a pixel
+    border only within ~1e-6 of the hull size (see HULL3D.md "GPU")."""
+    import os
+    if os.environ.get("SC_USE_GPU", "").strip() != "1":
+        return None
+    try:
+        from . import silhouette_gpu
+        if not silhouette_gpu.status()["available"]:
+            return None
+        return (silhouette_gpu.splat_depth_maps(ref_pts, center, views, pix, res),
+                silhouette_gpu.splat_depth_maps(cand_pts, center, views, pix, res))
+    except Exception as exc:  # noqa: BLE001 — the gate must still run
+        try:
+            from . import silhouette_gpu
+            silhouette_gpu.disable(f"hole gate: {type(exc).__name__}: {exc}")
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
+
 def coverage_loss(reference: np.ndarray, candidate: np.ndarray,
                   resolution: int = DEFAULT_RESOLUTION,
                   depth_tol: float = DEFAULT_DEPTH_TOL,
@@ -330,11 +356,17 @@ def coverage_loss(reference: np.ndarray, candidate: np.ndarray,
     tol = depth_tol * diag
     holes = refs = 0
     per_view: List[float] = []
+    views = []
     for d in (view_directions() if directions is None else directions):
         u, v = _basis(d)
-        origin = center - (u + v) * diag / 2 - d * diag
-        rd = _depth_map(ref_pts, d, u, v, origin, pix, resolution)
-        cd = _depth_map(cand_pts, d, u, v, origin, pix, resolution)
+        views.append((d, u, v, center - (u + v) * diag / 2 - d * diag))
+    maps = _gpu_depth_maps(ref_pts, cand_pts, center, views, pix, resolution)
+    for i, (d, u, v, origin) in enumerate(views):
+        if maps is not None:
+            rd, cd = maps[0][i], maps[1][i]
+        else:
+            rd = _depth_map(ref_pts, d, u, v, origin, pix, resolution)
+            cd = _depth_map(cand_pts, d, u, v, origin, pix, resolution)
         ref_hit = np.isfinite(rd)
         # Only pixels inside the reference silhouette count: simplification
         # moves the outline by a pixel, a crack or missing panel sits inside it.

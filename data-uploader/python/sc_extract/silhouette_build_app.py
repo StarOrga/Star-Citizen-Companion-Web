@@ -18,11 +18,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict
 
 from .events import count, done, error, log, phase, progress
+from . import stage_timing
 from .silhouette_build import build_rows, cache_dir_for
 
 
@@ -79,8 +82,22 @@ def main() -> int:
         if pruned:
             log("info", f"silhouette cache: dropped {pruned} entr(y/ies) of older silhouette code")
 
+        from . import silhouette_gpu
+        from .silhouette import raster_backend
+        backend = raster_backend()
+        if backend == "gpu":
+            log("info", f"silhouette raster: GPU ({silhouette_gpu.status()['name']})")
+        elif os.environ.get("SC_USE_GPU", "").strip() == "1":
+            log("info", f"silhouette raster: CPU — GPU requested but unavailable "
+                        f"({silhouette_gpu.status()['reason']})")
+        else:
+            log("info", "silhouette raster: CPU")
+        silhouette_gpu.set_disable_hook(
+            lambda reason: log("warn", f"silhouette raster: GPU failed ({reason}) — CPU from here on"))
+
         phase("extract", pct=0)
         last_pct = -1
+        t0, before = time.perf_counter(), stage_timing.snapshot()
 
         def on_progress(current: int, total: int, detail: str) -> None:
             nonlocal last_pct
@@ -94,6 +111,13 @@ def main() -> int:
             exporter, entities, out_dir=args.out, build=build, tolerance_m=args.tolerance_m,
             workers=args.workers, log=on_log, on_progress=on_progress, on_count=count,
         )
+        wall = time.perf_counter() - t0
+        workers = max(1, args.workers)
+        # Same per-run accounting as skin_export_app: names the bottleneck.
+        # With several worker threads the booked seconds are summed over them.
+        log("info", f"silhouette timing ({wall:.1f}s wall, {workers} worker(s), "
+                    f"{backend} raster): "
+                    f"{stage_timing.summary(stage_timing.since(before), wall * workers)}")
         done(result=stats)
         return 0
     except Exception as exc:  # noqa: BLE001 — surface as a structured error event
