@@ -786,13 +786,23 @@ async function signOutNow(): Promise<void> {
 }
 
 // Prefer the persisted/refreshed session token (no re-login); fall back to an
-// interactive browser login only when there is no usable session.
+// interactive browser login only when there is no usable session. A session
+// whose refresh failed transiently is still a session: no login popup then —
+// `uploadTokenTransient` lets the caller say "try again" instead.
+let uploadTokenTransient = false;
+
 async function ensureUploadToken(): Promise<string | null> {
+  uploadTokenTransient = false;
   try {
     const tok = await window.sc.session.token();
     if (tok.token) {
       state.authToken = tok.token;
       return tok.token;
+    }
+    if (tok.retry) {
+      uploadTokenTransient = true;
+      void revalidateSession(true);
+      return null;
     }
   } catch {
     /* fall through to interactive login */
@@ -2159,7 +2169,10 @@ async function doStartUpload(): Promise<void> {
       if (!token) {
         uploadProgress?.update({ indeterminate: false });
         uploadProgress?.stop();
-        setAuthStatus(t('upload.signInFailed'), 'error');
+        setAuthStatus(
+          uploadTokenTransient ? t('upload.connectionRetry') : t('upload.signInFailed'),
+          uploadTokenTransient ? 'warn' : 'error',
+        );
         return;
       }
     }

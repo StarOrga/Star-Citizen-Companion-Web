@@ -142,6 +142,7 @@
     "signingIn": "Im Browser anmelden…",
     "signedIn": "Angemeldet als {{email}} — lade Bundle hoch…",
     "signInFailed": "Anmeldung fehlgeschlagen",
+    "connectionRetry": "Gerade keine Verbindung zum Web — du bleibst angemeldet. Versuch es gleich noch einmal.",
     "uploading": "Upload läuft…",
     "uploadOk": "Upload OK",
     "bundleAlreadyThere": "Bundle ist bereits auf dem Server — Codex und 3D-Daten werden aktualisiert.",

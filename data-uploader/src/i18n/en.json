@@ -142,6 +142,7 @@
     "signingIn": "Signing in via browser…",
     "signedIn": "Signed in as {{email}} — uploading bundle…",
     "signInFailed": "Sign-in failed",
+    "connectionRetry": "No connection to the web right now — you are still signed in. Try again in a moment.",
     "uploading": "Uploading…",
     "uploadOk": "Upload OK",
     "bundleAlreadyThere": "Bundle is already on the server — updating the Codex and 3D data.",

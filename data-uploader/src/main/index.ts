@@ -555,7 +555,7 @@ ipcMain.handle('sc:session:status', async () => getSessionStatus());
 
 ipcMain.handle('sc:session:token', async () => {
   const r = await ensureAccessToken();
-  return { token: r.token, email: r.email, reconnect: r.reconnect };
+  return { token: r.token, email: r.email, reconnect: r.reconnect, retry: r.retry };
 });
 
 ipcMain.handle('sc:session:signOut', () => {
