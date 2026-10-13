@@ -33,7 +33,7 @@ describe('drive slots', () => {
 
   it('merges game and work into one "both" slot on the same letter', () => {
     expect(driveSlots('D', 'D', kindOf, null)).toEqual([{ letter: 'D', letters: ['D'], role: 'both', kind: 'nvme' }]);
-    expect(driveSlots('D', null, kindOf, null)[0].role).toBe('both');
+    expect(driveSlots('D', null, kindOf, null)[0]!.role).toBe('both');
   });
 
   it('merges two letters that sit on one physical disk', () => {
@@ -65,38 +65,38 @@ describe('drive loads', () => {
 
   it('two disks: run reads go to the game drive, writes to the work drive, ops split by bytes', () => {
     const [d, c] = driveLoads(driveSlots('D', 'C', kindOf, twoDisks), twoDisks, run);
-    expect(d.runAttribution).toBe('assumed');
-    expect(d.run).toEqual({ readMBs: 27, writeMBs: 0, iops: 540 });
-    expect(c.run).toEqual({ readMBs: 0, writeMBs: 3, iops: 56 }); // 60 attributed, capped at the disk's 56
-    expect(d.runSharePct).toBe(91.8);
-    expect(c.runSharePct).toBe(49.2);
+    expect(d!.runAttribution).toBe('assumed');
+    expect(d!.run).toEqual({ readMBs: 27, writeMBs: 0, iops: 540 });
+    expect(c!.run).toEqual({ readMBs: 0, writeMBs: 3, iops: 56 }); // 60 attributed, capped at the disk's 56
+    expect(d!.runSharePct).toBe(91.8);
+    expect(c!.runSharePct).toBe(49.2);
   });
 
   it('one disk: all of the run lands on it', () => {
     const one: SysDrive[] = [{ instance: '0 C:', letters: ['C'], readBps: 40 * MB, writeBps: 10 * MB, iops: 900 }];
     const [c] = driveLoads(driveSlots('C', 'C', kindOf, one), one, run);
-    expect(c.role).toBe('both');
-    expect(c.runAttribution).toBe('all');
-    expect(c.run).toEqual({ readMBs: 27, writeMBs: 3, iops: 600 });
-    expect(c.runSharePct).toBe(60);
+    expect(c!.role).toBe('both');
+    expect(c!.runAttribution).toBe('all');
+    expect(c!.run).toEqual({ readMBs: 27, writeMBs: 3, iops: 600 });
+    expect(c!.runSharePct).toBe(60);
   });
 
   it('never books more to the run than the disk moved (file-cache hits)', () => {
     const quiet: SysDrive[] = [{ instance: '0 C:', letters: ['C'], readBps: 2 * MB, writeBps: 0, iops: 10 }];
     const [c] = driveLoads(driveSlots('C', null, kindOf, quiet), quiet, run);
-    expect(c.run).toEqual({ readMBs: 2, writeMBs: 0, iops: 10 });
-    expect(c.runSharePct).toBe(100);
+    expect(c!.run).toEqual({ readMBs: 2, writeMBs: 0, iops: 10 });
+    expect(c!.runSharePct).toBe(100);
   });
 
   it('nulls instead of zeros while the monitor has not reported', () => {
     const [c] = driveLoads(driveSlots('C', null, kindOf, null), null, run);
     expect(c).toMatchObject({ activePct: null, responseMs: null, readMBs: null, writeMBs: null, iops: null, runSharePct: null });
-    expect(c.run.readMBs).toBe(27);
+    expect(c!.run.readMBs).toBe(27);
   });
 
   it('a near-idle disk has no run share', () => {
     const idle: SysDrive[] = [{ instance: '0 C:', letters: ['C'], readBps: 1000, writeBps: 0, iops: 1 }];
-    expect(driveLoads(driveSlots('C', null, kindOf, idle), idle, run)[0].runSharePct).toBeNull();
+    expect(driveLoads(driveSlots('C', null, kindOf, idle), idle, run)[0]!.runSharePct).toBeNull();
   });
 });
 

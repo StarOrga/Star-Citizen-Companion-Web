@@ -136,7 +136,7 @@ async function fetchLatestVersion(): Promise<string | null> {
     if (!res.ok) return null;
     const text = await res.text();
     const m = text.match(/^\s*version:\s*['"]?(\d+\.\d+\.\d+[^\s'"]*)/m);
-    return m ? m[1] : null;
+    return m?.[1] ?? null;
   } catch {
     return null;
   }
@@ -234,7 +234,10 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
       log.warn(
         `[updater] feed offered v${info.version}, not newer than running v${TOOL_VERSION} — ignoring (no downgrade)`,
       );
-      broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
+      // A staged installer is still valid — keep its banner up.
+      const keep = stagedVersion();
+      if (keep) broadcast({ type: 'downloaded', version: keep });
+      else broadcast({ type: 'not-available', currentVersion: TOOL_VERSION });
       return;
     }
     // Already staged and the feed offers nothing newer: keep the staged update
