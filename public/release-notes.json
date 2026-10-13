@@ -1,7 +1,37 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.145.0",
+  "current": "0.146.0",
   "releases": [
+    {
+      "version": "0.146.0",
+      "date": "2026-10-13",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.54.0: neues Performance-Dock, vergleichbar mit dem Task-Manager.",
+              "text": "Die Leiste zeigt CPU, RAM und jedes beteiligte Laufwerk (Spiel- und Arbeitslaufwerk, auf derselben Platte zusammengefasst); jeder Balken trennt den Anteil des Uploaders vom Rest des PCs. Laufwerke werden wie im Task-Manager nach aktiver Zeit pro physischem Datenträger bewertet, dazu Antwortzeit, MB/s und Zugriffe/s. Aufgeklappt (höchstens 30 % des Fensters) gibt es Tachos mit ziehbaren Tempomat-Punkten für die Limits, ein leuchtender Engpass und ein Boost-Symbol für beschleunigte Schritte; jeder Tooltip zeigt aktuellen Wert, Mittel und Spitze der letzten 60 s."
+            },
+            {
+              "title": "GPU-Schalter für den Uploader.",
+              "text": "Erscheint, wenn der PC einen nutzbaren OpenGL-Kontext hat, und rastert Silhouetten und die Lochprüfung der 3D-Rümpfe auf der Grafikkarte. Unabhängig davon ist das Silhouetten-Rastern auf der CPU jetzt etwa 13× schneller (bitgenau gleiches Ergebnis); die Silhouetten-Caches bauen sich einmal neu auf."
+            }
+          ]
+        },
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Updater bietet immer das neueste Release an.",
+              "text": "Lag schon ein Update bereit und erschien ein noch neueres, wurde das ältere installiert; jetzt wird das neueste geladen und vor der Installation erneut geprüft. Ein Kanalwechsel verwirft ein bereitliegendes Update des alten Kanals."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.145.0",
       "date": "2026-10-13",
