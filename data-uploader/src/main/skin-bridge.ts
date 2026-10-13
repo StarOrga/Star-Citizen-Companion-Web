@@ -19,6 +19,7 @@ import { app } from 'electron';
 import log from 'electron-log';
 import { resolvePythonPaths, type PythonExtractEvent } from './python-bridge.js';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
+import { sidecarEnv } from './sidecar-env.js';
 import { readWithStallTimeout } from '../lib/fetch-timeout.js';
 import { packageExportArgs } from '../lib/asset-package.js';
 
@@ -236,7 +237,7 @@ export function startSkinExport(
       cwd,
       // PYTHONUNBUFFERED dropped — inert under `-E`. SC_GLTF_TRANSFORM_ARGV (not a
       // PYTHON* var) is still honored. Real-time output relies on `-u` + flush.
-      env: { ...process.env, ...optimizerEnv() },
+      env: sidecarEnv(optimizerEnv()),
       windowsHide: true,
     });
   } catch (err) {

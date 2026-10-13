@@ -55,6 +55,12 @@ export interface Settings {
    */
   resourceLimits?: StoredResourceLimits;
   /**
+   * Operator switch "use the GPU" for the stages that have a GPU path
+   * (silhouettes / 3D). Default false. Sidecars see it as env `SC_USE_GPU`
+   * (`main/sidecar-env.ts`), only while a GPU is available.
+   */
+  useGpu: boolean;
+  /**
    * Auto-update ring the operator opted into (role-gated in the UI). Default
    * 'stable'; only admins/collaborators ever see the picker to change it. The
    * renderer maps it onto electron-updater's channel via the main process.
@@ -161,6 +167,7 @@ export class SettingsStore {
       ...(readResourceLimits(parsed?.resourceLimits)
         ? { resourceLimits: readResourceLimits(parsed?.resourceLimits) }
         : {}),
+      useGpu: typeof parsed?.useGpu === 'boolean' ? parsed.useGpu : false,
       updateChannel:
         parsed?.updateChannel === 'alpha' || parsed?.updateChannel === 'beta'
           ? parsed.updateChannel

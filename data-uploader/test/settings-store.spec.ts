@@ -140,6 +140,16 @@ describe('SettingsStore', () => {
     expect(new SettingsStore(io, seqIds()).load().speedProfile).toBe('standard');
   });
 
+  it('defaults useGpu to off, round-trips a patch and rejects non-booleans', () => {
+    const io = fakeIO();
+    const store = new SettingsStore(io, seqIds());
+    expect(store.load().useGpu).toBe(false);
+    store.patch({ useGpu: true });
+    expect(new SettingsStore(io, seqIds()).load().useGpu).toBe(true);
+    io.data = JSON.stringify({ v: 2, settings: { installId: 'x', useGpu: 'yes' } });
+    expect(new SettingsStore(io, seqIds()).load().useGpu).toBe(false);
+  });
+
   it('leaves language unset by default and round-trips a patch', () => {
     const io = fakeIO();
     const store = new SettingsStore(io, seqIds());

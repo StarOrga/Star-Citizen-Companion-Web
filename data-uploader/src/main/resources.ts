@@ -50,13 +50,34 @@ import {
   type ResourceLimits,
   type ResourceSample,
 } from '../lib/resource-limits.js';
+import {
+  driveLetter,
+  driveLoads,
+  driveSlots,
+  parseSysDrives,
+  pickPrimaryGpu,
+  type DriveSlot,
+  type GpuInfo,
+  type SysDrive,
+} from '../lib/drive-load.js';
+import { setSidecarGpu } from './sidecar-env.js';
 
 /** What settings persist: the values, and the preset they came from (null = custom). */
 export interface StoredLimits extends Partial<ResourceLimits> {
   preset?: PresetId | null;
 }
 
+/**
+ * What the performance dock reads. Beyond the limits: `machine.cores` is the
+ * logical processor count (the "12 Threads" label), `machine.totalRamMb` and
+ * `sample.ramUsedMb` the RAM box, `drives` / `sample.drives` the per-drive
+ * boxes and `gpu` the GPU box — field contract in `lib/drive-load.ts`. All
+ * sample values are raw 1 s readings; averaging is the renderer's job.
+ */
 export interface ResourceView {
+  /** Layout of the drive boxes: game + work, or one 'both'. */
+  drives: DriveSlot[];
+  gpu: GpuInfo;
   machine: MachineInfo;
   limits: ResourceLimits;
   ranges: Record<ResourceKey, Range>;
@@ -85,8 +106,58 @@ let persist: (stored: StoredLimits) => void = () => {};
 
 const SUPPORTED = process.platform === 'win32';
 
-export function init(opts: { stored: StoredLimits | null | undefined; legacyProfile: unknown; persist: (s: StoredLimits) => void }): void {
+// ── Drives + GPU state ──────────────────────────────────────────────────────
+
+/** Drive of the selected install — the run reads the Data.p4k there. */
+let gameLetter: string | null = null;
+/**
+ * Drive the run writes to. The extraction output and every cache live under
+ * `<install>/.sc-companion-extracts/` (renderer `main.ts`, `cleanup.ts`), so
+ * by default this is the game drive; `detectDisk(path, workPath)` takes an
+ * explicit work path for when the output moves elsewhere.
+ */
+let workLetter: string | null = null;
+/** Last per-disk report of the whole-PC monitor (null = none yet / not Windows). */
+let sysDrives: SysDrive[] | null = null;
+
+let useGpu = false;
+let persistUseGpu: (on: boolean) => void = () => {};
+/** undefined = not detected yet; null = detected, none found. */
+let gpuName: string | null | undefined = SUPPORTED ? undefined : null;
+let gpuDetecting = false;
+/**
+ * Capability override from a sidecar probe ({@link setGpuAvailable}); null =
+ * no probe yet, then a detected GPU counts as available.
+ */
+let gpuProbe: boolean | null = null;
+
+function gpuAvailable(): boolean {
+  if (gpuProbe !== null) return gpuProbe;
+  // Not detected yet: do not hold the switch back — a sidecar whose GPU init
+  // fails falls back to CPU on its own (contract in lib/drive-load.ts).
+  if (gpuName === undefined) return true;
+  return gpuName !== null;
+}
+
+function syncSidecarGpu(): void {
+  setSidecarGpu(useGpu && gpuAvailable());
+}
+
+function kindOf(letter: string): MachineInfo['disk']['kind'] {
+  return diskCache.get(letter)?.kind ?? 'unknown';
+}
+
+export function init(opts: {
+  stored: StoredLimits | null | undefined;
+  legacyProfile: unknown;
+  persist: (s: StoredLimits) => void;
+  useGpu?: boolean;
+  persistUseGpu?: (on: boolean) => void;
+}): void {
   persist = opts.persist;
+  useGpu = opts.useGpu === true;
+  if (opts.persistUseGpu) persistUseGpu = opts.persistUseGpu;
+  syncSidecarGpu();
   const stored = opts.stored;
   if (stored && typeof stored === 'object') {
     preset = stored.preset && PRESET_IDS.includes(stored.preset) ? stored.preset : null;
@@ -99,7 +170,10 @@ export function init(opts: { stored: StoredLimits | null | undefined; legacyProf
 }
 
 export function view(): ResourceView {
+  detectGpu();
   return {
+    drives: driveSlots(gameLetter, workLetter, kindOf, sysDrives),
+    gpu: { name: gpuName ?? null, enabled: useGpu, available: gpuAvailable() },
     machine,
     limits,
     ranges: rangesFor(machine),
@@ -163,56 +237,118 @@ export function pacer(): { pace(): Promise<void> } {
 
 const diskCache = new Map<string, MachineInfo['disk']>();
 
+/** Run one PowerShell command, resolve its trimmed stdout ('' on any failure). */
+function powershell(script: string, timeoutMs: number): Promise<string> {
+  return new Promise<string>((resolve) => {
+    let text = '';
+    try {
+      const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+        windowsHide: true,
+      });
+      child.stdout.on('data', (d: Buffer) => (text += d.toString('utf-8')));
+      child.on('error', () => resolve(''));
+      // 'close', not 'exit': 'exit' can fire before stdout is drained, which
+      // read as "" and left every drive "unknown".
+      child.on('close', () => resolve(text.trim()));
+      setTimeout(() => {
+        child.kill();
+        resolve(text.trim());
+      }, timeoutMs).unref();
+    } catch {
+      resolve('');
+    }
+  });
+}
+
 /**
- * Find out what kind of drive `path` lives on, so the disk scales fit it (an
+ * Find out what kind of drive `letter` is, so the disk scales fit it (an
  * HDD tops out around 150 MB/s and a few hundred operations; an NVMe drive at
  * thousands). One PowerShell query per drive letter, cached for the session.
  */
-export async function detectDisk(path: unknown): Promise<ResourceView> {
-  if (!SUPPORTED || typeof path !== 'string') return view();
-  const letter = /^([A-Za-z]):/.exec(path)?.[1]?.toUpperCase();
-  if (!letter) return view();
-  let caps = diskCache.get(letter);
-  if (!caps) {
-    const script =
-      `$ErrorActionPreference='Stop';` +
-      `$n=(Get-Partition -DriveLetter ${letter}).DiskNumber;` +
-      `$p=Get-PhysicalDisk | Where-Object { $_.DeviceId -eq "$n" } | Select-Object -First 1;` +
-      `Write-Output "$($p.MediaType)|$($p.BusType)"`;
-    const started = Date.now();
-    const out = await new Promise<string>((resolve) => {
-      let text = '';
-      try {
-        const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-          windowsHide: true,
-        });
-        child.stdout.on('data', (d: Buffer) => (text += d.toString('utf-8')));
-        child.on('error', () => resolve(''));
-        // 'close', not 'exit': 'exit' can fire before stdout is drained, which
-        // read as "" and left every drive "unknown".
-        child.on('close', () => resolve(text.trim()));
-        setTimeout(() => {
-          child.kill();
-          resolve(text.trim());
-        // The Storage WMI provider loads cold on the first query; right after
-        // app start on a busy PC that took longer than 15 s and the drive
-        // stayed "unknown" for the whole session.
-        }, 60_000).unref();
-      } catch {
-        resolve('');
-      }
-    });
-    const [media, bus] = out.split('|');
-    caps = DISK_CAPS[diskKindFrom(media, bus)];
-    // A failed query is not cached — the next selection of that drive asks again.
-    if (out) diskCache.set(letter, caps);
-    log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind} (${Date.now() - started} ms)`);
+async function probeDisk(letter: string): Promise<MachineInfo['disk']> {
+  const cached = diskCache.get(letter);
+  if (cached) return cached;
+  const script =
+    `$ErrorActionPreference='Stop';` +
+    `$n=(Get-Partition -DriveLetter ${letter}).DiskNumber;` +
+    `$p=Get-PhysicalDisk | Where-Object { $_.DeviceId -eq "$n" } | Select-Object -First 1;` +
+    `Write-Output "$($p.MediaType)|$($p.BusType)"`;
+  const started = Date.now();
+  // The Storage WMI provider loads cold on the first query; right after app
+  // start on a busy PC that took longer than 15 s and the drive stayed
+  // "unknown" for the whole session.
+  const out = await powershell(script, 60_000);
+  const [media, bus] = out.split('|');
+  const caps = DISK_CAPS[diskKindFrom(media, bus)];
+  // A failed query is not cached — the next selection of that drive asks again.
+  if (out) diskCache.set(letter, caps);
+  log.info(`[resources] drive ${letter}: "${out}" → ${caps.kind} (${Date.now() - started} ms)`);
+  return caps;
+}
+
+/**
+ * The selected install (`path`, the game drive) and where the run writes
+ * (`workPath`, the work drive; default: the install — the output lives in
+ * `<install>/.sc-companion-extracts`). Classifies both drives; the disk scales
+ * and limits follow the GAME drive, as before.
+ */
+export async function detectDisk(path: unknown, workPath?: unknown): Promise<ResourceView> {
+  const letter = driveLetter(path);
+  if (!SUPPORTED || !letter) return view();
+  const work = driveLetter(workPath) ?? letter;
+  const layoutChanged = letter !== gameLetter || work !== workLetter;
+  gameLetter = letter;
+  workLetter = work;
+  const [caps] = await Promise.all([probeDisk(letter), work !== letter ? probeDisk(work) : null]);
+  if (caps.kind === machine.disk.kind) {
+    if (layoutChanged) notify();
+    return view();
   }
-  if (caps.kind === machine.disk.kind) return view();
   machine.disk = caps;
   // A preset follows the new scale; a custom mix keeps its values, clamped.
   limits = preset ? presetLimits(preset, machine) : clampLimits(limits, machine, limits);
   return changed();
+}
+
+/** Push the view without touching the limits (drive layout, GPU). */
+function notify(): void {
+  broadcast('sc:resources:changed', view());
+}
+
+// ── GPU ─────────────────────────────────────────────────────────────────────
+
+/** Name of the primary GPU, once per session, only when someone looks (idle budget). */
+function detectGpu(): void {
+  if (gpuName !== undefined || gpuDetecting) return;
+  gpuDetecting = true;
+  const started = Date.now();
+  void powershell('Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }', 30_000).then((out) => {
+    gpuDetecting = false;
+    gpuName = pickPrimaryGpu(out.split(/\r?\n/));
+    log.info(`[resources] gpu: ${JSON.stringify(gpuName)} (${Date.now() - started} ms)`);
+    syncSidecarGpu();
+    notify();
+  });
+}
+
+/** The operator's persisted "use GPU" switch. Reaches sidecars started from now on. */
+export function setUseGpu(on: unknown): ResourceView {
+  useGpu = on === true;
+  persistUseGpu(useGpu);
+  syncSidecarGpu();
+  const v = view();
+  broadcast('sc:resources:changed', v);
+  return v;
+}
+
+/**
+ * Hook for a sidecar GPU capability probe: true / false overrides the
+ * "a GPU name was detected" default, null drops the override.
+ */
+export function setGpuAvailable(available: boolean | null): void {
+  gpuProbe = available;
+  syncSidecarGpu();
+  notify();
 }
 
 // ── Governors ───────────────────────────────────────────────────────────────
@@ -323,6 +459,7 @@ let prevCpu: { idle: number; total: number } | null = null;
 // ── Whole-PC monitor ────────────────────────────────────────────────────────
 
 interface SystemLoad {
+  drives: SysDrive[] | null;
   cpuPct: number;
   readBps: number;
   writeBps: number;
@@ -359,7 +496,9 @@ function startSysmon(): void {
       return;
     }
     if (ev.type === 'sample') {
+      sysDrives = parseSysDrives(ev.drives);
       systemLoad = {
+        drives: sysDrives,
         cpuPct: Number(ev.cpuPct) || 0,
         readBps: Number(ev.readBps) || 0,
         writeBps: Number(ev.writeBps) || 0,
@@ -444,6 +583,7 @@ function takeSample(): ResourceSample {
     sysReadMBs: sys ? Math.round((sys.readBps / mb) * 10) / 10 : null,
     sysWriteMBs: sys ? Math.round((sys.writeBps / mb) * 10) / 10 : null,
     sysIops: sys ? Math.round(sys.iops) : null,
+    drives: driveLoads(driveSlots(gameLetter, workLetter, kindOf, sysDrives), sys ? sysDrives : null, run),
     heldBack: run.heldBack,
     running: governors.size > 0,
     hardCap,

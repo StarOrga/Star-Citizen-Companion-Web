@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { app } from 'electron';
 import log from 'electron-log';
 import { packagedPythonMissing, pythonSpawnEnoentMessage } from '../lib/python-locate.js';
+import { sidecarEnv } from './sidecar-env.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -244,7 +245,7 @@ export function startExtraction(
       cwd,
       // No PYTHONUNBUFFERED here: it's inert under `-E` (all PYTHON* env vars are
       // ignored). Real-time output relies on `-u` + the explicit flush in events.py.
-      env: process.env,
+      env: sidecarEnv(),
       windowsHide: true,
     });
   } catch (err) {

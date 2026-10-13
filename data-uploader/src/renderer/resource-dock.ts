@@ -34,6 +34,7 @@ import {
   type ResourceLimits,
   type ResourceSample,
 } from '../lib/resource-limits.js';
+import type { DriveSlot, GpuInfo } from '../lib/drive-load.js';
 
 /** Mirror of `main/resources.ts:ResourceView` (the renderer cannot import main). */
 export interface ResourceViewLike {
@@ -44,6 +45,9 @@ export interface ResourceViewLike {
   supported: boolean;
   liveJobs: number;
   sample: ResourceSample | null;
+  /** See `lib/drive-load.ts`. */
+  drives: DriveSlot[];
+  gpu: GpuInfo;
 }
 
 const EXPANDED_KEY = 'sc.resourceDock.expanded';
