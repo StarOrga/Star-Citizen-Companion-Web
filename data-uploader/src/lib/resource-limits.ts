@@ -281,6 +281,29 @@ export interface ResourceSample {
   hardCap: boolean;
 }
 
+/** Room above the limit on a measured scale, so the handle never sits pinned at its end. */
+export const MEASURED_SCALE_HEADROOM = 1.5;
+
+/** Round up to 1 / 2 / 2.5 / 5 × 10ⁿ — a scale top that reads as a number. */
+export function niceCeil(v: number): number {
+  if (!(v > 0)) return 1;
+  const pow = 10 ** Math.floor(Math.log10(v));
+  for (const m of [1, 2, 2.5, 5, 10]) {
+    if (v <= m * pow * (1 + 1e-9)) return m * pow;
+  }
+  return 10 * pow;
+}
+
+/**
+ * Top of a disk scale when the drive type is unknown: no nominal class to draw
+ * against, so the highest load measured on this PC is the scale — it grows as
+ * the drive shows what it can do. Never so low that the limit handle sits at
+ * the very end (it could not be dragged further up).
+ */
+export function measuredScaleTop(peak: number, limit: number, floor: number): number {
+  return niceCeil(Math.max(peak, limit * MEASURED_SCALE_HEADROOM, floor));
+}
+
 /** RAM in use by other programs = everything − this app − the run. */
 export function ramOthersMb(s: Pick<ResourceSample, 'ramUsedMb' | 'ramAppMb' | 'ramRunMb'>): number {
   return Math.max(0, s.ramUsedMb - s.ramAppMb - s.ramRunMb);

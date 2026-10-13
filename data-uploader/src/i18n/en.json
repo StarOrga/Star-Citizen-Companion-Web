@@ -416,6 +416,7 @@
     "read": "Disk read",
     "write": "Disk write",
     "iops": "Disk operations",
+    "unitIops": "ops/s",
     "gpu": "Graphics card",
     "gpuNote": "Not used — extraction, silhouettes and the 3D build run on the processor only.",
     "of": "limit {{limit}}",
@@ -439,7 +440,7 @@
         "nvme": "NVMe SSD detected",
         "ssd": "SATA SSD detected",
         "hdd": "Hard disk (HDD) detected — operations are the bottleneck here",
-        "unknown": "Drive type unknown — scale estimated"
+        "unknown": "Drive type unknown — scale ends at the highest load measured so far ({{peak}})"
       }
     },
     "status": {

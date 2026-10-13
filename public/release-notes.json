@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.144.2",
+  "current": "0.145.0",
   "releases": [
+    {
+      "version": "0.145.0",
+      "date": "2026-10-13",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Data Uploader 0.53.0: ruhigere, ehrlichere Tachos im Ressourcen-Dock.",
+              "text": "Nadeln, Bögen, Zahlen und die Balken der eingeklappten Zeile gleiten jetzt in etwa einer halben Sekunde zum neuen Messwert, statt jede Sekunde zu springen; der gezogene Griff folgt der Maus ohne Verzögerung, und mit „Animationen reduzieren“ bleibt es beim direkten Sprung. Ist der Laufwerkstyp unbekannt, endet die Disk-Skala nicht mehr bei einem geschätzten Nennwert, sondern beim höchsten bisher gemessenen Wert des PCs (wächst mit, bleibt gespeichert, lässt über dem Limit immer Platz zum Hochziehen). Disk-Zugriffe tragen die Einheit „Zugriffe/s“ statt „/s“."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.144.2",
       "date": "2026-10-13",

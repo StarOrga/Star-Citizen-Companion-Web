@@ -6,7 +6,9 @@
  * per resource. Expanded it shows one dial per resource, drawn like a car's
  * speedometer:
  *
- *   - the scale is this machine's (cores → 100 %, total RAM, the drive class);
+ *   - the scale is this machine's (cores → 100 %, total RAM, the drive class;
+ *     a drive of unknown type has no class, so its scales end at the highest
+ *     load measured so far and grow with it);
  *   - the hatched end of the dial is what the run can never have (the CPU
  *     share always kept for Windows, the RAM the limit range leaves out);
  *   - the bright arc up to the handle is the operator's limit — drag the handle
@@ -24,6 +26,7 @@ import { t } from '../lib/i18n.js';
 import {
   PRESET_IDS,
   RESOURCE_KEYS,
+  measuredScaleTop,
   ramOthersMb,
   type PresetId,
   type Range,
@@ -44,12 +47,22 @@ export interface ResourceViewLike {
 }
 
 const EXPANDED_KEY = 'sc.resourceDock.expanded';
+const PEAK_KEY = 'sc.resourceDock.diskPeak';
+
+type DiskKey = 'readMBs' | 'writeMBs' | 'iops';
+const DISK_KEYS: readonly DiskKey[] = ['readMBs', 'writeMBs', 'iops'];
 
 let view: ResourceViewLike | null = null;
 let sample: ResourceSample | null = null;
 let expanded = false;
-/** The dial being dragged, and its uncommitted value — samples must not snap it back. */
-let dragging: { key: ResourceKey; value: number } | null = null;
+/**
+ * The dial being dragged, its uncommitted value — samples must not snap it back —
+ * and its scale top, frozen for the drag: a measured scale follows the limit,
+ * and a scale moving under the pointer would chase the handle away.
+ */
+let dragging: { key: ResourceKey; value: number; max: number } | null = null;
+/** Highest whole-PC disk load seen on this PC — the scale of a drive of unknown type. */
+let diskPeak: Record<DiskKey, number> = { readMBs: 0, writeMBs: 0, iops: 0 };
 let commitTimer: number | null = null;
 let pending: Partial<ResourceLimits> = {};
 
@@ -75,7 +88,8 @@ function unit(key: ResourceKey): string {
     case 'writeMBs':
       return 'MB/s';
     case 'iops':
-      return '/s';
+      // A bare "/s" leaves the reader guessing what is counted.
+      return t('res.unitIops');
   }
 }
 
@@ -110,11 +124,52 @@ const LABEL: Record<ResourceKey, string> = {
   iops: 'res.iops',
 };
 
+function isDiskKey(key: ResourceKey): key is DiskKey {
+  return (DISK_KEYS as readonly string[]).includes(key);
+}
+
+/** A drive of unknown type: its nominal caps are a guess, so its scales are measured. */
+function measuredScale(v: ResourceViewLike): boolean {
+  return v.machine.disk.kind === 'unknown';
+}
+
 /** Top of the drawn scale (the limit range may stop short of it). */
 function scaleMax(key: ResourceKey, v: ResourceViewLike): number {
+  if (dragging?.key === key) return dragging.max;
   if (key === 'cpuPct') return 100;
   if (key === 'ramMb') return v.machine.totalRamMb;
+  if (isDiskKey(key) && measuredScale(v)) return measuredScaleTop(diskPeak[key], limitOf(key), v.ranges[key].min);
   return v.ranges[key].max;
+}
+
+function loadDiskPeak(): void {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PEAK_KEY) ?? 'null') as Partial<Record<DiskKey, unknown>> | null;
+    for (const key of DISK_KEYS) {
+      const n = raw?.[key];
+      if (typeof n === 'number' && Number.isFinite(n) && n > 0) diskPeak[key] = n;
+    }
+  } catch {
+    /* no history yet — the scale starts from the limit */
+  }
+}
+
+/** Raise the measured peaks from a sample; persist only when one actually grew. */
+function notePeak(s: ResourceSample): void {
+  let grew = false;
+  for (const key of DISK_KEYS) {
+    const v = total(key, s);
+    if (v > diskPeak[key]) {
+      diskPeak = { ...diskPeak, [key]: v };
+      grew = true;
+    }
+  }
+  if (!grew) return;
+  try {
+    localStorage.setItem(PEAK_KEY, JSON.stringify(diskPeak));
+  } catch {
+    /* per-viewer convenience only */
+  }
 }
 
 /** What the run uses right now. */
@@ -149,11 +204,6 @@ function total(key: ResourceKey, s: ResourceSample | null): number {
     case 'iops':
       return s.sysIops ?? s.iops;
   }
-}
-
-/** The part of the scale no limit can reach (drawn hatched at the end). */
-function reserved(key: ResourceKey, v: ResourceViewLike): number {
-  return Math.max(0, scaleMax(key, v) - v.ranges[key].max);
 }
 
 /** The part of the scale the run cannot have right now — caps the RAM handle. */
@@ -208,12 +258,97 @@ function snapTo(value: number, r: Range, ceiling: number): number {
 
 // ── painting ────────────────────────────────────────────────────────────────
 
+// ── motion ──────────────────────────────────────────────────────────────────
+//
+// A sample lands about once a second. Drawn as it arrives, every needle, arc
+// and number jumps — the dock ticks like a clock. Instead each dial shows a
+// value that glides toward the latest one (exponential ease, settles in about
+// half a second), so a jump reads as motion. The dragged handle never lags the
+// pointer, and reduced motion draws the target straight away.
+
+/** The four moving parts of a dial. */
+interface Shown {
+  pc: number;
+  use: number;
+  max: number;
+  limit: number;
+}
+const SHOWN_FIELDS = ['pc', 'use', 'max', 'limit'] as const;
+/** Time constant of the glide, ms. */
+const GLIDE_MS = 140;
+
+const shown = new Map<ResourceKey, Shown>();
+let frame: number | null = null;
+let lastFrame = 0;
+
+function targetOf(key: ResourceKey, v: ResourceViewLike): Shown {
+  return { pc: total(key, sample), use: current(key, sample), max: scaleMax(key, v), limit: limitOf(key) };
+}
+
+function reducedMotion(): boolean {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
+
+/** What a dial draws right now — the gliding value, or the target where nothing glides. */
+function shownOf(key: ResourceKey, v: ResourceViewLike): Shown {
+  const target = targetOf(key, v);
+  const cur = shown.get(key);
+  if (!cur || reducedMotion()) {
+    shown.set(key, target);
+    return target;
+  }
+  if (dragging?.key === key) {
+    cur.limit = target.limit;
+    cur.max = target.max;
+  }
+  return cur;
+}
+
+function step(now: number): void {
+  frame = null;
+  if (!view) return;
+  const dt = lastFrame ? Math.min(100, now - lastFrame) : 16;
+  lastFrame = now;
+  const k = 1 - Math.exp(-dt / GLIDE_MS);
+  let moving = false;
+  for (const key of RESOURCE_KEYS) {
+    const cur = shown.get(key);
+    if (!cur) continue;
+    const target = targetOf(key, view);
+    for (const f of SHOWN_FIELDS) {
+      const d = target[f] - cur[f];
+      if (Math.abs(d) <= Math.max(1e-3, Math.abs(target[f]) * 2e-3)) cur[f] = target[f];
+      else {
+        cur[f] += d * k;
+        moving = true;
+      }
+    }
+  }
+  paintFrame();
+  if (moving) frame = window.requestAnimationFrame(step);
+  else lastFrame = 0;
+}
+
+/** Let every dial glide to its latest values. */
+function glide(): void {
+  if (reducedMotion() || typeof window.requestAnimationFrame !== 'function') {
+    paintFrame();
+    return;
+  }
+  if (frame === null) {
+    lastFrame = 0;
+    frame = window.requestAnimationFrame(step);
+  }
+}
+
 function dialSvg(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | null): string {
-  const max = scaleMax(key, v);
-  const limit = limitOf(key);
-  const use = current(key, s);
-  const pc = total(key, s);
-  const reserve = reserved(key, v);
+  const { max, limit, use, pc } = shownOf(key, v);
+  // What no limit can reach — measured against the drawn (gliding) scale.
+  const reserve = Math.max(0, max - v.ranges[key].max);
   const aLimit = angleFor(limit, max);
   const aUse = angleFor(use, max);
   const aPc = angleFor(pc, max);
@@ -253,6 +388,7 @@ function dialNote(key: ResourceKey, v: ResourceViewLike, s: ResourceSample | nul
       app: fmt('ramMb', s?.ramAppMb ?? 0),
     });
   }
+  if (isDiskKey(key) && measuredScale(v)) return t('res.note.disk.unknown', { peak: fmt(key, diskPeak[key]) });
   return t(`res.note.disk.${v.machine.disk.kind}`);
 }
 
@@ -271,20 +407,41 @@ function paintDial(key: ResourceKey): void {
   if (note) note.textContent = dialNote(key, view, sample);
 }
 
+interface MiniParts {
+  tip: string;
+  pct: number;
+  value: string;
+}
+
+function miniParts(key: ResourceKey, v: ResourceViewLike): MiniParts {
+  const limit = limitOf(key);
+  const { pc, max } = shownOf(key, v);
+  const tip = sample?.running
+    ? t('res.mini', { run: num(key, current(key, sample)), limit: fmt(key, limit) })
+    : t('res.miniIdle', { limit: fmt(key, limit) });
+  return { tip, pct: max > 0 ? Math.min(100, (pc / max) * 100) : 0, value: fmt(key, pc) };
+}
+
 function miniHtml(key: ResourceKey): string {
   if (!view) return '';
-  const limit = limitOf(key);
-  const use = current(key, sample);
-  const max = scaleMax(key, view);
-  const pct = max > 0 ? Math.min(100, (total(key, sample) / max) * 100) : 0;
-  const tip = sample?.running
-    ? t('res.mini', { run: num(key, use), limit: fmt(key, limit) })
-    : t('res.miniIdle', { limit: fmt(key, limit) });
-  return `<span class="res-mini" id="res-mini-${key}" data-tip="${tip}">
+  const m = miniParts(key, view);
+  return `<span class="res-mini" id="res-mini-${key}" data-tip="${m.tip}">
       <span class="res-mini-label">${t(LABEL[key])}</span>
-      <span class="res-mini-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
-      <span class="res-mini-val">${fmt(key, total(key, sample))}</span>
+      <span class="res-mini-bar"><span style="width:${m.pct.toFixed(1)}%"></span></span>
+      <span class="res-mini-val">${m.value}</span>
     </span>`;
+}
+
+/** Update a collapsed-row entry in place — rebuilding it every frame would drop its tooltip. */
+function paintMini(key: ResourceKey): void {
+  const el = document.getElementById(`res-mini-${key}`);
+  if (!el || !view) return;
+  const m = miniParts(key, view);
+  el.dataset.tip = m.tip;
+  const bar = el.querySelector<HTMLElement>('.res-mini-bar > span');
+  if (bar) bar.style.width = `${m.pct.toFixed(1)}%`;
+  const val = el.querySelector('.res-mini-val');
+  if (val && val.textContent !== m.value) val.textContent = m.value;
 }
 
 function statusLine(): string {
@@ -297,14 +454,17 @@ function statusLine(): string {
   return sample?.running ? t('res.status.live') : t('res.status.idle');
 }
 
-function paintLive(): void {
+function paintFrame(): void {
   for (const key of RESOURCE_KEYS) {
     if (expanded) paintDial(key);
-    const mini = document.getElementById(`res-mini-${key}`);
-    if (mini) mini.outerHTML = miniHtml(key);
+    paintMini(key);
   }
+}
+
+function paintLive(): void {
   const st = document.getElementById('res-status');
   if (st) st.textContent = statusLine();
+  glide();
 }
 
 function presetsHtml(): string {
@@ -407,7 +567,8 @@ function wire(): void {
       const move = (e: PointerEvent): void => {
         if (!view) return;
         const r = view.ranges[key];
-        dragging = { key, value: snapTo(valueAt(svg, e.clientX, e.clientY, scaleMax(key, view)), r, ceilingFor(key)) };
+        const max = scaleMax(key, view);
+        dragging = { key, value: snapTo(valueAt(svg, e.clientX, e.clientY, max), r, ceilingFor(key)), max };
         paintDial(key);
       };
       svg.addEventListener('pointerdown', (e) => {
@@ -423,7 +584,7 @@ function wire(): void {
         const value = dragging.value;
         dragging = null;
         queue(key, value);
-        paintDial(key);
+        glide();
       };
       svg.addEventListener('pointerup', end);
       svg.addEventListener('pointercancel', end);
@@ -443,14 +604,17 @@ function wire(): void {
         e.preventDefault();
         e.stopPropagation();
         queue(key, snapTo(next, r, ceilingFor(key)));
-        paintDial(key);
+        glide();
       });
     });
 }
 
 function adopt(v: ResourceViewLike): void {
   view = v;
-  if (v.sample) sample = v.sample;
+  if (v.sample) {
+    sample = v.sample;
+    notePeak(v.sample);
+  }
   // Already on screen: repaint in place. A full render would replace the dial
   // that has keyboard focus every time a change is saved.
   if (document.getElementById('res-toggle')) refresh();
@@ -503,8 +667,10 @@ export async function initResourceDock(): Promise<void> {
     expanded = false;
   }
   window.sc.resources.onChanged((v) => adopt(v));
+  loadDiskPeak();
   window.sc.resources.onSample((s) => {
     sample = s;
+    notePeak(s);
     paintLive();
   });
   // Live numbers only while someone can see them — a hidden tray window does
