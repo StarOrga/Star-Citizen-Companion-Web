@@ -599,7 +599,8 @@ kbd.sc-kbd {
 .resource-dock.is-morph .res-box { animation: res-grow 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i) * 60ms); }
 @keyframes res-grow { from { transform: scaleY(0.18) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 .res-box figcaption {
-  display: flex; align-items: center; gap: 5px; min-width: 0; flex: none;
+  /* A narrow box moves the aside to a second line instead of clipping it. */
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 5px; min-width: 0; flex: none;
   font-family: var(--sc-font-display); font-weight: 600; font-size: 9px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--sc-fg-1); white-space: nowrap;
 }
@@ -671,7 +672,9 @@ kbd.sc-kbd {
 .res-boost:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 1px; border-radius: var(--sc-radius-sm); }
 .res-ico--bolt { width: 11px; height: 11px; }
 .res-boost-item { white-space: nowrap; }
-.res-boost-item i { font-style: normal; color: var(--sc-accent); letter-spacing: -1px; }
+.res-pips { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 2px; }
+.res-pip { width: 5px; height: 5px; border-radius: 50%; box-sizing: border-box; border: 1px solid var(--sc-accent); }
+.res-pip.on { background: var(--sc-accent); }
 
 .res-box--gpu { justify-content: center; gap: 6px; }
 .res-box--gpu figcaption { margin-bottom: auto; }

@@ -480,8 +480,8 @@ function dialMarkup(id: string, key: ResourceKey | null, label: string): string 
     <path class="dial-run" d=""/>
     <line class="dial-needle" x1="${CX}" y1="${CY}" x2="${CX}" y2="${CY}"/>
     <circle class="dial-hub" cx="${CX}" cy="${CY}" r="3.5"/>
-    <text class="dial-value" x="${CX}" y="${CY + 9}" text-anchor="middle"></text>
-    <text class="dial-sub" x="${CX}" y="${CY + 22}" text-anchor="middle"></text>`;
+    <text class="dial-value" x="${CX}" y="${CY + 25}" text-anchor="middle"></text>
+    <text class="dial-sub" x="${CX}" y="${CY + 37}" text-anchor="middle"></text>`;
   if (!key) {
     return `<svg class="res-dial" id="res-dial-${id}" viewBox="0 0 160 100" role="img" aria-label="${esc(label)}">${parts}</svg>`;
   }
@@ -496,7 +496,12 @@ function dialMarkup(id: string, key: ResourceKey | null, label: string): string 
 function boostHtml(subject: BoostSubject): string {
   const lv = boostLevels(subject);
   const items = PHASES.map(
-    (p, i) => `<span class="res-boost-item">${t(`res.phase.${p}`)} <i aria-hidden="true">${dots(lv[i] ?? 0)}</i></span>`,
+    (p, i) => {
+      const n = lv[i] ?? 0;
+      // Drawn as shapes, not glyphs: a ● at this size merges into a bar in some fonts.
+      const pips = [1, 2, 3].map((k) => `<span class="res-pip${k <= n ? ' on' : ''}"></span>`).join('');
+      return `<span class="res-boost-item">${t(`res.phase.${p}`)} <span class="res-pips" role="img" aria-label="${dots(n)}">${pips}</span></span>`;
+    },
   ).join('');
   return `<p class="res-boost" tabindex="0" data-tip="${esc(t(`res.boost.${subject}`))}" aria-label="${esc(t('res.boostAria'))}">${icon('bolt', 'res-ico res-ico--bolt')}${items}</p>`;
 }
@@ -682,11 +687,28 @@ function paintCell(id: string, run: number, others: number, limitPct: number | n
   el.setAttribute('aria-valuetext', value);
 }
 
+/** A limit row's value: the label already names what is counted, so operations read "640/s". */
+function rowValue(key: DiskLimitKey, v: number | null | undefined): string {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+  return key === 'iops' ? `${num('iops', v)}/s` : fmt(key, v);
+}
+
+/** The work drive's rows: its own numbers, no Tempomat (the budget lives on the game drive). */
+function paintPlainRows(): void {
+  const work = slots().find((s) => !hasLimits(s));
+  const d = work ? loadOf(work) : null;
+  for (const key of DISK_KEYS) {
+    const val = document.querySelector(`#res-lim-${key}-plain .res-lim-val`);
+    const text = rowValue(key, d?.[key]);
+    if (val && val.textContent !== text) val.textContent = text;
+  }
+}
+
 function paintLimRow(key: DiskLimitKey, s: Shown): void {
   const row = document.getElementById(`res-lim-${key}`);
   if (!row || !view) return;
   const val = row.querySelector('.res-lim-val');
-  const text = fmt(key, s.pc);
+  const text = rowValue(key, s.pc);
   if (val && val.textContent !== text) val.textContent = text;
   const run = row.querySelector<HTMLElement>('.res-lim-run');
   const knob = row.querySelector<HTMLElement>('.res-lim-knob');
@@ -727,11 +749,12 @@ function paintFrame(): void {
   paintDial('cpu', 'cpuPct', cpu, `${Math.round(cpu.pc)} %`, `≤ ${fmt('cpuPct', cpu.limit)}`);
   paintDial('ram', 'ramMb', ram, `${Math.round(ramPct)} %`, `≤ ${fmt('ramMb', ram.limit)}`);
   for (const key of DISK_KEYS) paintLimRow(key, disk.get(key) as Shown);
+  paintPlainRows();
 }
 
 // ── tooltips ────────────────────────────────────────────────────────────────
 
-const W = 9;
+const W = 10;
 
 /** Rows for a tooltip's number grid: head, then label · now · Ø · max (padded). */
 function numsGrid(rows: Array<[string, string, string?, string?]>, withStats = true): string {
@@ -800,7 +823,7 @@ function driveNums(slot: DriveSlot, d: DriveLoad | null): string {
     [t('res.num.response'), msText(d?.responseMs), ...stat(`${L}.resp`, (v) => msText(v))],
     [t('res.num.read'), fmtOr('readMBs', d?.readMBs), ...stat(`${L}.read`, (v) => fmt('readMBs', v))],
     [t('res.num.write'), fmtOr('writeMBs', d?.writeMBs), ...stat(`${L}.write`, (v) => fmt('writeMBs', v))],
-    [t('res.num.iops'), fmtOr('iops', d?.iops), ...stat(`${L}.iops`, (v) => fmt('iops', v))],
+    [t('res.num.iops'), rowValue('iops', d?.iops), ...stat(`${L}.iops`, (v) => rowValue('iops', v))],
     [t('res.num.share'), pctText(d?.runSharePct)],
   ]);
 }
@@ -826,10 +849,10 @@ function driveTip(slot: DriveSlot): Tip {
 function limTip(key: DiskLimitKey, plain: boolean, slot: DriveSlot | undefined): Tip {
   const d = slot ? loadOf(slot) : null;
   const L = slot?.letter || 'x';
-  const f = (v: number): string => fmt(key, v);
+  const f = (v: number): string => rowValue(key, v);
   const histKey = key === 'readMBs' ? 'read' : key === 'writeMBs' ? 'write' : 'iops';
   const rows: Array<[string, string, string?, string?]> = [
-    [t('res.num.pc'), fmtOr(key, d?.[key]), ...stat(`${L}.${histKey}`, f)],
+    [t('res.num.pc'), rowValue(key, d?.[key]), ...stat(`${L}.${histKey}`, f)],
   ];
   if (!plain) {
     rows.push([t('res.num.run'), sample ? f(diskRun(key, sample)) : '—', ...stat(`run.${histKey}`, f)]);
