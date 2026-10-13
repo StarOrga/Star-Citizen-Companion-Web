@@ -410,19 +410,93 @@
   },
   "res": {
     "title": "Performance",
-    "toggleHint": "Set how much of the PC the uploader may use",
-    "cpu": "Processor",
-    "ram": "Memory",
-    "read": "Disk read",
-    "write": "Disk write",
-    "iops": "Disk operations",
+    "toggleTip": "Fold the bar open or closed. Active now: {{preset}}. {{desc}}",
+    "collapseAria": "Collapse performance",
+    "unsupported": "On this system only the number of parallel workers applies; hard limits are Windows-only.",
+    "cell": {
+      "cpu": "CPU",
+      "ram": "RAM",
+      "game": "Game {{letter}}:",
+      "work": "Work {{letter}}:",
+      "both": "Drive {{letter}}:",
+      "drive": "Drive"
+    },
+    "threads": "{{n}} threads",
     "unitIops": "ops/s",
-    "gpu": "Graphics card",
-    "gpuNote": "Not used — extraction, silhouettes and the 3D build run on the processor only.",
-    "of": "limit {{limit}}",
-    "runOf": "uploader {{run}} / {{limit}}",
-    "mini": "Whole-PC load · uploader {{run}} / {{limit}}",
-    "miniIdle": "Whole-PC load · uploader limit {{limit}}",
+    "col": {
+      "now": "now",
+      "avg": "avg 60 s",
+      "max": "max 60 s"
+    },
+    "num": {
+      "pc": "Whole PC",
+      "run": "Uploader",
+      "limit": "Limit",
+      "used": "In use",
+      "app": "Uploader app",
+      "active": "Active time",
+      "response": "Response time",
+      "read": "Read",
+      "write": "Write",
+      "iops": "Operations",
+      "share": "Uploader share",
+      "perOp": "Avg per operation"
+    },
+    "tip": {
+      "cpu": "Load across all {{threads}} threads, measured like the \"CPU\" column in Task Manager (turbo clock included). It is sampled every second and swings hard during a run, so a side-by-side with Task Manager rarely shows the same number. 10 % always stays with Windows.",
+      "cpuNoHardCap": "The hard CPU limit could not be set — the run continues at low priority.",
+      "ram": "Memory in use by all programs, the same number as \"Memory\" in Task Manager. The limit decides how many workers the next step starts.",
+      "drive": "Active time: the share of time the drive had at least one open request — the \"Disk\" percentage in Task Manager. 100 % means \"always busy\", not \"at its limit\": an SSD often still delivers several times the throughput. Whether it is overloaded shows in the response time.",
+      "driveGame": "The uploader reads the Data.p4k here. The disk limits in this box apply to the whole run.",
+      "driveWork": "The uploader writes results and its cache here. This box has no limits: read, write and operations are one budget for the whole run, set in the game drive box.",
+      "driveBoth": "The uploader reads the Data.p4k and writes its results here. The disk limits apply to the whole run.",
+      "driveAssumed": "With two drives the uploader share is attributed: reads count for the game drive, writes for the work drive.",
+      "taskMgrZero": "Why does Task Manager show 0 MB/s for the uploader? It often books access through the Windows file cache to the \"System\" process. The total (Disk %) is still right.",
+      "shareNow": "Uploader share: the current second only.",
+      "read": "Data read per second on this drive. The uploader mostly reads the Data.p4k; above its limit it slows itself down.",
+      "write": "Data written per second. The uploader writes extracted files and its cache; above its limit it slows itself down.",
+      "iops": "Read and write operations per second (IOPS). Many small operations, such as unpacking single entries of the Data.p4k, keep a drive busy without producing many MB/s. A hard disk (HDD) manages only about 100–200 per second.",
+      "tempo": "Cruise control · {{what}} {{value}} — drag or ←/→: the most the uploader may take. Takes effect at once, even mid-run.",
+      "tempoRam": "Cruise control · {{what}} {{value}} — drag or ←/→: the most the uploader may take. Takes effect at once, even mid-run. Only the worker count stays fixed until the next step starts.",
+      "atLimit": "At cruise control",
+      "atLimitText": "The uploader takes as much as the cruise control allows right now. More room = faster, but other programs notice.",
+      "heldTitle": "Held back · {{drive}}",
+      "held": "The uploader is waiting on this drive {{pct}} % of the time: its {{which}} ({{limit}}) is reached or the drive is fully busy. Higher limit = faster, but other programs notice."
+    },
+    "limitName": {
+      "readMBs": "read limit",
+      "writeMBs": "write limit",
+      "iops": "operations limit"
+    },
+    "driveName": {
+      "game": "Game drive {{letter}}:",
+      "work": "Work drive {{letter}}:",
+      "both": "Drive {{letter}}:"
+    },
+    "kind": {
+      "nvme": "NVMe",
+      "ssd": "SATA SSD",
+      "hdd": "HDD",
+      "unknown": "type unknown"
+    },
+    "phase": {
+      "codex": "Codex",
+      "silhouettes": "Silhouettes",
+      "models": "3D"
+    },
+    "boostAria": "What it speeds up",
+    "boost": {
+      "cpu": "What does the uploader need CPU for? Codex: reading the DataCore (little, mostly one core). Silhouettes: converting meshes and rasterising outlines (a lot, every worker). 3D: converting and compressing meshes (a lot). ●●● = more CPU makes this step noticeably faster.",
+      "ram": "What does the uploader need memory for? Codex: the whole DataCore is held in memory (a lot). Silhouettes and 3D: one buffer per worker (medium) — the limit sets how many workers start. ●●● = more memory makes this step noticeably faster.",
+      "game": "What does the uploader need this drive for? It reads the Data.p4k: the codex reads the most (a lot), silhouettes and 3D read models on demand (medium). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "work": "What does the uploader need this drive for? It writes results and its cache: codex little, silhouettes medium, 3D the most (models and packages). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "both": "What does the uploader need this drive for? It reads the Data.p4k (codex the most) and writes results and its cache (3D the most). ●●● = a faster drive or a higher limit makes this step noticeably faster."
+    },
+    "gpu": "GPU",
+    "gpuNone": "not detected",
+    "gpuSwitch": "Use for silhouettes / 3D",
+    "gpuTip": "Rasterises the silhouette outlines on the graphics card instead of the processor. If the graphics card does not start, the uploader carries on on the processor by itself. Applies from the next step.",
+    "gpuUnavailable": "The GPU path cannot run on this PC (no suitable graphics card or driver) — silhouettes and 3D run on the processor.",
     "presetsAria": "Presets",
     "preset": {
       "gaming": "While gaming",
@@ -431,26 +505,9 @@
       "balancedDesc": "About half — browsing, streaming and work stay smooth.",
       "full": "Full power",
       "fullDesc": "Up to 85–90 % — fastest run, a share always stays free for Windows.",
-      "custom": "Custom"
-    },
-    "note": {
-      "cpu": "{{cores}} threads · other programs now {{others}} % · 10 % always stays with Windows",
-      "ram": "{{total}} total · other programs {{others}} · uploader app {{app}}",
-      "disk": {
-        "nvme": "NVMe SSD detected",
-        "ssd": "SATA SSD detected",
-        "hdd": "Hard disk (HDD) detected — operations are the bottleneck here",
-        "unknown": "Drive type unknown — scale ends at the highest load measured so far ({{peak}})"
-      }
-    },
-    "status": {
-      "idle": "Applies to the next run — changes also take effect mid-run, immediately.",
-      "live": "Live: changes apply to the running step immediately.",
-      "heldBack": "Disk limit active: the run is held {{pct}} % of the time.",
-      "noHardCap": "The hard CPU limit could not be set — the run continues at low priority.",
-      "unsupported": "On this system only the number of parallel workers applies; hard limits are Windows-only."
-    },
-    "foot": "Drag the dial's handle or use the arrow keys. The needle and the big number show the whole PC's load as in Task Manager, the inner arc the uploader's share, the bright arc up to the handle its limit. Memory decides how many workers the next step starts."
+      "custom": "Custom",
+      "customDesc": "You moved a cruise control by hand. Picking a preset resets every limit."
+    }
   },
   "pipeline": {
     "stepOf": "Step {{n}} of {{total}}",

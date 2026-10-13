@@ -410,19 +410,93 @@
   },
   "res": {
     "title": "Performance",
-    "toggleHint": "Festlegen, wie viel vom PC der Uploader nutzen darf",
-    "cpu": "Prozessor",
-    "ram": "Arbeitsspeicher",
-    "read": "Disk lesen",
-    "write": "Disk schreiben",
-    "iops": "Disk-Zugriffe",
+    "toggleTip": "Leiste auf- und zuklappen. Gerade aktiv: {{preset}}. {{desc}}",
+    "collapseAria": "Performance einklappen",
+    "unsupported": "Auf diesem System wirkt nur die Anzahl paralleler Worker; harte Grenzen gibt es nur unter Windows.",
+    "cell": {
+      "cpu": "CPU",
+      "ram": "RAM",
+      "game": "Spiel {{letter}}:",
+      "work": "Arbeit {{letter}}:",
+      "both": "Laufwerk {{letter}}:",
+      "drive": "Laufwerk"
+    },
+    "threads": "{{n}} Threads",
     "unitIops": "Zugriffe/s",
-    "gpu": "Grafikkarte",
-    "gpuNote": "Wird nicht genutzt — Extraktion, Silhouetten und 3D-Build rechnen ausschließlich auf dem Prozessor.",
-    "of": "Grenze {{limit}}",
-    "runOf": "Uploader {{run}} / {{limit}}",
-    "mini": "Gesamtlast des PCs · Uploader {{run}} / {{limit}}",
-    "miniIdle": "Gesamtlast des PCs · Grenze für den Uploader {{limit}}",
+    "col": {
+      "now": "jetzt",
+      "avg": "Ø 60 s",
+      "max": "max 60 s"
+    },
+    "num": {
+      "pc": "Ganzer PC",
+      "run": "Uploader",
+      "limit": "Grenze",
+      "used": "Belegt",
+      "app": "Uploader-App",
+      "active": "Aktive Zeit",
+      "response": "Antwortzeit",
+      "read": "Lesen",
+      "write": "Schreiben",
+      "iops": "Zugriffe",
+      "share": "Anteil Uploader",
+      "perOp": "Ø pro Zugriff"
+    },
+    "tip": {
+      "cpu": "Auslastung aller {{threads}} Threads, gemessen wie die Spalte „CPU“ im Task-Manager (inkl. Turbo-Takt). Der Wert wird jede Sekunde neu gemessen und springt bei einem Lauf stark, deshalb zeigt ein Vergleich mit dem Task-Manager selten dieselbe Zahl. 10 % bleiben immer für Windows.",
+      "cpuNoHardCap": "Die harte CPU-Grenze ließ sich nicht setzen — der Lauf läuft mit niedriger Priorität weiter.",
+      "ram": "Von allen Programmen belegter Arbeitsspeicher, dieselbe Zahl wie „Arbeitsspeicher“ im Task-Manager. Die Grenze bestimmt, wie viele Worker der nächste Schritt startet.",
+      "drive": "Aktive Zeit: Anteil der Zeit, in der das Laufwerk mindestens eine offene Anfrage hatte — die Prozentzahl „Datenträger“ im Task-Manager. 100 % heißt „ständig beschäftigt“, nicht „am Limit“: Eine SSD liefert dabei oft noch ein Vielfaches an Durchsatz. Ob sie überlastet ist, zeigt die Antwortzeit.",
+      "driveGame": "Hier liest der Uploader die Data.p4k. Die Disk-Grenzen in diesem Kasten gelten für den ganzen Lauf.",
+      "driveWork": "Hier schreibt der Uploader Ergebnisse und Zwischenspeicher. Grenzen hat dieser Kasten keine: Lesen, Schreiben und Zugriffe sind ein gemeinsames Budget für den ganzen Lauf, eingestellt im Kasten des Spiel-Laufwerks.",
+      "driveBoth": "Hier liest der Uploader die Data.p4k und schreibt seine Ergebnisse. Die Disk-Grenzen gelten für den ganzen Lauf.",
+      "driveAssumed": "Anteil des Uploaders bei zwei Laufwerken zugeordnet: Lesen zählt zum Spiel-Laufwerk, Schreiben zum Arbeitslaufwerk.",
+      "taskMgrZero": "Warum zeigt der Task-Manager beim Uploader 0 MB/s? Er ordnet Zugriffe über den Windows-Dateicache oft dem Prozess „System“ zu. Die Summe (Datenträger %) stimmt trotzdem.",
+      "shareNow": "Anteil des Uploaders: nur die aktuelle Sekunde.",
+      "read": "Gelesene Daten pro Sekunde auf diesem Laufwerk. Der Uploader liest vor allem aus der Data.p4k; über seiner Grenze bremst er sich selbst.",
+      "write": "Geschriebene Daten pro Sekunde. Der Uploader schreibt extrahierte Dateien und seinen Zwischenspeicher; über seiner Grenze bremst er sich selbst.",
+      "iops": "Lese- und Schreibvorgänge pro Sekunde (IOPS). Viele kleine Zugriffe, etwa beim Auspacken einzelner Einträge der Data.p4k, halten ein Laufwerk ständig beschäftigt, ohne viele MB/s zu erzeugen. Eine Festplatte (HDD) schafft nur etwa 100–200 pro Sekunde.",
+      "tempo": "Tempomat · {{what}} {{value}} — Ziehen oder ←/→: so viel darf der Uploader höchstens nehmen. Wirkt sofort, auch mitten im Lauf.",
+      "tempoRam": "Tempomat · {{what}} {{value}} — Ziehen oder ←/→: so viel darf der Uploader höchstens nehmen. Wirkt sofort, auch mitten im Lauf. Nur die Zahl der Worker steht fest, bis der nächste Schritt startet.",
+      "atLimit": "Am Tempomat",
+      "atLimitText": "Der Uploader nimmt gerade so viel, wie der Tempomat erlaubt. Mehr Spielraum = schneller, aber andere Programme merken es.",
+      "heldTitle": "Gebremst · {{drive}}",
+      "held": "Der Uploader wartet gerade zu {{pct}} % auf dieses Laufwerk: Seine {{which}} ({{limit}}) ist erreicht oder das Laufwerk ist voll beschäftigt. Höhere Grenze = schneller, aber andere Programme merken es."
+    },
+    "limitName": {
+      "readMBs": "Lesegrenze",
+      "writeMBs": "Schreibgrenze",
+      "iops": "Zugriffsgrenze"
+    },
+    "driveName": {
+      "game": "Spiel-Laufwerk {{letter}}:",
+      "work": "Arbeitslaufwerk {{letter}}:",
+      "both": "Laufwerk {{letter}}:"
+    },
+    "kind": {
+      "nvme": "NVMe",
+      "ssd": "SATA-SSD",
+      "hdd": "HDD",
+      "unknown": "Typ unbekannt"
+    },
+    "phase": {
+      "codex": "Codex",
+      "silhouettes": "Silhouetten",
+      "models": "3D"
+    },
+    "boostAria": "Wofür",
+    "boost": {
+      "cpu": "Wofür braucht der Uploader CPU? Codex: DataCore einlesen (wenig, meist ein Kern). Silhouetten: Meshes umrechnen und Umrisse rastern (viel, alle Worker). 3D: Meshes konvertieren und komprimieren (viel). ●●● = mehr CPU macht diesen Schritt spürbar schneller.",
+      "ram": "Wofür braucht der Uploader Arbeitsspeicher? Codex: die DataCore liegt komplett im Speicher (viel). Silhouetten und 3D: ein Puffer pro Worker (mittel) — die Grenze legt fest, wie viele Worker starten. ●●● = mehr Arbeitsspeicher macht diesen Schritt spürbar schneller.",
+      "game": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k: Codex liest am meisten (viel), Silhouetten und 3D lesen Modelle nach (mittel). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "work": "Wofür braucht der Uploader dieses Laufwerk? Er schreibt Ergebnisse und Zwischenspeicher: Codex wenig, Silhouetten mittel, 3D am meisten (Modelle und Pakete). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller.",
+      "both": "Wofür braucht der Uploader dieses Laufwerk? Er liest die Data.p4k (Codex am meisten) und schreibt Ergebnisse und Zwischenspeicher (3D am meisten). ●●● = ein schnelleres Laufwerk oder eine höhere Grenze macht diesen Schritt spürbar schneller."
+    },
+    "gpu": "GPU",
+    "gpuNone": "nicht erkannt",
+    "gpuSwitch": "Für Silhouetten / 3D nutzen",
+    "gpuTip": "Rastert die Silhouetten-Umrisse auf der Grafikkarte statt auf dem Prozessor. Startet die Grafikkarte nicht, rechnet der Uploader automatisch auf dem Prozessor weiter. Gilt ab dem nächsten Schritt.",
+    "gpuUnavailable": "Auf diesem PC kann der GPU-Pfad nicht laufen (keine passende Grafikkarte oder kein Treiber) — Silhouetten und 3D rechnen auf dem Prozessor.",
     "presetsAria": "Voreinstellungen",
     "preset": {
       "gaming": "Beim Spielen",
@@ -431,26 +505,9 @@
       "balancedDesc": "Etwa die Hälfte — Surfen, Streamen und Arbeiten laufen flüssig weiter.",
       "full": "Volle Leistung",
       "fullDesc": "Bis zu 85–90 % — schnellster Lauf, ein Rest bleibt für Windows immer frei.",
-      "custom": "Eigene Werte"
-    },
-    "note": {
-      "cpu": "{{cores}} Threads · andere Programme gerade {{others}} % · 10 % bleiben immer für Windows",
-      "ram": "{{total}} gesamt · andere Programme {{others}} · Uploader-App {{app}}",
-      "disk": {
-        "nvme": "NVMe-SSD erkannt",
-        "ssd": "SATA-SSD erkannt",
-        "hdd": "Festplatte (HDD) erkannt — Zugriffe sind hier der Engpass",
-        "unknown": "Laufwerkstyp unbekannt — Skalenende = höchster bisher gemessener Wert ({{peak}})"
-      }
-    },
-    "status": {
-      "idle": "Gilt für den nächsten Lauf — Änderungen wirken auch mitten im Lauf sofort.",
-      "live": "Live: Änderungen wirken sofort auf den laufenden Schritt.",
-      "heldBack": "Disk-Grenze greift: der Lauf wird gerade zu {{pct}} % angehalten.",
-      "noHardCap": "Die harte CPU-Grenze ließ sich nicht setzen — der Lauf läuft mit niedriger Priorität weiter.",
-      "unsupported": "Auf diesem System wirkt nur die Anzahl paralleler Worker; harte Grenzen gibt es nur unter Windows."
-    },
-    "foot": "Ziehe den Griff am Tacho oder nutze die Pfeiltasten. Die Nadel und die große Zahl zeigen die Gesamtlast des PCs wie im Task-Manager, der innere Bogen den Anteil des Uploaders, der helle Bogen bis zum Griff seine Grenze. Der Arbeitsspeicher bestimmt, wie viele Worker der nächste Schritt startet."
+      "custom": "Eigene Werte",
+      "customDesc": "Du hast einen Tempomat von Hand verstellt. Eine Voreinstellung wählen setzt alle Grenzen zurück."
+    }
   },
   "pipeline": {
     "stepOf": "Schritt {{n}} von {{total}}",
