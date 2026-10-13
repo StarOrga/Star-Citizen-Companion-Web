@@ -34,7 +34,7 @@ humanize==3.13.1       # scdatatools: humanize~=3.13.1
 packaging==21.3        # scdatatools: packaging~=21.3
 pyrsi==0.1.19          # scdatatools: pyrsi~=0.1.19
 rich==12.4.4           # scdatatools: rich~=12.4.4
-tqdm==4.62.3           # scdatatools: tqdm~=4.62.3
+tqdm==4.66.3           # scdatatools: tqdm~=4.62.3
 numpy==1.26.4          # PATCHED (scdatatools wants ~=1.21.5) — last 1.x, cp310 wheel; also sc_extract/silhouette.py
 
 # Our own direct deps — NOT required by scdatatools, so free to pin/update:
