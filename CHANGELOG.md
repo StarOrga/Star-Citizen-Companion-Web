@@ -4,6 +4,20 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.145.0] - 2026-10-13
+
+### Changed
+
+- **Data Uploader 0.53.0: ruhigere, ehrlichere Tachos im Ressourcen-Dock.**
+  Nadeln, Bögen, Zahlen und die Balken der eingeklappten Zeile gleiten jetzt
+  in etwa einer halben Sekunde zum neuen Messwert, statt jede Sekunde zu
+  springen; der gezogene Griff folgt der Maus ohne Verzögerung, und mit
+  „Animationen reduzieren“ bleibt es beim direkten Sprung. Ist der
+  Laufwerkstyp unbekannt, endet die Disk-Skala nicht mehr bei einem
+  geschätzten Nennwert, sondern beim höchsten bisher gemessenen Wert des PCs
+  (wächst mit, bleibt gespeichert, lässt über dem Limit immer Platz zum
+  Hochziehen). Disk-Zugriffe tragen die Einheit „Zugriffe/s“ statt „/s“.
+
 ## [0.144.2] - 2026-10-13
 
 ### Fixed
