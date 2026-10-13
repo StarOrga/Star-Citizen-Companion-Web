@@ -16,6 +16,7 @@
 import { t } from '../lib/i18n.js';
 import { AUTO_RUN_COUNTDOWN_S, formatCountdown } from '../lib/auto-run.js';
 import { escapeHtml } from './dom.js';
+import { isSettingsDialogOpen } from './settings-dialog.js';
 
 export interface PatchCountdownCtx {
   channel: string;
@@ -95,13 +96,18 @@ export function startPatchCountdown(ctx: PatchCountdownCtx): void {
   active = { ...ctx, endsAt: Date.now() + AUTO_RUN_COUNTDOWN_S * 1000 };
   el.hidden = false;
   repaintPatchCountdown();
+  let lastTick = Date.now();
   timer = window.setInterval(() => {
     if (!active) return;
     if (active.isBusy()) {
       stopPatchCountdown();
       return;
     }
-    if (Date.now() >= active.endsAt) fire('start');
+    const now = Date.now();
+    // An open ⚙ dialog freezes the clock — the upload never starts behind the modal.
+    if (isSettingsDialogOpen()) active.endsAt += now - lastTick;
+    lastTick = now;
+    if (now >= active.endsAt) fire('start');
     else paint();
   }, 250);
 }
