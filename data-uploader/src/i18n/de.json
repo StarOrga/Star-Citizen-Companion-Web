@@ -227,6 +227,7 @@
     "progress": "Update wird geladen: {{pct}}%",
     "downloaded": "Update v{{version}} bereit — bitte App neu starten.",
     "install": "Jetzt installieren",
+    "busy": "Gerade läuft eine Extraktion — das Update installiert sich, wenn du die App beendest.",
     "error": "Update-Fehler: {{message}}",
     "manual": "Neue Version v{{version}} verfügbar — der Portable-Build kann sich nicht selbst updaten, bitte manuell laden.",
     "openDownload": "Download-Seite öffnen"

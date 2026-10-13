@@ -24,6 +24,7 @@ import {
   setUpdateChannel,
   checkForUpdatesSilently,
   installUpdateNow,
+  noteQuitWithStagedUpdate,
   getLastUpdateEvent,
 } from './updater.js';
 import {
@@ -720,6 +721,10 @@ ipcMain.handle('sc:update:status', () => getLastUpdateEvent());
 // back through the sc:update:event broadcast, so no reply is needed.
 ipcMain.on('sc:update:check-silent', () => checkForUpdatesSilently());
 ipcMain.handle('sc:update:install', () => {
+  // The installer kills the app (and with it a running extraction and its
+  // python children, which may still hold files it has to replace). While a
+  // job runs, the staged update installs on quit instead.
+  if (activeJobs.size > 0) return { ok: false, busy: true };
   installUpdateNow();
   return { ok: true };
 });
@@ -1355,6 +1360,7 @@ function cancelAllJobs(reason: ExtractAbortReason | null = null): Promise<boolea
 let quitDeferredForTelemetry = false;
 
 app.on('before-quit', (e) => {
+  noteQuitWithStagedUpdate();
   // Quitting mid-extraction throws away the whole scan, so it is reported —
   // but the process would normally die before the POST leaves. Hold the quit
   // for a bounded grace window, exactly once, then go regardless of outcome.

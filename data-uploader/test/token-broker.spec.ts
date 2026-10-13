@@ -104,6 +104,75 @@ describe('token broker', () => {
     expect(h.cleared).toBe(0);
   });
 
+  it('a sign-out during an in-flight refresh stays signed out', async () => {
+    const h = harness(session(), async () => {
+      h.setStored(null); // operator pressed "Abmelden" meanwhile
+      return { ok: true, accessToken: 'at-1', refreshToken: 'rt-1', expiresAt: NOW + 3600 };
+    });
+    const r = await h.broker.ensureAccessToken();
+    expect(r.token).toBeNull();
+    expect(h.stored).toBeNull();
+  });
+
+  it('a new login during an in-flight refresh wins over the old lineage', async () => {
+    const h = harness(session(), async () => {
+      h.setStored(session({ accessToken: 'at-new', refreshToken: 'rt-new', expiresAt: NOW + 3600, email: 'other@example.com' }));
+      return { ok: true, accessToken: 'at-1', refreshToken: 'rt-1', expiresAt: NOW + 3600 };
+    });
+    const r = await h.broker.ensureAccessToken();
+    expect(r.token).toBe('at-new');
+    expect(h.stored?.refreshToken).toBe('rt-new');
+  });
+
+  it('a failing write keeps the rotated pair in memory and retries it', async () => {
+    let failWrites = true;
+    let stored: PersistedSession | null = session();
+    let refreshes = 0;
+    const broker = createTokenBroker({
+      load: () => stored,
+      save: (s) => {
+        if (failWrites) throw new Error('EBUSY');
+        stored = s;
+      },
+      clear: () => {
+        stored = null;
+      },
+      refresh: async () => {
+        refreshes++;
+        return { ok: true, accessToken: 'at-1', refreshToken: 'rt-1', expiresAt: NOW + 3600 };
+      },
+      nowSeconds: () => NOW,
+    });
+    const first = await broker.ensureAccessToken();
+    expect(first.token).toBe('at-1');
+    expect(stored?.refreshToken).toBe('rt-0');
+    failWrites = false;
+    const second = await broker.ensureAccessToken();
+    expect(second.token).toBe('at-1');
+    expect(stored?.refreshToken).toBe('rt-1');
+    expect(refreshes).toBe(1); // the spent rt-0 was never presented again
+  });
+
+  it('forget() drops a pair that could not be written (sign-out)', async () => {
+    let stored: PersistedSession | null = session();
+    const broker = createTokenBroker({
+      load: () => stored,
+      save: () => {
+        throw new Error('EPERM');
+      },
+      clear: () => {
+        stored = null;
+      },
+      refresh: async () => ({ ok: true, accessToken: 'at-1', refreshToken: 'rt-1', expiresAt: NOW + 3600 }),
+      nowSeconds: () => NOW,
+    });
+    await broker.ensureAccessToken();
+    broker.forget();
+    stored = null;
+    const r = await broker.ensureAccessToken();
+    expect(r.token).toBeNull();
+  });
+
   it('starts a new refresh once the previous one settled', async () => {
     let n = 0;
     const h = harness(session(), async () => {

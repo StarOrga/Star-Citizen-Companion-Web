@@ -10,7 +10,7 @@
 
 import { app, safeStorage } from 'electron';
 import log from 'electron-log';
-import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { SessionStore, type PersistedSession, type BlobIO } from '../lib/session-store.js';
 import { createTokenBroker, type TokenBroker, type TokenResult } from '../lib/token-broker.js';
@@ -42,7 +42,13 @@ function sessionStore(): SessionStore {
   const path = join(app.getPath('userData'), SESSION_FILE);
   const io: BlobIO = {
     read: () => (existsSync(path) ? readFileSync(path) : null),
-    write: (data) => writeFileSync(path, data, { mode: 0o600 }),
+    // Write-then-rename: the installer force-kills the app during an update,
+    // and a half-written session.bin would read as "signed out" next launch.
+    write: (data) => {
+      const tmp = `${path}.tmp`;
+      writeFileSync(tmp, data, { mode: 0o600 });
+      renameSync(tmp, path);
+    },
     remove: () => {
       try {
         rmSync(path, { force: true });
@@ -51,7 +57,7 @@ function sessionStore(): SessionStore {
       }
     },
   };
-  _sessionStore = new SessionStore(safeStorage, io);
+  _sessionStore = new SessionStore(safeStorage, io, (m) => log.warn(m));
   return _sessionStore;
 }
 
@@ -118,6 +124,7 @@ export function persistAuthResult(auth: AuthResult): boolean {
     expiresAt: auth.expiresAt ?? null,
     savedAt: nowSec(),
   };
+  tokenBroker().forget();
   return sessionStore().save(session);
 }
 
@@ -161,6 +168,7 @@ export async function getSessionStatus(): Promise<SessionStatus> {
 }
 
 export function clearSession(): void {
+  tokenBroker().forget();
   sessionStore().clear();
 }
 

@@ -45,13 +45,29 @@ export interface TokenBrokerDeps {
 
 export interface TokenBroker {
   ensureAccessToken(): Promise<TokenResult>;
+  /** Drop any in-memory session — call on sign-out and on a fresh login. */
+  forget(): void;
 }
 
 export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
   let inflight: Promise<TokenResult> | null = null;
+  /** A refreshed session the store refused to take — retried on every read. */
+  let unsaved: PersistedSession | null = null;
+
+  function read(): PersistedSession | null {
+    if (unsaved) {
+      try {
+        deps.save(unsaved);
+        unsaved = null;
+      } catch {
+        return unsaved;
+      }
+    }
+    return deps.load();
+  }
 
   async function resolve(): Promise<TokenResult> {
-    const session = deps.load();
+    const session = read();
     if (!session) return { token: null, email: null, reconnect: false, retry: false };
 
     if (isAccessTokenFresh(session, deps.nowSeconds())) {
@@ -64,6 +80,19 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
 
     const refreshed = await deps.refresh(session.refreshToken);
     if (refreshed.ok && refreshed.accessToken) {
+      // Compare-and-swap: the refresh can take up to 30 s. A sign-out or a new
+      // interactive login in that window must win — never write the old
+      // lineage back over it.
+      const current = read();
+      if (!current) {
+        return { token: null, email: null, reconnect: false, retry: false };
+      }
+      if (current.refreshToken !== session.refreshToken) {
+        if (isAccessTokenFresh(current, deps.nowSeconds())) {
+          return { token: current.accessToken, email: current.email, reconnect: false, retry: false };
+        }
+        return { token: null, email: current.email, reconnect: false, retry: true };
+      }
       const updated: PersistedSession = {
         accessToken: refreshed.accessToken,
         refreshToken: refreshed.refreshToken ?? session.refreshToken,
@@ -71,13 +100,22 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
         expiresAt: refreshed.expiresAt ?? null,
         savedAt: deps.nowSeconds(),
       };
-      deps.save(updated);
+      try {
+        deps.save(updated);
+      } catch (err) {
+        // The server already rotated the token, so the stored one is now spent
+        // — but this process still holds the new pair: hand out the token, keep
+        // the pair in memory and try the write again on the next read.
+        deps.warn?.(`[session] could not persist the refreshed session: ${(err as Error).message}`);
+        unsaved = updated;
+        return { token: updated.accessToken, email: updated.email, reconnect: false, retry: false };
+      }
       return { token: updated.accessToken, email: updated.email, reconnect: false, retry: false };
     }
 
     if (refreshed.invalid) {
       // Rejected — but only sign out if nobody stored a newer session meanwhile.
-      const current = deps.load();
+      const current = read();
       if (current && current.refreshToken !== session.refreshToken) {
         if (isAccessTokenFresh(current, deps.nowSeconds())) {
           return { token: current.accessToken, email: current.email, reconnect: false, retry: false };
@@ -86,6 +124,7 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
         return { token: null, email: current.email, reconnect: false, retry: true };
       }
       deps.warn?.(`[session] refresh rejected (${refreshed.error ?? 'invalid'}) — session cleared`);
+      unsaved = null;
       deps.clear();
       return { token: null, email: session.email, reconnect: true, retry: false };
     }
@@ -102,6 +141,9 @@ export function createTokenBroker(deps: TokenBrokerDeps): TokenBroker {
         });
       }
       return inflight;
+    },
+    forget(): void {
+      unsaved = null;
     },
   };
 }

@@ -15,6 +15,8 @@
  */
 
 import { app, BrowserWindow } from 'electron';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import electronUpdater, { type UpdateInfo } from 'electron-updater';
 import log from 'electron-log';
 import {
@@ -191,6 +193,15 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   // so the desktop-latest edge function serves the matching channel pointer.
   autoUpdater.channel = currentChannel;
 
+  // Update THIS copy, wherever it lives: passed to the installer as /D=. Without
+  // it the silent installer picks the folder from the registry, and with both a
+  // per-user and a per-machine install recorded it may update the other one.
+  (autoUpdater as typeof autoUpdater & { installDirectory?: string }).installDirectory = dirname(
+    app.getPath('exe'),
+  );
+
+  checkPendingUpdate();
+
   autoUpdater.setFeedURL({
     provider: 'generic',
     url: FEED_URL,
@@ -250,6 +261,7 @@ export function initAutoUpdater(channel: ReleaseChannel = 'stable'): void {
   // failures (the rejected promises below emit through here too), so this is the
   // single choke point where update errors reach both the banner and telemetry.
   autoUpdater.on('error', (err) => {
+    installRequested = false;
     broadcast({ type: 'error', message: err?.message ?? String(err) });
     reportUpdateError(err);
   });
@@ -321,10 +333,72 @@ const UPDATE_SILENT = true;
 /** quitAndInstall fired once already — a second click must not queue another run. */
 let installRequested = false;
 
+/**
+ * The version a silent install is expected to produce. A silent installer that
+ * fails (UAC declined, a locked file, "app cannot be closed") shows nothing and
+ * the old version simply starts again — so the next launch compares and says so.
+ */
+const PENDING_UPDATE_FILE = 'pending-update.json';
+
+function pendingUpdatePath(): string {
+  return join(app.getPath('userData'), PENDING_UPDATE_FILE);
+}
+
+function rememberPendingUpdate(version: string | null): void {
+  if (!version) return;
+  try {
+    writeFileSync(pendingUpdatePath(), JSON.stringify({ version, at: Date.now() }), 'utf-8');
+  } catch (err) {
+    log.warn('[updater] could not record the pending update:', err);
+  }
+}
+
+function checkPendingUpdate(): void {
+  const path = pendingUpdatePath();
+  if (!existsSync(path)) return;
+  let expected: string | null = null;
+  try {
+    expected = (JSON.parse(readFileSync(path, 'utf-8')) as { version?: string }).version ?? null;
+  } catch {
+    /* unreadable marker — treat as absent */
+  }
+  try {
+    rmSync(path, { force: true });
+  } catch {
+    /* best-effort */
+  }
+  if (!expected || !isNewerVersion(expected, TOOL_VERSION)) return;
+  const message = `update to v${expected} did not install — still running v${TOOL_VERSION}`;
+  log.warn(`[updater] ${message}`);
+  reportUpdateError(new Error(message));
+  // Shown once the renderer asks for the last event; the next successful check
+  // replaces it with the normal "update available" flow.
+  lastEvent = { type: 'error', message };
+}
+
+/** Version of the staged update, from the last 'downloaded' event. */
+function stagedVersion(): string | null {
+  return lastEvent.type === 'downloaded' ? lastEvent.version : null;
+}
+
 export function installUpdateNow(): void {
   if (IS_UNSIGNED_DEV_BUILD) return;
   if (installRequested) return;
   installRequested = true;
+  rememberPendingUpdate(stagedVersion());
   // setImmediate so the IPC reply can finish before the app quits.
-  setImmediate(() => autoUpdater.quitAndInstall(UPDATE_SILENT, true));
+  setImmediate(() => {
+    autoUpdater.quitAndInstall(UPDATE_SILENT, true);
+    // quitAndInstall returns without quitting when the staged installer is
+    // gone; re-arm the button instead of leaving it dead for the session.
+    setTimeout(() => {
+      installRequested = false;
+    }, 15_000);
+  });
+}
+
+/** The on-quit install (autoInstallOnAppQuit) is silent too — remember what it should produce. */
+export function noteQuitWithStagedUpdate(): void {
+  if (IS_UNSIGNED_DEV_BUILD || IS_PORTABLE_BUILD) return;
+  if (!installRequested) rememberPendingUpdate(stagedVersion());
 }

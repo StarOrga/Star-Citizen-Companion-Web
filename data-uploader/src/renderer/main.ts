@@ -638,6 +638,7 @@ async function initConnectionTile(): Promise<void> {
 }
 
 async function refreshConnection(): Promise<void> {
+  const wasRetrying = Boolean(conn.status?.retrying);
   try {
     conn.status = (await window.sc.session.status()) as ConnStatus;
   } catch {
@@ -671,6 +672,10 @@ async function refreshConnection(): Promise<void> {
       /* keep the last known role */
     }
     void autoSync();
+    // The unattended auto-run decides once, at launch — often before the
+    // network is up after an autostart. Give it its turn once the connection
+    // came back (maybeAutoRun itself bails if the operator already moved on).
+    if (wasRetrying && startedHidden) void maybeAutoRun();
   }
 }
 
@@ -680,6 +685,8 @@ async function refreshConnection(): Promise<void> {
 // for the operator to log in again; the first success runs the normal
 // connect path (role + catalog sync).
 const SESSION_RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, 300_000];
+/** After this many failed retries (~2 min) the connect button comes back as a way out. */
+const SESSION_RETRY_OFFER_CONNECT_AFTER = 4;
 let sessionRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let sessionRetryAttempt = 0;
 
@@ -805,7 +812,10 @@ async function ensureUploadToken(): Promise<string | null> {
       return null;
     }
   } catch {
-    /* fall through to interactive login */
+    // The token IPC itself failed — that says nothing about the session, so
+    // treat it like a transient failure rather than asking for a new login.
+    uploadTokenTransient = true;
+    return null;
   }
   const r = await window.sc.authenticate();
   if (r.ok && r.accessToken) {
@@ -899,10 +909,10 @@ function paintConnection(): void {
   let idBlock: string;
   if (s?.connected) {
     idBlock = `<span class="conn-email" data-tip="${escapeHtml(s.email ?? '')}" data-tip-tier="label">${escapeHtml(s.email ?? '')}</span>`;
-  } else if (s?.retrying) {
+  } else if (s?.retrying && sessionRetryAttempt < SESSION_RETRY_OFFER_CONNECT_AFTER) {
     idBlock = `<span class="conn-state">${pillText}</span>`;
   } else if (conn.resolved) {
-    const label = s?.needsReconnect
+    const label = s?.needsReconnect || s?.retrying
       ? t('session.reconnect')
       : t('session.connect');
     idBlock = `<span class="conn-state">${pillText}</span>
@@ -1097,7 +1107,10 @@ function paintUpdateBanner(ev: UpdateEvent): void {
       text.textContent = t('update.downloaded', { version: ev.version });
       action.textContent = t('update.install');
       action.hidden = false;
-      action.onclick = () => void window.sc.update.install();
+      action.onclick = () =>
+        void window.sc.update.install().then((r) => {
+          if (r.busy) text.textContent = t('update.busy');
+        });
       banner.classList.remove('hidden');
       return;
     case 'error':

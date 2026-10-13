@@ -45,6 +45,8 @@ export class SessionStore {
   constructor(
     private readonly safe: SafeStorageLike,
     private readonly io: BlobIO,
+    /** Told why a stored session could not be read — a silent sign-out is undiagnosable. */
+    private readonly warn?: (message: string) => void,
   ) {}
 
   /** True when persistence is possible (OS keyring available). */
@@ -72,9 +74,15 @@ export class SessionStore {
     try {
       const json = this.safe.decryptString(blob);
       const parsed = JSON.parse(json) as Partial<Envelope>;
-      if (parsed.v !== SCHEMA_VERSION || !parsed.session) return null;
+      if (parsed.v !== SCHEMA_VERSION || !parsed.session) {
+        this.warn?.(`[session] stored session has schema v${String(parsed.v)} — ignored`);
+        return null;
+      }
       const s = parsed.session;
-      if (typeof s.accessToken !== 'string' || s.accessToken.length === 0) return null;
+      if (typeof s.accessToken !== 'string' || s.accessToken.length === 0) {
+        this.warn?.('[session] stored session has no access token — ignored');
+        return null;
+      }
       return {
         accessToken: s.accessToken,
         refreshToken: typeof s.refreshToken === 'string' ? s.refreshToken : null,
@@ -82,7 +90,8 @@ export class SessionStore {
         expiresAt: typeof s.expiresAt === 'number' ? s.expiresAt : null,
         savedAt: typeof s.savedAt === 'number' ? s.savedAt : 0,
       };
-    } catch {
+    } catch (err) {
+      this.warn?.(`[session] stored session unreadable (${(err as Error).message}) — treated as signed out`);
       return null;
     }
   }
