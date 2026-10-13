@@ -317,7 +317,6 @@
     "footer": "Data Uploader v{{version}}"
   },
   "telemetry": {
-    "toggle": "Fehlerberichte senden",
     "hint": "Sendet anonyme Absturzberichte (keine persönlichen Daten), damit Fehler behoben werden können. Jederzeit abschaltbar."
   },
   "catalog": {
@@ -407,7 +406,6 @@
     "upload": "Upload",
     "done": "fertig",
     "error": "fehlgeschlagen",
-    "minimize": "Beim Schließen in den Tray minimieren",
     "minimizeHint": "Das X schließt das Fenster in den Tray, statt das Programm zu beenden."
   },
   "autorun": {

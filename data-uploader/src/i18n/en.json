@@ -317,7 +317,6 @@
     "footer": "Data Uploader v{{version}}"
   },
   "telemetry": {
-    "toggle": "Send error reports",
     "hint": "Sends anonymous crash reports (no personal data) so bugs can be fixed. You can turn this off any time."
   },
   "catalog": {
@@ -407,7 +406,6 @@
     "upload": "Upload",
     "done": "done",
     "error": "failed",
-    "minimize": "Minimise to tray on close",
     "minimizeHint": "The X hides the window to the tray instead of quitting."
   },
   "autorun": {

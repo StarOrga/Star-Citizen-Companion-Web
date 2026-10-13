@@ -22,10 +22,21 @@ Die schwere lokale Arbeit kommt so in drei getrennten Blöcken statt einem lange
 und jedes Thema ist auf der Website, sobald sein Schritt durch ist. Nach einer
 erfolgreichen Extraktion folgt der Upload automatisch (angemeldet vorausgesetzt;
 sonst bietet der Fuß „Anmelden & hochladen“). Pro Lauf gibt es einen Chip:
-⏻ "Wenn fertig": nichts / Programm beenden / PC herunterfahren (pro Lauf, nie
-gespeichert). Wie viel vom PC ein Lauf nehmen darf, regelt das **Performance-Dock**
-am unteren Fensterrand (siehe unten). Die Automatik (neue Patches ohne Zutun
-hochladen) und alles andere Dauerhafte liegt hinter ⚙ (Ctrl+,).
+⏻ "Wenn fertig": Offen lassen / Beenden / PC herunterfahren — die letzte Wahl
+wird gemerkt, „PC herunterfahren“ nie. Wie viel vom PC ein Lauf nehmen darf,
+regelt das **Performance-Dock** am unteren Fensterrand (siehe unten).
+
+Neue Spiel-Patches lädt der Uploader immer selbst hoch, sobald er läuft und
+eine Sitzung besteht — einen Schalter dafür gibt es nicht. Beim Windows-Start
+(`--hidden`) sofort, ist nichts Neues da, beendet er sich gleich wieder (außer
+„bleibt danach offen“); öffnest du ihn selbst, zeigt ein eigenes Banner
+(`#patch-banner`, nicht das Update-Banner) 120 s Countdown mit „Jetzt
+hochladen“ / „Abbrechen“ (gilt bis zum nächsten Start). ⚙ (Ctrl+,) ist ein Satz
+mit drei Lücken: Start (mit Windows — Default bei Neuinstallation / nur, wenn
+du ihn öffnest), Leistung für selbst gestartete Läufe (Start-Preset, Default
+„Ausgewogen“, nie über die Dock-Grenzen gespeichert) und „danach“ (offen /
+beenden / herunterfahren); darunter App-Chips (Sprache, ✕ in den Tray,
+Fehlerberichte, Update-Ring nur Admin).
 Konzept: `docs/concepts/2026-09-20-data-uploader-one-screen.html` (Runden 1–3 + Abschlussbericht).
 Lauffähiger Electron-Shell mit Discovery-Cascade (3-Stufen: RSI-Launcher-Config →
 FS-Scan → Manual), Performance-Dock mit Governor, OAuth-Loopback + Release-Token-Header,
@@ -76,7 +87,8 @@ src/
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
 │   ├── resource-dock.ts   # Performance-Dock: Tachos für CPU / RAM / Disk (Taste T)
 │   ├── when-done-chip.ts  # ⏻ Wenn fertig
-│   ├── settings-dialog.ts # Automatik (neue Patches ohne Zutun) + Allgemein (Tray, Ring, Sprache, Telemetrie)
+│   ├── settings-dialog.ts # ⚙ als Satz (Start · Leistung · danach) + App-Chips (Sprache, Tray, Fehlerberichte, Ring)
+│   ├── patch-countdown.ts # Spiel-Patch-Banner: 120 s bis zum Upload beim selbst Öffnen
 │   ├── connection-popover.ts · log-drawer.ts · keymap.ts
 │   ├── progress.ts        # Progress-Karte (unverändert)
 │   └── styles.css
