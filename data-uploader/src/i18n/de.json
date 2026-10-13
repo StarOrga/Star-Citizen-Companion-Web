@@ -416,6 +416,7 @@
     "read": "Disk lesen",
     "write": "Disk schreiben",
     "iops": "Disk-Zugriffe",
+    "unitIops": "Zugriffe/s",
     "gpu": "Grafikkarte",
     "gpuNote": "Wird nicht genutzt — Extraktion, Silhouetten und 3D-Build rechnen ausschließlich auf dem Prozessor.",
     "of": "Grenze {{limit}}",
@@ -439,7 +440,7 @@
         "nvme": "NVMe-SSD erkannt",
         "ssd": "SATA-SSD erkannt",
         "hdd": "Festplatte (HDD) erkannt — Zugriffe sind hier der Engpass",
-        "unknown": "Laufwerkstyp unbekannt — Skala geschätzt"
+        "unknown": "Laufwerkstyp unbekannt — Skalenende = höchster bisher gemessener Wert ({{peak}})"
       }
     },
     "status": {

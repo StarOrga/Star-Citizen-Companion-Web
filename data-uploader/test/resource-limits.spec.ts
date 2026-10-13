@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  measuredScaleTop,
+  niceCeil,
   CPU_MAX_PCT,
   DISK_CAPS,
   clampLimits,
@@ -91,5 +93,27 @@ describe('resource limits', () => {
 
   it('computes what other programs hold', () => {
     expect(ramOthersMb({ ramUsedMb: 12000, ramAppMb: 400, ramRunMb: 3000 })).toBe(8600);
+  });
+});
+
+describe('measured disk scale (drive type unknown)', () => {
+  it('rounds up to a readable scale top', () => {
+    expect(niceCeil(0)).toBe(1);
+    expect(niceCeil(1)).toBe(1);
+    expect(niceCeil(73)).toBe(100);
+    expect(niceCeil(112.5)).toBe(200);
+    expect(niceCeil(220)).toBe(250);
+    expect(niceCeil(1800)).toBe(2000);
+    expect(niceCeil(3200)).toBe(5000);
+  });
+
+  it('ends at the highest measured load once it outgrows the limit', () => {
+    expect(measuredScaleTop(1850, 75, 5)).toBe(2000);
+  });
+
+  it('keeps room above the limit while nothing was measured yet', () => {
+    // 75 MB/s limit → 112.5 → 200: the handle sits well inside the dial, draggable up.
+    expect(measuredScaleTop(0, 75, 5)).toBe(200);
+    expect(measuredScaleTop(0, 0, 5)).toBe(5);
   });
 });
