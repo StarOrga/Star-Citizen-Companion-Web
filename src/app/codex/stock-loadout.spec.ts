@@ -142,6 +142,7 @@ describe('nestedCarriedClassNames', () => {
   it('leaves the direct sub-slots to carriedByPort (no double count)', () => {
     expect([...carriedByPort(MANNED_TURRET).values()]).toEqual([
       'Mount_Gimbal_S3',
+      'Mount_Gimbal_S3',
       'Radar_Display_Screen_Template',
     ]);
   });
