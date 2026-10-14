@@ -533,6 +533,15 @@
       "fullDesc": "Up to 85–90 % — fastest run, a share always stays free for Windows.",
       "custom": "Custom",
       "customDesc": "You moved a cruise control by hand. Picking a preset resets every limit."
+    },
+    "eta": {
+      "approx": "~{{d}}",
+      "left": "~{{d}} left",
+      "tipIdle": "Estimated length of a whole run: what the last run took on this PC, converted to each level.",
+      "tipLive": "Estimated time left: the running step at its measured pace, the remaining steps as the last run on this PC took them.",
+      "tipLast": "Estimated time left from the last run on this PC — once there is enough progress it is measured live.",
+      "tipStep": "Only the running step: the others never ran to the end on this PC yet.",
+      "tipScale": "Other levels are projected from the number of parallel workers; uploads and the network do not speed up with it."
     }
   },
   "pipeline": {

@@ -34,6 +34,8 @@ import {
   repaintResourceDock,
 } from './resource-dock.js';
 import { whenDoneChipHtml, wireWhenDoneChip, closeWhenDonePopoverIfOpen } from './when-done-chip.js';
+import { beginRunEta, endRunEta, initRunEta, noteRunEta, refreshRunEta } from './run-eta.js';
+import { RUN_STEP_KEYS, type RunStepKey } from '../lib/run-estimate.js';
 import { resetLog, replayLog, appendLog as drawerAppendLog, wireLogDrawer, toggleLogDrawer } from './log-drawer.js';
 import {
   updateCategoryBars,
@@ -342,6 +344,8 @@ async function init(): Promise<void> {
   // governing an auto-run that started before this window existed) and
   // follows every later change.
   await initResourceDock();
+  // The dock's duration figures: the steps a run would walk, and whether one goes.
+  initRunEta(etaPlan, () => extractRunning || uploadRunning);
 
   // Connection chip (top strip) → popover with today's connection-tile content.
   $('#connection-chip')?.addEventListener('click', () => toggleConnectionPopover(paintConnection));
@@ -1251,6 +1255,7 @@ function render(): void {
 
   switch (state.view) {
     case 'discover':
+      endRunEta(false);
       app.innerHTML = InstallStep.renderInstall();
       InstallStep.wireInstall();
       break;
@@ -1261,10 +1266,17 @@ function render(): void {
       wirePipeline(state.view);
       break;
     case 'done':
+      endRunEta(true);
       app.innerHTML = DoneStep.renderDone();
       DoneStep.wireDone();
       break;
   }
+}
+
+/** The steps a run walks for the duration estimate — subthemes already current are left out. */
+function etaPlan(): RunStepKey[] {
+  const skip = new Set<SubthemeKey>(state.subthemePlan?.skip ?? []);
+  return RUN_STEP_KEYS.filter((s) => !(s === 'silhouettes' && skip.has('silhouettes')) && !(s === 'models' && skip.has('hulls')));
 }
 
 /** Overall extract/upload percentage, mirrored for the step-rail's fill segment. */
@@ -1273,6 +1285,7 @@ let lastOverallPct = 0;
 function noteOverallPct(pct: number): void {
   lastOverallPct = pct;
   setStepRailFill(pct);
+  noteRunEta(state.view, pct);
 }
 /** Previous step index — drives the slide direction (forward vs. back). */
 let lastStepIdx = 0;
@@ -1291,6 +1304,7 @@ export async function startRun(plan: RunPlan): Promise<void> {
   else await window.sc.resources.restoreOperator().catch(() => undefined);
   state.runPlan = plan;
   state.whenDone = plan.whenDone;
+  beginRunEta();
   // A fresh run: every row of every step starts open again.
   state.lastResult = null;
   state.extractDone = false;
@@ -1667,6 +1681,7 @@ async function runRealExtract(): Promise<boolean> {
       state.forceAll,
     );
     state.subthemePlan = plan;
+    refreshRunEta();
     if (plan.skip.length) {
       appendLog(t('subthemes.skipping', { list: plan.skip.map(subthemeName).join(', ') }));
     }

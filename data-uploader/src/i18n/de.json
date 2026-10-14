@@ -533,6 +533,15 @@
       "fullDesc": "Bis zu 85–90 % — schnellster Lauf, ein Rest bleibt für Windows immer frei.",
       "custom": "Eigene Werte",
       "customDesc": "Du hast einen Tempomat von Hand verstellt. Eine Voreinstellung wählen setzt alle Grenzen zurück."
+    },
+    "eta": {
+      "approx": "ca. {{d}}",
+      "left": "noch ca. {{d}}",
+      "tipIdle": "Geschätzte Dauer eines ganzen Laufs: so lange brauchte der letzte Lauf auf diesem PC, umgerechnet auf die jeweilige Stufe.",
+      "tipLive": "Geschätzte Restdauer: der laufende Schritt nach seinem gemessenen Tempo, die übrigen Schritte nach dem letzten Lauf auf diesem PC.",
+      "tipLast": "Geschätzte Restdauer nach dem letzten Lauf auf diesem PC — sobald genug Fortschritt da ist, wird live gemessen.",
+      "tipStep": "Nur der laufende Schritt: die übrigen liefen auf diesem PC noch nie ganz durch.",
+      "tipScale": "Andere Stufen sind über die Zahl paralleler Worker hochgerechnet; Upload und Netz werden dadurch nicht schneller."
     }
   },
   "pipeline": {

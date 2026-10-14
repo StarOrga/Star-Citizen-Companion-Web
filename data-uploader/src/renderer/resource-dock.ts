@@ -28,6 +28,11 @@
  * Every metric has a tooltip with live numbers; Ø / max of the last 60 s live
  * only there (a ring buffer per metric, `lib/dock-metrics.ts`).
  *
+ * The tab and every preset pill carry the run's estimated duration ("ca. 25
+ * min", `lib/run-estimate.ts`): the running step's measured pace plus the last
+ * finished run's steps, rescaled to each preset's worker count. Main feeds it
+ * through {@link setRunEstimate}; without an honest figure the spans stay empty.
+ *
  * Main owns the limits (`main/resources.ts`); this module only mirrors them and
  * writes through `window.sc.resources`. Every change reaches the running
  * sidecar's governor at once — nothing waits for the next run except the worker
@@ -37,14 +42,18 @@
 import { getLocale, t } from '../lib/i18n.js';
 import {
   PRESET_IDS,
+  dumpWorkers,
   measuredScaleTop,
+  presetLimits,
   ramOthersMb,
   type PresetId,
   type Range,
   type ResourceKey,
+  type MachineInfo,
   type ResourceLimits,
   type ResourceSample,
 } from '../lib/resource-limits.js';
+import { estimateFor, formatApprox, type RunEstimate } from '../lib/run-estimate.js';
 import type { DriveLoad, DriveSlot, GpuInfo } from '../lib/drive-load.js';
 import {
   History,
@@ -97,6 +106,8 @@ let pending: Partial<ResourceLimits> = {};
 /** Drive layout the markup was built for — a new layout needs a new render. */
 let layoutSig = '';
 const history = new History();
+/** The run's duration estimate under the limits in force, or null (nothing honest to say). */
+let estimate: RunEstimate | null = null;
 
 // Dial geometry (viewBox 0 0 160 100).
 const START = -120;
@@ -550,13 +561,84 @@ function presetsHtml(): string {
   if (!view) return '';
   const pills = PRESET_IDS.map(
     (id) =>
-      `<button type="button" class="res-preset ${view?.preset === id ? 'active' : ''}" data-preset="${id}" aria-pressed="${view?.preset === id}" data-tip="${esc(t(`res.preset.${id}Desc`))}">${t(`res.preset.${id}`)}</button>`,
+      `<button type="button" class="res-preset ${view?.preset === id ? 'active' : ''}" data-preset="${id}" aria-pressed="${view?.preset === id}" data-tip="${esc(presetTip(id))}">${t(`res.preset.${id}`)}<span class="res-preset-eta" data-eta="${id}">${esc(etaText(id))}</span></button>`,
   ).join('');
   const custom =
     view.preset === null
-      ? `<span class="res-preset res-preset--custom active" tabindex="0" data-tip="${esc(t('res.preset.customDesc'))}">${t('res.preset.custom')}</span>`
+      ? `<span class="res-preset res-preset--custom active" tabindex="0" data-tip="${esc(presetTip(null))}">${t('res.preset.custom')}<span class="res-preset-eta" data-eta="custom">${esc(etaText(null))}</span></span>`
       : '';
   return `<div class="res-presets" role="group" aria-label="${t('res.presetsAria')}">${pills}${custom}</div>`;
+}
+
+// ── duration estimate ───────────────────────────────────────────────────────
+
+function machineOf(v: ResourceViewLike): MachineInfo {
+  return { cores: v.machine.cores, totalRamMb: v.machine.totalRamMb, disk: v.machine.disk as MachineInfo['disk'] };
+}
+
+function workersOf(limits: ResourceLimits): number {
+  return view ? dumpWorkers(limits, view.machine.cores) : 1;
+}
+
+/** Workers the record dump gets under the limits in force — the estimate's yardstick. */
+export function dockWorkers(): number | null {
+  return view ? workersOf(view.limits) : null;
+}
+
+/** "ca. 25 min" for a preset (null = the limits in force), or '' without an estimate. */
+function etaText(id: PresetId | null): string {
+  if (!estimate || !view) return '';
+  // The limits in force right now, not the ones the estimate was taken under:
+  // a preset click rescales the figure before the next estimate arrives.
+  const workers = workersOf(id ? presetLimits(id, machineOf(view)) : view.limits);
+  return t('res.eta.approx', { d: formatApprox(estimateFor(estimate, workers)) });
+}
+
+/** What the figure rests on — one tooltip paragraph. */
+function etaTip(): string {
+  if (!estimate) return '';
+  const lines = [
+    estimate.idle ? t('res.eta.tipIdle') : estimate.basis === 'live' ? t('res.eta.tipLive') : t('res.eta.tipLast'),
+  ];
+  if (estimate.scope === 'step') lines.push(t('res.eta.tipStep'));
+  lines.push(t('res.eta.tipScale'));
+  return lines.join(' ');
+}
+
+function presetTip(id: PresetId | null): string {
+  const desc = id ? t(`res.preset.${id}Desc`) : t('res.preset.customDesc');
+  const tip = etaTip();
+  return tip ? `${desc}\n\n${tip}` : desc;
+}
+
+/** The tab's figure: the active preset's, phrased as time left while a run goes. */
+function tabEta(): string {
+  if (!estimate || !view) return '';
+  const d = formatApprox(estimateFor(estimate, workersOf(view.limits)));
+  return estimate.idle ? t('res.eta.approx', { d }) : t('res.eta.left', { d });
+}
+
+/** Rewrite the estimate spans and their tooltips in place — no re-render, focus stays. */
+function paintEta(): void {
+  const root = dock();
+  if (!root) return;
+  const tab = root.querySelector<HTMLElement>('.res-eta');
+  if (tab) tab.textContent = tabEta();
+  const toggle = document.getElementById('res-toggle');
+  if (toggle) toggle.dataset.tip = toggleTip();
+  root.querySelectorAll<HTMLElement>('.res-preset-eta[data-eta]').forEach((el) => {
+    const id = el.dataset.eta === 'custom' ? null : (el.dataset.eta as PresetId);
+    el.textContent = etaText(id);
+    const pill = el.closest<HTMLElement>('.res-preset');
+    if (pill) pill.dataset.tip = presetTip(id);
+  });
+  refreshTooltip();
+}
+
+/** Main's latest estimate (null: none). Repaints only the figures. */
+export function setRunEstimate(next: RunEstimate | null): void {
+  estimate = next;
+  paintEta();
 }
 
 function presetName(): string {
@@ -566,7 +648,9 @@ function presetName(): string {
 function toggleTip(): string {
   const desc = view?.preset ? t(`res.preset.${view.preset}Desc`) : t('res.preset.customDesc');
   const base = t('res.toggleTip', { preset: presetName(), desc });
-  return view && !view.supported ? `${base}\n\n${t('res.unsupported')}` : base;
+  const eta = etaTip();
+  const withEta = eta ? `${base}\n\n${eta}` : base;
+  return view && !view.supported ? `${withEta}\n\n${t('res.unsupported')}` : withEta;
 }
 
 function render(): void {
@@ -589,6 +673,7 @@ function render(): void {
           ${icon('gauge')}
           <span class="res-title">${t('res.title')}</span>
           <span class="res-preset-name">${esc(presetName())}</span>
+          <span class="res-eta">${esc(tabEta())}</span>
           <span class="res-caret" aria-hidden="true">${expanded ? '▾' : '▴'}</span>
         </button>
         ${expanded ? presetsHtml() : ''}
@@ -1150,6 +1235,7 @@ function refresh(): void {
     wirePresets();
     if (hadFocus && focusedId) dock()?.querySelector<HTMLElement>(`[data-preset="${focusedId}"]`)?.focus();
   }
+  paintEta();
   paintLive();
 }
 
