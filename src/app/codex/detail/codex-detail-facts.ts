@@ -11,7 +11,7 @@ import { cleanLocaleValue, formatNumber } from '../codex-format';
 import { fpsArmorWeightKey, fpsWeaponTypeKey } from '../fps-labels';
 import { crossSectionAxes, type computeKpiSheet } from '../codex-loadout-stats';
 import type { ShipFactGroup, ShipFactRow } from '../codex-analysis-panels.component';
-import type { LayoutSection } from '../codex-hardpoint-layout.component';
+import type { LayoutSection, LayoutSlot } from '../codex-hardpoint-layout.component';
 import { resolveCareerLabel } from '../codex-rank';
 import { SHIP_MODULE_SECTION_ORDER, shipModuleGroupLabelKey, shipModuleGroupOf } from '../ship-module-sections';
 import { SummaryOccupant, equippedMass } from '../ship-summary-panels';
@@ -277,6 +277,12 @@ export function buildShipFactGroups(
  * reads "8 Raketen · 2 Werfer" — the stock missiles across every rack, with
  * the rack count as the detail — and falls back to counting the racks alone
  * when the extract names no missile on any of them.
+ *
+ * Remote turrets are counted by what they CARRY (feedback #239): the Nomad's
+ * one "remote turret" is a SureGrip tractor beam, and "1 Ferngesteuerte Türme"
+ * told a pilot nothing. A turret whose mounted item is a tractor beam becomes
+ * its own "1 Traktorstrahl" chip; only real gun turrets stay turrets, and a
+ * single one is named in the singular.
  */
 export function buildStageCounts(
   kind: string | null,
@@ -316,9 +322,49 @@ export function buildStageCounts(
       out.push({ group, count: slots, labelKey: 'codex.detail.stageMissileRacks', detailKey: null, detailCount: 0 });
       continue;
     }
+    if (group === 'remoteTurrets') {
+      const all = blockSections.flatMap((s) => s.slots);
+      const tractors = all.filter(isTractorBeamSlot).length;
+      const turrets = all.length - tractors;
+      if (turrets > 0) {
+        out.push({
+          group,
+          count: turrets,
+          labelKey: turrets === 1 ? 'codex.detail.stageRemoteTurret' : labelKey,
+          detailKey: null,
+          detailCount: 0,
+        });
+      }
+      if (tractors > 0) {
+        out.push({
+          group,
+          count: tractors,
+          labelKey: tractors === 1 ? 'codex.detail.stageTractorBeam' : 'codex.detail.stageTractorBeams',
+          detailKey: null,
+          detailCount: 0,
+        });
+      }
+      continue;
+    }
     out.push({ group, count: slots, labelKey, detailKey: null, detailCount: 0 });
   }
   return out;
+}
+
+const TRACTOR_BEAM = /tractor_?beam/i;
+
+/**
+ * True when a hardpoint's working item is a tractor beam — the turret itself
+ * (`CNOU_Nomad_Remote_Turret`) or what it carries (`GRIN_TractorBeam_S1`,
+ * attach type `TractorBeam`). Read from the class names and the sub-port's
+ * declared types, the only identity a layout slot keeps.
+ */
+export function isTractorBeamSlot(slot: LayoutSlot): boolean {
+  if (TRACTOR_BEAM.test(slot.className ?? '')) return true;
+  const children = slot.children ?? [];
+  const named = children.filter((c) => !!c.className);
+  if (named.length > 0) return named.every((c) => TRACTOR_BEAM.test(c.className ?? ''));
+  return children.length > 0 && children.every((c) => (c.rawTypes ?? []).some((t) => TRACTOR_BEAM.test(t)));
 }
 
 /**
