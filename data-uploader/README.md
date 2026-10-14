@@ -159,6 +159,14 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
   Griff = Grenze (ziehen oder Pfeiltasten), Nadel = aktueller Verbrauch des
   Laufs. Voreinstellungen „Beim Spielen“ / „Ausgewogen“ / „Volle Leistung“
   füllen nur die Regler.
+- **Geschätzte Dauer** (`lib/run-estimate.ts`, `renderer/run-eta.ts`): der
+  Dock-Reiter zeigt „noch ca. 25 min“, jede Voreinstellung ihre eigene Zahl
+  („Ausgewogen ca. 25 min“). Der laufende Schritt zählt nach seinem gemessenen
+  Tempo (Schienen-Prozent über Zeit, ab 30 s und 2 %), davor und für die
+  folgenden Schritte gilt die Dauer des letzten fertigen Laufs auf diesem PC
+  (`localStorage` `sc.runEstimate.steps`). Andere Stufen sind über die Worker-Zahl
+  hochgerechnet (Amdahl, 60 % parallel) — deshalb „ca.“. Ohne ehrliche Grundlage
+  (erster Lauf, noch kaum Fortschritt) steht keine Zahl da.
 - **Upload-Schleifen** (Catalog-Chunks, Livery-PUTs) laufen im Main-Prozess, nicht
   im Sidecar; sie pausieren bei kleiner CPU-Grenze kurz zwischen den Work-Units
   (`pacer()`), nie mitten in einem Request.

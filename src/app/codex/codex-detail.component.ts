@@ -179,7 +179,12 @@ import {
   CodexShipPanelComponent,
   ShipFactGroup,
 } from './codex-analysis-panels.component';
-import { carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
+import {
+  carriedByPort,
+  carriedSlots,
+  nestedCarriedClassNames,
+  stockLoadoutClassNames,
+} from './stock-loadout';
 import {
   CodexHardpointLayoutComponent,
   LayoutChild,
@@ -2921,7 +2926,7 @@ export class CodexDetailComponent implements OnInit {
         count: 1,
         passive: this.passiveByPort(r.section, r.item.port),
       },
-      ...this.carriedOccupants(r.section, r.item.carried),
+      ...this.carriedOccupants(r.section, r.item.carried, r.item.nested),
     ]),
   );
 
@@ -2950,7 +2955,9 @@ export class CodexDetailComponent implements OnInit {
           passive: this.passiveByPort(r.section, r.item.port),
         },
       ];
-      if (draftEntry === undefined) out.push(...this.carriedOccupants(r.section, r.item.carried));
+      if (draftEntry === undefined) {
+        out.push(...this.carriedOccupants(r.section, r.item.carried, r.item.nested));
+      }
       return out;
     }),
   );
@@ -3412,15 +3419,18 @@ export class CodexDetailComponent implements OnInit {
    * summary occupants of the SAME block: a gimbal's gun belongs to the weapons
    * block, a rack's missiles to the missile block. Without this the Damage panel
    * would ignore every gun that is mounted through a gimbal — i.e. most of them.
+   * `nested` adds what sits one level deeper still (a manned turret's gimbal →
+   * its gun, feedback #225): those guns draw weapon power and deal damage too.
    */
   private carriedOccupants(
     section: ShipModuleSection,
     carried: ReadonlyMap<string, string>,
+    nested: readonly string[] = [],
   ): SummaryOccupant[] {
     const payloads = this.loadoutPayloads();
     const ammo = this.ammoPayloads();
     const out: SummaryOccupant[] = [];
-    for (const className of carried.values()) {
+    for (const className of [...carried.values(), ...nested]) {
       const hit = payloads.get(className);
       if (!hit) continue;
       out.push({
@@ -3748,6 +3758,7 @@ export class CodexDetailComponent implements OnInit {
         grade: r?.grade ?? null,
         manufacturerCode: r?.manufacturerCode ?? null,
         carried: carriedByPort(e),
+        nested: nestedCarriedClassNames(e),
       };
     });
   });

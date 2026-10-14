@@ -40,6 +40,31 @@ export function carriedByPort(entry: LoadoutEntry | null | undefined): ReadonlyM
 }
 
 /**
+ * Every class installed BELOW the hardpoint's direct children, one name per
+ * installed item (NOT deduped — two gimbals with one gun each are two guns),
+ * in tree order.
+ *
+ * A manned turret is the case this exists for: the Cutlass Black's turret
+ * holds two gimbals and each gimbal holds a repeater, so the guns sit two
+ * levels below the hull. `carriedByPort` stops at the gimbals (they are the
+ * turret's sub-slots); the aggregates — damage, the energy dock's weapon
+ * demand — still have to count the guns inside them.
+ */
+export function nestedCarriedClassNames(entry: LoadoutEntry | null | undefined): string[] {
+  const out: string[] = [];
+  const walk = (list: readonly LoadoutEntry[] | undefined, depth: number): void => {
+    if (!Array.isArray(list) || depth > MAX_DEPTH) return;
+    for (const e of list) {
+      const className = e?.entityClassName?.trim();
+      if (className) out.push(className);
+      walk(e?.entries, depth + 1);
+    }
+  };
+  for (const child of entry?.entries ?? []) walk(child?.entries, 2);
+  return out;
+}
+
+/**
  * Every class name anywhere in a stock loadout, deduped and in tree order.
  *
  * The page resolves names, sizes and payloads by class name in ONE batched

@@ -4,6 +4,27 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.149.0] - 2026-10-14
+
+### Added
+
+- **Data Uploader 0.56.0: geschätzte Dauer pro Tempo-Stufe.** Die
+  Performance-Leiste zeigt während eines Laufs die Restdauer („noch ca.
+  25 min") und an jeder Tempo-Stufe (Beim Spielen · Ausgewogen · Volle
+  Leistung), wie lange der Lauf damit ungefähr dauern würde. Gemessen wird
+  live am bisherigen Fortschritt; vorher dient die Dauer des letzten Laufs auf
+  diesem PC als Grundlage. Ein Klick auf eine Stufe rechnet sofort neu.
+
+## [0.148.1] - 2026-10-14
+
+### Fixed
+
+- **Energie-Dock zählt Waffen in bemannten Türmen mit.** Geschütze, die in den
+  Gimbals eines bemannten Turms sitzen (zwei Ebenen unter dem Schiff, z. B. bei
+  der Cutlass Black), fehlten bisher im Energiebedarf der Waffen und in der
+  Schadensübersicht. Sie werden jetzt mitgezählt (Cutlass Black: Waffen 2 → 4
+  Segmente); die Modulliste zeigt weiterhin nur die direkten Unterplätze.
+
 ## [0.148.0] - 2026-10-14
 
 ### Added
