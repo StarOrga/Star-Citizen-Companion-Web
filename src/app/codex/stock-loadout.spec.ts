@@ -1,5 +1,11 @@
 import { ItemPort, LoadoutEntry } from './codex.types';
-import { CarriedEntity, carriedByPort, carriedSlots, stockLoadoutClassNames } from './stock-loadout';
+import {
+  CarriedEntity,
+  carriedByPort,
+  carriedSlots,
+  nestedCarriedClassNames,
+  stockLoadoutClassNames,
+} from './stock-loadout';
 
 // The shape the uploader emits for a Nomad gun mount: the gimbal bolts to the
 // hull, the repeater sits in the gimbal's own sub-port.
@@ -102,6 +108,54 @@ describe('stockLoadoutClassNames', () => {
     const cyclic = { itemPortName: 'p', entityClassName: 'A' } as LoadoutEntry;
     cyclic.entries = [cyclic];
     expect(stockLoadoutClassNames([cyclic])).toEqual(['A']);
+  });
+});
+
+describe('nestedCarriedClassNames', () => {
+  // The Cutlass Black's manned turret as the live 4.x extract nests it
+  // (feedback #225): turret → two gimbals → one repeater each, plus screens.
+  const MANNED_TURRET: LoadoutEntry = {
+    itemPortName: 'hardpoint_turret',
+    entityClassName: 'DRAK_Cutlass_SCItem_Turret_Black',
+    entries: [
+      {
+        itemPortName: 'hardpoint_weapon_right',
+        entityClassName: 'Mount_Gimbal_S3',
+        entries: [{ itemPortName: 'hardpoint_class_2', entityClassName: 'KLWE_LaserRepeater_S3' }],
+      },
+      {
+        itemPortName: 'hardpoint_weapon_left',
+        entityClassName: 'Mount_Gimbal_S3',
+        entries: [{ itemPortName: 'hardpoint_class_2', entityClassName: 'KLWE_LaserRepeater_S3' }],
+      },
+      { itemPortName: 'Screen_Radar', entityClassName: 'Radar_Display_Screen_Template' },
+    ],
+  };
+
+  it('returns the guns inside the gimbals of a turret, one per installed gun', () => {
+    expect(nestedCarriedClassNames(MANNED_TURRET)).toEqual([
+      'KLWE_LaserRepeater_S3',
+      'KLWE_LaserRepeater_S3',
+    ]);
+  });
+
+  it('leaves the direct sub-slots to carriedByPort (no double count)', () => {
+    expect([...carriedByPort(MANNED_TURRET).values()]).toEqual([
+      'Mount_Gimbal_S3',
+      'Radar_Display_Screen_Template',
+    ]);
+  });
+
+  it('is empty for a plain gimbal, an empty port and a missing entry', () => {
+    expect(nestedCarriedClassNames(GUN_MOUNT)).toEqual([]);
+    expect(nestedCarriedClassNames({ itemPortName: 'p', entityClassName: null })).toEqual([]);
+    expect(nestedCarriedClassNames(null)).toEqual([]);
+  });
+
+  it('stops on a cyclic payload instead of hanging', () => {
+    const cyclic = { itemPortName: 'p', entityClassName: 'A' } as LoadoutEntry;
+    cyclic.entries = [cyclic];
+    expect(nestedCarriedClassNames(cyclic).length).toBeLessThan(20);
   });
 });
 
