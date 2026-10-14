@@ -4118,6 +4118,12 @@
     "restore": "Restore window size",
     "title": "Feedback"
   },
+  "feedbackSpot": {
+    "headline": "Headline",
+    "titled": "{{label}} “{{text}}”",
+    "insert": "Insert reference: {{line}}",
+    "details": "Details"
+  },
   "releaseNotes": {
     "title": "What's New",
     "subtitle": "News and improvements from every release.",

@@ -67,6 +67,7 @@ import type { SummaryOccupant } from '../ship-summary-panels';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
 import { HoloHotkeyAction, holoHotkeyFor, holoHotkeyLabel, nextHoloView } from './codex-holo-hotkeys';
 import { ShipBlueprintService } from '../ship-blueprint/ship-blueprint.service';
+import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
 
 /** One perspective tile (concept round 10 "Weg B": four tiles). */
 interface PerspectiveTile {
@@ -157,7 +158,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 @Component({
   selector: 'sc-codex-holo-stage',
   standalone: true,
-  imports: [CodexHoloComponentsComponent, 
+  imports: [FeedbackSpotDirective, CodexHoloComponentsComponent, 
     TranslatePipe,
     RouterLink,
     CodexRankCardComponent,
@@ -180,7 +181,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
              [class.left-collapsed]="leftCollapsed()" [class.right-collapsed]="rightCollapsed()" [class.rail-moving]="railMoving()">
 
       <!-- ── Top bar: (empty) | the ship | patch ─────────────────────── -->
-      <div class="holo-topbar">
+      <div class="holo-topbar" [scFeedbackSpot]="'feedbackSpot.headline'">
         <!-- The search that sat here was a general Codex search (it handed its
              term to the landing). The Codex search bar above every Codex page
              is that search now, so the left cell stays empty and keeps the
@@ -226,7 +227,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
       <div class="holo-body" [class.mobile-hide-table]="mobileTabsEnabled() && mobileTab() !== 'table'" [class.mobile-hide-data]="mobileTabsEnabled() && mobileTab() !== 'data'">
         <!-- ── Left panel: Einordnung ─────────────────────────────── -->
-        <aside class="holo-panel holo-left mobile-data" [class.collapsed]="leftCollapsed()">
+        <aside class="holo-panel holo-left mobile-data" [class.collapsed]="leftCollapsed()" [scFeedbackSpot]="'codex.holo.stage.einordnung'">
           <div class="ph">
             <span class="ph-glyph" aria-hidden="true">◈</span>
             <span class="ph-title">{{ 'codex.holo.stage.einordnung' | translate }}</span>
@@ -282,7 +283,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         </aside>
 
         <!-- ── Table: Einsatz header, head row, projection surface ───── -->
-        <section class="holo-panel holo-table mobile-table">
+        <section class="holo-panel holo-table mobile-table" [scFeedbackSpot]="'codex.holo.stage.tabTable'">
           <div class="ph role">
             <div class="rolebar" #rolebar role="radiogroup" [attr.aria-label]="'codex.mission.label' | translate">
               <span class="lab">{{ 'codex.mission.label' | translate }}</span>
@@ -397,7 +398,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
         </section>
 
         <!-- ── Right panel: Inspector + "Zuletzt geändert" ──────────── -->
-        <aside class="holo-panel holo-right mobile-data" [class.collapsed]="rightCollapsed()">
+        <aside class="holo-panel holo-right mobile-data" [class.collapsed]="rightCollapsed()" [scFeedbackSpot]="'codex.holo.stage.inspector'">
           <div class="ph">
             <span class="ph-glyph" aria-hidden="true">ⓘ</span>
             <span class="ph-title">{{ 'codex.holo.stage.inspector' | translate }}</span>
@@ -441,7 +442,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
       <!-- ── Below: calm ports list | four perspectives ─────────────── -->
       <div class="holo-below mobile-data">
-        <section class="below-ports">
+        <section class="below-ports" [scFeedbackSpot]="'codex.detail.columnLoadout'">
           <div class="sh">
             <span class="t">{{ 'codex.holo.stage.allPorts' | translate: { n: pins().length } }}</span>
             <span class="rule"></span>
@@ -461,6 +462,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
 
         <sc-codex-holo-perspectives
           class="below-persp"
+          [scFeedbackSpot]="'codex.holo.stage.perspectives'"
           [tiles]="perspectiveViews()"
           [missionLabelKey]="'codex.mission.' + activeMissionId()"
           [cohortSize]="rankResult()?.cohortSize ?? null"
@@ -494,7 +496,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
       }
 
       <!-- ── Details drawer (everything with no other home) ──────────── -->
-      <section class="holo-details mobile-data">
+      <section class="holo-details mobile-data" [scFeedbackSpot]="'feedbackSpot.details'">
         <div class="sh">
           <button type="button" class="details-toggle" (click)="detailsOpen.set(!detailsOpen())"
                   [attr.aria-expanded]="detailsOpen()">

@@ -39,6 +39,7 @@ import {
 } from './ship-module-sections';
 import { displayItemName, formatNumber } from './codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
 
 /**
  * A sub-slot the installed mount itself exposes: the gun port inside a VariPuck
@@ -303,7 +304,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
 @Component({
   selector: 'sc-codex-hardpoint-layout',
   standalone: true,
-  imports: [TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
+  imports: [FeedbackSpotDirective, TranslatePipe, NgTemplateOutlet, ScTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.calm]': 'calm()' },
   template: `
@@ -316,6 +317,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
                is merged AWAY: each section keeps its own census, notes, split
                toggle and fold preview one level down. -->
           <details class="mod-sec merged" [attr.data-sec]="grp.group"
+                   [scFeedbackSpot]="'codex.detail.columnLoadout'" [scFeedbackSpotSub]="grp.labelKey"
                    [open]="grp.open" (toggle)="onGroupToggle(grp.group, $event)">
             <summary class="sec-head">
               <span class="sec-glyph" aria-hidden="true">◈</span>
@@ -356,6 +358,7 @@ const FOLDABLE_SECTIONS: ReadonlySet<ShipModuleSection> = new Set<ShipModuleSect
         } @else {
           @for (sec of grp.subs; track sec.section) {
             <details class="mod-sec" [attr.data-sec]="sec.section" [class.fixed]="!sec.configurable"
+                     [scFeedbackSpot]="'codex.detail.columnLoadout'" [scFeedbackSpotSub]="'codex.moduleSection.' + sec.section"
                      [open]="sec.open" (toggle)="onToggle(sec.section, $event)">
               <summary class="sec-head">
                 <ng-container *ngTemplateOutlet="secSummary; context: { $implicit: sec }"></ng-container>
