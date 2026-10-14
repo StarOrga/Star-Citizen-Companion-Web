@@ -5,7 +5,11 @@ import {
   asFeedbackArea,
   feedbackAreaLabelKey,
   isFeedbackArea,
+  splitViewMarker,
+  viewForUrl,
+  withViewMarker,
 } from './feedback-area.types';
+import { topicTitle } from '../admin/feedback/feedback.types';
 
 /**
  * The auto-detection is the whole feature (admin feedback 835fec58): if it
@@ -102,3 +106,52 @@ describe('areaRoute (the "▸ Ansehen" deep link)', () => {
     }
   });
 });
+
+describe('Codex view (admin feedback #241)', () => {
+  it('reads the Holotable as the default of a ship page', () => {
+    expect(viewForUrl('/codex/ship/aegs_gladius')).toBe('holo');
+    expect(viewForUrl('/codex/ship/aegs_gladius?view=holo')).toBe('holo');
+    expect(viewForUrl('/codex/ship/aegs_gladius?shared=abc#x')).toBe('holo');
+  });
+
+  it('reads ?view=classic as the classic view', () => {
+    expect(viewForUrl('/codex/ship/aegs_gladius?view=classic')).toBe('classic');
+    expect(viewForUrl('/codex/ship/aegs_gladius?config=1&view=classic')).toBe('classic');
+  });
+
+  it('has no view anywhere but a ship detail page', () => {
+    expect(viewForUrl('/codex')).toBeNull();
+    expect(viewForUrl('/codex/index?kind=ship&view=classic')).toBeNull();
+    expect(viewForUrl('/codex/ship')).toBeNull();
+    expect(viewForUrl('/codex/weapon/klwe_gun?view=classic')).toBeNull();
+    expect(viewForUrl('/hq/hangar')).toBeNull();
+    expect(viewForUrl('')).toBeNull();
+  });
+
+  it('round-trips the view through the body trailer', () => {
+    const stored = withViewMarker('Die Tabelle ist zu eng', 'holo');
+    expect(stored).toBe('Die Tabelle ist zu eng
+
+[sc-view:holo]');
+    expect(splitViewMarker(stored)).toEqual({ body: 'Die Tabelle ist zu eng', view: 'holo' });
+  });
+
+  it('leaves a body without a view untouched', () => {
+    expect(withViewMarker('Text', null)).toBe('Text');
+    expect(withViewMarker('Text', undefined)).toBe('Text');
+    expect(splitViewMarker('Text')).toEqual({ body: 'Text', view: null });
+    expect(splitViewMarker(null)).toEqual({ body: '', view: null });
+  });
+
+  it('ignores an unknown or mid-text marker', () => {
+    expect(splitViewMarker('a
+
+[sc-view:space]').view).toBeNull();
+    expect(splitViewMarker('[sc-view:holo] then more text').view).toBeNull();
+  });
+
+  it('keeps the trailer out of a derived card title', () => {
+    expect(topicTitle(withViewMarker('Holotisch zu dunkel', 'holo'))).toBe('Holotisch zu dunkel');
+  });
+});
+

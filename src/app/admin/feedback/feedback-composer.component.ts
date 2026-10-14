@@ -19,7 +19,6 @@ import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker
 import { CharCounterComponent } from '../../feedback/char-counter.component';
 import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
 import type { FeedbackArea, FeedbackView } from '../../feedback/feedback-area.types';
-import { FeedbackAreaService } from '../../feedback/feedback-area.service';
 import { isImageAttachment } from '../../feedback/feedback-images.util';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -573,7 +572,8 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
   private readonly seeds = inject(FeedbackComposerSeedService);
-  private readonly areas = inject(FeedbackAreaService);
+  /** The chip row, when shown — the source of the Codex view suffix it displays. */
+  private readonly areaPickerRef = viewChild(FeedbackAreaPickerComponent);
 
   /** i18n key for the textarea placeholder / aria-label. */
   readonly placeholder = input('');
@@ -795,6 +795,12 @@ export class FeedbackComposerComponent implements OnDestroy {
 
   // ---- Submit ------------------------------------------------------------
 
+  /** The view the chip row shows right now — `null` off a Codex ship page or under another tag. */
+  private sentView(): FeedbackView | null {
+    const area = this.area();
+    return area ? (this.areaPickerRef()?.viewFor(area) ?? null) : null;
+  }
+
   async submit(): Promise<void> {
     if (!this.canSend()) return;
     const payload: ComposerPayload = {
@@ -805,7 +811,7 @@ export class FeedbackComposerComponent implements OnDestroy {
       area: this.areaPicker() ? this.area() : undefined,
       // Read at send time, like the chip shows it: the view of the screen the
       // sender is on now, and only under the Codex tag it refines.
-      view: this.areaPicker() && this.area() === 'codex' ? this.areas.currentView() : undefined,
+      view: this.areaPicker() ? this.sentView() : undefined,
       // Same rule as `area`: only a composer that actually asks has an opinion.
       complex: this.complexToggle() ? this.complex() : undefined,
     };

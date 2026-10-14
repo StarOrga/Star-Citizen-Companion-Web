@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FeedbackAreaPickerComponent } from './feedback-area-picker.component';
 import { FeedbackAreaService } from './feedback-area.service';
-import { FEEDBACK_AREAS, FeedbackArea } from './feedback-area.types';
+import { FEEDBACK_AREAS, FeedbackArea, FeedbackView } from './feedback-area.types';
 
 /**
  * Stand-in for the router-backed detection. The URL → area mapping itself is
@@ -14,6 +14,7 @@ import { FEEDBACK_AREAS, FeedbackArea } from './feedback-area.types';
 class FakeAreaService {
   readonly current = signal<FeedbackArea>('news');
   readonly options = signal<readonly FeedbackArea[]>(FEEDBACK_AREAS);
+  readonly currentView = signal<FeedbackView | null>(null);
 }
 
 describe('FeedbackAreaPickerComponent', () => {
@@ -119,5 +120,44 @@ describe('FeedbackAreaPickerComponent', () => {
     // A viewer never sees an "Admin" chip: they cannot reach those pages, so it
     // could only ever be a mis-tag.
     expect(chips().length).toBe(FEEDBACK_AREAS.length - 1);
+  });
+
+  describe('Codex view suffix (admin feedback #241)', () => {
+    function activeChip(): HTMLButtonElement {
+      return chips().find((c) => c.classList.contains('active'))!;
+    }
+
+    it('names the view on the active Codex chip and reports it', async () => {
+      await setup();
+      areas.current.set('codex');
+      areas.currentView.set('holo');
+      fixture.detectChanges();
+      // Untranslated keys are what the test translator renders.
+      expect(activeChip().textContent).toContain('codex.holo.toggle.holo');
+      expect(cmp.viewFor('codex')).toBe('holo');
+
+      // Flipping the ship page's toggle while the box is open follows along.
+      areas.currentView.set('classic');
+      fixture.detectChanges();
+      expect(activeChip().textContent).toContain('codex.holo.toggle.classic');
+      expect(cmp.viewFor('codex')).toBe('classic');
+    });
+
+    it('shows no view on a Codex page without one, or under another tag', async () => {
+      await setup();
+      areas.current.set('codex');
+      fixture.detectChanges();
+      expect(activeChip().textContent).not.toContain('codex.holo.toggle');
+      expect(cmp.viewFor('codex')).toBeNull();
+
+      // On the Holotable, but the sender re-tagged the topic as Hangar: the
+      // view belongs to Codex and must not ride along.
+      areas.currentView.set('holo');
+      cmp.pick('hangar');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('codex.holo.toggle');
+      expect(cmp.viewFor('hangar')).toBeNull();
+      expect(cmp.viewFor('codex')).toBeNull();
+    });
   });
 });
