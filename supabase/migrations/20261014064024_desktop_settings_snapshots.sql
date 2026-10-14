@@ -36,11 +36,8 @@ create table if not exists public.desktop_settings_snapshots (
   constraint desktop_settings_snapshots_user_day_key unique (user_id, snapshot_date)
 );
 
-create index if not exists desktop_settings_snapshots_user_date_idx
-  on public.desktop_settings_snapshots (user_id, snapshot_date desc);
-
 -- ============================================================
--- Guards: no far-future dates (would pin a row past retention), updated_at,
+-- Guards: server-assigned snapshot_date, updated_at,
 -- user_id immutable.
 -- ============================================================
 create or replace function public.desktop_settings_snapshots_guard()
@@ -49,8 +46,14 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if new.snapshot_date > (now() at time zone 'utc')::date + 1 then
-    raise exception 'snapshot_date must not be in the future';
+  -- The server owns the day: a client clock that runs behind would otherwise
+  -- write a row older than the newest 3, which the retention trigger deletes
+  -- in the same statement while PostgREST still reports success. The unique
+  -- (user_id, snapshot_date) conflict check sees this BEFORE-trigger value.
+  if tg_op = 'INSERT' then
+    new.snapshot_date := (now() at time zone 'utc')::date;
+  else
+    new.snapshot_date := old.snapshot_date;
   end if;
   if tg_op = 'UPDATE' and new.user_id is distinct from old.user_id then
     raise exception 'user_id is immutable';
@@ -104,6 +107,17 @@ revoke execute on function public.desktop_settings_snapshots_retention() from pu
 alter table public.desktop_settings_snapshots enable row level security;
 revoke all on public.desktop_settings_snapshots from anon;
 grant select, insert, update, delete on public.desktop_settings_snapshots to authenticated;
+-- Default privileges gave authenticated TRUNCATE/REFERENCES/TRIGGER; TRUNCATE bypasses RLS.
+revoke truncate, references, trigger on table public.desktop_settings_snapshots from authenticated;
+
+-- Unapproved or suspended accounts store nothing (same class as the p4k-uploads
+-- gate in 20260805120000_email_allowlist.sql). /desktop/connect already requires
+-- an approved account; this closes the direct-PostgREST path.
+drop policy if exists desktop_settings_snapshots_approved_gate on public.desktop_settings_snapshots;
+create policy desktop_settings_snapshots_approved_gate on public.desktop_settings_snapshots
+  as restrictive for all to authenticated
+  using (public.is_approved())
+  with check (public.is_approved());
 
 drop policy if exists desktop_settings_snapshots_select on public.desktop_settings_snapshots;
 create policy desktop_settings_snapshots_select on public.desktop_settings_snapshots
