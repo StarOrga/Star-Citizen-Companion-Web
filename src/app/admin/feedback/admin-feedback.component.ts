@@ -86,9 +86,13 @@ import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import {
   FEEDBACK_AREAS,
   FeedbackArea,
+  FeedbackView,
   areaRoute,
   asFeedbackArea,
   feedbackAreaLabelKey,
+  feedbackViewLabelKey,
+  splitViewMarker,
+  withViewMarker,
 } from '../../feedback/feedback-area.types';
 import { isPlainLeftClick } from '../../core/modified-click.util';
 import { PanelNavigationService } from '../../feedback/panel-navigation.service';
@@ -560,7 +564,7 @@ type AvatarTone = 'adm' | 'col' | 'usr';
                   }
                 </span>
                 @if (areaOf(m); as a) {
-                  <span class="chip area">{{ areaLabelKey(a) | translate }}</span>
+                  <span class="chip area">{{ areaLabelKey(a) | translate }}@if (viewOf(m); as v) { · {{ viewLabelKey(v) | translate }}}</span>
                 }
                 <!-- The writer's own "this one is bigger" mark (feedback
                      423e5130) — shown back on the card so the tick is visible
@@ -804,10 +808,11 @@ type AvatarTone = 'adm' | 'col' | 'usr';
             }
 
             <!-- The poster's first message — the topic itself. -->
-            @let body = render(m.body);
-            <div class="msg first" [class.clamped]="isLong(m.id, m.body)">
+            @let topicText = bodyText(m);
+            @let body = render(topicText);
+            <div class="msg first" [class.clamped]="isLong(m.id, topicText)">
               <div class="msg-body" [innerHTML]="body.html"></div>
-              <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: m.id, body: m.body }"></ng-container>
+              <ng-container [ngTemplateOutlet]="readMore" [ngTemplateOutletContext]="{ $implicit: m.id, body: topicText }"></ng-container>
               <sc-feedback-attachments class="sent" [images]="body.images" />
             </div>
 
@@ -2151,6 +2156,24 @@ export class AdminFeedbackComponent implements OnInit {
     return asFeedbackArea(m.area);
   }
 
+  /**
+   * The view the topic was written from (admin feedback #241) — only shown
+   * under the Codex tag it refines, so a re-tagged topic does not claim a
+   * Holotisch in, say, the settings.
+   */
+  viewOf(m: FeedbackRow): FeedbackView | null {
+    return asFeedbackArea(m.area) === 'codex' ? splitViewMarker(m.body).view : null;
+  }
+
+  viewLabelKey(view: FeedbackView): string {
+    return feedbackViewLabelKey(view);
+  }
+
+  /** The topic body as written — without the `[sc-view:…]` trailer. */
+  bodyText(m: FeedbackRow): string {
+    return splitViewMarker(m.body).body;
+  }
+
   areaLabelKey(area: FeedbackArea): string {
     return feedbackAreaLabelKey(area);
   }
@@ -2411,7 +2434,10 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     let body: string;
     try {
-      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+      body = withViewMarker(
+        this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images)),
+        payload.view,
+      );
     } catch (err) {
       logWarn('admin-feedback', 'image upload failed', err);
       this.errorMsg.set('adminFeedback.compose.uploadError');
@@ -2447,7 +2473,10 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     let body: string;
     try {
-      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+      body = withViewMarker(
+        this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images)),
+        payload.view,
+      );
     } catch (err) {
       logWarn('admin-feedback', 'image upload failed', err);
       this.errorMsg.set('adminFeedback.compose.uploadError');
@@ -2677,7 +2706,10 @@ export class AdminFeedbackComponent implements OnInit {
     this.errorMsg.set(null);
     let body: string;
     try {
-      body = this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images));
+      body = withViewMarker(
+        this.buildBody(payload.text, payload.images, await this.uploadImages(payload.images)),
+        payload.view,
+      );
     } catch (err) {
       logWarn('admin-feedback', 'image upload failed', err);
       this.errorMsg.set('adminFeedback.compose.uploadError');

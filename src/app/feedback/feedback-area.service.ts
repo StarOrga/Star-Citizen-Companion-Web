@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { RoleService } from '../auth/role.service';
-import { FEEDBACK_AREAS, FeedbackArea, areaForUrl } from './feedback-area.types';
+import { FEEDBACK_AREAS, FeedbackArea, FeedbackView, areaForUrl, viewForUrl } from './feedback-area.types';
 
 /**
  * Where the user currently is, expressed as a feedback area (admin feedback
@@ -26,6 +26,16 @@ export class FeedbackAreaService {
   /** The area of the page on screen right now. */
   readonly current = this._current.asReadonly();
 
+  private readonly _currentView = signal<FeedbackView | null>(viewForUrl(this.router.url));
+
+  /**
+   * The view inside that area — Holotisch or classic on a Codex ship page,
+   * `null` everywhere else (admin feedback #241). Follows the router for the
+   * same reason as `current`; the toggle on the ship page rewrites `?view=`
+   * with a navigation, so flipping it while the composer is open updates this.
+   */
+  readonly currentView = this._currentView.asReadonly();
+
   /**
    * The chips a given user may choose from. `admin` is dropped for everyone who
    * is not one: a viewer can neither reach those pages nor have feedback about
@@ -42,6 +52,9 @@ export class FeedbackAreaService {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe((e) => this._current.set(areaForUrl(e.urlAfterRedirects)));
+      .subscribe((e) => {
+        this._current.set(areaForUrl(e.urlAfterRedirects));
+        this._currentView.set(viewForUrl(e.urlAfterRedirects));
+      });
   }
 }

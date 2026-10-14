@@ -18,7 +18,8 @@ import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-se
 import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
 import { CharCounterComponent } from '../../feedback/char-counter.component';
 import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
-import type { FeedbackArea } from '../../feedback/feedback-area.types';
+import type { FeedbackArea, FeedbackView } from '../../feedback/feedback-area.types';
+import { FeedbackAreaService } from '../../feedback/feedback-area.service';
 import { isImageAttachment } from '../../feedback/feedback-images.util';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -71,6 +72,13 @@ export interface ComposerPayload {
    * not "Sonstiges", it is untagged.
    */
   area?: FeedbackArea | null;
+  /**
+   * The view inside the area the topic was written from — Holotisch or classic
+   * on a Codex ship page (admin feedback #241). Set only when the tag is
+   * `codex` and the page has a view; the handler appends it to the body with
+   * `withViewMarker`, because the table has no column for it.
+   */
+  view?: FeedbackView | null;
   /**
    * The "work this one at a raised reasoning level" opt-in (admin feedback
    * 423e5130). Only a composer that shows the checkbox (`complexToggle`) sets
@@ -565,6 +573,7 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
   private readonly seeds = inject(FeedbackComposerSeedService);
+  private readonly areas = inject(FeedbackAreaService);
 
   /** i18n key for the textarea placeholder / aria-label. */
   readonly placeholder = input('');
@@ -794,6 +803,9 @@ export class FeedbackComposerComponent implements OnDestroy {
       // Undefined (not null) where no picker is shown, so a reply handler can
       // tell "this composer has no opinion" from "explicitly untagged".
       area: this.areaPicker() ? this.area() : undefined,
+      // Read at send time, like the chip shows it: the view of the screen the
+      // sender is on now, and only under the Codex tag it refines.
+      view: this.areaPicker() && this.area() === 'codex' ? this.areas.currentView() : undefined,
       // Same rule as `area`: only a composer that actually asks has an opinion.
       complex: this.complexToggle() ? this.complex() : undefined,
     };
