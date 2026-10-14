@@ -145,10 +145,18 @@ sessions" now stands at 1 day (set through the app's settings tool, so it is
 already active — no restart needed); the app archives every routine tick a
 day after its last activity without a card, and the operator's own sessions
 too (only hidden, unarchivable at any time; running, pinned, on-screen and
-dirty-worktree sessions are held back). The `routine-janitor` task is
-**disabled, not deleted**: prompt, repo copy and `scripts/routine-janitor-scan.mjs`
-stay, `verify:routine-prompts` keeps checking the copy, and the Routines pane
-re-enables it in one click should the setting ever go back to Never. Deleting
+dirty-worktree sessions are held back). The `routine-janitor` task was
+disabled on 2026-09-20 and **deleted on 2026-10-14** (operator decision, after
+re-enabling every routine had switched it back on): the repo copy
+(`docs/routine/tasks/routine-janitor/`) and `scripts/routine-janitor-scan.mjs`
+stay, so it can be created again from RESTORE.md should the setting ever go
+back to Never; `verify:routine-prompts` only warns while it is unregistered.
+
+A red admin-panel dot with an old `routine_heartbeat.last_seen_at` usually
+means the feedback tasks are disabled, not broken: check `lastRunAt` in
+`list_scheduled_tasks` and grep `Disabled scheduled task` in the Desktop
+scheduler log `%LOCALAPPDATA%\Claude\Logs\main.log` (2026-09-25 → 2026-10-14
+they were off; after re-enabling, the panel turns green with the first tick). Deleting
 idle ticks (they still show in the "Ausführungen" pane) stays a manual
 `/routine-janitor` from an interactive session.
 
