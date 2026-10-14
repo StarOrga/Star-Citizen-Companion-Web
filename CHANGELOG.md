@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.148.0] - 2026-10-14
+
+### Added
+
+- **Sicherung der Desktop-App-Einstellungen in deinem SCC-Web-Konto.** Die
+  Desktop-App kann ihre Einstellungen und Tastenbelegungen jetzt direkt in
+  SCC-Web sichern und von dort wiederherstellen – statt wie bisher über
+  Google Drive. Pro Tag gibt es eine Sicherung, die letzten drei bleiben
+  erhalten. Nur du selbst kannst deine Sicherungen sehen; API-Schlüssel und
+  Tokens werden vor dem Hochladen entfernt.
+
 ## [0.147.1] - 2026-10-14
 
 ### Fixed

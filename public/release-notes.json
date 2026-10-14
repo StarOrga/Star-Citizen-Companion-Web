@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.147.1",
+  "current": "0.148.0",
   "releases": [
+    {
+      "version": "0.148.0",
+      "date": "2026-10-14",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Sicherung der Desktop-App-Einstellungen in deinem SCC-Web-Konto.",
+              "text": "Die Desktop-App kann ihre Einstellungen und Tastenbelegungen jetzt direkt in SCC-Web sichern und von dort wiederherstellen – statt wie bisher über Google Drive. Pro Tag gibt es eine Sicherung, die letzten drei bleiben erhalten. Nur du selbst kannst deine Sicherungen sehen; API-Schlüssel und Tokens werden vor dem Hochladen entfernt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.147.1",
       "date": "2026-10-14",
