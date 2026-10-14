@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.148.1] - 2026-10-14
+
+### Fixed
+
+- **Energie-Dock zählt Waffen in bemannten Türmen mit.** Geschütze, die in den
+  Gimbals eines bemannten Turms sitzen (zwei Ebenen unter dem Schiff, z. B. bei
+  der Cutlass Black), fehlten bisher im Energiebedarf der Waffen und in der
+  Schadensübersicht. Sie werden jetzt mitgezählt (Cutlass Black: Waffen 2 → 4
+  Segmente); die Modulliste zeigt weiterhin nur die direkten Unterplätze.
+
 ## [0.148.0] - 2026-10-14
 
 ### Added
