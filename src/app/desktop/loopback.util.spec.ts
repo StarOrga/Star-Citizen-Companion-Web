@@ -1,4 +1,4 @@
-import { isLoopbackCallback } from './loopback.util';
+import { isLoopbackCallback, sendOriginOnLoopbackPost } from './loopback.util';
 
 describe('isLoopbackCallback', () => {
   it('accepts an OS-assigned ephemeral port (the real-world case the app uses)', () => {
@@ -42,5 +42,14 @@ describe('isLoopbackCallback', () => {
     expect(isLoopbackCallback('')).toBe(false);
     expect(isLoopbackCallback('not a url')).toBe(false);
     expect(isLoopbackCallback('127.0.0.1:51234')).toBe(false); // no scheme → parsed oddly
+  });
+});
+
+describe('sendOriginOnLoopbackPost', () => {
+  it('switches the document to referrer policy "origin" so the https→http POST keeps its Origin', () => {
+    const doc = document.implementation.createHTMLDocument('handoff');
+    sendOriginOnLoopbackPost(doc);
+    const meta = doc.head.querySelector('meta[name="referrer"]');
+    expect(meta?.getAttribute('content')).toBe('origin');
   });
 });

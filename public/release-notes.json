@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.147.0",
+  "current": "0.147.1",
   "releases": [
+    {
+      "version": "0.147.1",
+      "date": "2026-10-14",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Anmeldung der Desktop-App über SCC-Web endet nicht mehr auf „Forbidden“.",
+              "text": "Nach dem Login unter /desktop/connect (und /uploader/auth) schickte der Browser bei der Übergabe an die App Origin: null, und die App lehnte die Anmeldung ab. Die Übergabe sendet jetzt den echten Ursprung der Seite (nur die Domain, ohne Pfad), sodass die Anmeldung in der App ankommt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.147.0",
       "date": "2026-10-14",
