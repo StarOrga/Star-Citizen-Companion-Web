@@ -1308,3 +1308,37 @@ describe('AdminFeedbackComponent — change-only polling (plan D14)', () => {
     expect(cmp.busy()).toBeFalse();
   });
 });
+
+describe('AdminFeedbackComponent — the Codex view travels with a topic (admin feedback #241)', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('stores the view as a body trailer and shows it on the area chip, not in the text', async () => {
+    const { fixture, cmp, el, sb } = await mount({
+      admin_feedback: [
+        row('v1', 'open', T('10'), { area: 'codex', body: 'Holotisch zu dunkel\n\n[sc-view:holo]' }),
+        row('v2', 'open', T('09'), { area: 'settings', body: 'Umgetaggt\n\n[sc-view:classic]' }),
+      ],
+      admin_feedback_messages: [],
+      feedback_author_messages: [],
+    });
+
+    const card = el.querySelector('#fb-card-v1')!;
+    expect(card.querySelector('.chip.area')!.textContent).toContain('codex.holo.toggle.holo');
+    expect(card.textContent).not.toContain('[sc-view');
+    // The view refines Codex only — a topic re-tagged elsewhere claims no view.
+    expect(el.querySelector('#fb-card-v2 .chip.area')!.textContent).not.toContain('codex.holo.toggle');
+
+    cmp.openTopic('v1');
+    fixture.detectChanges();
+    const sheetBody = el.querySelector('.sheet.topic .msg.first')!;
+    expect(sheetBody.textContent).toContain('Holotisch zu dunkel');
+    expect(sheetBody.textContent).not.toContain('[sc-view');
+
+    const ok = await cmp.createTopic({ text: 'Neue Frage', images: [], area: 'codex', view: 'classic' });
+    expect(ok).toBeTrue();
+    const created = sb.inserts.filter((i) => i.table === 'admin_feedback');
+    expect(created.at(-1)?.row).toEqual(
+      jasmine.objectContaining({ body: 'Neue Frage\n\n[sc-view:classic]', area: 'codex' }),
+    );
+  });
+});

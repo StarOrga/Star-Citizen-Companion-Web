@@ -121,3 +121,72 @@ export function areaRoute(area: FeedbackArea | null | undefined): string | null 
       return null;
   }
 }
+
+/**
+ * The VIEW inside an area the sender was looking at (admin feedback #241):
+ * *"hinter Codex ob Klassisch oder Holotisch"* — on a Codex ship page the same
+ * area has two very different screens, and "Codex" alone left the reader
+ * guessing which one a topic is about.
+ *
+ * Only the ship detail page has views today. The value is a refinement of the
+ * `codex` area, never an area of its own — the `admin_feedback.area` CHECK
+ * vocabulary stays untouched.
+ */
+export const FEEDBACK_AREA_VIEWS = ['holo', 'classic'] as const;
+
+export type FeedbackAreaView = (typeof FEEDBACK_AREA_VIEWS)[number];
+
+/**
+ * i18n key of a view's label. Reuses the codex toggle's own words, so the chip
+ * names the view exactly as the button the sender just pressed does.
+ */
+export function feedbackViewLabelKey(view: FeedbackAreaView): string {
+  return `codex.holo.toggle.${view}`;
+}
+
+export function isFeedbackAreaView(value: unknown): value is FeedbackAreaView {
+  return typeof value === 'string' && (FEEDBACK_AREA_VIEWS as readonly string[]).includes(value);
+}
+
+/**
+ * The view a URL shows, or `null` where the page has none.
+ *
+ * Read from the URL rather than from the detail component, because the URL
+ * already is the source of truth for it: `CodexDetailComponent` mirrors the
+ * classic choice into `?view=classic` (also when it comes from the stored
+ * preference) and drops the parameter for the default Holotable. So a ship page
+ * without `view=classic` IS the Holotable.
+ */
+export function viewForUrl(url: string): FeedbackAreaView | null {
+  const [pathAndQuery] = (url ?? '').split('#');
+  const [rawPath, query = ''] = pathAndQuery.split('?');
+  const segments = rawPath.replace(/^\/+/, '').toLowerCase().split('/');
+  if (segments[0] !== 'codex' || segments[1] !== 'ship' || !segments[2]) return null;
+  const view = new URLSearchParams(query).get('view');
+  return view === 'classic' ? 'classic' : 'holo';
+}
+
+/**
+ * How a view travels with a topic. `admin_feedback` has no free context
+ * column, and the area CHECK must stay a closed vocabulary, so the view rides
+ * as one machine-readable trailer line at the END of the body. The end, not
+ * the start: the card title is the body's first line, and the routine reads
+ * the body as plain text, where `[sc-view:holo]` is self-explanatory.
+ * Read surfaces strip it again with {@link splitViewMarker} and show the view
+ * on the area chip instead.
+ */
+const VIEW_MARKER_RE = /\s*\[sc-view:([a-z]+)\]\s*$/;
+
+/** Append the view trailer to a body; the body unchanged when there is no view. */
+export function withViewMarker(body: string, view: FeedbackAreaView | null | undefined): string {
+  if (!body || !view) return body;
+  return `${body.trimEnd()}\n\n[sc-view:${view}]`;
+}
+
+/** Split a stored body into the text to render and the view it was sent from. */
+export function splitViewMarker(body: string | null | undefined): { body: string; view: FeedbackAreaView | null } {
+  const text = body ?? '';
+  const m = VIEW_MARKER_RE.exec(text);
+  if (!m || !isFeedbackAreaView(m[1])) return { body: text, view: null };
+  return { body: text.slice(0, m.index), view: m[1] };
+}
