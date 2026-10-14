@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { FeedbackAreaService } from './feedback-area.service';
-import { FeedbackArea, FeedbackView, feedbackAreaLabelKey, feedbackViewLabelKey } from './feedback-area.types';
+import { FeedbackArea, FeedbackAreaView, feedbackAreaLabelKey, feedbackViewLabelKey } from './feedback-area.types';
 
 /**
  * The "what is this about?" chip row above a new-topic composer (admin feedback
@@ -140,12 +140,12 @@ export class FeedbackAreaPickerComponent {
    * understood, not just the section. Only on the active chip and only while
    * the page actually has a view; it is what `ComposerPayload.view` carries.
    */
-  viewFor(area: FeedbackArea): FeedbackView | null {
+  viewFor(area: FeedbackArea): FeedbackAreaView | null {
     if (area !== 'codex' || this.area() !== area) return null;
     return this.areas.currentView();
   }
 
-  viewLabelKey(view: FeedbackView): string {
+  viewLabelKey(view: FeedbackAreaView): string {
     return feedbackViewLabelKey(view);
   }
 

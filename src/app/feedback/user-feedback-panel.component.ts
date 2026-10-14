@@ -28,7 +28,7 @@ import { AuthorFeedbackRow } from './user-feedback.types';
 import { RouterLink } from '@angular/router';
 import {
   FeedbackArea,
-  FeedbackView,
+  FeedbackAreaView,
   areaRoute,
   asFeedbackArea,
   feedbackAreaLabelKey,
@@ -583,11 +583,11 @@ export class UserFeedbackPanelComponent implements OnInit {
   }
 
   /** The Codex view the topic was sent from (admin feedback #241), under the Codex tag only. */
-  viewOf(t: AuthorFeedbackRow): FeedbackView | null {
+  viewOf(t: AuthorFeedbackRow): FeedbackAreaView | null {
     return asFeedbackArea(t.area) === 'codex' ? splitViewMarker(t.body).view : null;
   }
 
-  viewLabelKey(view: FeedbackView): string {
+  viewLabelKey(view: FeedbackAreaView): string {
     return feedbackViewLabelKey(view);
   }
 

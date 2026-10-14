@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { provideTranslateService } from '@ngx-translate/core';
 import { FeedbackAreaPickerComponent } from './feedback-area-picker.component';
 import { FeedbackAreaService } from './feedback-area.service';
-import { FEEDBACK_AREAS, FeedbackArea, FeedbackView } from './feedback-area.types';
+import { FEEDBACK_AREAS, FeedbackArea, FeedbackAreaView } from './feedback-area.types';
 
 /**
  * Stand-in for the router-backed detection. The URL → area mapping itself is
@@ -14,7 +14,7 @@ import { FEEDBACK_AREAS, FeedbackArea, FeedbackView } from './feedback-area.type
 class FakeAreaService {
   readonly current = signal<FeedbackArea>('news');
   readonly options = signal<readonly FeedbackArea[]>(FEEDBACK_AREAS);
-  readonly currentView = signal<FeedbackView | null>(null);
+  readonly currentView = signal<FeedbackAreaView | null>(null);
 }
 
 describe('FeedbackAreaPickerComponent', () => {

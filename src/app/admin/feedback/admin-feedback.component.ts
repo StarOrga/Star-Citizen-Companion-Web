@@ -86,7 +86,7 @@ import { draftScopes, memoScope } from '../../feedback/feedback-draft.types';
 import {
   FEEDBACK_AREAS,
   FeedbackArea,
-  FeedbackView,
+  FeedbackAreaView,
   areaRoute,
   asFeedbackArea,
   feedbackAreaLabelKey,
@@ -2161,11 +2161,11 @@ export class AdminFeedbackComponent implements OnInit {
    * under the Codex tag it refines, so a re-tagged topic does not claim a
    * Holotisch in, say, the settings.
    */
-  viewOf(m: FeedbackRow): FeedbackView | null {
+  viewOf(m: FeedbackRow): FeedbackAreaView | null {
     return asFeedbackArea(m.area) === 'codex' ? splitViewMarker(m.body).view : null;
   }
 
-  viewLabelKey(view: FeedbackView): string {
+  viewLabelKey(view: FeedbackAreaView): string {
     return feedbackViewLabelKey(view);
   }
 

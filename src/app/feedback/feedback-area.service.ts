@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { RoleService } from '../auth/role.service';
-import { FEEDBACK_AREAS, FeedbackArea, FeedbackView, areaForUrl, viewForUrl } from './feedback-area.types';
+import { FEEDBACK_AREAS, FeedbackArea, FeedbackAreaView, areaForUrl, viewForUrl } from './feedback-area.types';
 
 /**
  * Where the user currently is, expressed as a feedback area (admin feedback
@@ -26,7 +26,7 @@ export class FeedbackAreaService {
   /** The area of the page on screen right now. */
   readonly current = this._current.asReadonly();
 
-  private readonly _currentView = signal<FeedbackView | null>(viewForUrl(this.router.url));
+  private readonly _currentView = signal<FeedbackAreaView | null>(viewForUrl(this.router.url));
 
   /**
    * The view inside that area — Holotisch or classic on a Codex ship page,

@@ -18,7 +18,7 @@ import { FeedbackComposerSeedService } from '../../feedback/feedback-composer-se
 import { FeedbackAreaPickerComponent } from '../../feedback/feedback-area-picker.component';
 import { CharCounterComponent } from '../../feedback/char-counter.component';
 import { FEEDBACK_MAX_CHARS, clampFeedbackText } from '../../feedback/feedback-limits';
-import type { FeedbackArea, FeedbackView } from '../../feedback/feedback-area.types';
+import type { FeedbackArea, FeedbackAreaView } from '../../feedback/feedback-area.types';
 import { isImageAttachment } from '../../feedback/feedback-images.util';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
@@ -77,7 +77,7 @@ export interface ComposerPayload {
    * `codex` and the page has a view; the handler appends it to the body with
    * `withViewMarker`, because the table has no column for it.
    */
-  view?: FeedbackView | null;
+  view?: FeedbackAreaView | null;
   /**
    * The "work this one at a raised reasoning level" opt-in (admin feedback
    * 423e5130). Only a composer that shows the checkbox (`complexToggle`) sets
@@ -796,7 +796,7 @@ export class FeedbackComposerComponent implements OnDestroy {
   // ---- Submit ------------------------------------------------------------
 
   /** The view the chip row shows right now — `null` off a Codex ship page or under another tag. */
-  private sentView(): FeedbackView | null {
+  private sentView(): FeedbackAreaView | null {
     const area = this.area();
     return area ? (this.areaPickerRef()?.viewFor(area) ?? null) : null;
   }

@@ -130,9 +130,7 @@ describe('Codex view (admin feedback #241)', () => {
 
   it('round-trips the view through the body trailer', () => {
     const stored = withViewMarker('Die Tabelle ist zu eng', 'holo');
-    expect(stored).toBe('Die Tabelle ist zu eng
-
-[sc-view:holo]');
+    expect(stored).toBe('Die Tabelle ist zu eng\n\n[sc-view:holo]');
     expect(splitViewMarker(stored)).toEqual({ body: 'Die Tabelle ist zu eng', view: 'holo' });
   });
 
@@ -144,9 +142,7 @@ describe('Codex view (admin feedback #241)', () => {
   });
 
   it('ignores an unknown or mid-text marker', () => {
-    expect(splitViewMarker('a
-
-[sc-view:space]').view).toBeNull();
+    expect(splitViewMarker('a\n\n[sc-view:space]').view).toBeNull();
     expect(splitViewMarker('[sc-view:holo] then more text').view).toBeNull();
   });
 

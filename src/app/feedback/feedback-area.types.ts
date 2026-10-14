@@ -132,20 +132,20 @@ export function areaRoute(area: FeedbackArea | null | undefined): string | null 
  * `codex` area, never an area of its own — the `admin_feedback.area` CHECK
  * vocabulary stays untouched.
  */
-export const FEEDBACK_VIEWS = ['holo', 'classic'] as const;
+export const FEEDBACK_AREA_VIEWS = ['holo', 'classic'] as const;
 
-export type FeedbackView = (typeof FEEDBACK_VIEWS)[number];
+export type FeedbackAreaView = (typeof FEEDBACK_AREA_VIEWS)[number];
 
 /**
  * i18n key of a view's label. Reuses the codex toggle's own words, so the chip
  * names the view exactly as the button the sender just pressed does.
  */
-export function feedbackViewLabelKey(view: FeedbackView): string {
+export function feedbackViewLabelKey(view: FeedbackAreaView): string {
   return `codex.holo.toggle.${view}`;
 }
 
-export function isFeedbackView(value: unknown): value is FeedbackView {
-  return typeof value === 'string' && (FEEDBACK_VIEWS as readonly string[]).includes(value);
+export function isFeedbackAreaView(value: unknown): value is FeedbackAreaView {
+  return typeof value === 'string' && (FEEDBACK_AREA_VIEWS as readonly string[]).includes(value);
 }
 
 /**
@@ -157,7 +157,7 @@ export function isFeedbackView(value: unknown): value is FeedbackView {
  * preference) and drops the parameter for the default Holotable. So a ship page
  * without `view=classic` IS the Holotable.
  */
-export function viewForUrl(url: string): FeedbackView | null {
+export function viewForUrl(url: string): FeedbackAreaView | null {
   const [pathAndQuery] = (url ?? '').split('#');
   const [rawPath, query = ''] = pathAndQuery.split('?');
   const segments = rawPath.replace(/^\/+/, '').toLowerCase().split('/');
@@ -178,15 +178,15 @@ export function viewForUrl(url: string): FeedbackView | null {
 const VIEW_MARKER_RE = /\s*\[sc-view:([a-z]+)\]\s*$/;
 
 /** Append the view trailer to a body; the body unchanged when there is no view. */
-export function withViewMarker(body: string, view: FeedbackView | null | undefined): string {
+export function withViewMarker(body: string, view: FeedbackAreaView | null | undefined): string {
   if (!body || !view) return body;
   return `${body.trimEnd()}\n\n[sc-view:${view}]`;
 }
 
 /** Split a stored body into the text to render and the view it was sent from. */
-export function splitViewMarker(body: string | null | undefined): { body: string; view: FeedbackView | null } {
+export function splitViewMarker(body: string | null | undefined): { body: string; view: FeedbackAreaView | null } {
   const text = body ?? '';
   const m = VIEW_MARKER_RE.exec(text);
-  if (!m || !isFeedbackView(m[1])) return { body: text, view: null };
+  if (!m || !isFeedbackAreaView(m[1])) return { body: text, view: null };
   return { body: text.slice(0, m.index), view: m[1] };
 }
