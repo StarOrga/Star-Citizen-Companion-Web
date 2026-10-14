@@ -33,3 +33,22 @@ export function isLoopbackCallback(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Make the next loopback form-POST carry a real `Origin` header.
+ *
+ * The site ships `Referrer-Policy: strict-origin-when-cross-origin`
+ * (vercel.json). Under every `strict-*` policy the Fetch spec serialises the
+ * request origin as `null` when an https: page sends to a non-https: URL —
+ * and `http://127.0.0.1` is exactly that downgrade. The desktop loopback
+ * allowlists `Origin` against the SCC-Web origin, so it answered the handoff
+ * with 403 "Forbidden". Switching this document to `origin` (origin only, never
+ * path or query) right before the top-level POST restores the header without
+ * loosening the policy for any other page: the handoff navigates away anyway.
+ */
+export function sendOriginOnLoopbackPost(doc: Document = document): void {
+  const meta = doc.createElement('meta');
+  meta.name = 'referrer';
+  meta.content = 'origin';
+  doc.head.appendChild(meta);
+}

@@ -6,7 +6,7 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { DesktopConnectionService } from './desktop-connection.service';
-import { isLoopbackCallback } from './loopback.util';
+import { isLoopbackCallback, sendOriginOnLoopbackPost } from './loopback.util';
 import { mintDesktopSession } from './desktop-session.util';
 
 type AuthStatus = 'authorizing' | 'login_required' | 'redirecting' | 'error';
@@ -205,6 +205,7 @@ export class DesktopReadAuthComponent implements OnInit {
     addField('email', email);
     if (handoff.refresh_token) addField('refresh_token', handoff.refresh_token);
     if (handoff.expires_at) addField('expires_at', handoff.expires_at);
+    sendOriginOnLoopbackPost();
     document.body.appendChild(form);
     form.submit();
   }
