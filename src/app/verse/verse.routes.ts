@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { OVERLAY_ROUTE_DATA } from '../core/overlay-route-scroll';
 import { VerseBetaArea } from './data/verse.models';
 
 /** The β area a Verse route belongs to — read by the layout's β dock. */
@@ -31,7 +32,9 @@ export const VERSE_ROUTES: Routes = [
     loadComponent: () => import('./pages/verse-patches.component').then((m) => m.VersePatchesComponent),
     children: [
       {
+        // A routed overlay: opening/closing keeps the board's scroll (#245).
         path: ':line',
+        data: { [OVERLAY_ROUTE_DATA]: true },
         loadComponent: () =>
           import('../news/patch-dossier.component').then((m) => m.PatchDossierComponent),
       },
