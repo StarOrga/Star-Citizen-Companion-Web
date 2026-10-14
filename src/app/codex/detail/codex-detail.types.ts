@@ -61,6 +61,13 @@ export interface LoadoutItem {
    * THIS hardpoint. Empty when the extract carries no nested fit for it.
    */
   carried: ReadonlyMap<string, string>;
+  /**
+   * Classes the stock loadout installs BELOW those sub-slots (a manned
+   * turret's gimbal → its gun), one entry per item. Aggregates only — the
+   * module list keeps showing the direct sub-slots. See
+   * `nestedCarriedClassNames`.
+   */
+  nested?: readonly string[];
 }
 // What an occupied hardpoint proves about the bay it sits in (see portFitIndex).
 export interface PortFit {
