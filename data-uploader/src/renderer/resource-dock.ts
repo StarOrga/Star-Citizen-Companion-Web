@@ -561,11 +561,11 @@ function presetsHtml(): string {
   if (!view) return '';
   const pills = PRESET_IDS.map(
     (id) =>
-      `<button type="button" class="res-preset ${view?.preset === id ? 'active' : ''}" data-preset="${id}" aria-pressed="${view?.preset === id}" data-tip="${esc(presetTip(id))}">${t(`res.preset.${id}`)}<span class="res-preset-eta" data-eta="${id}">${esc(etaText(id))}</span></button>`,
+      `<button type="button" class="res-preset ${view?.preset === id ? 'active' : ''}" data-preset="${id}" aria-pressed="${view?.preset === id}" data-tip="${esc(presetTip(id))}">${t(`res.preset.${id}`)} <span class="res-preset-eta" data-eta="${id}">${esc(etaText(id))}</span></button>`,
   ).join('');
   const custom =
     view.preset === null
-      ? `<span class="res-preset res-preset--custom active" tabindex="0" data-tip="${esc(presetTip(null))}">${t('res.preset.custom')}<span class="res-preset-eta" data-eta="custom">${esc(etaText(null))}</span></span>`
+      ? `<span class="res-preset res-preset--custom active" tabindex="0" data-tip="${esc(presetTip(null))}">${t('res.preset.custom')} <span class="res-preset-eta" data-eta="custom">${esc(etaText(null))}</span></span>`
       : '';
   return `<div class="res-presets" role="group" aria-label="${t('res.presetsAria')}">${pills}${custom}</div>`;
 }
