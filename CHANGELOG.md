@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.147.1] - 2026-10-14
+
+### Fixed
+
+- **Anmeldung der Desktop-App über SCC-Web endet nicht mehr auf „Forbidden“.**
+  Nach dem Login unter `/desktop/connect` (und `/uploader/auth`) schickte der
+  Browser bei der Übergabe an die App `Origin: null`, und die App lehnte die
+  Anmeldung ab. Die Übergabe sendet jetzt den echten Ursprung der Seite (nur
+  die Domain, ohne Pfad), sodass die Anmeldung in der App ankommt.
+
 ## [0.147.0] - 2026-10-14
 
 ### Changed
