@@ -464,10 +464,7 @@ describe('FeedbackComposerComponent — character limit', () => {
     fixture.componentRef.setInput('draftScope', scope);
     fixture.componentRef.setInput('placeholder', 'adminFeedback.compose.placeholder');
     fixture.componentRef.setInput('sendLabel', 'adminFeedback.compose.send');
-    fixture.componentRef.setInput('onSubmit', (p: ComposerPayload) => {
-      submitted.push(p);
-      return Promise.resolve(true);
-    });
+    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -1272,7 +1269,10 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     fixture.componentRef.setInput('draftScope', scope);
     fixture.componentRef.setInput('allowFiles', true);
     fixture.componentRef.setInput('areaPicker', true);
-    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
+    fixture.componentRef.setInput('onSubmit', (p: ComposerPayload) => {
+      submitted.push(p);
+      return Promise.resolve(true);
+    });
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
