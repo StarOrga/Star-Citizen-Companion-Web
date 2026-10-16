@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.152.1",
+  "current": "0.153.0",
   "releases": [
+    {
+      "version": "0.153.0",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Klassische Ansicht: KPI-Zeile bleibt stehen, „Alles\" klappt alles auf.",
+              "text": "Die Zeile mit Alpha-Schaden, Salve, DPS & Co. bleibt beim Scrollen unter der Kopfzeile stehen (ab Tablet-Breite; auf dem Handy scrollt sie weiter mit, damit sie nicht den halben Bildschirm belegt). Unter dem Einsatz „Alles\" sind jetzt alle Loadout-Blöcke samt Zelle, festen Systemen und Untergruppen aufgeklappt."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.152.1",
       "date": "2026-10-16",
