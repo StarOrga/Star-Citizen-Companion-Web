@@ -532,7 +532,10 @@
         "physical": "Physical",
         "attachments": "Attachments",
         "aiming": "Aim assist",
-        "missing": "Not present"
+        "missing": "Not present",
+        "cmDecoy": "Decoy per launch",
+        "cmNoise": "Noise per launch",
+        "cmRecommend": "Recommendation for this ship"
       },
       "row": {
         "physical": "Physical",
@@ -567,7 +570,20 @@
         "spread": "Spread",
         "recoil": "Recoil",
         "magazine": "Magazine",
-        "overheat": "Overheat"
+        "overheat": "Overheat",
+        "cmCapacity": "Supply",
+        "cmIr": "IR signature",
+        "cmEm": "EM signature",
+        "cmCs": "Cross-section signature",
+        "cmRadius": "Cloud radius",
+        "cmCloudLifetime": "Cloud duration",
+        "cmLifetime": "Active time",
+        "shipIr": "Ship: IR",
+        "shipEm": "Ship: EM",
+        "shipCs": "Ship: cross-section",
+        "cmNeedIr": "Recommended vs IR",
+        "cmNeedEm": "Recommended vs EM",
+        "cmNeedCs": "Recommended vs cross-section"
       },
       "src": {
         "damage": "AmmoParams.impactDamage",
@@ -578,13 +594,23 @@
         "physical": "SAttachableComponentParams.AttachDef",
         "attachments": "SItemPortContainerComponentParams — overclock and barrel modules hang here",
         "aiming": "SCItemAimableComponentParams",
-        "missing": "overclock modifiers only, all of them 1.0"
+        "missing": "overclock modifiers only, all of them 1.0",
+        "countermeasure": "AmmoParams.projectileParams.typeParams · weaponParams.ammoCapacity",
+        "cmRecommend": "Rule of thumb: ship signature ÷ signature per launch, rounded down + 1 — only then do the launches clearly outshine the ship. Ship values follow the current power setup."
       },
       "value": {
         "none": "0 = none",
         "empty": "empty",
         "dash": "—",
-        "magazineEnergy": "— on energy weapons"
+        "magazineEnergy": "— on energy weapons",
+        "noData": "not in the data",
+        "cmCount": "≈ {{n}}×"
+      }
+    },
+    "countermeasure": {
+      "name": {
+        "decoy": "Decoy launcher",
+        "noise": "Noise launcher"
       }
     },
     "componentKind": {
@@ -1656,7 +1682,7 @@
       "fixedTag": "not configurable",
       "countermeasures": "Countermeasures",
       "shieldsNote": "Every bay in this block is a swappable shield generator, including the ones that ship empty. The shield control module sits with the fixed systems: it is not a shield of its own and cannot be swapped in game.",
-      "countermeasuresNote": "Launchers cannot be changed in game, so this block is for reference only. Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need depends on the signature values of the round that is fired — this extract does not link a launcher to its round, so no per-launcher signature values are shown.",
+      "countermeasuresNote": "Launchers cannot be changed in game, so this block is for reference only. Decoys pull heat-seeking missiles away, noise (chaff) blinds radar-guided ones. How many you need is on a launcher's info sheet (ⓘ): it sets the signature per launch against the ship's own.",
       "splitRows": "Individually",
       "groupRows": "Group",
       "splitRowsHint": "List every hardpoint on its own row so you can change them one by one",

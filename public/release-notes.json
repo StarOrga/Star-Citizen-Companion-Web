@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.153.0",
+  "current": "0.154.0",
   "releases": [
+    {
+      "version": "0.154.0",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Gegenmaßnahmen-Infoblatt zeigt Signatur statt Schaden.",
+              "text": "In der klassischen Ansicht blendet das Infoblatt eines Köder- oder Störsignalwerfers die Schadenswerte aus (Gegenmaßnahmen machen keinen Schaden; trägt eine Munition je Schaden, erscheint er wieder). Stattdessen zeigt es die Signatur je Auslösung (IR/EM/Querschnitt), Vorrat und Wirkdauer sowie je Kanal eine Empfehlung, wie viele man zünden sollte, gemessen an der Signatur des Schiffs. Werfer, die in den Spieldaten den Namen eines fremden Schiffs tragen (etwa „Aegis Gladius – Decoy Launcher\" auf der Nomad), heißen jetzt neutral „Köderwerfer\" bzw. „Störsignalwerfer\"."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.153.0",
       "date": "2026-10-16",
