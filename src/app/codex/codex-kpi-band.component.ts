@@ -7,9 +7,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /**
  * Six headline numbers for the ship's active mission (02-handover §2.3 / PR C).
- * Sticky under the shell header on desktop so the KPIs stay visible while a
- * pilot scrolls the loadout/analysis columns; static on narrow viewports
- * where a sticky band would eat too much of the screen (04-rules-v2 §3).
+ * Sticky under the shell header from tablet width up, so the KPIs stay
+ * visible while a pilot scrolls the loadout/analysis columns (#240); static on
+ * phones, where three rows of a wrapped band would eat too much of the screen
+ * (04-rules-v2 §3).
  *
  * Every cell is read from the RESOLVED DRAFT loadout — never invented — and a
  * cell the extract has no source for renders an em-dash with a gap tooltip
@@ -50,7 +51,21 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
     </div>
   `,
   styles: [`
-    :host { display: block; }
+    /* The HOST sticks, not the inner grid: a sticky box only travels inside
+       its parent, and the inner grid's parent is this host — exactly as tall
+       as the band, so it never moved (#240). The host's parent is the page
+       column, which runs the full length of the classic view.
+       --sc-topbar-h is the height the shell header parks at (0px whenever the
+       header itself scrolls away, below 1080px). */
+    :host {
+      display: block;
+      position: sticky;
+      top: calc(var(--sc-imp-banner-h, 0px) + var(--sc-topbar-h, 0px));
+      z-index: 10; /* below the energy dock (14), compare tray (40) and every dialog backdrop */
+    }
+    @media (max-width: 720px) {
+      :host { position: static; }
+    }
     /* Mollywator draws ONE continuous band, not six tiles: no gap, no radius,
        and the cells share a single 1px rule (part-02.html:177-179). The band
        carries no border of its own — every cell paints top/left/bottom and the
@@ -60,15 +75,10 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       background: var(--sc-bg-0);
-      position: sticky;
-      /* Approximates the shell topbar's rendered height (14px padding × 2 +
-         content) plus any active impersonation banner — see shell.component.ts. */
-      top: calc(var(--sc-imp-banner-h, 0px) + 64px);
-      z-index: 10; /* below the swap-picker backdrop (150), compare tray (40) and the energy dock (14) */
       box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.55);
     }
     @media (max-width: 1120px) {
-      .kpi-band { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .kpi-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       /* part-02.html:290 — once the band wraps, the cell that ends a row would
          sit open on its right, so every cell closes its own edge. */
       .kpi-cell { border-right: 1px solid var(--sc-border); }
