@@ -4,6 +4,17 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.155.0] - 2026-10-16
+
+### Changed
+
+- **Waffen- und Komponententausch öffnet schneller.** Die Auswahlliste eines
+  Slots kommt jetzt mit einer einzigen, schlanken Datenbankabfrage statt einer
+  Kette aus vier bis sechs Abrufen. Sobald das Loadout eines Schiffs zu sehen
+  ist, werden die Listen aller tauschbaren Slots im Hintergrund vorgeladen und
+  für den Build gemerkt – der Picker ist beim Klick meist sofort da, beim
+  zweiten Öffnen immer.
+
 ## [0.154.0] - 2026-10-16
 
 ### Added
