@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { FeedbackAreaService } from './feedback-area.service';
-import { FeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
+import { FeedbackArea, FeedbackAreaView, feedbackAreaLabelKey, feedbackViewLabelKey } from './feedback-area.types';
 
 /**
  * The "what is this about?" chip row above a new-topic composer (admin feedback
@@ -56,7 +56,7 @@ import { FeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
           [class.active]="area() === a"
           [attr.aria-pressed]="area() === a"
           (click)="pick(a)">
-          {{ labelKey(a) | translate }}
+          {{ labelKey(a) | translate }}@if (viewFor(a); as v) { · {{ viewLabelKey(v) | translate }}}
         </button>
       }
     </div>
@@ -132,6 +132,21 @@ export class FeedbackAreaPickerComponent {
 
   labelKey(area: FeedbackArea): string {
     return feedbackAreaLabelKey(area);
+  }
+
+  /**
+   * The view suffix on the selected Codex chip — "Codex · Holotisch" (admin
+   * feedback #241), so the sender sees that the screen they are on was
+   * understood, not just the section. Only on the active chip and only while
+   * the page actually has a view; it is what `ComposerPayload.view` carries.
+   */
+  viewFor(area: FeedbackArea): FeedbackAreaView | null {
+    if (area !== 'codex' || this.area() !== area) return null;
+    return this.areas.currentView();
+  }
+
+  viewLabelKey(view: FeedbackAreaView): string {
+    return feedbackViewLabelKey(view);
   }
 
   pick(area: FeedbackArea): void {

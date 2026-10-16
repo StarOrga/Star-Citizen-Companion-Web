@@ -1,3 +1,5 @@
+import { splitViewMarker } from '../../feedback/feedback-area.types';
+
 /**
  * Shared shapes and pure helpers for the admin feedback board.
  *
@@ -289,7 +291,8 @@ export function plainText(body: string): string {
  * compact row. Falls back to a dash for image-only posts.
  */
 export function topicTitle(body: string, max = 64): string {
-  const text = plainText(body);
+  // The `[sc-view:…]` trailer (admin feedback #241) is metadata, not prose.
+  const text = plainText(splitViewMarker(body).body);
   if (!text) return '—';
   const firstSentence = text.split(/(?<=[.!?])\s+/)[0] ?? text;
   const base = firstSentence.length <= max ? firstSentence : text;

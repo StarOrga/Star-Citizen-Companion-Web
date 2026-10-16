@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { WritableSignal, signal } from '@angular/core';
 import { TranslateService, provideTranslateService } from '@ngx-translate/core';
 import { ComposerPrefsService } from '../../core/composer-prefs.service';
 import { FeedbackDraftService, DraftEntry } from '../../feedback/feedback-draft.service';
@@ -1240,11 +1240,16 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
   let cmp: FeedbackComposerComponent;
   let seeds: FeedbackComposerSeedService;
 
+  let areaFake: { current: WritableSignal<string>; options: WritableSignal<readonly string[]>; currentView: WritableSignal<string | null> };
+  let submitted: ComposerPayload[];
+
   async function mount(
     scope: string | null = 'admin:new',
     beforeCreate: (s: FeedbackComposerSeedService) => void = () => {},
   ) {
     drafts = new FakeDraftStore();
+    areaFake = { current: signal('admin'), options: signal(FEEDBACK_AREAS), currentView: signal(null) };
+    submitted = [];
     await TestBed.configureTestingModule({
       imports: [FeedbackComposerComponent],
       providers: [
@@ -1254,7 +1259,7 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
         { provide: FeedbackDraftService, useValue: drafts },
         // The box sits on /admin/telemetry: the router says "admin", the seed
         // says "desktop", and the seed has to win.
-        { provide: FeedbackAreaService, useValue: { current: signal('admin'), options: signal(FEEDBACK_AREAS) } },
+        { provide: FeedbackAreaService, useValue: areaFake },
       ],
     }).compileComponents();
     seeds = TestBed.inject(FeedbackComposerSeedService);
@@ -1264,7 +1269,10 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
     fixture.componentRef.setInput('draftScope', scope);
     fixture.componentRef.setInput('allowFiles', true);
     fixture.componentRef.setInput('areaPicker', true);
-    fixture.componentRef.setInput('onSubmit', () => Promise.resolve(true));
+    fixture.componentRef.setInput('onSubmit', (p: ComposerPayload) => {
+      submitted.push(p);
+      return Promise.resolve(true);
+    });
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -1281,6 +1289,38 @@ describe('FeedbackComposerComponent - seeded from a page', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule());
+
+  it('sends the Codex view the chip shows (admin feedback #241)', async () => {
+    await mount();
+    areaFake.current.set('codex');
+    areaFake.currentView.set('classic');
+    fixture.detectChanges();
+    expect(cmp.area()).toBe('codex');
+    cmp.draft.set('Die Hardpoint-Liste ist zu eng');
+    await cmp.submit();
+    expect(submitted.at(-1)?.area).toBe('codex');
+    expect(submitted.at(-1)?.view).toBe('classic');
+  });
+
+  it('sends no view under another tag or off a ship page', async () => {
+    await mount();
+    areaFake.current.set('codex');
+    fixture.detectChanges();
+    cmp.draft.set('Codex-Liste');
+    await cmp.submit();
+    expect(submitted.at(-1)?.view).toBeNull();
+
+    areaFake.currentView.set('holo');
+    fixture.detectChanges();
+    // Pinned by hand to another area: the Holotable is not what it is about.
+    cmp.area.set('hangar');
+    cmp.areaPinned.set(true);
+    fixture.detectChanges();
+    cmp.draft.set('Hangar-Frage');
+    await cmp.submit();
+    expect(submitted.at(-1)?.area).toBe('hangar');
+    expect(submitted.at(-1)?.view).toBeNull();
+  });
 
   it('takes a seed planted BEFORE it mounted: text, area, file', async () => {
     await mount('admin:new', (s) =>
