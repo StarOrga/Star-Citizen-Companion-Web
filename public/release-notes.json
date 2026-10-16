@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.152.0",
+  "current": "0.152.1",
   "releases": [
+    {
+      "version": "0.152.1",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Fixed",
+          "label": "",
+          "items": [
+            {
+              "title": "Patch Notes behalten die Scroll-Position.",
+              "text": "Schließt du ein Patch-Overlay (✕, Escape, Klick daneben oder Browser-Zurück), bleibst du an der Stelle im Board, an der du warst, statt wieder ganz oben zu landen."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.152.0",
       "date": "2026-10-16",

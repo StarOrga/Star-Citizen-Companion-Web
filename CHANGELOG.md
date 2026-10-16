@@ -4,6 +4,14 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.152.1] - 2026-10-16
+
+### Fixed
+
+- **Patch Notes behalten die Scroll-Position.** Schließt du ein Patch-Overlay
+  (✕, Escape, Klick daneben oder Browser-Zurück), bleibst du an der Stelle im
+  Board, an der du warst, statt wieder ganz oben zu landen.
+
 ## [0.152.0] - 2026-10-16
 
 ### Added
