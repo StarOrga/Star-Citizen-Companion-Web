@@ -11,6 +11,7 @@ import {
   buildShipFactGroups,
   buildStageCounts,
   fmtGm,
+  isTractorBeamSlot,
 } from './codex-detail-facts';
 
 /** A translate stand-in that shows what was asked for: `key|{params}`. */
@@ -209,6 +210,37 @@ describe('codex-detail facts', () => {
       expect(chips).toEqual([
         { group: 'missiles', count: 2, labelKey: 'codex.detail.stageMissileRacks', detailKey: null, detailCount: 0 },
       ]);
+    });
+
+    it('names a remote turret that carries a tractor beam a tractor beam (feedback #239)', () => {
+      const tractor = {
+        port: 'Remote Turret',
+        className: 'CNOU_Nomad_Remote_Turret',
+        children: [{ className: 'GRIN_TractorBeam_S1', count: 1, rawTypes: ['WeaponGun'] }],
+      } as unknown as LayoutSlot;
+      expect(buildStageCounts('ship', [{ section: 'remoteTurrets', slots: [tractor] }])).toEqual([
+        { group: 'remoteTurrets', count: 1, labelKey: 'codex.detail.stageTractorBeam', detailKey: null, detailCount: 0 },
+      ]);
+    });
+
+    it('keeps gun turrets as turrets beside tractor beams, singular for one', () => {
+      const gun = {
+        port: 'Turret',
+        className: 'X_Turret',
+        children: [{ className: 'KLWE_LaserRepeater_S2', count: 2, rawTypes: ['WeaponGun'] }],
+      } as unknown as LayoutSlot;
+      const tractor = {
+        port: 'Turret',
+        className: 'X_Turret',
+        children: [{ className: null, count: 1, rawTypes: ['TractorBeam'] }],
+      } as unknown as LayoutSlot;
+      const chips = buildStageCounts('ship', [{ section: 'remoteTurrets', slots: [gun, tractor, tractor] }]);
+      expect(chips.map((c) => [c.count, c.labelKey])).toEqual([
+        [1, 'codex.detail.stageRemoteTurret'],
+        [2, 'codex.detail.stageTractorBeams'],
+      ]);
+      expect(isTractorBeamSlot(gun)).toBeFalse();
+      expect(isTractorBeamSlot(tractor)).toBeTrue();
     });
 
     it('is empty off a ship', () => {

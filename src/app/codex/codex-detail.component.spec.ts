@@ -267,6 +267,21 @@ describe('CodexDetailComponent — ship kind (Nomad fixture)', () => {
   });
 
 
+  it('keeps the hangar control above the picture, not on it (#239)', () => {
+    // The stage is the CLASSIC view; the Holotable is the default.
+    fixture.componentInstance.holoView.set(false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('header.hero.stage')).toBeTruthy();
+    expect(el.querySelector('.hero.stage sc-hangar-picker')).toBeNull();
+    const top = el.querySelector('.hero-stack > .stage-top') as HTMLElement;
+    expect(top).toBeTruthy();
+    expect(top.nextElementSibling?.matches('header.hero.stage')).toBeTrue();
+    // Same functions as before: the button is an anchor into the hangar.
+    const btn = top.querySelector('sc-hangar-picker a.picker-btn') as HTMLAnchorElement;
+    expect(btn?.getAttribute('href')).toContain('hangar');
+  });
+
   // ── decision 1 (hard constraint): the two tank figures survived the move ──
 
   it('carries quantum fuel and hydrogen into the Analyse card', () => {
