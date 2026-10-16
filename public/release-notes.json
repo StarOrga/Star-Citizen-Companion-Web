@@ -1,7 +1,23 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.151.0",
+  "current": "0.152.0",
   "releases": [
+    {
+      "version": "0.152.0",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback mit Bezug.",
+              "text": "Ist das Feedback-Panel offen, zeigen die Hauptbereiche der Seite (Überschrift, Codex-Schiffsseite in Klassisch und Holotisch bis hin zu einzelnen Loadout-Gruppen) einen kleinen Bezug-Button. Ein Klick setzt eine Zeile wie „Klassische Ansicht: Loadout Bewaffnung\" als erste Zeile in deinen Feedback-Text. Auf dem Handy, wo das Panel den ganzen Bildschirm füllt, gibt es die Buttons nicht."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.151.0",
       "date": "2026-10-16",
