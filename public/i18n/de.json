@@ -4121,6 +4121,12 @@
     "restore": "Fenstergröße wiederherstellen",
     "title": "Feedback"
   },
+  "feedbackSpot": {
+    "headline": "Headline",
+    "titled": "{{label}} „{{text}}“",
+    "insert": "Bezug einfügen: {{line}}",
+    "details": "Details"
+  },
   "releaseNotes": {
     "title": "Was ist neu",
     "subtitle": "Neuigkeiten und Verbesserungen aus jedem Release.",

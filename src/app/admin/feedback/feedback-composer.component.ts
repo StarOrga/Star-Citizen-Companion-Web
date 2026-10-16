@@ -22,6 +22,7 @@ import type { FeedbackArea, FeedbackAreaView } from '../../feedback/feedback-are
 import { isImageAttachment } from '../../feedback/feedback-images.util';
 import { PageScreenshotService } from '../../feedback/page-screenshot.service';
 import { ScTooltipDirective } from '../../shared/tooltip/sc-tooltip.directive';
+import { FeedbackLineTarget, FeedbackSpotService, withReferenceLine } from '../../feedback/feedback-spot.service';
 import {
   AnnotationResult,
   AttachmentChip,
@@ -242,6 +243,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
                     (keydown)="onKeydown($event)"
                     (paste)="onPaste($event)"
                     (blur)="flushDraft()"
+                    (focus)="spots.touch(this)"
                     [placeholder]="placeholder() | translate: placeholderParams()"
                     [attr.aria-label]="placeholder() | translate: placeholderParams()"
                     [attr.maxlength]="maxChars"></textarea>
@@ -564,7 +566,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
     }
   `],
 })
-export class FeedbackComposerComponent implements OnDestroy {
+export class FeedbackComposerComponent implements OnDestroy, FeedbackLineTarget {
   private readonly translate = inject(TranslateService);
   private readonly composerPrefs = inject(ComposerPrefsService);
   private readonly drafts = inject(FeedbackDraftService);
@@ -572,6 +574,11 @@ export class FeedbackComposerComponent implements OnDestroy {
   readonly screenshots = inject(PageScreenshotService);
   private readonly ta = viewChild<ElementRef<HTMLTextAreaElement>>('ta');
   private readonly seeds = inject(FeedbackComposerSeedService);
+  /** Reference spots on the page (feedback #243) put their line into this box. */
+  readonly spots = inject(FeedbackSpotService);
+  private readonly detachSpotTarget = this.spots.attachTarget(this);
+  /** The reference line this box inserted last — replaced, not stacked, by the next. */
+  private referenceLine: string | null = null;
   /** The chip row, when shown — the source of the Codex view suffix it displays. */
   private readonly areaPickerRef = viewChild(FeedbackAreaPickerComponent);
 
@@ -788,6 +795,7 @@ export class FeedbackComposerComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.detachSpotTarget();
     // Closing the panel, collapsing the topic or navigating away must not cost
     // the last few characters sitting in the debounce window.
     this.flushDraft();
@@ -855,6 +863,26 @@ export class FeedbackComposerComponent implements OnDestroy {
   /** Checkbox → signal. The DOM element is the source of truth for its own state. */
   setComplex(ev: Event): void {
     this.complex.set((ev.target as HTMLInputElement).checked);
+  }
+
+  /**
+   * A reference spot was clicked (feedback #243): its line goes first, an
+   * earlier reference line still on top is swapped for it, the writer's own
+   * text and caret stay where they were.
+   */
+  insertReferenceLine(line: string): void {
+    const el = this.ta()?.nativeElement;
+    const current = this.draft();
+    const caret = el ? (el.selectionStart ?? current.length) : current.length;
+    const next = withReferenceLine(current, line, this.referenceLine, caret);
+    this.referenceLine = line;
+    if (el) {
+      this.applyValue(el, next.text, next.caret);
+      return;
+    }
+    this.draft.set(clampFeedbackText(next.text));
+    this.draftRestored.set(false);
+    this.saveDraft();
   }
 
   // ---- Draft persistence (account-bound, see FeedbackDraftService) --------

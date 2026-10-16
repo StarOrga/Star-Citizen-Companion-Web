@@ -235,6 +235,40 @@ number is assigned once, at insert, and never changes.
 - **The routine may use it**: `#N` is an unambiguous, human-readable handle for a
   topic in a thread reply, a PR body or a Rückfrage.
 
+### Pointing at a part of the page (feedback #243)
+
+While a feedback panel is open (the admin board or a user's own panel), the
+page's main sections show a small round **reference spot** in their top-right
+corner. Clicking one puts a line naming that section as the first line of the
+composer, e.g. `Klassische Ansicht: Loadout Bewaffnung` — the area chip already
+says *Codex*, the line names the part of the page. A second click replaces the
+line the spot inserted before (as long as it is still the untouched first line)
+instead of stacking a second one; the writer's own text and caret stay put.
+
+- **Marking a section:** `[scFeedbackSpot]="'<i18n key>'"`, optionally
+  `[scFeedbackSpotSub]` (a second key, "Loadout" + "Bewaffnung") and
+  `[scFeedbackSpotText]` (a quoted raw title). The directive adds no DOM;
+  `<sc-feedback-spots>` in the shell draws every button fixed-position, outside
+  the page's overflow and stacking contexts (layer 55: above page furniture,
+  below modals).
+- **Marked today:** the `<sc-page-header>` title block (every Codex/Hangar
+  page), and on the Codex ship page the masthead, key figures, mission bar,
+  loadout card and each loadout group, analysis column, energy dock; in the
+  holotable view the top bar, Einordnung, table, inspector, ports list,
+  perspectives and details drawer. On the ship page the line leads with the
+  view (Holotisch / Klassisch).
+- **Placement:** a spot never sits under the open panel or its launcher, is
+  skipped for sections off screen or too narrow, pins below the top bar while a
+  tall section is half scrolled away, and the first-registered of two
+  overlapping spots wins. Phones (< 600px) get none — the panel is a full-bleed
+  sheet there.
+- **Target:** the composer the writer focused last, else the newest one; with
+  none mounted (docked admin panel folded), the line is seeded into the
+  new-topic box and the panel unfolds it.
+- Admin panel → spots in `--sc-accent-hot` (they belong to the admin launcher);
+  user panel → `--sc-accent`. Each is a real `<button>` with aria-label and
+  `[scTooltip]` ("Bezug einfügen: …"), reachable by Tab.
+
 ### Searching the board (feedback 12476cec)
 
 The stream's top bar carries the search field — always visible, docked,

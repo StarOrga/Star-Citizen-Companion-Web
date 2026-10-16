@@ -230,6 +230,7 @@ import type { HoloPatchComparisonSide } from './holo/codex-holo-patch.component'
 import { PageHeaderComponent } from '../shared/page-header/page-header.component';
 import { NavOriginService, PageCrumb, originTrail } from '../shared/page-header/nav-origin.service';
 import { ClassChipComponent } from '../shared/class-chip/class-chip.component';
+import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
 
 // Engine placeholders that identify no attach type — never build a fit on them.
 /** Which stored loadout the URL puts on the table (#646): a shared link
@@ -249,7 +250,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 @Component({
   selector: 'sc-codex-detail',
   standalone: true,
-  imports: [PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent],
+  imports: [FeedbackSpotDirective, PageHeaderComponent, NeuroFieldDirective, RouterLink, TranslatePipe, CodexCompareTrayComponent, CodexHardpointLayoutComponent, CodexComponentModalComponent, CodexSwapPickerComponent, CodexWeaponDetailComponent, ShipHardpointMapComponent, ShipSkinViewerComponent, CodexCategoryIconComponent, FallbackImageComponent, CodexLoadoutSaveBarComponent, CodexKpiBandComponent, CodexMissionBarComponent, CodexOffensivePanelComponent, CodexDefensivePanelComponent, CodexShipPanelComponent, CodexRankCardComponent, CodexEnergyDockComponent, InfoNoteComponent, CodexHoloStageComponent, CodexShipStageComponent, CodexVariantPickerComponent, CodexShipActionsComponent, CodexShipLinkFormComponent, CodexPortListComponent, CodexSpecSheetComponent, CodexRecipeCardComponent, AssetPackageViewerComponent, NgTemplateOutlet, AddToSetComponent, ClassChipComponent, CodexModeSwitchComponent, CodexPersonalUsesComponent, HangarPickerComponent],
   providers: [ShipLinkFormStore, CodexLoadoutDraftStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -313,7 +314,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              this template, rendered in both branches (D17). -->
         @if (!(kind() === 'ship' && holoView())) {
         <!-- ── Masthead: hero | Einordnung, 1fr 1fr (MASTER §1/§3) ── -->
-        <div class="m-top" [class.ship-mode]="kind() === 'ship'">
+        <div class="m-top" [class.ship-mode]="kind() === 'ship'" [scFeedbackSpot]="'feedbackSpot.headline'">
         <div class="hero-stack">
         <!-- ── Hero ───────────────────────────────────────────────────
              A ship gets the concept's BÜHNE (§2): the art fills the card, the
@@ -498,8 +499,8 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              new analysis column says the same things without duplicating
              the page. ───────────────────────────────────────────── -->
         @if (kind() === 'ship') {
-          <sc-codex-kpi-band [cells]="kpiCells()" />
-          <div class="mission-draft-bar">
+          <sc-codex-kpi-band [cells]="kpiCells()" [scFeedbackSpot]="'codex.kpi.bandLabel'" />
+          <div class="mission-draft-bar" [scFeedbackSpot]="'codex.mission.label'">
             <sc-codex-mission-bar
               [active]="activeMissionId()"
               [capabilities]="shipCapabilities()"
@@ -530,7 +531,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
           <!-- ── Ship modules, configurable blocks first (461288f9), now
                mission-ordered/folded (PR C) ── -->
           @if (primaryModuleSections().length > 0) {
-            <section class="sc-card block col-loadout">
+            <section class="sc-card block col-loadout" [scFeedbackSpot]="'codex.detail.columnLoadout'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnLoadout' | translate }}</span>
                 <span class="n">{{ moduleCount() }}</span>
@@ -577,7 +578,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
 
           <!-- ── Analyse: offensive / defensive / ship facts (PR C) ── -->
           @if (kind() === 'ship') {
-            <div class="analysis-col col-analyse">
+            <div class="analysis-col col-analyse" [scFeedbackSpot]="'codex.detail.columnAnalysis'">
               <h2 class="col-head">
                 <span class="label">{{ 'codex.detail.columnAnalysis' | translate }}</span>
                 <span class="n">3</span>
@@ -950,6 +951,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
              and the columns; placed last there is nothing to hollow. -->
         @if (kind() === 'ship' && !holoView()) {
             <sc-codex-energy-dock
+              [scFeedbackSpot]="'codex.energy.title'"
               [occupants]="draftSummaryOccupants()"
               [shipStats]="shipPayload()?.stats ?? null"
               [shipClassName]="shipClassName()"
