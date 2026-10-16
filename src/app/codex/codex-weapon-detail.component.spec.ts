@@ -116,4 +116,73 @@ describe('CodexWeaponDetailComponent', () => {
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(spy).toHaveBeenCalled();
   });
+
+  describe('countermeasure launcher (#242)', () => {
+    // CNOU_Nomad_CML_Flare → BEHR_Flare, values from the live 4.10 extract.
+    const LAUNCHER = {
+      className: 'CNOU_Nomad_CML_Flare',
+      subType: 'CountermeasureLauncher',
+      weaponParams: { fireRate: 450, ammoCapacity: 48, ammoClassName: 'BEHR_Flare' },
+    };
+    const FLARE = {
+      impactDamage: null,
+      raw: {
+        lifetime: 8,
+        projectileParams: {
+          typeParams: {
+            _Type_: 'CounterMeasureFlareParams',
+            StartInfrared: 20000,
+            StartElectromagnetic: 20000,
+            StartCrossSection: 6500,
+          },
+        },
+      },
+    };
+    const cmEntry = (ammoPayload: unknown = FLARE): WeaponDetailEntry =>
+      entry({ className: 'CNOU_Nomad_CML_Flare', name: 'Köderwerfer', payload: LAUNCHER, ammoPayload });
+    const titles = (): string[] =>
+      fixture.componentInstance.cards().map((c) => c.titleKey);
+    const rowOf = (titleKey: string, labelKey: string): string | null | undefined =>
+      fixture.componentInstance
+        .cards()
+        .find((c) => c.titleKey === titleKey)
+        ?.rows.find((r) => r.labelKey === labelKey)?.value;
+
+    it('drops the damage, derived and gun-gap cards when the round deals no damage', () => {
+      fixture.componentRef.setInput('entry', cmEntry());
+      fixture.detectChanges();
+      expect(titles()).not.toContain('codex.weaponDetail.card.damageChannels');
+      expect(titles()).not.toContain('codex.weaponDetail.card.derived');
+      expect(titles()).not.toContain('codex.weaponDetail.card.missing');
+      expect(titles()).toContain('codex.weaponDetail.card.cmDecoy');
+      expect(titles()).toContain('codex.weaponDetail.card.cmRecommend');
+    });
+
+    it('shows the damage card again once the round carries damage', () => {
+      fixture.componentRef.setInput('entry', cmEntry({ ...FLARE, impactDamage: { physical: 5 } }));
+      fixture.detectChanges();
+      expect(titles()).toContain('codex.weaponDetail.card.damageChannels');
+    });
+
+    it('lists the round signature and the launcher supply', () => {
+      fixture.componentRef.setInput('entry', cmEntry());
+      fixture.detectChanges();
+      expect(rowOf('codex.weaponDetail.card.cmDecoy', 'codex.weaponDetail.row.cmIr')).toBe('20,000');
+      expect(rowOf('codex.weaponDetail.card.cmDecoy', 'codex.weaponDetail.row.cmCs')).toBe('6,500');
+      expect(rowOf('codex.weaponDetail.card.cmDecoy', 'codex.weaponDetail.row.cmCapacity')).toBe('48');
+    });
+
+    it('recommends floor(ship / round) + 1 per channel and names a missing ship value', () => {
+      fixture.componentRef.setInput('entry', cmEntry());
+      fixture.componentRef.setInput('shipSignature', { ir: 40000, em: null, crossSection: 6000 });
+      fixture.detectChanges();
+      const rec = 'codex.weaponDetail.card.cmRecommend';
+      expect(rowOf(rec, 'codex.weaponDetail.row.shipIr')).toBe('40,000');
+      // instant() without translations echoes the key; the count is the param.
+      expect(rowOf(rec, 'codex.weaponDetail.row.cmNeedIr')).toBe('codex.weaponDetail.value.cmCount');
+      expect(rowOf(rec, 'codex.weaponDetail.row.cmNeedEm')).toBe('codex.weaponDetail.value.noData');
+      expect(rowOf(rec, 'codex.weaponDetail.row.shipEm')).toBe('codex.weaponDetail.value.noData');
+    });
+  });
 });
+
