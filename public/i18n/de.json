@@ -1201,6 +1201,9 @@
       "heroSwitchTo2d": "Zurück zum 2D-Bild wechseln",
       "stageLaunchers": "{{n}} Werfer",
       "stageMissileRacks": "Raketenwerfer",
+      "stageRemoteTurret": "Ferngesteuerter Turm",
+      "stageTractorBeam": "Traktorstrahl",
+      "stageTractorBeams": "Traktorstrahlen",
       "linkCopied": "Link kopiert",
       "dataPill": "DATEN {{build}} · schema {{n}}",
       "dataPillPending": "Re-Extract ausstehend",
@@ -4117,6 +4120,12 @@
     "maximize": "Auf Vollbild vergrößern",
     "restore": "Fenstergröße wiederherstellen",
     "title": "Feedback"
+  },
+  "feedbackSpot": {
+    "headline": "Headline",
+    "titled": "{{label}} „{{text}}“",
+    "insert": "Bezug einfügen: {{line}}",
+    "details": "Details"
   },
   "releaseNotes": {
     "title": "Was ist neu",

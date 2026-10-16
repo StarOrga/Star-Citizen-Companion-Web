@@ -2,11 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
+  ElementRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { AuthService } from '../auth/auth.service';
@@ -15,6 +17,8 @@ import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { UserFeedbackService } from '../feedback/user-feedback.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
+import { FeedbackSpotService } from '../feedback/feedback-spot.service';
+import { draftScopes } from '../feedback/feedback-draft.types';
 import { UserFeedbackPanelComponent } from '../feedback/user-feedback-panel.component';
 import { unreadBadgeText } from '../feedback/user-feedback.types';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -44,7 +48,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="fab-root">
+      <div class="fab-root" #fabRoot>
         @if (mounted()) {
           <!-- “sc-sheet” (styles.scss): docked window on a desktop, full-bleed
                sheet below 720px — same treatment as the admin board's panel
@@ -299,6 +303,8 @@ export class UserFeedbackFabComponent {
   private readonly feedback = inject(UserFeedbackService);
   private readonly fabPrefs = inject(FeedbackFabPrefsService);
   private readonly panelNav = inject(PanelNavigationService);
+  private readonly spots = inject(FeedbackSpotService);
+  private readonly fabRoot = viewChild<ElementRef<HTMLElement>>('fabRoot');
 
   /**
    * Signed in, role resolved, not an admin, and the launcher not switched off
@@ -356,6 +362,13 @@ export class UserFeedbackFabComponent {
     // news before the panel has ever been opened.
     effect(() => {
       if (this.visible() && !this.feedback.loaded()) void this.feedback.refresh();
+    });
+
+    // While the panel is open the page shows its reference spots (#243).
+    effect((onCleanup) => {
+      const el = this.isOpen() ? this.fabRoot()?.nativeElement : undefined;
+      this.spots.setPanel('user', el ?? null, draftScopes.userNew);
+      onCleanup(() => this.spots.setPanel('user', null, draftScopes.userNew));
     });
 
     let seen = this.panelNav.navigations();

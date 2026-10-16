@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angu
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { NavOriginService, PageCrumb } from './nav-origin.service';
+import { FeedbackSpotDirective } from '../../feedback/feedback-spot.directive';
 
 /**
  * The one page header of the Codex and Hangar pages (2026-10-07: every page
@@ -24,7 +25,7 @@ import { NavOriginService, PageCrumb } from './nav-origin.service';
 @Component({
   selector: 'sc-page-header',
   standalone: true,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, FeedbackSpotDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ph-top">
@@ -44,7 +45,7 @@ import { NavOriginService, PageCrumb } from './nav-origin.service';
       <div class="ph-aside"><ng-content select="[phAside]" /></div>
     </div>
     @if (title() || eyebrow() || subtitle()) {
-      <div class="ph-main">
+      <div class="ph-main" [scFeedbackSpot]="'feedbackSpot.headline'" [scFeedbackSpotText]="title()">
         <div class="ph-title">
           @if (eyebrow(); as e) { <p class="eyebrow">{{ e }}</p> }
           @if (title(); as t) {

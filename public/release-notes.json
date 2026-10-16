@@ -1,7 +1,39 @@
 {
   "generatedFrom": "CHANGELOG.md",
-  "current": "0.150.0",
+  "current": "0.152.0",
   "releases": [
+    {
+      "version": "0.152.0",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Added",
+          "label": "",
+          "items": [
+            {
+              "title": "Feedback mit Bezug.",
+              "text": "Ist das Feedback-Panel offen, zeigen die Hauptbereiche der Seite (Überschrift, Codex-Schiffsseite in Klassisch und Holotisch bis hin zu einzelnen Loadout-Gruppen) einen kleinen Bezug-Button. Ein Klick setzt eine Zeile wie „Klassische Ansicht: Loadout Bewaffnung\" als erste Zeile in deinen Feedback-Text. Auf dem Handy, wo das Panel den ganzen Bildschirm füllt, gibt es die Buttons nicht."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.151.0",
+      "date": "2026-10-16",
+      "sections": [
+        {
+          "category": "Changed",
+          "label": "",
+          "items": [
+            {
+              "title": "Klassische Schiffsansicht: aufgeräumtes Schiffsbild.",
+              "text": "Hersteller und Rolle stehen jetzt oben links im Bild, direkt darüber der Schiffsname; das Bild füllt die Karte ohne Lücken oben und unten. Alle Werte im Bild sehen gleich aus (Bewaffnung nicht mehr blau hervorgehoben), ein Traktorturm heißt jetzt „Traktorstrahl\" statt ferngesteuerter Turm, und „3D\" steht auf einer Höhe. Der Hangar-Button sitzt über dem Bild statt darin."
+            }
+          ]
+        }
+      ]
+    },
     {
       "version": "0.150.0",
       "date": "2026-10-14",

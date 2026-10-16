@@ -2,17 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
+  ElementRef,
   computed,
   effect,
   inject,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { RoleService } from '../auth/role.service';
 import { FeedbackFabPrefsService } from '../core/feedback-fab-prefs.service';
 import { PanelNavigationService } from '../feedback/panel-navigation.service';
 import { FeedbackComposerSeedService } from '../feedback/feedback-composer-seed.service';
+import { FeedbackSpotService } from '../feedback/feedback-spot.service';
+import { draftScopes } from '../feedback/feedback-draft.types';
 import { AdminFeedbackComponent } from '../admin/feedback/admin-feedback.component';
 import { RoutineStatusDirective } from '../admin/feedback/routine-status.directive';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -40,7 +44,7 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (visible()) {
-      <div class="fab-root">
+      <div class="fab-root" #fabRoot>
         @if (mounted()) {
           <!-- “sc-sheet” (styles.scss): a docked corner window above 720px, a
                full-bleed sheet below it. On a 375px phone the docked panel was
@@ -332,6 +336,8 @@ export class FeedbackFabComponent {
   private readonly fabPrefs = inject(FeedbackFabPrefsService);
   private readonly panelNav = inject(PanelNavigationService);
   private readonly seeds = inject(FeedbackComposerSeedService);
+  private readonly spots = inject(FeedbackSpotService);
+  private readonly fabRoot = viewChild<ElementRef<HTMLElement>>('fabRoot');
 
   /**
    * Admin, and the launcher not switched off in Settings → Feedback. Hiding it
@@ -342,6 +348,12 @@ export class FeedbackFabComponent {
   readonly visible = computed(() => this.roles.isAdmin() && this.fabPrefs.show());
 
   constructor() {
+    // While the panel is open the page shows its reference spots (#243).
+    effect((onCleanup) => {
+      const el = this.isOpen() ? this.fabRoot()?.nativeElement : undefined;
+      this.spots.setPanel('admin', el ?? null, draftScopes.adminNew);
+      onCleanup(() => this.spots.setPanel('admin', null, draftScopes.adminNew));
+    });
     let seen = this.panelNav.navigations();
     effect(() => {
       const n = this.panelNav.navigations();

@@ -4,6 +4,28 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.152.0] - 2026-10-16
+
+### Added
+
+- **Feedback mit Bezug.** Ist das Feedback-Panel offen, zeigen die
+  Hauptbereiche der Seite (Überschrift, Codex-Schiffsseite in Klassisch und
+  Holotisch bis hin zu einzelnen Loadout-Gruppen) einen kleinen Bezug-Button.
+  Ein Klick setzt eine Zeile wie „Klassische Ansicht: Loadout Bewaffnung" als
+  erste Zeile in deinen Feedback-Text. Auf dem Handy, wo das Panel den ganzen
+  Bildschirm füllt, gibt es die Buttons nicht.
+
+## [0.151.0] - 2026-10-16
+
+### Changed
+
+- **Klassische Schiffsansicht: aufgeräumtes Schiffsbild.** Hersteller und Rolle
+  stehen jetzt oben links im Bild, direkt darüber der Schiffsname; das Bild
+  füllt die Karte ohne Lücken oben und unten. Alle Werte im Bild sehen gleich
+  aus (Bewaffnung nicht mehr blau hervorgehoben), ein Traktorturm heißt jetzt
+  „Traktorstrahl" statt ferngesteuerter Turm, und „3D" steht auf einer Höhe.
+  Der Hangar-Button sitzt über dem Bild statt darin.
+
 ## [0.150.0] - 2026-10-14
 
 ### Added
