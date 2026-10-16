@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, inject } from '@angular/core';
+import { Injectable, InjectionToken, NgZone, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
@@ -48,9 +48,17 @@ const defaultScheduler: SwapPreloadScheduler = (run, first) => {
   else idle();
 };
 
+/**
+ * Background work runs OUTSIDE the Angular zone: a preload is never a reason
+ * for the page (or a spec's `whenStable()`) to count as busy, and it triggers
+ * no change detection of its own — the cache is read when a picker opens.
+ */
 export const SWAP_PRELOAD_SCHEDULER = new InjectionToken<SwapPreloadScheduler>('SWAP_PRELOAD_SCHEDULER', {
   providedIn: 'root',
-  factory: () => defaultScheduler,
+  factory: () => {
+    const zone = inject(NgZone);
+    return (run, first) => zone.runOutsideAngular(() => defaultScheduler(run, first));
+  },
 });
 
 /**
