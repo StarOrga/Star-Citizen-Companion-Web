@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, NgZone, inject } from '@angular/core';
+import { Injectable, InjectionToken, Injector, NgZone, inject } from '@angular/core';
 import { SupabaseClientProvider } from '../core/supabase.client';
 import { logWarn } from '../core/log';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
@@ -92,9 +92,18 @@ const HYDRATE_CHUNK = 100;
  */
 @Injectable({ providedIn: 'root' })
 export class CodexSwapCandidatesService {
-  private readonly sb = inject(SupabaseClientProvider);
-  private readonly codex = inject(CodexService);
+  // Resolved on first use: every hardpoint layout holds this service, and a
+  // layout that never loads a list should not construct the data layer.
+  private readonly injector = inject(Injector);
+  private get sb(): SupabaseClientProvider {
+    return this.injector.get(SupabaseClientProvider);
+  }
+  private get codex(): CodexService {
+    return this.injector.get(CodexService);
+  }
   private readonly schedule = inject(SWAP_PRELOAD_SCHEDULER);
+  /** Views currently interested in preloading — see `retainPreload()`. */
+  private holders = 0;
 
   private buildId: string | null = null;
   private readonly cache = new Map<string, Promise<SwapSourceData>>();
@@ -150,6 +159,25 @@ export class CodexSwapCandidatesService {
       this.queue.push(q);
     }
     this.schedulePump();
+  }
+
+  /**
+   * A view that triggers preloads holds the queue open; once the last holder
+   * is gone (the ship page was left) everything not yet started is dropped.
+   * Returns the release function.
+   */
+  retainPreload(): () => void {
+    this.holders += 1;
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.holders -= 1;
+      if (this.holders <= 0) {
+        this.holders = 0;
+        this.cancelPreload();
+      }
+    };
   }
 
   /** Drop every queued (not yet started) preload — the host page is gone. */

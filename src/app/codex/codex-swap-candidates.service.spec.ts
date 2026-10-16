@@ -254,6 +254,26 @@ describe('CodexSwapCandidatesService', () => {
       expect(rpc.calls.length).toBe(2);
     });
 
+    it('keeps the queue while any view holds it and drops it after the last release', async () => {
+      rpc.mode = 'hold';
+      const releaseA = svc.retainPreload();
+      const releaseB = svc.retainPreload();
+      svc.preload(['A', 'B', 'C', 'D'].map((n) => q(n)));
+      await drain();
+      expect(rpc.calls.length).toBe(2);
+      releaseA();
+      releaseA(); // idempotent
+      rpc.pending.shift()!.resolve({ data: null, error: null, status: 200 });
+      await drain();
+      expect(rpc.calls.length).toBe(3);
+      releaseB();
+      while (rpc.pending.length > 0) {
+        rpc.pending.shift()!.resolve({ data: null, error: null, status: 200 });
+        await drain();
+      }
+      expect(rpc.calls.length).toBe(3);
+    });
+
     it('stops preloading once the RPC turns out to be missing', async () => {
       rpc.mode = 'missing';
       svc.preload(['A', 'B', 'C', 'D', 'E'].map((n) => q(n)));

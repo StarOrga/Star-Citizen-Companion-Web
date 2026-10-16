@@ -726,8 +726,6 @@ export class CodexSwapPickerComponent {
   }
 
   private async load(t: SwapTarget, token: number): Promise<void> {
-    // A cached (or preloaded) list answers synchronously enough that the
-    // loading line never flashes; only a real fetch shows it.
     this.loading.set(true);
     try {
       const installedName = t.className;
