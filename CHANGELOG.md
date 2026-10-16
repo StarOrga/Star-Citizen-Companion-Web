@@ -4,6 +4,30 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.154.0] - 2026-10-16
+
+### Added
+
+- **Gegenmaßnahmen-Infoblatt zeigt Signatur statt Schaden.** In der klassischen
+  Ansicht blendet das Infoblatt eines Köder- oder Störsignalwerfers die
+  Schadenswerte aus (Gegenmaßnahmen machen keinen Schaden; trägt eine Munition
+  je Schaden, erscheint er wieder). Stattdessen zeigt es die Signatur je
+  Auslösung (IR/EM/Querschnitt), Vorrat und Wirkdauer sowie je Kanal eine
+  Empfehlung, wie viele man zünden sollte, gemessen an der Signatur des Schiffs.
+  Werfer, die in den Spieldaten den Namen eines fremden Schiffs tragen (etwa
+  „Aegis Gladius – Decoy Launcher" auf der Nomad), heißen jetzt neutral
+  „Köderwerfer" bzw. „Störsignalwerfer".
+
+## [0.153.0] - 2026-10-16
+
+### Changed
+
+- **Klassische Ansicht: KPI-Zeile bleibt stehen, „Alles" klappt alles auf.**
+  Die Zeile mit Alpha-Schaden, Salve, DPS & Co. bleibt beim Scrollen unter der
+  Kopfzeile stehen (ab Tablet-Breite; auf dem Handy scrollt sie weiter mit, damit
+  sie nicht den halben Bildschirm belegt). Unter dem Einsatz „Alles" sind jetzt
+  alle Loadout-Blöcke samt Zelle, festen Systemen und Untergruppen aufgeklappt.
+
 ## [0.152.1] - 2026-10-16
 
 ### Fixed
