@@ -1040,6 +1040,22 @@ describe('CodexHardpointLayoutComponent', () => {
     expect(blocks).toEqual(['weapons', 'missiles', 'shields', 'systems']);
   });
 
+  it('opens every block, nested section and the airframe under the "Alles" lens (#240)', () => {
+    fixture.componentRef.setInput('expandAll', true);
+    const thruster = slot({ port: 'Hardpoint Thruster', className: 'T', kind: 'component', name: 'T' });
+    const el = render([...FOUR_BLOCK_SHIP, { section: 'structure', slots: [thruster] }]);
+    const all = Array.from(el.querySelectorAll<HTMLDetailsElement>('details.mod-sec, details.mod-sub'));
+    expect(all.length).toBeGreaterThan(5);
+    expect(all.every((d) => d.open)).toBeTrue();
+    expect(el.querySelector('.mod-sec[data-sec="structure"] .sec-rows')).toBeTruthy();
+
+    // Leaving "Alles" restores the default folds (airframe + nested systems).
+    fixture.componentRef.setInput('expandAll', false);
+    fixture.detectChanges();
+    expect((el.querySelector('.mod-sec[data-sec="structure"]') as HTMLDetailsElement).open).toBeFalse();
+    expect((el.querySelector('.mod-sub[data-sec="coolers"]') as HTMLDetailsElement).open).toBeFalse();
+  });
+
   it('keeps all five system sections as subgroups inside the merged block', () => {
     const el = render(FOUR_BLOCK_SHIP);
     const merged = el.querySelector('.mod-sec[data-sec="systems"]') as HTMLDetailsElement;

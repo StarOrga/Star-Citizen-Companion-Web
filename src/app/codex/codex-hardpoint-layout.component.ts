@@ -1087,6 +1087,13 @@ export class CodexHardpointLayoutComponent {
    * switch is a fresh read, not an accumulation of manual toggles.
    */
   readonly foldedSections = input<ReadonlySet<ShipModuleSection>>(new Set());
+  /**
+   * Start with EVERY block and every nested section open, the airframe
+   * included — the "Alles" lens (#240: *"Wenn man unter 'alles' ist beim
+   * Einsatz, bitte auch alles ausgeklappt lassen"*). Manual folds still work;
+   * like a mission switch, flipping this resets them.
+   */
+  readonly expandAll = input<boolean>(false);
   /** Occupants grouped by section, for the folded-preview chips (MASTER §6). */
   readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
 
@@ -1096,11 +1103,17 @@ export class CodexHardpointLayoutComponent {
     // airframe, which always starts folded — see FOLDABLE_SECTIONS above).
     effect(() => {
       const folded = this.foldedSections();
+      const expandAll = this.expandAll();
       untracked(() => {
-        const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
         const present = this.sections()
           .filter((s) => s.slots.length > 0)
           .map((s) => s.section);
+        if (expandAll) {
+          this.openGroups.set(new Set(present.map((sec) => shipModuleGroupOf(sec))));
+          this.openSections.set(new Set(present));
+          return;
+        }
+        const closedDefault = new Set<ShipModuleSection>([...FOLDABLE_SECTIONS, ...folded]);
         // Sections that end up NESTED inside a merged block start closed: the
         // block is the decision, a reactor is one level below it. Their fold
         // preview still names what is installed, so nothing is hidden.

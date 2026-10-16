@@ -567,6 +567,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
                 [sections]="primaryModuleSections()"
                 [sectionOrder]="moduleSectionOrder()"
                 [foldedSections]="foldedModuleSections()"
+              [expandAll]="expandAllModules()"
                 [occupantsBySection]="occupantsBySection()"
                 [locatablePorts]="locatablePorts()"
                 [activePorts]="activePorts()"
@@ -997,6 +998,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
               [sections]="tailModuleSections()"
               [sectionOrder]="moduleSectionOrder()"
               [foldedSections]="foldedModuleSections()"
+              [expandAll]="expandAllModules()"
               [occupantsBySection]="occupantsBySection()"
               [locatablePorts]="locatablePorts()"
               [activePorts]="activePorts()"
@@ -3286,6 +3288,8 @@ export class CodexDetailComponent implements OnInit {
   readonly foldedModuleSections = computed(() => foldedSectionsFor(this.activeMission()));
   readonly moduleSectionOrder = computed(() => this.activeMission().order);
   readonly offensiveStartsCollapsed = computed(() => this.foldedModuleSections().has('weapons'));
+  /** The "Alles" lens is about everything, so it opens everything (#240). */
+  readonly expandAllModules = computed(() => this.activeMissionId() === 'all');
 
   /** Schiff panel — flight/mass/systems/signature/hull, grouped, gaps honoured (buildShipFactGroups). */
   readonly shipFactGroups = computed<ShipFactGroup[]>(() => {

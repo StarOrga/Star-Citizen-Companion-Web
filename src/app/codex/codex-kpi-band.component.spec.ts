@@ -35,6 +35,15 @@ describe('CodexKpiBandComponent', () => {
     fixture.detectChanges();
   });
 
+  // #240: the inner grid used to be the sticky box, but its parent is the
+  // host — exactly as tall as the band — so it never moved. The HOST sticks.
+  // Karma renders at ~749px, i.e. the tablet branch, where it must stick.
+  it('sticks as a whole (the host), not via the inner grid', () => {
+    const host: HTMLElement = fixture.nativeElement;
+    if (window.innerWidth > 720) expect(getComputedStyle(host).position).toBe('sticky');
+    expect(getComputedStyle(host.querySelector('.kpi-band')!).position).toBe('static');
+  });
+
   it('renders exactly six cells', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.kpi-cell').length).toBe(6);
