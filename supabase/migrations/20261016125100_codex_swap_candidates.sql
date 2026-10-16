@@ -22,7 +22,8 @@
 --   keys the picker never reads (the row's name and maker come from the
 --   promoted columns). Everything the stat columns read stays: `stats`,
 --   `weaponParams`, `itemPorts` (rack capacity), `attachType`, `subType`, ...;
---   on the ammo payload `raw` stays (penetration, countermeasure params).
+--   the ammo payload keeps only `raw.projectileParams` + `raw.lifetime` of its
+--   bulky `raw` block (damage fallback, penetration, countermeasure params).
 --   The client builds the rows with the same `buildSwapCandidate()` either way.
 --
 -- TOAST
@@ -166,14 +167,34 @@ as $func$
            coalesce(nullif(btrim(r.payload -> 'weaponParams' ->> 'ammoClassName'), ''),
                     r.class_name || '_AMMO') as ammo_cn
       from rows_out r
+  ),
+  -- One read (and one detoast) per round, however many rows share it.
+  ammo as materialized (
+    select a.class_name,
+           a.payload - array['description', 'manufacturer', 'name', 'source'] as p
+      from public.codex_ammunition a
+     where a.build_id = p_build_id
+       and a.class_name in (select distinct w.ammo_cn from with_ammo w)
+  ),
+  -- `raw` is the bulk of an ammo payload (sounds, physics, light pool ...);
+  -- the picker reads only raw.projectileParams and raw.lifetime off it.
+  ammo_lean as (
+    select a.class_name,
+           case when jsonb_typeof(a.p -> 'raw') = 'object' then
+             a.p || jsonb_build_object('raw', coalesce(
+               (select jsonb_object_agg(e.key, e.value)
+                  from jsonb_each(a.p -> 'raw') e
+                 where e.key in ('projectileParams', 'lifetime')),
+               '{}'::jsonb))
+           else a.p end as payload
+      from ammo a
   )
   select r.role, r.kind, r.class_name, r.name_localized, r.manufacturer_code,
          r.size, r.sub_type, r.grade, r.payload,
-         case when a.class_name is not null then r.ammo_cn end,
-         a.payload - array['description', 'manufacturer', 'name', 'source']
+         case when a.class_name is not null then r.ammo_cn end as ammo_class_name,
+         a.payload as ammo_payload
     from with_ammo r
-    left join public.codex_ammunition a
-      on a.build_id = p_build_id and a.class_name = r.ammo_cn
+    left join ammo_lean a on a.class_name = r.ammo_cn
    order by (r.role = 'candidate'), r.kind, r.size nulls last, r.name_localized nulls last, r.class_name;
 $func$;
 

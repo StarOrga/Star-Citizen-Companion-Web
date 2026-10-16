@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideTranslateService } from '@ngx-translate/core';
 import { CodexSwapPickerComponent, SwapTarget } from './codex-swap-picker.component';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
+import { SupabaseClientProvider } from '../core/supabase.client';
 
 // A failed candidate load used to leave the picker on a red sentence with no
 // way forward but closing it (Codex UX audit 2026-10-02, AUD-S18). CLAUDE.md:
@@ -29,6 +30,9 @@ const TARGET: SwapTarget = {
 
 class FlakyService {
   calls = 0;
+  async loadCurrentBuild(): Promise<{ id: string }> {
+    return { id: 'build-1' };
+  }
   async getCompatibleItems(): Promise<CompatibleItem[]> {
     this.calls++;
     if (this.calls === 1) throw new Error('network down');
@@ -47,7 +51,13 @@ describe('CodexSwapPickerComponent — load failure', () => {
     const svc = new FlakyService();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: svc }],
+      providers: [provideTranslateService({}), { provide: CodexService, useValue: svc },
+        // No codex_swap_candidates RPC yet → the chained fallback load.
+        {
+          provide: SupabaseClientProvider,
+          useValue: { client: { rpc: async () => ({ data: null, error: { code: 'PGRST202' }, status: 404 }) } },
+        },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(CodexSwapPickerComponent);
     const el = fixture.nativeElement as HTMLElement;

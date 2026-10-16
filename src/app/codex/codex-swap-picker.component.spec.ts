@@ -5,6 +5,7 @@ import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-pic
 import { CodexKind, CodexService, CompatibleItem, PortQuery } from './codex.service';
 import { SwapCandidate } from './swap-table';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
+import { SupabaseClientProvider } from '../core/supabase.client';
 
 // The picker is the answer to admin request 461288f9, redesigned per MASTER
 // §9 (iteration 7 `#g3` window + iteration 8 `#h3` values): a centred window
@@ -12,6 +13,21 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 // baseline switch and a column chooser. These tests drive the real component
 // against a stubbed service — they guard the WIRING, not the pure maths
 // (that lives in swap-table.spec.ts / swap-table-picker.spec.ts).
+
+/**
+ * The picker loads through CodexSwapCandidatesService (#244). These specs run
+ * it against a database WITHOUT the codex_swap_candidates RPC (PostgREST
+ * PGRST202), so they also guard the fallback to the chained load.
+ */
+const MISSING_SWAP_RPC = {
+  provide: SupabaseClientProvider,
+  useValue: { client: { rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'not found' }, status: 404 }) } },
+};
+
+function withBuild<T extends object>(stub: T): T {
+  (stub as { loadCurrentBuild?: () => Promise<{ id: string }> }).loadCurrentBuild = async () => ({ id: 'build-1' });
+  return stub;
+}
 
 const INSTALLED = 'KLWE_LaserRepeater_S3';
 const FACTORY = 'AMRS_LaserCannon_S3';
@@ -131,7 +147,7 @@ describe('CodexSwapPickerComponent', () => {
     svc = new ServiceStub();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: svc }],
+      providers: [provideTranslateService({}), { provide: CodexService, useValue: withBuild(svc) }, MISSING_SWAP_RPC],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexSwapPickerComponent);
   });
@@ -621,7 +637,7 @@ describe('CodexSwapPickerComponent — part-type filter (E-main-gap #40, MEDIUM-
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       imports: [CodexSwapPickerComponent],
-      providers: [provideTranslateService({}), { provide: CodexService, useValue: stub }],
+      providers: [provideTranslateService({}), { provide: CodexService, useValue: withBuild(stub) }, MISSING_SWAP_RPC],
     }).compileComponents();
     fixture = TestBed.createComponent(CodexSwapPickerComponent);
   }

@@ -198,6 +198,7 @@ import {
   ComponentInspectEntry,
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
+import { CodexSwapCandidatesService, swapPreloadQueries } from './codex-swap-candidates.service';
 import { CodexWeaponDetailComponent, WeaponDetailEntry } from './codex-weapon-detail.component';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
@@ -1349,6 +1350,7 @@ export class CodexDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly swapSource = inject(CodexSwapCandidatesService);
   private readonly t = inject(TranslateService);
   private readonly hangar = inject(HangarService);
   // RSI ship-matrix artwork — the hero's primary art source for ships.
@@ -1922,6 +1924,16 @@ export class CodexDetailComponent implements OnInit {
   private readonly lang = signal<Lang>(toLang(this.t.getCurrentLang() || this.t.getFallbackLang()));
 
   constructor() {
+    // Warm the swap picker's lists for every fitted, swappable slot once the
+    // loadout is on screen (#244): throttled, idle-time, deduplicated and
+    // cached per build by the service, so a click on a module card usually
+    // finds its list ready and a second opening always does.
+    effect(() => {
+      const queries = swapPreloadQueries([...this.primaryModuleSections(), ...this.tailModuleSections()]);
+      if (queries.length > 0) untracked(() => this.swapSource.preload(queries));
+    });
+    this.destroyRef.onDestroy(() => this.swapSource.cancelPreload());
+
     this.draftStore.connect({
       detail: this.detail,
       loadoutEntities: this.loadoutEntities,

@@ -43,7 +43,7 @@ describe('deadline', () => {
     it('keeps the read-only RPC list at its checked size', () => {
       // A change here means an RPC was added or removed — re-check that it
       // is stable / writes nothing (see the doc comment on READ_RPCS).
-      expect(READ_RPCS.size).toBe(23);
+      expect(READ_RPCS.size).toBe(24);
       expect(READ_RPCS.has('hangar_follow_snapshot')).toBeFalse();
     });
   });

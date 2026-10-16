@@ -27,6 +27,7 @@ export const READ_TIMEOUT_MS = 20_000;
 export const READ_RPCS: ReadonlySet<string> = new Set([
   'codex_facet_values',
   'codex_compatible_items',
+  'codex_swap_candidates',
   'codex_armor_rating',
   'get_shared_loadout',
   'peek_shared_loadout',
