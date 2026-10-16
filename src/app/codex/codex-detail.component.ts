@@ -198,7 +198,8 @@ import {
   ComponentInspectEntry,
 } from './codex-component-modal.component';
 import { CodexSwapPickerComponent, SwapPick, SwapTarget } from './codex-swap-picker.component';
-import { CodexWeaponDetailComponent, WeaponDetailEntry } from './codex-weapon-detail.component';
+import { CodexWeaponDetailComponent, ShipSignature, WeaponDetailEntry } from './codex-weapon-detail.component';
+import { borrowedCountermeasureNameKey } from './codex-countermeasure';
 import { ShipHardpointMapComponent } from './ship-hardpoint-map.component';
 import {
   HardpointFrame,
@@ -968,7 +969,7 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
            its fixed-position backdrop sits above everything on the page. -->
       <sc-codex-component-modal [entry]="inspected()" (closed)="closeInspect()" />
       <sc-codex-swap-picker [target]="swapTarget()" (closed)="swapTarget.set(null)" (picked)="onSwapPicked($event)" />
-      <sc-codex-weapon-detail [entry]="weaponDetail()" (closed)="closeWeaponDetail()" />
+      <sc-codex-weapon-detail [entry]="weaponDetail()" [shipSignature]="shipSignature()" (closed)="closeWeaponDetail()" />
 
       <!-- Shared by the classic view and the Holotable drawer, which renders
            them into its projected details (same view, so these rules stay
@@ -3008,6 +3009,15 @@ export class CodexDetailComponent implements OnInit {
    * once (or on ships too old to compute one, R3/MASTER §8a). */
   readonly powerSheet = signal<PowerSheet | null>(null);
 
+  /** The ship's IR / EM / cross-section under the dock's current allocation —
+   * what a countermeasure has to outshine (#242). Cross-section falls back to
+   * the hull value while the dock has not run yet. */
+  readonly shipSignature = computed<ShipSignature>(() => {
+    const facts = this.powerSheet()?.facts ?? [];
+    const fact = (key: string): number | null => facts.find((f) => f.key === key)?.value ?? null;
+    return { ir: fact('ir'), em: fact('em'), crossSection: fact('crossSection') ?? this.crossSectionMax() };
+  });
+
   /** The six KPI-band cells for the active mission, stock vs. current draft,
    * with the dock's live effects applied (MASTER §4/§12). */
   readonly kpiCells = computed<KpiStripCell[]>(() => {
@@ -3761,13 +3771,20 @@ export class CodexDetailComponent implements OnInit {
     if (!d || d.kind !== 'ship') return [];
     const entries: LoadoutEntry[] = (d.payload as ShipPayload | undefined)?.defaultLoadout ?? [];
     const resolved = this.loadoutEntities();
+    this.lang();
     return entries.map((e) => {
       const r = e.entityClassName ? resolved.get(e.entityClassName) : undefined;
+      // A countermeasure launcher whose name CIG borrowed from another ship's
+      // launcher (the Nomad's reads "Aegis Gladius - Decoy Launcher") shows a
+      // neutral one instead — the part is this ship's own (#242).
+      const borrowedKey = borrowedCountermeasureNameKey(e.entityClassName, r?.name);
       return {
         port: e.itemPortName || '—',
         className: e.entityClassName,
         kind: r?.kind ?? null,
-        name: cleanLocaleValue(r?.nameLocalized) || e.entityClassName,
+        name: borrowedKey
+          ? (this.t.instant(borrowedKey) as string)
+          : cleanLocaleValue(r?.nameLocalized) || e.entityClassName,
         size: r?.size ?? null,
         grade: r?.grade ?? null,
         manufacturerCode: r?.manufacturerCode ?? null,

@@ -532,7 +532,10 @@
         "physical": "Physical",
         "attachments": "Attachments",
         "aiming": "Aim assist",
-        "missing": "Not present"
+        "missing": "Not present",
+        "cmDecoy": "Decoy per launch",
+        "cmNoise": "Noise per launch",
+        "cmRecommend": "Recommendation for this ship"
       },
       "row": {
         "physical": "Physical",
@@ -567,7 +570,20 @@
         "spread": "Spread",
         "recoil": "Recoil",
         "magazine": "Magazine",
-        "overheat": "Overheat"
+        "overheat": "Overheat",
+        "cmCapacity": "Supply",
+        "cmIr": "IR signature",
+        "cmEm": "EM signature",
+        "cmCs": "Cross-section signature",
+        "cmRadius": "Cloud radius",
+        "cmCloudLifetime": "Cloud duration",
+        "cmLifetime": "Active time",
+        "shipIr": "Ship: IR",
+        "shipEm": "Ship: EM",
+        "shipCs": "Ship: cross-section",
+        "cmNeedIr": "Recommended vs IR",
+        "cmNeedEm": "Recommended vs EM",
+        "cmNeedCs": "Recommended vs cross-section"
       },
       "src": {
         "damage": "AmmoParams.impactDamage",
@@ -578,13 +594,23 @@
         "physical": "SAttachableComponentParams.AttachDef",
         "attachments": "SItemPortContainerComponentParams — overclock and barrel modules hang here",
         "aiming": "SCItemAimableComponentParams",
-        "missing": "overclock modifiers only, all of them 1.0"
+        "missing": "overclock modifiers only, all of them 1.0",
+        "countermeasure": "AmmoParams.projectileParams.typeParams · weaponParams.ammoCapacity",
+        "cmRecommend": "Rule of thumb: ship signature ÷ signature per launch, rounded down + 1 — only then do the launches clearly outshine the ship. Ship values follow the current power setup."
       },
       "value": {
         "none": "0 = none",
         "empty": "empty",
         "dash": "—",
-        "magazineEnergy": "— on energy weapons"
+        "magazineEnergy": "— on energy weapons",
+        "noData": "not in the data",
+        "cmCount": "≈ {{n}}×"
+      }
+    },
+    "countermeasure": {
+      "name": {
+        "decoy": "Decoy launcher",
+        "noise": "Noise launcher"
       }
     },
     "componentKind": {

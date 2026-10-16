@@ -12,12 +12,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TranslateService, TranslatePipe } from '@ngx-translate/core';
 import {
   alphaDamage,
+  countermeasureStats,
   damageChannelsOf,
   formatEquippedStat,
   impactDamageChannels,
   penetrationDistance,
   projectileRange,
 } from './codex-equipped-stats';
+import { countermeasureKind, decoysToOutshine, isCountermeasureLauncher } from './codex-countermeasure';
 import { toFiniteNumber } from '../hangar/loadout-stats';
 import { swapAimStats, swapResourceStats } from './swap-table';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
@@ -33,6 +35,17 @@ export interface WeaponDetailEntry {
   payload: unknown;
   /** Matching `<class>_AMMO` projectile payload, when one exists. */
   ammoPayload?: unknown;
+}
+
+/**
+ * The ship's own signature under its current power setup (the energy dock's
+ * IR / EM / cross-section facts) — what a countermeasure's round has to
+ * outshine. Each `null` when the build carries no value for it.
+ */
+export interface ShipSignature {
+  ir: number | null;
+  em: number | null;
+  crossSection: number | null;
 }
 
 interface DetailRow {
@@ -147,6 +160,8 @@ function num(v: number | null, format: 'int' | 'dec' | 'perSec' | 'seconds' | 'm
 })
 export class CodexWeaponDetailComponent {
   readonly entry = input<WeaponDetailEntry | null>(null);
+  /** The ship's signature, for the countermeasure recommendation (#242). */
+  readonly shipSignature = input<ShipSignature | null>(null);
   readonly closed = output<void>();
 
   private readonly i18n = inject(TranslateService);
@@ -265,6 +280,28 @@ export class CodexWeaponDetailComponent {
       { labelKey: 'codex.weaponDetail.row.overheat', value: null },
     ];
 
+    // A countermeasure launcher throws signature, not damage (#242): its
+    // damage / derived cards are all dashes, and the "missing" card lists
+    // gun-only gaps. They step aside for the round's signature and the count
+    // needed against this ship — and come back on their own the day a
+    // launcher's round carries real damage.
+    if (isCountermeasureLauncher(payload)) {
+      const hasDamage = dealt.size > 0;
+      return [
+        ...(hasDamage
+          ? [{ titleKey: 'codex.weaponDetail.card.damageChannels', srcKey: 'codex.weaponDetail.src.damage', rows: damageChannels }]
+          : []),
+        ...this.countermeasureCards(e.className, payload, ammo),
+        { titleKey: 'codex.weaponDetail.card.fireBallistics', srcKey: 'codex.weaponDetail.src.fire', rows: fireBallistics },
+        ...(hasDamage
+          ? [{ titleKey: 'codex.weaponDetail.card.derived', srcKey: 'codex.weaponDetail.src.derived', rows: derived }]
+          : []),
+        { titleKey: 'codex.weaponDetail.card.powerSignature', srcKey: 'codex.weaponDetail.src.power', rows: powerSignature },
+        { titleKey: 'codex.weaponDetail.card.durability', srcKey: 'codex.weaponDetail.src.durability', rows: durability },
+        { titleKey: 'codex.weaponDetail.card.physical', srcKey: 'codex.weaponDetail.src.physical', rows: physical },
+      ];
+    }
+
     return [
       { titleKey: 'codex.weaponDetail.card.damageChannels', srcKey: 'codex.weaponDetail.src.damage', rows: damageChannels },
       { titleKey: 'codex.weaponDetail.card.fireBallistics', srcKey: 'codex.weaponDetail.src.fire', rows: fireBallistics },
@@ -277,6 +314,62 @@ export class CodexWeaponDetailComponent {
       { titleKey: 'codex.weaponDetail.card.missing', srcKey: 'codex.weaponDetail.src.missing', rows: missing, miss: true },
     ];
   });
+
+  /**
+   * The two countermeasure cards (#242): what one round puts into the sky
+   * (read through `countermeasureStats`, the same helper the hardpoint row
+   * uses), then how many of them it takes to outshine THIS ship on each
+   * signature channel. A value the extract does not carry says so in words —
+   * nothing is estimated.
+   */
+  private countermeasureCards(className: string, payload: unknown, ammo: unknown): DetailCard[] {
+    const noData = this.i18n.instant('codex.weaponDetail.value.noData') as string;
+    const stats = new Map(countermeasureStats(ammo ?? null, payload).map((s) => [s.labelKey, s]));
+    const val = (key: string): string =>
+      stats.has(key) ? formatEquippedStat(stats.get(key)!) : noData;
+    const round: DetailRow[] = [
+      { labelKey: 'codex.weaponDetail.row.cmCapacity', value: val('codex.equipped.cmCapacity') },
+      { labelKey: 'codex.weaponDetail.row.cmIr', value: val('codex.equipped.cmInfrared') },
+      { labelKey: 'codex.weaponDetail.row.cmEm', value: val('codex.equipped.cmElectromagnetic') },
+      { labelKey: 'codex.weaponDetail.row.cmCs', value: val('codex.equipped.cmCrossSection') },
+    ];
+    // Only a noise round builds a cloud — a decoy has no radius to miss.
+    if (stats.has('codex.equipped.cmRadius')) {
+      round.push({ labelKey: 'codex.weaponDetail.row.cmRadius', value: val('codex.equipped.cmRadius') });
+    }
+    if (stats.has('codex.equipped.cmCloudLifetime')) {
+      round.push({ labelKey: 'codex.weaponDetail.row.cmCloudLifetime', value: val('codex.equipped.cmCloudLifetime') });
+    }
+    round.push({ labelKey: 'codex.weaponDetail.row.cmLifetime', value: val('codex.equipped.cmLifetime') });
+
+    const ship = this.shipSignature();
+    const channels: { ship: number | null; roundKey: string; shipLabel: string; needLabel: string }[] = [
+      { ship: ship?.ir ?? null, roundKey: 'codex.equipped.cmInfrared', shipLabel: 'codex.weaponDetail.row.shipIr', needLabel: 'codex.weaponDetail.row.cmNeedIr' },
+      { ship: ship?.em ?? null, roundKey: 'codex.equipped.cmElectromagnetic', shipLabel: 'codex.weaponDetail.row.shipEm', needLabel: 'codex.weaponDetail.row.cmNeedEm' },
+      { ship: ship?.crossSection ?? null, roundKey: 'codex.equipped.cmCrossSection', shipLabel: 'codex.weaponDetail.row.shipCs', needLabel: 'codex.weaponDetail.row.cmNeedCs' },
+    ];
+    const recommend: DetailRow[] = [];
+    for (const c of channels) {
+      const n = decoysToOutshine(c.ship, stats.get(c.roundKey)?.value ?? null);
+      recommend.push(
+        { labelKey: c.shipLabel, value: c.ship != null ? num(c.ship, 'int') : noData },
+        {
+          labelKey: c.needLabel,
+          value: n != null ? (this.i18n.instant('codex.weaponDetail.value.cmCount', { n }) as string) : noData,
+        },
+      );
+    }
+
+    const kind = countermeasureKind(className, ammo);
+    return [
+      {
+        titleKey: kind === 'noise' ? 'codex.weaponDetail.card.cmNoise' : 'codex.weaponDetail.card.cmDecoy',
+        srcKey: 'codex.weaponDetail.src.countermeasure',
+        rows: round,
+      },
+      { titleKey: 'codex.weaponDetail.card.cmRecommend', srcKey: 'codex.weaponDetail.src.cmRecommend', rows: recommend },
+    ];
+  }
 }
 
 function fmt(v: { value: number; format: string } | undefined): string | null {

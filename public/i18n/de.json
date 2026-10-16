@@ -532,7 +532,10 @@
         "physical": "Physisch",
         "attachments": "Anbauten",
         "aiming": "Zielhilfe",
-        "missing": "Nicht vorhanden"
+        "missing": "Nicht vorhanden",
+        "cmDecoy": "Köder je Auslösung",
+        "cmNoise": "Störsignal je Auslösung",
+        "cmRecommend": "Empfehlung für dieses Schiff"
       },
       "row": {
         "physical": "Physisch",
@@ -567,7 +570,20 @@
         "spread": "Streuung",
         "recoil": "Rückstoß",
         "magazine": "Magazin",
-        "overheat": "Überhitzung"
+        "overheat": "Überhitzung",
+        "cmCapacity": "Vorrat",
+        "cmIr": "IR-Signatur",
+        "cmEm": "EM-Signatur",
+        "cmCs": "Querschnitt-Signatur",
+        "cmRadius": "Wolkenradius",
+        "cmCloudLifetime": "Wolkenstandzeit",
+        "cmLifetime": "Wirkdauer",
+        "shipIr": "Schiff: IR",
+        "shipEm": "Schiff: EM",
+        "shipCs": "Schiff: Querschnitt",
+        "cmNeedIr": "Empfohlen gegen IR",
+        "cmNeedEm": "Empfohlen gegen EM",
+        "cmNeedCs": "Empfohlen gegen Querschnitt"
       },
       "src": {
         "damage": "AmmoParams.impactDamage",
@@ -578,13 +594,23 @@
         "physical": "SAttachableComponentParams.AttachDef",
         "attachments": "SItemPortContainerComponentParams — hier hängen Overclock- und Barrel-Module",
         "aiming": "SCItemAimableComponentParams",
-        "missing": "nur Overclock-Modifikatoren, ausnahmslos 1.0"
+        "missing": "nur Overclock-Modifikatoren, ausnahmslos 1.0",
+        "countermeasure": "AmmoParams.projectileParams.typeParams · weaponParams.ammoCapacity",
+        "cmRecommend": "Faustregel: Schiffssignatur ÷ Signatur je Auslösung, abgerundet + 1 — erst dann überstrahlen die Auslösungen das Schiff sicher. Schiffswerte aus der aktuellen Energie-Einstellung."
       },
       "value": {
         "none": "0 = keiner",
         "empty": "leer",
         "dash": "—",
-        "magazineEnergy": "— bei Energiewaffen"
+        "magazineEnergy": "— bei Energiewaffen",
+        "noData": "fehlt in den Daten",
+        "cmCount": "≈ {{n}}×"
+      }
+    },
+    "countermeasure": {
+      "name": {
+        "decoy": "Köderwerfer",
+        "noise": "Störsignalwerfer"
       }
     },
     "componentKind": {
