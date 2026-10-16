@@ -1,9 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   WritableSignal,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
@@ -40,6 +42,7 @@ import {
 import { displayItemName, formatNumber } from './codex-format';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { FeedbackSpotDirective } from '../feedback/feedback-spot.directive';
+import { CodexSwapCandidatesService, swapPreloadQueries } from './codex-swap-candidates.service';
 
 /**
  * A sub-slot the installed mount itself exposes: the gun port inside a VariPuck
@@ -1097,7 +1100,21 @@ export class CodexHardpointLayoutComponent {
   /** Occupants grouped by section, for the folded-preview chips (MASTER §6). */
   readonly occupantsBySection = input<ReadonlyMap<ShipModuleSection, readonly SummaryOccupant[]>>(new Map());
 
+  private readonly swapSource = inject(CodexSwapCandidatesService);
+
   constructor() {
+    // Warm the swap picker's lists for every fitted slot this view can swap,
+    // once the loadout is on screen (#244). Every host of this layout opens the
+    // picker from it. The service throttles (idle time, two at a time, outside
+    // the zone), deduplicates and caches per build, so a click on a module
+    // card usually finds its list ready and a second opening always does.
+    const release = this.swapSource.retainPreload();
+    inject(DestroyRef).onDestroy(release);
+    effect(() => {
+      const queries = swapPreloadQueries(this.sections());
+      if (queries.length > 0) untracked(() => this.swapSource.preload(queries));
+    });
+
     // A mission switch is a fresh read, not an accumulation of manual folds:
     // every block reopens except the ones the new lens folds (plus the
     // airframe, which always starts folded — see FOLDABLE_SECTIONS above).

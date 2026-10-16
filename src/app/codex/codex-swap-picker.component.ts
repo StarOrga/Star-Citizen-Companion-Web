@@ -21,6 +21,7 @@ import { ScColumnMenuComponent } from '../shared/column-menu.component';
 import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 import { CodexKind, CodexService, CompatibleItem } from './codex.service';
 import { ammoClassNameFor, ammoClassNamesFor, formatEquippedStat } from './codex-equipped-stats';
+import { CodexSwapCandidatesService } from './codex-swap-candidates.service';
 import {
   ColumnDef,
   ColumnFacet,
@@ -109,9 +110,6 @@ export interface SwapTarget {
   /** Raw (un-humanized) engine type strings the target's port declares. */
   rawTypes?: string[];
 }
-
-/** Supabase rejects very long `in.()` lists — hydrate payloads in batches. */
-const HYDRATE_CHUNK = 100;
 
 /** What "picked" emits — the HOST decides what to do with it. */
 export interface SwapPick {
@@ -631,6 +629,7 @@ function unitKeyFor(key: string, def: SwapValueDef): string | null {
 })
 export class CodexSwapPickerComponent {
   private readonly svc = inject(CodexService);
+  private readonly source = inject(CodexSwapCandidatesService);
   private readonly i18n = inject(TranslateService);
 
   /**
@@ -730,36 +729,47 @@ export class CodexSwapPickerComponent {
     this.loading.set(true);
     try {
       const installedName = t.className;
-      const seedNames = [installedName, t.factoryClassName].filter((n): n is string => !!n);
-      const seedPayloads = seedNames.length > 0 ? await this.svc.getEntityPayloads(seedNames) : null;
-      const installed = installedName ? seedPayloads?.get(installedName) : undefined;
+      // One call through codex_swap_candidates, cached per build and shared by
+      // identical hardpoints (#244) — see CodexSwapCandidatesService.
+      const data = await this.source.load({
+        installed: installedName,
+        types: t.attachTypes ?? [],
+        size: t.size,
+      });
+      if (token !== this.loadToken) return;
+      const installed = installedName ? data.payloads.get(installedName) : undefined;
       const attachType = (installed?.payload as { attachType?: string | null } | undefined)?.attachType;
-      const size =
-        t.size ?? ((installed?.payload as { size?: number | null } | undefined)?.size ?? null);
       const types = attachType ? [attachType] : (t.attachTypes ?? []).filter(Boolean);
-      if (token === this.loadToken) this.portTypes.set(types);
+      this.portTypes.set(types);
       if (types.length === 0) {
-        if (token === this.loadToken) this.candidates.set([]);
+        this.candidates.set([]);
         return;
       }
 
-      const items = await this.svc.getCompatibleItems({ types, minSize: size, maxSize: size });
-      const names = items.map((i) => i.classNameSlug);
-      for (const extra of seedNames) if (!names.includes(extra)) names.push(extra);
+      // The factory part is not part of the cache key (identical hardpoints
+      // share a list whatever they shipped with). It is nearly always in the
+      // list already; only when it is not is it fetched on its own.
+      let payloads = data.payloads;
+      let ammo = data.ammo;
+      const factory = t.factoryClassName;
+      if (factory && !payloads.has(factory)) {
+        const extra = await this.svc.getEntityPayloads([factory]);
+        const extraAmmo = await this.svc.getAmmoPayloads(
+          ammoClassNamesFor([factory], (cn) => extra.get(cn)?.payload),
+        );
+        if (token !== this.loadToken) return;
+        payloads = new Map([...payloads, ...extra]);
+        ammo = new Map([...ammo, ...extraAmmo]);
+      }
 
-      const payloads = await this.hydrate(names, (n) => this.svc.getEntityPayloads(n));
-      // The payload names the round (schema 6), so a launcher candidate lists
-      // ITS decoy's values — the convention only fills in for older builds.
-      const ammo = await this.hydrate(
-        ammoClassNamesFor(names, (cn) => payloads.get(cn)?.payload),
-        (n) => this.svc.getAmmoPayloads(n),
-      );
-
+      const items = data.items;
+      const seedNames = [installedName, factory].filter((n): n is string => !!n);
       const rows = items.map((it) =>
         this.toCandidate(it, payloads, ammo, it.classNameSlug === installedName),
       );
       for (const extra of seedNames) {
         if (items.some((i) => i.classNameSlug === extra)) continue;
+        if (rows.some((r) => r.className === extra)) continue;
         const hit = payloads.get(extra);
         if (!hit) continue;
         rows.unshift(
@@ -780,7 +790,6 @@ export class CodexSwapPickerComponent {
         );
       }
 
-      if (token !== this.loadToken) return;
       this.candidates.set(rows);
     } catch (error) {
       logWarn('codex', 'swap candidates failed', error);
@@ -809,18 +818,6 @@ export class CodexSwapPickerComponent {
       ammoPayload: ammo.get(ammoClassNameFor(it.classNameSlug, hit?.payload) ?? ''),
       equipped,
     });
-  }
-
-  private async hydrate<T>(
-    names: string[],
-    fetch: (chunk: string[]) => Promise<Map<string, T>>,
-  ): Promise<Map<string, T>> {
-    const out = new Map<string, T>();
-    for (let i = 0; i < names.length; i += HYDRATE_CHUNK) {
-      const part = await fetch(names.slice(i, i + HYDRATE_CHUNK));
-      for (const [k, v] of part) out.set(k, v);
-    }
-    return out;
   }
 
   // ── column chooser persistence ───────────────────────────────────────────
