@@ -16,6 +16,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './auth/auth.interceptor';
 import { provideCodexNumberLocale } from './codex/codex-number-locale';
 import { AppErrorHandler } from './core/app-error-handler';
+import { provideOverlayRouteScroll } from './core/overlay-route-scroll';
 import { provideNavOrigin } from './shared/page-header/nav-origin.service';
 
 export const appConfig: ApplicationConfig = {
@@ -29,8 +30,11 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
-      withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
+      // 'disabled' + provideOverlayRouteScroll(): top on every navigation
+      // except opening/closing a routed overlay (admin feedback #245).
+      withInMemoryScrolling({ scrollPositionRestoration: 'disabled', anchorScrolling: 'enabled' }),
     ),
+    provideOverlayRouteScroll(),
     provideAnimationsAsync(),
     // Keep a component's <style> in the document once it has been added, instead
     // of reference-counting it away when the last instance of that component is
