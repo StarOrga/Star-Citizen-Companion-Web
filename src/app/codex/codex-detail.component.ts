@@ -1109,6 +1109,9 @@ const PLACEHOLDER_ATTACH_TYPE = new Set(['undefined', 'unknown', 'none', 'other'
       background: linear-gradient(to top, color-mix(in srgb, var(--sc-bg-0) 94%, transparent) 0%,
         color-mix(in srgb, var(--sc-bg-0) 72%, transparent) 34%, transparent 68%); }
 
+    /* The hangar control directly ABOVE the stage (#239), left-aligned like the
+       page's other rows; the picker itself lays out in normal flow (docked). */
+    .stage-top { display: flex; align-items: center; gap: 6px; }
     /* The four frequent actions in their own row directly under the stage. */
     .stage-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     /* The one button on this page (concept section 2, part-02:159). Never the
