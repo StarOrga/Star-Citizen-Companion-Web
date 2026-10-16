@@ -4,6 +4,16 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.150.0] - 2026-10-14
+
+### Added
+
+- **Feedback merkt sich die Codex-Ansicht.** Schreibst du Feedback auf einer
+  Codex-Schiffsseite, zeigt der Bereichs-Chip jetzt „Codex · Holotisch" bzw.
+  „Codex · Klassisch" und folgt dem Umschalter, solange das Feld offen ist. Die
+  Ansicht wird mit dem Thema gespeichert und am Board sowie in deinem eigenen
+  Feedback-Panel wieder angezeigt.
+
 ## [0.149.0] - 2026-10-14
 
 ### Added

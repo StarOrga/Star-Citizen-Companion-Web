@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { ImpersonationService } from '../auth/impersonation.service';
 import type { ComposerPayload } from '../admin/feedback/feedback-composer.component';
 import { buildFeedbackBody, uploadFeedbackImages } from './feedback-images.util';
+import { withViewMarker } from './feedback-area.types';
 import {
   AuthorFeedbackMessage,
   AuthorFeedbackRow,
@@ -231,7 +232,8 @@ export class UserFeedbackService {
     let body: string;
     try {
       const urls = await uploadFeedbackImages(this.sb.client, uid, payload.images);
-      body = buildFeedbackBody(payload.text, payload.images, urls);
+      // The Codex view (admin feedback #241) rides as a body trailer — see withViewMarker.
+      body = withViewMarker(buildFeedbackBody(payload.text, payload.images, urls), payload.view);
     } catch {
       this._error.set('upload');
       return false;
@@ -275,7 +277,8 @@ export class UserFeedbackService {
     let body: string;
     try {
       const urls = await uploadFeedbackImages(this.sb.client, uid, payload.images);
-      body = buildFeedbackBody(payload.text, payload.images, urls);
+      // The Codex view (admin feedback #241) rides as a body trailer — see withViewMarker.
+      body = withViewMarker(buildFeedbackBody(payload.text, payload.images, urls), payload.view);
     } catch {
       this._error.set('upload');
       return false;

@@ -26,7 +26,15 @@ import { isPlainLeftClick } from '../core/modified-click.util';
 import { draftScopes, memoScope } from './feedback-draft.types';
 import { AuthorFeedbackRow } from './user-feedback.types';
 import { RouterLink } from '@angular/router';
-import { FeedbackArea, areaRoute, asFeedbackArea, feedbackAreaLabelKey } from './feedback-area.types';
+import {
+  FeedbackArea,
+  FeedbackAreaView,
+  areaRoute,
+  asFeedbackArea,
+  feedbackAreaLabelKey,
+  feedbackViewLabelKey,
+  splitViewMarker,
+} from './feedback-area.types';
 import { ScDatePipe } from '../core/locale/sc-date.pipe';
 
 /** Which half of the panel is on screen. */
@@ -160,7 +168,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                            everything filed before the tag existed, and shown as
                            nothing there rather than as a guessed section. -->
                       @if (areaOf(t); as a) {
-                        <span class="status-pill area">{{ areaLabelKey(a) | translate }}</span>
+                        <span class="status-pill area">{{ areaLabelKey(a) | translate }}@if (viewOf(t); as v) { · {{ viewLabelKey(v) | translate }}}</span>
                       }
                       <span class="status-pill" [class]="t.author_status">
                         {{ ('userFeedback.status.' + t.author_status) | translate }}
@@ -172,7 +180,7 @@ type UserFeedbackTab = 'compose' | 'mine';
                 @if (isOpen(t.id)) {
                   <div class="topic-detail">
                     <span class="ts">{{ t.created_at | scDate: 'datetime' }}</span>
-                    @let topicBody = render(t.body);
+                    @let topicBody = render(bodyText(t));
                     <div class="body" [innerHTML]="topicBody.html"></div>
                     <sc-feedback-attachments [images]="topicBody.images" />
 
@@ -555,7 +563,7 @@ export class UserFeedbackPanelComponent implements OnInit {
 
   /** One-line title derived from the body — the author never typed a subject. */
   title(t: AuthorFeedbackRow): string {
-    const text = (t.body ?? '')
+    const text = splitViewMarker(t.body).body
       .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
       .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
       .replace(/[*_`#>~]/g, '')
@@ -572,6 +580,20 @@ export class UserFeedbackPanelComponent implements OnInit {
   /** The area tag to render for a topic — null (i.e. nothing) when untagged. */
   areaOf(t: AuthorFeedbackRow): FeedbackArea | null {
     return asFeedbackArea(t.area);
+  }
+
+  /** The Codex view the topic was sent from (admin feedback #241), under the Codex tag only. */
+  viewOf(t: AuthorFeedbackRow): FeedbackAreaView | null {
+    return asFeedbackArea(t.area) === 'codex' ? splitViewMarker(t.body).view : null;
+  }
+
+  viewLabelKey(view: FeedbackAreaView): string {
+    return feedbackViewLabelKey(view);
+  }
+
+  /** The topic body as written — without the `[sc-view:…]` trailer. */
+  bodyText(t: AuthorFeedbackRow): string {
+    return splitViewMarker(t.body).body;
   }
 
   areaLabelKey(area: FeedbackArea): string {
