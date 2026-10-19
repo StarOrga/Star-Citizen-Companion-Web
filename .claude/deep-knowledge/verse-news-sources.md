@@ -287,3 +287,11 @@ the change above, not an alternative to it.
 - Edge function: `Cache-Control: public, max-age=300, s-maxage=900` — Supabase CDN caches for 15 min.
 - Angular service worker: data-group `verse-news` with `maxAge: 15m`, strategy `freshness` (try network, fall back to cache).
 - Result: a fresh page hit shows news within 15 min of the source publishing, even when offline.
+
+## Star Citizen events timeline: `sc-events-sync`
+
+SCC-Web owns the event timeline (`public.sc_events`). `sc-events-sync` (pg_cron, every 6 h at :17) matches
+Star Citizen Wiki comm-links against the known event families and upserts through the service-role-only
+`sc_events_upsert_scraped()` (never touches locked rows, never downgrades confirmed, never deletes). The desktop
+app reads `rpc/sc_events_feed` (authenticated only) and `sc_events_health()`. Migration `20261016120000` is
+older than `20261016125100`: on an environment that already applied the later one, `db push` needs `--include-all`.
