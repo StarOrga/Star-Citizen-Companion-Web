@@ -19,13 +19,20 @@ Thread-safety: one context per process, created lazily, used under a lock
 meshes on worker threads). Any failure — no moderngl, no driver, a context
 that cannot be made current — disables the GPU path for the rest of the
 process with its reason, and the caller falls back to the CPU rasteriser.
+
+GPU share: every GPU unit (one mask, one set of depth maps) is followed by
+the duty-cycle pause of `gpu_share.pace` (``SC_GPU_SHARE`` < 100), taken
+while the lock is still held so no other thread refills the gap.
 """
 from __future__ import annotations
 
 import threading
+import time
 from typing import Any, Dict, Optional
 
 import numpy as np
+
+from . import gpu_share
 
 _lock = threading.Lock()
 _ctx: Any = None
@@ -118,6 +125,7 @@ def rasterize(px: np.ndarray, width: int, height: int) -> np.ndarray:
             raise RuntimeError("GPU rasteriser unavailable")
         if px.shape[0] == 0:
             return np.zeros((height, width), dtype=bool)
+        t0 = time.perf_counter()
         with ctx:  # make current on THIS thread
             vbo = ctx.buffer(np.ascontiguousarray(px, dtype="f4").tobytes())
             rbo = ctx.renderbuffer((width, height), components=1, dtype="f1")
@@ -134,6 +142,8 @@ def rasterize(px: np.ndarray, width: int, height: int) -> np.ndarray:
             finally:
                 for obj in (vao, fbo, rbo, vbo):
                     obj.release()
+        # The read-back synchronised the GPU, so t covers the real work.
+        gpu_share.pace(time.perf_counter() - t0)
     return np.frombuffer(raw, dtype=np.uint8).reshape(height, width) > 0
 
 
@@ -186,6 +196,7 @@ def splat_depth_maps(pts: np.ndarray, center: np.ndarray, views, pix: float,
         ctx = _ctx
         if ctx is None:
             raise RuntimeError("GPU unavailable")
+        t0 = time.perf_counter()
         with ctx:
             if _splat_prog is None:
                 _splat_prog = ctx.program(vertex_shader=_SPLAT_VERT, fragment_shader=_SPLAT_FRAG)
@@ -222,4 +233,5 @@ def splat_depth_maps(pts: np.ndarray, center: np.ndarray, views, pix: float,
                 ctx.disable(ctx.BLEND)
                 for obj in (vao, fbo, rbo, vbo):
                     obj.release()
+        gpu_share.pace(time.perf_counter() - t0)
     return out

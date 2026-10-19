@@ -258,7 +258,11 @@ export const api = {
      */
     detectDisk: (path: string, workPath?: string): Promise<ResourceView> =>
       ipcRenderer.invoke('sc:resources:detectDisk', path, workPath),
-    /** Persisted "use GPU" switch; the view comes back with `gpu.enabled` updated. */
+    /**
+     * DEPRECATED compat shim — use `set({ gpuPct })`. On: a GPU limit of 0
+     * becomes the balanced share (80); off: `gpuPct` 0. `gpu.enabled` is
+     * derived from `limits.gpuPct > 0`.
+     */
     setUseGpu: (on: boolean): Promise<ResourceView> => ipcRenderer.invoke('sc:resources:setUseGpu', on),
     watch: (on: boolean): Promise<void> => ipcRenderer.invoke('sc:resources:watch', on),
     onChanged: (cb: (v: ResourceView) => void): (() => void) => {

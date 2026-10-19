@@ -75,10 +75,10 @@ describe('resource limits', () => {
   });
 
   it('hands the governor bytes and a background priority', () => {
-    const g = governorLimits({ cpuPct: 20, ramMb: 2048, readMBs: 10, writeMBs: 5, iops: 100 });
+    const g = governorLimits({ cpuPct: 20, ramMb: 2048, readMBs: 10, writeMBs: 5, iops: 100, gpuPct: 0 });
     expect(g.readBps).toBe(10 * 1024 * 1024);
     expect(g.priority).toBe('idle');
-    expect(governorLimits({ cpuPct: 60, ramMb: 2048, readMBs: 10, writeMBs: 5, iops: 100 }).priority).toBe('below_normal');
+    expect(governorLimits({ cpuPct: 60, ramMb: 2048, readMBs: 10, writeMBs: 5, iops: 100, gpuPct: 0 }).priority).toBe('below_normal');
   });
 
   it('maps legacy speed profiles and disk types', () => {

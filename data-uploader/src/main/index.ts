@@ -530,6 +530,7 @@ ipcMain.handle('sc:resources:preset', (_e, id: unknown) => resources.applyPreset
 ipcMain.handle('sc:resources:autoRunPreset', (_e, id: unknown) => resources.applyAutoRunPreset(id));
 ipcMain.handle('sc:resources:restoreOperator', () => resources.restoreOperatorLimits());
 ipcMain.handle('sc:resources:detectDisk', (_e, path: unknown, workPath?: unknown) => resources.detectDisk(path, workPath));
+// Compat shim: the GPU limit `gpuPct` (sc:resources:set) replaced the switch.
 ipcMain.handle('sc:resources:setUseGpu', (_e, on: unknown) => resources.setUseGpu(on));
 ipcMain.handle('sc:resources:watch', (_e, on: unknown) => resources.watch(on === true));
 
@@ -1292,8 +1293,8 @@ app.whenReady().then(() => {
     stored: getSettings().resourceLimits,
     legacyProfile: getSettings().speedProfile,
     persist: (stored) => patchSettings({ resourceLimits: stored }),
+    // Legacy switch, read once to migrate a custom mix onto the GPU limit `gpuPct`.
     useGpu: getSettings().useGpu,
-    persistUseGpu: (on) => patchSettings({ useGpu: on }),
   });
   Menu.setApplicationMenu(null); // Belt-and-suspenders alongside per-window setMenu(null)
   createWindow();
