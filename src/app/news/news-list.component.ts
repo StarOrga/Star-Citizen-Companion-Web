@@ -33,6 +33,8 @@ import { ScTooltipDirective } from '../shared/tooltip/sc-tooltip.directive';
 
 /** How many stream tiles the first serving holds, and how many each "more" adds. */
 const STREAM_PAGE = 12;
+/** How long the share button says "Link copied" / "Couldn't copy link" (same as Starscape). */
+const SHARE_HINT_MS = 2600;
 
 /**
  * Angular's HTML sanitizer removes <svg> from an [innerHTML] binding outright —
@@ -84,6 +86,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="news-page">
+      <p class="sc-sr-only" role="status" aria-live="polite">{{ (shareHint()?.key ?? '') | translate }}</p>
       <!-- ══ 1 · THE STAGE ══════════════════════════════════════════════════
            Full-bleed artwork, an overline, a headline and one action. No page
            title above it: the stage's own headline IS the page's opening line,
@@ -147,7 +150,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
               <button type="button" class="act share"
                       (click)="share($event, item)">
                 <span class="ic" [innerHTML]="shareIcon()"></span>
-                <span class="lbl">{{ 'news.share.label' | translate }}</span>
+                <span class="lbl">{{ shareLabel(item) | translate }}</span>
               </button>
             </p>
           </div>
@@ -291,10 +294,10 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                         <span class="lbl">{{ favLabel(item) | translate }}</span>
                       </button>
                       <button type="button" class="act share icon-only"
-                              [scTooltip]="'news.share.label' | translate" scTooltipTier="label"
+                              [scTooltip]="shareLabel(item) | translate" scTooltipTier="label"
                               (click)="share($event, item)">
                         <span class="ic" [innerHTML]="shareIcon()"></span>
-                        <span class="lbl">{{ 'news.share.label' | translate }}</span>
+                        <span class="lbl">{{ shareLabel(item) | translate }}</span>
                       </button>
                       <a class="act ext" [href]="item.url" target="_blank" rel="noopener noreferrer"
                          (click)="$event.stopPropagation()"
@@ -366,7 +369,7 @@ const SAFE_SVG = new Map<string, SafeHtml>();
                 </button>
                 <button type="button" class="sc-btn" (click)="share($event, item)">
                   <span class="ic" [innerHTML]="shareIcon()"></span>
-                  {{ 'news.share.label' | translate }}
+                  {{ shareLabel(item) | translate }}
                 </button>
                 <a class="sc-btn primary" [href]="item.url" target="_blank" rel="noopener noreferrer">
                   {{ 'news.openExternal' | translate:{ host: hostOf(item.url) } }} ↗
@@ -901,6 +904,10 @@ export class NewsListComponent implements OnInit, OnDestroy {
   private readonly clock = signal(Date.now());
   private clockTimer: ReturnType<typeof setInterval> | null = null;
 
+  /** Which item's share button currently reports a clipboard result, and with which key. */
+  readonly shareHint = signal<{ id: string; key: string } | null>(null);
+  private shareHintTimer: ReturnType<typeof setTimeout> | null = null;
+
   readonly stage = this.svc.stage;
   readonly stream = this.svc.stream;
   readonly streamTotal = computed(() => this.stream().length);
@@ -1073,6 +1080,7 @@ export class NewsListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.svc.stopPolling();
     if (this.clockTimer) clearInterval(this.clockTimer);
+    if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
     this.closeDetail();
   }
 
@@ -1117,15 +1125,38 @@ export class NewsListComponent implements OnInit, OnDestroy {
     ev.preventDefault();
     ev.stopPropagation();
     const url = item.url;
-    try {
-      if (navigator.share) {
+    if (navigator.share) {
+      try {
         await navigator.share({ title: item.title, url });
-      } else {
-        await navigator.clipboard.writeText(url);
+      } catch {
+        /* user dismissed the sheet — nothing to report */
       }
-    } catch {
-      /* user dismissed the sheet, or the clipboard is unavailable */
+      return;
     }
+    // No share sheet (desktop browsers): copy the link and say so on the
+    // button, otherwise the click looks like it did nothing (AUD-190).
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('no clipboard');
+      await navigator.clipboard.writeText(url);
+      this.flashShareHint(item.id, 'news.share.copied');
+    } catch {
+      this.flashShareHint(item.id, 'news.share.failed');
+    }
+  }
+
+  /** The share button's label: the clipboard result while it is showing, else "Share". */
+  shareLabel(item: VerseNewsItem): string {
+    const hint = this.shareHint();
+    return hint?.id === item.id ? hint.key : 'news.share.label';
+  }
+
+  private flashShareHint(id: string, key: string): void {
+    this.shareHint.set({ id, key });
+    if (this.shareHintTimer) clearTimeout(this.shareHintTimer);
+    this.shareHintTimer = setTimeout(() => {
+      this.shareHint.set(null);
+      this.shareHintTimer = null;
+    }, SHARE_HINT_MS);
   }
 
   isVideo(item: VerseNewsItem): boolean {
