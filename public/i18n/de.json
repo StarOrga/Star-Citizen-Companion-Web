@@ -66,9 +66,6 @@
       "sending": "Sende…",
       "resent": "Wenn es zu dieser Adresse ein Konto gibt, ist eine E-Mail mit einem neuen Link unterwegs."
     },
-    "signUp": "Konto erstellen",
-    "needAccount": "Noch kein Konto?",
-    "haveAccount": "Schon registriert?",
     "or": "oder",
     "continueGoogle": "Mit Google fortfahren",
     "continueDiscord": "Mit Discord fortfahren",
@@ -122,24 +119,18 @@
     }
   },
   "nav": {
-    "news": "Verse News",
     "codex": "Codex",
-    "p4k": "Bundle-Historie",
     "settings": "Einstellungen",
     "admin": "Benutzer",
-    "desktop": "Data Upload",
     "signOut": "Abmelden",
     "backToHome": "Zur Startseite",
     "skipToContent": "Zum Inhalt springen",
     "brandAria": "Star Citizen Companion (SCC) — zur Startseite (Verse News)",
     "phaseBadge": "Alpha",
-    "langAria": "Sprache",
     "accountMenu": "Konto-Menü",
     "adminOnly": "Nur Admin",
     "adminMenu": "Admin",
     "telemetry": "Telemetrie",
-    "feedback": "Feedback",
-    "signIn": "Anmelden",
     "starscape": "Starscape",
     "viewAs": {
       "title": "Ansehen als",
@@ -187,7 +178,6 @@
         "label": "Arsenal",
         "armor": "Rüstung",
         "weapons": "Waffen",
-        "blueprints": "Baupläne",
         "ships": "Schiffe",
         "components": "Komponenten"
       },
@@ -214,33 +204,12 @@
         "extracted": "Eingelesen {{date}}",
         "build": "Build „{{build}}“ (Platzhalter)"
       },
-      "surface": {
-        "expandBoard": "An Bord aufklappen",
-        "expandHangar": "Hangar aufklappen"
-      },
       "me": {
         "eyebrow": "An Bord",
         "uncommissioned": "Unkommissioniert"
       },
       "fleet": {
-        "eyebrow": "Im Hangar",
-        "title": "Meine Flotte",
-        "flagship": "Flaggschiff",
-        "empty": "Noch kein Schiff beansprucht.",
-        "cta": "Erstes Schiff beanspruchen",
-        "ctaGoal": "→ Flugbereit",
-        "open": "{{ship}} öffnen",
-        "compareHint": "Tipp: 2+ Schiffe anpinnen, um sie zu vergleichen.",
-        "laneTitle": "Flotte · {{count}} Schiffe",
-        "sortLabel": "Flotte sortieren",
-        "sortUnknown": "Ohne Angabe",
-        "sort": {
-          "manufacturer": "Hersteller",
-          "role": "Einsatzzweck",
-          "recent": "Zuletzt bearbeitet"
-        },
-        "emptyLead": "Der Hangar steht bereit — noch ohne Hülle darin.",
-        "emptyArt": "Leere Hangarbucht mit Andockring"
+        "empty": "Noch kein Schiff beansprucht."
       },
       "diff": {
         "scm": "SCM",
@@ -256,12 +225,6 @@
         "legs": "Beine",
         "undersuit": "Untersuit",
         "backpack": "Rucksack"
-      },
-      "configs": {
-        "otherRoles": "Andere gespeicherte Rollen-Loadouts",
-        "otherShip": "Andere Konfigurationen",
-        "active": "aktiv",
-        "openDetail": "Zur Detailseite „{{name}}“ →"
       },
       "board": {
         "archiveCount": "{{count}} im Arsenal",
@@ -286,11 +249,7 @@
       "title": "Codex — Index-Modus"
     },
     "upcoming": {
-      "title": "Kommende Schiffe",
       "subtitle": "Schiffe aus der RSI-Schiffsmatrix, die noch nicht in unseren dataminten Spieldaten stecken — die Differenz zwischen dem, was RSI listet, und dem, was der Live-Build enthält.",
-      "count": "{{count}} kommende",
-      "updated": "Aktualisiert {{time}}",
-      "diffHint": "{{rsi}} Schiffe bei RSI · {{game}} in den Spieldaten",
       "conceptTitle": "In Konzept",
       "conceptSub": "RSI baut diese noch — noch nicht fliegbar",
       "flightReadyTitle": "Bei RSI flugbereit",
@@ -357,7 +316,6 @@
       }
     },
     "upcomingDetail": {
-      "back": "Zurück zum Codex",
       "facts": "Aus der RSI-Schiffsmatrix",
       "fact": {
         "manufacturer": "Hersteller",
@@ -423,9 +381,7 @@
         "allInIndex": "Alle {{n}} im Index",
         "allUpcoming": "Alle {{n}} bei „Kommende Schiffe“",
         "folded": "{{n}} Varianten zusammengefasst",
-        "foldedOne": "1 Variante zusammengefasst",
         "foldedAtLeast": "mind. {{n}} Varianten zusammengefasst",
-        "foldedAtLeastOne": "mind. 1 Variante zusammengefasst",
         "grade": "Klasse {{grade}}",
         "livery": "Lackierung",
         "upcomingBadge": "Noch nicht im Spiel",
@@ -475,7 +431,6 @@
       "upcoming": "Angekündigt"
     },
     "filters": {
-      "title": "Filter",
       "manufacturer": "Hersteller",
       "size": "Größe",
       "grade": "Grade",
@@ -522,7 +477,6 @@
     "weaponDetail": {
       "intro": "Die 17 Spalten im Picker sind nicht alles. Hier steht, was eine Schiffswaffe im P4K wirklich mitbringt — gegliedert nach Herkunft, mit dem Struct daneben. Cyan = vorhanden, gold-gestrichelt = nicht in den Spieldateien.",
       "close": "Schließen",
-      "notInGameFiles": "nicht in den Spieldateien",
       "card": {
         "damageChannels": "Schaden je Kanal",
         "fireBallistics": "Feuer & Ballistik",
@@ -600,7 +554,6 @@
       },
       "value": {
         "none": "0 = keiner",
-        "empty": "leer",
         "dash": "—",
         "magazineEnergy": "— bei Energiewaffen",
         "noData": "fehlt in den Daten",
@@ -656,8 +609,7 @@
     },
     "editionPicker": {
       "label": "Variante",
-      "standard": "Standard",
-      "count": "{{count}} Varianten"
+      "standard": "Standard"
     },
     "holo": {
       "noGeometry": "Keine Silhouette",
@@ -679,10 +631,8 @@
         "silhouetteAria": "Silhouette von {{name}}",
         "noGeometryReason": "Für dieses Schiff liegt noch keine Silhouette vor.",
         "inspector": "Inspektor",
-        "ports": "Ports",
         "detailShow": "Detail ▾",
         "detailHide": "Detail ▴",
-        "density": "Kompakt",
         "allValues": "Alle Werte ▾",
         "allValuesHide": "Alle Werte ▴",
         "journal": "Änderungsprotokoll",
@@ -704,10 +654,6 @@
         "staticMass": "Masse",
         "staticCargo": "Laderaum",
         "profileNote": "{{profile}}-Profil",
-        "against": "gegen",
-        "cohortAll": "alle {{n}} Schiffe",
-        "cohortCareer": "{{n}} Schiffe der gleichen Karriere",
-        "cohortSizeClass": "{{n}} Schiffe der Größenklasse",
         "strengthsWeaknesses": "Stärken · Schwächen",
         "top3": "Top 3 · zuletzt gesehen & Hangar",
         "portsCount": "{{n}} Ports",
@@ -763,22 +709,6 @@
         "minimize": "Leiste minimieren",
         "restore": "Ganze Leiste einblenden"
       },
-      "hangar": {
-        "tab": "Hangar",
-        "signInHint": "Anmelden, um deinen Hangar zu sehen.",
-        "search": "Hangar durchsuchen",
-        "hall": "Hangar-Halle",
-        "hallTitle": "Hangar-Halle",
-        "close": "Schließen",
-        "noGeometry": "Keine Silhouette verfügbar",
-        "savedToday": "gespeichert heute",
-        "savedYesterday": "gespeichert gestern",
-        "savedOn": "gespeichert am {{date}}",
-        "managedBy": "verwaltet von {{owner}}",
-        "variants": "{{n}} Varianten",
-        "unassigned": "Ohne Rolle",
-        "empty": "Noch keine Schiffe im Hangar."
-      },
       "patch": {
         "trigger": {
           "idle": "{{active}}-{{channel}}",
@@ -823,7 +753,6 @@
       },
       "share": {
         "copyLink": "Link kopieren",
-        "copyLinkHotkeyHint": "Adresse dieser Ansicht in die Zwischenablage",
         "followedBy": "verwaltet von {{owner}}",
         "followedSince": "Stand {{date}}",
         "refresh": "Aktualisieren",
@@ -838,7 +767,6 @@
         "signInHint": "Melde dich an, um eine Hangar-Konfiguration als eigenen Link freizugeben.",
         "notInHangarHint": "Dieses Schiff liegt noch nicht in deinem Hangar. Erst hinzufügen, dann kannst du eine Konfiguration freigeben.",
         "noConfigHint": "Im Hangar liegt noch keine Konfiguration für dieses Schiff — speichere zuerst eine Ausstattung.",
-        "addToHangar": "Zum Hangar hinzufügen",
         "copyFailed": "Kopieren nicht erlaubt – Link markieren und manuell kopieren.",
         "saveAndShare": "Speichern & teilen",
         "shareLink": "Link teilen",
@@ -1062,8 +990,7 @@
     "provenance": {
       "label": "Quelle",
       "build": "{{channel}} · {{patch}} · Build {{build}}",
-      "quality": "Qualität {{score}}%",
-      "tooltip": "Aus diesem Spiel-Build extrahiert — unsere Herkunfts-Garantie."
+      "quality": "Qualität {{score}}%"
     },
     "rank": {
       "header": "Einordnung",
@@ -1085,7 +1012,6 @@
       },
       "legend": {
         "ship": "{{name}}",
-        "median": "Median",
         "compare": "Median {{group}} · {{n}} Schiffe",
         "better": "besser",
         "worse": "schwächer"
@@ -1104,8 +1030,6 @@
       "disabled": {
         "noCargo": "Dieses Schiff hat keinen Laderaum",
         "noData": "Für dieses Profil fehlen in diesem Build die Werte",
-        "noSizeClass": "Die Spieldateien liefern für diesen Build keine Größenklasse",
-        "tooFewShips": "Zu wenige Schiffe im Vergleichsfeld",
         "noCareer": "Für dieses Schiff ist keine Karriere hinterlegt.",
         "noRole": "Für dieses Schiff ist keine Rolle hinterlegt."
       },
@@ -1134,14 +1058,8 @@
       }
     },
     "detail": {
-      "back": "Zurück zum Codex",
-      "className": "Klassenname",
-      "guid": "GUID",
       "manufacturer": "Hersteller",
       "description": "Beschreibung",
-      "noDescription": "Keine Beschreibung in diesem Build.",
-      "properties": "Eigenschaften",
-      "role": "Rolle",
       "crew": "Crew",
       "size": "Größe",
       "grade": "Grade",
@@ -1150,35 +1068,19 @@
       "weaponClass": "Waffenklasse",
       "componentKind": "Komponententyp",
       "dimensions": "Abmessungen",
-      "length": "Länge",
-      "width": "Breite",
-      "height": "Höhe",
-      "tags": "Tags",
       "speed": "Geschwindigkeit",
-      "lifetime": "Lebensdauer",
       "range": "Reichweite",
       "weaponParams": "Waffenparameter",
-      "stats": "Komponenten-Werte",
       "damage": "Einschlagsschaden",
-      "raw": "Rohparameter",
       "hardpoints": "Hardpoints",
-      "hardpointsCount": "{{count}} Hardpoints",
-      "port": "Port",
-      "sizeRange": "Größe {{min}}–{{max}}",
-      "types": "Akzeptiert",
-      "flags": "Flags",
       "hardpointsHint": "Klicke auf einen Hardpoint, um zu sehen, was hineinpasst.",
       "compatLoading": "Kompatible Items werden geladen…",
       "compatNone": "Keine passenden Items in diesem Build.",
       "usedInBlueprints": "Verwendet in Blueprints",
       "usedInBlueprintsHint": "Crafting-Rezepte, die diesen Gegenstand als Zutat benötigen.",
       "compatCount": "{{count}} kompatible Items",
-      "noHardpoints": "Keine Hardpoints in diesem Build.",
-      "loadout": "Standard-Loadout",
       "loadoutEmpty": "Leer (ab Werk)",
-      "configureLoadout": "Loadout konfigurieren",
       "viewOnRsi": "Bei RSI ansehen",
-      "noLoadout": "Kein Standard-Loadout hinterlegt.",
       "notFound": "Eintrag im aktuellen Build nicht gefunden.",
       "invalidRoute": "Diese Adresse führt zu keiner Codex-Kategorie.",
       "noArtwork": "Für dieses Schiff liegt in diesem Build noch kein Bild vor.",
@@ -1190,7 +1092,6 @@
       "showEmptyPorts": "{{count}} leere Ports anzeigen",
       "hideEmptyPorts": "Leere Ports ausblenden",
       "equipment": "Ausrüstung",
-      "fullSpec": "Volles Datenblatt",
       "showFullSpec": "Volles Datenblatt anzeigen",
       "hideFullSpec": "Volles Datenblatt ausblenden",
       "quantumRange": "Quantum-Reichweite",
@@ -1214,7 +1115,6 @@
       "whereToBuyAttribution": "Preise von UEX Corp — von der Community gepflegt, spiegeln evtl. nicht die Live-Server wider. Nicht mit Cloud Imperium Games verbunden.",
       "moduleOrderHint": "Zuerst kommen die konfigurierbaren Module — Waffen samt Aufhängung, Türme, Raketen, Pods, Schilde, Generator, Quantenantrieb, Radar, Kühler, Lebenserhaltung. Alles Feste steht darunter. Ein Klick auf ein Modul öffnet seine vollständige Werte-Tabelle.",
       "loadoutEmptyWeaponMount": "Waffenaufhängung – keine Standardwaffe in diesem Extract",
-      "chipSize": "Größe {{n}}",
       "chipCrew": "{{n}} Crew",
       "chipNoCargo": "Kein Laderaum",
       "actionCompare": "Vergleichen",
@@ -1233,7 +1133,6 @@
       "linkCopied": "Link kopiert",
       "dataPill": "DATEN {{build}} · schema {{n}}",
       "dataPillPending": "Re-Extract ausstehend",
-      "dataPillAria": "Datenstand: Build {{build}}, Schema {{n}}",
       "columnLoadout": "Loadout",
       "columnAnalysis": "Analyse",
       "columnFixed": "Zelle & feste Systeme",
@@ -1247,7 +1146,6 @@
     },
     "energy": {
       "title": "Energie",
-      "budget": "{{used}} / {{total}} Seg",
       "budgetLabel": "Belegte Segmente",
       "minimise": "minimieren",
       "expand": "aufklappen",
@@ -1336,8 +1234,7 @@
         "noSignatureData": "Keine Signaturdaten in diesem Extract — Re-Extract ausstehend."
       },
       "unit": {
-        "segments": "Seg",
-        "coolant": "Kühl-Seg"
+        "segments": "Seg"
       },
       "tooltipTitle": {
         "ir": "Infrarot",
@@ -1347,42 +1244,27 @@
     },
     "swap": {
       "open": "Bauteil tauschen",
-      "pickerTitle": "Modul tauschen",
-      "installed": "Verbaut",
       "equipped": "Verbaut",
       "previewHint": "Vergleichen, dann Übernehmen oder Slot leeren — die Änderung bleibt Entwurf, bis du sie unten speicherst.",
       "loading": "Kompatible Items werden gesucht…",
       "failed": "Die kompatiblen Teile konnten nicht geladen werden.",
       "none": "Keine kompatiblen Alternativen in diesem Build.",
       "noMatch": "Kein Teil passt zu diesen Filtern.",
-      "delta": "Änderung ggü. verbaut",
-      "noDelta": "Keine vergleichbaren Wert-Änderungen.",
       "close": "Schließen",
-      "cancel": "Abbrechen",
-      "searchLabel": "Kompatible Teile durchsuchen",
-      "searchPlaceholder": "Nach Name, Hersteller oder Typ suchen…",
-      "damageFilter": "Schadensart",
       "typeFilter": "Teiletyp",
       "filterAll": "Alle",
-      "colName": "Name",
       "appliesToOne": "Gilt für den Hardpoint {{port}}",
       "appliesToMany": "Gilt für alle {{count}} identischen Hardpoints",
-      "matched": "{{shown}} von {{total}} kompatiblen Teilen",
       "sortHint": "Spalte anklicken zum Sortieren, Strg-Klick für eine zweite Sortierung.",
-      "missingColumns": "Nicht in diesem Daten-Extract enthalten und deshalb ohne Spalte: {{fields}}.",
       "installedNone": "Platz ab Werk leer",
       "pickHere": "Auswählen",
       "fitInferred": "Dieser Platz ist ab Werk leer. Die Liste stammt von einem baugleichen, bestückten Platz desselben Schiffs – nicht aus den Daten dieses Hardpoints selbst.",
-      "clearSlot": "Slot leeren",
-      "apply": "Übernehmen"
+      "clearSlot": "Slot leeren"
     },
     "loadout": {
       "changesSummary": "{{changed}} Änderungen · davon {{saveable}} speicherbar",
       "unsaveableHint": "Verschachtelte und geleerte Slots bleiben vorerst Entwurf — sie lassen sich noch nicht speichern.",
-      "discard": "Änderungen verwerfen",
-      "save": "Speichern",
       "saving": "Wird gespeichert…",
-      "addToHangarAndSave": "Zum Hangar hinzufügen & speichern",
       "saveErrorHangar": "Der Hangar war gerade nicht erreichbar — der Entwurf bleibt erhalten, bitte erneut versuchen.",
       "saveErrorGeneric": "Das Loadout konnte gerade nicht gespeichert werden — der Entwurf bleibt erhalten, bitte erneut versuchen.",
       "revert": "Auf Werkszustand zurücksetzen",
@@ -1415,12 +1297,9 @@
       "pin": "Vergleichen",
       "pinned": "Angepinnt",
       "tray": "Vergleich ({{count}})",
-      "title": "Vergleich",
       "open": "Vergleich öffnen",
       "clear": "Leeren",
       "remove": "Entfernen",
-      "empty": "2–4 Einträge anpinnen, um sie nebeneinander zu vergleichen.",
-      "full": "Du kannst bis zu {{max}} Einträge vergleichen.",
       "property": "Eigenschaft",
       "close": "Schließen",
       "noCommon": "Keine vergleichbaren Werte für diese Auswahl.",
@@ -1489,42 +1368,19 @@
       "col": {
         "name": "Bauteil",
         "deltaSustained": "Δ Dauer",
-        "dps": "DPS",
-        "alpha": "Alpha",
-        "pen": "PEN",
-        "fireRate": "Schussrate",
-        "range": "Reichweite",
-        "speed": "Speed",
         "power": "Power",
         "em": "EM",
-        "hp": "HP",
-        "distortion": "Distortion",
         "mass": "Masse",
         "grade": "Grade",
         "manufacturer": "Hersteller",
         "ammo": "Ammo",
         "spread": "Spread",
-        "burstDps": "Burst-DPS",
         "ir": "IR",
         "size": "Größe",
-        "itemClass": "Klasse",
-        "damagePhysical": "Physisch",
-        "damageEnergy": "Energie",
-        "damageDistortion": "Distortion-Schaden",
-        "damageThermal": "Thermisch",
-        "damageBiochemical": "Biochemisch",
-        "damageStun": "Stun",
         "projectilesPerShot": "Projektile je Schuss",
         "lifetime": "Lebensdauer",
-        "distortionRegen": "Distortion-Regen",
-        "itemPorts": "Item-Ports",
-        "factoryFit": "Werks-Bestückung",
         "aimYaw": "Schwenkbereich",
         "aimRate": "Nachführrate",
-        "recoil": "Rückstoß",
-        "magazine": "Magazin",
-        "overheat": "Überhitzung",
-        "repair": "Reparatur",
         "damageType": "Schadensart",
         "archetype": "Archetyp",
         "heat": "Hitze je Schuss",
@@ -1534,7 +1390,6 @@
       "unit": {
         "perMin": "/min",
         "mps": "m/s",
-        "m": "m",
         "s": "s",
         "kg": "kg",
         "seg": "Seg",
@@ -1692,7 +1547,6 @@
     },
     "module": {
       "peekChange": "zum Ändern aufklappen",
-      "peekRead": "zum Lesen aufklappen",
       "caretExpand": "aufklappen",
       "caretCollapse": "einklappen",
       "census": "{{slots}} Slots · {{active}} aktiv · {{passive}} passiv",
@@ -1706,14 +1560,7 @@
         "pool": "Pool"
       },
       "shieldNote": "Alle drei sind Schild-Generatoren und alle drei tauschbar. Der passive kostet keine Energie und zählt trotzdem voll in den Pool — er hängt aber an den aktiven: fallen die aus, ist auch der Ausgleich weg.",
-      "rowsSplit": "Einzeln",
-      "rowsGrouped": "Gruppiert",
-      "tuned": "Angepasst",
-      "tunedHint": "Dieser Platz weicht von der Werksausstattung ab.",
-      "toolDetails": "Werte von {{name}} ansehen",
-      "toolSwap": "{{name}} tauschen",
       "peek": {
-        "alphaTotal": "Alpha gesamt",
         "sustainedDpsTotal": "Dauer-DPS gesamt",
         "missileTotal": "Salve gesamt",
         "budget": "Reaktor-Budget",
@@ -1721,11 +1568,6 @@
       }
     },
     "summary": {
-      "title": "Kampfübersicht",
-      "damage": "Schaden",
-      "defence": "Verteidigung",
-      "power": "Energieverwaltung",
-      "noData": "Der aktuelle Extract enthält für dieses Feld keine Werte.",
       "alphaDamage": "Alpha-Schaden (alle Waffen)",
       "dps": "Dauerfeuer-DPS",
       "weaponMounts": "Waffenaufhängungen",
@@ -1935,7 +1777,6 @@
       }
     },
     "stage": {
-      "equipped": "{{filled}} / {{total}} ausgerüstet",
       "armorEquipped": "Rüstung {{filled}} / {{total}}"
     },
     "hangarPicker": {
@@ -2181,7 +2022,6 @@
     }
   },
   "blueprint": {
-    "title": "Herstellungs-Baupläne",
     "filters": {
       "category": "Kategorie"
     },
@@ -2216,7 +2056,6 @@
       "catalyst": "Katalysator"
     },
     "detail": {
-      "back": "Zurück zu Bauplänen",
       "tier": "Tier",
       "craftTime": "Herstellungszeit",
       "dismantleTime": "Zerlegezeit",
@@ -2229,8 +2068,6 @@
       "qualitySummary": "Qualitätszusammenfassung",
       "qualityNote": "Statische Basisqualitätswerte — interaktive Qualitätssimulation folgt in einem späteren Update.",
       "primary": "Primär",
-      "usedIn": "In Bauplänen verwendet",
-      "usedInCount": "In {{count}} Bauplan/Bauplänen verwendet",
       "unitScu": "SCU"
     }
   },
@@ -2309,13 +2146,8 @@
     }
   },
   "news": {
-    "title": "Verse News",
-    "subtitle": "Live Comm-Link, Spectrum, YouTube & Patches",
     "loading": "Lade…",
-    "newPosts": "{{count}} neue Posts ↑",
-    "newPost": "1 neuer Post ↑",
     "empty": "Noch keine News.",
-    "emptyFiltered": "Keine News für diese Auswahl.",
     "emptyFavorites": "Noch keine gemerkten Beiträge — tippe auf ☆ an einem Beitrag, um ihn hier zu sammeln.",
     "errorTitle": "News konnten nicht geladen werden",
     "lastUpdated": "Aktualisiert {{rel}}",
@@ -2336,25 +2168,12 @@
       },
       "checkExternal": "RSI Status-Seite ↗"
     },
-    "buckets": {
-      "today": "Heute",
-      "week": "Diese Woche",
-      "older": "Älter",
-      "showMore": "{{count}} ältere anzeigen",
-      "hideMore": "Verbergen",
-      "count": "{{count}} Posts"
-    },
     "channels": {
       "all": "Alle",
       "comm-link": "Comm-Link",
       "spectrum": "Spectrum",
       "youtube": "YouTube",
       "patch": "Patch-Notes"
-    },
-    "filter": {
-      "label": "Filter",
-      "clear": "Alle zeigen",
-      "groupAria": "Kanalfilter"
     },
     "favorite": {
       "save": "Merken",
@@ -2366,21 +2185,13 @@
       "failed": "Link konnte nicht kopiert werden"
     },
     "videos": {
-      "title": "Neue Videos",
-      "watched": "Gesehen",
-      "retention": "Nur die letzten {{days}} Tage",
       "badge": "Video",
-      "play": "Video abspielen",
-      "scrollPrev": "Vorherige Videos",
-      "scrollNext": "Weitere Videos"
+      "play": "Video abspielen"
     },
     "patch": {
-      "title": "Patch-Notes",
-      "hint": "Nach Hauptpatch gruppiert — neuester zuerst",
       "line": "Alpha {{version}}",
       "otherLine": "Ohne Versionsangabe",
       "hotfix": "Hotfix",
-      "current": "Aktuell live",
       "stage": {
         "live": "Live",
         "ptu": "PTU",
@@ -2392,22 +2203,6 @@
         "ptu": "PTU",
         "evocati": "Evocati",
         "other": "Sonstige"
-      },
-      "filter": {
-        "version": "Version",
-        "channel": "Kanal",
-        "all": "Alle",
-        "versionAria": "Patch-Notes nach Version filtern",
-        "channelAria": "Patch-Notes nach Kanal filtern",
-        "empty": "Keine Patch-Notes für diese Auswahl.",
-        "reset": "Filter zurücksetzen"
-      },
-      "latest": {
-        "title": "Neueste je Kanal",
-        "hint": "Höchstens ein Eintrag pro Kanal"
-      },
-      "history": {
-        "title": "Historie"
       },
       "kpi": {
         "title": "Patch-Performance",
@@ -2477,25 +2272,14 @@
         "label": "Patch-Inhalte durchsuchen",
         "placeholder": "z. B. Orison, Hotfix, Quantum Drive",
         "clear": "Suche löschen",
-        "summary": "{{notes}} Notes in {{lines}} Patch-Linien",
-        "scope": "Sucht in allen Titeln und in den Stichpunkten von {{loaded}} geladenen Notes",
         "noHits": "Nichts gefunden – auch nicht in anderer Schreibweise."
       },
       "roadmap": {
-        "title": "Was steckt drin",
-        "hint": "Geplante Inhalte laut RSI-Roadmap (Release View)",
         "expandAll": "Alle Beschreibungen zeigen",
         "collapseAll": "Beschreibungen einklappen",
         "source": "Roadmap auf RSI ↗",
-        "showNotes": "Patch-Notes zu {{version}} zeigen",
         "uncategorized": "Ohne Kategorie",
         "noDetail": "RSI hat zu diesem Eintrag keine Beschreibung veröffentlicht.",
-        "emptyRelease": "Keine Roadmap-Einträge für diese Suche.",
-        "later": "Danach geplant:",
-        "slot": {
-          "current": "Aktueller Patch",
-          "next": "Nächster Patch"
-        },
         "status": {
           "released": "Ausgeliefert",
           "committed": "Zugesagt",
@@ -2514,9 +2298,7 @@
         "openOnRsiAria": "{{title}} auf RSI öffnen (neuer Tab)",
         "truncated": "Sehr lange Note – der Rest steht auf RSI.",
         "hits": "{{count}} Treffer",
-        "points": "{{count}} Punkte",
-        "expandAll": "Alle Notes ausklappen",
-        "collapseAll": "Alle Notes einklappen"
+        "points": "{{count}} Punkte"
       },
       "stability": {
         "title": "Stabilität",
@@ -2667,10 +2449,8 @@
         },
         "span": {
           "leadTime": "Test → Live: {{days}} Tage",
-          "cadence": "Live → Live: {{days}} Tage",
-          "subCadence": "Hotfix-Takt: {{days}} Tage"
+          "cadence": "Live → Live: {{days}} Tage"
         },
-        "median": "Median {{n}} T · n = {{samples}}",
         "charts": "Detail-Diagramme (PTU → Live · Takt · Sub-Patches · Termine)",
         "status": {
           "live": "Alpha {{line}} ist seit {{days}} Tagen live — üblich sind {{median}} Tage bis zum nächsten.",
@@ -2700,7 +2480,6 @@
         "title": "Wann kommt der nächste Patch?",
         "infoLabel": "Woher kommt diese Schätzung?",
         "infoBasis": "Grundlage: Median {{median}} Tage aus n = {{n}} gemessenen Zyklen.",
-        "days": "{{n}} T",
         "over": "{{n}} T über",
         "tile": {
           "live": "Live",
@@ -2727,7 +2506,6 @@
     "detail": {
       "back": "Zurück"
     },
-    "via": "via {{source}}",
     "openExternal": "Öffnet {{host}}",
     "relative": {
       "now": "gerade eben",
@@ -2784,8 +2562,6 @@
   "p4k": {
     "title": "P4K Bundle-Historie",
     "subtitle": "Vorverdaute Bundles vom Data Uploader. Upload läuft nur über das Tool, nicht über die Website.",
-    "refresh": "Aktualisieren",
-    "expand": "Details anzeigen",
     "loading": "Lade Bundles…",
     "errorTitle": "Bundles konnten nicht geladen werden",
     "retentionHint": "Aufbewahrung: je Build die letzten 3 Uploader-Versionen, max. 20 Bundles insgesamt — ältere werden automatisch entfernt.",
@@ -2794,29 +2570,12 @@
     },
     "empty": {
       "title": "Noch keine Bundles",
-      "hint": "Sobald jemand mit dem Data Uploader einen Lauf hochlädt, erscheinen die Daten hier.",
-      "goDesktop": "Zum Data Uploader"
-    },
-    "kpi": {
-      "total": "Bundles gesamt",
-      "channels": "Channels",
-      "avgQuality": "Ø Quality-Score",
-      "entitiesTotal": "Entities gesamt",
-      "quality": "Quality-Score",
-      "latestPerChannel": "Aktuellster Patch je Channel"
+      "hint": "Sobald jemand mit dem Data Uploader einen Lauf hochlädt, erscheinen die Daten hier."
     },
     "col": {
-      "channel": "Channel",
-      "version": "Patch",
-      "build": "Build",
-      "quality": "Quality",
       "entities": "Entities",
       "diff": "Diff vs. vor",
       "tool": "Tool-Version",
-      "uploader": "Uploader",
-      "when": "Hochgeladen",
-      "actions": "Aktionen",
-      "channels": "Channels",
       "uploads": "Uploads"
     },
     "actions": {
@@ -2845,13 +2604,9 @@
     "superseded": {
       "badge": "Ersetzt",
       "title": "Ersetzt durch neueren Upload"
-    },
-    "detail": {
-      "uploads": "Uploads in diesem Patch"
     }
   },
   "profile": {
-    "title": "Profil",
     "email": "E-Mail",
     "id": "User-ID",
     "provider": "Provider",
@@ -3032,7 +2787,6 @@
   "admin": {
     "title": "Admin · User-Management",
     "subtitle": "Nur Admins können Rollen ändern. Letzter Admin kann nicht demoted werden — promote vorher einen weiteren Admin.",
-    "refresh": "Aktualisieren",
     "lastAdmin": "Letzter Admin",
     "lastAdminTip": "Erst einen weiteren Admin promoten, bevor diese Rolle geändert werden kann — sonst hätte das System keinen Admin mehr.",
     "protected": "Geschützt",
@@ -3132,7 +2886,6 @@
           "desc": "Die Desktop-App direkt mit deinem Account verbinden, damit Uploads und Daten automatisch zugeordnet werden."
         }
       },
-      "refresh": "Aktualisieren",
       "newToken": "Neuen Token erstellen",
       "loading": "Lade Tokens…",
       "errorTitle": "Tokens konnten nicht geladen werden",
@@ -3269,14 +3022,9 @@
     "subtitle": "Lade den Data Uploader für deinen lokalen Star-Citizen-Install. Nur Admin + Collaborator.",
     "bundleHistory": "Bundle-Historie",
     "loading": "Lade Release…",
-    "currentVersion": "Aktuelle Version",
     "released": "Veröffentlicht",
     "notes": "Release-Notes",
-    "downloadFor": "Download für {{platform}}",
     "noRelease": "Noch kein veröffentlichter Release.",
-    "noReleaseHint": "Sobald der erste Build im CI durchgelaufen ist, erscheint er hier.",
-    "size": "Größe",
-    "hash": "SHA-256",
     "channel": {
       "label": "Channel",
       "alpha": "Alpha",
@@ -3291,8 +3039,6 @@
     "appDesc": "Liest deinen lokalen Star-Citizen-Install aus und lädt daraus die Codex-Bundles hoch.",
     "close": "Schließen",
     "access": {
-      "title": "Data Uploader",
-      "hint": "Datenquelle des Codex — für Collaborator & Admin",
       "fullPage": "Volle Data-Upload-Seite",
       "note": "Nur Windows · Anmeldung mit deinem SCC-Konto · lädt Daten hoch, keinen Code."
     }
@@ -3516,7 +3262,6 @@
       "roleLabel": "Rolle"
     },
     "detail": {
-      "back": "Zurück zum Hangar",
       "notFound": "Dieser Hangar-Eintrag existiert nicht.",
       "loading": "Lädt…",
       "save": "Speichern",
@@ -3692,8 +3437,7 @@
     }
   },
   "quickSearch": {
-    "open": "Suche",
-    "addToHangar": "→ Hangar"
+    "open": "Suche"
   },
   "telemetry": {
     "title": "Telemetrie & Crash-Statistik",
@@ -3872,7 +3616,6 @@
     },
     "thread": {
       "reply": "Antworten",
-      "replyPlaceholder": "Antwort schreiben… (Markdown möglich)",
       "replyPlaceholderNo": "Antwort zu #{{no}} — „{{title}}“",
       "replyPlaceholderTopic": "Antwort zu „{{title}}“",
       "reopenHint": "Eine Antwort öffnet dieses archivierte Thema wieder — es geht zurück auf ToDo und die Routine nimmt es erneut auf."
@@ -3994,7 +3737,6 @@
       }
     },
     "userTopic": {
-      "untriaged": "Nicht freigegeben",
       "release": "Für die Routine freigeben",
       "channelTitle": "Kanal zum Nutzer",
       "channelHint": "Alles hier ist für den Nutzer sichtbar. Der Verlauf oben (Admin ↔ Routine) ist es nicht.",
@@ -4141,7 +3883,6 @@
   },
   "feedbackFab": {
     "open": "Feedback öffnen",
-    "close": "Feedback schließen",
     "minimize": "Feedback minimieren",
     "maximize": "Auf Vollbild vergrößern",
     "restore": "Fenstergröße wiederherstellen",
@@ -4689,8 +4430,6 @@
       "noSet": "Noch kein Set im Spind.",
       "setupHangar": "Hangar einrichten",
       "createSet": "Set anlegen",
-      "openHangar": "Zum Hangar",
-      "openLocker": "Zum Spind",
       "openCodex": "Im Codex ansehen",
       "recentShips": "Zuletzt gewählte Schiffe",
       "recentSets": "Zuletzt gewählte Sets",
@@ -4701,8 +4440,7 @@
       "subtitle": "Deine FPS-Sets für jede Rolle.",
       "details": "Details",
       "detailsAria": "Details zu {{name}} im Codex"
-    },
-    "signpost": "Deine Schiffe im HQ"
+    }
   },
   "verse": {
     "crumb": "Verse",
