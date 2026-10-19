@@ -4,6 +4,24 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.156.0] - 2026-10-19
+
+### Added
+
+- **Data Uploader 0.57.0: GPU im Performance-Dock, einheitliche Farben.** Die
+  Grafikkarte hat jetzt einen eigenen Tacho mit Auslastung und VRAM (per
+  Umschalter), gemessen wie im Task-Manager, samt dem Anteil des Uploaders.
+  Statt des Schalters „GPU nutzen“ gibt es eine GPU-Grenze per Griff: ganz
+  links ist die GPU aus (Voreinstellung „Beim Spielen“), „Ausgewogen“ erlaubt
+  80 %, „Volle Leistung“ 100 %. Alle Tachos und die eingeklappte Zeile zeigen
+  dieselbe Farbsprache: blau der Uploader (Lauf plus App), weiß andere
+  Programme, dunkel frei; die Zeile liest sich als „41 % von 100 %“. Die
+  Laufwerk-Karte ersetzt ihre drei Schieberegler durch einen Umschalter
+  Lesen / Schreiben / Zugriffe mit einem Tacho, dessen Skala mit dem höchsten
+  gemessenen Wert wächst.
+  Hinweis: Wer bisher mit „Ausgewogen“ oder „Volle Leistung“ und
+  ausgeschalteter GPU lief, bekommt die GPU nach dem Update zugeschaltet.
+
 ## [0.155.0] - 2026-10-16
 
 ### Changed
