@@ -26,7 +26,8 @@ Limits arrive as JSON lines on stdin and can change at any time; stdin closing
 means the host is gone, so the governor resumes everything and exits — it must
 never leave a suspended tree behind. Telemetry goes out as JSON lines on stdout
 once a second: ``{"type":"sample", "cpuPct", "memMb", "readBps", "writeBps",
-"iops", "heldBack", "procs", "hardCap"}``.
+"iops", "heldBack", "procs", "pids", "hardCap"}`` (``pids`` = the governed
+job's process ids, so the host need not scan the process tree itself).
 
 The memory budget is not enforced here: a commit limit on the job would make
 allocations fail and crash the run. The host sizes the worker count by it; the
@@ -472,6 +473,7 @@ def run(root_pid: int, cores: int) -> int:  # pragma: no cover - Windows only
                     "iops": round((b[4] - a[4]) / span),
                     "heldBack": round(min(1.0, (b[5] - a[5]) / span), 3),
                     "procs": len(pids),
+                    "pids": sorted({int(p) for p in pids if int(p) > 0}),
                     "hardCap": gov.hard_cap,
                 })
             inbox.closed.wait(TICK_S)
