@@ -717,7 +717,7 @@ const MISSION_RANK_PROFILE: Readonly<Record<MissionId, RankProfileId>> = {
   /* ── Below: calm ports list | perspectives (sticky beside the long list) ── */
   .holo-below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 10px; align-items: start; padding: 0 10px; }
   @media (min-width: 1181px) {
-  .below-persp { position: sticky; top: max(84px, calc(100vh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
+  .below-persp { position: sticky; top: max(84px, calc(100dvh - var(--persp-h, 0px) - var(--holo-strip-h, 64px) - 16px)); }
   }
   .sh { display: flex; align-items: center; gap: 10px; font-size: max(9.5px, var(--f)); letter-spacing: 0.14em; color: var(--sc-accent); margin-bottom: 8px; min-height: 28px; }
   .sh .t { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
@@ -1219,12 +1219,14 @@ export class CodexHoloStageComponent {
         for (const e of entries) {
           const el = e.target as HTMLElement;
           const h = Math.round(el.getBoundingClientRect().height);
-          if (el.matches('sc-codex-holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
+          if (el.matches('.holo-strip')) stage?.style.setProperty('--holo-strip-h', `${h}px`);
           else if (el.matches('.below-persp')) el.style.setProperty('--persp-h', `${h}px`);
           else if (el.matches('.rolebar')) this.placeInk(el);
         }
       });
-      for (const sel of ['sc-codex-holo-strip', '.below-persp', '.rolebar']) {
+      // The strip's inner bar, not its host: on a phone the bar is position:
+      // fixed and the host collapses to 0px, which put the toast on the bar.
+      for (const sel of ['sc-codex-holo-strip .holo-strip', '.below-persp', '.rolebar']) {
         const el = root.querySelector(sel);
         if (el) ro.observe(el);
       }

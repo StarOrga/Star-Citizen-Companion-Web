@@ -93,7 +93,7 @@ export interface PickedItem {
     .search {
       flex: 1; padding: 8px 12px; border-radius: 6px;
       background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0);
-      font-family: inherit; font-size: 0.86rem;
+      font-family: inherit; font-size: max(0.86rem, var(--sc-fs-input));
     }
     .search:focus { outline: none; border-color: var(--sc-accent); }
     .close {

@@ -74,7 +74,7 @@ import { ShipLinkFormStore } from './ship-link-form.store';
     .ship-link-form { margin-top: 14px; padding: 12px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); }
     .sl-hint { margin: 0 0 8px; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-fg-2); }
     .sl-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .sl-input { flex: 1 1 320px; min-width: 0; padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.82rem; }
+    .sl-input { flex: 1 1 320px; min-width: 0; padding: 8px 12px; border-radius: 6px; background: var(--sc-bg-1); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.82rem, var(--sc-fs-input)); }
     .sl-input:focus { outline: none; border-color: var(--sc-accent); }
     .sl-input[aria-invalid='true'] { border-color: var(--sc-danger); }
     .sl-error { margin: 8px 0 0; font-size: max(0.76rem, var(--sc-fs-floor)); color: var(--sc-danger); }

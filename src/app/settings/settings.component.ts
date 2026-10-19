@@ -716,7 +716,7 @@ const DELETE_ACCOUNT_ERROR_KEYS: Readonly<Record<string, string>> = {
       border: 1px solid var(--sc-border);
       border-radius: 4px;
       font: inherit;
-      font-size: 0.9rem;
+      font-size: max(0.9rem, var(--sc-fs-input));
     }
     .text-input:focus {
       outline: none;

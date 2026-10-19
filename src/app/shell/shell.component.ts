@@ -379,7 +379,7 @@ import { VerseBetaService } from '../verse/data/verse-beta.service';
     <sc-feedback-spots />
   `,
   styles: [`
-    :host { display: flex; flex-direction: column; min-height: 100vh; }
+    :host { display: flex; flex-direction: column; min-height: 100dvh; }
     .topbar {
       display: flex;
       align-items: center;

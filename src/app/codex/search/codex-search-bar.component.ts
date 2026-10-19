@@ -152,7 +152,7 @@ let nextId = 0;
     .shell.active .glyph { width: 22px; height: 22px; }
     .input {
       flex: 1; min-width: 0; background: transparent; border: 0; outline: none; padding: 8px 0;
-      color: var(--sc-fg-0); font: inherit; font-size: max(0.92rem, var(--sc-fs-floor, 0.9rem));
+      color: var(--sc-fg-0); font: inherit; font-size: max(0.92rem, var(--sc-fs-input));
       transition: font-size 0.18s;
     }
     /* A phone shows the start of the placeholder and an ellipsis, not a hard cut. */

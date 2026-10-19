@@ -327,6 +327,7 @@ export function stripMiniKey(userId: string | null | undefined): string {
         --p-movement: var(--holo-p-movement);
         --p-signature: var(--holo-p-signature); }
       .holo-strip {
+        padding-block-end: env(safe-area-inset-bottom, 0px);
         background: color-mix(in srgb, var(--sc-bg-0) 94%, transparent);
         border: 1px solid color-mix(in srgb, var(--sc-accent) 45%, var(--sc-bg-0));
         border-block-end: 0;

@@ -132,7 +132,7 @@ import { CodexSearchHub, isEditableTarget, isTypeToSearchKey } from '../codex/se
     .glyph { width: 20px; height: 20px; flex: none; color: var(--sc-accent); }
     .qs-input {
       flex: 1; min-width: 0; padding: 12px 0; background: transparent; border: 0; outline: none;
-      color: var(--sc-fg-0); font-family: inherit; font-size: 1rem;
+      color: var(--sc-fg-0); font-family: inherit; font-size: max(1rem, var(--sc-fs-input));
     }
     .qs-input::-webkit-search-cancel-button { display: none; }
     .qs-close {

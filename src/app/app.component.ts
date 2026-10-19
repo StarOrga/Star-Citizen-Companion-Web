@@ -48,7 +48,7 @@ import { ImpersonationBannerComponent } from './shell/impersonation-banner.compo
     `
       :host {
         display: block;
-        min-height: 100vh;
+        min-height: 100dvh;
       }
 
       /* Pushes the routed content below the fixed sc-impersonation-banner
