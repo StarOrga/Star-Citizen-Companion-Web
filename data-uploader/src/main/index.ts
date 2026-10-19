@@ -11,7 +11,7 @@ import { getSettings, setTelemetryEnabled, patchSettings, syncAutoStartWithOs } 
 import { reportCrash, reportError, reportExtractAbort, reportJobDiagnostics } from './telemetry-reporter.js';
 import { collectDiagnostic, newJobDiagnostics, type JobDiagnostics, type JobOutcome } from '../lib/job-diagnostics.js';
 import { classifyExtractAbort, type ExtractAbortReason } from '../lib/telemetry.js';
-import { discoverAll, discoverManual } from '../lib/discovery.js';
+import { discoverAll, discoverManual, setRememberedInstall } from '../lib/discovery.js';
 import { PROFILES, DEFAULT_PROFILE, SELECTABLE_PROFILES, estimateForSize } from '../lib/performance.js';
 import { runOAuthFlow } from '../lib/oauth.js';
 import { raiseWindow } from '../lib/window-focus.js';
@@ -492,8 +492,29 @@ ipcMain.handle('sc:discover', async () => {
 });
 
 ipcMain.handle('sc:discoverManual', async (_e, folderPath: string) => {
-  return discoverManual(folderPath);
+  const found = await discoverManual(folderPath);
+  // A folder the operator had to pick by hand is remembered (settings.json in
+  // userData survives updates) — the next launch finds it without asking.
+  if (found) rememberInstall(found.installPath);
+  return found;
 });
+
+/** The operator chose one of several installs — keep that choice for the next launch. */
+ipcMain.handle('sc:rememberInstall', async (_e, installPath: unknown) => {
+  if (typeof installPath !== 'string' || installPath.length === 0 || installPath.length > 1024) return false;
+  // Only a folder that really is a channel with a Data.p4k gets persisted.
+  const found = await discoverManual(installPath);
+  if (!found || found.installPath.toLowerCase() !== installPath.toLowerCase()) return false;
+  rememberInstall(found.installPath);
+  return true;
+});
+
+function rememberInstall(installPath: string): void {
+  if (getSettings().gamePath === installPath) return;
+  patchSettings({ gamePath: installPath });
+  setRememberedInstall(installPath);
+  log.info(`[discovery] remembered install ${installPath}`);
+}
 
 ipcMain.handle('sc:pickFolder', async () => {
   if (!mainWindow) return null;
@@ -1286,6 +1307,9 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(() => {
+  // Every discovery (auto-run, cleanup, Install step) probes the install the
+  // operator chose before first — falls back to the search when it is gone.
+  setRememberedInstall(getSettings().gamePath);
   app.setAppUserModelId('com.sc-companion.data-uploader');
   // Seed the resource limits picked last time, BEFORE any window or auto-run
   // can start a sidecar — "a sliver, I'm playing" must survive a restart.
