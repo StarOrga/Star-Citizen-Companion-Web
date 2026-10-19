@@ -4,6 +4,21 @@ All notable changes to SC Companion are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.157.2] - 2026-10-19
+
+### Fixed
+
+- **News: Teilen meldet, ob der Link kopiert wurde.** Ohne native
+  Teilen-Funktion kopiert der Button den Link und zeigt kurz „Link kopiert“
+  bzw. „Link konnte nicht kopiert werden“, auch für Screenreader.
+- **Einheitlich „Set“ für Rollen-Sets** in Hangar, Teilen-Panel und Doku;
+  die Codex-Doku nennt die Blaupausen im Index-Tab.
+
+### Changed
+
+- **Übersetzungen aufgeräumt:** 238 nicht mehr genutzte Schlüssel entfernt;
+  ein Test hält Deutsch und Englisch auf denselben Schlüsseln.
+
 ## [0.157.1] - 2026-10-19
 
 ### Fixed
