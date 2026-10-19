@@ -17,8 +17,9 @@
  *    `iops`) are Task Manager's for that physical disk, everything included;
  *    null while the whole-PC monitor has not reported that disk (non-Windows,
  *    counter missing, first second).
- *    `run` is the uploader run's share of it. The run's I/O is measured per
- *    process tree, NOT per drive, so it is attributed (see {@link driveLoads}):
+ *    `run` is the uploader's share of it: the run plus the app's main
+ *    process (sysmon `appIo`). That I/O is measured per process, NOT per
+ *    drive, so it is attributed (see {@link driveLoads}):
  *    `runAttribution` says how. `runSharePct` = run bytes ÷ drive bytes, null
  *    when the drive moved (almost) nothing.
  *
@@ -115,6 +116,24 @@ export interface RunIo {
 
 const MB = 1024 * 1024;
 
+export const NO_IO: RunIo = { readBps: 0, writeBps: 0, iops: 0 };
+
+/**
+ * Defensive parse of sysmon's `appIo` (the Electron main process's file I/O,
+ * bytes/s) — null when absent or malformed, so a missing reading never
+ * pretends the app did nothing.
+ */
+export function parseAppIo(raw: unknown): RunIo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null);
+  const readBps = num(o.readBps);
+  const writeBps = num(o.writeBps);
+  const iops = num(o.iops);
+  if (readBps === null || writeBps === null || iops === null) return null;
+  return { readBps, writeBps, iops };
+}
+
 /** Drive letter of a Windows path (`D:\…` → 'D'), null for anything else. */
 export function driveLetter(path: unknown): string | null {
   if (typeof path !== 'string') return null;
@@ -192,8 +211,14 @@ const r1 = (v: number): number => Math.round(v * 10) / 10;
  * Either way a run figure never exceeds the disk's whole-PC figure when that
  * is known: process counters also count reads the file cache served, which
  * never reached the disk.
+ *
+ * `app` is the uploader app's own file I/O (the Electron main process: the
+ * upload reading extracted files, caches, logs). It joins the run's figures
+ * so `run` is the whole uploader's share, as for CPU and RAM — on one disk
+ * all of it, on two disks all of it on the work drive (that is where the
+ * extracted output it uploads lives; also an assumption).
  */
-export function driveLoads(slots: DriveSlot[], sys: SysDrive[] | null, run: RunIo): DriveLoad[] {
+export function driveLoads(slots: DriveSlot[], sys: SysDrive[] | null, run: RunIo, app: RunIo = NO_IO): DriveLoad[] {
   const two = slots.length > 1;
   const totalBytes = run.readBps + run.writeBps;
   return slots.map((s) => {
@@ -201,17 +226,19 @@ export function driveLoads(slots: DriveSlot[], sys: SysDrive[] | null, run: RunI
     const readMBs = d?.readBps !== undefined ? r1(d.readBps / MB) : null;
     const writeMBs = d?.writeBps !== undefined ? r1(d.writeBps / MB) : null;
     const iops = d?.iops !== undefined ? Math.round(d.iops) : null;
-    let rr = run.readBps;
-    let rw = run.writeBps;
-    let ri = run.iops;
+    let rr = run.readBps + app.readBps;
+    let rw = run.writeBps + app.writeBps;
+    let ri = run.iops + app.iops;
     if (two) {
       const readShare = totalBytes > 0 ? run.readBps / totalBytes : 1;
       if (s.role === 'game') {
+        rr = run.readBps;
         rw = 0;
         ri = run.iops * readShare;
       } else {
-        rr = 0;
-        ri = run.iops * (1 - readShare);
+        rr = app.readBps;
+        rw = run.writeBps + app.writeBps;
+        ri = run.iops * (1 - readShare) + app.iops;
       }
     }
     const cap = (v: number, top: number | undefined): number => (top === undefined ? v : Math.min(v, top));

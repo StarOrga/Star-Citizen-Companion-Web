@@ -3,6 +3,7 @@ import {
   driveLetter,
   driveLoads,
   driveSlots,
+  parseAppIo,
   parseSysDrives,
   pickPrimaryGpu,
   type SysDrive,
@@ -121,5 +122,41 @@ describe('primary GPU', () => {
     expect(pickPrimaryGpu(['Microsoft Basic Display Adapter', 'AMD Radeon(TM) Graphics'])).toBe('AMD Radeon(TM) Graphics');
     expect(pickPrimaryGpu(['Parsec Virtual Display Adapter', 'Microsoft Remote Display Adapter'])).toBeNull();
     expect(pickPrimaryGpu([])).toBeNull();
+  });
+});
+
+describe('app I/O (Electron main process)', () => {
+  const run = { readBps: 4 * MB, writeBps: 2 * MB, iops: 60 };
+  const app = { readBps: 3 * MB, writeBps: 1 * MB, iops: 40 };
+
+  it('parses sysmon appIo defensively', () => {
+    expect(parseAppIo({ readBps: 1, writeBps: 2, iops: 3 })).toEqual({ readBps: 1, writeBps: 2, iops: 3 });
+    expect(parseAppIo({ readBps: 1, writeBps: -2, iops: 3 })).toBeNull();
+    expect(parseAppIo({ readBps: 1, iops: 3 })).toBeNull();
+    expect(parseAppIo(null)).toBeNull();
+  });
+
+  it('joins the run on one disk — the uploader share is run + app', () => {
+    const one: SysDrive[] = [{ instance: '0 C:', letters: ['C'], activePct: 100, responseMs: 40, readBps: 20 * MB, writeBps: 20 * MB, iops: 500 }];
+    const [c] = driveLoads(driveSlots('C', 'C', kindOf, one), one, run, app);
+    expect(c!.run).toEqual({ readMBs: 7, writeMBs: 3, iops: 100 });
+    expect(c!.runSharePct).toBe(25);
+  });
+
+  it('goes to the work drive on two disks, the game drive keeps the run reads only', () => {
+    const [d, c] = driveLoads(driveSlots('D', 'C', kindOf, twoDisks), twoDisks, run, app);
+    expect(d!.role).toBe('game');
+    expect(d!.run.readMBs).toBe(4);
+    expect(d!.run.writeMBs).toBe(0);
+    expect(c!.role).toBe('work');
+    // work drive: app reads + run writes + app writes, capped at the drive's whole-PC figures
+    expect(c!.run.readMBs).toBe(0.1);
+    expect(c!.run.writeMBs).toBe(3);
+  });
+
+  it('without app I/O nothing changes', () => {
+    const one: SysDrive[] = [{ instance: '0 C:', letters: ['C'], readBps: 20 * MB, writeBps: 20 * MB, iops: 500 }];
+    const slots = driveSlots('C', 'C', kindOf, one);
+    expect(driveLoads(slots, one, run)).toEqual(driveLoads(slots, one, run, { readBps: 0, writeBps: 0, iops: 0 }));
   });
 });

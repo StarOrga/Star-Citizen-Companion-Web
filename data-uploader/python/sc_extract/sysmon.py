@@ -30,8 +30,16 @@ iGPU's engines never mix into the load. When the GPU counters do not open
 (no WDDM GPU, old Windows) ``gpu`` is not sent — never fake zeros.
 
 The uploader pid set comes from the host over stdin, one JSON line per change:
-``{"type":"pids","pids":[123,456]}`` replaces the whole set; any other line is
-ignored. Until the first such line the set is empty (``runLoadPct`` 0).
+``{"type":"pids","pids":[123,456],"ioPids":[123]}`` replaces the whole set; any
+other line is ignored. Until the first such line the set is empty
+(``runLoadPct`` 0).
+
+``appIo`` is the file I/O of the ``ioPids`` (the Electron main process — the
+governed run measures its own I/O through its Job Object):
+``{"readBps", "writeBps", "iops"}`` from ``GetProcessIoCounters`` deltas
+(:class:`IoMeter`). Renderer and GPU processes are deliberately not in that
+set: their Mojo IPC pipes count as "I/O" (MB/s of it at idle) without ever
+touching a disk. Sent only when at least one pid could be read twice.
 
 Windows only, via the Performance Data Helper with the *English* counter
 names (``PdhAddEnglishCounterW``), so a German or any other localized Windows
@@ -47,6 +55,7 @@ import os
 import re
 import sys
 import threading
+import time
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple
 
 SAMPLE_S = 1.0
@@ -263,6 +272,60 @@ def parse_control_line(line: str) -> Optional[FrozenSet[int]]:
     return frozenset(p for p in msg["pids"] if isinstance(p, int) and not isinstance(p, bool) and p > 0)
 
 
+def parse_io_pids(line: str) -> Optional[FrozenSet[int]]:
+    """The ``ioPids`` of a host ``pids`` line, or ``None`` to keep the current set.
+
+    A ``pids`` line without ``ioPids`` (an older host) leaves the set alone;
+    a non-list ``ioPids`` or any other line is ignored too.
+    """
+    if parse_control_line(line) is None:
+        return None
+    raw = json.loads(line).get("ioPids")
+    if not isinstance(raw, list):
+        return None
+    return frozenset(p for p in raw if isinstance(p, int) and not isinstance(p, bool) and p > 0)
+
+
+#: ``(readBytes, writeBytes, readOps + writeOps)`` of one process, cumulative.
+IoTotals = Tuple[float, float, float]
+
+
+class IoMeter:
+    """Per-second file I/O of a pid set from cumulative per-process counters.
+
+    ``read_fn(pid)`` returns the pid's :data:`IoTotals` or ``None`` (gone, no
+    access). Rates come from per-pid deltas, so a pid joining or leaving the
+    set never books its whole lifetime into one second; a counter that went
+    backwards (pid reused) counts as nothing.
+    """
+
+    def __init__(self, read_fn) -> None:
+        self.read_fn = read_fn
+        self.prev: Dict[int, IoTotals] = {}
+        self.prev_t: Optional[float] = None
+
+    def sample(self, pids: FrozenSet[int], now: float) -> Optional[dict]:
+        cur: Dict[int, IoTotals] = {}
+        for pid in pids:
+            v = self.read_fn(pid)
+            if v is not None:
+                cur[pid] = v
+        prev, prev_t = self.prev, self.prev_t
+        self.prev, self.prev_t = cur, now
+        if prev_t is None or now <= prev_t:
+            return None
+        both = [pid for pid in cur if pid in prev]
+        if not both:
+            return None
+        dt = now - prev_t
+        sums = [0.0, 0.0, 0.0]
+        for pid in both:
+            for i in range(3):
+                sums[i] += max(0.0, cur[pid][i] - prev[pid][i])
+        return {"readBps": float(round(sums[0] / dt)), "writeBps": float(round(sums[1] / dt)),
+                "iops": float(round(sums[2] / dt))}
+
+
 class Pdh:  # pragma: no cover - Windows only
     def __init__(self) -> None:
         import ctypes
@@ -370,12 +433,54 @@ class Pdh:  # pragma: no cover - Windows only
         self.pdh.PdhCloseQuery(self.query)
 
 
+class ProcessIo:  # pragma: no cover - Windows only
+    """``GetProcessIoCounters`` per pid — the reader behind :class:`IoMeter`."""
+
+    def __init__(self) -> None:
+        import ctypes
+        from ctypes import wintypes as wt
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_ulonglong) for n in (
+                "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+                "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+        self.ctypes = ctypes
+        self.IO_COUNTERS = IO_COUNTERS
+        k32 = ctypes.WinDLL("kernel32")
+        k32.OpenProcess.restype = wt.HANDLE
+        k32.OpenProcess.argtypes = [wt.DWORD, wt.BOOL, wt.DWORD]
+        k32.GetProcessIoCounters.argtypes = [wt.HANDLE, ctypes.c_void_p]
+        k32.CloseHandle.argtypes = [wt.HANDLE]
+        self.k32 = k32
+        self.handles: Dict[int, int] = {}
+
+    def read(self, pid: int) -> Optional[IoTotals]:
+        h = self.handles.get(pid)
+        if not h:
+            h = self.k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if not h:
+                return None
+            self.handles[pid] = h
+        io = self.IO_COUNTERS()
+        if not self.k32.GetProcessIoCounters(h, self.ctypes.byref(io)):
+            self.k32.CloseHandle(self.handles.pop(pid))
+            return None
+        return (float(io.ReadTransferCount), float(io.WriteTransferCount),
+                float(io.ReadOperationCount + io.WriteOperationCount))
+
+    def keep(self, pids: FrozenSet[int]) -> None:
+        for pid in [p for p in self.handles if p not in pids]:
+            self.k32.CloseHandle(self.handles.pop(pid))
+
+
 def main() -> int:
     if os.name != "nt":
         emit({"type": "unsupported", "platform": sys.platform})
         return 0
     closed = threading.Event()
     pids: List[FrozenSet[int]] = [frozenset()]  # slot replaced whole, never mutated
+    io_pids: List[FrozenSet[int]] = [frozenset()]
 
     def watch_stdin() -> None:
         try:
@@ -383,6 +488,9 @@ def main() -> int:
                 new = parse_control_line(line)
                 if new is not None:
                     pids[0] = new
+                io = parse_io_pids(line)
+                if io is not None:
+                    io_pids[0] = io
         finally:
             closed.set()
 
@@ -394,10 +502,22 @@ def main() -> int:
         return 1
     emit({"type": "ready", "counters": sorted(mon.counters), "driveCounters": sorted(mon.drive_counters),
           "gpuCounters": sorted(mon.gpu_counters)})
+    proc_io: Optional[ProcessIo] = None
+    try:
+        proc_io = ProcessIo()
+    except OSError:
+        pass  # no per-process I/O: appIo is simply not sent
+    meter = IoMeter(proc_io.read) if proc_io else None
     try:
         while not closed.wait(SAMPLE_S):
             values = mon.read(pids[0])
             if values is not None:
+                if meter is not None and proc_io is not None:
+                    io_set = io_pids[0]
+                    proc_io.keep(io_set)
+                    app_io = meter.sample(io_set, time.monotonic())
+                    if app_io is not None:
+                        values["appIo"] = app_io
                 emit({"type": "sample", **values})
     finally:
         mon.close()
