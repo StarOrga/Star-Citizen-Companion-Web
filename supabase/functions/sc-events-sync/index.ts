@@ -171,7 +171,8 @@ async function resolveUnsure(unsure: Unsure[], knownIds: Set<number>): Promise<{
 // ------------------------------------------------------------------ handler
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST' && req.method !== 'GET') return json({ error: 'method not allowed' }, 405);
+  // POST only: pg_cron posts, and a GET would let any link or <img> on the web start a run.
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
   const startedMs = Date.now();
 

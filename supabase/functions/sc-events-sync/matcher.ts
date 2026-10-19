@@ -424,7 +424,9 @@ export function planUpserts(rows: EventRow[], cands: Candidate[], today: string)
   for (const f of FAMILIES) {
     if (!f.annual) continue;
     const own = working.filter((r) => r.series === f.series && !r.hidden).sort((a, b) => a.start_date.localeCompare(b.start_date));
-    if (!own.length || own.some((r) => r.end_date >= today)) continue;
+    // A hidden upcoming row still occupies the slot: hiding it must drop the
+    // event from the feed, not make the next run re-add it under a new id.
+    if (!own.length || working.some((r) => r.series === f.series && r.end_date >= today)) continue;
     const last = own[own.length - 1];
     let start = addYears(last.start_date, 1);
     let end = addYears(last.end_date, 1);

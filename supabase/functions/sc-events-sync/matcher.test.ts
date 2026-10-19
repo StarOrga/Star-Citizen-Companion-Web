@@ -46,3 +46,10 @@ test('roll-forward adds next year as estimated when a series has nothing upcomin
   const { upserts } = planUpserts([past], [], '2026-10-16');
   assert.deepEqual(upserts.map((u) => [u.id, u.start_date, u.date_status]), [['aw-2957', '2027-06-17', 'estimated']]);
 });
+
+test('roll-forward leaves a series alone while a hidden upcoming row holds its slot', () => {
+  const base = { series: 'alien-week', kind: 'seasonal', status: 'scheduled', free_fly: false, url: '', source: 'seed', source_comm_link_id: null, source_published_at: null } as const;
+  const past: EventRow = { ...base, id: 'aw-2956', name: 'Alien Week 2956', start_date: '2026-06-17', end_date: '2026-07-06', date_status: 'confirmed', locked: true, hidden: false };
+  const hidden: EventRow = { ...base, id: 'aw-2957', name: 'Alien Week 2957', start_date: '2027-06-16', end_date: '2027-07-05', date_status: 'estimated', locked: false, hidden: true };
+  assert.equal(planUpserts([past, hidden], [], '2026-10-16').upserts.length, 0);
+});
