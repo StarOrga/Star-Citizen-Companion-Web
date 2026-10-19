@@ -373,15 +373,32 @@ function layoutKey(): string {
   return `${slots().map(slotId).join('|')}|gpu:${gpuAvailable() ? 1 : 0}${gpuCellShown() ? 1 : 0}`;
 }
 
-/** The metric a drive card shows; picked the first time it is drawn after an unfold. */
+/**
+ * The metric a drive card shows. The default is settled once per unfold, and
+ * only while the dock is open with a sample to judge by: an unfold before the
+ * first sample (e.g. the dock restored open at start) shows read provisionally
+ * and settles on the first sample — unless the operator picked one already.
+ */
 function selOf(slot: DriveSlot): DiskLimitKey {
   const id = slotId(slot);
-  let sel = diskSel.get(id);
-  if (!sel) {
-    sel = hasLimits(slot) ? defaultDiskMetric(sample, view?.limits ?? null) : 'readMBs';
-    diskSel.set(id, sel);
-  }
-  return sel;
+  const sel = diskSel.get(id);
+  if (sel) return sel;
+  const guess = hasLimits(slot) ? defaultDiskMetric(sample, view?.limits ?? null) : 'readMBs';
+  if (expanded && sample) diskSel.set(id, guess);
+  return guess;
+}
+
+/** First sample of an open dock: settle the drive defaults; redraw only when one moved off read. */
+function settleDiskDefaults(): void {
+  if (!expanded || !sample) return;
+  const open = slots().filter((s) => !diskSel.has(slotId(s)));
+  if (!open.length) return;
+  const moved = open.map(selOf).some((k) => k !== 'readMBs');
+  if (!moved) return;
+  const focused = document.activeElement;
+  const keep = focused instanceof Element && Boolean(dock()?.contains(focused));
+  render();
+  if (keep) document.querySelector<SVGSVGElement>('#resource-dock svg.res-dial--tempo')?.focus();
 }
 
 // ── state (calm / at limit / held back) ─────────────────────────────────────
@@ -615,13 +632,17 @@ function boostHtml(subject: BoostSubject, off = false): string {
   return `<p class="res-boost" tabindex="0" data-tip="${esc(t(`res.boost.${subject}`))}" aria-label="${esc(t('res.boostAria'))}">${icon('bolt', 'res-ico res-ico--bolt')}${items}</p>`;
 }
 
-function cellHtml(id: string, ico: keyof typeof ICON, label: string, withLimit: boolean): string {
+/**
+ * A strip cell. `short` is the label a very narrow cell falls back to (a
+ * drive's letter); the full label stays the cell's accessible name and tooltip.
+ */
+function cellHtml(id: string, ico: keyof typeof ICON, label: string, withLimit: boolean, short = label): string {
   const leds = Array.from({ length: LEDS }, () => '<i class="res-led"></i>').join('');
   return `<div class="res-cell" id="res-cell-${id}" data-res-tip="${id}" tabindex="0" role="meter" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(label)}">
       ${icon(ico)}
-      <span class="res-cell-label">${esc(label)}</span>
+      <span class="res-cell-label"><span class="res-l-long">${esc(label)}</span><span class="res-l-short" aria-hidden="true">${esc(short)}</span></span>
       <span class="res-leds" aria-hidden="true">${leds}${withLimit ? '<span class="lim"></span>' : ''}</span>
-      <span class="res-cell-num"><b class="res-n-run">—</b><span class="res-n-of">${esc(t('res.cell.of'))}</span><b class="res-n-pc">—</b></span>
+      <span class="res-cell-num"><b class="res-n-run"><span class="res-n-v">—</span><span class="res-n-u"> %</span></b><span class="res-n-of">${esc(t('res.cell.of'))}</span><span class="res-n-sl" aria-hidden="true">/</span><b class="res-n-pc">—</b></span>
     </div>`;
 }
 
@@ -630,7 +651,7 @@ function segHtml(group: string, aria: string, options: ReadonlyArray<readonly [s
   const btns = options
     .map(([val, label]) => {
       const on = val === selected;
-      return `<button type="button" class="res-seg-btn" role="radio" aria-checked="${on}" tabindex="${on ? 0 : -1}" data-seg="${esc(group)}" data-val="${esc(val)}">${esc(label)}</button>`;
+      return `<button type="button" class="res-seg-btn" role="radio" aria-checked="${on}" tabindex="${on ? 0 : -1}" data-seg="${esc(group)}" data-val="${esc(val)}" data-tip="${esc(label)}" data-tip-tier="label">${esc(label)}</button>`;
     })
     .join('');
   return `<div class="res-seg" role="radiogroup" aria-label="${esc(aria)}" style="--n:${options.length}">${btns}</div>`;
@@ -773,7 +794,7 @@ function render(): void {
   const cells = [
     cellHtml('cpu', 'cpu', t('res.cell.cpu'), true),
     cellHtml('ram', 'ram', t('res.cell.ram'), true),
-    ...drives.map((d) => cellHtml(slotId(d), 'disk', cellLabel(d), false)),
+    ...drives.map((d) => cellHtml(slotId(d), 'disk', cellLabel(d), false, d.letter ? `${d.letter}:` : cellLabel(d))),
     ...(gpuCellShown() ? [cellHtml('gpu', 'gpu', t('res.gpu'), true)] : []),
   ].join('');
   const strip = `
@@ -838,9 +859,9 @@ function paintDial(id: string, key: LimitKey | null, s: Shown, value: string, su
     let d = '';
     if (total > 0) {
       const a = angleFor(total, s.max);
-      const [tx, ty] = pt(a, R - 6);
-      const [b1x, b1y] = pt(a - 6, R - 13);
-      const [b2x, b2y] = pt(a + 6, R - 13);
+      const [tx, ty] = pt(a, R - 5);
+      const [b1x, b1y] = pt(a - 5, R - 11);
+      const [b2x, b2y] = pt(a + 5, R - 11);
       d = `M${tx.toFixed(2)} ${ty.toFixed(2)} L${b1x.toFixed(2)} ${b1y.toFixed(2)} L${b2x.toFixed(2)} ${b2y.toFixed(2)} Z`;
     }
     if (pointer.getAttribute('d') !== d) pointer.setAttribute('d', d);
@@ -888,7 +909,8 @@ function paintCell(id: string, runPct: number, totalPct: number, limitPct: numbe
   }
   const run = measured ? `${Math.round(Math.min(runPct, total))} %` : '—';
   const all = measured ? `${Math.round(total)} %` : '—';
-  setText(el, '.res-n-run', run);
+  setText(el, '.res-n-v', measured ? String(Math.round(Math.min(runPct, total))) : '—');
+  el.querySelector<HTMLElement>('.res-n-u')?.toggleAttribute('hidden', !measured);
   setText(el, '.res-n-pc', all);
   el.setAttribute('aria-valuenow', String(Math.round(total)));
   el.setAttribute('aria-valuetext', t('res.cell.aria', { run, total: all }));
@@ -929,7 +951,7 @@ function paintFrame(): void {
       hasLimits(slot) ? key : null,
       g,
       measured ? num(key, Math.max(g.pc, g.use)) : '—',
-      t('res.dial.scale', { unit: key === 'iops' ? t('res.unitIops') : unit(key), top: num(key, g.max) }),
+      key === 'iops' ? t('res.unitIops') : unit(key),
       trioOf(g, (v) => rowValue(key, v)),
     );
   }
@@ -943,8 +965,7 @@ function paintFrame(): void {
     const vram = shownOf('gpu:vram', all);
     const vt = vramTotal();
     const big = !gs ? '—' : vt ? p((Math.max(vram.pc, vram.use) / vt) * 100) : fmt('ramMb', vram.pc);
-    const sub = vt ? `${pcSub} · ${fmt('ramMb', vt)}` : pcSub;
-    paintDial('gpu', null, vram, big, sub, trioOf(vram, (v) => fmt('ramMb', v)));
+    paintDial('gpu', null, vram, big, pcSub, trioOf(vram, (v) => fmt('ramMb', v)));
   }
 }
 
@@ -1064,7 +1085,8 @@ function metricTip(slot: DriveSlot): Tip {
   if (key === 'iops' && d && d.iops && d.readMBs !== null && d.writeMBs !== null) {
     rows.push([t('res.num.perOp'), `${Math.round(((d.readMBs + d.writeMBs) * 1024) / d.iops)} KB`]);
   }
-  const text = [t(`res.tip.${histKey}`), t('res.tip.scale')];
+  const top = view ? scaleMax(key, view, slot) : 0;
+  const text = [t(`res.tip.${histKey}`), t('res.tip.scale', { top: rowValue(key, top) })];
   if (plain) text.push(t('res.tip.driveWork'));
   else if (sample && running() && sample.heldBack > 0.05 && view && bindingDiskLimit(sample, view.limits) === key) {
     return {
@@ -1091,7 +1113,7 @@ function gpuTip(): Tip {
   ].filter(Boolean);
   const vt = vramTotal();
   return {
-    title: state === 'at' ? t('res.tip.atLimit') : undefined,
+    title: state === 'at' ? t('res.tip.atLimit') : (view?.gpu.name ?? undefined),
     text: text.join('\n\n'),
     nums: numsGrid([
       [t('res.num.pc'), g ? p(g.loadPct) : '—', ...stat('gpu.pc', p)],
@@ -1162,6 +1184,23 @@ function paintTips(): void {
     const el = document.getElementById(`res-aside-${id}`);
     if (el && el.textContent !== text) el.textContent = text;
   };
+  // A drive's aside is kind · response · active; a narrow card drops the last
+  // parts first (the card's tooltip carries every number), never cutting a word.
+  const asideParts = (id: string, parts: string[]): void => {
+    const el = document.getElementById(`res-aside-${id}`);
+    if (!el) return;
+    const sig = parts.join('|');
+    if (el.dataset.parts !== sig) {
+      el.dataset.parts = sig;
+      el.innerHTML = parts.map((p, i) => `<span class="res-aside-part">${i ? ' · ' : ''}${esc(p)}</span>`).join('');
+    }
+    const spans = Array.from(el.querySelectorAll<HTMLElement>('.res-aside-part'));
+    spans.forEach((sp) => (sp.hidden = false));
+    for (let i = spans.length - 1; i > 0 && el.scrollWidth > el.clientWidth + 0.5; i--) {
+      const sp = spans[i];
+      if (sp) sp.hidden = true;
+    }
+  };
   aside('cpu', t('res.threads', { n: view.machine.cores }));
   aside('ram', sample ? `${dec(sample.ramUsedMb / 1024, 1)} / ${dec(view.machine.totalRamMb / 1024, 1)} GB` : `${dec(view.machine.totalRamMb / 1024, 1)} GB`);
   for (const slot of drives) {
@@ -1169,7 +1208,7 @@ function paintTips(): void {
     const parts = [t(`res.kind.${slot.kind}`)];
     if (typeof d?.responseMs === 'number') parts.push(msText(d.responseMs));
     if (typeof d?.activePct === 'number') parts.push(t('res.aside.active', { pct: pctText(d.activePct) }));
-    aside(slotId(slot), parts.join(' · '));
+    asideParts(slotId(slot), parts);
   }
   aside('gpu', view.gpu.shortName ?? view.gpu.name ?? '—');
   refreshTooltip();
@@ -1463,6 +1502,7 @@ export async function initResourceDock(): Promise<void> {
     sample = s;
     notePeak(s);
     noteHistory(s);
+    settleDiskDefaults();
     paintLive();
   });
   // Live numbers only while someone can see them — a hidden tray window does

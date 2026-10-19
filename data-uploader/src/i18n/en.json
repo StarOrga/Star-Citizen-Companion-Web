@@ -496,7 +496,7 @@
       "held": "The uploader is waiting on this drive {{pct}} % of the time: its {{which}} ({{limit}}) is reached or the drive is fully busy. Higher limit = faster, but other programs notice.",
       "runOnly": "Blue = uploader: the run plus the app itself. The cruise control limits the run only — the blue share can exceed the limit by the app's part.",
       "gpu": "Graphics card load as in Task Manager: per engine type the sum over all programs, the busiest type is shown. The uploader uses the GPU for silhouettes and 3D models.",
-      "scale": "The scale grows with the highest value measured on this PC.",
+      "scale": "Scale up to {{top}} — it grows with the highest value measured on this PC.",
       "tempoGpu": "Cruise control · GPU {{value}} — drag or ←/→: how much of the graphics card the uploader may use for silhouettes and 3D models. All the way left = GPU off, everything runs on the CPU. Windows cannot hard-cap the GPU — the value may briefly go above it."
     },
     "limitName": {
@@ -556,8 +556,7 @@
       "free": "free"
     },
     "dial": {
-      "pc": "whole PC",
-      "scale": "0–{{top}} {{unit}}"
+      "pc": "whole PC"
     },
     "seg": {
       "aria": "Shown value",

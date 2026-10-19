@@ -554,8 +554,11 @@ kbd.sc-kbd {
   border-right: 1px solid var(--sc-border); transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 .res-cell:last-child { border-right: 0; }
+/* The cell's own width picks the tier; nothing may overflow it (880 px window, 4 cells, unfolded). */
+.res-cell { container-type: inline-size; }
 .res-cell:focus-visible { outline: 2px solid var(--sc-accent); outline-offset: -2px; }
 .res-cell-label { flex: none; white-space: nowrap; font-size: var(--fs-xs); color: var(--sc-fg-1); }
+.res-l-short { display: none; }
 /* "41 % von 100 %": the uploader (blue) first, then the whole PC (white). */
 .res-cell-num {
   flex: none; display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap;
@@ -565,6 +568,8 @@ kbd.sc-kbd {
 .res-n-run { color: var(--sc-accent); }
 .res-n-pc { color: var(--sc-fg-0); }
 .res-n-of { font-family: var(--sc-font-body); font-size: 10px; color: var(--sc-fg-2); }
+.res-n-sl { display: none; color: var(--sc-fg-2); }
+.res-n-u[hidden] { display: none; }
 /* The LED row: uploader blue, other programs white, free = the dark well. */
 .res-leds { position: relative; flex: 1 1 auto; min-width: 24px; display: flex; gap: 2px; height: 8px; }
 .res-led { flex: 1 1 0; border-radius: 1.5px; background: var(--sc-well); transition: background 0.2s ease; }
@@ -576,8 +581,31 @@ kbd.sc-kbd {
 }
 /* Unfolded the LED bars stay; only the icons make room for the preset pills. */
 .resource-dock.is-expanded .res-cell .res-ico { display: none; }
-.resource-dock.is-expanded .res-cell { gap: 5px; padding: 0 6px; }
+.resource-dock.is-expanded .res-cell { gap: 4px; padding: 0 5px; }
 .resource-dock.is-expanded .res-cell-num { font-size: var(--fs-sm); gap: 3px; }
+/* Narrow cells shrink in this order: LED bar (12 → 6 cells), "von" → "/", label font, numbers. */
+@container (max-width: 190px) {
+  .resource-dock .res-cell .res-leds { gap: 2px; min-width: 14px; }
+  .resource-dock .res-cell .res-led:nth-child(2n) { display: none; }
+}
+@container (max-width: 172px) {
+  .resource-dock .res-cell .res-n-of, .resource-dock .res-cell .res-n-u { display: none; }
+  .resource-dock .res-cell .res-n-sl { display: inline; }
+  .resource-dock .res-cell .res-cell-num { gap: 1px; }
+}
+@container (max-width: 150px) {
+  .resource-dock .res-cell .res-cell-label { font-size: 9.5px; }
+  .resource-dock .res-cell .res-cell-num { font-size: var(--fs-sm); }
+}
+@container (max-width: 128px) {
+  .resource-dock .res-cell .res-cell-num { font-size: var(--fs-xs); }
+  .resource-dock .res-cell .res-l-long { display: none; }
+  .resource-dock .res-cell .res-l-short { display: inline; }
+}
+@container (max-width: 100px) {
+  .resource-dock .res-cell .res-cell-num { font-size: 10px; }
+  .resource-dock .res-cell .res-leds { min-width: 10px; gap: 1px; }
+}
 .res-cell.is-at .res-led.run { box-shadow: 0 0 6px var(--sc-accent); }
 .res-cell.is-held { background: rgba(var(--accent-warning-rgb), 0.12); box-shadow: inset 0 0 12px rgba(var(--accent-warning-rgb), 0.35); }
 .res-cell.is-held .res-ico, .res-cell.is-held .res-n-run { color: var(--sc-warning); }
@@ -673,6 +701,10 @@ kbd.sc-kbd {
   transition: background 0.2s ease, color 0.2s ease;
 }
 .res-seg-btn:hover { color: var(--sc-fg-0); }
+.res-box { container-type: inline-size; }
+@container (max-width: 170px) {
+  .res-seg-btn { padding: 1px 1px; font-size: 9.5px; }
+}
 .res-seg-btn[aria-checked='true'] {
   background: color-mix(in srgb, var(--sc-bg-3) 70%, var(--sc-accent) 30%); color: var(--sc-fg-0);
   box-shadow: inset 0 0 0 1px var(--sc-accent);
