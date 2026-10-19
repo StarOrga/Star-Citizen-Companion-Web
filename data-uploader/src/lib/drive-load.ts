@@ -23,12 +23,20 @@
  *    when the drive moved (almost) nothing.
  *
  *  `ResourceView.gpu: GpuInfo` — `name` of the primary GPU (null = none found
- *    or not detected yet / non-Windows), `enabled` = the operator's persisted
- *    "use GPU" switch (`resources.setUseGpu`), `available` = whether a GPU
- *    path can run. Every sidecar gets env `SC_USE_GPU=1` exactly when
- *    `enabled && available`, else `SC_USE_GPU=0`; a Python GPU path reads
- *    only that variable and must still fall back to CPU when its own device
- *    init fails.
+ *    or not detected yet / non-Windows), `shortName` the same without the
+ *    vendor prefix for the card header (`RTX 2080 SUPER`), `available` =
+ *    whether a GPU path can run, `enabled` = `limits.gpuPct > 0` (derived —
+ *    there is no separate switch any more; the GPU limit `gpuPct` replaced the
+ *    old "use GPU" switch, see `resource-limits.ts`). Every sidecar gets env
+ *    `SC_USE_GPU=1` exactly when `enabled && available`, else `SC_USE_GPU=0`,
+ *    plus `SC_GPU_SHARE=<gpuPct>` ('0' when off); a Python GPU path decides
+ *    only by `SC_USE_GPU` and must still fall back to CPU when its own device
+ *    init fails. `vramTotalMb` = dedicated VRAM of that adapter from the
+ *    registry (`HardwareInformation.qwMemorySize`; null = unknown).
+ *
+ *  `ResourceSample.gpu: SampleGpu | null` — live GPU load + VRAM (whole PC and
+ *    the uploader's share = run + app pids), null until measured. Contract in
+ *    `resource-limits.ts` ({@link parseSampleGpu}).
  *
  * Disk LIMITS are unchanged: one read / write / iops budget for the run (see
  * `resource-limits.ts`), the scales follow the game drive (`machine.disk`).
@@ -75,9 +83,16 @@ export interface DriveLoad extends DriveSlot {
 }
 
 export interface GpuInfo {
+  /** Full adapter name (Win32_VideoController), null = none / not detected yet. */
   name: string | null;
+  /** `name` without the vendor prefix ({@link shortGpuName}), null with it. */
+  shortName: string | null;
+  /** Derived: `limits.gpuPct > 0` (kept for older renderers; the limit is the source). */
   enabled: boolean;
+  /** Whether a GPU path can run here (detected GPU, sidecar probe). */
   available: boolean;
+  /** Dedicated VRAM of the adapter, MB (registry); null = unknown. */
+  vramTotalMb: number | null;
 }
 
 /** One physical disk as `python/sc_extract/sysmon.py` reports it (bytes, not MB). */
@@ -229,4 +244,110 @@ const DISCRETE = /nvidia|geforce|quadro|rtx|gtx|radeon rx|radeon pro|amd radeon\
 export function pickPrimaryGpu(names: readonly string[]): string | null {
   const real = names.map((n) => n.trim()).filter((n) => n.length > 0 && !NOT_A_GPU.test(n));
   return real.find((n) => DISCRETE.test(n)) ?? real[0] ?? null;
+}
+
+/**
+ * The adapter name without its vendor prefix and trademark marks, for the GPU
+ * card header: "NVIDIA GeForce RTX 2080 SUPER" → "RTX 2080 SUPER",
+ * "AMD Radeon RX 7900 XTX" → "RX 7900 XTX", "Intel(R) Arc(TM) A770 Graphics"
+ * → "Arc A770 Graphics". A brand word stays when nothing model-like follows
+ * ("AMD Radeon(TM) Graphics" → "Radeon Graphics").
+ */
+export function shortGpuName(name: string | null | undefined): string | null {
+  if (typeof name !== 'string') return null;
+  let s = name.replace(/\((?:R|TM|C)\)|[®™©]/gi, ' ').replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  s = s.replace(/^(?:NVIDIA|AMD|ATI|Intel|Advanced Micro Devices,? Inc\.?)\s+/i, '');
+  s = s.replace(/^GeForce\s+(?=(?:RTX|GTX|GT|MX)\b)/i, '');
+  s = s.replace(/^Radeon\s+(?=(?:RX|Pro|VII|R\d)\b)/i, '');
+  return s.trim() || name.trim();
+}
+
+/**
+ * Output of the one-shot GPU detection PowerShell call (`main/resources.ts`):
+ * lines `NAME|<Win32_VideoController.Name>` and
+ * `REG|<DriverDesc>|<HardwareInformation.qwMemorySize>` (one per display
+ * adapter class key; the size as a decimal REG_QWORD or `hex:<bytes>` for a
+ * REG_BINARY, little-endian). Picks the primary GPU ({@link pickPrimaryGpu})
+ * and the VRAM size of the adapter whose DriverDesc matches its name — or, when
+ * no description matches, of the only adapter with a size. Pure.
+ */
+export function parseGpuDetect(out: string): { name: string | null; vramTotalMb: number | null } {
+  const names: string[] = [];
+  const sizes: { desc: string; bytes: number }[] = [];
+  for (const raw of out.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.startsWith('NAME|')) names.push(line.slice(5));
+    else if (line.startsWith('REG|')) {
+      const rest = line.slice(4);
+      const cut = rest.lastIndexOf('|');
+      if (cut < 0) continue;
+      const bytes = parseVramBytes(rest.slice(cut + 1));
+      if (bytes !== null) sizes.push({ desc: rest.slice(0, cut).trim(), bytes });
+    }
+  }
+  const name = pickPrimaryGpu(names);
+  if (!name) return { name: null, vramTotalMb: null };
+  const want = name.trim().toLowerCase();
+  const hit = sizes.find((x) => x.desc.toLowerCase() === want) ?? (sizes.length === 1 ? sizes[0] : undefined);
+  return { name, vramTotalMb: hit ? Math.round(hit.bytes / (1024 * 1024)) : null };
+}
+
+/**
+ * `HardwareInformation.qwMemorySize` as PowerShell prints it: a decimal
+ * (REG_QWORD) or `hex:` + the bytes of a REG_BINARY (little-endian, up to 8).
+ * null for anything else or a size of 0.
+ */
+export function parseVramBytes(text: string): number | null {
+  const t = text.trim();
+  let v: number;
+  if (/^hex:[0-9a-f]+$/i.test(t)) {
+    const hex = t.slice(4);
+    if (hex.length % 2 !== 0) return null;
+    v = 0;
+    const bytes = Math.min(8, hex.length / 2);
+    for (let i = bytes - 1; i >= 0; i--) v = v * 256 + parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  } else if (/^\d+$/.test(t)) {
+    v = Number(t);
+  } else {
+    return null;
+  }
+  return Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** `"<pid> <parentPid>"` lines (one Win32_Process query) → [pid, parent] pairs. Pure. */
+export function parseProcessTable(out: string): [number, number][] {
+  const rows: [number, number][] = [];
+  for (const line of out.split(/\r?\n/)) {
+    const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(line);
+    if (m) rows.push([Number(m[1]), Number(m[2])]);
+  }
+  return rows;
+}
+
+/**
+ * Every descendant of `roots` in a process table (roots excluded). A pid that
+ * is its own parent (pid 0 / the System idle entry) never loops. Pure.
+ */
+export function descendantPids(roots: readonly number[], table: readonly [number, number][]): number[] {
+  const children = new Map<number, number[]>();
+  for (const [pid, parent] of table) {
+    if (pid === parent) continue;
+    const list = children.get(parent);
+    if (list) list.push(pid);
+    else children.set(parent, [pid]);
+  }
+  const seen = new Set<number>(roots);
+  const out: number[] = [];
+  const queue = [...roots];
+  while (queue.length > 0) {
+    const next = queue.shift() as number;
+    for (const c of children.get(next) ?? []) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      out.push(c);
+      queue.push(c);
+    }
+  }
+  return out;
 }

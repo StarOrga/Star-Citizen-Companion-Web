@@ -4,6 +4,8 @@ import {
   History,
   Ring,
   bindingDiskLimit,
+  defaultDiskMetric,
+  ledSplit,
   boostLevels,
   dots,
   driveRunPct,
@@ -100,5 +102,34 @@ describe('padCell', () => {
   it('pads to a fixed width so a live tooltip keeps its size', () => {
     expect(padCell('9 %', 6)).toBe('   9 %');
     expect(padCell('100 %', 3)).toBe('100 %');
+  });
+});
+
+describe('defaultDiskMetric', () => {
+  const limits = { readMBs: 100, writeMBs: 100, iops: 1000 };
+  const s = (o: Partial<{ running: boolean; heldBack: number; readMBs: number; writeMBs: number; iops: number }>) => ({
+    running: true, heldBack: 0, readMBs: 0, writeMBs: 0, iops: 0, ...o,
+  });
+  it('is read without a sample, while idle, or when nothing holds the run back', () => {
+    expect(defaultDiskMetric(null, limits)).toBe('readMBs');
+    expect(defaultDiskMetric(s({ running: false, heldBack: 0.5, writeMBs: 99 }), limits)).toBe('readMBs');
+    expect(defaultDiskMetric(s({ heldBack: 0.02, writeMBs: 99 }), limits)).toBe('readMBs');
+  });
+  it('is the binding budget while the run is held back', () => {
+    expect(defaultDiskMetric(s({ heldBack: 0.4, readMBs: 20, writeMBs: 95 }), limits)).toBe('writeMBs');
+    expect(defaultDiskMetric(s({ heldBack: 0.4, readMBs: 20, iops: 990 }), limits)).toBe('iops');
+  });
+});
+
+describe('ledSplit', () => {
+  it('splits 12 cells into uploader, others and free', () => {
+    expect(ledSplit(100, 41, 12)).toEqual({ run: 5, others: 7 });
+    expect(ledSplit(54, 15, 12)).toEqual({ run: 2, others: 4 });
+    expect(ledSplit(0, 0, 12)).toEqual({ run: 0, others: 0 });
+  });
+  it('keeps a small share visible and never overflows', () => {
+    expect(ledSplit(3, 2, 30).run).toBe(1);
+    expect(ledSplit(250, 300, 12)).toEqual({ run: 12, others: 0 });
+    expect(ledSplit(0.4, 0.2, 12)).toEqual({ run: 0, others: 0 });
   });
 });

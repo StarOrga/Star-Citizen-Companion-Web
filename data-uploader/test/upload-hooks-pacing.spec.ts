@@ -38,8 +38,8 @@ function livePacer(initial: ResourceLimits): { pacer: Pacer; set: (l: ResourceLi
   };
 }
 
-const generous: ResourceLimits = { cpuPct: 80, ramMb: 8192, readMBs: 500, writeMBs: 400, iops: 5000 };
-const gaming: ResourceLimits = { cpuPct: 15, ramMb: 2048, readMBs: 30, writeMBs: 20, iops: 300 };
+const generous: ResourceLimits = { cpuPct: 80, ramMb: 8192, readMBs: 500, writeMBs: 400, iops: 5000, gpuPct: 100 };
+const gaming: ResourceLimits = { cpuPct: 15, ramMb: 2048, readMBs: 30, writeMBs: 20, iops: 300, gpuPct: 0 };
 
 describe('upload hooks bind the pacer live', () => {
   it('re-reads the CURRENT limits at every work unit', async () => {

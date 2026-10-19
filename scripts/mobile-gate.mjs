@@ -95,11 +95,12 @@ const DEFAULT_CONFIG = {
   quickDevices: ['iphone-14', 'ipad-air'],
   routes: ['/news', '/codex', '/codex/index', '/starscape', '/hangar', '/login', '/about'],
   quickRoutes: ['/news', '/codex', '/hangar', '/about'],
-  thresholds: { minTapTargetPx: 44, minFontSizePx: 12, overflowTolerancePx: 1, maxFindingsPerCheck: 8 },
+  thresholds: { minTapTargetPx: 44, minFontSizePx: 12, minInputFontSizePx: 16, overflowTolerancePx: 1, maxFindingsPerCheck: 8 },
   severity: {
     'horizontal-overflow': 'error',
     'tap-target-too-small': 'error',
     'text-too-small': 'error',
+    'input-zoom': 'error',
     'content-clipped': 'error',
     'overlapping-content': 'error',
     'fixed-overlay-covers-control': 'error',
@@ -537,6 +538,26 @@ function pageAudit(opts) {
     }
   }
 
+  // --- 4b. input zoom (iOS) -------------------------------------------------
+  // iOS Safari zooms the whole page when a text field with font-size < 16px
+  // takes focus. Only iOS does this, so only iOS devices report it.
+  if (opts.os === 'iOS') {
+    const MIN_IN = opts.minInputFontSizePx;
+    const fields = document.querySelectorAll(
+      'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"])' +
+      ':not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"])' +
+      ':not([type="reset"]):not([type="image"]),textarea,select');
+    for (let i = 0; i < fields.length; i++) {
+      const el = fields[i];
+      if (el.disabled || el.readOnly || !rendered(el)) continue;
+      const fs = parseFloat(getComputedStyle(el).fontSize);
+      if (!(fs < MIN_IN - 0.01)) continue;
+      add('input-zoom', 'text field renders at ' + fs + 'px (< ' + MIN_IN + 'px) — iOS Safari zooms on focus', el, {
+        detail: String(fs), measured: fs, limit: MIN_IN, text: label(el),
+      });
+    }
+  }
+
   // --- 5. clipped content ---------------------------------------------------
   const boxes = document.body ? document.body.querySelectorAll('*') : [];
   for (let i = 0; i < boxes.length; i++) {
@@ -958,6 +979,8 @@ async function runDevice(cdp, device, routes, baseUrl, cfg, screenshotDir, auth 
       const audit = await callInPage(cdp, sessionId, pageAudit, {
         minTapTargetPx: cfg.thresholds.minTapTargetPx,
         minFontSizePx: cfg.thresholds.minFontSizePx,
+        minInputFontSizePx: cfg.thresholds.minInputFontSizePx,
+        os: device.os,
         overflowTolerancePx: cfg.thresholds.overflowTolerancePx,
         maxFindingsPerCheck: cfg.thresholds.maxFindingsPerCheck,
       });
@@ -1131,6 +1154,7 @@ const CHECK_HELP = {
   'horizontal-overflow': 'the page can be scrolled sideways — something is wider than the viewport',
   'tap-target-too-small': 'a control is smaller than the 44px minimum touch size (Apple HIG / WCAG 2.5.8)',
   'text-too-small': 'text renders below the readable minimum font size',
+  'input-zoom': 'a text field is below 16px — iOS Safari zooms the page when it gets focus',
   'content-clipped': 'text is cut off by an overflow:hidden box without ellipsis/line-clamp',
   'overlapping-content': 'another element sits on top of a control — the tap does not reach it',
   'fixed-overlay-covers-control': 'a fixed/sticky bar covers an interactive element',
@@ -1238,6 +1262,7 @@ const SELFTEST_EXPECTED = [
   'horizontal-overflow',
   'tap-target-too-small',
   'text-too-small',
+  'input-zoom',
   'content-clipped',
   'overlapping-content',
   'fixed-overlay-covers-control',

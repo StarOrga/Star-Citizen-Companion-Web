@@ -57,3 +57,61 @@ def test_non_windows_reports_unsupported(capsys, monkeypatch):
         return
     assert main(["--pid", "1"]) == 0
     assert '"unsupported"' in capsys.readouterr().out
+
+
+def test_sample_lists_the_job_pids(monkeypatch):
+    """`sample` lines carry the governed job's pids so the host skips its tree scan."""
+    import threading
+
+    from sc_extract import governor as g
+
+    out = []
+
+    class Inbox:
+        def __init__(self):
+            self.closed = threading.Event()
+
+        def take(self):
+            return None
+
+    class Gov:
+        job_ok = True
+        hard_cap = True
+
+        def __init__(self, _pid):
+            self.ticks = 0
+            self.c = 0.0
+
+        def alive(self):
+            self.ticks += 1
+            return self.ticks < 6
+
+        def apply(self, _lim):
+            pass
+
+        def refresh(self):
+            return [42, 7, 42, 0]
+
+        def counters(self):
+            self.c += 1.0
+            return {"cpu": self.c, "read": self.c, "write": self.c, "ops": self.c}
+
+        def memory_mb(self, _pids):
+            return 1.0
+
+        def hold(self, _pids):
+            pass
+
+        def release(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(g, "LimitsInbox", Inbox)
+    monkeypatch.setattr(g, "WinGovernor", Gov)
+    monkeypatch.setattr(g, "emit", out.append)
+    monkeypatch.setattr(g, "TICK_S", 0.0)
+    assert g.run(1, 4) == 0
+    samples = [e for e in out if e["type"] == "sample"]
+    assert samples and samples[0]["pids"] == [7, 42]

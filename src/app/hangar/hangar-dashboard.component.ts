@@ -626,7 +626,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .concept-form .text-input {
       flex: 1 1 160px; min-width: 140px; padding: 8px 12px;
       background: var(--sc-bg-1); color: var(--sc-fg-0);
-      border: 1px solid var(--sc-border); border-radius: 4px; font: inherit; font-size: 0.9rem;
+      border: 1px solid var(--sc-border); border-radius: 4px; font: inherit; font-size: max(0.9rem, var(--sc-fs-input));
     }
     .concept-form .text-input.wide { flex: 2 1 240px; }
     .concept-form .text-input:focus { outline: none; border-color: var(--sc-accent); }
@@ -649,7 +649,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .concept-remove:hover { color: var(--sc-danger); }
     .add-ship { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
     .search-row { display: flex; }
-    .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.9rem; }
+    .search { flex: 1; padding: 9px 14px; border-radius: 8px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.9rem, var(--sc-fs-input)); }
     .search:focus { outline: none; border-color: var(--sc-accent); box-shadow: 0 0 0 2px rgba(0,212,255,0.22); }
     .state { margin: 0; color: var(--sc-fg-2); font-size: 0.82rem; }
     .results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
@@ -698,7 +698,7 @@ const SEARCH_DEBOUNCE_MS = 250;
     .loadouts-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .loadouts-head h2 { margin: 0; }
     .new-loadout { display: flex; gap: 8px; flex-wrap: wrap; }
-    .ld-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: 0.84rem; }
+    .ld-name { padding: 7px 10px; border-radius: 6px; background: var(--sc-bg-0); border: 1px solid var(--sc-border); color: var(--sc-fg-0); font-family: inherit; font-size: max(0.84rem, var(--sc-fs-input)); }
     .ld-name:focus { outline: none; border-color: var(--sc-accent); }
     /* The themed select (shared/sc-select) draws itself; this only sizes it. */
     .new-loadout sc-select.role-select { min-width: 150px; font-size: 0.82rem; }
