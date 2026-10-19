@@ -445,7 +445,9 @@
       "game": "Game {{letter}}:",
       "work": "Work {{letter}}:",
       "both": "Drive {{letter}}:",
-      "drive": "Drive"
+      "drive": "Drive",
+      "of": "of",
+      "aria": "Uploader {{run}} of {{total}}"
     },
     "threads": "{{n}} threads",
     "unitIops": "ops/s",
@@ -456,7 +458,7 @@
     },
     "num": {
       "pc": "Whole PC",
-      "run": "Uploader",
+      "run": "Uploader run",
       "limit": "Limit",
       "used": "In use",
       "app": "Uploader app",
@@ -466,7 +468,11 @@
       "write": "Write",
       "iops": "Operations",
       "share": "Uploader share",
-      "perOp": "Avg per operation"
+      "perOp": "Avg per operation",
+      "uploader": "Uploader (run + app)",
+      "vramUsed": "VRAM used",
+      "vramRun": "VRAM uploader",
+      "vramTotal": "VRAM total"
     },
     "tip": {
       "cpu": "Load across all {{threads}} threads, measured like the \"CPU\" column in Task Manager (turbo clock included). It is sampled every second and swings hard during a run, so a side-by-side with Task Manager rarely shows the same number. 10 % always stays with Windows.",
@@ -487,7 +493,11 @@
       "atLimit": "At cruise control",
       "atLimitText": "The uploader takes as much as the cruise control allows right now. More room = faster, but other programs notice.",
       "heldTitle": "Held back · {{drive}}",
-      "held": "The uploader is waiting on this drive {{pct}} % of the time: its {{which}} ({{limit}}) is reached or the drive is fully busy. Higher limit = faster, but other programs notice."
+      "held": "The uploader is waiting on this drive {{pct}} % of the time: its {{which}} ({{limit}}) is reached or the drive is fully busy. Higher limit = faster, but other programs notice.",
+      "runOnly": "Blue = uploader: the run plus the app itself. The cruise control limits the run only — the blue share can exceed the limit by the app's part.",
+      "gpu": "Graphics card load as in Task Manager: per engine type the sum over all programs, the busiest type is shown. The uploader uses the GPU for silhouettes and 3D models.",
+      "scale": "Scale up to {{top}} — it grows with the highest value measured on this PC.",
+      "tempoGpu": "Cruise control · GPU {{value}} — drag or ←/→: how much of the graphics card the uploader may use for silhouettes and 3D models. All the way left = GPU off, everything runs on the CPU. Windows cannot hard-cap the GPU — the value may briefly go above it."
     },
     "limitName": {
       "readMBs": "read limit",
@@ -516,13 +526,10 @@
       "ram": "What does the uploader need memory for? Codex: the whole DataCore is held in memory (a lot). Silhouettes and 3D: one buffer per worker (medium) — the limit sets how many workers start. ●●● = more memory makes this step noticeably faster.",
       "game": "What does the uploader need this drive for? It reads the Data.p4k: the codex reads the most (a lot), silhouettes and 3D read models on demand (medium). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
       "work": "What does the uploader need this drive for? It writes results and its cache: codex little, silhouettes medium, 3D the most (models and packages). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
-      "both": "What does the uploader need this drive for? It reads the Data.p4k (codex the most) and writes results and its cache (3D the most). ●●● = a faster drive or a higher limit makes this step noticeably faster."
+      "both": "What does the uploader need this drive for? It reads the Data.p4k (codex the most) and writes results and its cache (3D the most). ●●● = a faster drive or a higher limit makes this step noticeably faster.",
+      "gpu": "What does the uploader need the graphics card for? Codex: not at all. Silhouettes: rasterising outlines (a lot). 3D: converting models (a lot). ●●● = more GPU makes this step noticeably faster."
     },
     "gpu": "GPU",
-    "gpuNone": "not detected",
-    "gpuSwitch": "Use for silhouettes / 3D",
-    "gpuTip": "Rasterises the silhouette outlines on the graphics card instead of the processor. If the graphics card does not start, the uploader carries on on the processor by itself. Applies from the next step.",
-    "gpuUnavailable": "The GPU path cannot run on this PC (no suitable graphics card or driver) — silhouettes and 3D run on the processor.",
     "presetsAria": "Presets",
     "preset": {
       "gaming": "While gaming",
@@ -542,7 +549,28 @@
       "tipLast": "Estimated time left from the last run on this PC — once there is enough progress it is measured live.",
       "tipStep": "Only the running step: the others never ran to the end on this PC yet.",
       "tipScale": "Other levels are projected from the number of parallel workers; uploads and the network do not speed up with it."
-    }
+    },
+    "trio": {
+      "run": "Uploader",
+      "others": "others",
+      "free": "free"
+    },
+    "dial": {
+      "pc": "whole PC"
+    },
+    "seg": {
+      "aria": "Shown value",
+      "load": "Load",
+      "vram": "VRAM"
+    },
+    "aside": {
+      "active": "active {{pct}}"
+    },
+    "gpuLoad": "GPU load",
+    "gpuOffShort": "off",
+    "gpuOffHint": "GPU off — drag right to compute silhouettes and 3D models on the graphics card (much faster than the CPU)",
+    "gpuNoneTitle": "No GPU detected",
+    "gpuNoneHint": "Silhouettes and 3D models are computed on the CPU."
   },
   "pipeline": {
     "stepOf": "Step {{n}} of {{total}}",

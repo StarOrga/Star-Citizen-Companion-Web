@@ -85,7 +85,7 @@ src/
 │   ├── main.ts            # State + IPC + startRun(plan) + Extract/Upload-Engine
 │   ├── steps/             # install (Startrampe + Start), done, category-bars, upload-stages (Zeilen je Schritt)
 │   ├── shell/             # step-rail, chevrons (nur vor dem Start), bottom-strip
-│   ├── resource-dock.ts   # Performance-Dock: Tachos für CPU / RAM / Disk (Taste T)
+│   ├── resource-dock.ts   # Performance-Dock: Tachos für CPU / RAM / Disk / GPU (Taste T)
 │   ├── when-done-chip.ts  # ⏻ Wenn fertig
 │   ├── settings-dialog.ts # ⚙ als Satz (Start · Leistung · danach) + App-Chips (Sprache, Tray, Fehlerberichte, Ring)
 │   ├── patch-countdown.ts # Spiel-Patch-Banner: 120 s bis zum Upload beim selbst Öffnen
@@ -108,7 +108,7 @@ src/
     └── {fr,es,pt,ru,zh}.json   # Stubs (English-Fallback)
 ```
 
-## Performance-Dock (CPU · RAM · Disk, live)
+## Performance-Dock (CPU · RAM · Disk · GPU, live)
 
 Die drei Tempo-Profile (Minimal / Standard / Maximal) sind ersetzt. Sie stellten
 nur Worker-Zahl und Prioritätsklasse ein — und keiner der beiden Hebel erreicht
@@ -123,11 +123,14 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 | Prozessor | 0–100 % der ganzen Maschine, Grenze max. **90 %** | harte CPU-Grenze per Windows **Job Object** um den ganzen Sidecar-Baum |
 | Arbeitsspeicher | Gesamt-RAM − 2 GB für Windows; belegt von anderen Programmen + Uploader-App wird live abgezogen | bestimmt die Worker-Zahl des nächsten Schritts (ein hartes Commit-Limit würde Allokationen scheitern lassen und den Lauf abstürzen) |
 | Disk lesen / schreiben (MB/s), Disk-Zugriffe (/s) | Laufwerksklasse der Data.p4k (NVMe / SATA-SSD / HDD, per `Get-PhysicalDisk`) | Governor pausiert den Baum genau so lange, bis das Budget wieder im Plus ist (Duty-Cycle, 250 ms Auflösung) |
-| Grafikkarte | — | Schalter „GPU nutzen“ (Settings `useGpu`, Standard aus); jeder Sidecar bekommt `SC_USE_GPU=1` nur, wenn er an ist und eine GPU erkannt wurde (`Win32_VideoController`, einmal pro Sitzung), sonst `0` — ein GPU-Pfad fällt bei Fehlern selbst auf die CPU zurück |
+| Grafikkarte | 0–100 % Anteil der GPU (`gpuPct`; Beim Spielen 0 = aus, Ausgewogen 80, Volle Leistung 100) | `gpuPct` 0 oder keine GPU erkannt (`Win32_VideoController`, einmal pro Sitzung) → `SC_USE_GPU=0`; sonst `SC_USE_GPU=1` plus `SC_GPU_SHARE`: Silhouetten-Raster und Loch-Prüfung pausieren nach jeder GPU-Einheit im Verhältnis zur Grenze (`python/sc_extract/gpu_share.py`, max. 2 s). Windows kennt keine harte GPU-Grenze, der Wert kann kurz darüber liegen. Ein altes `useGpu: false` wird bei eigenen Werten zu 0, die Voreinstellungen bringen ihren GPU-Wert mit |
 
-- **Tacho**: Nadel und große Zahl zeigen die **Gesamtlast des PCs** wie im
-  Task-Manager, der innere Bogen den Anteil des Uploader-Laufs, der helle Bogen
-  bis zum Griff dessen Grenze. Die Gesamtlast liefert
+- **Tacho** (Segmentkranz): die große Zahl und die kleine Spitze zeigen die
+  **Gesamtlast des PCs** wie im Task-Manager. Die Segmente sind blau bis zum
+  Anteil des **Uploaders** (Lauf samt Kindprozessen plus die App selbst), weiß
+  bis zur Gesamtlast (andere Programme), dunkel der freie Rest; darunter die drei
+  Werte mit Einheit. Der blaue Griff außen ist die Grenze — sie bremst nur den
+  Lauf, Blau kann sie also um den Anteil der App überschreiten. Die Gesamtlast liefert
   `python/sc_extract/sysmon.py` (Windows-Leistungsindikatoren über
   `PdhAddEnglishCounterW`, also sprachunabhängig; CPU = `% Processor Utility`
   wie im Task-Manager). Er läuft nur, solange der Sampler tickt (sichtbares
@@ -140,7 +143,18 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
   Zelle mit Rolle `both`). Der Anteil des Laufs ist pro Prozessbaum gemessen,
   nicht pro Laufwerk: bei zwei Laufwerken zählen seine Lesezugriffe zum
   Spiel-, seine Schreibzugriffe zum Arbeitslaufwerk (Vertrag in
-  `src/lib/drive-load.ts`).
+  `src/lib/drive-load.ts`). Die Laufwerk-Karte schaltet per Umschalter
+  Lesen / Schreiben / Zugriffe um; vorausgewählt ist beim Aufklappen die
+  Grenze, die den Lauf gerade bremst. Die Skala wächst mit dem höchsten je
+  gemessenen Wert (`diskScaleTop`) und schrumpft nie.
+- **GPU**: `sysmon.py` liest `GPU Engine(*)\Utilization Percentage`
+  (Task-Manager-Logik: je Engine-Typ über die Prozesse summiert, gesamt = der
+  höchste Typ), `GPU Adapter Memory(*)\Dedicated Usage` und
+  `GPU Process Memory(*)\Dedicated Usage`. Den Uploader-Anteil trennt es über
+  die PID-Liste, die Main per stdin schickt (`{"type":"pids","pids":[…]}`, bei
+  jeder Änderung); die VRAM-Größe liest Main aus der Registry
+  (`HardwareInformation.qwMemorySize`). Die GPU-Karte schaltet Auslastung /
+  VRAM um und zeigt „GPU aus“ (Griff ganz links) bzw. „Keine GPU erkannt“.
 - **Governor** (`python/sc_extract/governor.py`): ein kleiner Prozess pro
   laufendem Sidecar (`main/resources.ts` startet ihn in `registerJob`). Er legt
   den Sidecar in ein Job Object — jeder Worker, `cgf-converter` und der
@@ -153,11 +167,11 @@ abgeleitet ist (`src/lib/resource-limits.ts`):
 - **Main ist die Quelle der Wahrheit** (`main/resources.ts`), gespeichert in den
   Settings (`resourceLimits`; das alte `speedProfile` wird beim ersten Start
   auf die passende Voreinstellung abgebildet). Der Renderer spiegelt nur.
-- **Dock** (`renderer/resource-dock.ts`): eingeklappt eine Zeile (Verbrauch /
-  Grenze je Ressource), ausgeklappt (Taste T) ein Tacho pro Ressource: Skala des
-  PCs, schraffiert was andere Programme gerade belegen, heller Bogen bis zum
-  Griff = Grenze (ziehen oder Pfeiltasten), Nadel = aktueller Verbrauch des
-  Laufs. Voreinstellungen „Beim Spielen“ / „Ausgewogen“ / „Volle Leistung“
+- **Dock** (`renderer/resource-dock.ts`): eingeklappt eine Zeile, je Ressource
+  eine LED-Reihe (blau / weiß / dunkel) und „41 % von 100 %“ (Uploader von
+  gesamt, immer in Prozent; die GPU-Zelle nur bei `gpuPct` > 0). Ausgeklappt
+  (Taste T) gleich große Karten: Tacho, Umschalter-Zeile, Phasen-Punkte; der
+  Griff wird gezogen oder per Pfeiltasten gestellt. Voreinstellungen „Beim Spielen“ / „Ausgewogen“ / „Volle Leistung“
   füllen nur die Regler.
 - **Geschätzte Dauer** (`lib/run-estimate.ts`, `renderer/run-eta.ts`): der
   Dock-Reiter zeigt „noch ca. 25 min“, jede Voreinstellung ihre eigene Zahl

@@ -16,8 +16,10 @@
  *
  * It also measures: the whole PC's CPU and disk load the way Task Manager
  * shows it (`python/sc_extract/sysmon.py`, Windows performance counters),
- * machine-wide RAM, this app's own memory, and the run's share from the
- * governors' samples — the panel draws all of it. The
+ * machine-wide RAM, this app's own memory and CPU, the GPU load and VRAM
+ * (sysmon's PDH GPU counters, split by the uploader pid set main sends it —
+ * see {@link syncSysmonPids}), and the run's share from the governors'
+ * samples — the panel draws all of it. The
  * sampler only ticks while a job runs or a visible window watches, so the idle
  * tray budget (README "Idle behaviour") stays at zero periodic work.
  */
@@ -32,12 +34,16 @@ import {
   DEFAULT_PRESET,
   DISK_CAPS,
   PRESET_IDS,
+  appCpuPct,
   clampLimits,
   diskKindFrom,
   dumpWorkers,
   governorLimits,
   matchPreset,
+  migrateLegacyGpu,
   pacingMs,
+  parseSampleGpu,
+  presetGpuPct,
   presetFromLegacyProfile,
   presetLimits,
   rangesFor,
@@ -46,7 +52,7 @@ import {
   type MachineInfo,
   type PresetId,
   type Range,
-  type ResourceKey,
+  type LimitKey,
   type ResourceLimits,
   type ResourceSample,
 } from '../lib/resource-limits.js';
@@ -54,8 +60,11 @@ import {
   driveLetter,
   driveLoads,
   driveSlots,
+  descendantPids,
+  parseGpuDetect,
+  parseProcessTable,
   parseSysDrives,
-  pickPrimaryGpu,
+  shortGpuName,
   type DriveSlot,
   type GpuInfo,
   type SysDrive,
@@ -80,7 +89,8 @@ export interface ResourceView {
   gpu: GpuInfo;
   machine: MachineInfo;
   limits: ResourceLimits;
-  ranges: Record<ResourceKey, Range>;
+  /** Every limit's range, `gpuPct` included (0..100, step 1). */
+  ranges: Record<LimitKey, Range>;
   /** The preset the limits equal, or null for a custom mix. */
   preset: PresetId | null;
   /** False where no governor can run (non-Windows) — the UI says so. */
@@ -120,10 +130,10 @@ let workLetter: string | null = null;
 /** Last per-disk report of the whole-PC monitor (null = none yet / not Windows). */
 let sysDrives: SysDrive[] | null = null;
 
-let useGpu = false;
-let persistUseGpu: (on: boolean) => void = () => {};
 /** undefined = not detected yet; null = detected, none found. */
 let gpuName: string | null | undefined = SUPPORTED ? undefined : null;
+/** Dedicated VRAM of that adapter (registry), MB; null = unknown. */
+let vramTotalMb: number | null = null;
 let gpuDetecting = false;
 /**
  * Capability override from a sidecar probe ({@link setGpuAvailable}); null =
@@ -139,8 +149,9 @@ function gpuAvailable(): boolean {
   return gpuName !== null;
 }
 
+/** GPU use follows the limit: on exactly while `gpuPct > 0` and a GPU path is available. */
 function syncSidecarGpu(): void {
-  setSidecarGpu(useGpu && gpuAvailable());
+  setSidecarGpu(limits.gpuPct > 0 && gpuAvailable(), limits.gpuPct);
 }
 
 function kindOf(letter: string): MachineInfo['disk']['kind'] {
@@ -151,14 +162,11 @@ export function init(opts: {
   stored: StoredLimits | null | undefined;
   legacyProfile: unknown;
   persist: (s: StoredLimits) => void;
+  /** Legacy settings `useGpu` (the removed switch) — only read to migrate a custom mix without `gpuPct`. */
   useGpu?: boolean;
-  persistUseGpu?: (on: boolean) => void;
 }): void {
   persist = opts.persist;
-  useGpu = opts.useGpu === true;
-  if (opts.persistUseGpu) persistUseGpu = opts.persistUseGpu;
-  syncSidecarGpu();
-  const stored = opts.stored;
+  const { stored, migrated } = migrateLegacyGpu(opts.stored, opts.useGpu === true);
   if (stored && typeof stored === 'object') {
     preset = stored.preset && PRESET_IDS.includes(stored.preset) ? stored.preset : null;
     limits = preset ? presetLimits(preset, machine) : clampLimits(stored, machine);
@@ -167,13 +175,24 @@ export function init(opts: {
     preset = presetFromLegacyProfile(opts.legacyProfile);
     limits = presetLimits(preset, machine);
   }
+  if (migrated) {
+    log.info(`[resources] migrated legacy useGpu=${opts.useGpu === true} → gpuPct ${limits.gpuPct}`);
+    persist({ ...limits, preset });
+  }
+  syncSidecarGpu();
 }
 
 export function view(): ResourceView {
   detectGpu();
   return {
     drives: driveSlots(gameLetter, workLetter, kindOf, sysDrives),
-    gpu: { name: gpuName ?? null, enabled: useGpu, available: gpuAvailable() },
+    gpu: {
+      name: gpuName ?? null,
+      shortName: shortGpuName(gpuName ?? null),
+      enabled: limits.gpuPct > 0,
+      available: gpuAvailable(),
+      vramTotalMb,
+    },
     machine,
     limits,
     ranges: rangesFor(machine),
@@ -206,6 +225,7 @@ let operatorStored: StoredLimits | null = null;
 function changed(operator = true): ResourceView {
   if (operator) operatorStored = null;
   if (!operatorStored) persist({ ...limits, preset });
+  syncSidecarGpu();
   pushToGovernors();
   const v = view();
   broadcast('sc:resources:changed', v);
@@ -354,15 +374,32 @@ function notify(): void {
 
 // ── GPU ─────────────────────────────────────────────────────────────────────
 
-/** Name of the primary GPU, once per session, only when someone looks (idle budget). */
+/**
+ * One PowerShell call: every adapter name (`NAME|…`) and, per display-adapter
+ * class key, `REG|<DriverDesc>|<HardwareInformation.qwMemorySize>` — REG_QWORD
+ * as a decimal, REG_BINARY as `hex:<bytes>`. Win32_VideoController.AdapterRAM
+ * is a uint32 (capped at 4 GB) and therefore NOT used. Parsed by
+ * `parseGpuDetect` (lib/drive-load.ts).
+ */
+const GPU_DETECT_PS =
+  `Get-CimInstance Win32_VideoController | ForEach-Object { 'NAME|' + $_.Name };` +
+  `Get-ChildItem 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}' -ErrorAction SilentlyContinue | ForEach-Object {` +
+  ` $p = Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue;` +
+  ` if ($p -and $p.DriverDesc) { $m = $p.'HardwareInformation.qwMemorySize';` +
+  ` if ($m -is [byte[]]) { $m = 'hex:' + (($m | ForEach-Object { $_.ToString('x2') }) -join '') };` +
+  ` if ($null -ne $m) { 'REG|' + $p.DriverDesc + '|' + $m } } }`;
+
+/** Name + VRAM size of the primary GPU, once per session, only when someone looks (idle budget). */
 function detectGpu(): void {
   if (gpuName !== undefined || gpuDetecting) return;
   gpuDetecting = true;
   const started = Date.now();
-  void powershell('Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }', 30_000).then((out) => {
+  void powershell(GPU_DETECT_PS, 30_000).then((out) => {
     gpuDetecting = false;
-    gpuName = pickPrimaryGpu(out.split(/\r?\n/));
-    log.info(`[resources] gpu: ${JSON.stringify(gpuName)} (${Date.now() - started} ms)`);
+    const found = parseGpuDetect(out);
+    gpuName = found.name;
+    vramTotalMb = found.vramTotalMb;
+    log.info(`[resources] gpu: ${JSON.stringify(gpuName)}, vram ${vramTotalMb ?? '?'} MB (${Date.now() - started} ms)`);
     syncSidecarGpu();
     notify();
     if (gpuName) probeGpuCapability();
@@ -406,14 +443,15 @@ function probeGpuCapability(): void {
   });
 }
 
-/** The operator's persisted "use GPU" switch. Reaches sidecars started from now on. */
+/**
+ * COMPAT SHIM for the removed "use GPU" switch — the GPU limit `gpuPct` is the
+ * source now (`setLimits({ gpuPct })`). On: a GPU limit of 0 becomes the
+ * balanced share (an existing share > 0 stays); off: `gpuPct` 0. Persisted
+ * like any limit change; the settings key `useGpu` is no longer written.
+ */
 export function setUseGpu(on: unknown): ResourceView {
-  useGpu = on === true;
-  persistUseGpu(useGpu);
-  syncSidecarGpu();
-  const v = view();
-  broadcast('sc:resources:changed', v);
-  return v;
+  if (on === true) return limits.gpuPct > 0 ? view() : setLimits({ gpuPct: presetGpuPct('balanced') });
+  return setLimits({ gpuPct: 0 });
 }
 
 /**
@@ -430,6 +468,10 @@ export function setGpuAvailable(available: boolean | null): void {
 
 interface Governor {
   child: ChildProcessWithoutNullStreams;
+  /** The governed sidecar (root of its tree). */
+  pid: number;
+  /** Its job's pids when the governor reports them (`pids` in a sample); null = not reported. */
+  jobPids: number[] | null;
   sample: { cpuPct: number; memMb: number; readBps: number; writeBps: number; iops: number; heldBack: number; hardCap: boolean } | null;
 }
 
@@ -473,7 +515,7 @@ export function registerJob(jobId: string, pid: number | null | undefined): void
     log.warn('[resources] governor spawn failed:', err instanceof Error ? err.message : String(err));
     return;
   }
-  const g: Governor = { child, sample: null };
+  const g: Governor = { child, pid, jobPids: null, sample: null };
   governors.set(jobId, g);
   child.on('error', (err) => log.warn(`[resources] governor for ${jobId}:`, err.message));
   child.stderr.on('data', (d: Buffer) => log.warn(`[resources] governor ${jobId} stderr: ${d.toString('utf-8').trim().slice(0, 300)}`));
@@ -494,6 +536,8 @@ export function registerJob(jobId: string, pid: number | null | undefined): void
         heldBack: Number(ev.heldBack) || 0,
         hardCap: ev.hardCap === true,
       };
+      // Forward-compatible: a governor that lists its job's pids saves the tree scan.
+      if (Array.isArray(ev.pids)) g.jobPids = ev.pids.filter((n): n is number => Number.isInteger(n) && (n as number) > 0);
     } else if (ev.type === 'ready') {
       log.info(`[resources] governor for ${jobId} (pid ${pid}) ready, job object: ${String(ev.job)}`);
     } else if (ev.type === 'error') {
@@ -543,6 +587,71 @@ interface SystemLoad {
 
 let sysmon: ChildProcessWithoutNullStreams | null = null;
 let systemLoad: SystemLoad | null = null;
+/** sysmon's raw `gpu` object of the last sample (bytes), null = absent / unmeasured. */
+let sysGpuRaw: unknown = null;
+/** sysmon's `ready.gpuCounters` — which PDH GPU sets exist; [] = the GPU cannot be measured. */
+let sysGpuCounters: string[] | null = null;
+
+// ── Uploader pid set → sysmon ───────────────────────────────────────────────
+
+/** Last pid set written to sysmon ('' = none yet for this sysmon process). */
+let sentPidsKey = '';
+/** Descendants of the governed sidecars from the last process-table scan. */
+let treePids: number[] = [];
+let treeScanAt = 0;
+let treeScanning = false;
+/** How often the sidecar trees are re-scanned while a run goes (one PowerShell call). */
+const TREE_SCAN_MS = 5000;
+
+/**
+ * Every descendant of the governed sidecars (cgf-converter, workers …) from
+ * one Win32_Process query — only while a job runs and the sampler ticks, and
+ * only for governors that do not report their job pids themselves.
+ */
+function scanTrees(): void {
+  const roots = [...governors.values()].filter((g) => !g.jobPids).map((g) => g.pid);
+  if (roots.length === 0) {
+    treePids = [];
+    return;
+  }
+  if (treeScanning || Date.now() - treeScanAt < TREE_SCAN_MS) return;
+  treeScanning = true;
+  treeScanAt = Date.now();
+  void powershell(
+    `Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId | ForEach-Object { "$($_.ProcessId) $($_.ParentProcessId)" }`,
+    15_000,
+  ).then((out) => {
+    treeScanning = false;
+    const live = [...governors.values()].filter((g) => !g.jobPids).map((g) => g.pid);
+    treePids = descendantPids(live, parseProcessTable(out));
+  });
+}
+
+/**
+ * Hand sysmon the uploader pid set (it splits GPU load / VRAM by it): the full
+ * process tree of every governed sidecar plus the Electron app's own
+ * processes. The stdin line `{"type":"pids","pids":[…]}` REPLACES the set, so
+ * it is re-sent whenever the set changes (and once per sysmon start).
+ */
+function syncSysmonPids(appPids: readonly number[]): void {
+  if (!sysmon) return;
+  scanTrees();
+  const set = new Set<number>(appPids);
+  for (const g of governors.values()) {
+    set.add(g.pid);
+    for (const p of g.jobPids ?? []) set.add(p);
+  }
+  for (const p of treePids) set.add(p);
+  const pids = [...set].filter((n) => Number.isInteger(n) && n > 0).sort((a, b) => a - b);
+  const key = pids.join(',');
+  if (key === sentPidsKey) return;
+  try {
+    sysmon.stdin.write(`${JSON.stringify({ type: 'pids', pids })}\n`);
+    sentPidsKey = key;
+  } catch {
+    /* sysmon gone — the next start re-sends */
+  }
+}
 
 /** Task Manager's numbers for the whole PC; runs exactly as long as the sampler. */
 function startSysmon(): void {
@@ -560,6 +669,7 @@ function startSysmon(): void {
     return;
   }
   sysmon = child;
+  sentPidsKey = '';
   child.on('error', (err) => log.warn('[resources] sysmon:', err.message));
   child.stderr.on('data', (d: Buffer) => log.warn(`[resources] sysmon stderr: ${d.toString('utf-8').trim().slice(0, 300)}`));
   child.stdin.on('error', () => undefined);
@@ -579,6 +689,10 @@ function startSysmon(): void {
         writeBps: Number(ev.writeBps) || 0,
         iops: Number(ev.iops) || 0,
       };
+      sysGpuRaw = ev.gpu ?? null;
+    } else if (ev.type === 'ready') {
+      sysGpuCounters = Array.isArray(ev.gpuCounters) ? ev.gpuCounters.map(String) : null;
+      log.info(`[resources] sysmon ready, gpu counters: ${JSON.stringify(sysGpuCounters)}`);
     } else if (ev.type === 'error') {
       log.warn(`[resources] sysmon: ${String(ev.message)}`);
     }
@@ -587,6 +701,7 @@ function startSysmon(): void {
     if (sysmon === child) {
       sysmon = null;
       systemLoad = null;
+      sysGpuRaw = null;
     }
   });
 }
@@ -595,6 +710,7 @@ function stopSysmon(): void {
   const child = sysmon;
   sysmon = null;
   systemLoad = null;
+  sysGpuRaw = null;
   if (!child) return;
   try {
     child.stdin.end();
@@ -624,11 +740,18 @@ function takeSample(): ResourceSample {
   }
   prevCpu = now;
   let ramAppMb = 0;
+  const appCpu: number[] = [];
+  const appPids: number[] = [];
   try {
-    for (const m of app.getAppMetrics()) ramAppMb += (m.memory?.workingSetSize ?? 0) / 1024;
+    for (const m of app.getAppMetrics()) {
+      ramAppMb += (m.memory?.workingSetSize ?? 0) / 1024;
+      appCpu.push(m.cpu?.percentCPUUsage ?? 0);
+      appPids.push(m.pid);
+    }
   } catch {
     /* app not ready */
   }
+  syncSysmonPids(appPids);
   const run = { cpuPct: 0, memMb: 0, readBps: 0, writeBps: 0, iops: 0, heldBack: 0 };
   let hardCap = governors.size > 0;
   for (const g of governors.values()) {
@@ -649,6 +772,7 @@ function takeSample(): ResourceSample {
     t: Date.now(),
     cpuTotalPct: Math.round(Math.max(0, Math.min(100, cpuTotalPct)) * 10) / 10,
     cpuRunPct: run.cpuPct,
+    cpuAppPct: appCpuPct(appCpu, machine.cores),
     ramUsedMb: Math.round((totalmem() - freemem()) / mb),
     ramAppMb: Math.round(ramAppMb),
     ramRunMb: run.memMb,
@@ -659,6 +783,8 @@ function takeSample(): ResourceSample {
     sysWriteMBs: sys ? Math.round((sys.writeBps / mb) * 10) / 10 : null,
     sysIops: sys ? Math.round(sys.iops) : null,
     drives: driveLoads(driveSlots(gameLetter, workLetter, kindOf, sysDrives), sys ? sysDrives : null, run),
+    // sysmon reported no GPU counter set at all → stays null (unmeasurable).
+    gpu: sys && (sysGpuCounters === null || sysGpuCounters.length > 0) ? parseSampleGpu(sysGpuRaw, vramTotalMb) : null,
     heldBack: run.heldBack,
     running: governors.size > 0,
     hardCap,

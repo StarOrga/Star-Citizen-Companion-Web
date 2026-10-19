@@ -103,11 +103,39 @@ export function bindingDiskLimit(
   return best;
 }
 
+/**
+ * The metric a drive card shows when the dock unfolds: the disk budget that is
+ * holding the run back right now ({@link bindingDiskLimit}), else read — the
+ * run's usual shape. Evaluated once per unfold; the dock never switches it
+ * while open.
+ */
+export function defaultDiskMetric(
+  sample: { running: boolean; heldBack: number; readMBs: number; writeMBs: number; iops: number } | null,
+  limits: Pick<ResourceLimits, DiskLimitKey> | null,
+): DiskLimitKey {
+  if (!sample || !limits || !sample.running || !(sample.heldBack > 0.05)) return 'readMBs';
+  return bindingDiskLimit(sample, limits);
+}
+
+/**
+ * Lit cells of a segmented bar (the strip's LED row, the dial's segment ring):
+ * the first `run` cells are the uploader, the next `others` cells other
+ * programs, the rest free. A share of at least 1 % never rounds away to zero
+ * cells, and the two never exceed `n` together.
+ */
+export function ledSplit(totalPct: number, runPct: number, n: number): { run: number; others: number } {
+  const bar = splitBar(totalPct, runPct);
+  const cells = (pct: number): number => (pct >= 1 ? Math.max(1, Math.round((pct / 100) * n)) : 0);
+  const all = Math.min(n, cells(bar.run + bar.others));
+  const run = Math.min(all, cells(bar.run));
+  return { run, others: all - run };
+}
+
 /** Steps of a run, in the order the dock lists them. */
 export const PHASES = ['codex', 'silhouettes', 'models'] as const;
 export type Phase = (typeof PHASES)[number];
 
-export type BoostSubject = 'cpu' | 'ram' | DriveRole;
+export type BoostSubject = 'cpu' | 'ram' | 'gpu' | DriveRole;
 
 /**
  * How much more of a resource speeds a step up, 1..3. Reflects what the step
@@ -120,6 +148,8 @@ const BOOST: Record<Exclude<BoostSubject, 'both'>, readonly [number, number, num
   ram: [3, 2, 2],
   game: [3, 2, 2],
   work: [1, 2, 3],
+  // The codex never touches the GPU; silhouettes raster and the 3D build converts on it.
+  gpu: [0, 3, 3],
 };
 
 export function boostLevels(subject: BoostSubject): readonly [number, number, number] {

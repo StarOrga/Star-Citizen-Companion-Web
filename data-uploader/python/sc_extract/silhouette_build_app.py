@@ -86,7 +86,10 @@ def main() -> int:
         from .silhouette import raster_backend
         backend = raster_backend()
         if backend == "gpu":
-            log("info", f"silhouette raster: GPU ({silhouette_gpu.status()['name']})")
+            from .gpu_share import gpu_share
+            share = gpu_share()
+            log("info", f"silhouette raster: GPU ({silhouette_gpu.status()['name']})"
+                        + (f", share {share}%" if share < 100 else ""))
         elif os.environ.get("SC_USE_GPU", "").strip() == "1":
             log("info", f"silhouette raster: CPU — GPU requested but unavailable "
                         f"({silhouette_gpu.status()['reason']})")
