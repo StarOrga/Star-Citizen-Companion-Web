@@ -55,11 +55,12 @@
   "discover": {
     "pickOne": "Pick an installation first.",
     "title": "Star Citizen found",
-    "subtitle": "Searched automatically: RSI launcher → drives. One game version per run.",
+    "subtitle": "Searched automatically: remembered folder → RSI launcher → Windows → drives. One game version per run.",
     "scan": "Start scan",
     "scanning": "Searching for installs…",
     "manual": "Pick folder manually",
     "addManual": "Add folder manually",
+    "manualNotFound": "No Data.p4k found there. Pick the game version folder (e.g. …\\StarCitizen\\LIVE) or a folder above it.",
     "none": "No install found automatically — add a folder by hand below.",
     "found": "Detected channels",
     "next": "Start extraction"

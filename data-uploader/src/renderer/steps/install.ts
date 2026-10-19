@@ -30,8 +30,10 @@ async function autoScan(): Promise<void> {
   try {
     const found = await window.sc.discover();
     // Single-select: with exactly one install found it is preselected (the
-    // run uses it); with more than one the operator must pick.
-    state.channels = found.map((c, i) => ({ ...c, selected: found.length === 1 && i === 0 }));
+    // run uses it); with more than one the operator must pick — unless one of
+    // them is the install they chose before (discovery lists it first).
+    const preselect = found.length === 1 || found[0]?.source === 'saved';
+    state.channels = found.map((c, i) => ({ ...c, selected: preselect && i === 0 }));
   } catch {
     /* leave channels empty — the empty state below explains next steps */
   } finally {
@@ -48,11 +50,17 @@ async function autoScan(): Promise<void> {
 async function addManualFolder(): Promise<void> {
   const folder = await window.sc.pickFolder();
   if (!folder) return;
+  // Main resolves any level (library folder, StarCitizen, LIVE, Bin64) and
+  // remembers the hit for the next launch.
   const ch = await window.sc.discoverManual(folder);
-  if (!ch) return;
-  if (state.channels.some((c) => c.dataP4kPath === ch.dataP4kPath)) return;
-  state.channels.forEach((c) => (c.selected = false));
-  state.channels.push({ ...ch, selected: true });
+  if (!ch) {
+    showSnackbar(t('discover.manualNotFound'), 'error');
+    return;
+  }
+  const same = (c: { dataP4kPath: string }): boolean =>
+    c.dataP4kPath.toLowerCase() === ch.dataP4kPath.toLowerCase();
+  state.channels.forEach((c) => (c.selected = same(c)));
+  if (!state.channels.some(same)) state.channels.push({ ...ch, selected: true });
   paintChannels();
 }
 
@@ -203,6 +211,9 @@ function paintChannels(): void {
       if (!Number.isInteger(idx)) return;
       state.channels.forEach((c, i) => (c.selected = i === idx));
       noteInstallPath(state.channels[idx]?.dataP4kPath);
+      // The pick is remembered, so the next launch preselects it.
+      const picked = state.channels[idx]?.installPath;
+      if (picked) void window.sc.rememberInstall(picked);
       mount.querySelectorAll('.channel-card').forEach((el2, i) => el2.classList.toggle('selected', i === idx));
       syncNextButton();
     });
